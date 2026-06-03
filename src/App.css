@@ -458,4 +458,69 @@ body {
 .monthCalendar .workoutBlock {
   padding: 8px;
   font-size: 13px;
+}.workoutBlock {
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  border: 1px solid rgba(212, 175, 55, 0.4);
+}
+
+.workoutBlock:hover {
+  transform: translateY(-2px);
+  background: rgba(212, 175, 55, 0.28);
+}
+
+.completedWorkout {
+  border-color: rgba(124, 255, 151, 0.45);
+}
+
+.missedWorkout {
+  border-color: rgba(255, 120, 120, 0.5);
+}
+
+.progressWorkout {
+  border-color: rgba(120, 200, 255, 0.5);
+}
+
+.scheduledWorkout {
+  border-color: rgba(212, 175, 55, 0.45);
+}
+
+.workoutDrawer {
+  position: fixed;
+  right: 24px;
+  top: 24px;
+  bottom: 24px;
+  width: 380px;
+  background: rgba(0, 0, 0, 0.94);
+  border: 1px solid rgba(212, 175, 55, 0.5);
+  border-radius: 18px;
+  padding: 26px;
+  color: white;
+  z-index: 20;
+  box-shadow: 0 20px 80px rgba(0, 0, 0, 0.7);
+}
+
+.workoutDrawer h2 {
+  color: #f5d77b;
+  margin-top: 20px;
+}
+
+.drawerClose {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  background: transparent;
+  color: #f5d77b;
+  border: none;
+  font-size: 32px;
+  cursor: pointer;
+}
+
+.drawerNotes {
+  margin-top: 28px;
+}
+
+.drawerNotes h3 {
+  color: #f5d77b;
 }

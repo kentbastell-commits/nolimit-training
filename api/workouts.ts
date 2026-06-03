@@ -10,17 +10,19 @@ function fieldToText(value: any): string {
     return value
       .map((item) => {
         if (typeof item === "string") return item;
-        if (typeof item === "number") return String(item);
         if (item?.text) return item.text;
         if (item?.name) return item.name;
-        if (item?.record_ids) return item.record_ids.join(",");
+        if (item?.record_ids) return item.record_ids.join(", ");
+        if (item?.link_record_ids) return item.link_record_ids.join(", ");
         return JSON.stringify(item);
       })
-      .join(",");
+      .join(", ");
   }
 
   if (value?.text) return value.text;
   if (value?.name) return value.name;
+  if (value?.record_ids) return value.record_ids.join(", ");
+  if (value?.link_record_ids) return value.link_record_ids.join(", ");
 
   return JSON.stringify(value);
 }
@@ -33,9 +35,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       "https://open.larksuite.com/open-apis/auth/v3/tenant_access_token/internal",
       {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           app_id: process.env.LARK_APP_ID,
           app_secret: process.env.LARK_APP_SECRET,
@@ -55,10 +55,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const recordsResponse = await fetch(
       `https://open.larksuite.com/open-apis/bitable/v1/apps/${process.env.LARK_BASE_APP_TOKEN}/tables/${process.env.LARK_ASSIGNED_WORKOUTS_TABLE_ID}/records?page_size=100`,
       {
-        method: "GET",
         headers: {
           Authorization: `Bearer ${tokenData.tenant_access_token}`,
-          "Content-Type": "application/json",
         },
       }
     );
