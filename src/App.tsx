@@ -1,33 +1,52 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import "./App.css";
 
 type Page = "Clients" | "Library" | "Workouts" | "Check-ins";
 
-const clients = [
-  { initials: "CH", name: "Client Name", activity: "3d ago", training: "75%", program: "Strength Phase 1", status: "Active" },
-  { initials: "MY", name: "Client Name", activity: "1w ago", training: "50%", program: "Power Phase", status: "Active" },
-  { initials: "ML", name: "Client Name", activity: "2w ago", training: "--", program: "Custom Program", status: "On Hold" },
-];
-
-const menuItems: { name: Page; count: number }[] = [
-  { name: "Clients", count: 0 },
-  { name: "Library", count: 0 },
-  { name: "Workouts", count: 0 },
-  { name: "Check-ins", count: 0 },
-];
+type Client = {
+  id: string;
+  name: string;
+  initials: string;
+  activity: string;
+  training: string;
+  program: string;
+  status: string;
+};
 
 function App() {
   const [activePage, setActivePage] = useState<Page>("Clients");
+  const [clients, setClients] = useState<Client[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/clients")
+      .then((res) => res.json())
+      .then((data) => {
+        setClients(data.clients || []);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error(err);
+        setLoading(false);
+      });
+  }, []);
+
+  const menuItems: { name: Page; count: number }[] = [
+    { name: "Clients", count: clients.length },
+    { name: "Library", count: 0 },
+    { name: "Workouts", count: 0 },
+    { name: "Check-ins", count: 0 },
+  ];
 
   return (
     <div className="app">
       <aside className="sidebar">
         <div className="brand">
-  <div className="brandWordmark">
-    N<span className="strikeO">o</span> Limit
-  </div>
-  <div className="brandSub">Training</div>
-</div>
+          <div className="brandWordmark">
+            N<span className="strikeO">o</span> Limit
+          </div>
+          <div className="brandSub">Training</div>
+        </div>
 
         <nav>
           {menuItems.map((item) => (
@@ -75,6 +94,8 @@ function App() {
               <button className="outlineButton">Workout Analytics</button>
             </section>
 
+            {loading && <p>Loading clients...</p>}
+
             <section className="tableCard">
               <div className="tableHeader">
                 <span>Name</span>
@@ -84,8 +105,21 @@ function App() {
                 <span>Status</span>
               </div>
 
-              {clients.map((client, index) => (
-                <div className="clientRow" key={index}>
+              {!loading && clients.length === 0 && (
+                <div className="clientRow">
+                  <div className="clientName">
+                    <div className="clientAvatar">--</div>
+                    <strong>No clients found</strong>
+                  </div>
+                  <span>--</span>
+                  <span>--</span>
+                  <span>--</span>
+                  <span className="status holdStatus">Empty</span>
+                </div>
+              )}
+
+              {clients.map((client) => (
+                <div className="clientRow" key={client.id}>
                   <div className="clientName">
                     <div className="clientAvatar">{client.initials}</div>
                     <strong>{client.name}</strong>
@@ -94,7 +128,13 @@ function App() {
                   <span>{client.activity}</span>
                   <span>{client.training}</span>
                   <span>{client.program}</span>
-                  <span className={client.status === "Active" ? "status activeStatus" : "status holdStatus"}>
+                  <span
+                    className={
+                      client.status === "Active"
+                        ? "status activeStatus"
+                        : "status holdStatus"
+                    }
+                  >
                     {client.status}
                   </span>
                 </div>
