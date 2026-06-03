@@ -3,6 +3,7 @@ import "./App.css";
 
 type Page = "Clients" | "Library" | "Workouts" | "Check-ins";
 type ClientTab = "Overview" | "Training";
+type CalendarView = "1 Day" | "1 Week" | "1 Month";
 
 type Client = {
   id: string;
@@ -19,6 +20,7 @@ function App() {
   const [clients, setClients] = useState<Client[]>([]);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [clientTab, setClientTab] = useState<ClientTab>("Overview");
+  const [calendarView, setCalendarView] = useState<CalendarView>("1 Week");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -38,10 +40,21 @@ function App() {
     { name: "Check-ins", count: 0 },
   ];
 
-  const calendarDays = [
-    "Mon 18", "Tue 19", "Wed 20", "Thu 21", "Fri 22", "Sat 23", "Sun 24",
-    "Mon 25", "Tue 26", "Wed 27", "Thu 28", "Fri 29", "Sat 30", "Sun 31",
+  const dayView = ["Today"];
+  const weekView = ["Mon 18", "Tue 19", "Wed 20", "Thu 21", "Fri 22", "Sat 23", "Sun 24"];
+  const monthView = [
+    "Mon 1", "Tue 2", "Wed 3", "Thu 4", "Fri 5", "Sat 6", "Sun 7",
+    "Mon 8", "Tue 9", "Wed 10", "Thu 11", "Fri 12", "Sat 13", "Sun 14",
+    "Mon 15", "Tue 16", "Wed 17", "Thu 18", "Fri 19", "Sat 20", "Sun 21",
+    "Mon 22", "Tue 23", "Wed 24", "Thu 25", "Fri 26", "Sat 27", "Sun 28",
   ];
+
+  const calendarDays =
+    calendarView === "1 Day"
+      ? dayView
+      : calendarView === "1 Week"
+      ? weekView
+      : monthView;
 
   return (
     <div className="app">
@@ -149,29 +162,31 @@ function App() {
         )}
 
         {selectedClient && (
-          <div className="clientPage">
-            <aside className="clientListPanel">
-              <h4>CLIENTS</h4>
-              <h2>All Clients</h2>
+          <div className={clientTab === "Training" ? "clientPage trainingFocus" : "clientPage"}>
+            {clientTab === "Overview" && (
+              <aside className="clientListPanel">
+                <h4>CLIENTS</h4>
+                <h2>All Clients</h2>
 
-              <input className="miniSearch" placeholder="Search client" />
+                <input className="miniSearch" placeholder="Search client" />
 
-              {clients.map((client) => (
-                <button
-                  key={client.id}
-                  className={`miniClient ${
-                    selectedClient.id === client.id ? "selectedMiniClient" : ""
-                  }`}
-                  onClick={() => {
-                    setSelectedClient(client);
-                    setClientTab("Overview");
-                  }}
-                >
-                  <div className="clientAvatar">{client.initials}</div>
-                  <span>{client.name}</span>
-                </button>
-              ))}
-            </aside>
+                {clients.map((client) => (
+                  <button
+                    key={client.id}
+                    className={`miniClient ${
+                      selectedClient.id === client.id ? "selectedMiniClient" : ""
+                    }`}
+                    onClick={() => {
+                      setSelectedClient(client);
+                      setClientTab("Overview");
+                    }}
+                  >
+                    <div className="clientAvatar">{client.initials}</div>
+                    <span>{client.name}</span>
+                  </button>
+                ))}
+              </aside>
+            )}
 
             <section className="clientWorkspace">
               <button className="outlineButton" onClick={() => setSelectedClient(null)}>
@@ -226,35 +241,60 @@ function App() {
                 <div className="trainingCalendar">
                   <div className="calendarHeader">
                     <h2>Training Calendar</h2>
-                    <div>
-                      <button className="outlineButton">1 Week</button>
-                      <button className="goldButton">2 Week</button>
+
+                    <div className="calendarControls">
+                      {(["1 Day", "1 Week", "1 Month"] as CalendarView[]).map((view) => (
+                        <button
+                          key={view}
+                          className={
+                            calendarView === view ? "goldButton" : "outlineButton"
+                          }
+                          onClick={() => setCalendarView(view)}
+                        >
+                          {view}
+                        </button>
+                      ))}
                     </div>
                   </div>
 
-                  <div className="calendarGrid">
+                  <div
+                    className={
+                      calendarView === "1 Day"
+                        ? "calendarGrid oneDayCalendar"
+                        : calendarView === "1 Week"
+                        ? "calendarGrid weekCalendar"
+                        : "calendarGrid monthCalendar"
+                    }
+                  >
                     {calendarDays.map((day, index) => (
-                      <div className="calendarDay" key={day}>
+                      <div className="calendarDay" key={`${calendarView}-${day}`}>
                         <strong>{day}</strong>
 
-                        {index === 4 && (
+                        {calendarView === "1 Day" && (
+                          <div className="workoutBlock">
+                            Strength Session
+                            <span>Max hangs, pull-ups, core</span>
+                          </div>
+                        )}
+
+                        {calendarView === "1 Week" && index === 2 && (
                           <div className="workoutBlock">
                             Strength Session
                             <span>+ 4 exercises</span>
                           </div>
                         )}
 
-                        {index === 8 && (
-                          <div className="workoutBlock">
-                            Back + Pull
-                            <span>+ 8 exercises</span>
-                          </div>
-                        )}
-
-                        {index === 12 && (
+                        {calendarView === "1 Week" && index === 5 && (
                           <div className="workoutBlock">
                             Max Strength
                             <span>+ 6 exercises</span>
+                          </div>
+                        )}
+
+                        {calendarView === "1 Month" && [3, 8, 13, 18, 24].includes(index) && (
+                          <div className="workoutBlock">
+                            Training
+                            <span>+ workout</span>
                           </div>
                         )}
                       </div>

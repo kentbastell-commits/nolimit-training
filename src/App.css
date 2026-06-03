@@ -421,4 +421,41 @@ body {
   color: #aaa;
   font-size: 13px;
   margin-top: 5px;
+}.calendarControls {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.trainingFocus {
+  grid-template-columns: 1fr;
+}
+
+.trainingFocus .clientWorkspace {
+  width: 100%;
+}
+
+.oneDayCalendar {
+  grid-template-columns: 1fr;
+}
+
+.oneDayCalendar .calendarDay {
+  min-height: 520px;
+}
+
+.weekCalendar {
+  grid-template-columns: repeat(7, minmax(140px, 1fr));
+}
+
+.monthCalendar {
+  grid-template-columns: repeat(7, minmax(110px, 1fr));
+}
+
+.monthCalendar .calendarDay {
+  min-height: 135px;
+}
+
+.monthCalendar .workoutBlock {
+  padding: 8px;
+  font-size: 13px;
 }
