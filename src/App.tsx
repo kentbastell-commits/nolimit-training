@@ -23,9 +23,11 @@ function App() {
     <div className="app">
       <aside className="sidebar">
         <div className="brand">
-          <div className="logo">NL</div>
-          <div className="brandText">No Limit Training</div>
-        </div>
+  <div className="brandWordmark">
+    N<span className="strikeO">o</span> Limit
+  </div>
+  <div className="brandSub">Training</div>
+</div>
 
         <nav>
           {menuItems.map((item) => (
