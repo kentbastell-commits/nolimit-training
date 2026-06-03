@@ -1,5 +1,43 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 
+function fieldToText(value: any): string {
+  if (!value) return "";
+
+  if (typeof value === "string") return value;
+  if (typeof value === "number") return String(value);
+
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => {
+        if (typeof item === "string") return item;
+        if (item?.text) return item.text;
+        if (item?.name) return item.name;
+        if (item?.record_ids) return item.record_ids.join(",");
+        return "";
+      })
+      .filter(Boolean)
+      .join(", ");
+  }
+
+  if (value?.text) return value.text;
+  if (value?.name) return value.name;
+
+  return "";
+}
+
+function formatDate(value: any): string {
+  const text = fieldToText(value);
+
+  if (!text) return "--";
+
+  if (/^\d+$/.test(text)) {
+    const date = new Date(Number(text));
+    return date.toISOString().split("T")[0];
+  }
+
+  return text.split("T")[0].split(" ")[0];
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const tokenResponse = await fetch(
@@ -29,28 +67,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const clients = recordsData.data.items.map((item: any) => {
       const fields = item.fields || {};
-      const name = fields["Full Name"] || "Unnamed Client";
-      const clientCode = fields["Client ID"] || "";
+      const name = fieldToText(fields["Full Name"]) || "Unnamed Client";
+      const clientCode = fieldToText(fields["Client ID"]);
 
       return {
         id: item.record_id,
         clientCode,
         name,
-        initials: String(name)
+        initials: name
           .split(" ")
           .map((word) => word[0])
           .join("")
           .slice(0, 2)
           .toUpperCase(),
-        activity: fields["Last Check-in Date"] || "--",
+        activity: formatDate(fields["Last Check-in Date"]),
         training: "--",
-        program: fields["Program ID"] || "--",
-        status: fields["Package Type"] || "Active",
-        email: fields["Email"] || "",
-        phone: fields["Phone/WeChat"] || "",
-        coach: fields["Coach Assigned"] || "",
-        notes: fields["Notes"] || "",
-        startDate: fields["Start Date"] || "",
+        program: fieldToText(fields["Program ID"]) || "--",
+        status: fieldToText(fields["Package Type"]) || "Active",
+        email: fieldToText(fields["Email"]),
+        phone: fieldToText(fields["Phone/WeChat"]),
+        coach: fieldToText(fields["Coach Assigned"]),
+        notes: fieldToText(fields["Notes"]),
+        startDate: formatDate(fields["Start Date"]),
       };
     });
 
