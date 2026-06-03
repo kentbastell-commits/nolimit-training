@@ -85,18 +85,31 @@ function App() {
           "2026-06-17", "2026-06-18", "2026-06-19", "2026-06-20", "2026-06-21", "2026-06-22", "2026-06-23",
         ];
 
-  function formatCalendarLabel(dateString: string) {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-    });
+  function normalizeDate(value: string) {
+  if (!value) return "";
+
+  if (/^\d+$/.test(value)) {
+    const date = new Date(Number(value));
+    return date.toISOString().split("T")[0];
   }
 
-  function getWorkoutsForDate(dateString: string) {
-    return workouts.filter((workout) => workout.scheduledDate.startsWith(dateString));
-  }
+  return value.split("T")[0].split(" ")[0];
+}
+
+function formatCalendarLabel(dateString: string) {
+  const date = new Date(dateString + "T00:00:00");
+  return date.toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+function getWorkoutsForDate(dateString: string) {
+  return workouts.filter((workout) => {
+    return normalizeDate(String(workout.scheduledDate)) === dateString;
+  });
+}
 
   return (
     <div className="app">
