@@ -7,12 +7,29 @@ type CalendarView = "1 Day" | "1 Week" | "1 Month";
 
 type Client = {
   id: string;
+  clientCode: string;
   name: string;
   initials: string;
   activity: string;
   training: string;
   program: string;
   status: string;
+  email?: string;
+  phone?: string;
+  coach?: string;
+  notes?: string;
+  startDate?: string;
+};
+
+type Workout = {
+  id: string;
+  assignedWorkoutId: string;
+  clientId: string;
+  sessionName: string;
+  scheduledDate: string;
+  completionStatus: string;
+  coachNotes: string;
+  clientNotes: string;
 };
 
 function App() {
@@ -21,7 +38,9 @@ function App() {
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [clientTab, setClientTab] = useState<ClientTab>("Overview");
   const [calendarView, setCalendarView] = useState<CalendarView>("1 Week");
+  const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [loading, setLoading] = useState(true);
+  const [workoutsLoading, setWorkoutsLoading] = useState(false);
 
   useEffect(() => {
     fetch("/api/clients")
@@ -33,28 +52,51 @@ function App() {
       .catch(() => setLoading(false));
   }, []);
 
+  useEffect(() => {
+    if (!selectedClient || clientTab !== "Training") return;
+
+    setWorkoutsLoading(true);
+
+    fetch(`/api/workouts?clientCode=${selectedClient.clientCode}`)
+      .then((res) => res.json())
+      .then((data) => {
+        setWorkouts(data.workouts || []);
+        setWorkoutsLoading(false);
+      })
+      .catch(() => setWorkoutsLoading(false));
+  }, [selectedClient, clientTab]);
+
   const menuItems: { name: Page; count: number }[] = [
     { name: "Clients", count: clients.length },
     { name: "Library", count: 0 },
-    { name: "Workouts", count: 0 },
+    { name: "Workouts", count: workouts.length },
     { name: "Check-ins", count: 0 },
   ];
 
-  const dayView = ["Today"];
-  const weekView = ["Mon 18", "Tue 19", "Wed 20", "Thu 21", "Fri 22", "Sat 23", "Sun 24"];
-  const monthView = [
-    "Mon 1", "Tue 2", "Wed 3", "Thu 4", "Fri 5", "Sat 6", "Sun 7",
-    "Mon 8", "Tue 9", "Wed 10", "Thu 11", "Fri 12", "Sat 13", "Sun 14",
-    "Mon 15", "Tue 16", "Wed 17", "Thu 18", "Fri 19", "Sat 20", "Sun 21",
-    "Mon 22", "Tue 23", "Wed 24", "Thu 25", "Fri 26", "Sat 27", "Sun 28",
-  ];
-
-  const calendarDays =
+  const calendarDates =
     calendarView === "1 Day"
-      ? dayView
+      ? ["2026-05-27"]
       : calendarView === "1 Week"
-      ? weekView
-      : monthView;
+      ? ["2026-05-27", "2026-05-28", "2026-05-29", "2026-05-30", "2026-05-31", "2026-06-01", "2026-06-02"]
+      : [
+          "2026-05-27", "2026-05-28", "2026-05-29", "2026-05-30", "2026-05-31", "2026-06-01", "2026-06-02",
+          "2026-06-03", "2026-06-04", "2026-06-05", "2026-06-06", "2026-06-07", "2026-06-08", "2026-06-09",
+          "2026-06-10", "2026-06-11", "2026-06-12", "2026-06-13", "2026-06-14", "2026-06-15", "2026-06-16",
+          "2026-06-17", "2026-06-18", "2026-06-19", "2026-06-20", "2026-06-21", "2026-06-22", "2026-06-23",
+        ];
+
+  function formatCalendarLabel(dateString: string) {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+    });
+  }
+
+  function getWorkoutsForDate(dateString: string) {
+    return workouts.filter((workout) => workout.scheduledDate.startsWith(dateString));
+  }
 
   return (
     <div className="app">
@@ -223,15 +265,18 @@ function App() {
                 <div className="overviewGrid">
                   <div className="profileCard">
                     <h3>Client Information</h3>
+                    <p><strong>Client ID:</strong> {selectedClient.clientCode}</p>
                     <p><strong>Name:</strong> {selectedClient.name}</p>
-                    <p><strong>Status:</strong> {selectedClient.status}</p>
-                    <p><strong>Current Program:</strong> {selectedClient.program}</p>
-                    <p><strong>Last Activity:</strong> {selectedClient.activity}</p>
-                    <p><strong>Last 7d Training:</strong> {selectedClient.training}</p>
+                    <p><strong>Email:</strong> {selectedClient.email}</p>
+                    <p><strong>Phone/WeChat:</strong> {selectedClient.phone}</p>
+                    <p><strong>Coach:</strong> {selectedClient.coach}</p>
+                    <p><strong>Package:</strong> {selectedClient.status}</p>
+                    <p><strong>Start Date:</strong> {selectedClient.startDate}</p>
                   </div>
 
                   <div className="profileCard">
                     <h3>Coach Notes</h3>
+                    <p>{selectedClient.notes || "No notes yet."}</p>
                     <textarea placeholder="Add private coach notes here..." />
                   </div>
                 </div>
@@ -257,6 +302,8 @@ function App() {
                     </div>
                   </div>
 
+                  {workoutsLoading && <p>Loading workouts...</p>}
+
                   <div
                     className={
                       calendarView === "1 Day"
@@ -266,39 +313,22 @@ function App() {
                         : "calendarGrid monthCalendar"
                     }
                   >
-                    {calendarDays.map((day, index) => (
-                      <div className="calendarDay" key={`${calendarView}-${day}`}>
-                        <strong>{day}</strong>
+                    {calendarDates.map((date) => {
+                      const dayWorkouts = getWorkoutsForDate(date);
 
-                        {calendarView === "1 Day" && (
-                          <div className="workoutBlock">
-                            Strength Session
-                            <span>Max hangs, pull-ups, core</span>
-                          </div>
-                        )}
+                      return (
+                        <div className="calendarDay" key={date}>
+                          <strong>{formatCalendarLabel(date)}</strong>
 
-                        {calendarView === "1 Week" && index === 2 && (
-                          <div className="workoutBlock">
-                            Strength Session
-                            <span>+ 4 exercises</span>
-                          </div>
-                        )}
-
-                        {calendarView === "1 Week" && index === 5 && (
-                          <div className="workoutBlock">
-                            Max Strength
-                            <span>+ 6 exercises</span>
-                          </div>
-                        )}
-
-                        {calendarView === "1 Month" && [3, 8, 13, 18, 24].includes(index) && (
-                          <div className="workoutBlock">
-                            Training
-                            <span>+ workout</span>
-                          </div>
-                        )}
-                      </div>
-                    ))}
+                          {dayWorkouts.map((workout) => (
+                            <div className="workoutBlock" key={workout.id}>
+                              {workout.sessionName}
+                              <span>{workout.completionStatus}</span>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
