@@ -19,10 +19,13 @@ function fieldToText(value: any): string {
       .join(", ");
   }
 
-  if (value?.text) return value.text;
-  if (value?.name) return value.name;
+if (value?.text) return value.text;
+if (value?.name) return value.name;
 
-  return "";
+if (value?.record_ids) return value.record_ids.join(", ");
+if (value?.link_record_ids) return value.link_record_ids.join(", ");
+
+return JSON.stringify(value);
 }
 
 function formatDate(value: any): string {
