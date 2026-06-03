@@ -1,79 +1,127 @@
+import { useState } from "react";
+import "./App.css";
+
+type Page = "Clients" | "Library" | "Workouts" | "Check-ins";
+
+const clients = [
+  { initials: "CH", name: "Client Name", activity: "3d ago", training: "75%", program: "Strength Phase 1", status: "Active" },
+  { initials: "MY", name: "Client Name", activity: "1w ago", training: "50%", program: "Power Phase", status: "Active" },
+  { initials: "ML", name: "Client Name", activity: "2w ago", training: "--", program: "Custom Program", status: "On Hold" },
+];
+
+const menuItems: { name: Page; count: number }[] = [
+  { name: "Clients", count: 0 },
+  { name: "Library", count: 0 },
+  { name: "Workouts", count: 0 },
+  { name: "Check-ins", count: 0 },
+];
+
 function App() {
-  const cards = [
-    { title: "Athletes", value: "15", subtitle: "Active athletes" },
-    { title: "Today's Sessions", value: "8", subtitle: "Scheduled workouts" },
-    { title: "Check-ins", value: "6", subtitle: "Submitted today" },
-    { title: "Alerts", value: "2", subtitle: "Require attention" },
-  ];
+  const [activePage, setActivePage] = useState<Page>("Clients");
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: "#f5f7fb",
-        padding: "30px",
-        fontFamily: "Arial, sans-serif",
-      }}
-    >
-      <h1 style={{ marginBottom: "5px" }}>NoLimit Training</h1>
-      <p style={{ color: "#666", marginTop: 0 }}>
-        High Performance Coaching Dashboard
-      </p>
-
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-          gap: "20px",
-          marginTop: "30px",
-        }}
-      >
-        {cards.map((card) => (
-          <div
-            key={card.title}
-            style={{
-              background: "white",
-              borderRadius: "16px",
-              padding: "20px",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-            }}
-          >
-            <h3>{card.title}</h3>
-            <h1>{card.value}</h1>
-            <p style={{ color: "#666" }}>{card.subtitle}</p>
-          </div>
-        ))}
-      </div>
-
-      <div
-        style={{
-          marginTop: "30px",
-          background: "white",
-          borderRadius: "16px",
-          padding: "25px",
-          boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-        }}
-      >
-        <h2>Today's Workout</h2>
-
-        <div
-          style={{
-            border: "1px solid #ddd",
-            borderRadius: "12px",
-            padding: "15px",
-            marginTop: "15px",
-          }}
-        >
-          <h3>Finger Strength Session</h3>
-
-          <ul>
-            <li>Max Hangs - 5 x 10s</li>
-            <li>Weighted Pull-Ups - 4 x 5</li>
-            <li>Scap Pull-Ups - 3 x 12</li>
-            <li>Core Circuit - 3 rounds</li>
-          </ul>
+    <div className="app">
+      <aside className="sidebar">
+        <div className="brand">
+          <div className="logo">NL</div>
+          <div className="brandText">No Limit Training</div>
         </div>
-      </div>
+
+        <nav>
+          {menuItems.map((item) => (
+            <button
+              key={item.name}
+              className={`navItem ${activePage === item.name ? "active" : ""}`}
+              onClick={() => setActivePage(item.name)}
+            >
+              <span>{item.name}</span>
+              <span className="badge">{item.count}</span>
+            </button>
+          ))}
+        </nav>
+
+        <div className="coachBox">
+          <div className="avatar">KB</div>
+          <div>
+            <strong>Kent Bastell</strong>
+            <p>Coach</p>
+          </div>
+        </div>
+      </aside>
+
+      <main className="main">
+        <header className="topbar">
+          <div>
+            <h1>{activePage}</h1>
+            <p>NoLimit Training System</p>
+          </div>
+
+          <button className="goldButton">+ Add Client</button>
+        </header>
+
+        {activePage === "Clients" && (
+          <>
+            <section className="filters">
+              <button>Category: All</button>
+              <button>Status: All</button>
+              <button>Last Activity</button>
+              <button>Last Assigned Workout</button>
+            </section>
+
+            <section className="searchRow">
+              <input placeholder="Search client..." />
+              <button className="outlineButton">Workout Analytics</button>
+            </section>
+
+            <section className="tableCard">
+              <div className="tableHeader">
+                <span>Name</span>
+                <span>Last Activity</span>
+                <span>Last 7d Training</span>
+                <span>Program</span>
+                <span>Status</span>
+              </div>
+
+              {clients.map((client, index) => (
+                <div className="clientRow" key={index}>
+                  <div className="clientName">
+                    <div className="clientAvatar">{client.initials}</div>
+                    <strong>{client.name}</strong>
+                  </div>
+
+                  <span>{client.activity}</span>
+                  <span>{client.training}</span>
+                  <span>{client.program}</span>
+                  <span className={client.status === "Active" ? "status activeStatus" : "status holdStatus"}>
+                    {client.status}
+                  </span>
+                </div>
+              ))}
+            </section>
+          </>
+        )}
+
+        {activePage === "Library" && (
+          <section className="placeholder">
+            <h2>Exercise Library</h2>
+            <p>Your exercise library will appear here.</p>
+          </section>
+        )}
+
+        {activePage === "Workouts" && (
+          <section className="placeholder">
+            <h2>Workouts</h2>
+            <p>Workout templates and assigned sessions will appear here.</p>
+          </section>
+        )}
+
+        {activePage === "Check-ins" && (
+          <section className="placeholder">
+            <h2>Check-ins</h2>
+            <p>Readiness, soreness, pain, and weekly check-ins will appear here.</p>
+          </section>
+        )}
+      </main>
     </div>
   );
 }
