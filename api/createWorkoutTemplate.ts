@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 
 type ProgramExercise = {
+  exerciseRecordId?: string;
   exerciseId: string;
   exerciseName: string;
   order: number;
@@ -15,6 +16,73 @@ type ProgramExercise = {
 function makeTemplateId() {
   const random = Math.floor(100000 + Math.random() * 900000);
   return `WT-${random}`;
+}
+
+function fieldToText(value: any): string {
+  if (!value) return "";
+  if (typeof value === "string") return value;
+  if (typeof value === "number") return String(value);
+
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => {
+        if (typeof item === "string") return item;
+        if (item?.text) return item.text;
+        if (item?.name) return item.name;
+        return JSON.stringify(item);
+      })
+      .join(", ");
+  }
+
+  if (value?.text) return value.text;
+  if (value?.name) return value.name;
+
+  return JSON.stringify(value);
+}
+
+async function getTenantToken() {
+  const tokenResponse = await fetch(
+    "https://open.larksuite.com/open-apis/auth/v3/tenant_access_token/internal",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        app_id: process.env.LARK_APP_ID,
+        app_secret: process.env.LARK_APP_SECRET,
+      }),
+    }
+  );
+
+  const tokenData = await tokenResponse.json();
+
+  if (!tokenData.tenant_access_token) {
+    throw new Error(
+      `Could not get tenant token: ${JSON.stringify(tokenData)}`
+    );
+  }
+
+  return tokenData.tenant_access_token;
+}
+
+async function getRecords(tableId: string, token: string) {
+  const response = await fetch(
+    `https://open.larksuite.com/open-apis/bitable/v1/apps/${process.env.LARK_BASE_APP_TOKEN}/tables/${tableId}/records?page_size=500`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  const data = await response.json();
+
+  if (!data?.data?.items) {
+    throw new Error(`Could not load records: ${JSON.stringify(data)}`);
+  }
+
+  return data.data.items;
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -40,54 +108,76 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
-    const tokenResponse = await fetch(
-      "https://open.larksuite.com/open-apis/auth/v3/tenant_access_token/internal",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          app_id: process.env.LARK_APP_ID,
-          app_secret: process.env.LARK_APP_SECRET,
-        }),
-      }
+    const token = await getTenantToken();
+
+    const programRecords = await getRecords(
+      process.env.LARK_PROGRAMS_TABLE_ID as string,
+      token
     );
 
-    const tokenData = await tokenResponse.json();
+    const matchingProgram = programRecords.find((item: any) => {
+      const fields = item.fields || {};
+      return fieldToText(fields["Program ID"]) === String(programId);
+    });
 
-    if (!tokenData.tenant_access_token) {
-      return res.status(500).json({
-        error: "Could not get Lark tenant access token",
-        larkResponse: tokenData,
+    if (!matchingProgram) {
+      return res.status(400).json({
+        error: "Program ID not found in Programs table",
+        programId,
       });
     }
 
-    const records = exercises.map((exercise: ProgramExercise, index: number) => ({
-      fields: {
-        "Template ID": makeTemplateId(),
-        "Program ID": programId,
-        Week: Number(week),
-        Day: Number(day),
-        "Session Name": sessionName,
-        "Exercise ID": exercise.exerciseId,
-        "Exercise Name": exercise.exerciseName,
-        Order: Number(exercise.order) || index + 1,
-        Sets: Number(exercise.sets) || 1,
-        Reps: String(exercise.reps || ""),
-        Tempo: String(exercise.tempo || ""),
-        Rest: String(exercise.rest || ""),
-        "Coaching Notes": String(exercise.coachingNotes || ""),
-        Status: String(exercise.status || "Active"),
-      },
-    }));
+    const exerciseRecords = await getRecords(
+      process.env.LARK_EXERCISE_LIBRARY_TABLE_ID as string,
+      token
+    );
+
+    const records = exercises.map((exercise: ProgramExercise, index: number) => {
+      const matchingExercise =
+        exercise.exerciseRecordId
+          ? exerciseRecords.find(
+              (item: any) => item.record_id === exercise.exerciseRecordId
+            )
+          : exerciseRecords.find((item: any) => {
+              const fields = item.fields || {};
+              return fieldToText(fields["Exercise ID"]) === exercise.exerciseId;
+            });
+
+      if (!matchingExercise) {
+        throw new Error(
+          `Exercise not found in Exercise Library: ${exercise.exerciseId}`
+        );
+      }
+
+      return {
+        fields: {
+          "Template ID": makeTemplateId(),
+
+          // Duplex link fields must be arrays of record IDs
+          "Program ID": [matchingProgram.record_id],
+          "Exercise ID": [matchingExercise.record_id],
+
+          Week: Number(week),
+          Day: Number(day),
+          "Session Name": sessionName,
+
+          Order: Number(exercise.order) || index + 1,
+          Sets: Number(exercise.sets) || 1,
+          Reps: String(exercise.reps || ""),
+          Tempo: String(exercise.tempo || ""),
+          Rest: String(exercise.rest || ""),
+          "Coaching Notes": String(exercise.coachingNotes || ""),
+          Status: String(exercise.status || "Active"),
+        },
+      };
+    });
 
     const createResponse = await fetch(
       `https://open.larksuite.com/open-apis/bitable/v1/apps/${process.env.LARK_BASE_APP_TOKEN}/tables/${process.env.LARK_WORKOUT_TEMPLATE_TABLE_ID}/records/batch_create`,
       {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${tokenData.tenant_access_token}`,
+          Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
