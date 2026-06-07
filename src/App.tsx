@@ -132,7 +132,15 @@ function App() {
   const [libraryLoading, setLibraryLoading] = useState(false);
   const [librarySearch, setLibrarySearch] = useState("");
 
-  const [programId, setProgramId] = useState("PR-0001");
+  const [programName, setProgramName] = useState("Foundation Program");
+  const [programGoal, setProgramGoal] = useState("General Strength");
+  const [programSport, setProgramSport] = useState("Fitness");
+  const [programLevel, setProgramLevel] = useState("Beginner");
+  const [programDurationWeeks, setProgramDurationWeeks] = useState("4");
+  const [programPhase, setProgramPhase] = useState("Foundation");
+  const [programSessionsPerWeek, setProgramSessionsPerWeek] = useState("3");
+  const [programCoach, setProgramCoach] = useState("Kent Bastell");
+
   const [programWeek, setProgramWeek] = useState("1");
   const [programDay, setProgramDay] = useState("1");
   const [sessionName, setSessionName] = useState("Lower Strength");
@@ -337,8 +345,8 @@ function App() {
   };
 
   const saveWorkoutTemplate = async () => {
-    if (!programId || !programWeek || !programDay || !sessionName) {
-      alert("Please fill Program ID, Week, Day, and Session Name.");
+    if (!programName || !programWeek || !programDay || !sessionName) {
+      alert("Please fill Program Name, Week, Day, and Session Name.");
       return;
     }
 
@@ -350,13 +358,40 @@ function App() {
     setSavingTemplate(true);
 
     try {
-      const response = await fetch("/api/createWorkoutTemplate", {
+      const programResponse = await fetch("/api/createProgram", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          programId,
+          programName,
+          goal: programGoal,
+          sport: programSport,
+          level: programLevel,
+          durationWeeks: Number(programDurationWeeks),
+          phase: programPhase,
+          sessionsPerWeek: Number(programSessionsPerWeek),
+          coach: programCoach,
+          status: "Active",
+        }),
+      });
+
+      const programData = await programResponse.json();
+
+      if (!programResponse.ok || !programData.success) {
+        console.error(programData);
+        alert("Could not create program. Check API response.");
+        return;
+      }
+
+      const templateResponse = await fetch("/api/createWorkoutTemplate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          programId: programData.programId,
+          programRecordId: programData.programRecordId,
           week: Number(programWeek),
           day: Number(programDay),
           sessionName,
@@ -369,19 +404,30 @@ function App() {
         }),
       });
 
-      const data = await response.json();
+      const templateData = await templateResponse.json();
 
-      if (!response.ok) {
-        console.error(data);
-        alert("Could not save workout template. Check API response.");
+      if (!templateResponse.ok || !templateData.success) {
+        console.error(templateData);
+        alert("Program was created, but workout template failed. Check API response.");
         return;
       }
 
-      alert(`Workout template saved. Records created: ${data.recordsCreated}`);
+      alert(
+        `Program saved: ${programData.programId}. Template records created: ${templateData.recordsCreated}`
+      );
+
       setSelectedProgramExercises([]);
+      setProgramName("");
+      setProgramGoal("");
+      setProgramSport("");
+      setProgramLevel("");
+      setProgramDurationWeeks("4");
+      setProgramPhase("");
+      setProgramSessionsPerWeek("3");
+      setSessionName("");
     } catch (error) {
       console.error(error);
-      alert("Could not save workout template.");
+      alert("Could not save program and template.");
     } finally {
       setSavingTemplate(false);
     }
@@ -531,7 +577,7 @@ function App() {
 
               {activePage === "Workouts" && (
                 <button className="goldButton" onClick={saveWorkoutTemplate}>
-                  {savingTemplate ? "Saving..." : "Save Template"}
+                  {savingTemplate ? "Saving..." : "Save Program"}
                 </button>
               )}
             </header>
@@ -682,41 +728,147 @@ function App() {
                     Program Builder
                   </h2>
 
+                  <h3 style={{ color: "#f5d77b" }}>Program Details</h3>
+
                   <div
                     style={{
                       display: "grid",
-                      gridTemplateColumns: "1fr 1fr 1fr 2fr",
+                      gridTemplateColumns: "2fr 1fr 1fr 1fr",
+                      gap: "14px",
+                      marginBottom: "14px",
+                    }}
+                  >
+                    <label>
+                      <span>Program Name</span>
+                      <input
+                        value={programName}
+                        onChange={(e) => setProgramName(e.target.value)}
+                        placeholder="Program Name"
+                        className="miniSearch"
+                      />
+                    </label>
+
+                    <label>
+                      <span>Goal</span>
+                      <input
+                        value={programGoal}
+                        onChange={(e) => setProgramGoal(e.target.value)}
+                        placeholder="Goal"
+                        className="miniSearch"
+                      />
+                    </label>
+
+                    <label>
+                      <span>Sport</span>
+                      <input
+                        value={programSport}
+                        onChange={(e) => setProgramSport(e.target.value)}
+                        placeholder="Sport"
+                        className="miniSearch"
+                      />
+                    </label>
+
+                    <label>
+                      <span>Level</span>
+                      <input
+                        value={programLevel}
+                        onChange={(e) => setProgramLevel(e.target.value)}
+                        placeholder="Level"
+                        className="miniSearch"
+                      />
+                    </label>
+                  </div>
+
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "1fr 1fr 1fr 1fr",
                       gap: "14px",
                       marginBottom: "22px",
                     }}
                   >
-                    <input
-                      value={programId}
-                      onChange={(e) => setProgramId(e.target.value)}
-                      placeholder="Program ID"
-                      className="miniSearch"
-                    />
+                    <label>
+                      <span>Duration Weeks</span>
+                      <input
+                        value={programDurationWeeks}
+                        onChange={(e) => setProgramDurationWeeks(e.target.value)}
+                        placeholder="Duration Weeks"
+                        className="miniSearch"
+                      />
+                    </label>
 
-                    <input
-                      value={programWeek}
-                      onChange={(e) => setProgramWeek(e.target.value)}
-                      placeholder="Week"
-                      className="miniSearch"
-                    />
+                    <label>
+                      <span>Phase</span>
+                      <input
+                        value={programPhase}
+                        onChange={(e) => setProgramPhase(e.target.value)}
+                        placeholder="Phase"
+                        className="miniSearch"
+                      />
+                    </label>
 
-                    <input
-                      value={programDay}
-                      onChange={(e) => setProgramDay(e.target.value)}
-                      placeholder="Day"
-                      className="miniSearch"
-                    />
+                    <label>
+                      <span>Sessions / Week</span>
+                      <input
+                        value={programSessionsPerWeek}
+                        onChange={(e) =>
+                          setProgramSessionsPerWeek(e.target.value)
+                        }
+                        placeholder="Sessions / Week"
+                        className="miniSearch"
+                      />
+                    </label>
 
-                    <input
-                      value={sessionName}
-                      onChange={(e) => setSessionName(e.target.value)}
-                      placeholder="Session Name"
-                      className="miniSearch"
-                    />
+                    <label>
+                      <span>Coach</span>
+                      <input
+                        value={programCoach}
+                        onChange={(e) => setProgramCoach(e.target.value)}
+                        placeholder="Coach"
+                        className="miniSearch"
+                      />
+                    </label>
+                  </div>
+
+                  <h3 style={{ color: "#f5d77b" }}>Session Details</h3>
+
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "1fr 1fr 2fr",
+                      gap: "14px",
+                      marginBottom: "22px",
+                    }}
+                  >
+                    <label>
+                      <span>Week</span>
+                      <input
+                        value={programWeek}
+                        onChange={(e) => setProgramWeek(e.target.value)}
+                        placeholder="Week"
+                        className="miniSearch"
+                      />
+                    </label>
+
+                    <label>
+                      <span>Day</span>
+                      <input
+                        value={programDay}
+                        onChange={(e) => setProgramDay(e.target.value)}
+                        placeholder="Day"
+                        className="miniSearch"
+                      />
+                    </label>
+
+                    <label>
+                      <span>Session Name</span>
+                      <input
+                        value={sessionName}
+                        onChange={(e) => setSessionName(e.target.value)}
+                        placeholder="Session Name"
+                        className="miniSearch"
+                      />
+                    </label>
                   </div>
 
                   <div className="searchRow">
@@ -901,7 +1053,7 @@ function App() {
                     onClick={saveWorkoutTemplate}
                     disabled={savingTemplate}
                   >
-                    {savingTemplate ? "Saving..." : "Save Workout Template"}
+                    {savingTemplate ? "Saving..." : "Save Program"}
                   </button>
                 </section>
               </>
