@@ -13,7 +13,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { programName, status } = req.body;
+    const {
+      programName,
+      goal,
+      sport,
+      level,
+      durationWeeks,
+      phase,
+      sessionsPerWeek,
+      coach,
+      status,
+    } = req.body;
 
     if (!programName) {
       return res.status(400).json({
@@ -46,6 +56,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const programId = makeProgramId();
 
+    const fields = {
+      "Program ID": programId,
+      "Program Name": programName,
+      Goal: goal || "",
+      Sport: sport || "",
+      Level: level || "",
+      "Duration Weeks": Number(durationWeeks) || 1,
+      Phase: phase || "",
+      "Sessions / Week": Number(sessionsPerWeek) || 1,
+      Coach: coach || "Kent Bastell",
+      Status: status || "Active",
+    };
+
     const createResponse = await fetch(
       `https://open.larksuite.com/open-apis/bitable/v1/apps/${process.env.LARK_BASE_APP_TOKEN}/tables/${process.env.LARK_PROGRAMS_TABLE_ID}/records`,
       {
@@ -55,11 +78,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          fields: {
-            "Program ID": programId,
-            "Program Name": programName,
-            Status: status || "Active",
-          },
+          fields,
         }),
       }
     );
@@ -70,11 +89,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(500).json({
         error: "Failed to create program record",
         larkResponse: createData,
-        fieldsSent: {
-          "Program ID": programId,
-          "Program Name": programName,
-          Status: status || "Active",
-        },
+        fieldsSent: fields,
       });
     }
 
