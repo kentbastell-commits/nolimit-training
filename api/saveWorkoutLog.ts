@@ -17,16 +17,36 @@ function calculateLoadScore(weight: any, reps: any, time: any): number {
   return calculateVolume(weight, reps) + calculateDurationSeconds(time);
 }
 
+function linkedRecord(recordIdOrCode: string) {
+  if (!recordIdOrCode) return undefined;
+
+  return [
+    {
+      record_id: recordIdOrCode,
+    },
+  ];
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
+    return res.status(405).json({
+      error: "Method not allowed",
+    });
   }
 
   try {
-    const { clientId, assignedWorkoutId, workoutDate, logs } = req.body;
+    const {
+      clientId,
+      assignedWorkoutId,
+      assignedWorkoutRecordId,
+      workoutDate,
+      logs,
+    } = req.body;
 
     if (!logs || !Array.isArray(logs)) {
-      return res.status(400).json({ error: "Missing logs array" });
+      return res.status(400).json({
+        error: "Missing logs array",
+      });
     }
 
     const tokenResponse = await fetch(
@@ -61,34 +81,46 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         log.actualTime
       );
 
-      return {
-        fields: {
-          "Log ID": `LOG-${Date.now()}-${index + 1}`,
-          "Client ID": clientId,
-          "Assigned Workout ID": assignedWorkoutId,
-          "Exercise ID": log.exerciseId,
-          "Exercise Name": log.exerciseName,
-          "Date": workoutDate,
-          "Exercise Order": toNumber(log.exerciseOrder),
-          "Set Number": toNumber(log.setNumber),
-          "Prescribed Sets": toNumber(log.prescribedSets),
-          "Prescribed Reps": log.prescribedReps,
-          "Actual Reps": log.actualReps,
-          "Actual Weight": toNumber(log.actualWeight),
-          "Weight Unit": "kg",
-          "Actual Time": toNumber(log.actualTime),
-          "Time Unit": "sec",
-          "Actual Distance": toNumber(log.actualDistance),
-          "Distance Unit": "m",
-          "RPE": toNumber(log.rpe),
-          "Pain Score": toNumber(log.painScore),
-          "Completed": true,
-          "Athlete Notes": log.athleteNotes || "",
-          "Volume": volume,
-          "Duration Seconds": durationSeconds,
-          "Load Score": loadScore,
-        },
+      const fields: Record<string, any> = {
+        "Log ID": `LOG-${Date.now()}-${index + 1}`,
+
+        // Linked-record fields:
+        // These MUST receive actual Lark record IDs, not CL-0001 or AW-0001 text.
+        "Client ID": linkedRecord(clientId),
+        "Assigned Workout ID": linkedRecord(assignedWorkoutRecordId),
+
+        // Exercise ID may be text or linked depending on your table.
+        // If Exercise ID is linked, this may also need record IDs later.
+        "Exercise ID": log.exerciseId,
+
+        "Date": workoutDate,
+        "Exercise Order": toNumber(log.exerciseOrder),
+        "Set Number": toNumber(log.setNumber),
+        "Prescribed Sets": toNumber(log.prescribedSets),
+        "Prescribed Reps": log.prescribedReps,
+        "Actual Reps": log.actualReps,
+        "Actual Weight": toNumber(log.actualWeight),
+        "Weight Unit": "kg",
+        "Actual Time": toNumber(log.actualTime),
+        "Time Unit": "sec",
+        "Actual Distance": toNumber(log.actualDistance),
+        "Distance Unit": "m",
+        "RPE": toNumber(log.rpe),
+        "Pain Score": toNumber(log.painScore),
+        "Completed": true,
+        "Athlete Notes": log.athleteNotes || "",
+        "Volume": volume,
+        "Duration Seconds": durationSeconds,
+        "Load Score": loadScore,
       };
+
+      Object.keys(fields).forEach((key) => {
+        if (fields[key] === undefined) {
+          delete fields[key];
+        }
+      });
+
+      return { fields };
     });
 
     const createResponse = await fetch(
@@ -99,9 +131,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           Authorization: `Bearer ${tokenData.tenant_access_token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          records,
-        }),
+        body: JSON.stringify({ records }),
       }
     );
 
