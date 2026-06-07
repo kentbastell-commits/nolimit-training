@@ -61,6 +61,7 @@ type LibraryExercise = {
 };
 
 type ProgramExercise = {
+  exerciseRecordId: string;
   exerciseId: string;
   exerciseName: string;
   order: number;
@@ -288,7 +289,7 @@ function App() {
 
   const addExerciseToProgram = (exercise: LibraryExercise) => {
     const alreadyAdded = selectedProgramExercises.some(
-      (item) => item.exerciseId === exercise.exerciseId
+      (item) => item.exerciseRecordId === exercise.recordId
     );
 
     if (alreadyAdded) return;
@@ -296,6 +297,7 @@ function App() {
     setSelectedProgramExercises([
       ...selectedProgramExercises,
       {
+        exerciseRecordId: exercise.recordId,
         exerciseId: exercise.exerciseId,
         exerciseName: exercise.exerciseName,
         order: selectedProgramExercises.length + 1,
@@ -779,7 +781,7 @@ function App() {
                   )}
 
                   {selectedProgramExercises.map((exercise, index) => (
-                    <div className="exercise-card" key={exercise.exerciseId}>
+                    <div className="exercise-card" key={exercise.exerciseRecordId}>
                       <div className="exerciseTitleRow">
                         <h3>
                           {exercise.order}. {exercise.exerciseName}
@@ -823,11 +825,7 @@ function App() {
                             className="miniSearch"
                             value={exercise.sets}
                             onChange={(e) =>
-                              updateProgramExercise(
-                                index,
-                                "sets",
-                                e.target.value
-                              )
+                              updateProgramExercise(index, "sets", e.target.value)
                             }
                             placeholder="Sets"
                           />
@@ -839,11 +837,7 @@ function App() {
                             className="miniSearch"
                             value={exercise.reps}
                             onChange={(e) =>
-                              updateProgramExercise(
-                                index,
-                                "reps",
-                                e.target.value
-                              )
+                              updateProgramExercise(index, "reps", e.target.value)
                             }
                             placeholder="Reps"
                           />
@@ -871,11 +865,7 @@ function App() {
                             className="miniSearch"
                             value={exercise.rest}
                             onChange={(e) =>
-                              updateProgramExercise(
-                                index,
-                                "rest",
-                                e.target.value
-                              )
+                              updateProgramExercise(index, "rest", e.target.value)
                             }
                             placeholder="Rest"
                           />
