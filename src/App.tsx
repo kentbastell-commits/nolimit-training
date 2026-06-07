@@ -60,6 +60,17 @@ type LibraryExercise = {
   notes?: string;
 };
 
+type ProgramExercise = {
+  exerciseId: string;
+  exerciseName: string;
+  order: number;
+  sets: string;
+  reps: string;
+  tempo: string;
+  rest: string;
+  coachingNotes: string;
+};
+
 type SetLog = {
   exerciseId: string;
   exerciseName: string;
@@ -119,6 +130,16 @@ function App() {
   const [libraryExercises, setLibraryExercises] = useState<LibraryExercise[]>([]);
   const [libraryLoading, setLibraryLoading] = useState(false);
   const [librarySearch, setLibrarySearch] = useState("");
+
+  const [programId, setProgramId] = useState("PR-0001");
+  const [programWeek, setProgramWeek] = useState("1");
+  const [programDay, setProgramDay] = useState("1");
+  const [sessionName, setSessionName] = useState("Lower Strength");
+  const [builderSearch, setBuilderSearch] = useState("");
+  const [selectedProgramExercises, setSelectedProgramExercises] = useState<
+    ProgramExercise[]
+  >([]);
+  const [savingTemplate, setSavingTemplate] = useState(false);
 
   useEffect(() => {
     fetch("/api/clients")
@@ -266,8 +287,119 @@ function App() {
     }
   };
 
+  const addExerciseToProgram = (exercise: LibraryExercise) => {
+    const alreadyAdded = selectedProgramExercises.some(
+      (item) => item.exerciseId === exercise.exerciseId
+    );
+
+    if (alreadyAdded) return;
+
+    setSelectedProgramExercises([
+      ...selectedProgramExercises,
+      {
+        exerciseId: exercise.exerciseId,
+        exerciseName: exercise.exerciseName,
+        order: selectedProgramExercises.length + 1,
+        sets: "3",
+        reps: "8",
+        tempo: "3-1-1",
+        rest: "60 sec",
+        coachingNotes: "",
+      },
+    ]);
+  };
+
+  const updateProgramExercise = (
+    index: number,
+    field: keyof ProgramExercise,
+    value: string
+  ) => {
+    const updated = [...selectedProgramExercises];
+
+    updated[index] = {
+      ...updated[index],
+      [field]: field === "order" ? Number(value) : value,
+    };
+
+    setSelectedProgramExercises(updated);
+  };
+
+  const removeProgramExercise = (index: number) => {
+    const updated = selectedProgramExercises
+      .filter((_, itemIndex) => itemIndex !== index)
+      .map((exercise, itemIndex) => ({
+        ...exercise,
+        order: itemIndex + 1,
+      }));
+
+    setSelectedProgramExercises(updated);
+  };
+
+  const saveWorkoutTemplate = async () => {
+    if (!programId || !programWeek || !programDay || !sessionName) {
+      alert("Please fill Program ID, Week, Day, and Session Name.");
+      return;
+    }
+
+    if (selectedProgramExercises.length === 0) {
+      alert("Please add at least one exercise.");
+      return;
+    }
+
+    setSavingTemplate(true);
+
+    try {
+      const response = await fetch("/api/createWorkoutTemplate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          programId,
+          week: Number(programWeek),
+          day: Number(programDay),
+          sessionName,
+          exercises: selectedProgramExercises.map((exercise, index) => ({
+            ...exercise,
+            order: Number(exercise.order) || index + 1,
+            sets: Number(exercise.sets) || 1,
+            status: "Active",
+          })),
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error(data);
+        alert("Could not save workout template. Check API response.");
+        return;
+      }
+
+      alert(`Workout template saved. Records created: ${data.recordsCreated}`);
+      setSelectedProgramExercises([]);
+    } catch (error) {
+      console.error(error);
+      alert("Could not save workout template.");
+    } finally {
+      setSavingTemplate(false);
+    }
+  };
+
   const filteredLibraryExercises = libraryExercises.filter((exercise) => {
     const search = librarySearch.toLowerCase();
+
+    return (
+      exercise.exerciseName?.toLowerCase().includes(search) ||
+      exercise.exerciseId?.toLowerCase().includes(search) ||
+      exercise.category?.toLowerCase().includes(search) ||
+      exercise.equipment?.toLowerCase().includes(search) ||
+      exercise.movementPattern?.toLowerCase().includes(search)
+    );
+  });
+
+  const builderExercises = libraryExercises.filter((exercise) => {
+    const search = builderSearch.toLowerCase();
 
     return (
       exercise.exerciseName?.toLowerCase().includes(search) ||
@@ -357,7 +489,7 @@ function App() {
                 setSetLogs([]);
                 setActivePage(item.name);
 
-                if (item.name === "Library") {
+                if (item.name === "Library" || item.name === "Workouts") {
                   loadExerciseLibrary();
                 }
               }}
@@ -393,6 +525,12 @@ function App() {
               {activePage === "Library" && (
                 <button className="goldButton" onClick={loadExerciseLibrary}>
                   Refresh Library
+                </button>
+              )}
+
+              {activePage === "Workouts" && (
+                <button className="goldButton" onClick={saveWorkoutTemplate}>
+                  {savingTemplate ? "Saving..." : "Save Template"}
                 </button>
               )}
             </header>
@@ -484,7 +622,7 @@ function App() {
                   {libraryLoading && <p>Loading exercises...</p>}
 
                   {!libraryLoading && filteredLibraryExercises.length === 0 && (
-                    <p>No exercises found.</p>
+                    <p style={{ padding: "18px 22px" }}>No exercises found.</p>
                   )}
 
                   {!libraryLoading &&
@@ -503,8 +641,12 @@ function App() {
                               : "EX"}
                           </div>
                           <div>
-                            <strong>{exercise.exerciseName || "Unnamed Exercise"}</strong>
-                            <p style={{ margin: 0 }}>{exercise.exerciseId || "--"}</p>
+                            <strong>
+                              {exercise.exerciseName || "Unnamed Exercise"}
+                            </strong>
+                            <p style={{ margin: 0 }}>
+                              {exercise.exerciseId || "--"}
+                            </p>
                           </div>
                         </div>
 
@@ -533,10 +675,213 @@ function App() {
             )}
 
             {activePage === "Workouts" && (
-              <section className="placeholder">
-                <h2>Workouts</h2>
-                <p>Program builder will be connected here next.</p>
-              </section>
+              <>
+                <section className="tableCard" style={{ padding: "22px" }}>
+                  <h2 style={{ color: "#f5d77b", marginTop: 0 }}>
+                    Program Builder
+                  </h2>
+
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "1fr 1fr 1fr 2fr",
+                      gap: "14px",
+                      marginBottom: "22px",
+                    }}
+                  >
+                    <input
+                      value={programId}
+                      onChange={(e) => setProgramId(e.target.value)}
+                      placeholder="Program ID"
+                      className="miniSearch"
+                    />
+
+                    <input
+                      value={programWeek}
+                      onChange={(e) => setProgramWeek(e.target.value)}
+                      placeholder="Week"
+                      className="miniSearch"
+                    />
+
+                    <input
+                      value={programDay}
+                      onChange={(e) => setProgramDay(e.target.value)}
+                      placeholder="Day"
+                      className="miniSearch"
+                    />
+
+                    <input
+                      value={sessionName}
+                      onChange={(e) => setSessionName(e.target.value)}
+                      placeholder="Session Name"
+                      className="miniSearch"
+                    />
+                  </div>
+
+                  <div className="searchRow">
+                    <input
+                      placeholder="Search exercise library..."
+                      value={builderSearch}
+                      onChange={(e) => setBuilderSearch(e.target.value)}
+                    />
+
+                    <button className="outlineButton" onClick={loadExerciseLibrary}>
+                      Load Exercises
+                    </button>
+                  </div>
+
+                  <h3 style={{ color: "#f5d77b" }}>Exercise Library</h3>
+
+                  <div className="tableCard">
+                    <div
+                      className="tableHeader"
+                      style={{
+                        gridTemplateColumns: "2fr 1fr 1fr auto",
+                      }}
+                    >
+                      <span>Exercise</span>
+                      <span>Equipment</span>
+                      <span>Pattern</span>
+                      <span>Add</span>
+                    </div>
+
+                    {builderExercises.slice(0, 8).map((exercise) => (
+                      <div
+                        className="clientRow"
+                        key={exercise.recordId || exercise.exerciseId}
+                        style={{
+                          gridTemplateColumns: "2fr 1fr 1fr auto",
+                        }}
+                      >
+                        <div>
+                          <strong>{exercise.exerciseName}</strong>
+                          <p style={{ margin: 0 }}>{exercise.exerciseId}</p>
+                        </div>
+
+                        <span>{exercise.equipment || "--"}</span>
+                        <span>{exercise.movementPattern || "--"}</span>
+
+                        <button
+                          className="goldButton"
+                          onClick={() => addExerciseToProgram(exercise)}
+                        >
+                          + Add
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+
+                  <h3 style={{ color: "#f5d77b", marginTop: "28px" }}>
+                    Selected Exercises
+                  </h3>
+
+                  {selectedProgramExercises.length === 0 && (
+                    <p>No exercises added yet.</p>
+                  )}
+
+                  {selectedProgramExercises.map((exercise, index) => (
+                    <div className="exercise-card" key={exercise.exerciseId}>
+                      <div className="exerciseTitleRow">
+                        <h3>
+                          {exercise.order}. {exercise.exerciseName}
+                        </h3>
+
+                        <button
+                          className="outlineButton"
+                          onClick={() => removeProgramExercise(index)}
+                        >
+                          Remove
+                        </button>
+                      </div>
+
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns:
+                            "80px 100px 120px 120px 1fr",
+                          gap: "12px",
+                          marginTop: "12px",
+                        }}
+                      >
+                        <input
+                          className="miniSearch"
+                          value={exercise.order}
+                          onChange={(e) =>
+                            updateProgramExercise(index, "order", e.target.value)
+                          }
+                          placeholder="Order"
+                        />
+
+                        <input
+                          className="miniSearch"
+                          value={exercise.sets}
+                          onChange={(e) =>
+                            updateProgramExercise(index, "sets", e.target.value)
+                          }
+                          placeholder="Sets"
+                        />
+
+                        <input
+                          className="miniSearch"
+                          value={exercise.reps}
+                          onChange={(e) =>
+                            updateProgramExercise(index, "reps", e.target.value)
+                          }
+                          placeholder="Reps"
+                        />
+
+                        <input
+                          className="miniSearch"
+                          value={exercise.tempo}
+                          onChange={(e) =>
+                            updateProgramExercise(index, "tempo", e.target.value)
+                          }
+                          placeholder="Tempo"
+                        />
+
+                        <input
+                          className="miniSearch"
+                          value={exercise.rest}
+                          onChange={(e) =>
+                            updateProgramExercise(index, "rest", e.target.value)
+                          }
+                          placeholder="Rest"
+                        />
+                      </div>
+
+                      <textarea
+                        style={{
+                          width: "100%",
+                          marginTop: "12px",
+                          minHeight: "80px",
+                          background: "#050505",
+                          color: "white",
+                          border: "1px solid rgba(212, 175, 55, 0.35)",
+                          borderRadius: "10px",
+                          padding: "12px",
+                        }}
+                        value={exercise.coachingNotes}
+                        onChange={(e) =>
+                          updateProgramExercise(
+                            index,
+                            "coachingNotes",
+                            e.target.value
+                          )
+                        }
+                        placeholder="Coaching notes..."
+                      />
+                    </div>
+                  ))}
+
+                  <button
+                    className="goldButton saveWorkoutButton"
+                    onClick={saveWorkoutTemplate}
+                    disabled={savingTemplate}
+                  >
+                    {savingTemplate ? "Saving..." : "Save Workout Template"}
+                  </button>
+                </section>
+              </>
             )}
 
             {activePage === "Check-ins" && (
