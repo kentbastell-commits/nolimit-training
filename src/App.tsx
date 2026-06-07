@@ -175,6 +175,7 @@ function App() {
       const res = await fetch(
         `/api/workoutDetails?programId=${workout.programId}&week=${workout.week}&day=${workout.day}`
       );
+
       const data = await res.json();
       const exercises = data.exercises || [];
 
@@ -211,7 +212,7 @@ function App() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          clientId: selectedClient.clientCode,
+          clientId: selectedClient.id,
           assignedWorkoutId: selectedWorkout.assignedWorkoutId,
           assignedWorkoutRecordId: selectedWorkout.id,
           workoutDate: normalizeDate(String(selectedWorkout.scheduledDate)),
@@ -457,7 +458,9 @@ function App() {
               </button>
 
               <div className="clientTop">
-                <div className="clientAvatar largeAvatar">{selectedClient.initials}</div>
+                <div className="clientAvatar largeAvatar">
+                  {selectedClient.initials}
+                </div>
                 <div>
                   <h1>{selectedClient.name}</h1>
                   <p>
@@ -496,7 +499,8 @@ function App() {
                       <strong>Email:</strong> {selectedClient.email || "--"}
                     </p>
                     <p>
-                      <strong>Phone/WeChat:</strong> {selectedClient.phone || "--"}
+                      <strong>Phone/WeChat:</strong>{" "}
+                      {selectedClient.phone || "--"}
                     </p>
                     <p>
                       <strong>Coach:</strong> {selectedClient.coach || "--"}
@@ -505,7 +509,8 @@ function App() {
                       <strong>Package:</strong> {selectedClient.status || "--"}
                     </p>
                     <p>
-                      <strong>Start Date:</strong> {selectedClient.startDate || "--"}
+                      <strong>Start Date:</strong>{" "}
+                      {selectedClient.startDate || "--"}
                     </p>
                   </div>
 
@@ -566,7 +571,9 @@ function App() {
                               onClick={() => openWorkout(workout)}
                             >
                               {workout.sessionName || "Workout"}
-                              <span>{workout.completionStatus || "Scheduled"}</span>
+                              <span>
+                                {workout.completionStatus || "Scheduled"}
+                              </span>
                             </button>
                           ))}
                         </div>
@@ -637,8 +644,8 @@ function App() {
                         <h3>{exercise.exerciseName}</h3>
 
                         <p>
-                          Prescription: {exercise.sets} sets x {exercise.reps} reps
-                          {" "}• Tempo {exercise.tempo} • Rest {exercise.rest}
+                          Prescription: {exercise.sets} sets x {exercise.reps}{" "}
+                          reps • Tempo {exercise.tempo} • Rest {exercise.rest}
                         </p>
 
                         <p>{exercise.notes}</p>
