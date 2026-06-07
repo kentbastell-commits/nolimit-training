@@ -5,6 +5,16 @@ function toNumber(value: any): number {
   return Number.isFinite(n) ? n : 0;
 }
 
+function toLarkDate(value: string): number {
+  if (!value) return Date.now();
+
+  if (/^\d+$/.test(value)) {
+    return Number(value);
+  }
+
+  return new Date(`${value}T00:00:00`).getTime();
+}
+
 async function getTenantToken() {
   const response = await fetch(
     "https://open.larksuite.com/open-apis/auth/v3/tenant_access_token/internal",
@@ -52,18 +62,18 @@ export default async function handler(
       return res.status(400).json({ error: "No logs received" });
     }
 
+    const larkDate = toLarkDate(workoutDate);
     const createdRecords: string[] = [];
 
     for (const log of logs) {
       const fields: Record<string, any> = {
         "Log ID": `LOG-${Date.now()}-${createdRecords.length + 1}`,
 
-        // Lark duplex link fields need array of record_id strings
         "Client ID": [clientId],
         "Assigned Workout ID": [assignedWorkoutRecordId],
 
         "Exercise ID": String(log.exerciseId || ""),
-        "Date": workoutDate,
+        "Date": larkDate,
 
         "Set Number": toNumber(log.setNumber),
         "Prescribed Sets": toNumber(log.prescribedSets),
