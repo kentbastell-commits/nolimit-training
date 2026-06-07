@@ -65,14 +65,13 @@ export default async function handler(
       const fields: Record<string, any> = {
         "Log ID": `LOG-${Date.now()}-${createdRecords.length + 1}`,
 
-        // Linked-record fields
         "Client ID": [clientId],
         "Assigned Workout ID": [assignedWorkoutRecordId],
 
-        // Date field
+        "Exercise Name": toText(log.exerciseName),
+
         "Date": larkDate,
 
-        // These are now TEXT fields in your Lark table
         "Set Number": toText(log.setNumber),
         "Prescribed Sets": toText(log.prescribedSets),
         "Prescribed Reps": toText(log.prescribedReps),
@@ -85,7 +84,6 @@ export default async function handler(
         "Distance Unit": "m",
         "Exercise Order": toText(log.exerciseOrder),
 
-        // Checkbox
         "Completed": true,
       };
 
