@@ -708,4 +708,15 @@ body {
   .setLogRow {
     grid-template-columns: 1fr;
   }
+}.exercise-card label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: #f5d77b;
+  font-weight: bold;
+}
+
+.exercise-card label span {
+  font-size: 14px;
+  color: #d4af37;
 }

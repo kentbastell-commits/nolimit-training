@@ -177,7 +177,6 @@ function App() {
     try {
       const res = await fetch("/api/exercises");
       const data = await res.json();
-
       setLibraryExercises(data.exercises || []);
     } catch (err) {
       console.error(err);
@@ -797,56 +796,90 @@ function App() {
                       <div
                         style={{
                           display: "grid",
-                          gridTemplateColumns:
-                            "80px 100px 120px 120px 1fr",
+                          gridTemplateColumns: "80px 100px 120px 120px 1fr",
                           gap: "12px",
                           marginTop: "12px",
                         }}
                       >
-                        <input
-                          className="miniSearch"
-                          value={exercise.order}
-                          onChange={(e) =>
-                            updateProgramExercise(index, "order", e.target.value)
-                          }
-                          placeholder="Order"
-                        />
+                        <label>
+                          <span>Order</span>
+                          <input
+                            className="miniSearch"
+                            value={exercise.order}
+                            onChange={(e) =>
+                              updateProgramExercise(
+                                index,
+                                "order",
+                                e.target.value
+                              )
+                            }
+                            placeholder="Order"
+                          />
+                        </label>
 
-                        <input
-                          className="miniSearch"
-                          value={exercise.sets}
-                          onChange={(e) =>
-                            updateProgramExercise(index, "sets", e.target.value)
-                          }
-                          placeholder="Sets"
-                        />
+                        <label>
+                          <span>Sets</span>
+                          <input
+                            className="miniSearch"
+                            value={exercise.sets}
+                            onChange={(e) =>
+                              updateProgramExercise(
+                                index,
+                                "sets",
+                                e.target.value
+                              )
+                            }
+                            placeholder="Sets"
+                          />
+                        </label>
 
-                        <input
-                          className="miniSearch"
-                          value={exercise.reps}
-                          onChange={(e) =>
-                            updateProgramExercise(index, "reps", e.target.value)
-                          }
-                          placeholder="Reps"
-                        />
+                        <label>
+                          <span>Reps</span>
+                          <input
+                            className="miniSearch"
+                            value={exercise.reps}
+                            onChange={(e) =>
+                              updateProgramExercise(
+                                index,
+                                "reps",
+                                e.target.value
+                              )
+                            }
+                            placeholder="Reps"
+                          />
+                        </label>
 
-                        <input
-                          className="miniSearch"
-                          value={exercise.tempo}
-                          onChange={(e) =>
-                            updateProgramExercise(index, "tempo", e.target.value)
-                          }
-                          placeholder="Tempo"
-                        />
+                        <label>
+                          <span>Tempo</span>
+                          <input
+                            className="miniSearch"
+                            value={exercise.tempo}
+                            onChange={(e) =>
+                              updateProgramExercise(
+                                index,
+                                "tempo",
+                                e.target.value
+                              )
+                            }
+                            placeholder="Tempo"
+                          />
+                        </label>
 
-                        <input
-                          className="miniSearch"
-                          value={exercise.rest}
-                          onChange={(e) =>
-                            updateProgramExercise(index, "rest", e.target.value)
-                          }
-                          placeholder="Rest"
-                        />
+                        <label>
+                          <span>Rest</span>
+                          <input
+                            className="miniSearch"
+                            value={exercise.rest}
+                            onChange={(e) =>
+                              updateProgramExercise(
+                                index,
+                                "rest",
+                                e.target.value
+                              )
+                            }
+                            placeholder="Rest"
+                          />
+                        </label>
                       </div>
 
                       <textarea
