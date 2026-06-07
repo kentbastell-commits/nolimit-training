@@ -72,7 +72,6 @@ export default async function handler(
         "Client ID": [clientId],
         "Assigned Workout ID": [assignedWorkoutRecordId],
 
-        "Exercise ID": String(log.exerciseId || ""),
         "Date": larkDate,
 
         "Set Number": toNumber(log.setNumber),
