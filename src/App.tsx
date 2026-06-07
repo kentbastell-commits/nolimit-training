@@ -36,20 +36,27 @@ type Workout = {
   workoutLogs: string;
 };
 
+type ExerciseDetail = {
+  id: string;
+  exerciseName: string;
+  order: number;
+  sets: string;
+  reps: string;
+  tempo: string;
+  rest: string;
+  notes: string;
+};
+
 function normalizeDate(value: string) {
   if (!value) return "";
-
   if (/^\d+$/.test(value)) {
-    const date = new Date(Number(value));
-    return date.toISOString().split("T")[0];
+    return new Date(Number(value)).toISOString().split("T")[0];
   }
-
   return value.split("T")[0].split(" ")[0];
 }
 
 function formatCalendarLabel(dateString: string) {
-  const date = new Date(dateString + "T00:00:00");
-  return date.toLocaleDateString("en-US", {
+  return new Date(dateString + "T00:00:00").toLocaleDateString("en-US", {
     weekday: "short",
     month: "short",
     day: "numeric",
@@ -58,11 +65,9 @@ function formatCalendarLabel(dateString: string) {
 
 function getStatusClass(status: string) {
   const clean = status.toLowerCase();
-
   if (clean.includes("complete")) return "completedWorkout";
   if (clean.includes("miss")) return "missedWorkout";
   if (clean.includes("progress")) return "progressWorkout";
-
   return "scheduledWorkout";
 }
 
@@ -74,8 +79,10 @@ function App() {
   const [calendarView, setCalendarView] = useState<CalendarView>("1 Week");
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [selectedWorkout, setSelectedWorkout] = useState<Workout | null>(null);
+  const [workoutDetails, setWorkoutDetails] = useState<ExerciseDetail[]>([]);
   const [loading, setLoading] = useState(true);
   const [workoutsLoading, setWorkoutsLoading] = useState(false);
+  const [detailsLoading, setDetailsLoading] = useState(false);
 
   useEffect(() => {
     fetch("/api/clients")
@@ -104,6 +111,23 @@ function App() {
         setWorkoutsLoading(false);
       });
   }, [selectedClient, clientTab]);
+
+  const openWorkout = async (workout: Workout) => {
+    setSelectedWorkout(workout);
+    setDetailsLoading(true);
+
+    try {
+      const res = await fetch(
+        `/api/workoutDetails?programId=${workout.programId}&week=${workout.week}&day=${workout.day}`
+      );
+      const data = await res.json();
+      setWorkoutDetails(data.exercises || []);
+    } catch {
+      setWorkoutDetails([]);
+    } finally {
+      setDetailsLoading(false);
+    }
+  };
 
   const menuItems: { name: Page; count: number }[] = [
     { name: "Clients", count: clients.length },
@@ -157,9 +181,9 @@ function App() {
         ];
 
   function getWorkoutsForDate(dateString: string) {
-    return workouts.filter((workout) => {
-      return normalizeDate(String(workout.scheduledDate)) === dateString;
-    });
+    return workouts.filter(
+      (workout) => normalizeDate(String(workout.scheduledDate)) === dateString
+    );
   }
 
   return (
@@ -179,6 +203,7 @@ function App() {
               className={`navItem ${activePage === item.name ? "active" : ""}`}
               onClick={() => {
                 setSelectedClient(null);
+                setSelectedWorkout(null);
                 setActivePage(item.name);
               }}
             >
@@ -320,7 +345,13 @@ function App() {
             )}
 
             <section className="clientWorkspace">
-              <button className="outlineButton" onClick={() => setSelectedClient(null)}>
+              <button
+                className="outlineButton"
+                onClick={() => {
+                  setSelectedClient(null);
+                  setSelectedWorkout(null);
+                }}
+              >
                 ← Back
               </button>
 
@@ -354,27 +385,13 @@ function App() {
                 <div className="overviewGrid">
                   <div className="profileCard">
                     <h3>Client Information</h3>
-                    <p>
-                      <strong>Client ID:</strong> {selectedClient.clientCode}
-                    </p>
-                    <p>
-                      <strong>Name:</strong> {selectedClient.name}
-                    </p>
-                    <p>
-                      <strong>Email:</strong> {selectedClient.email || "--"}
-                    </p>
-                    <p>
-                      <strong>Phone/WeChat:</strong> {selectedClient.phone || "--"}
-                    </p>
-                    <p>
-                      <strong>Coach:</strong> {selectedClient.coach || "--"}
-                    </p>
-                    <p>
-                      <strong>Package:</strong> {selectedClient.status || "--"}
-                    </p>
-                    <p>
-                      <strong>Start Date:</strong> {selectedClient.startDate || "--"}
-                    </p>
+                    <p><strong>Client ID:</strong> {selectedClient.clientCode}</p>
+                    <p><strong>Name:</strong> {selectedClient.name}</p>
+                    <p><strong>Email:</strong> {selectedClient.email || "--"}</p>
+                    <p><strong>Phone/WeChat:</strong> {selectedClient.phone || "--"}</p>
+                    <p><strong>Coach:</strong> {selectedClient.coach || "--"}</p>
+                    <p><strong>Package:</strong> {selectedClient.status || "--"}</p>
+                    <p><strong>Start Date:</strong> {selectedClient.startDate || "--"}</p>
                   </div>
 
                   <div className="profileCard">
@@ -431,7 +448,7 @@ function App() {
                                 workout.completionStatus
                               )}`}
                               key={workout.id}
-                              onClick={() => setSelectedWorkout(workout)}
+                              onClick={() => openWorkout(workout)}
                             >
                               {workout.sessionName || "Workout"}
                               <span>{workout.completionStatus || "Scheduled"}</span>
@@ -441,46 +458,77 @@ function App() {
                       );
                     })}
                   </div>
-
-                  {selectedWorkout && (
-                    <div className="workoutDrawer">
-                      <button
-                        className="drawerClose"
-                        onClick={() => setSelectedWorkout(null)}
-                      >
-                        ×
-                      </button>
-
-                      <h2>{selectedWorkout.sessionName}</h2>
-                      <p>
-                        <strong>Status:</strong>{" "}
-                        {selectedWorkout.completionStatus || "--"}
-                      </p>
-                      <p>
-                        <strong>Scheduled:</strong>{" "}
-                        {normalizeDate(String(selectedWorkout.scheduledDate))}
-                      </p>
-                      <p>
-                        <strong>Assigned Workout:</strong>{" "}
-                        {selectedWorkout.assignedWorkoutId || "--"}
-                      </p>
-                      <p>
-                        <strong>Workout Logs:</strong>{" "}
-                        {selectedWorkout.workoutLogs || "--"}
-                      </p>
-
-                      <div className="drawerNotes">
-                        <h3>Coach Notes</h3>
-                        <p>{selectedWorkout.coachNotes || "No coach notes."}</p>
-
-                        <h3>Client Notes</h3>
-                        <p>{selectedWorkout.clientNotes || "No client notes."}</p>
-                      </div>
-                    </div>
-                  )}
                 </div>
               )}
             </section>
+          </div>
+        )}
+
+        {selectedWorkout && (
+          <div className="workout-modal-overlay">
+            <div className="workout-modal">
+              <div className="modal-header">
+                <div>
+                  <h2>{selectedWorkout.sessionName}</h2>
+                  <p>
+                    Week {selectedWorkout.week} • Day {selectedWorkout.day} •{" "}
+                    {selectedWorkout.completionStatus}
+                  </p>
+                </div>
+
+                <button
+                  className="drawerClose"
+                  onClick={() => {
+                    setSelectedWorkout(null);
+                    setWorkoutDetails([]);
+                  }}
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="modal-body">
+                <div className="workout-info">
+                  <p><strong>Assigned Workout:</strong> {selectedWorkout.assignedWorkoutId || "--"}</p>
+                  <p><strong>Program:</strong> {selectedWorkout.programId || "--"}</p>
+                  <p><strong>Date:</strong> {normalizeDate(String(selectedWorkout.scheduledDate))}</p>
+                  <p><strong>Workout Logs:</strong> {selectedWorkout.workoutLogs || "--"}</p>
+                </div>
+
+                <h3>Exercises</h3>
+
+                {detailsLoading && <p>Loading workout details...</p>}
+
+                {!detailsLoading && workoutDetails.length === 0 && (
+                  <p>No exercises found for this workout yet.</p>
+                )}
+
+                {workoutDetails.map((exercise, index) => (
+                  <div key={exercise.id} className="exercise-card">
+                    <h3>
+                      {exercise.exerciseName || `Exercise ${index + 1}`}
+                    </h3>
+
+                    <div className="exerciseGrid">
+                      <p><strong>Sets:</strong> {exercise.sets || "--"}</p>
+                      <p><strong>Reps:</strong> {exercise.reps || "--"}</p>
+                      <p><strong>Tempo:</strong> {exercise.tempo || "--"}</p>
+                      <p><strong>Rest:</strong> {exercise.rest || "--"}</p>
+                    </div>
+
+                    <p><strong>Notes:</strong> {exercise.notes || "--"}</p>
+                  </div>
+                ))}
+
+                <div className="drawerNotes">
+                  <h3>Coach Notes</h3>
+                  <p>{selectedWorkout.coachNotes || "No coach notes."}</p>
+
+                  <h3>Client Notes</h3>
+                  <p>{selectedWorkout.clientNotes || "No client notes."}</p>
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </main>

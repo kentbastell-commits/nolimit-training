@@ -523,4 +523,93 @@ body {
 
 .drawerNotes h3 {
   color: #f5d77b;
+}.workout-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.88);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+  padding: 24px;
+}
+
+.workout-modal {
+  width: 900px;
+  max-width: 95vw;
+  max-height: 85vh;
+  overflow-y: auto;
+  background: #080808;
+  border: 1px solid rgba(212, 175, 55, 0.55);
+  border-radius: 20px;
+  padding: 28px;
+  color: white;
+  box-shadow: 0 25px 90px rgba(0, 0, 0, 0.8);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.25);
+  padding-bottom: 18px;
+  margin-bottom: 22px;
+}
+
+.modal-header h2 {
+  margin: 0;
+  color: #f5d77b;
+  font-size: 34px;
+}
+
+.modal-header p {
+  color: #aaa;
+}
+
+.modal-body h3 {
+  color: #f5d77b;
+}
+
+.workout-info {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px 24px;
+  border: 1px solid rgba(212, 175, 55, 0.22);
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 22px;
+}
+
+.exercise-card {
+  border: 1px solid rgba(212, 175, 55, 0.25);
+  border-radius: 14px;
+  padding: 18px;
+  margin-top: 14px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.exercise-card h3 {
+  margin-top: 0;
+  color: #f5d77b;
+}
+
+.exerciseGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.drawerClose {
+  background: transparent;
+  color: #f5d77b;
+  border: none;
+  font-size: 36px;
+  cursor: pointer;
+}
+
+.drawerNotes {
+  margin-top: 28px;
+  border-top: 1px solid rgba(212, 175, 55, 0.25);
+  padding-top: 18px;
 }
