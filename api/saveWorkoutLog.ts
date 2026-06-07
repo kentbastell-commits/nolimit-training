@@ -1,13 +1,20 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 
+function toNumber(value: any): number {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function linkedRecord(recordId: string) {
+  return [{ record_id: recordId }];
+}
+
 async function getTenantToken() {
   const response = await fetch(
     "https://open.larksuite.com/open-apis/auth/v3/tenant_access_token/internal",
     {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         app_id: process.env.LARK_APP_ID,
         app_secret: process.env.LARK_APP_SECRET,
@@ -29,9 +36,7 @@ export default async function handler(
   res: VercelResponse
 ) {
   if (req.method !== "POST") {
-    return res.status(405).json({
-      error: "Method not allowed",
-    });
+    return res.status(405).json({ error: "Method not allowed" });
   }
 
   try {
@@ -39,47 +44,68 @@ export default async function handler(
 
     const {
       clientId,
-      assignedWorkoutId,
       assignedWorkoutRecordId,
       workoutDate,
       logs,
     } = req.body;
 
-    if (!logs || !Array.isArray(logs)) {
+    if (!clientId || !assignedWorkoutRecordId) {
       return res.status(400).json({
-        error: "No logs received",
+        error: "Missing linked record IDs",
+        clientId,
+        assignedWorkoutRecordId,
       });
     }
 
-    const createdRecords = [];
+    if (!logs || !Array.isArray(logs)) {
+      return res.status(400).json({ error: "No logs received" });
+    }
+
+    const createdRecords: string[] = [];
 
     for (const log of logs) {
-      const fields = {
-        "Client ID": clientId,
-        "Assigned Workout ID": assignedWorkoutId,
-        "Exercise ID": log.exerciseId || "",
-        "Exercise Name": log.exerciseName || "",
+      const actualWeight = toNumber(log.actualWeight);
+      const actualReps = toNumber(log.actualReps);
+      const actualTime = toNumber(log.actualTime);
+      const actualDistance = toNumber(log.actualDistance);
+
+      const volume = actualWeight * actualReps;
+      const durationSeconds = actualTime;
+      const loadScore = volume + durationSeconds;
+
+      const fields: Record<string, any> = {
+        "Log ID": `LOG-${Date.now()}-${createdRecords.length + 1}`,
+
+        "Client ID": linkedRecord(clientId),
+        "Assigned Workout ID": linkedRecord(assignedWorkoutRecordId),
+
+        "Exercise ID": String(log.exerciseId || ""),
         "Date": workoutDate,
 
-        "Set Number": Number(log.setNumber || 0),
-        "Prescribed Sets": Number(log.prescribedSets || 0),
-
+        "Set Number": toNumber(log.setNumber),
+        "Prescribed Sets": toNumber(log.prescribedSets),
         "Prescribed Reps": String(log.prescribedReps || ""),
         "Actual Reps": String(log.actualReps || ""),
 
-        "Actual Weight": Number(log.actualWeight || 0),
+        "Actual Weight": actualWeight,
         "Weight Unit": "kg",
 
-        "Actual Time": String(log.actualTime || ""),
+        "Actual Time": actualTime,
         "Time Unit": "s",
 
-        "Actual Distance": String(log.actualDistance || ""),
+        "Actual Distance": actualDistance,
         "Distance Unit": "m",
 
-        "Athlete Notes": log.athleteNotes || "",
-        "Exercise Order": Number(log.exerciseOrder || 0),
+        "RPE": toNumber(log.rpe),
+        "Pain Score": toNumber(log.painScore),
 
+        "Athlete Notes": String(log.athleteNotes || ""),
+        "Exercise Order": toNumber(log.exerciseOrder),
         "Completed": true,
+
+        "Volume": volume,
+        "Duration Seconds": durationSeconds,
+        "Load Score": loadScore,
       };
 
       const response = await fetch(
@@ -90,9 +116,7 @@ export default async function handler(
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            fields,
-          }),
+          body: JSON.stringify({ fields }),
         }
       );
 
@@ -114,11 +138,11 @@ export default async function handler(
       success: true,
       recordsCreated: createdRecords.length,
       createdRecords,
-      assignedWorkoutRecordId,
     });
   } catch (error: any) {
     return res.status(500).json({
-      error: error.message,
+      error: "Server error",
+      message: error.message,
     });
   }
 }
