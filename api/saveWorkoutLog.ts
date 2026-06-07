@@ -1,17 +1,13 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 
-function toNumber(value: any): number {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : 0;
+function toText(value: any): string {
+  if (value === undefined || value === null) return "";
+  return String(value);
 }
 
 function toLarkDate(value: string): number {
   if (!value) return Date.now();
-
-  if (/^\d+$/.test(value)) {
-    return Number(value);
-  }
-
+  if (/^\d+$/.test(value)) return Number(value);
   return new Date(`${value}T00:00:00`).getTime();
 }
 
@@ -52,7 +48,7 @@ export default async function handler(
 
     if (!clientId || !assignedWorkoutRecordId) {
       return res.status(400).json({
-        error: "Missing linked record IDs",
+        error: "Missing clientId or assignedWorkoutRecordId",
         clientId,
         assignedWorkoutRecordId,
       });
@@ -66,44 +62,31 @@ export default async function handler(
     const createdRecords: string[] = [];
 
     for (const log of logs) {
-      const actualWeight = toNumber(log.actualWeight);
-      const actualRepsNumber = toNumber(log.actualReps);
-      const actualTime = toNumber(log.actualTime);
-      const actualDistance = toNumber(log.actualDistance);
-
-      const volume = actualWeight * actualRepsNumber;
-      const durationSeconds = actualTime;
-      const loadScore = volume + durationSeconds;
-
       const fields: Record<string, any> = {
         "Log ID": `LOG-${Date.now()}-${createdRecords.length + 1}`,
 
+        // Linked-record fields
         "Client ID": [clientId],
         "Assigned Workout ID": [assignedWorkoutRecordId],
 
+        // Date field
         "Date": larkDate,
 
-        "Set Number": toNumber(log.setNumber),
-        "Prescribed Sets": toNumber(log.prescribedSets),
-
-        "Prescribed Reps": String(log.prescribedReps || ""),
-        "Actual Reps": String(log.actualReps || ""),
-
-        "Actual Weight": actualWeight,
+        // These are now TEXT fields in your Lark table
+        "Set Number": toText(log.setNumber),
+        "Prescribed Sets": toText(log.prescribedSets),
+        "Prescribed Reps": toText(log.prescribedReps),
+        "Actual Reps": toText(log.actualReps),
+        "Actual Weight": toText(log.actualWeight),
         "Weight Unit": "kg",
-
-        "Actual Time": String(log.actualTime || ""),
+        "Actual Time": toText(log.actualTime),
         "Time Unit": "s",
-
-        "Actual Distance": String(log.actualDistance || ""),
+        "Actual Distance": toText(log.actualDistance),
         "Distance Unit": "m",
+        "Exercise Order": toText(log.exerciseOrder),
 
-        "Exercise Order": toNumber(log.exerciseOrder),
+        // Checkbox
         "Completed": true,
-
-        "Volume": volume,
-        "Duration Seconds": durationSeconds,
-        "Load Score": loadScore,
       };
 
       const response = await fetch(
