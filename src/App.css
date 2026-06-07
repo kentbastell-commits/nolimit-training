@@ -87,7 +87,11 @@ body {
 }
 
 .navItem.active {
-  background: linear-gradient(90deg, rgba(212, 175, 55, 0.35), rgba(212, 175, 55, 0.08));
+  background: linear-gradient(
+    90deg,
+    rgba(212, 175, 55, 0.35),
+    rgba(212, 175, 55, 0.08)
+  );
   border: 1px solid rgba(212, 175, 55, 0.6);
 }
 
@@ -212,6 +216,7 @@ body {
   align-items: center;
   padding: 18px 22px;
   border-bottom: 1px solid rgba(212, 175, 55, 0.18);
+  gap: 12px;
 }
 
 .tableHeader {
@@ -223,6 +228,15 @@ body {
   color: white;
 }
 
+.clickableRow {
+  cursor: pointer;
+}
+
+.clickableRow:hover,
+.clientRow:hover {
+  background: rgba(212, 175, 55, 0.06);
+}
+
 .clientName {
   display: flex;
   align-items: center;
@@ -232,6 +246,7 @@ body {
 .clientAvatar {
   width: 44px;
   height: 44px;
+  min-width: 44px;
   border: 1px solid #d4af37;
   color: #f5d77b;
   border-radius: 50%;
@@ -269,7 +284,9 @@ body {
 
 .placeholder h2 {
   color: #f5d77b;
-}.clientPage {
+}
+
+.clientPage {
   display: grid;
   grid-template-columns: 280px 1fr;
   gap: 28px;
@@ -345,6 +362,13 @@ body {
   color: #aaa;
 }
 
+.largeAvatar {
+  width: 62px;
+  height: 62px;
+  min-width: 62px;
+  font-size: 20px;
+}
+
 .clientTabs {
   display: flex;
   gap: 20px;
@@ -372,6 +396,31 @@ body {
   gap: 22px;
 }
 
+.profileCard {
+  border: 1px solid rgba(212, 175, 55, 0.25);
+  border-radius: 18px;
+  padding: 22px;
+  background: rgba(0, 0, 0, 0.35);
+  color: white;
+}
+
+.profileCard h3 {
+  margin-top: 0;
+  color: #f5d77b;
+}
+
+.profileCard textarea {
+  width: 100%;
+  min-height: 130px;
+  margin-top: 12px;
+  background: #050505;
+  color: white;
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  border-radius: 10px;
+  padding: 12px;
+  resize: vertical;
+}
+
 .trainingCalendar {
   margin-top: 18px;
 }
@@ -386,42 +435,7 @@ body {
   color: #f5d77b;
 }
 
-.calendarGrid {
-  display: grid;
-  grid-template-columns: repeat(7, minmax(120px, 1fr));
-  gap: 12px;
-  margin-top: 20px;
-}
-
-.calendarDay {
-  min-height: 190px;
-  border: 1px solid rgba(212, 175, 55, 0.25);
-  border-radius: 14px;
-  padding: 14px;
-  background: rgba(255, 255, 255, 0.04);
-  color: #ddd;
-}
-
-.calendarDay strong {
-  color: #f5d77b;
-}
-
-.workoutBlock {
-  margin-top: 18px;
-  padding: 12px;
-  border-radius: 12px;
-  background: rgba(212, 175, 55, 0.18);
-  border: 1px solid rgba(212, 175, 55, 0.4);
-  color: white;
-  font-weight: bold;
-}
-
-.workoutBlock span {
-  display: block;
-  color: #aaa;
-  font-size: 13px;
-  margin-top: 5px;
-}.calendarControls {
+.calendarControls {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
@@ -433,6 +447,12 @@ body {
 
 .trainingFocus .clientWorkspace {
   width: 100%;
+}
+
+.calendarGrid {
+  display: grid;
+  gap: 12px;
+  margin-top: 20px;
 }
 
 .oneDayCalendar {
@@ -451,23 +471,51 @@ body {
   grid-template-columns: repeat(7, minmax(110px, 1fr));
 }
 
+.calendarDay {
+  min-height: 190px;
+  border: 1px solid rgba(212, 175, 55, 0.25);
+  border-radius: 14px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #ddd;
+}
+
 .monthCalendar .calendarDay {
   min-height: 135px;
 }
 
-.monthCalendar .workoutBlock {
-  padding: 8px;
-  font-size: 13px;
-}.workoutBlock {
+.calendarDay strong {
+  color: #f5d77b;
+}
+
+.workoutBlock {
   width: 100%;
+  margin-top: 18px;
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(212, 175, 55, 0.18);
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  color: white;
+  font-weight: bold;
   text-align: left;
   cursor: pointer;
-  border: 1px solid rgba(212, 175, 55, 0.4);
+}
+
+.workoutBlock span {
+  display: block;
+  color: #aaa;
+  font-size: 13px;
+  margin-top: 5px;
 }
 
 .workoutBlock:hover {
   transform: translateY(-2px);
   background: rgba(212, 175, 55, 0.28);
+}
+
+.monthCalendar .workoutBlock {
+  padding: 8px;
+  font-size: 13px;
 }
 
 .completedWorkout {
@@ -486,44 +534,7 @@ body {
   border-color: rgba(212, 175, 55, 0.45);
 }
 
-.workoutDrawer {
-  position: fixed;
-  right: 24px;
-  top: 24px;
-  bottom: 24px;
-  width: 380px;
-  background: rgba(0, 0, 0, 0.94);
-  border: 1px solid rgba(212, 175, 55, 0.5);
-  border-radius: 18px;
-  padding: 26px;
-  color: white;
-  z-index: 20;
-  box-shadow: 0 20px 80px rgba(0, 0, 0, 0.7);
-}
-
-.workoutDrawer h2 {
-  color: #f5d77b;
-  margin-top: 20px;
-}
-
-.drawerClose {
-  position: absolute;
-  top: 14px;
-  right: 16px;
-  background: transparent;
-  color: #f5d77b;
-  border: none;
-  font-size: 32px;
-  cursor: pointer;
-}
-
-.drawerNotes {
-  margin-top: 28px;
-}
-
-.drawerNotes h3 {
-  color: #f5d77b;
-}.workout-modal-overlay {
+.workout-modal-overlay {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.88);
@@ -571,6 +582,14 @@ body {
   color: #f5d77b;
 }
 
+.drawerClose {
+  background: transparent;
+  color: #f5d77b;
+  border: none;
+  font-size: 36px;
+  cursor: pointer;
+}
+
 .workout-info {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -594,61 +613,32 @@ body {
   color: #f5d77b;
 }
 
-.exerciseGrid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-}
-
-.drawerClose {
-  background: transparent;
-  color: #f5d77b;
-  border: none;
-  font-size: 36px;
-  cursor: pointer;
-}
-
-.drawerNotes {
-  margin-top: 28px;
-  border-top: 1px solid rgba(212, 175, 55, 0.25);
-  padding-top: 18px;
-}.setLogHeader,
-.setLogRow {
-  display: grid;
-  grid-template-columns: 60px 110px 110px 110px 110px 90px 90px 1fr;
-  gap: 10px;
+.exerciseTitleRow {
+  display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 14px;
 }
 
-.setLogHeader {
+.videoButton {
+  font-size: 14px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(212, 175, 55, 0.45);
   color: #f5d77b;
-  font-weight: bold;
-  margin-top: 18px;
-  margin-bottom: 8px;
+  text-decoration: none;
+  background: rgba(212, 175, 55, 0.08);
+  white-space: nowrap;
 }
 
-.setLogRow {
-  margin-bottom: 10px;
+.videoButton:hover {
+  background: rgba(212, 175, 55, 0.18);
 }
 
-.setLogRow input {
-  width: 100%;
-  background: #050505;
-  border: 1px solid rgba(212, 175, 55, 0.35);
-  color: white;
-  border-radius: 8px;
-  padding: 10px;
-  font-size: 15px;
-}
-
-.saveWorkoutButton {
-  margin-top: 28px;
-  width: 100%;
-  font-size: 20px;
-}.setLogHeader,
+.setLogHeader,
 .setLogRow {
   display: grid;
-  grid-template-columns: 55px 100px 100px 100px 100px 100px 75px 75px 1fr;
+  grid-template-columns: 60px 120px 120px 120px 120px 120px;
   gap: 10px;
   align-items: center;
 }
@@ -683,23 +673,39 @@ body {
 .saveWorkoutButton:disabled {
   opacity: 0.6;
   cursor: not-allowed;
-}.exerciseTitleRow {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 14px;
 }
 
-.videoButton {
-  font-size: 14px;
-  padding: 6px 10px;
-  border-radius: 999px;
-  border: 1px solid rgba(212, 175, 55, 0.45);
-  color: #f5d77b;
-  text-decoration: none;
-  background: rgba(212, 175, 55, 0.08);
-}
+@media (max-width: 1100px) {
+  .app {
+    flex-direction: column;
+  }
 
-.videoButton:hover {
-  background: rgba(212, 175, 55, 0.18);
+  .sidebar {
+    width: 100%;
+    min-height: auto;
+    position: static;
+  }
+
+  .coachBox {
+    position: static;
+    margin-top: 20px;
+  }
+
+  .clientPage {
+    grid-template-columns: 1fr;
+  }
+
+  .overviewGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .weekCalendar,
+  .monthCalendar {
+    grid-template-columns: repeat(2, minmax(140px, 1fr));
+  }
+
+  .setLogHeader,
+  .setLogRow {
+    grid-template-columns: 1fr;
+  }
 }

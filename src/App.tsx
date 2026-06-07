@@ -49,6 +49,17 @@ type ExerciseDetail = {
   notes: string;
 };
 
+type LibraryExercise = {
+  recordId: string;
+  exerciseId: string;
+  exerciseName: string;
+  videoUrl: string;
+  category?: string;
+  equipment?: string;
+  movementPattern?: string;
+  notes?: string;
+};
+
 type SetLog = {
   exerciseId: string;
   exerciseName: string;
@@ -105,6 +116,10 @@ function App() {
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [savingWorkout, setSavingWorkout] = useState(false);
 
+  const [libraryExercises, setLibraryExercises] = useState<LibraryExercise[]>([]);
+  const [libraryLoading, setLibraryLoading] = useState(false);
+  const [librarySearch, setLibrarySearch] = useState("");
+
   useEffect(() => {
     fetch("/api/clients")
       .then((res) => res.json())
@@ -134,6 +149,22 @@ function App() {
         setWorkoutsLoading(false);
       });
   }, [selectedClient, clientTab]);
+
+  const loadExerciseLibrary = async () => {
+    setLibraryLoading(true);
+
+    try {
+      const res = await fetch("/api/exercises");
+      const data = await res.json();
+
+      setLibraryExercises(data.exercises || []);
+    } catch (err) {
+      console.error(err);
+      setLibraryExercises([]);
+    } finally {
+      setLibraryLoading(false);
+    }
+  };
 
   const buildSetLogs = (exercises: ExerciseDetail[]) => {
     const logs: SetLog[] = [];
@@ -235,9 +266,21 @@ function App() {
     }
   };
 
+  const filteredLibraryExercises = libraryExercises.filter((exercise) => {
+    const search = librarySearch.toLowerCase();
+
+    return (
+      exercise.exerciseName?.toLowerCase().includes(search) ||
+      exercise.exerciseId?.toLowerCase().includes(search) ||
+      exercise.category?.toLowerCase().includes(search) ||
+      exercise.equipment?.toLowerCase().includes(search) ||
+      exercise.movementPattern?.toLowerCase().includes(search)
+    );
+  });
+
   const menuItems: { name: Page; count: number }[] = [
     { name: "Clients", count: clients.length },
-    { name: "Library", count: 0 },
+    { name: "Library", count: libraryExercises.length },
     { name: "Workouts", count: workouts.length },
     { name: "Check-ins", count: 0 },
   ];
@@ -313,6 +356,10 @@ function App() {
                 setWorkoutDetails([]);
                 setSetLogs([]);
                 setActivePage(item.name);
+
+                if (item.name === "Library") {
+                  loadExerciseLibrary();
+                }
               }}
             >
               <span>{item.name}</span>
@@ -339,7 +386,15 @@ function App() {
                 <p>NoLimit Training System</p>
               </div>
 
-              <button className="goldButton">+ Add Client</button>
+              {activePage === "Clients" && (
+                <button className="goldButton">+ Add Client</button>
+              )}
+
+              {activePage === "Library" && (
+                <button className="goldButton" onClick={loadExerciseLibrary}>
+                  Refresh Library
+                </button>
+              )}
             </header>
 
             {activePage === "Clients" && (
@@ -399,10 +454,95 @@ function App() {
               </>
             )}
 
-            {activePage !== "Clients" && (
+            {activePage === "Library" && (
+              <>
+                <section className="searchRow">
+                  <input
+                    placeholder="Search exercise..."
+                    value={librarySearch}
+                    onChange={(e) => setLibrarySearch(e.target.value)}
+                  />
+                  <button className="outlineButton" onClick={loadExerciseLibrary}>
+                    Reload
+                  </button>
+                </section>
+
+                <section className="tableCard">
+                  <div
+                    className="tableHeader"
+                    style={{
+                      gridTemplateColumns: "2fr 1fr 1fr 1fr auto",
+                    }}
+                  >
+                    <span>Exercise</span>
+                    <span>Category</span>
+                    <span>Equipment</span>
+                    <span>Pattern</span>
+                    <span>Video</span>
+                  </div>
+
+                  {libraryLoading && <p>Loading exercises...</p>}
+
+                  {!libraryLoading && filteredLibraryExercises.length === 0 && (
+                    <p>No exercises found.</p>
+                  )}
+
+                  {!libraryLoading &&
+                    filteredLibraryExercises.map((exercise) => (
+                      <div
+                        className="clientRow"
+                        key={exercise.recordId || exercise.exerciseId}
+                        style={{
+                          gridTemplateColumns: "2fr 1fr 1fr 1fr auto",
+                        }}
+                      >
+                        <div className="clientName">
+                          <div className="clientAvatar">
+                            {exercise.exerciseName
+                              ? exercise.exerciseName.slice(0, 2).toUpperCase()
+                              : "EX"}
+                          </div>
+                          <div>
+                            <strong>{exercise.exerciseName || "Unnamed Exercise"}</strong>
+                            <p style={{ margin: 0 }}>{exercise.exerciseId || "--"}</p>
+                          </div>
+                        </div>
+
+                        <span>{exercise.category || "--"}</span>
+                        <span>{exercise.equipment || "--"}</span>
+                        <span>{exercise.movementPattern || "--"}</span>
+
+                        <span>
+                          {exercise.videoUrl ? (
+                            <a
+                              className="videoButton"
+                              href={exercise.videoUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              🎥 Video
+                            </a>
+                          ) : (
+                            "--"
+                          )}
+                        </span>
+                      </div>
+                    ))}
+                </section>
+              </>
+            )}
+
+            {activePage === "Workouts" && (
               <section className="placeholder">
-                <h2>{activePage}</h2>
-                <p>This section will be connected next.</p>
+                <h2>Workouts</h2>
+                <p>Program builder will be connected here next.</p>
+              </section>
+            )}
+
+            {activePage === "Check-ins" && (
+              <section className="placeholder">
+                <h2>Check-ins</h2>
+                <p>Client check-ins will be connected here next.</p>
               </section>
             )}
           </>
