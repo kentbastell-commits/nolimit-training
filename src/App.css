@@ -645,4 +645,42 @@ body {
   margin-top: 28px;
   width: 100%;
   font-size: 20px;
+}.setLogHeader,
+.setLogRow {
+  display: grid;
+  grid-template-columns: 55px 100px 100px 100px 100px 100px 75px 75px 1fr;
+  gap: 10px;
+  align-items: center;
+}
+
+.setLogHeader {
+  color: #f5d77b;
+  font-weight: bold;
+  margin-top: 18px;
+  margin-bottom: 8px;
+}
+
+.setLogRow {
+  margin-bottom: 10px;
+}
+
+.setLogRow input {
+  width: 100%;
+  background: #050505;
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  color: white;
+  border-radius: 8px;
+  padding: 10px;
+  font-size: 15px;
+}
+
+.saveWorkoutButton {
+  margin-top: 28px;
+  width: 100%;
+  font-size: 20px;
+}
+
+.saveWorkoutButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }

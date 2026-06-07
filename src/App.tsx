@@ -53,10 +53,12 @@ type SetLog = {
   exerciseName: string;
   exerciseOrder: number;
   setNumber: number;
+  prescribedSets: string;
   prescribedReps: string;
   actualReps: string;
   actualWeight: string;
   actualTime: string;
+  actualDistance: string;
   rpe: string;
   painScore: string;
   athleteNotes: string;
@@ -64,9 +66,11 @@ type SetLog = {
 
 function normalizeDate(value: string) {
   if (!value) return "";
+
   if (/^\d+$/.test(value)) {
     return new Date(Number(value)).toISOString().split("T")[0];
   }
+
   return value.split("T")[0].split(" ")[0];
 }
 
@@ -80,9 +84,11 @@ function formatCalendarLabel(dateString: string) {
 
 function getStatusClass(status: string) {
   const clean = status.toLowerCase();
+
   if (clean.includes("complete")) return "completedWorkout";
   if (clean.includes("miss")) return "missedWorkout";
   if (clean.includes("progress")) return "progressWorkout";
+
   return "scheduledWorkout";
 }
 
@@ -99,6 +105,7 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [workoutsLoading, setWorkoutsLoading] = useState(false);
   const [detailsLoading, setDetailsLoading] = useState(false);
+  const [savingWorkout, setSavingWorkout] = useState(false);
 
   useEffect(() => {
     fetch("/api/clients")
@@ -115,6 +122,8 @@ function App() {
 
     setWorkoutsLoading(true);
     setSelectedWorkout(null);
+    setWorkoutDetails([]);
+    setSetLogs([]);
 
     fetch(`/api/workouts?clientCode=${selectedClient.clientCode}`)
       .then((res) => res.json())
@@ -140,10 +149,12 @@ function App() {
           exerciseName: exercise.exerciseName || `Exercise ${exercise.order}`,
           exerciseOrder: exercise.order,
           setNumber: i,
+          prescribedSets: exercise.sets,
           prescribedReps: exercise.reps,
           actualReps: exercise.reps,
           actualWeight: "",
           actualTime: "",
+          actualDistance: "",
           rpe: "",
           painScore: "",
           athleteNotes: "",
@@ -166,6 +177,7 @@ function App() {
       );
       const data = await res.json();
       const exercises = data.exercises || [];
+
       setWorkoutDetails(exercises);
       buildSetLogs(exercises);
     } catch {
@@ -176,22 +188,55 @@ function App() {
     }
   };
 
-  const updateSetLog = (
-    index: number,
-    field: keyof SetLog,
-    value: string
-  ) => {
+  const updateSetLog = (index: number, field: keyof SetLog, value: string) => {
     const updated = [...setLogs];
+
     updated[index] = {
       ...updated[index],
       [field]: value,
     };
+
     setSetLogs(updated);
   };
 
-  const saveWorkoutLocally = () => {
-    console.log("Workout logs ready to send to Lark:", setLogs);
-    alert("Workout saved locally. Next step: connect Save to Lark Workout Logs.");
+  const saveWorkout = async () => {
+    if (!selectedWorkout || !selectedClient) return;
+
+    setSavingWorkout(true);
+
+    try {
+      const response = await fetch("/api/saveWorkoutLog", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          clientId: selectedClient.clientCode,
+          assignedWorkoutId: selectedWorkout.assignedWorkoutId,
+          assignedWorkoutRecordId: selectedWorkout.id,
+          workoutDate: normalizeDate(String(selectedWorkout.scheduledDate)),
+          logs: setLogs,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error(data);
+        alert("Could not save workout. Check API response.");
+        return;
+      }
+
+      alert("Workout saved to Lark.");
+      setSelectedWorkout(null);
+      setWorkoutDetails([]);
+      setSetLogs([]);
+    } catch (error) {
+      console.error(error);
+      alert("Could not save workout.");
+    } finally {
+      setSavingWorkout(false);
+    }
   };
 
   const menuItems: { name: Page; count: number }[] = [
@@ -269,6 +314,8 @@ function App() {
               onClick={() => {
                 setSelectedClient(null);
                 setSelectedWorkout(null);
+                setWorkoutDetails([]);
+                setSetLogs([]);
                 setActivePage(item.name);
               }}
             >
@@ -295,6 +342,7 @@ function App() {
                 <h1>{activePage}</h1>
                 <p>NoLimit Training System</p>
               </div>
+
               <button className="goldButton">+ Add Client</button>
             </header>
 
@@ -401,6 +449,8 @@ function App() {
                 onClick={() => {
                   setSelectedClient(null);
                   setSelectedWorkout(null);
+                  setWorkoutDetails([]);
+                  setSetLogs([]);
                 }}
               >
                 ← Back
@@ -436,13 +486,27 @@ function App() {
                 <div className="overviewGrid">
                   <div className="profileCard">
                     <h3>Client Information</h3>
-                    <p><strong>Client ID:</strong> {selectedClient.clientCode}</p>
-                    <p><strong>Name:</strong> {selectedClient.name}</p>
-                    <p><strong>Email:</strong> {selectedClient.email || "--"}</p>
-                    <p><strong>Phone/WeChat:</strong> {selectedClient.phone || "--"}</p>
-                    <p><strong>Coach:</strong> {selectedClient.coach || "--"}</p>
-                    <p><strong>Package:</strong> {selectedClient.status || "--"}</p>
-                    <p><strong>Start Date:</strong> {selectedClient.startDate || "--"}</p>
+                    <p>
+                      <strong>Client ID:</strong> {selectedClient.clientCode}
+                    </p>
+                    <p>
+                      <strong>Name:</strong> {selectedClient.name}
+                    </p>
+                    <p>
+                      <strong>Email:</strong> {selectedClient.email || "--"}
+                    </p>
+                    <p>
+                      <strong>Phone/WeChat:</strong> {selectedClient.phone || "--"}
+                    </p>
+                    <p>
+                      <strong>Coach:</strong> {selectedClient.coach || "--"}
+                    </p>
+                    <p>
+                      <strong>Package:</strong> {selectedClient.status || "--"}
+                    </p>
+                    <p>
+                      <strong>Start Date:</strong> {selectedClient.startDate || "--"}
+                    </p>
                   </div>
 
                   <div className="profileCard">
@@ -541,10 +605,21 @@ function App() {
 
               <div className="modal-body">
                 <div className="workout-info">
-                  <p><strong>Assigned Workout:</strong> {selectedWorkout.assignedWorkoutId || "--"}</p>
-                  <p><strong>Program:</strong> {selectedWorkout.programId || "--"}</p>
-                  <p><strong>Date:</strong> {normalizeDate(String(selectedWorkout.scheduledDate))}</p>
-                  <p><strong>Workout Logs:</strong> {selectedWorkout.workoutLogs || "--"}</p>
+                  <p>
+                    <strong>Assigned Workout:</strong>{" "}
+                    {selectedWorkout.assignedWorkoutId || "--"}
+                  </p>
+                  <p>
+                    <strong>Program:</strong> {selectedWorkout.programId || "--"}
+                  </p>
+                  <p>
+                    <strong>Date:</strong>{" "}
+                    {normalizeDate(String(selectedWorkout.scheduledDate))}
+                  </p>
+                  <p>
+                    <strong>Workout Logs:</strong>{" "}
+                    {selectedWorkout.workoutLogs || "--"}
+                  </p>
                 </div>
 
                 <h3>Workout Logging</h3>
@@ -560,10 +635,12 @@ function App() {
                     return (
                       <div key={exercise.id} className="exercise-card">
                         <h3>{exercise.exerciseName}</h3>
+
                         <p>
                           Prescription: {exercise.sets} sets x {exercise.reps} reps
                           {" "}• Tempo {exercise.tempo} • Rest {exercise.rest}
                         </p>
+
                         <p>{exercise.notes}</p>
 
                         <div className="setLogHeader">
@@ -572,6 +649,7 @@ function App() {
                           <span>Actual Reps</span>
                           <span>Weight</span>
                           <span>Time</span>
+                          <span>Distance</span>
                           <span>RPE</span>
                           <span>Pain</span>
                           <span>Notes</span>
@@ -585,14 +663,21 @@ function App() {
                           );
 
                           return (
-                            <div className="setLogRow" key={`${log.exerciseId}-${log.setNumber}`}>
+                            <div
+                              className="setLogRow"
+                              key={`${log.exerciseId}-${log.setNumber}`}
+                            >
                               <span>{log.setNumber}</span>
                               <span>{log.prescribedReps}</span>
 
                               <input
                                 value={log.actualReps}
                                 onChange={(e) =>
-                                  updateSetLog(globalIndex, "actualReps", e.target.value)
+                                  updateSetLog(
+                                    globalIndex,
+                                    "actualReps",
+                                    e.target.value
+                                  )
                                 }
                               />
 
@@ -600,7 +685,11 @@ function App() {
                                 value={log.actualWeight}
                                 placeholder="kg"
                                 onChange={(e) =>
-                                  updateSetLog(globalIndex, "actualWeight", e.target.value)
+                                  updateSetLog(
+                                    globalIndex,
+                                    "actualWeight",
+                                    e.target.value
+                                  )
                                 }
                               />
 
@@ -608,7 +697,23 @@ function App() {
                                 value={log.actualTime}
                                 placeholder="sec"
                                 onChange={(e) =>
-                                  updateSetLog(globalIndex, "actualTime", e.target.value)
+                                  updateSetLog(
+                                    globalIndex,
+                                    "actualTime",
+                                    e.target.value
+                                  )
+                                }
+                              />
+
+                              <input
+                                value={log.actualDistance}
+                                placeholder="m"
+                                onChange={(e) =>
+                                  updateSetLog(
+                                    globalIndex,
+                                    "actualDistance",
+                                    e.target.value
+                                  )
                                 }
                               />
 
@@ -624,7 +729,11 @@ function App() {
                                 value={log.painScore}
                                 placeholder="0-10"
                                 onChange={(e) =>
-                                  updateSetLog(globalIndex, "painScore", e.target.value)
+                                  updateSetLog(
+                                    globalIndex,
+                                    "painScore",
+                                    e.target.value
+                                  )
                                 }
                               />
 
@@ -632,7 +741,11 @@ function App() {
                                 value={log.athleteNotes}
                                 placeholder="notes"
                                 onChange={(e) =>
-                                  updateSetLog(globalIndex, "athleteNotes", e.target.value)
+                                  updateSetLog(
+                                    globalIndex,
+                                    "athleteNotes",
+                                    e.target.value
+                                  )
                                 }
                               />
                             </div>
@@ -642,8 +755,12 @@ function App() {
                     );
                   })}
 
-                <button className="goldButton saveWorkoutButton" onClick={saveWorkoutLocally}>
-                  Save Workout
+                <button
+                  className="goldButton saveWorkoutButton"
+                  onClick={saveWorkout}
+                  disabled={savingWorkout}
+                >
+                  {savingWorkout ? "Saving..." : "Save Workout"}
                 </button>
               </div>
             </div>
