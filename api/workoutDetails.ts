@@ -1,19 +1,41 @@
-import { VercelRequest, VercelResponse } from "@vercel/node";
+import type { VercelRequest, VercelResponse } from "@vercel/node";
 
-export default async function handler(
-  req: VercelRequest,
-  res: VercelResponse
-) {
+function fieldToText(value: any): string {
+  if (!value) return "";
+
+  if (typeof value === "string") return value;
+  if (typeof value === "number") return String(value);
+
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => {
+        if (typeof item === "string") return item;
+        if (item?.text) return item.text;
+        if (item?.name) return item.name;
+        if (item?.record_ids) return item.record_ids.join(", ");
+        if (item?.link_record_ids) return item.link_record_ids.join(", ");
+        return JSON.stringify(item);
+      })
+      .join(", ");
+  }
+
+  if (value?.text) return value.text;
+  if (value?.name) return value.name;
+  if (value?.record_ids) return value.record_ids.join(", ");
+  if (value?.link_record_ids) return value.link_record_ids.join(", ");
+
+  return JSON.stringify(value);
+}
+
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
-    const { programId, week, day } = req.query;
+    const { week, day } = req.query;
 
     const tokenResponse = await fetch(
       "https://open.larksuite.com/open-apis/auth/v3/tenant_access_token/internal",
       {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           app_id: process.env.LARK_APP_ID,
           app_secret: process.env.LARK_APP_SECRET,
@@ -23,47 +45,56 @@ export default async function handler(
 
     const tokenData = await tokenResponse.json();
 
-    const accessToken = tokenData.tenant_access_token;
-
-    const response = await fetch(
-      `https://open.larksuite.com/open-apis/bitable/v1/apps/${process.env.LARK_BASE_APP_TOKEN}/tables/${process.env.LARK_WORKOUT_TEMPLATE_TABLE_ID}/records`,
+    const recordsResponse = await fetch(
+      `https://open.larksuite.com/open-apis/bitable/v1/apps/${process.env.LARK_BASE_APP_TOKEN}/tables/${process.env.LARK_WORKOUT_TEMPLATE_TABLE_ID}/records?page_size=100`,
       {
         headers: {
-          Authorization: `Bearer ${accessToken}`,
+          Authorization: `Bearer ${tokenData.tenant_access_token}`,
         },
       }
     );
 
-    const data = await response.json();
+    const data = await recordsResponse.json();
+
+    if (!data?.data?.items) {
+      return res.status(500).json({
+        error: "Lark did not return workout template records",
+        larkResponse: data,
+      });
+    }
 
     const exercises = data.data.items
       .filter((item: any) => {
-        const fields = item.fields;
+        const fields = item.fields || {};
 
         return (
-          String(fields["Program ID"]) === String(programId) &&
-          String(fields["Week"]) === String(week) &&
-          String(fields["Day"]) === String(day)
+          fieldToText(fields["Week"]) === String(week) &&
+          fieldToText(fields["Day"]) === String(day)
         );
       })
-      .map((item: any) => ({
-        exerciseId: item.fields["Exercise ID"] || "",
-        exerciseName: item.fields["Exercise Name"] || "",
-        sets: item.fields["Sets"] || "",
-        reps: item.fields["Reps"] || "",
-        tempo: item.fields["Tempo"] || "",
-        rest: item.fields["Rest"] || "",
-        notes: item.fields["Coaching Notes"] || "",
-        order: item.fields["Order"] || 0,
-      }))
+      .map((item: any) => {
+        const fields = item.fields || {};
+
+        return {
+          id: item.record_id,
+          templateId: fieldToText(fields["Template ID"]),
+          exerciseId: fieldToText(fields["Exercise ID"]),
+          exerciseName: fieldToText(fields["Exercise Name"]),
+          order: Number(fieldToText(fields["Order"])) || 0,
+          sets: fieldToText(fields["Sets"]),
+          reps: fieldToText(fields["Reps"]),
+          tempo: fieldToText(fields["Tempo"]),
+          rest: fieldToText(fields["Rest"]),
+          notes: fieldToText(fields["Coaching Notes"]),
+        };
+      })
       .sort((a: any, b: any) => a.order - b.order);
 
-    return res.status(200).json({
-      exercises,
-    });
+    return res.status(200).json({ exercises });
   } catch (error: any) {
     return res.status(500).json({
-      error: error.message,
+      error: "Server error",
+      message: error.message,
     });
   }
 }
