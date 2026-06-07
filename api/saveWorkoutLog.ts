@@ -1,17 +1,8 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 
-function toNumber(value: any): number {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : 0;
-}
-
 function toLarkDate(value: string): number {
   if (!value) return Date.now();
-
-  if (/^\d+$/.test(value)) {
-    return Number(value);
-  }
-
+  if (/^\d+$/.test(value)) return Number(value);
   return new Date(`${value}T00:00:00`).getTime();
 }
 
@@ -37,10 +28,7 @@ async function getTenantToken() {
   return data.tenant_access_token;
 }
 
-export default async function handler(
-  req: VercelRequest,
-  res: VercelResponse
-) {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
@@ -49,14 +37,6 @@ export default async function handler(
     const token = await getTenantToken();
 
     const { clientId, assignedWorkoutRecordId, workoutDate, logs } = req.body;
-
-    if (!clientId || !assignedWorkoutRecordId) {
-      return res.status(400).json({
-        error: "Missing linked record IDs",
-        clientId,
-        assignedWorkoutRecordId,
-      });
-    }
 
     if (!logs || !Array.isArray(logs)) {
       return res.status(400).json({ error: "No logs received" });
@@ -68,21 +48,11 @@ export default async function handler(
     for (const log of logs) {
       const fields: Record<string, any> = {
         "Log ID": `LOG-${Date.now()}-${createdRecords.length + 1}`,
-
         "Client ID": [clientId],
         "Assigned Workout ID": [assignedWorkoutRecordId],
-
         "Date": larkDate,
-
-        "Set Number": toNumber(log.setNumber),
-        "Prescribed Sets": toNumber(log.prescribedSets),
-        "Prescribed Reps": String(log.prescribedReps || ""),
-        "Actual Reps": String(log.actualReps || ""),
-        "Actual Weight": toNumber(log.actualWeight),
-
-        "Athlete Notes": String(log.athleteNotes || ""),
-        "Exercise Order": toNumber(log.exerciseOrder),
         "Completed": true,
+        "Athlete Notes": String(log.athleteNotes || ""),
       };
 
       const response = await fetch(
