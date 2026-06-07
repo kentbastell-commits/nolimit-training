@@ -29,6 +29,8 @@ function fieldToText(value: any): string {
         if (typeof item === "string") return item;
         if (item?.text) return item.text;
         if (item?.name) return item.name;
+        if (item?.link) return item.link;
+        if (item?.url) return item.url;
         return JSON.stringify(item);
       })
       .join(", ");
@@ -36,6 +38,8 @@ function fieldToText(value: any): string {
 
   if (value?.text) return value.text;
   if (value?.name) return value.name;
+  if (value?.link) return value.link;
+  if (value?.url) return value.url;
 
   return JSON.stringify(value);
 }
@@ -58,9 +62,7 @@ async function getTenantToken() {
   const tokenData = await tokenResponse.json();
 
   if (!tokenData.tenant_access_token) {
-    throw new Error(
-      `Could not get tenant token: ${JSON.stringify(tokenData)}`
-    );
+    throw new Error(`Could not get tenant token: ${JSON.stringify(tokenData)}`);
   }
 
   return tokenData.tenant_access_token;
@@ -93,12 +95,32 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { programId, week, day, sessionName, exercises } = req.body;
+    const {
+      programId,
+      programRecordId,
+      week,
+      day,
+      sessionName,
+      exercises,
+    } = req.body;
 
-    if (!programId || !week || !day || !sessionName) {
+    if (!programId || !programRecordId || !week || !day || !sessionName) {
       return res.status(400).json({
         error: "Missing required fields",
-        required: ["programId", "week", "day", "sessionName"],
+        required: [
+          "programId",
+          "programRecordId",
+          "week",
+          "day",
+          "sessionName",
+        ],
+        received: {
+          programId,
+          programRecordId,
+          week,
+          day,
+          sessionName,
+        },
       });
     }
 
@@ -110,38 +132,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const token = await getTenantToken();
 
-    const programRecords = await getRecords(
-      process.env.LARK_PROGRAMS_TABLE_ID as string,
-      token
-    );
-
-    const matchingProgram = programRecords.find((item: any) => {
-      const fields = item.fields || {};
-      return fieldToText(fields["Program ID"]) === String(programId);
-    });
-
-    if (!matchingProgram) {
-      return res.status(400).json({
-        error: "Program ID not found in Programs table",
-        programId,
-      });
-    }
-
     const exerciseRecords = await getRecords(
       process.env.LARK_EXERCISE_LIBRARY_TABLE_ID as string,
       token
     );
 
     const records = exercises.map((exercise: ProgramExercise, index: number) => {
-      const matchingExercise =
-        exercise.exerciseRecordId
-          ? exerciseRecords.find(
-              (item: any) => item.record_id === exercise.exerciseRecordId
-            )
-          : exerciseRecords.find((item: any) => {
-              const fields = item.fields || {};
-              return fieldToText(fields["Exercise ID"]) === exercise.exerciseId;
-            });
+      const matchingExercise = exercise.exerciseRecordId
+        ? exerciseRecords.find(
+            (item: any) => item.record_id === exercise.exerciseRecordId
+          )
+        : exerciseRecords.find((item: any) => {
+            const fields = item.fields || {};
+            return fieldToText(fields["Exercise ID"]) === exercise.exerciseId;
+          });
 
       if (!matchingExercise) {
         throw new Error(
@@ -154,7 +158,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           "Template ID": makeTemplateId(),
 
           // Duplex link fields must be arrays of record IDs
-          "Program ID": [matchingProgram.record_id],
+          "Program ID": [programRecordId],
           "Exercise ID": [matchingExercise.record_id],
 
           Week: Number(week),
@@ -199,6 +203,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).json({
       success: true,
       recordsCreated: createData?.data?.records?.length || records.length,
+      programId,
+      programRecordId,
       larkResponse: createData,
     });
   } catch (error: any) {
