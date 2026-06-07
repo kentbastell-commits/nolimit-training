@@ -58,8 +58,9 @@ export default async function handler(
       const fields: Record<string, any> = {
         "Log ID": `LOG-${Date.now()}-${createdRecords.length + 1}`,
 
-        "Client ID": [{ record_id: clientId }],
-        "Assigned Workout ID": [{ record_id: assignedWorkoutRecordId }],
+        // Lark duplex link fields need array of record_id strings
+        "Client ID": [clientId],
+        "Assigned Workout ID": [assignedWorkoutRecordId],
 
         "Exercise ID": String(log.exerciseId || ""),
         "Date": workoutDate,
