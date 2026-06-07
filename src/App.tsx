@@ -40,6 +40,7 @@ type ExerciseDetail = {
   id: string;
   exerciseId: string;
   exerciseName: string;
+  videoUrl?: string;
   order: number;
   sets: string;
   reps: string;
@@ -59,9 +60,6 @@ type SetLog = {
   actualWeight: string;
   actualTime: string;
   actualDistance: string;
-  rpe: string;
-  painScore: string;
-  athleteNotes: string;
 };
 
 function normalizeDate(value: string) {
@@ -155,9 +153,6 @@ function App() {
           actualWeight: "",
           actualTime: "",
           actualDistance: "",
-          rpe: "",
-          painScore: "",
-          athleteNotes: "",
         });
       }
     });
@@ -641,14 +636,25 @@ function App() {
 
                     return (
                       <div key={exercise.id} className="exercise-card">
-                        <h3>{exercise.exerciseName}</h3>
+                        <div className="exerciseTitleRow">
+                          <h3>{exercise.exerciseName}</h3>
+
+                          {exercise.videoUrl && (
+                            <a
+                              className="videoButton"
+                              href={exercise.videoUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              🎥 Video
+                            </a>
+                          )}
+                        </div>
 
                         <p>
                           Prescription: {exercise.sets} sets x {exercise.reps}{" "}
                           reps • Tempo {exercise.tempo} • Rest {exercise.rest}
                         </p>
-
-                        <p>{exercise.notes}</p>
 
                         <div className="setLogHeader">
                           <span>Set</span>
@@ -657,9 +663,6 @@ function App() {
                           <span>Weight</span>
                           <span>Time</span>
                           <span>Distance</span>
-                          <span>RPE</span>
-                          <span>Pain</span>
-                          <span>Notes</span>
                         </div>
 
                         {exerciseLogs.map((log) => {
@@ -719,38 +722,6 @@ function App() {
                                   updateSetLog(
                                     globalIndex,
                                     "actualDistance",
-                                    e.target.value
-                                  )
-                                }
-                              />
-
-                              <input
-                                value={log.rpe}
-                                placeholder="1-10"
-                                onChange={(e) =>
-                                  updateSetLog(globalIndex, "rpe", e.target.value)
-                                }
-                              />
-
-                              <input
-                                value={log.painScore}
-                                placeholder="0-10"
-                                onChange={(e) =>
-                                  updateSetLog(
-                                    globalIndex,
-                                    "painScore",
-                                    e.target.value
-                                  )
-                                }
-                              />
-
-                              <input
-                                value={log.athleteNotes}
-                                placeholder="notes"
-                                onChange={(e) =>
-                                  updateSetLog(
-                                    globalIndex,
-                                    "athleteNotes",
                                     e.target.value
                                   )
                                 }
