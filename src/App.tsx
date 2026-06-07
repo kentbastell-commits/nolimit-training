@@ -38,6 +38,7 @@ type Workout = {
 
 type ExerciseDetail = {
   id: string;
+  exerciseId: string;
   exerciseName: string;
   order: number;
   sets: string;
@@ -45,6 +46,20 @@ type ExerciseDetail = {
   tempo: string;
   rest: string;
   notes: string;
+};
+
+type SetLog = {
+  exerciseId: string;
+  exerciseName: string;
+  exerciseOrder: number;
+  setNumber: number;
+  prescribedReps: string;
+  actualReps: string;
+  actualWeight: string;
+  actualTime: string;
+  rpe: string;
+  painScore: string;
+  athleteNotes: string;
 };
 
 function normalizeDate(value: string) {
@@ -80,6 +95,7 @@ function App() {
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [selectedWorkout, setSelectedWorkout] = useState<Workout | null>(null);
   const [workoutDetails, setWorkoutDetails] = useState<ExerciseDetail[]>([]);
+  const [setLogs, setSetLogs] = useState<SetLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [workoutsLoading, setWorkoutsLoading] = useState(false);
   const [detailsLoading, setDetailsLoading] = useState(false);
@@ -112,21 +128,70 @@ function App() {
       });
   }, [selectedClient, clientTab]);
 
+  const buildSetLogs = (exercises: ExerciseDetail[]) => {
+    const logs: SetLog[] = [];
+
+    exercises.forEach((exercise) => {
+      const setCount = Number(exercise.sets) || 1;
+
+      for (let i = 1; i <= setCount; i++) {
+        logs.push({
+          exerciseId: exercise.exerciseId,
+          exerciseName: exercise.exerciseName || `Exercise ${exercise.order}`,
+          exerciseOrder: exercise.order,
+          setNumber: i,
+          prescribedReps: exercise.reps,
+          actualReps: exercise.reps,
+          actualWeight: "",
+          actualTime: "",
+          rpe: "",
+          painScore: "",
+          athleteNotes: "",
+        });
+      }
+    });
+
+    setSetLogs(logs);
+  };
+
   const openWorkout = async (workout: Workout) => {
     setSelectedWorkout(workout);
     setDetailsLoading(true);
+    setWorkoutDetails([]);
+    setSetLogs([]);
 
     try {
       const res = await fetch(
         `/api/workoutDetails?programId=${workout.programId}&week=${workout.week}&day=${workout.day}`
       );
       const data = await res.json();
-      setWorkoutDetails(data.exercises || []);
+      const exercises = data.exercises || [];
+      setWorkoutDetails(exercises);
+      buildSetLogs(exercises);
     } catch {
       setWorkoutDetails([]);
+      setSetLogs([]);
     } finally {
       setDetailsLoading(false);
     }
+  };
+
+  const updateSetLog = (
+    index: number,
+    field: keyof SetLog,
+    value: string
+  ) => {
+    const updated = [...setLogs];
+    updated[index] = {
+      ...updated[index],
+      [field]: value,
+    };
+    setSetLogs(updated);
+  };
+
+  const saveWorkoutLocally = () => {
+    console.log("Workout logs ready to send to Lark:", setLogs);
+    alert("Workout saved locally. Next step: connect Save to Lark Workout Logs.");
   };
 
   const menuItems: { name: Page; count: number }[] = [
@@ -290,24 +355,10 @@ function App() {
               </>
             )}
 
-            {activePage === "Library" && (
+            {activePage !== "Clients" && (
               <section className="placeholder">
-                <h2>Exercise Library</h2>
-                <p>Your exercise library will appear here.</p>
-              </section>
-            )}
-
-            {activePage === "Workouts" && (
-              <section className="placeholder">
-                <h2>Workouts</h2>
-                <p>Workout templates and assigned sessions will appear here.</p>
-              </section>
-            )}
-
-            {activePage === "Check-ins" && (
-              <section className="placeholder">
-                <h2>Check-ins</h2>
-                <p>Readiness, soreness, pain, and weekly check-ins will appear here.</p>
+                <h2>{activePage}</h2>
+                <p>This section will be connected next.</p>
               </section>
             )}
           </>
@@ -481,6 +532,7 @@ function App() {
                   onClick={() => {
                     setSelectedWorkout(null);
                     setWorkoutDetails([]);
+                    setSetLogs([]);
                   }}
                 >
                   ×
@@ -495,38 +547,104 @@ function App() {
                   <p><strong>Workout Logs:</strong> {selectedWorkout.workoutLogs || "--"}</p>
                 </div>
 
-                <h3>Exercises</h3>
+                <h3>Workout Logging</h3>
 
                 {detailsLoading && <p>Loading workout details...</p>}
 
-                {!detailsLoading && workoutDetails.length === 0 && (
-                  <p>No exercises found for this workout yet.</p>
-                )}
+                {!detailsLoading &&
+                  workoutDetails.map((exercise) => {
+                    const exerciseLogs = setLogs.filter(
+                      (log) => log.exerciseId === exercise.exerciseId
+                    );
 
-                {workoutDetails.map((exercise, index) => (
-                  <div key={exercise.id} className="exercise-card">
-                    <h3>
-                      {exercise.exerciseName || `Exercise ${index + 1}`}
-                    </h3>
+                    return (
+                      <div key={exercise.id} className="exercise-card">
+                        <h3>{exercise.exerciseName}</h3>
+                        <p>
+                          Prescription: {exercise.sets} sets x {exercise.reps} reps
+                          {" "}• Tempo {exercise.tempo} • Rest {exercise.rest}
+                        </p>
+                        <p>{exercise.notes}</p>
 
-                    <div className="exerciseGrid">
-                      <p><strong>Sets:</strong> {exercise.sets || "--"}</p>
-                      <p><strong>Reps:</strong> {exercise.reps || "--"}</p>
-                      <p><strong>Tempo:</strong> {exercise.tempo || "--"}</p>
-                      <p><strong>Rest:</strong> {exercise.rest || "--"}</p>
-                    </div>
+                        <div className="setLogHeader">
+                          <span>Set</span>
+                          <span>Target Reps</span>
+                          <span>Actual Reps</span>
+                          <span>Weight</span>
+                          <span>Time</span>
+                          <span>RPE</span>
+                          <span>Pain</span>
+                          <span>Notes</span>
+                        </div>
 
-                    <p><strong>Notes:</strong> {exercise.notes || "--"}</p>
-                  </div>
-                ))}
+                        {exerciseLogs.map((log) => {
+                          const globalIndex = setLogs.findIndex(
+                            (item) =>
+                              item.exerciseId === log.exerciseId &&
+                              item.setNumber === log.setNumber
+                          );
 
-                <div className="drawerNotes">
-                  <h3>Coach Notes</h3>
-                  <p>{selectedWorkout.coachNotes || "No coach notes."}</p>
+                          return (
+                            <div className="setLogRow" key={`${log.exerciseId}-${log.setNumber}`}>
+                              <span>{log.setNumber}</span>
+                              <span>{log.prescribedReps}</span>
 
-                  <h3>Client Notes</h3>
-                  <p>{selectedWorkout.clientNotes || "No client notes."}</p>
-                </div>
+                              <input
+                                value={log.actualReps}
+                                onChange={(e) =>
+                                  updateSetLog(globalIndex, "actualReps", e.target.value)
+                                }
+                              />
+
+                              <input
+                                value={log.actualWeight}
+                                placeholder="kg"
+                                onChange={(e) =>
+                                  updateSetLog(globalIndex, "actualWeight", e.target.value)
+                                }
+                              />
+
+                              <input
+                                value={log.actualTime}
+                                placeholder="sec"
+                                onChange={(e) =>
+                                  updateSetLog(globalIndex, "actualTime", e.target.value)
+                                }
+                              />
+
+                              <input
+                                value={log.rpe}
+                                placeholder="1-10"
+                                onChange={(e) =>
+                                  updateSetLog(globalIndex, "rpe", e.target.value)
+                                }
+                              />
+
+                              <input
+                                value={log.painScore}
+                                placeholder="0-10"
+                                onChange={(e) =>
+                                  updateSetLog(globalIndex, "painScore", e.target.value)
+                                }
+                              />
+
+                              <input
+                                value={log.athleteNotes}
+                                placeholder="notes"
+                                onChange={(e) =>
+                                  updateSetLog(globalIndex, "athleteNotes", e.target.value)
+                                }
+                              />
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })}
+
+                <button className="goldButton saveWorkoutButton" onClick={saveWorkoutLocally}>
+                  Save Workout
+                </button>
               </div>
             </div>
           </div>
