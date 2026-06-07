@@ -108,4 +108,20 @@ code {
   line-height: 135%;
   padding: 4px 8px;
   background: var(--code-bg);
+}.exercise-card {
+  max-width: 1200px;
+  margin: 28px auto;
+}
+
+.setLogHeader,
+.setLogRow {
+  display: grid;
+  grid-template-columns: 100px 160px 180px 180px 180px 180px;
+  align-items: center;
+  gap: 18px;
+  text-align: center;
+}
+
+.setLogRow input {
+  width: 100%;
 }
