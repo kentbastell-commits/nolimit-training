@@ -22,6 +22,34 @@ type Toast = {
   message: string;
 };
 
+type CoachAnalytics = {
+  summary: {
+    totalClients: number;
+    activeClients: number;
+    premiumClients: number;
+    needsProgramming: number;
+    needsContact: number;
+    totalWorkouts: number;
+    completedWorkouts: number;
+    missedWorkouts: number;
+    inProgressWorkouts: number;
+    scheduledWorkouts: number;
+    upcomingWorkouts: number;
+    overdueWorkouts: number;
+    completionRate: number;
+  };
+  attentionClients: {
+    clientId: string;
+    name: string;
+    status: string;
+    overdueWorkouts: number;
+    completedWorkouts: number;
+    totalWorkouts: number;
+    needsProgram: boolean;
+    needsContact: boolean;
+  }[];
+};
+
 type Client = {
   id: string;
   clientCode: string;
@@ -232,6 +260,9 @@ function App() {
   const [savingClient, setSavingClient] = useState(false);
   const [updatingClientStatus, setUpdatingClientStatus] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const [analytics, setAnalytics] = useState<CoachAnalytics | null>(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [showAnalyticsModal, setShowAnalyticsModal] = useState(false);
   const [coachInvitePackage, setCoachInvitePackage] = useState("Pending");
   const [inviteForm, setInviteForm] = useState({
     name: "",
@@ -475,6 +506,29 @@ function App() {
         setLoading(false);
       })
       .catch(() => setLoading(false));
+  };
+
+  const loadAnalytics = async () => {
+    setAnalyticsLoading(true);
+    setShowAnalyticsModal(true);
+
+    try {
+      const response = await fetch("/api/analytics");
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error(data);
+        notify("Could not load workout analytics.", "error");
+        return;
+      }
+
+      setAnalytics(data);
+    } catch (error) {
+      console.error(error);
+      notify("Could not load workout analytics.", "error");
+    } finally {
+      setAnalyticsLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -2113,9 +2167,9 @@ function App() {
 
                       <button
                         className="outlineButton"
-                        onClick={() => notify("Workout analytics dashboard is next.")}
+                        onClick={loadAnalytics}
                       >
-                        Workout Analytics
+                        {analyticsLoading ? "Loading..." : "Workout Analytics"}
                       </button>
                     </div>
 
@@ -3329,6 +3383,93 @@ function App() {
                 </div>
               )}
             </section>
+          </div>
+        )}
+
+        {showAnalyticsModal && (
+          <div className="workout-modal-overlay">
+            <div className="workout-modal analyticsModal">
+              <div className="modal-header">
+                <div>
+                  <h2>Workout Analytics</h2>
+                  <p>Coach command view for training completion and client attention.</p>
+                </div>
+
+                <button
+                  className="drawerClose"
+                  onClick={() => setShowAnalyticsModal(false)}
+                >
+                  x
+                </button>
+              </div>
+
+              {analyticsLoading && <p>Loading analytics...</p>}
+
+              {!analyticsLoading && analytics && (
+                <>
+                  <section className="analyticsGrid">
+                    <div className="analyticsCard">
+                      <span>Completion Rate</span>
+                      <strong>{analytics.summary.completionRate}%</strong>
+                    </div>
+                    <div className="analyticsCard">
+                      <span>Completed Workouts</span>
+                      <strong>{analytics.summary.completedWorkouts}</strong>
+                    </div>
+                    <div className="analyticsCard">
+                      <span>Upcoming 7d</span>
+                      <strong>{analytics.summary.upcomingWorkouts}</strong>
+                    </div>
+                    <div className="analyticsCard">
+                      <span>Overdue</span>
+                      <strong>{analytics.summary.overdueWorkouts}</strong>
+                    </div>
+                    <div className="analyticsCard">
+                      <span>Needs Programming</span>
+                      <strong>{analytics.summary.needsProgramming}</strong>
+                    </div>
+                    <div className="analyticsCard">
+                      <span>Needs Contact</span>
+                      <strong>{analytics.summary.needsContact}</strong>
+                    </div>
+                  </section>
+
+                  <section className="analyticsSection">
+                    <div className="exerciseTitleRow">
+                      <h3>Clients Needing Attention</h3>
+                      <button className="outlineButton" onClick={loadAnalytics}>
+                        Refresh
+                      </button>
+                    </div>
+
+                    {analytics.attentionClients.length === 0 && (
+                      <p>No attention items right now.</p>
+                    )}
+
+                    {analytics.attentionClients.map((client) => (
+                      <div className="analyticsClientRow" key={client.clientId}>
+                        <div>
+                          <strong>{client.name}</strong>
+                          <p>{client.clientId || "--"} / {client.status || "--"}</p>
+                        </div>
+                        <span>{client.overdueWorkouts} overdue</span>
+                        <span>
+                          {client.completedWorkouts}/{client.totalWorkouts} complete
+                        </span>
+                        <span className="attentionCell">
+                          {client.needsProgram && (
+                            <span className="attentionChip">Needs program</span>
+                          )}
+                          {client.needsContact && (
+                            <span className="attentionChip">Needs contact</span>
+                          )}
+                        </span>
+                      </div>
+                    ))}
+                  </section>
+                </>
+              )}
+            </div>
           </div>
         )}
 

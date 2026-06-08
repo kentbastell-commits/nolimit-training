@@ -1208,6 +1208,54 @@ body {
   box-shadow: 0 25px 90px rgba(0, 0, 0, 0.8);
 }
 
+.analyticsModal {
+  width: 980px;
+}
+
+.analyticsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.analyticsCard {
+  border: 1px solid rgba(212, 175, 55, 0.25);
+  border-radius: 8px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.analyticsCard span {
+  display: block;
+  color: #aaa;
+  font-size: 13px;
+  margin-bottom: 10px;
+}
+
+.analyticsCard strong {
+  color: #f5d77b;
+  font-size: 28px;
+  line-height: 1;
+}
+
+.analyticsSection {
+  margin-top: 22px;
+}
+
+.analyticsClientRow {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.4fr) 100px 140px minmax(150px, 1fr);
+  gap: 12px;
+  align-items: center;
+  border-top: 1px solid rgba(212, 175, 55, 0.18);
+  padding: 12px 0;
+}
+
+.analyticsClientRow p {
+  color: #aaa;
+  margin: 4px 0 0;
+}
+
 .clientFormModal {
   width: 760px;
   max-width: 95vw;
@@ -1694,7 +1742,8 @@ body {
   .programLibraryLayout,
   .programMetaGrid,
   .clientCommandCenter,
-  .clientStatsGrid {
+  .clientStatsGrid,
+  .analyticsGrid {
     grid-template-columns: 1fr;
   }
 
@@ -1764,7 +1813,8 @@ body {
   }
 
   .setLogHeader,
-  .setLogRow {
+  .setLogRow,
+  .analyticsClientRow {
     grid-template-columns: 1fr;
   }
 
