@@ -1355,6 +1355,74 @@ body {
   gap: 14px;
 }
 
+.builderExerciseCard {
+  border-radius: 8px;
+}
+
+.groupedExerciseCard {
+  border-color: rgba(120, 200, 255, 0.5);
+  background: rgba(120, 200, 255, 0.04);
+}
+
+.builderExerciseActions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.builderExerciseActions .outlineButton {
+  padding: 8px 10px;
+}
+
+.builderExerciseActions .outlineButton:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.exerciseGroupPill {
+  display: inline-flex;
+  width: fit-content;
+  margin-top: 6px;
+  border: 1px solid rgba(120, 200, 255, 0.45);
+  border-radius: 999px;
+  padding: 4px 9px;
+  color: #cdeaff;
+  background: rgba(120, 200, 255, 0.1);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.builderPrescriptionGrid,
+.builderGroupGrid {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.builderPrescriptionGrid {
+  grid-template-columns: 80px 100px 120px 120px minmax(140px, 1fr);
+}
+
+.builderGroupGrid {
+  grid-template-columns: minmax(140px, 0.8fr) minmax(180px, 1fr);
+}
+
+.builderWideField {
+  grid-column: 1 / -1;
+}
+
+.builderWideField textarea {
+  width: 100%;
+  min-height: 82px;
+  background: #050505;
+  color: white;
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  border-radius: 8px;
+  padding: 12px;
+  resize: vertical;
+}
+
 .videoButton {
   font-size: 14px;
   padding: 6px 10px;
@@ -1662,6 +1730,11 @@ body {
     grid-template-columns: 1fr 1fr;
   }
 
+  .builderPrescriptionGrid,
+  .builderGroupGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+
   .assignProgramGrid button {
     width: 100%;
   }
@@ -1752,7 +1825,9 @@ body {
   .savedAssignGrid,
   .clientFormGrid,
   .inviteFormGrid,
-  .inviteCopyRow {
+  .inviteCopyRow,
+  .builderPrescriptionGrid,
+  .builderGroupGrid {
     grid-template-columns: 1fr;
   }
 

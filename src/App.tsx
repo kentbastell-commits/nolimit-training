@@ -101,6 +101,9 @@ type ProgramExercise = {
   tempo: string;
   rest: string;
   coachingNotes: string;
+  groupType: "Straight" | "Superset" | "Circuit";
+  groupName: string;
+  formInstructions: string;
 };
 
 type ProgramSession = {
@@ -557,6 +560,9 @@ function App() {
           tempo: "",
           rest: "",
           coachingNotes: "",
+          groupType: "Straight",
+          groupName: "",
+          formInstructions: "",
         });
 
         return sessions;
@@ -754,7 +760,7 @@ function App() {
           .values()
       );
 
-      const sessions = await Promise.all(
+      const sessions: ProgramSession[] = await Promise.all(
         uniqueSessions.map(async (session) => {
           const detailsResponse = await fetch(
             `/api/workoutDetails?programId=${selectedSavedProgram.programId}&week=${session.week}&day=${session.day}`
@@ -777,6 +783,9 @@ function App() {
               tempo: exercise.tempo,
               rest: exercise.rest,
               coachingNotes: exercise.notes,
+              groupType: "Straight" as const,
+              groupName: "",
+              formInstructions: "",
             })),
           };
         })
@@ -1106,12 +1115,6 @@ function App() {
   };
 
   const addExerciseToProgram = (exercise: LibraryExercise) => {
-    const alreadyAdded = selectedProgramExercises.some(
-      (item) => item.exerciseRecordId === exercise.recordId
-    );
-
-    if (alreadyAdded) return;
-
     setSelectedProgramExercises([
       ...selectedProgramExercises,
       {
@@ -1124,9 +1127,18 @@ function App() {
         tempo: "3-1-1",
         rest: "60 sec",
         coachingNotes: "",
+        groupType: "Straight",
+        groupName: "",
+        formInstructions: exercise.notes || "",
       },
     ]);
   };
+
+  const normalizeProgramExerciseOrder = (exercises: ProgramExercise[]) =>
+    exercises.map((exercise, index) => ({
+      ...exercise,
+      order: index + 1,
+    }));
 
   const updateProgramExercise = (
     index: number,
@@ -1141,6 +1153,92 @@ function App() {
     };
 
     setSelectedProgramExercises(updated);
+  };
+
+  const moveProgramExercise = (index: number, direction: -1 | 1) => {
+    const targetIndex = index + direction;
+
+    if (targetIndex < 0 || targetIndex >= selectedProgramExercises.length) {
+      return;
+    }
+
+    const updated = [...selectedProgramExercises];
+    const [movedExercise] = updated.splice(index, 1);
+    updated.splice(targetIndex, 0, movedExercise);
+
+    setSelectedProgramExercises(normalizeProgramExerciseOrder(updated));
+  };
+
+  const updateExerciseGrouping = (
+    index: number,
+    groupType: ProgramExercise["groupType"],
+    groupName: string
+  ) => {
+    const updated = [...selectedProgramExercises];
+
+    updated[index] = {
+      ...updated[index],
+      groupType,
+      groupName: groupType === "Straight" ? "" : groupName,
+    };
+
+    setSelectedProgramExercises(updated);
+  };
+
+  const linkExerciseWithPrevious = (
+    index: number,
+    groupType: "Superset" | "Circuit"
+  ) => {
+    if (index === 0) {
+      notify(`Add another exercise above this before creating a ${groupType.toLowerCase()}.`);
+      return;
+    }
+
+    const groupName =
+      selectedProgramExercises[index - 1].groupName ||
+      `${groupType} ${String.fromCharCode(65 + index - 1)}`;
+    const updated = [...selectedProgramExercises];
+
+    updated[index - 1] = {
+      ...updated[index - 1],
+      groupType,
+      groupName,
+    };
+    updated[index] = {
+      ...updated[index],
+      groupType,
+      groupName,
+    };
+
+    setSelectedProgramExercises(updated);
+  };
+
+  const applyFormInstructions = (index: number) => {
+    const exercise = selectedProgramExercises[index];
+
+    if (!exercise.formInstructions) {
+      notify("No form instructions are saved for this exercise yet.");
+      return;
+    }
+
+    const updatedNotes = exercise.coachingNotes
+      ? `${exercise.coachingNotes}\n\nForm cues: ${exercise.formInstructions}`
+      : `Form cues: ${exercise.formInstructions}`;
+
+    updateProgramExercise(index, "coachingNotes", updatedNotes);
+  };
+
+  const buildExerciseCoachingNotes = (exercise: ProgramExercise) => {
+    const meta = [
+      exercise.groupType !== "Straight" && exercise.groupName
+        ? `${exercise.groupType}: ${exercise.groupName}`
+        : "",
+      exercise.formInstructions
+        ? `Form instructions: ${exercise.formInstructions}`
+        : "",
+    ].filter(Boolean);
+
+    return [...meta, exercise.coachingNotes].filter(Boolean).join("\n\n");
   };
 
   const removeProgramExercise = (index: number) => {
@@ -1274,6 +1372,7 @@ function App() {
               ...exercise,
               order: Number(exercise.order) || index + 1,
               sets: Number(exercise.sets) || 1,
+              coachingNotes: buildExerciseCoachingNotes(exercise),
               status: "Active",
             })),
           }),
@@ -2464,28 +2563,67 @@ function App() {
                 )}
 
                 {selectedProgramExercises.map((exercise, index) => (
-                  <div className="exercise-card" key={exercise.exerciseRecordId}>
+                  <div
+                    className={`exercise-card builderExerciseCard ${
+                      exercise.groupType !== "Straight" ? "groupedExerciseCard" : ""
+                    }`}
+                    key={`${exercise.exerciseRecordId}-${index}`}
+                  >
                     <div className="exerciseTitleRow">
-                      <h3>
-                        {exercise.order}. {exercise.exerciseName}
-                      </h3>
+                      <div>
+                        <h3>
+                          {exercise.order}. {exercise.exerciseName}
+                        </h3>
+                        {exercise.groupType !== "Straight" && exercise.groupName && (
+                          <span className="exerciseGroupPill">
+                            {exercise.groupType}: {exercise.groupName}
+                          </span>
+                        )}
+                      </div>
 
-                      <button
-                        className="outlineButton"
-                        onClick={() => removeProgramExercise(index)}
-                      >
-                        Remove
-                      </button>
+                      <div className="builderExerciseActions">
+                        <button
+                          className="outlineButton"
+                          onClick={() => moveProgramExercise(index, -1)}
+                          disabled={index === 0}
+                        >
+                          Up
+                        </button>
+                        <button
+                          className="outlineButton"
+                          onClick={() => moveProgramExercise(index, 1)}
+                          disabled={index === selectedProgramExercises.length - 1}
+                        >
+                          Down
+                        </button>
+                        <button
+                          className="outlineButton"
+                          onClick={() => linkExerciseWithPrevious(index, "Superset")}
+                        >
+                          Superset
+                        </button>
+                        <button
+                          className="outlineButton"
+                          onClick={() => linkExerciseWithPrevious(index, "Circuit")}
+                        >
+                          Circuit
+                        </button>
+                        <button
+                          className="outlineButton"
+                          onClick={() => applyFormInstructions(index)}
+                        >
+                          Form Cues
+                        </button>
+                        <button
+                          className="outlineButton"
+                          onClick={() => removeProgramExercise(index)}
+                        >
+                          Remove
+                        </button>
+                      </div>
                     </div>
 
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "80px 100px 120px 120px 1fr",
-                        gap: "12px",
-                        marginTop: "12px",
-                      }}
-                    >
+                    <div className="builderPrescriptionGrid">
                       <label>
                         <span>Order</span>
                         <input
@@ -2547,23 +2685,69 @@ function App() {
                       </label>
                     </div>
 
-                    <textarea
-                      style={{
-                        width: "100%",
-                        marginTop: "12px",
-                        minHeight: "80px",
-                        background: "#050505",
-                        color: "white",
-                        border: "1px solid rgba(212, 175, 55, 0.35)",
-                        borderRadius: "10px",
-                        padding: "12px",
-                      }}
-                      value={exercise.coachingNotes}
-                      onChange={(e) =>
-                        updateProgramExercise(index, "coachingNotes", e.target.value)
-                      }
-                      placeholder="Coaching notes..."
-                    />
+                    <div className="builderGroupGrid">
+                      <label>
+                        <span>Structure</span>
+                        <select
+                          className="miniSearch"
+                          value={exercise.groupType}
+                          onChange={(e) =>
+                            updateExerciseGrouping(
+                              index,
+                              e.target.value as ProgramExercise["groupType"],
+                              exercise.groupName || "Group A"
+                            )
+                          }
+                        >
+                          <option>Straight</option>
+                          <option>Superset</option>
+                          <option>Circuit</option>
+                        </select>
+                      </label>
+
+                      <label>
+                        <span>Group Label</span>
+                        <input
+                          className="miniSearch"
+                          value={exercise.groupName}
+                          onChange={(e) =>
+                            updateProgramExercise(index, "groupName", e.target.value)
+                          }
+                          placeholder="A, B, Upper Circuit..."
+                          disabled={exercise.groupType === "Straight"}
+                        />
+                      </label>
+
+                      <label className="builderWideField">
+                        <span>Personalized Coach Notes</span>
+                        <textarea
+                          value={exercise.coachingNotes}
+                          onChange={(e) =>
+                            updateProgramExercise(
+                              index,
+                              "coachingNotes",
+                              e.target.value
+                            )
+                          }
+                          placeholder="Coach-specific notes for this client or session..."
+                        />
+                      </label>
+
+                      <label className="builderWideField">
+                        <span>Form Instructions</span>
+                        <textarea
+                          value={exercise.formInstructions}
+                          onChange={(e) =>
+                            updateProgramExercise(
+                              index,
+                              "formInstructions",
+                              e.target.value
+                            )
+                          }
+                          placeholder="Technique cues, setup instructions, common mistakes..."
+                        />
+                      </label>
+                    </div>
                   </div>
                 ))}
 
