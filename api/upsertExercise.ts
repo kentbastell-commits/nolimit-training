@@ -24,13 +24,39 @@ async function getTenantToken() {
     }
   );
 
-  const tokenData = await tokenResponse.json();
+  const tokenData = await readResponseJson(tokenResponse);
 
   if (!tokenData.tenant_access_token) {
     throw new Error(`Could not get tenant token: ${JSON.stringify(tokenData)}`);
   }
 
   return tokenData.tenant_access_token;
+}
+
+async function readResponseJson(response: Response) {
+  const text = await response.text();
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return {
+      code: -1,
+      error: "Non-JSON response",
+      status: response.status,
+      body: text,
+    };
+  }
+}
+
+function makeUrlField(value: string) {
+  const clean = String(value || "").trim();
+
+  if (!clean) return "";
+
+  return {
+    link: clean,
+    text: clean,
+  };
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -64,7 +90,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const fields = {
       "Exercise ID": exerciseId || makeExerciseId(exerciseName),
       "Exercise Name": exerciseName || "",
-      "Video URL": videoUrl || "",
+      "Video URL": makeUrlField(videoUrl),
       Category: category || "",
       Equipment: equipment || "",
       "Movement Pattern": movementPattern || "",
@@ -80,7 +106,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       body: JSON.stringify({ fields }),
     });
 
-    const data = await response.json();
+    const data = await readResponseJson(response);
 
     if (!response.ok || data.code !== 0) {
       return res.status(500).json({
