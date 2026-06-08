@@ -167,6 +167,8 @@ function App() {
   const [workoutsLoading, setWorkoutsLoading] = useState(false);
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [savingWorkout, setSavingWorkout] = useState(false);
+  const [editingWorkoutDate, setEditingWorkoutDate] = useState("");
+  const [updatingWorkoutDate, setUpdatingWorkoutDate] = useState(false);
 
   const [libraryExercises, setLibraryExercises] = useState<LibraryExercise[]>([]);
   const [libraryLoading, setLibraryLoading] = useState(false);
@@ -291,14 +293,14 @@ function App() {
       }
 
       const templates = data.templates || [];
-
       const uniqueSessionsMap = new Map<string, AssignableWorkout>();
 
       templates.forEach((template: any) => {
         const key = `${template.week}-${template.day}-${template.sessionName}`;
 
         if (!uniqueSessionsMap.has(key)) {
-          const offsetDays = (Number(template.week) - 1) * 7 + (Number(template.day) - 1) * 2;
+          const offsetDays =
+            (Number(template.week) - 1) * 7 + (Number(template.day) - 1) * 2;
 
           uniqueSessionsMap.set(key, {
             localId: key,
@@ -369,11 +371,9 @@ function App() {
       alert(`Program assigned. Workouts created: ${data.recordsCreated}`);
       setAssignableWorkouts([]);
 
-      fetch(`/api/workouts?clientCode=${selectedClient.clientCode}`)
-        .then((res) => res.json())
-        .then((workoutData) => {
-          setWorkouts(workoutData.workouts || []);
-        });
+      const refresh = await fetch(`/api/workouts?clientCode=${selectedClient.clientCode}`);
+      const refreshData = await refresh.json();
+      setWorkouts(refreshData.workouts || []);
     } catch (error) {
       console.error(error);
       alert("Could not assign program.");
@@ -409,6 +409,7 @@ function App() {
 
   const openWorkout = async (workout: Workout) => {
     setSelectedWorkout(workout);
+    setEditingWorkoutDate(normalizeDate(String(workout.scheduledDate)));
     setDetailsLoading(true);
     setWorkoutDetails([]);
     setSetLogs([]);
@@ -479,6 +480,46 @@ function App() {
       alert("Could not save workout.");
     } finally {
       setSavingWorkout(false);
+    }
+  };
+
+  const updateWorkoutDate = async () => {
+    if (!selectedWorkout || !selectedClient) return;
+
+    setUpdatingWorkoutDate(true);
+
+    try {
+      const response = await fetch("/api/updateAssignedProgramDate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          assignedWorkoutRecordId: selectedWorkout.id,
+          scheduledDate: editingWorkoutDate,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        console.error(data);
+        alert("Could not update workout date.");
+        return;
+      }
+
+      alert("Workout date updated.");
+
+      const refresh = await fetch(`/api/workouts?clientCode=${selectedClient.clientCode}`);
+      const refreshData = await refresh.json();
+      setWorkouts(refreshData.workouts || []);
+
+      setSelectedWorkout(null);
+    } catch (error) {
+      console.error(error);
+      alert("Could not update workout date.");
+    } finally {
+      setUpdatingWorkoutDate(false);
     }
   };
 
@@ -983,394 +1024,372 @@ function App() {
             )}
 
             {activePage === "Workouts" && (
-              <>
-                <section className="tableCard" style={{ padding: "22px" }}>
-                  <h2 style={{ color: "#f5d77b", marginTop: 0 }}>
-                    Multi-Day Program Builder
-                  </h2>
+              <section className="tableCard" style={{ padding: "22px" }}>
+                <h2 style={{ color: "#f5d77b", marginTop: 0 }}>
+                  Multi-Day Program Builder
+                </h2>
 
-                  <h3 style={{ color: "#f5d77b" }}>Program Details</h3>
+                <h3 style={{ color: "#f5d77b" }}>Program Details</h3>
 
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "2fr 1fr 1fr 1fr",
-                      gap: "14px",
-                      marginBottom: "14px",
-                    }}
-                  >
-                    <label>
-                      <span>Program Name</span>
-                      <input
-                        value={programName}
-                        onChange={(e) => setProgramName(e.target.value)}
-                        placeholder="Program Name"
-                        className="miniSearch"
-                      />
-                    </label>
-
-                    <label>
-                      <span>Goal</span>
-                      <input
-                        value={programGoal}
-                        onChange={(e) => setProgramGoal(e.target.value)}
-                        placeholder="Goal"
-                        className="miniSearch"
-                      />
-                    </label>
-
-                    <label>
-                      <span>Sport</span>
-                      <input
-                        value={programSport}
-                        onChange={(e) => setProgramSport(e.target.value)}
-                        placeholder="Sport"
-                        className="miniSearch"
-                      />
-                    </label>
-
-                    <label>
-                      <span>Level</span>
-                      <input
-                        value={programLevel}
-                        onChange={(e) => setProgramLevel(e.target.value)}
-                        placeholder="Level"
-                        className="miniSearch"
-                      />
-                    </label>
-                  </div>
-
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "1fr 1fr 1fr 1fr",
-                      gap: "14px",
-                      marginBottom: "22px",
-                    }}
-                  >
-                    <label>
-                      <span>Duration Weeks</span>
-                      <input
-                        value={programDurationWeeks}
-                        onChange={(e) => setProgramDurationWeeks(e.target.value)}
-                        placeholder="Duration Weeks"
-                        className="miniSearch"
-                      />
-                    </label>
-
-                    <label>
-                      <span>Phase</span>
-                      <input
-                        value={programPhase}
-                        onChange={(e) => setProgramPhase(e.target.value)}
-                        placeholder="Phase"
-                        className="miniSearch"
-                      />
-                    </label>
-
-                    <label>
-                      <span>Sessions / Week</span>
-                      <input
-                        value={programSessionsPerWeek}
-                        onChange={(e) =>
-                          setProgramSessionsPerWeek(e.target.value)
-                        }
-                        placeholder="Sessions / Week"
-                        className="miniSearch"
-                      />
-                    </label>
-
-                    <label>
-                      <span>Coach</span>
-                      <input
-                        value={programCoach}
-                        onChange={(e) => setProgramCoach(e.target.value)}
-                        placeholder="Coach"
-                        className="miniSearch"
-                      />
-                    </label>
-                  </div>
-
-                  <h3 style={{ color: "#f5d77b" }}>Current Session</h3>
-
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "1fr 1fr 2fr auto",
-                      gap: "14px",
-                      marginBottom: "22px",
-                      alignItems: "end",
-                    }}
-                  >
-                    <label>
-                      <span>Week</span>
-                      <input
-                        value={programWeek}
-                        onChange={(e) => setProgramWeek(e.target.value)}
-                        placeholder="Week"
-                        className="miniSearch"
-                      />
-                    </label>
-
-                    <label>
-                      <span>Day</span>
-                      <input
-                        value={programDay}
-                        onChange={(e) => setProgramDay(e.target.value)}
-                        placeholder="Day"
-                        className="miniSearch"
-                      />
-                    </label>
-
-                    <label>
-                      <span>Session Name</span>
-                      <input
-                        value={sessionName}
-                        onChange={(e) => setSessionName(e.target.value)}
-                        placeholder="Session Name"
-                        className="miniSearch"
-                      />
-                    </label>
-
-                    <button
-                      className="goldButton"
-                      onClick={addCurrentSessionToProgram}
-                    >
-                      + Add Session
-                    </button>
-                  </div>
-
-                  <div className="searchRow">
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "2fr 1fr 1fr 1fr",
+                    gap: "14px",
+                    marginBottom: "14px",
+                  }}
+                >
+                  <label>
+                    <span>Program Name</span>
                     <input
-                      placeholder="Search exercise library..."
-                      value={builderSearch}
-                      onChange={(e) => setBuilderSearch(e.target.value)}
+                      value={programName}
+                      onChange={(e) => setProgramName(e.target.value)}
+                      placeholder="Program Name"
+                      className="miniSearch"
                     />
+                  </label>
 
-                    <button className="outlineButton" onClick={loadExerciseLibrary}>
-                      Load Exercises
-                    </button>
+                  <label>
+                    <span>Goal</span>
+                    <input
+                      value={programGoal}
+                      onChange={(e) => setProgramGoal(e.target.value)}
+                      placeholder="Goal"
+                      className="miniSearch"
+                    />
+                  </label>
+
+                  <label>
+                    <span>Sport</span>
+                    <input
+                      value={programSport}
+                      onChange={(e) => setProgramSport(e.target.value)}
+                      placeholder="Sport"
+                      className="miniSearch"
+                    />
+                  </label>
+
+                  <label>
+                    <span>Level</span>
+                    <input
+                      value={programLevel}
+                      onChange={(e) => setProgramLevel(e.target.value)}
+                      placeholder="Level"
+                      className="miniSearch"
+                    />
+                  </label>
+                </div>
+
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr 1fr 1fr",
+                    gap: "14px",
+                    marginBottom: "22px",
+                  }}
+                >
+                  <label>
+                    <span>Duration Weeks</span>
+                    <input
+                      value={programDurationWeeks}
+                      onChange={(e) => setProgramDurationWeeks(e.target.value)}
+                      placeholder="Duration Weeks"
+                      className="miniSearch"
+                    />
+                  </label>
+
+                  <label>
+                    <span>Phase</span>
+                    <input
+                      value={programPhase}
+                      onChange={(e) => setProgramPhase(e.target.value)}
+                      placeholder="Phase"
+                      className="miniSearch"
+                    />
+                  </label>
+
+                  <label>
+                    <span>Sessions / Week</span>
+                    <input
+                      value={programSessionsPerWeek}
+                      onChange={(e) => setProgramSessionsPerWeek(e.target.value)}
+                      placeholder="Sessions / Week"
+                      className="miniSearch"
+                    />
+                  </label>
+
+                  <label>
+                    <span>Coach</span>
+                    <input
+                      value={programCoach}
+                      onChange={(e) => setProgramCoach(e.target.value)}
+                      placeholder="Coach"
+                      className="miniSearch"
+                    />
+                  </label>
+                </div>
+
+                <h3 style={{ color: "#f5d77b" }}>Current Session</h3>
+
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr 2fr auto",
+                    gap: "14px",
+                    marginBottom: "22px",
+                    alignItems: "end",
+                  }}
+                >
+                  <label>
+                    <span>Week</span>
+                    <input
+                      value={programWeek}
+                      onChange={(e) => setProgramWeek(e.target.value)}
+                      placeholder="Week"
+                      className="miniSearch"
+                    />
+                  </label>
+
+                  <label>
+                    <span>Day</span>
+                    <input
+                      value={programDay}
+                      onChange={(e) => setProgramDay(e.target.value)}
+                      placeholder="Day"
+                      className="miniSearch"
+                    />
+                  </label>
+
+                  <label>
+                    <span>Session Name</span>
+                    <input
+                      value={sessionName}
+                      onChange={(e) => setSessionName(e.target.value)}
+                      placeholder="Session Name"
+                      className="miniSearch"
+                    />
+                  </label>
+
+                  <button className="goldButton" onClick={addCurrentSessionToProgram}>
+                    + Add Session
+                  </button>
+                </div>
+
+                <div className="searchRow">
+                  <input
+                    placeholder="Search exercise library..."
+                    value={builderSearch}
+                    onChange={(e) => setBuilderSearch(e.target.value)}
+                  />
+
+                  <button className="outlineButton" onClick={loadExerciseLibrary}>
+                    Load Exercises
+                  </button>
+                </div>
+
+                <h3 style={{ color: "#f5d77b" }}>Exercise Library</h3>
+
+                <div className="tableCard">
+                  <div
+                    className="tableHeader"
+                    style={{
+                      gridTemplateColumns: "2fr 1fr 1fr auto",
+                    }}
+                  >
+                    <span>Exercise</span>
+                    <span>Equipment</span>
+                    <span>Pattern</span>
+                    <span>Add</span>
                   </div>
 
-                  <h3 style={{ color: "#f5d77b" }}>Exercise Library</h3>
-
-                  <div className="tableCard">
+                  {builderExercises.slice(0, 8).map((exercise) => (
                     <div
-                      className="tableHeader"
+                      className="clientRow"
+                      key={exercise.recordId || exercise.exerciseId}
                       style={{
                         gridTemplateColumns: "2fr 1fr 1fr auto",
                       }}
                     >
-                      <span>Exercise</span>
-                      <span>Equipment</span>
-                      <span>Pattern</span>
-                      <span>Add</span>
+                      <div>
+                        <strong>{exercise.exerciseName}</strong>
+                        <p style={{ margin: 0 }}>{exercise.exerciseId}</p>
+                      </div>
+
+                      <span>{exercise.equipment || "--"}</span>
+                      <span>{exercise.movementPattern || "--"}</span>
+
+                      <button
+                        className="goldButton"
+                        onClick={() => addExerciseToProgram(exercise)}
+                      >
+                        + Add
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                <h3 style={{ color: "#f5d77b", marginTop: "28px" }}>
+                  Current Session Exercises
+                </h3>
+
+                {selectedProgramExercises.length === 0 && (
+                  <p>No exercises added to current session yet.</p>
+                )}
+
+                {selectedProgramExercises.map((exercise, index) => (
+                  <div className="exercise-card" key={exercise.exerciseRecordId}>
+                    <div className="exerciseTitleRow">
+                      <h3>
+                        {exercise.order}. {exercise.exerciseName}
+                      </h3>
+
+                      <button
+                        className="outlineButton"
+                        onClick={() => removeProgramExercise(index)}
+                      >
+                        Remove
+                      </button>
                     </div>
 
-                    {builderExercises.slice(0, 8).map((exercise) => (
-                      <div
-                        className="clientRow"
-                        key={exercise.recordId || exercise.exerciseId}
-                        style={{
-                          gridTemplateColumns: "2fr 1fr 1fr auto",
-                        }}
-                      >
-                        <div>
-                          <strong>{exercise.exerciseName}</strong>
-                          <p style={{ margin: 0 }}>{exercise.exerciseId}</p>
-                        </div>
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "80px 100px 120px 120px 1fr",
+                        gap: "12px",
+                        marginTop: "12px",
+                      }}
+                    >
+                      <label>
+                        <span>Order</span>
+                        <input
+                          className="miniSearch"
+                          value={exercise.order}
+                          onChange={(e) =>
+                            updateProgramExercise(index, "order", e.target.value)
+                          }
+                          placeholder="Order"
+                        />
+                      </label>
 
-                        <span>{exercise.equipment || "--"}</span>
-                        <span>{exercise.movementPattern || "--"}</span>
+                      <label>
+                        <span>Sets</span>
+                        <input
+                          className="miniSearch"
+                          value={exercise.sets}
+                          onChange={(e) =>
+                            updateProgramExercise(index, "sets", e.target.value)
+                          }
+                          placeholder="Sets"
+                        />
+                      </label>
 
-                        <button
-                          className="goldButton"
-                          onClick={() => addExerciseToProgram(exercise)}
-                        >
-                          + Add
-                        </button>
-                      </div>
-                    ))}
+                      <label>
+                        <span>Reps</span>
+                        <input
+                          className="miniSearch"
+                          value={exercise.reps}
+                          onChange={(e) =>
+                            updateProgramExercise(index, "reps", e.target.value)
+                          }
+                          placeholder="Reps"
+                        />
+                      </label>
+
+                      <label>
+                        <span>Tempo</span>
+                        <input
+                          className="miniSearch"
+                          value={exercise.tempo}
+                          onChange={(e) =>
+                            updateProgramExercise(index, "tempo", e.target.value)
+                          }
+                          placeholder="Tempo"
+                        />
+                      </label>
+
+                      <label>
+                        <span>Rest</span>
+                        <input
+                          className="miniSearch"
+                          value={exercise.rest}
+                          onChange={(e) =>
+                            updateProgramExercise(index, "rest", e.target.value)
+                          }
+                          placeholder="Rest"
+                        />
+                      </label>
+                    </div>
+
+                    <textarea
+                      style={{
+                        width: "100%",
+                        marginTop: "12px",
+                        minHeight: "80px",
+                        background: "#050505",
+                        color: "white",
+                        border: "1px solid rgba(212, 175, 55, 0.35)",
+                        borderRadius: "10px",
+                        padding: "12px",
+                      }}
+                      value={exercise.coachingNotes}
+                      onChange={(e) =>
+                        updateProgramExercise(index, "coachingNotes", e.target.value)
+                      }
+                      placeholder="Coaching notes..."
+                    />
                   </div>
+                ))}
 
-                  <h3 style={{ color: "#f5d77b", marginTop: "28px" }}>
-                    Current Session Exercises
-                  </h3>
+                <h3 style={{ color: "#f5d77b", marginTop: "28px" }}>
+                  Program Sessions
+                </h3>
 
-                  {selectedProgramExercises.length === 0 && (
-                    <p>No exercises added to current session yet.</p>
-                  )}
+                {programSessions.length === 0 && <p>No sessions added yet.</p>}
 
-                  {selectedProgramExercises.map((exercise, index) => (
-                    <div className="exercise-card" key={exercise.exerciseRecordId}>
-                      <div className="exerciseTitleRow">
-                        <h3>
-                          {exercise.order}. {exercise.exerciseName}
-                        </h3>
+                {programSessions.map((session) => (
+                  <div className="exercise-card" key={session.localId}>
+                    <div className="exerciseTitleRow">
+                      <h3>
+                        Week {session.week} / Day {session.day}:{" "}
+                        {session.sessionName}
+                      </h3>
+
+                      <div style={{ display: "flex", gap: "10px" }}>
+                        <button
+                          className="outlineButton"
+                          onClick={() => loadSessionForEditing(session)}
+                        >
+                          Edit
+                        </button>
 
                         <button
                           className="outlineButton"
-                          onClick={() => removeProgramExercise(index)}
+                          onClick={() => removeProgramSession(session.localId)}
                         >
                           Remove
                         </button>
                       </div>
-
-                      <div
-                        style={{
-                          display: "grid",
-                          gridTemplateColumns: "80px 100px 120px 120px 1fr",
-                          gap: "12px",
-                          marginTop: "12px",
-                        }}
-                      >
-                        <label>
-                          <span>Order</span>
-                          <input
-                            className="miniSearch"
-                            value={exercise.order}
-                            onChange={(e) =>
-                              updateProgramExercise(
-                                index,
-                                "order",
-                                e.target.value
-                              )
-                            }
-                            placeholder="Order"
-                          />
-                        </label>
-
-                        <label>
-                          <span>Sets</span>
-                          <input
-                            className="miniSearch"
-                            value={exercise.sets}
-                            onChange={(e) =>
-                              updateProgramExercise(index, "sets", e.target.value)
-                            }
-                            placeholder="Sets"
-                          />
-                        </label>
-
-                        <label>
-                          <span>Reps</span>
-                          <input
-                            className="miniSearch"
-                            value={exercise.reps}
-                            onChange={(e) =>
-                              updateProgramExercise(index, "reps", e.target.value)
-                            }
-                            placeholder="Reps"
-                          />
-                        </label>
-
-                        <label>
-                          <span>Tempo</span>
-                          <input
-                            className="miniSearch"
-                            value={exercise.tempo}
-                            onChange={(e) =>
-                              updateProgramExercise(
-                                index,
-                                "tempo",
-                                e.target.value
-                              )
-                            }
-                            placeholder="Tempo"
-                          />
-                        </label>
-
-                        <label>
-                          <span>Rest</span>
-                          <input
-                            className="miniSearch"
-                            value={exercise.rest}
-                            onChange={(e) =>
-                              updateProgramExercise(index, "rest", e.target.value)
-                            }
-                            placeholder="Rest"
-                          />
-                        </label>
-                      </div>
-
-                      <textarea
-                        style={{
-                          width: "100%",
-                          marginTop: "12px",
-                          minHeight: "80px",
-                          background: "#050505",
-                          color: "white",
-                          border: "1px solid rgba(212, 175, 55, 0.35)",
-                          borderRadius: "10px",
-                          padding: "12px",
-                        }}
-                        value={exercise.coachingNotes}
-                        onChange={(e) =>
-                          updateProgramExercise(
-                            index,
-                            "coachingNotes",
-                            e.target.value
-                          )
-                        }
-                        placeholder="Coaching notes..."
-                      />
                     </div>
-                  ))}
 
-                  <h3 style={{ color: "#f5d77b", marginTop: "28px" }}>
-                    Program Sessions
-                  </h3>
+                    <p>{session.exercises.length} exercises</p>
 
-                  {programSessions.length === 0 && (
-                    <p>No sessions added yet.</p>
-                  )}
+                    {session.exercises.map((exercise) => (
+                      <p key={exercise.exerciseRecordId} style={{ margin: "4px 0" }}>
+                        {exercise.order}. {exercise.exerciseName} — {exercise.sets} x{" "}
+                        {exercise.reps}, Tempo {exercise.tempo}, Rest {exercise.rest}
+                      </p>
+                    ))}
+                  </div>
+                ))}
 
-                  {programSessions.map((session) => (
-                    <div className="exercise-card" key={session.localId}>
-                      <div className="exerciseTitleRow">
-                        <h3>
-                          Week {session.week} / Day {session.day}:{" "}
-                          {session.sessionName}
-                        </h3>
-
-                        <div style={{ display: "flex", gap: "10px" }}>
-                          <button
-                            className="outlineButton"
-                            onClick={() => loadSessionForEditing(session)}
-                          >
-                            Edit
-                          </button>
-
-                          <button
-                            className="outlineButton"
-                            onClick={() => removeProgramSession(session.localId)}
-                          >
-                            Remove
-                          </button>
-                        </div>
-                      </div>
-
-                      <p>{session.exercises.length} exercises</p>
-
-                      {session.exercises.map((exercise) => (
-                        <p key={exercise.exerciseRecordId} style={{ margin: "4px 0" }}>
-                          {exercise.order}. {exercise.exerciseName} —{" "}
-                          {exercise.sets} x {exercise.reps}, Tempo{" "}
-                          {exercise.tempo}, Rest {exercise.rest}
-                        </p>
-                      ))}
-                    </div>
-                  ))}
-
-                  <button
-                    className="goldButton saveWorkoutButton"
-                    onClick={saveFullProgram}
-                    disabled={savingTemplate}
-                  >
-                    {savingTemplate ? "Saving..." : "Save Full Program"}
-                  </button>
-                </section>
-              </>
+                <button
+                  className="goldButton saveWorkoutButton"
+                  onClick={saveFullProgram}
+                  disabled={savingTemplate}
+                >
+                  {savingTemplate ? "Saving..." : "Save Full Program"}
+                </button>
+              </section>
             )}
 
             {activePage === "Check-ins" && (
@@ -1468,8 +1487,7 @@ function App() {
                       <strong>Email:</strong> {selectedClient.email || "--"}
                     </p>
                     <p>
-                      <strong>Phone/WeChat:</strong>{" "}
-                      {selectedClient.phone || "--"}
+                      <strong>Phone/WeChat:</strong> {selectedClient.phone || "--"}
                     </p>
                     <p>
                       <strong>Coach:</strong> {selectedClient.coach || "--"}
@@ -1478,8 +1496,7 @@ function App() {
                       <strong>Package:</strong> {selectedClient.status || "--"}
                     </p>
                     <p>
-                      <strong>Start Date:</strong>{" "}
-                      {selectedClient.startDate || "--"}
+                      <strong>Start Date:</strong> {selectedClient.startDate || "--"}
                     </p>
                   </div>
 
@@ -1513,7 +1530,10 @@ function App() {
                     </div>
                   </div>
 
-                  <section className="tableCard" style={{ padding: "22px", marginTop: "18px" }}>
+                  <section
+                    className="tableCard"
+                    style={{ padding: "22px", marginTop: "18px" }}
+                  >
                     <h3 style={{ color: "#f5d77b", marginTop: 0 }}>
                       Assign Program
                     </h3>
@@ -1573,9 +1593,7 @@ function App() {
 
                     {assignableWorkouts.length > 0 && (
                       <div style={{ marginTop: "20px" }}>
-                        <h4 style={{ color: "#f5d77b" }}>
-                          Arrange Workouts
-                        </h4>
+                        <h4 style={{ color: "#f5d77b" }}>Arrange Workouts</h4>
 
                         {assignableWorkouts.map((workout) => (
                           <div
@@ -1614,8 +1632,6 @@ function App() {
                         ? "calendarGrid oneDayCalendar"
                         : calendarView === "1 Week"
                         ? "calendarGrid weekCalendar"
-                        : calendarView === "1 Month"
-                        ? "calendarGrid monthCalendar"
                         : "calendarGrid monthCalendar"
                     }
                   >
@@ -1635,9 +1651,7 @@ function App() {
                               onClick={() => openWorkout(workout)}
                             >
                               {workout.sessionName || "Workout"}
-                              <span>
-                                {workout.completionStatus || "Scheduled"}
-                              </span>
+                              <span>{workout.completionStatus || "Scheduled"}</span>
                             </button>
                           ))}
                         </div>
@@ -1687,6 +1701,31 @@ function App() {
                     <strong>Date:</strong>{" "}
                     {normalizeDate(String(selectedWorkout.scheduledDate))}
                   </p>
+
+                  <div
+                    style={{
+                      marginTop: "16px",
+                      display: "flex",
+                      gap: "12px",
+                      alignItems: "center",
+                    }}
+                  >
+                    <input
+                      type="date"
+                      className="miniSearch"
+                      value={editingWorkoutDate}
+                      onChange={(e) => setEditingWorkoutDate(e.target.value)}
+                    />
+
+                    <button
+                      className="outlineButton"
+                      onClick={updateWorkoutDate}
+                      disabled={updatingWorkoutDate}
+                    >
+                      {updatingWorkoutDate ? "Saving..." : "Move Workout"}
+                    </button>
+                  </div>
+
                   <p>
                     <strong>Workout Logs:</strong>{" "}
                     {selectedWorkout.workoutLogs || "--"}
@@ -1721,8 +1760,8 @@ function App() {
                         </div>
 
                         <p>
-                          Prescription: {exercise.sets} sets x {exercise.reps}{" "}
-                          reps • Tempo {exercise.tempo} • Rest {exercise.rest}
+                          Prescription: {exercise.sets} sets x {exercise.reps} reps
+                          • Tempo {exercise.tempo} • Rest {exercise.rest}
                         </p>
 
                         <div className="setLogHeader">
