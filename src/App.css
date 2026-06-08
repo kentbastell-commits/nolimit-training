@@ -949,6 +949,27 @@ body {
   gap: 14px;
 }
 
+.programBuilderPanel {
+  padding: 22px;
+}
+
+.builderPageTitle,
+.builderSectionTitle {
+  color: #f5d77b;
+}
+
+.builderPageTitle {
+  margin: 0 0 18px;
+}
+
+.builderSectionTitle {
+  margin: 22px 0 12px;
+}
+
+.builderSectionTitleSpaced {
+  margin-top: 28px;
+}
+
 .programDetailsPrimary {
   grid-template-columns: minmax(220px, 2fr) minmax(160px, 1fr);
   margin-bottom: 14px;
@@ -2208,15 +2229,16 @@ body {
 
 @media (max-width: 720px) {
   .main {
-    padding: 16px;
+    padding: 14px;
   }
 
   .topbar {
     flex-direction: column;
+    gap: 12px;
   }
 
   .topbar h1 {
-    font-size: 34px;
+    font-size: 30px;
   }
 
   .topbarActions,
@@ -2236,8 +2258,43 @@ body {
     padding: 11px 12px;
   }
 
+  .coachBox {
+    display: none;
+  }
+
+  .brand {
+    margin-bottom: 12px;
+  }
+
+  .clientPage {
+    gap: 16px;
+  }
+
+  .clientPage:not(.trainingFocus) .clientWorkspace {
+    order: 1;
+  }
+
+  .clientPage:not(.trainingFocus) .clientListPanel {
+    order: 2;
+  }
+
+  .clientListPanel {
+    padding: 14px;
+    border-radius: 8px;
+  }
+
+  .clientListPanel .miniSearch {
+    margin: 10px 0;
+  }
+
+  .miniClient {
+    padding: 11px;
+    margin-bottom: 8px;
+    border-radius: 8px;
+  }
+
   .clientTop h1 {
-    font-size: 30px;
+    font-size: 28px;
   }
 
   .clientTop,
@@ -2253,6 +2310,76 @@ body {
 
   .clientProfileActions button {
     width: 100%;
+  }
+
+  .clientTabs {
+    gap: 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .tab {
+    text-align: center;
+  }
+
+  .profileCard {
+    padding: 16px;
+    border-radius: 8px;
+  }
+
+  .workoutPageTabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin: 18px 0 14px;
+  }
+
+  .workoutPageTabs button {
+    width: 100%;
+    padding: 12px 10px;
+  }
+
+  .programLibraryPanel,
+  .programListPanel,
+  .programDetailPanel,
+  .savedAssignPanel,
+  .assignProgramPanel,
+  .programBuilderPanel {
+    padding: 14px;
+    border-radius: 8px;
+  }
+
+  .programBuilderPanel {
+    margin-inline: -2px;
+  }
+
+  .builderPageTitle {
+    font-size: 26px;
+    line-height: 1.12;
+    text-align: left;
+  }
+
+  .builderSectionTitle {
+    font-size: 20px;
+    text-align: left;
+  }
+
+  .programDetailsGrid {
+    gap: 10px;
+  }
+
+  .programDetailsGrid label span,
+  .currentSessionGrid label span,
+  .exercise-card label span {
+    font-size: 12px;
+    line-height: 1.2;
+  }
+
+  .programDetailsGrid .miniSearch,
+  .currentSessionGrid .miniSearch,
+  .builderGroupGrid .miniSearch,
+  .builderPrescriptionGrid .miniSearch {
+    min-height: 44px;
   }
 
   .calendarControls {
@@ -2307,18 +2434,19 @@ body {
 
   .workout-modal-overlay {
     align-items: stretch;
-    padding: 10px;
+    padding: 0;
   }
 
   .workout-modal {
     max-width: 100%;
-    max-height: calc(100vh - 20px);
-    border-radius: 12px;
-    padding: 16px;
+    width: 100%;
+    max-height: 100vh;
+    border-radius: 0;
+    padding: 14px;
   }
 
   .modal-header h2 {
-    font-size: 24px;
+    font-size: 22px;
   }
 
   .workout-info {
@@ -2341,13 +2469,28 @@ body {
   }
 
   .workoutExerciseTitle h3 {
-    font-size: 22px;
+    font-size: 21px;
     line-height: 1.15;
+  }
+
+  .exerciseLabelBadge {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    font-size: 13px;
+  }
+
+  .videoButton {
+    width: 100%;
+    text-align: center;
+    border-radius: 8px;
+    padding: 9px 10px;
   }
 
   .previousPerformance {
     align-items: stretch;
     flex-direction: column;
+    gap: 6px;
   }
 
   .setLogHeader {
@@ -2356,7 +2499,7 @@ body {
 
   .setLogRow {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
+    gap: 10px 8px;
     border: 1px solid rgba(212, 175, 55, 0.18);
     border-radius: 8px;
     padding: 12px;
@@ -2372,8 +2515,17 @@ body {
     font-weight: 700;
   }
 
-  .setLogField {
-    grid-column: 1 / -1;
+  .setLogStatic {
+    min-height: 58px;
+    border: 1px solid rgba(212, 175, 55, 0.14);
+    border-radius: 8px;
+    padding: 9px 10px;
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  .setLogField input {
+    min-height: 44px;
+    padding: 11px 10px;
   }
 
   .invitePage {
@@ -2478,6 +2630,71 @@ body {
   .calendarDay,
   .monthCalendar .calendarDay {
     min-height: 120px;
+  }
+}
+
+@media (max-width: 430px) {
+  .main {
+    padding: 12px;
+  }
+
+  .brandWordmark {
+    font-size: 20px;
+    letter-spacing: 3px;
+  }
+
+  .brandTagline {
+    display: none;
+  }
+
+  .clientStatsGrid,
+  .checkInStatsGrid {
+    gap: 8px;
+  }
+
+  .clientStat {
+    padding: 12px;
+  }
+
+  .clientTop {
+    margin: 18px 0;
+  }
+
+  .largeAvatar {
+    width: 52px;
+    height: 52px;
+    min-width: 52px;
+  }
+
+  .programBuilderPanel .searchRow {
+    gap: 10px;
+    margin: 16px 0;
+  }
+
+  .builderExerciseActions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+  }
+
+  .builderExerciseActions .outlineButton:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .workout-modal {
+    padding: 12px;
+  }
+
+  .workoutExerciseTitle {
+    width: 100%;
+  }
+
+  .workoutExerciseTitle h3 {
+    font-size: 20px;
+  }
+
+  .setLogRow {
+    padding: 10px;
   }
 }
 

@@ -2735,12 +2735,12 @@ function App() {
                 )}
 
                 {workoutPageTab === "Builder" && (
-              <section className="tableCard" style={{ padding: "22px" }}>
-                <h2 style={{ color: "#f5d77b", marginTop: 0 }}>
+              <section className="tableCard programBuilderPanel">
+                <h2 className="builderPageTitle">
                   Multi-Day Program Builder
                 </h2>
 
-                <h3 style={{ color: "#f5d77b" }}>Program Details</h3>
+                <h3 className="builderSectionTitle">Program Details</h3>
 
                 <div className="programDetailsGrid programDetailsPrimary">
                   <label>
@@ -2796,7 +2796,7 @@ function App() {
                   </label>
                 </div>
 
-                <h3 style={{ color: "#f5d77b" }}>Current Session</h3>
+                <h3 className="builderSectionTitle">Current Session</h3>
 
                 <div className="currentSessionGrid">
                   <label>
@@ -2846,7 +2846,7 @@ function App() {
                   </button>
                 </div>
 
-                <h3 style={{ color: "#f5d77b" }}>Exercise Library</h3>
+                <h3 className="builderSectionTitle">Exercise Library</h3>
 
                 <div className="tableCard builderLibraryTable">
                   <div
@@ -2886,7 +2886,7 @@ function App() {
                   ))}
                 </div>
 
-                <h3 style={{ color: "#f5d77b", marginTop: "28px" }}>
+                <h3 className="builderSectionTitle builderSectionTitleSpaced">
                   Current Session Exercises
                 </h3>
 
@@ -3102,7 +3102,7 @@ function App() {
                   </div>
                 ))}
 
-                <h3 style={{ color: "#f5d77b", marginTop: "28px" }}>
+                <h3 className="builderSectionTitle builderSectionTitleSpaced">
                   Program Sessions
                 </h3>
 
@@ -4234,6 +4234,7 @@ function App() {
                               <label className="setLogField">
                                 <span>Actual Reps</span>
                                 <input
+                                  inputMode="numeric"
                                   value={log.actualReps}
                                   onChange={(e) =>
                                     updateSetLog(
@@ -4248,6 +4249,7 @@ function App() {
                               <label className="setLogField">
                                 <span>Weight</span>
                                 <input
+                                  inputMode="decimal"
                                   value={log.actualWeight}
                                   placeholder="kg"
                                   onChange={(e) =>
@@ -4263,6 +4265,7 @@ function App() {
                               <label className="setLogField">
                                 <span>Time</span>
                                 <input
+                                  inputMode="decimal"
                                   value={log.actualTime}
                                   placeholder="sec"
                                   onChange={(e) =>
@@ -4278,6 +4281,7 @@ function App() {
                               <label className="setLogField">
                                 <span>Distance</span>
                                 <input
+                                  inputMode="decimal"
                                   value={log.actualDistance}
                                   placeholder="m"
                                   onChange={(e) =>
