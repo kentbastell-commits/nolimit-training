@@ -19,6 +19,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       coach,
       packageType,
       startDate,
+      lastCheckInDate,
       notes,
     } = req.body;
 
@@ -57,9 +58,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (notes !== undefined) fields.Notes = notes;
 
     const larkStartDate = toLarkDate(startDate || "");
+    const larkLastCheckInDate = toLarkDate(lastCheckInDate || "");
 
     if (larkStartDate) {
       fields["Start Date"] = larkStartDate;
+    }
+
+    if (larkLastCheckInDate) {
+      fields["Last Check-in Date"] = larkLastCheckInDate;
     }
 
     const updateResponse = await fetch(

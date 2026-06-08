@@ -431,6 +431,81 @@ body {
   min-width: 0;
 }
 
+.checkInsPage {
+  margin-top: 22px;
+}
+
+.checkInStatsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.checkInToolbar {
+  grid-template-columns: minmax(220px, 1fr) minmax(160px, 220px) auto;
+}
+
+.checkInList {
+  display: grid;
+  gap: 12px;
+}
+
+.checkInCard {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.2fr) minmax(150px, 0.8fr) minmax(180px, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  border: 1px solid rgba(212, 175, 55, 0.25);
+  border-radius: 8px;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.35);
+  color: white;
+}
+
+.checkInDueCard {
+  border-color: rgba(212, 175, 55, 0.55);
+  background: rgba(212, 175, 55, 0.08);
+}
+
+.checkInMeta {
+  min-width: 0;
+}
+
+.checkInMeta span {
+  display: block;
+  color: #aaa;
+  font-size: 12px;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+}
+
+.checkInMeta strong {
+  display: block;
+  color: #f5d77b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.checkInMeta p {
+  margin: 4px 0 0;
+  color: #aaa;
+}
+
+.checkInActions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.checkInActions .goldButton,
+.checkInActions .outlineButton {
+  padding: 10px 12px;
+  white-space: nowrap;
+}
+
 .clientToolbar {
   display: grid;
   grid-template-columns: minmax(220px, 1fr) minmax(150px, 190px) minmax(150px, auto);
@@ -1979,11 +2054,13 @@ body {
   .programMetaGrid,
   .clientCommandCenter,
   .clientStatsGrid,
+  .checkInStatsGrid,
   .analyticsGrid {
     grid-template-columns: 1fr;
   }
 
-  .clientStatsGrid {
+  .clientStatsGrid,
+  .checkInStatsGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -2004,6 +2081,21 @@ body {
 
   .clientToolbar {
     grid-template-columns: 1fr;
+  }
+
+  .checkInCard {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .checkInCard .clientName,
+  .checkInActions {
+    grid-column: 1 / -1;
+    justify-content: stretch;
+  }
+
+  .checkInActions button {
+    flex: 1;
+    width: 100%;
   }
 
   .clientTableWorkspace {
@@ -2282,7 +2374,12 @@ body {
   }
 
   .clientStatsGrid,
+  .checkInStatsGrid,
   .clientBucketsPanel {
+    grid-template-columns: 1fr;
+  }
+
+  .checkInCard {
     grid-template-columns: 1fr;
   }
 

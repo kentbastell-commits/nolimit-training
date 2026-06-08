@@ -6,6 +6,7 @@ type ClientTab = "Overview" | "Training";
 type CalendarView = "1 Day" | "1 Week" | "1 Month";
 type WorkoutPageTab = "Saved Programs" | "Builder";
 type ToastType = "success" | "error" | "info";
+type CheckInFilter = "Due" | "Recent" | "No Check-in" | "All";
 type ClientBucket =
   | "All Clients"
   | "Active"
@@ -316,6 +317,9 @@ function App() {
   const [clients, setClients] = useState<Client[]>([]);
   const [clientSearch, setClientSearch] = useState("");
   const [clientStatusFilter, setClientStatusFilter] = useState("All");
+  const [checkInSearch, setCheckInSearch] = useState("");
+  const [checkInFilter, setCheckInFilter] = useState<CheckInFilter>("Due");
+  const [savingCheckInClientId, setSavingCheckInClientId] = useState("");
   const [clientBucket, setClientBucket] = useState<ClientBucket>("All Clients");
   const [showAddClientModal, setShowAddClientModal] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
@@ -1705,11 +1709,39 @@ function App() {
     );
   });
 
+  const getCheckInAgeDays = (client: Client) => {
+    if (!client.activity || client.activity === "--") return null;
+
+    const checkInDate = new Date(`${normalizeDate(client.activity)}T00:00:00`);
+
+    if (Number.isNaN(checkInDate.getTime())) return null;
+
+    const today = new Date(`${dateToInputValue(new Date())}T00:00:00`);
+    return Math.max(
+      0,
+      Math.floor((today.getTime() - checkInDate.getTime()) / 86400000)
+    );
+  };
+
+  const clientNeedsCheckIn = (client: Client) => {
+    const ageDays = getCheckInAgeDays(client);
+    return ageDays === null || ageDays >= 7;
+  };
+
+  const checkInStats = {
+    due: clients.filter(clientNeedsCheckIn).length,
+    recent: clients.filter((client) => {
+      const ageDays = getCheckInAgeDays(client);
+      return ageDays !== null && ageDays < 7;
+    }).length,
+    missing: clients.filter((client) => getCheckInAgeDays(client) === null).length,
+  };
+
   const menuItems: { name: Page; count: number }[] = [
     { name: "Clients", count: clients.length },
     { name: "Library", count: libraryExercises.length },
     { name: "Workouts", count: workouts.length },
-    { name: "Check-ins", count: 0 },
+    { name: "Check-ins", count: checkInStats.due },
   ];
 
   const clientStatusOptions = Array.from(
@@ -1785,6 +1817,23 @@ function App() {
     const matchesBucket = clientMatchesBucket(client, clientBucket);
 
     return matchesSearch && matchesStatus && matchesBucket;
+  });
+
+  const filteredCheckInClients = clients.filter((client) => {
+    const search = checkInSearch.toLowerCase();
+    const ageDays = getCheckInAgeDays(client);
+    const matchesSearch =
+      client.name.toLowerCase().includes(search) ||
+      client.clientCode.toLowerCase().includes(search) ||
+      client.email?.toLowerCase().includes(search) ||
+      client.phone?.toLowerCase().includes(search);
+    const matchesFilter =
+      checkInFilter === "All" ||
+      (checkInFilter === "Due" && clientNeedsCheckIn(client)) ||
+      (checkInFilter === "Recent" && ageDays !== null && ageDays < 7) ||
+      (checkInFilter === "No Check-in" && ageDays === null);
+
+    return matchesSearch && matchesFilter;
   });
 
   const refreshSelectedClient = (updatedClients: Client[]) => {
@@ -1883,6 +1932,45 @@ function App() {
       notify("Could not update client status.", "error");
     } finally {
       setUpdatingClientStatus(false);
+    }
+  };
+
+  const markClientCheckedInToday = async (client: Client) => {
+    const today = dateToInputValue(new Date());
+
+    setSavingCheckInClientId(client.id);
+
+    try {
+      const response = await fetch("/api/updateClient", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          clientRecordId: client.id,
+          lastCheckInDate: today,
+        }),
+      });
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        console.error(data);
+        notify("Could not update check-in.", "error");
+        return;
+      }
+
+      const clientsResponse = await fetch("/api/clients");
+      const clientsData = await clientsResponse.json();
+      const refreshedClients = clientsData.clients || [];
+
+      setClients(refreshedClients);
+      refreshSelectedClient(refreshedClients);
+      notify(`${client.name} checked in today.`, "success");
+    } catch (error) {
+      console.error(error);
+      notify("Could not update check-in.", "error");
+    } finally {
+      setSavingCheckInClientId("");
     }
   };
 
@@ -3038,9 +3126,112 @@ function App() {
             )}
 
             {activePage === "Check-ins" && (
-              <section className="placeholder">
-                <h2>Check-ins</h2>
-                <p>Client check-ins will be connected here next.</p>
+              <section className="checkInsPage">
+                <div className="checkInStatsGrid">
+                  <div className="clientStat">
+                    <span>Due Now</span>
+                    <strong>{checkInStats.due}</strong>
+                  </div>
+                  <div className="clientStat">
+                    <span>Recent</span>
+                    <strong>{checkInStats.recent}</strong>
+                  </div>
+                  <div className="clientStat">
+                    <span>No Check-in</span>
+                    <strong>{checkInStats.missing}</strong>
+                  </div>
+                </div>
+
+                <div className="clientToolbar checkInToolbar">
+                  <input
+                    placeholder="Search check-ins"
+                    value={checkInSearch}
+                    onChange={(e) => setCheckInSearch(e.target.value)}
+                  />
+
+                  <select
+                    value={checkInFilter}
+                    onChange={(e) =>
+                      setCheckInFilter(e.target.value as CheckInFilter)
+                    }
+                  >
+                    <option value="Due">Due</option>
+                    <option value="Recent">Recent</option>
+                    <option value="No Check-in">No Check-in</option>
+                    <option value="All">All</option>
+                  </select>
+
+                  <button className="outlineButton" onClick={loadClients}>
+                    Refresh
+                  </button>
+                </div>
+
+                <section className="checkInList">
+                  {!loading && filteredCheckInClients.length === 0 && (
+                    <p className="emptyTableMessage">
+                      No clients match this check-in view.
+                    </p>
+                  )}
+
+                  {filteredCheckInClients.map((client) => {
+                    const ageDays = getCheckInAgeDays(client);
+                    const isDue = clientNeedsCheckIn(client);
+                    const lastCheckIn =
+                      ageDays === null
+                        ? "No check-in recorded"
+                        : ageDays === 0
+                        ? "Checked in today"
+                        : `${ageDays} days since check-in`;
+
+                    return (
+                      <article
+                        className={`checkInCard ${isDue ? "checkInDueCard" : ""}`}
+                        key={client.id}
+                      >
+                        <div className="clientName">
+                          <div className="clientAvatar">{client.initials}</div>
+                          <div>
+                            <strong>{client.name}</strong>
+                            <p>{client.status || "Active"}</p>
+                          </div>
+                        </div>
+
+                        <div className="checkInMeta">
+                          <span>Last Check-in</span>
+                          <strong>{client.activity || "--"}</strong>
+                          <p>{lastCheckIn}</p>
+                        </div>
+
+                        <div className="checkInMeta">
+                          <span>Program</span>
+                          <strong>{client.program || "--"}</strong>
+                          <p>{client.email || client.phone || "No contact saved"}</p>
+                        </div>
+
+                        <div className="checkInActions">
+                          <button
+                            className={isDue ? "goldButton" : "outlineButton"}
+                            onClick={() => markClientCheckedInToday(client)}
+                            disabled={savingCheckInClientId === client.id}
+                          >
+                            {savingCheckInClientId === client.id
+                              ? "Saving..."
+                              : "Mark Today"}
+                          </button>
+                          <button
+                            className="outlineButton"
+                            onClick={() => {
+                              setSelectedClient(client);
+                              setClientTab("Overview");
+                            }}
+                          >
+                            Open Client
+                          </button>
+                        </div>
+                      </article>
+                    );
+                  })}
+                </section>
               </section>
             )}
           </>
