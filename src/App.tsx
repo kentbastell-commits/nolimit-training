@@ -413,6 +413,7 @@ function App() {
   const [updatingWorkoutDate, setUpdatingWorkoutDate] = useState(false);
   const [draggingWorkoutId, setDraggingWorkoutId] = useState("");
   const [movingWorkoutId, setMovingWorkoutId] = useState("");
+  const [forceDesktopWorkoutRows, setForceDesktopWorkoutRows] = useState(false);
 
   const [libraryExercises, setLibraryExercises] = useState<LibraryExercise[]>([]);
   const [libraryLoading, setLibraryLoading] = useState(false);
@@ -648,6 +649,19 @@ function App() {
 
   useEffect(() => {
     loadClients();
+  }, []);
+
+  useEffect(() => {
+    const updateWorkoutRowMode = () => {
+      const isTouchPhone =
+        window.navigator.maxTouchPoints > 0 && window.screen.width <= 700;
+      setForceDesktopWorkoutRows(!isTouchPhone);
+    };
+
+    updateWorkoutRowMode();
+    window.addEventListener("resize", updateWorkoutRowMode);
+
+    return () => window.removeEventListener("resize", updateWorkoutRowMode);
   }, []);
 
   useEffect(() => {
@@ -4438,7 +4452,9 @@ function App() {
 
                           return (
                             <div
-                              className="setLogRow"
+                              className={`setLogRow ${
+                                forceDesktopWorkoutRows ? "desktopSetLogRow" : ""
+                              }`}
                               key={`${log.exerciseId}-${log.setNumber}-${log.side || "both"}`}
                             >
                               <div className="setBanner">
@@ -4610,4 +4626,3 @@ function App() {
 }
 
 export default App;
-
