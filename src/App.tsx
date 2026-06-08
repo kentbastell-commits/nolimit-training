@@ -21,6 +21,20 @@ type Client = {
   startDate?: string;
 };
 
+type Program = {
+  recordId: string;
+  programId: string;
+  programName: string;
+  goal: string;
+  sport: string;
+  level: string;
+  durationWeeks: string;
+  phase: string;
+  sessionsPerWeek: string;
+  coach: string;
+  status: string;
+};
+
 type Workout = {
   id: string;
   assignedWorkoutId: string;
@@ -80,6 +94,14 @@ type ProgramSession = {
   exercises: ProgramExercise[];
 };
 
+type AssignableWorkout = {
+  localId: string;
+  week: number;
+  day: number;
+  sessionName: string;
+  scheduledDate: string;
+};
+
 type SetLog = {
   exerciseId: string;
   exerciseName: string;
@@ -101,6 +123,16 @@ function normalizeDate(value: string) {
   }
 
   return value.split("T")[0].split(" ")[0];
+}
+
+function dateToInputValue(date: Date) {
+  return date.toISOString().split("T")[0];
+}
+
+function addDays(dateString: string, days: number) {
+  const date = new Date(dateString + "T00:00:00");
+  date.setDate(date.getDate() + days);
+  return dateToInputValue(date);
 }
 
 function formatCalendarLabel(dateString: string) {
@@ -140,6 +172,13 @@ function App() {
   const [libraryLoading, setLibraryLoading] = useState(false);
   const [librarySearch, setLibrarySearch] = useState("");
 
+  const [programs, setPrograms] = useState<Program[]>([]);
+  const [selectedAssignProgramId, setSelectedAssignProgramId] = useState("");
+  const [assignStartDate, setAssignStartDate] = useState(dateToInputValue(new Date()));
+  const [assignableWorkouts, setAssignableWorkouts] = useState<AssignableWorkout[]>([]);
+  const [assignLoading, setAssignLoading] = useState(false);
+  const [assigningProgram, setAssigningProgram] = useState(false);
+
   const [programName, setProgramName] = useState("Foundation Program");
   const [programGoal, setProgramGoal] = useState("General Strength");
   const [programSport, setProgramSport] = useState("Fitness");
@@ -177,6 +216,8 @@ function App() {
     setWorkoutDetails([]);
     setSetLogs([]);
 
+    loadPrograms();
+
     fetch(`/api/workouts?clientCode=${selectedClient.clientCode}`)
       .then((res) => res.json())
       .then((data) => {
@@ -201,6 +242,143 @@ function App() {
       setLibraryExercises([]);
     } finally {
       setLibraryLoading(false);
+    }
+  };
+
+  const loadPrograms = async () => {
+    try {
+      const res = await fetch("/api/programs");
+      const data = await res.json();
+      setPrograms(data.programs || []);
+
+      if (!selectedAssignProgramId && data.programs?.length > 0) {
+        setSelectedAssignProgramId(data.programs[0].programId);
+      }
+    } catch (err) {
+      console.error(err);
+      setPrograms([]);
+    }
+  };
+
+  const selectedAssignProgram = programs.find(
+    (program) => program.programId === selectedAssignProgramId
+  );
+
+  const loadProgramSessionsForAssignment = async () => {
+    if (!selectedAssignProgram) {
+      alert("Please select a program.");
+      return;
+    }
+
+    if (!assignStartDate) {
+      alert("Please choose a start date.");
+      return;
+    }
+
+    setAssignLoading(true);
+
+    try {
+      const res = await fetch(
+        `/api/programTemplates?programId=${selectedAssignProgram.programId}`
+      );
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        console.error(data);
+        alert("Could not load program templates.");
+        return;
+      }
+
+      const templates = data.templates || [];
+
+      const uniqueSessionsMap = new Map<string, AssignableWorkout>();
+
+      templates.forEach((template: any) => {
+        const key = `${template.week}-${template.day}-${template.sessionName}`;
+
+        if (!uniqueSessionsMap.has(key)) {
+          const offsetDays = (Number(template.week) - 1) * 7 + (Number(template.day) - 1) * 2;
+
+          uniqueSessionsMap.set(key, {
+            localId: key,
+            week: Number(template.week),
+            day: Number(template.day),
+            sessionName: template.sessionName,
+            scheduledDate: addDays(assignStartDate, offsetDays),
+          });
+        }
+      });
+
+      setAssignableWorkouts(Array.from(uniqueSessionsMap.values()));
+    } catch (err) {
+      console.error(err);
+      alert("Could not load program sessions.");
+    } finally {
+      setAssignLoading(false);
+    }
+  };
+
+  const updateAssignableWorkoutDate = (localId: string, scheduledDate: string) => {
+    setAssignableWorkouts((prev) =>
+      prev.map((workout) =>
+        workout.localId === localId ? { ...workout, scheduledDate } : workout
+      )
+    );
+  };
+
+  const assignProgramToClient = async () => {
+    if (!selectedClient || !selectedAssignProgram) {
+      alert("Please select a client and program.");
+      return;
+    }
+
+    if (assignableWorkouts.length === 0) {
+      alert("Please load program sessions first.");
+      return;
+    }
+
+    setAssigningProgram(true);
+
+    try {
+      const response = await fetch("/api/assignProgram", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          clientRecordId: selectedClient.id,
+          programRecordId: selectedAssignProgram.recordId,
+          scheduledWorkouts: assignableWorkouts.map((workout) => ({
+            week: workout.week,
+            day: workout.day,
+            sessionName: workout.sessionName,
+            scheduledDate: workout.scheduledDate,
+          })),
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        console.error(data);
+        alert("Could not assign program. Check API response.");
+        return;
+      }
+
+      alert(`Program assigned. Workouts created: ${data.recordsCreated}`);
+      setAssignableWorkouts([]);
+
+      fetch(`/api/workouts?clientCode=${selectedClient.clientCode}`)
+        .then((res) => res.json())
+        .then((workoutData) => {
+          setWorkouts(workoutData.workouts || []);
+        });
+    } catch (error) {
+      console.error(error);
+      alert("Could not assign program.");
+    } finally {
+      setAssigningProgram(false);
     }
   };
 
@@ -507,6 +685,7 @@ function App() {
       setSessionName("");
       setProgramWeek("1");
       setProgramDay("1");
+      loadPrograms();
     } catch (error) {
       console.error(error);
       alert("Could not save full program.");
@@ -1334,6 +1513,99 @@ function App() {
                     </div>
                   </div>
 
+                  <section className="tableCard" style={{ padding: "22px", marginTop: "18px" }}>
+                    <h3 style={{ color: "#f5d77b", marginTop: 0 }}>
+                      Assign Program
+                    </h3>
+
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "2fr 1fr auto auto",
+                        gap: "14px",
+                        alignItems: "end",
+                      }}
+                    >
+                      <label>
+                        <span>Program</span>
+                        <select
+                          className="miniSearch"
+                          value={selectedAssignProgramId}
+                          onChange={(e) => {
+                            setSelectedAssignProgramId(e.target.value);
+                            setAssignableWorkouts([]);
+                          }}
+                        >
+                          {programs.map((program) => (
+                            <option key={program.recordId} value={program.programId}>
+                              {program.programName} ({program.programId})
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+
+                      <label>
+                        <span>Start Date</span>
+                        <input
+                          type="date"
+                          className="miniSearch"
+                          value={assignStartDate}
+                          onChange={(e) => setAssignStartDate(e.target.value)}
+                        />
+                      </label>
+
+                      <button
+                        className="outlineButton"
+                        onClick={loadProgramSessionsForAssignment}
+                        disabled={assignLoading}
+                      >
+                        {assignLoading ? "Loading..." : "Load Sessions"}
+                      </button>
+
+                      <button
+                        className="goldButton"
+                        onClick={assignProgramToClient}
+                        disabled={assigningProgram}
+                      >
+                        {assigningProgram ? "Assigning..." : "Assign Program"}
+                      </button>
+                    </div>
+
+                    {assignableWorkouts.length > 0 && (
+                      <div style={{ marginTop: "20px" }}>
+                        <h4 style={{ color: "#f5d77b" }}>
+                          Arrange Workouts
+                        </h4>
+
+                        {assignableWorkouts.map((workout) => (
+                          <div
+                            key={workout.localId}
+                            className="clientRow"
+                            style={{
+                              gridTemplateColumns: "1fr 1fr 2fr 1fr",
+                            }}
+                          >
+                            <span>Week {workout.week}</span>
+                            <span>Day {workout.day}</span>
+                            <strong>{workout.sessionName}</strong>
+
+                            <input
+                              type="date"
+                              className="miniSearch"
+                              value={workout.scheduledDate}
+                              onChange={(e) =>
+                                updateAssignableWorkoutDate(
+                                  workout.localId,
+                                  e.target.value
+                                )
+                              }
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </section>
+
                   {workoutsLoading && <p>Loading workouts...</p>}
 
                   <div
@@ -1342,6 +1614,8 @@ function App() {
                         ? "calendarGrid oneDayCalendar"
                         : calendarView === "1 Week"
                         ? "calendarGrid weekCalendar"
+                        : calendarView === "1 Month"
+                        ? "calendarGrid monthCalendar"
                         : "calendarGrid monthCalendar"
                     }
                   >
