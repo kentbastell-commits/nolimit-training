@@ -423,22 +423,32 @@ body {
 
 .trainingCalendar {
   margin-top: 18px;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .calendarHeader {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 18px;
 }
 
 .calendarHeader h2 {
   color: #f5d77b;
+  margin: 0;
 }
 
 .calendarControls {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
+}
+
+.calendarControls .goldButton,
+.calendarControls .outlineButton {
+  min-width: 112px;
+  padding: 12px 16px;
 }
 
 .trainingFocus {
@@ -449,10 +459,71 @@ body {
   width: 100%;
 }
 
+.assignProgramPanel {
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  border-radius: 8px;
+  padding: 18px;
+  margin-top: 18px;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.assignProgramPanel h3 {
+  color: #f5d77b;
+  margin: 0 0 14px;
+  font-size: 22px;
+}
+
+.assignProgramGrid {
+  display: grid;
+  grid-template-columns: minmax(220px, 2fr) minmax(150px, 1fr) auto auto;
+  gap: 12px;
+  align-items: end;
+}
+
+.assignProgramGrid label,
+.arrangeWorkouts label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.assignProgramGrid label span {
+  color: #f5d77b;
+  font-weight: bold;
+}
+
+.assignProgramGrid .miniSearch {
+  margin: 0;
+}
+
+.arrangeWorkouts {
+  margin-top: 18px;
+}
+
+.arrangeWorkouts h4 {
+  color: #f5d77b;
+  margin: 0 0 10px;
+}
+
+.arrangeWorkoutRow {
+  display: grid;
+  grid-template-columns: 0.8fr 0.8fr 2fr minmax(150px, 1fr);
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  border-top: 1px solid rgba(212, 175, 55, 0.18);
+  color: white;
+}
+
+.arrangeWorkoutRow .miniSearch {
+  margin: 0;
+}
+
 .calendarGrid {
   display: grid;
   gap: 12px;
   margin-top: 20px;
+  max-width: 100%;
 }
 
 .oneDayCalendar {
@@ -460,24 +531,27 @@ body {
 }
 
 .oneDayCalendar .calendarDay {
-  min-height: 520px;
+  min-height: 220px;
 }
 
 .weekCalendar {
-  grid-template-columns: repeat(7, minmax(140px, 1fr));
+  grid-template-columns: repeat(7, minmax(0, 1fr));
 }
 
 .monthCalendar {
-  grid-template-columns: repeat(7, minmax(110px, 1fr));
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
 }
 
 .calendarDay {
-  min-height: 190px;
+  min-width: 0;
+  min-height: 150px;
   border: 1px solid rgba(212, 175, 55, 0.25);
-  border-radius: 14px;
-  padding: 14px;
+  border-radius: 8px;
+  padding: 10px;
   background: rgba(255, 255, 255, 0.04);
   color: #ddd;
+  overflow: hidden;
 }
 
 .calendarDropTarget {
@@ -486,31 +560,50 @@ body {
 }
 
 .monthCalendar .calendarDay {
-  min-height: 135px;
+  min-height: 112px;
+  padding: 8px;
 }
 
-.calendarDay strong {
+.calendarDateLabel {
+  display: block;
   color: #f5d77b;
+  font-size: 16px;
+  line-height: 1.25;
+  margin-bottom: 8px;
+}
+
+.oneDayCalendar .calendarDateLabel {
+  text-align: left;
+  font-size: 20px;
+  margin-bottom: 12px;
+}
+
+.monthCalendar .calendarDateLabel {
+  font-size: 13px;
+  margin-bottom: 6px;
 }
 
 .workoutBlock {
   width: 100%;
-  margin-top: 18px;
-  padding: 12px;
-  border-radius: 12px;
+  margin-top: 8px;
+  padding: 10px;
+  border-radius: 8px;
   background: rgba(212, 175, 55, 0.18);
   border: 1px solid rgba(212, 175, 55, 0.4);
   color: white;
   font-weight: bold;
+  font-size: 14px;
+  line-height: 1.25;
   text-align: left;
   cursor: grab;
+  overflow-wrap: anywhere;
   transition: opacity 0.18s ease, transform 0.18s ease, background 0.18s ease;
 }
 
 .workoutBlock span {
   display: block;
   color: #aaa;
-  font-size: 13px;
+  font-size: 12px;
   margin-top: 5px;
 }
 
@@ -533,8 +626,14 @@ body {
 }
 
 .monthCalendar .workoutBlock {
-  padding: 8px;
-  font-size: 13px;
+  padding: 7px;
+  font-size: 12px;
+  margin-top: 6px;
+}
+
+.oneDayCalendar .workoutBlock {
+  padding: 14px;
+  font-size: 18px;
 }
 
 .completedWorkout {
@@ -746,9 +845,29 @@ body {
     grid-template-columns: 1fr;
   }
 
-  .weekCalendar,
+  .calendarHeader {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .assignProgramGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .assignProgramGrid button {
+    width: 100%;
+  }
+
+  .weekCalendar {
+    grid-template-columns: repeat(7, minmax(92px, 1fr));
+    overflow-x: auto;
+    padding-bottom: 8px;
+  }
+
   .monthCalendar {
-    grid-template-columns: repeat(2, minmax(140px, 1fr));
+    grid-template-columns: repeat(7, minmax(82px, 1fr));
+    overflow-x: auto;
+    padding-bottom: 8px;
   }
 
   .setLogHeader,
@@ -766,7 +885,47 @@ body {
   .workoutDateControls button {
     width: 100%;
   }
-}.exercise-card label {
+}
+
+@media (max-width: 720px) {
+  .main {
+    padding: 20px;
+  }
+
+  .clientTop h1 {
+    font-size: 30px;
+  }
+
+  .calendarControls {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    width: 100%;
+  }
+
+  .calendarControls .goldButton,
+  .calendarControls .outlineButton {
+    min-width: 0;
+    padding: 11px 8px;
+  }
+
+  .assignProgramGrid,
+  .arrangeWorkoutRow {
+    grid-template-columns: 1fr;
+  }
+
+  .weekCalendar,
+  .monthCalendar {
+    grid-template-columns: 1fr;
+    overflow-x: visible;
+  }
+
+  .calendarDay,
+  .monthCalendar .calendarDay {
+    min-height: 120px;
+  }
+}
+
+.exercise-card label {
   display: flex;
   flex-direction: column;
   gap: 6px;

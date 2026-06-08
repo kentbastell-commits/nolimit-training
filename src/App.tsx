@@ -1574,22 +1574,10 @@ function App() {
                     </div>
                   </div>
 
-                  <section
-                    className="tableCard"
-                    style={{ padding: "22px", marginTop: "18px" }}
-                  >
-                    <h3 style={{ color: "#f5d77b", marginTop: 0 }}>
-                      Assign Program
-                    </h3>
+                  <section className="assignProgramPanel">
+                    <h3>Assign Program</h3>
 
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "2fr 1fr auto auto",
-                        gap: "14px",
-                        alignItems: "end",
-                      }}
-                    >
+                    <div className="assignProgramGrid">
                       <label>
                         <span>Program</span>
                         <select
@@ -1636,16 +1624,13 @@ function App() {
                     </div>
 
                     {assignableWorkouts.length > 0 && (
-                      <div style={{ marginTop: "20px" }}>
-                        <h4 style={{ color: "#f5d77b" }}>Arrange Workouts</h4>
+                      <div className="arrangeWorkouts">
+                        <h4>Arrange Workouts</h4>
 
                         {assignableWorkouts.map((workout) => (
                           <div
                             key={workout.localId}
-                            className="clientRow"
-                            style={{
-                              gridTemplateColumns: "1fr 1fr 2fr 1fr",
-                            }}
+                            className="arrangeWorkoutRow"
                           >
                             <span>Week {workout.week}</span>
                             <span>Day {workout.day}</span>
@@ -1707,7 +1692,9 @@ function App() {
                             }
                           }}
                         >
-                          <strong>{formatCalendarLabel(date)}</strong>
+                          <strong className="calendarDateLabel">
+                            {formatCalendarLabel(date)}
+                          </strong>
 
                           {dayWorkouts.map((workout) => (
                             <button
