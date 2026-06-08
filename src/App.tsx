@@ -2050,9 +2050,9 @@ function App() {
           <div className="inviteBrand">
             <div>
               <div className="brandWordmark">
-                N<span className="strikeO">o</span> Limit
+                N<span className="brandSlashO">Ø</span> LIMIT
               </div>
-              <div className="brandSub">Training</div>
+              <div className="brandTagline">INSPIRED BY MOVEMENT.</div>
             </div>
             <span>{publicInvitePackage}</span>
           </div>
@@ -2154,9 +2154,9 @@ function App() {
       <aside className="sidebar">
         <div className="brand">
           <div className="brandWordmark">
-            N<span className="strikeO">o</span> Limit
+            N<span className="brandSlashO">Ø</span> LIMIT
           </div>
-          <div className="brandSub">Training</div>
+          <div className="brandTagline">BUILT FOR TRAINING.</div>
         </div>
 
         <nav>
@@ -2187,7 +2187,11 @@ function App() {
         </nav>
 
         <div className="coachBox">
-          <div className="avatar">KB</div>
+          <div className="avatar monogramAvatar">
+            <span className="monogramMark">
+              N<span>L</span>
+            </span>
+          </div>
           <div>
             <strong>Kent Bastell</strong>
             <p>Coach</p>

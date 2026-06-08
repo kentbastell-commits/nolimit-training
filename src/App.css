@@ -33,7 +33,7 @@ body {
   margin-bottom: 28px;
 }
 
-.inviteBrand span {
+.inviteBrand > span {
   border: 1px solid rgba(212, 175, 55, 0.42);
   border-radius: 999px;
   padding: 8px 14px;
@@ -128,44 +128,46 @@ body {
 }
 
 .brandWordmark {
-  font-family: "Segoe Print", "Brush Script MT", cursive;
-  font-size: 26px;
-  font-weight: 800;
-  color: #d4af37;
-  letter-spacing: 1px;
-  line-height: 1;
+  font-family: "Bradley Hand ITC", "Segoe Print", "Comic Sans MS", cursive;
+  font-size: 30px;
+  font-weight: 700;
+  color: #d7cfbd;
+  letter-spacing: 5px;
+  line-height: 1.05;
   text-transform: uppercase;
   white-space: nowrap;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.08);
+  transform: rotate(-2deg);
 }
 
-.brandSub {
-  font-family: "Segoe Print", "Brush Script MT", cursive;
-  font-size: 24px;
-  font-weight: 800;
-  color: #d4af37;
-  letter-spacing: 2px;
+.brandTagline {
+  margin-top: 14px;
+  color: #c9c0ad;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 3px;
+  line-height: 1.6;
   text-transform: uppercase;
-  margin-top: 4px;
-  white-space: nowrap;
 }
 
-.strikeO {
+.brandSlashO {
   position: relative;
   display: inline-block;
-  font-size: 0.78em;
-  margin: 0 2px;
+  margin: 0 3px 0 1px;
+  color: #d7cfbd;
 }
 
-.strikeO::after {
-  content: "";
+.brandSlashO::after {
+  content: "/";
   position: absolute;
-  left: -15%;
-  right: -15%;
-  top: 52%;
-  height: 2px;
-  background: #d4af37;
-  transform: rotate(-18deg);
-  border-radius: 999px;
+  left: 48%;
+  top: 50%;
+  color: #0b0a08;
+  font-family: Inter, "Segoe UI", sans-serif;
+  font-size: 0.86em;
+  font-weight: 900;
+  transform: translate(-50%, -50%) rotate(-10deg);
+  opacity: 0.65;
 }
 
 .navItem {
@@ -221,6 +223,29 @@ body {
   place-items: center;
   border-radius: 50%;
   font-weight: bold;
+}
+
+.monogramAvatar {
+  border: 1px solid rgba(215, 207, 189, 0.45);
+  background: #050505;
+  color: #d7cfbd;
+  border-radius: 8px;
+}
+
+.monogramMark {
+  position: relative;
+  display: inline-block;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -4px;
+  line-height: 1;
+}
+
+.monogramMark span {
+  position: relative;
+  left: -2px;
+  top: 3px;
 }
 
 .coachBox p {
@@ -2022,12 +2047,14 @@ body {
   }
 
   .brandWordmark {
-    font-size: 20px;
+    font-size: 22px;
+    letter-spacing: 4px;
   }
 
-  .brandSub {
-    font-size: 18px;
-    letter-spacing: 1px;
+  .brandTagline {
+    margin-top: 7px;
+    font-size: 8px;
+    letter-spacing: 2px;
   }
 
   .sidebar nav {
