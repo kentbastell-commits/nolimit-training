@@ -89,6 +89,7 @@ type LibraryExercise = {
   equipment?: string;
   movementPattern?: string;
   notes?: string;
+  status?: string;
 };
 
 type ProgramExercise = {
@@ -274,6 +275,20 @@ function App() {
   const [libraryExercises, setLibraryExercises] = useState<LibraryExercise[]>([]);
   const [libraryLoading, setLibraryLoading] = useState(false);
   const [librarySearch, setLibrarySearch] = useState("");
+  const [showExerciseModal, setShowExerciseModal] = useState(false);
+  const [editingExercise, setEditingExercise] = useState<LibraryExercise | null>(
+    null
+  );
+  const [savingExercise, setSavingExercise] = useState(false);
+  const [exerciseForm, setExerciseForm] = useState({
+    exerciseId: "",
+    exerciseName: "",
+    videoUrl: "",
+    category: "",
+    equipment: "",
+    movementPattern: "",
+    notes: "",
+  });
 
   const [programs, setPrograms] = useState<Program[]>([]);
   const [selectedSavedProgramId, setSelectedSavedProgramId] = useState("");
@@ -290,6 +305,7 @@ function App() {
   >([]);
   const [savedAssignLoading, setSavedAssignLoading] = useState(false);
   const [savedAssigningProgram, setSavedAssigningProgram] = useState(false);
+  const [updatingProgram, setUpdatingProgram] = useState(false);
   const [selectedAssignProgramId, setSelectedAssignProgramId] = useState("");
   const [assignStartDate, setAssignStartDate] = useState(dateToInputValue(new Date()));
   const [assignableWorkouts, setAssignableWorkouts] = useState<AssignableWorkout[]>([]);
@@ -508,6 +524,129 @@ function App() {
     }
   };
 
+  const resetExerciseForm = () => {
+    setExerciseForm({
+      exerciseId: "",
+      exerciseName: "",
+      videoUrl: "",
+      category: "",
+      equipment: "",
+      movementPattern: "",
+      notes: "",
+    });
+  };
+
+  const openNewExerciseForm = () => {
+    setEditingExercise(null);
+    resetExerciseForm();
+    setShowExerciseModal(true);
+  };
+
+  const openEditExerciseForm = (exercise: LibraryExercise) => {
+    setEditingExercise(exercise);
+    setExerciseForm({
+      exerciseId: exercise.exerciseId || "",
+      exerciseName: exercise.exerciseName || "",
+      videoUrl: exercise.videoUrl || "",
+      category: exercise.category || "",
+      equipment: exercise.equipment || "",
+      movementPattern: exercise.movementPattern || "",
+      notes: exercise.notes || "",
+    });
+    setShowExerciseModal(true);
+  };
+
+  const closeExerciseForm = () => {
+    setShowExerciseModal(false);
+    setEditingExercise(null);
+    resetExerciseForm();
+  };
+
+  const saveExerciseForm = async (archive = false) => {
+    if (!exerciseForm.exerciseName.trim() && !archive) {
+      notify("Please enter an exercise name.", "error");
+      return;
+    }
+
+    setSavingExercise(true);
+
+    try {
+      const response = await fetch("/api/upsertExercise", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          ...exerciseForm,
+          recordId: editingExercise?.recordId,
+          archive,
+        }),
+      });
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        console.error(data);
+        notify("Could not save exercise. Check API response.", "error");
+        return;
+      }
+
+      await loadExerciseLibrary();
+      closeExerciseForm();
+      notify(
+        archive
+          ? "Exercise archived."
+          : editingExercise
+          ? "Exercise updated."
+          : `Exercise created: ${data.exerciseId}`,
+        "success"
+      );
+    } catch (error) {
+      console.error(error);
+      notify("Could not save exercise.", "error");
+    } finally {
+      setSavingExercise(false);
+    }
+  };
+
+  const archiveExercise = async (exercise: LibraryExercise) => {
+    setSavingExercise(true);
+
+    try {
+      const response = await fetch("/api/upsertExercise", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          recordId: exercise.recordId,
+          exerciseId: exercise.exerciseId,
+          exerciseName: exercise.exerciseName,
+          videoUrl: exercise.videoUrl,
+          category: exercise.category,
+          equipment: exercise.equipment,
+          movementPattern: exercise.movementPattern,
+          notes: exercise.notes || "",
+          archive: true,
+        }),
+      });
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        console.error(data);
+        notify("Could not archive exercise.", "error");
+        return;
+      }
+
+      await loadExerciseLibrary();
+      notify("Exercise archived.", "success");
+    } catch (error) {
+      console.error(error);
+      notify("Could not archive exercise.", "error");
+    } finally {
+      setSavingExercise(false);
+    }
+  };
+
   const loadPrograms = async () => {
     try {
       const res = await fetch("/api/programs");
@@ -594,6 +733,38 @@ function App() {
       notify("Could not load saved program templates.");
     } finally {
       setSavedTemplatesLoading(false);
+    }
+  };
+
+  const updateSavedProgramStatus = async (program: Program, status: string) => {
+    setUpdatingProgram(true);
+
+    try {
+      const response = await fetch("/api/updateProgram", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          programRecordId: program.recordId,
+          status,
+        }),
+      });
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        console.error(data);
+        notify("Could not update program status.", "error");
+        return;
+      }
+
+      await loadPrograms();
+      notify(`Program marked ${status}.`, "success");
+    } catch (error) {
+      console.error(error);
+      notify("Could not update program.", "error");
+    } finally {
+      setUpdatingProgram(false);
     }
   };
 
@@ -1395,6 +1566,10 @@ function App() {
   };
 
   const filteredLibraryExercises = libraryExercises.filter((exercise) => {
+    if (String(exercise.notes || "").startsWith("[Archived]")) {
+      return false;
+    }
+
     const search = librarySearch.toLowerCase();
 
     return (
@@ -2033,6 +2208,9 @@ function App() {
                     value={librarySearch}
                     onChange={(e) => setLibrarySearch(e.target.value)}
                   />
+                  <button className="goldButton" onClick={openNewExerciseForm}>
+                    + Add Exercise
+                  </button>
                   <button className="outlineButton" onClick={loadExerciseLibrary}>
                     Reload
                   </button>
@@ -2042,7 +2220,7 @@ function App() {
                   <div
                     className="tableHeader"
                     style={{
-                      gridTemplateColumns: "2fr 1fr 1fr 1fr auto",
+                      gridTemplateColumns: "2fr 1fr 1fr 1fr auto auto",
                     }}
                   >
                     <span>Exercise</span>
@@ -2050,6 +2228,7 @@ function App() {
                     <span>Equipment</span>
                     <span>Pattern</span>
                     <span>Video</span>
+                    <span>Actions</span>
                   </div>
 
                   {libraryLoading && <p>Loading exercises...</p>}
@@ -2064,7 +2243,7 @@ function App() {
                         className="clientRow"
                         key={exercise.recordId || exercise.exerciseId}
                         style={{
-                          gridTemplateColumns: "2fr 1fr 1fr 1fr auto",
+                          gridTemplateColumns: "2fr 1fr 1fr 1fr auto auto",
                         }}
                       >
                         <div className="clientName">
@@ -2100,6 +2279,22 @@ function App() {
                           ) : (
                             "--"
                           )}
+                        </span>
+
+                        <span className="rowActions">
+                          <button
+                            className="outlineButton"
+                            onClick={() => openEditExerciseForm(exercise)}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            className="outlineButton"
+                            onClick={() => archiveExercise(exercise)}
+                            disabled={savingExercise}
+                          >
+                            Archive
+                          </button>
                         </span>
                       </div>
                     ))}
@@ -2144,7 +2339,9 @@ function App() {
                       <aside className="programListPanel">
                         {programs.length === 0 && <p>No saved programs found.</p>}
 
-                        {programs.map((program) => (
+                        {programs
+                          .filter((program) => program.status !== "Archived")
+                          .map((program) => (
                           <button
                             key={program.recordId}
                             className={
@@ -2179,13 +2376,28 @@ function App() {
                                 </p>
                               </div>
 
-                              <button
-                                className="goldButton"
-                                onClick={loadSavedProgramIntoBuilder}
-                                disabled={savedTemplatesLoading}
-                              >
-                                Edit in Builder
-                              </button>
+                              <div className="rowActions">
+                                <button
+                                  className="goldButton"
+                                  onClick={loadSavedProgramIntoBuilder}
+                                  disabled={savedTemplatesLoading}
+                                >
+                                  Duplicate in Builder
+                                </button>
+
+                                <button
+                                  className="outlineButton"
+                                  onClick={() =>
+                                    updateSavedProgramStatus(
+                                      selectedSavedProgram,
+                                      "Archived"
+                                    )
+                                  }
+                                  disabled={updatingProgram}
+                                >
+                                  Archive
+                                </button>
+                              </div>
                             </div>
 
                             <div className="programMetaGrid">
@@ -3117,6 +3329,155 @@ function App() {
                 </div>
               )}
             </section>
+          </div>
+        )}
+
+        {showExerciseModal && (
+          <div className="workout-modal-overlay">
+            <div className="clientFormModal">
+              <div className="modal-header">
+                <div>
+                  <h2>{editingExercise ? "Edit Exercise" : "Add Exercise"}</h2>
+                  <p>
+                    {editingExercise
+                      ? "Update the exercise library record in Lark."
+                      : "Create a new exercise for programming and form cues."}
+                  </p>
+                </div>
+
+                <button className="drawerClose" onClick={closeExerciseForm}>
+                  x
+                </button>
+              </div>
+
+              <div className="clientFormGrid">
+                <label>
+                  <span>Exercise Name</span>
+                  <input
+                    value={exerciseForm.exerciseName}
+                    onChange={(e) =>
+                      setExerciseForm({
+                        ...exerciseForm,
+                        exerciseName: e.target.value,
+                      })
+                    }
+                    placeholder="Back Squat"
+                  />
+                </label>
+
+                <label>
+                  <span>Exercise ID</span>
+                  <input
+                    value={exerciseForm.exerciseId}
+                    onChange={(e) =>
+                      setExerciseForm({
+                        ...exerciseForm,
+                        exerciseId: e.target.value,
+                      })
+                    }
+                    placeholder="Auto-created if blank"
+                  />
+                </label>
+
+                <label>
+                  <span>Category</span>
+                  <input
+                    value={exerciseForm.category}
+                    onChange={(e) =>
+                      setExerciseForm({
+                        ...exerciseForm,
+                        category: e.target.value,
+                      })
+                    }
+                    placeholder="Strength"
+                  />
+                </label>
+
+                <label>
+                  <span>Equipment</span>
+                  <input
+                    value={exerciseForm.equipment}
+                    onChange={(e) =>
+                      setExerciseForm({
+                        ...exerciseForm,
+                        equipment: e.target.value,
+                      })
+                    }
+                    placeholder="Barbell"
+                  />
+                </label>
+
+                <label>
+                  <span>Movement Pattern</span>
+                  <input
+                    value={exerciseForm.movementPattern}
+                    onChange={(e) =>
+                      setExerciseForm({
+                        ...exerciseForm,
+                        movementPattern: e.target.value,
+                      })
+                    }
+                    placeholder="Squat"
+                  />
+                </label>
+
+                <label>
+                  <span>Video URL</span>
+                  <input
+                    value={exerciseForm.videoUrl}
+                    onChange={(e) =>
+                      setExerciseForm({
+                        ...exerciseForm,
+                        videoUrl: e.target.value,
+                      })
+                    }
+                    placeholder="https://..."
+                  />
+                </label>
+
+                <label className="clientNotesField">
+                  <span>Form Instructions / Library Notes</span>
+                  <textarea
+                    value={exerciseForm.notes}
+                    onChange={(e) =>
+                      setExerciseForm({
+                        ...exerciseForm,
+                        notes: e.target.value,
+                      })
+                    }
+                    placeholder="Setup, technique cues, common mistakes..."
+                  />
+                </label>
+              </div>
+
+              <div className="modalActions">
+                {editingExercise && (
+                  <button
+                    className="outlineButton"
+                    onClick={() => saveExerciseForm(true)}
+                    disabled={savingExercise}
+                  >
+                    Archive
+                  </button>
+                )}
+
+                <button className="outlineButton" onClick={closeExerciseForm}>
+                  Cancel
+                </button>
+
+                <button
+                  className="goldButton"
+                  onClick={() => saveExerciseForm(false)}
+                  disabled={savingExercise}
+                >
+                  {savingExercise
+                    ? "Saving..."
+                    : editingExercise
+                    ? "Save Exercise"
+                    : "Create Exercise"}
+                </button>
+              </div>
+            </div>
           </div>
         )}
 

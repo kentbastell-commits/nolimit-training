@@ -565,6 +565,18 @@ body {
   white-space: nowrap;
 }
 
+.rowActions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.rowActions .goldButton,
+.rowActions .outlineButton {
+  padding: 8px 10px;
+}
+
 .attentionCell {
   display: flex;
   gap: 6px;

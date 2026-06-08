@@ -73,6 +73,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         equipment: fieldToText(fields["Equipment"]),
         movementPattern: fieldToText(fields["Movement Pattern"]),
         notes: fieldToText(fields["Notes"]),
+        status: fieldToText(fields["Notes"]).startsWith("[Archived]")
+          ? "Archived"
+          : "Active",
       };
     });
 
