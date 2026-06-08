@@ -94,15 +94,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ? String(notes || "")
       : `[Archived]\n${String(notes || "")}`.trim();
 
-    const fields = {
+    const fields: Record<string, any> = {
       "Exercise ID": exerciseId || makeExerciseId(exerciseName),
       "Exercise Name": exerciseName || "",
-      "Video URL": makeUrlField(videoUrl),
-      Category: category || "",
-      Equipment: makeMultiSelectField(equipment),
-      "Movement Pattern": movementPattern || "",
       Notes: archive ? archivedNotes : notes || "",
     };
+
+    const videoField = makeUrlField(videoUrl);
+    const equipmentField = makeMultiSelectField(equipment);
+
+    if (videoField) fields["Video URL"] = videoField;
+    if (category) fields.Category = category;
+    if (equipmentField.length > 0) fields.Equipment = equipmentField;
+    if (movementPattern) fields["Movement Pattern"] = movementPattern;
 
     const response = await fetch(recordId ? `${tableUrl}/${recordId}` : tableUrl, {
       method: recordId ? "PUT" : "POST",
