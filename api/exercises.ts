@@ -27,6 +27,16 @@ function fieldToText(value: any): string {
   return JSON.stringify(value);
 }
 
+function readFirstField(fields: Record<string, any>, candidates: string[]) {
+  for (const fieldName of candidates) {
+    const value = fieldToText(fields[fieldName]);
+
+    if (value) return value;
+  }
+
+  return "";
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const tokenResponse = await fetch(
@@ -63,6 +73,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const exercises = data.data.items.map((item: any) => {
       const fields = item.fields || {};
+      const notes = readFirstField(fields, [
+        "Notes",
+        "Technical Cues",
+        "Technical Cue",
+        "Form Instructions",
+        "Form Instruction",
+        "Form Cues",
+        "Instructions",
+        "Cue Notes",
+      ]);
 
       return {
         recordId: item.record_id,
@@ -72,8 +92,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         category: fieldToText(fields["Category"]),
         equipment: fieldToText(fields["Equipment"]),
         movementPattern: fieldToText(fields["Movement Pattern"]),
-        notes: fieldToText(fields["Notes"]),
-        status: fieldToText(fields["Notes"]).startsWith("[Archived]")
+        notes,
+        status: notes.startsWith("[Archived]")
           ? "Archived"
           : "Active",
       };

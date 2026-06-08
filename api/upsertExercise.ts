@@ -108,6 +108,10 @@ function filterExistingFields(
   };
 }
 
+function findFirstField(availableFieldNames: string[], candidates: string[]) {
+  return candidates.find((candidate) => availableFieldNames.includes(candidate));
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
@@ -132,6 +136,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const token = await getTenantToken();
     const tableUrl = `https://open.larksuite.com/open-apis/bitable/v1/apps/${process.env.LARK_BASE_APP_TOKEN}/tables/${process.env.LARK_EXERCISE_LIBRARY_TABLE_ID}/records`;
+    const availableFields = await getFieldNames(token);
+    const cueFieldName = findFirstField(availableFields, [
+      "Notes",
+      "Technical Cues",
+      "Technical Cue",
+      "Form Instructions",
+      "Form Instruction",
+      "Form Cues",
+      "Instructions",
+      "Cue Notes",
+    ]);
     const archivedNotes = String(notes || "").startsWith("[Archived]")
       ? String(notes || "")
       : `[Archived]\n${String(notes || "")}`.trim();
@@ -139,8 +154,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const fields: Record<string, any> = {
       "Exercise ID": exerciseId || makeExerciseId(exerciseName),
       "Exercise Name": exerciseName || "",
-      Notes: archive ? archivedNotes : notes || "",
     };
+
+    if (cueFieldName) {
+      fields[cueFieldName] = archive ? archivedNotes : notes || "";
+    }
 
     const videoField = makeUrlField(videoUrl);
     const equipmentField = makeMultiSelectField(equipment);
@@ -150,7 +168,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (equipmentField.length > 0) fields.Equipment = equipmentField;
     if (movementPattern) fields["Movement Pattern"] = movementPattern;
 
-    const availableFields = await getFieldNames(token);
     const { existingFields, omittedFields } = filterExistingFields(
       fields,
       availableFields
@@ -195,6 +212,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       recordId: data?.data?.record?.record_id || recordId,
       archived: Boolean(archive),
       omittedFields,
+      cueFieldName,
       larkResponse: data,
     });
   } catch (error: any) {
