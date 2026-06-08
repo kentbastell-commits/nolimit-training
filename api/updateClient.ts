@@ -28,13 +28,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const tokenResponse = await fetch(
-      "https://open.larksuite.com/open-apis/auth/v3/tenant_access_token/internal",
+      "https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal",
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          app_id: process.env.LARK_APP_ID,
-          app_secret: process.env.LARK_APP_SECRET,
+          app_id: process.env.FEISHU_APP_ID,
+          app_secret: process.env.FEISHU_APP_SECRET,
         }),
       }
     );
@@ -69,7 +69,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const updateResponse = await fetch(
-      `https://open.larksuite.com/open-apis/bitable/v1/apps/${process.env.LARK_BASE_APP_TOKEN}/tables/${process.env.LARK_CLIENTS_TABLE_ID}/records/${clientRecordId}`,
+      `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${process.env.FEISHU_CLIENTS_TABLE_ID}/records/${clientRecordId}`,
       {
         method: "PUT",
         headers: {

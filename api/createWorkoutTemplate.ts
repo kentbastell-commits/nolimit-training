@@ -46,15 +46,15 @@ function fieldToText(value: any): string {
 
 async function getTenantToken() {
   const tokenResponse = await fetch(
-    "https://open.larksuite.com/open-apis/auth/v3/tenant_access_token/internal",
+    "https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal",
     {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        app_id: process.env.LARK_APP_ID,
-        app_secret: process.env.LARK_APP_SECRET,
+        app_id: process.env.FEISHU_APP_ID,
+        app_secret: process.env.FEISHU_APP_SECRET,
       }),
     }
   );
@@ -70,7 +70,7 @@ async function getTenantToken() {
 
 async function getRecords(tableId: string, token: string) {
   const response = await fetch(
-    `https://open.larksuite.com/open-apis/bitable/v1/apps/${process.env.LARK_BASE_APP_TOKEN}/tables/${tableId}/records?page_size=500`,
+    `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${tableId}/records?page_size=500`,
     {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -133,7 +133,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const token = await getTenantToken();
 
     const exerciseRecords = await getRecords(
-      process.env.LARK_EXERCISE_LIBRARY_TABLE_ID as string,
+      process.env.FEISHU_EXERCISE_LIBRARY_TABLE_ID as string,
       token
     );
 
@@ -177,7 +177,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
 
     const createResponse = await fetch(
-      `https://open.larksuite.com/open-apis/bitable/v1/apps/${process.env.LARK_BASE_APP_TOKEN}/tables/${process.env.LARK_WORKOUT_TEMPLATE_TABLE_ID}/records/batch_create`,
+      `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${process.env.FEISHU_WORKOUT_TEMPLATES_TABLE_ID}/records/batch_create`,
       {
         method: "POST",
         headers: {

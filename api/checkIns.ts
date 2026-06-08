@@ -50,13 +50,13 @@ function toNumberOrUndefined(value: any) {
 
 async function getTenantToken() {
   const response = await fetch(
-    "https://open.larksuite.com/open-apis/auth/v3/tenant_access_token/internal",
+    "https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal",
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        app_id: process.env.LARK_APP_ID,
-        app_secret: process.env.LARK_APP_SECRET,
+        app_id: process.env.FEISHU_APP_ID,
+        app_secret: process.env.FEISHU_APP_SECRET,
       }),
     }
   );
@@ -71,7 +71,7 @@ async function getTenantToken() {
 
 async function createRecord(token: string, fields: Record<string, any>) {
   const response = await fetch(
-    `https://open.larksuite.com/open-apis/bitable/v1/apps/${process.env.LARK_BASE_APP_TOKEN}/tables/${process.env.LARK_CHECKINS_TABLE_ID}/records`,
+    `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${process.env.FEISHU_CHECKINS_TABLE_ID}/records`,
     {
       method: "POST",
       headers: {
@@ -86,8 +86,8 @@ async function createRecord(token: string, fields: Record<string, any>) {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (!process.env.LARK_CHECKINS_TABLE_ID) {
-    return res.status(500).json({ error: "Missing LARK_CHECKINS_TABLE_ID" });
+  if (!process.env.FEISHU_CHECKINS_TABLE_ID) {
+    return res.status(500).json({ error: "Missing FEISHU_CHECKINS_TABLE_ID" });
   }
 
   try {
@@ -96,7 +96,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method === "GET") {
       const clientId = String(req.query.clientId || "");
       const recordsResponse = await fetch(
-        `https://open.larksuite.com/open-apis/bitable/v1/apps/${process.env.LARK_BASE_APP_TOKEN}/tables/${process.env.LARK_CHECKINS_TABLE_ID}/records?page_size=500`,
+        `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${process.env.FEISHU_CHECKINS_TABLE_ID}/records?page_size=500`,
         {
           headers: {
             Authorization: `Bearer ${token}`,

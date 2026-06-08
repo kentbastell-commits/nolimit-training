@@ -1303,7 +1303,7 @@ function App() {
       if (data.exerciseResults?.errors?.length > 0) {
         notify("Workout saved, but exercise results need table field review.", "error");
       } else {
-        notify("Workout saved to Lark.");
+        notify("Workout saved to Feishu.");
       }
       setSelectedWorkout(null);
       setWorkoutDetails([]);
@@ -3755,7 +3755,7 @@ function App() {
                   <h2>{editingExercise ? "Edit Exercise" : "Add Exercise"}</h2>
                   <p>
                     {editingExercise
-                      ? "Update the exercise library record in Lark."
+                      ? "Update the exercise library record in Feishu."
                       : "Create a new exercise for programming and form cues."}
                   </p>
                 </div>
@@ -3940,8 +3940,8 @@ function App() {
                   <h2>{editingClient ? "Edit Client" : "Add Client"}</h2>
                   <p>
                     {editingClient
-                      ? "Update this client record in Lark."
-                      : "Create a client record in Lark."}
+                      ? "Update this client record in Feishu."
+                      : "Create a client record in Feishu."}
                   </p>
                 </div>
 
