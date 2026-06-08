@@ -226,14 +226,14 @@ body {
 .clientStatsGrid {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 12px;
-  margin: 28px 0 18px;
+  gap: 10px;
+  margin: 22px 0 16px;
 }
 
 .clientStat {
   border: 1px solid rgba(212, 175, 55, 0.25);
   border-radius: 8px;
-  padding: 16px;
+  padding: 12px 14px;
   background: rgba(0, 0, 0, 0.35);
 }
 
@@ -242,16 +242,17 @@ body {
   color: #aaa;
   font-size: 13px;
   margin-bottom: 8px;
+  min-height: 16px;
 }
 
 .clientStat strong {
   color: #f5d77b;
-  font-size: 28px;
+  font-size: 24px;
 }
 
 .clientCommandCenter {
   display: grid;
-  grid-template-columns: 260px 1fr;
+  grid-template-columns: 220px minmax(0, 1fr);
   gap: 16px;
   align-items: start;
 }
@@ -335,7 +336,7 @@ body {
 
 .clientToolbar {
   display: grid;
-  grid-template-columns: minmax(260px, 1fr) minmax(170px, 220px) auto;
+  grid-template-columns: minmax(220px, 1fr) minmax(150px, 190px) minmax(150px, auto);
   gap: 12px;
   margin: 0 0 12px;
   align-items: center;
@@ -350,6 +351,11 @@ body {
   border-radius: 8px;
   padding: 13px;
   font-size: 15px;
+}
+
+.clientToolbar .outlineButton {
+  padding: 12px 14px;
+  white-space: nowrap;
 }
 
 .searchRow {
@@ -394,11 +400,13 @@ body {
 
 .clientTableCard {
   border-radius: 8px;
+  overflow-x: auto;
 }
 
 .clientTableHeader,
 .clientTableRow {
-  grid-template-columns: 34px 1.6fr 1.3fr 1.2fr 0.9fr 0.8fr 1.4fr 0.9fr;
+  grid-template-columns: 34px minmax(180px, 1.4fr) minmax(170px, 1.2fr) minmax(120px, 1fr) 110px 86px minmax(130px, 1fr) minmax(120px, 0.9fr);
+  min-width: 1060px;
 }
 
 .clientTableHeader {
@@ -436,6 +444,17 @@ body {
   min-width: 0;
 }
 
+.clientName > div:last-child {
+  min-width: 0;
+}
+
+.clientName strong {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .clientName p {
   margin: 4px 0 0;
   color: #aaa;
@@ -444,7 +463,10 @@ body {
 
 .clientContactCell {
   color: #ddd;
-  overflow-wrap: anywhere;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .attentionCell {
@@ -1447,6 +1469,7 @@ body {
 
   .clientTableRow {
     grid-template-columns: 1fr;
+    min-width: 0;
     gap: 8px;
   }
 
