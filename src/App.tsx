@@ -1697,37 +1697,32 @@ function App() {
                   <p>
                     <strong>Program:</strong> {selectedWorkout.programId || "--"}
                   </p>
-                  <p>
-                    <strong>Date:</strong>{" "}
-                    {normalizeDate(String(selectedWorkout.scheduledDate))}
-                  </p>
+                  <div className="workoutDateItem">
+                    <p>
+                      <strong>Date:</strong>{" "}
+                      {normalizeDate(String(selectedWorkout.scheduledDate))}
+                    </p>
+
+                    <div className="workoutDateControls">
+                      <input
+                        type="date"
+                        value={editingWorkoutDate}
+                        onChange={(e) => setEditingWorkoutDate(e.target.value)}
+                      />
+
+                      <button
+                        className="outlineButton"
+                        onClick={updateWorkoutDate}
+                        disabled={updatingWorkoutDate || !editingWorkoutDate}
+                      >
+                        {updatingWorkoutDate ? "Saving..." : "Move Workout"}
+                      </button>
+                    </div>
+                  </div>
                   <p>
                     <strong>Workout Logs:</strong>{" "}
                     {selectedWorkout.workoutLogs || "--"}
                   </p>
-                </div>
-
-                <div className="moveWorkoutPanel">
-                  <div>
-                    <h3>Move Workout Date</h3>
-                    <p>Update this assigned workout's scheduled date.</p>
-                  </div>
-
-                  <div className="moveWorkoutControls">
-                    <input
-                      type="date"
-                      value={editingWorkoutDate}
-                      onChange={(e) => setEditingWorkoutDate(e.target.value)}
-                    />
-
-                    <button
-                      className="outlineButton"
-                      onClick={updateWorkoutDate}
-                      disabled={updatingWorkoutDate || !editingWorkoutDate}
-                    >
-                      {updatingWorkoutDate ? "Saving..." : "Move Workout"}
-                    </button>
-                  </div>
                 </div>
 
                 <h3>Workout Logging</h3>

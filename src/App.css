@@ -600,36 +600,25 @@ body {
   margin-bottom: 22px;
 }
 
-.moveWorkoutPanel {
+.workoutDateItem {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  gap: 18px;
-  border: 1px solid rgba(212, 175, 55, 0.28);
-  border-radius: 14px;
-  padding: 16px;
-  margin-bottom: 22px;
-  background: rgba(212, 175, 55, 0.06);
+  gap: 14px;
+  flex-wrap: wrap;
 }
 
-.moveWorkoutPanel h3 {
-  margin: 0 0 4px;
-  color: #f5d77b;
-}
-
-.moveWorkoutPanel p {
+.workoutDateItem p {
   margin: 0;
-  color: #aaa;
 }
 
-.moveWorkoutControls {
+.workoutDateControls {
   display: flex;
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
 }
 
-.moveWorkoutControls input {
+.workoutDateControls input {
   min-width: 180px;
   padding: 13px;
   border-radius: 12px;
@@ -748,18 +737,14 @@ body {
     grid-template-columns: 1fr;
   }
 
-  .moveWorkoutPanel {
+  .workoutDateItem,
+  .workoutDateControls {
     align-items: stretch;
     flex-direction: column;
   }
 
-  .moveWorkoutControls {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .moveWorkoutControls input,
-  .moveWorkoutControls button {
+  .workoutDateControls input,
+  .workoutDateControls button {
     width: 100%;
   }
 }.exercise-card label {
