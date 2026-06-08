@@ -1654,12 +1654,63 @@ body {
   color: #f5d77b;
 }
 
+.workoutLogTitleRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 4px 0 14px;
+}
+
+.workoutLogTitleRow h3 {
+  margin: 0;
+}
+
+.workoutLogTitleRow p {
+  margin: 5px 0 0;
+  color: #aaa;
+}
+
 .drawerClose {
   background: transparent;
   color: #f5d77b;
   border: none;
   font-size: 36px;
   cursor: pointer;
+}
+
+.workoutSummaryStrip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.workoutSummaryStrip div {
+  min-width: 0;
+  border: 1px solid rgba(212, 175, 55, 0.22);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: rgba(0, 0, 0, 0.32);
+}
+
+.workoutSummaryStrip span,
+.workoutPrescriptionGrid strong {
+  display: block;
+  margin-bottom: 5px;
+  color: #aaa;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.workoutSummaryStrip strong {
+  display: block;
+  color: #f5d77b;
+  font-size: 15px;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .workout-info {
@@ -1706,6 +1757,11 @@ body {
   padding: 18px;
   margin-top: 14px;
   background: rgba(255, 255, 255, 0.04);
+}
+
+.workoutLogExerciseCard {
+  padding: 16px;
+  border-radius: 8px;
 }
 
 .exercise-card h3 {
@@ -1776,6 +1832,27 @@ body {
   padding-left: 12px;
   color: #ddd;
   white-space: pre-wrap;
+}
+
+.workoutPrescriptionGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: 14px 0 12px;
+}
+
+.workoutPrescriptionGrid span {
+  min-width: 0;
+  border: 1px solid rgba(212, 175, 55, 0.18);
+  border-radius: 8px;
+  padding: 9px 10px;
+  background: rgba(0, 0, 0, 0.24);
+  color: white;
+  font-weight: 700;
+}
+
+.workoutPrescriptionGrid strong {
+  margin-bottom: 4px;
 }
 
 .groupedExerciseCard {
@@ -1875,7 +1952,12 @@ body {
 }
 
 .previousPerformance span {
+  border: 1px solid rgba(212, 175, 55, 0.15);
+  border-radius: 999px;
+  padding: 5px 8px;
+  background: rgba(255, 255, 255, 0.03);
   color: #bbb;
+  font-size: 13px;
 }
 
 .setLogHeader,
@@ -2568,9 +2650,33 @@ body {
     font-size: 22px;
   }
 
+  .workoutSummaryStrip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .workoutSummaryStrip div {
+    padding: 9px 10px;
+  }
+
+  .workoutSummaryStrip span,
+  .workoutPrescriptionGrid strong {
+    font-size: 11px;
+  }
+
   .workout-info {
     grid-template-columns: 1fr;
     padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+  }
+
+  .workoutLogTitleRow {
+    margin-bottom: 10px;
+  }
+
+  .workoutLogTitleRow p {
+    font-size: 13px;
   }
 
   .exercise-card {
@@ -2592,6 +2698,14 @@ body {
     line-height: 1.15;
   }
 
+  .workoutPrescriptionGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .workoutPrescriptionGrid span {
+    padding: 8px 9px;
+  }
+
   .exerciseLabelBadge {
     width: 36px;
     height: 36px;
@@ -2610,6 +2724,10 @@ body {
     align-items: stretch;
     flex-direction: column;
     gap: 6px;
+  }
+
+  .previousPerformance span {
+    border-radius: 8px;
   }
 
   .setLogHeader {
@@ -2645,6 +2763,14 @@ body {
   .setLogField input {
     min-height: 44px;
     padding: 11px 10px;
+  }
+
+  .saveWorkoutButton {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    margin-top: 20px;
+    box-shadow: 0 -12px 24px rgba(8, 8, 8, 0.75);
   }
 
   .invitePage {
@@ -2811,6 +2937,10 @@ body {
 
   .workout-modal {
     padding: 12px;
+  }
+
+  .workoutSummaryStrip {
+    grid-template-columns: 1fr 1fr;
   }
 
   .workoutExerciseTitle {

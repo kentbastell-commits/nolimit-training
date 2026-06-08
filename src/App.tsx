@@ -4139,6 +4139,25 @@ function App() {
               </div>
 
               <div className="modal-body">
+                <div className="workoutSummaryStrip">
+                  <div>
+                    <span>Week</span>
+                    <strong>{selectedWorkout.week}</strong>
+                  </div>
+                  <div>
+                    <span>Day</span>
+                    <strong>{selectedWorkout.day}</strong>
+                  </div>
+                  <div>
+                    <span>Status</span>
+                    <strong>{selectedWorkout.completionStatus || "Scheduled"}</strong>
+                  </div>
+                  <div>
+                    <span>Exercises</span>
+                    <strong>{workoutDetails.length || "--"}</strong>
+                  </div>
+                </div>
+
                 <div className="workout-info">
                   <div className="workoutDateItem">
                     <p>
@@ -4168,7 +4187,12 @@ function App() {
                   </p>
                 </div>
 
-                <h3>Workout Logging</h3>
+                <div className="workoutLogTitleRow">
+                  <div>
+                    <h3>Workout Logging</h3>
+                    <p>Log completed set work. Leave unused fields blank.</p>
+                  </div>
+                </div>
 
                 {detailsLoading && <p>Loading workout details...</p>}
 
@@ -4201,7 +4225,7 @@ function App() {
                           </h4>
                         )}
 
-                        <div className="exercise-card">
+                        <div className="exercise-card workoutLogExerciseCard">
                         <div className="exerciseTitleRow">
                           <div className="workoutExerciseTitle">
                             <span className="exerciseLabelBadge">
@@ -4222,30 +4246,44 @@ function App() {
                           )}
                         </div>
 
-                        <p>
-                          Prescription: {exercise.sets} sets x {exercise.reps} reps
-                          • Tempo {exercise.tempo} • Rest {exercise.rest}
-                        </p>
+                        <div className="workoutPrescriptionGrid">
+                          <span>
+                            <strong>Sets</strong>
+                            {exercise.sets || "--"}
+                          </span>
+                          <span>
+                            <strong>Reps</strong>
+                            {exercise.reps || "--"}
+                          </span>
+                          <span>
+                            <strong>Tempo</strong>
+                            {exercise.tempo || "--"}
+                          </span>
+                          <span>
+                            <strong>Rest</strong>
+                            {exercise.rest || "--"}
+                          </span>
+                        </div>
 
                         {coachingNotes && (
                           <p className="workoutCoachNotes">{coachingNotes}</p>
                         )}
 
                         <div className="previousPerformance">
-                          <strong>Previous Performance</strong>
+                          <strong>Previous</strong>
                           {historyLoading ? (
                             <span>Loading history...</span>
                           ) : history ? (
                             <>
                               <span>
-                                Last: {history.lastWeight || "--"} kg x{" "}
-                                {history.lastReps || "--"} reps
+                                Last {history.lastWeight || "--"} kg x{" "}
+                                {history.lastReps || "--"}
                               </span>
                               <span>
-                                Best: {history.bestWeight || "--"} kg /{" "}
-                                {history.bestReps || "--"} reps
+                                Best {history.bestWeight || "--"} kg /{" "}
+                                {history.bestReps || "--"}
                               </span>
-                              <span>{history.totalSets} logged sets</span>
+                              <span>{history.totalSets} sets</span>
                             </>
                           ) : (
                             <span>No previous logs for this exercise.</span>
