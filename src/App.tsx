@@ -1393,6 +1393,11 @@ function App() {
       },
       body: JSON.stringify({
         assignedWorkoutRecordId,
+        assignedWorkoutId:
+          selectedWorkout?.id === assignedWorkoutRecordId
+            ? selectedWorkout.assignedWorkoutId
+            : workouts.find((workout) => workout.id === assignedWorkoutRecordId)
+                ?.assignedWorkoutId,
         scheduledDate,
       }),
     });
@@ -1420,8 +1425,14 @@ function App() {
       const refresh = await fetch(`/api/workouts?clientCode=${selectedClient.clientCode}`);
       const refreshData = await refresh.json();
       setWorkouts(refreshData.workouts || []);
+      const updatedWorkout = refreshData.workouts?.find(
+        (workout: Workout) => workout.id === selectedWorkout.id
+      );
 
-      setSelectedWorkout(null);
+      if (updatedWorkout) {
+        setSelectedWorkout(updatedWorkout);
+        setEditingWorkoutDate(normalizeDate(String(updatedWorkout.scheduledDate)));
+      }
     } catch (error) {
       console.error(error);
       notify("Could not update workout date.");
@@ -1462,6 +1473,14 @@ function App() {
       setMovingWorkoutId("");
       setDraggingWorkoutId("");
     }
+  };
+
+  const moveWorkoutByDays = (workout: Workout, days: number) => {
+    const currentDate = normalizeDate(String(workout.scheduledDate));
+
+    if (!currentDate) return;
+
+    void moveWorkoutToDate(workout, addDays(currentDate, days));
   };
 
   const addExerciseToProgram = (exercise: LibraryExercise) => {
@@ -3695,7 +3714,7 @@ function App() {
                           </strong>
 
                           {dayWorkouts.map((workout) => (
-                            <button
+                            <div
                               className={`workoutBlock ${getStatusClass(
                                 workout.completionStatus
                               )} ${
@@ -3709,6 +3728,8 @@ function App() {
                               }`}
                               key={workout.id}
                               draggable
+                              role="button"
+                              tabIndex={0}
                               title="Drag to another day to reschedule"
                               onDragStart={(event) => {
                                 event.dataTransfer.setData("text/plain", workout.id);
@@ -3717,15 +3738,55 @@ function App() {
                               }}
                               onDragEnd={() => setDraggingWorkoutId("")}
                               onClick={() => openWorkout(workout)}
-                              disabled={movingWorkoutId === workout.id}
+                              onKeyDown={(event) => {
+                                if (event.key === "Enter" || event.key === " ") {
+                                  event.preventDefault();
+                                  openWorkout(workout);
+                                }
+                              }}
                             >
-                              {workout.sessionName || "Workout"}
-                              <span>
-                                {movingWorkoutId === workout.id
-                                  ? "Moving..."
-                                  : workout.completionStatus || "Scheduled"}
-                              </span>
-                            </button>
+                              <div className="workoutBlockMain">
+                                {workout.sessionName || "Workout"}
+                                <span>
+                                  {movingWorkoutId === workout.id
+                                    ? "Moving..."
+                                    : workout.completionStatus || "Scheduled"}
+                                </span>
+                              </div>
+
+                              <div
+                                className="workoutMoveControls"
+                                onClick={(event) => event.stopPropagation()}
+                              >
+                                <button
+                                  className="miniMoveButton"
+                                  onClick={() => moveWorkoutByDays(workout, -1)}
+                                  disabled={movingWorkoutId === workout.id}
+                                  type="button"
+                                  aria-label="Move workout back one day"
+                                >
+                                  ‹
+                                </button>
+                                <input
+                                  type="date"
+                                  value={normalizeDate(String(workout.scheduledDate))}
+                                  onChange={(event) =>
+                                    moveWorkoutToDate(workout, event.target.value)
+                                  }
+                                  disabled={movingWorkoutId === workout.id}
+                                  aria-label="Move workout date"
+                                />
+                                <button
+                                  className="miniMoveButton"
+                                  onClick={() => moveWorkoutByDays(workout, 1)}
+                                  disabled={movingWorkoutId === workout.id}
+                                  type="button"
+                                  aria-label="Move workout forward one day"
+                                >
+                                  ›
+                                </button>
+                              </div>
+                            </div>
                           ))}
                         </div>
                       );

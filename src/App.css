@@ -1413,6 +1413,10 @@ body {
   transition: opacity 0.18s ease, transform 0.18s ease, background 0.18s ease;
 }
 
+.workoutBlockMain {
+  min-width: 0;
+}
+
 .workoutBlock span {
   display: block;
   color: #aaa;
@@ -1429,6 +1433,43 @@ body {
   cursor: grabbing;
 }
 
+.workoutMoveControls {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) 32px;
+  gap: 6px;
+  align-items: center;
+  margin-top: 9px;
+}
+
+.workoutMoveControls input {
+  min-width: 0;
+  width: 100%;
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  border-radius: 8px;
+  padding: 7px 8px;
+  background: #050505;
+  color: white;
+  font-size: 12px;
+}
+
+.miniMoveButton {
+  width: 32px;
+  height: 32px;
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.35);
+  color: #f5d77b;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.miniMoveButton:disabled,
+.workoutMoveControls input:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
 .draggingWorkout {
   opacity: 0.45;
 }
@@ -1442,6 +1483,21 @@ body {
   padding: 7px;
   font-size: 12px;
   margin-top: 6px;
+}
+
+.monthCalendar .workoutMoveControls {
+  grid-template-columns: 28px minmax(0, 1fr) 28px;
+  gap: 4px;
+}
+
+.monthCalendar .miniMoveButton {
+  width: 28px;
+  height: 28px;
+}
+
+.monthCalendar .workoutMoveControls input {
+  padding: 6px;
+  font-size: 11px;
 }
 
 .oneDayCalendar .workoutBlock {

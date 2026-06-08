@@ -1,5 +1,31 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 
+function fieldToText(value: any): string {
+  if (!value) return "";
+  if (typeof value === "string") return value;
+  if (typeof value === "number") return String(value);
+
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => {
+        if (typeof item === "string") return item;
+        if (item?.text) return item.text;
+        if (item?.name) return item.name;
+        if (item?.link) return item.link;
+        if (item?.url) return item.url;
+        return JSON.stringify(item);
+      })
+      .join(", ");
+  }
+
+  if (value?.text) return value.text;
+  if (value?.name) return value.name;
+  if (value?.link) return value.link;
+  if (value?.url) return value.url;
+
+  return JSON.stringify(value);
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {
     return res.status(405).json({
@@ -8,11 +34,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { assignedWorkoutRecordId, scheduledDate } = req.body;
+    const { assignedWorkoutRecordId, assignedWorkoutId, scheduledDate } = req.body;
 
-    if (!assignedWorkoutRecordId || !scheduledDate) {
+    if ((!assignedWorkoutRecordId && !assignedWorkoutId) || !scheduledDate) {
       return res.status(400).json({
-        error: "Missing assignedWorkoutRecordId or scheduledDate",
+        error: "Missing assignedWorkoutRecordId/assignedWorkoutId or scheduledDate",
       });
     }
 
@@ -39,8 +65,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
+    let recordId = assignedWorkoutRecordId;
+
+    if (!String(recordId || "").startsWith("rec") && assignedWorkoutId) {
+      const recordsResponse = await fetch(
+        `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${process.env.FEISHU_ASSIGNED_WORKOUTS_TABLE_ID}/records?page_size=500`,
+        {
+          headers: {
+            Authorization: `Bearer ${tokenData.tenant_access_token}`,
+          },
+        }
+      );
+      const recordsData = await recordsResponse.json();
+      const match = recordsData?.data?.items?.find((item: any) => {
+        return fieldToText(item.fields?.["Assigned Workout ID"]) ===
+          String(assignedWorkoutId);
+      });
+
+      recordId = match?.record_id || recordId;
+    }
+
     const updateResponse = await fetch(
-      `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${process.env.FEISHU_ASSIGNED_WORKOUTS_TABLE_ID}/records/${assignedWorkoutRecordId}`,
+      `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${process.env.FEISHU_ASSIGNED_WORKOUTS_TABLE_ID}/records/${recordId}`,
       {
         method: "PUT",
         headers: {
@@ -66,7 +112,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     return res.status(200).json({
       success: true,
-      assignedWorkoutRecordId,
+      assignedWorkoutRecordId: recordId,
+      assignedWorkoutId,
       scheduledDate,
       larkResponse: updateData,
     });
