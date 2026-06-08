@@ -33,7 +33,15 @@ function fieldToText(value: any): string {
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
-    const { week, day } = req.query;
+    const { programId, week, day } = req.query;
+
+    if (!programId || !week || !day) {
+      return res.status(400).json({
+        error: "Missing required query params",
+        required: ["programId", "week", "day"],
+        received: { programId, week, day },
+      });
+    }
 
     const tokenResponse = await fetch(
       "https://open.larksuite.com/open-apis/auth/v3/tenant_access_token/internal",
@@ -49,8 +57,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const tokenData = await tokenResponse.json();
 
+    if (!tokenData.tenant_access_token) {
+      return res.status(500).json({
+        error: "Could not get Lark tenant token",
+        larkResponse: tokenData,
+      });
+    }
+
     const recordsResponse = await fetch(
-      `https://open.larksuite.com/open-apis/bitable/v1/apps/${process.env.LARK_BASE_APP_TOKEN}/tables/${process.env.LARK_WORKOUT_TEMPLATE_TABLE_ID}/records?page_size=100`,
+      `https://open.larksuite.com/open-apis/bitable/v1/apps/${process.env.LARK_BASE_APP_TOKEN}/tables/${process.env.LARK_WORKOUT_TEMPLATE_TABLE_ID}/records?page_size=500`,
       {
         headers: {
           Authorization: `Bearer ${tokenData.tenant_access_token}`,
@@ -72,6 +87,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const fields = item.fields || {};
 
         return (
+          fieldToText(fields["Program ID"]) === String(programId) &&
           fieldToText(fields["Week"]) === String(week) &&
           fieldToText(fields["Day"]) === String(day)
         );
@@ -82,6 +98,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return {
           id: item.record_id,
           templateId: fieldToText(fields["Template ID"]),
+          programId: fieldToText(fields["Program ID"]),
           exerciseId: fieldToText(fields["Exercise ID"]),
           exerciseName: fieldToText(fields["Exercise Name"]),
           videoUrl: fieldToText(fields["Video URL"]),
