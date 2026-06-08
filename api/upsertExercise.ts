@@ -98,9 +98,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       "Exercise ID": exerciseId || makeExerciseId(exerciseName),
       "Exercise Name": exerciseName || "",
       "Video URL": makeUrlField(videoUrl),
-      Category: makeMultiSelectField(category),
+      Category: category || "",
       Equipment: makeMultiSelectField(equipment),
-      "Movement Pattern": makeMultiSelectField(movementPattern),
+      "Movement Pattern": movementPattern || "",
       Notes: archive ? archivedNotes : notes || "",
     };
 
