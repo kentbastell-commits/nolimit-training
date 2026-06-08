@@ -351,6 +351,7 @@ body {
   grid-template-columns: 220px minmax(0, 1fr);
   gap: 16px;
   align-items: start;
+  margin-top: 22px;
 }
 
 .clientBucketsPanel {
@@ -1837,6 +1838,32 @@ body {
     width: 100%;
     min-height: auto;
     position: static;
+    padding: 16px;
+  }
+
+  .brand {
+    margin-bottom: 16px;
+    padding: 0;
+  }
+
+  .brandWordmark {
+    font-size: 20px;
+  }
+
+  .brandSub {
+    font-size: 18px;
+    letter-spacing: 1px;
+  }
+
+  .sidebar nav {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .navItem {
+    align-items: center;
+    margin-bottom: 0;
   }
 
   .coachBox {
@@ -1941,7 +1968,32 @@ body {
 
 @media (max-width: 720px) {
   .main {
-    padding: 20px;
+    padding: 16px;
+  }
+
+  .topbar {
+    flex-direction: column;
+  }
+
+  .topbar h1 {
+    font-size: 34px;
+  }
+
+  .topbarActions,
+  .topbarActions button,
+  .searchRow,
+  .searchRow input,
+  .searchRow button {
+    width: 100%;
+  }
+
+  .sidebar nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .navItem {
+    font-size: 14px;
+    padding: 11px 12px;
   }
 
   .clientTop h1 {
@@ -2033,6 +2085,48 @@ body {
 
   .clientTableRow input[type="checkbox"] {
     display: none;
+  }
+
+  .exerciseLibraryTable,
+  .builderLibraryTable {
+    overflow: visible;
+  }
+
+  .exerciseTableHeader,
+  .builderLibraryHeader {
+    display: none;
+  }
+
+  .exerciseTableRow,
+  .builderLibraryRow {
+    grid-template-columns: 1fr auto !important;
+    min-width: 0;
+    gap: 10px;
+    padding: 16px;
+  }
+
+  .exerciseTableRow .clientName,
+  .builderLibraryRow > div:first-child {
+    grid-column: 1 / -1;
+  }
+
+  .exerciseTableRow > span:nth-of-type(1),
+  .builderLibraryRow > span {
+    color: #aaa;
+    font-size: 13px;
+  }
+
+  .exerciseTableRow .iconCell {
+    justify-content: flex-start;
+  }
+
+  .exerciseTableRow .rowActions {
+    justify-content: flex-end;
+  }
+
+  .builderLibraryRow .goldButton {
+    grid-column: 1 / -1;
+    width: 100%;
   }
 
   .clientNotesField {

@@ -1584,7 +1584,7 @@ function App() {
       }
 
       notify(
-        `Program saved: ${programData.programId}. Sessions: ${sessionsToSave.length}. Template records created: ${totalRecordsCreated}`
+        `Program saved. Sessions: ${sessionsToSave.length}. Template records created: ${totalRecordsCreated}`
       );
 
       setProgramSessions([]);
@@ -1717,17 +1717,6 @@ function App() {
 
     return matchesSearch && matchesStatus && matchesBucket;
   });
-
-  const activeClientCount = clients.filter((client) =>
-    client.status.toLowerCase().includes("active")
-  ).length;
-  const premiumClientCount = clients.filter((client) =>
-    client.status.toLowerCase().includes("premium")
-  ).length;
-  const missingContactCount = clients.filter(
-    (client) => !client.email && !client.phone
-  ).length;
-  const needsProgrammingCount = clients.filter(clientNeedsProgramming).length;
 
   const refreshSelectedClient = (updatedClients: Client[]) => {
     if (!selectedClient) return;
@@ -2071,29 +2060,6 @@ function App() {
 
             {activePage === "Clients" && (
               <>
-                <section className="clientStatsGrid">
-                  <div className="clientStat">
-                    <span>Total Clients</span>
-                    <strong>{clients.length}</strong>
-                  </div>
-                  <div className="clientStat">
-                    <span>Active</span>
-                    <strong>{activeClientCount}</strong>
-                  </div>
-                  <div className="clientStat">
-                    <span>Premium</span>
-                    <strong>{premiumClientCount}</strong>
-                  </div>
-                  <div className="clientStat">
-                    <span>Needs Programming</span>
-                    <strong>{needsProgrammingCount}</strong>
-                  </div>
-                  <div className="clientStat">
-                    <span>Needs Contact</span>
-                    <strong>{missingContactCount}</strong>
-                  </div>
-                </section>
-
                 <section className="clientCommandCenter">
                   <aside className="clientBucketsPanel">
                     <div className="clientBucketsHeader">
@@ -2206,7 +2172,6 @@ function App() {
                               <div className="clientAvatar">{client.initials}</div>
                               <div>
                                 <strong>{client.name}</strong>
-                                <p>{client.clientCode || "--"}</p>
                               </div>
                             </div>
 
@@ -2259,7 +2224,7 @@ function App() {
                   </button>
                 </section>
 
-                <section className="tableCard">
+                <section className="tableCard exerciseLibraryTable">
                   <div
                     className="tableHeader exerciseTableHeader"
                     style={{
@@ -2298,9 +2263,6 @@ function App() {
                             <strong>
                               {exercise.exerciseName || "Unnamed Exercise"}
                             </strong>
-                            <p style={{ margin: 0 }}>
-                              {exercise.exerciseId || "--"}
-                            </p>
                           </div>
                         </div>
 
@@ -2401,7 +2363,6 @@ function App() {
                             }}
                           >
                             <strong>{program.programName}</strong>
-                            <span>{program.programId}</span>
                             <small>
                               {program.goal || "--"} / {program.level || "--"}
                             </small>
@@ -2418,7 +2379,7 @@ function App() {
                               <div>
                                 <h3>{selectedSavedProgram.programName}</h3>
                                 <p>
-                                  {selectedSavedProgram.programId} / {selectedSavedProgram.status || "--"}
+                                  {selectedSavedProgram.status || "--"}
                                 </p>
                               </div>
 
@@ -2487,7 +2448,7 @@ function App() {
                                     <option value="">Select client</option>
                                     {clients.map((client) => (
                                       <option key={client.id} value={client.id}>
-                                        {client.name} ({client.clientCode})
+                                        {client.name}
                                       </option>
                                     ))}
                                   </select>
@@ -2751,9 +2712,9 @@ function App() {
 
                 <h3 style={{ color: "#f5d77b" }}>Exercise Library</h3>
 
-                <div className="tableCard">
+                <div className="tableCard builderLibraryTable">
                   <div
-                    className="tableHeader"
+                    className="tableHeader builderLibraryHeader"
                     style={{
                       gridTemplateColumns: "2fr 1fr 1fr auto",
                     }}
@@ -2766,7 +2727,7 @@ function App() {
 
                   {builderExercises.slice(0, 8).map((exercise) => (
                     <div
-                      className="clientRow"
+                      className="clientRow builderLibraryRow"
                       key={exercise.recordId || exercise.exerciseId}
                       style={{
                         gridTemplateColumns: "2fr 1fr 1fr auto",
@@ -2774,7 +2735,6 @@ function App() {
                     >
                       <div>
                         <strong>{exercise.exerciseName}</strong>
-                        <p style={{ margin: 0 }}>{exercise.exerciseId}</p>
                       </div>
 
                       <span>{exercise.equipment || "--"}</span>
@@ -3130,9 +3090,6 @@ function App() {
                   <div className="profileCard">
                     <h3>Client Information</h3>
                     <p>
-                      <strong>Client ID:</strong> {selectedClient.clientCode}
-                    </p>
-                    <p>
                       <strong>Name:</strong> {selectedClient.name}
                     </p>
                     <p>
@@ -3229,7 +3186,7 @@ function App() {
                         >
                           {programs.map((program) => (
                             <option key={program.recordId} value={program.programId}>
-                              {program.programName} ({program.programId})
+                              {program.programName}
                             </option>
                           ))}
                         </select>
@@ -3545,20 +3502,6 @@ function App() {
                 </label>
 
                 <label>
-                  <span>Exercise ID</span>
-                  <input
-                    value={exerciseForm.exerciseId}
-                    onChange={(e) =>
-                      setExerciseForm({
-                        ...exerciseForm,
-                        exerciseId: e.target.value,
-                      })
-                    }
-                    placeholder="Auto-created if blank"
-                  />
-                </label>
-
-                <label>
                   <span>Category</span>
                   <input
                     value={exerciseForm.category}
@@ -3867,13 +3810,6 @@ function App() {
 
               <div className="modal-body">
                 <div className="workout-info">
-                  <p>
-                    <strong>Assigned Workout:</strong>{" "}
-                    {selectedWorkout.assignedWorkoutId || "--"}
-                  </p>
-                  <p>
-                    <strong>Program:</strong> {selectedWorkout.programId || "--"}
-                  </p>
                   <div className="workoutDateItem">
                     <p>
                       <strong>Date:</strong>{" "}
