@@ -1498,6 +1498,27 @@ body {
   background: rgba(212, 175, 55, 0.18);
 }
 
+.previousPerformance {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  border: 1px solid rgba(212, 175, 55, 0.2);
+  border-radius: 8px;
+  padding: 10px;
+  margin: 12px 0;
+  background: rgba(0, 0, 0, 0.26);
+  color: #ddd;
+}
+
+.previousPerformance strong {
+  color: #f5d77b;
+}
+
+.previousPerformance span {
+  color: #bbb;
+}
+
 .setLogHeader,
 .setLogRow {
   display: grid;

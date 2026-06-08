@@ -108,6 +108,16 @@ type ExerciseDetail = {
   notes: string;
 };
 
+type WorkoutHistoryItem = {
+  exerciseName: string;
+  totalSets: number;
+  lastDate: string;
+  lastReps: string;
+  lastWeight: string;
+  bestWeight: number;
+  bestReps: number;
+};
+
 type LibraryExercise = {
   recordId: string;
   exerciseId: string;
@@ -294,9 +304,11 @@ function App() {
   const [selectedWorkout, setSelectedWorkout] = useState<Workout | null>(null);
   const [workoutDetails, setWorkoutDetails] = useState<ExerciseDetail[]>([]);
   const [setLogs, setSetLogs] = useState<SetLog[]>([]);
+  const [workoutHistory, setWorkoutHistory] = useState<WorkoutHistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [workoutsLoading, setWorkoutsLoading] = useState(false);
   const [detailsLoading, setDetailsLoading] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(false);
   const [savingWorkout, setSavingWorkout] = useState(false);
   const [editingWorkoutDate, setEditingWorkoutDate] = useState("");
   const [updatingWorkoutDate, setUpdatingWorkoutDate] = useState(false);
@@ -1182,24 +1194,33 @@ function App() {
     setSelectedWorkout(workout);
     setEditingWorkoutDate(normalizeDate(String(workout.scheduledDate)));
     setDetailsLoading(true);
+    setHistoryLoading(true);
     setWorkoutDetails([]);
     setSetLogs([]);
+    setWorkoutHistory([]);
 
     try {
-      const res = await fetch(
-        `/api/workoutDetails?programId=${workout.programId}&week=${workout.week}&day=${workout.day}`
-      );
+      const [detailsResponse, historyResponse] = await Promise.all([
+        fetch(
+          `/api/workoutDetails?programId=${workout.programId}&week=${workout.week}&day=${workout.day}`
+        ),
+        fetch(`/api/workoutHistory?clientId=${selectedClient?.id || ""}`),
+      ]);
 
-      const data = await res.json();
+      const data = await detailsResponse.json();
       const exercises = data.exercises || [];
+      const historyData = await historyResponse.json();
 
       setWorkoutDetails(exercises);
       buildSetLogs(exercises);
+      setWorkoutHistory(historyData.history || []);
     } catch {
       setWorkoutDetails([]);
       setSetLogs([]);
+      setWorkoutHistory([]);
     } finally {
       setDetailsLoading(false);
+      setHistoryLoading(false);
     }
   };
 
@@ -3848,6 +3869,7 @@ function App() {
                     setSelectedWorkout(null);
                     setWorkoutDetails([]);
                     setSetLogs([]);
+                    setWorkoutHistory([]);
                   }}
                 >
                   ×
@@ -3900,6 +3922,11 @@ function App() {
                     const exerciseLogs = setLogs.filter(
                       (log) => log.exerciseId === exercise.exerciseId
                     );
+                    const history = workoutHistory.find(
+                      (item) =>
+                        item.exerciseName.toLowerCase() ===
+                        exercise.exerciseName.toLowerCase()
+                    );
 
                     return (
                       <div key={exercise.id} className="exercise-card">
@@ -3922,6 +3949,27 @@ function App() {
                           Prescription: {exercise.sets} sets x {exercise.reps} reps
                           • Tempo {exercise.tempo} • Rest {exercise.rest}
                         </p>
+
+                        <div className="previousPerformance">
+                          <strong>Previous Performance</strong>
+                          {historyLoading ? (
+                            <span>Loading history...</span>
+                          ) : history ? (
+                            <>
+                              <span>
+                                Last: {history.lastWeight || "--"} kg x{" "}
+                                {history.lastReps || "--"} reps
+                              </span>
+                              <span>
+                                Best: {history.bestWeight || "--"} kg /{" "}
+                                {history.bestReps || "--"} reps
+                              </span>
+                              <span>{history.totalSets} logged sets</span>
+                            </>
+                          ) : (
+                            <span>No previous logs for this exercise.</span>
+                          )}
+                        </div>
 
                         <div className="setLogHeader">
                           <span>Set</span>
