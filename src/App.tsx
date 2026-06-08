@@ -1,5 +1,5 @@
 import { Clock3, Play, X } from "lucide-react";
-import { useEffect, useState, type DragEvent } from "react";
+import { useEffect, useState, type CSSProperties, type DragEvent } from "react";
 import "./App.css";
 
 type Page = "Clients" | "Library" | "Workouts" | "Check-ins";
@@ -202,6 +202,25 @@ type SetLog = {
   actualWeight: string;
   actualTime: string;
   actualDistance: string;
+};
+
+const desktopSetLogRowStyle: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "150px repeat(4, minmax(170px, 220px))",
+  gap: "10px",
+  alignItems: "center",
+  padding: "10px",
+  border: "1px solid rgba(212, 175, 55, 0.16)",
+  borderRadius: "8px",
+  background: "rgba(0, 0, 0, 0.18)",
+};
+
+const desktopSetBannerStyle: CSSProperties = {
+  gridColumn: "auto",
+  minHeight: "58px",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
 };
 
 function normalizeDate(value: string) {
@@ -653,8 +672,9 @@ function App() {
 
   useEffect(() => {
     const updateWorkoutRowMode = () => {
+      const narrowViewport = window.innerWidth <= 700;
       const isTouchPhone =
-        window.navigator.maxTouchPoints > 0 && window.screen.width <= 700;
+        window.navigator.maxTouchPoints > 0 && narrowViewport;
       setUseMobileWorkoutRows(isTouchPhone);
     };
 
@@ -4455,9 +4475,21 @@ function App() {
                               className={`setLogRow desktopSetLogRow ${
                                 useMobileWorkoutRows ? "mobileSetLogRow" : ""
                               }`}
+                              style={
+                                useMobileWorkoutRows
+                                  ? undefined
+                                  : desktopSetLogRowStyle
+                              }
                               key={`${log.exerciseId}-${log.setNumber}-${log.side || "both"}`}
                             >
-                              <div className="setBanner">
+                              <div
+                                className="setBanner"
+                                style={
+                                  useMobileWorkoutRows
+                                    ? undefined
+                                    : desktopSetBannerStyle
+                                }
+                              >
                                 <strong>
                                   Set {log.setNumber}
                                   {log.side ? ` · ${log.side}` : ""}
