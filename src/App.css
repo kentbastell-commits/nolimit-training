@@ -1508,6 +1508,60 @@ body {
   border-radius: 8px;
 }
 
+.builderExerciseTitle,
+.workoutExerciseTitle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.builderExerciseTitle h3,
+.workoutExerciseTitle h3 {
+  margin: 0;
+}
+
+.exerciseLabelBadge {
+  width: 42px;
+  height: 42px;
+  min-width: 42px;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  border-radius: 50%;
+  color: #f5d77b;
+  background: rgba(0, 0, 0, 0.35);
+  font-weight: 800;
+  font-size: 14px;
+}
+
+.exerciseSectionName {
+  display: block;
+  margin-bottom: 4px;
+  color: #aaa;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.workoutSectionHeading {
+  margin: 28px 0 10px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(212, 175, 55, 0.2);
+  color: #f5d77b;
+  font-size: 17px;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.workoutCoachNotes {
+  border-left: 3px solid rgba(212, 175, 55, 0.55);
+  padding-left: 12px;
+  color: #ddd;
+  white-space: pre-wrap;
+}
+
 .groupedExerciseCard {
   border-color: rgba(120, 200, 255, 0.5);
   background: rgba(120, 200, 255, 0.04);
@@ -1550,7 +1604,7 @@ body {
 }
 
 .builderPrescriptionGrid {
-  grid-template-columns: 80px 100px 120px 120px minmax(140px, 1fr);
+  grid-template-columns: 80px minmax(150px, 1fr) 80px 100px 120px 120px minmax(140px, 1fr);
 }
 
 .builderGroupGrid {

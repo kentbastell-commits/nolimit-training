@@ -108,6 +108,14 @@ type ExerciseDetail = {
   notes: string;
 };
 
+type ExerciseNoteMeta = {
+  sectionName: string;
+  exerciseLabel: string;
+  groupType?: ProgramExercise["groupType"];
+  groupName: string;
+  coachingNotes: string;
+};
+
 type WorkoutHistoryItem = {
   exerciseName: string;
   totalSets: number;
@@ -135,6 +143,8 @@ type ProgramExercise = {
   exerciseId: string;
   exerciseName: string;
   order: number;
+  sectionName: string;
+  exerciseLabel: string;
   sets: string;
   reps: string;
   tempo: string;
@@ -191,6 +201,49 @@ function normalizeDate(value: string) {
   }
 
   return value.split("T")[0].split(" ")[0];
+}
+
+function makeExerciseLabel(index: number) {
+  const groupIndex = Math.floor(index / 4);
+  const letter = String.fromCharCode(65 + Math.min(groupIndex, 25));
+  const number = (index % 4) + 1;
+
+  return `${letter}${number}`;
+}
+
+function parseExerciseNotes(notes = ""): ExerciseNoteMeta {
+  const lines = notes.split(/\r?\n/);
+  const meta: ExerciseNoteMeta = {
+    sectionName: "",
+    exerciseLabel: "",
+    groupName: "",
+    coachingNotes: "",
+  };
+  const remainingLines: string[] = [];
+
+  lines.forEach((line) => {
+    const trimmed = line.trim();
+    const match = trimmed.match(/^(Section|Label|Superset|Circuit):\s*(.+)$/i);
+
+    if (!match) {
+      remainingLines.push(line);
+      return;
+    }
+
+    const key = match[1].toLowerCase();
+    const value = match[2].trim();
+
+    if (key === "section") meta.sectionName = value;
+    if (key === "label") meta.exerciseLabel = value;
+    if (key === "superset" || key === "circuit") {
+      meta.groupType = key === "superset" ? "Superset" : "Circuit";
+      meta.groupName = value;
+    }
+  });
+
+  meta.coachingNotes = remainingLines.join("\n").trim();
+
+  return meta;
 }
 
 function dateToInputValue(date: Date) {
@@ -727,6 +780,10 @@ function App() {
           exerciseId: template.exerciseId,
           exerciseName: template.exerciseName,
           order: template.order,
+          sectionName: "Main",
+          exerciseLabel: makeExerciseLabel(
+            sessions.get(key)?.exercises.length || 0
+          ),
           sets: "",
           reps: "",
           tempo: "",
@@ -976,19 +1033,25 @@ function App() {
             week: String(session.week),
             day: String(session.day),
             sessionName: session.sessionName,
-            exercises: exercises.map((exercise, index) => ({
-              exerciseRecordId: "",
-              exerciseId: exercise.exerciseId,
-              exerciseName: exercise.exerciseName,
-              order: Number(exercise.order) || index + 1,
-              sets: exercise.sets,
-              reps: exercise.reps,
-              tempo: exercise.tempo,
-              rest: exercise.rest,
-              coachingNotes: exercise.notes,
-              groupType: "Straight" as const,
-              groupName: "",
-            })),
+            exercises: exercises.map((exercise, index) => {
+              const meta = parseExerciseNotes(exercise.notes);
+
+              return {
+                exerciseRecordId: "",
+                exerciseId: exercise.exerciseId,
+                exerciseName: exercise.exerciseName,
+                order: Number(exercise.order) || index + 1,
+                sectionName: meta.sectionName || "Main",
+                exerciseLabel: meta.exerciseLabel || makeExerciseLabel(index),
+                sets: exercise.sets,
+                reps: exercise.reps,
+                tempo: exercise.tempo,
+                rest: exercise.rest,
+                coachingNotes: meta.coachingNotes,
+                groupType: meta.groupType || "Straight",
+                groupName: meta.groupName,
+              };
+            }),
           };
         })
       );
@@ -1333,6 +1396,10 @@ function App() {
         exerciseId: exercise.exerciseId,
         exerciseName: exercise.exerciseName,
         order: selectedProgramExercises.length + 1,
+        sectionName:
+          selectedProgramExercises[selectedProgramExercises.length - 1]
+            ?.sectionName || "Main",
+        exerciseLabel: makeExerciseLabel(selectedProgramExercises.length),
         sets: "3",
         reps: "8",
         tempo: "3-1-1",
@@ -1425,6 +1492,8 @@ function App() {
 
   const buildExerciseCoachingNotes = (exercise: ProgramExercise) => {
     const meta = [
+      exercise.sectionName ? `Section: ${exercise.sectionName}` : "",
+      exercise.exerciseLabel ? `Label: ${exercise.exerciseLabel}` : "",
       exercise.groupType !== "Straight" && exercise.groupName
         ? `${exercise.groupType}: ${exercise.groupName}`
         : "",
@@ -2767,9 +2836,17 @@ function App() {
                   >
                     <div className="exerciseTitleRow">
                       <div>
-                        <h3>
-                          {exercise.order}. {exercise.exerciseName}
-                        </h3>
+                        <div className="builderExerciseTitle">
+                          <span className="exerciseLabelBadge">
+                            {exercise.exerciseLabel || exercise.order}
+                          </span>
+                          <div>
+                            <span className="exerciseSectionName">
+                              {exercise.sectionName || "Main"}
+                            </span>
+                            <h3>{exercise.exerciseName}</h3>
+                          </div>
+                        </div>
                         {exercise.groupType !== "Straight" && exercise.groupName && (
                           <span className="exerciseGroupPill">
                             {exercise.groupType}: {exercise.groupName}
@@ -2814,6 +2891,38 @@ function App() {
                     </div>
 
                     <div className="builderPrescriptionGrid">
+                      <label>
+                        <span>Label</span>
+                        <input
+                          className="miniSearch"
+                          value={exercise.exerciseLabel}
+                          onChange={(e) =>
+                            updateProgramExercise(
+                              index,
+                              "exerciseLabel",
+                              e.target.value
+                            )
+                          }
+                          placeholder="A1"
+                        />
+                      </label>
+
+                      <label>
+                        <span>Section</span>
+                        <input
+                          className="miniSearch"
+                          value={exercise.sectionName}
+                          onChange={(e) =>
+                            updateProgramExercise(
+                              index,
+                              "sectionName",
+                              e.target.value
+                            )
+                          }
+                          placeholder="Prep, Power..."
+                        />
+                      </label>
+
                       <label>
                         <span>Order</span>
                         <input
@@ -3843,10 +3952,20 @@ function App() {
                 {detailsLoading && <p>Loading workout details...</p>}
 
                 {!detailsLoading &&
-                  workoutDetails.map((exercise) => {
+                  workoutDetails.map((exercise, index) => {
                     const exerciseLogs = setLogs.filter(
                       (log) => log.exerciseId === exercise.exerciseId
                     );
+                    const meta = parseExerciseNotes(exercise.notes);
+                    const previousMeta =
+                      index > 0
+                        ? parseExerciseNotes(workoutDetails[index - 1].notes)
+                        : null;
+                    const sectionName = meta.sectionName || "Main";
+                    const showSectionHeader =
+                      !previousMeta ||
+                      sectionName !== (previousMeta.sectionName || "Main");
+                    const coachingNotes = meta.coachingNotes;
                     const history = workoutHistory.find(
                       (item) =>
                         item.exerciseName.toLowerCase() ===
@@ -3854,9 +3973,21 @@ function App() {
                     );
 
                     return (
-                      <div key={exercise.id} className="exercise-card">
+                      <div key={exercise.id}>
+                        {showSectionHeader && (
+                          <h4 className="workoutSectionHeading">
+                            {sectionName}
+                          </h4>
+                        )}
+
+                        <div className="exercise-card">
                         <div className="exerciseTitleRow">
-                          <h3>{exercise.exerciseName}</h3>
+                          <div className="workoutExerciseTitle">
+                            <span className="exerciseLabelBadge">
+                              {meta.exerciseLabel || makeExerciseLabel(index)}
+                            </span>
+                            <h3>{exercise.exerciseName}</h3>
+                          </div>
 
                           {exercise.videoUrl && (
                             <a
@@ -3874,6 +4005,10 @@ function App() {
                           Prescription: {exercise.sets} sets x {exercise.reps} reps
                           • Tempo {exercise.tempo} • Rest {exercise.rest}
                         </p>
+
+                        {coachingNotes && (
+                          <p className="workoutCoachNotes">{coachingNotes}</p>
+                        )}
 
                         <div className="previousPerformance">
                           <strong>Previous Performance</strong>
@@ -3969,6 +4104,7 @@ function App() {
                             </div>
                           );
                         })}
+                        </div>
                       </div>
                     );
                   })}
