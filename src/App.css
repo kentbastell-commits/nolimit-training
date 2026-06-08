@@ -2099,12 +2099,13 @@ body {
 .setLogHeader,
 .setLogRow {
   display: grid;
-  grid-template-columns: 118px repeat(4, minmax(130px, 180px));
+  grid-template-columns: 150px repeat(4, minmax(170px, 220px));
   gap: 10px;
   align-items: center;
 }
 
 .setLogHeader {
+  display: none;
   color: #f5d77b;
   font-weight: bold;
   margin-top: 18px;
@@ -2114,13 +2115,17 @@ body {
 
 .setLogRow {
   margin-bottom: 10px;
-  padding: 8px;
+  padding: 10px;
   border: 1px solid rgba(212, 175, 55, 0.16);
   border-radius: 8px;
   background: rgba(0, 0, 0, 0.18);
 }
 
 .setBanner {
+  min-height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border: 1px solid rgba(212, 175, 55, 0.24);
   border-radius: 8px;
   padding: 9px 10px;
@@ -2165,7 +2170,7 @@ body {
 }
 
 .setLogField span {
-  display: none;
+  display: block;
 }
 
 .setLogRow input,
@@ -3215,4 +3220,32 @@ body {
 .exercise-card label span {
   font-size: 14px;
   color: #d4af37;
+}
+
+@media (min-width: 721px) {
+  .workoutLogExerciseCard .setLogHeader {
+    display: none;
+  }
+
+  .workoutLogExerciseCard .setLogRow {
+    grid-template-columns: 150px repeat(4, minmax(170px, 220px));
+    gap: 10px;
+    align-items: center;
+    padding: 10px;
+    border: 1px solid rgba(212, 175, 55, 0.16);
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.18);
+  }
+
+  .workoutLogExerciseCard .setBanner {
+    grid-column: auto;
+    min-height: 58px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .workoutLogExerciseCard .setLogField span {
+    display: block;
+  }
 }
