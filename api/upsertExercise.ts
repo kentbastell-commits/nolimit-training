@@ -59,6 +59,13 @@ function makeUrlField(value: string) {
   };
 }
 
+function makeMultiSelectField(value: string) {
+  return String(value || "")
+    .split(/[\/,]/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
@@ -91,9 +98,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       "Exercise ID": exerciseId || makeExerciseId(exerciseName),
       "Exercise Name": exerciseName || "",
       "Video URL": makeUrlField(videoUrl),
-      Category: category || "",
-      Equipment: equipment || "",
-      "Movement Pattern": movementPattern || "",
+      Category: makeMultiSelectField(category),
+      Equipment: makeMultiSelectField(equipment),
+      "Movement Pattern": makeMultiSelectField(movementPattern),
       Notes: archive ? archivedNotes : notes || "",
     };
 
