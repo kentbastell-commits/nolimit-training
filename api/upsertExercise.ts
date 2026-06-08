@@ -66,6 +66,48 @@ function makeMultiSelectField(value: string) {
     .filter(Boolean);
 }
 
+async function getFieldNames(token: string) {
+  const response = await fetch(
+    `https://open.larksuite.com/open-apis/bitable/v1/apps/${process.env.LARK_BASE_APP_TOKEN}/tables/${process.env.LARK_EXERCISE_LIBRARY_TABLE_ID}/fields?page_size=100`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+  const data = await readResponseJson(response);
+
+  if (!response.ok || data.code !== 0) {
+    throw new Error(`Could not load exercise table fields: ${JSON.stringify(data)}`);
+  }
+
+  return (data?.data?.items || [])
+    .map((field: any) => field.field_name || field.name)
+    .filter(Boolean);
+}
+
+function filterExistingFields(
+  fields: Record<string, any>,
+  availableFieldNames: string[]
+) {
+  const available = new Set(availableFieldNames);
+  const existingFields: Record<string, any> = {};
+  const omittedFields: string[] = [];
+
+  Object.entries(fields).forEach(([fieldName, value]) => {
+    if (available.has(fieldName)) {
+      existingFields[fieldName] = value;
+    } else {
+      omittedFields.push(fieldName);
+    }
+  });
+
+  return {
+    existingFields,
+    omittedFields,
+  };
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
@@ -108,13 +150,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (equipmentField.length > 0) fields.Equipment = equipmentField;
     if (movementPattern) fields["Movement Pattern"] = movementPattern;
 
+    const availableFields = await getFieldNames(token);
+    const { existingFields, omittedFields } = filterExistingFields(
+      fields,
+      availableFields
+    );
+    const missingRequiredFields = ["Exercise ID", "Exercise Name"].filter(
+      (fieldName) => !existingFields[fieldName]
+    );
+
+    if (missingRequiredFields.length > 0) {
+      return res.status(400).json({
+        error: "Exercise Library table is missing required fields",
+        missingRequiredFields,
+        availableFields,
+        fieldsAttempted: fields,
+      });
+    }
+
     const response = await fetch(recordId ? `${tableUrl}/${recordId}` : tableUrl, {
       method: recordId ? "PUT" : "POST",
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ fields }),
+      body: JSON.stringify({ fields: existingFields }),
     });
 
     const data = await readResponseJson(response);
@@ -123,7 +183,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(500).json({
         error: recordId ? "Failed to update exercise" : "Failed to create exercise",
         larkResponse: data,
-        fieldsSent: fields,
+        fieldsSent: existingFields,
+        omittedFields,
+        availableFields,
       });
     }
 
@@ -132,6 +194,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       exerciseId: fields["Exercise ID"],
       recordId: data?.data?.record?.record_id || recordId,
       archived: Boolean(archive),
+      omittedFields,
       larkResponse: data,
     });
   } catch (error: any) {
