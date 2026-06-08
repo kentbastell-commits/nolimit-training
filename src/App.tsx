@@ -1,5 +1,5 @@
 import { Clock3, Play, X } from "lucide-react";
-import { useEffect, useState, type CSSProperties, type DragEvent } from "react";
+import { useEffect, useState, type DragEvent } from "react";
 import "./App.css";
 
 type Page = "Clients" | "Library" | "Workouts" | "Check-ins";
@@ -202,25 +202,6 @@ type SetLog = {
   actualWeight: string;
   actualTime: string;
   actualDistance: string;
-};
-
-const desktopSetLogRowStyle: CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "150px repeat(4, minmax(170px, 220px))",
-  gap: "10px",
-  alignItems: "center",
-  padding: "10px",
-  border: "1px solid rgba(212, 175, 55, 0.16)",
-  borderRadius: "8px",
-  background: "rgba(0, 0, 0, 0.18)",
-};
-
-const desktopSetBannerStyle: CSSProperties = {
-  gridColumn: "auto",
-  minHeight: "58px",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
 };
 
 function normalizeDate(value: string) {
@@ -4472,22 +4453,18 @@ function App() {
 
                           return (
                             <div
-                              className={`setLogRow desktopSetLogRow ${
-                                useMobileWorkoutRows ? "mobileSetLogRow" : ""
-                              }`}
-                              style={
+                              className={
                                 useMobileWorkoutRows
-                                  ? undefined
-                                  : desktopSetLogRowStyle
+                                  ? "setLogRow mobileSetLogRow"
+                                  : "desktopWorkoutSetRow"
                               }
                               key={`${log.exerciseId}-${log.setNumber}-${log.side || "both"}`}
                             >
                               <div
-                                className="setBanner"
-                                style={
+                                className={
                                   useMobileWorkoutRows
-                                    ? undefined
-                                    : desktopSetBannerStyle
+                                    ? "setBanner"
+                                    : "desktopWorkoutSetLabel"
                                 }
                               >
                                 <strong>

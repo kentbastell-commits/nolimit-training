@@ -3328,3 +3328,41 @@ body {
 .workoutLogExerciseCard .mobileSetLogRow .limbCell {
   display: flex !important;
 }
+
+.desktopWorkoutSetRow {
+  display: grid;
+  grid-template-columns: 150px repeat(4, minmax(170px, 220px));
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 10px;
+  padding: 10px;
+  border: 1px solid rgba(212, 175, 55, 0.16);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.desktopWorkoutSetLabel {
+  min-height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(212, 175, 55, 0.24);
+  border-radius: 8px;
+  padding: 9px 10px;
+  background: rgba(212, 175, 55, 0.1);
+}
+
+.desktopWorkoutSetLabel strong {
+  display: block;
+  color: #f5d77b;
+  font-size: 14px;
+  line-height: 1.1;
+}
+
+.desktopWorkoutSetRow .setLogField span {
+  display: block;
+}
+
+.desktopWorkoutSetRow .limbCell {
+  display: none;
+}
