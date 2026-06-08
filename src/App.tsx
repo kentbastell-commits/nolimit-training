@@ -4283,10 +4283,26 @@ function App() {
               <div className="modal-header">
                 <div>
                   <h2>{selectedWorkout.sessionName}</h2>
-                  <p>
-                    Week {selectedWorkout.week} • Day {selectedWorkout.day} •{" "}
-                    {selectedWorkout.completionStatus}
-                  </p>
+                  <div className="workoutHeaderMeta">
+                    <span>
+                      Week {selectedWorkout.week} • Day {selectedWorkout.day}
+                    </span>
+                    <span>{selectedWorkout.completionStatus || "Scheduled"}</span>
+                    <label className="headerDateControl">
+                      <input
+                        type="date"
+                        value={editingWorkoutDate}
+                        onChange={(e) => setEditingWorkoutDate(e.target.value)}
+                      />
+                    </label>
+                    <button
+                      className="miniMoveWorkoutButton"
+                      onClick={updateWorkoutDate}
+                      disabled={updatingWorkoutDate || !editingWorkoutDate}
+                    >
+                      {updatingWorkoutDate ? "Saving..." : "Move"}
+                    </button>
+                  </div>
                 </div>
 
                 <button
@@ -4304,61 +4320,6 @@ function App() {
               </div>
 
               <div className="modal-body">
-                <div className="workoutSummaryStrip">
-                  <div>
-                    <span>Week</span>
-                    <strong>{selectedWorkout.week}</strong>
-                  </div>
-                  <div>
-                    <span>Day</span>
-                    <strong>{selectedWorkout.day}</strong>
-                  </div>
-                  <div>
-                    <span>Status</span>
-                    <strong>{selectedWorkout.completionStatus || "Scheduled"}</strong>
-                  </div>
-                  <div>
-                    <span>Exercises</span>
-                    <strong>{workoutDetails.length || "--"}</strong>
-                  </div>
-                </div>
-
-                <div className="workout-info">
-                  <div className="workoutDateItem">
-                    <p>
-                      <strong>Date:</strong>{" "}
-                      {normalizeDate(String(selectedWorkout.scheduledDate))}
-                    </p>
-
-                    <div className="workoutDateControls">
-                      <input
-                        type="date"
-                        value={editingWorkoutDate}
-                        onChange={(e) => setEditingWorkoutDate(e.target.value)}
-                      />
-
-                      <button
-                        className="outlineButton"
-                        onClick={updateWorkoutDate}
-                        disabled={updatingWorkoutDate || !editingWorkoutDate}
-                      >
-                        {updatingWorkoutDate ? "Saving..." : "Move Workout"}
-                      </button>
-                    </div>
-                  </div>
-                  <p>
-                    <strong>Workout Logs:</strong>{" "}
-                    {selectedWorkout.workoutLogs || "--"}
-                  </p>
-                </div>
-
-                <div className="workoutLogTitleRow">
-                  <div>
-                    <h3>Workout Logging</h3>
-                    <p>Log completed set work. Leave unused fields blank.</p>
-                  </div>
-                </div>
-
                 {detailsLoading && <p>Loading workout details...</p>}
 
                 {!detailsLoading &&

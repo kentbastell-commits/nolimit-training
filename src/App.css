@@ -1716,6 +1716,61 @@ body {
   color: #aaa;
 }
 
+.workoutHeaderMeta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+  color: #aaa;
+  font-size: 17px;
+}
+
+.workoutHeaderMeta span:not(:first-child)::before {
+  content: "•";
+  margin-right: 10px;
+  color: rgba(245, 215, 123, 0.6);
+}
+
+.headerDateControl {
+  display: inline-flex;
+  align-items: center;
+}
+
+.headerDateControl::before {
+  content: "•";
+  margin-right: 10px;
+  color: rgba(245, 215, 123, 0.6);
+}
+
+.headerDateControl input {
+  width: 142px;
+  min-height: 34px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: #050505;
+  border: 1px solid rgba(212, 175, 55, 0.32);
+  color: #f7f1df;
+  font-size: 14px;
+}
+
+.miniMoveWorkoutButton {
+  min-height: 34px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(212, 175, 55, 0.36);
+  background: rgba(212, 175, 55, 0.1);
+  color: #f5d77b;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.miniMoveWorkoutButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .modal-body h3 {
   color: #f5d77b;
 }
@@ -1891,6 +1946,12 @@ body {
   font-size: 17px;
   letter-spacing: 0;
   text-transform: uppercase;
+}
+
+.modal-body > div:first-of-type .workoutSectionHeading {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
 }
 
 .workoutCoachNotes {
@@ -2776,6 +2837,34 @@ body {
 
   .modal-header h2 {
     font-size: 22px;
+  }
+
+  .modal-header {
+    gap: 12px;
+    padding-bottom: 12px;
+    margin-bottom: 14px;
+  }
+
+  .workoutHeaderMeta {
+    gap: 7px;
+    font-size: 14px;
+  }
+
+  .workoutHeaderMeta span:not(:first-child)::before,
+  .headerDateControl::before {
+    margin-right: 7px;
+  }
+
+  .headerDateControl input {
+    width: 128px;
+    min-height: 32px;
+    font-size: 13px;
+  }
+
+  .miniMoveWorkoutButton {
+    min-height: 32px;
+    padding: 6px 10px;
+    font-size: 13px;
   }
 
   .workoutSummaryStrip {
