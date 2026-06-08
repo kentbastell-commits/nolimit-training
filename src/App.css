@@ -175,6 +175,13 @@ body {
   align-items: center;
 }
 
+.topbarActions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 .topbar h1 {
   margin: 0;
   font-size: 42px;
@@ -218,7 +225,7 @@ body {
 
 .clientStatsGrid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 12px;
   margin: 28px 0 18px;
 }
@@ -242,11 +249,95 @@ body {
   font-size: 28px;
 }
 
+.clientCommandCenter {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.clientBucketsPanel {
+  border: 1px solid rgba(212, 175, 55, 0.25);
+  border-radius: 8px;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.clientBucketsHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.clientBucketsHeader h3 {
+  color: #f5d77b;
+  margin: 0;
+}
+
+.iconTextButton {
+  border: none;
+  background: transparent;
+  color: #f7e4a3;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.clientBucket {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: none;
+  border-radius: 8px;
+  margin-bottom: 6px;
+  padding: 10px;
+  background: transparent;
+  color: #ddd;
+  cursor: pointer;
+  text-align: left;
+}
+
+.clientBucket:hover,
+.activeClientBucket {
+  background: rgba(212, 175, 55, 0.12);
+  color: #f5d77b;
+}
+
+.clientBucket strong {
+  color: #f5d77b;
+}
+
+.inviteLinkBox {
+  border-top: 1px solid rgba(212, 175, 55, 0.2);
+  margin-top: 14px;
+  padding-top: 14px;
+}
+
+.inviteLinkBox span {
+  display: block;
+  color: #aaa;
+  font-size: 12px;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+.inviteLinkBox .outlineButton {
+  width: 100%;
+  padding: 10px 12px;
+}
+
+.clientTableWorkspace {
+  min-width: 0;
+}
+
 .clientToolbar {
   display: grid;
   grid-template-columns: minmax(260px, 1fr) minmax(170px, 220px) auto;
   gap: 12px;
-  margin: 18px 0;
+  margin: 0 0 12px;
   align-items: center;
 }
 
@@ -307,7 +398,16 @@ body {
 
 .clientTableHeader,
 .clientTableRow {
-  grid-template-columns: 2fr 1fr 1fr 1.4fr 1fr;
+  grid-template-columns: 34px 1.6fr 1.3fr 1.2fr 0.9fr 0.8fr 1.4fr 0.9fr;
+}
+
+.clientTableHeader {
+  font-size: 14px;
+  padding: 14px 16px;
+}
+
+.clientTableRow {
+  padding: 14px 16px;
 }
 
 .emptyTableMessage {
@@ -340,6 +440,27 @@ body {
   margin: 4px 0 0;
   color: #aaa;
   font-size: 13px;
+}
+
+.clientContactCell {
+  color: #ddd;
+  overflow-wrap: anywhere;
+}
+
+.attentionCell {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.attentionChip {
+  width: fit-content;
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  border-radius: 999px;
+  padding: 4px 8px;
+  color: #f5d77b;
+  background: rgba(212, 175, 55, 0.08);
+  font-size: 12px;
 }
 
 .clientAvatar {
@@ -1179,8 +1300,28 @@ body {
 
   .programLibraryLayout,
   .programMetaGrid,
+  .clientCommandCenter,
   .clientStatsGrid {
     grid-template-columns: 1fr;
+  }
+
+  .clientStatsGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .clientBucketsPanel {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .clientBucketsHeader,
+  .inviteLinkBox {
+    grid-column: 1 / -1;
+  }
+
+  .clientBucket {
+    margin-bottom: 0;
   }
 
   .clientToolbar {
@@ -1307,6 +1448,15 @@ body {
   .clientTableRow {
     grid-template-columns: 1fr;
     gap: 8px;
+  }
+
+  .clientStatsGrid,
+  .clientBucketsPanel {
+    grid-template-columns: 1fr;
+  }
+
+  .clientTableRow input[type="checkbox"] {
+    display: none;
   }
 
   .clientNotesField {

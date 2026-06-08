@@ -6,6 +6,15 @@ type ClientTab = "Overview" | "Training";
 type CalendarView = "1 Day" | "1 Week" | "1 Month";
 type WorkoutPageTab = "Saved Programs" | "Builder";
 type ToastType = "success" | "error" | "info";
+type ClientBucket =
+  | "All Clients"
+  | "Active"
+  | "Premium"
+  | "Online Coaching"
+  | "Paused"
+  | "Needs Contact"
+  | "Needs Programming"
+  | "Archived";
 
 type Toast = {
   id: number;
@@ -210,6 +219,7 @@ function App() {
   const [clients, setClients] = useState<Client[]>([]);
   const [clientSearch, setClientSearch] = useState("");
   const [clientStatusFilter, setClientStatusFilter] = useState("All");
+  const [clientBucket, setClientBucket] = useState<ClientBucket>("All Clients");
   const [showAddClientModal, setShowAddClientModal] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [savingClient, setSavingClient] = useState(false);
@@ -1246,6 +1256,63 @@ function App() {
     new Set(clients.map((client) => client.status).filter(Boolean))
   );
 
+  const clientNeedsProgramming = (client: Client) =>
+    !client.program || client.program === "--";
+  const clientNeedsContact = (client: Client) => !client.email && !client.phone;
+  const clientIsArchived = (client: Client) =>
+    client.status.toLowerCase().includes("archived");
+  const clientMatchesBucket = (client: Client, bucket: ClientBucket) => {
+    const status = client.status.toLowerCase();
+
+    if (bucket === "All Clients") return true;
+    if (bucket === "Active") return status.includes("active");
+    if (bucket === "Premium") return status.includes("premium");
+    if (bucket === "Online Coaching") return status.includes("online");
+    if (bucket === "Paused") return status.includes("paused");
+    if (bucket === "Needs Contact") return clientNeedsContact(client);
+    if (bucket === "Needs Programming") return clientNeedsProgramming(client);
+    if (bucket === "Archived") return clientIsArchived(client);
+
+    return true;
+  };
+
+  const clientBuckets: { name: ClientBucket; count: number }[] = [
+    { name: "All Clients", count: clients.length },
+    {
+      name: "Active",
+      count: clients.filter((client) => clientMatchesBucket(client, "Active"))
+        .length,
+    },
+    {
+      name: "Premium",
+      count: clients.filter((client) => clientMatchesBucket(client, "Premium"))
+        .length,
+    },
+    {
+      name: "Online Coaching",
+      count: clients.filter((client) =>
+        clientMatchesBucket(client, "Online Coaching")
+      ).length,
+    },
+    {
+      name: "Paused",
+      count: clients.filter((client) => clientMatchesBucket(client, "Paused"))
+        .length,
+    },
+    {
+      name: "Needs Contact",
+      count: clients.filter(clientNeedsContact).length,
+    },
+    {
+      name: "Needs Programming",
+      count: clients.filter(clientNeedsProgramming).length,
+    },
+    {
+      name: "Archived",
+      count: clients.filter(clientIsArchived).length,
+    },
+  ];
+
   const filteredClients = clients.filter((client) => {
     const search = clientSearch.toLowerCase();
     const matchesSearch =
@@ -1255,8 +1322,9 @@ function App() {
       client.phone?.toLowerCase().includes(search);
     const matchesStatus =
       clientStatusFilter === "All" || client.status === clientStatusFilter;
+    const matchesBucket = clientMatchesBucket(client, clientBucket);
 
-    return matchesSearch && matchesStatus;
+    return matchesSearch && matchesStatus && matchesBucket;
   });
 
   const activeClientCount = clients.filter((client) =>
@@ -1265,12 +1333,10 @@ function App() {
   const premiumClientCount = clients.filter((client) =>
     client.status.toLowerCase().includes("premium")
   ).length;
-  const pausedClientCount = clients.filter((client) =>
-    client.status.toLowerCase().includes("paused")
-  ).length;
   const missingContactCount = clients.filter(
     (client) => !client.email && !client.phone
   ).length;
+  const needsProgrammingCount = clients.filter(clientNeedsProgramming).length;
 
   const refreshSelectedClient = (updatedClients: Client[]) => {
     if (!selectedClient) return;
@@ -1469,12 +1535,20 @@ function App() {
               </div>
 
               {activePage === "Clients" && (
-                <button
-                  className="goldButton"
-                  onClick={openNewClientForm}
-                >
-                  + Add Client
-                </button>
+                <div className="topbarActions">
+                  <button
+                    className="goldButton"
+                    onClick={openNewClientForm}
+                  >
+                    + Add Client
+                  </button>
+                  <button
+                    className="outlineButton"
+                    onClick={() => notify("Invite link workflow is coming next.")}
+                  >
+                    Invite Client
+                  </button>
+                </div>
               )}
 
               {activePage === "Library" && (
@@ -1506,8 +1580,8 @@ function App() {
                     <strong>{premiumClientCount}</strong>
                   </div>
                   <div className="clientStat">
-                    <span>Paused</span>
-                    <strong>{pausedClientCount}</strong>
+                    <span>Needs Programming</span>
+                    <strong>{needsProgrammingCount}</strong>
                   </div>
                   <div className="clientStat">
                     <span>Needs Contact</span>
@@ -1515,76 +1589,151 @@ function App() {
                   </div>
                 </section>
 
-                <section className="clientToolbar">
-                  <input
-                    placeholder="Search by name, ID, email, or phone..."
-                    value={clientSearch}
-                    onChange={(e) => setClientSearch(e.target.value)}
-                  />
+                <section className="clientCommandCenter">
+                  <aside className="clientBucketsPanel">
+                    <div className="clientBucketsHeader">
+                      <h3>Clients</h3>
+                      <button className="iconTextButton" onClick={loadClients}>
+                        Refresh
+                      </button>
+                    </div>
 
-                  <select
-                    value={clientStatusFilter}
-                    onChange={(e) => setClientStatusFilter(e.target.value)}
-                  >
-                    <option value="All">All Statuses</option>
-                    {clientStatusOptions.map((status) => (
-                      <option key={status} value={status}>
-                        {status}
-                      </option>
-                    ))}
-                  </select>
-
-                  <button className="outlineButton" onClick={loadClients}>
-                    Refresh
-                  </button>
-                </section>
-
-                {loading && <p>Loading clients...</p>}
-
-                <section className="tableCard clientTableCard">
-                  <div className="tableHeader clientTableHeader">
-                    <span>Name</span>
-                    <span>Last Activity</span>
-                    <span>Last 7d Training</span>
-                    <span>Program</span>
-                    <span>Status</span>
-                  </div>
-
-                  {!loading && filteredClients.length === 0 && (
-                    <p className="emptyTableMessage">No clients match your filters.</p>
-                  )}
-
-                  {filteredClients.map((client) => (
-                    <div
-                      className="clientRow clickableRow clientTableRow"
-                      key={client.id}
-                      onClick={() => {
-                        setSelectedClient(client);
-                        setClientTab("Overview");
-                      }}
-                    >
-                      <div className="clientName">
-                        <div className="clientAvatar">{client.initials}</div>
-                        <div>
-                          <strong>{client.name}</strong>
-                          <p>{client.clientCode || "--"}</p>
-                        </div>
-                      </div>
-
-                      <span>{client.activity}</span>
-                      <span>{client.training}</span>
-                      <span>{client.program}</span>
-                      <span
+                    {clientBuckets.map((bucket) => (
+                      <button
+                        key={bucket.name}
                         className={
-                          client.status === "Active"
-                            ? "status activeStatus"
-                            : "status holdStatus"
+                          clientBucket === bucket.name
+                            ? "clientBucket activeClientBucket"
+                            : "clientBucket"
+                        }
+                        onClick={() => {
+                          setClientBucket(bucket.name);
+                          setClientStatusFilter("All");
+                        }}
+                      >
+                        <span>{bucket.name}</span>
+                        <strong>{bucket.count}</strong>
+                      </button>
+                    ))}
+
+                    <div className="inviteLinkBox">
+                      <span>Invite Link</span>
+                      <button
+                        className="outlineButton"
+                        onClick={() =>
+                          notify("Client invite link can be connected next.")
                         }
                       >
-                        {client.status}
-                      </span>
+                        Copy Invite
+                      </button>
                     </div>
-                  ))}
+                  </aside>
+
+                  <section className="clientTableWorkspace">
+                    <div className="clientToolbar">
+                      <input
+                        placeholder="Search client"
+                        value={clientSearch}
+                        onChange={(e) => setClientSearch(e.target.value)}
+                      />
+
+                      <select
+                        value={clientStatusFilter}
+                        onChange={(e) => setClientStatusFilter(e.target.value)}
+                      >
+                        <option value="All">All Statuses</option>
+                        {clientStatusOptions.map((status) => (
+                          <option key={status} value={status}>
+                            {status}
+                          </option>
+                        ))}
+                      </select>
+
+                      <button
+                        className="outlineButton"
+                        onClick={() => notify("Workout analytics dashboard is next.")}
+                      >
+                        Workout Analytics
+                      </button>
+                    </div>
+
+                    {loading && <p>Loading clients...</p>}
+
+                    <section className="tableCard clientTableCard">
+                      <div className="tableHeader clientTableHeader">
+                        <span></span>
+                        <span>Name</span>
+                        <span>Contact</span>
+                        <span>Program</span>
+                        <span>Last Activity</span>
+                        <span>Last 7d</span>
+                        <span>Attention</span>
+                        <span>Status</span>
+                      </div>
+
+                      {!loading && filteredClients.length === 0 && (
+                        <p className="emptyTableMessage">
+                          No clients match your filters.
+                        </p>
+                      )}
+
+                      {filteredClients.map((client) => {
+                        const attentionItems = [
+                          clientNeedsProgramming(client) ? "Needs program" : "",
+                          clientNeedsContact(client) ? "Needs contact" : "",
+                        ].filter(Boolean);
+
+                        return (
+                          <div
+                            className="clientRow clickableRow clientTableRow"
+                            key={client.id}
+                            onClick={() => {
+                              setSelectedClient(client);
+                              setClientTab("Overview");
+                            }}
+                          >
+                            <input
+                              type="checkbox"
+                              onClick={(event) => event.stopPropagation()}
+                            />
+
+                            <div className="clientName">
+                              <div className="clientAvatar">{client.initials}</div>
+                              <div>
+                                <strong>{client.name}</strong>
+                                <p>{client.clientCode || "--"}</p>
+                              </div>
+                            </div>
+
+                            <span className="clientContactCell">
+                              {client.email || client.phone || "--"}
+                            </span>
+                            <span>{client.program}</span>
+                            <span>{client.activity}</span>
+                            <span>{client.training}</span>
+                            <span className="attentionCell">
+                              {attentionItems.length === 0
+                                ? "--"
+                                : attentionItems.map((item) => (
+                                    <span className="attentionChip" key={item}>
+                                      {item}
+                                    </span>
+                                  ))}
+                            </span>
+                            <span
+                              className={
+                                client.status === "Active"
+                                  ? "status activeStatus"
+                                  : "status holdStatus"
+                              }
+                            >
+                              {client.status}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </section>
+                  </section>
                 </section>
               </>
             )}
