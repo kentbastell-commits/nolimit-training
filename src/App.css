@@ -184,6 +184,51 @@ body {
   flex-wrap: wrap;
 }
 
+.clientStatsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin: 28px 0 18px;
+}
+
+.clientStat {
+  border: 1px solid rgba(212, 175, 55, 0.25);
+  border-radius: 8px;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.clientStat span {
+  display: block;
+  color: #aaa;
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+
+.clientStat strong {
+  color: #f5d77b;
+  font-size: 28px;
+}
+
+.clientToolbar {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) minmax(170px, 220px) auto;
+  gap: 12px;
+  margin: 18px 0;
+  align-items: center;
+}
+
+.clientToolbar input,
+.clientToolbar select {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.4);
+  color: white;
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  border-radius: 8px;
+  padding: 13px;
+  font-size: 15px;
+}
+
 .searchRow {
   display: flex;
   justify-content: space-between;
@@ -224,6 +269,21 @@ body {
   font-weight: bold;
 }
 
+.clientTableCard {
+  border-radius: 8px;
+}
+
+.clientTableHeader,
+.clientTableRow {
+  grid-template-columns: 2fr 1fr 1fr 1.4fr 1fr;
+}
+
+.emptyTableMessage {
+  margin: 0;
+  padding: 22px;
+  color: #aaa;
+}
+
 .clientRow {
   color: white;
 }
@@ -241,6 +301,13 @@ body {
   display: flex;
   align-items: center;
   gap: 14px;
+  min-width: 0;
+}
+
+.clientName p {
+  margin: 4px 0 0;
+  color: #aaa;
+  font-size: 13px;
 }
 
 .clientAvatar {
@@ -846,6 +913,61 @@ body {
   box-shadow: 0 25px 90px rgba(0, 0, 0, 0.8);
 }
 
+.clientFormModal {
+  width: 760px;
+  max-width: 95vw;
+  max-height: 88vh;
+  overflow-y: auto;
+  background: #080808;
+  border: 1px solid rgba(212, 175, 55, 0.55);
+  border-radius: 8px;
+  padding: 24px;
+  color: white;
+  box-shadow: 0 25px 90px rgba(0, 0, 0, 0.8);
+}
+
+.clientFormGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.clientFormGrid label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  color: #f5d77b;
+  font-weight: bold;
+}
+
+.clientFormGrid input,
+.clientFormGrid select,
+.clientFormGrid textarea {
+  width: 100%;
+  background: #050505;
+  color: white;
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 15px;
+}
+
+.clientFormGrid textarea {
+  min-height: 110px;
+  resize: vertical;
+}
+
+.clientNotesField {
+  grid-column: 1 / -1;
+}
+
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 20px;
+}
+
 .modal-header {
   display: flex;
   justify-content: space-between;
@@ -1012,7 +1134,12 @@ body {
   }
 
   .programLibraryLayout,
-  .programMetaGrid {
+  .programMetaGrid,
+  .clientStatsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .clientToolbar {
     grid-template-columns: 1fr;
   }
 
@@ -1109,8 +1236,26 @@ body {
 
   .assignProgramGrid,
   .arrangeWorkoutRow,
-  .savedAssignGrid {
+  .savedAssignGrid,
+  .clientFormGrid {
     grid-template-columns: 1fr;
+  }
+
+  .clientTableHeader {
+    display: none;
+  }
+
+  .clientTableRow {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .clientNotesField {
+    grid-column: auto;
+  }
+
+  .modalActions {
+    flex-direction: column;
   }
 
   .programLibraryHeader,

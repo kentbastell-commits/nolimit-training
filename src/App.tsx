@@ -201,6 +201,19 @@ function getStatusClass(status: string) {
 function App() {
   const [activePage, setActivePage] = useState<Page>("Clients");
   const [clients, setClients] = useState<Client[]>([]);
+  const [clientSearch, setClientSearch] = useState("");
+  const [clientStatusFilter, setClientStatusFilter] = useState("All");
+  const [showAddClientModal, setShowAddClientModal] = useState(false);
+  const [savingClient, setSavingClient] = useState(false);
+  const [newClient, setNewClient] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    coach: "Kent Bastell",
+    packageType: "Active",
+    startDate: dateToInputValue(new Date()),
+    notes: "",
+  });
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [clientTab, setClientTab] = useState<ClientTab>("Overview");
   const [calendarView, setCalendarView] = useState<CalendarView>("1 Week");
@@ -266,7 +279,9 @@ function App() {
   const [programSessions, setProgramSessions] = useState<ProgramSession[]>([]);
   const [savingTemplate, setSavingTemplate] = useState(false);
 
-  useEffect(() => {
+  const loadClients = async () => {
+    setLoading(true);
+
     fetch("/api/clients")
       .then((res) => res.json())
       .then((data) => {
@@ -274,6 +289,10 @@ function App() {
         setLoading(false);
       })
       .catch(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    loadClients();
   }, []);
 
   useEffect(() => {
@@ -1161,6 +1180,74 @@ function App() {
     { name: "Check-ins", count: 0 },
   ];
 
+  const clientStatusOptions = Array.from(
+    new Set(clients.map((client) => client.status).filter(Boolean))
+  );
+
+  const filteredClients = clients.filter((client) => {
+    const search = clientSearch.toLowerCase();
+    const matchesSearch =
+      client.name.toLowerCase().includes(search) ||
+      client.clientCode.toLowerCase().includes(search) ||
+      client.email?.toLowerCase().includes(search) ||
+      client.phone?.toLowerCase().includes(search);
+    const matchesStatus =
+      clientStatusFilter === "All" || client.status === clientStatusFilter;
+
+    return matchesSearch && matchesStatus;
+  });
+
+  const activeClientCount = clients.filter((client) =>
+    client.status.toLowerCase().includes("active")
+  ).length;
+  const premiumClientCount = clients.filter((client) =>
+    client.status.toLowerCase().includes("premium")
+  ).length;
+
+  const saveNewClient = async () => {
+    if (!newClient.name.trim()) {
+      alert("Please enter a client name.");
+      return;
+    }
+
+    setSavingClient(true);
+
+    try {
+      const response = await fetch("/api/createClient", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(newClient),
+      });
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        console.error(data);
+        alert("Could not create client. Check API response.");
+        return;
+      }
+
+      await loadClients();
+      setShowAddClientModal(false);
+      setNewClient({
+        name: "",
+        email: "",
+        phone: "",
+        coach: "Kent Bastell",
+        packageType: "Active",
+        startDate: dateToInputValue(new Date()),
+        notes: "",
+      });
+      alert(`Client created: ${data.clientId}`);
+    } catch (error) {
+      console.error(error);
+      alert("Could not create client.");
+    } finally {
+      setSavingClient(false);
+    }
+  };
+
   const calendarDates =
     calendarView === "1 Day"
       ? [calendarAnchorDate]
@@ -1251,7 +1338,12 @@ function App() {
               </div>
 
               {activePage === "Clients" && (
-                <button className="goldButton">+ Add Client</button>
+                <button
+                  className="goldButton"
+                  onClick={() => setShowAddClientModal(true)}
+                >
+                  + Add Client
+                </button>
               )}
 
               {activePage === "Library" && (
@@ -1269,22 +1361,53 @@ function App() {
 
             {activePage === "Clients" && (
               <>
-                <section className="filters">
-                  <button>Category: All</button>
-                  <button>Status: All</button>
-                  <button>Last Activity</button>
-                  <button>Last Assigned Workout</button>
+                <section className="clientStatsGrid">
+                  <div className="clientStat">
+                    <span>Total Clients</span>
+                    <strong>{clients.length}</strong>
+                  </div>
+                  <div className="clientStat">
+                    <span>Active</span>
+                    <strong>{activeClientCount}</strong>
+                  </div>
+                  <div className="clientStat">
+                    <span>Premium</span>
+                    <strong>{premiumClientCount}</strong>
+                  </div>
+                  <div className="clientStat">
+                    <span>Visible</span>
+                    <strong>{filteredClients.length}</strong>
+                  </div>
                 </section>
 
-                <section className="searchRow">
-                  <input placeholder="Search client..." />
-                  <button className="outlineButton">Workout Analytics</button>
+                <section className="clientToolbar">
+                  <input
+                    placeholder="Search by name, ID, email, or phone..."
+                    value={clientSearch}
+                    onChange={(e) => setClientSearch(e.target.value)}
+                  />
+
+                  <select
+                    value={clientStatusFilter}
+                    onChange={(e) => setClientStatusFilter(e.target.value)}
+                  >
+                    <option value="All">All Statuses</option>
+                    {clientStatusOptions.map((status) => (
+                      <option key={status} value={status}>
+                        {status}
+                      </option>
+                    ))}
+                  </select>
+
+                  <button className="outlineButton" onClick={loadClients}>
+                    Refresh
+                  </button>
                 </section>
 
                 {loading && <p>Loading clients...</p>}
 
-                <section className="tableCard">
-                  <div className="tableHeader">
+                <section className="tableCard clientTableCard">
+                  <div className="tableHeader clientTableHeader">
                     <span>Name</span>
                     <span>Last Activity</span>
                     <span>Last 7d Training</span>
@@ -1292,9 +1415,13 @@ function App() {
                     <span>Status</span>
                   </div>
 
-                  {clients.map((client) => (
+                  {!loading && filteredClients.length === 0 && (
+                    <p className="emptyTableMessage">No clients match your filters.</p>
+                  )}
+
+                  {filteredClients.map((client) => (
                     <div
-                      className="clientRow clickableRow"
+                      className="clientRow clickableRow clientTableRow"
                       key={client.id}
                       onClick={() => {
                         setSelectedClient(client);
@@ -1303,7 +1430,10 @@ function App() {
                     >
                       <div className="clientName">
                         <div className="clientAvatar">{client.initials}</div>
-                        <strong>{client.name}</strong>
+                        <div>
+                          <strong>{client.name}</strong>
+                          <p>{client.clientCode || "--"}</p>
+                        </div>
                       </div>
 
                       <span>{client.activity}</span>
@@ -2328,6 +2458,126 @@ function App() {
                 </div>
               )}
             </section>
+          </div>
+        )}
+
+        {showAddClientModal && (
+          <div className="workout-modal-overlay">
+            <div className="clientFormModal">
+              <div className="modal-header">
+                <div>
+                  <h2>Add Client</h2>
+                  <p>Create a client record in Lark.</p>
+                </div>
+
+                <button
+                  className="drawerClose"
+                  onClick={() => setShowAddClientModal(false)}
+                >
+                  x
+                </button>
+              </div>
+
+              <div className="clientFormGrid">
+                <label>
+                  <span>Name</span>
+                  <input
+                    value={newClient.name}
+                    onChange={(e) =>
+                      setNewClient({ ...newClient, name: e.target.value })
+                    }
+                    placeholder="Client name"
+                  />
+                </label>
+
+                <label>
+                  <span>Package Type</span>
+                  <select
+                    value={newClient.packageType}
+                    onChange={(e) =>
+                      setNewClient({ ...newClient, packageType: e.target.value })
+                    }
+                  >
+                    <option>Active</option>
+                    <option>Premium</option>
+                    <option>Online Coaching</option>
+                    <option>Paused</option>
+                  </select>
+                </label>
+
+                <label>
+                  <span>Email</span>
+                  <input
+                    value={newClient.email}
+                    onChange={(e) =>
+                      setNewClient({ ...newClient, email: e.target.value })
+                    }
+                    placeholder="email@example.com"
+                  />
+                </label>
+
+                <label>
+                  <span>Phone/WeChat</span>
+                  <input
+                    value={newClient.phone}
+                    onChange={(e) =>
+                      setNewClient({ ...newClient, phone: e.target.value })
+                    }
+                    placeholder="Phone or WeChat"
+                  />
+                </label>
+
+                <label>
+                  <span>Coach</span>
+                  <input
+                    value={newClient.coach}
+                    onChange={(e) =>
+                      setNewClient({ ...newClient, coach: e.target.value })
+                    }
+                    placeholder="Coach"
+                  />
+                </label>
+
+                <label>
+                  <span>Start Date</span>
+                  <input
+                    type="date"
+                    value={newClient.startDate}
+                    onChange={(e) =>
+                      setNewClient({ ...newClient, startDate: e.target.value })
+                    }
+                  />
+                </label>
+
+                <label className="clientNotesField">
+                  <span>Notes</span>
+                  <textarea
+                    value={newClient.notes}
+                    onChange={(e) =>
+                      setNewClient({ ...newClient, notes: e.target.value })
+                    }
+                    placeholder="Initial coach notes..."
+                  />
+                </label>
+              </div>
+
+              <div className="modalActions">
+                <button
+                  className="outlineButton"
+                  onClick={() => setShowAddClientModal(false)}
+                >
+                  Cancel
+                </button>
+
+                <button
+                  className="goldButton"
+                  onClick={saveNewClient}
+                  disabled={savingClient}
+                >
+                  {savingClient ? "Creating..." : "Create Client"}
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
