@@ -103,7 +103,6 @@ type ProgramExercise = {
   coachingNotes: string;
   groupType: "Straight" | "Superset" | "Circuit";
   groupName: string;
-  formInstructions: string;
 };
 
 type ProgramSession = {
@@ -562,7 +561,6 @@ function App() {
           coachingNotes: "",
           groupType: "Straight",
           groupName: "",
-          formInstructions: "",
         });
 
         return sessions;
@@ -785,7 +783,6 @@ function App() {
               coachingNotes: exercise.notes,
               groupType: "Straight" as const,
               groupName: "",
-              formInstructions: "",
             })),
           };
         })
@@ -1129,7 +1126,6 @@ function App() {
         coachingNotes: "",
         groupType: "Straight",
         groupName: "",
-        formInstructions: exercise.notes || "",
       },
     ]);
   };
@@ -1213,28 +1209,10 @@ function App() {
     setSelectedProgramExercises(updated);
   };
 
-  const applyFormInstructions = (index: number) => {
-    const exercise = selectedProgramExercises[index];
-
-    if (!exercise.formInstructions) {
-      notify("No form instructions are saved for this exercise yet.");
-      return;
-    }
-
-    const updatedNotes = exercise.coachingNotes
-      ? `${exercise.coachingNotes}\n\nForm cues: ${exercise.formInstructions}`
-      : `Form cues: ${exercise.formInstructions}`;
-
-    updateProgramExercise(index, "coachingNotes", updatedNotes);
-  };
-
   const buildExerciseCoachingNotes = (exercise: ProgramExercise) => {
     const meta = [
       exercise.groupType !== "Straight" && exercise.groupName
         ? `${exercise.groupType}: ${exercise.groupName}`
-        : "",
-      exercise.formInstructions
-        ? `Form instructions: ${exercise.formInstructions}`
         : "",
     ].filter(Boolean);
 
@@ -2610,12 +2588,6 @@ function App() {
                         </button>
                         <button
                           className="outlineButton"
-                          onClick={() => applyFormInstructions(index)}
-                        >
-                          Form Cues
-                        </button>
-                        <button
-                          className="outlineButton"
                           onClick={() => removeProgramExercise(index)}
                         >
                           Remove
@@ -2730,21 +2702,6 @@ function App() {
                             )
                           }
                           placeholder="Coach-specific notes for this client or session..."
-                        />
-                      </label>
-
-                      <label className="builderWideField">
-                        <span>Form Instructions</span>
-                        <textarea
-                          value={exercise.formInstructions}
-                          onChange={(e) =>
-                            updateProgramExercise(
-                              index,
-                              "formInstructions",
-                              e.target.value
-                            )
-                          }
-                          placeholder="Technique cues, setup instructions, common mistakes..."
                         />
                       </label>
                     </div>
