@@ -681,45 +681,6 @@ function App() {
     }
   };
 
-  const archiveExercise = async (exercise: LibraryExercise) => {
-    setSavingExercise(true);
-
-    try {
-      const response = await fetch("/api/upsertExercise", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          recordId: exercise.recordId,
-          exerciseId: exercise.exerciseId,
-          exerciseName: exercise.exerciseName,
-          videoUrl: exercise.videoUrl,
-          category: exercise.category,
-          equipment: exercise.equipment,
-          movementPattern: exercise.movementPattern,
-          notes: exercise.notes || "",
-          archive: true,
-        }),
-      });
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        console.error(data);
-        notify("Could not archive exercise.", "error");
-        return;
-      }
-
-      await loadExerciseLibrary();
-      notify("Exercise archived.", "success");
-    } catch (error) {
-      console.error(error);
-      notify("Could not archive exercise.", "error");
-    } finally {
-      setSavingExercise(false);
-    }
-  };
-
   const loadPrograms = async () => {
     try {
       const res = await fetch("/api/programs");
@@ -2300,14 +2261,14 @@ function App() {
 
                 <section className="tableCard">
                   <div
-                    className="tableHeader"
+                    className="tableHeader exerciseTableHeader"
                     style={{
-                      gridTemplateColumns: "2fr 1fr auto auto auto",
+                      gridTemplateColumns: "minmax(220px, 2fr) minmax(120px, 1fr) 72px 110px 90px",
                     }}
                   >
                     <span>Exercise</span>
                     <span>Category</span>
-                    <span>Technical Cues</span>
+                    <span>Cues</span>
                     <span>Video</span>
                     <span>Actions</span>
                   </div>
@@ -2321,10 +2282,10 @@ function App() {
                   {!libraryLoading &&
                     filteredLibraryExercises.map((exercise) => (
                       <div
-                        className="clientRow"
+                        className="clientRow exerciseTableRow"
                         key={exercise.recordId || exercise.exerciseId}
                         style={{
-                          gridTemplateColumns: "2fr 1fr auto auto auto",
+                          gridTemplateColumns: "minmax(220px, 2fr) minmax(120px, 1fr) 72px 110px 90px",
                         }}
                       >
                         <div className="clientName">
@@ -2345,12 +2306,16 @@ function App() {
 
                         <span>{exercise.category || "--"}</span>
 
-                        <span>
+                        <span className="iconCell">
                           <button
-                            className="outlineButton"
+                            className="cueIconButton"
                             onClick={() => setTechnicalCueExercise(exercise)}
+                            title="View technical cues"
+                            aria-label={`View technical cues for ${
+                              exercise.exerciseName || "exercise"
+                            }`}
                           >
-                            Technical Cues
+                            <span className="dumbbellGlyph" aria-hidden="true" />
                           </button>
                         </span>
 
@@ -2375,13 +2340,6 @@ function App() {
                             onClick={() => openEditExerciseForm(exercise)}
                           >
                             Edit
-                          </button>
-                          <button
-                            className="outlineButton"
-                            onClick={() => archiveExercise(exercise)}
-                            disabled={savingExercise}
-                          >
-                            Archive
                           </button>
                         </span>
                       </div>
