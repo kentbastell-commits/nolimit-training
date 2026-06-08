@@ -2382,6 +2382,23 @@ body {
     min-height: 44px;
   }
 
+  .programBuilderPanel .searchRow {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .programBuilderPanel .searchRow input {
+    max-width: none;
+    width: 100%;
+  }
+
+  .programBuilderPanel .searchRow button {
+    justify-self: start;
+    width: auto;
+    padding: 10px 12px;
+  }
+
   .calendarControls {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
