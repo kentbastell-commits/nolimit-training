@@ -1,3 +1,4 @@
+import { Clock3, Play, X } from "lucide-react";
 import { useEffect, useState, type DragEvent } from "react";
 import "./App.css";
 
@@ -4315,7 +4316,7 @@ function App() {
                     setHistoryExerciseName("");
                   }}
                 >
-                  ×
+                  <X size={28} strokeWidth={3} aria-hidden="true" />
                 </button>
               </div>
 
@@ -4372,7 +4373,7 @@ function App() {
                                 title="Video"
                                 aria-label={`Open video for ${exercise.exerciseName}`}
                               >
-                                <span aria-hidden="true">{"\u25b6"}</span>
+                                <Play size={18} fill="currentColor" aria-hidden="true" />
                               </a>
                             )}
 
@@ -4385,7 +4386,7 @@ function App() {
                               title="History"
                               aria-label={`View history for ${exercise.exerciseName}`}
                             >
-                              <span aria-hidden="true">{"\u25f7"}</span>
+                              <Clock3 size={18} aria-hidden="true" />
                               {exerciseHistoryLogs.length > 0 && (
                                 <small>{exerciseHistoryLogs.length}</small>
                               )}

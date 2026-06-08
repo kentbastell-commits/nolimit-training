@@ -2099,25 +2099,28 @@ body {
 .setLogHeader,
 .setLogRow {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+  grid-template-columns: 118px repeat(4, minmax(130px, 180px));
   gap: 10px;
   align-items: center;
 }
 
 .setLogHeader {
-  display: none;
   color: #f5d77b;
   font-weight: bold;
   margin-top: 18px;
   margin-bottom: 8px;
+  padding: 0 8px;
 }
 
 .setLogRow {
   margin-bottom: 10px;
+  padding: 8px;
+  border: 1px solid rgba(212, 175, 55, 0.16);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.18);
 }
 
 .setBanner {
-  grid-column: 1 / -1;
   border: 1px solid rgba(212, 175, 55, 0.24);
   border-radius: 8px;
   padding: 9px 10px;
@@ -2151,10 +2154,18 @@ body {
   font-weight: 500;
 }
 
+.limbCell {
+  display: none;
+}
+
 .setLogField {
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+
+.setLogField span {
+  display: none;
 }
 
 .setLogRow input,
@@ -2962,6 +2973,10 @@ body {
     background: rgba(0, 0, 0, 0.24);
   }
 
+  .setBanner {
+    grid-column: 1 / -1;
+  }
+
   .setLogStatic span,
   .setLogField span {
     display: block;
@@ -2971,6 +2986,7 @@ body {
   }
 
   .setLogStatic {
+    display: flex;
     min-height: 58px;
     border: 1px solid rgba(212, 175, 55, 0.14);
     border-radius: 8px;
