@@ -413,7 +413,7 @@ function App() {
   const [updatingWorkoutDate, setUpdatingWorkoutDate] = useState(false);
   const [draggingWorkoutId, setDraggingWorkoutId] = useState("");
   const [movingWorkoutId, setMovingWorkoutId] = useState("");
-  const [forceDesktopWorkoutRows, setForceDesktopWorkoutRows] = useState(false);
+  const [useMobileWorkoutRows, setUseMobileWorkoutRows] = useState(false);
 
   const [libraryExercises, setLibraryExercises] = useState<LibraryExercise[]>([]);
   const [libraryLoading, setLibraryLoading] = useState(false);
@@ -655,7 +655,7 @@ function App() {
     const updateWorkoutRowMode = () => {
       const isTouchPhone =
         window.navigator.maxTouchPoints > 0 && window.screen.width <= 700;
-      setForceDesktopWorkoutRows(!isTouchPhone);
+      setUseMobileWorkoutRows(isTouchPhone);
     };
 
     updateWorkoutRowMode();
@@ -4452,8 +4452,8 @@ function App() {
 
                           return (
                             <div
-                              className={`setLogRow ${
-                                forceDesktopWorkoutRows ? "desktopSetLogRow" : ""
+                              className={`setLogRow desktopSetLogRow ${
+                                useMobileWorkoutRows ? "mobileSetLogRow" : ""
                               }`}
                               key={`${log.exerciseId}-${log.setNumber}-${log.side || "both"}`}
                             >
