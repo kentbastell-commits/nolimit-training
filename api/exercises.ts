@@ -47,6 +47,7 @@ function readFirstField(fields: Record<string, any>, candidates: string[]) {
 }
 
 const CUE_FIELD_CANDIDATES = [
+  "Professional Coaching Cues",
   "Notes",
   "Note",
   "Technical Cues",

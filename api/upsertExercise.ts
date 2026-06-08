@@ -126,6 +126,7 @@ function findFirstField(availableFieldNames: string[], candidates: string[]) {
 }
 
 const CUE_FIELD_CANDIDATES = [
+  "Professional Coaching Cues",
   "Notes",
   "Note",
   "Technical Cues",
@@ -178,8 +179,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({
         error: "Exercise Library table is missing a technical cues field",
         message:
-          "Add a text field named Technical Cues or Notes to the Lark Exercise Library table, then save again.",
-        recommendedFields: ["Technical Cues", "Notes"],
+          "Add a text field named Professional Coaching Cues, Technical Cues, or Notes to the Lark Exercise Library table, then save again.",
+        recommendedFields: ["Professional Coaching Cues", "Technical Cues", "Notes"],
         cueFieldCandidates: CUE_FIELD_CANDIDATES,
         availableFields,
       });
