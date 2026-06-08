@@ -286,6 +286,148 @@ body {
   color: #f5d77b;
 }
 
+.workoutPageTabs {
+  display: flex;
+  gap: 10px;
+  margin: 24px 0 18px;
+  flex-wrap: wrap;
+}
+
+.programLibraryPanel {
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  border-radius: 8px;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.programLibraryHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.programLibraryHeader h2,
+.programDetailTop h3,
+.savedAssignPanel h3,
+.savedProgramSessions h3 {
+  color: #f5d77b;
+  margin: 0;
+}
+
+.programLibraryHeader p,
+.programDetailTop p {
+  color: #aaa;
+  margin: 6px 0 0;
+}
+
+.programLibraryLayout {
+  display: grid;
+  grid-template-columns: minmax(240px, 320px) 1fr;
+  gap: 18px;
+  align-items: start;
+}
+
+.programListPanel,
+.programDetailPanel,
+.savedAssignPanel {
+  border: 1px solid rgba(212, 175, 55, 0.22);
+  border-radius: 8px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.programListItem {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 10px;
+  padding: 12px;
+  border: 1px solid rgba(212, 175, 55, 0.24);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.3);
+  color: white;
+  text-align: left;
+  cursor: pointer;
+}
+
+.programListItem span {
+  color: #f5d77b;
+  font-size: 13px;
+}
+
+.programListItem small {
+  color: #aaa;
+}
+
+.selectedProgramListItem {
+  border-color: rgba(212, 175, 55, 0.7);
+  background: rgba(212, 175, 55, 0.12);
+}
+
+.programDetailTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.programMetaGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.programMetaGrid span {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border: 1px solid rgba(212, 175, 55, 0.18);
+  border-radius: 8px;
+  padding: 10px;
+  color: white;
+}
+
+.programMetaGrid strong {
+  color: #f5d77b;
+  font-size: 13px;
+}
+
+.savedAssignPanel {
+  margin-bottom: 18px;
+}
+
+.savedAssignGrid {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.4fr) minmax(150px, 1fr) auto auto;
+  gap: 12px;
+  align-items: end;
+  margin-top: 12px;
+}
+
+.savedAssignGrid label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.savedAssignGrid label span {
+  color: #f5d77b;
+  font-weight: bold;
+}
+
+.savedAssignGrid .miniSearch {
+  margin: 0;
+}
+
+.savedProgramSessions {
+  margin-top: 18px;
+}
+
 .clientPage {
   display: grid;
   grid-template-columns: 280px 1fr;
@@ -869,6 +1011,15 @@ body {
     grid-template-columns: 1fr;
   }
 
+  .programLibraryLayout,
+  .programMetaGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .savedAssignGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+
   .overviewGrid {
     grid-template-columns: 1fr;
   }
@@ -957,8 +1108,14 @@ body {
   }
 
   .assignProgramGrid,
-  .arrangeWorkoutRow {
+  .arrangeWorkoutRow,
+  .savedAssignGrid {
     grid-template-columns: 1fr;
+  }
+
+  .programLibraryHeader,
+  .programDetailTop {
+    flex-direction: column;
   }
 
   .weekCalendar,

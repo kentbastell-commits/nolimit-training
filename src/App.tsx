@@ -4,6 +4,7 @@ import "./App.css";
 type Page = "Clients" | "Library" | "Workouts" | "Check-ins";
 type ClientTab = "Overview" | "Training";
 type CalendarView = "1 Day" | "1 Week" | "1 Month";
+type WorkoutPageTab = "Saved Programs" | "Builder";
 
 type Client = {
   id: string;
@@ -102,6 +103,16 @@ type AssignableWorkout = {
   scheduledDate: string;
 };
 
+type SavedProgramTemplate = {
+  recordId: string;
+  week: number;
+  day: number;
+  sessionName: string;
+  exerciseName: string;
+  exerciseId: string;
+  order: number;
+};
+
 type SetLog = {
   exerciseId: string;
   exerciseName: string;
@@ -196,6 +207,8 @@ function App() {
   const [calendarAnchorDate, setCalendarAnchorDate] = useState(
     dateToInputValue(new Date())
   );
+  const [workoutPageTab, setWorkoutPageTab] =
+    useState<WorkoutPageTab>("Saved Programs");
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [selectedWorkout, setSelectedWorkout] = useState<Workout | null>(null);
   const [workoutDetails, setWorkoutDetails] = useState<ExerciseDetail[]>([]);
@@ -214,6 +227,20 @@ function App() {
   const [librarySearch, setLibrarySearch] = useState("");
 
   const [programs, setPrograms] = useState<Program[]>([]);
+  const [selectedSavedProgramId, setSelectedSavedProgramId] = useState("");
+  const [savedProgramTemplates, setSavedProgramTemplates] = useState<
+    SavedProgramTemplate[]
+  >([]);
+  const [savedTemplatesLoading, setSavedTemplatesLoading] = useState(false);
+  const [savedAssignClientId, setSavedAssignClientId] = useState("");
+  const [savedAssignStartDate, setSavedAssignStartDate] = useState(
+    dateToInputValue(new Date())
+  );
+  const [savedAssignableWorkouts, setSavedAssignableWorkouts] = useState<
+    AssignableWorkout[]
+  >([]);
+  const [savedAssignLoading, setSavedAssignLoading] = useState(false);
+  const [savedAssigningProgram, setSavedAssigningProgram] = useState(false);
   const [selectedAssignProgramId, setSelectedAssignProgramId] = useState("");
   const [assignStartDate, setAssignStartDate] = useState(dateToInputValue(new Date()));
   const [assignableWorkouts, setAssignableWorkouts] = useState<AssignableWorkout[]>([]);
@@ -271,6 +298,12 @@ function App() {
       });
   }, [selectedClient, clientTab]);
 
+  useEffect(() => {
+    if (activePage !== "Workouts" || !selectedSavedProgramId) return;
+
+    loadSavedProgramTemplates(selectedSavedProgramId);
+  }, [activePage, selectedSavedProgramId]);
+
   const loadExerciseLibrary = async () => {
     setLibraryLoading(true);
 
@@ -295,6 +328,10 @@ function App() {
       if (!selectedAssignProgramId && data.programs?.length > 0) {
         setSelectedAssignProgramId(data.programs[0].programId);
       }
+
+      if (!selectedSavedProgramId && data.programs?.length > 0) {
+        setSelectedSavedProgramId(data.programs[0].programId);
+      }
     } catch (err) {
       console.error(err);
       setPrograms([]);
@@ -304,6 +341,283 @@ function App() {
   const selectedAssignProgram = programs.find(
     (program) => program.programId === selectedAssignProgramId
   );
+  const selectedSavedProgram = programs.find(
+    (program) => program.programId === selectedSavedProgramId
+  );
+
+  const savedProgramSessions = Array.from(
+    savedProgramTemplates
+      .reduce((sessions, template) => {
+        const key = `${template.week}-${template.day}-${template.sessionName}`;
+
+        if (!sessions.has(key)) {
+          sessions.set(key, {
+            localId: key,
+            week: String(template.week),
+            day: String(template.day),
+            sessionName: template.sessionName,
+            exercises: [] as ProgramExercise[],
+          });
+        }
+
+        sessions.get(key)?.exercises.push({
+          exerciseRecordId: "",
+          exerciseId: template.exerciseId,
+          exerciseName: template.exerciseName,
+          order: template.order,
+          sets: "",
+          reps: "",
+          tempo: "",
+          rest: "",
+          coachingNotes: "",
+        });
+
+        return sessions;
+      }, new Map<string, ProgramSession>())
+      .values()
+  ).sort((a, b) => {
+    if (Number(a.week) !== Number(b.week)) return Number(a.week) - Number(b.week);
+    return Number(a.day) - Number(b.day);
+  });
+
+  const loadSavedProgramTemplates = async (programId: string) => {
+    if (!programId) return;
+
+    setSavedTemplatesLoading(true);
+    setSavedProgramTemplates([]);
+    setSavedAssignableWorkouts([]);
+
+    try {
+      const response = await fetch(`/api/programTemplates?programId=${programId}`);
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error(data);
+        alert("Could not load saved program templates.");
+        return;
+      }
+
+      setSavedProgramTemplates(data.templates || []);
+    } catch (error) {
+      console.error(error);
+      alert("Could not load saved program templates.");
+    } finally {
+      setSavedTemplatesLoading(false);
+    }
+  };
+
+  const loadSavedProgramSessionsForAssignment = async () => {
+    if (!selectedSavedProgram) {
+      alert("Please select a program.");
+      return;
+    }
+
+    if (!savedAssignStartDate) {
+      alert("Please choose a start date.");
+      return;
+    }
+
+    setSavedAssignLoading(true);
+
+    try {
+      let templates = savedProgramTemplates;
+
+      if (templates.length === 0) {
+        const response = await fetch(
+          `/api/programTemplates?programId=${selectedSavedProgram.programId}`
+        );
+        const data = await response.json();
+
+        if (!response.ok) {
+          console.error(data);
+          alert("Could not load program templates.");
+          return;
+        }
+
+        templates = data.templates || [];
+        setSavedProgramTemplates(templates);
+      }
+
+      const uniqueSessionsMap = new Map<string, AssignableWorkout>();
+
+      templates.forEach((template) => {
+        const key = `${template.week}-${template.day}-${template.sessionName}`;
+
+        if (!uniqueSessionsMap.has(key)) {
+          const offsetDays =
+            (Number(template.week) - 1) * 7 + (Number(template.day) - 1) * 2;
+
+          uniqueSessionsMap.set(key, {
+            localId: key,
+            week: Number(template.week),
+            day: Number(template.day),
+            sessionName: template.sessionName,
+            scheduledDate: addDays(savedAssignStartDate, offsetDays),
+          });
+        }
+      });
+
+      setSavedAssignableWorkouts(Array.from(uniqueSessionsMap.values()));
+    } catch (error) {
+      console.error(error);
+      alert("Could not load program sessions.");
+    } finally {
+      setSavedAssignLoading(false);
+    }
+  };
+
+  const updateSavedAssignableWorkoutDate = (
+    localId: string,
+    scheduledDate: string
+  ) => {
+    setSavedAssignableWorkouts((prev) =>
+      prev.map((workout) =>
+        workout.localId === localId ? { ...workout, scheduledDate } : workout
+      )
+    );
+  };
+
+  const assignSavedProgramToClient = async () => {
+    const client = clients.find((item) => item.id === savedAssignClientId);
+
+    if (!client || !selectedSavedProgram) {
+      alert("Please select a client and program.");
+      return;
+    }
+
+    if (savedAssignableWorkouts.length === 0) {
+      alert("Please load sessions first.");
+      return;
+    }
+
+    setSavedAssigningProgram(true);
+
+    try {
+      const response = await fetch("/api/assignProgram", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          clientRecordId: client.id,
+          programRecordId: selectedSavedProgram.recordId,
+          scheduledWorkouts: savedAssignableWorkouts.map((workout) => ({
+            week: workout.week,
+            day: workout.day,
+            sessionName: workout.sessionName,
+            scheduledDate: workout.scheduledDate,
+          })),
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        console.error(data);
+        alert("Could not assign program. Check API response.");
+        return;
+      }
+
+      alert(`Program assigned to ${client.name}. Workouts created: ${data.recordsCreated}`);
+      setSavedAssignableWorkouts([]);
+    } catch (error) {
+      console.error(error);
+      alert("Could not assign program.");
+    } finally {
+      setSavedAssigningProgram(false);
+    }
+  };
+
+  const loadSavedProgramIntoBuilder = async () => {
+    if (!selectedSavedProgram) {
+      alert("Please select a program.");
+      return;
+    }
+
+    setSavedTemplatesLoading(true);
+
+    try {
+      const templateResponse = await fetch(
+        `/api/programTemplates?programId=${selectedSavedProgram.programId}`
+      );
+      const templateData = await templateResponse.json();
+
+      if (!templateResponse.ok) {
+        console.error(templateData);
+        alert("Could not load program templates.");
+        return;
+      }
+
+      const templates: SavedProgramTemplate[] = templateData.templates || [];
+      const uniqueSessions = Array.from(
+        templates
+          .reduce((sessions, template) => {
+            const key = `${template.week}-${template.day}-${template.sessionName}`;
+
+            if (!sessions.has(key)) {
+              sessions.set(key, {
+                week: template.week,
+                day: template.day,
+                sessionName: template.sessionName,
+              });
+            }
+
+            return sessions;
+          }, new Map<string, { week: number; day: number; sessionName: string }>())
+          .values()
+      );
+
+      const sessions = await Promise.all(
+        uniqueSessions.map(async (session) => {
+          const detailsResponse = await fetch(
+            `/api/workoutDetails?programId=${selectedSavedProgram.programId}&week=${session.week}&day=${session.day}`
+          );
+          const detailsData = await detailsResponse.json();
+          const exercises: ExerciseDetail[] = detailsData.exercises || [];
+
+          return {
+            localId: `${selectedSavedProgram.programId}-${session.week}-${session.day}`,
+            week: String(session.week),
+            day: String(session.day),
+            sessionName: session.sessionName,
+            exercises: exercises.map((exercise, index) => ({
+              exerciseRecordId: "",
+              exerciseId: exercise.exerciseId,
+              exerciseName: exercise.exerciseName,
+              order: Number(exercise.order) || index + 1,
+              sets: exercise.sets,
+              reps: exercise.reps,
+              tempo: exercise.tempo,
+              rest: exercise.rest,
+              coachingNotes: exercise.notes,
+            })),
+          };
+        })
+      );
+
+      setProgramName(`${selectedSavedProgram.programName} Copy`);
+      setProgramGoal(selectedSavedProgram.goal);
+      setProgramSport(selectedSavedProgram.sport);
+      setProgramLevel(selectedSavedProgram.level);
+      setProgramDurationWeeks(selectedSavedProgram.durationWeeks || "4");
+      setProgramPhase(selectedSavedProgram.phase);
+      setProgramSessionsPerWeek(selectedSavedProgram.sessionsPerWeek || "3");
+      setProgramCoach(selectedSavedProgram.coach || "Kent Bastell");
+      setProgramSessions(sessions);
+      setSelectedProgramExercises([]);
+      setProgramWeek("1");
+      setProgramDay("1");
+      setSessionName("");
+      setWorkoutPageTab("Builder");
+
+      alert("Program loaded into builder. Saving will create a new program version.");
+    } catch (error) {
+      console.error(error);
+      alert("Could not load program into builder.");
+    } finally {
+      setSavedTemplatesLoading(false);
+    }
+  };
 
   const loadProgramSessionsForAssignment = async () => {
     if (!selectedAssignProgram) {
@@ -906,6 +1220,10 @@ function App() {
                 if (item.name === "Library" || item.name === "Workouts") {
                   loadExerciseLibrary();
                 }
+
+                if (item.name === "Workouts") {
+                  loadPrograms();
+                }
               }}
             >
               <span>{item.name}</span>
@@ -942,7 +1260,7 @@ function App() {
                 </button>
               )}
 
-              {activePage === "Workouts" && (
+              {activePage === "Workouts" && workoutPageTab === "Builder" && (
                 <button className="goldButton" onClick={saveFullProgram}>
                   {savingTemplate ? "Saving..." : "Save Full Program"}
                 </button>
@@ -1089,6 +1407,226 @@ function App() {
             )}
 
             {activePage === "Workouts" && (
+              <>
+                <div className="workoutPageTabs">
+                  {(["Saved Programs", "Builder"] as WorkoutPageTab[]).map((tab) => (
+                    <button
+                      key={tab}
+                      className={workoutPageTab === tab ? "goldButton" : "outlineButton"}
+                      onClick={() => {
+                        setWorkoutPageTab(tab);
+
+                        if (tab === "Saved Programs") {
+                          loadPrograms();
+                        }
+                      }}
+                    >
+                      {tab}
+                    </button>
+                  ))}
+                </div>
+
+                {workoutPageTab === "Saved Programs" && (
+                  <section className="programLibraryPanel">
+                    <div className="programLibraryHeader">
+                      <div>
+                        <h2>Saved Programs</h2>
+                        <p>View saved program templates, load them into the builder, or assign them to a client.</p>
+                      </div>
+
+                      <button className="outlineButton" onClick={loadPrograms}>
+                        Refresh Programs
+                      </button>
+                    </div>
+
+                    <div className="programLibraryLayout">
+                      <aside className="programListPanel">
+                        {programs.length === 0 && <p>No saved programs found.</p>}
+
+                        {programs.map((program) => (
+                          <button
+                            key={program.recordId}
+                            className={
+                              selectedSavedProgramId === program.programId
+                                ? "programListItem selectedProgramListItem"
+                                : "programListItem"
+                            }
+                            onClick={() => {
+                              setSelectedSavedProgramId(program.programId);
+                              setSavedAssignableWorkouts([]);
+                            }}
+                          >
+                            <strong>{program.programName}</strong>
+                            <span>{program.programId}</span>
+                            <small>
+                              {program.goal || "--"} / {program.level || "--"}
+                            </small>
+                          </button>
+                        ))}
+                      </aside>
+
+                      <section className="programDetailPanel">
+                        {!selectedSavedProgram && <p>Select a program to view details.</p>}
+
+                        {selectedSavedProgram && (
+                          <>
+                            <div className="programDetailTop">
+                              <div>
+                                <h3>{selectedSavedProgram.programName}</h3>
+                                <p>
+                                  {selectedSavedProgram.programId} / {selectedSavedProgram.status || "--"}
+                                </p>
+                              </div>
+
+                              <button
+                                className="goldButton"
+                                onClick={loadSavedProgramIntoBuilder}
+                                disabled={savedTemplatesLoading}
+                              >
+                                Edit in Builder
+                              </button>
+                            </div>
+
+                            <div className="programMetaGrid">
+                              <span>
+                                <strong>Goal</strong>
+                                {selectedSavedProgram.goal || "--"}
+                              </span>
+                              <span>
+                                <strong>Sport</strong>
+                                {selectedSavedProgram.sport || "--"}
+                              </span>
+                              <span>
+                                <strong>Level</strong>
+                                {selectedSavedProgram.level || "--"}
+                              </span>
+                              <span>
+                                <strong>Duration</strong>
+                                {selectedSavedProgram.durationWeeks || "--"} weeks
+                              </span>
+                              <span>
+                                <strong>Phase</strong>
+                                {selectedSavedProgram.phase || "--"}
+                              </span>
+                              <span>
+                                <strong>Sessions / Week</strong>
+                                {selectedSavedProgram.sessionsPerWeek || "--"}
+                              </span>
+                            </div>
+
+                            <div className="savedAssignPanel">
+                              <h3>Assign to Client</h3>
+
+                              <div className="savedAssignGrid">
+                                <label>
+                                  <span>Client</span>
+                                  <select
+                                    className="miniSearch"
+                                    value={savedAssignClientId}
+                                    onChange={(e) => setSavedAssignClientId(e.target.value)}
+                                  >
+                                    <option value="">Select client</option>
+                                    {clients.map((client) => (
+                                      <option key={client.id} value={client.id}>
+                                        {client.name} ({client.clientCode})
+                                      </option>
+                                    ))}
+                                  </select>
+                                </label>
+
+                                <label>
+                                  <span>Start Date</span>
+                                  <input
+                                    type="date"
+                                    className="miniSearch"
+                                    value={savedAssignStartDate}
+                                    onChange={(e) =>
+                                      setSavedAssignStartDate(e.target.value)
+                                    }
+                                  />
+                                </label>
+
+                                <button
+                                  className="outlineButton"
+                                  onClick={loadSavedProgramSessionsForAssignment}
+                                  disabled={savedAssignLoading}
+                                >
+                                  {savedAssignLoading ? "Loading..." : "Load Sessions"}
+                                </button>
+
+                                <button
+                                  className="goldButton"
+                                  onClick={assignSavedProgramToClient}
+                                  disabled={savedAssigningProgram}
+                                >
+                                  {savedAssigningProgram ? "Assigning..." : "Assign Program"}
+                                </button>
+                              </div>
+
+                              {savedAssignableWorkouts.length > 0 && (
+                                <div className="arrangeWorkouts">
+                                  <h4>Arrange Workouts</h4>
+
+                                  {savedAssignableWorkouts.map((workout) => (
+                                    <div
+                                      key={workout.localId}
+                                      className="arrangeWorkoutRow"
+                                    >
+                                      <span>Week {workout.week}</span>
+                                      <span>Day {workout.day}</span>
+                                      <strong>{workout.sessionName}</strong>
+
+                                      <input
+                                        type="date"
+                                        className="miniSearch"
+                                        value={workout.scheduledDate}
+                                        onChange={(e) =>
+                                          updateSavedAssignableWorkoutDate(
+                                            workout.localId,
+                                            e.target.value
+                                          )
+                                        }
+                                      />
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="savedProgramSessions">
+                              <div className="exerciseTitleRow">
+                                <h3>Program Sessions</h3>
+                                {savedTemplatesLoading && <span>Loading...</span>}
+                              </div>
+
+                              {!savedTemplatesLoading &&
+                                savedProgramSessions.length === 0 && (
+                                  <p>No template records found for this program.</p>
+                                )}
+
+                              {savedProgramSessions.map((session) => (
+                                <div className="exercise-card" key={session.localId}>
+                                  <h3>
+                                    Week {session.week} / Day {session.day}:{" "}
+                                    {session.sessionName}
+                                  </h3>
+
+                                  {session.exercises.map((exercise) => (
+                                    <p key={`${session.localId}-${exercise.order}`}>
+                                      {exercise.order}. {exercise.exerciseName || "--"}
+                                    </p>
+                                  ))}
+                                </div>
+                              ))}
+                            </div>
+                          </>
+                        )}
+                      </section>
+                    </div>
+                  </section>
+                )}
+
+                {workoutPageTab === "Builder" && (
               <section className="tableCard" style={{ padding: "22px" }}>
                 <h2 style={{ color: "#f5d77b", marginTop: 0 }}>
                   Multi-Day Program Builder
@@ -1455,6 +1993,8 @@ function App() {
                   {savingTemplate ? "Saving..." : "Save Full Program"}
                 </button>
               </section>
+                )}
+              </>
             )}
 
             {activePage === "Check-ins" && (
