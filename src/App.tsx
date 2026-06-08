@@ -72,6 +72,14 @@ type ProgramExercise = {
   coachingNotes: string;
 };
 
+type ProgramSession = {
+  localId: string;
+  week: string;
+  day: string;
+  sessionName: string;
+  exercises: ProgramExercise[];
+};
+
 type SetLog = {
   exerciseId: string;
   exerciseName: string;
@@ -148,6 +156,7 @@ function App() {
   const [selectedProgramExercises, setSelectedProgramExercises] = useState<
     ProgramExercise[]
   >([]);
+  const [programSessions, setProgramSessions] = useState<ProgramSession[]>([]);
   const [savingTemplate, setSavingTemplate] = useState(false);
 
   useEffect(() => {
@@ -344,15 +353,77 @@ function App() {
     setSelectedProgramExercises(updated);
   };
 
-  const saveWorkoutTemplate = async () => {
-    if (!programName || !programWeek || !programDay || !sessionName) {
-      alert("Please fill Program Name, Week, Day, and Session Name.");
+  const addCurrentSessionToProgram = () => {
+    if (!programWeek || !programDay || !sessionName) {
+      alert("Please fill Week, Day, and Session Name.");
       return;
     }
 
     if (selectedProgramExercises.length === 0) {
-      alert("Please add at least one exercise.");
+      alert("Please add at least one exercise to this session.");
       return;
+    }
+
+    const newSession: ProgramSession = {
+      localId: `${Date.now()}-${Math.random()}`,
+      week: programWeek,
+      day: programDay,
+      sessionName,
+      exercises: selectedProgramExercises.map((exercise, index) => ({
+        ...exercise,
+        order: Number(exercise.order) || index + 1,
+      })),
+    };
+
+    setProgramSessions([...programSessions, newSession]);
+    setSelectedProgramExercises([]);
+
+    const nextDay = String((Number(programDay) || 1) + 1);
+    setProgramDay(nextDay);
+    setSessionName("");
+  };
+
+  const removeProgramSession = (localId: string) => {
+    setProgramSessions(programSessions.filter((session) => session.localId !== localId));
+  };
+
+  const loadSessionForEditing = (session: ProgramSession) => {
+    setProgramWeek(session.week);
+    setProgramDay(session.day);
+    setSessionName(session.sessionName);
+    setSelectedProgramExercises(session.exercises);
+    removeProgramSession(session.localId);
+  };
+
+  const saveFullProgram = async () => {
+    if (!programName) {
+      alert("Please fill Program Name.");
+      return;
+    }
+
+    if (programSessions.length === 0 && selectedProgramExercises.length === 0) {
+      alert("Please add at least one session.");
+      return;
+    }
+
+    let sessionsToSave = [...programSessions];
+
+    if (selectedProgramExercises.length > 0) {
+      if (!programWeek || !programDay || !sessionName) {
+        alert("Current session has exercises but is missing Week, Day, or Session Name.");
+        return;
+      }
+
+      sessionsToSave.push({
+        localId: `${Date.now()}-${Math.random()}`,
+        week: programWeek,
+        day: programDay,
+        sessionName,
+        exercises: selectedProgramExercises.map((exercise, index) => ({
+          ...exercise,
+          order: Number(exercise.order) || index + 1,
+        })),
+      });
     }
 
     setSavingTemplate(true);
@@ -384,38 +455,47 @@ function App() {
         return;
       }
 
-      const templateResponse = await fetch("/api/createWorkoutTemplate", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          programId: programData.programId,
-          programRecordId: programData.programRecordId,
-          week: Number(programWeek),
-          day: Number(programDay),
-          sessionName,
-          exercises: selectedProgramExercises.map((exercise, index) => ({
-            ...exercise,
-            order: Number(exercise.order) || index + 1,
-            sets: Number(exercise.sets) || 1,
-            status: "Active",
-          })),
-        }),
-      });
+      let totalRecordsCreated = 0;
 
-      const templateData = await templateResponse.json();
+      for (const session of sessionsToSave) {
+        const templateResponse = await fetch("/api/createWorkoutTemplate", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            programId: programData.programId,
+            programRecordId: programData.programRecordId,
+            week: Number(session.week),
+            day: Number(session.day),
+            sessionName: session.sessionName,
+            exercises: session.exercises.map((exercise, index) => ({
+              ...exercise,
+              order: Number(exercise.order) || index + 1,
+              sets: Number(exercise.sets) || 1,
+              status: "Active",
+            })),
+          }),
+        });
 
-      if (!templateResponse.ok || !templateData.success) {
-        console.error(templateData);
-        alert("Program was created, but workout template failed. Check API response.");
-        return;
+        const templateData = await templateResponse.json();
+
+        if (!templateResponse.ok || !templateData.success) {
+          console.error(templateData);
+          alert(
+            `Program was created, but session "${session.sessionName}" failed. Check API response.`
+          );
+          return;
+        }
+
+        totalRecordsCreated += Number(templateData.recordsCreated || 0);
       }
 
       alert(
-        `Program saved: ${programData.programId}. Template records created: ${templateData.recordsCreated}`
+        `Program saved: ${programData.programId}. Sessions: ${sessionsToSave.length}. Template records created: ${totalRecordsCreated}`
       );
 
+      setProgramSessions([]);
       setSelectedProgramExercises([]);
       setProgramName("");
       setProgramGoal("");
@@ -425,9 +505,11 @@ function App() {
       setProgramPhase("");
       setProgramSessionsPerWeek("3");
       setSessionName("");
+      setProgramWeek("1");
+      setProgramDay("1");
     } catch (error) {
       console.error(error);
-      alert("Could not save program and template.");
+      alert("Could not save full program.");
     } finally {
       setSavingTemplate(false);
     }
@@ -576,8 +658,8 @@ function App() {
               )}
 
               {activePage === "Workouts" && (
-                <button className="goldButton" onClick={saveWorkoutTemplate}>
-                  {savingTemplate ? "Saving..." : "Save Program"}
+                <button className="goldButton" onClick={saveFullProgram}>
+                  {savingTemplate ? "Saving..." : "Save Full Program"}
                 </button>
               )}
             </header>
@@ -725,7 +807,7 @@ function App() {
               <>
                 <section className="tableCard" style={{ padding: "22px" }}>
                   <h2 style={{ color: "#f5d77b", marginTop: 0 }}>
-                    Program Builder
+                    Multi-Day Program Builder
                   </h2>
 
                   <h3 style={{ color: "#f5d77b" }}>Program Details</h3>
@@ -830,14 +912,15 @@ function App() {
                     </label>
                   </div>
 
-                  <h3 style={{ color: "#f5d77b" }}>Session Details</h3>
+                  <h3 style={{ color: "#f5d77b" }}>Current Session</h3>
 
                   <div
                     style={{
                       display: "grid",
-                      gridTemplateColumns: "1fr 1fr 2fr",
+                      gridTemplateColumns: "1fr 1fr 2fr auto",
                       gap: "14px",
                       marginBottom: "22px",
+                      alignItems: "end",
                     }}
                   >
                     <label>
@@ -869,6 +952,13 @@ function App() {
                         className="miniSearch"
                       />
                     </label>
+
+                    <button
+                      className="goldButton"
+                      onClick={addCurrentSessionToProgram}
+                    >
+                      + Add Session
+                    </button>
                   </div>
 
                   <div className="searchRow">
@@ -925,11 +1015,11 @@ function App() {
                   </div>
 
                   <h3 style={{ color: "#f5d77b", marginTop: "28px" }}>
-                    Selected Exercises
+                    Current Session Exercises
                   </h3>
 
                   {selectedProgramExercises.length === 0 && (
-                    <p>No exercises added yet.</p>
+                    <p>No exercises added to current session yet.</p>
                   )}
 
                   {selectedProgramExercises.map((exercise, index) => (
@@ -1048,12 +1138,57 @@ function App() {
                     </div>
                   ))}
 
+                  <h3 style={{ color: "#f5d77b", marginTop: "28px" }}>
+                    Program Sessions
+                  </h3>
+
+                  {programSessions.length === 0 && (
+                    <p>No sessions added yet.</p>
+                  )}
+
+                  {programSessions.map((session) => (
+                    <div className="exercise-card" key={session.localId}>
+                      <div className="exerciseTitleRow">
+                        <h3>
+                          Week {session.week} / Day {session.day}:{" "}
+                          {session.sessionName}
+                        </h3>
+
+                        <div style={{ display: "flex", gap: "10px" }}>
+                          <button
+                            className="outlineButton"
+                            onClick={() => loadSessionForEditing(session)}
+                          >
+                            Edit
+                          </button>
+
+                          <button
+                            className="outlineButton"
+                            onClick={() => removeProgramSession(session.localId)}
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      </div>
+
+                      <p>{session.exercises.length} exercises</p>
+
+                      {session.exercises.map((exercise) => (
+                        <p key={exercise.exerciseRecordId} style={{ margin: "4px 0" }}>
+                          {exercise.order}. {exercise.exerciseName} —{" "}
+                          {exercise.sets} x {exercise.reps}, Tempo{" "}
+                          {exercise.tempo}, Rest {exercise.rest}
+                        </p>
+                      ))}
+                    </div>
+                  ))}
+
                   <button
                     className="goldButton saveWorkoutButton"
-                    onClick={saveWorkoutTemplate}
+                    onClick={saveFullProgram}
                     disabled={savingTemplate}
                   >
-                    {savingTemplate ? "Saving..." : "Save Program"}
+                    {savingTemplate ? "Saving..." : "Save Full Program"}
                   </button>
                 </section>
               </>
