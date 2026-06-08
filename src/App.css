@@ -843,6 +843,28 @@ body {
   margin-top: 18px;
 }
 
+.programDetailsGrid,
+.currentSessionGrid {
+  display: grid;
+  gap: 14px;
+}
+
+.programDetailsPrimary {
+  grid-template-columns: minmax(220px, 2fr) minmax(160px, 1fr);
+  margin-bottom: 14px;
+}
+
+.programDetailsSecondary {
+  grid-template-columns: repeat(3, minmax(140px, 1fr));
+  margin-bottom: 22px;
+}
+
+.currentSessionGrid {
+  grid-template-columns: 1fr 1fr minmax(180px, 2fr) auto;
+  align-items: end;
+  margin-bottom: 22px;
+}
+
 .clientPage {
   display: grid;
   grid-template-columns: 280px 1fr;
@@ -1681,7 +1703,31 @@ body {
   margin-bottom: 10px;
 }
 
-.setLogRow input {
+.setLogStatic {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.setLogStatic span,
+.setLogField span {
+  display: none;
+}
+
+.setLogStatic strong {
+  color: white;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.setLogField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.setLogRow input,
+.setLogField input {
   width: 100%;
   background: #050505;
   border: 1px solid rgba(212, 175, 55, 0.35);
@@ -1960,6 +2006,14 @@ body {
     grid-template-columns: 1fr;
   }
 
+  .clientTableWorkspace {
+    order: 1;
+  }
+
+  .clientBucketsPanel {
+    order: 2;
+  }
+
   .savedAssignGrid {
     grid-template-columns: 1fr 1fr;
   }
@@ -1986,6 +2040,16 @@ body {
     grid-template-columns: 1fr 1fr;
   }
 
+  .programDetailsPrimary,
+  .programDetailsSecondary,
+  .currentSessionGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .currentSessionGrid .goldButton {
+    width: 100%;
+  }
+
   .assignProgramGrid button {
     width: 100%;
   }
@@ -2003,9 +2067,12 @@ body {
   }
 
   .setLogHeader,
-  .setLogRow,
   .analyticsClientRow {
     grid-template-columns: 1fr;
+  }
+
+  .setLogRow {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .workoutDateItem,
@@ -2106,6 +2173,88 @@ body {
   .builderPrescriptionGrid,
   .builderGroupGrid {
     grid-template-columns: 1fr;
+  }
+
+  .programDetailsPrimary,
+  .programDetailsSecondary,
+  .currentSessionGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .programDetailsGrid .miniSearch,
+  .currentSessionGrid .miniSearch {
+    margin: 8px 0 0;
+  }
+
+  .workout-modal-overlay {
+    align-items: stretch;
+    padding: 10px;
+  }
+
+  .workout-modal {
+    max-width: 100%;
+    max-height: calc(100vh - 20px);
+    border-radius: 12px;
+    padding: 16px;
+  }
+
+  .modal-header h2 {
+    font-size: 24px;
+  }
+
+  .workout-info {
+    grid-template-columns: 1fr;
+    padding: 12px;
+  }
+
+  .exercise-card {
+    padding: 14px;
+    border-radius: 10px;
+  }
+
+  .exerciseTitleRow {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .workoutExerciseTitle {
+    align-items: flex-start;
+  }
+
+  .workoutExerciseTitle h3 {
+    font-size: 22px;
+    line-height: 1.15;
+  }
+
+  .previousPerformance {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .setLogHeader {
+    display: none;
+  }
+
+  .setLogRow {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    border: 1px solid rgba(212, 175, 55, 0.18);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 12px;
+    background: rgba(0, 0, 0, 0.24);
+  }
+
+  .setLogStatic span,
+  .setLogField span {
+    display: block;
+    color: #d4af37;
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .setLogField {
+    grid-column: 1 / -1;
   }
 
   .invitePage {

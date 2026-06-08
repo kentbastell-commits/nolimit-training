@@ -2623,14 +2623,7 @@ function App() {
 
                 <h3 style={{ color: "#f5d77b" }}>Program Details</h3>
 
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "2fr 1fr 1fr 1fr",
-                    gap: "14px",
-                    marginBottom: "14px",
-                  }}
-                >
+                <div className="programDetailsGrid programDetailsPrimary">
                   <label>
                     <span>Program Name</span>
                     <input
@@ -2650,36 +2643,9 @@ function App() {
                       className="miniSearch"
                     />
                   </label>
-
-                  <label>
-                    <span>Sport</span>
-                    <input
-                      value={programSport}
-                      onChange={(e) => setProgramSport(e.target.value)}
-                      placeholder="Sport"
-                      className="miniSearch"
-                    />
-                  </label>
-
-                  <label>
-                    <span>Level</span>
-                    <input
-                      value={programLevel}
-                      onChange={(e) => setProgramLevel(e.target.value)}
-                      placeholder="Level"
-                      className="miniSearch"
-                    />
-                  </label>
                 </div>
 
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr 1fr 1fr 1fr",
-                    gap: "14px",
-                    marginBottom: "22px",
-                  }}
-                >
+                <div className="programDetailsGrid programDetailsSecondary">
                   <label>
                     <span>Duration Weeks</span>
                     <input
@@ -2709,29 +2675,11 @@ function App() {
                       className="miniSearch"
                     />
                   </label>
-
-                  <label>
-                    <span>Coach</span>
-                    <input
-                      value={programCoach}
-                      onChange={(e) => setProgramCoach(e.target.value)}
-                      placeholder="Coach"
-                      className="miniSearch"
-                    />
-                  </label>
                 </div>
 
                 <h3 style={{ color: "#f5d77b" }}>Current Session</h3>
 
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr 1fr 2fr auto",
-                    gap: "14px",
-                    marginBottom: "22px",
-                    alignItems: "end",
-                  }}
-                >
+                <div className="currentSessionGrid">
                   <label>
                     <span>Week</span>
                     <input
@@ -4052,55 +4000,73 @@ function App() {
                               className="setLogRow"
                               key={`${log.exerciseId}-${log.setNumber}`}
                             >
-                              <span>{log.setNumber}</span>
-                              <span>{log.prescribedReps}</span>
+                              <div className="setLogStatic">
+                                <span>Set</span>
+                                <strong>{log.setNumber}</strong>
+                              </div>
+                              <div className="setLogStatic">
+                                <span>Target Reps</span>
+                                <strong>{log.prescribedReps}</strong>
+                              </div>
 
-                              <input
-                                value={log.actualReps}
-                                onChange={(e) =>
-                                  updateSetLog(
-                                    globalIndex,
-                                    "actualReps",
-                                    e.target.value
-                                  )
-                                }
-                              />
+                              <label className="setLogField">
+                                <span>Actual Reps</span>
+                                <input
+                                  value={log.actualReps}
+                                  onChange={(e) =>
+                                    updateSetLog(
+                                      globalIndex,
+                                      "actualReps",
+                                      e.target.value
+                                    )
+                                  }
+                                />
+                              </label>
 
-                              <input
-                                value={log.actualWeight}
-                                placeholder="kg"
-                                onChange={(e) =>
-                                  updateSetLog(
-                                    globalIndex,
-                                    "actualWeight",
-                                    e.target.value
-                                  )
-                                }
-                              />
+                              <label className="setLogField">
+                                <span>Weight</span>
+                                <input
+                                  value={log.actualWeight}
+                                  placeholder="kg"
+                                  onChange={(e) =>
+                                    updateSetLog(
+                                      globalIndex,
+                                      "actualWeight",
+                                      e.target.value
+                                    )
+                                  }
+                                />
+                              </label>
 
-                              <input
-                                value={log.actualTime}
-                                placeholder="sec"
-                                onChange={(e) =>
-                                  updateSetLog(
-                                    globalIndex,
-                                    "actualTime",
-                                    e.target.value
-                                  )
-                                }
-                              />
+                              <label className="setLogField">
+                                <span>Time</span>
+                                <input
+                                  value={log.actualTime}
+                                  placeholder="sec"
+                                  onChange={(e) =>
+                                    updateSetLog(
+                                      globalIndex,
+                                      "actualTime",
+                                      e.target.value
+                                    )
+                                  }
+                                />
+                              </label>
 
-                              <input
-                                value={log.actualDistance}
-                                placeholder="m"
-                                onChange={(e) =>
-                                  updateSetLog(
-                                    globalIndex,
-                                    "actualDistance",
-                                    e.target.value
-                                  )
-                                }
-                              />
+                              <label className="setLogField">
+                                <span>Distance</span>
+                                <input
+                                  value={log.actualDistance}
+                                  placeholder="m"
+                                  onChange={(e) =>
+                                    updateSetLog(
+                                      globalIndex,
+                                      "actualDistance",
+                                      e.target.value
+                                    )
+                                  }
+                                />
+                              </label>
                             </div>
                           );
                         })}
