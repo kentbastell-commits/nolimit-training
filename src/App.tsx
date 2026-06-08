@@ -654,7 +654,10 @@ function App() {
 
       if (!response.ok || !data.success) {
         console.error(data);
-        notify("Could not save exercise. Check API response.", "error");
+        notify(
+          data.message || data.error || "Could not save exercise. Check API response.",
+          "error"
+        );
         return;
       }
 
@@ -664,7 +667,9 @@ function App() {
         archive
           ? "Exercise archived."
           : editingExercise
-          ? "Exercise updated."
+          ? data.cueFieldName
+            ? `Exercise updated. Cues saved to ${data.cueFieldName}.`
+            : "Exercise updated."
           : `Exercise created: ${data.exerciseId}`,
         "success"
       );

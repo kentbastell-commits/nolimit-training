@@ -109,8 +109,42 @@ function filterExistingFields(
 }
 
 function findFirstField(availableFieldNames: string[], candidates: string[]) {
-  return candidates.find((candidate) => availableFieldNames.includes(candidate));
+  const normalizedFields = new Map(
+    availableFieldNames.map((fieldName) => [
+      fieldName.trim().toLowerCase(),
+      fieldName,
+    ])
+  );
+
+  for (const candidate of candidates) {
+    const match = normalizedFields.get(candidate.trim().toLowerCase());
+
+    if (match) return match;
+  }
+
+  return undefined;
 }
+
+const CUE_FIELD_CANDIDATES = [
+  "Notes",
+  "Note",
+  "Technical Cues",
+  "Technical Cue",
+  "Technique Cues",
+  "Technique Cue",
+  "Form Instructions",
+  "Form Instruction",
+  "Form Cues",
+  "Form Cue",
+  "Instructions",
+  "Instruction",
+  "Cue Notes",
+  "Cues",
+  "Exercise Notes",
+  "Coaching Notes",
+  "Coach Notes",
+  "Description",
+];
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {
@@ -137,16 +171,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const token = await getTenantToken();
     const tableUrl = `https://open.larksuite.com/open-apis/bitable/v1/apps/${process.env.LARK_BASE_APP_TOKEN}/tables/${process.env.LARK_EXERCISE_LIBRARY_TABLE_ID}/records`;
     const availableFields = await getFieldNames(token);
-    const cueFieldName = findFirstField(availableFields, [
-      "Notes",
-      "Technical Cues",
-      "Technical Cue",
-      "Form Instructions",
-      "Form Instruction",
-      "Form Cues",
-      "Instructions",
-      "Cue Notes",
-    ]);
+    const cueFieldName = findFirstField(availableFields, CUE_FIELD_CANDIDATES);
+    const hasNotesToSave = notes !== undefined && String(notes).trim() !== "";
+
+    if (hasNotesToSave && !cueFieldName) {
+      return res.status(400).json({
+        error: "Exercise Library table is missing a technical cues field",
+        message:
+          "Add a text field named Technical Cues or Notes to the Lark Exercise Library table, then save again.",
+        recommendedFields: ["Technical Cues", "Notes"],
+        cueFieldCandidates: CUE_FIELD_CANDIDATES,
+        availableFields,
+      });
+    }
+
     const archivedNotes = String(notes || "").startsWith("[Archived]")
       ? String(notes || "")
       : `[Archived]\n${String(notes || "")}`.trim();
@@ -213,6 +251,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       archived: Boolean(archive),
       omittedFields,
       cueFieldName,
+      availableFields,
+      fieldsSent: existingFields,
       larkResponse: data,
     });
   } catch (error: any) {
