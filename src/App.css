@@ -480,6 +480,11 @@ body {
   color: #ddd;
 }
 
+.calendarDropTarget {
+  border-color: rgba(245, 215, 123, 0.55);
+  background: rgba(212, 175, 55, 0.08);
+}
+
 .monthCalendar .calendarDay {
   min-height: 135px;
 }
@@ -498,7 +503,8 @@ body {
   color: white;
   font-weight: bold;
   text-align: left;
-  cursor: pointer;
+  cursor: grab;
+  transition: opacity 0.18s ease, transform 0.18s ease, background 0.18s ease;
 }
 
 .workoutBlock span {
@@ -511,6 +517,19 @@ body {
 .workoutBlock:hover {
   transform: translateY(-2px);
   background: rgba(212, 175, 55, 0.28);
+}
+
+.workoutBlock:active {
+  cursor: grabbing;
+}
+
+.draggingWorkout {
+  opacity: 0.45;
+}
+
+.movingWorkout {
+  cursor: wait;
+  opacity: 0.65;
 }
 
 .monthCalendar .workoutBlock {

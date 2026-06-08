@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type DragEvent } from "react";
 import "./App.css";
 
 type Page = "Clients" | "Library" | "Workouts" | "Check-ins";
@@ -169,6 +169,8 @@ function App() {
   const [savingWorkout, setSavingWorkout] = useState(false);
   const [editingWorkoutDate, setEditingWorkoutDate] = useState("");
   const [updatingWorkoutDate, setUpdatingWorkoutDate] = useState(false);
+  const [draggingWorkoutId, setDraggingWorkoutId] = useState("");
+  const [movingWorkoutId, setMovingWorkoutId] = useState("");
 
   const [libraryExercises, setLibraryExercises] = useState<LibraryExercise[]>([]);
   const [libraryLoading, setLibraryLoading] = useState(false);
@@ -483,30 +485,38 @@ function App() {
     }
   };
 
+  const updateAssignedWorkoutScheduledDate = async (
+    assignedWorkoutRecordId: string,
+    scheduledDate: string
+  ) => {
+    const response = await fetch("/api/updateAssignedProgramDate", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        assignedWorkoutRecordId,
+        scheduledDate,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+      console.error(data);
+      throw new Error("Could not update workout date.");
+    }
+
+    return data;
+  };
+
   const updateWorkoutDate = async () => {
     if (!selectedWorkout || !selectedClient) return;
 
     setUpdatingWorkoutDate(true);
 
     try {
-      const response = await fetch("/api/updateAssignedProgramDate", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          assignedWorkoutRecordId: selectedWorkout.id,
-          scheduledDate: editingWorkoutDate,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        console.error(data);
-        alert("Could not update workout date.");
-        return;
-      }
+      await updateAssignedWorkoutScheduledDate(selectedWorkout.id, editingWorkoutDate);
 
       alert("Workout date updated.");
 
@@ -520,6 +530,40 @@ function App() {
       alert("Could not update workout date.");
     } finally {
       setUpdatingWorkoutDate(false);
+    }
+  };
+
+  const moveWorkoutToDate = async (workout: Workout, scheduledDate: string) => {
+    if (!selectedClient) return;
+
+    const currentDate = normalizeDate(String(workout.scheduledDate));
+
+    if (!scheduledDate || currentDate === scheduledDate || movingWorkoutId) {
+      return;
+    }
+
+    const previousWorkouts = workouts;
+
+    setMovingWorkoutId(workout.id);
+    setWorkouts((prev) =>
+      prev.map((item) =>
+        item.id === workout.id ? { ...item, scheduledDate } : item
+      )
+    );
+
+    try {
+      await updateAssignedWorkoutScheduledDate(workout.id, scheduledDate);
+
+      const refresh = await fetch(`/api/workouts?clientCode=${selectedClient.clientCode}`);
+      const refreshData = await refresh.json();
+      setWorkouts(refreshData.workouts || []);
+    } catch (error) {
+      console.error(error);
+      setWorkouts(previousWorkouts);
+      alert("Could not move workout. The calendar has been restored.");
+    } finally {
+      setMovingWorkoutId("");
+      setDraggingWorkoutId("");
     }
   };
 
@@ -1639,19 +1683,63 @@ function App() {
                       const dayWorkouts = getWorkoutsForDate(date);
 
                       return (
-                        <div className="calendarDay" key={date}>
+                        <div
+                          className={`calendarDay ${
+                            draggingWorkoutId ? "calendarDropTarget" : ""
+                          }`}
+                          key={date}
+                          onDragOver={(event: DragEvent<HTMLDivElement>) => {
+                            event.preventDefault();
+                            event.dataTransfer.dropEffect = "move";
+                          }}
+                          onDrop={(event: DragEvent<HTMLDivElement>) => {
+                            event.preventDefault();
+
+                            const workoutId =
+                              event.dataTransfer.getData("text/plain") ||
+                              draggingWorkoutId;
+                            const workout = workouts.find(
+                              (item) => item.id === workoutId
+                            );
+
+                            if (workout) {
+                              void moveWorkoutToDate(workout, date);
+                            }
+                          }}
+                        >
                           <strong>{formatCalendarLabel(date)}</strong>
 
                           {dayWorkouts.map((workout) => (
                             <button
                               className={`workoutBlock ${getStatusClass(
                                 workout.completionStatus
-                              )}`}
+                              )} ${
+                                draggingWorkoutId === workout.id
+                                  ? "draggingWorkout"
+                                  : ""
+                              } ${
+                                movingWorkoutId === workout.id
+                                  ? "movingWorkout"
+                                  : ""
+                              }`}
                               key={workout.id}
+                              draggable
+                              title="Drag to another day to reschedule"
+                              onDragStart={(event) => {
+                                event.dataTransfer.setData("text/plain", workout.id);
+                                event.dataTransfer.effectAllowed = "move";
+                                setDraggingWorkoutId(workout.id);
+                              }}
+                              onDragEnd={() => setDraggingWorkoutId("")}
                               onClick={() => openWorkout(workout)}
+                              disabled={movingWorkoutId === workout.id}
                             >
                               {workout.sessionName || "Workout"}
-                              <span>{workout.completionStatus || "Scheduled"}</span>
+                              <span>
+                                {movingWorkoutId === workout.id
+                                  ? "Moving..."
+                                  : workout.completionStatus || "Scheduled"}
+                              </span>
                             </button>
                           ))}
                         </div>
