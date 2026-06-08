@@ -1929,55 +1929,54 @@ body {
   resize: vertical;
 }
 
+.workoutExerciseHeader {
+  align-items: flex-start;
+}
+
+.workoutExerciseActions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.iconActionButton,
 .videoButton {
-  font-size: 14px;
-  padding: 6px 10px;
-  border-radius: 999px;
+  position: relative;
+  width: 34px;
+  height: 34px;
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  font-size: 15px;
+  line-height: 1;
+  padding: 0;
+  border-radius: 8px;
   border: 1px solid rgba(212, 175, 55, 0.45);
   color: #f5d77b;
   text-decoration: none;
   background: rgba(212, 175, 55, 0.08);
-  white-space: nowrap;
-}
-
-.videoButton:hover {
-  background: rgba(212, 175, 55, 0.18);
-}
-
-.previousPerformance {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  align-items: center;
-  border: 1px solid rgba(212, 175, 55, 0.2);
-  border-radius: 8px;
-  padding: 10px;
-  margin: 12px 0;
-  background: rgba(0, 0, 0, 0.26);
-  color: #ddd;
-}
-
-.previousPerformance strong {
-  color: #f5d77b;
-}
-
-.historyButton {
-  border: 1px solid rgba(212, 175, 55, 0.45);
-  border-radius: 999px;
-  padding: 6px 10px;
-  background: rgba(212, 175, 55, 0.1);
-  color: #f5d77b;
-  font-weight: 800;
   cursor: pointer;
 }
 
-.previousPerformance span {
-  border: 1px solid rgba(212, 175, 55, 0.15);
+.iconActionButton small {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 17px;
+  height: 17px;
+  display: grid;
+  place-items: center;
   border-radius: 999px;
-  padding: 5px 8px;
-  background: rgba(255, 255, 255, 0.03);
-  color: #bbb;
-  font-size: 13px;
+  background: #d4af37;
+  color: #050505;
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.iconActionButton:hover,
+.videoButton:hover {
+  background: rgba(212, 175, 55, 0.18);
 }
 
 .setLogHeader,
@@ -1998,6 +1997,21 @@ body {
 
 .setLogRow {
   margin-bottom: 10px;
+}
+
+.setBanner {
+  grid-column: 1 / -1;
+  border: 1px solid rgba(212, 175, 55, 0.24);
+  border-radius: 8px;
+  padding: 9px 10px;
+  background: rgba(212, 175, 55, 0.1);
+}
+
+.setBanner strong {
+  display: block;
+  color: #f5d77b;
+  font-size: 14px;
+  line-height: 1.1;
 }
 
 .setLogStatic {
@@ -2747,6 +2761,12 @@ body {
     flex-direction: column;
   }
 
+  .workoutExerciseHeader {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    width: 100%;
+  }
+
   .workoutExerciseTitle {
     align-items: flex-start;
   }
@@ -2771,20 +2791,15 @@ body {
     font-size: 13px;
   }
 
+  .workoutExerciseActions {
+    align-self: start;
+    margin-left: 0;
+  }
+
+  .iconActionButton,
   .videoButton {
-    width: 100%;
-    text-align: center;
-    border-radius: 8px;
-    padding: 9px 10px;
-  }
-
-  .previousPerformance {
-    align-items: stretch;
-    flex-direction: column;
-    gap: 6px;
-  }
-
-  .previousPerformance span {
+    width: 32px;
+    height: 32px;
     border-radius: 8px;
   }
 

@@ -132,16 +132,6 @@ type WorkoutHistoryLog = {
   actualDistance: string;
 };
 
-type WorkoutHistoryItem = {
-  exerciseName: string;
-  totalSets: number;
-  lastDate: string;
-  lastReps: string;
-  lastWeight: string;
-  bestWeight: number;
-  bestReps: number;
-};
-
 type LibraryExercise = {
   recordId: string;
   exerciseId: string;
@@ -410,7 +400,6 @@ function App() {
   const [selectedWorkout, setSelectedWorkout] = useState<Workout | null>(null);
   const [workoutDetails, setWorkoutDetails] = useState<ExerciseDetail[]>([]);
   const [setLogs, setSetLogs] = useState<SetLog[]>([]);
-  const [workoutHistory, setWorkoutHistory] = useState<WorkoutHistoryItem[]>([]);
   const [workoutHistoryLogs, setWorkoutHistoryLogs] = useState<WorkoutHistoryLog[]>(
     []
   );
@@ -418,7 +407,6 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [workoutsLoading, setWorkoutsLoading] = useState(false);
   const [detailsLoading, setDetailsLoading] = useState(false);
-  const [historyLoading, setHistoryLoading] = useState(false);
   const [savingWorkout, setSavingWorkout] = useState(false);
   const [editingWorkoutDate, setEditingWorkoutDate] = useState("");
   const [updatingWorkoutDate, setUpdatingWorkoutDate] = useState(false);
@@ -1309,10 +1297,8 @@ function App() {
     setSelectedWorkout(workout);
     setEditingWorkoutDate(normalizeDate(String(workout.scheduledDate)));
     setDetailsLoading(true);
-    setHistoryLoading(true);
     setWorkoutDetails([]);
     setSetLogs([]);
-    setWorkoutHistory([]);
     setWorkoutHistoryLogs([]);
 
     try {
@@ -1329,16 +1315,13 @@ function App() {
 
       setWorkoutDetails(exercises);
       buildSetLogs(exercises);
-      setWorkoutHistory(historyData.history || []);
       setWorkoutHistoryLogs(historyData.logs || []);
     } catch {
       setWorkoutDetails([]);
       setSetLogs([]);
-      setWorkoutHistory([]);
       setWorkoutHistoryLogs([]);
     } finally {
       setDetailsLoading(false);
-      setHistoryLoading(false);
     }
   };
 
@@ -4251,7 +4234,6 @@ function App() {
                     setSelectedWorkout(null);
                     setWorkoutDetails([]);
                     setSetLogs([]);
-                    setWorkoutHistory([]);
                     setWorkoutHistoryLogs([]);
                     setHistoryExerciseName("");
                   }}
@@ -4333,12 +4315,6 @@ function App() {
                       !previousMeta ||
                       sectionName !== (previousMeta.sectionName || "Main");
                     const coachingNotes = meta.coachingNotes;
-                    const history = workoutHistory.find(
-                      (item) =>
-                        item.exerciseName
-                          .toLowerCase()
-                          .startsWith(exercise.exerciseName.toLowerCase())
-                    );
                     const exerciseHistoryLogs = workoutHistoryLogs
                       .filter((log) =>
                         log.exerciseName
@@ -4356,7 +4332,7 @@ function App() {
                         )}
 
                         <div className="exercise-card workoutLogExerciseCard">
-                        <div className="exerciseTitleRow">
+                        <div className="exerciseTitleRow workoutExerciseHeader">
                           <div className="workoutExerciseTitle">
                             <span className="exerciseLabelBadge">
                               {meta.exerciseLabel || makeExerciseLabel(index)}
@@ -4364,16 +4340,35 @@ function App() {
                             <h3>{exercise.exerciseName}</h3>
                           </div>
 
-                          {exercise.videoUrl && (
-                            <a
-                              className="videoButton"
-                              href={exercise.videoUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
+                          <div className="workoutExerciseActions">
+                            {exercise.videoUrl && (
+                              <a
+                                className="iconActionButton"
+                                href={exercise.videoUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                title="Video"
+                                aria-label={`Open video for ${exercise.exerciseName}`}
+                              >
+                                <span aria-hidden="true">{"\u25b6"}</span>
+                              </a>
+                            )}
+
+                            <button
+                              className="iconActionButton"
+                              onClick={() =>
+                                setHistoryExerciseName(exercise.exerciseName)
+                              }
+                              type="button"
+                              title="History"
+                              aria-label={`View history for ${exercise.exerciseName}`}
                             >
-                              🎥 Video
-                            </a>
-                          )}
+                              <span aria-hidden="true">{"\u25f7"}</span>
+                              {exerciseHistoryLogs.length > 0 && (
+                                <small>{exerciseHistoryLogs.length}</small>
+                              )}
+                            </button>
+                          </div>
                         </div>
 
                         <div className="workoutPrescriptionGrid">
@@ -4399,36 +4394,8 @@ function App() {
                           <p className="workoutCoachNotes">{coachingNotes}</p>
                         )}
 
-                        <div className="previousPerformance">
-                          <button
-                            className="historyButton"
-                            onClick={() => setHistoryExerciseName(exercise.exerciseName)}
-                            type="button"
-                          >
-                            History {exerciseHistoryLogs.length > 0 ? `(${exerciseHistoryLogs.length})` : ""}
-                          </button>
-                          {historyLoading ? (
-                            <span>Loading history...</span>
-                          ) : history ? (
-                            <>
-                              <span>
-                                Last {history.lastWeight || "--"} kg x{" "}
-                                {history.lastReps || "--"}
-                              </span>
-                              <span>
-                                Best {history.bestWeight || "--"} kg /{" "}
-                                {history.bestReps || "--"}
-                              </span>
-                              <span>{history.totalSets} sets</span>
-                            </>
-                          ) : (
-                            <span>No previous logs for this exercise.</span>
-                          )}
-                        </div>
-
                         <div className="setLogHeader">
                           <span>Set</span>
-                          <span>Target Reps</span>
                           <span>Actual Reps</span>
                           <span>Weight</span>
                           <span>Time</span>
@@ -4449,15 +4416,13 @@ function App() {
                           return (
                             <div
                               className="setLogRow"
-                              key={`${log.exerciseId}-${log.setNumber}`}
+                              key={`${log.exerciseId}-${log.setNumber}-${log.side || "both"}`}
                             >
-                              <div className="setLogStatic">
-                                <span>Set</span>
-                                <strong>{log.setNumber}</strong>
-                              </div>
-                              <div className="setLogStatic">
-                                <span>Target Reps</span>
-                                <strong>{log.prescribedReps}</strong>
+                              <div className="setBanner">
+                                <strong>
+                                  Set {log.setNumber}
+                                  {log.side ? ` · ${log.side}` : ""}
+                                </strong>
                               </div>
                               {log.side && (
                                 <div className="setLogStatic limbCell">
