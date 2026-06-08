@@ -1605,6 +1605,16 @@ body {
   resize: vertical;
 }
 
+.toggleField {
+  justify-content: space-between;
+}
+
+.toggleField input {
+  width: 22px;
+  height: 22px;
+  accent-color: #d4af37;
+}
+
 .clientNotesField {
   grid-column: 1 / -1;
 }
@@ -1951,6 +1961,16 @@ body {
   color: #f5d77b;
 }
 
+.historyButton {
+  border: 1px solid rgba(212, 175, 55, 0.45);
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: rgba(212, 175, 55, 0.1);
+  color: #f5d77b;
+  font-weight: 800;
+  cursor: pointer;
+}
+
 .previousPerformance span {
   border: 1px solid rgba(212, 175, 55, 0.15);
   border-radius: 999px;
@@ -1963,12 +1983,13 @@ body {
 .setLogHeader,
 .setLogRow {
   display: grid;
-  grid-template-columns: 60px 120px 120px 120px 120px 120px;
+  grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
   gap: 10px;
   align-items: center;
 }
 
 .setLogHeader {
+  display: none;
   color: #f5d77b;
   font-weight: bold;
   margin-top: 18px;
@@ -1987,7 +2008,10 @@ body {
 
 .setLogStatic span,
 .setLogField span {
-  display: none;
+  display: block;
+  color: #d4af37;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .setLogStatic strong {
@@ -2011,6 +2035,40 @@ body {
   border-radius: 8px;
   padding: 10px;
   font-size: 15px;
+}
+
+.historyModal {
+  width: 820px;
+}
+
+.historyLogList {
+  display: grid;
+  gap: 8px;
+}
+
+.historyLogRow {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.5fr) repeat(4, minmax(76px, 0.6fr));
+  gap: 10px;
+  align-items: center;
+  border: 1px solid rgba(212, 175, 55, 0.18);
+  border-radius: 8px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.historyLogRow strong,
+.historyLogRow span {
+  display: block;
+}
+
+.historyLogRow strong {
+  color: #f5d77b;
+}
+
+.historyLogRow span {
+  color: #bbb;
+  font-size: 13px;
 }
 
 .saveWorkoutButton {
@@ -2763,6 +2821,20 @@ body {
   .setLogField input {
     min-height: 44px;
     padding: 11px 10px;
+  }
+
+  .historyModal {
+    width: 100%;
+    max-height: 100vh;
+    border-radius: 0;
+  }
+
+  .historyLogRow {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .historyLogRow > div {
+    grid-column: 1 / -1;
   }
 
   .saveWorkoutButton {

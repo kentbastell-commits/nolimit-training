@@ -7,6 +7,7 @@ type CalendarView = "1 Day" | "1 Week" | "1 Month";
 type WorkoutPageTab = "Saved Programs" | "Builder";
 type ToastType = "success" | "error" | "info";
 type CheckInFilter = "Due" | "Recent" | "No Check-in" | "All";
+type TrackingType = "Weight" | "Time" | "Distance";
 type ClientBucket =
   | "All Clients"
   | "Active"
@@ -114,7 +115,21 @@ type ExerciseNoteMeta = {
   exerciseLabel: string;
   groupType?: ProgramExercise["groupType"];
   groupName: string;
+  trackingType: TrackingType;
+  isUnilateral: boolean;
   coachingNotes: string;
+};
+
+type WorkoutHistoryLog = {
+  recordId: string;
+  exerciseName: string;
+  date: string;
+  setNumber: string;
+  prescribedReps: string;
+  actualReps: string;
+  actualWeight: string;
+  actualTime: string;
+  actualDistance: string;
 };
 
 type WorkoutHistoryItem = {
@@ -151,6 +166,8 @@ type ProgramExercise = {
   tempo: string;
   rest: string;
   coachingNotes: string;
+  trackingType: TrackingType;
+  isUnilateral: boolean;
   groupType: "Straight" | "Superset" | "Circuit";
   groupName: string;
 };
@@ -186,6 +203,8 @@ type SetLog = {
   exerciseName: string;
   exerciseOrder: number;
   setNumber: number;
+  side?: "Right" | "Left";
+  trackingType: TrackingType;
   prescribedSets: string;
   prescribedReps: string;
   actualReps: string;
@@ -218,13 +237,17 @@ function parseExerciseNotes(notes = ""): ExerciseNoteMeta {
     sectionName: "",
     exerciseLabel: "",
     groupName: "",
+    trackingType: "Weight",
+    isUnilateral: false,
     coachingNotes: "",
   };
   const remainingLines: string[] = [];
 
   lines.forEach((line) => {
     const trimmed = line.trim();
-    const match = trimmed.match(/^(Section|Label|Superset|Circuit):\s*(.+)$/i);
+    const match = trimmed.match(
+      /^(Section|Label|Superset|Circuit|Tracking|Unilateral):\s*(.+)$/i
+    );
 
     if (!match) {
       remainingLines.push(line);
@@ -236,6 +259,15 @@ function parseExerciseNotes(notes = ""): ExerciseNoteMeta {
 
     if (key === "section") meta.sectionName = value;
     if (key === "label") meta.exerciseLabel = value;
+    if (key === "tracking") {
+      const clean = value.toLowerCase();
+      if (clean.includes("time")) meta.trackingType = "Time";
+      else if (clean.includes("distance")) meta.trackingType = "Distance";
+      else meta.trackingType = "Weight";
+    }
+    if (key === "unilateral") {
+      meta.isUnilateral = /^(yes|true|1|y)$/i.test(value);
+    }
     if (key === "superset" || key === "circuit") {
       meta.groupType = key === "superset" ? "Superset" : "Circuit";
       meta.groupName = value;
@@ -245,6 +277,23 @@ function parseExerciseNotes(notes = ""): ExerciseNoteMeta {
   meta.coachingNotes = remainingLines.join("\n").trim();
 
   return meta;
+}
+
+function composeExerciseNotes(
+  notes: string,
+  trackingType: TrackingType,
+  isUnilateral: boolean
+) {
+  const parsed = parseExerciseNotes(notes);
+  const cleanNotes = parsed.coachingNotes.trim();
+
+  return [
+    `Tracking: ${trackingType}`,
+    `Unilateral: ${isUnilateral ? "Yes" : "No"}`,
+    cleanNotes,
+  ]
+    .filter(Boolean)
+    .join("\n");
 }
 
 function dateToInputValue(date: Date) {
@@ -362,6 +411,10 @@ function App() {
   const [workoutDetails, setWorkoutDetails] = useState<ExerciseDetail[]>([]);
   const [setLogs, setSetLogs] = useState<SetLog[]>([]);
   const [workoutHistory, setWorkoutHistory] = useState<WorkoutHistoryItem[]>([]);
+  const [workoutHistoryLogs, setWorkoutHistoryLogs] = useState<WorkoutHistoryLog[]>(
+    []
+  );
+  const [historyExerciseName, setHistoryExerciseName] = useState("");
   const [loading, setLoading] = useState(true);
   const [workoutsLoading, setWorkoutsLoading] = useState(false);
   const [detailsLoading, setDetailsLoading] = useState(false);
@@ -390,6 +443,8 @@ function App() {
     equipment: "",
     movementPattern: "",
     notes: "",
+    trackingType: "Weight" as TrackingType,
+    isUnilateral: false,
   });
 
   const [programs, setPrograms] = useState<Program[]>([]);
@@ -658,6 +713,8 @@ function App() {
       equipment: "",
       movementPattern: "",
       notes: "",
+      trackingType: "Weight",
+      isUnilateral: false,
     });
   };
 
@@ -668,6 +725,8 @@ function App() {
   };
 
   const openEditExerciseForm = (exercise: LibraryExercise) => {
+    const meta = parseExerciseNotes(exercise.notes || "");
+
     setEditingExercise(exercise);
     setExerciseForm({
       exerciseId: exercise.exerciseId || "",
@@ -676,7 +735,9 @@ function App() {
       category: exercise.category || "",
       equipment: exercise.equipment || "",
       movementPattern: exercise.movementPattern || "",
-      notes: exercise.notes || "",
+      notes: meta.coachingNotes || "",
+      trackingType: meta.trackingType,
+      isUnilateral: meta.isUnilateral,
     });
     setShowExerciseModal(true);
   };
@@ -703,6 +764,11 @@ function App() {
         },
         body: JSON.stringify({
           ...exerciseForm,
+          notes: composeExerciseNotes(
+            exerciseForm.notes,
+            exerciseForm.trackingType,
+            exerciseForm.isUnilateral
+          ),
           recordId: editingExercise?.recordId,
           archive,
         }),
@@ -793,6 +859,8 @@ function App() {
           tempo: "",
           rest: "",
           coachingNotes: "",
+          trackingType: "Weight",
+          isUnilateral: false,
           groupType: "Straight",
           groupName: "",
         });
@@ -1052,6 +1120,8 @@ function App() {
                 tempo: exercise.tempo,
                 rest: exercise.rest,
                 coachingNotes: meta.coachingNotes,
+                trackingType: meta.trackingType,
+                isUnilateral: meta.isUnilateral,
                 groupType: meta.groupType || "Straight",
                 groupName: meta.groupName,
               };
@@ -1205,19 +1275,29 @@ function App() {
 
     exercises.forEach((exercise) => {
       const setCount = Number(exercise.sets) || 1;
+      const meta = parseExerciseNotes(exercise.notes);
+      const sides: Array<SetLog["side"]> = meta.isUnilateral
+        ? ["Right", "Left"]
+        : [undefined];
 
       for (let i = 1; i <= setCount; i++) {
-        logs.push({
-          exerciseId: exercise.exerciseId,
-          exerciseName: exercise.exerciseName || `Exercise ${exercise.order}`,
-          exerciseOrder: exercise.order,
-          setNumber: i,
-          prescribedSets: exercise.sets,
-          prescribedReps: exercise.reps,
-          actualReps: exercise.reps,
-          actualWeight: "",
-          actualTime: "",
-          actualDistance: "",
+        sides.forEach((side) => {
+          const exerciseName = exercise.exerciseName || `Exercise ${exercise.order}`;
+
+          logs.push({
+            exerciseId: exercise.exerciseId,
+            exerciseName: side ? `${exerciseName} - ${side}` : exerciseName,
+            exerciseOrder: exercise.order,
+            setNumber: i,
+            side,
+            trackingType: meta.trackingType,
+            prescribedSets: exercise.sets,
+            prescribedReps: exercise.reps,
+            actualReps: meta.trackingType === "Weight" ? exercise.reps : "",
+            actualWeight: "",
+            actualTime: "",
+            actualDistance: "",
+          });
         });
       }
     });
@@ -1233,6 +1313,7 @@ function App() {
     setWorkoutDetails([]);
     setSetLogs([]);
     setWorkoutHistory([]);
+    setWorkoutHistoryLogs([]);
 
     try {
       const [detailsResponse, historyResponse] = await Promise.all([
@@ -1249,10 +1330,12 @@ function App() {
       setWorkoutDetails(exercises);
       buildSetLogs(exercises);
       setWorkoutHistory(historyData.history || []);
+      setWorkoutHistoryLogs(historyData.logs || []);
     } catch {
       setWorkoutDetails([]);
       setSetLogs([]);
       setWorkoutHistory([]);
+      setWorkoutHistoryLogs([]);
     } finally {
       setDetailsLoading(false);
       setHistoryLoading(false);
@@ -1399,6 +1482,8 @@ function App() {
   };
 
   const addExerciseToProgram = (exercise: LibraryExercise) => {
+    const meta = parseExerciseNotes(exercise.notes || "");
+
     setSelectedProgramExercises([
       ...selectedProgramExercises,
       {
@@ -1415,6 +1500,8 @@ function App() {
         tempo: "3-1-1",
         rest: "60 sec",
         coachingNotes: "",
+        trackingType: meta.trackingType,
+        isUnilateral: meta.isUnilateral,
         groupType: "Straight",
         groupName: "",
       },
@@ -1504,6 +1591,8 @@ function App() {
     const meta = [
       exercise.sectionName ? `Section: ${exercise.sectionName}` : "",
       exercise.exerciseLabel ? `Label: ${exercise.exerciseLabel}` : "",
+      `Tracking: ${exercise.trackingType || "Weight"}`,
+      `Unilateral: ${exercise.isUnilateral ? "Yes" : "No"}`,
       exercise.groupType !== "Straight" && exercise.groupName
         ? `${exercise.groupType}: ${exercise.groupName}`
         : "",
@@ -3846,6 +3935,37 @@ function App() {
                 </label>
 
                 <label>
+                  <span>Record</span>
+                  <select
+                    value={exerciseForm.trackingType}
+                    onChange={(e) =>
+                      setExerciseForm({
+                        ...exerciseForm,
+                        trackingType: e.target.value as TrackingType,
+                      })
+                    }
+                  >
+                    <option>Weight</option>
+                    <option>Time</option>
+                    <option>Distance</option>
+                  </select>
+                </label>
+
+                <label className="toggleField">
+                  <span>Unilateral</span>
+                  <input
+                    type="checkbox"
+                    checked={exerciseForm.isUnilateral}
+                    onChange={(e) =>
+                      setExerciseForm({
+                        ...exerciseForm,
+                        isUnilateral: e.target.checked,
+                      })
+                    }
+                  />
+                </label>
+
+                <label>
                   <span>Video URL</span>
                   <input
                     value={exerciseForm.videoUrl}
@@ -4132,6 +4252,8 @@ function App() {
                     setWorkoutDetails([]);
                     setSetLogs([]);
                     setWorkoutHistory([]);
+                    setWorkoutHistoryLogs([]);
+                    setHistoryExerciseName("");
                   }}
                 >
                   ×
@@ -4213,9 +4335,17 @@ function App() {
                     const coachingNotes = meta.coachingNotes;
                     const history = workoutHistory.find(
                       (item) =>
-                        item.exerciseName.toLowerCase() ===
-                        exercise.exerciseName.toLowerCase()
+                        item.exerciseName
+                          .toLowerCase()
+                          .startsWith(exercise.exerciseName.toLowerCase())
                     );
+                    const exerciseHistoryLogs = workoutHistoryLogs
+                      .filter((log) =>
+                        log.exerciseName
+                          .toLowerCase()
+                          .startsWith(exercise.exerciseName.toLowerCase())
+                      )
+                      .slice(0, 12);
 
                     return (
                       <div key={exercise.id}>
@@ -4270,7 +4400,13 @@ function App() {
                         )}
 
                         <div className="previousPerformance">
-                          <strong>Previous</strong>
+                          <button
+                            className="historyButton"
+                            onClick={() => setHistoryExerciseName(exercise.exerciseName)}
+                            type="button"
+                          >
+                            History {exerciseHistoryLogs.length > 0 ? `(${exerciseHistoryLogs.length})` : ""}
+                          </button>
                           {historyLoading ? (
                             <span>Loading history...</span>
                           ) : history ? (
@@ -4303,8 +4439,12 @@ function App() {
                           const globalIndex = setLogs.findIndex(
                             (item) =>
                               item.exerciseId === log.exerciseId &&
-                              item.setNumber === log.setNumber
+                              item.setNumber === log.setNumber &&
+                              item.side === log.side
                           );
+                          const showWeightInputs = log.trackingType === "Weight";
+                          const showTimeInput = log.trackingType === "Time";
+                          const showDistanceInput = log.trackingType === "Distance";
 
                           return (
                             <div
@@ -4319,69 +4459,83 @@ function App() {
                                 <span>Target Reps</span>
                                 <strong>{log.prescribedReps}</strong>
                               </div>
+                              {log.side && (
+                                <div className="setLogStatic limbCell">
+                                  <span>Limb</span>
+                                  <strong>{log.side}</strong>
+                                </div>
+                              )}
 
-                              <label className="setLogField">
-                                <span>Actual Reps</span>
-                                <input
-                                  inputMode="numeric"
-                                  value={log.actualReps}
-                                  onChange={(e) =>
-                                    updateSetLog(
-                                      globalIndex,
-                                      "actualReps",
-                                      e.target.value
-                                    )
-                                  }
-                                />
-                              </label>
+                              {showWeightInputs && (
+                                <>
+                                  <label className="setLogField">
+                                    <span>Actual Reps</span>
+                                    <input
+                                      inputMode="numeric"
+                                      value={log.actualReps}
+                                      onChange={(e) =>
+                                        updateSetLog(
+                                          globalIndex,
+                                          "actualReps",
+                                          e.target.value
+                                        )
+                                      }
+                                    />
+                                  </label>
 
-                              <label className="setLogField">
-                                <span>Weight</span>
-                                <input
-                                  inputMode="decimal"
-                                  value={log.actualWeight}
-                                  placeholder="kg"
-                                  onChange={(e) =>
-                                    updateSetLog(
-                                      globalIndex,
-                                      "actualWeight",
-                                      e.target.value
-                                    )
-                                  }
-                                />
-                              </label>
+                                  <label className="setLogField">
+                                    <span>Weight</span>
+                                    <input
+                                      inputMode="decimal"
+                                      value={log.actualWeight}
+                                      placeholder="kg"
+                                      onChange={(e) =>
+                                        updateSetLog(
+                                          globalIndex,
+                                          "actualWeight",
+                                          e.target.value
+                                        )
+                                      }
+                                    />
+                                  </label>
+                                </>
+                              )}
 
-                              <label className="setLogField">
-                                <span>Time</span>
-                                <input
-                                  inputMode="decimal"
-                                  value={log.actualTime}
-                                  placeholder="sec"
-                                  onChange={(e) =>
-                                    updateSetLog(
-                                      globalIndex,
-                                      "actualTime",
-                                      e.target.value
-                                    )
-                                  }
-                                />
-                              </label>
+                              {showTimeInput && (
+                                <label className="setLogField">
+                                  <span>Time</span>
+                                  <input
+                                    inputMode="decimal"
+                                    value={log.actualTime}
+                                    placeholder="sec"
+                                    onChange={(e) =>
+                                      updateSetLog(
+                                        globalIndex,
+                                        "actualTime",
+                                        e.target.value
+                                      )
+                                    }
+                                  />
+                                </label>
+                              )}
 
-                              <label className="setLogField">
-                                <span>Distance</span>
-                                <input
-                                  inputMode="decimal"
-                                  value={log.actualDistance}
-                                  placeholder="m"
-                                  onChange={(e) =>
-                                    updateSetLog(
-                                      globalIndex,
-                                      "actualDistance",
-                                      e.target.value
-                                    )
-                                  }
-                                />
-                              </label>
+                              {showDistanceInput && (
+                                <label className="setLogField">
+                                  <span>Distance</span>
+                                  <input
+                                    inputMode="decimal"
+                                    value={log.actualDistance}
+                                    placeholder="m"
+                                    onChange={(e) =>
+                                      updateSetLog(
+                                        globalIndex,
+                                        "actualDistance",
+                                        e.target.value
+                                      )
+                                    }
+                                  />
+                                </label>
+                              )}
                             </div>
                           );
                         })}
@@ -4396,6 +4550,67 @@ function App() {
                   disabled={savingWorkout}
                 >
                   {savingWorkout ? "Saving..." : "Save Workout"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {historyExerciseName && (
+          <div className="workout-modal-overlay">
+            <div className="clientFormModal historyModal">
+              <div className="modal-header">
+                <div>
+                  <h2>{historyExerciseName}</h2>
+                  <p>Recent logged sets for this exercise.</p>
+                </div>
+
+                <button
+                  className="drawerClose"
+                  onClick={() => setHistoryExerciseName("")}
+                >
+                  x
+                </button>
+              </div>
+
+              <div className="historyLogList">
+                {workoutHistoryLogs
+                  .filter((log) =>
+                    log.exerciseName
+                      .toLowerCase()
+                      .startsWith(historyExerciseName.toLowerCase())
+                  )
+                  .slice(0, 20)
+                  .map((log) => (
+                    <div className="historyLogRow" key={log.recordId}>
+                      <div>
+                        <strong>{log.date || "--"}</strong>
+                        <span>
+                          Set {log.setNumber || "--"} • {log.exerciseName}
+                        </span>
+                      </div>
+                      <span>{log.actualReps ? `${log.actualReps} reps` : "--"}</span>
+                      <span>{log.actualWeight ? `${log.actualWeight} kg` : "--"}</span>
+                      <span>{log.actualTime ? `${log.actualTime} sec` : "--"}</span>
+                      <span>
+                        {log.actualDistance ? `${log.actualDistance} m` : "--"}
+                      </span>
+                    </div>
+                  ))}
+
+                {workoutHistoryLogs.filter((log) =>
+                  log.exerciseName
+                    .toLowerCase()
+                    .startsWith(historyExerciseName.toLowerCase())
+                ).length === 0 && <p>No history logged for this exercise yet.</p>}
+              </div>
+
+              <div className="modalActions">
+                <button
+                  className="goldButton"
+                  onClick={() => setHistoryExerciseName("")}
+                >
+                  Done
                 </button>
               </div>
             </div>
