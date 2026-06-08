@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { createExerciseResultRecords } from "./exerciseResults";
 
 function toText(value: any): string {
   if (value === undefined || value === null) return "";
@@ -44,7 +45,15 @@ export default async function handler(
   try {
     const token = await getTenantToken();
 
-    const { clientId, assignedWorkoutRecordId, workoutDate, logs } = req.body;
+    const {
+      clientId,
+      clientCode,
+      assignedWorkoutId,
+      assignedWorkoutRecordId,
+      programId,
+      workoutDate,
+      logs,
+    } = req.body;
 
     if (!clientId || !assignedWorkoutRecordId) {
       return res.status(400).json({
@@ -117,6 +126,14 @@ export default async function handler(
       success: true,
       recordsCreated: createdRecords.length,
       createdRecords,
+      exerciseResults: await createExerciseResultRecords(token, {
+        clientId: clientCode || clientId,
+        clientRecordId: clientId,
+        assignedWorkoutId,
+        programId,
+        workoutDate,
+        logs,
+      }),
     });
   } catch (error: any) {
     return res.status(500).json({

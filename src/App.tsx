@@ -1283,8 +1283,10 @@ function App() {
         },
         body: JSON.stringify({
           clientId: selectedClient.id,
+          clientCode: selectedClient.clientCode,
           assignedWorkoutId: selectedWorkout.assignedWorkoutId,
           assignedWorkoutRecordId: selectedWorkout.id,
+          programId: selectedWorkout.programId,
           workoutDate: normalizeDate(String(selectedWorkout.scheduledDate)),
           logs: setLogs,
         }),
@@ -1298,7 +1300,11 @@ function App() {
         return;
       }
 
-      notify("Workout saved to Lark.");
+      if (data.exerciseResults?.errors?.length > 0) {
+        notify("Workout saved, but exercise results need table field review.", "error");
+      } else {
+        notify("Workout saved to Lark.");
+      }
       setSelectedWorkout(null);
       setWorkoutDetails([]);
       setSetLogs([]);
@@ -1941,6 +1947,27 @@ function App() {
     setSavingCheckInClientId(client.id);
 
     try {
+      const checkInResponse = await fetch("/api/checkIns", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          clientId: client.clientCode || client.id,
+          clientRecordId: client.id,
+          submittedDate: today,
+          status: "Submitted",
+          coachReviewed: false,
+        }),
+      });
+      const checkInData = await checkInResponse.json();
+
+      if (!checkInResponse.ok || !checkInData.success) {
+        console.error(checkInData);
+        notify("Could not create check-in record.", "error");
+        return;
+      }
+
       const response = await fetch("/api/updateClient", {
         method: "POST",
         headers: {
