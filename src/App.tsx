@@ -1707,34 +1707,27 @@ function App() {
                   </p>
                 </div>
 
-                <div
-                  style={{
-                    marginBottom: "22px",
-                    padding: "16px",
-                    border: "1px solid rgba(212, 175, 55, 0.22)",
-                    borderRadius: "14px",
-                    display: "flex",
-                    gap: "12px",
-                    alignItems: "center",
-                    flexWrap: "wrap",
-                  }}
-                >
-                  <strong style={{ color: "#f5d77b" }}>Move Workout:</strong>
+                <div className="moveWorkoutPanel">
+                  <div>
+                    <h3>Move Workout Date</h3>
+                    <p>Update this assigned workout's scheduled date.</p>
+                  </div>
 
-                  <input
-                    type="date"
-                    className="miniSearch"
-                    value={editingWorkoutDate}
-                    onChange={(e) => setEditingWorkoutDate(e.target.value)}
-                  />
+                  <div className="moveWorkoutControls">
+                    <input
+                      type="date"
+                      value={editingWorkoutDate}
+                      onChange={(e) => setEditingWorkoutDate(e.target.value)}
+                    />
 
-                  <button
-                    className="outlineButton"
-                    onClick={updateWorkoutDate}
-                    disabled={updatingWorkoutDate}
-                  >
-                    {updatingWorkoutDate ? "Saving..." : "Move Workout"}
-                  </button>
+                    <button
+                      className="outlineButton"
+                      onClick={updateWorkoutDate}
+                      disabled={updatingWorkoutDate || !editingWorkoutDate}
+                    >
+                      {updatingWorkoutDate ? "Saving..." : "Move Workout"}
+                    </button>
+                  </div>
                 </div>
 
                 <h3>Workout Logging</h3>

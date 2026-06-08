@@ -600,6 +600,45 @@ body {
   margin-bottom: 22px;
 }
 
+.moveWorkoutPanel {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+  border: 1px solid rgba(212, 175, 55, 0.28);
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 22px;
+  background: rgba(212, 175, 55, 0.06);
+}
+
+.moveWorkoutPanel h3 {
+  margin: 0 0 4px;
+  color: #f5d77b;
+}
+
+.moveWorkoutPanel p {
+  margin: 0;
+  color: #aaa;
+}
+
+.moveWorkoutControls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.moveWorkoutControls input {
+  min-width: 180px;
+  padding: 13px;
+  border-radius: 12px;
+  background: #050505;
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  color: white;
+  font-size: 16px;
+}
+
 .exercise-card {
   border: 1px solid rgba(212, 175, 55, 0.25);
   border-radius: 14px;
@@ -707,6 +746,21 @@ body {
   .setLogHeader,
   .setLogRow {
     grid-template-columns: 1fr;
+  }
+
+  .moveWorkoutPanel {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .moveWorkoutControls {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .moveWorkoutControls input,
+  .moveWorkoutControls button {
+    width: 100%;
   }
 }.exercise-card label {
   display: flex;
