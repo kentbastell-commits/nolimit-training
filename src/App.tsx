@@ -135,11 +135,45 @@ function addDays(dateString: string, days: number) {
   return dateToInputValue(date);
 }
 
+function addMonths(dateString: string, months: number) {
+  const date = new Date(dateString + "T00:00:00");
+  date.setMonth(date.getMonth() + months);
+  return dateToInputValue(date);
+}
+
+function getMonthDates(dateString: string) {
+  const date = new Date(dateString + "T00:00:00");
+  const year = date.getFullYear();
+  const month = date.getMonth();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  return Array.from({ length: daysInMonth }, (_, index) =>
+    dateToInputValue(new Date(year, month, index + 1))
+  );
+}
+
 function formatCalendarLabel(dateString: string) {
   return new Date(dateString + "T00:00:00").toLocaleDateString("en-US", {
     weekday: "short",
     month: "short",
     day: "numeric",
+  });
+}
+
+function formatCalendarRangeLabel(view: CalendarView, anchorDate: string) {
+  if (view === "1 Day") {
+    return formatCalendarLabel(anchorDate);
+  }
+
+  if (view === "1 Week") {
+    return `${formatCalendarLabel(anchorDate)} - ${formatCalendarLabel(
+      addDays(anchorDate, 6)
+    )}`;
+  }
+
+  return new Date(anchorDate + "T00:00:00").toLocaleDateString("en-US", {
+    month: "long",
+    year: "numeric",
   });
 }
 
@@ -159,6 +193,9 @@ function App() {
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [clientTab, setClientTab] = useState<ClientTab>("Overview");
   const [calendarView, setCalendarView] = useState<CalendarView>("1 Week");
+  const [calendarAnchorDate, setCalendarAnchorDate] = useState(
+    dateToInputValue(new Date())
+  );
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [selectedWorkout, setSelectedWorkout] = useState<Workout | null>(null);
   const [workoutDetails, setWorkoutDetails] = useState<ExerciseDetail[]>([]);
@@ -812,47 +849,31 @@ function App() {
 
   const calendarDates =
     calendarView === "1 Day"
-      ? ["2026-05-27"]
+      ? [calendarAnchorDate]
       : calendarView === "1 Week"
-      ? [
-          "2026-05-27",
-          "2026-05-28",
-          "2026-05-29",
-          "2026-05-30",
-          "2026-05-31",
-          "2026-06-01",
-          "2026-06-02",
-        ]
-      : [
-          "2026-05-27",
-          "2026-05-28",
-          "2026-05-29",
-          "2026-05-30",
-          "2026-05-31",
-          "2026-06-01",
-          "2026-06-02",
-          "2026-06-03",
-          "2026-06-04",
-          "2026-06-05",
-          "2026-06-06",
-          "2026-06-07",
-          "2026-06-08",
-          "2026-06-09",
-          "2026-06-10",
-          "2026-06-11",
-          "2026-06-12",
-          "2026-06-13",
-          "2026-06-14",
-          "2026-06-15",
-          "2026-06-16",
-          "2026-06-17",
-          "2026-06-18",
-          "2026-06-19",
-          "2026-06-20",
-          "2026-06-21",
-          "2026-06-22",
-          "2026-06-23",
-        ];
+      ? Array.from({ length: 7 }, (_, index) =>
+          addDays(calendarAnchorDate, index)
+        )
+      : getMonthDates(calendarAnchorDate);
+
+  const calendarRangeLabel = formatCalendarRangeLabel(
+    calendarView,
+    calendarAnchorDate
+  );
+
+  const moveCalendarRange = (direction: -1 | 1) => {
+    if (calendarView === "1 Day") {
+      setCalendarAnchorDate(addDays(calendarAnchorDate, direction));
+      return;
+    }
+
+    if (calendarView === "1 Week") {
+      setCalendarAnchorDate(addDays(calendarAnchorDate, direction * 7));
+      return;
+    }
+
+    setCalendarAnchorDate(addMonths(calendarAnchorDate, direction));
+  };
 
   function getWorkoutsForDate(dateString: string) {
     return workouts.filter(
@@ -1572,6 +1593,37 @@ function App() {
                         )
                       )}
                     </div>
+                  </div>
+
+                  <div className="calendarNavigator">
+                    <button
+                      className="outlineButton"
+                      onClick={() => moveCalendarRange(-1)}
+                    >
+                      Previous
+                    </button>
+
+                    <strong>{calendarRangeLabel}</strong>
+
+                    <button
+                      className="outlineButton"
+                      onClick={() => moveCalendarRange(1)}
+                    >
+                      Next
+                    </button>
+
+                    <button
+                      className="outlineButton"
+                      onClick={() => setCalendarAnchorDate(dateToInputValue(new Date()))}
+                    >
+                      Today
+                    </button>
+
+                    <input
+                      type="date"
+                      value={calendarAnchorDate}
+                      onChange={(e) => setCalendarAnchorDate(e.target.value)}
+                    />
                   </div>
 
                   <section className="assignProgramPanel">
