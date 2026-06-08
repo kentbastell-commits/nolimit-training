@@ -5,6 +5,13 @@ type Page = "Clients" | "Library" | "Workouts" | "Check-ins";
 type ClientTab = "Overview" | "Training";
 type CalendarView = "1 Day" | "1 Week" | "1 Month";
 type WorkoutPageTab = "Saved Programs" | "Builder";
+type ToastType = "success" | "error" | "info";
+
+type Toast = {
+  id: number;
+  type: ToastType;
+  message: string;
+};
 
 type Client = {
   id: string;
@@ -204,7 +211,10 @@ function App() {
   const [clientSearch, setClientSearch] = useState("");
   const [clientStatusFilter, setClientStatusFilter] = useState("All");
   const [showAddClientModal, setShowAddClientModal] = useState(false);
+  const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [savingClient, setSavingClient] = useState(false);
+  const [updatingClientStatus, setUpdatingClientStatus] = useState(false);
+  const [toasts, setToasts] = useState<Toast[]>([]);
   const [newClient, setNewClient] = useState({
     name: "",
     email: "",
@@ -278,6 +288,58 @@ function App() {
   >([]);
   const [programSessions, setProgramSessions] = useState<ProgramSession[]>([]);
   const [savingTemplate, setSavingTemplate] = useState(false);
+
+  const notify = (message: string, type: ToastType = "info") => {
+    const id = Date.now() + Math.random();
+
+    setToasts((prev) => [...prev, { id, type, message }]);
+    window.setTimeout(() => {
+      setToasts((prev) => prev.filter((toast) => toast.id !== id));
+    }, 4200);
+  };
+
+  const closeClientForm = () => {
+    setShowAddClientModal(false);
+    setEditingClient(null);
+    setNewClient({
+      name: "",
+      email: "",
+      phone: "",
+      coach: "Kent Bastell",
+      packageType: "Active",
+      startDate: dateToInputValue(new Date()),
+      notes: "",
+    });
+  };
+
+  const openNewClientForm = () => {
+    setEditingClient(null);
+    setNewClient({
+      name: "",
+      email: "",
+      phone: "",
+      coach: "Kent Bastell",
+      packageType: "Active",
+      startDate: dateToInputValue(new Date()),
+      notes: "",
+    });
+    setShowAddClientModal(true);
+  };
+
+  const openEditClientForm = (client: Client) => {
+    setEditingClient(client);
+    setNewClient({
+      name: client.name,
+      email: client.email || "",
+      phone: client.phone || "",
+      coach: client.coach || "Kent Bastell",
+      packageType: client.status || "Active",
+      startDate:
+        client.startDate && client.startDate !== "--" ? client.startDate : "",
+      notes: client.notes || "",
+    });
+    setShowAddClientModal(true);
+  };
 
   const loadClients = async () => {
     setLoading(true);
@@ -412,14 +474,14 @@ function App() {
 
       if (!response.ok) {
         console.error(data);
-        alert("Could not load saved program templates.");
+        notify("Could not load saved program templates.");
         return;
       }
 
       setSavedProgramTemplates(data.templates || []);
     } catch (error) {
       console.error(error);
-      alert("Could not load saved program templates.");
+      notify("Could not load saved program templates.");
     } finally {
       setSavedTemplatesLoading(false);
     }
@@ -427,12 +489,12 @@ function App() {
 
   const loadSavedProgramSessionsForAssignment = async () => {
     if (!selectedSavedProgram) {
-      alert("Please select a program.");
+      notify("Please select a program.");
       return;
     }
 
     if (!savedAssignStartDate) {
-      alert("Please choose a start date.");
+      notify("Please choose a start date.");
       return;
     }
 
@@ -449,7 +511,7 @@ function App() {
 
         if (!response.ok) {
           console.error(data);
-          alert("Could not load program templates.");
+          notify("Could not load program templates.");
           return;
         }
 
@@ -479,7 +541,7 @@ function App() {
       setSavedAssignableWorkouts(Array.from(uniqueSessionsMap.values()));
     } catch (error) {
       console.error(error);
-      alert("Could not load program sessions.");
+      notify("Could not load program sessions.");
     } finally {
       setSavedAssignLoading(false);
     }
@@ -500,12 +562,12 @@ function App() {
     const client = clients.find((item) => item.id === savedAssignClientId);
 
     if (!client || !selectedSavedProgram) {
-      alert("Please select a client and program.");
+      notify("Please select a client and program.");
       return;
     }
 
     if (savedAssignableWorkouts.length === 0) {
-      alert("Please load sessions first.");
+      notify("Please load sessions first.");
       return;
     }
 
@@ -533,15 +595,15 @@ function App() {
 
       if (!response.ok || !data.success) {
         console.error(data);
-        alert("Could not assign program. Check API response.");
+        notify("Could not assign program. Check API response.");
         return;
       }
 
-      alert(`Program assigned to ${client.name}. Workouts created: ${data.recordsCreated}`);
+      notify(`Program assigned to ${client.name}. Workouts created: ${data.recordsCreated}`);
       setSavedAssignableWorkouts([]);
     } catch (error) {
       console.error(error);
-      alert("Could not assign program.");
+      notify("Could not assign program.");
     } finally {
       setSavedAssigningProgram(false);
     }
@@ -549,7 +611,7 @@ function App() {
 
   const loadSavedProgramIntoBuilder = async () => {
     if (!selectedSavedProgram) {
-      alert("Please select a program.");
+      notify("Please select a program.");
       return;
     }
 
@@ -563,7 +625,7 @@ function App() {
 
       if (!templateResponse.ok) {
         console.error(templateData);
-        alert("Could not load program templates.");
+        notify("Could not load program templates.");
         return;
       }
 
@@ -629,10 +691,10 @@ function App() {
       setSessionName("");
       setWorkoutPageTab("Builder");
 
-      alert("Program loaded into builder. Saving will create a new program version.");
+      notify("Program loaded into builder. Saving will create a new program version.");
     } catch (error) {
       console.error(error);
-      alert("Could not load program into builder.");
+      notify("Could not load program into builder.");
     } finally {
       setSavedTemplatesLoading(false);
     }
@@ -640,12 +702,12 @@ function App() {
 
   const loadProgramSessionsForAssignment = async () => {
     if (!selectedAssignProgram) {
-      alert("Please select a program.");
+      notify("Please select a program.");
       return;
     }
 
     if (!assignStartDate) {
-      alert("Please choose a start date.");
+      notify("Please choose a start date.");
       return;
     }
 
@@ -660,7 +722,7 @@ function App() {
 
       if (!res.ok) {
         console.error(data);
-        alert("Could not load program templates.");
+        notify("Could not load program templates.");
         return;
       }
 
@@ -687,7 +749,7 @@ function App() {
       setAssignableWorkouts(Array.from(uniqueSessionsMap.values()));
     } catch (err) {
       console.error(err);
-      alert("Could not load program sessions.");
+      notify("Could not load program sessions.");
     } finally {
       setAssignLoading(false);
     }
@@ -703,12 +765,12 @@ function App() {
 
   const assignProgramToClient = async () => {
     if (!selectedClient || !selectedAssignProgram) {
-      alert("Please select a client and program.");
+      notify("Please select a client and program.");
       return;
     }
 
     if (assignableWorkouts.length === 0) {
-      alert("Please load program sessions first.");
+      notify("Please load program sessions first.");
       return;
     }
 
@@ -736,11 +798,11 @@ function App() {
 
       if (!response.ok || !data.success) {
         console.error(data);
-        alert("Could not assign program. Check API response.");
+        notify("Could not assign program. Check API response.");
         return;
       }
 
-      alert(`Program assigned. Workouts created: ${data.recordsCreated}`);
+      notify(`Program assigned. Workouts created: ${data.recordsCreated}`);
       setAssignableWorkouts([]);
 
       const refresh = await fetch(`/api/workouts?clientCode=${selectedClient.clientCode}`);
@@ -748,7 +810,7 @@ function App() {
       setWorkouts(refreshData.workouts || []);
     } catch (error) {
       console.error(error);
-      alert("Could not assign program.");
+      notify("Could not assign program.");
     } finally {
       setAssigningProgram(false);
     }
@@ -839,17 +901,17 @@ function App() {
 
       if (!response.ok) {
         console.error(data);
-        alert("Could not save workout. Check API response.");
+        notify("Could not save workout. Check API response.");
         return;
       }
 
-      alert("Workout saved to Lark.");
+      notify("Workout saved to Lark.");
       setSelectedWorkout(null);
       setWorkoutDetails([]);
       setSetLogs([]);
     } catch (error) {
       console.error(error);
-      alert("Could not save workout.");
+      notify("Could not save workout.");
     } finally {
       setSavingWorkout(false);
     }
@@ -888,7 +950,7 @@ function App() {
     try {
       await updateAssignedWorkoutScheduledDate(selectedWorkout.id, editingWorkoutDate);
 
-      alert("Workout date updated.");
+      notify("Workout date updated.");
 
       const refresh = await fetch(`/api/workouts?clientCode=${selectedClient.clientCode}`);
       const refreshData = await refresh.json();
@@ -897,7 +959,7 @@ function App() {
       setSelectedWorkout(null);
     } catch (error) {
       console.error(error);
-      alert("Could not update workout date.");
+      notify("Could not update workout date.");
     } finally {
       setUpdatingWorkoutDate(false);
     }
@@ -930,7 +992,7 @@ function App() {
     } catch (error) {
       console.error(error);
       setWorkouts(previousWorkouts);
-      alert("Could not move workout. The calendar has been restored.");
+      notify("Could not move workout. The calendar has been restored.");
     } finally {
       setMovingWorkoutId("");
       setDraggingWorkoutId("");
@@ -988,12 +1050,12 @@ function App() {
 
   const addCurrentSessionToProgram = () => {
     if (!programWeek || !programDay || !sessionName) {
-      alert("Please fill Week, Day, and Session Name.");
+      notify("Please fill Week, Day, and Session Name.");
       return;
     }
 
     if (selectedProgramExercises.length === 0) {
-      alert("Please add at least one exercise to this session.");
+      notify("Please add at least one exercise to this session.");
       return;
     }
 
@@ -1030,12 +1092,12 @@ function App() {
 
   const saveFullProgram = async () => {
     if (!programName) {
-      alert("Please fill Program Name.");
+      notify("Please fill Program Name.");
       return;
     }
 
     if (programSessions.length === 0 && selectedProgramExercises.length === 0) {
-      alert("Please add at least one session.");
+      notify("Please add at least one session.");
       return;
     }
 
@@ -1043,7 +1105,7 @@ function App() {
 
     if (selectedProgramExercises.length > 0) {
       if (!programWeek || !programDay || !sessionName) {
-        alert("Current session has exercises but is missing Week, Day, or Session Name.");
+        notify("Current session has exercises but is missing Week, Day, or Session Name.");
         return;
       }
 
@@ -1084,7 +1146,7 @@ function App() {
 
       if (!programResponse.ok || !programData.success) {
         console.error(programData);
-        alert("Could not create program. Check API response.");
+        notify("Could not create program. Check API response.");
         return;
       }
 
@@ -1115,7 +1177,7 @@ function App() {
 
         if (!templateResponse.ok || !templateData.success) {
           console.error(templateData);
-          alert(
+          notify(
             `Program was created, but session "${session.sessionName}" failed. Check API response.`
           );
           return;
@@ -1124,7 +1186,7 @@ function App() {
         totalRecordsCreated += Number(templateData.recordsCreated || 0);
       }
 
-      alert(
+      notify(
         `Program saved: ${programData.programId}. Sessions: ${sessionsToSave.length}. Template records created: ${totalRecordsCreated}`
       );
 
@@ -1143,7 +1205,7 @@ function App() {
       loadPrograms();
     } catch (error) {
       console.error(error);
-      alert("Could not save full program.");
+      notify("Could not save full program.");
     } finally {
       setSavingTemplate(false);
     }
@@ -1203,48 +1265,109 @@ function App() {
   const premiumClientCount = clients.filter((client) =>
     client.status.toLowerCase().includes("premium")
   ).length;
+  const pausedClientCount = clients.filter((client) =>
+    client.status.toLowerCase().includes("paused")
+  ).length;
+  const missingContactCount = clients.filter(
+    (client) => !client.email && !client.phone
+  ).length;
 
-  const saveNewClient = async () => {
+  const refreshSelectedClient = (updatedClients: Client[]) => {
+    if (!selectedClient) return;
+
+    const updatedSelectedClient = updatedClients.find(
+      (client) => client.id === selectedClient.id
+    );
+
+    if (updatedSelectedClient) {
+      setSelectedClient(updatedSelectedClient);
+    }
+  };
+
+  const saveClientForm = async () => {
     if (!newClient.name.trim()) {
-      alert("Please enter a client name.");
+      notify("Please enter a client name.", "error");
       return;
     }
 
     setSavingClient(true);
 
     try {
-      const response = await fetch("/api/createClient", {
+      const response = await fetch(
+        editingClient ? "/api/updateClient" : "/api/createClient",
+        {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(newClient),
+          body: JSON.stringify(
+            editingClient
+              ? { ...newClient, clientRecordId: editingClient.id }
+              : newClient
+          ),
+        }
+      );
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        console.error(data);
+        notify("Could not save client. Check API response.", "error");
+        return;
+      }
+
+      const clientsResponse = await fetch("/api/clients");
+      const clientsData = await clientsResponse.json();
+      const refreshedClients = clientsData.clients || [];
+
+      setClients(refreshedClients);
+      refreshSelectedClient(refreshedClients);
+      closeClientForm();
+      notify(
+        editingClient ? "Client updated." : `Client created: ${data.clientId}`,
+        "success"
+      );
+    } catch (error) {
+      console.error(error);
+      notify("Could not save client.", "error");
+    } finally {
+      setSavingClient(false);
+    }
+  };
+
+  const updateClientPackage = async (client: Client, packageType: string) => {
+    setUpdatingClientStatus(true);
+
+    try {
+      const response = await fetch("/api/updateClient", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          clientRecordId: client.id,
+          packageType,
+        }),
       });
       const data = await response.json();
 
       if (!response.ok || !data.success) {
         console.error(data);
-        alert("Could not create client. Check API response.");
+        notify("Could not update client status.", "error");
         return;
       }
 
-      await loadClients();
-      setShowAddClientModal(false);
-      setNewClient({
-        name: "",
-        email: "",
-        phone: "",
-        coach: "Kent Bastell",
-        packageType: "Active",
-        startDate: dateToInputValue(new Date()),
-        notes: "",
-      });
-      alert(`Client created: ${data.clientId}`);
+      const clientsResponse = await fetch("/api/clients");
+      const clientsData = await clientsResponse.json();
+      const refreshedClients = clientsData.clients || [];
+
+      setClients(refreshedClients);
+      refreshSelectedClient(refreshedClients);
+      notify(`Client marked ${packageType}.`, "success");
     } catch (error) {
       console.error(error);
-      alert("Could not create client.");
+      notify("Could not update client status.", "error");
     } finally {
-      setSavingClient(false);
+      setUpdatingClientStatus(false);
     }
   };
 
@@ -1329,6 +1452,14 @@ function App() {
       </aside>
 
       <main className="main">
+        <div className="toastStack">
+          {toasts.map((toast) => (
+            <div className={`toast toast-${toast.type}`} key={toast.id}>
+              {toast.message}
+            </div>
+          ))}
+        </div>
+
         {!selectedClient && (
           <>
             <header className="topbar">
@@ -1340,7 +1471,7 @@ function App() {
               {activePage === "Clients" && (
                 <button
                   className="goldButton"
-                  onClick={() => setShowAddClientModal(true)}
+                  onClick={openNewClientForm}
                 >
                   + Add Client
                 </button>
@@ -1375,8 +1506,12 @@ function App() {
                     <strong>{premiumClientCount}</strong>
                   </div>
                   <div className="clientStat">
-                    <span>Visible</span>
-                    <strong>{filteredClients.length}</strong>
+                    <span>Paused</span>
+                    <strong>{pausedClientCount}</strong>
+                  </div>
+                  <div className="clientStat">
+                    <span>Needs Contact</span>
+                    <strong>{missingContactCount}</strong>
                   </div>
                 </section>
 
@@ -2190,6 +2325,30 @@ function App() {
                     {selectedClient.status} • {selectedClient.program}
                   </p>
                 </div>
+                <div className="clientProfileActions">
+                  <button
+                    className="outlineButton"
+                    onClick={() => openEditClientForm(selectedClient)}
+                  >
+                    Edit Client
+                  </button>
+
+                  <button
+                    className="outlineButton"
+                    onClick={() => updateClientPackage(selectedClient, "Paused")}
+                    disabled={updatingClientStatus}
+                  >
+                    Pause
+                  </button>
+
+                  <button
+                    className="outlineButton"
+                    onClick={() => updateClientPackage(selectedClient, "Archived")}
+                    disabled={updatingClientStatus}
+                  >
+                    Archive
+                  </button>
+                </div>
               </div>
 
               <div className="clientTabs">
@@ -2466,13 +2625,17 @@ function App() {
             <div className="clientFormModal">
               <div className="modal-header">
                 <div>
-                  <h2>Add Client</h2>
-                  <p>Create a client record in Lark.</p>
+                  <h2>{editingClient ? "Edit Client" : "Add Client"}</h2>
+                  <p>
+                    {editingClient
+                      ? "Update this client record in Lark."
+                      : "Create a client record in Lark."}
+                  </p>
                 </div>
 
                 <button
                   className="drawerClose"
-                  onClick={() => setShowAddClientModal(false)}
+                  onClick={closeClientForm}
                 >
                   x
                 </button>
@@ -2564,17 +2727,23 @@ function App() {
               <div className="modalActions">
                 <button
                   className="outlineButton"
-                  onClick={() => setShowAddClientModal(false)}
+                  onClick={closeClientForm}
                 >
                   Cancel
                 </button>
 
                 <button
                   className="goldButton"
-                  onClick={saveNewClient}
+                  onClick={saveClientForm}
                   disabled={savingClient}
                 >
-                  {savingClient ? "Creating..." : "Create Client"}
+                  {savingClient
+                    ? editingClient
+                      ? "Saving..."
+                      : "Creating..."
+                    : editingClient
+                    ? "Save Client"
+                    : "Create Client"}
                 </button>
               </div>
             </div>
@@ -2768,3 +2937,4 @@ function App() {
 }
 
 export default App;
+

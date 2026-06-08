@@ -137,6 +137,38 @@ body {
   padding: 32px;
 }
 
+.toastStack {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  z-index: 1200;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(380px, calc(100vw - 36px));
+}
+
+.toast {
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  border-radius: 8px;
+  padding: 12px 14px;
+  background: #080808;
+  color: white;
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.55);
+}
+
+.toast-success {
+  border-color: rgba(124, 255, 151, 0.45);
+}
+
+.toast-error {
+  border-color: rgba(255, 120, 120, 0.55);
+}
+
+.toast-info {
+  border-color: rgba(212, 175, 55, 0.45);
+}
+
 .topbar {
   display: flex;
   justify-content: space-between;
@@ -558,6 +590,18 @@ body {
   align-items: center;
   gap: 18px;
   margin: 24px 0;
+}
+
+.clientProfileActions {
+  display: flex;
+  gap: 10px;
+  margin-left: auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.clientProfileActions .outlineButton {
+  padding: 10px 12px;
 }
 
 .clientTop h1 {
@@ -1204,6 +1248,21 @@ body {
 
   .clientTop h1 {
     font-size: 30px;
+  }
+
+  .clientTop,
+  .clientProfileActions {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .clientProfileActions {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .clientProfileActions button {
+    width: 100%;
   }
 
   .calendarControls {
