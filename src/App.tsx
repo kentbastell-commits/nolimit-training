@@ -215,16 +215,30 @@ function getStatusClass(status: string) {
 }
 
 function App() {
+  const inviteSearchParams = new URLSearchParams(window.location.search);
+  const isClientInvite = inviteSearchParams.get("invite") === "client";
+  const publicInvitePackage = inviteSearchParams.get("package") || "Pending";
   const [activePage, setActivePage] = useState<Page>("Clients");
   const [clients, setClients] = useState<Client[]>([]);
   const [clientSearch, setClientSearch] = useState("");
   const [clientStatusFilter, setClientStatusFilter] = useState("All");
   const [clientBucket, setClientBucket] = useState<ClientBucket>("All Clients");
   const [showAddClientModal, setShowAddClientModal] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [savingClient, setSavingClient] = useState(false);
   const [updatingClientStatus, setUpdatingClientStatus] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const [coachInvitePackage, setCoachInvitePackage] = useState("Pending");
+  const [inviteForm, setInviteForm] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    goals: "",
+    notes: "",
+  });
+  const [submittingInvite, setSubmittingInvite] = useState(false);
+  const [inviteSubmitted, setInviteSubmitted] = useState(false);
   const [newClient, setNewClient] = useState({
     name: "",
     email: "",
@@ -306,6 +320,88 @@ function App() {
     window.setTimeout(() => {
       setToasts((prev) => prev.filter((toast) => toast.id !== id));
     }, 4200);
+  };
+
+  const buildInviteLink = (packageType = coachInvitePackage) => {
+    const params = new URLSearchParams({
+      invite: "client",
+      package: packageType,
+    });
+
+    return `${window.location.origin}/?${params.toString()}`;
+  };
+
+  const coachInviteLink = buildInviteLink();
+  const coachInviteMessage = `Hi, here is your NoLimit Training onboarding link. Please fill this out before we get started: ${coachInviteLink}`;
+
+  const copyToClipboard = async (text: string, label: string) => {
+    if (!navigator.clipboard) {
+      notify("Clipboard is not available in this browser.", "error");
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(text);
+      notify(`${label} copied.`, "success");
+    } catch (error) {
+      console.error(error);
+      notify(`Could not copy ${label.toLowerCase()}.`, "error");
+    }
+  };
+
+  const submitInviteForm = async () => {
+    if (!inviteForm.name.trim()) {
+      notify("Please enter your name.", "error");
+      return;
+    }
+
+    if (!inviteForm.email.trim() && !inviteForm.phone.trim()) {
+      notify("Please add an email or phone/WeChat.", "error");
+      return;
+    }
+
+    setSubmittingInvite(true);
+
+    try {
+      const inviteNotes = [
+        "Created from invite intake.",
+        inviteForm.goals ? `Goal: ${inviteForm.goals}` : "",
+        inviteForm.notes ? `Notes: ${inviteForm.notes}` : "",
+      ]
+        .filter(Boolean)
+        .join("\n");
+
+      const response = await fetch("/api/createClient", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: inviteForm.name,
+          email: inviteForm.email,
+          phone: inviteForm.phone,
+          coach: "Kent Bastell",
+          packageType: publicInvitePackage,
+          startDate: dateToInputValue(new Date()),
+          notes: inviteNotes,
+        }),
+      });
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        console.error(data);
+        notify("Could not submit invite form. Please try again.", "error");
+        return;
+      }
+
+      setInviteSubmitted(true);
+      notify("Your intake form was submitted.", "success");
+    } catch (error) {
+      console.error(error);
+      notify("Could not submit invite form.", "error");
+    } finally {
+      setSubmittingInvite(false);
+    }
   };
 
   const closeClientForm = () => {
@@ -1471,6 +1567,120 @@ function App() {
     );
   }
 
+  if (isClientInvite) {
+    return (
+      <div className="invitePage">
+        <div className="toastStack">
+          {toasts.map((toast) => (
+            <div className={`toast toast-${toast.type}`} key={toast.id}>
+              {toast.message}
+            </div>
+          ))}
+        </div>
+
+        <main className="inviteShell">
+          <div className="inviteBrand">
+            <div>
+              <div className="brandWordmark">
+                N<span className="strikeO">o</span> Limit
+              </div>
+              <div className="brandSub">Training</div>
+            </div>
+            <span>{publicInvitePackage}</span>
+          </div>
+
+          {inviteSubmitted ? (
+            <section className="inviteSuccess">
+              <h1>You're In</h1>
+              <p>
+                Your intake form has been sent to Kent. He will review your
+                details and follow up with the next step.
+              </p>
+            </section>
+          ) : (
+            <section className="inviteCard">
+              <div className="inviteIntro">
+                <h1>Client Intake</h1>
+                <p>
+                  Share the basics so your training profile can be set up before
+                  your first program is assigned.
+                </p>
+              </div>
+
+              <div className="inviteFormGrid">
+                <label>
+                  <span>Full Name</span>
+                  <input
+                    value={inviteForm.name}
+                    onChange={(e) =>
+                      setInviteForm({ ...inviteForm, name: e.target.value })
+                    }
+                    placeholder="Your name"
+                  />
+                </label>
+
+                <label>
+                  <span>Email</span>
+                  <input
+                    type="email"
+                    value={inviteForm.email}
+                    onChange={(e) =>
+                      setInviteForm({ ...inviteForm, email: e.target.value })
+                    }
+                    placeholder="email@example.com"
+                  />
+                </label>
+
+                <label>
+                  <span>Phone / WeChat</span>
+                  <input
+                    value={inviteForm.phone}
+                    onChange={(e) =>
+                      setInviteForm({ ...inviteForm, phone: e.target.value })
+                    }
+                    placeholder="Best contact"
+                  />
+                </label>
+
+                <label>
+                  <span>Main Goal</span>
+                  <input
+                    value={inviteForm.goals}
+                    onChange={(e) =>
+                      setInviteForm({ ...inviteForm, goals: e.target.value })
+                    }
+                    placeholder="Strength, climbing, fat loss..."
+                  />
+                </label>
+
+                <label className="inviteWideField">
+                  <span>Anything Kent should know?</span>
+                  <textarea
+                    value={inviteForm.notes}
+                    onChange={(e) =>
+                      setInviteForm({ ...inviteForm, notes: e.target.value })
+                    }
+                    placeholder="Training history, injuries, schedule, equipment..."
+                  />
+                </label>
+              </div>
+
+              <div className="inviteActions">
+                <button
+                  className="goldButton"
+                  onClick={submitInviteForm}
+                  disabled={submittingInvite}
+                >
+                  {submittingInvite ? "Submitting..." : "Submit Intake"}
+                </button>
+              </div>
+            </section>
+          )}
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="app">
       <aside className="sidebar">
@@ -1544,7 +1754,7 @@ function App() {
                   </button>
                   <button
                     className="outlineButton"
-                    onClick={() => notify("Invite link workflow is coming next.")}
+                    onClick={() => setShowInviteModal(true)}
                   >
                     Invite Client
                   </button>
@@ -1621,7 +1831,7 @@ function App() {
                       <button
                         className="outlineButton"
                         onClick={() =>
-                          notify("Client invite link can be connected next.")
+                          copyToClipboard(coachInviteLink, "Invite link")
                         }
                       >
                         Copy Invite
@@ -2766,6 +2976,84 @@ function App() {
                 </div>
               )}
             </section>
+          </div>
+        )}
+
+        {showInviteModal && (
+          <div className="workout-modal-overlay">
+            <div className="clientFormModal inviteModal">
+              <div className="modal-header">
+                <div>
+                  <h2>Invite Client</h2>
+                  <p>
+                    Send a private onboarding link that creates a pending client
+                    record when submitted.
+                  </p>
+                </div>
+
+                <button
+                  className="drawerClose"
+                  onClick={() => setShowInviteModal(false)}
+                >
+                  x
+                </button>
+              </div>
+
+              <div className="clientFormGrid">
+                <label>
+                  <span>Default Status</span>
+                  <select
+                    value={coachInvitePackage}
+                    onChange={(e) => setCoachInvitePackage(e.target.value)}
+                  >
+                    <option>Pending</option>
+                    <option>Active</option>
+                    <option>Premium</option>
+                    <option>Online Coaching</option>
+                  </select>
+                </label>
+
+                <label className="clientNotesField">
+                  <span>Invite Link</span>
+                  <div className="inviteCopyRow">
+                    <input value={coachInviteLink} readOnly />
+                    <button
+                      className="outlineButton"
+                      onClick={() =>
+                        copyToClipboard(coachInviteLink, "Invite link")
+                      }
+                    >
+                      Copy
+                    </button>
+                  </div>
+                </label>
+
+                <label className="clientNotesField">
+                  <span>Message</span>
+                  <textarea value={coachInviteMessage} readOnly />
+                </label>
+              </div>
+
+              <div className="modalActions">
+                <button
+                  className="outlineButton"
+                  onClick={() =>
+                    copyToClipboard(coachInviteMessage, "Invite message")
+                  }
+                >
+                  Copy Message
+                </button>
+
+                <button
+                  className="goldButton"
+                  onClick={() =>
+                    copyToClipboard(coachInviteLink, "Invite link")
+                  }
+                >
+                  Copy Link
+                </button>
+              </div>
+            </div>
           </div>
         )}
 

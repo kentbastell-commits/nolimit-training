@@ -9,6 +9,98 @@ body {
   color: #f7e4a3;
 }
 
+.invitePage {
+  min-height: 100vh;
+  background: radial-gradient(circle at top, #18120a 0%, #050505 48%, #000 100%);
+  color: #f7e4a3;
+  padding: 28px;
+}
+
+.inviteShell {
+  width: min(860px, 100%);
+  margin: 0 auto;
+}
+
+.inviteBrand {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 28px;
+}
+
+.inviteBrand span {
+  border: 1px solid rgba(212, 175, 55, 0.42);
+  border-radius: 999px;
+  padding: 8px 14px;
+  color: #f5d77b;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.inviteCard,
+.inviteSuccess {
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.62);
+  box-shadow: 0 24px 90px rgba(0, 0, 0, 0.5);
+  padding: 28px;
+}
+
+.inviteIntro h1,
+.inviteSuccess h1 {
+  margin: 0;
+  color: #f5d77b;
+  font-size: 42px;
+}
+
+.inviteIntro p,
+.inviteSuccess p {
+  color: #bbb;
+  line-height: 1.5;
+  max-width: 620px;
+}
+
+.inviteFormGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 22px;
+}
+
+.inviteFormGrid label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  color: #f5d77b;
+  font-weight: bold;
+}
+
+.inviteFormGrid input,
+.inviteFormGrid textarea {
+  width: 100%;
+  background: #050505;
+  color: white;
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 15px;
+}
+
+.inviteFormGrid textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.inviteWideField {
+  grid-column: 1 / -1;
+}
+
+.inviteActions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+
 .app {
   display: flex;
   min-height: 100vh;
@@ -1148,6 +1240,20 @@ body {
   grid-column: 1 / -1;
 }
 
+.inviteModal textarea {
+  min-height: 96px;
+}
+
+.inviteCopyRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+}
+
+.inviteCopyRow .outlineButton {
+  padding: 10px 16px;
+}
+
 .modalActions {
   display: flex;
   justify-content: flex-end;
@@ -1459,8 +1565,24 @@ body {
   .assignProgramGrid,
   .arrangeWorkoutRow,
   .savedAssignGrid,
-  .clientFormGrid {
+  .clientFormGrid,
+  .inviteFormGrid,
+  .inviteCopyRow {
     grid-template-columns: 1fr;
+  }
+
+  .invitePage {
+    padding: 18px;
+  }
+
+  .inviteBrand {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .inviteIntro h1,
+  .inviteSuccess h1 {
+    font-size: 34px;
   }
 
   .clientTableHeader {
