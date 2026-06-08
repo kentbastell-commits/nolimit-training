@@ -1059,6 +1059,7 @@ body {
   justify-content: flex-end;
 }
 
+.clientProfileActions .goldButton,
 .clientProfileActions .outlineButton {
   padding: 10px 12px;
 }
@@ -1079,6 +1080,41 @@ body {
   height: 62px;
   min-width: 62px;
   font-size: 20px;
+}
+
+.clientSnapshotGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: -6px 0 20px;
+}
+
+.clientSnapshotCard {
+  min-width: 0;
+  border: 1px solid rgba(212, 175, 55, 0.22);
+  border-radius: 8px;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.32);
+}
+
+.clientSnapshotCard span,
+.clientInfoRows span {
+  display: block;
+  margin-bottom: 5px;
+  color: #aaa;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.clientSnapshotCard strong {
+  display: block;
+  color: #f5d77b;
+  font-size: 15px;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .clientTabs {
@@ -1119,6 +1155,43 @@ body {
 .profileCard h3 {
   margin-top: 0;
   color: #f5d77b;
+}
+
+.clientInfoRows {
+  display: grid;
+  gap: 10px;
+}
+
+.clientInfoRows div {
+  display: grid;
+  grid-template-columns: minmax(110px, 0.45fr) minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.14);
+  padding-bottom: 10px;
+}
+
+.clientInfoRows div:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.clientInfoRows span {
+  margin-bottom: 0;
+}
+
+.clientInfoRows strong {
+  min-width: 0;
+  color: white;
+  font-size: 15px;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.coachNotesPreview {
+  color: #ddd;
+  line-height: 1.5;
+  white-space: pre-wrap;
 }
 
 .profileCard textarea {
@@ -2306,10 +2379,30 @@ body {
   .clientProfileActions {
     margin-left: 0;
     width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
   }
 
   .clientProfileActions button {
     width: 100%;
+  }
+
+  .clientProfileActions .goldButton {
+    grid-column: 1 / -1;
+  }
+
+  .clientSnapshotGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin: 0 0 16px;
+  }
+
+  .clientSnapshotCard {
+    padding: 11px;
+  }
+
+  .clientSnapshotCard strong {
+    font-size: 14px;
   }
 
   .clientTabs {
@@ -2325,6 +2418,15 @@ body {
   .profileCard {
     padding: 16px;
     border-radius: 8px;
+  }
+
+  .clientInfoRows {
+    gap: 8px;
+  }
+
+  .clientInfoRows div {
+    grid-template-columns: 1fr;
+    gap: 3px;
   }
 
   .workoutPageTabs {
@@ -2681,6 +2783,15 @@ body {
     width: 52px;
     height: 52px;
     min-width: 52px;
+  }
+
+  .clientSnapshotGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .clientSnapshotCard span,
+  .clientInfoRows span {
+    font-size: 11px;
   }
 
   .programBuilderPanel .searchRow {

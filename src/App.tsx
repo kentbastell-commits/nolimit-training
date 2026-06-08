@@ -1854,6 +1854,18 @@ function App() {
     }
   };
 
+  const selectedClientCheckInAge = selectedClient
+    ? getCheckInAgeDays(selectedClient)
+    : null;
+  const selectedClientCheckInLabel =
+    selectedClientCheckInAge === null
+      ? "No check-in"
+      : selectedClientCheckInAge === 0
+        ? "Today"
+        : `${selectedClientCheckInAge}d ago`;
+  const selectedClientContact =
+    selectedClient?.email || selectedClient?.phone || "No contact saved";
+
   const saveClientForm = async () => {
     if (!newClient.name.trim()) {
       notify("Please enter a client name.", "error");
@@ -3324,6 +3336,13 @@ function App() {
                 </div>
                 <div className="clientProfileActions">
                   <button
+                    className="goldButton"
+                    onClick={() => setClientTab("Training")}
+                  >
+                    Training
+                  </button>
+
+                  <button
                     className="outlineButton"
                     onClick={() => openEditClientForm(selectedClient)}
                   >
@@ -3348,6 +3367,28 @@ function App() {
                 </div>
               </div>
 
+              <div className="clientSnapshotGrid">
+                <div className="clientSnapshotCard">
+                  <span>Status</span>
+                  <strong>{selectedClient.status || "--"}</strong>
+                </div>
+
+                <div className="clientSnapshotCard">
+                  <span>Program</span>
+                  <strong>{selectedClient.program || "--"}</strong>
+                </div>
+
+                <div className="clientSnapshotCard">
+                  <span>Check-in</span>
+                  <strong>{selectedClientCheckInLabel}</strong>
+                </div>
+
+                <div className="clientSnapshotCard">
+                  <span>Contact</span>
+                  <strong>{selectedClientContact}</strong>
+                </div>
+              </div>
+
               <div className="clientTabs">
                 <button
                   className={clientTab === "Overview" ? "tab activeTab" : "tab"}
@@ -3368,29 +3409,39 @@ function App() {
                 <div className="overviewGrid">
                   <div className="profileCard">
                     <h3>Client Information</h3>
-                    <p>
-                      <strong>Name:</strong> {selectedClient.name}
-                    </p>
-                    <p>
-                      <strong>Email:</strong> {selectedClient.email || "--"}
-                    </p>
-                    <p>
-                      <strong>Phone/WeChat:</strong> {selectedClient.phone || "--"}
-                    </p>
-                    <p>
-                      <strong>Coach:</strong> {selectedClient.coach || "--"}
-                    </p>
-                    <p>
-                      <strong>Package:</strong> {selectedClient.status || "--"}
-                    </p>
-                    <p>
-                      <strong>Start Date:</strong> {selectedClient.startDate || "--"}
-                    </p>
+                    <div className="clientInfoRows">
+                      <div>
+                        <span>Name</span>
+                        <strong>{selectedClient.name}</strong>
+                      </div>
+                      <div>
+                        <span>Email</span>
+                        <strong>{selectedClient.email || "--"}</strong>
+                      </div>
+                      <div>
+                        <span>Phone/WeChat</span>
+                        <strong>{selectedClient.phone || "--"}</strong>
+                      </div>
+                      <div>
+                        <span>Coach</span>
+                        <strong>{selectedClient.coach || "--"}</strong>
+                      </div>
+                      <div>
+                        <span>Package</span>
+                        <strong>{selectedClient.status || "--"}</strong>
+                      </div>
+                      <div>
+                        <span>Start Date</span>
+                        <strong>{selectedClient.startDate || "--"}</strong>
+                      </div>
+                    </div>
                   </div>
 
                   <div className="profileCard">
                     <h3>Coach Notes</h3>
-                    <p>{selectedClient.notes || "No notes yet."}</p>
+                    <p className="coachNotesPreview">
+                      {selectedClient.notes || "No notes yet."}
+                    </p>
                     <textarea placeholder="Add private coach notes here..." />
                   </div>
                 </div>
