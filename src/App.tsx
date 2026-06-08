@@ -319,6 +319,8 @@ function App() {
   const [libraryLoading, setLibraryLoading] = useState(false);
   const [librarySearch, setLibrarySearch] = useState("");
   const [showExerciseModal, setShowExerciseModal] = useState(false);
+  const [technicalCueExercise, setTechnicalCueExercise] =
+    useState<LibraryExercise | null>(null);
   const [editingExercise, setEditingExercise] = useState<LibraryExercise | null>(
     null
   );
@@ -2295,13 +2297,12 @@ function App() {
                   <div
                     className="tableHeader"
                     style={{
-                      gridTemplateColumns: "2fr 1fr 1fr 1fr auto auto",
+                      gridTemplateColumns: "2fr 1fr auto auto auto",
                     }}
                   >
                     <span>Exercise</span>
                     <span>Category</span>
-                    <span>Equipment</span>
-                    <span>Pattern</span>
+                    <span>Technical Cues</span>
                     <span>Video</span>
                     <span>Actions</span>
                   </div>
@@ -2318,7 +2319,7 @@ function App() {
                         className="clientRow"
                         key={exercise.recordId || exercise.exerciseId}
                         style={{
-                          gridTemplateColumns: "2fr 1fr 1fr 1fr auto auto",
+                          gridTemplateColumns: "2fr 1fr auto auto auto",
                         }}
                       >
                         <div className="clientName">
@@ -2338,8 +2339,15 @@ function App() {
                         </div>
 
                         <span>{exercise.category || "--"}</span>
-                        <span>{exercise.equipment || "--"}</span>
-                        <span>{exercise.movementPattern || "--"}</span>
+
+                        <span>
+                          <button
+                            className="outlineButton"
+                            onClick={() => setTechnicalCueExercise(exercise)}
+                          >
+                            Technical Cues
+                          </button>
+                        </span>
 
                         <span>
                           {exercise.videoUrl ? (
@@ -3494,6 +3502,52 @@ function App() {
           </div>
         )}
 
+        {technicalCueExercise && (
+          <div className="workout-modal-overlay">
+            <div className="clientFormModal technicalCueModal">
+              <div className="modal-header">
+                <div>
+                  <h2>{technicalCueExercise.exerciseName}</h2>
+                  <p>Technical cues and form instruction from the exercise library.</p>
+                </div>
+
+                <button
+                  className="drawerClose"
+                  onClick={() => setTechnicalCueExercise(null)}
+                >
+                  x
+                </button>
+              </div>
+
+              <div className="technicalCueBody">
+                {technicalCueExercise.notes ? (
+                  <pre>{technicalCueExercise.notes}</pre>
+                ) : (
+                  <p>No technical cues saved for this exercise yet.</p>
+                )}
+              </div>
+
+              <div className="modalActions">
+                <button
+                  className="outlineButton"
+                  onClick={() => {
+                    setTechnicalCueExercise(null);
+                    openEditExerciseForm(technicalCueExercise);
+                  }}
+                >
+                  Edit Cues
+                </button>
+                <button
+                  className="goldButton"
+                  onClick={() => setTechnicalCueExercise(null)}
+                >
+                  Done
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {showExerciseModal && (
           <div className="workout-modal-overlay">
             <div className="clientFormModal">
@@ -3552,34 +3606,6 @@ function App() {
                       })
                     }
                     placeholder="Strength"
-                  />
-                </label>
-
-                <label>
-                  <span>Equipment</span>
-                  <input
-                    value={exerciseForm.equipment}
-                    onChange={(e) =>
-                      setExerciseForm({
-                        ...exerciseForm,
-                        equipment: e.target.value,
-                      })
-                    }
-                    placeholder="Barbell"
-                  />
-                </label>
-
-                <label>
-                  <span>Movement Pattern</span>
-                  <input
-                    value={exerciseForm.movementPattern}
-                    onChange={(e) =>
-                      setExerciseForm({
-                        ...exerciseForm,
-                        movementPattern: e.target.value,
-                      })
-                    }
-                    placeholder="Squat"
                   />
                 </label>
 
