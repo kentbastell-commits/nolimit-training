@@ -3249,3 +3249,37 @@ body {
     display: block;
   }
 }
+
+@media (hover: hover) and (pointer: fine) {
+  .workoutLogExerciseCard .setLogHeader {
+    display: none !important;
+  }
+
+  .workoutLogExerciseCard .setLogRow {
+    display: grid !important;
+    grid-template-columns: 150px repeat(4, minmax(170px, 220px)) !important;
+    gap: 10px !important;
+    align-items: center !important;
+    padding: 10px !important;
+    border: 1px solid rgba(212, 175, 55, 0.16) !important;
+    border-radius: 8px !important;
+    background: rgba(0, 0, 0, 0.18) !important;
+  }
+
+  .workoutLogExerciseCard .setBanner {
+    grid-column: auto !important;
+    min-height: 58px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  .workoutLogExerciseCard .setLogStatic span,
+  .workoutLogExerciseCard .setLogField span {
+    display: block !important;
+  }
+
+  .workoutLogExerciseCard .limbCell {
+    display: none !important;
+  }
+}
