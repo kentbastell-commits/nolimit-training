@@ -98,7 +98,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     };
 
     const response = await fetch(recordId ? `${tableUrl}/${recordId}` : tableUrl, {
-      method: recordId ? "PATCH" : "POST",
+      method: recordId ? "PUT" : "POST",
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
