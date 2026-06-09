@@ -251,6 +251,99 @@ body {
   display: none;
 }
 
+.portalHidden {
+  display: none;
+}
+
+.clientPortalShell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: radial-gradient(circle at top, #18120a 0%, #050505 48%, #000 100%);
+}
+
+.clientPortalEmpty {
+  width: min(520px, 100%);
+  border: 1px solid rgba(212, 175, 55, 0.32);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.58);
+  padding: 28px;
+  text-align: center;
+}
+
+.clientPortalEmpty h1 {
+  color: #f5d77b;
+  margin: 18px 0 8px;
+  font-size: 34px;
+}
+
+.clientPortalEmpty p {
+  color: #c8c8c8;
+  margin: 0;
+}
+
+.clientPortalApp .sidebar {
+  display: none;
+}
+
+.clientPortalApp .main {
+  width: 100%;
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.clientPortalApp .clientPage {
+  display: block;
+}
+
+.clientPortalApp .clientWorkspace {
+  width: 100%;
+}
+
+.clientPortalApp .mobileClientBottomNav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1200;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+  border-top: 1px solid rgba(212, 175, 55, 0.32);
+  background: rgba(5, 5, 5, 0.96);
+  box-shadow: 0 -18px 40px rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(16px);
+}
+
+.clientPortalApp .mobileClientBottomNav button {
+  min-height: 58px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #f7e4a3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 7px 4px;
+  font-size: 11px;
+  line-height: 1.1;
+  cursor: pointer;
+}
+
+.clientPortalApp .mobileClientBottomNav button.active {
+  background: linear-gradient(
+    180deg,
+    rgba(212, 175, 55, 0.3),
+    rgba(212, 175, 55, 0.08)
+  );
+  border: 1px solid rgba(212, 175, 55, 0.55);
+  color: #f5d77b;
+}
+
 .coachBox {
   position: absolute;
   bottom: 24px;
@@ -1270,6 +1363,86 @@ body {
   margin-top: 18px;
   max-width: 100%;
   overflow: hidden;
+}
+
+.clientPortalTrainingHero {
+  border: 1px solid rgba(212, 175, 55, 0.32);
+  border-radius: 8px;
+  background: rgba(212, 175, 55, 0.08);
+  padding: 18px;
+  margin-bottom: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.clientPortalTrainingHero span {
+  color: #c8c8c8;
+  text-transform: uppercase;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.clientPortalTrainingHero h2 {
+  color: #f5d77b;
+  margin: 4px 0;
+  font-size: 34px;
+  line-height: 1.08;
+}
+
+.clientPortalTrainingHero p {
+  color: #c8c8c8;
+  margin: 0;
+}
+
+.clientPortalWorkoutList {
+  border: 1px solid rgba(212, 175, 55, 0.24);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.035);
+  padding: 16px;
+  margin-bottom: 18px;
+}
+
+.clientPortalWorkoutList h3 {
+  color: #f5d77b;
+  margin: 0 0 12px;
+  font-size: 20px;
+}
+
+.clientPortalWorkoutItem {
+  width: 100%;
+  border: 0;
+  border-top: 1px solid rgba(212, 175, 55, 0.16);
+  background: transparent;
+  color: white;
+  padding: 12px 4px;
+  display: grid;
+  grid-template-columns: 140px minmax(0, 1fr);
+  gap: 10px 16px;
+  align-items: center;
+  text-align: left;
+  cursor: pointer;
+}
+
+.clientPortalWorkoutItem:first-of-type {
+  border-top: 0;
+}
+
+.clientPortalWorkoutItem span {
+  color: #c8c8c8;
+  font-size: 13px;
+}
+
+.clientPortalWorkoutItem strong {
+  color: #f5d77b;
+  font-size: 18px;
+}
+
+.clientPortalWorkoutItem small {
+  grid-column: 2;
+  color: #aaa;
+  font-size: 13px;
 }
 
 .calendarHeader {
@@ -2917,6 +3090,33 @@ body {
 
   .clientPage {
     gap: 16px;
+  }
+
+  .clientPortalTrainingHero {
+    align-items: stretch;
+    flex-direction: column;
+    padding: 14px;
+  }
+
+  .clientPortalTrainingHero h2 {
+    font-size: 28px;
+  }
+
+  .clientPortalTrainingHero .goldButton {
+    width: 100%;
+  }
+
+  .clientPortalWorkoutList {
+    padding: 12px;
+  }
+
+  .clientPortalWorkoutItem {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+
+  .clientPortalWorkoutItem small {
+    grid-column: auto;
   }
 
   .clientPage:not(.trainingFocus) .clientWorkspace {

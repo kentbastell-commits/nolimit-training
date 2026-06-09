@@ -368,6 +368,12 @@ function getStatusClass(status: string) {
 function App() {
   const inviteSearchParams = new URLSearchParams(window.location.search);
   const isClientInvite = inviteSearchParams.get("invite") === "client";
+  const isClientPortal = inviteSearchParams.get("portal") === "client";
+  const clientPortalCode = (
+    inviteSearchParams.get("client") ||
+    inviteSearchParams.get("clientCode") ||
+    ""
+  ).trim();
   const publicInvitePackage = inviteSearchParams.get("package") || "Pending";
   const [activePage, setActivePage] = useState<Page>("Clients");
   const [clients, setClients] = useState<Client[]>([]);
@@ -396,7 +402,7 @@ function App() {
   const [savingClient, setSavingClient] = useState(false);
   const [updatingClientStatus, setUpdatingClientStatus] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
-  const [appMode] = useState<AppMode>("Coach");
+  const appMode: AppMode = isClientPortal ? "Client" : "Coach";
   const [analytics, setAnalytics] = useState<CoachAnalytics | null>(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [showAnalyticsModal, setShowAnalyticsModal] = useState(false);
@@ -528,6 +534,11 @@ function App() {
 
   const coachInviteLink = buildInviteLink();
   const coachInviteMessage = `Hi, here is your NoLimit Training onboarding link. Please fill this out before we get started: ${coachInviteLink}`;
+
+  const buildClientPortalLink = (client: Client) =>
+    `${window.location.origin}/?portal=client&client=${encodeURIComponent(
+      client.clientCode || client.id
+    )}`;
 
   const copyToClipboard = async (text: string, label: string) => {
     if (!navigator.clipboard) {
@@ -680,6 +691,23 @@ function App() {
   useEffect(() => {
     loadClients();
   }, []);
+
+  useEffect(() => {
+    if (!isClientPortal || !clientPortalCode || clients.length === 0) return;
+
+    const normalizedPortalCode = clientPortalCode.toLowerCase();
+    const portalClient = clients.find(
+      (client) =>
+        client.clientCode.toLowerCase() === normalizedPortalCode ||
+        client.id.toLowerCase() === normalizedPortalCode
+    );
+
+    if (portalClient) {
+      setSelectedClient(portalClient);
+      setClientTab("Training");
+      setActivePage("Clients");
+    }
+  }, [clients, clientPortalCode, isClientPortal]);
 
   useEffect(() => {
     const updateWorkoutRowMode = () => {
@@ -2331,6 +2359,23 @@ function App() {
     );
   }
 
+  const todayValue = dateToInputValue(new Date());
+  const clientPortalUpcomingWorkouts = workouts
+    .filter(
+      (workout) =>
+        normalizeDate(String(workout.scheduledDate)) >= todayValue &&
+        !String(workout.completionStatus || "")
+          .toLowerCase()
+          .includes("complete")
+    )
+    .sort(
+      (a, b) =>
+        normalizeDate(String(a.scheduledDate)).localeCompare(
+          normalizeDate(String(b.scheduledDate))
+        ) || Number(a.week) - Number(b.week) || Number(a.day) - Number(b.day)
+    )
+    .slice(0, 5);
+
   if (isClientInvite) {
     return (
       <div className="invitePage">
@@ -2445,8 +2490,40 @@ function App() {
     );
   }
 
+  if (isClientPortal && !selectedClient) {
+    const portalMessage = !clientPortalCode
+      ? "This client portal link is missing a client code."
+      : loading
+      ? "Loading your training portal..."
+      : "We could not find this client portal.";
+
+    return (
+      <div className="clientPortalShell">
+        <div className="toastStack">
+          {toasts.map((toast) => (
+            <div className={`toast toast-${toast.type}`} key={toast.id}>
+              {toast.message}
+            </div>
+          ))}
+        </div>
+
+        <section className="clientPortalEmpty">
+          <div className="brandWordmark">
+            N<span className="brandSlashO">Ø</span> LIMIT
+          </div>
+          <h1>Client Portal</h1>
+          <p>{portalMessage}</p>
+        </section>
+      </div>
+    );
+  }
+
   return (
-    <div className={`app ${selectedClient ? "clientLayerActive" : "coachLayerActive"}`}>
+    <div
+      className={`app ${
+        selectedClient ? "clientLayerActive" : "coachLayerActive"
+      } ${isClientPortal ? "clientPortalApp" : ""}`}
+    >
       <aside className="sidebar">
         <div className="brand">
           <div className="brandWordmark">
@@ -3567,7 +3644,7 @@ function App() {
               clientTab === "Training" ? "clientPage trainingFocus" : "clientPage"
             }
           >
-            {clientTab === "Overview" && (
+            {clientTab === "Overview" && !isClientPortal && (
               <aside className="clientListPanel">
                 <h4>CLIENTS</h4>
                 <h2>All Clients</h2>
@@ -3593,6 +3670,7 @@ function App() {
             )}
 
             <section className="clientWorkspace">
+              {!isClientPortal && (
               <button
                 className="outlineButton"
                 onClick={() => {
@@ -3604,6 +3682,8 @@ function App() {
               >
                 ← Back
               </button>
+
+              )}
 
               <nav className="mobileClientBottomNav" aria-label="Client navigation">
                 <button
@@ -3636,6 +3716,7 @@ function App() {
                     {selectedClient.status} • {selectedClient.program}
                   </p>
                 </div>
+                {!isClientPortal && (
                 <div className="clientProfileActions">
                   <button
                     className="goldButton"
@@ -3652,6 +3733,18 @@ function App() {
                     aria-label={`Open workout analytics for ${selectedClient.name}`}
                   >
                     <BarChart3 size={18} aria-hidden="true" />
+                  </button>
+
+                  <button
+                    className="outlineButton"
+                    onClick={() =>
+                      copyToClipboard(
+                        buildClientPortalLink(selectedClient),
+                        "Client portal link"
+                      )
+                    }
+                  >
+                    Copy Portal
                   </button>
 
                   <button
@@ -3686,6 +3779,7 @@ function App() {
                     <Trash2 size={18} aria-hidden="true" />
                   </button>
                 </div>
+                )}
               </div>
 
               <div className="clientSnapshotGrid">
@@ -3710,7 +3804,7 @@ function App() {
                 </div>
               </div>
 
-              <div className="clientTabs">
+              <div className={isClientPortal ? "clientTabs portalHidden" : "clientTabs"}>
                 <button
                   className={clientTab === "Overview" ? "tab activeTab" : "tab"}
                   onClick={() => setClientTab("Overview")}
@@ -3758,6 +3852,7 @@ function App() {
                     </div>
                   </div>
 
+                  {!isClientPortal && (
                   <div className="profileCard">
                     <h3>Coach Notes</h3>
                     <p className="coachNotesPreview">
@@ -3765,14 +3860,76 @@ function App() {
                     </p>
                     <textarea placeholder="Add private coach notes here..." />
                   </div>
+                  )}
                 </div>
               )}
 
               {clientTab === "Training" && (
                 <div className="trainingCalendar">
+                  {isClientPortal && (
+                    <section className="clientPortalTrainingHero">
+                      <div>
+                        <span>Next Up</span>
+                        <h2>
+                          {clientPortalUpcomingWorkouts[0]?.sessionName ||
+                            "Training"}
+                        </h2>
+                        <p>
+                          {clientPortalUpcomingWorkouts[0]
+                            ? `${formatCalendarLabel(
+                                normalizeDate(
+                                  String(
+                                    clientPortalUpcomingWorkouts[0].scheduledDate
+                                  )
+                                )
+                              )} • Week ${
+                                clientPortalUpcomingWorkouts[0].week
+                              } Day ${clientPortalUpcomingWorkouts[0].day}`
+                            : "No upcoming workouts are scheduled yet."}
+                        </p>
+                      </div>
+
+                      {clientPortalUpcomingWorkouts[0] && (
+                        <button
+                          className="goldButton"
+                          onClick={() =>
+                            openWorkout(clientPortalUpcomingWorkouts[0])
+                          }
+                        >
+                          Open Workout
+                        </button>
+                      )}
+                    </section>
+                  )}
+
+                  {isClientPortal && clientPortalUpcomingWorkouts.length > 0 && (
+                    <section className="clientPortalWorkoutList">
+                      <h3>Upcoming Workouts</h3>
+                      {clientPortalUpcomingWorkouts.map((workout) => (
+                        <button
+                          key={workout.id}
+                          className="clientPortalWorkoutItem"
+                          onClick={() => openWorkout(workout)}
+                        >
+                          <span>
+                            {formatCalendarLabel(
+                              normalizeDate(String(workout.scheduledDate))
+                            )}
+                          </span>
+                          <strong>{workout.sessionName || "Workout"}</strong>
+                          <small>
+                            Week {workout.week} • Day {workout.day} •{" "}
+                            {workout.completionStatus || "Scheduled"}
+                          </small>
+                        </button>
+                      ))}
+                    </section>
+                  )}
+
                   <div className="calendarHeader">
                     <h2>Training Calendar</h2>
 
+                    {!isClientPortal && (
                     <div className="calendarControls">
                       {(["1 Day", "1 Week", "1 Month"] as CalendarView[]).map(
                         (view) => (
@@ -3835,6 +3992,7 @@ function App() {
                         )}
                       </div>
                     </div>
+                    )}
                   </div>
 
                   <div className="calendarNavigator">
@@ -3868,6 +4026,7 @@ function App() {
                     />
                   </div>
 
+                  {!isClientPortal && (
                   <section className="assignProgramPanel">
                     <h3>Assign Program</h3>
 
@@ -3946,6 +4105,7 @@ function App() {
                       </div>
                     )}
                   </section>
+                  )}
 
                   {workoutsLoading && <p>Loading workouts...</p>}
 
@@ -4004,11 +4164,16 @@ function App() {
                                   : ""
                               }`}
                               key={workout.id}
-                              draggable
+                              draggable={!isClientPortal}
                               role="button"
                               tabIndex={0}
-                              title="Drag to another day to reschedule"
+                              title={
+                                isClientPortal
+                                  ? "Open workout"
+                                  : "Drag to another day to reschedule"
+                              }
                               onDragStart={(event) => {
+                                if (isClientPortal) return;
                                 event.dataTransfer.setData("text/plain", workout.id);
                                 event.dataTransfer.effectAllowed = "move";
                                 setDraggingWorkoutId(workout.id);
@@ -4031,10 +4196,11 @@ function App() {
                                 </span>
                               </div>
 
-                              <div
-                                className="workoutMoveControls"
-                                onClick={(event) => event.stopPropagation()}
-                              >
+                              {!isClientPortal && (
+                                <div
+                                  className="workoutMoveControls"
+                                  onClick={(event) => event.stopPropagation()}
+                                >
                                 <button
                                   className="miniMoveButton"
                                   onClick={() => moveWorkoutByDays(workout, -1)}
@@ -4062,7 +4228,8 @@ function App() {
                                 >
                                   ›
                                 </button>
-                              </div>
+                                </div>
+                              )}
                             </div>
                           ))}
                         </div>
@@ -4645,6 +4812,8 @@ function App() {
                       Week {selectedWorkout.week} • Day {selectedWorkout.day}
                     </span>
                     <span>{selectedWorkout.completionStatus || "Scheduled"}</span>
+                    {!isClientPortal && (
+                      <>
                     <label className="headerDateControl">
                       <input
                         type="date"
@@ -4659,10 +4828,13 @@ function App() {
                     >
                       {updatingWorkoutDate ? "Saving..." : "Move"}
                     </button>
+                      </>
+                    )}
                   </div>
                 </div>
 
                 <div className="modalHeaderActions">
+                  {!isClientPortal && (
                   <button
                     className="iconActionButton dangerIconButton"
                     onClick={() => deleteWorkout(selectedWorkout)}
@@ -4671,6 +4843,7 @@ function App() {
                   >
                     <Trash2 size={18} aria-hidden="true" />
                   </button>
+                  )}
 
                   <button
                     className="drawerClose"
