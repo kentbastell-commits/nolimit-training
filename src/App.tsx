@@ -2,7 +2,6 @@ import {
   BarChart3,
   BookOpen,
   CalendarDays,
-  ClipboardCheck,
   ClipboardList,
   Clock3,
   Dumbbell,
@@ -22,7 +21,12 @@ type AppMode = "Coach" | "Client";
 type Page = "Clients" | "Library" | "Workouts" | "Check-ins";
 type ClientTab = "Home" | "Overview" | "Training";
 type CalendarView = "1 Day" | "1 Week" | "1 Month";
-type WorkoutPageTab = "Saved Programs" | "Builder";
+type WorkoutPageTab =
+  | "Saved Programs"
+  | "Program Builder"
+  | "Forms"
+  | "Tests"
+  | "Assignments";
 type ToastType = "success" | "error" | "info";
 type CheckInFilter = "Due" | "Recent" | "No Check-in" | "All";
 type TrackingType = "Weight" | "Time" | "Distance";
@@ -535,6 +539,27 @@ function App() {
   const [programDay, setProgramDay] = useState("1");
   const [sessionName, setSessionName] = useState("Lower Strength");
   const [builderSearch, setBuilderSearch] = useState("");
+  const [formTemplateName, setFormTemplateName] = useState("Weekly Check-in");
+  const [formTemplateType, setFormTemplateType] = useState("Check-in");
+  const [formQuestions, setFormQuestions] = useState([
+    {
+      id: "Q1",
+      label: "How are you feeling today?",
+      questionType: "Scale",
+      required: true,
+    },
+  ]);
+  const [testTemplateName, setTestTemplateName] = useState("Performance Test");
+  const [testItems, setTestItems] = useState([
+    {
+      id: "T1",
+      testName: "Back Squat 3RM",
+      metricType: "Weight",
+      unit: "kg",
+    },
+  ]);
+  const [assignmentType, setAssignmentType] = useState("Program");
+  const [assignmentClientId, setAssignmentClientId] = useState("");
   const [selectedProgramExercises, setSelectedProgramExercises] = useState<
     ProgramExercise[]
   >([]);
@@ -1214,7 +1239,7 @@ function App() {
       setProgramWeek("1");
       setProgramDay("1");
       setSessionName("");
-      setWorkoutPageTab("Builder");
+      setWorkoutPageTab("Program Builder");
 
       notify("Program loaded into builder. Saving will create a new program version.");
     } catch (error) {
@@ -1984,6 +2009,66 @@ function App() {
     );
   });
 
+  const addFormQuestion = () => {
+    setFormQuestions((current) => [
+      ...current,
+      {
+        id: `Q${current.length + 1}`,
+        label: "",
+        questionType: "Text",
+        required: false,
+      },
+    ]);
+  };
+
+  const updateFormQuestion = (
+    index: number,
+    field: keyof (typeof formQuestions)[number],
+    value: string | boolean
+  ) => {
+    setFormQuestions((current) =>
+      current.map((question, questionIndex) =>
+        questionIndex === index ? { ...question, [field]: value } : question
+      )
+    );
+  };
+
+  const removeFormQuestion = (index: number) => {
+    setFormQuestions((current) =>
+      current.filter((_, questionIndex) => questionIndex !== index)
+    );
+  };
+
+  const addTestItem = () => {
+    setTestItems((current) => [
+      ...current,
+      {
+        id: `T${current.length + 1}`,
+        testName: "",
+        metricType: "Weight",
+        unit: "kg",
+      },
+    ]);
+  };
+
+  const updateTestItem = (
+    index: number,
+    field: keyof (typeof testItems)[number],
+    value: string
+  ) => {
+    setTestItems((current) =>
+      current.map((item, itemIndex) =>
+        itemIndex === index ? { ...item, [field]: value } : item
+      )
+    );
+  };
+
+  const removeTestItem = (index: number) => {
+    setTestItems((current) =>
+      current.filter((_, itemIndex) => itemIndex !== index)
+    );
+  };
+
   const getCheckInAgeDays = (client: Client) => {
     if (!client.activity || client.activity === "--") return null;
 
@@ -2012,11 +2097,10 @@ function App() {
     missing: clients.filter((client) => getCheckInAgeDays(client) === null).length,
   };
 
-  const menuItems: { name: Page; count: number; icon: LucideIcon }[] = [
-    { name: "Clients", count: clients.length, icon: Users },
-    { name: "Library", count: libraryExercises.length, icon: BookOpen },
-    { name: "Workouts", count: workouts.length, icon: Dumbbell },
-    { name: "Check-ins", count: checkInStats.due, icon: ClipboardCheck },
+  const menuItems: { name: Page; label: string; count: number; icon: LucideIcon }[] = [
+    { name: "Clients", label: "Clients", count: clients.length, icon: Users },
+    { name: "Library", label: "Library", count: libraryExercises.length, icon: BookOpen },
+    { name: "Workouts", label: "Programming", count: workouts.length, icon: Dumbbell },
   ];
 
   const clientStatusOptions = Array.from(
@@ -2731,7 +2815,7 @@ function App() {
               >
                 <span className="navItemLabel">
                   <NavIcon size={20} strokeWidth={2.2} />
-                  <span>{item.name}</span>
+                  <span>{item.label}</span>
                 </span>
                 <span className="badge">{item.count}</span>
               </button>
@@ -2786,7 +2870,7 @@ function App() {
                 </div>
               )}
 
-              {activePage === "Workouts" && workoutPageTab === "Builder" && (
+              {activePage === "Workouts" && workoutPageTab === "Program Builder" && (
                 <button className="goldButton" onClick={saveFullProgram}>
                   {savingTemplate ? "Saving..." : "Save Full Program"}
                 </button>
@@ -3050,7 +3134,7 @@ function App() {
             {activePage === "Workouts" && (
               <>
                 <div className="workoutPageTabs">
-                  {(["Saved Programs", "Builder"] as WorkoutPageTab[]).map((tab) => (
+                  {(["Saved Programs", "Program Builder", "Forms", "Tests", "Assignments"] as WorkoutPageTab[]).map((tab) => (
                     <button
                       key={tab}
                       className={workoutPageTab === tab ? "goldButton" : "outlineButton"}
@@ -3271,7 +3355,7 @@ function App() {
                   </section>
                 )}
 
-                {workoutPageTab === "Builder" && (
+                {workoutPageTab === "Program Builder" && (
               <section className="tableCard programBuilderPanel">
                 <h2 className="builderPageTitle">
                   Multi-Day Program Builder
@@ -3690,6 +3774,300 @@ function App() {
                 </button>
               </section>
                 )}
+
+                {workoutPageTab === "Forms" && (
+                  <section className="tableCard builderHubPanel">
+                    <div className="builderHubHeader">
+                      <div>
+                        <h2>Form & Questionnaire Builder</h2>
+                        <p>
+                          Build check-ins, intake forms, readiness surveys, and custom questionnaires for coach assignment.
+                        </p>
+                      </div>
+                      <button
+                        className="goldButton"
+                        onClick={() =>
+                          notify("Form saving to Feishu is ready for the next API pass.")
+                        }
+                      >
+                        Save Form Template
+                      </button>
+                    </div>
+
+                    <div className="builderHubGrid">
+                      <label>
+                        <span>Form Name</span>
+                        <input
+                          className="miniSearch"
+                          value={formTemplateName}
+                          onChange={(e) => setFormTemplateName(e.target.value)}
+                        />
+                      </label>
+                      <label>
+                        <span>Type</span>
+                        <select
+                          className="miniSearch"
+                          value={formTemplateType}
+                          onChange={(e) => setFormTemplateType(e.target.value)}
+                        >
+                          <option>Check-in</option>
+                          <option>Questionnaire</option>
+                          <option>Intake</option>
+                          <option>Readiness</option>
+                          <option>Custom</option>
+                        </select>
+                      </label>
+                    </div>
+
+                    <div className="builderHubList">
+                      <div className="exerciseTitleRow">
+                        <h3>Questions</h3>
+                        <button className="outlineButton" onClick={addFormQuestion}>
+                          + Add Question
+                        </button>
+                      </div>
+
+                      {formQuestions.map((question, index) => (
+                        <div className="builderHubRow" key={`${question.id}-${index}`}>
+                          <label>
+                            <span>Question</span>
+                            <input
+                              className="miniSearch"
+                              value={question.label}
+                              onChange={(e) =>
+                                updateFormQuestion(index, "label", e.target.value)
+                              }
+                              placeholder="Question text"
+                            />
+                          </label>
+                          <label>
+                            <span>Type</span>
+                            <select
+                              className="miniSearch"
+                              value={question.questionType}
+                              onChange={(e) =>
+                                updateFormQuestion(
+                                  index,
+                                  "questionType",
+                                  e.target.value
+                                )
+                              }
+                            >
+                              <option>Text</option>
+                              <option>Long Text</option>
+                              <option>Number</option>
+                              <option>Scale</option>
+                              <option>Single Select</option>
+                              <option>Multi Select</option>
+                              <option>Yes/No</option>
+                              <option>Date</option>
+                            </select>
+                          </label>
+                          <label className="builderCheckboxLabel">
+                            <input
+                              type="checkbox"
+                              checked={question.required}
+                              onChange={(e) =>
+                                updateFormQuestion(
+                                  index,
+                                  "required",
+                                  e.target.checked
+                                )
+                              }
+                            />
+                            <span>Required</span>
+                          </label>
+                          <button
+                            className="outlineButton"
+                            onClick={() => removeFormQuestion(index)}
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                )}
+
+                {workoutPageTab === "Tests" && (
+                  <section className="tableCard builderHubPanel">
+                    <div className="builderHubHeader">
+                      <div>
+                        <h2>Physical Test Builder</h2>
+                        <p>
+                          Build test batteries for strength, speed, power, mobility, or return-to-training checkpoints.
+                        </p>
+                      </div>
+                      <button
+                        className="goldButton"
+                        onClick={() =>
+                          notify("Test saving to Feishu is ready for the next API pass.")
+                        }
+                      >
+                        Save Test Template
+                      </button>
+                    </div>
+
+                    <div className="builderHubGrid">
+                      <label>
+                        <span>Test Template Name</span>
+                        <input
+                          className="miniSearch"
+                          value={testTemplateName}
+                          onChange={(e) => setTestTemplateName(e.target.value)}
+                        />
+                      </label>
+                    </div>
+
+                    <div className="builderHubList">
+                      <div className="exerciseTitleRow">
+                        <h3>Test Items</h3>
+                        <button className="outlineButton" onClick={addTestItem}>
+                          + Add Test
+                        </button>
+                      </div>
+
+                      {testItems.map((item, index) => (
+                        <div className="builderHubRow testBuilderRow" key={`${item.id}-${index}`}>
+                          <label>
+                            <span>Test Name</span>
+                            <input
+                              className="miniSearch"
+                              value={item.testName}
+                              onChange={(e) =>
+                                updateTestItem(index, "testName", e.target.value)
+                              }
+                              placeholder="Countermovement jump, 5RM squat..."
+                            />
+                          </label>
+                          <label>
+                            <span>Metric</span>
+                            <select
+                              className="miniSearch"
+                              value={item.metricType}
+                              onChange={(e) =>
+                                updateTestItem(index, "metricType", e.target.value)
+                              }
+                            >
+                              <option>Weight</option>
+                              <option>Reps</option>
+                              <option>Time</option>
+                              <option>Distance</option>
+                              <option>Height</option>
+                              <option>Power</option>
+                              <option>Speed</option>
+                              <option>Score</option>
+                              <option>Yes/No</option>
+                            </select>
+                          </label>
+                          <label>
+                            <span>Unit</span>
+                            <select
+                              className="miniSearch"
+                              value={item.unit}
+                              onChange={(e) =>
+                                updateTestItem(index, "unit", e.target.value)
+                              }
+                            >
+                              <option>kg</option>
+                              <option>lb</option>
+                              <option>reps</option>
+                              <option>sec</option>
+                              <option>min</option>
+                              <option>m</option>
+                              <option>cm</option>
+                              <option>watts</option>
+                              <option>m/s</option>
+                              <option>score</option>
+                              <option>none</option>
+                            </select>
+                          </label>
+                          <button
+                            className="outlineButton"
+                            onClick={() => removeTestItem(index)}
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                )}
+
+                {workoutPageTab === "Assignments" && (
+                  <section className="tableCard builderHubPanel">
+                    <div className="builderHubHeader">
+                      <div>
+                        <h2>Assignment Hub</h2>
+                        <p>
+                          Send programs, forms, check-ins, and tests to clients. Assigned items will appear in the client portal as tasks.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="builderHubGrid assignmentHubGrid">
+                      <label>
+                        <span>Assignment Type</span>
+                        <select
+                          className="miniSearch"
+                          value={assignmentType}
+                          onChange={(e) => setAssignmentType(e.target.value)}
+                        >
+                          <option>Program</option>
+                          <option>Check-in</option>
+                          <option>Questionnaire</option>
+                          <option>Physical Test</option>
+                        </select>
+                      </label>
+                      <label>
+                        <span>Client</span>
+                        <select
+                          className="miniSearch"
+                          value={assignmentClientId}
+                          onChange={(e) => setAssignmentClientId(e.target.value)}
+                        >
+                          <option value="">Select client</option>
+                          {clients.map((client) => (
+                            <option key={client.id} value={client.id}>
+                              {client.name}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label>
+                        <span>Due Date</span>
+                        <input className="miniSearch" type="date" />
+                      </label>
+                      <button
+                        className="goldButton"
+                        onClick={() =>
+                          notify("Assignment save flow is ready for the next API pass.")
+                        }
+                      >
+                        Create Assignment
+                      </button>
+                    </div>
+
+                    <div className="assignmentTypeGrid">
+                      <div>
+                        <strong>Programs</strong>
+                        <span>Use saved programs to create scheduled workouts.</span>
+                      </div>
+                      <div>
+                        <strong>Check-ins</strong>
+                        <span>Assign recurring or one-off readiness questionnaires.</span>
+                      </div>
+                      <div>
+                        <strong>Questionnaires</strong>
+                        <span>Send intake, feedback, travel, pain, or custom forms.</span>
+                      </div>
+                      <div>
+                        <strong>Physical Tests</strong>
+                        <span>Assign test batteries and collect structured results.</span>
+                      </div>
+                    </div>
+                  </section>
+                )}
               </>
             )}
 
@@ -3873,10 +4251,6 @@ function App() {
                 >
                   <CalendarDays size={21} strokeWidth={2.2} />
                   <span>Training</span>
-                </button>
-                <button onClick={() => openCheckInQuestionnaire(selectedClient)}>
-                  <ClipboardCheck size={21} strokeWidth={2.2} />
-                  <span>Check-in</span>
                 </button>
                 <button
                   className={clientTab === "Overview" ? "active" : ""}
@@ -4142,14 +4516,8 @@ function App() {
 
                     <div className="homeFocusGrid">
                       <div>
-                        <span>Check-in</span>
-                        <strong>{selectedClientCheckInLabel}</strong>
-                        <button
-                          className="outlineButton"
-                          onClick={() => openCheckInQuestionnaire(selectedClient)}
-                        >
-                          Submit Check-in
-                        </button>
+                        <span>Assigned Forms</span>
+                        <strong>No assigned forms due.</strong>
                       </div>
                       <div>
                         <span>Coach Notes</span>

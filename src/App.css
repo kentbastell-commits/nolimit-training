@@ -316,7 +316,7 @@ body {
   bottom: 0;
   z-index: 1200;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 4px;
   padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
   border-top: 1px solid rgba(22, 22, 22, 0.1);
@@ -1171,6 +1171,108 @@ body {
   border-radius: 8px;
   padding: 20px;
   background: rgba(0, 0, 0, 0.35);
+}
+
+.builderHubPanel {
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  border-radius: 8px;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.builderHubHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+.builderHubHeader h2 {
+  margin: 0 0 6px;
+  color: #f5d77b;
+  font-size: 28px;
+}
+
+.builderHubHeader p {
+  margin: 0;
+  color: #bbb;
+  max-width: 760px;
+}
+
+.builderHubGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.assignmentHubGrid {
+  grid-template-columns: minmax(170px, 0.8fr) minmax(200px, 1fr) minmax(160px, 0.8fr) auto;
+  align-items: end;
+}
+
+.builderHubList {
+  display: grid;
+  gap: 12px;
+}
+
+.builderHubRow {
+  display: grid;
+  grid-template-columns: minmax(260px, 1.4fr) minmax(170px, 0.8fr) minmax(120px, auto) auto;
+  gap: 12px;
+  align-items: end;
+  border: 1px solid rgba(212, 175, 55, 0.18);
+  border-radius: 8px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.testBuilderRow {
+  grid-template-columns: minmax(260px, 1.4fr) minmax(150px, 0.8fr) minmax(130px, 0.7fr) auto;
+}
+
+.builderCheckboxLabel {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: #ddd;
+  font-weight: 800;
+}
+
+.builderCheckboxLabel input {
+  width: 18px;
+  height: 18px;
+}
+
+.assignmentTypeGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.assignmentTypeGrid div {
+  border: 1px solid rgba(212, 175, 55, 0.18);
+  border-radius: 8px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.assignmentTypeGrid strong,
+.assignmentTypeGrid span {
+  display: block;
+}
+
+.assignmentTypeGrid strong {
+  color: #f5d77b;
+  margin-bottom: 6px;
+}
+
+.assignmentTypeGrid span {
+  color: #bbb;
+  font-size: 14px;
+  line-height: 1.35;
 }
 
 .programLibraryHeader {
@@ -3474,6 +3576,7 @@ body {
   }
 
   .programLibraryPanel,
+  .builderHubPanel,
   .programListPanel,
   .programDetailPanel,
   .savedAssignPanel,
@@ -3485,6 +3588,26 @@ body {
 
   .programBuilderPanel {
     margin-inline: -2px;
+  }
+
+  .builderHubHeader {
+    display: grid;
+  }
+
+  .builderHubHeader h2 {
+    font-size: 24px;
+  }
+
+  .builderHubHeader .goldButton {
+    width: 100%;
+  }
+
+  .builderHubGrid,
+  .assignmentHubGrid,
+  .builderHubRow,
+  .testBuilderRow,
+  .assignmentTypeGrid {
+    grid-template-columns: 1fr;
   }
 
   .builderPageTitle {
