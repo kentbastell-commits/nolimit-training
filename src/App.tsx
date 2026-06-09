@@ -210,6 +210,51 @@ type SavedProgramTemplate = {
   order: number;
 };
 
+type SavedFormQuestion = {
+  recordId?: string;
+  questionId: string;
+  formId: string;
+  order: string;
+  label: string;
+  questionType: string;
+  options?: string;
+  required: boolean;
+  helpText?: string;
+};
+
+type SavedFormTemplate = {
+  recordId: string;
+  formId: string;
+  name: string;
+  type: string;
+  description: string;
+  status: string;
+  createdBy: string;
+  createdAt: string;
+  questions: SavedFormQuestion[];
+};
+
+type SavedTestItem = {
+  recordId?: string;
+  testItemId: string;
+  testTemplateId: string;
+  order: string;
+  testName: string;
+  metricType: string;
+  unit: string;
+  instructions?: string;
+};
+
+type SavedTestTemplate = {
+  recordId: string;
+  testTemplateId: string;
+  name: string;
+  description: string;
+  status: string;
+  createdAt: string;
+  items: SavedTestItem[];
+};
+
 type SetLog = {
   exerciseId: string;
   exerciseName: string;
@@ -549,6 +594,12 @@ function App() {
       required: true,
     },
   ]);
+  const [savedFormTemplates, setSavedFormTemplates] = useState<
+    SavedFormTemplate[]
+  >([]);
+  const [selectedSavedFormId, setSelectedSavedFormId] = useState("");
+  const [formTemplatesLoading, setFormTemplatesLoading] = useState(false);
+  const [savingFormTemplate, setSavingFormTemplate] = useState(false);
   const [testTemplateName, setTestTemplateName] = useState("Performance Test");
   const [testItems, setTestItems] = useState([
     {
@@ -558,8 +609,19 @@ function App() {
       unit: "kg",
     },
   ]);
+  const [savedTestTemplates, setSavedTestTemplates] = useState<
+    SavedTestTemplate[]
+  >([]);
+  const [selectedSavedTestId, setSelectedSavedTestId] = useState("");
+  const [testTemplatesLoading, setTestTemplatesLoading] = useState(false);
+  const [savingTestTemplate, setSavingTestTemplate] = useState(false);
   const [assignmentType, setAssignmentType] = useState("Program");
   const [assignmentClientId, setAssignmentClientId] = useState("");
+  const [assignmentTemplateId, setAssignmentTemplateId] = useState("");
+  const [assignmentDueDate, setAssignmentDueDate] = useState(
+    dateToInputValue(new Date())
+  );
+  const [creatingAssignment, setCreatingAssignment] = useState(false);
   const [selectedProgramExercises, setSelectedProgramExercises] = useState<
     ProgramExercise[]
   >([]);
@@ -957,6 +1019,293 @@ function App() {
   const selectedSavedProgram = programs.find(
     (program) => program.programId === selectedSavedProgramId
   );
+  const selectedSavedForm = savedFormTemplates.find(
+    (form) => form.formId === selectedSavedFormId
+  );
+  const selectedSavedTest = savedTestTemplates.find(
+    (test) => test.testTemplateId === selectedSavedTestId
+  );
+
+  const loadFormTemplates = async () => {
+    setFormTemplatesLoading(true);
+
+    try {
+      const response = await fetch("/api/formTemplates");
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error(data);
+        notify(data.message || data.error || "Could not load saved forms.", "error");
+        return;
+      }
+
+      const forms = data.forms || [];
+      setSavedFormTemplates(forms);
+
+      if (!selectedSavedFormId && forms.length > 0) {
+        setSelectedSavedFormId(forms[0].formId);
+      }
+    } catch (error) {
+      console.error(error);
+      notify("Could not load saved forms.", "error");
+    } finally {
+      setFormTemplatesLoading(false);
+    }
+  };
+
+  const loadTestTemplates = async () => {
+    setTestTemplatesLoading(true);
+
+    try {
+      const response = await fetch("/api/testTemplates");
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error(data);
+        notify(data.message || data.error || "Could not load saved tests.", "error");
+        return;
+      }
+
+      const tests = data.tests || [];
+      setSavedTestTemplates(tests);
+
+      if (!selectedSavedTestId && tests.length > 0) {
+        setSelectedSavedTestId(tests[0].testTemplateId);
+      }
+    } catch (error) {
+      console.error(error);
+      notify("Could not load saved tests.", "error");
+    } finally {
+      setTestTemplatesLoading(false);
+    }
+  };
+
+  const loadSavedFormIntoBuilder = (form: SavedFormTemplate | undefined) => {
+    if (!form) {
+      notify("Please select a saved form.");
+      return;
+    }
+
+    setFormTemplateName(`${form.name} Copy`);
+    setFormTemplateType(form.type || "Questionnaire");
+    setFormQuestions(
+      form.questions.length > 0
+        ? form.questions.map((question, index) => ({
+            id: question.questionId || `Q${index + 1}`,
+            label: question.label,
+            questionType: question.questionType || "Text",
+            required: Boolean(question.required),
+          }))
+        : [
+            {
+              id: "Q1",
+              label: "New question",
+              questionType: "Text",
+              required: false,
+            },
+          ]
+    );
+    notify("Saved form loaded into builder. Saving will create a new template.");
+  };
+
+  const loadSavedTestIntoBuilder = (test: SavedTestTemplate | undefined) => {
+    if (!test) {
+      notify("Please select a saved test.");
+      return;
+    }
+
+    setTestTemplateName(`${test.name} Copy`);
+    setTestItems(
+      test.items.length > 0
+        ? test.items.map((item, index) => ({
+            id: item.testItemId || `T${index + 1}`,
+            testName: item.testName,
+            metricType: item.metricType || "Weight",
+            unit: item.unit || "kg",
+          }))
+        : [
+            {
+              id: "T1",
+              testName: "New Test",
+              metricType: "Weight",
+              unit: "kg",
+            },
+          ]
+    );
+    notify("Saved test loaded into builder. Saving will create a new template.");
+  };
+
+  const saveFormTemplate = async () => {
+    if (!formTemplateName.trim()) {
+      notify("Please enter a form name.", "error");
+      return;
+    }
+
+    if (formQuestions.length === 0) {
+      notify("Please add at least one question.", "error");
+      return;
+    }
+
+    setSavingFormTemplate(true);
+
+    try {
+      const response = await fetch("/api/formTemplates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: formTemplateName,
+          type: formTemplateType,
+          status: "Active",
+          createdBy: "Kent Bastell",
+          questions: formQuestions,
+        }),
+      });
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        console.error(data);
+        notify(data.message || data.error || "Could not save form template.", "error");
+        return;
+      }
+
+      notify(`Form saved. Questions created: ${data.questionRecordsCreated}`);
+      await loadFormTemplates();
+      setSelectedSavedFormId(data.formId);
+    } catch (error) {
+      console.error(error);
+      notify("Could not save form template.", "error");
+    } finally {
+      setSavingFormTemplate(false);
+    }
+  };
+
+  const saveTestTemplate = async () => {
+    if (!testTemplateName.trim()) {
+      notify("Please enter a test template name.", "error");
+      return;
+    }
+
+    if (testItems.length === 0) {
+      notify("Please add at least one test item.", "error");
+      return;
+    }
+
+    setSavingTestTemplate(true);
+
+    try {
+      const response = await fetch("/api/testTemplates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: testTemplateName,
+          status: "Active",
+          items: testItems,
+        }),
+      });
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        console.error(data);
+        notify(data.message || data.error || "Could not save test template.", "error");
+        return;
+      }
+
+      notify(`Test template saved. Items created: ${data.itemRecordsCreated}`);
+      await loadTestTemplates();
+      setSelectedSavedTestId(data.testTemplateId);
+    } catch (error) {
+      console.error(error);
+      notify("Could not save test template.", "error");
+    } finally {
+      setSavingTestTemplate(false);
+    }
+  };
+
+  const assignmentTemplateOptions =
+    assignmentType === "Program"
+      ? programs.map((program) => ({
+          id: program.programId,
+          label: program.programName,
+          meta: `${program.durationWeeks || "--"} weeks`,
+        }))
+      : assignmentType === "Physical Test"
+      ? savedTestTemplates.map((test) => ({
+          id: test.testTemplateId,
+          label: test.name,
+          meta: `${test.items.length} test${test.items.length === 1 ? "" : "s"}`,
+        }))
+      : savedFormTemplates
+          .filter((form) => {
+            const type = form.type.toLowerCase();
+
+            if (assignmentType === "Check-in") return type.includes("check");
+            return !type.includes("check");
+          })
+          .map((form) => ({
+            id: form.formId,
+            label: form.name,
+            meta: `${form.type || "Form"} - ${form.questions.length} question${
+              form.questions.length === 1 ? "" : "s"
+            }`,
+          }));
+
+  const createContentAssignment = async () => {
+    const client = clients.find((item) => item.id === assignmentClientId);
+
+    if (!client) {
+      notify("Please select a client.", "error");
+      return;
+    }
+
+    if (!assignmentTemplateId) {
+      notify("Please select a saved item to assign.", "error");
+      return;
+    }
+
+    if (assignmentType === "Program") {
+      const program = programs.find((item) => item.programId === assignmentTemplateId);
+
+      setSelectedSavedProgramId(assignmentTemplateId);
+      setSavedAssignClientId(client.id);
+      setWorkoutPageTab("Saved Programs");
+      notify(
+        `Program selected: ${program?.programName || "Saved Program"}. Load sessions there to assign workout dates.`
+      );
+      return;
+    }
+
+    setCreatingAssignment(true);
+
+    try {
+      const response = await fetch("/api/assignContent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          assignmentType,
+          templateId: assignmentTemplateId,
+          clientId: client.id,
+          clientCode: client.clientCode,
+          clientName: client.name,
+          assignedDate: dateToInputValue(new Date()),
+          dueDate: assignmentDueDate,
+        }),
+      });
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        console.error(data);
+        notify(data.message || data.error || "Could not create assignment.", "error");
+        return;
+      }
+
+      notify(`${assignmentType} assigned to ${client.name}.`, "success");
+    } catch (error) {
+      console.error(error);
+      notify("Could not create assignment.", "error");
+    } finally {
+      setCreatingAssignment(false);
+    }
+  };
 
   const savedProgramSessions = Array.from(
     savedProgramTemplates
@@ -3144,6 +3493,21 @@ function App() {
                         if (tab === "Saved Programs") {
                           loadPrograms();
                         }
+
+                        if (tab === "Forms") {
+                          loadFormTemplates();
+                        }
+
+                        if (tab === "Tests") {
+                          loadTestTemplates();
+                        }
+
+                        if (tab === "Assignments") {
+                          loadPrograms();
+                          loadFormTemplates();
+                          loadTestTemplates();
+                          setAssignmentTemplateId("");
+                        }
                       }}
                     >
                       {tab}
@@ -3786,105 +4150,161 @@ function App() {
                       </div>
                       <button
                         className="goldButton"
-                        onClick={() =>
-                          notify("Form saving to Feishu is ready for the next API pass.")
-                        }
+                        onClick={saveFormTemplate}
+                        disabled={savingFormTemplate}
                       >
-                        Save Form Template
+                        {savingFormTemplate ? "Saving..." : "Save Form Template"}
                       </button>
                     </div>
 
-                    <div className="builderHubGrid">
-                      <label>
-                        <span>Form Name</span>
-                        <input
-                          className="miniSearch"
-                          value={formTemplateName}
-                          onChange={(e) => setFormTemplateName(e.target.value)}
-                        />
-                      </label>
-                      <label>
-                        <span>Type</span>
-                        <select
-                          className="miniSearch"
-                          value={formTemplateType}
-                          onChange={(e) => setFormTemplateType(e.target.value)}
-                        >
-                          <option>Check-in</option>
-                          <option>Questionnaire</option>
-                          <option>Intake</option>
-                          <option>Readiness</option>
-                          <option>Custom</option>
-                        </select>
-                      </label>
-                    </div>
-
-                    <div className="builderHubList">
-                      <div className="exerciseTitleRow">
-                        <h3>Questions</h3>
-                        <button className="outlineButton" onClick={addFormQuestion}>
-                          + Add Question
-                        </button>
-                      </div>
-
-                      {formQuestions.map((question, index) => (
-                        <div className="builderHubRow" key={`${question.id}-${index}`}>
+                    <div className="builderHubTwoColumn">
+                      <div>
+                        <div className="builderHubGrid">
                           <label>
-                            <span>Question</span>
+                            <span>Form Name</span>
                             <input
                               className="miniSearch"
-                              value={question.label}
-                              onChange={(e) =>
-                                updateFormQuestion(index, "label", e.target.value)
-                              }
-                              placeholder="Question text"
+                              value={formTemplateName}
+                              onChange={(e) => setFormTemplateName(e.target.value)}
                             />
                           </label>
                           <label>
                             <span>Type</span>
                             <select
                               className="miniSearch"
-                              value={question.questionType}
-                              onChange={(e) =>
-                                updateFormQuestion(
-                                  index,
-                                  "questionType",
-                                  e.target.value
-                                )
-                              }
+                              value={formTemplateType}
+                              onChange={(e) => setFormTemplateType(e.target.value)}
                             >
-                              <option>Text</option>
-                              <option>Long Text</option>
-                              <option>Number</option>
-                              <option>Scale</option>
-                              <option>Single Select</option>
-                              <option>Multi Select</option>
-                              <option>Yes/No</option>
-                              <option>Date</option>
+                              <option>Check-in</option>
+                              <option>Questionnaire</option>
+                              <option>Intake</option>
+                              <option>Readiness</option>
+                              <option>Custom</option>
                             </select>
                           </label>
-                          <label className="builderCheckboxLabel">
-                            <input
-                              type="checkbox"
-                              checked={question.required}
-                              onChange={(e) =>
-                                updateFormQuestion(
-                                  index,
-                                  "required",
-                                  e.target.checked
-                                )
-                              }
-                            />
-                            <span>Required</span>
-                          </label>
-                          <button
-                            className="outlineButton"
-                            onClick={() => removeFormQuestion(index)}
-                          >
-                            Remove
+                        </div>
+
+                        <div className="builderHubList">
+                          <div className="exerciseTitleRow">
+                            <h3>Questions</h3>
+                            <button className="outlineButton" onClick={addFormQuestion}>
+                              + Add Question
+                            </button>
+                          </div>
+
+                          {formQuestions.map((question, index) => (
+                            <div className="builderHubRow" key={`${question.id}-${index}`}>
+                              <label>
+                                <span>Question</span>
+                                <input
+                                  className="miniSearch"
+                                  value={question.label}
+                                  onChange={(e) =>
+                                    updateFormQuestion(index, "label", e.target.value)
+                                  }
+                                  placeholder="Question text"
+                                />
+                              </label>
+                              <label>
+                                <span>Type</span>
+                                <select
+                                  className="miniSearch"
+                                  value={question.questionType}
+                                  onChange={(e) =>
+                                    updateFormQuestion(
+                                      index,
+                                      "questionType",
+                                      e.target.value
+                                    )
+                                  }
+                                >
+                                  <option>Text</option>
+                                  <option>Long Text</option>
+                                  <option>Number</option>
+                                  <option>Scale</option>
+                                  <option>Single Select</option>
+                                  <option>Multi Select</option>
+                                  <option>Yes/No</option>
+                                  <option>Date</option>
+                                </select>
+                              </label>
+                              <label className="builderCheckboxLabel">
+                                <input
+                                  type="checkbox"
+                                  checked={question.required}
+                                  onChange={(e) =>
+                                    updateFormQuestion(
+                                      index,
+                                      "required",
+                                      e.target.checked
+                                    )
+                                  }
+                                />
+                                <span>Required</span>
+                              </label>
+                              <button
+                                className="outlineButton"
+                                onClick={() => removeFormQuestion(index)}
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <aside className="savedTemplatePanel">
+                        <div className="savedTemplateHeader">
+                          <h3>Saved Forms</h3>
+                          <button className="outlineButton" onClick={loadFormTemplates}>
+                            Reload
                           </button>
                         </div>
-                      ))}
+
+                        {formTemplatesLoading && <p className="emptyState">Loading forms...</p>}
+
+                        {!formTemplatesLoading && savedFormTemplates.length === 0 && (
+                          <p className="emptyState">No saved forms yet.</p>
+                        )}
+
+                        <div className="savedTemplateList">
+                          {savedFormTemplates.map((form) => (
+                            <button
+                              key={form.recordId}
+                              className={`savedTemplateItem ${
+                                selectedSavedFormId === form.formId
+                                  ? "selectedSavedTemplateItem"
+                                  : ""
+                              }`}
+                              onClick={() => setSelectedSavedFormId(form.formId)}
+                            >
+                              <strong>{form.name}</strong>
+                              <span>{form.type || "Form"}</span>
+                              <small>{form.questions.length} questions</small>
+                            </button>
+                          ))}
+                        </div>
+
+                        {selectedSavedForm && (
+                          <div className="savedTemplatePreview">
+                            <strong>{selectedSavedForm.name}</strong>
+                            {selectedSavedForm.questions.slice(0, 4).map((question) => (
+                              <span key={question.recordId || question.questionId}>
+                                {question.order}. {question.label}
+                              </span>
+                            ))}
+                            {selectedSavedForm.questions.length > 4 && (
+                              <span>+ {selectedSavedForm.questions.length - 4} more</span>
+                            )}
+                            <button
+                              className="goldButton"
+                              onClick={() => loadSavedFormIntoBuilder(selectedSavedForm)}
+                            >
+                              Load Into Builder
+                            </button>
+                          </div>
+                        )}
+                      </aside>
                     </div>
                   </section>
                 )}
@@ -3900,96 +4320,152 @@ function App() {
                       </div>
                       <button
                         className="goldButton"
-                        onClick={() =>
-                          notify("Test saving to Feishu is ready for the next API pass.")
-                        }
+                        onClick={saveTestTemplate}
+                        disabled={savingTestTemplate}
                       >
-                        Save Test Template
+                        {savingTestTemplate ? "Saving..." : "Save Test Template"}
                       </button>
                     </div>
 
-                    <div className="builderHubGrid">
-                      <label>
-                        <span>Test Template Name</span>
-                        <input
-                          className="miniSearch"
-                          value={testTemplateName}
-                          onChange={(e) => setTestTemplateName(e.target.value)}
-                        />
-                      </label>
-                    </div>
-
-                    <div className="builderHubList">
-                      <div className="exerciseTitleRow">
-                        <h3>Test Items</h3>
-                        <button className="outlineButton" onClick={addTestItem}>
-                          + Add Test
-                        </button>
-                      </div>
-
-                      {testItems.map((item, index) => (
-                        <div className="builderHubRow testBuilderRow" key={`${item.id}-${index}`}>
+                    <div className="builderHubTwoColumn">
+                      <div>
+                        <div className="builderHubGrid">
                           <label>
-                            <span>Test Name</span>
+                            <span>Test Template Name</span>
                             <input
                               className="miniSearch"
-                              value={item.testName}
-                              onChange={(e) =>
-                                updateTestItem(index, "testName", e.target.value)
-                              }
-                              placeholder="Countermovement jump, 5RM squat..."
+                              value={testTemplateName}
+                              onChange={(e) => setTestTemplateName(e.target.value)}
                             />
                           </label>
-                          <label>
-                            <span>Metric</span>
-                            <select
-                              className="miniSearch"
-                              value={item.metricType}
-                              onChange={(e) =>
-                                updateTestItem(index, "metricType", e.target.value)
-                              }
-                            >
-                              <option>Weight</option>
-                              <option>Reps</option>
-                              <option>Time</option>
-                              <option>Distance</option>
-                              <option>Height</option>
-                              <option>Power</option>
-                              <option>Speed</option>
-                              <option>Score</option>
-                              <option>Yes/No</option>
-                            </select>
-                          </label>
-                          <label>
-                            <span>Unit</span>
-                            <select
-                              className="miniSearch"
-                              value={item.unit}
-                              onChange={(e) =>
-                                updateTestItem(index, "unit", e.target.value)
-                              }
-                            >
-                              <option>kg</option>
-                              <option>lb</option>
-                              <option>reps</option>
-                              <option>sec</option>
-                              <option>min</option>
-                              <option>m</option>
-                              <option>cm</option>
-                              <option>watts</option>
-                              <option>m/s</option>
-                              <option>score</option>
-                              <option>none</option>
-                            </select>
-                          </label>
-                          <button
-                            className="outlineButton"
-                            onClick={() => removeTestItem(index)}
-                          >
-                            Remove
+                        </div>
+
+                        <div className="builderHubList">
+                          <div className="exerciseTitleRow">
+                            <h3>Test Items</h3>
+                            <button className="outlineButton" onClick={addTestItem}>
+                              + Add Test
+                            </button>
+                          </div>
+
+                          {testItems.map((item, index) => (
+                            <div className="builderHubRow testBuilderRow" key={`${item.id}-${index}`}>
+                              <label>
+                                <span>Test Name</span>
+                                <input
+                                  className="miniSearch"
+                                  value={item.testName}
+                                  onChange={(e) =>
+                                    updateTestItem(index, "testName", e.target.value)
+                                  }
+                                  placeholder="Countermovement jump, 5RM squat..."
+                                />
+                              </label>
+                              <label>
+                                <span>Metric</span>
+                                <select
+                                  className="miniSearch"
+                                  value={item.metricType}
+                                  onChange={(e) =>
+                                    updateTestItem(index, "metricType", e.target.value)
+                                  }
+                                >
+                                  <option>Weight</option>
+                                  <option>Reps</option>
+                                  <option>Time</option>
+                                  <option>Distance</option>
+                                  <option>Height</option>
+                                  <option>Power</option>
+                                  <option>Speed</option>
+                                  <option>Score</option>
+                                  <option>Yes/No</option>
+                                </select>
+                              </label>
+                              <label>
+                                <span>Unit</span>
+                                <select
+                                  className="miniSearch"
+                                  value={item.unit}
+                                  onChange={(e) =>
+                                    updateTestItem(index, "unit", e.target.value)
+                                  }
+                                >
+                                  <option>kg</option>
+                                  <option>lb</option>
+                                  <option>reps</option>
+                                  <option>sec</option>
+                                  <option>min</option>
+                                  <option>m</option>
+                                  <option>cm</option>
+                                  <option>watts</option>
+                                  <option>m/s</option>
+                                  <option>score</option>
+                                  <option>none</option>
+                                </select>
+                              </label>
+                              <button
+                                className="outlineButton"
+                                onClick={() => removeTestItem(index)}
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <aside className="savedTemplatePanel">
+                        <div className="savedTemplateHeader">
+                          <h3>Saved Tests</h3>
+                          <button className="outlineButton" onClick={loadTestTemplates}>
+                            Reload
                           </button>
                         </div>
-                      ))}
+
+                        {testTemplatesLoading && <p className="emptyState">Loading tests...</p>}
+
+                        {!testTemplatesLoading && savedTestTemplates.length === 0 && (
+                          <p className="emptyState">No saved tests yet.</p>
+                        )}
+
+                        <div className="savedTemplateList">
+                          {savedTestTemplates.map((test) => (
+                            <button
+                              key={test.recordId}
+                              className={`savedTemplateItem ${
+                                selectedSavedTestId === test.testTemplateId
+                                  ? "selectedSavedTemplateItem"
+                                  : ""
+                              }`}
+                              onClick={() => setSelectedSavedTestId(test.testTemplateId)}
+                            >
+                              <strong>{test.name}</strong>
+                              <span>{test.status || "Active"}</span>
+                              <small>{test.items.length} test items</small>
+                            </button>
+                          ))}
+                        </div>
+
+                        {selectedSavedTest && (
+                          <div className="savedTemplatePreview">
+                            <strong>{selectedSavedTest.name}</strong>
+                            {selectedSavedTest.items.slice(0, 4).map((item) => (
+                              <span key={item.recordId || item.testItemId}>
+                                {item.order}. {item.testName} ({item.metricType})
+                              </span>
+                            ))}
+                            {selectedSavedTest.items.length > 4 && (
+                              <span>+ {selectedSavedTest.items.length - 4} more</span>
+                            )}
+                            <button
+                              className="goldButton"
+                              onClick={() => loadSavedTestIntoBuilder(selectedSavedTest)}
+                            >
+                              Load Into Builder
+                            </button>
+                          </div>
+                        )}
+                      </aside>
                     </div>
                   </section>
                 )}
@@ -4011,7 +4487,10 @@ function App() {
                         <select
                           className="miniSearch"
                           value={assignmentType}
-                          onChange={(e) => setAssignmentType(e.target.value)}
+                          onChange={(e) => {
+                            setAssignmentType(e.target.value);
+                            setAssignmentTemplateId("");
+                          }}
                         >
                           <option>Program</option>
                           <option>Check-in</option>
@@ -4035,16 +4514,41 @@ function App() {
                         </select>
                       </label>
                       <label>
+                        <span>
+                          {assignmentType === "Program"
+                            ? "Saved Program"
+                            : assignmentType === "Physical Test"
+                            ? "Saved Test"
+                            : "Saved Form"}
+                        </span>
+                        <select
+                          className="miniSearch"
+                          value={assignmentTemplateId}
+                          onChange={(e) => setAssignmentTemplateId(e.target.value)}
+                        >
+                          <option value="">Select saved item</option>
+                          {assignmentTemplateOptions.map((option) => (
+                            <option key={option.id} value={option.id}>
+                              {option.label} ({option.meta})
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label>
                         <span>Due Date</span>
-                        <input className="miniSearch" type="date" />
+                        <input
+                          className="miniSearch"
+                          type="date"
+                          value={assignmentDueDate}
+                          onChange={(e) => setAssignmentDueDate(e.target.value)}
+                        />
                       </label>
                       <button
                         className="goldButton"
-                        onClick={() =>
-                          notify("Assignment save flow is ready for the next API pass.")
-                        }
+                        onClick={createContentAssignment}
+                        disabled={creatingAssignment}
                       >
-                        Create Assignment
+                        {creatingAssignment ? "Creating..." : "Create Assignment"}
                       </button>
                     </div>
 

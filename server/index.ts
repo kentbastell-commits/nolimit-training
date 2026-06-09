@@ -4,6 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import analytics from "../api/analytics.ts";
+import assignContent from "../api/assignContent.ts";
 import assignProgram from "../api/assignProgram.ts";
 import checkIns from "../api/checkIns.ts";
 import clients from "../api/clients.ts";
@@ -13,9 +14,11 @@ import createWorkoutTemplate from "../api/createWorkoutTemplate.ts";
 import deleteRecord from "../api/deleteRecord.ts";
 import exerciseResults from "../api/exerciseResults.ts";
 import exercises from "../api/exercises.ts";
+import formTemplates from "../api/formTemplates.ts";
 import programs from "../api/programs.ts";
 import programTemplates from "../api/programTemplates.ts";
 import saveWorkoutLog from "../api/saveWorkoutLog.ts";
+import testTemplates from "../api/testTemplates.ts";
 import updateAssignedProgramDate from "../api/updateAssignedProgramDate.ts";
 import updateClient from "../api/updateClient.ts";
 import updateProgram from "../api/updateProgram.ts";
@@ -33,6 +36,7 @@ app.use(express.json({ limit: "2mb" }));
 
 const handlers = {
   analytics,
+  assignContent,
   assignProgram,
   checkIns,
   clients,
@@ -42,9 +46,11 @@ const handlers = {
   deleteRecord,
   exerciseResults,
   exercises,
+  formTemplates,
   programs,
   programTemplates,
   saveWorkoutLog,
+  testTemplates,
   updateAssignedProgramDate,
   updateClient,
   updateProgram,

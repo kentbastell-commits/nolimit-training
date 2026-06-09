@@ -1208,8 +1208,20 @@ body {
 }
 
 .assignmentHubGrid {
-  grid-template-columns: minmax(170px, 0.8fr) minmax(200px, 1fr) minmax(160px, 0.8fr) auto;
+  grid-template-columns:
+    minmax(150px, 0.7fr)
+    minmax(180px, 0.9fr)
+    minmax(240px, 1.2fr)
+    minmax(150px, 0.7fr)
+    auto;
   align-items: end;
+}
+
+.builderHubTwoColumn {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 0.36fr);
+  gap: 18px;
+  align-items: start;
 }
 
 .builderHubList {
@@ -1244,6 +1256,87 @@ body {
 .builderCheckboxLabel input {
   width: 18px;
   height: 18px;
+}
+
+.savedTemplatePanel {
+  border: 1px solid rgba(212, 175, 55, 0.22);
+  border-radius: 8px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.savedTemplateHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.savedTemplateHeader h3 {
+  margin: 0;
+  color: #f5d77b;
+  font-size: 19px;
+}
+
+.savedTemplateHeader .outlineButton {
+  padding: 9px 12px;
+}
+
+.savedTemplateList {
+  display: grid;
+  gap: 8px;
+}
+
+.savedTemplateItem {
+  width: 100%;
+  text-align: left;
+  display: grid;
+  gap: 4px;
+  border: 1px solid rgba(212, 175, 55, 0.18);
+  border-radius: 8px;
+  padding: 12px;
+  color: #eee;
+  background: rgba(0, 0, 0, 0.24);
+  cursor: pointer;
+}
+
+.savedTemplateItem:hover,
+.selectedSavedTemplateItem {
+  border-color: rgba(212, 175, 55, 0.58);
+  background: rgba(212, 175, 55, 0.12);
+}
+
+.savedTemplateItem strong {
+  color: #f5d77b;
+}
+
+.savedTemplateItem span,
+.savedTemplateItem small {
+  color: #bdbdbd;
+}
+
+.savedTemplatePreview {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+  border-top: 1px solid rgba(212, 175, 55, 0.18);
+  padding-top: 14px;
+  color: #cfcfcf;
+}
+
+.savedTemplatePreview strong {
+  color: #fff;
+}
+
+.savedTemplatePreview span {
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.savedTemplatePreview .goldButton {
+  margin-top: 6px;
+  width: 100%;
 }
 
 .assignmentTypeGrid {
@@ -3603,6 +3696,7 @@ body {
   }
 
   .builderHubGrid,
+  .builderHubTwoColumn,
   .assignmentHubGrid,
   .builderHubRow,
   .testBuilderRow,
