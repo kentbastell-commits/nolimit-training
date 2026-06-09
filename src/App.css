@@ -5155,6 +5155,47 @@ body {
   text-align: center;
 }
 
+.monthSelectedDayGlance {
+  width: min(100%, 560px);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.selectedDayPrompt {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 10px;
+  border: 1px dashed #d6d1c4;
+  border-radius: 8px;
+  background: #fbfbf8;
+  padding: 12px;
+}
+
+.selectedDayPrompt span,
+.selectedDayPrompt strong {
+  display: block;
+}
+
+.selectedDayPrompt span {
+  color: #7a5a0a;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.selectedDayPrompt strong {
+  margin-top: 3px;
+  color: #333;
+  font-size: 14px;
+  line-height: 1.25;
+}
+
+.selectedDayPrompt button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .clientMonthCalendarCard {
   border: 1px solid #deded8;
   border-radius: 12px;

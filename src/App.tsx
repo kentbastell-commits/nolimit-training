@@ -355,7 +355,11 @@ function composeExerciseNotes(
 }
 
 function dateToInputValue(date: Date) {
-  return date.toISOString().split("T")[0];
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
 }
 
 function addDays(dateString: string, days: number) {
@@ -2948,9 +2952,11 @@ function App() {
     setCalendarAnchorDate(addMonths(calendarAnchorDate, direction));
   };
 
-  const selectClientCalendarDate = (date: string) => {
+  const selectClientCalendarDate = (date: string, syncWeek = true) => {
     setCalendarAnchorDate(date);
-    setClientWeekStartDate(getMondayStart(date));
+    if (syncWeek) {
+      setClientWeekStartDate(getMondayStart(date));
+    }
     setClientMonthAnchorDate(date);
   };
 
@@ -5518,7 +5524,10 @@ function App() {
                           }}
                           onClick={() => {
                             if (isClientPortal) {
-                              selectClientCalendarDate(date);
+                              selectClientCalendarDate(
+                                date,
+                                clientCalendarStyle !== "Week"
+                              );
                             }
                           }}
                         >
@@ -5755,6 +5764,60 @@ function App() {
                           })}
                         </div>
                       </aside>
+                    )}
+
+                    {isClientPortal && clientCalendarStyle === "Month" && (
+                      <section className="selectedDayGlance monthSelectedDayGlance">
+                        <div className="selectedDayGlanceHeader">
+                          <span>{formatCalendarLabel(calendarAnchorDate)}</span>
+                          <strong>
+                            {selectedCalendarDateWorkouts.length > 0
+                              ? `${selectedCalendarDateWorkouts.length} task${
+                                  selectedCalendarDateWorkouts.length === 1
+                                    ? ""
+                                    : "s"
+                                }`
+                              : "Rest / Recovery"}
+                          </strong>
+                        </div>
+
+                        {selectedCalendarDateWorkouts.length > 0 ? (
+                          selectedCalendarDateWorkouts.map((workout) => (
+                            <button
+                              className="selectedDayWorkout"
+                              key={workout.id}
+                              onClick={() => openWorkout(workout)}
+                            >
+                              <div>
+                                <span>
+                                  Program - Week {workout.week}, Day {workout.day}
+                                </span>
+                                <strong>{workout.sessionName || "Workout"}</strong>
+                                <small>
+                                  {workout.completionStatus || "Scheduled"}
+                                </small>
+                              </div>
+                              <span className="selectedDayWorkoutAction">
+                                Start
+                              </span>
+                            </button>
+                          ))
+                        ) : (
+                          <p className="homeEmptyText">
+                            Nothing scheduled for this day.
+                          </p>
+                        )}
+
+                        <div className="selectedDayPrompt">
+                          <div>
+                            <span>Questionnaire</span>
+                            <strong>No questionnaire assigned for this day.</strong>
+                          </div>
+                          <button className="outlineButton" type="button" disabled>
+                            Answer
+                          </button>
+                        </div>
+                      </section>
                     )}
                   </div>
                 </div>
