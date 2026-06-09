@@ -1219,9 +1219,13 @@ body {
 
 .builderHubTwoColumn {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(280px, 0.36fr);
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 360px);
   gap: 18px;
   align-items: start;
+}
+
+.builderHubTwoColumn > * {
+  min-width: 0;
 }
 
 .builderHubList {
@@ -1231,7 +1235,7 @@ body {
 
 .builderHubRow {
   display: grid;
-  grid-template-columns: minmax(260px, 1.4fr) minmax(170px, 0.8fr) minmax(120px, auto) auto;
+  grid-template-columns: minmax(0, 1.35fr) minmax(130px, 0.75fr) minmax(110px, auto) auto;
   gap: 12px;
   align-items: end;
   border: 1px solid rgba(212, 175, 55, 0.18);
@@ -1241,7 +1245,24 @@ body {
 }
 
 .testBuilderRow {
-  grid-template-columns: minmax(260px, 1.4fr) minmax(150px, 0.8fr) minmax(130px, 0.7fr) auto;
+  grid-template-columns: minmax(0, 1.25fr) minmax(130px, 0.7fr) minmax(120px, 0.65fr) auto;
+}
+
+.builderHubRow label,
+.testBuilderRow label {
+  min-width: 0;
+}
+
+.builderHubRow .miniSearch,
+.testBuilderRow .miniSearch {
+  width: 100%;
+  min-width: 0;
+}
+
+.builderHubRow .outlineButton,
+.testBuilderRow .outlineButton {
+  padding-inline: 14px;
+  white-space: nowrap;
 }
 
 .builderCheckboxLabel {

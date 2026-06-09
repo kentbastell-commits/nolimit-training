@@ -26,6 +26,44 @@ function fieldToText(value: any): string {
   return JSON.stringify(value);
 }
 
+function normalizeFieldName(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function readField(fields: Record<string, any>, aliases: string[]) {
+  for (const alias of aliases) {
+    if (Object.prototype.hasOwnProperty.call(fields, alias)) {
+      return fieldToText(fields[alias]);
+    }
+  }
+
+  const normalizedAliases = aliases.map(normalizeFieldName);
+  const matchingKey = Object.keys(fields).find((key) =>
+    normalizedAliases.includes(normalizeFieldName(key))
+  );
+
+  return matchingKey ? fieldToText(fields[matchingKey]) : "";
+}
+
+function readBoolField(fields: Record<string, any>, aliases: string[]) {
+  for (const alias of aliases) {
+    if (Object.prototype.hasOwnProperty.call(fields, alias)) {
+      const value = fields[alias];
+      return value === true || fieldToText(value).toLowerCase() === "true";
+    }
+  }
+
+  const normalizedAliases = aliases.map(normalizeFieldName);
+  const matchingKey = Object.keys(fields).find((key) =>
+    normalizedAliases.includes(normalizeFieldName(key))
+  );
+
+  if (!matchingKey) return false;
+
+  const value = fields[matchingKey];
+  return value === true || fieldToText(value).toLowerCase() === "true";
+}
+
 function toLarkDate(value?: string) {
   if (!value) return Date.now();
   if (/^\d+$/.test(value)) return Number(value);
@@ -115,34 +153,43 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         return {
           recordId: item.record_id,
-          questionId: fieldToText(fields.questionId),
-          formId: fieldToText(fields.formId),
-          order: fieldToText(fields.order),
-          label: fieldToText(fields.label),
-          questionType: fieldToText(fields.questionType),
-          options: fieldToText(fields.options),
-          required:
-            fields.required === true ||
-            fieldToText(fields.required).toLowerCase() === "true",
-          helpText: fieldToText(fields.helpText),
+          questionId: readField(fields, ["questionId", "Question ID"]),
+          formId: readField(fields, ["formId", "Form ID", "Template ID"]),
+          order: readField(fields, ["order", "Order"]),
+          label: readField(fields, ["label", "Label", "Question", "Question Text"]),
+          questionType: readField(fields, [
+            "questionType",
+            "Question Type",
+            "Type",
+          ]),
+          options: readField(fields, ["options", "Options"]),
+          required: readBoolField(fields, ["required", "Required"]),
+          helpText: readField(fields, ["helpText", "Help Text", "Helper Text"]),
         };
       });
 
       const forms = templateRecords.map((item: any) => {
         const fields = item.fields || {};
-        const formId = fieldToText(fields.formId);
+        const formId =
+          readField(fields, ["formId", "Form ID", "Template ID"]) || item.record_id;
 
         return {
           recordId: item.record_id,
           formId,
-          name: fieldToText(fields.name),
-          type: fieldToText(fields.type),
-          description: fieldToText(fields.description),
-          status: fieldToText(fields.status),
-          createdBy: fieldToText(fields.createdBy),
-          createdAt: fieldToText(fields.createdAt),
+          name: readField(fields, [
+            "name",
+            "Name",
+            "Form Name",
+            "Template Name",
+            "Title",
+          ]),
+          type: readField(fields, ["type", "Type", "Form Type"]),
+          description: readField(fields, ["description", "Description"]),
+          status: readField(fields, ["status", "Status"]),
+          createdBy: readField(fields, ["createdBy", "Created By"]),
+          createdAt: readField(fields, ["createdAt", "Created At"]),
           questions: questions
-            .filter((question: any) => question.formId === formId)
+            .filter((question: any) => question.formId && question.formId === formId)
             .sort((a: any, b: any) => Number(a.order) - Number(b.order)),
         };
       });

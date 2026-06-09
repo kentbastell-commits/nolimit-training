@@ -1086,7 +1086,7 @@ function App() {
       return;
     }
 
-    setFormTemplateName(`${form.name} Copy`);
+    setFormTemplateName(`${form.name || form.formId || "Untitled Form"} Copy`);
     setFormTemplateType(form.type || "Questionnaire");
     setFormQuestions(
       form.questions.length > 0
@@ -1114,7 +1114,9 @@ function App() {
       return;
     }
 
-    setTestTemplateName(`${test.name} Copy`);
+    setTestTemplateName(
+      `${test.name || test.testTemplateId || "Untitled Test"} Copy`
+    );
     setTestItems(
       test.items.length > 0
         ? test.items.map((item, index) => ({
@@ -1225,13 +1227,13 @@ function App() {
     assignmentType === "Program"
       ? programs.map((program) => ({
           id: program.programId,
-          label: program.programName,
+          label: program.programName || program.programId || "Untitled Program",
           meta: `${program.durationWeeks || "--"} weeks`,
         }))
       : assignmentType === "Physical Test"
       ? savedTestTemplates.map((test) => ({
           id: test.testTemplateId,
-          label: test.name,
+          label: test.name || test.testTemplateId || "Untitled Test",
           meta: `${test.items.length} test${test.items.length === 1 ? "" : "s"}`,
         }))
       : savedFormTemplates
@@ -1243,8 +1245,10 @@ function App() {
           })
           .map((form) => ({
             id: form.formId,
-            label: form.name,
-            meta: `${form.type || "Form"} - ${form.questions.length} question${
+            label: form.name || form.formId || "Untitled Form",
+            meta: `${form.type || assignmentType || "Form"} - ${
+              form.questions.length
+            } question${
               form.questions.length === 1 ? "" : "s"
             }`,
           }));
@@ -4278,7 +4282,7 @@ function App() {
                               }`}
                               onClick={() => setSelectedSavedFormId(form.formId)}
                             >
-                              <strong>{form.name}</strong>
+                              <strong>{form.name || form.formId || "Untitled Form"}</strong>
                               <span>{form.type || "Form"}</span>
                               <small>{form.questions.length} questions</small>
                             </button>
@@ -4287,7 +4291,11 @@ function App() {
 
                         {selectedSavedForm && (
                           <div className="savedTemplatePreview">
-                            <strong>{selectedSavedForm.name}</strong>
+                            <strong>
+                              {selectedSavedForm.name ||
+                                selectedSavedForm.formId ||
+                                "Untitled Form"}
+                            </strong>
                             {selectedSavedForm.questions.slice(0, 4).map((question) => (
                               <span key={question.recordId || question.questionId}>
                                 {question.order}. {question.label}
@@ -4439,7 +4447,9 @@ function App() {
                               }`}
                               onClick={() => setSelectedSavedTestId(test.testTemplateId)}
                             >
-                              <strong>{test.name}</strong>
+                              <strong>
+                                {test.name || test.testTemplateId || "Untitled Test"}
+                              </strong>
                               <span>{test.status || "Active"}</span>
                               <small>{test.items.length} test items</small>
                             </button>
@@ -4448,7 +4458,11 @@ function App() {
 
                         {selectedSavedTest && (
                           <div className="savedTemplatePreview">
-                            <strong>{selectedSavedTest.name}</strong>
+                            <strong>
+                              {selectedSavedTest.name ||
+                                selectedSavedTest.testTemplateId ||
+                                "Untitled Test"}
+                            </strong>
                             {selectedSavedTest.items.slice(0, 4).map((item) => (
                               <span key={item.recordId || item.testItemId}>
                                 {item.order}. {item.testName} ({item.metricType})
@@ -4522,11 +4536,16 @@ function App() {
                             : "Saved Form"}
                         </span>
                         <select
+                          key={assignmentType}
                           className="miniSearch"
                           value={assignmentTemplateId}
                           onChange={(e) => setAssignmentTemplateId(e.target.value)}
                         >
-                          <option value="">Select saved item</option>
+                          <option value="">
+                            {assignmentTemplateOptions.length === 0
+                              ? `No saved ${assignmentType.toLowerCase()} items`
+                              : "Select saved item"}
+                          </option>
                           {assignmentTemplateOptions.map((option) => (
                             <option key={option.id} value={option.id}>
                               {option.label} ({option.meta})

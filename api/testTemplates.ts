@@ -26,6 +26,25 @@ function fieldToText(value: any): string {
   return JSON.stringify(value);
 }
 
+function normalizeFieldName(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function readField(fields: Record<string, any>, aliases: string[]) {
+  for (const alias of aliases) {
+    if (Object.prototype.hasOwnProperty.call(fields, alias)) {
+      return fieldToText(fields[alias]);
+    }
+  }
+
+  const normalizedAliases = aliases.map(normalizeFieldName);
+  const matchingKey = Object.keys(fields).find((key) =>
+    normalizedAliases.includes(normalizeFieldName(key))
+  );
+
+  return matchingKey ? fieldToText(fields[matchingKey]) : "";
+}
+
 function toLarkDate(value?: string) {
   if (!value) return Date.now();
   if (/^\d+$/.test(value)) return Number(value);
@@ -115,29 +134,44 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         return {
           recordId: item.record_id,
-          testItemId: fieldToText(fields.testItemId),
-          testTemplateId: fieldToText(fields.testTemplateId),
-          order: fieldToText(fields.order),
-          testName: fieldToText(fields.testName),
-          metricType: fieldToText(fields.metricType),
-          unit: fieldToText(fields.unit),
-          instructions: fieldToText(fields.instructions),
+          testItemId: readField(fields, ["testItemId", "Test Item ID"]),
+          testTemplateId: readField(fields, [
+            "testTemplateId",
+            "Test Template ID",
+            "Template ID",
+          ]),
+          order: readField(fields, ["order", "Order"]),
+          testName: readField(fields, ["testName", "Test Name", "Name", "Test"]),
+          metricType: readField(fields, ["metricType", "Metric Type", "Metric"]),
+          unit: readField(fields, ["unit", "Unit"]),
+          instructions: readField(fields, ["instructions", "Instructions"]),
         };
       });
 
       const tests = templateRecords.map((item: any) => {
         const fields = item.fields || {};
-        const testTemplateId = fieldToText(fields.testTemplateId);
+        const testTemplateId =
+          readField(fields, ["testTemplateId", "Test Template ID", "Template ID"]) ||
+          item.record_id;
 
         return {
           recordId: item.record_id,
           testTemplateId,
-          name: fieldToText(fields.name),
-          description: fieldToText(fields.description),
-          status: fieldToText(fields.status),
-          createdAt: fieldToText(fields.createdAt),
+          name: readField(fields, [
+            "name",
+            "Name",
+            "Test Template Name",
+            "Template Name",
+            "Title",
+          ]),
+          description: readField(fields, ["description", "Description"]),
+          status: readField(fields, ["status", "Status"]),
+          createdAt: readField(fields, ["createdAt", "Created At"]),
           items: items
-            .filter((testItem: any) => testItem.testTemplateId === testTemplateId)
+            .filter(
+              (testItem: any) =>
+                testItem.testTemplateId && testItem.testTemplateId === testTemplateId
+            )
             .sort((a: any, b: any) => Number(a.order) - Number(b.order)),
         };
       });
