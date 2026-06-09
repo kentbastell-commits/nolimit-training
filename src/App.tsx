@@ -441,6 +441,7 @@ function App() {
   const [workoutHistoryLogs, setWorkoutHistoryLogs] = useState<WorkoutHistoryLog[]>(
     []
   );
+  const [workoutLoggingStarted, setWorkoutLoggingStarted] = useState(false);
   const [historyExerciseName, setHistoryExerciseName] = useState("");
   const [loading, setLoading] = useState(true);
   const [workoutsLoading, setWorkoutsLoading] = useState(false);
@@ -1337,6 +1338,7 @@ function App() {
 
   const openWorkout = async (workout: Workout) => {
     setSelectedWorkout(workout);
+    setWorkoutLoggingStarted(false);
     setEditingWorkoutDate(normalizeDate(String(workout.scheduledDate)));
     setDetailsLoading(true);
     setWorkoutDetails([]);
@@ -2375,6 +2377,19 @@ function App() {
         ) || Number(a.week) - Number(b.week) || Number(a.day) - Number(b.day)
     )
     .slice(0, 5);
+
+  const openWorkoutExerciseFromGlance = (index: number) => {
+    if (isClientPortal) {
+      setWorkoutLoggingStarted(true);
+    }
+
+    window.setTimeout(() => {
+      document.getElementById(`workout-exercise-${index}`)?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }, 0);
+  };
 
   if (isClientInvite) {
     return (
@@ -4851,6 +4866,7 @@ function App() {
                     className="drawerClose"
                     onClick={() => {
                       setSelectedWorkout(null);
+                      setWorkoutLoggingStarted(false);
                       setWorkoutDetails([]);
                       setSetLogs([]);
                       setWorkoutHistoryLogs([]);
@@ -4865,9 +4881,16 @@ function App() {
               <div className="modal-body">
                 {detailsLoading && <p>Loading workout details...</p>}
 
-                {!detailsLoading && workoutDetails.length > 0 && (
+                {!detailsLoading &&
+                  workoutDetails.length > 0 &&
+                  (!isClientPortal || !workoutLoggingStarted) && (
                   <section className="workoutGlancePanel">
                     <h3>At a Glance</h3>
+                    {isClientPortal && !workoutLoggingStarted && (
+                      <p className="workoutGlanceIntro">
+                        Select the first exercise to start logging.
+                      </p>
+                    )}
 
                     {workoutDetails.map((exercise, index) => {
                       const meta = parseExerciseNotes(exercise.notes);
@@ -4900,14 +4923,7 @@ function App() {
                           <button
                             className="workoutGlanceRow"
                             type="button"
-                            onClick={() =>
-                              document
-                                .getElementById(`workout-exercise-${index}`)
-                                ?.scrollIntoView({
-                                  behavior: "smooth",
-                                  block: "start",
-                                })
-                            }
+                            onClick={() => openWorkoutExerciseFromGlance(index)}
                           >
                             <span className="exerciseLabelBadge">
                               {meta.exerciseLabel || makeExerciseLabel(index)}
@@ -4923,7 +4939,17 @@ function App() {
                   </section>
                 )}
 
+                {!detailsLoading && isClientPortal && workoutLoggingStarted && (
+                  <button
+                    className="outlineButton workoutGlanceBackButton"
+                    onClick={() => setWorkoutLoggingStarted(false)}
+                  >
+                    Back to At a Glance
+                  </button>
+                )}
+
                 {!detailsLoading &&
+                  (!isClientPortal || workoutLoggingStarted) &&
                   workoutDetails.map((exercise, index) => {
                     const exerciseLogs = setLogs.filter(
                       (log) => log.exerciseId === exercise.exerciseId
@@ -5167,13 +5193,15 @@ function App() {
                     );
                   })}
 
-                <button
-                  className="goldButton saveWorkoutButton"
-                  onClick={saveWorkout}
-                  disabled={savingWorkout}
-                >
-                  {savingWorkout ? "Saving..." : "Save Workout"}
-                </button>
+                {(!isClientPortal || workoutLoggingStarted) && (
+                  <button
+                    className="goldButton saveWorkoutButton"
+                    onClick={saveWorkout}
+                    disabled={savingWorkout}
+                  >
+                    {savingWorkout ? "Saving..." : "Save Workout"}
+                  </button>
+                )}
               </div>
             </div>
           </div>

@@ -397,18 +397,28 @@ body {
 .clientPortalApp .setLogField span,
 .clientPortalApp .setLogStatic span,
 .clientPortalApp .workoutGlanceSection {
-  color: #6d6658;
+  color: #4f4f4f;
 }
 
 .clientPortalApp .clientSnapshotCard strong,
-.clientPortalApp .workoutGlancePanel h3,
-.clientPortalApp .workoutGlanceRow strong,
 .clientPortalApp .clientPortalWorkoutList h3,
-.clientPortalApp .clientPortalWorkoutItem strong,
 .clientPortalApp .workoutSectionHeading,
 .clientPortalApp .setBanner strong,
 .clientPortalApp .desktopWorkoutSetLabel strong {
-  color: #b08918;
+  color: #8f6b12;
+}
+
+.clientPortalApp .workoutGlancePanel h3,
+.clientPortalApp .workoutGlanceRow strong,
+.clientPortalApp .clientPortalWorkoutItem strong,
+.clientPortalApp .workoutLogExerciseCard h3 {
+  color: #050505;
+}
+
+.clientPortalApp .workoutGlanceRow small,
+.clientPortalApp .workoutGlanceIntro,
+.clientPortalApp .clientPortalWorkoutItem small {
+  color: #4f4f4f;
 }
 
 .clientPortalApp .clientPortalTrainingHero {
@@ -442,8 +452,8 @@ body {
 .clientPortalApp .exerciseLabelBadge,
 .clientPortalApp .setBanner,
 .clientPortalApp .desktopWorkoutSetLabel {
-  background: #f4ecd6;
-  border-color: rgba(176, 137, 24, 0.28);
+  background: #efe0b8;
+  border-color: rgba(143, 107, 18, 0.36);
   color: #151515;
 }
 
@@ -462,8 +472,66 @@ body {
 .clientPortalApp .setLogRow,
 .clientPortalApp .desktopWorkoutSetRow,
 .clientPortalApp .historyLogRow {
-  background: rgba(255, 253, 248, 0.82);
+  background: rgba(255, 253, 248, 0.96);
+  border-color: rgba(22, 22, 22, 0.16);
+}
+
+.clientPortalApp .workoutGlancePanel {
+  border-color: rgba(22, 22, 22, 0.16);
+}
+
+.clientPortalApp .workoutGlanceSection {
+  border-top: 1px solid rgba(22, 22, 22, 0.1);
+  padding-top: 14px;
+  color: #050505;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.clientPortalApp .workoutGlancePanel > div:first-of-type .workoutGlanceSection {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.clientPortalApp .workoutGlanceRow {
+  border: 1px solid rgba(22, 22, 22, 0.08);
+  background: #ffffff;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.05);
+  margin-bottom: 8px;
+}
+
+.clientPortalApp .workoutGlanceRow:hover {
+  background: #f6efd9;
+}
+
+.clientPortalApp .workoutSectionHeading {
+  background: #050505;
+  color: #f5d77b;
+  border: 0;
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin: 26px 0 14px;
+}
+
+.clientPortalApp .workoutLogExerciseCard {
+  border: 1px solid rgba(22, 22, 22, 0.18);
+  border-left: 6px solid #8f6b12;
+  background: #ffffff;
+  box-shadow: 0 20px 54px rgba(0, 0, 0, 0.11);
+  margin-bottom: 18px;
+}
+
+.clientPortalApp .workoutPrescriptionGrid span {
+  background: #f4f1e9;
   border-color: rgba(22, 22, 22, 0.1);
+  color: #050505;
+}
+
+.clientPortalApp .desktopWorkoutSetRow,
+.clientPortalApp .mobileSetLogRow {
+  background: #fbfaf5 !important;
+  border-color: rgba(22, 22, 22, 0.14) !important;
+  box-shadow: inset 0 0 0 1px rgba(143, 107, 18, 0.06);
 }
 
 .clientPortalApp input,
@@ -2292,6 +2360,11 @@ body {
   line-height: 1.15;
 }
 
+.workoutGlanceIntro {
+  color: #aaa;
+  margin: -4px 0 12px;
+}
+
 .workoutGlanceSection {
   color: #ddd;
   text-transform: uppercase;
@@ -2339,6 +2412,10 @@ body {
   margin-top: 3px;
   font-size: 14px;
   line-height: 1.25;
+}
+
+.workoutGlanceBackButton {
+  margin-bottom: 14px;
 }
 
 .workoutDateItem {
