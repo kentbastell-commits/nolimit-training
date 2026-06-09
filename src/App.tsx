@@ -4092,34 +4092,42 @@ function App() {
                   </div>
 
                   <div className="calendarNavigator">
-                    <button
-                      className="outlineButton"
-                      onClick={() => moveCalendarRange(-1)}
-                    >
-                      Previous
-                    </button>
+                    <div className="calendarRangeControls">
+                      <button
+                        className="outlineButton"
+                        onClick={() => moveCalendarRange(-1)}
+                      >
+                        Previous
+                      </button>
 
-                    <strong>{calendarRangeLabel}</strong>
+                      <strong>{calendarRangeLabel}</strong>
 
-                    <button
-                      className="outlineButton"
-                      onClick={() => moveCalendarRange(1)}
-                    >
-                      Next
-                    </button>
+                      <button
+                        className="outlineButton"
+                        onClick={() => moveCalendarRange(1)}
+                      >
+                        Next
+                      </button>
+                    </div>
 
-                    <button
-                      className="outlineButton"
-                      onClick={() => setCalendarAnchorDate(dateToInputValue(new Date()))}
-                    >
-                      Today
-                    </button>
+                    <div className="calendarQuickControls">
+                      <button
+                        className="outlineButton todayButton"
+                        onClick={() => setCalendarAnchorDate(dateToInputValue(new Date()))}
+                      >
+                        Today
+                      </button>
 
-                    <input
-                      type="date"
-                      value={calendarAnchorDate}
-                      onChange={(e) => setCalendarAnchorDate(e.target.value)}
-                    />
+                      <label className="calendarDatePickerButton" title="Choose date">
+                        <CalendarDays size={18} strokeWidth={2.2} aria-hidden="true" />
+                        <span className="srOnly">Choose date</span>
+                        <input
+                          type="date"
+                          value={calendarAnchorDate}
+                          onChange={(e) => setCalendarAnchorDate(e.target.value)}
+                        />
+                      </label>
+                    </div>
                   </div>
 
                   {!isClientPortal && (
