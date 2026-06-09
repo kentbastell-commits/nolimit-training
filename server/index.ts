@@ -10,6 +10,7 @@ import clients from "../api/clients.ts";
 import createClient from "../api/createClient.ts";
 import createProgram from "../api/createProgram.ts";
 import createWorkoutTemplate from "../api/createWorkoutTemplate.ts";
+import deleteRecord from "../api/deleteRecord.ts";
 import exerciseResults from "../api/exerciseResults.ts";
 import exercises from "../api/exercises.ts";
 import programs from "../api/programs.ts";
@@ -38,6 +39,7 @@ const handlers = {
   createClient,
   createProgram,
   createWorkoutTemplate,
+  deleteRecord,
   exerciseResults,
   exercises,
   programs,

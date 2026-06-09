@@ -13,6 +13,39 @@ body {
   text-rendering: optimizeLegibility;
 }
 
+@media (hover: hover) and (pointer: fine) {
+  button,
+  a.videoButton,
+  a.iconActionButton,
+  .clickableRow,
+  .programListItem,
+  .miniClient,
+  .clientBucket,
+  .workoutBlock {
+    transition:
+      background 180ms ease,
+      border-color 180ms ease,
+      box-shadow 180ms ease,
+      color 180ms ease,
+      transform 180ms ease;
+  }
+
+  button:hover,
+  a.videoButton:hover,
+  a.iconActionButton:hover,
+  .clickableRow:hover,
+  .programListItem:hover,
+  .miniClient:hover,
+  .clientBucket:hover,
+  .workoutBlock:hover {
+    border-color: rgba(245, 215, 123, 0.8);
+    box-shadow:
+      0 0 0 1px rgba(245, 215, 123, 0.14),
+      0 0 24px rgba(212, 175, 55, 0.18);
+    transform: translateY(-1px);
+  }
+}
+
 .invitePage {
   min-height: 100vh;
   background: radial-gradient(circle at top, #18120a 0%, #050505 48%, #000 100%);
@@ -1236,6 +1269,43 @@ body {
   padding: 12px 16px;
 }
 
+.calendarAddMenuWrap {
+  position: relative;
+}
+
+.calendarAddButton {
+  width: 44px;
+  height: 44px;
+}
+
+.calendarAddMenu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  z-index: 5;
+  width: 210px;
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  border-radius: 8px;
+  padding: 6px;
+  background: rgba(5, 5, 5, 0.98);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.55);
+}
+
+.calendarAddMenu button {
+  width: 100%;
+  border: none;
+  border-radius: 7px;
+  padding: 10px 12px;
+  color: #f7e4a3;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.calendarAddMenu button:hover {
+  background: rgba(212, 175, 55, 0.16);
+}
+
 .calendarNavigator {
   display: flex;
   align-items: center;
@@ -1797,6 +1867,28 @@ body {
   border: none;
   font-size: 36px;
   cursor: pointer;
+}
+
+.modalHeaderActions {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.profileIconButton {
+  width: 42px;
+  height: 42px;
+}
+
+.dangerIconButton {
+  color: #ffb3a7;
+  border-color: rgba(255, 123, 100, 0.5);
+  background: rgba(255, 123, 100, 0.08);
+}
+
+.dangerIconButton:hover {
+  border-color: rgba(255, 150, 130, 0.85);
+  background: rgba(255, 123, 100, 0.16);
 }
 
 .workoutSummaryStrip {
@@ -3331,18 +3423,18 @@ body {
 
 .desktopWorkoutSetRow {
   display: grid;
-  grid-template-columns: 150px repeat(4, minmax(170px, 220px));
-  gap: 10px;
-  align-items: center;
+  grid-template-columns: minmax(220px, 300px) repeat(4, minmax(170px, 220px));
+  gap: 14px;
+  align-items: end;
   margin-bottom: 10px;
-  padding: 10px;
+  padding: 12px 14px;
   border: 1px solid rgba(212, 175, 55, 0.16);
   border-radius: 8px;
   background: rgba(0, 0, 0, 0.18);
 }
 
 .desktopWorkoutSetLabel {
-  min-height: 58px;
+  min-height: 54px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3361,6 +3453,9 @@ body {
 
 .desktopWorkoutSetRow .setLogField span {
   display: block;
+  min-height: 18px;
+  margin-bottom: 6px;
+  text-align: left;
 }
 
 .desktopWorkoutSetRow .limbCell {

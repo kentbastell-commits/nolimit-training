@@ -1,4 +1,12 @@
-import { Clock3, Play, X } from "lucide-react";
+import {
+  BarChart3,
+  ClipboardList,
+  Clock3,
+  Play,
+  Plus,
+  Trash2,
+  X,
+} from "lucide-react";
 import { useEffect, useState, type DragEvent } from "react";
 import "./App.css";
 
@@ -360,6 +368,19 @@ function App() {
   const [checkInSearch, setCheckInSearch] = useState("");
   const [checkInFilter, setCheckInFilter] = useState<CheckInFilter>("Due");
   const [savingCheckInClientId, setSavingCheckInClientId] = useState("");
+  const [checkInFormClient, setCheckInFormClient] = useState<Client | null>(null);
+  const [checkInForm, setCheckInForm] = useState({
+    bodyWeight: "",
+    sleepQuality: "",
+    energy: "",
+    mood: "",
+    stress: "",
+    soreness: "",
+    nutritionNotes: "",
+    trainingNotes: "",
+    wins: "",
+    problemsPain: "",
+  });
   const [clientBucket, setClientBucket] = useState<ClientBucket>("All Clients");
   const [showAddClientModal, setShowAddClientModal] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
@@ -395,6 +416,7 @@ function App() {
   const [calendarAnchorDate, setCalendarAnchorDate] = useState(
     dateToInputValue(new Date())
   );
+  const [showCalendarActionMenu, setShowCalendarActionMenu] = useState(false);
   const [workoutPageTab, setWorkoutPageTab] =
     useState<WorkoutPageTab>("Saved Programs");
   const [workouts, setWorkouts] = useState<Workout[]>([]);
@@ -452,7 +474,6 @@ function App() {
   >([]);
   const [savedAssignLoading, setSavedAssignLoading] = useState(false);
   const [savedAssigningProgram, setSavedAssigningProgram] = useState(false);
-  const [updatingProgram, setUpdatingProgram] = useState(false);
   const [selectedAssignProgramId, setSelectedAssignProgramId] = useState("");
   const [assignStartDate, setAssignStartDate] = useState(dateToInputValue(new Date()));
   const [assignableWorkouts, setAssignableWorkouts] = useState<AssignableWorkout[]>([]);
@@ -900,38 +921,6 @@ function App() {
       notify("Could not load saved program templates.");
     } finally {
       setSavedTemplatesLoading(false);
-    }
-  };
-
-  const updateSavedProgramStatus = async (program: Program, status: string) => {
-    setUpdatingProgram(true);
-
-    try {
-      const response = await fetch("/api/updateProgram", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          programRecordId: program.recordId,
-          status,
-        }),
-      });
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        console.error(data);
-        notify("Could not update program status.", "error");
-        return;
-      }
-
-      await loadPrograms();
-      notify(`Program marked ${status}.`, "success");
-    } catch (error) {
-      console.error(error);
-      notify("Could not update program.", "error");
-    } finally {
-      setUpdatingProgram(false);
     }
   };
 
@@ -1454,6 +1443,43 @@ function App() {
       notify("Could not update workout date.");
     } finally {
       setUpdatingWorkoutDate(false);
+    }
+  };
+
+  const deleteWorkout = async (workout: Workout) => {
+    if (!selectedClient) return;
+    if (!window.confirm(`Delete ${workout.sessionName || "this workout"}?`)) return;
+
+    try {
+      const response = await fetch("/api/deleteRecord", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          resource: "workout",
+          recordId: workout.id,
+        }),
+      });
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        console.error(data);
+        notify("Could not delete workout.", "error");
+        return;
+      }
+
+      setSelectedWorkout(null);
+      setWorkoutDetails([]);
+      setSetLogs([]);
+
+      const refresh = await fetch(`/api/workouts?clientCode=${selectedClient.clientCode}`);
+      const refreshData = await refresh.json();
+      setWorkouts(refreshData.workouts || []);
+      notify("Workout deleted.", "success");
+    } catch (error) {
+      console.error(error);
+      notify("Could not delete workout.", "error");
     }
   };
 
@@ -2060,6 +2086,69 @@ function App() {
     }
   };
 
+  const deleteClient = async (client: Client) => {
+    if (!window.confirm(`Delete ${client.name}? This cannot be undone.`)) return;
+
+    try {
+      const response = await fetch("/api/deleteRecord", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          resource: "client",
+          recordId: client.id,
+        }),
+      });
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        console.error(data);
+        notify("Could not delete client.", "error");
+        return;
+      }
+
+      setSelectedClient(null);
+      await loadClients();
+      notify("Client deleted.", "success");
+    } catch (error) {
+      console.error(error);
+      notify("Could not delete client.", "error");
+    }
+  };
+
+  const deleteExercise = async (exercise: LibraryExercise) => {
+    if (!window.confirm(`Delete ${exercise.exerciseName}? This cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/deleteRecord", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          resource: "exercise",
+          recordId: exercise.recordId,
+        }),
+      });
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        console.error(data);
+        notify("Could not delete exercise.", "error");
+        return;
+      }
+
+      await loadExerciseLibrary();
+      notify("Exercise deleted.", "success");
+    } catch (error) {
+      console.error(error);
+      notify("Could not delete exercise.", "error");
+    }
+  };
+
   const markClientCheckedInToday = async (client: Client) => {
     const today = dateToInputValue(new Date());
 
@@ -2115,6 +2204,85 @@ function App() {
     } catch (error) {
       console.error(error);
       notify("Could not update check-in.", "error");
+    } finally {
+      setSavingCheckInClientId("");
+    }
+  };
+
+  const openCheckInQuestionnaire = (client: Client) => {
+    setCheckInFormClient(client);
+    setCheckInForm({
+      bodyWeight: "",
+      sleepQuality: "",
+      energy: "",
+      mood: "",
+      stress: "",
+      soreness: "",
+      nutritionNotes: "",
+      trainingNotes: "",
+      wins: "",
+      problemsPain: "",
+    });
+  };
+
+  const submitCheckInQuestionnaire = async () => {
+    if (!checkInFormClient) return;
+
+    const today = dateToInputValue(new Date());
+
+    setSavingCheckInClientId(checkInFormClient.id);
+
+    try {
+      const checkInResponse = await fetch("/api/checkIns", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          clientId: checkInFormClient.clientCode || checkInFormClient.id,
+          clientRecordId: checkInFormClient.id,
+          submittedDate: today,
+          status: "Submitted",
+          coachReviewed: false,
+          ...checkInForm,
+        }),
+      });
+      const checkInData = await checkInResponse.json();
+
+      if (!checkInResponse.ok || !checkInData.success) {
+        console.error(checkInData);
+        notify("Could not submit check-in.", "error");
+        return;
+      }
+
+      const response = await fetch("/api/updateClient", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          clientRecordId: checkInFormClient.id,
+          lastCheckInDate: today,
+        }),
+      });
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        console.error(data);
+        notify("Check-in saved, but client date did not update.", "error");
+      }
+
+      const clientsResponse = await fetch("/api/clients");
+      const clientsData = await clientsResponse.json();
+      const refreshedClients = clientsData.clients || [];
+
+      setClients(refreshedClients);
+      refreshSelectedClient(refreshedClients);
+      setCheckInFormClient(null);
+      notify("Check-in questionnaire submitted.", "success");
+    } catch (error) {
+      console.error(error);
+      notify("Could not submit check-in.", "error");
     } finally {
       setSavingCheckInClientId("");
     }
@@ -2427,12 +2595,6 @@ function App() {
                         ))}
                       </select>
 
-                      <button
-                        className="outlineButton"
-                        onClick={loadAnalytics}
-                      >
-                        {analyticsLoading ? "Loading..." : "Workout Analytics"}
-                      </button>
                     </div>
 
                     {loading && <p>Loading clients...</p>}
@@ -2610,6 +2772,14 @@ function App() {
                           >
                             Edit
                           </button>
+                          <button
+                            className="iconActionButton dangerIconButton"
+                            onClick={() => deleteExercise(exercise)}
+                            title="Delete exercise"
+                            aria-label={`Delete ${exercise.exerciseName || "exercise"}`}
+                          >
+                            <Trash2 size={17} aria-hidden="true" />
+                          </button>
                         </span>
                       </div>
                     ))}
@@ -2699,18 +2869,6 @@ function App() {
                                   Duplicate in Builder
                                 </button>
 
-                                <button
-                                  className="outlineButton"
-                                  onClick={() =>
-                                    updateSavedProgramStatus(
-                                      selectedSavedProgram,
-                                      "Archived"
-                                    )
-                                  }
-                                  disabled={updatingProgram}
-                                >
-                                  Archive
-                                </button>
                               </div>
                             </div>
 
@@ -3370,6 +3528,12 @@ function App() {
                           </button>
                           <button
                             className="outlineButton"
+                            onClick={() => openCheckInQuestionnaire(client)}
+                          >
+                            Questionnaire
+                          </button>
+                          <button
+                            className="outlineButton"
                             onClick={() => {
                               setSelectedClient(client);
                               setClientTab("Overview");
@@ -3450,6 +3614,16 @@ function App() {
                   </button>
 
                   <button
+                    className="iconActionButton profileIconButton"
+                    onClick={loadAnalytics}
+                    disabled={analyticsLoading}
+                    title="Workout analytics"
+                    aria-label={`Open workout analytics for ${selectedClient.name}`}
+                  >
+                    <BarChart3 size={18} aria-hidden="true" />
+                  </button>
+
+                  <button
                     className="outlineButton"
                     onClick={() => openEditClientForm(selectedClient)}
                   >
@@ -3470,6 +3644,15 @@ function App() {
                     disabled={updatingClientStatus}
                   >
                     Archive
+                  </button>
+
+                  <button
+                    className="iconActionButton dangerIconButton"
+                    onClick={() => deleteClient(selectedClient)}
+                    title="Delete client"
+                    aria-label={`Delete ${selectedClient.name}`}
+                  >
+                    <Trash2 size={18} aria-hidden="true" />
                   </button>
                 </div>
               </div>
@@ -3573,6 +3756,53 @@ function App() {
                           </button>
                         )
                       )}
+
+                      <div className="calendarAddMenuWrap">
+                        <button
+                          className="iconActionButton calendarAddButton"
+                          onClick={() =>
+                            setShowCalendarActionMenu((current) => !current)
+                          }
+                          type="button"
+                          title="Add to calendar"
+                          aria-label="Add to calendar"
+                        >
+                          <Plus size={19} aria-hidden="true" />
+                        </button>
+
+                        {showCalendarActionMenu && (
+                          <div className="calendarAddMenu">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setShowCalendarActionMenu(false);
+                                setWorkoutPageTab("Saved Programs");
+                                notify("Choose a saved program to assign workouts.");
+                              }}
+                            >
+                              Add Workout
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setShowCalendarActionMenu(false);
+                                notify("Check-in program builder is next.");
+                              }}
+                            >
+                              Add Check-in Program
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setShowCalendarActionMenu(false);
+                                notify("More form types can be added here.");
+                              }}
+                            >
+                              Add Form
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -3819,8 +4049,15 @@ function App() {
             <div className="workout-modal analyticsModal">
               <div className="modal-header">
                 <div>
-                  <h2>Workout Analytics</h2>
-                  <p>Coach command view for training completion and client attention.</p>
+                  <h2>
+                    Workout Analytics
+                    {selectedClient ? `: ${selectedClient.name}` : ""}
+                  </h2>
+                  <p>
+                    {selectedClient
+                      ? "Client-linked training completion and attention view."
+                      : "Coach command view for training completion and client attention."}
+                  </p>
                 </div>
 
                 <button
@@ -3947,6 +4184,89 @@ function App() {
           </div>
         )}
 
+        {checkInFormClient && (
+          <div className="workout-modal-overlay">
+            <div className="clientFormModal">
+              <div className="modal-header">
+                <div>
+                  <h2>Check-in</h2>
+                  <p>{checkInFormClient.name}</p>
+                </div>
+
+                <button
+                  className="drawerClose"
+                  onClick={() => setCheckInFormClient(null)}
+                >
+                  <X size={28} strokeWidth={3} aria-hidden="true" />
+                </button>
+              </div>
+
+              <div className="clientFormGrid">
+                {[
+                  ["Body Weight", "bodyWeight", "kg"],
+                  ["Sleep Quality", "sleepQuality", "1-10"],
+                  ["Energy", "energy", "1-10"],
+                  ["Mood", "mood", "Good, tired, stressed..."],
+                  ["Stress", "stress", "1-10"],
+                  ["Soreness", "soreness", "1-10"],
+                ].map(([label, key, placeholder]) => (
+                  <label key={key}>
+                    <span>{label}</span>
+                    <input
+                      value={checkInForm[key as keyof typeof checkInForm]}
+                      onChange={(e) =>
+                        setCheckInForm({
+                          ...checkInForm,
+                          [key]: e.target.value,
+                        })
+                      }
+                      placeholder={placeholder}
+                    />
+                  </label>
+                ))}
+
+                {[
+                  ["Nutrition Notes", "nutritionNotes"],
+                  ["Training Notes", "trainingNotes"],
+                  ["Wins", "wins"],
+                  ["Problems / Pain", "problemsPain"],
+                ].map(([label, key]) => (
+                  <label className="clientNotesField" key={key}>
+                    <span>{label}</span>
+                    <textarea
+                      value={checkInForm[key as keyof typeof checkInForm]}
+                      onChange={(e) =>
+                        setCheckInForm({
+                          ...checkInForm,
+                          [key]: e.target.value,
+                        })
+                      }
+                    />
+                  </label>
+                ))}
+              </div>
+
+              <div className="modalActions">
+                <button
+                  className="outlineButton"
+                  onClick={() => setCheckInFormClient(null)}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="goldButton"
+                  onClick={submitCheckInQuestionnaire}
+                  disabled={savingCheckInClientId === checkInFormClient.id}
+                >
+                  {savingCheckInClientId === checkInFormClient.id
+                    ? "Submitting..."
+                    : "Submit Check-in"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {showExerciseModal && (
           <div className="workout-modal-overlay">
             <div className="clientFormModal">
@@ -4055,16 +4375,6 @@ function App() {
               </div>
 
               <div className="modalActions">
-                {editingExercise && (
-                  <button
-                    className="outlineButton"
-                    onClick={() => saveExerciseForm(true)}
-                    disabled={savingExercise}
-                  >
-                    Archive
-                  </button>
-                )}
-
                 <button className="outlineButton" onClick={closeExerciseForm}>
                   Cancel
                 </button>
@@ -4321,18 +4631,29 @@ function App() {
                   </div>
                 </div>
 
-                <button
-                  className="drawerClose"
-                  onClick={() => {
-                    setSelectedWorkout(null);
-                    setWorkoutDetails([]);
-                    setSetLogs([]);
-                    setWorkoutHistoryLogs([]);
-                    setHistoryExerciseName("");
-                  }}
-                >
-                  <X size={28} strokeWidth={3} aria-hidden="true" />
-                </button>
+                <div className="modalHeaderActions">
+                  <button
+                    className="iconActionButton dangerIconButton"
+                    onClick={() => deleteWorkout(selectedWorkout)}
+                    title="Delete workout"
+                    aria-label="Delete workout"
+                  >
+                    <Trash2 size={18} aria-hidden="true" />
+                  </button>
+
+                  <button
+                    className="drawerClose"
+                    onClick={() => {
+                      setSelectedWorkout(null);
+                      setWorkoutDetails([]);
+                      setSetLogs([]);
+                      setWorkoutHistoryLogs([]);
+                      setHistoryExerciseName("");
+                    }}
+                  >
+                    <X size={28} strokeWidth={3} aria-hidden="true" />
+                  </button>
+                </div>
               </div>
 
               <div className="modal-body">
@@ -4391,6 +4712,28 @@ function App() {
                                 <Play size={18} fill="currentColor" aria-hidden="true" />
                               </a>
                             )}
+
+                            <button
+                              className="iconActionButton"
+                              onClick={() =>
+                                setTechnicalCueExercise({
+                                  recordId: exercise.id,
+                                  exerciseId: exercise.exerciseId,
+                                  exerciseName: exercise.exerciseName,
+                                  videoUrl: exercise.videoUrl || "",
+                                  category: "",
+                                  equipment: "",
+                                  movementPattern: "",
+                                  notes: exercise.notes || "",
+                                  status: "Active",
+                                })
+                              }
+                              type="button"
+                              title="Technical form"
+                              aria-label={`View technical form for ${exercise.exerciseName}`}
+                            >
+                              <ClipboardList size={18} aria-hidden="true" />
+                            </button>
 
                             <button
                               className="iconActionButton"
