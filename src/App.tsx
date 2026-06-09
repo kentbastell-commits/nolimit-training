@@ -320,6 +320,14 @@ function addMonths(dateString: string, months: number) {
   return dateToInputValue(date);
 }
 
+function getMondayStart(dateString: string) {
+  const date = new Date(dateString + "T00:00:00");
+  const day = date.getDay();
+  const offset = day === 0 ? -6 : 1 - day;
+  date.setDate(date.getDate() + offset);
+  return dateToInputValue(date);
+}
+
 function getMonthDates(dateString: string) {
   const date = new Date(dateString + "T00:00:00");
   const year = date.getFullYear();
@@ -345,8 +353,10 @@ function formatCalendarRangeLabel(view: CalendarView, anchorDate: string) {
   }
 
   if (view === "1 Week") {
-    return `${formatCalendarLabel(anchorDate)} - ${formatCalendarLabel(
-      addDays(anchorDate, 6)
+    const weekStart = getMondayStart(anchorDate);
+
+    return `${formatCalendarLabel(weekStart)} - ${formatCalendarLabel(
+      addDays(weekStart, 6)
     )}`;
   }
 
@@ -432,6 +442,9 @@ function App() {
   const [calendarAnchorDate, setCalendarAnchorDate] = useState(
     dateToInputValue(new Date())
   );
+  const [clientCalendarStyle, setClientCalendarStyle] = useState<
+    "Week Strip" | "Calendar"
+  >("Week Strip");
   const [showCalendarActionMenu, setShowCalendarActionMenu] = useState(false);
   const [workoutPageTab, setWorkoutPageTab] =
     useState<WorkoutPageTab>("Saved Programs");
@@ -2407,7 +2420,7 @@ function App() {
       ? [calendarAnchorDate]
       : calendarView === "1 Week"
       ? Array.from({ length: 7 }, (_, index) =>
-          addDays(calendarAnchorDate, index)
+          addDays(getMondayStart(calendarAnchorDate), index)
         )
       : getMonthDates(calendarAnchorDate);
 
@@ -2437,6 +2450,7 @@ function App() {
   }
 
   const todayValue = dateToInputValue(new Date());
+  const selectedCalendarDateWorkouts = getWorkoutsForDate(calendarAnchorDate);
   const clientPortalUpcomingWorkouts = workouts
     .filter(
       (workout) =>
@@ -4238,6 +4252,23 @@ function App() {
                   <div className="calendarHeader">
                     <h2>Training Calendar</h2>
 
+                    {isClientPortal && (
+                      <div className="clientCalendarViewToggle">
+                        {(["Week Strip", "Calendar"] as const).map((view) => (
+                          <button
+                            key={view}
+                            className={
+                              clientCalendarStyle === view ? "active" : ""
+                            }
+                            onClick={() => setClientCalendarStyle(view)}
+                            type="button"
+                          >
+                            {view === "Week Strip" ? "Week" : "Full"}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
                     {!isClientPortal && (
                     <div className="calendarControls">
                       {(["1 Day", "1 Week", "1 Month"] as CalendarView[]).map(
@@ -4428,7 +4459,9 @@ function App() {
 
                   <div
                     className={
-                      calendarView === "1 Day"
+                      isClientPortal && clientCalendarStyle === "Week Strip"
+                        ? "calendarGrid clientWeekStripCalendar"
+                        : calendarView === "1 Day"
                         ? "calendarGrid oneDayCalendar"
                         : calendarView === "1 Week"
                         ? "calendarGrid weekCalendar"
@@ -4442,6 +4475,12 @@ function App() {
                         <div
                           className={`calendarDay ${
                             draggingWorkoutId ? "calendarDropTarget" : ""
+                          } ${
+                            isClientPortal && date === calendarAnchorDate
+                              ? "selectedCalendarDay"
+                              : ""
+                          } ${
+                            dayWorkouts.length > 0 ? "hasCalendarWork" : ""
                           }`}
                           key={date}
                           onDragOver={(event: DragEvent<HTMLDivElement>) => {
@@ -4462,12 +4501,31 @@ function App() {
                               void moveWorkoutToDate(workout, date);
                             }
                           }}
+                          onClick={() => {
+                            if (isClientPortal) {
+                              setCalendarAnchorDate(date);
+                            }
+                          }}
                         >
                           <strong className="calendarDateLabel">
                             {formatCalendarLabel(date)}
                           </strong>
 
-                          {dayWorkouts.map((workout) => (
+                          {isClientPortal && (
+                            <span className="calendarWorkMarkers" aria-hidden="true">
+                              {dayWorkouts.length > 0 ? (
+                                dayWorkouts.slice(0, 3).map((workout) => (
+                                  <span key={workout.id} />
+                                ))
+                              ) : (
+                                <span className="emptyMarker" />
+                              )}
+                            </span>
+                          )}
+
+                          {(!isClientPortal ||
+                            clientCalendarStyle === "Calendar") &&
+                            dayWorkouts.map((workout) => (
                             <div
                               className={`workoutBlock ${getStatusClass(
                                 workout.completionStatus
@@ -4553,6 +4611,50 @@ function App() {
                       );
                     })}
                   </div>
+
+                  {isClientPortal && clientCalendarStyle === "Week Strip" && (
+                    <section className="selectedDayGlance">
+                      <div className="selectedDayGlanceHeader">
+                        <span>{formatCalendarLabel(calendarAnchorDate)}</span>
+                        <strong>
+                          {selectedCalendarDateWorkouts.length > 0
+                            ? `${selectedCalendarDateWorkouts.length} item${
+                                selectedCalendarDateWorkouts.length === 1
+                                  ? ""
+                                  : "s"
+                              }`
+                            : "Rest / Recovery"}
+                        </strong>
+                      </div>
+
+                      {selectedCalendarDateWorkouts.length > 0 ? (
+                        selectedCalendarDateWorkouts.map((workout) => (
+                          <button
+                            className="selectedDayWorkout"
+                            key={workout.id}
+                            onClick={() => openWorkout(workout)}
+                          >
+                            <div>
+                              <span>
+                                Week {workout.week} - Day {workout.day}
+                              </span>
+                              <strong>{workout.sessionName || "Workout"}</strong>
+                              <small>
+                                {workout.completionStatus || "Scheduled"}
+                              </small>
+                            </div>
+                            <span className="selectedDayWorkoutAction">
+                              View
+                            </span>
+                          </button>
+                        ))
+                      ) : (
+                        <p className="homeEmptyText">
+                          Nothing scheduled for this day.
+                        </p>
+                      )}
+                    </section>
+                  )}
                 </div>
               )}
             </section>
