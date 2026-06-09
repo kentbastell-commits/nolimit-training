@@ -4099,3 +4099,274 @@ body {
 .desktopWorkoutSetRow .limbCell {
   display: none;
 }
+
+/* Final client portal polish */
+.brandWordmark {
+  font-family: Inter, "Arial Black", "Segoe UI", sans-serif;
+  font-size: 28px;
+  font-weight: 900;
+  font-style: italic;
+  letter-spacing: 4px;
+  line-height: 1;
+  text-transform: uppercase;
+  text-shadow: none;
+  transform: none;
+}
+
+.brandSlashO::after {
+  color: currentColor;
+  opacity: 0.85;
+  font-family: Inter, "Segoe UI", sans-serif;
+}
+
+.clientPortalApp {
+  background: #f4f4f1;
+  color: #111;
+}
+
+.clientPortalApp .main {
+  color: #111;
+}
+
+.clientPortalApp .clientTop {
+  align-items: center;
+  gap: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #deded8;
+}
+
+.clientPortalApp .clientTop h1 {
+  color: #111;
+  font-size: 34px;
+  font-weight: 900;
+  letter-spacing: 0;
+}
+
+.clientPortalApp .clientTop p {
+  display: none;
+}
+
+.clientPortalMonogram {
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #d6d1c6;
+  border-radius: 8px;
+  background: #111;
+  color: #eee5d6;
+  flex: 0 0 auto;
+}
+
+.clientPortalMonogram .monogramMark {
+  font-size: 31px;
+}
+
+.clientPortalApp .mobileClientBottomNav {
+  border-top-color: #deded8;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 -10px 28px rgba(0, 0, 0, 0.08);
+}
+
+.clientPortalApp .mobileClientBottomNav button {
+  color: #1b1b1b;
+}
+
+.clientPortalApp .mobileClientBottomNav button.active {
+  background: #111;
+  border-color: #111;
+  color: #f6f2e8;
+}
+
+.clientPortalApp .clientPortalTrainingHero {
+  border: 1px solid #deded8;
+  border-radius: 8px;
+  background: #fff;
+  color: #111;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+  padding: 16px 18px;
+}
+
+.clientPortalApp .clientPortalTrainingHero span {
+  color: #6e6e68;
+  font-size: 11px;
+  letter-spacing: 1.4px;
+}
+
+.clientPortalApp .clientPortalTrainingHero h2 {
+  color: #111;
+  font-size: 28px;
+  font-weight: 900;
+}
+
+.clientPortalApp .clientPortalTrainingHero p {
+  color: #5f5f59;
+  font-weight: 600;
+}
+
+.clientPortalApp .compactNextWorkoutButton {
+  width: auto;
+  min-height: 38px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.clientPortalApp .goldButton {
+  background: #111;
+  border-color: #111;
+  color: #f7f1de;
+  box-shadow: none;
+}
+
+.clientPortalApp .outlineButton,
+.clientPortalApp .miniMoveWorkoutButton,
+.clientPortalApp .iconActionButton,
+.clientPortalApp .videoButton {
+  background: #fff;
+  border-color: #d7d5cf;
+  color: #111;
+}
+
+.clientPortalApp .workout-modal,
+.clientPortalApp .clientFormModal,
+.clientPortalApp .profileCard,
+.clientPortalApp .workoutGlancePanel {
+  background: #fff;
+  border-color: #deded8;
+  color: #111;
+  box-shadow: 0 16px 42px rgba(0, 0, 0, 0.08);
+}
+
+.clientPortalApp .workout-modal h2,
+.clientPortalApp .modal-header h2,
+.clientPortalApp .workoutGlancePanel h3,
+.clientPortalApp .workoutLogExerciseCard h3 {
+  color: #111;
+  font-weight: 900;
+}
+
+.clientPortalApp .modal-header p,
+.clientPortalApp .workoutGlanceIntro,
+.clientPortalApp .workoutGlanceRow small {
+  color: #5f5f59;
+}
+
+.clientPortalApp .workoutSectionHeading {
+  width: fit-content;
+  border-radius: 0;
+  border: 0;
+  border-bottom: 3px solid #9a7a26;
+  background: transparent;
+  color: #111;
+  padding: 0 2px 6px;
+  margin: 26px auto 18px;
+  letter-spacing: 1.6px;
+}
+
+.clientPortalApp .workoutLogExerciseCard {
+  border: 1px solid #deded8;
+  border-left: 4px solid #9a7a26;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.08);
+}
+
+.clientPortalApp .exerciseLabelBadge {
+  background: #111;
+  border-color: #111;
+  color: #f6f2e8;
+}
+
+.clientPortalApp .workoutPrescriptionGrid span {
+  background: #f3f3ef;
+  border-color: #deded8;
+  color: #111;
+}
+
+.clientPortalApp .workoutPrescriptionGrid strong,
+.clientPortalApp .setLogField span,
+.clientPortalApp .setLogStatic span,
+.clientPortalApp .workoutBlock span {
+  color: #5f5f59;
+}
+
+.clientPortalApp .desktopWorkoutSetRow {
+  grid-template-columns: minmax(150px, 190px) repeat(4, minmax(150px, 1fr));
+  gap: 14px;
+  align-items: end;
+  background: #fff !important;
+  border-color: #deded8 !important;
+  box-shadow: none;
+}
+
+.clientPortalApp .desktopWorkoutSetLabel,
+.clientPortalApp .setBanner {
+  background: #f2eee4;
+  border-color: #d8d0bb;
+  color: #111;
+}
+
+.clientPortalApp .desktopWorkoutSetLabel strong,
+.clientPortalApp .setBanner strong {
+  color: #111;
+  font-weight: 900;
+}
+
+.clientPortalApp .mobileSetLogRow,
+.clientPortalApp .workoutLogExerciseCard .mobileSetLogRow {
+  background: #fff !important;
+  border-color: #deded8 !important;
+}
+
+.clientPortalApp .workoutGlanceRow {
+  background: #fff;
+  border-color: #deded8;
+  box-shadow: none;
+}
+
+.clientPortalApp .workoutGlanceRow:hover {
+  background: #f3f1eb;
+}
+
+.clientPortalApp input,
+.clientPortalApp textarea,
+.clientPortalApp select,
+.clientPortalApp .setLogRow input,
+.clientPortalApp .setLogField input {
+  background: #fff;
+  border-color: #cfcfc8;
+  color: #111;
+}
+
+.clientPortalApp input::placeholder,
+.clientPortalApp textarea::placeholder {
+  color: #85857f;
+}
+
+.saveExerciseButton {
+  width: 100%;
+  margin-top: 14px;
+  min-height: 42px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.clientPortalApp .saveExerciseButton {
+  background: #fff;
+  border-color: #111;
+  color: #111;
+}
+
+.clientPortalApp .savedExerciseButton {
+  background: #efede6;
+  border-color: #9a7a26;
+  color: #111;
+}
+
+.clientPortalApp .saveWorkoutButton {
+  border-radius: 8px;
+  font-size: 17px;
+}

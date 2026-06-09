@@ -442,6 +442,7 @@ function App() {
     []
   );
   const [workoutLoggingStarted, setWorkoutLoggingStarted] = useState(false);
+  const [savedExerciseDraftIds, setSavedExerciseDraftIds] = useState<string[]>([]);
   const [historyExerciseName, setHistoryExerciseName] = useState("");
   const [loading, setLoading] = useState(true);
   const [workoutsLoading, setWorkoutsLoading] = useState(false);
@@ -731,6 +732,7 @@ function App() {
     setSelectedWorkout(null);
     setWorkoutDetails([]);
     setSetLogs([]);
+    setSavedExerciseDraftIds([]);
 
     loadPrograms();
 
@@ -1333,7 +1335,38 @@ function App() {
       }
     });
 
-    setSetLogs(logs);
+    return logs;
+  };
+
+  const getWorkoutDraftKey = (
+    workout: Workout | null = selectedWorkout,
+    client: Client | null = selectedClient
+  ) => {
+    if (!workout || !client) return "";
+
+    return `nolimit-workout-draft:${client.id}:${workout.id}`;
+  };
+
+  const saveExerciseDraft = (exerciseId: string) => {
+    const draftKey = getWorkoutDraftKey();
+
+    if (!draftKey) return;
+
+    const nextSavedExerciseIds = Array.from(
+      new Set([...savedExerciseDraftIds, exerciseId])
+    );
+
+    window.localStorage.setItem(
+      draftKey,
+      JSON.stringify({
+        logs: setLogs,
+        savedExerciseIds: nextSavedExerciseIds,
+        updatedAt: new Date().toISOString(),
+      })
+    );
+
+    setSavedExerciseDraftIds(nextSavedExerciseIds);
+    notify("Exercise saved. You can come back and keep editing.", "success");
   };
 
   const openWorkout = async (workout: Workout) => {
@@ -1344,6 +1377,7 @@ function App() {
     setWorkoutDetails([]);
     setSetLogs([]);
     setWorkoutHistoryLogs([]);
+    setSavedExerciseDraftIds([]);
 
     try {
       const [detailsResponse, historyResponse] = await Promise.all([
@@ -1356,13 +1390,32 @@ function App() {
       const data = await detailsResponse.json();
       const exercises = data.exercises || [];
       const historyData = await historyResponse.json();
+      const baseLogs = buildSetLogs(exercises);
+      const draftKey = getWorkoutDraftKey(workout, selectedClient);
+      const savedDraft = draftKey
+        ? window.localStorage.getItem(draftKey)
+        : null;
+
+      if (savedDraft) {
+        try {
+          const parsedDraft = JSON.parse(savedDraft);
+          setSetLogs(parsedDraft.logs || baseLogs);
+          setSavedExerciseDraftIds(parsedDraft.savedExerciseIds || []);
+        } catch {
+          setSetLogs(baseLogs);
+          setSavedExerciseDraftIds([]);
+        }
+      } else {
+        setSetLogs(baseLogs);
+        setSavedExerciseDraftIds([]);
+      }
 
       setWorkoutDetails(exercises);
-      buildSetLogs(exercises);
       setWorkoutHistoryLogs(historyData.logs || []);
     } catch {
       setWorkoutDetails([]);
       setSetLogs([]);
+      setSavedExerciseDraftIds([]);
       setWorkoutHistoryLogs([]);
     } finally {
       setDetailsLoading(false);
@@ -1413,9 +1466,15 @@ function App() {
       if (data.exerciseResults?.errors?.length > 0) {
         notify("Workout saved, but exercise results need table field review.", "error");
       } else {
-        notify("Workout saved to Feishu.");
+        notify("Workout submitted.");
+      }
+      const draftKey = getWorkoutDraftKey();
+      if (draftKey) {
+        window.localStorage.removeItem(draftKey);
       }
       setSelectedWorkout(null);
+      setWorkoutLoggingStarted(false);
+      setSavedExerciseDraftIds([]);
       setWorkoutDetails([]);
       setSetLogs([]);
     } catch (error) {
@@ -2406,7 +2465,7 @@ function App() {
           <div className="inviteBrand">
             <div>
               <div className="brandWordmark">
-                N<span className="brandSlashO">Ø</span> LIMIT
+                N<span className="brandSlashO">O</span> LIMIT
               </div>
               <div className="brandTagline">INSPIRED BY MOVEMENT.</div>
             </div>
@@ -2524,7 +2583,7 @@ function App() {
 
         <section className="clientPortalEmpty">
           <div className="brandWordmark">
-            N<span className="brandSlashO">Ø</span> LIMIT
+            N<span className="brandSlashO">O</span> LIMIT
           </div>
           <h1>Client Portal</h1>
           <p>{portalMessage}</p>
@@ -2542,7 +2601,7 @@ function App() {
       <aside className="sidebar">
         <div className="brand">
           <div className="brandWordmark">
-            N<span className="brandSlashO">Ø</span> LIMIT
+            N<span className="brandSlashO">O</span> LIMIT
           </div>
           <div className="brandTagline">BUILT FOR TRAINING.</div>
         </div>
@@ -2560,6 +2619,7 @@ function App() {
                   setSelectedWorkout(null);
                   setWorkoutDetails([]);
                   setSetLogs([]);
+                  setSavedExerciseDraftIds([]);
                   setActivePage(item.name);
 
                   if (item.name === "Library" || item.name === "Workouts") {
@@ -3693,6 +3753,7 @@ function App() {
                   setSelectedWorkout(null);
                   setWorkoutDetails([]);
                   setSetLogs([]);
+                  setSavedExerciseDraftIds([]);
                 }}
               >
                 ← Back
@@ -3722,11 +3783,19 @@ function App() {
               </nav>
 
               <div className="clientTop">
-                <div className="clientAvatar largeAvatar">
-                  {selectedClient.initials}
-                </div>
+                {isClientPortal ? (
+                  <div className="clientPortalMonogram" aria-hidden="true">
+                    <span className="monogramMark">
+                      N<span>L</span>
+                    </span>
+                  </div>
+                ) : (
+                  <div className="clientAvatar largeAvatar">
+                    {selectedClient.initials}
+                  </div>
+                )}
                 <div>
-                  <h1>{selectedClient.name}</h1>
+                  <h1>{isClientPortal ? "Training" : selectedClient.name}</h1>
                   <p>
                     {selectedClient.status} • {selectedClient.program}
                   </p>
@@ -3797,7 +3866,7 @@ function App() {
                 )}
               </div>
 
-              <div className="clientSnapshotGrid">
+              <div className={isClientPortal ? "clientSnapshotGrid portalHidden" : "clientSnapshotGrid"}>
                 <div className="clientSnapshotCard">
                   <span>Status</span>
                   <strong>{selectedClient.status || "--"}</strong>
@@ -3881,10 +3950,10 @@ function App() {
 
               {clientTab === "Training" && (
                 <div className="trainingCalendar">
-                  {isClientPortal && (
+                  {isClientPortal && clientPortalUpcomingWorkouts[0] && (
                     <section className="clientPortalTrainingHero">
                       <div>
-                        <span>Next Up</span>
+                        <span>Next Workout</span>
                         <h2>
                           {clientPortalUpcomingWorkouts[0]?.sessionName ||
                             "Training"}
@@ -3906,18 +3975,18 @@ function App() {
 
                       {clientPortalUpcomingWorkouts[0] && (
                         <button
-                          className="goldButton"
+                          className="goldButton compactNextWorkoutButton"
                           onClick={() =>
                             openWorkout(clientPortalUpcomingWorkouts[0])
                           }
                         >
-                          Open Workout
+                          Start
                         </button>
                       )}
                     </section>
                   )}
 
-                  {isClientPortal && clientPortalUpcomingWorkouts.length > 0 && (
+                  {false && isClientPortal && clientPortalUpcomingWorkouts.length > 0 && (
                     <section className="clientPortalWorkoutList">
                       <h3>Upcoming Workouts</h3>
                       {clientPortalUpcomingWorkouts.map((workout) => (
@@ -4869,6 +4938,7 @@ function App() {
                       setWorkoutLoggingStarted(false);
                       setWorkoutDetails([]);
                       setSetLogs([]);
+                      setSavedExerciseDraftIds([]);
                       setWorkoutHistoryLogs([]);
                       setHistoryExerciseName("");
                     }}
@@ -5188,6 +5258,22 @@ function App() {
                             </div>
                           );
                         })}
+
+                        {isClientPortal && (
+                          <button
+                            className={
+                              savedExerciseDraftIds.includes(exercise.exerciseId)
+                                ? "outlineButton saveExerciseButton savedExerciseButton"
+                                : "outlineButton saveExerciseButton"
+                            }
+                            onClick={() => saveExerciseDraft(exercise.exerciseId)}
+                            type="button"
+                          >
+                            {savedExerciseDraftIds.includes(exercise.exerciseId)
+                              ? "Exercise Saved"
+                              : "Save Exercise"}
+                          </button>
+                        )}
                         </div>
                       </div>
                     );
@@ -5199,7 +5285,7 @@ function App() {
                     onClick={saveWorkout}
                     disabled={savingWorkout}
                   >
-                    {savingWorkout ? "Saving..." : "Save Workout"}
+                    {savingWorkout ? "Submitting..." : "Submit Workout"}
                   </button>
                 )}
               </div>
