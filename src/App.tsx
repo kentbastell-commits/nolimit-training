@@ -347,6 +347,15 @@ function formatCalendarLabel(dateString: string) {
   });
 }
 
+function formatWeekStripLabel(dateString: string) {
+  const date = new Date(dateString + "T00:00:00");
+
+  return {
+    weekday: date.toLocaleDateString("en-US", { weekday: "short" }),
+    day: date.toLocaleDateString("en-US", { day: "numeric" }),
+  };
+}
+
 function formatCalendarRangeLabel(view: CalendarView, anchorDate: string) {
   if (view === "1 Day") {
     return formatCalendarLabel(anchorDate);
@@ -2423,6 +2432,9 @@ function App() {
           addDays(getMondayStart(calendarAnchorDate), index)
         )
       : getMonthDates(calendarAnchorDate);
+  const clientWeekStripDates = Array.from({ length: 7 }, (_, index) =>
+    addDays(getMondayStart(calendarAnchorDate), index)
+  );
 
   const calendarRangeLabel = formatCalendarRangeLabel(
     calendarView,
@@ -2430,6 +2442,11 @@ function App() {
   );
 
   const moveCalendarRange = (direction: -1 | 1) => {
+    if (isClientPortal && clientCalendarStyle === "Week Strip") {
+      setCalendarAnchorDate(addDays(getMondayStart(calendarAnchorDate), direction * 7));
+      return;
+    }
+
     if (calendarView === "1 Day") {
       setCalendarAnchorDate(addDays(calendarAnchorDate, direction));
       return;
@@ -4468,8 +4485,12 @@ function App() {
                         : "calendarGrid monthCalendar"
                     }
                   >
-                    {calendarDates.map((date) => {
+                    {(isClientPortal && clientCalendarStyle === "Week Strip"
+                      ? clientWeekStripDates
+                      : calendarDates
+                    ).map((date) => {
                       const dayWorkouts = getWorkoutsForDate(date);
+                      const weekStripLabel = formatWeekStripLabel(date);
 
                       return (
                         <div
@@ -4508,7 +4529,15 @@ function App() {
                           }}
                         >
                           <strong className="calendarDateLabel">
-                            {formatCalendarLabel(date)}
+                            {isClientPortal &&
+                            clientCalendarStyle === "Week Strip" ? (
+                              <>
+                                <span>{weekStripLabel.weekday}</span>
+                                <b>{weekStripLabel.day}</b>
+                              </>
+                            ) : (
+                              formatCalendarLabel(date)
+                            )}
                           </strong>
 
                           {isClientPortal && (

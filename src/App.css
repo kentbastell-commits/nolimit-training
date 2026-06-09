@@ -4739,11 +4739,15 @@ body {
   grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 0;
   margin-top: 16px;
+  width: 100%;
+  max-width: 100%;
   border-bottom: 1px solid #dcd9cf;
   background: #fff;
+  overflow: hidden;
 }
 
 .clientPortalApp .clientWeekStripCalendar .calendarDay {
+  min-width: 0;
   min-height: 76px;
   display: grid;
   place-items: center;
@@ -4767,10 +4771,30 @@ body {
 
 .clientPortalApp .clientWeekStripCalendar .calendarDateLabel {
   margin: 0;
+  min-width: 0;
   color: #111 !important;
-  font-size: 14px;
+  font-size: 12px;
   line-height: 1.15;
   text-align: center;
+}
+
+.clientPortalApp .clientWeekStripCalendar .calendarDateLabel span,
+.clientPortalApp .clientWeekStripCalendar .calendarDateLabel b {
+  display: block;
+}
+
+.clientPortalApp .clientWeekStripCalendar .calendarDateLabel span {
+  color: #73736d;
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.clientPortalApp .clientWeekStripCalendar .calendarDateLabel b {
+  margin-top: 3px;
+  color: #111;
+  font-size: 18px;
+  font-weight: 900;
 }
 
 .calendarWorkMarkers {
@@ -4902,12 +4926,16 @@ body {
     padding: 7px 9px;
   }
 
-  .clientPortalApp .clientWeekStripCalendar {
-    margin-left: -18px;
-    margin-right: -18px;
+  .clientPortalApp .clientWeekStripCalendar .calendarDateLabel {
+    font-size: 11px;
   }
 
-  .clientPortalApp .clientWeekStripCalendar .calendarDateLabel {
-    font-size: 12px;
+  .clientPortalApp .clientWeekStripCalendar .calendarDay {
+    padding-left: 2px;
+    padding-right: 2px;
+  }
+
+  .clientPortalApp .clientWeekStripCalendar .calendarDateLabel b {
+    font-size: 16px;
   }
 }
