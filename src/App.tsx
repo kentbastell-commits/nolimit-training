@@ -6,6 +6,7 @@ import {
   ClipboardList,
   Clock3,
   Dumbbell,
+  Home,
   Play,
   Plus,
   Trash2,
@@ -19,7 +20,7 @@ import "./App.css";
 
 type AppMode = "Coach" | "Client";
 type Page = "Clients" | "Library" | "Workouts" | "Check-ins";
-type ClientTab = "Overview" | "Training";
+type ClientTab = "Home" | "Overview" | "Training";
 type CalendarView = "1 Day" | "1 Week" | "1 Month";
 type WorkoutPageTab = "Saved Programs" | "Builder";
 type ToastType = "success" | "error" | "info";
@@ -457,6 +458,8 @@ function App() {
   const [libraryExercises, setLibraryExercises] = useState<LibraryExercise[]>([]);
   const [libraryLoading, setLibraryLoading] = useState(false);
   const [librarySearch, setLibrarySearch] = useState("");
+  const [progressSearch, setProgressSearch] = useState("");
+  const [selectedProgressExercise, setSelectedProgressExercise] = useState("");
   const [showExerciseModal, setShowExerciseModal] = useState(false);
   const [technicalCueExercise, setTechnicalCueExercise] =
     useState<LibraryExercise | null>(null);
@@ -706,7 +709,7 @@ function App() {
 
     if (portalClient) {
       setSelectedClient(portalClient);
-      setClientTab("Training");
+      setClientTab("Home");
       setActivePage("Clients");
     }
   }, [clients, clientPortalCode, isClientPortal]);
@@ -726,7 +729,7 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (!selectedClient || clientTab !== "Training") return;
+    if (!selectedClient) return;
 
     setWorkoutsLoading(true);
     setSelectedWorkout(null);
@@ -746,7 +749,20 @@ function App() {
         setWorkouts([]);
         setWorkoutsLoading(false);
       });
-  }, [selectedClient, clientTab]);
+  }, [selectedClient]);
+
+  useEffect(() => {
+    if (!selectedClient) return;
+
+    fetch(`/api/workoutHistory?clientId=${selectedClient.id}`)
+      .then((res) => res.json())
+      .then((data) => setWorkoutHistoryLogs(data.logs || []))
+      .catch(() => setWorkoutHistoryLogs([]));
+
+    if (isClientPortal && libraryExercises.length === 0) {
+      loadExerciseLibrary();
+    }
+  }, [selectedClient, isClientPortal]);
 
   useEffect(() => {
     if (activePage !== "Workouts" || !selectedSavedProgramId) return;
@@ -2437,6 +2453,57 @@ function App() {
     )
     .slice(0, 5);
 
+  const progressExerciseOptions = Array.from(
+    new Set([
+      ...libraryExercises.map((exercise) => exercise.exerciseName).filter(Boolean),
+      ...workoutHistoryLogs.map((log) => log.exerciseName).filter(Boolean),
+    ])
+  )
+    .filter((name) =>
+      name.toLowerCase().includes(progressSearch.toLowerCase())
+    )
+    .sort((a, b) => a.localeCompare(b));
+
+  const selectedProgressName =
+    selectedProgressExercise ||
+    progressExerciseOptions[0] ||
+    workoutHistoryLogs[0]?.exerciseName ||
+    "";
+  const visibleProgressExerciseOptions =
+    selectedProgressName &&
+    !progressExerciseOptions.includes(selectedProgressName)
+      ? [selectedProgressName, ...progressExerciseOptions]
+      : progressExerciseOptions;
+
+  const progressHistoryPoints = workoutHistoryLogs
+    .filter((log) =>
+      log.exerciseName
+        .toLowerCase()
+        .startsWith(selectedProgressName.toLowerCase())
+    )
+    .map((log) => {
+      const weight = Number(log.actualWeight);
+      const distance = Number(log.actualDistance);
+      const time = Number(log.actualTime);
+      const value = weight || distance || time || 0;
+      const unit = weight ? "kg" : distance ? "m" : time ? "sec" : "";
+
+      return {
+        date: normalizeDate(log.date),
+        value,
+        unit,
+      };
+    })
+    .filter((point) => point.value > 0)
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .slice(-8);
+
+  const progressMaxValue = Math.max(
+    1,
+    ...progressHistoryPoints.map((point) => point.value)
+  );
+  const progressUnit = progressHistoryPoints.find((point) => point.unit)?.unit || "";
+
   const openWorkoutExerciseFromGlance = (index: number) => {
     if (isClientPortal) {
       setWorkoutLoggingStarted(true);
@@ -3763,6 +3830,13 @@ function App() {
 
               <nav className="mobileClientBottomNav" aria-label="Client navigation">
                 <button
+                  className={clientTab === "Home" ? "active" : ""}
+                  onClick={() => setClientTab("Home")}
+                >
+                  <Home size={21} strokeWidth={2.2} />
+                  <span>Home</span>
+                </button>
+                <button
                   className={clientTab === "Training" ? "active" : ""}
                   onClick={() => setClientTab("Training")}
                 >
@@ -3795,7 +3869,15 @@ function App() {
                   </div>
                 )}
                 <div>
-                  <h1>{isClientPortal ? "Training" : selectedClient.name}</h1>
+                  <h1>
+                    {isClientPortal
+                      ? clientTab === "Home"
+                        ? `Hi, ${selectedClient.name.split(" ")[0] || "there"}`
+                        : clientTab === "Overview"
+                        ? "Profile"
+                        : "Training"
+                      : selectedClient.name}
+                  </h1>
                   <p>
                     {selectedClient.status} • {selectedClient.program}
                   </p>
@@ -3868,7 +3950,7 @@ function App() {
 
               <div
                 className={
-                  clientTab === "Training"
+                  isClientPortal || clientTab === "Training"
                     ? "clientSnapshotGrid portalHidden"
                     : "clientSnapshotGrid"
                 }
@@ -3915,6 +3997,137 @@ function App() {
                   Training
                 </button>
               </div>
+
+              {clientTab === "Home" && isClientPortal && (
+                <div className="clientHomeGrid">
+                  <section className="clientHomePanel upcomingHomePanel">
+                    <div className="clientHomePanelHeader">
+                      <div>
+                        <span>Plan</span>
+                        <h2>Upcoming Workouts</h2>
+                      </div>
+                      <button
+                        className="outlineButton"
+                        onClick={() => setClientTab("Training")}
+                      >
+                        Calendar
+                      </button>
+                    </div>
+
+                    <div className="homeWorkoutList">
+                      {clientPortalUpcomingWorkouts.length > 0 ? (
+                        clientPortalUpcomingWorkouts.slice(0, 4).map((workout) => (
+                          <button
+                            key={workout.id}
+                            className="homeWorkoutItem"
+                            onClick={() => openWorkout(workout)}
+                          >
+                            <span>
+                              {formatCalendarLabel(
+                                normalizeDate(String(workout.scheduledDate))
+                              )}
+                            </span>
+                            <strong>{workout.sessionName || "Workout"}</strong>
+                            <small>
+                              Week {workout.week} - Day {workout.day}
+                            </small>
+                          </button>
+                        ))
+                      ) : (
+                        <p className="homeEmptyText">
+                          No upcoming workouts are scheduled yet.
+                        </p>
+                      )}
+                    </div>
+                  </section>
+
+                  <section className="clientHomePanel progressHomePanel">
+                    <div className="clientHomePanelHeader">
+                      <div>
+                        <span>Progress</span>
+                        <h2>Exercise History</h2>
+                      </div>
+                    </div>
+
+                    <div className="progressControls">
+                      <input
+                        value={progressSearch}
+                        onChange={(e) => setProgressSearch(e.target.value)}
+                        placeholder="Search exercise"
+                      />
+                      <select
+                        value={selectedProgressName}
+                        onChange={(e) => setSelectedProgressExercise(e.target.value)}
+                      >
+                        {visibleProgressExerciseOptions.length > 0 ? (
+                          visibleProgressExerciseOptions.map((name) => (
+                            <option key={name} value={name}>
+                              {name}
+                            </option>
+                          ))
+                        ) : (
+                          <option value="">No exercise history yet</option>
+                        )}
+                      </select>
+                    </div>
+
+                    <div className="progressChart" aria-label="Exercise progress chart">
+                      {progressHistoryPoints.length > 0 ? (
+                        progressHistoryPoints.map((point) => (
+                          <div className="progressBarWrap" key={`${point.date}-${point.value}`}>
+                            <span>{point.value}{progressUnit && ` ${progressUnit}`}</span>
+                            <div
+                              className="progressBar"
+                              style={{
+                                height: `${Math.max(
+                                  18,
+                                  (point.value / progressMaxValue) * 100
+                                )}%`,
+                              }}
+                            />
+                            <small>
+                              {new Date(`${point.date}T00:00:00`).toLocaleDateString(
+                                "en-US",
+                                { month: "short", day: "numeric" }
+                              )}
+                            </small>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="homeEmptyText">
+                          Log a workout to start building progress charts.
+                        </p>
+                      )}
+                    </div>
+                  </section>
+
+                  <section className="clientHomePanel focusHomePanel">
+                    <div className="clientHomePanelHeader">
+                      <div>
+                        <span>Readiness</span>
+                        <h2>Today's Focus</h2>
+                      </div>
+                    </div>
+
+                    <div className="homeFocusGrid">
+                      <div>
+                        <span>Check-in</span>
+                        <strong>{selectedClientCheckInLabel}</strong>
+                        <button
+                          className="outlineButton"
+                          onClick={() => openCheckInQuestionnaire(selectedClient)}
+                        >
+                          Submit Check-in
+                        </button>
+                      </div>
+                      <div>
+                        <span>Coach Notes</span>
+                        <strong>{selectedClient.notes || "No notes yet."}</strong>
+                      </div>
+                    </div>
+                  </section>
+                </div>
+              )}
 
               {clientTab === "Overview" && (
                 <div className="overviewGrid">
