@@ -1,15 +1,24 @@
 import {
   BarChart3,
+  BookOpen,
+  CalendarDays,
+  ClipboardCheck,
   ClipboardList,
   Clock3,
+  Dumbbell,
+  Home,
   Play,
   Plus,
   Trash2,
+  UserCircle,
+  Users,
   X,
+  type LucideIcon,
 } from "lucide-react";
 import { useEffect, useState, type DragEvent } from "react";
 import "./App.css";
 
+type AppMode = "Coach" | "Client";
 type Page = "Clients" | "Library" | "Workouts" | "Check-ins";
 type ClientTab = "Overview" | "Training";
 type CalendarView = "1 Day" | "1 Week" | "1 Month";
@@ -388,6 +397,7 @@ function App() {
   const [savingClient, setSavingClient] = useState(false);
   const [updatingClientStatus, setUpdatingClientStatus] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const [appMode] = useState<AppMode>("Coach");
   const [analytics, setAnalytics] = useState<CoachAnalytics | null>(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [showAnalyticsModal, setShowAnalyticsModal] = useState(false);
@@ -1876,11 +1886,11 @@ function App() {
     missing: clients.filter((client) => getCheckInAgeDays(client) === null).length,
   };
 
-  const menuItems: { name: Page; count: number }[] = [
-    { name: "Clients", count: clients.length },
-    { name: "Library", count: libraryExercises.length },
-    { name: "Workouts", count: workouts.length },
-    { name: "Check-ins", count: checkInStats.due },
+  const menuItems: { name: Page; count: number; icon: LucideIcon }[] = [
+    { name: "Clients", count: clients.length, icon: Users },
+    { name: "Library", count: libraryExercises.length, icon: BookOpen },
+    { name: "Workouts", count: workouts.length, icon: Dumbbell },
+    { name: "Check-ins", count: checkInStats.due, icon: ClipboardCheck },
   ];
 
   const clientStatusOptions = Array.from(
@@ -2437,7 +2447,7 @@ function App() {
   }
 
   return (
-    <div className="app">
+    <div className={`app ${selectedClient ? "clientLayerActive" : "coachLayerActive"}`}>
       <aside className="sidebar">
         <div className="brand">
           <div className="brandWordmark">
@@ -2447,30 +2457,37 @@ function App() {
         </div>
 
         <nav>
-          {menuItems.map((item) => (
-            <button
-              key={item.name}
-              className={`navItem ${activePage === item.name ? "active" : ""}`}
-              onClick={() => {
-                setSelectedClient(null);
-                setSelectedWorkout(null);
-                setWorkoutDetails([]);
-                setSetLogs([]);
-                setActivePage(item.name);
+          {menuItems.map((item) => {
+            const NavIcon = item.icon;
 
-                if (item.name === "Library" || item.name === "Workouts") {
-                  loadExerciseLibrary();
-                }
+            return (
+              <button
+                key={item.name}
+                className={`navItem ${activePage === item.name ? "active" : ""}`}
+                onClick={() => {
+                  setSelectedClient(null);
+                  setSelectedWorkout(null);
+                  setWorkoutDetails([]);
+                  setSetLogs([]);
+                  setActivePage(item.name);
 
-                if (item.name === "Workouts") {
-                  loadPrograms();
-                }
-              }}
-            >
-              <span>{item.name}</span>
-              <span className="badge">{item.count}</span>
-            </button>
-          ))}
+                  if (item.name === "Library" || item.name === "Workouts") {
+                    loadExerciseLibrary();
+                  }
+
+                  if (item.name === "Workouts") {
+                    loadPrograms();
+                  }
+                }}
+              >
+                <span className="navItemLabel">
+                  <NavIcon size={20} strokeWidth={2.2} />
+                  <span>{item.name}</span>
+                </span>
+                <span className="badge">{item.count}</span>
+              </button>
+            );
+          })}
         </nav>
 
         <div className="coachBox">
@@ -2481,7 +2498,7 @@ function App() {
           </div>
           <div>
             <strong>Kent Bastell</strong>
-            <p>Coach</p>
+            <p>{appMode}</p>
           </div>
         </div>
       </aside>
@@ -3594,6 +3611,34 @@ function App() {
               >
                 ← Back
               </button>
+
+              <nav className="mobileClientBottomNav" aria-label="Client navigation">
+                <button
+                  className={clientTab === "Overview" ? "active" : ""}
+                  onClick={() => setClientTab("Overview")}
+                >
+                  <Home size={21} strokeWidth={2.2} />
+                  <span>Home</span>
+                </button>
+                <button
+                  className={clientTab === "Training" ? "active" : ""}
+                  onClick={() => setClientTab("Training")}
+                >
+                  <CalendarDays size={21} strokeWidth={2.2} />
+                  <span>Training</span>
+                </button>
+                <button onClick={() => openCheckInQuestionnaire(selectedClient)}>
+                  <ClipboardCheck size={21} strokeWidth={2.2} />
+                  <span>Check-in</span>
+                </button>
+                <button
+                  className={clientTab === "Overview" ? "active" : ""}
+                  onClick={() => setClientTab("Overview")}
+                >
+                  <UserCircle size={21} strokeWidth={2.2} />
+                  <span>Me</span>
+                </button>
+              </nav>
 
               <div className="clientTop">
                 <div className="clientAvatar largeAvatar">
