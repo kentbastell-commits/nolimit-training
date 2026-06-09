@@ -3866,7 +3866,13 @@ function App() {
                 )}
               </div>
 
-              <div className={isClientPortal ? "clientSnapshotGrid portalHidden" : "clientSnapshotGrid"}>
+              <div
+                className={
+                  clientTab === "Training"
+                    ? "clientSnapshotGrid portalHidden"
+                    : "clientSnapshotGrid"
+                }
+              >
                 <div className="clientSnapshotCard">
                   <span>Status</span>
                   <strong>{selectedClient.status || "--"}</strong>
@@ -3888,7 +3894,13 @@ function App() {
                 </div>
               </div>
 
-              <div className={isClientPortal ? "clientTabs portalHidden" : "clientTabs"}>
+              <div
+                className={
+                  isClientPortal || clientTab === "Training"
+                    ? "clientTabs portalHidden"
+                    : "clientTabs"
+                }
+              >
                 <button
                   className={clientTab === "Overview" ? "tab activeTab" : "tab"}
                   onClick={() => setClientTab("Overview")}

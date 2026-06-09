@@ -4370,3 +4370,28 @@ body {
   border-radius: 8px;
   font-size: 17px;
 }
+
+.clientPortalApp .portalHidden,
+.clientPage.trainingFocus .portalHidden {
+  display: none !important;
+}
+
+.clientPortalApp .calendarDateLabel,
+.clientPortalApp .oneDayCalendar .calendarDateLabel,
+.clientPortalApp .monthCalendar .calendarDateLabel,
+.clientPortalApp .calendarNavigator strong,
+.clientPortalApp .calendarNavigator input,
+.clientPortalApp .clientPortalTrainingHero p,
+.clientPortalApp .workoutGlanceRow small {
+  color: #7a5a0a !important;
+}
+
+.clientPortalApp .calendarDay {
+  border-color: #d7d2c5;
+}
+
+.clientPortalApp .calendarNavigator input,
+.clientPortalApp input[type="date"] {
+  color: #7a5a0a;
+  font-weight: 800;
+}
