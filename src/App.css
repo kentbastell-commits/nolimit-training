@@ -260,16 +260,18 @@ body {
   display: grid;
   place-items: center;
   padding: 24px;
-  background: radial-gradient(circle at top, #18120a 0%, #050505 48%, #000 100%);
+  background: #f7f4ed;
+  color: #151515;
 }
 
 .clientPortalEmpty {
   width: min(520px, 100%);
-  border: 1px solid rgba(212, 175, 55, 0.32);
+  border: 1px solid rgba(22, 22, 22, 0.12);
   border-radius: 8px;
-  background: rgba(0, 0, 0, 0.58);
+  background: #fffdf8;
   padding: 28px;
   text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08);
 }
 
 .clientPortalEmpty h1 {
@@ -279,8 +281,13 @@ body {
 }
 
 .clientPortalEmpty p {
-  color: #c8c8c8;
+  color: #555;
   margin: 0;
+}
+
+.clientPortalApp {
+  background: #f7f4ed;
+  color: #151515;
 }
 
 .clientPortalApp .sidebar {
@@ -291,6 +298,7 @@ body {
   width: 100%;
   max-width: 1180px;
   margin: 0 auto;
+  color: #151515;
 }
 
 .clientPortalApp .clientPage {
@@ -311,9 +319,9 @@ body {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 4px;
   padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
-  border-top: 1px solid rgba(212, 175, 55, 0.32);
-  background: rgba(5, 5, 5, 0.96);
-  box-shadow: 0 -18px 40px rgba(0, 0, 0, 0.6);
+  border-top: 1px solid rgba(22, 22, 22, 0.1);
+  background: rgba(255, 253, 248, 0.96);
+  box-shadow: 0 -14px 32px rgba(0, 0, 0, 0.12);
   backdrop-filter: blur(16px);
 }
 
@@ -322,7 +330,7 @@ body {
   border: 0;
   border-radius: 8px;
   background: transparent;
-  color: #f7e4a3;
+  color: #151515;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -337,11 +345,140 @@ body {
 .clientPortalApp .mobileClientBottomNav button.active {
   background: linear-gradient(
     180deg,
-    rgba(212, 175, 55, 0.3),
-    rgba(212, 175, 55, 0.08)
+    rgba(212, 175, 55, 0.34),
+    rgba(212, 175, 55, 0.12)
   );
-  border: 1px solid rgba(212, 175, 55, 0.55);
+  border: 1px solid rgba(176, 137, 24, 0.42);
+  color: #151515;
+}
+
+.clientPortalApp .brandWordmark,
+.clientPortalShell .brandWordmark {
+  color: #151515;
+}
+
+.clientPortalApp .brandSlashO,
+.clientPortalShell .brandSlashO {
+  color: #151515;
+}
+
+.clientPortalApp .clientTop h1,
+.clientPortalApp .calendarHeader h2,
+.clientPortalApp .profileCard h3,
+.clientPortalApp .workout-modal h2,
+.clientPortalApp .workoutLogExerciseCard h3 {
+  color: #151515;
+}
+
+.clientPortalApp .clientTop p,
+.clientPortalApp .modal-header p,
+.clientPortalApp .clientPortalTrainingHero p,
+.clientPortalApp .clientPortalWorkoutItem span,
+.clientPortalApp .clientPortalWorkoutItem small {
+  color: #555;
+}
+
+.clientPortalApp .clientSnapshotCard,
+.clientPortalApp .profileCard,
+.clientPortalApp .clientPortalWorkoutList,
+.clientPortalApp .workoutGlancePanel,
+.clientPortalApp .exercise-card,
+.clientPortalApp .workout-modal,
+.clientPortalApp .clientFormModal {
+  border-color: rgba(22, 22, 22, 0.12);
+  background: #fffdf8;
+  color: #151515;
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.07);
+}
+
+.clientPortalApp .clientSnapshotCard span,
+.clientPortalApp .workoutSummaryStrip span,
+.clientPortalApp .workoutPrescriptionGrid strong,
+.clientPortalApp .setLogField span,
+.clientPortalApp .setLogStatic span,
+.clientPortalApp .workoutGlanceSection {
+  color: #6d6658;
+}
+
+.clientPortalApp .clientSnapshotCard strong,
+.clientPortalApp .workoutGlancePanel h3,
+.clientPortalApp .workoutGlanceRow strong,
+.clientPortalApp .clientPortalWorkoutList h3,
+.clientPortalApp .clientPortalWorkoutItem strong,
+.clientPortalApp .workoutSectionHeading,
+.clientPortalApp .setBanner strong,
+.clientPortalApp .desktopWorkoutSetLabel strong {
+  color: #b08918;
+}
+
+.clientPortalApp .clientPortalTrainingHero {
+  border-color: rgba(176, 137, 24, 0.28);
+  background: #151515;
+  color: #fffdf8;
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.12);
+}
+
+.clientPortalApp .clientPortalTrainingHero h2,
+.clientPortalApp .clientPortalTrainingHero p,
+.clientPortalApp .clientPortalTrainingHero span {
+  color: #fffdf8;
+}
+
+.clientPortalApp .goldButton {
+  background: #151515;
   color: #f5d77b;
+  border-color: #151515;
+}
+
+.clientPortalApp .outlineButton,
+.clientPortalApp .miniMoveWorkoutButton,
+.clientPortalApp .iconActionButton,
+.clientPortalApp .videoButton {
+  background: #fffdf8;
+  color: #151515;
+  border-color: rgba(22, 22, 22, 0.2);
+}
+
+.clientPortalApp .exerciseLabelBadge,
+.clientPortalApp .setBanner,
+.clientPortalApp .desktopWorkoutSetLabel {
+  background: #f4ecd6;
+  border-color: rgba(176, 137, 24, 0.28);
+  color: #151515;
+}
+
+.clientPortalApp .workoutBlock {
+  background: #fffdf8;
+  color: #151515;
+  border-color: rgba(176, 137, 24, 0.34);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.06);
+}
+
+.clientPortalApp .workoutBlock span {
+  color: #666;
+}
+
+.clientPortalApp .calendarDay,
+.clientPortalApp .setLogRow,
+.clientPortalApp .desktopWorkoutSetRow,
+.clientPortalApp .historyLogRow {
+  background: rgba(255, 253, 248, 0.82);
+  border-color: rgba(22, 22, 22, 0.1);
+}
+
+.clientPortalApp input,
+.clientPortalApp textarea,
+.clientPortalApp select,
+.clientPortalApp .setLogRow input,
+.clientPortalApp .setLogField input {
+  background: #ffffff;
+  color: #151515;
+  border-color: rgba(22, 22, 22, 0.18);
+}
+
+.clientPortalApp input::placeholder,
+.clientPortalApp textarea::placeholder {
+  color: #8a8376;
 }
 
 .coachBox {
@@ -1800,6 +1937,10 @@ body {
   align-items: center;
   z-index: 999;
   padding: 24px;
+}
+
+.technicalCueOverlay {
+  z-index: 1400;
 }
 
 .workout-modal {

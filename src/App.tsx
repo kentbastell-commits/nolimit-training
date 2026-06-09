@@ -4337,7 +4337,7 @@ function App() {
         )}
 
         {technicalCueExercise && (
-          <div className="workout-modal-overlay">
+          <div className="workout-modal-overlay technicalCueOverlay">
             <div className="clientFormModal technicalCueModal">
               <div className="modal-header">
                 <div>
@@ -4362,6 +4362,7 @@ function App() {
               </div>
 
               <div className="modalActions">
+                {!isClientPortal && (
                 <button
                   className="outlineButton"
                   onClick={() => {
@@ -4371,6 +4372,7 @@ function App() {
                 >
                   Edit Cues
                 </button>
+                )}
                 <button
                   className="goldButton"
                   onClick={() => setTechnicalCueExercise(null)}
