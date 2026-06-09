@@ -388,11 +388,35 @@ function getMonthDates(dateString: string) {
   );
 }
 
+function getMonthCalendarDates(dateString: string) {
+  const monthDates = getMonthDates(dateString);
+  const firstDate = new Date(`${monthDates[0]}T00:00:00`);
+  const firstDay = firstDate.getDay();
+  const leadingBlankCount = firstDay === 0 ? 6 : firstDay - 1;
+  const cells: Array<string | null> = [
+    ...Array.from({ length: leadingBlankCount }, () => null),
+    ...monthDates,
+  ];
+  const trailingBlankCount = (7 - (cells.length % 7)) % 7;
+
+  return [
+    ...cells,
+    ...Array.from({ length: trailingBlankCount }, () => null),
+  ];
+}
+
 function formatCalendarLabel(dateString: string) {
   return new Date(dateString + "T00:00:00").toLocaleDateString("en-US", {
     weekday: "short",
     month: "short",
     day: "numeric",
+  });
+}
+
+function formatMonthTitle(dateString: string) {
+  return new Date(dateString + "T00:00:00").toLocaleDateString("en-US", {
+    month: "long",
+    year: "numeric",
   });
 }
 
@@ -498,6 +522,12 @@ function App() {
   const [clientTab, setClientTab] = useState<ClientTab>("Overview");
   const [calendarView, setCalendarView] = useState<CalendarView>("1 Week");
   const [calendarAnchorDate, setCalendarAnchorDate] = useState(
+    dateToInputValue(new Date())
+  );
+  const [clientWeekStartDate, setClientWeekStartDate] = useState(
+    getMondayStart(dateToInputValue(new Date()))
+  );
+  const [clientMonthAnchorDate, setClientMonthAnchorDate] = useState(
     dateToInputValue(new Date())
   );
   const [clientCalendarStyle, setClientCalendarStyle] = useState<
@@ -2870,8 +2900,12 @@ function App() {
         )
       : getMonthDates(calendarAnchorDate);
   const clientWeekStripDates = Array.from({ length: 7 }, (_, index) =>
-    addDays(getMondayStart(calendarAnchorDate), index)
+    addDays(clientWeekStartDate, index)
   );
+  const clientMonthCalendarDates = getMonthCalendarDates(clientMonthAnchorDate);
+  const clientWeekRangeLabel = `${formatCalendarLabel(
+    clientWeekStartDate
+  )} - ${formatCalendarLabel(addDays(clientWeekStartDate, 6))}`;
 
   const calendarRangeLabel = formatCalendarRangeLabel(
     calendarView,
@@ -2880,7 +2914,10 @@ function App() {
 
   const moveCalendarRange = (direction: -1 | 1) => {
     if (isClientPortal && clientCalendarStyle === "Week Strip") {
-      setCalendarAnchorDate(addDays(getMondayStart(calendarAnchorDate), direction * 7));
+      const nextWeekStart = addDays(clientWeekStartDate, direction * 7);
+
+      setClientWeekStartDate(nextWeekStart);
+      setCalendarAnchorDate(nextWeekStart);
       return;
     }
 
@@ -2895,6 +2932,22 @@ function App() {
     }
 
     setCalendarAnchorDate(addMonths(calendarAnchorDate, direction));
+  };
+
+  const selectClientCalendarDate = (date: string) => {
+    setCalendarAnchorDate(date);
+    setClientWeekStartDate(getMondayStart(date));
+    setClientMonthAnchorDate(date);
+  };
+
+  const jumpClientCalendarToToday = () => {
+    const today = dateToInputValue(new Date());
+
+    selectClientCalendarDate(today);
+  };
+
+  const moveClientMonth = (direction: -1 | 1) => {
+    setClientMonthAnchorDate((current) => addMonths(current, direction));
   };
 
   function getWorkoutsForDate(dateString: string) {
@@ -5252,7 +5305,11 @@ function App() {
                         Previous
                       </button>
 
-                      <strong>{calendarRangeLabel}</strong>
+                      <strong>
+                        {isClientPortal && clientCalendarStyle === "Week Strip"
+                          ? clientWeekRangeLabel
+                          : calendarRangeLabel}
+                      </strong>
 
                       <button
                         className="outlineButton"
@@ -5265,7 +5322,14 @@ function App() {
                     <div className="calendarQuickControls">
                       <button
                         className="outlineButton todayButton"
-                        onClick={() => setCalendarAnchorDate(dateToInputValue(new Date()))}
+                        onClick={() => {
+                          if (isClientPortal) {
+                            jumpClientCalendarToToday();
+                            return;
+                          }
+
+                          setCalendarAnchorDate(dateToInputValue(new Date()));
+                        }}
                       >
                         Today
                       </button>
@@ -5276,7 +5340,14 @@ function App() {
                         <input
                           type="date"
                           value={calendarAnchorDate}
-                          onChange={(e) => setCalendarAnchorDate(e.target.value)}
+                          onChange={(e) => {
+                            if (isClientPortal) {
+                              selectClientCalendarDate(e.target.value);
+                              return;
+                            }
+
+                            setCalendarAnchorDate(e.target.value);
+                          }}
                         />
                       </label>
                     </div>
@@ -5368,6 +5439,14 @@ function App() {
                   <div
                     className={
                       isClientPortal && clientCalendarStyle === "Week Strip"
+                        ? "clientTrainingCalendarLayout"
+                        : "clientTrainingCalendarSolo"
+                    }
+                  >
+                    <div className="clientTrainingWeekPanel">
+                  <div
+                    className={
+                      isClientPortal && clientCalendarStyle === "Week Strip"
                         ? "calendarGrid clientWeekStripCalendar"
                         : calendarView === "1 Day"
                         ? "calendarGrid oneDayCalendar"
@@ -5415,7 +5494,7 @@ function App() {
                           }}
                           onClick={() => {
                             if (isClientPortal) {
-                              setCalendarAnchorDate(date);
+                              selectClientCalendarDate(date);
                             }
                           }}
                         >
@@ -5575,6 +5654,85 @@ function App() {
                       )}
                     </section>
                   )}
+                    </div>
+
+                    {isClientPortal && clientCalendarStyle === "Week Strip" && (
+                      <aside className="clientMonthCalendarCard">
+                        <div className="clientMonthCalendarHeader">
+                          <button
+                            type="button"
+                            className="clientMonthArrow"
+                            onClick={() => moveClientMonth(-1)}
+                            aria-label="Previous month"
+                          >
+                            {"<"}
+                          </button>
+                          <strong>{formatMonthTitle(clientMonthAnchorDate)}</strong>
+                          <button
+                            type="button"
+                            className="clientMonthArrow"
+                            onClick={() => moveClientMonth(1)}
+                            aria-label="Next month"
+                          >
+                            {">"}
+                          </button>
+                        </div>
+
+                        <div className="clientMonthWeekdays">
+                          {["MO", "TU", "WE", "TH", "FR", "SA", "SU"].map((day) => (
+                            <span key={day}>{day}</span>
+                          ))}
+                        </div>
+
+                        <div className="clientMonthGrid">
+                          {clientMonthCalendarDates.map((date, index) => {
+                            if (!date) {
+                              return (
+                                <span
+                                  className="clientMonthDay emptyClientMonthDay"
+                                  key={`empty-${index}`}
+                                />
+                              );
+                            }
+
+                            const dateWorkouts = getWorkoutsForDate(date);
+                            const dayNumber = new Date(`${date}T00:00:00`).getDate();
+
+                            return (
+                              <button
+                                type="button"
+                                key={date}
+                                className={`clientMonthDay ${
+                                  date === calendarAnchorDate
+                                    ? "selectedClientMonthDay"
+                                    : ""
+                                } ${
+                                  date === todayValue ? "todayClientMonthDay" : ""
+                                } ${
+                                  dateWorkouts.length > 0 ? "hasClientMonthWork" : ""
+                                }`}
+                                onClick={() => selectClientCalendarDate(date)}
+                              >
+                                <span>{dayNumber}</span>
+                                <span
+                                  className="calendarWorkMarkers"
+                                  aria-hidden="true"
+                                >
+                                  {dateWorkouts.length > 0 ? (
+                                    dateWorkouts.slice(0, 3).map((workout) => (
+                                      <span key={workout.id} />
+                                    ))
+                                  ) : (
+                                    <span className="emptyMarker" />
+                                  )}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </aside>
+                    )}
+                  </div>
                 </div>
               )}
             </section>
