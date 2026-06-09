@@ -21,6 +21,7 @@ type AppMode = "Coach" | "Client";
 type Page = "Clients" | "Library" | "Workouts" | "Check-ins";
 type ClientTab = "Home" | "Overview" | "Training";
 type CalendarView = "1 Day" | "1 Week" | "1 Month";
+type ClientCalendarStyle = "Week" | "Month" | "Full";
 type WorkoutPageTab =
   | "Saved Programs"
   | "Program Builder"
@@ -530,9 +531,8 @@ function App() {
   const [clientMonthAnchorDate, setClientMonthAnchorDate] = useState(
     dateToInputValue(new Date())
   );
-  const [clientCalendarStyle, setClientCalendarStyle] = useState<
-    "Week Strip" | "Calendar"
-  >("Week Strip");
+  const [clientCalendarStyle, setClientCalendarStyle] =
+    useState<ClientCalendarStyle>("Week");
   const [showCalendarActionMenu, setShowCalendarActionMenu] = useState(false);
   const [workoutPageTab, setWorkoutPageTab] =
     useState<WorkoutPageTab>("Saved Programs");
@@ -2913,11 +2913,25 @@ function App() {
   );
 
   const moveCalendarRange = (direction: -1 | 1) => {
-    if (isClientPortal && clientCalendarStyle === "Week Strip") {
+    if (isClientPortal && clientCalendarStyle === "Week") {
       const nextWeekStart = addDays(clientWeekStartDate, direction * 7);
 
       setClientWeekStartDate(nextWeekStart);
       setCalendarAnchorDate(nextWeekStart);
+      return;
+    }
+
+    if (isClientPortal && clientCalendarStyle === "Month") {
+      moveClientMonth(direction);
+      return;
+    }
+
+    if (isClientPortal && clientCalendarStyle === "Full") {
+      const nextMonth = addMonths(calendarAnchorDate, direction);
+
+      setCalendarAnchorDate(nextMonth);
+      setClientMonthAnchorDate(nextMonth);
+      setClientWeekStartDate(getMondayStart(nextMonth));
       return;
     }
 
@@ -5215,7 +5229,7 @@ function App() {
 
                     {isClientPortal && (
                       <div className="clientCalendarViewToggle">
-                        {(["Week Strip", "Calendar"] as const).map((view) => (
+                        {(["Week", "Month", "Full"] as const).map((view) => (
                           <button
                             key={view}
                             className={
@@ -5224,7 +5238,7 @@ function App() {
                             onClick={() => setClientCalendarStyle(view)}
                             type="button"
                           >
-                            {view === "Week Strip" ? "Week" : "Full"}
+                            {view}
                           </button>
                         ))}
                       </div>
@@ -5306,8 +5320,12 @@ function App() {
                       </button>
 
                       <strong>
-                        {isClientPortal && clientCalendarStyle === "Week Strip"
+                        {isClientPortal && clientCalendarStyle === "Week"
                           ? clientWeekRangeLabel
+                          : isClientPortal && clientCalendarStyle === "Month"
+                          ? formatMonthTitle(clientMonthAnchorDate)
+                          : isClientPortal && clientCalendarStyle === "Full"
+                          ? formatMonthTitle(calendarAnchorDate)
                           : calendarRangeLabel}
                       </strong>
 
@@ -5438,16 +5456,20 @@ function App() {
 
                   <div
                     className={
-                      isClientPortal && clientCalendarStyle === "Week Strip"
-                        ? "clientTrainingCalendarLayout"
+                      isClientPortal && clientCalendarStyle === "Week"
+                        ? "clientTrainingCalendarSolo"
                         : "clientTrainingCalendarSolo"
                     }
                   >
                     <div className="clientTrainingWeekPanel">
                   <div
                     className={
-                      isClientPortal && clientCalendarStyle === "Week Strip"
+                      isClientPortal && clientCalendarStyle === "Week"
                         ? "calendarGrid clientWeekStripCalendar"
+                        : isClientPortal && clientCalendarStyle === "Month"
+                        ? "clientCalendarHidden"
+                        : isClientPortal && clientCalendarStyle === "Full"
+                        ? "calendarGrid monthCalendar clientFullCalendar"
                         : calendarView === "1 Day"
                         ? "calendarGrid oneDayCalendar"
                         : calendarView === "1 Week"
@@ -5455,8 +5477,10 @@ function App() {
                         : "calendarGrid monthCalendar"
                     }
                   >
-                    {(isClientPortal && clientCalendarStyle === "Week Strip"
+                    {(isClientPortal && clientCalendarStyle === "Week"
                       ? clientWeekStripDates
+                      : isClientPortal && clientCalendarStyle === "Full"
+                      ? getMonthDates(calendarAnchorDate)
                       : calendarDates
                     ).map((date) => {
                       const dayWorkouts = getWorkoutsForDate(date);
@@ -5500,7 +5524,7 @@ function App() {
                         >
                           <strong className="calendarDateLabel">
                             {isClientPortal &&
-                            clientCalendarStyle === "Week Strip" ? (
+                            clientCalendarStyle === "Week" ? (
                               <>
                                 <span>{weekStripLabel.weekday}</span>
                                 <b>{weekStripLabel.day}</b>
@@ -5523,7 +5547,7 @@ function App() {
                           )}
 
                           {(!isClientPortal ||
-                            clientCalendarStyle === "Calendar") &&
+                            clientCalendarStyle === "Full") &&
                             dayWorkouts.map((workout) => (
                             <div
                               className={`workoutBlock ${getStatusClass(
@@ -5611,7 +5635,7 @@ function App() {
                     })}
                   </div>
 
-                  {isClientPortal && clientCalendarStyle === "Week Strip" && (
+                  {isClientPortal && clientCalendarStyle === "Week" && (
                     <section className="selectedDayGlance">
                       <div className="selectedDayGlanceHeader">
                         <span>{formatCalendarLabel(calendarAnchorDate)}</span>
@@ -5656,8 +5680,8 @@ function App() {
                   )}
                     </div>
 
-                    {isClientPortal && clientCalendarStyle === "Week Strip" && (
-                      <aside className="clientMonthCalendarCard">
+                    {isClientPortal && clientCalendarStyle === "Month" && (
+                      <aside className="clientMonthCalendarCard standaloneClientMonthCalendar">
                         <div className="clientMonthCalendarHeader">
                           <button
                             type="button"
