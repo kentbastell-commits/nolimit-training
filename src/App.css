@@ -4395,3 +4395,69 @@ body {
   color: #7a5a0a;
   font-weight: 800;
 }
+
+/* Cleaner workout-card prescription and set separation */
+.workoutPrescriptionGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 22px;
+  margin: 12px 0 16px;
+  padding: 0 2px 12px;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.16);
+}
+
+.workoutPrescriptionGrid span,
+.clientPortalApp .workoutPrescriptionGrid span {
+  min-width: auto;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  background: transparent;
+  color: #f7f7f7;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.workoutPrescriptionGrid strong,
+.clientPortalApp .workoutPrescriptionGrid strong {
+  display: inline;
+  margin: 0 7px 0 0;
+  color: #9b9b9b;
+  font-size: 11px;
+  letter-spacing: 0.8px;
+  vertical-align: 1px;
+}
+
+.clientPortalApp .workoutPrescriptionGrid {
+  border-bottom-color: #deded8;
+}
+
+.clientPortalApp .workoutPrescriptionGrid span {
+  color: #111;
+}
+
+.clientPortalApp .workoutPrescriptionGrid strong {
+  color: #666;
+}
+
+.desktopWorkoutSetLabel,
+.setBanner,
+.clientPortalApp .desktopWorkoutSetLabel,
+.clientPortalApp .setBanner {
+  border: 1px solid #c8c8c0;
+  background: #d9d9d1;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+.desktopWorkoutSetLabel strong,
+.setBanner strong,
+.clientPortalApp .desktopWorkoutSetLabel strong,
+.clientPortalApp .setBanner strong {
+  color: #111;
+  font-weight: 900;
+}
+
+.workoutLogExerciseCard .mobileSetLogRow .setBanner,
+.workoutLogExerciseCard .desktopSetLogRow .setBanner {
+  min-height: 48px !important;
+}
