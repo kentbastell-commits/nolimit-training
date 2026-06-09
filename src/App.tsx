@@ -6,7 +6,6 @@ import {
   ClipboardList,
   Clock3,
   Dumbbell,
-  Home,
   Play,
   Plus,
   Trash2,
@@ -2537,12 +2536,6 @@ function App() {
                 </div>
               )}
 
-              {activePage === "Library" && (
-                <button className="goldButton" onClick={loadExerciseLibrary}>
-                  Refresh Library
-                </button>
-              )}
-
               {activePage === "Workouts" && workoutPageTab === "Builder" && (
                 <button className="goldButton" onClick={saveFullProgram}>
                   {savingTemplate ? "Saving..." : "Save Full Program"}
@@ -2696,7 +2689,7 @@ function App() {
 
             {activePage === "Library" && (
               <>
-                <section className="searchRow">
+                <section className="searchRow librarySearchRow">
                   <input
                     placeholder="Search exercise..."
                     value={librarySearch}
@@ -3614,13 +3607,6 @@ function App() {
 
               <nav className="mobileClientBottomNav" aria-label="Client navigation">
                 <button
-                  className={clientTab === "Overview" ? "active" : ""}
-                  onClick={() => setClientTab("Overview")}
-                >
-                  <Home size={21} strokeWidth={2.2} />
-                  <span>Home</span>
-                </button>
-                <button
                   className={clientTab === "Training" ? "active" : ""}
                   onClick={() => setClientTab("Training")}
                 >
@@ -3636,7 +3622,7 @@ function App() {
                   onClick={() => setClientTab("Overview")}
                 >
                   <UserCircle size={21} strokeWidth={2.2} />
-                  <span>Me</span>
+                  <span>Profile</span>
                 </button>
               </nav>
 
@@ -4704,6 +4690,64 @@ function App() {
               <div className="modal-body">
                 {detailsLoading && <p>Loading workout details...</p>}
 
+                {!detailsLoading && workoutDetails.length > 0 && (
+                  <section className="workoutGlancePanel">
+                    <h3>At a Glance</h3>
+
+                    {workoutDetails.map((exercise, index) => {
+                      const meta = parseExerciseNotes(exercise.notes);
+                      const previousMeta =
+                        index > 0
+                          ? parseExerciseNotes(workoutDetails[index - 1].notes)
+                          : null;
+                      const sectionName = meta.sectionName || "Main";
+                      const showSectionHeader =
+                        !previousMeta ||
+                        sectionName !== (previousMeta.sectionName || "Main");
+                      const prescription =
+                        exercise.sets && exercise.reps
+                          ? `${exercise.sets} x ${exercise.reps}`
+                          : "For completion";
+                      const prescriptionDetails = [
+                        prescription,
+                        exercise.tempo ? `Tempo ${exercise.tempo}` : "",
+                        exercise.rest ? `Rest ${exercise.rest}` : "",
+                      ].filter(Boolean);
+
+                      return (
+                        <div key={`${exercise.id}-glance`}>
+                          {showSectionHeader && (
+                            <h4 className="workoutGlanceSection">
+                              {sectionName}
+                            </h4>
+                          )}
+
+                          <button
+                            className="workoutGlanceRow"
+                            type="button"
+                            onClick={() =>
+                              document
+                                .getElementById(`workout-exercise-${index}`)
+                                ?.scrollIntoView({
+                                  behavior: "smooth",
+                                  block: "start",
+                                })
+                            }
+                          >
+                            <span className="exerciseLabelBadge">
+                              {meta.exerciseLabel || makeExerciseLabel(index)}
+                            </span>
+                            <span>
+                              <strong>{exercise.exerciseName}</strong>
+                              <small>{prescriptionDetails.join(" • ")}</small>
+                            </span>
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </section>
+                )}
+
                 {!detailsLoading &&
                   workoutDetails.map((exercise, index) => {
                     const exerciseLogs = setLogs.filter(
@@ -4735,7 +4779,10 @@ function App() {
                           </h4>
                         )}
 
-                        <div className="exercise-card workoutLogExerciseCard">
+                        <div
+                          className="exercise-card workoutLogExerciseCard"
+                          id={`workout-exercise-${index}`}
+                        >
                         <div className="exerciseTitleRow workoutExerciseHeader">
                           <div className="workoutExerciseTitle">
                             <span className="exerciseLabelBadge">

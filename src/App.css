@@ -623,6 +623,16 @@ body {
   font-size: 16px;
 }
 
+.librarySearchRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+}
+
+.librarySearchRow input {
+  max-width: none;
+}
+
 .tableCard {
   border: 1px solid rgba(212, 175, 55, 0.3);
   border-radius: 16px;
@@ -1953,6 +1963,70 @@ body {
   margin-bottom: 22px;
 }
 
+.workoutGlancePanel {
+  border: 1px solid rgba(212, 175, 55, 0.24);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.035);
+  padding: 16px;
+  margin-bottom: 22px;
+}
+
+.workoutGlancePanel h3 {
+  margin: 0 0 12px;
+  color: #f5d77b;
+  font-size: 22px;
+  line-height: 1.15;
+}
+
+.workoutGlanceSection {
+  color: #ddd;
+  text-transform: uppercase;
+  letter-spacing: 0;
+  font-size: 13px;
+  margin: 18px 0 8px;
+}
+
+.workoutGlancePanel > div:first-of-type .workoutGlanceSection {
+  margin-top: 0;
+}
+
+.workoutGlanceRow {
+  width: 100%;
+  border: 0;
+  border-radius: 8px;
+  padding: 10px 8px;
+  background: transparent;
+  color: white;
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  text-align: left;
+  cursor: pointer;
+}
+
+.workoutGlanceRow:hover {
+  background: rgba(212, 175, 55, 0.08);
+}
+
+.workoutGlanceRow strong,
+.workoutGlanceRow small {
+  display: block;
+}
+
+.workoutGlanceRow strong {
+  color: #f5d77b;
+  font-size: 20px;
+  line-height: 1.2;
+}
+
+.workoutGlanceRow small {
+  color: #c8c8c8;
+  margin-top: 3px;
+  font-size: 14px;
+  line-height: 1.25;
+}
+
 .workoutDateItem {
   display: flex;
   align-items: center;
@@ -2731,6 +2805,11 @@ body {
     width: 100%;
   }
 
+  .librarySearchRow {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
   .sidebar nav {
     position: fixed;
     left: 0;
@@ -2799,7 +2878,7 @@ body {
     bottom: 0;
     z-index: 1200;
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 4px;
     padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
     border-top: 1px solid rgba(212, 175, 55, 0.32);
@@ -3112,6 +3191,29 @@ body {
     padding: 12px;
     border-radius: 8px;
     margin-bottom: 16px;
+  }
+
+  .workoutGlancePanel {
+    padding: 12px;
+    margin-bottom: 16px;
+  }
+
+  .workoutGlancePanel h3 {
+    font-size: 19px;
+  }
+
+  .workoutGlanceRow {
+    grid-template-columns: 40px minmax(0, 1fr);
+    gap: 10px;
+    padding: 9px 4px;
+  }
+
+  .workoutGlanceRow strong {
+    font-size: 17px;
+  }
+
+  .workoutGlanceRow small {
+    font-size: 13px;
   }
 
   .workoutLogTitleRow {
