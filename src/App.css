@@ -4732,6 +4732,34 @@ body {
   display: none;
 }
 
+.clientPortalLanguageSwitch {
+  display: inline-flex;
+  gap: 4px;
+  margin-top: 8px;
+  padding: 4px;
+  border: 1px solid #d6d1c6;
+  border-radius: 999px;
+  background: #fff;
+}
+
+.clientPortalLanguageSwitch button {
+  min-width: 48px;
+  min-height: 34px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #2f2f2b;
+  font-weight: 900;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.clientPortalLanguageSwitch button.active {
+  background: #111;
+  color: #f6f2e8;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.16);
+}
+
 .clientPortalMonogram {
   width: 52px;
   height: 52px;
