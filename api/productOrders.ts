@@ -102,6 +102,21 @@ export default async function handler(_req: VercelRequest, res: VercelResponse) 
         accessEndDate: formatDate(fields["Access End Date"]),
         intakeStatus: fieldToText(fields["Intake Status"]),
         assignedCoach: fieldToText(fields["Assigned Coach"]),
+        intakeAssignmentId:
+          fieldToText(fields["Intake Assignment ID"]) ||
+          fieldToText(fields["Assigned Intake ID"]),
+        onboardingStatus:
+          fieldToText(fields["Onboarding Status"]) ||
+          fieldToText(fields["Pipeline Status"]) ||
+          fieldToText(fields["Order Status"]) ||
+          fieldToText(fields["Status"]),
+        fulfillmentStatus:
+          fieldToText(fields["Fulfillment Status"]) ||
+          fieldToText(fields["Fulfilment Status"]),
+        fulfilledAt:
+          formatDate(fields["Fulfilled At"]) ||
+          formatDate(fields["Program Loaded At"]) ||
+          formatDate(fields["Completed At"]),
       };
     });
 

@@ -154,6 +154,10 @@ type ProductOrder = {
   accessEndDate: string;
   intakeStatus: string;
   assignedCoach: string;
+  intakeAssignmentId?: string;
+  onboardingStatus?: string;
+  fulfillmentStatus?: string;
+  fulfilledAt?: string;
 };
 
 type Program = {
@@ -864,6 +868,7 @@ function App() {
   const [savedAssignLoading, setSavedAssignLoading] = useState(false);
   const [savedAssigningProgram, setSavedAssigningProgram] = useState(false);
   const [savedProgramSearch, setSavedProgramSearch] = useState("");
+  const [savedProgramProductFilter, setSavedProgramProductFilter] = useState("All");
   const [selectedAssignProgramId, setSelectedAssignProgramId] = useState("");
   const [assignStartDate, setAssignStartDate] = useState(dateToInputValue(new Date()));
   const [assignableWorkouts, setAssignableWorkouts] = useState<AssignableWorkout[]>([]);
@@ -878,6 +883,15 @@ function App() {
   const [programPhase, setProgramPhase] = useState("Foundation");
   const [programSessionsPerWeek, setProgramSessionsPerWeek] = useState("3");
   const [programCoach, setProgramCoach] = useState("Kent Bastell");
+  const [programProductType, setProgramProductType] = useState("Digital Program");
+  const [programPrice, setProgramPrice] = useState("");
+  const [programCurrency, setProgramCurrency] = useState("CNY");
+  const [programPublicStoreVisible, setProgramPublicStoreVisible] = useState(false);
+  const [programPurchaseLink, setProgramPurchaseLink] = useState("");
+  const [programDefaultIntakeFormId, setProgramDefaultIntakeFormId] = useState("");
+  const [programAccessLengthDays, setProgramAccessLengthDays] = useState("42");
+  const [programProductStatus, setProgramProductStatus] = useState("Draft");
+  const [programSalesDescription, setProgramSalesDescription] = useState("");
 
   const [programWeek, setProgramWeek] = useState("1");
   const [programDay, setProgramDay] = useState("1");
@@ -2207,12 +2221,17 @@ function App() {
   const visibleSavedPrograms = programs
     .filter((program) => program.status !== "Archived")
     .filter((program) => {
+      if (savedProgramProductFilter === "All") return true;
+      return (program.productType || "Internal Coaching Template") === savedProgramProductFilter;
+    })
+    .filter((program) => {
       const search = savedProgramSearch.toLowerCase();
 
       return (
         program.programName.toLowerCase().includes(search) ||
         program.goal.toLowerCase().includes(search) ||
-        program.phase.toLowerCase().includes(search)
+        program.phase.toLowerCase().includes(search) ||
+        String(program.productType || "").toLowerCase().includes(search)
       );
     });
   const visibleSavedForms = savedFormTemplates.filter((form) => {
@@ -2595,6 +2614,15 @@ function App() {
       setProgramPhase(selectedSavedProgram.phase);
       setProgramSessionsPerWeek(selectedSavedProgram.sessionsPerWeek || "3");
       setProgramCoach(selectedSavedProgram.coach || "Kent Bastell");
+      setProgramProductType(selectedSavedProgram.productType || "Digital Program");
+      setProgramPrice(selectedSavedProgram.price || "");
+      setProgramCurrency(selectedSavedProgram.currency || "CNY");
+      setProgramPublicStoreVisible(Boolean(selectedSavedProgram.publicStoreVisible));
+      setProgramPurchaseLink(selectedSavedProgram.purchaseLink || "");
+      setProgramDefaultIntakeFormId(selectedSavedProgram.defaultIntakeFormId || "");
+      setProgramAccessLengthDays(selectedSavedProgram.accessLengthDays || "42");
+      setProgramProductStatus(selectedSavedProgram.productStatus || "Draft");
+      setProgramSalesDescription(selectedSavedProgram.salesDescription || "");
       setProgramSessions(sessions);
       setSelectedProgramExercises([]);
       setProgramWeek("1");
@@ -3583,6 +3611,15 @@ function App() {
           sessionsPerWeek: Number(programSessionsPerWeek),
           coach: programCoach,
           status: "Active",
+          productType: programProductType,
+          price: programPrice,
+          currency: programCurrency,
+          publicStoreVisible: programPublicStoreVisible,
+          purchaseLink: programPurchaseLink,
+          defaultIntakeFormId: programDefaultIntakeFormId,
+          accessLengthDays: programAccessLengthDays,
+          productStatus: programProductStatus,
+          salesDescription: programSalesDescription,
         }),
       });
 
@@ -3644,6 +3681,15 @@ function App() {
       setProgramDurationWeeks("4");
       setProgramPhase("");
       setProgramSessionsPerWeek("3");
+      setProgramProductType("Digital Program");
+      setProgramPrice("");
+      setProgramCurrency("CNY");
+      setProgramPublicStoreVisible(false);
+      setProgramPurchaseLink("");
+      setProgramDefaultIntakeFormId("");
+      setProgramAccessLengthDays("42");
+      setProgramProductStatus("Draft");
+      setProgramSalesDescription("");
       setSessionName("");
       setProgramWeek("1");
       setProgramDay("1");
@@ -3992,6 +4038,81 @@ function App() {
         order.purchasedAt ||
         todayInputValue
     );
+  const updateProductOrder = async (
+    order: ProductOrder,
+    updates: Record<string, string | undefined>
+  ) => {
+    try {
+      const response = await fetch("/api/updateProductOrder", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          recordId: order.recordId,
+          ...updates,
+        }),
+      });
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        console.warn("Product order pipeline update skipped", data);
+        return false;
+      }
+
+      if (data.omittedFields?.length) {
+        console.info("Optional product order columns not found", data.omittedFields);
+      }
+
+      await loadProductOrders();
+      return true;
+    } catch (error) {
+      console.warn("Product order pipeline update failed", error);
+      return false;
+    }
+  };
+  const getOrderPipelineStatus = (order: ProductOrder) => {
+    const statusText = `${order.onboardingStatus || ""} ${
+      order.fulfillmentStatus || ""
+    }`.toLowerCase();
+    const intakeStatus = String(order.intakeStatus || "").toLowerCase();
+
+    if (
+      statusText.includes("program loaded") ||
+      statusText.includes("fulfilled")
+    ) {
+      return "Program Loaded";
+    }
+
+    if (statusText.includes("program ready") || intakeStatus.includes("reviewed")) {
+      return "Program Ready";
+    }
+
+    if (intakeStatus.includes("submitted")) return "Intake Submitted";
+    if (
+      statusText.includes("intake sent") ||
+      intakeStatus.includes("sent") ||
+      intakeStatus.includes("assigned")
+    ) {
+      return "Intake Sent";
+    }
+
+    if (statusText.includes("client created") || getOrderClient(order)) {
+      return "Client Created";
+    }
+
+    return order.onboardingStatus || "New Order";
+  };
+  const orderPipelineStages = [
+    "New Order",
+    "Client Created",
+    "Intake Sent",
+    "Intake Submitted",
+    "Program Ready",
+    "Program Loaded",
+  ];
+  const getOrderStageIndex = (order: ProductOrder) =>
+    Math.max(0, orderPipelineStages.indexOf(getOrderPipelineStatus(order)));
   const getOrderClientType = (order: ProductOrder) => {
     const type = `${order.productType} ${order.productName}`.toLowerCase();
 
@@ -4057,12 +4178,12 @@ function App() {
         order.intakeStatus,
       ].some((value) => String(value || "").toLowerCase().includes(search));
     });
-  const openOrdersCount = visibleProductOrders.filter((order) => {
-    const matchedClient = getOrderClient(order);
-    const hasProgram = Boolean(getOrderProgram(order));
-
-    return !matchedClient || !hasProgram || order.intakeStatus !== "Reviewed";
-  }).length;
+  const openOrdersCount = visibleProductOrders.filter(
+    (order) => getOrderPipelineStatus(order) !== "Program Loaded"
+  ).length;
+  const readyOrdersCount = visibleProductOrders.filter(
+    (order) => getOrderPipelineStatus(order) === "Program Ready"
+  ).length;
 
   const createClientFromOrder = async (order: ProductOrder) => {
     const existingClient = getOrderClient(order);
@@ -4123,6 +4244,15 @@ function App() {
             client.name.toLowerCase() === String(order.clientName).toLowerCase()
         );
 
+      await updateProductOrder(order, {
+        clientRecordId: createdClient?.id || data.recordId,
+        clientCode: createdClient?.clientCode || data.clientId,
+        clientName: createdClient?.name || order.clientName,
+        onboardingStatus: "Client Created",
+        paymentStatus: order.paymentStatus || "Paid",
+        programId: program?.programId || order.programId,
+        programName: program?.programName || order.productName,
+      });
       notify(`Client created from order: ${order.clientName}.`, "success");
       return createdClient || null;
     } catch (error) {
@@ -4196,11 +4326,60 @@ function App() {
           purchasedProgramId: getOrderProgram(order)?.programId || order.programId,
         }),
       });
+      await updateProductOrder(order, {
+        clientRecordId: client.id,
+        clientCode: client.clientCode,
+        clientName: client.name,
+        intakeAssignmentId: data.recordId,
+        intakeStatus: "Sent",
+        onboardingStatus: "Intake Sent",
+        paymentStatus: order.paymentStatus || "Paid",
+        programId: getOrderProgram(order)?.programId || order.programId,
+        programName: getOrderProgram(order)?.programName || order.productName,
+      });
       await loadClients();
       notify(`Intake assigned to ${client.name}.`, "success");
     } catch (error) {
       console.error(error);
       notify("Could not assign intake.", "error");
+    } finally {
+      setOrderProcessingId("");
+    }
+  };
+
+  const markOrderIntakeReviewed = async (order: ProductOrder) => {
+    const client = getOrderClient(order);
+
+    if (!client) {
+      notify("Create or match the client before reviewing intake.", "error");
+      return;
+    }
+
+    setOrderProcessingId(order.recordId);
+
+    try {
+      await fetch("/api/updateClient", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          clientRecordId: client.id,
+          intakeStatus: "Reviewed",
+        }),
+      });
+      await updateProductOrder(order, {
+        clientRecordId: client.id,
+        clientCode: client.clientCode,
+        clientName: client.name,
+        intakeStatus: "Reviewed",
+        onboardingStatus: "Program Ready",
+      });
+      await loadClients();
+      notify(`${client.name}'s intake is marked reviewed.`, "success");
+    } catch (error) {
+      console.error(error);
+      notify("Could not mark intake reviewed.", "error");
     } finally {
       setOrderProcessingId("");
     }
@@ -4297,6 +4476,19 @@ function App() {
           accessStartDate: order.accessStartDate || getOrderStartDate(order),
           accessEndDate: order.accessEndDate || client.accessEndDate || "",
         }),
+      });
+      await updateProductOrder(order, {
+        clientRecordId: client.id,
+        clientCode: client.clientCode,
+        clientName: client.name,
+        onboardingStatus: "Program Loaded",
+        fulfillmentStatus: "Fulfilled",
+        fulfilledAt: todayInputValue,
+        programId: program.programId,
+        programName: program.programName,
+        paymentStatus: order.paymentStatus || "Paid",
+        accessStartDate: order.accessStartDate || getOrderStartDate(order),
+        accessEndDate: order.accessEndDate || client.accessEndDate || "",
       });
       await loadClients();
       notify(
@@ -5768,18 +5960,12 @@ function App() {
                     <strong>{visibleProductOrders.length}</strong>
                   </div>
                   <div>
-                    <span>Needs Review</span>
+                    <span>In Pipeline</span>
                     <strong>{openOrdersCount}</strong>
                   </div>
                   <div>
-                    <span>Matched Clients</span>
-                    <strong>
-                      {
-                        visibleProductOrders.filter((order) =>
-                          Boolean(getOrderClient(order))
-                        ).length
-                      }
-                    </strong>
+                    <span>Ready to Load</span>
+                    <strong>{readyOrdersCount}</strong>
                   </div>
                 </div>
 
@@ -5809,6 +5995,8 @@ function App() {
                     const matchedProgram = getOrderProgram(order);
                     const intakeTemplate = getOrderIntakeTemplate(order);
                     const processing = orderProcessingId === order.recordId;
+                    const pipelineStatus = getOrderPipelineStatus(order);
+                    const pipelineIndex = getOrderStageIndex(order);
 
                     return (
                       <section
@@ -5826,13 +6014,30 @@ function App() {
                           </div>
                           <span
                             className={
-                              String(order.paymentStatus).toLowerCase() === "paid"
-                                ? "status activeStatus"
-                                : "status holdStatus"
+                              pipelineStatus === "Program Loaded"
+                                ? "status activeStatus onboardingStatusChip"
+                                : "status holdStatus onboardingStatusChip"
                             }
                           >
-                            {order.paymentStatus || "Payment unknown"}
+                            {pipelineStatus}
                           </span>
+                        </div>
+
+                        <div className="onboardingTimeline">
+                          {orderPipelineStages.map((stage, stageIndex) => (
+                            <span
+                              key={stage}
+                              className={[
+                                "onboardingStage",
+                                stageIndex < pipelineIndex ? "complete" : "",
+                                stageIndex === pipelineIndex ? "current" : "",
+                              ]
+                                .filter(Boolean)
+                                .join(" ")}
+                            >
+                              {stage}
+                            </span>
+                          ))}
                         </div>
 
                         <div className="orderPipeline">
@@ -5871,6 +6076,10 @@ function App() {
                             <span>Purchased</span>
                             <strong>{order.purchasedAt || "--"}</strong>
                           </div>
+                          <div>
+                            <span>Payment</span>
+                            <strong>{order.paymentStatus || "Unknown"}</strong>
+                          </div>
                           <label>
                             <span>Program Start</span>
                             <input
@@ -5900,6 +6109,13 @@ function App() {
                             disabled={processing || !intakeTemplate}
                           >
                             Send Intake
+                          </button>
+                          <button
+                            className="outlineButton"
+                            onClick={() => void markOrderIntakeReviewed(order)}
+                            disabled={processing || !matchedClient}
+                          >
+                            Mark Intake Reviewed
                           </button>
                           <button
                             className="goldButton"
@@ -6091,6 +6307,22 @@ function App() {
                           placeholder="Search programs..."
                         />
 
+                        <select
+                          className="templateSearchInput"
+                          value={savedProgramProductFilter}
+                          onChange={(event) =>
+                            setSavedProgramProductFilter(event.target.value)
+                          }
+                        >
+                          <option value="All">All program types</option>
+                          <option value="Digital Program">Digital programs</option>
+                          <option value="Online Coaching">Online coaching</option>
+                          <option value="In-Person Training">In-person training</option>
+                          <option value="Internal Coaching Template">
+                            Internal templates
+                          </option>
+                        </select>
+
                         {programs.length === 0 && <p>No saved programs found.</p>}
                         {programs.length > 0 && visibleSavedPrograms.length === 0 && (
                           <p>No programs match your search.</p>
@@ -6111,7 +6343,8 @@ function App() {
                           >
                             <strong>{program.programName}</strong>
                             <small>
-                              {program.goal || "--"} / {program.level || "--"}
+                              {program.productType || "Internal Template"} /{" "}
+                              {program.goal || "--"}
                             </small>
                           </button>
                         ))}
@@ -6126,7 +6359,9 @@ function App() {
                               <div>
                                 <h3>{selectedSavedProgram.programName}</h3>
                                 <p>
-                                  {selectedSavedProgram.status || "--"}
+                                  {selectedSavedProgram.productType ||
+                                    "Internal Coaching Template"}{" "}
+                                  / {selectedSavedProgram.status || "--"}
                                 </p>
                               </div>
 
@@ -6166,6 +6401,36 @@ function App() {
                               <span>
                                 <strong>Sessions / Week</strong>
                                 {selectedSavedProgram.sessionsPerWeek || "--"}
+                              </span>
+                              <span>
+                                <strong>Product Type</strong>
+                                {selectedSavedProgram.productType || "--"}
+                              </span>
+                              <span>
+                                <strong>Price</strong>
+                                {selectedSavedProgram.price
+                                  ? `${selectedSavedProgram.price} ${
+                                      selectedSavedProgram.currency || "CNY"
+                                    }`
+                                  : "--"}
+                              </span>
+                              <span>
+                                <strong>Store Visible</strong>
+                                {selectedSavedProgram.publicStoreVisible ? "Yes" : "No"}
+                              </span>
+                              <span>
+                                <strong>Product Status</strong>
+                                {selectedSavedProgram.productStatus || "--"}
+                              </span>
+                              <span>
+                                <strong>Access</strong>
+                                {selectedSavedProgram.accessLengthDays
+                                  ? `${selectedSavedProgram.accessLengthDays} days`
+                                  : "--"}
+                              </span>
+                              <span>
+                                <strong>Default Intake</strong>
+                                {selectedSavedProgram.defaultIntakeFormId || "--"}
                               </span>
                             </div>
 
@@ -6342,6 +6607,115 @@ function App() {
                     />
                   </label>
                 </div>
+
+                <h3 className="builderSectionTitle">Product Settings</h3>
+
+                <div className="programProductGrid">
+                  <label>
+                    <span>Program Type</span>
+                    <select
+                      value={programProductType}
+                      onChange={(e) => setProgramProductType(e.target.value)}
+                      className="miniSearch"
+                    >
+                      <option>Digital Program</option>
+                      <option>Online Coaching</option>
+                      <option>In-Person Training</option>
+                      <option>Internal Coaching Template</option>
+                    </select>
+                  </label>
+
+                  <label>
+                    <span>Price</span>
+                    <input
+                      value={programPrice}
+                      onChange={(e) => setProgramPrice(e.target.value)}
+                      placeholder="Price"
+                      className="miniSearch"
+                    />
+                  </label>
+
+                  <label>
+                    <span>Currency</span>
+                    <select
+                      value={programCurrency}
+                      onChange={(e) => setProgramCurrency(e.target.value)}
+                      className="miniSearch"
+                    >
+                      <option>CNY</option>
+                      <option>USD</option>
+                      <option>CAD</option>
+                    </select>
+                  </label>
+
+                  <label>
+                    <span>Access Days</span>
+                    <input
+                      value={programAccessLengthDays}
+                      onChange={(e) => setProgramAccessLengthDays(e.target.value)}
+                      placeholder="42"
+                      className="miniSearch"
+                    />
+                  </label>
+
+                  <label>
+                    <span>Product Status</span>
+                    <select
+                      value={programProductStatus}
+                      onChange={(e) => setProgramProductStatus(e.target.value)}
+                      className="miniSearch"
+                    >
+                      <option>Draft</option>
+                      <option>Active</option>
+                      <option>Hidden</option>
+                      <option>Archived</option>
+                    </select>
+                  </label>
+
+                  <label>
+                    <span>Default Intake</span>
+                    <select
+                      value={programDefaultIntakeFormId}
+                      onChange={(e) => setProgramDefaultIntakeFormId(e.target.value)}
+                      className="miniSearch"
+                    >
+                      <option value="">No default intake</option>
+                      {savedFormTemplates.map((form) => (
+                        <option key={form.formId} value={form.formId}>
+                          {form.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className="programStoreToggle">
+                    <input
+                      type="checkbox"
+                      checked={programPublicStoreVisible}
+                      onChange={(e) => setProgramPublicStoreVisible(e.target.checked)}
+                    />
+                    <span>Show in digital store</span>
+                  </label>
+
+                  <label>
+                    <span>Purchase Link</span>
+                    <input
+                      value={programPurchaseLink}
+                      onChange={(e) => setProgramPurchaseLink(e.target.value)}
+                      placeholder="Optional checkout link"
+                      className="miniSearch"
+                    />
+                  </label>
+                </div>
+
+                <label className="programSalesDescription">
+                  <span>Sales Description</span>
+                  <textarea
+                    value={programSalesDescription}
+                    onChange={(e) => setProgramSalesDescription(e.target.value)}
+                    placeholder="Short product description for the store or order workflow."
+                  />
+                </label>
 
                 <h3 className="builderSectionTitle">Current Session</h3>
 

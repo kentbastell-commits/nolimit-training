@@ -1169,6 +1169,35 @@ body {
   gap: 14px;
 }
 
+.onboardingTimeline {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(110px, 1fr));
+  gap: 8px;
+}
+
+.onboardingStage {
+  border: 1px solid rgba(212, 175, 55, 0.18);
+  border-radius: 999px;
+  color: #9a9a9a;
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  padding: 9px 10px;
+  text-align: center;
+}
+
+.onboardingStage.complete {
+  background: rgba(124, 255, 151, 0.14);
+  border-color: rgba(124, 255, 151, 0.45);
+  color: #d7ffe0;
+}
+
+.onboardingStage.current {
+  background: rgba(212, 175, 55, 0.2);
+  border-color: rgba(248, 226, 125, 0.7);
+  color: #f8e27d;
+}
+
 .orderPipeline > div,
 .orderMetaGrid > div,
 .orderMetaGrid label {
@@ -1958,6 +1987,47 @@ body {
 .programMetaGrid strong {
   color: #f5d77b;
   font-size: 13px;
+}
+
+.programProductGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(150px, 1fr));
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.programProductGrid label,
+.programSalesDescription {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.programProductGrid label span,
+.programSalesDescription span {
+  color: #f5d77b;
+  font-weight: 900;
+}
+
+.programStoreToggle {
+  border: 1px solid rgba(212, 175, 55, 0.28);
+  border-radius: 10px;
+  justify-content: center;
+  min-height: 62px;
+  padding: 12px 14px;
+}
+
+.programStoreToggle input {
+  width: auto;
+}
+
+.programSalesDescription {
+  margin-bottom: 22px;
+}
+
+.programSalesDescription textarea {
+  min-height: 98px;
+  resize: vertical;
 }
 
 .savedAssignPanel {
@@ -8393,6 +8463,34 @@ textarea {
   background: rgba(239, 245, 232, 0.86);
 }
 
+.app:not(.clientPortalApp) .onboardingStage {
+  background: #ffffff;
+  border-color: #ded8cc;
+  color: #6d6b64;
+}
+
+.app:not(.clientPortalApp) .onboardingStage.complete {
+  background: #edf4e7;
+  border-color: #7f9a6b;
+  color: #2d4c1f;
+}
+
+.app:not(.clientPortalApp) .onboardingStage.current {
+  background: #111111;
+  border-color: #111111;
+  color: #f3dc8a;
+}
+
+.app:not(.clientPortalApp) .programProductGrid label span,
+.app:not(.clientPortalApp) .programSalesDescription span {
+  color: #111111;
+}
+
+.app:not(.clientPortalApp) .programStoreToggle {
+  background: #ffffff;
+  border-color: #cfc7b8;
+}
+
 .app:not(.clientPortalApp) .ordersToolbar input,
 .app:not(.clientPortalApp) .orderMetaGrid input {
   background: #ffffff;
@@ -8407,7 +8505,9 @@ textarea {
 
   .ordersSummary,
   .orderPipeline,
-  .orderMetaGrid {
+  .orderMetaGrid,
+  .onboardingTimeline,
+  .programProductGrid {
     grid-template-columns: 1fr;
   }
 

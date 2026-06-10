@@ -39,6 +39,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       sessionsPerWeek,
       coach,
       status,
+      productType,
+      price,
+      currency,
+      publicStoreVisible,
+      purchaseLink,
+      defaultIntakeFormId,
+      accessLengthDays,
+      productStatus,
+      salesDescription,
+      salesDescriptionCn,
     } = req.body;
 
     if (!programRecordId) {
@@ -60,6 +70,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
     if (coach !== undefined) fields.Coach = coach;
     if (status !== undefined) fields.Status = status;
+    if (productType !== undefined) fields["Product Type"] = productType;
+    if (price !== undefined) fields.Price = price === "" ? "" : Number(price) || 0;
+    if (currency !== undefined) fields.Currency = currency;
+    if (publicStoreVisible !== undefined) {
+      fields["Public Store Visible"] = Boolean(publicStoreVisible) as any;
+    }
+    if (purchaseLink !== undefined) fields["Purchase Link"] = purchaseLink;
+    if (defaultIntakeFormId !== undefined) {
+      fields["Default Intake Form ID"] = defaultIntakeFormId;
+    }
+    if (accessLengthDays !== undefined) {
+      fields["Access Length Days"] =
+        accessLengthDays === "" ? "" : Number(accessLengthDays) || 0;
+    }
+    if (productStatus !== undefined) fields["Product Status"] = productStatus;
+    if (salesDescription !== undefined) {
+      fields["Sales Description"] = salesDescription;
+    }
+    if (salesDescriptionCn !== undefined) {
+      fields["Sales Description CN"] = salesDescriptionCn;
+    }
 
     if (Object.keys(fields).length === 0) {
       return res.status(400).json({ error: "No fields to update" });

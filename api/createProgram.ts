@@ -23,6 +23,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       sessionsPerWeek,
       coach,
       status,
+      productType,
+      price,
+      currency,
+      publicStoreVisible,
+      purchaseLink,
+      defaultIntakeFormId,
+      accessLengthDays,
+      productStatus,
+      salesDescription,
+      salesDescriptionCn,
     } = req.body;
 
     if (!programName) {
@@ -67,6 +77,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       "Sessions / Week": Number(sessionsPerWeek) || 1,
       Coach: coach || "Kent Bastell",
       Status: status || "Active",
+      "Product Type": productType || "Digital Program",
+      Price: price === "" || price === undefined ? "" : Number(price) || 0,
+      Currency: currency || "CNY",
+      "Public Store Visible": Boolean(publicStoreVisible),
+      "Purchase Link": purchaseLink || "",
+      "Default Intake Form ID": defaultIntakeFormId || "",
+      "Access Length Days": Number(accessLengthDays) || "",
+      "Product Status": productStatus || "Draft",
+      "Sales Description": salesDescription || "",
+      "Sales Description CN": salesDescriptionCn || "",
     };
 
     const createResponse = await fetch(
