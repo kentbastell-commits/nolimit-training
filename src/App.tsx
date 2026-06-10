@@ -14,7 +14,7 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react";
-import { useEffect, useState, type DragEvent } from "react";
+import { useEffect, useRef, useState, type DragEvent } from "react";
 import { useTranslation } from "react-i18next";
 import "./App.css";
 
@@ -732,6 +732,8 @@ function App() {
   const [assignmentDueDate, setAssignmentDueDate] = useState(
     dateToInputValue(new Date())
   );
+  const assignmentHubDateInputRef = useRef<HTMLInputElement>(null);
+  const calendarAssignmentDateInputRef = useRef<HTMLInputElement>(null);
   const [creatingAssignment, setCreatingAssignment] = useState(false);
   const [selectedProgramExercises, setSelectedProgramExercises] = useState<
     ProgramExercise[]
@@ -5298,6 +5300,7 @@ function App() {
                       <label>
                         <span>Start Date</span>
                         <input
+                          ref={assignmentHubDateInputRef}
                           className="miniSearch"
                           type="date"
                           value={assignmentDueDate}
@@ -5310,7 +5313,14 @@ function App() {
                       </label>
                       <button
                         className="goldButton"
-                        onClick={() => createContentAssignment()}
+                        onClick={() =>
+                          createContentAssignment({
+                            assignmentDueDate: normalizeDate(
+                              assignmentHubDateInputRef.current?.value ||
+                                assignmentDueDate
+                            ),
+                          })
+                        }
                         disabled={creatingAssignment}
                       >
                         {creatingAssignment ? "Creating..." : "Create Assignment"}
@@ -6114,6 +6124,7 @@ function App() {
                       <label>
                         <span>Start Date</span>
                         <input
+                          ref={calendarAssignmentDateInputRef}
                           type="date"
                           className="miniSearch"
                           value={
@@ -6159,7 +6170,10 @@ function App() {
                               assignmentType,
                               assignmentTemplateId,
                               assignmentClientId: selectedClient?.id || "",
-                              assignmentDueDate,
+                              assignmentDueDate: normalizeDate(
+                                calendarAssignmentDateInputRef.current?.value ||
+                                  assignmentDueDate
+                              ),
                             });
                           }}
                           disabled={creatingAssignment}
