@@ -4420,10 +4420,16 @@ function App() {
                         <span>
                           {exercise.videoUrl ? (
                             <a
-                              className="videoButton"
+                              className="iconActionButton libraryVideoButton"
                               href={exercise.videoUrl}
                               target="_blank"
                               rel="noopener noreferrer"
+                              title={`Open video for ${
+                                exercise.exerciseName || "exercise"
+                              }`}
+                              aria-label={`Open video for ${
+                                exercise.exerciseName || "exercise"
+                              }`}
                             >
                               🎥 Video
                             </a>

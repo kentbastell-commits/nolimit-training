@@ -3618,8 +3618,17 @@ body {
     padding-bottom: calc(74px + env(safe-area-inset-bottom));
   }
 
+  .app:not(.clientPortalApp) {
+    display: block;
+    min-height: 100dvh;
+  }
+
   .main {
     padding: 14px 14px calc(90px + env(safe-area-inset-bottom));
+  }
+
+  .app:not(.clientPortalApp) .main {
+    padding-top: 8px;
   }
 
   .sidebar {
@@ -3629,6 +3638,16 @@ body {
     border-right: 0;
     background: transparent;
     overflow: visible;
+  }
+
+  .app:not(.clientPortalApp) .sidebar {
+    height: 0;
+    min-height: 0;
+    overflow: visible;
+  }
+
+  .app:not(.clientPortalApp) .topbar {
+    margin-top: 0;
   }
 
   .topbar {
@@ -3651,6 +3670,11 @@ body {
   .librarySearchRow {
     grid-template-columns: 1fr;
     gap: 10px;
+  }
+
+  .app:not(.clientPortalApp) .librarySearchRow {
+    grid-template-columns: 1fr;
+    padding: 8px;
   }
 
   .sidebar nav {
@@ -6429,6 +6453,75 @@ body {
   box-shadow: none !important;
 }
 
+.app:not(.clientPortalApp) .workout-modal {
+  background: #fbfaf6 !important;
+  border-color: #d8d2c4 !important;
+  color: var(--nl-ink) !important;
+  box-shadow: 0 26px 70px rgba(20, 18, 14, 0.22) !important;
+}
+
+.app:not(.clientPortalApp) .workout-modal-overlay {
+  background: rgba(20, 18, 14, 0.58) !important;
+  backdrop-filter: blur(10px);
+}
+
+.app:not(.clientPortalApp) .workout-modal .modal-header {
+  border-bottom-color: #d8d2c4 !important;
+}
+
+.app:not(.clientPortalApp) .workout-modal h2,
+.app:not(.clientPortalApp) .workoutLogExerciseCard h3 {
+  color: var(--nl-ink) !important;
+}
+
+.app:not(.clientPortalApp) .workoutHeaderMeta,
+.app:not(.clientPortalApp) .workoutCoachNotes,
+.app:not(.clientPortalApp) .technicalCueBody p {
+  color: var(--nl-muted-soft) !important;
+}
+
+.app:not(.clientPortalApp) .workoutLogExerciseCard {
+  background: #ffffff !important;
+  border-color: #d8d2c4 !important;
+  color: var(--nl-ink) !important;
+  box-shadow: 0 18px 42px rgba(20, 18, 14, 0.08);
+}
+
+.app:not(.clientPortalApp) .workoutPrescriptionGrid {
+  border-bottom: 1px solid #dcd6ca;
+  padding-bottom: 10px;
+}
+
+.app:not(.clientPortalApp) .workoutPrescriptionGrid span {
+  background: transparent !important;
+  border-color: transparent !important;
+  color: var(--nl-ink) !important;
+  padding-inline: 0;
+}
+
+.app:not(.clientPortalApp) .desktopWorkoutSetLabel,
+.app:not(.clientPortalApp) .setBanner {
+  background: #d6d2c7 !important;
+  border-color: #bfb7a5 !important;
+  color: var(--nl-ink) !important;
+}
+
+.app:not(.clientPortalApp) .desktopWorkoutSetLabel strong,
+.app:not(.clientPortalApp) .setBanner strong {
+  color: var(--nl-ink) !important;
+}
+
+.app:not(.clientPortalApp) .setLogRow,
+.app:not(.clientPortalApp) .desktopWorkoutSetRow,
+.app:not(.clientPortalApp) .mobileSetLogRow {
+  background: #ffffff !important;
+  border-color: #d8d2c4 !important;
+}
+
+.app:not(.clientPortalApp) .workoutCoachNotes {
+  border-left-color: #9b7a21;
+}
+
 .clientPortalApp .desktopWorkoutSetLabel,
 .clientPortalApp .setBanner {
   background: #d6d2c7 !important;
@@ -6529,6 +6622,112 @@ body {
 
 .app:not(.clientPortalApp) .clientActionDropdown .dangerMenuItem {
   color: #8f1d1d;
+}
+
+.app:not(.clientPortalApp) .librarySearchRow {
+  align-items: center;
+  grid-template-columns: minmax(280px, 1fr) auto auto;
+  padding: 6px;
+  border: 1px solid #d8d2c4;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: 0 16px 38px rgba(20, 18, 14, 0.06);
+}
+
+.app:not(.clientPortalApp) .librarySearchRow input {
+  min-height: 50px;
+  border-color: transparent !important;
+  background: transparent !important;
+  box-shadow: none;
+}
+
+.app:not(.clientPortalApp) .librarySearchRow .goldButton,
+.app:not(.clientPortalApp) .librarySearchRow .outlineButton {
+  min-height: 46px;
+  padding-inline: 18px;
+}
+
+.app:not(.clientPortalApp) .exerciseLibraryTable {
+  overflow: hidden;
+}
+
+.app:not(.clientPortalApp) .exerciseTableRow {
+  background: #fffdf8 !important;
+  border-color: #e1daca !important;
+  color: var(--nl-ink) !important;
+}
+
+.app:not(.clientPortalApp) .exerciseTableRow:hover {
+  border-color: #bda75e !important;
+  background: #f7f3e8 !important;
+}
+
+.app:not(.clientPortalApp) .exerciseTableRow .clientName strong {
+  color: var(--nl-ink) !important;
+}
+
+.app:not(.clientPortalApp) .exerciseTableRow > span {
+  color: #605a50 !important;
+  font-weight: 750;
+}
+
+.app:not(.clientPortalApp) .cueIconButton,
+.app:not(.clientPortalApp) .libraryVideoButton {
+  width: 38px !important;
+  height: 38px !important;
+  border-radius: 11px !important;
+  border-color: #d8d2c4 !important;
+  background: #ffffff !important;
+  color: var(--nl-ink) !important;
+  box-shadow: 0 8px 16px rgba(20, 18, 14, 0.06);
+}
+
+.app:not(.clientPortalApp) .cueIconButton:hover,
+.app:not(.clientPortalApp) .libraryVideoButton:hover {
+  background: var(--nl-ink) !important;
+  border-color: var(--nl-ink) !important;
+  color: #f6e7b0 !important;
+}
+
+.libraryVideoButton {
+  font-size: 0 !important;
+}
+
+.libraryVideoButton::before {
+  content: "";
+  width: 0;
+  height: 0;
+  border-top: 7px solid transparent;
+  border-bottom: 7px solid transparent;
+  border-left: 11px solid currentColor;
+  transform: translateX(1px);
+}
+
+.app:not(.clientPortalApp) .exerciseTableRow .rowActions {
+  align-items: center;
+  gap: 7px;
+}
+
+.app:not(.clientPortalApp) .exerciseTableRow .rowActions .outlineButton {
+  min-height: 38px;
+  padding: 8px 13px;
+  border-radius: 11px !important;
+}
+
+@media (max-width: 720px) {
+  .app:not(.clientPortalApp) .librarySearchRow {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .app:not(.clientPortalApp) .librarySearchRow .goldButton,
+  .app:not(.clientPortalApp) .librarySearchRow .outlineButton {
+    width: 100%;
+  }
+
+  .app:not(.clientPortalApp) .exerciseTableRow .rowActions {
+    justify-content: flex-start;
+  }
 }
 
 @media (min-width: 1101px) {
