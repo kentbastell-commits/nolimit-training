@@ -90,6 +90,57 @@ async function getRecords(tableId: string, token: string) {
   return data.data.items || [];
 }
 
+async function getTableFieldNames(tableId: string, token: string) {
+  const response = await fetch(
+    `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${tableId}/fields?page_size=100`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+  const data = await response.json();
+
+  if (data.code !== 0) {
+    throw new Error(`Could not fetch table fields: ${JSON.stringify(data)}`);
+  }
+
+  return (data.data.items || [])
+    .map((field: any) => field.field_name || field.name)
+    .filter(Boolean);
+}
+
+function resolveFieldName(fieldNames: string[], aliases: string[]) {
+  const exact = aliases.find((alias) => fieldNames.includes(alias));
+  if (exact) return exact;
+
+  const normalizedAliases = aliases.map(normalizeFieldName);
+  return fieldNames.find((fieldName) =>
+    normalizedAliases.includes(normalizeFieldName(fieldName))
+  );
+}
+
+function buildFields(
+  fieldNames: string[],
+  specs: { aliases: string[]; value: any; required?: boolean }[]
+) {
+  const fields: Record<string, any> = {};
+  const missingRequired: string[] = [];
+
+  for (const spec of specs) {
+    const fieldName = resolveFieldName(fieldNames, spec.aliases);
+
+    if (!fieldName) {
+      if (spec.required) missingRequired.push(spec.aliases[0]);
+      continue;
+    }
+
+    fields[fieldName] = spec.value;
+  }
+
+  return { fields, missingRequired };
+}
+
 async function createRecord(tableId: string, token: string, fields: Record<string, any>) {
   const response = await fetch(
     `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${tableId}/records`,
@@ -269,6 +320,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     if (req.method === "PUT") {
+      const [testTemplateFieldNames, testItemFieldNames] = await Promise.all([
+        getTableFieldNames(testTemplatesTableId, token),
+        getTableFieldNames(testItemsTableId, token),
+      ]);
+
       const { recordId, testTemplateId, name, description, status, items } =
         req.body || {};
 
@@ -280,12 +336,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(400).json({ error: "Missing test template name" });
       }
 
-      const templateFields = {
-        testTemplateId: String(testTemplateId),
-        name: String(name),
-        description: String(description || ""),
-        status: String(status || "Active"),
-      };
+      const { fields: templateFields, missingRequired } = buildFields(
+        testTemplateFieldNames,
+        [
+          {
+            aliases: ["Test Template ID", "testTemplateId", "Template ID"],
+            value: String(testTemplateId),
+            required: true,
+          },
+          {
+            aliases: ["Test Template Name", "name", "Name", "Template Name", "Title"],
+            value: String(name),
+            required: true,
+          },
+          { aliases: ["Description", "description"], value: String(description || "") },
+          { aliases: ["Status", "status"], value: String(status || "Active") },
+        ]
+      );
+
+      if (missingRequired.length > 0) {
+        return res.status(400).json({
+          error: "Missing required Feishu test columns",
+          missingRequired,
+          availableFields: testTemplateFieldNames,
+        });
+      }
 
       const templateData = await updateRecord(
         testTemplatesTableId,
@@ -329,15 +404,42 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const createdItems = [];
 
       for (const [index, item] of testItems.entries()) {
-        const itemFields = {
-          testItemId: `TI-${Date.now()}-${index + 1}`,
-          testTemplateId: String(testTemplateId),
-          order: index + 1,
-          testName: String(item.testName || ""),
-          metricType: String(item.metricType || "Weight"),
-          unit: String(item.unit || "kg"),
-          instructions: String(item.instructions || ""),
-        };
+        const { fields: itemFields, missingRequired: missingItemFields } =
+          buildFields(testItemFieldNames, [
+            {
+              aliases: ["Test Item ID", "testItemId"],
+              value: `TI-${Date.now()}-${index + 1}`,
+              required: true,
+            },
+            {
+              aliases: ["Test Template ID", "testTemplateId", "Template ID"],
+              value: String(testTemplateId),
+              required: true,
+            },
+            { aliases: ["Order", "order"], value: index + 1 },
+            {
+              aliases: ["Test Name", "testName", "Name", "Test"],
+              value: String(item.testName || ""),
+              required: true,
+            },
+            {
+              aliases: ["Metric Type", "metricType", "Metric"],
+              value: String(item.metricType || "Weight"),
+            },
+            { aliases: ["Unit", "unit"], value: String(item.unit || "kg") },
+            {
+              aliases: ["Instructions", "instructions"],
+              value: String(item.instructions || ""),
+            },
+          ]);
+
+        if (missingItemFields.length > 0) {
+          return res.status(400).json({
+            error: "Missing required Feishu test item columns",
+            missingRequired: missingItemFields,
+            availableFields: testItemFieldNames,
+          });
+        }
 
         const itemData = await createRecord(testItemsTableId, token, itemFields);
 
@@ -371,13 +473,37 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const testTemplateId = `TEST-${Date.now()}`;
-    const templateFields = {
-      testTemplateId,
-      name: String(name),
-      description: String(description || ""),
-      status: String(status || "Active"),
-      createdAt: toLarkDate(),
-    };
+    const [testTemplateFieldNames, testItemFieldNames] = await Promise.all([
+      getTableFieldNames(testTemplatesTableId, token),
+      getTableFieldNames(testItemsTableId, token),
+    ]);
+
+    const { fields: templateFields, missingRequired } = buildFields(
+      testTemplateFieldNames,
+      [
+        {
+          aliases: ["Test Template ID", "testTemplateId", "Template ID"],
+          value: testTemplateId,
+          required: true,
+        },
+        {
+          aliases: ["Test Template Name", "name", "Name", "Template Name", "Title"],
+          value: String(name),
+          required: true,
+        },
+        { aliases: ["Description", "description"], value: String(description || "") },
+        { aliases: ["Status", "status"], value: String(status || "Active") },
+        { aliases: ["Created At", "createdAt"], value: toLarkDate() },
+      ]
+    );
+
+    if (missingRequired.length > 0) {
+      return res.status(400).json({
+        error: "Missing required Feishu test columns",
+        missingRequired,
+        availableFields: testTemplateFieldNames,
+      });
+    }
 
     const templateData = await createRecord(
       testTemplatesTableId,
@@ -397,15 +523,42 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const createdItems = [];
 
     for (const [index, item] of testItems.entries()) {
-      const itemFields = {
-        testItemId: `TI-${Date.now()}-${index + 1}`,
-        testTemplateId,
-        order: index + 1,
-        testName: String(item.testName || ""),
-        metricType: String(item.metricType || "Weight"),
-        unit: String(item.unit || "kg"),
-        instructions: String(item.instructions || ""),
-      };
+      const { fields: itemFields, missingRequired: missingItemFields } =
+        buildFields(testItemFieldNames, [
+          {
+            aliases: ["Test Item ID", "testItemId"],
+            value: `TI-${Date.now()}-${index + 1}`,
+            required: true,
+          },
+          {
+            aliases: ["Test Template ID", "testTemplateId", "Template ID"],
+            value: testTemplateId,
+            required: true,
+          },
+          { aliases: ["Order", "order"], value: index + 1 },
+          {
+            aliases: ["Test Name", "testName", "Name", "Test"],
+            value: String(item.testName || ""),
+            required: true,
+          },
+          {
+            aliases: ["Metric Type", "metricType", "Metric"],
+            value: String(item.metricType || "Weight"),
+          },
+          { aliases: ["Unit", "unit"], value: String(item.unit || "kg") },
+          {
+            aliases: ["Instructions", "instructions"],
+            value: String(item.instructions || ""),
+          },
+        ]);
+
+      if (missingItemFields.length > 0) {
+        return res.status(400).json({
+          error: "Missing required Feishu test item columns",
+          missingRequired: missingItemFields,
+          availableFields: testItemFieldNames,
+        });
+      }
 
       const itemData = await createRecord(
         testItemsTableId,

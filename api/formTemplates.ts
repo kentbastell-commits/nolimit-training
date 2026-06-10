@@ -109,6 +109,57 @@ async function getRecords(tableId: string, token: string) {
   return data.data.items || [];
 }
 
+async function getTableFieldNames(tableId: string, token: string) {
+  const response = await fetch(
+    `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${tableId}/fields?page_size=100`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+  const data = await response.json();
+
+  if (data.code !== 0) {
+    throw new Error(`Could not fetch table fields: ${JSON.stringify(data)}`);
+  }
+
+  return (data.data.items || [])
+    .map((field: any) => field.field_name || field.name)
+    .filter(Boolean);
+}
+
+function resolveFieldName(fieldNames: string[], aliases: string[]) {
+  const exact = aliases.find((alias) => fieldNames.includes(alias));
+  if (exact) return exact;
+
+  const normalizedAliases = aliases.map(normalizeFieldName);
+  return fieldNames.find((fieldName) =>
+    normalizedAliases.includes(normalizeFieldName(fieldName))
+  );
+}
+
+function buildFields(
+  fieldNames: string[],
+  specs: { aliases: string[]; value: any; required?: boolean }[]
+) {
+  const fields: Record<string, any> = {};
+  const missingRequired: string[] = [];
+
+  for (const spec of specs) {
+    const fieldName = resolveFieldName(fieldNames, spec.aliases);
+
+    if (!fieldName) {
+      if (spec.required) missingRequired.push(spec.aliases[0]);
+      continue;
+    }
+
+    fields[fieldName] = spec.value;
+  }
+
+  return { fields, missingRequired };
+}
+
 async function createRecord(tableId: string, token: string, fields: Record<string, any>) {
   const response = await fetch(
     `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${tableId}/records`,
@@ -287,6 +338,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     if (req.method === "PUT") {
+      const [formTemplateFieldNames, formQuestionFieldNames] = await Promise.all([
+        getTableFieldNames(formTemplatesTableId, token),
+        getTableFieldNames(formQuestionsTableId, token),
+      ]);
+
       const {
         recordId,
         formId,
@@ -306,14 +362,45 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(400).json({ error: "Missing form name" });
       }
 
-      const templateFields = {
-        formId: String(formId),
-        name: String(name),
-        type: String(type || "Questionnaire"),
-        description: String(description || ""),
-        status: String(status || "Active"),
-        createdBy: String(createdBy || "Kent Bastell"),
-      };
+      const { fields: templateFields, missingRequired } = buildFields(
+        formTemplateFieldNames,
+        [
+          {
+            aliases: ["Form ID", "formId", "Template ID"],
+            value: String(formId),
+            required: true,
+          },
+          {
+            aliases: ["Form Name", "name", "Name", "Template Name", "Title"],
+            value: String(name),
+            required: true,
+          },
+          {
+            aliases: ["Type", "type", "Form Type"],
+            value: String(type || "Questionnaire"),
+          },
+          {
+            aliases: ["Description", "description"],
+            value: String(description || ""),
+          },
+          {
+            aliases: ["Status", "status"],
+            value: String(status || "Active"),
+          },
+          {
+            aliases: ["Created By", "createdBy"],
+            value: String(createdBy || "Kent Bastell"),
+          },
+        ]
+      );
+
+      if (missingRequired.length > 0) {
+        return res.status(400).json({
+          error: "Missing required Feishu columns",
+          missingRequired,
+          availableFields: formTemplateFieldNames,
+        });
+      }
 
       const templateData = await updateRecord(
         formTemplatesTableId,
@@ -357,16 +444,43 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const createdQuestions = [];
 
       for (const [index, question] of questionItems.entries()) {
-        const questionFields = {
-          questionId: `Q-${Date.now()}-${index + 1}`,
-          formId: String(formId),
-          order: index + 1,
-          label: String(question.label || ""),
-          questionType: String(question.questionType || "Text"),
-          options: String(question.options || ""),
-          required: Boolean(question.required),
-          helpText: String(question.helpText || ""),
-        };
+        const { fields: questionFields, missingRequired: missingQuestionFields } =
+          buildFields(formQuestionFieldNames, [
+            {
+              aliases: ["Question ID", "questionId"],
+              value: `Q-${Date.now()}-${index + 1}`,
+              required: true,
+            },
+            {
+              aliases: ["Form ID", "formId", "Template ID"],
+              value: String(formId),
+              required: true,
+            },
+            { aliases: ["Order", "order"], value: index + 1 },
+            {
+              aliases: ["Label", "label", "Question", "Question Text"],
+              value: String(question.label || ""),
+              required: true,
+            },
+            {
+              aliases: ["Question Type", "questionType", "Type"],
+              value: String(question.questionType || "Text"),
+            },
+            { aliases: ["Options", "options"], value: String(question.options || "") },
+            { aliases: ["Required", "required"], value: Boolean(question.required) },
+            {
+              aliases: ["Help Text", "helpText", "Helper Text"],
+              value: String(question.helpText || ""),
+            },
+          ]);
+
+        if (missingQuestionFields.length > 0) {
+          return res.status(400).json({
+            error: "Missing required Feishu question columns",
+            missingRequired: missingQuestionFields,
+            availableFields: formQuestionFieldNames,
+          });
+        }
 
         const questionData = await createRecord(
           formQuestionsTableId,
@@ -404,15 +518,41 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const formId = `FORM-${Date.now()}`;
-    const templateFields = {
-      formId,
-      name: String(name),
-      type: String(type || "Questionnaire"),
-      description: String(description || ""),
-      status: String(status || "Active"),
-      createdBy: String(createdBy || "Kent Bastell"),
-      createdAt: toLarkDate(),
-    };
+    const [formTemplateFieldNames, formQuestionFieldNames] = await Promise.all([
+      getTableFieldNames(formTemplatesTableId, token),
+      getTableFieldNames(formQuestionsTableId, token),
+    ]);
+
+    const { fields: templateFields, missingRequired } = buildFields(
+      formTemplateFieldNames,
+      [
+        { aliases: ["Form ID", "formId", "Template ID"], value: formId, required: true },
+        {
+          aliases: ["Form Name", "name", "Name", "Template Name", "Title"],
+          value: String(name),
+          required: true,
+        },
+        {
+          aliases: ["Type", "type", "Form Type"],
+          value: String(type || "Questionnaire"),
+        },
+        { aliases: ["Description", "description"], value: String(description || "") },
+        { aliases: ["Status", "status"], value: String(status || "Active") },
+        {
+          aliases: ["Created By", "createdBy"],
+          value: String(createdBy || "Kent Bastell"),
+        },
+        { aliases: ["Created At", "createdAt"], value: toLarkDate() },
+      ]
+    );
+
+    if (missingRequired.length > 0) {
+      return res.status(400).json({
+        error: "Missing required Feishu columns",
+        missingRequired,
+        availableFields: formTemplateFieldNames,
+      });
+    }
 
     const templateData = await createRecord(
       formTemplatesTableId,
@@ -432,16 +572,43 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const createdQuestions = [];
 
     for (const [index, question] of questionItems.entries()) {
-      const questionFields = {
-        questionId: `Q-${Date.now()}-${index + 1}`,
-        formId,
-        order: index + 1,
-        label: String(question.label || ""),
-        questionType: String(question.questionType || "Text"),
-        options: String(question.options || ""),
-        required: Boolean(question.required),
-        helpText: String(question.helpText || ""),
-      };
+      const { fields: questionFields, missingRequired: missingQuestionFields } =
+        buildFields(formQuestionFieldNames, [
+          {
+            aliases: ["Question ID", "questionId"],
+            value: `Q-${Date.now()}-${index + 1}`,
+            required: true,
+          },
+          {
+            aliases: ["Form ID", "formId", "Template ID"],
+            value: formId,
+            required: true,
+          },
+          { aliases: ["Order", "order"], value: index + 1 },
+          {
+            aliases: ["Label", "label", "Question", "Question Text"],
+            value: String(question.label || ""),
+            required: true,
+          },
+          {
+            aliases: ["Question Type", "questionType", "Type"],
+            value: String(question.questionType || "Text"),
+          },
+          { aliases: ["Options", "options"], value: String(question.options || "") },
+          { aliases: ["Required", "required"], value: Boolean(question.required) },
+          {
+            aliases: ["Help Text", "helpText", "Helper Text"],
+            value: String(question.helpText || ""),
+          },
+        ]);
+
+      if (missingQuestionFields.length > 0) {
+        return res.status(400).json({
+          error: "Missing required Feishu question columns",
+          missingRequired: missingQuestionFields,
+          availableFields: formQuestionFieldNames,
+        });
+      }
 
       const questionData = await createRecord(
         formQuestionsTableId,
