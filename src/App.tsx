@@ -1677,8 +1677,8 @@ function App() {
         await loadContentAssignments(client);
       }
 
-      setAssignmentDueDate(nextDueDate);
       setCalendarAnchorDate(nextDueDate);
+      setAssignmentDueDate(dateToInputValue(new Date()));
       notify(`${nextAssignmentType} assigned to ${client.name}.`, "success");
     } catch (error) {
       console.error(error);
