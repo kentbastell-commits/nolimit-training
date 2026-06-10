@@ -15,6 +15,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useEffect, useState, type DragEvent } from "react";
+import { useTranslation } from "react-i18next";
 import "./App.css";
 
 type AppMode = "Coach" | "Client";
@@ -89,6 +90,7 @@ type Client = {
   coach?: string;
   notes?: string;
   startDate?: string;
+  languagePreference?: string;
 };
 
 type Program = {
@@ -113,9 +115,11 @@ type Workout = {
   week: string;
   day: string;
   sessionName: string;
+  sessionNameCn?: string;
   scheduledDate: string;
   completionStatus: string;
   coachNotes: string;
+  coachNotesCn?: string;
   clientNotes: string;
   workoutLogs: string;
 };
@@ -124,13 +128,17 @@ type ExerciseDetail = {
   id: string;
   exerciseId: string;
   exerciseName: string;
+  exerciseNameCn?: string;
   videoUrl?: string;
+  videoUrlCn?: string;
   order: number;
   sets: string;
   reps: string;
   tempo: string;
   rest: string;
   notes: string;
+  notesCn?: string;
+  sectionNameCn?: string;
 };
 
 type ExerciseNoteMeta = {
@@ -159,11 +167,19 @@ type LibraryExercise = {
   recordId: string;
   exerciseId: string;
   exerciseName: string;
+  exerciseNameCn?: string;
   videoUrl: string;
+  videoUrlCn?: string;
   category?: string;
+  categoryCn?: string;
   equipment?: string;
+  equipmentCn?: string;
   movementPattern?: string;
+  technicalInstructionsCn?: string;
+  coachingCuesCn?: string;
+  commonMistakesCn?: string;
   notes?: string;
+  notesCn?: string;
   status?: string;
 };
 
@@ -217,18 +233,23 @@ type SavedFormQuestion = {
   formId: string;
   order: string;
   label: string;
+  labelCn?: string;
   questionType: string;
   options?: string;
+  optionsCn?: string;
   required: boolean;
   helpText?: string;
+  helpTextCn?: string;
 };
 
 type SavedFormTemplate = {
   recordId: string;
   formId: string;
   name: string;
+  nameCn?: string;
   type: string;
   description: string;
+  descriptionCn?: string;
   status: string;
   createdBy: string;
   createdAt: string;
@@ -241,16 +262,20 @@ type SavedTestItem = {
   testTemplateId: string;
   order: string;
   testName: string;
+  testNameCn?: string;
   metricType: string;
   unit: string;
   instructions?: string;
+  instructionsCn?: string;
 };
 
 type SavedTestTemplate = {
   recordId: string;
   testTemplateId: string;
   name: string;
+  nameCn?: string;
   description: string;
+  descriptionCn?: string;
   status: string;
   createdAt: string;
   items: SavedTestItem[];
@@ -459,7 +484,18 @@ function getStatusClass(status: string) {
   return "scheduledWorkout";
 }
 
+function languagePreferenceToCode(language?: string) {
+  const clean = String(language || "").toLowerCase();
+
+  return clean.includes("中文") ||
+    clean.includes("chinese") ||
+    clean.includes("mandarin")
+    ? "zh"
+    : "en";
+}
+
 function App() {
+  const { t, i18n } = useTranslation();
   const inviteSearchParams = new URLSearchParams(window.location.search);
   const isClientInvite = inviteSearchParams.get("invite") === "client";
   const isClientPortal = inviteSearchParams.get("portal") === "client";
@@ -518,6 +554,7 @@ function App() {
     packageType: "Active",
     startDate: dateToInputValue(new Date()),
     notes: "",
+    languagePreference: "English",
   });
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [clientTab, setClientTab] = useState<ClientTab>("Home");
@@ -773,6 +810,7 @@ function App() {
       packageType: "Active",
       startDate: dateToInputValue(new Date()),
       notes: "",
+      languagePreference: "English",
     });
   };
 
@@ -786,6 +824,7 @@ function App() {
       packageType: "Active",
       startDate: dateToInputValue(new Date()),
       notes: "",
+      languagePreference: "English",
     });
     setShowAddClientModal(true);
   };
@@ -801,6 +840,7 @@ function App() {
       startDate:
         client.startDate && client.startDate !== "--" ? client.startDate : "",
       notes: client.notes || "",
+      languagePreference: client.languagePreference || "English",
     });
     setShowAddClientModal(true);
   };
@@ -860,6 +900,69 @@ function App() {
       setActivePage("Clients");
     }
   }, [clients, clientPortalCode, isClientPortal]);
+
+  useEffect(() => {
+    if (!isClientPortal || !selectedClient) return;
+
+    const nextLanguage = languagePreferenceToCode(
+      selectedClient.languagePreference
+    );
+
+    if (i18n.language !== nextLanguage) {
+      void i18n.changeLanguage(nextLanguage);
+    }
+  }, [i18n, isClientPortal, selectedClient]);
+
+  const useChineseClientText =
+    isClientPortal &&
+    languagePreferenceToCode(selectedClient?.languagePreference) === "zh";
+
+  const localizeText = (english = "", chinese = "") =>
+    useChineseClientText && chinese ? chinese : english;
+
+  const localizedWorkoutName = (workout: Workout) =>
+    localizeText(workout.sessionName || "Workout", workout.sessionNameCn || "");
+
+  const localizedExerciseName = (
+    exercise: Pick<LibraryExercise, "exerciseName" | "exerciseNameCn">
+  ) => localizeText(exercise.exerciseName || "Exercise", exercise.exerciseNameCn || "");
+
+  const localizedExerciseNotes = (
+    exercise: Pick<LibraryExercise, "notes" | "notesCn">
+  ) => localizeText(exercise.notes || "", exercise.notesCn || "");
+
+  const updateClientLanguagePreference = async (languagePreference: string) => {
+    if (!selectedClient) return;
+
+    setSelectedClient({ ...selectedClient, languagePreference });
+    setClients((current) =>
+      current.map((client) =>
+        client.id === selectedClient.id
+          ? { ...client, languagePreference }
+          : client
+      )
+    );
+    void i18n.changeLanguage(languagePreferenceToCode(languagePreference));
+
+    try {
+      const response = await fetch("/api/updateClient", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clientRecordId: selectedClient.id,
+          languagePreference,
+        }),
+      });
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        notify("Could not update language preference.", "error");
+      }
+    } catch (error) {
+      console.error(error);
+      notify("Could not update language preference.", "error");
+    }
+  };
 
   useEffect(() => {
     const updateWorkoutRowMode = () => {
@@ -4954,21 +5057,21 @@ function App() {
                   onClick={() => setClientTab("Home")}
                 >
                   <Home size={21} strokeWidth={2.2} />
-                  <span>Home</span>
+                  <span>{t("home")}</span>
                 </button>
                 <button
                   className={clientTab === "Training" ? "active" : ""}
                   onClick={() => setClientTab("Training")}
                 >
                   <CalendarDays size={21} strokeWidth={2.2} />
-                  <span>Calendar</span>
+                  <span>{t("calendar")}</span>
                 </button>
                 <button
                   className={clientTab === "Overview" ? "active" : ""}
                   onClick={() => setClientTab("Overview")}
                 >
                   <UserCircle size={21} strokeWidth={2.2} />
-                  <span>Profile</span>
+                  <span>{t("profile")}</span>
                 </button>
               </nav>
 
@@ -4990,8 +5093,8 @@ function App() {
                       ? clientTab === "Home"
                         ? `Hi, ${selectedClient.name.split(" ")[0] || "there"}`
                         : clientTab === "Overview"
-                        ? "Profile"
-                        : "Calendar"
+                        ? t("profile")
+                        : t("calendar")
                       : selectedClient.name}
                   </h1>
                   <p>
@@ -5054,21 +5157,21 @@ function App() {
                   className={clientTab === "Home" ? "tab activeTab" : "tab"}
                   onClick={() => setClientTab("Home")}
                 >
-                  Dashboard
+                  {t("dashboard")}
                 </button>
 
                 <button
                   className={clientTab === "Training" ? "tab activeTab" : "tab"}
                   onClick={() => setClientTab("Training")}
                 >
-                  Calendar
+                  {t("calendar")}
                 </button>
 
                 <button
                   className={clientTab === "Overview" ? "tab activeTab" : "tab"}
                   onClick={() => setClientTab("Overview")}
                 >
-                  Client Overview
+                  {t("clientOverview")}
                 </button>
               </div>
 
@@ -5077,14 +5180,14 @@ function App() {
                   <section className="clientHomePanel upcomingHomePanel">
                     <div className="clientHomePanelHeader">
                       <div>
-                        <span>Plan</span>
-                        <h2>Upcoming Workouts</h2>
+                        <span>{t("program")}</span>
+                        <h2>{t("upcomingWorkouts")}</h2>
                       </div>
                       <button
                         className="outlineButton"
                         onClick={() => setClientTab("Training")}
                       >
-                        Calendar
+                        {t("calendar")}
                       </button>
                     </div>
 
@@ -5101,7 +5204,7 @@ function App() {
                                 normalizeDate(String(workout.scheduledDate))
                               )}
                             </span>
-                            <strong>{workout.sessionName || "Workout"}</strong>
+                            <strong>{localizedWorkoutName(workout)}</strong>
                             <small>
                               Week {workout.week} - Day {workout.day}
                             </small>
@@ -5109,7 +5212,7 @@ function App() {
                         ))
                       ) : (
                         <p className="homeEmptyText">
-                          No upcoming workouts are scheduled yet.
+                          {t("noUpcomingWorkouts")}
                         </p>
                       )}
                     </div>
@@ -5119,7 +5222,7 @@ function App() {
                     <div className="clientHomePanelHeader">
                       <div>
                         <span>Progress</span>
-                        <h2>Exercise History</h2>
+                        <h2>{t("exerciseHistory")}</h2>
                       </div>
                     </div>
 
@@ -5127,7 +5230,7 @@ function App() {
                       <input
                         value={progressSearch}
                         onChange={(e) => setProgressSearch(e.target.value)}
-                        placeholder="Search exercise"
+                        placeholder={t("searchExercise")}
                       />
                       <select
                         value={selectedProgressName}
@@ -5140,7 +5243,7 @@ function App() {
                             </option>
                           ))
                         ) : (
-                          <option value="">No exercise history yet</option>
+                          <option value="">{t("noExerciseHistory")}</option>
                         )}
                       </select>
                     </div>
@@ -5169,7 +5272,7 @@ function App() {
                         ))
                       ) : (
                         <p className="homeEmptyText">
-                          Log a workout to start building progress charts.
+                          {t("noExerciseHistory")}
                         </p>
                       )}
                     </div>
@@ -5185,16 +5288,16 @@ function App() {
 
                     <div className="homeFocusGrid">
                       <div>
-                        <span>Current Program</span>
-                        <strong>{selectedClient.program || "No program assigned."}</strong>
+                        <span>{t("currentProgram")}</span>
+                        <strong>{selectedClient.program || t("noProgramAssigned")}</strong>
                       </div>
                       <div>
-                        <span>Check-in Status</span>
+                        <span>{t("checkInStatus")}</span>
                         <strong>{selectedClientCheckInLabel}</strong>
                       </div>
                       <div>
-                        <span>Coach Notes</span>
-                        <strong>{selectedClient.notes || "No notes yet."}</strong>
+                        <span>{t("coachNotes")}</span>
+                        <strong>{selectedClient.notes || t("noNotesYet")}</strong>
                       </div>
                     </div>
                   </section>
@@ -5204,30 +5307,44 @@ function App() {
               {clientTab === "Overview" && (
                 <div className="overviewGrid">
                   <div className="profileCard">
-                    <h3>Client Information</h3>
+                    <h3>{t("clientInformation")}</h3>
                     <div className="clientInfoRows">
+                      {isClientPortal && (
+                        <div>
+                          <span>{t("languagePreference")}</span>
+                          <select
+                            value={selectedClient.languagePreference || "English"}
+                            onChange={(event) =>
+                              updateClientLanguagePreference(event.target.value)
+                            }
+                          >
+                            <option value="English">{t("english")}</option>
+                            <option value="中文">{t("mandarin")}</option>
+                          </select>
+                        </div>
+                      )}
                       <div>
-                        <span>Name</span>
+                        <span>{t("name")}</span>
                         <strong>{selectedClient.name}</strong>
                       </div>
                       <div>
-                        <span>Email</span>
+                        <span>{t("email")}</span>
                         <strong>{selectedClient.email || "--"}</strong>
                       </div>
                       <div>
-                        <span>Phone/WeChat</span>
+                        <span>{t("phoneWechat")}</span>
                         <strong>{selectedClient.phone || "--"}</strong>
                       </div>
                       <div>
-                        <span>Coach</span>
+                        <span>{t("coach")}</span>
                         <strong>{selectedClient.coach || "--"}</strong>
                       </div>
                       <div>
-                        <span>Package</span>
+                        <span>{t("package")}</span>
                         <strong>{selectedClient.status || "--"}</strong>
                       </div>
                       <div>
-                        <span>Start Date</span>
+                        <span>{t("startDate")}</span>
                         <strong>{selectedClient.startDate || "--"}</strong>
                       </div>
                     </div>
@@ -5250,10 +5367,11 @@ function App() {
                   {isClientPortal && clientPortalUpcomingWorkouts[0] && (
                     <section className="clientPortalTrainingHero">
                       <div>
-                        <span>Next Workout</span>
+                        <span>{t("nextWorkout")}</span>
                         <h2>
-                          {clientPortalUpcomingWorkouts[0]?.sessionName ||
-                            "Training"}
+                          {clientPortalUpcomingWorkouts[0]
+                            ? localizedWorkoutName(clientPortalUpcomingWorkouts[0])
+                            : t("calendar")}
                         </h2>
                         <p>
                           {clientPortalUpcomingWorkouts[0]
@@ -5277,7 +5395,7 @@ function App() {
                             openWorkout(clientPortalUpcomingWorkouts[0])
                           }
                         >
-                          Start
+                          {t("start")}
                         </button>
                       )}
                     </section>
@@ -5395,7 +5513,7 @@ function App() {
                         className="outlineButton"
                         onClick={() => moveCalendarRange(-1)}
                       >
-                        Previous
+                        {t("previous")}
                       </button>
 
                       <strong>
@@ -5412,7 +5530,7 @@ function App() {
                         className="outlineButton"
                         onClick={() => moveCalendarRange(1)}
                       >
-                        Next
+                        {t("next")}
                       </button>
                     </div>
 
@@ -5428,12 +5546,12 @@ function App() {
                           setCalendarAnchorDate(dateToInputValue(new Date()));
                         }}
                       >
-                        Today
+                        {t("today")}
                       </button>
 
                       <label className="calendarDatePickerButton" title="Choose date">
                         <CalendarDays size={18} strokeWidth={2.2} aria-hidden="true" />
-                        <span className="srOnly">Choose date</span>
+                        <span className="srOnly">{t("chooseDate")}</span>
                         <input
                           type="date"
                           value={calendarAnchorDate}
@@ -5728,7 +5846,7 @@ function App() {
                                   ? ""
                                   : "s"
                               }`
-                            : "Nothing scheduled"}
+                            : t("nothingScheduled")}
                         </strong>
                       </div>
 
@@ -5743,19 +5861,19 @@ function App() {
                               <span>
                                 Week {workout.week} - Day {workout.day}
                               </span>
-                              <strong>{workout.sessionName || "Workout"}</strong>
+                              <strong>{localizedWorkoutName(workout)}</strong>
                               <small>
-                                {workout.completionStatus || "Scheduled"}
+                                {workout.completionStatus || t("scheduled")}
                               </small>
                             </div>
                             <span className="selectedDayWorkoutAction">
-                              View
+                              {t("view")}
                             </span>
                           </button>
                         ))
                       ) : (
                         <p className="homeEmptyText">
-                          Nothing scheduled for this date.
+                          {t("nothingScheduled")}
                         </p>
                       )}
                     </section>
@@ -5850,7 +5968,7 @@ function App() {
                                     ? ""
                                     : "s"
                                 }`
-                              : "Nothing scheduled"}
+                              : t("nothingScheduled")}
                           </strong>
                         </div>
 
@@ -5865,19 +5983,19 @@ function App() {
                                 <span>
                                   Program - Week {workout.week}, Day {workout.day}
                                 </span>
-                                <strong>{workout.sessionName || "Workout"}</strong>
+                                <strong>{localizedWorkoutName(workout)}</strong>
                                 <small>
-                                  {workout.completionStatus || "Scheduled"}
+                                  {workout.completionStatus || t("scheduled")}
                                 </small>
                               </div>
                               <span className="selectedDayWorkoutAction">
-                                Start
+                                {t("start")}
                               </span>
                             </button>
                           ))
                         ) : (
                           <p className="homeEmptyText">
-                            Nothing scheduled for this date.
+                            {t("nothingScheduled")}
                           </p>
                         )}
                       </section>
@@ -6128,8 +6246,8 @@ function App() {
             <div className="clientFormModal technicalCueModal">
               <div className="modal-header">
                 <div>
-                  <h2>{technicalCueExercise.exerciseName}</h2>
-                  <p>Technical cues and form instruction from the exercise library.</p>
+                  <h2>{localizedExerciseName(technicalCueExercise)}</h2>
+                  <p>{t("formInstructions")}</p>
                 </div>
 
                 <button
@@ -6141,10 +6259,10 @@ function App() {
               </div>
 
               <div className="technicalCueBody">
-                {technicalCueExercise.notes ? (
-                  <pre>{technicalCueExercise.notes}</pre>
+                {localizedExerciseNotes(technicalCueExercise) ? (
+                  <pre>{localizedExerciseNotes(technicalCueExercise)}</pre>
                 ) : (
-                  <p>No technical cues saved for this exercise yet.</p>
+                  <p>{t("noTechnicalCues")}</p>
                 )}
               </div>
 
@@ -6157,14 +6275,14 @@ function App() {
                     openEditExerciseForm(technicalCueExercise);
                   }}
                 >
-                  Edit Cues
+                  {t("editCues")}
                 </button>
                 )}
                 <button
                   className="goldButton"
                   onClick={() => setTechnicalCueExercise(null)}
                 >
-                  Done
+                  {t("done")}
                 </button>
               </div>
             </div>
@@ -6509,6 +6627,22 @@ function App() {
                 </label>
 
                 <label>
+                  <span>{t("languagePreference")}</span>
+                  <select
+                    value={newClient.languagePreference}
+                    onChange={(e) =>
+                      setNewClient({
+                        ...newClient,
+                        languagePreference: e.target.value,
+                      })
+                    }
+                  >
+                    <option value="English">{t("english")}</option>
+                    <option value="中文">{t("mandarin")}</option>
+                  </select>
+                </label>
+
+                <label>
                   <span>Email</span>
                   <input
                     value={newClient.email}
@@ -6595,12 +6729,12 @@ function App() {
             <div className="workout-modal">
               <div className="modal-header">
                 <div>
-                  <h2>{selectedWorkout.sessionName}</h2>
+                  <h2>{localizedWorkoutName(selectedWorkout)}</h2>
                   <div className="workoutHeaderMeta">
                     <span>
                       Week {selectedWorkout.week} • Day {selectedWorkout.day}
                     </span>
-                    <span>{selectedWorkout.completionStatus || "Scheduled"}</span>
+                    <span>{selectedWorkout.completionStatus || t("scheduled")}</span>
                     {!isClientPortal && (
                       <>
                     <label className="headerDateControl">
@@ -6615,7 +6749,7 @@ function App() {
                       onClick={updateWorkoutDate}
                       disabled={updatingWorkoutDate || !editingWorkoutDate}
                     >
-                      {updatingWorkoutDate ? "Saving..." : "Move"}
+                      {updatingWorkoutDate ? t("saving") : t("move")}
                     </button>
                       </>
                     )}
@@ -6627,8 +6761,8 @@ function App() {
                   <button
                     className="iconActionButton dangerIconButton"
                     onClick={() => deleteWorkout(selectedWorkout)}
-                    title="Delete workout"
-                    aria-label="Delete workout"
+                    title={t("deleteWorkout")}
+                    aria-label={t("deleteWorkout")}
                   >
                     <Trash2 size={18} aria-hidden="true" />
                   </button>
@@ -6652,16 +6786,16 @@ function App() {
               </div>
 
               <div className="modal-body">
-                {detailsLoading && <p>Loading workout details...</p>}
+                {detailsLoading && <p>{t("loadingWorkouts")}</p>}
 
                 {!detailsLoading &&
                   workoutDetails.length > 0 &&
                   (!isClientPortal || !workoutLoggingStarted) && (
                   <section className="workoutGlancePanel">
-                    <h3>At a Glance</h3>
+                    <h3>{t("atAGlance")}</h3>
                     {isClientPortal && !workoutLoggingStarted && (
                       <p className="workoutGlanceIntro">
-                        Select the first exercise to start logging.
+                        {t("selectFirstExercise")}
                       </p>
                     )}
 
@@ -6672,24 +6806,28 @@ function App() {
                           ? parseExerciseNotes(workoutDetails[index - 1].notes)
                           : null;
                       const sectionName = meta.sectionName || "Main";
+                      const sectionNameDisplay = localizeText(
+                        sectionName,
+                        exercise.sectionNameCn || ""
+                      );
                       const showSectionHeader =
                         !previousMeta ||
                         sectionName !== (previousMeta.sectionName || "Main");
                       const prescription =
                         exercise.sets && exercise.reps
                           ? `${exercise.sets} x ${exercise.reps}`
-                          : "For completion";
+                          : t("forCompletion");
                       const prescriptionDetails = [
                         prescription,
-                        exercise.tempo ? `Tempo ${exercise.tempo}` : "",
-                        exercise.rest ? `Rest ${exercise.rest}` : "",
+                        exercise.tempo ? `${t("tempo")} ${exercise.tempo}` : "",
+                        exercise.rest ? `${t("rest")} ${exercise.rest}` : "",
                       ].filter(Boolean);
 
                       return (
                         <div key={`${exercise.id}-glance`}>
                           {showSectionHeader && (
                             <h4 className="workoutGlanceSection">
-                              {sectionName}
+                              {sectionNameDisplay}
                             </h4>
                           )}
 
@@ -6702,7 +6840,7 @@ function App() {
                               {meta.exerciseLabel || makeExerciseLabel(index)}
                             </span>
                             <span>
-                              <strong>{exercise.exerciseName}</strong>
+                              <strong>{localizedExerciseName(exercise)}</strong>
                               <small>{prescriptionDetails.join(" • ")}</small>
                             </span>
                           </button>
@@ -6717,7 +6855,7 @@ function App() {
                     className="outlineButton workoutGlanceBackButton"
                     onClick={() => setWorkoutLoggingStarted(false)}
                   >
-                    Back to At a Glance
+                    {t("backToAtAGlance")}
                   </button>
                 )}
 
@@ -6733,10 +6871,17 @@ function App() {
                         ? parseExerciseNotes(workoutDetails[index - 1].notes)
                         : null;
                     const sectionName = meta.sectionName || "Main";
+                    const sectionNameDisplay = localizeText(
+                      sectionName,
+                      exercise.sectionNameCn || ""
+                    );
                     const showSectionHeader =
                       !previousMeta ||
                       sectionName !== (previousMeta.sectionName || "Main");
-                    const coachingNotes = meta.coachingNotes;
+                    const coachingNotes = localizeText(
+                      meta.coachingNotes,
+                      exercise.notesCn || ""
+                    );
                     const exerciseHistoryLogs = workoutHistoryLogs
                       .filter((log) =>
                         log.exerciseName
@@ -6749,7 +6894,7 @@ function App() {
                       <div key={exercise.id}>
                         {showSectionHeader && (
                           <h4 className="workoutSectionHeading">
-                            {sectionName}
+                            {sectionNameDisplay}
                           </h4>
                         )}
 
@@ -6762,17 +6907,17 @@ function App() {
                             <span className="exerciseLabelBadge">
                               {meta.exerciseLabel || makeExerciseLabel(index)}
                             </span>
-                            <h3>{exercise.exerciseName}</h3>
+                            <h3>{localizedExerciseName(exercise)}</h3>
                           </div>
 
                           <div className="workoutExerciseActions">
-                            {exercise.videoUrl && (
+                            {localizeText(exercise.videoUrl || "", exercise.videoUrlCn || "") && (
                               <a
                                 className="iconActionButton"
-                                href={exercise.videoUrl}
+                                href={localizeText(exercise.videoUrl || "", exercise.videoUrlCn || "")}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                title="Video"
+                                title={t("video")}
                                 aria-label={`Open video for ${exercise.exerciseName}`}
                               >
                                 <Play size={18} fill="currentColor" aria-hidden="true" />
@@ -6786,16 +6931,19 @@ function App() {
                                   recordId: exercise.id,
                                   exerciseId: exercise.exerciseId,
                                   exerciseName: exercise.exerciseName,
+                                  exerciseNameCn: exercise.exerciseNameCn,
                                   videoUrl: exercise.videoUrl || "",
+                                  videoUrlCn: exercise.videoUrlCn,
                                   category: "",
                                   equipment: "",
                                   movementPattern: "",
                                   notes: exercise.notes || "",
+                                  notesCn: exercise.notesCn,
                                   status: "Active",
                                 })
                               }
                               type="button"
-                              title="Technical form"
+                              title={t("technicalForm")}
                               aria-label={`View technical form for ${exercise.exerciseName}`}
                             >
                               <ClipboardList size={18} aria-hidden="true" />
@@ -6807,7 +6955,7 @@ function App() {
                                 setHistoryExerciseName(exercise.exerciseName)
                               }
                               type="button"
-                              title="History"
+                              title={t("history")}
                               aria-label={`View history for ${exercise.exerciseName}`}
                             >
                               <Clock3 size={18} aria-hidden="true" />
@@ -6820,19 +6968,19 @@ function App() {
 
                         <div className="workoutPrescriptionGrid">
                           <span>
-                            <strong>Sets</strong>
+                            <strong>{t("sets")}</strong>
                             {exercise.sets || "--"}
                           </span>
                           <span>
-                            <strong>Reps</strong>
+                            <strong>{t("reps")}</strong>
                             {exercise.reps || "--"}
                           </span>
                           <span>
-                            <strong>Tempo</strong>
+                            <strong>{t("tempo")}</strong>
                             {exercise.tempo || "--"}
                           </span>
                           <span>
-                            <strong>Rest</strong>
+                            <strong>{t("rest")}</strong>
                             {exercise.rest || "--"}
                           </span>
                         </div>
@@ -6842,11 +6990,11 @@ function App() {
                         )}
 
                         <div className="setLogHeader">
-                          <span>Set</span>
-                          <span>Actual Reps</span>
-                          <span>Weight</span>
-                          <span>Time</span>
-                          <span>Distance</span>
+                          <span>{t("set")}</span>
+                          <span>{t("actualReps")}</span>
+                          <span>{t("weight")}</span>
+                          <span>{t("time")}</span>
+                          <span>{t("distance")}</span>
                         </div>
 
                         {exerciseLogs.map((log) => {
@@ -6859,6 +7007,12 @@ function App() {
                           const showWeightInputs = log.trackingType === "Weight";
                           const showTimeInput = log.trackingType === "Time";
                           const showDistanceInput = log.trackingType === "Distance";
+                          const sideLabel =
+                            log.side === "Right"
+                              ? t("right")
+                              : log.side === "Left"
+                              ? t("left")
+                              : log.side;
 
                           return (
                             <div
@@ -6877,21 +7031,21 @@ function App() {
                                 }
                               >
                                 <strong>
-                                  Set {log.setNumber}
-                                  {log.side ? ` · ${log.side}` : ""}
+                                  {t("set", { number: log.setNumber })}
+                                  {sideLabel ? ` · ${sideLabel}` : ""}
                                 </strong>
                               </div>
                               {log.side && (
                                 <div className="setLogStatic limbCell">
-                                  <span>Limb</span>
-                                  <strong>{log.side}</strong>
+                                  <span>{t("limb")}</span>
+                                  <strong>{sideLabel}</strong>
                                 </div>
                               )}
 
                               {showWeightInputs && (
                                 <>
                                   <label className="setLogField">
-                                    <span>Actual Reps</span>
+                                    <span>{t("actualReps")}</span>
                                     <input
                                       inputMode="numeric"
                                       value={log.actualReps}
@@ -6906,7 +7060,7 @@ function App() {
                                   </label>
 
                                   <label className="setLogField">
-                                    <span>Weight</span>
+                                    <span>{t("weight")}</span>
                                     <input
                                       inputMode="decimal"
                                       value={log.actualWeight}
@@ -6925,7 +7079,7 @@ function App() {
 
                               {showTimeInput && (
                                 <label className="setLogField">
-                                  <span>Time</span>
+                                  <span>{t("time")}</span>
                                   <input
                                     inputMode="decimal"
                                     value={log.actualTime}
@@ -6943,7 +7097,7 @@ function App() {
 
                               {showDistanceInput && (
                                 <label className="setLogField">
-                                  <span>Distance</span>
+                                  <span>{t("distance")}</span>
                                   <input
                                     inputMode="decimal"
                                     value={log.actualDistance}
@@ -6973,8 +7127,8 @@ function App() {
                             type="button"
                           >
                             {savedExerciseDraftIds.includes(exercise.exerciseId)
-                              ? "Exercise Saved"
-                              : "Save Exercise"}
+                              ? t("exerciseSaved")
+                              : t("saveExercise")}
                           </button>
                         )}
                         </div>
@@ -6988,7 +7142,7 @@ function App() {
                     onClick={saveWorkout}
                     disabled={savingWorkout}
                   >
-                    {savingWorkout ? "Submitting..." : "Submit Workout"}
+                    {savingWorkout ? t("submitting") : t("submitWorkout")}
                   </button>
                 )}
               </div>
@@ -7002,7 +7156,7 @@ function App() {
               <div className="modal-header">
                 <div>
                   <h2>{historyExerciseName}</h2>
-                  <p>Recent logged sets for this exercise.</p>
+                  <p>{t("recentLoggedSets")}</p>
                 </div>
 
                 <button
@@ -7042,7 +7196,7 @@ function App() {
                   log.exerciseName
                     .toLowerCase()
                     .startsWith(historyExerciseName.toLowerCase())
-                ).length === 0 && <p>No history logged for this exercise yet.</p>}
+                ).length === 0 && <p>{t("noHistoryLogged")}</p>}
               </div>
 
               <div className="modalActions">
@@ -7050,7 +7204,7 @@ function App() {
                   className="goldButton"
                   onClick={() => setHistoryExerciseName("")}
                 >
-                  Done
+                  {t("done")}
                 </button>
               </div>
             </div>

@@ -31,6 +31,25 @@ function fieldToText(value: any): string {
   return JSON.stringify(value);
 }
 
+function readFirstField(fields: Record<string, any>, candidates: string[]) {
+  const normalizedFields = new Map(
+    Object.keys(fields).map((fieldName) => [
+      fieldName.trim().toLowerCase(),
+      fieldName,
+    ])
+  );
+
+  for (const candidate of candidates) {
+    const fieldName =
+      normalizedFields.get(candidate.trim().toLowerCase()) || candidate;
+    const value = fieldToText(fields[fieldName]);
+
+    if (value) return value;
+  }
+
+  return "";
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const { programId, week, day } = req.query;
@@ -101,13 +120,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           programId: fieldToText(fields["Program ID"]),
           exerciseId: fieldToText(fields["Exercise ID"]),
           exerciseName: fieldToText(fields["Exercise Name"]),
+          exerciseNameCn: readFirstField(fields, ["Exercise Name CN", "Name CN"]),
           videoUrl: fieldToText(fields["Video URL"]),
+          videoUrlCn: readFirstField(fields, ["Video URL CN"]),
           order: Number(fieldToText(fields["Order"])) || 0,
           sets: fieldToText(fields["Sets"]),
           reps: fieldToText(fields["Reps"]),
           tempo: fieldToText(fields["Tempo"]),
           rest: fieldToText(fields["Rest"]),
           notes: fieldToText(fields["Coaching Notes"]),
+          notesCn: readFirstField(fields, [
+            "Coaching Notes CN",
+            "Notes CN",
+            "Technical Instructions CN",
+            "Form Instructions CN",
+          ]),
+          sectionNameCn: readFirstField(fields, ["Section CN"]),
         };
       })
       .sort((a: any, b: any) => a.order - b.order);

@@ -228,9 +228,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           ]),
           order: readField(fields, ["order", "Order"]),
           testName: readField(fields, ["testName", "Test Name", "Name", "Test"]),
+          testNameCn: readField(fields, [
+            "Test Name CN",
+            "Name CN",
+            "Test CN",
+          ]),
           metricType: readField(fields, ["metricType", "Metric Type", "Metric"]),
           unit: readField(fields, ["unit", "Unit"]),
           instructions: readField(fields, ["instructions", "Instructions"]),
+          instructionsCn: readField(fields, [
+            "Instructions CN",
+            "Description CN",
+            "Notes CN",
+          ]),
         };
       });
 
@@ -250,7 +260,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             "Template Name",
             "Title",
           ]),
+          nameCn: readField(fields, [
+            "Name CN",
+            "Test Template Name CN",
+            "Template Name CN",
+            "Title CN",
+          ]),
           description: readField(fields, ["description", "Description"]),
+          descriptionCn: readField(fields, ["Description CN"]),
           status: readField(fields, ["status", "Status"]),
           createdAt: readField(fields, ["createdAt", "Created At"]),
           items: items

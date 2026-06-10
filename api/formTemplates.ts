@@ -243,14 +243,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           formId: readField(fields, ["formId", "Form ID", "Template ID"]),
           order: readField(fields, ["order", "Order"]),
           label: readField(fields, ["label", "Label", "Question", "Question Text"]),
+          labelCn: readField(fields, [
+            "Label CN",
+            "Question CN",
+            "Question Text CN",
+            "Name CN",
+          ]),
           questionType: readField(fields, [
             "questionType",
             "Question Type",
             "Type",
           ]),
           options: readField(fields, ["options", "Options"]),
+          optionsCn: readField(fields, ["Options CN"]),
           required: readBoolField(fields, ["required", "Required"]),
           helpText: readField(fields, ["helpText", "Help Text", "Helper Text"]),
+          helpTextCn: readField(fields, [
+            "Help Text CN",
+            "Helper Text CN",
+            "Description CN",
+          ]),
         };
       });
 
@@ -269,8 +281,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             "Template Name",
             "Title",
           ]),
+          nameCn: readField(fields, [
+            "Name CN",
+            "Form Name CN",
+            "Template Name CN",
+            "Title CN",
+          ]),
           type: readField(fields, ["type", "Type", "Form Type"]),
           description: readField(fields, ["description", "Description"]),
+          descriptionCn: readField(fields, ["Description CN"]),
           status: readField(fields, ["status", "Status"]),
           createdBy: readField(fields, ["createdBy", "Created By"]),
           createdAt: readField(fields, ["createdAt", "Created At"]),

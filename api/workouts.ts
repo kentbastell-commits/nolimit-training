@@ -27,6 +27,25 @@ function fieldToText(value: any): string {
   return JSON.stringify(value);
 }
 
+function readFirstField(fields: Record<string, any>, candidates: string[]) {
+  const normalizedFields = new Map(
+    Object.keys(fields).map((fieldName) => [
+      fieldName.trim().toLowerCase(),
+      fieldName,
+    ])
+  );
+
+  for (const candidate of candidates) {
+    const fieldName =
+      normalizedFields.get(candidate.trim().toLowerCase()) || candidate;
+    const value = fieldToText(fields[fieldName]);
+
+    if (value) return value;
+  }
+
+  return "";
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const clientCode = String(req.query.clientCode || "");
@@ -82,9 +101,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           week: fieldToText(fields["Week"]),
           day: fieldToText(fields["Day"]),
           sessionName: fieldToText(fields["Session Name"]),
+          sessionNameCn: readFirstField(fields, ["Session Name CN", "Name CN"]),
           scheduledDate: fieldToText(fields["Scheduled Date"]),
           completionStatus: fieldToText(fields["Completion Status"]),
           coachNotes: fieldToText(fields["Coach Notes"]),
+          coachNotesCn: readFirstField(fields, ["Coach Notes CN", "Notes CN"]),
           clientNotes: fieldToText(fields["Client Notes"]),
           workoutLogs: fieldToText(fields["Workout Logs"]),
         };

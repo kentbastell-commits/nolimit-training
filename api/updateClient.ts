@@ -21,6 +21,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       startDate,
       lastCheckInDate,
       notes,
+      languagePreference,
     } = req.body;
 
     if (!clientRecordId) {
@@ -56,6 +57,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (coach !== undefined) fields["Coach Assigned"] = coach;
     if (packageType !== undefined) fields["Package Type"] = packageType;
     if (notes !== undefined) fields.Notes = notes;
+    if (languagePreference !== undefined) {
+      fields["Language Preference"] = languagePreference;
+    }
 
     const larkStartDate = toLarkDate(startDate || "");
     const larkLastCheckInDate = toLarkDate(lastCheckInDate || "");

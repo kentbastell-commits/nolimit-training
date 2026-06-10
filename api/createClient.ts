@@ -23,6 +23,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       phone,
       coach,
       packageType,
+      languagePreference,
       startDate,
       notes,
     } = req.body;
@@ -59,6 +60,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       "Phone/WeChat": phone || "",
       "Coach Assigned": coach || "Kent Bastell",
       "Package Type": packageType || "Active",
+      "Language Preference": languagePreference || "English",
       Notes: notes || "",
     };
 

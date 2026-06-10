@@ -92,6 +92,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         coach: fieldToText(fields["Coach Assigned"]),
         notes: fieldToText(fields["Notes"]),
         startDate: formatDate(fields["Start Date"]),
+        languagePreference:
+          fieldToText(fields["Language Preference"]) ||
+          fieldToText(fields["Language"]) ||
+          "English",
       };
     });
 

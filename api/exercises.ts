@@ -149,10 +149,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         recordId: item.record_id,
         exerciseId: fieldToText(fields["Exercise ID"]),
         exerciseName: fieldToText(fields["Exercise Name"]),
+        exerciseNameCn: readFirstField(fields, ["Exercise Name CN", "Name CN"]),
         videoUrl: fieldToText(fields["Video URL"]),
+        videoUrlCn: readFirstField(fields, ["Video URL CN"]),
         category: fieldToText(fields["Category"]),
+        categoryCn: readFirstField(fields, ["Category CN"]),
         equipment: fieldToText(fields["Equipment"]),
+        equipmentCn: readFirstField(fields, ["Equipment CN"]),
         movementPattern: fieldToText(fields["Movement Pattern"]),
+        primaryMusclesCn: readFirstField(fields, ["Primary Muscles CN"]),
+        technicalInstructionsCn: readFirstField(fields, [
+          "Technical Instructions CN",
+          "Form Instructions CN",
+          "Instructions CN",
+        ]),
+        coachingCuesCn: readFirstField(fields, [
+          "Coaching Cues CN",
+          "Technical Cues CN",
+          "Notes CN",
+        ]),
+        commonMistakesCn: readFirstField(fields, ["Common Mistakes CN"]),
         notes,
         status: notes.startsWith("[Archived]")
           ? "Archived"
