@@ -184,6 +184,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const token = await getTenantToken();
     const tableFields = await getTableFields(tableId, token);
     const createdRecords: string[] = [];
+    const clientComment = String(
+      responses.find(
+        (responseItem: any) =>
+          responseItem?.questionId === "__client_comment" ||
+          responseItem?.itemId === "__client_comment" ||
+          String(responseItem?.label || "").toLowerCase() === "client comment"
+      )?.value || ""
+    );
 
     if (!isTest && hasField(tableFields, ["Answers Json", "Answers JSON", "Answers"])) {
       const responseId = `FR-${Date.now()}`;
@@ -225,6 +233,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           aliases: ["Answers Json", "Answers JSON", "Answers"],
           value: JSON.stringify(responses),
           required: true,
+        },
+        {
+          aliases: ["Client Comment", "Athlete Notes", "Notes", "Comment"],
+          value: clientComment,
         },
       ]);
 
@@ -311,7 +323,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           value: String(responseItem.unit || ""),
         },
         {
-          aliases: ["Notes", "Note", "Result Notes"],
+          aliases: [
+            "Notes",
+            "Note",
+            "Result Notes",
+            "Client Comment",
+            "Athlete Notes",
+          ],
           value: String(responseItem.notes || ""),
         },
         {

@@ -113,6 +113,7 @@ export default async function handler(
       "Client Notes",
       "Client Comment",
       "Workout Comment",
+      "Athlete Notes",
       "Session Notes",
     ]);
 
