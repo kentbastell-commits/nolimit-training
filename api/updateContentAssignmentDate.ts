@@ -14,7 +14,11 @@ function normalizeFieldName(value: string) {
 function toLarkDate(value?: string) {
   if (!value) return Date.now();
   if (/^\d+$/.test(value)) return Number(value);
-  return new Date(`${value}T00:00:00`).getTime();
+  const [year, month, day] = value.split("-").map(Number);
+  if (year && month && day) {
+    return new Date(year, month - 1, day).getTime();
+  }
+  return new Date(value).getTime();
 }
 
 function resolveField(fields: TableField[], aliases: string[]) {
@@ -65,6 +69,7 @@ function isAuditDateField(field?: TableField) {
 }
 
 const scheduledDateAliases = [
+  "Assigned Date",
   "Due Date",
   "Due date",
   "dueDate",
@@ -73,7 +78,6 @@ const scheduledDateAliases = [
   "Scheduled Date",
   "Schedule Date",
   "Assignment Date",
-  "Assigned Date",
   "assignedDate",
   "Date Assigned",
   "Assigned For",
