@@ -5484,6 +5484,10 @@ body {
 .app:not(.clientPortalApp) .clientSnapshotCard,
 .app:not(.clientPortalApp) .clientListPanel,
 .app:not(.clientPortalApp) .assignProgramPanel,
+.app:not(.clientPortalApp) .programLibraryPanel,
+.app:not(.clientPortalApp) .programListPanel,
+.app:not(.clientPortalApp) .programDetailPanel,
+.app:not(.clientPortalApp) .savedAssignPanel,
 .app:not(.clientPortalApp) .clientMonthCalendarCard,
 .app:not(.clientPortalApp) .selectedDayGlance,
 .app:not(.clientPortalApp) .workout-modal,
@@ -5624,6 +5628,531 @@ body {
 .coachSelectedDayGlance {
   width: 100%;
   margin: 0;
+}
+
+/* Light theme contrast polish */
+.app:not(.clientPortalApp),
+.clientPortalApp,
+.clientPortalShell {
+  background: #f4f1ea;
+  color: #111;
+}
+
+.app:not(.clientPortalApp) .main,
+.clientPortalApp .main {
+  color: #111;
+}
+
+.app:not(.clientPortalApp) .topbar h1,
+.app:not(.clientPortalApp) .clientTop h1,
+.app:not(.clientPortalApp) .builderPageTitle,
+.app:not(.clientPortalApp) .builderHubHeader h2,
+.app:not(.clientPortalApp) .calendarHeader h2,
+.app:not(.clientPortalApp) .profileCard h3,
+.clientPortalApp .clientTop h1,
+.clientPortalApp .calendarHeader h2,
+.clientPortalApp .workout-modal h2,
+.clientPortalApp .modal-header h2,
+.clientPortalEmpty h1 {
+  color: #111 !important;
+  font-weight: 950;
+  letter-spacing: 0;
+}
+
+.app:not(.clientPortalApp) .topbar p,
+.app:not(.clientPortalApp) .builderHubHeader p,
+.app:not(.clientPortalApp) .clientTop p,
+.app:not(.clientPortalApp) .emptyTableMessage,
+.clientPortalApp .clientTop p,
+.clientPortalApp .modal-header p,
+.clientPortalEmpty p {
+  color: #3f3f39 !important;
+  font-weight: 600;
+}
+
+.app:not(.clientPortalApp) .tableCard,
+.app:not(.clientPortalApp) .clientBucketsPanel,
+.app:not(.clientPortalApp) .profileCard,
+.app:not(.clientPortalApp) .clientSnapshotCard,
+.app:not(.clientPortalApp) .assignProgramPanel,
+.app:not(.clientPortalApp) .clientMonthCalendarCard,
+.app:not(.clientPortalApp) .selectedDayGlance,
+.clientPortalApp .profileCard,
+.clientPortalApp .workout-modal,
+.clientPortalApp .clientFormModal,
+.clientPortalApp .workoutGlancePanel,
+.clientPortalEmpty {
+  background: #fffdf8 !important;
+  border-color: #d7d2c7 !important;
+  color: #111 !important;
+  box-shadow: 0 18px 48px rgba(17, 17, 17, 0.08);
+}
+
+.app:not(.clientPortalApp) .clientBucketsPanel {
+  padding: 14px;
+}
+
+.app:not(.clientPortalApp) .clientBucketsHeader h3,
+.app:not(.clientPortalApp) .builderSectionTitle,
+.app:not(.clientPortalApp) .builderHubList h3,
+.app:not(.clientPortalApp) .savedTemplateHeader h3,
+.app:not(.clientPortalApp) .assignProgramPanel h3,
+.app:not(.clientPortalApp) .tableHeader,
+.app:not(.clientPortalApp) .clientTableHeader,
+.app:not(.clientPortalApp) .exerciseTableHeader,
+.clientPortalApp .workoutSectionHeading {
+  color: #111 !important;
+  font-weight: 950;
+}
+
+.app:not(.clientPortalApp) .tableHeader,
+.app:not(.clientPortalApp) .clientTableHeader,
+.app:not(.clientPortalApp) .exerciseTableHeader {
+  background: #f1eee6;
+  border-bottom-color: #d8d1c2;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  font-size: 12px;
+}
+
+.app:not(.clientPortalApp) .clientBucket {
+  color: #2c2c28;
+  font-weight: 750;
+}
+
+.app:not(.clientPortalApp) .clientBucket strong {
+  color: #8b650e;
+  font-weight: 950;
+}
+
+.app:not(.clientPortalApp) .clientBucket:hover,
+.app:not(.clientPortalApp) .activeClientBucket {
+  background: #111;
+  color: #f8f3e6;
+}
+
+.app:not(.clientPortalApp) .clientBucket:hover strong,
+.app:not(.clientPortalApp) .activeClientBucket strong {
+  color: #f5d77b;
+}
+
+.app:not(.clientPortalApp) .inviteLinkBox {
+  border-top-color: #d8d1c2;
+}
+
+.app:not(.clientPortalApp) .inviteLinkBox span,
+.app:not(.clientPortalApp) .clientSnapshotCard span,
+.app:not(.clientPortalApp) .clientInfoRows span,
+.app:not(.clientPortalApp) .workoutBlock span,
+.clientPortalApp .workoutPrescriptionGrid strong,
+.clientPortalApp .setLogField span,
+.clientPortalApp .setLogStatic span,
+.clientPortalApp .workoutBlock span {
+  color: #4b4b45 !important;
+  font-weight: 800;
+}
+
+.app:not(.clientPortalApp) .clientSnapshotCard strong,
+.app:not(.clientPortalApp) .clientInfoRows strong,
+.app:not(.clientPortalApp) .calendarDateLabel,
+.app:not(.clientPortalApp) .calendarNavigator strong,
+.app:not(.clientPortalApp) .savedTemplateItem strong,
+.clientPortalApp .calendarDateLabel,
+.clientPortalApp .calendarNavigator strong,
+.clientPortalApp .workoutGlanceRow strong,
+.clientPortalApp .clientPortalWorkoutItem strong {
+  color: #111 !important;
+  font-weight: 950;
+}
+
+.app:not(.clientPortalApp) .goldButton,
+.clientPortalApp .goldButton {
+  background: #111 !important;
+  border-color: #111 !important;
+  color: #f7efd8 !important;
+  font-weight: 950;
+}
+
+.app:not(.clientPortalApp) .outlineButton,
+.app:not(.clientPortalApp) .compactTextButton,
+.app:not(.clientPortalApp) .iconActionButton,
+.clientPortalApp .outlineButton,
+.clientPortalApp .iconActionButton,
+.clientPortalApp .videoButton {
+  background: #fffdf8 !important;
+  border-color: #cfc8bb !important;
+  color: #111 !important;
+  font-weight: 800;
+}
+
+.app:not(.clientPortalApp) input,
+.app:not(.clientPortalApp) textarea,
+.app:not(.clientPortalApp) select,
+.app:not(.clientPortalApp) .miniSearch,
+.clientPortalApp input,
+.clientPortalApp textarea,
+.clientPortalApp select {
+  background: #fff !important;
+  border-color: #c9c3b8 !important;
+  color: #111 !important;
+  font-weight: 650;
+}
+
+.app:not(.clientPortalApp) input::placeholder,
+.app:not(.clientPortalApp) textarea::placeholder,
+.clientPortalApp input::placeholder,
+.clientPortalApp textarea::placeholder {
+  color: #6c6a64 !important;
+}
+
+.app:not(.clientPortalApp) .navItem.active {
+  box-shadow: 0 12px 24px rgba(17, 17, 17, 0.16);
+}
+
+.app:not(.clientPortalApp) .badge {
+  background: #111;
+  color: #f5d77b;
+  font-weight: 950;
+}
+
+.app:not(.clientPortalApp) .clientRow,
+.app:not(.clientPortalApp) .exerciseTableRow,
+.app:not(.clientPortalApp) .clientContactCell,
+.app:not(.clientPortalApp) .clientName p {
+  color: #2f2f2b !important;
+}
+
+.app:not(.clientPortalApp) .workoutBlock,
+.app:not(.clientPortalApp) .calendarDay,
+.app:not(.clientPortalApp) .savedTemplateItem,
+.app:not(.clientPortalApp) .exercise-card,
+.clientPortalApp .workoutLogExerciseCard,
+.clientPortalApp .workoutGlanceRow,
+.clientPortalApp .calendarDay {
+  background: #fff !important;
+  border-color: #d7d2c7 !important;
+}
+
+.app:not(.clientPortalApp) .calendarWorkMarkers span,
+.clientPortalApp .calendarWorkMarkers span {
+  background: #12b981;
+}
+
+.app:not(.clientPortalApp) .calendarWorkMarkers .emptyMarker,
+.clientPortalApp .calendarWorkMarkers .emptyMarker {
+  background: #b8b3a8;
+}
+
+/* Final light theme contrast pass */
+.app:not(.clientPortalApp),
+.clientPortalApp,
+.clientPortalShell {
+  --nl-ink: #111111;
+  --nl-ink-soft: #242421;
+  --nl-muted: #3f3f39;
+  --nl-muted-soft: #5f5f59;
+  --nl-surface: #fffefa;
+  --nl-surface-strong: #ffffff;
+  --nl-page: #f4f1ea;
+  --nl-line: #d7d2c7;
+  --nl-gold-dark: #7a5a0a;
+  --nl-gold-soft: #eadfbf;
+  --nl-gold-quiet: #f3eee0;
+}
+
+.app:not(.clientPortalApp) .main,
+.clientPortalApp .main,
+.clientPortalShell {
+  color: var(--nl-ink) !important;
+}
+
+.app:not(.clientPortalApp) h1,
+.app:not(.clientPortalApp) h2,
+.app:not(.clientPortalApp) h3,
+.app:not(.clientPortalApp) .topbar h1,
+.app:not(.clientPortalApp) .clientTop h1,
+.app:not(.clientPortalApp) .builderPageTitle,
+.app:not(.clientPortalApp) .builderHubHeader h2,
+.app:not(.clientPortalApp) .calendarHeader h2,
+.app:not(.clientPortalApp) .profileCard h3,
+.app:not(.clientPortalApp) .clientBucketsHeader h3,
+.app:not(.clientPortalApp) .savedTemplateHeader h3,
+.clientPortalApp .clientTop h1,
+.clientPortalApp .calendarHeader h2,
+.clientPortalApp .workout-modal h2,
+.clientPortalApp .modal-header h2,
+.clientPortalApp .workoutLogExerciseCard h3,
+.clientPortalApp .workoutGlancePanel h3,
+.clientPortalEmpty h1 {
+  color: var(--nl-ink) !important;
+  font-weight: 900 !important;
+}
+
+.app:not(.clientPortalApp) .topbar p,
+.app:not(.clientPortalApp) .builderHubHeader p,
+.app:not(.clientPortalApp) .clientTop p,
+.app:not(.clientPortalApp) .modal-header p,
+.app:not(.clientPortalApp) .emptyTableMessage,
+.app:not(.clientPortalApp) .clientName p,
+.app:not(.clientPortalApp) .clientContactCell,
+.clientPortalApp .clientTop p,
+.clientPortalApp .modal-header p,
+.clientPortalApp .workoutGlanceIntro,
+.clientPortalApp .workoutGlanceRow small,
+.clientPortalApp .clientPortalTrainingHero p,
+.clientPortalEmpty p {
+  color: var(--nl-muted) !important;
+  font-weight: 650 !important;
+}
+
+.app:not(.clientPortalApp) .coachBox,
+.app:not(.clientPortalApp) .tableCard,
+.app:not(.clientPortalApp) .clientBucketsPanel,
+.app:not(.clientPortalApp) .profileCard,
+.app:not(.clientPortalApp) .clientSnapshotCard,
+.app:not(.clientPortalApp) .clientListPanel,
+.app:not(.clientPortalApp) .assignProgramPanel,
+.app:not(.clientPortalApp) .clientMonthCalendarCard,
+.app:not(.clientPortalApp) .selectedDayGlance,
+.app:not(.clientPortalApp) .workout-modal,
+.app:not(.clientPortalApp) .clientFormModal,
+.app:not(.clientPortalApp) .savedTemplatePanel,
+.app:not(.clientPortalApp) .builderHubPanel,
+.app:not(.clientPortalApp) .savedTemplateDropdownMenu,
+.clientPortalApp .profileCard,
+.clientPortalApp .workout-modal,
+.clientPortalApp .clientFormModal,
+.clientPortalApp .workoutGlancePanel,
+.clientPortalApp .clientPortalWorkoutList,
+.clientPortalEmpty {
+  background: var(--nl-surface) !important;
+  border-color: var(--nl-line) !important;
+  color: var(--nl-ink) !important;
+  box-shadow: 0 16px 42px rgba(17, 17, 17, 0.08) !important;
+}
+
+.app:not(.clientPortalApp) .tableHeader,
+.app:not(.clientPortalApp) .clientTableHeader,
+.app:not(.clientPortalApp) .exerciseTableHeader {
+  background: #eee8d9 !important;
+  color: var(--nl-ink) !important;
+  border-bottom-color: #cec5b3 !important;
+  font-weight: 900 !important;
+  letter-spacing: 0 !important;
+}
+
+.app:not(.clientPortalApp) .clientRow,
+.app:not(.clientPortalApp) .exerciseTableRow,
+.app:not(.clientPortalApp) .arrangeWorkoutRow,
+.app:not(.clientPortalApp) .builderHubRow,
+.app:not(.clientPortalApp) .testBuilderRow,
+.app:not(.clientPortalApp) .workoutBlock,
+.app:not(.clientPortalApp) .programListItem,
+.app:not(.clientPortalApp) .programMetaGrid span,
+.app:not(.clientPortalApp) .calendarDay,
+.app:not(.clientPortalApp) .savedTemplateItem,
+.app:not(.clientPortalApp) .exercise-card,
+.app:not(.clientPortalApp) .clientCard,
+.clientPortalApp .workoutLogExerciseCard,
+.clientPortalApp .workoutGlanceRow,
+.clientPortalApp .calendarDay,
+.clientPortalApp .desktopWorkoutSetRow,
+.clientPortalApp .mobileSetLogRow {
+  background: var(--nl-surface-strong) !important;
+  border-color: var(--nl-line) !important;
+  color: var(--nl-ink) !important;
+}
+
+.app:not(.clientPortalApp) .clientBucket {
+  color: var(--nl-ink-soft) !important;
+  font-weight: 800 !important;
+}
+
+.app:not(.clientPortalApp) .clientBucket strong {
+  color: var(--nl-gold-dark) !important;
+  font-weight: 950 !important;
+}
+
+.app:not(.clientPortalApp) .clientBucket:hover,
+.app:not(.clientPortalApp) .activeClientBucket {
+  background: var(--nl-ink) !important;
+  border-color: var(--nl-ink) !important;
+  color: #f8f3e6 !important;
+}
+
+.app:not(.clientPortalApp) .clientBucket:hover strong,
+.app:not(.clientPortalApp) .activeClientBucket strong {
+  color: #f2d36d !important;
+}
+
+.app:not(.clientPortalApp) .calendarDateLabel,
+.app:not(.clientPortalApp) .calendarNavigator strong,
+.app:not(.clientPortalApp) .clientSnapshotCard strong,
+.app:not(.clientPortalApp) .clientInfoRows strong,
+.app:not(.clientPortalApp) .assignProgramGrid label span,
+.app:not(.clientPortalApp) .arrangeWorkouts h4,
+.app:not(.clientPortalApp) .programLibraryHeader h2,
+.app:not(.clientPortalApp) .programDetailTop h3,
+.app:not(.clientPortalApp) .programMetaGrid strong,
+.app:not(.clientPortalApp) .savedAssignPanel h3,
+.app:not(.clientPortalApp) .savedProgramSessions h3,
+.app:not(.clientPortalApp) .savedTemplateItem strong,
+.app:not(.clientPortalApp) .iconTextButton,
+.clientPortalApp .calendarDateLabel,
+.clientPortalApp .calendarNavigator strong,
+.clientPortalApp .workoutGlanceRow strong,
+.clientPortalApp .clientPortalWorkoutItem strong,
+.clientPortalApp .workoutPrescriptionGrid strong,
+.clientPortalApp .setLogField span,
+.clientPortalApp .setLogStatic span {
+  color: var(--nl-ink) !important;
+  font-weight: 900 !important;
+}
+
+.app:not(.clientPortalApp) .workoutBlock span,
+.app:not(.clientPortalApp) .clientSnapshotCard span,
+.app:not(.clientPortalApp) .clientInfoRows span,
+.app:not(.clientPortalApp) .savedTemplateItem span,
+.app:not(.clientPortalApp) .savedTemplateItem small,
+.app:not(.clientPortalApp) .inviteLinkBox span,
+.app:not(.clientPortalApp) .programLibraryHeader p,
+.app:not(.clientPortalApp) .programDetailTop p,
+.app:not(.clientPortalApp) .programListItem small,
+.clientPortalApp .workoutBlock span,
+.clientPortalApp .clientPortalWorkoutItem span,
+.clientPortalApp .clientPortalWorkoutItem small,
+.clientPortalApp .workoutPrescriptionGrid strong {
+  color: var(--nl-muted-soft) !important;
+  font-weight: 750 !important;
+}
+
+.app:not(.clientPortalApp) .programListItem:hover,
+.app:not(.clientPortalApp) .selectedProgramListItem {
+  background: var(--nl-gold-quiet) !important;
+  border-color: #bda75e !important;
+}
+
+.app:not(.clientPortalApp) .goldButton,
+.clientPortalApp .goldButton {
+  background: var(--nl-ink) !important;
+  border-color: var(--nl-ink) !important;
+  color: #f6e7b0 !important;
+  font-weight: 900 !important;
+}
+
+.app:not(.clientPortalApp) .outlineButton,
+.app:not(.clientPortalApp) .compactTextButton,
+.app:not(.clientPortalApp) .iconActionButton,
+.app:not(.clientPortalApp) .calendarDatePickerButton,
+.app:not(.clientPortalApp) .miniMoveButton,
+.app:not(.clientPortalApp) .miniMoveWorkoutButton,
+.app:not(.clientPortalApp) .videoButton,
+.clientPortalApp .outlineButton,
+.clientPortalApp .miniMoveWorkoutButton,
+.clientPortalApp .iconActionButton,
+.clientPortalApp .videoButton {
+  background: var(--nl-surface-strong) !important;
+  border-color: #c9c2b0 !important;
+  color: var(--nl-ink) !important;
+  font-weight: 850 !important;
+}
+
+.app:not(.clientPortalApp) input,
+.app:not(.clientPortalApp) textarea,
+.app:not(.clientPortalApp) select,
+.app:not(.clientPortalApp) .miniSearch,
+.clientPortalApp input,
+.clientPortalApp textarea,
+.clientPortalApp select,
+.clientPortalApp .setLogRow input,
+.clientPortalApp .setLogField input {
+  background: #ffffff !important;
+  border-color: #bfb7a5 !important;
+  color: var(--nl-ink) !important;
+  font-weight: 700 !important;
+}
+
+.app:not(.clientPortalApp) input::placeholder,
+.app:not(.clientPortalApp) textarea::placeholder,
+.clientPortalApp input::placeholder,
+.clientPortalApp textarea::placeholder {
+  color: #696963 !important;
+}
+
+.app:not(.clientPortalApp) .brandWordmark,
+.app:not(.clientPortalApp) .brandSlashO,
+.clientPortalApp .brandWordmark,
+.clientPortalApp .brandSlashO,
+.clientPortalShell .brandWordmark,
+.clientPortalShell .brandSlashO {
+  color: var(--nl-ink) !important;
+}
+
+.app:not(.clientPortalApp) .brandTagline {
+  color: var(--nl-muted) !important;
+  font-weight: 800 !important;
+}
+
+.app:not(.clientPortalApp) .navItem,
+.app:not(.clientPortalApp) .mobileClientBottomNav button,
+.clientPortalApp .mobileClientBottomNav button {
+  color: var(--nl-ink) !important;
+  font-weight: 800 !important;
+}
+
+.app:not(.clientPortalApp) .navItem.active,
+.app:not(.clientPortalApp) .mobileClientBottomNav button.active,
+.clientPortalApp .mobileClientBottomNav button.active {
+  background: var(--nl-ink) !important;
+  border-color: var(--nl-ink) !important;
+  color: #f6e7b0 !important;
+}
+
+.app:not(.clientPortalApp) .badge,
+.app:not(.clientPortalApp) .avatar,
+.app:not(.clientPortalApp) .clientAvatar {
+  background: var(--nl-ink) !important;
+  color: #f6e7b0 !important;
+}
+
+.clientPortalApp .workoutSectionHeading {
+  color: var(--nl-ink) !important;
+}
+
+.clientPortalApp .workoutPrescriptionGrid {
+  border-bottom-color: #dcd6ca !important;
+}
+
+.clientPortalApp .workoutPrescriptionGrid span {
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+.clientPortalApp .desktopWorkoutSetLabel,
+.clientPortalApp .setBanner {
+  background: #d6d2c7 !important;
+  border-color: #bfb7a5 !important;
+  color: var(--nl-ink) !important;
+}
+
+.clientPortalApp .desktopWorkoutSetLabel strong,
+.clientPortalApp .setBanner strong {
+  color: var(--nl-ink) !important;
+}
+
+.clientPortalApp .clientWeekStripCalendar .selectedCalendarDay,
+.selectedClientMonthDay {
+  background: var(--nl-ink) !important;
+  border-color: var(--nl-ink) !important;
+  color: #ffffff !important;
+}
+
+.clientPortalApp .clientWeekStripCalendar .selectedCalendarDay .calendarDateLabel,
+.selectedClientMonthDay,
+.selectedClientMonthDay span,
+.selectedClientMonthDay strong {
+  color: #ffffff !important;
 }
 
 @media (max-width: 820px) {
