@@ -35,6 +35,25 @@ function normalizeDate(value: any) {
   return text.split("T")[0].split(" ")[0];
 }
 
+function normalizeTaskStatus(status?: string) {
+  const clean = String(status || "").toLowerCase();
+
+  if (clean.includes("complete")) return "Completed";
+  if (clean.includes("miss")) return "Missed";
+
+  return "Scheduled";
+}
+
+function getDisplayTaskStatus(status: string, scheduledDate: string, today: string) {
+  const normalized = normalizeTaskStatus(status);
+
+  if (normalized === "Scheduled" && scheduledDate && scheduledDate < today) {
+    return "Missed";
+  }
+
+  return normalized;
+}
+
 async function getTenantToken() {
   const response = await fetch(
     "https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal",
@@ -119,30 +138,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const today = new Date();
     const todayString = today.toISOString().split("T")[0];
     const nextWeekString = addDays(today, 7).toISOString().split("T")[0];
-    const completedWorkouts = workouts.filter((workout) =>
-      workout.status.toLowerCase().includes("complete")
+    const workoutsWithDisplayStatus = workouts.map((workout) => ({
+      ...workout,
+      displayStatus: getDisplayTaskStatus(
+        workout.status,
+        workout.scheduledDate,
+        todayString
+      ),
+    }));
+    const completedWorkouts = workoutsWithDisplayStatus.filter(
+      (workout) => workout.displayStatus === "Completed"
     );
-    const missedWorkouts = workouts.filter((workout) =>
-      workout.status.toLowerCase().includes("miss")
+    const missedWorkouts = workoutsWithDisplayStatus.filter(
+      (workout) => workout.displayStatus === "Missed"
     );
-    const inProgressWorkouts = workouts.filter((workout) =>
-      workout.status.toLowerCase().includes("progress")
-    );
-    const scheduledWorkouts = workouts.filter((workout) =>
-      workout.status.toLowerCase().includes("scheduled")
+    const scheduledWorkouts = workoutsWithDisplayStatus.filter(
+      (workout) => workout.displayStatus === "Scheduled"
     );
     const upcomingWorkouts = workouts.filter(
       (workout) =>
         workout.scheduledDate >= todayString &&
         workout.scheduledDate <= nextWeekString &&
-        !workout.status.toLowerCase().includes("complete")
+        normalizeTaskStatus(workout.status) !== "Completed"
     );
-    const overdueWorkouts = workouts.filter(
-      (workout) =>
-        workout.scheduledDate &&
-        workout.scheduledDate < todayString &&
-        !workout.status.toLowerCase().includes("complete")
-    );
+    const overdueWorkouts = missedWorkouts;
     const clientsNeedingProgramming = clients.filter(
       (client) => !client.program || client.program === "--"
     );
@@ -151,14 +170,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     );
     const attentionClients = clients
       .map((client) => {
-        const clientWorkouts = workouts.filter((workout) =>
+        const clientWorkouts = workoutsWithDisplayStatus.filter((workout) =>
           workout.clientId.includes(client.clientId)
         );
         const overdue = overdueWorkouts.filter((workout) =>
           workout.clientId.includes(client.clientId)
         ).length;
-        const completed = clientWorkouts.filter((workout) =>
-          workout.status.toLowerCase().includes("complete")
+        const completed = clientWorkouts.filter(
+          (workout) => workout.displayStatus === "Completed"
         ).length;
 
         return {
@@ -193,7 +212,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         totalWorkouts: workouts.length,
         completedWorkouts: completedWorkouts.length,
         missedWorkouts: missedWorkouts.length,
-        inProgressWorkouts: inProgressWorkouts.length,
+        inProgressWorkouts: 0,
         scheduledWorkouts: scheduledWorkouts.length,
         upcomingWorkouts: upcomingWorkouts.length,
         overdueWorkouts: overdueWorkouts.length,

@@ -122,10 +122,33 @@ export default async function handler(
       createdRecords.push(result.data.record.record_id);
     }
 
+    let assignedWorkoutUpdate: any = null;
+
+    if (process.env.FEISHU_ASSIGNED_WORKOUTS_TABLE_ID) {
+      const updateResponse = await fetch(
+        `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${process.env.FEISHU_ASSIGNED_WORKOUTS_TABLE_ID}/records/${assignedWorkoutRecordId}`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            fields: {
+              "Completion Status": "Completed",
+            },
+          }),
+        }
+      );
+
+      assignedWorkoutUpdate = await updateResponse.json();
+    }
+
     return res.status(200).json({
       success: true,
       recordsCreated: createdRecords.length,
       createdRecords,
+      assignedWorkoutUpdate,
       exerciseResults: await createExerciseResultRecords(token, {
         clientId: clientCode || clientId,
         clientRecordId: clientId,

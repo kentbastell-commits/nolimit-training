@@ -457,6 +457,36 @@ function dateToInputValue(date: Date) {
   return `${year}-${month}-${day}`;
 }
 
+type SimpleTaskStatus = "Scheduled" | "Completed" | "Missed";
+
+function normalizeTaskStatus(status?: string): SimpleTaskStatus {
+  const clean = String(status || "").toLowerCase();
+
+  if (clean.includes("complete")) return "Completed";
+  if (clean.includes("miss")) return "Missed";
+
+  return "Scheduled";
+}
+
+function isPastCalendarDate(dateString?: string) {
+  const date = normalizeDate(String(dateString || ""));
+
+  return Boolean(date) && date < dateToInputValue(new Date());
+}
+
+function getDisplayTaskStatus(
+  status?: string,
+  scheduledDate?: string
+): SimpleTaskStatus {
+  const normalized = normalizeTaskStatus(status);
+
+  if (normalized === "Scheduled" && isPastCalendarDate(scheduledDate)) {
+    return "Missed";
+  }
+
+  return normalized;
+}
+
 function addDays(dateString: string, days: number) {
   const date = new Date(dateString + "T00:00:00");
   date.setDate(date.getDate() + days);
@@ -550,11 +580,10 @@ function formatCalendarRangeLabel(
 }
 
 function getStatusClass(status: string) {
-  const clean = status.toLowerCase();
+  const clean = normalizeTaskStatus(status);
 
-  if (clean.includes("complete")) return "completedWorkout";
-  if (clean.includes("miss")) return "missedWorkout";
-  if (clean.includes("progress")) return "progressWorkout";
+  if (clean === "Completed") return "completedWorkout";
+  if (clean === "Missed") return "missedWorkout";
 
   return "scheduledWorkout";
 }
@@ -2416,6 +2445,13 @@ function App() {
       if (draftKey) {
         window.localStorage.removeItem(draftKey);
       }
+      setWorkouts((current) =>
+        current.map((workout) =>
+          workout.id === selectedWorkout.id
+            ? { ...workout, completionStatus: "Completed" }
+            : workout
+        )
+      );
       setSelectedWorkout(null);
       setWorkoutLoggingStarted(false);
       setSavedExerciseDraftIds([]);
@@ -3924,9 +3960,7 @@ function App() {
     .filter(
       (workout) =>
         normalizeDate(String(workout.scheduledDate)) >= todayValue &&
-        !String(workout.completionStatus || "")
-          .toLowerCase()
-          .includes("complete")
+        normalizeTaskStatus(workout.completionStatus) !== "Completed"
     )
     .sort(
       (a, b) =>
@@ -3940,7 +3974,7 @@ function App() {
       (assignment) =>
         normalizeDate(String(assignment.dueDate || assignment.assignedDate)) >=
           todayValue &&
-        !String(assignment.status || "").toLowerCase().includes("complete")
+        normalizeTaskStatus(assignment.status) !== "Completed"
     )
     .sort((a, b) =>
       normalizeDate(String(a.dueDate || a.assignedDate)).localeCompare(
@@ -3954,7 +3988,7 @@ function App() {
       date: normalizeDate(String(workout.scheduledDate)),
       title: localizedWorkoutName(workout),
       meta: `${t("week")} ${workout.week} - ${t("day")} ${workout.day}`,
-      status: workout.completionStatus || t("scheduled"),
+      status: getDisplayTaskStatus(workout.completionStatus, workout.scheduledDate),
       open: () => openWorkout(workout),
     })),
     ...clientPortalUpcomingAssignments.map((assignment) => ({
@@ -3963,7 +3997,10 @@ function App() {
       date: normalizeDate(String(assignment.dueDate || assignment.assignedDate)),
       title: getAssignmentDisplayName(assignment),
       meta: assignment.assignmentType || "Questionnaire",
-      status: assignment.status || t("scheduled"),
+      status: getDisplayTaskStatus(
+        assignment.status,
+        assignment.dueDate || assignment.assignedDate
+      ),
       open: () => handleOpenContentAssignment(assignment),
     })),
   ]
@@ -4016,11 +4053,9 @@ function App() {
     .slice(0, 4);
   const recentWorkoutSubmissions = workouts
     .filter((workout) => {
-      const status = String(workout.completionStatus || "").toLowerCase();
+      const status = normalizeTaskStatus(workout.completionStatus);
       return (
-        status.includes("complete") ||
-        status.includes("saved") ||
-        status.includes("progress") ||
+        status === "Completed" ||
         String(workout.workoutLogs || "").trim()
       );
     })
@@ -4073,16 +4108,40 @@ function App() {
             10
         ) / 10
       : 0;
-  const completedWorkoutCount = workouts.filter((workout) =>
-    String(workout.completionStatus || "").toLowerCase().includes("complete")
+  const completedWorkoutCount = workouts.filter(
+    (workout) => normalizeTaskStatus(workout.completionStatus) === "Completed"
   ).length;
-  const completedAssignmentCount = contentAssignments.filter((assignment) =>
-    String(assignment.status || "").toLowerCase().includes("complete")
+  const completedAssignmentCount = contentAssignments.filter(
+    (assignment) => normalizeTaskStatus(assignment.status) === "Completed"
   ).length;
   const totalTaskCount = workouts.length + contentAssignments.length;
   const completedTaskCount = completedWorkoutCount + completedAssignmentCount;
   const completionRate =
     totalTaskCount > 0 ? Math.round((completedTaskCount / totalTaskCount) * 100) : 0;
+  const needsAttentionItems = [
+    ...workouts.map((workout) => ({
+      key: `workout-${workout.id}`,
+      type: "Workout",
+      title: localizedWorkoutName(workout),
+      date: normalizeDate(String(workout.scheduledDate)),
+      status: getDisplayTaskStatus(workout.completionStatus, workout.scheduledDate),
+      open: () => openWorkout(workout),
+    })),
+    ...contentAssignments.map((assignment) => ({
+      key: `assignment-${assignment.recordId}`,
+      type: assignment.assignmentType || "Task",
+      title: getAssignmentDisplayName(assignment),
+      date: normalizeDate(String(assignment.dueDate || assignment.assignedDate)),
+      status: getDisplayTaskStatus(
+        assignment.status,
+        assignment.dueDate || assignment.assignedDate
+      ),
+      open: () => handleOpenContentAssignment(assignment),
+    })),
+  ]
+    .filter((item) => item.status === "Missed")
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .slice(0, 6);
 
   const progressExerciseOptions = Array.from(
     new Set([
@@ -6292,6 +6351,38 @@ function App() {
                             )}
                           </div>
                         </div>
+
+                        <div className="snapshotAttentionCard">
+                          <div className="snapshotAttentionHeader">
+                            <span>Needs Attention</span>
+                            <strong>{needsAttentionItems.length}</strong>
+                          </div>
+
+                          {needsAttentionItems.length > 0 ? (
+                            <div className="attentionTaskList">
+                              {needsAttentionItems.map((item) => (
+                                <button
+                                  className="attentionTaskRow"
+                                  key={item.key}
+                                  onClick={item.open}
+                                  type="button"
+                                >
+                                  <span>
+                                    <strong>{item.title}</strong>
+                                    <small>
+                                      {item.type} / {item.date || "--"}
+                                    </small>
+                                  </span>
+                                  <em>Missed</em>
+                                </button>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="homeEmptyText">
+                              No missed tasks right now.
+                            </p>
+                          )}
+                        </div>
                       </div>
                     )}
                   </section>
@@ -6488,7 +6579,10 @@ function App() {
                           <strong>{workout.sessionName || "Workout"}</strong>
                           <small>
                             Week {workout.week} • Day {workout.day} •{" "}
-                            {workout.completionStatus || "Scheduled"}
+                            {getDisplayTaskStatus(
+                              workout.completionStatus,
+                              workout.scheduledDate
+                            )}
                           </small>
                         </button>
                       ))}
@@ -7003,7 +7097,10 @@ function App() {
                             dayWorkouts.map((workout) => (
                             <div
                               className={`workoutBlock ${getStatusClass(
-                                workout.completionStatus
+                                getDisplayTaskStatus(
+                                  workout.completionStatus,
+                                  workout.scheduledDate
+                                )
                               )} ${
                                 draggingWorkoutId === workout.id
                                   ? "draggingWorkout"
@@ -7064,7 +7161,10 @@ function App() {
                                 <span>
                                   {movingWorkoutId === workout.id
                                     ? "Moving..."
-                                    : workout.completionStatus || "Scheduled"}
+                                    : getDisplayTaskStatus(
+                                        workout.completionStatus,
+                                        workout.scheduledDate
+                                      )}
                                 </span>
                               </div>
 
@@ -7075,7 +7175,12 @@ function App() {
                             clientCalendarStyle === "Full") &&
                             dayAssignments.map((assignment) => (
                               <div
-                                className={`workoutBlock scheduledWorkout assignmentBlock ${
+                                className={`workoutBlock ${getStatusClass(
+                                  getDisplayTaskStatus(
+                                    assignment.status,
+                                    assignment.dueDate || assignment.assignedDate
+                                  )
+                                )} assignmentBlock ${
                                   draggingAssignmentId === assignment.recordId
                                     ? "draggingWorkout"
                                     : ""
@@ -7138,7 +7243,11 @@ function App() {
                                   <span>
                                     {movingAssignmentId === assignment.recordId
                                       ? "Moving..."
-                                      : assignment.assignmentType || "Questionnaire"}
+                                      : getDisplayTaskStatus(
+                                          assignment.status,
+                                          assignment.dueDate ||
+                                            assignment.assignedDate
+                                        )}
                                   </span>
                                 </div>
                               </div>
@@ -7175,7 +7284,10 @@ function App() {
                               </span>
                               <strong>{localizedWorkoutName(workout)}</strong>
                               <small>
-                                {workout.completionStatus || t("scheduled")}
+                                {getDisplayTaskStatus(
+                                  workout.completionStatus,
+                                  workout.scheduledDate
+                                )}
                               </small>
                             </div>
                             <span className="selectedDayWorkoutAction">
@@ -7194,7 +7306,12 @@ function App() {
                               <strong>
                                 {getAssignmentDisplayName(assignment)}
                               </strong>
-                              <small>{assignment.status || t("scheduled")}</small>
+                              <small>
+                                {getDisplayTaskStatus(
+                                  assignment.status,
+                                  assignment.dueDate || assignment.assignedDate
+                                )}
+                              </small>
                             </div>
                             <span className="selectedDayWorkoutAction">
                               {String(assignment.assignmentType)
@@ -7344,7 +7461,10 @@ function App() {
                                 </span>
                                 <strong>{localizedWorkoutName(workout)}</strong>
                                 <small>
-                                  {workout.completionStatus || t("scheduled")}
+                                  {getDisplayTaskStatus(
+                                    workout.completionStatus,
+                                    workout.scheduledDate
+                                  )}
                                 </small>
                               </div>
                               <span className="selectedDayWorkoutAction">
@@ -7365,7 +7485,12 @@ function App() {
                                 <strong>
                                   {getAssignmentDisplayName(assignment)}
                                 </strong>
-                                <small>{assignment.status || t("scheduled")}</small>
+                                <small>
+                                  {getDisplayTaskStatus(
+                                    assignment.status,
+                                    assignment.dueDate || assignment.assignedDate
+                                  )}
+                                </small>
                               </div>
                               <span className="selectedDayWorkoutAction">
                                 {String(assignment.assignmentType)
@@ -7524,7 +7649,10 @@ function App() {
                                   </span>
                                   <strong>{workout.sessionName || "Workout"}</strong>
                                   <small>
-                                    {workout.completionStatus || "Scheduled"}
+                                    {getDisplayTaskStatus(
+                                      workout.completionStatus,
+                                      workout.scheduledDate
+                                    )}
                                   </small>
                                 </div>
                                 <span className="selectedDayWorkoutAction">
@@ -7545,7 +7673,12 @@ function App() {
                                   <strong>
                                     {getAssignmentDisplayName(assignment)}
                                   </strong>
-                                  <small>{assignment.status || "Scheduled"}</small>
+                                  <small>
+                                    {getDisplayTaskStatus(
+                                      assignment.status,
+                                      assignment.dueDate || assignment.assignedDate
+                                    )}
+                                  </small>
                                 </div>
                                 <span className="selectedDayWorkoutAction">
                                   Open
@@ -7663,7 +7796,7 @@ function App() {
                       <strong>{analytics.summary.upcomingWorkouts}</strong>
                     </div>
                     <div className="analyticsCard">
-                      <span>Overdue</span>
+                      <span>Missed</span>
                       <strong>{analytics.summary.overdueWorkouts}</strong>
                     </div>
                     <div className="analyticsCard">
@@ -8529,7 +8662,12 @@ function App() {
                     <span>
                       {t("week")} {selectedWorkout.week} • {t("day")} {selectedWorkout.day}
                     </span>
-                    <span>{selectedWorkout.completionStatus || t("scheduled")}</span>
+                    <span>
+                      {getDisplayTaskStatus(
+                        selectedWorkout.completionStatus,
+                        selectedWorkout.scheduledDate
+                      )}
+                    </span>
                     {!isClientPortal && (
                       <>
                     <label className="headerDateControl">

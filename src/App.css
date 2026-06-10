@@ -2440,10 +2440,6 @@ body {
   border-color: rgba(255, 120, 120, 0.5);
 }
 
-.progressWorkout {
-  border-color: rgba(120, 200, 255, 0.5);
-}
-
 .scheduledWorkout {
   border-color: rgba(212, 175, 55, 0.45);
 }
@@ -5247,7 +5243,8 @@ body {
 }
 
 .snapshotMetricCard,
-.snapshotTrendCard {
+.snapshotTrendCard,
+.snapshotAttentionCard {
   border: 1px solid #ded8cc;
   border-radius: 12px;
   background: #faf9f5;
@@ -5255,7 +5252,8 @@ body {
 }
 
 .snapshotMetricCard span,
-.snapshotTrendCard > span {
+.snapshotTrendCard > span,
+.snapshotAttentionHeader span {
   display: block;
   color: #6f6a61;
   font-size: 11px;
@@ -5283,6 +5281,76 @@ body {
 
 .snapshotTrendCard {
   grid-column: span 2;
+}
+
+.snapshotAttentionCard {
+  grid-column: span 2;
+}
+
+.snapshotAttentionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.snapshotAttentionHeader strong {
+  display: inline-grid;
+  min-width: 34px;
+  height: 34px;
+  place-items: center;
+  border-radius: 999px;
+  background: #111;
+  color: #f4df94;
+  font-size: 16px;
+  font-weight: 950;
+}
+
+.attentionTaskList {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.attentionTaskRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  border: 1px solid #ded8cc;
+  border-radius: 10px;
+  background: #fff;
+  color: #111;
+  padding: 10px 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.attentionTaskRow strong {
+  display: block;
+  color: #111;
+  font-size: 14px;
+  font-weight: 950;
+}
+
+.attentionTaskRow small {
+  display: block;
+  margin-top: 3px;
+  color: #6f6a61;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.attentionTaskRow em {
+  border-radius: 999px;
+  background: #111;
+  color: #f4df94;
+  padding: 5px 9px;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 950;
+  text-transform: uppercase;
 }
 
 .readinessSparkline {
