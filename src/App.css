@@ -1322,6 +1322,51 @@ body {
   cursor: pointer;
 }
 
+.savedTemplateCard {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  cursor: default;
+}
+
+.savedTemplateMainButton {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  padding: 0;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+
+.savedTemplateActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.savedTemplateActions button {
+  border: 1px solid rgba(245, 215, 123, 0.32);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.18);
+  color: #f5d77b;
+  padding: 6px 8px;
+  font-size: 11px;
+  line-height: 1;
+  font-weight: 900;
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+}
+
+.savedTemplateActions button:hover {
+  background: rgba(245, 215, 123, 0.18);
+  border-color: rgba(245, 215, 123, 0.65);
+  color: #fff2a8;
+}
+
 .savedTemplateItem:hover,
 .selectedSavedTemplateItem {
   border-color: rgba(212, 175, 55, 0.58);
@@ -1329,6 +1374,7 @@ body {
 }
 
 .savedTemplateItem strong {
+  overflow-wrap: anywhere;
   color: #f5d77b;
 }
 
@@ -5161,41 +5207,6 @@ body {
   margin-right: auto;
 }
 
-.selectedDayPrompt {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  margin-top: 10px;
-  border: 1px dashed #d6d1c4;
-  border-radius: 8px;
-  background: #fbfbf8;
-  padding: 12px;
-}
-
-.selectedDayPrompt span,
-.selectedDayPrompt strong {
-  display: block;
-}
-
-.selectedDayPrompt span {
-  color: #7a5a0a;
-  font-size: 12px;
-  font-weight: 900;
-}
-
-.selectedDayPrompt strong {
-  margin-top: 3px;
-  color: #333;
-  font-size: 14px;
-  line-height: 1.25;
-}
-
-.selectedDayPrompt button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
 .clientMonthCalendarCard {
   border: 1px solid #deded8;
   border-radius: 12px;
@@ -5290,8 +5301,10 @@ body {
 }
 
 .selectedClientMonthDay {
-  background: #111;
-  color: #fff;
+  border-color: #111;
+  background: #f1efe8;
+  color: #111;
+  box-shadow: inset 0 0 0 2px #111;
 }
 
 .todayClientMonthDay:not(.selectedClientMonthDay) {
@@ -5299,7 +5312,8 @@ body {
 }
 
 .selectedClientMonthDay .calendarWorkMarkers .emptyMarker {
-  background: rgba(255, 255, 255, 0.55);
+  background: #111;
+  opacity: 0.45;
 }
 
 .selectedClientMonthDay .calendarWorkMarkers span:not(.emptyMarker) {

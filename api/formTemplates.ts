@@ -125,6 +125,41 @@ async function createRecord(tableId: string, token: string, fields: Record<strin
   return response.json();
 }
 
+async function updateRecord(
+  tableId: string,
+  token: string,
+  recordId: string,
+  fields: Record<string, any>
+) {
+  const response = await fetch(
+    `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${tableId}/records/${recordId}`,
+    {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ fields }),
+    }
+  );
+
+  return response.json();
+}
+
+async function deleteRecord(tableId: string, token: string, recordId: string) {
+  const response = await fetch(
+    `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${tableId}/records/${recordId}`,
+    {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  return response.json();
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const formTemplatesTableId =
     process.env.FEISHU_FORM_TEMPLATES_TABLE_ID || process.env.FORM_TEMPLATES;
@@ -195,6 +230,167 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
 
       return res.status(200).json({ forms });
+    }
+
+    if (req.method === "DELETE") {
+      const { recordId, formId } = req.body || {};
+
+      if (!recordId) {
+        return res.status(400).json({ error: "Missing form template record ID" });
+      }
+
+      const questionRecords = await getRecords(formQuestionsTableId, token);
+      const childQuestions = questionRecords.filter((item: any) => {
+        const fields = item.fields || {};
+        return (
+          formId &&
+          readField(fields, ["formId", "Form ID", "Template ID"]) === String(formId)
+        );
+      });
+
+      const deletedQuestions = [];
+
+      for (const question of childQuestions) {
+        const data = await deleteRecord(
+          formQuestionsTableId,
+          token,
+          question.record_id
+        );
+
+        if (data.code !== 0) {
+          return res.status(500).json({
+            error: "Could not delete form question",
+            larkResponse: data,
+          });
+        }
+
+        deletedQuestions.push(question.record_id);
+      }
+
+      const templateData = await deleteRecord(
+        formTemplatesTableId,
+        token,
+        String(recordId)
+      );
+
+      if (templateData.code !== 0) {
+        return res.status(500).json({
+          error: "Could not delete form template",
+          larkResponse: templateData,
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        deletedQuestions: deletedQuestions.length,
+      });
+    }
+
+    if (req.method === "PUT") {
+      const {
+        recordId,
+        formId,
+        name,
+        type,
+        description,
+        status,
+        createdBy,
+        questions,
+      } = req.body || {};
+
+      if (!recordId || !formId) {
+        return res.status(400).json({ error: "Missing form template IDs" });
+      }
+
+      if (!name) {
+        return res.status(400).json({ error: "Missing form name" });
+      }
+
+      const templateFields = {
+        formId: String(formId),
+        name: String(name),
+        type: String(type || "Questionnaire"),
+        description: String(description || ""),
+        status: String(status || "Active"),
+        createdBy: String(createdBy || "Kent Bastell"),
+      };
+
+      const templateData = await updateRecord(
+        formTemplatesTableId,
+        token,
+        String(recordId),
+        templateFields
+      );
+
+      if (templateData.code !== 0) {
+        return res.status(500).json({
+          error: "Could not update form template",
+          larkResponse: templateData,
+          fieldsSent: templateFields,
+        });
+      }
+
+      const existingQuestions = await getRecords(formQuestionsTableId, token);
+      const childQuestions = existingQuestions.filter((item: any) => {
+        const fields = item.fields || {};
+        return (
+          readField(fields, ["formId", "Form ID", "Template ID"]) === String(formId)
+        );
+      });
+
+      for (const question of childQuestions) {
+        const data = await deleteRecord(
+          formQuestionsTableId,
+          token,
+          question.record_id
+        );
+
+        if (data.code !== 0) {
+          return res.status(500).json({
+            error: "Could not replace form questions",
+            larkResponse: data,
+          });
+        }
+      }
+
+      const questionItems = Array.isArray(questions) ? questions : [];
+      const createdQuestions = [];
+
+      for (const [index, question] of questionItems.entries()) {
+        const questionFields = {
+          questionId: `Q-${Date.now()}-${index + 1}`,
+          formId: String(formId),
+          order: index + 1,
+          label: String(question.label || ""),
+          questionType: String(question.questionType || "Text"),
+          options: String(question.options || ""),
+          required: Boolean(question.required),
+          helpText: String(question.helpText || ""),
+        };
+
+        const questionData = await createRecord(
+          formQuestionsTableId,
+          token,
+          questionFields
+        );
+
+        if (questionData.code !== 0) {
+          return res.status(500).json({
+            error: "Could not create form question",
+            larkResponse: questionData,
+            fieldsSent: questionFields,
+          });
+        }
+
+        createdQuestions.push(questionData.data.record.record_id);
+      }
+
+      return res.status(200).json({
+        success: true,
+        formId: String(formId),
+        formRecordId: String(recordId),
+        questionRecordsCreated: createdQuestions.length,
+      });
     }
 
     if (req.method !== "POST") {

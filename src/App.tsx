@@ -632,6 +632,10 @@ function App() {
     SavedFormTemplate[]
   >([]);
   const [selectedSavedFormId, setSelectedSavedFormId] = useState("");
+  const [editingFormTemplate, setEditingFormTemplate] = useState<{
+    recordId: string;
+    formId: string;
+  } | null>(null);
   const [formTemplatesLoading, setFormTemplatesLoading] = useState(false);
   const [savingFormTemplate, setSavingFormTemplate] = useState(false);
   const [testTemplateName, setTestTemplateName] = useState("Performance Test");
@@ -647,6 +651,10 @@ function App() {
     SavedTestTemplate[]
   >([]);
   const [selectedSavedTestId, setSelectedSavedTestId] = useState("");
+  const [editingTestTemplate, setEditingTestTemplate] = useState<{
+    recordId: string;
+    testTemplateId: string;
+  } | null>(null);
   const [testTemplatesLoading, setTestTemplatesLoading] = useState(false);
   const [savingTestTemplate, setSavingTestTemplate] = useState(false);
   const [assignmentType, setAssignmentType] = useState("Program");
@@ -1120,8 +1128,12 @@ function App() {
       return;
     }
 
-    setFormTemplateName(`${form.name || form.formId || "Untitled Form"} Copy`);
+    setFormTemplateName(form.name || form.formId || "Untitled Form");
     setFormTemplateType(form.type || "Questionnaire");
+    setEditingFormTemplate({
+      recordId: form.recordId,
+      formId: form.formId,
+    });
     setFormQuestions(
       form.questions.length > 0
         ? form.questions.map((question, index) => ({
@@ -1139,7 +1151,7 @@ function App() {
             },
           ]
     );
-    notify("Saved form loaded into builder. Saving will create a new template.");
+    notify("Saved form loaded into builder. Saving will update this template.");
   };
 
   const loadSavedTestIntoBuilder = (test: SavedTestTemplate | undefined) => {
@@ -1148,9 +1160,11 @@ function App() {
       return;
     }
 
-    setTestTemplateName(
-      `${test.name || test.testTemplateId || "Untitled Test"} Copy`
-    );
+    setTestTemplateName(test.name || test.testTemplateId || "Untitled Test");
+    setEditingTestTemplate({
+      recordId: test.recordId,
+      testTemplateId: test.testTemplateId,
+    });
     setTestItems(
       test.items.length > 0
         ? test.items.map((item, index) => ({
@@ -1168,7 +1182,83 @@ function App() {
             },
           ]
     );
-    notify("Saved test loaded into builder. Saving will create a new template.");
+    notify("Saved test loaded into builder. Saving will update this template.");
+  };
+
+  const deleteSavedFormTemplate = async (form: SavedFormTemplate) => {
+    const name = form.name || form.formId || "this saved form";
+
+    if (!window.confirm(`Delete ${name}? This also removes its saved questions.`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/formTemplates", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          recordId: form.recordId,
+          formId: form.formId,
+        }),
+      });
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        console.error(data);
+        notify(data.message || data.error || "Could not delete saved form.", "error");
+        return;
+      }
+
+      notify("Saved form deleted.");
+      if (selectedSavedFormId === form.formId) {
+        setSelectedSavedFormId("");
+      }
+      if (editingFormTemplate?.formId === form.formId) {
+        setEditingFormTemplate(null);
+      }
+      await loadFormTemplates();
+    } catch (error) {
+      console.error(error);
+      notify("Could not delete saved form.", "error");
+    }
+  };
+
+  const deleteSavedTestTemplate = async (test: SavedTestTemplate) => {
+    const name = test.name || test.testTemplateId || "this saved test";
+
+    if (!window.confirm(`Delete ${name}? This also removes its saved test items.`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/testTemplates", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          recordId: test.recordId,
+          testTemplateId: test.testTemplateId,
+        }),
+      });
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        console.error(data);
+        notify(data.message || data.error || "Could not delete saved test.", "error");
+        return;
+      }
+
+      notify("Saved test deleted.");
+      if (selectedSavedTestId === test.testTemplateId) {
+        setSelectedSavedTestId("");
+      }
+      if (editingTestTemplate?.testTemplateId === test.testTemplateId) {
+        setEditingTestTemplate(null);
+      }
+      await loadTestTemplates();
+    } catch (error) {
+      console.error(error);
+      notify("Could not delete saved test.", "error");
+    }
   };
 
   const saveFormTemplate = async () => {
@@ -1186,9 +1276,11 @@ function App() {
 
     try {
       const response = await fetch("/api/formTemplates", {
-        method: "POST",
+        method: editingFormTemplate ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          recordId: editingFormTemplate?.recordId,
+          formId: editingFormTemplate?.formId,
           name: formTemplateName,
           type: formTemplateType,
           status: "Active",
@@ -1204,9 +1296,17 @@ function App() {
         return;
       }
 
-      notify(`Form saved. Questions created: ${data.questionRecordsCreated}`);
+      notify(
+        editingFormTemplate
+          ? `Form updated. Questions saved: ${data.questionRecordsCreated}`
+          : `Form saved. Questions created: ${data.questionRecordsCreated}`
+      );
       await loadFormTemplates();
       setSelectedSavedFormId(data.formId);
+      setEditingFormTemplate({
+        recordId: data.formRecordId,
+        formId: data.formId,
+      });
     } catch (error) {
       console.error(error);
       notify("Could not save form template.", "error");
@@ -1230,9 +1330,11 @@ function App() {
 
     try {
       const response = await fetch("/api/testTemplates", {
-        method: "POST",
+        method: editingTestTemplate ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          recordId: editingTestTemplate?.recordId,
+          testTemplateId: editingTestTemplate?.testTemplateId,
           name: testTemplateName,
           status: "Active",
           items: testItems,
@@ -1246,9 +1348,17 @@ function App() {
         return;
       }
 
-      notify(`Test template saved. Items created: ${data.itemRecordsCreated}`);
+      notify(
+        editingTestTemplate
+          ? `Test template updated. Items saved: ${data.itemRecordsCreated}`
+          : `Test template saved. Items created: ${data.itemRecordsCreated}`
+      );
       await loadTestTemplates();
       setSelectedSavedTestId(data.testTemplateId);
+      setEditingTestTemplate({
+        recordId: data.testRecordId,
+        testTemplateId: data.testTemplateId,
+      });
     } catch (error) {
       console.error(error);
       notify("Could not save test template.", "error");
@@ -4230,7 +4340,11 @@ function App() {
                         onClick={saveFormTemplate}
                         disabled={savingFormTemplate}
                       >
-                        {savingFormTemplate ? "Saving..." : "Save Form Template"}
+                        {savingFormTemplate
+                          ? "Saving..."
+                          : editingFormTemplate
+                          ? "Update Form Template"
+                          : "Save Form Template"}
                       </button>
                     </div>
 
@@ -4346,19 +4460,38 @@ function App() {
 
                         <div className="savedTemplateList">
                           {savedFormTemplates.map((form) => (
-                            <button
+                            <div
                               key={form.recordId}
-                              className={`savedTemplateItem ${
+                              className={`savedTemplateItem savedTemplateCard ${
                                 selectedSavedFormId === form.formId
                                   ? "selectedSavedTemplateItem"
                                   : ""
                               }`}
-                              onClick={() => setSelectedSavedFormId(form.formId)}
                             >
-                              <strong>{form.name || form.formId || "Untitled Form"}</strong>
-                              <span>{form.type || "Form"}</span>
-                              <small>{form.questions.length} questions</small>
-                            </button>
+                              <button
+                                type="button"
+                                className="savedTemplateMainButton"
+                                onClick={() => setSelectedSavedFormId(form.formId)}
+                              >
+                                <strong>{form.name || form.formId || "Untitled Form"}</strong>
+                                <span>{form.type || "Form"}</span>
+                                <small>{form.questions.length} questions</small>
+                              </button>
+                              <div className="savedTemplateActions">
+                                <button
+                                  type="button"
+                                  onClick={() => loadSavedFormIntoBuilder(form)}
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => deleteSavedFormTemplate(form)}
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            </div>
                           ))}
                         </div>
 
@@ -4404,7 +4537,11 @@ function App() {
                         onClick={saveTestTemplate}
                         disabled={savingTestTemplate}
                       >
-                        {savingTestTemplate ? "Saving..." : "Save Test Template"}
+                        {savingTestTemplate
+                          ? "Saving..."
+                          : editingTestTemplate
+                          ? "Update Test Template"
+                          : "Save Test Template"}
                       </button>
                     </div>
 
@@ -4511,21 +4648,40 @@ function App() {
 
                         <div className="savedTemplateList">
                           {savedTestTemplates.map((test) => (
-                            <button
+                            <div
                               key={test.recordId}
-                              className={`savedTemplateItem ${
+                              className={`savedTemplateItem savedTemplateCard ${
                                 selectedSavedTestId === test.testTemplateId
                                   ? "selectedSavedTemplateItem"
                                   : ""
                               }`}
-                              onClick={() => setSelectedSavedTestId(test.testTemplateId)}
                             >
-                              <strong>
-                                {test.name || test.testTemplateId || "Untitled Test"}
-                              </strong>
-                              <span>{test.status || "Active"}</span>
-                              <small>{test.items.length} test items</small>
-                            </button>
+                              <button
+                                type="button"
+                                className="savedTemplateMainButton"
+                                onClick={() => setSelectedSavedTestId(test.testTemplateId)}
+                              >
+                                <strong>
+                                  {test.name || test.testTemplateId || "Untitled Test"}
+                                </strong>
+                                <span>{test.status || "Active"}</span>
+                                <small>{test.items.length} test items</small>
+                              </button>
+                              <div className="savedTemplateActions">
+                                <button
+                                  type="button"
+                                  onClick={() => loadSavedTestIntoBuilder(test)}
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => deleteSavedTestTemplate(test)}
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            </div>
                           ))}
                         </div>
 
@@ -5655,7 +5811,7 @@ function App() {
                                   ? ""
                                   : "s"
                               }`
-                            : "Rest / Recovery"}
+                            : "Nothing scheduled"}
                         </strong>
                       </div>
 
@@ -5682,7 +5838,7 @@ function App() {
                         ))
                       ) : (
                         <p className="homeEmptyText">
-                          Nothing scheduled for this day.
+                          Nothing scheduled for this date.
                         </p>
                       )}
                     </section>
@@ -5777,7 +5933,7 @@ function App() {
                                     ? ""
                                     : "s"
                                 }`
-                              : "Rest / Recovery"}
+                              : "Nothing scheduled"}
                           </strong>
                         </div>
 
@@ -5804,19 +5960,9 @@ function App() {
                           ))
                         ) : (
                           <p className="homeEmptyText">
-                            Nothing scheduled for this day.
+                            Nothing scheduled for this date.
                           </p>
                         )}
-
-                        <div className="selectedDayPrompt">
-                          <div>
-                            <span>Questionnaire</span>
-                            <strong>No questionnaire assigned for this day.</strong>
-                          </div>
-                          <button className="outlineButton" type="button" disabled>
-                            Answer
-                          </button>
-                        </div>
                       </section>
                     )}
                   </div>

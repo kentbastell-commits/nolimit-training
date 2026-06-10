@@ -106,6 +106,41 @@ async function createRecord(tableId: string, token: string, fields: Record<strin
   return response.json();
 }
 
+async function updateRecord(
+  tableId: string,
+  token: string,
+  recordId: string,
+  fields: Record<string, any>
+) {
+  const response = await fetch(
+    `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${tableId}/records/${recordId}`,
+    {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ fields }),
+    }
+  );
+
+  return response.json();
+}
+
+async function deleteRecord(tableId: string, token: string, recordId: string) {
+  const response = await fetch(
+    `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${tableId}/records/${recordId}`,
+    {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  return response.json();
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const testTemplatesTableId =
     process.env.FEISHU_TEST_TEMPLATES_TABLE_ID || process.env.TEST_TEMPLATES;
@@ -177,6 +212,152 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
 
       return res.status(200).json({ tests });
+    }
+
+    if (req.method === "DELETE") {
+      const { recordId, testTemplateId } = req.body || {};
+
+      if (!recordId) {
+        return res.status(400).json({ error: "Missing test template record ID" });
+      }
+
+      const itemRecords = await getRecords(testItemsTableId, token);
+      const childItems = itemRecords.filter((item: any) => {
+        const fields = item.fields || {};
+        return (
+          testTemplateId &&
+          readField(fields, [
+            "testTemplateId",
+            "Test Template ID",
+            "Template ID",
+          ]) === String(testTemplateId)
+        );
+      });
+
+      const deletedItems = [];
+
+      for (const item of childItems) {
+        const data = await deleteRecord(testItemsTableId, token, item.record_id);
+
+        if (data.code !== 0) {
+          return res.status(500).json({
+            error: "Could not delete test item",
+            larkResponse: data,
+          });
+        }
+
+        deletedItems.push(item.record_id);
+      }
+
+      const templateData = await deleteRecord(
+        testTemplatesTableId,
+        token,
+        String(recordId)
+      );
+
+      if (templateData.code !== 0) {
+        return res.status(500).json({
+          error: "Could not delete test template",
+          larkResponse: templateData,
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        deletedItems: deletedItems.length,
+      });
+    }
+
+    if (req.method === "PUT") {
+      const { recordId, testTemplateId, name, description, status, items } =
+        req.body || {};
+
+      if (!recordId || !testTemplateId) {
+        return res.status(400).json({ error: "Missing test template IDs" });
+      }
+
+      if (!name) {
+        return res.status(400).json({ error: "Missing test template name" });
+      }
+
+      const templateFields = {
+        testTemplateId: String(testTemplateId),
+        name: String(name),
+        description: String(description || ""),
+        status: String(status || "Active"),
+      };
+
+      const templateData = await updateRecord(
+        testTemplatesTableId,
+        token,
+        String(recordId),
+        templateFields
+      );
+
+      if (templateData.code !== 0) {
+        return res.status(500).json({
+          error: "Could not update test template",
+          larkResponse: templateData,
+          fieldsSent: templateFields,
+        });
+      }
+
+      const existingItems = await getRecords(testItemsTableId, token);
+      const childItems = existingItems.filter((item: any) => {
+        const fields = item.fields || {};
+        return (
+          readField(fields, [
+            "testTemplateId",
+            "Test Template ID",
+            "Template ID",
+          ]) === String(testTemplateId)
+        );
+      });
+
+      for (const item of childItems) {
+        const data = await deleteRecord(testItemsTableId, token, item.record_id);
+
+        if (data.code !== 0) {
+          return res.status(500).json({
+            error: "Could not replace test items",
+            larkResponse: data,
+          });
+        }
+      }
+
+      const testItems = Array.isArray(items) ? items : [];
+      const createdItems = [];
+
+      for (const [index, item] of testItems.entries()) {
+        const itemFields = {
+          testItemId: `TI-${Date.now()}-${index + 1}`,
+          testTemplateId: String(testTemplateId),
+          order: index + 1,
+          testName: String(item.testName || ""),
+          metricType: String(item.metricType || "Weight"),
+          unit: String(item.unit || "kg"),
+          instructions: String(item.instructions || ""),
+        };
+
+        const itemData = await createRecord(testItemsTableId, token, itemFields);
+
+        if (itemData.code !== 0) {
+          return res.status(500).json({
+            error: "Could not create test item",
+            larkResponse: itemData,
+            fieldsSent: itemFields,
+          });
+        }
+
+        createdItems.push(itemData.data.record.record_id);
+      }
+
+      return res.status(200).json({
+        success: true,
+        testTemplateId: String(testTemplateId),
+        testRecordId: String(recordId),
+        itemRecordsCreated: createdItems.length,
+      });
     }
 
     if (req.method !== "POST") {
