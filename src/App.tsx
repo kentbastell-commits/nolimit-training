@@ -675,6 +675,7 @@ function App() {
   const [clientCalendarStyle, setClientCalendarStyle] =
     useState<CalendarDisplayMode>("Week");
   const [showCalendarActionMenu, setShowCalendarActionMenu] = useState(false);
+  const [showAssignmentDrawer, setShowAssignmentDrawer] = useState(false);
   const [workoutPageTab, setWorkoutPageTab] =
     useState<WorkoutPageTab>("Saved Programs");
   const [workouts, setWorkouts] = useState<Workout[]>([]);
@@ -1843,6 +1844,7 @@ function App() {
       setCalendarAnchorDate(nextDueDate);
       setAssignmentDueDate(dateToInputValue(new Date()));
       notify(`${nextAssignmentType} assigned to ${client.name}.`, "success");
+      setShowAssignmentDrawer(false);
     } catch (error) {
       console.error(error);
       notify("Could not create assignment.", "error");
@@ -2264,6 +2266,7 @@ function App() {
 
       notify(`Program assigned. Workouts created: ${data.recordsCreated}`);
       setAssignableWorkouts([]);
+      setShowAssignmentDrawer(false);
 
       const refresh = await fetch(`/api/workouts?clientCode=${selectedClient.clientCode}`);
       const refreshData = await refresh.json();
@@ -3783,15 +3786,32 @@ function App() {
     }
 
     setAssignmentType(type);
-    setAssignmentTemplateId("");
+    if (type === "Program") {
+      setAssignmentTemplateId("");
+    } else if (type === "Physical Test") {
+      setAssignmentTemplateId(
+        savedTestTemplates.length === 1 ? savedTestTemplates[0].testTemplateId : ""
+      );
+    } else {
+      const formsForType = savedFormTemplates.filter((form) => {
+        const formType = form.type.toLowerCase();
+        return type === "Check-in"
+          ? formType.includes("check") || formType.includes("readiness")
+          : true;
+      });
+
+      setAssignmentTemplateId(formsForType.length === 1 ? formsForType[0].formId : "");
+    }
     setAssignmentDueDate(date);
     setAssignStartDate(date);
-    setWorkoutPageTab("Assignments");
-    setActivePage("Workouts");
-    setSelectedClient(null);
     setSelectedWorkout(null);
     setShowCalendarActionMenu(false);
-    notify("Assignment Hub is ready with this client and date.");
+    setShowAssignmentDrawer(true);
+  };
+
+  const closeAssignmentDrawer = () => {
+    setShowAssignmentDrawer(false);
+    setAssignableWorkouts([]);
   };
 
   const moveClientMonth = (direction: -1 | 1) => {
@@ -6841,7 +6861,7 @@ function App() {
                     </div>
                   </div>
 
-                  {!isClientPortal && (
+                  {false && !isClientPortal && (
                   <section className="assignProgramPanel">
                     <h3>Assign Task</h3>
 
@@ -8097,6 +8117,241 @@ function App() {
                 </button>
               </div>
             </div>
+          </div>
+        )}
+
+        {showAssignmentDrawer && !isClientPortal && selectedClient && (
+          <div
+            className="assignmentDrawerOverlay"
+            onMouseDown={(event) => {
+              if (event.target === event.currentTarget) {
+                closeAssignmentDrawer();
+              }
+            }}
+          >
+            <aside className="assignmentDrawer">
+              <div className="assignmentDrawerHeader">
+                <div>
+                  <span>Assign</span>
+                  <h2>New Task</h2>
+                  <p>
+                    {selectedClient.name} / {formatCalendarLabel(assignmentDueDate)}
+                  </p>
+                </div>
+                <button
+                  className="drawerClose"
+                  onClick={closeAssignmentDrawer}
+                  type="button"
+                >
+                  x
+                </button>
+              </div>
+
+              <div className="assignmentDrawerTypes">
+                {(["Program", "Questionnaire", "Physical Test", "Check-in"] as const).map(
+                  (type) => (
+                    <button
+                      key={type}
+                      className={assignmentType === type ? "active" : ""}
+                      type="button"
+                      onClick={() => {
+                        setAssignmentType(type);
+                        if (type === "Program") {
+                          setAssignmentTemplateId("");
+                        } else if (type === "Physical Test") {
+                          setAssignmentTemplateId(
+                            savedTestTemplates.length === 1
+                              ? savedTestTemplates[0].testTemplateId
+                              : ""
+                          );
+                        } else {
+                          const formsForType = savedFormTemplates.filter((form) => {
+                            const formType = form.type.toLowerCase();
+                            return type === "Check-in"
+                              ? formType.includes("check") ||
+                                  formType.includes("readiness")
+                              : true;
+                          });
+
+                          setAssignmentTemplateId(
+                            formsForType.length === 1 ? formsForType[0].formId : ""
+                          );
+                        }
+                        setAssignableWorkouts([]);
+                        setAssignmentClientId(selectedClient.id);
+                        setAssignmentDueDate(calendarAnchorDate);
+                        setAssignStartDate(calendarAnchorDate);
+                      }}
+                    >
+                      {type}
+                    </button>
+                  )
+                )}
+              </div>
+
+              <div className="assignmentDrawerForm">
+                <label>
+                  <span>Client</span>
+                  <input value={selectedClient.name} readOnly />
+                </label>
+
+                <label>
+                  <span>Start Date</span>
+                  <input
+                    ref={calendarAssignmentDateInputRef}
+                    type="date"
+                    value={
+                      assignmentType === "Program"
+                        ? assignStartDate
+                        : assignmentDueDate
+                    }
+                    onChange={(event) => {
+                      const nextDate = normalizeDate(event.target.value);
+
+                      setCalendarAnchorDate(nextDate);
+                      setAssignmentDueDate(nextDate);
+
+                      if (assignmentType === "Program") {
+                        shiftAssignableWorkoutsToStartDate(nextDate);
+                      }
+                    }}
+                  />
+                </label>
+
+                {assignmentType === "Program" ? (
+                  <label className="assignmentDrawerWide">
+                    <span>Saved Program</span>
+                    <select
+                      value={selectedAssignProgramId}
+                      onChange={(event) => {
+                        setSelectedAssignProgramId(event.target.value);
+                        setAssignableWorkouts([]);
+                      }}
+                    >
+                      {programs.length > 0 ? (
+                        programs.map((program) => (
+                          <option key={program.recordId} value={program.programId}>
+                            {program.programName}
+                          </option>
+                        ))
+                      ) : (
+                        <option value="">No saved programs</option>
+                      )}
+                    </select>
+                  </label>
+                ) : (
+                  <label className="assignmentDrawerWide">
+                    <span>
+                      {assignmentType === "Physical Test"
+                        ? "Saved Test"
+                        : "Saved Form"}
+                    </span>
+                    <select
+                      key={assignmentType}
+                      value={assignmentTemplateId}
+                      onChange={(event) =>
+                        setAssignmentTemplateId(event.target.value)
+                      }
+                    >
+                      <option value="">
+                        {assignmentTemplateOptions.length === 0
+                          ? assignmentType === "Physical Test"
+                            ? "No saved tests"
+                            : "No saved forms"
+                          : "Select saved item"}
+                      </option>
+                      {assignmentTemplateOptions.map((option) => (
+                        <option key={option.id} value={option.id}>
+                          {option.label} ({option.meta})
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
+              </div>
+
+              {assignmentType === "Program" && assignableWorkouts.length > 0 && (
+                <div className="assignmentDrawerSessions">
+                  <div>
+                    <span>Program Preview</span>
+                    <strong>{assignableWorkouts.length} sessions</strong>
+                  </div>
+                  {assignableWorkouts.map((workout) => (
+                    <label key={workout.localId} className="drawerSessionRow">
+                      <span>
+                        Week {workout.week}, Day {workout.day}
+                        <strong>{workout.sessionName}</strong>
+                      </span>
+                      <input
+                        type="date"
+                        value={workout.scheduledDate}
+                        onChange={(event) =>
+                          updateAssignableWorkoutDate(
+                            workout.localId,
+                            event.target.value
+                          )
+                        }
+                      />
+                    </label>
+                  ))}
+                </div>
+              )}
+
+              <div className="assignmentDrawerActions">
+                <button
+                  className="outlineButton"
+                  onClick={closeAssignmentDrawer}
+                  type="button"
+                >
+                  Cancel
+                </button>
+
+                {assignmentType === "Program" && (
+                  <button
+                    className="outlineButton"
+                    onClick={loadProgramSessionsForAssignment}
+                    disabled={assignLoading}
+                    type="button"
+                  >
+                    {assignLoading ? "Loading..." : "Load Sessions"}
+                  </button>
+                )}
+
+                <button
+                  className="goldButton"
+                  disabled={
+                    assignmentType === "Program"
+                      ? assigningProgram
+                      : creatingAssignment
+                  }
+                  onClick={() => {
+                    if (assignmentType === "Program") {
+                      void assignProgramToClient();
+                      return;
+                    }
+
+                    void createContentAssignment({
+                      assignmentType,
+                      assignmentTemplateId,
+                      assignmentClientId: selectedClient.id,
+                      assignmentDueDate: normalizeDate(
+                        calendarAssignmentDateInputRef.current?.value ||
+                          assignmentDueDate
+                      ),
+                    });
+                  }}
+                  type="button"
+                >
+                  {assignmentType === "Program"
+                    ? assigningProgram
+                      ? "Assigning..."
+                      : "Assign Program"
+                    : creatingAssignment
+                    ? "Assigning..."
+                    : "Assign Task"}
+                </button>
+              </div>
+            </aside>
           </div>
         )}
 
