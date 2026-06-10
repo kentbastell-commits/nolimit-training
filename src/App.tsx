@@ -761,6 +761,7 @@ function App() {
   >([]);
   const [savedAssignLoading, setSavedAssignLoading] = useState(false);
   const [savedAssigningProgram, setSavedAssigningProgram] = useState(false);
+  const [savedProgramSearch, setSavedProgramSearch] = useState("");
   const [selectedAssignProgramId, setSelectedAssignProgramId] = useState("");
   const [assignStartDate, setAssignStartDate] = useState(dateToInputValue(new Date()));
   const [assignableWorkouts, setAssignableWorkouts] = useState<AssignableWorkout[]>([]);
@@ -793,6 +794,7 @@ function App() {
   const [savedFormTemplates, setSavedFormTemplates] = useState<
     SavedFormTemplate[]
   >([]);
+  const [savedFormSearch, setSavedFormSearch] = useState("");
   const [selectedSavedFormId, setSelectedSavedFormId] = useState("");
   const [editingFormTemplate, setEditingFormTemplate] = useState<{
     recordId: string;
@@ -812,6 +814,7 @@ function App() {
   const [savedTestTemplates, setSavedTestTemplates] = useState<
     SavedTestTemplate[]
   >([]);
+  const [savedTestSearch, setSavedTestSearch] = useState("");
   const [selectedSavedTestId, setSelectedSavedTestId] = useState("");
   const [editingTestTemplate, setEditingTestTemplate] = useState<{
     recordId: string;
@@ -1524,6 +1527,35 @@ function App() {
     notify("Saved form loaded into builder. Saving will update this template.");
   };
 
+  const duplicateSavedFormIntoBuilder = (form: SavedFormTemplate | undefined) => {
+    if (!form) {
+      notify("Please select a saved form.");
+      return;
+    }
+
+    setFormTemplateName(`${form.name || form.formId || "Untitled Form"} Copy`);
+    setFormTemplateType(form.type || "Questionnaire");
+    setEditingFormTemplate(null);
+    setFormQuestions(
+      form.questions.length > 0
+        ? form.questions.map((question, index) => ({
+            id: `Q${index + 1}`,
+            label: question.label,
+            questionType: question.questionType || "Text",
+            required: Boolean(question.required),
+          }))
+        : [
+            {
+              id: "Q1",
+              label: "New question",
+              questionType: "Text",
+              required: false,
+            },
+          ]
+    );
+    notify("Form duplicated into builder. Saving will create a new template.");
+  };
+
   const loadSavedTestIntoBuilder = (test: SavedTestTemplate | undefined) => {
     if (!test) {
       notify("Please select a saved test.");
@@ -1553,6 +1585,34 @@ function App() {
           ]
     );
     notify("Saved test loaded into builder. Saving will update this template.");
+  };
+
+  const duplicateSavedTestIntoBuilder = (test: SavedTestTemplate | undefined) => {
+    if (!test) {
+      notify("Please select a saved test.");
+      return;
+    }
+
+    setTestTemplateName(`${test.name || test.testTemplateId || "Untitled Test"} Copy`);
+    setEditingTestTemplate(null);
+    setTestItems(
+      test.items.length > 0
+        ? test.items.map((item, index) => ({
+            id: `T${index + 1}`,
+            testName: item.testName,
+            metricType: item.metricType || "Weight",
+            unit: item.unit || "kg",
+          }))
+        : [
+            {
+              id: "T1",
+              testName: "New Test",
+              metricType: "Weight",
+              unit: "kg",
+            },
+          ]
+    );
+    notify("Test duplicated into builder. Saving will create a new template.");
   };
 
   const deleteSavedFormTemplate = async (form: SavedFormTemplate) => {
@@ -1745,12 +1805,15 @@ function App() {
           meta: `${program.durationWeeks || "--"} weeks`,
         }))
       : assignmentType === "Physical Test"
-      ? savedTestTemplates.map((test) => ({
-          id: test.testTemplateId,
-          label: test.name || test.testTemplateId || "Untitled Test",
-          meta: `${test.items.length} test${test.items.length === 1 ? "" : "s"}`,
-        }))
+      ? savedTestTemplates
+          .filter((test) => test.status !== "Archived")
+          .map((test) => ({
+            id: test.testTemplateId,
+            label: test.name || test.testTemplateId || "Untitled Test",
+            meta: `${test.items.length} test${test.items.length === 1 ? "" : "s"}`,
+          }))
       : savedFormTemplates
+          .filter((form) => form.status !== "Archived")
           .filter((form) => {
             const type = form.type.toLowerCase();
 
@@ -1769,6 +1832,37 @@ function App() {
               form.questions.length === 1 ? "" : "s"
             }`,
           }));
+  const visibleSavedPrograms = programs
+    .filter((program) => program.status !== "Archived")
+    .filter((program) => {
+      const search = savedProgramSearch.toLowerCase();
+
+      return (
+        program.programName.toLowerCase().includes(search) ||
+        program.goal.toLowerCase().includes(search) ||
+        program.phase.toLowerCase().includes(search)
+      );
+    });
+  const visibleSavedForms = savedFormTemplates.filter((form) => {
+    const search = savedFormSearch.toLowerCase();
+
+    return (
+      form.status !== "Archived" &&
+      (form.name.toLowerCase().includes(search) ||
+        form.type.toLowerCase().includes(search) ||
+        form.description.toLowerCase().includes(search))
+    );
+  });
+  const visibleSavedTests = savedTestTemplates.filter((test) => {
+    const search = savedTestSearch.toLowerCase();
+
+    return (
+      test.status !== "Archived" &&
+      (test.name.toLowerCase().includes(search) ||
+        test.description.toLowerCase().includes(search) ||
+        test.items.some((item) => item.testName.toLowerCase().includes(search)))
+    );
+  });
 
   const createContentAssignment = async (
     overrides: Partial<{
@@ -3789,15 +3883,22 @@ function App() {
     if (type === "Program") {
       setAssignmentTemplateId("");
     } else if (type === "Physical Test") {
+      const activeTests = savedTestTemplates.filter(
+        (test) => test.status !== "Archived"
+      );
+
       setAssignmentTemplateId(
-        savedTestTemplates.length === 1 ? savedTestTemplates[0].testTemplateId : ""
+        activeTests.length === 1 ? activeTests[0].testTemplateId : ""
       );
     } else {
       const formsForType = savedFormTemplates.filter((form) => {
         const formType = form.type.toLowerCase();
-        return type === "Check-in"
-          ? formType.includes("check") || formType.includes("readiness")
-          : true;
+        return (
+          form.status !== "Archived" &&
+          (type === "Check-in"
+            ? formType.includes("check") || formType.includes("readiness")
+            : true)
+        );
       });
 
       setAssignmentTemplateId(formsForType.length === 1 ? formsForType[0].formId : "");
@@ -4831,11 +4932,21 @@ function App() {
 
                     <div className="programLibraryLayout">
                       <aside className="programListPanel">
-                        {programs.length === 0 && <p>No saved programs found.</p>}
+                        <input
+                          className="templateSearchInput"
+                          value={savedProgramSearch}
+                          onChange={(event) =>
+                            setSavedProgramSearch(event.target.value)
+                          }
+                          placeholder="Search programs..."
+                        />
 
-                        {programs
-                          .filter((program) => program.status !== "Archived")
-                          .map((program) => (
+                        {programs.length === 0 && <p>No saved programs found.</p>}
+                        {programs.length > 0 && visibleSavedPrograms.length === 0 && (
+                          <p>No programs match your search.</p>
+                        )}
+
+                        {visibleSavedPrograms.map((program) => (
                           <button
                             key={program.recordId}
                             className={
@@ -5469,6 +5580,15 @@ function App() {
                               </button>
                             </div>
 
+                            <input
+                              className="templateSearchInput"
+                              value={savedFormSearch}
+                              onChange={(event) =>
+                                setSavedFormSearch(event.target.value)
+                              }
+                              placeholder="Search forms..."
+                            />
+
                             {formTemplatesLoading && (
                               <p className="emptyState">Loading forms...</p>
                             )}
@@ -5478,8 +5598,14 @@ function App() {
                                 <p className="emptyState">No saved forms yet.</p>
                               )}
 
+                            {!formTemplatesLoading &&
+                              savedFormTemplates.length > 0 &&
+                              visibleSavedForms.length === 0 && (
+                                <p className="emptyState">No forms match your search.</p>
+                              )}
+
                             <div className="savedTemplateList">
-                              {savedFormTemplates.map((form) => (
+                              {visibleSavedForms.map((form) => (
                                 <div
                                   key={form.recordId}
                                   className={`savedTemplateItem savedTemplateCard ${
@@ -5502,20 +5628,31 @@ function App() {
                                     <span>{form.type || "Form"}</span>
                                     <small>{form.questions.length} questions</small>
                                   </button>
-                                  <div className="savedTemplateActions">
-                                    <button
-                                      type="button"
-                                      onClick={() => loadSavedFormIntoBuilder(form)}
-                                    >
-                                      Edit
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => deleteSavedFormTemplate(form)}
-                                    >
-                                      Delete
-                                    </button>
-                                  </div>
+                                  <details className="templateActionMenu">
+                                    <summary aria-label="Template actions">...</summary>
+                                    <div>
+                                      <button
+                                        type="button"
+                                        onClick={() => loadSavedFormIntoBuilder(form)}
+                                      >
+                                        Edit
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          duplicateSavedFormIntoBuilder(form)
+                                        }
+                                      >
+                                        Duplicate
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => deleteSavedFormTemplate(form)}
+                                      >
+                                        Delete
+                                      </button>
+                                    </div>
+                                  </details>
                                 </div>
                               ))}
                             </div>
@@ -5662,6 +5799,15 @@ function App() {
                               </button>
                             </div>
 
+                            <input
+                              className="templateSearchInput"
+                              value={savedTestSearch}
+                              onChange={(event) =>
+                                setSavedTestSearch(event.target.value)
+                              }
+                              placeholder="Search tests..."
+                            />
+
                             {testTemplatesLoading && (
                               <p className="emptyState">Loading tests...</p>
                             )}
@@ -5670,8 +5816,14 @@ function App() {
                               <p className="emptyState">No saved tests yet.</p>
                             )}
 
+                            {!testTemplatesLoading &&
+                              savedTestTemplates.length > 0 &&
+                              visibleSavedTests.length === 0 && (
+                                <p className="emptyState">No tests match your search.</p>
+                              )}
+
                             <div className="savedTemplateList">
-                              {savedTestTemplates.map((test) => (
+                              {visibleSavedTests.map((test) => (
                                 <div
                                   key={test.recordId}
                                   className={`savedTemplateItem savedTemplateCard ${
@@ -5696,20 +5848,31 @@ function App() {
                                     <span>{test.status || "Active"}</span>
                                     <small>{test.items.length} test items</small>
                                   </button>
-                                  <div className="savedTemplateActions">
-                                    <button
-                                      type="button"
-                                      onClick={() => loadSavedTestIntoBuilder(test)}
-                                    >
-                                      Edit
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => deleteSavedTestTemplate(test)}
-                                    >
-                                      Delete
-                                    </button>
-                                  </div>
+                                  <details className="templateActionMenu">
+                                    <summary aria-label="Template actions">...</summary>
+                                    <div>
+                                      <button
+                                        type="button"
+                                        onClick={() => loadSavedTestIntoBuilder(test)}
+                                      >
+                                        Edit
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          duplicateSavedTestIntoBuilder(test)
+                                        }
+                                      >
+                                        Duplicate
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => deleteSavedTestTemplate(test)}
+                                      >
+                                        Delete
+                                      </button>
+                                    </div>
+                                  </details>
                                 </div>
                               ))}
                             </div>
@@ -8159,18 +8322,25 @@ function App() {
                         if (type === "Program") {
                           setAssignmentTemplateId("");
                         } else if (type === "Physical Test") {
+                          const activeTests = savedTestTemplates.filter(
+                            (test) => test.status !== "Archived"
+                          );
+
                           setAssignmentTemplateId(
-                            savedTestTemplates.length === 1
-                              ? savedTestTemplates[0].testTemplateId
+                            activeTests.length === 1
+                              ? activeTests[0].testTemplateId
                               : ""
                           );
                         } else {
                           const formsForType = savedFormTemplates.filter((form) => {
                             const formType = form.type.toLowerCase();
-                            return type === "Check-in"
-                              ? formType.includes("check") ||
-                                  formType.includes("readiness")
-                              : true;
+                            return (
+                              form.status !== "Archived" &&
+                              (type === "Check-in"
+                                ? formType.includes("check") ||
+                                    formType.includes("readiness")
+                                : true)
+                            );
                           });
 
                           setAssignmentTemplateId(

@@ -1453,6 +1453,22 @@ body {
   padding: 9px 12px;
 }
 
+.templateSearchInput {
+  width: 100%;
+  border: 1px solid #d8d2c4;
+  border-radius: 10px;
+  background: #fff;
+  color: #111;
+  padding: 11px 12px;
+  margin-bottom: 12px;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.templateSearchInput::placeholder {
+  color: #8b877e;
+}
+
 .savedTemplateList {
   display: grid;
   gap: 8px;
@@ -1491,29 +1507,61 @@ body {
   cursor: pointer;
 }
 
-.savedTemplateActions {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+.templateActionMenu {
+  position: relative;
+  justify-self: end;
 }
 
-.savedTemplateActions button {
-  border: 1px solid rgba(245, 215, 123, 0.32);
-  border-radius: 999px;
-  background: rgba(0, 0, 0, 0.18);
-  color: #f5d77b;
-  padding: 6px 8px;
-  font-size: 11px;
-  line-height: 1;
+.templateActionMenu summary {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #d8d2c4;
+  border-radius: 9px;
+  background: #fff;
+  color: #111;
+  list-style: none;
+  font-size: 18px;
+  font-weight: 950;
+  line-height: 0;
+  cursor: pointer;
+}
+
+.templateActionMenu summary::-webkit-details-marker {
+  display: none;
+}
+
+.templateActionMenu > div {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 35;
+  min-width: 140px;
+  display: grid;
+  gap: 4px;
+  border: 1px solid #d8d2c4;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.16);
+  padding: 6px;
+}
+
+.templateActionMenu button {
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #111;
+  padding: 9px 10px;
+  text-align: left;
+  font-size: 13px;
   font-weight: 900;
   cursor: pointer;
-  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
 }
 
-.savedTemplateActions button:hover {
-  background: rgba(245, 215, 123, 0.18);
-  border-color: rgba(245, 215, 123, 0.65);
-  color: #fff2a8;
+.templateActionMenu button:hover {
+  background: #111;
+  color: #f4df94;
 }
 
 .savedTemplateItem:hover,
@@ -6531,6 +6579,28 @@ body {
   background: #fffdf8;
   border-color: rgba(22, 22, 22, 0.14);
   box-shadow: 0 18px 48px rgba(0, 0, 0, 0.18);
+}
+
+.app:not(.clientPortalApp) .templateActionMenu > div {
+  border-color: rgba(22, 22, 22, 0.16);
+  background: #fffdf8;
+  color: #151515;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.14);
+}
+
+.app:not(.clientPortalApp) .templateActionMenu summary {
+  border-color: rgba(22, 22, 22, 0.2);
+  background: #fffdf8;
+  color: #151515;
+}
+
+.app:not(.clientPortalApp) .templateActionMenu button {
+  color: #151515;
+}
+
+.app:not(.clientPortalApp) .templateActionMenu button:hover {
+  background: #151515;
+  color: #f5d77b;
 }
 
 .app:not(.clientPortalApp) .savedTemplateDropdown summary span {
