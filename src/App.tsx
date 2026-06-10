@@ -6130,14 +6130,13 @@ function App() {
                           value={
                             assignmentType === "Program"
                               ? assignStartDate
-                              : assignmentDueDate
+                              : calendarAnchorDate
                           }
                           onChange={(e) => {
                             const nextDate = normalizeDate(e.target.value);
                             if (assignmentType === "Program") {
                               shiftAssignableWorkoutsToStartDate(nextDate);
                             } else {
-                              setAssignmentDueDate(nextDate);
                               setCalendarAnchorDate(nextDate);
                             }
                           }}
@@ -6172,7 +6171,7 @@ function App() {
                               assignmentClientId: selectedClient?.id || "",
                               assignmentDueDate: normalizeDate(
                                 calendarAssignmentDateInputRef.current?.value ||
-                                  assignmentDueDate
+                                  calendarAnchorDate
                               ),
                             });
                           }}
