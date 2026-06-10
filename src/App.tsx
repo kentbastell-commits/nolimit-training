@@ -5104,39 +5104,37 @@ function App() {
                           selectedClient.coach || "Coach view"
                         }`}
                   </p>
-                  {isClientPortal && (
-                    <div
-                      className="clientPortalLanguageSwitch"
-                      aria-label={t("languagePreference")}
+                  <div
+                    className="clientPortalLanguageSwitch"
+                    aria-label={t("languagePreference")}
+                  >
+                    <button
+                      type="button"
+                      className={
+                        languagePreferenceToCode(
+                          selectedClient.languagePreference
+                        ) === "en"
+                          ? "active"
+                          : ""
+                      }
+                      onClick={() => updateClientLanguagePreference("English")}
                     >
-                      <button
-                        type="button"
-                        className={
-                          languagePreferenceToCode(
-                            selectedClient.languagePreference
-                          ) === "en"
-                            ? "active"
-                            : ""
-                        }
-                        onClick={() => updateClientLanguagePreference("English")}
-                      >
-                        EN
-                      </button>
-                      <button
-                        type="button"
-                        className={
-                          languagePreferenceToCode(
-                            selectedClient.languagePreference
-                          ) === "zh"
-                            ? "active"
-                            : ""
-                        }
-                        onClick={() => updateClientLanguagePreference("中文")}
-                      >
-                        中文
-                      </button>
-                    </div>
-                  )}
+                      EN
+                    </button>
+                    <button
+                      type="button"
+                      className={
+                        languagePreferenceToCode(
+                          selectedClient.languagePreference
+                        ) === "zh"
+                          ? "active"
+                          : ""
+                      }
+                      onClick={() => updateClientLanguagePreference("Mandarin")}
+                    >
+                      中文
+                    </button>
+                  </div>
                 </div>
                 {!isClientPortal && (
                 <div className="clientProfileActions">
@@ -5342,7 +5340,6 @@ function App() {
                   <div className="profileCard">
                     <h3>{t("clientInformation")}</h3>
                     <div className="clientInfoRows">
-                      {isClientPortal && (
                         <div>
                           <span>{t("languagePreference")}</span>
                           <select
@@ -5352,10 +5349,9 @@ function App() {
                             }
                           >
                             <option value="English">{t("english")}</option>
-                            <option value="中文">{t("mandarin")}</option>
+                            <option value="Mandarin">{t("mandarin")}</option>
                           </select>
                         </div>
-                      )}
                       <div>
                         <span>{t("name")}</span>
                         <strong>{selectedClient.name}</strong>
