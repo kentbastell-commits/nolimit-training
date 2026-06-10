@@ -137,6 +137,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const {
       assignmentType,
       templateId,
+      templateName,
       clientId,
       clientCode,
       clientName,
@@ -170,41 +171,149 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       : (assignedFormsTableId as string);
     const tableFields = await getTableFields(tableId, token);
     const assignmentId = `${isTest ? "AT" : "AF"}-${Date.now()}`;
-    const { fields, missingRequired } = buildFields(tableFields, [
+    const { fields } = buildFields(tableFields, [
       {
         aliases: isTest
-          ? ["Assigned Test ID", "assignedTestId", "Assignment ID", "Assigned ID"]
-          : ["Assigned Form ID", "assignedFormId", "Assignment ID", "Assigned ID"],
+          ? [
+              "Assigned Test ID",
+              "Assigned Test Id",
+              "assignedTestId",
+              "Assignment ID",
+              "Assignment Id",
+              "Assigned ID",
+              "Assigned Id",
+              "ID",
+            ]
+          : [
+              "Assigned Form ID",
+              "Assigned Form Id",
+              "assignedFormId",
+              "Assignment ID",
+              "Assignment Id",
+              "Assigned ID",
+              "Assigned Id",
+              "ID",
+            ],
         value: assignmentId,
-        required: true,
       },
       {
         aliases: isTest
-          ? ["Test Template ID", "testTemplateId", "Template ID", "Test ID"]
-          : ["Form ID", "formId", "Template ID", "Questionnaire ID"],
+          ? [
+              "Test Template ID",
+              "Test Template Id",
+              "testTemplateId",
+              "Template ID",
+              "Template Id",
+              "Test ID",
+              "Test Id",
+              "Physical Test ID",
+              "Physical Test Id",
+              "Saved Test ID",
+              "Saved Test Id",
+              "Saved Item ID",
+              "Saved Item Id",
+              "Content ID",
+              "Content Id",
+            ]
+          : [
+              "Form ID",
+              "Form Id",
+              "formId",
+              "Template ID",
+              "Template Id",
+              "Questionnaire ID",
+              "Questionnaire Id",
+              "Form Template ID",
+              "Form Template Id",
+              "Questionnaire Template ID",
+              "Questionnaire Template Id",
+              "Saved Form ID",
+              "Saved Form Id",
+              "Saved Questionnaire ID",
+              "Saved Questionnaire Id",
+              "Saved Item ID",
+              "Saved Item Id",
+              "Content ID",
+              "Content Id",
+            ],
         value: String(templateId),
-        required: true,
       },
       {
-        aliases: ["Client", "Client ID", "clientId"],
+        aliases: [
+          "Assignment Type",
+          "Type",
+          "Content Type",
+          "Item Type",
+          "Assigned Type",
+        ],
+        value: String(assignmentType),
+      },
+      {
+        aliases: isTest
+          ? [
+              "Saved Test",
+              "Physical Test",
+              "Test",
+              "Test Name",
+              "Template",
+              "Template Name",
+              "Saved Item",
+              "Assignment Name",
+              "Name",
+            ]
+          : [
+              "Saved Form",
+              "Saved Questionnaire",
+              "Questionnaire",
+              "Form",
+              "Form Name",
+              "Template",
+              "Template Name",
+              "Saved Item",
+              "Assignment Name",
+              "Name",
+            ],
+        value: String(templateName || templateId),
+      },
+      {
+        aliases: [
+          "Client",
+          "Client ID",
+          "Client Id",
+          "clientId",
+          "Client Record ID",
+          "Client Record Id",
+        ],
         value: String(clientId),
         linkValue: [String(clientId)],
-        required: true,
       },
       {
-        aliases: ["Client Code", "clientCode"],
+        aliases: ["Client Code", "clientCode", "Athlete Code", "Athlete ID"],
         value: String(clientCode || ""),
       },
       {
-        aliases: ["Client Name", "clientName", "Name"],
+        aliases: [
+          "Client Name",
+          "clientName",
+          "Athlete",
+          "Athlete Name",
+          "Member",
+          "Member Name",
+        ],
         value: String(clientName || ""),
       },
       {
-        aliases: ["Assigned Date", "assignedDate", "Date"],
+        aliases: [
+          "Assigned Date",
+          "assignedDate",
+          "Date Assigned",
+          "Start Date",
+          "Date",
+        ],
         value: toLarkDate(assignedDate),
       },
       {
-        aliases: ["Due Date", "dueDate"],
+        aliases: ["Due Date", "dueDate", "Scheduled Date", "Target Date"],
         value: toLarkDate(dueDate),
       },
       {
@@ -213,10 +322,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       },
     ]);
 
-    if (missingRequired.length > 0) {
+    if (Object.keys(fields).length === 0) {
       return res.status(400).json({
-        error: "Missing required Feishu assignment columns",
-        missingRequired,
+        error: "No matching Feishu assignment columns found",
         availableFields: tableFields
           .map((field) => field.field_name || field.name)
           .filter(Boolean),

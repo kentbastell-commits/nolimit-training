@@ -1523,6 +1523,9 @@ function App() {
 
   const createContentAssignment = async () => {
     const client = clients.find((item) => item.id === assignmentClientId);
+    const selectedAssignmentTemplate = assignmentTemplateOptions.find(
+      (option) => option.id === assignmentTemplateId
+    );
 
     if (!client) {
       notify("Please select a client.", "error");
@@ -1555,6 +1558,7 @@ function App() {
         body: JSON.stringify({
           assignmentType,
           templateId: assignmentTemplateId,
+          templateName: selectedAssignmentTemplate?.label || "",
           clientId: client.id,
           clientCode: client.clientCode,
           clientName: client.name,
