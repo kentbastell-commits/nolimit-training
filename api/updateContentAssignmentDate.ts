@@ -33,6 +33,39 @@ function resolveField(fields: TableField[], aliases: string[]) {
   );
 }
 
+function resolveFields(fields: TableField[], aliases: string[]) {
+  const normalizedAliases = aliases.map(normalizeFieldName);
+  const seen = new Set<string>();
+
+  return fields.filter((field) => {
+    const name = field.field_name || field.name || "";
+    const matches =
+      aliases.includes(name) || normalizedAliases.includes(normalizeFieldName(name));
+
+    if (!matches || seen.has(name)) return false;
+    seen.add(name);
+    return true;
+  });
+}
+
+const scheduledDateAliases = [
+  "Due Date",
+  "Due date",
+  "dueDate",
+  "Due",
+  "Deadline",
+  "Scheduled Date",
+  "Schedule Date",
+  "Assignment Date",
+  "Assigned Date",
+  "assignedDate",
+  "Date Assigned",
+  "Assigned For",
+  "Start Date",
+  "Target Date",
+  "Date",
+];
+
 async function getTenantToken() {
   const response = await fetch(
     "https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal",
@@ -101,26 +134,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const token = await getTenantToken();
     const tableFields = await getTableFields(tableId, token);
-    const dueDateField = resolveField(tableFields, [
-      "Due Date",
-      "Due date",
-      "dueDate",
-      "Due",
-      "Deadline",
-      "Scheduled Date",
-      "Schedule Date",
-      "Assignment Date",
-      "Assigned Date",
-      "assignedDate",
-      "Date Assigned",
-      "Assigned For",
-      "Start Date",
-      "Target Date",
-      "Date",
-    ]);
-    const fieldName = dueDateField?.field_name || dueDateField?.name;
+    const dueDateFields = resolveFields(tableFields, scheduledDateAliases);
+    const fieldNames = dueDateFields
+      .map((field) => field.field_name || field.name)
+      .filter(Boolean) as string[];
 
-    if (!fieldName) {
+    if (fieldNames.length === 0) {
       return res.status(400).json({
         error: "Missing scheduled date column",
         availableFields: tableFields
@@ -129,7 +148,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
-    const updateRecord = async (value: string | number) => {
+    const updateRecord = async (fieldName: string, value: string | number) => {
       const response = await fetch(
         `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${tableId}/records/${recordId}`,
         {
@@ -149,16 +168,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return response.json();
     };
 
-    let data = await updateRecord(toLarkDate(scheduledDate));
+    const updatedFields: string[] = [];
+    const failedFields: { fieldName: string; response: any }[] = [];
 
-    if (data.code !== 0) {
-      data = await updateRecord(String(scheduledDate));
+    for (const fieldName of fieldNames) {
+      let data = await updateRecord(fieldName, toLarkDate(scheduledDate));
+
+      if (data.code !== 0) {
+        data = await updateRecord(fieldName, String(scheduledDate));
+      }
+
+      if (data.code === 0) {
+        updatedFields.push(fieldName);
+      } else {
+        failedFields.push({ fieldName, response: data });
+      }
     }
 
-    if (data.code !== 0) {
+    if (updatedFields.length === 0) {
       return res.status(500).json({
         error: "Failed to update assignment date",
-        larkResponse: data,
+        attemptedFields: fieldNames,
+        failedFields,
       });
     }
 
@@ -166,7 +197,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       success: true,
       recordId,
       scheduledDate,
-      larkResponse: data,
+      updatedFields,
+      failedFields,
     });
   } catch (error: any) {
     return res.status(500).json({

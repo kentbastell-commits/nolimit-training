@@ -46,6 +46,21 @@ function resolveField(fields: TableField[], aliases: string[]) {
   });
 }
 
+function resolveFields(fields: TableField[], aliases: string[]) {
+  const normalizedAliases = aliases.map(normalizeFieldName);
+  const seen = new Set<string>();
+
+  return fields.filter((field) => {
+    const name = field.field_name || field.name || "";
+    const matches =
+      aliases.includes(name) || normalizedAliases.includes(normalizeFieldName(name));
+
+    if (!matches || seen.has(name)) return false;
+    seen.add(name);
+    return true;
+  });
+}
+
 function buildFields(
   tableFields: TableField[],
   specs: {
@@ -333,6 +348,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         value: "Assigned",
       },
     ]);
+
+    const scheduledDateValue = toLarkDate(dueDate);
+
+    resolveFields(tableFields, scheduledDateAliases).forEach((field) => {
+      const fieldName = field.field_name || field.name;
+      if (fieldName) fields[fieldName] = scheduledDateValue;
+    });
 
     if (Object.keys(fields).length === 0) {
       return res.status(400).json({

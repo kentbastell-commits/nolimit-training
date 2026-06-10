@@ -21,6 +21,7 @@ function fieldToText(value: any): string {
 
   if (value?.text) return value.text;
   if (value?.name) return value.name;
+  if (value?.value) return fieldToText(value.value);
   if (value?.record_ids) return value.record_ids.join(", ");
 
   return JSON.stringify(value);
