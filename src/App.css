@@ -142,10 +142,13 @@ body {
   display: flex;
   min-height: 100vh;
   background: radial-gradient(circle at top, #18120a 0%, #050505 45%, #000 100%);
+  width: 100%;
+  overflow-x: hidden;
 }
 
 .sidebar {
   width: 285px;
+  flex: 0 0 285px;
   min-height: 100vh;
   padding: 28px 18px;
   border-right: 1px solid rgba(212, 175, 55, 0.25);
@@ -603,6 +606,7 @@ body {
 
 .main {
   flex: 1;
+  min-width: 0;
   padding: 32px;
 }
 
@@ -1481,10 +1485,11 @@ body {
 }
 
 .assignmentTypeGrid div {
-  border: 1px solid rgba(212, 175, 55, 0.18);
+  border: 1px solid #d8d2c4;
   border-radius: 8px;
   padding: 14px;
-  background: rgba(255, 255, 255, 0.035);
+  background: #fff;
+  box-shadow: 0 12px 26px rgba(20, 18, 14, 0.06);
 }
 
 .assignmentTypeGrid strong,
@@ -1493,12 +1498,14 @@ body {
 }
 
 .assignmentTypeGrid strong {
-  color: #f5d77b;
+  color: var(--nl-ink);
+  font-weight: 900;
   margin-bottom: 6px;
 }
 
 .assignmentTypeGrid span {
-  color: #bbb;
+  color: var(--nl-muted);
+  font-weight: 700;
   font-size: 14px;
   line-height: 1.35;
 }
