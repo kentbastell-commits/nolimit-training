@@ -11,6 +11,8 @@
     "start": "tsx server/index.ts"
   },
   "dependencies": {
+    "@fontsource/bebas-neue": "^5.2.7",
+    "@fontsource/inter": "^5.2.8",
     "@vercel/node": "^5.8.9",
     "clsx": "^2.1.1",
     "date-fns": "^4.4.0",
