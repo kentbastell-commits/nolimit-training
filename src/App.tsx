@@ -1505,8 +1505,11 @@ function App() {
           .filter((form) => {
             const type = form.type.toLowerCase();
 
-            if (assignmentType === "Check-in") return type.includes("check");
-            return !type.includes("check");
+            if (assignmentType === "Check-in") {
+              return type.includes("check") || type.includes("readiness");
+            }
+
+            return true;
           })
           .map((form) => ({
             id: form.formId,
@@ -4897,7 +4900,11 @@ function App() {
                         >
                           <option value="">
                             {assignmentTemplateOptions.length === 0
-                              ? `No saved ${assignmentType.toLowerCase()} items`
+                              ? assignmentType === "Program"
+                                ? "No saved programs"
+                                : assignmentType === "Physical Test"
+                                ? "No saved tests"
+                                : "No saved forms"
                               : "Select saved item"}
                           </option>
                           {assignmentTemplateOptions.map((option) => (
