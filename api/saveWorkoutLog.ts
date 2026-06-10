@@ -12,6 +12,21 @@ function toLarkDate(value: string): number {
   return new Date(`${value}T00:00:00`).getTime();
 }
 
+function normalizeFieldName(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function resolveFieldName(fields: any[], aliases: string[]) {
+  const normalizedAliases = aliases.map(normalizeFieldName);
+  const match = fields.find((field) =>
+    normalizedAliases.includes(
+      normalizeFieldName(field.field_name || field.name || "")
+    )
+  );
+
+  return match?.field_name || match?.name || "";
+}
+
 async function getTenantToken() {
   const response = await fetch(
     "https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal",
@@ -34,6 +49,24 @@ async function getTenantToken() {
   return data.tenant_access_token;
 }
 
+async function getTableFields(tableId: string, token: string) {
+  const response = await fetch(
+    `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${tableId}/fields?page_size=100`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+  const data = await response.json();
+
+  if (data.code !== 0) {
+    return [];
+  }
+
+  return data.data?.items || [];
+}
+
 export default async function handler(
   req: VercelRequest,
   res: VercelResponse
@@ -53,6 +86,7 @@ export default async function handler(
       programId,
       workoutDate,
       logs,
+      submissionNote,
     } = req.body;
 
     if (!clientId || !assignedWorkoutRecordId) {
@@ -69,6 +103,18 @@ export default async function handler(
 
     const larkDate = toLarkDate(workoutDate);
     const createdRecords: string[] = [];
+    const workoutLogsTableId = process.env.FEISHU_WORKOUT_LOGS_TABLE_ID;
+    const tableFields = workoutLogsTableId
+      ? await getTableFields(workoutLogsTableId, token)
+      : [];
+    const notesFieldName = resolveFieldName(tableFields, [
+      "Notes",
+      "Note",
+      "Client Notes",
+      "Client Comment",
+      "Workout Comment",
+      "Session Notes",
+    ]);
 
     for (const log of logs) {
       const fields: Record<string, any> = {
@@ -96,8 +142,12 @@ export default async function handler(
         "Completed": true,
       };
 
+      if (notesFieldName && submissionNote) {
+        fields[notesFieldName] = toText(submissionNote);
+      }
+
       const response = await fetch(
-        `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${process.env.FEISHU_WORKOUT_LOGS_TABLE_ID}/records`,
+        `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${workoutLogsTableId}/records`,
         {
           method: "POST",
           headers: {

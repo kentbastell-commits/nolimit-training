@@ -1,4 +1,13 @@
 import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import {
   BookOpen,
   CalendarDays,
   ClipboardList,
@@ -691,11 +700,13 @@ function App() {
   const [contentAssignmentAnswers, setContentAssignmentAnswers] = useState<
     Record<string, string>
   >({});
+  const [contentAssignmentComment, setContentAssignmentComment] = useState("");
   const [submittingContentAssignment, setSubmittingContentAssignment] =
     useState(false);
   const [selectedWorkout, setSelectedWorkout] = useState<Workout | null>(null);
   const [workoutDetails, setWorkoutDetails] = useState<ExerciseDetail[]>([]);
   const [setLogs, setSetLogs] = useState<SetLog[]>([]);
+  const [workoutSubmissionNote, setWorkoutSubmissionNote] = useState("");
   const [workoutHistoryLogs, setWorkoutHistoryLogs] = useState<WorkoutHistoryLog[]>(
     []
   );
@@ -2448,6 +2459,7 @@ function App() {
     setSetLogs([]);
     setWorkoutHistoryLogs([]);
     setSavedExerciseDraftIds([]);
+    setWorkoutSubmissionNote("");
 
     try {
       const [detailsResponse, historyResponse] = await Promise.all([
@@ -2522,6 +2534,7 @@ function App() {
           programId: selectedWorkout.programId,
           workoutDate: normalizeDate(String(selectedWorkout.scheduledDate)),
           logs: setLogs,
+          submissionNote: workoutSubmissionNote.trim(),
         }),
       });
 
@@ -2554,6 +2567,7 @@ function App() {
       setSavedExerciseDraftIds([]);
       setWorkoutDetails([]);
       setSetLogs([]);
+      setWorkoutSubmissionNote("");
     } catch (error) {
       console.error(error);
       notify("Could not save workout.");
@@ -3970,6 +3984,7 @@ function App() {
 
     setActiveContentAssignment(assignment);
     setContentAssignmentAnswers({});
+    setContentAssignmentComment("");
   };
 
   const activeAssignmentIsTest =
@@ -3995,19 +4010,44 @@ function App() {
   const submitActiveContentAssignment = async () => {
     if (!activeContentAssignment || !selectedClient) return;
 
+    const clientComment = contentAssignmentComment.trim();
     const responses = activeAssignmentIsTest
-      ? (activeTestTemplate?.items || []).map((item) => ({
+      ? [
+          ...(activeTestTemplate?.items || []).map((item) => ({
           itemId: item.testItemId,
           label: localizeText(item.testName, item.testNameCn),
           unit: item.unit,
           value: contentAssignmentAnswers[item.testItemId] || "",
           notes: contentAssignmentAnswers[`${item.testItemId}__notes`] || "",
-        }))
-      : (activeFormTemplate?.questions || []).map((question) => ({
+          })),
+          ...(clientComment
+            ? [
+                {
+                  itemId: "__client_comment",
+                  label: "Client Comment",
+                  unit: "",
+                  value: clientComment,
+                  notes: "",
+                },
+              ]
+            : []),
+        ]
+      : [
+          ...(activeFormTemplate?.questions || []).map((question) => ({
           questionId: question.questionId,
           label: localizeText(question.label, question.labelCn),
           value: contentAssignmentAnswers[question.questionId] || "",
-        }));
+          })),
+          ...(clientComment
+            ? [
+                {
+                  questionId: "__client_comment",
+                  label: "Client Comment",
+                  value: clientComment,
+                },
+              ]
+            : []),
+        ];
 
     const missingRequired = activeAssignmentIsTest
       ? (activeTestTemplate?.items || []).filter(
@@ -4064,6 +4104,7 @@ function App() {
       void loadContentResponses(selectedClient);
       setActiveContentAssignment(null);
       setContentAssignmentAnswers({});
+      setContentAssignmentComment("");
     } catch (error) {
       console.error(error);
       notify("Could not submit assignment.", "error");
@@ -6497,28 +6538,82 @@ function App() {
                       </select>
                     </div>
 
-                    <div className="progressChart" aria-label="Exercise progress chart">
+                    <div className="progressChartCard" aria-label="Exercise progress chart">
                       {progressHistoryPoints.length > 0 ? (
-                        progressHistoryPoints.map((point) => (
-                          <div className="progressBarWrap" key={`${point.date}-${point.value}`}>
-                            <span>{point.value}{progressUnit && ` ${progressUnit}`}</span>
-                            <div
-                              className="progressBar"
-                              style={{
-                                height: `${Math.max(
-                                  18,
-                                  (point.value / progressMaxValue) * 100
-                                )}%`,
-                              }}
-                            />
-                            <small>
-                              {new Date(`${point.date}T00:00:00`).toLocaleDateString(
-                                clientLocale,
-                                { month: "short", day: "numeric" }
-                              )}
-                            </small>
+                        <>
+                          <div className="progressChartSummary">
+                            <div>
+                              <span>{t("best")}</span>
+                              <strong>
+                                {progressMaxValue}
+                                {progressUnit && ` ${progressUnit}`}
+                              </strong>
+                            </div>
+                            <div>
+                              <span>{t("latest")}</span>
+                              <strong>
+                                {progressHistoryPoints[progressHistoryPoints.length - 1]
+                                  ?.value || "--"}
+                                {progressUnit && ` ${progressUnit}`}
+                              </strong>
+                            </div>
                           </div>
-                        ))
+
+                          <ResponsiveContainer width="100%" height={210}>
+                            <AreaChart
+                              data={progressHistoryPoints.map((point) => ({
+                                ...point,
+                                label: new Date(
+                                  `${point.date}T00:00:00`
+                                ).toLocaleDateString(clientLocale, {
+                                  month: "short",
+                                  day: "numeric",
+                                }),
+                              }))}
+                              margin={{ top: 10, right: 8, left: -18, bottom: 0 }}
+                            >
+                              <defs>
+                                <linearGradient id="progressGold" x1="0" y1="0" x2="0" y2="1">
+                                  <stop offset="5%" stopColor="#151515" stopOpacity={0.9} />
+                                  <stop offset="95%" stopColor="#9f7a26" stopOpacity={0.08} />
+                                </linearGradient>
+                              </defs>
+                              <CartesianGrid stroke="#e5dfd2" vertical={false} />
+                              <XAxis
+                                dataKey="label"
+                                tickLine={false}
+                                axisLine={false}
+                                tick={{ fill: "#68645d", fontSize: 11, fontWeight: 800 }}
+                              />
+                              <YAxis
+                                tickLine={false}
+                                axisLine={false}
+                                tick={{ fill: "#68645d", fontSize: 11, fontWeight: 800 }}
+                              />
+                              <Tooltip
+                                contentStyle={{
+                                  border: "1px solid #d8d1c4",
+                                  borderRadius: 10,
+                                  color: "#111",
+                                  fontWeight: 800,
+                                }}
+                                formatter={(value) => [
+                                  `${value}${progressUnit ? ` ${progressUnit}` : ""}`,
+                                  "Result",
+                                ]}
+                              />
+                              <Area
+                                type="monotone"
+                                dataKey="value"
+                                stroke="#111"
+                                strokeWidth={3}
+                                fill="url(#progressGold)"
+                                dot={{ r: 4, fill: "#111", stroke: "#d5b24c", strokeWidth: 2 }}
+                                activeDot={{ r: 6, fill: "#d5b24c", stroke: "#111", strokeWidth: 2 }}
+                              />
+                            </AreaChart>
+                          </ResponsiveContainer>
+                        </>
                       ) : (
                         <p className="homeEmptyText">
                           {t("noExerciseHistory")}
@@ -9068,7 +9163,10 @@ function App() {
 
                 <button
                   className="drawerClose"
-                  onClick={() => setActiveContentAssignment(null)}
+                  onClick={() => {
+                    setActiveContentAssignment(null);
+                    setContentAssignmentComment("");
+                  }}
                 >
                   x
                 </button>
@@ -9177,12 +9275,26 @@ function App() {
                         )}
                       </label>
                     ))}
+
+                <label className="submissionCommentField">
+                  <span>{t("clientComment")}</span>
+                  <textarea
+                    value={contentAssignmentComment}
+                    onChange={(event) =>
+                      setContentAssignmentComment(event.target.value)
+                    }
+                    placeholder={t("clientCommentPlaceholder")}
+                  />
+                </label>
               </div>
 
               <div className="modalActions">
                 <button
                   className="outlineButton"
-                  onClick={() => setActiveContentAssignment(null)}
+                  onClick={() => {
+                    setActiveContentAssignment(null);
+                    setContentAssignmentComment("");
+                  }}
                 >
                   Cancel
                 </button>
@@ -9614,6 +9726,19 @@ function App() {
                       </div>
                     );
                   })}
+
+                {(!isClientPortal || workoutLoggingStarted) && (
+                  <label className="workoutSubmissionNoteField">
+                    <span>{t("workoutComment")}</span>
+                    <textarea
+                      value={workoutSubmissionNote}
+                      onChange={(event) =>
+                        setWorkoutSubmissionNote(event.target.value)
+                      }
+                      placeholder={t("workoutCommentPlaceholder")}
+                    />
+                  </label>
+                )}
 
                 {(!isClientPortal || workoutLoggingStarted) && (
                   <button
