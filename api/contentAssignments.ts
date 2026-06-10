@@ -31,6 +31,45 @@ function normalizeFieldName(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
+type TableField = {
+  field_name?: string;
+  name?: string;
+  type?: number;
+  ui_type?: string;
+};
+
+const scheduledDateAliases = [
+  "Due Date",
+  "Due date",
+  "dueDate",
+  "Due",
+  "Deadline",
+  "Scheduled Date",
+  "Schedule Date",
+  "Assignment Date",
+  "Assigned Date",
+  "assignedDate",
+  "Date Assigned",
+  "Assigned For",
+  "Start Date",
+  "Target Date",
+  "Date",
+];
+
+function isDateField(field?: TableField) {
+  const uiType = String(field?.ui_type || "").toLowerCase();
+  return field?.type === 5 || uiType.includes("date");
+}
+
+function isAuditDateField(field?: TableField) {
+  const name = normalizeFieldName(field?.field_name || field?.name || "");
+  return (
+    name.includes("created") ||
+    name.includes("updated") ||
+    name.includes("modified")
+  );
+}
+
 function readField(fields: Record<string, any>, aliases: string[]) {
   for (const alias of aliases) {
     if (Object.prototype.hasOwnProperty.call(fields, alias)) {
@@ -44,6 +83,16 @@ function readField(fields: Record<string, any>, aliases: string[]) {
   );
 
   return matchingKey ? fieldToText(fields[matchingKey]) : "";
+}
+
+function readFirstAvailableField(fields: Record<string, any>, fieldNames: string[]) {
+  for (const fieldName of fieldNames) {
+    if (Object.prototype.hasOwnProperty.call(fields, fieldName)) {
+      return fieldToText(fields[fieldName]);
+    }
+  }
+
+  return "";
 }
 
 function normalizeDate(value: string) {
@@ -94,29 +143,53 @@ async function getRecords(tableId: string, token: string) {
   return data.data.items || [];
 }
 
-function mapAssignment(item: any, fallbackType: "Questionnaire" | "Physical Test") {
+async function getTableFields(tableId: string, token: string) {
+  const response = await fetch(
+    `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${tableId}/fields?page_size=100`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+  const data = await response.json();
+
+  if (data.code !== 0) {
+    throw new Error(`Could not fetch assignment fields: ${JSON.stringify(data)}`);
+  }
+
+  return (data.data.items || []) as TableField[];
+}
+
+function getScheduledDateFieldNames(tableFields: TableField[]) {
+  const normalizedAliases = scheduledDateAliases.map(normalizeFieldName);
+  const names = tableFields
+    .filter((field) => {
+      const name = field.field_name || field.name || "";
+      return (
+        scheduledDateAliases.includes(name) ||
+        normalizedAliases.includes(normalizeFieldName(name)) ||
+        (isDateField(field) && !isAuditDateField(field))
+      );
+    })
+    .map((field) => field.field_name || field.name)
+    .filter(Boolean) as string[];
+
+  return Array.from(new Set(names));
+}
+
+function mapAssignment(
+  item: any,
+  fallbackType: "Questionnaire" | "Physical Test",
+  tableFields: TableField[]
+) {
   const fields = item.fields || {};
   const assignedDate = normalizeDate(
     readField(fields, ["Created At", "Created Date", "Assigned At"])
   );
   const dueDate = normalizeDate(
-    readField(fields, [
-      "Due Date",
-      "Due date",
-      "dueDate",
-      "Due",
-      "Deadline",
-      "Scheduled Date",
-      "Schedule Date",
-      "Assignment Date",
-      "Assigned Date",
-      "assignedDate",
-      "Date Assigned",
-      "Assigned For",
-      "Start Date",
-      "Target Date",
-      "Date",
-    ])
+    readField(fields, scheduledDateAliases) ||
+      readFirstAvailableField(fields, getScheduledDateFieldNames(tableFields))
   );
 
   return {
@@ -194,13 +267,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const requestedClientName = String(clientName).toLowerCase();
     const records = await Promise.all([
       assignedFormsTableId
-        ? getRecords(assignedFormsTableId, token).then((items) =>
-            items.map((item: any) => mapAssignment(item, "Questionnaire"))
+        ? Promise.all([
+            getRecords(assignedFormsTableId, token),
+            getTableFields(assignedFormsTableId, token),
+          ]).then(([items, tableFields]) =>
+            items.map((item: any) =>
+              mapAssignment(item, "Questionnaire", tableFields)
+            )
           )
         : Promise.resolve([]),
       assignedTestsTableId
-        ? getRecords(assignedTestsTableId, token).then((items) =>
-            items.map((item: any) => mapAssignment(item, "Physical Test"))
+        ? Promise.all([
+            getRecords(assignedTestsTableId, token),
+            getTableFields(assignedTestsTableId, token),
+          ]).then(([items, tableFields]) =>
+            items.map((item: any) =>
+              mapAssignment(item, "Physical Test", tableFields)
+            )
           )
         : Promise.resolve([]),
     ]);

@@ -3,6 +3,8 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 type TableField = {
   field_name?: string;
   name?: string;
+  type?: number;
+  ui_type?: string;
 };
 
 function normalizeFieldName(value: string) {
@@ -48,6 +50,20 @@ function resolveFields(fields: TableField[], aliases: string[]) {
   });
 }
 
+function isDateField(field?: TableField) {
+  const uiType = String(field?.ui_type || "").toLowerCase();
+  return field?.type === 5 || uiType.includes("date");
+}
+
+function isAuditDateField(field?: TableField) {
+  const name = normalizeFieldName(field?.field_name || field?.name || "");
+  return (
+    name.includes("created") ||
+    name.includes("updated") ||
+    name.includes("modified")
+  );
+}
+
 const scheduledDateAliases = [
   "Due Date",
   "Due date",
@@ -65,6 +81,19 @@ const scheduledDateAliases = [
   "Target Date",
   "Date",
 ];
+
+function resolveScheduledDateFields(fields: TableField[]) {
+  const byName = resolveFields(fields, scheduledDateAliases);
+  const seen = new Set(
+    byName.map((field) => field.field_name || field.name).filter(Boolean)
+  );
+  const byType = fields.filter((field) => {
+    const fieldName = field.field_name || field.name || "";
+    return isDateField(field) && !isAuditDateField(field) && !seen.has(fieldName);
+  });
+
+  return [...byName, ...byType];
+}
 
 async function getTenantToken() {
   const response = await fetch(
@@ -134,7 +163,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const token = await getTenantToken();
     const tableFields = await getTableFields(tableId, token);
-    const dueDateFields = resolveFields(tableFields, scheduledDateAliases);
+    const dueDateFields = resolveScheduledDateFields(tableFields);
     const fieldNames = dueDateFields
       .map((field) => field.field_name || field.name)
       .filter(Boolean) as string[];
