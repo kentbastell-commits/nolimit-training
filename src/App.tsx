@@ -596,6 +596,13 @@ function App() {
   const [contentAssignments, setContentAssignments] = useState<ContentAssignment[]>(
     []
   );
+  const [activeContentAssignment, setActiveContentAssignment] =
+    useState<ContentAssignment | null>(null);
+  const [contentAssignmentAnswers, setContentAssignmentAnswers] = useState<
+    Record<string, string>
+  >({});
+  const [submittingContentAssignment, setSubmittingContentAssignment] =
+    useState(false);
   const [selectedWorkout, setSelectedWorkout] = useState<Workout | null>(null);
   const [workoutDetails, setWorkoutDetails] = useState<ExerciseDetail[]>([]);
   const [setLogs, setSetLogs] = useState<SetLog[]>([]);
@@ -1036,19 +1043,11 @@ function App() {
 
     loadPrograms();
 
-    const assignmentParams = new URLSearchParams({
-      clientId: selectedClient.id,
-      clientCode: selectedClient.clientCode || "",
-      clientName: selectedClient.name || "",
-    });
-
     Promise.all([
       fetch(`/api/workouts?clientCode=${selectedClient.clientCode}`).then((res) =>
         res.json()
       ),
-      fetch(`/api/contentAssignments?${assignmentParams.toString()}`).then((res) =>
-        res.json()
-      ),
+      loadContentAssignments(selectedClient).then((assignments) => ({ assignments })),
     ])
       .then(([workoutData, assignmentData]) => {
         setWorkouts(workoutData.workouts || []);
@@ -1231,7 +1230,7 @@ function App() {
       if (!response.ok) {
         console.error(data);
         notify(data.message || data.error || "Could not load saved forms.", "error");
-        return;
+        return [];
       }
 
       const forms = data.forms || [];
@@ -1240,9 +1239,11 @@ function App() {
       if (!selectedSavedFormId && forms.length > 0) {
         setSelectedSavedFormId(forms[0].formId);
       }
+      return forms;
     } catch (error) {
       console.error(error);
       notify("Could not load saved forms.", "error");
+      return [];
     } finally {
       setFormTemplatesLoading(false);
     }
@@ -1258,7 +1259,7 @@ function App() {
       if (!response.ok) {
         console.error(data);
         notify(data.message || data.error || "Could not load saved tests.", "error");
-        return;
+        return [];
       }
 
       const tests = data.tests || [];
@@ -1267,12 +1268,40 @@ function App() {
       if (!selectedSavedTestId && tests.length > 0) {
         setSelectedSavedTestId(tests[0].testTemplateId);
       }
+      return tests;
     } catch (error) {
       console.error(error);
       notify("Could not load saved tests.", "error");
+      return [];
     } finally {
       setTestTemplatesLoading(false);
     }
+  };
+
+  const loadContentAssignments = async (client: Client = selectedClient as Client) => {
+    if (!client) {
+      setContentAssignments([]);
+      return [];
+    }
+
+    const assignmentParams = new URLSearchParams({
+      clientId: client.id,
+      clientCode: client.clientCode || "",
+      clientName: client.name || "",
+    });
+    const response = await fetch(
+      `/api/contentAssignments?${assignmentParams.toString()}`
+    );
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error(data);
+      throw new Error(data.message || data.error || "Could not load assignments.");
+    }
+
+    const assignments = data.assignments || [];
+    setContentAssignments(assignments);
+    return assignments;
   };
 
   const loadSavedFormIntoBuilder = (form: SavedFormTemplate | undefined) => {
@@ -1595,7 +1624,7 @@ function App() {
           clientCode: client.clientCode,
           clientName: client.name,
           assignedDate: dateToInputValue(new Date()),
-          dueDate: assignmentDueDate,
+          dueDate: normalizeDate(assignmentDueDate),
         }),
       });
       const data = await response.json();
@@ -1604,6 +1633,10 @@ function App() {
         console.error(data);
         notify(data.message || data.error || "Could not create assignment.", "error");
         return;
+      }
+
+      if (selectedClient?.id === client.id) {
+        await loadContentAssignments(client);
       }
 
       notify(`${assignmentType} assigned to ${client.name}.`, "success");
@@ -2298,6 +2331,40 @@ function App() {
     } catch (error) {
       console.error(error);
       notify("Could not delete workout.", "error");
+    }
+  };
+
+  const deleteContentAssignment = async (assignment: ContentAssignment) => {
+    if (!selectedClient) return;
+    const name = assignment.templateName || assignment.assignmentType || "this item";
+
+    if (!window.confirm(`Delete ${name} from the calendar?`)) return;
+
+    try {
+      const isTest = assignment.assignmentType.toLowerCase().includes("test");
+      const response = await fetch("/api/deleteRecord", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          resource: isTest ? "assignedTest" : "assignedForm",
+          recordId: assignment.recordId,
+        }),
+      });
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        console.error(data);
+        notify("Could not delete assigned item.", "error");
+        return;
+      }
+
+      await loadContentAssignments(selectedClient);
+      notify("Assigned item deleted.", "success");
+    } catch (error) {
+      console.error(error);
+      notify("Could not delete assigned item.", "error");
     }
   };
 
@@ -3262,15 +3329,122 @@ function App() {
     return getWorkoutsForDate(dateString).length + getAssignmentsForDate(dateString).length;
   }
 
-  const handleOpenContentAssignment = (assignment: ContentAssignment) => {
-    const assignmentType = assignment.assignmentType.toLowerCase();
-    const action = assignmentType.includes("test")
-      ? "Physical test"
-      : assignmentType.includes("check")
-      ? "Check-in"
-      : "Questionnaire";
+  const handleOpenContentAssignment = async (assignment: ContentAssignment) => {
+    if (!isClientPortal && !window.confirm("Open this assigned item?")) {
+      return;
+    }
 
-    notify(`${action} responses are saved next. Assignment: ${assignment.templateName || "Assigned item"}.`);
+    const assignmentType = assignment.assignmentType.toLowerCase();
+    const isTest = assignmentType.includes("test");
+    const availableForms: SavedFormTemplate[] =
+      !isTest && savedFormTemplates.length === 0
+        ? await loadFormTemplates()
+        : savedFormTemplates;
+    const availableTests: SavedTestTemplate[] =
+      isTest && savedTestTemplates.length === 0
+        ? await loadTestTemplates()
+        : savedTestTemplates;
+    const template = isTest
+      ? availableTests.find(
+          (test) =>
+            test.testTemplateId === assignment.templateId ||
+            test.name === assignment.templateName
+        )
+      : availableForms.find(
+          (form) =>
+            form.formId === assignment.templateId || form.name === assignment.templateName
+        );
+
+    if (!template) {
+      notify("Could not find the saved template for this assignment.", "error");
+      return;
+    }
+
+    setActiveContentAssignment(assignment);
+    setContentAssignmentAnswers({});
+  };
+
+  const activeAssignmentIsTest =
+    !!activeContentAssignment &&
+    activeContentAssignment.assignmentType.toLowerCase().includes("test");
+  const activeFormTemplate =
+    activeContentAssignment && !activeAssignmentIsTest
+      ? savedFormTemplates.find(
+          (form) =>
+            form.formId === activeContentAssignment.templateId ||
+            form.name === activeContentAssignment.templateName
+        )
+      : undefined;
+  const activeTestTemplate =
+    activeContentAssignment && activeAssignmentIsTest
+      ? savedTestTemplates.find(
+          (test) =>
+            test.testTemplateId === activeContentAssignment.templateId ||
+            test.name === activeContentAssignment.templateName
+        )
+      : undefined;
+
+  const submitActiveContentAssignment = async () => {
+    if (!activeContentAssignment || !selectedClient) return;
+
+    const responses = activeAssignmentIsTest
+      ? (activeTestTemplate?.items || []).map((item) => ({
+          itemId: item.testItemId,
+          label: localizeText(item.testName, item.testNameCn),
+          unit: item.unit,
+          value: contentAssignmentAnswers[item.testItemId] || "",
+        }))
+      : (activeFormTemplate?.questions || []).map((question) => ({
+          questionId: question.questionId,
+          label: localizeText(question.label, question.labelCn),
+          value: contentAssignmentAnswers[question.questionId] || "",
+        }));
+
+    const missingRequired = !activeAssignmentIsTest
+      ? (activeFormTemplate?.questions || []).filter(
+          (question) =>
+            question.required && !contentAssignmentAnswers[question.questionId]
+        )
+      : [];
+
+    if (missingRequired.length > 0) {
+      notify("Please answer all required questions.", "error");
+      return;
+    }
+
+    setSubmittingContentAssignment(true);
+
+    try {
+      const response = await fetch("/api/submitContentResponse", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          assignmentType: activeContentAssignment.assignmentType,
+          assignmentId: activeContentAssignment.assignmentId,
+          assignmentRecordId: activeContentAssignment.recordId,
+          templateId: activeContentAssignment.templateId,
+          clientId: selectedClient.id,
+          clientName: selectedClient.name,
+          responses,
+        }),
+      });
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        console.error(data);
+        notify(data.message || data.error || "Could not submit assignment.", "error");
+        return;
+      }
+
+      notify("Assignment submitted.", "success");
+      setActiveContentAssignment(null);
+      setContentAssignmentAnswers({});
+    } catch (error) {
+      console.error(error);
+      notify("Could not submit assignment.", "error");
+    } finally {
+      setSubmittingContentAssignment(false);
+    }
   };
 
   const todayValue = dateToInputValue(new Date());
@@ -4982,7 +5156,9 @@ function App() {
                           className="miniSearch"
                           type="date"
                           value={assignmentDueDate}
-                          onChange={(e) => setAssignmentDueDate(e.target.value)}
+                          onChange={(e) =>
+                            setAssignmentDueDate(normalizeDate(e.target.value))
+                          }
                         />
                       </label>
                       <button
@@ -5999,6 +6175,20 @@ function App() {
                                     {assignment.assignmentType || "Questionnaire"}
                                   </span>
                                 </div>
+                                {!isClientPortal && (
+                                  <button
+                                    className="calendarInlineDelete"
+                                    type="button"
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      void deleteContentAssignment(assignment);
+                                    }}
+                                    aria-label="Delete assigned item"
+                                    title="Delete"
+                                  >
+                                    <Trash2 size={14} aria-hidden="true" />
+                                  </button>
+                                )}
                               </div>
                             ))}
                         </div>
@@ -6061,6 +6251,26 @@ function App() {
                                 ? t("start")
                                 : "Answer"}
                             </span>
+                            {!isClientPortal && (
+                              <span
+                                className="selectedDayDeleteAction"
+                                role="button"
+                                tabIndex={0}
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  void deleteContentAssignment(assignment);
+                                }}
+                                onKeyDown={(event) => {
+                                  if (event.key === "Enter" || event.key === " ") {
+                                    event.preventDefault();
+                                    event.stopPropagation();
+                                    void deleteContentAssignment(assignment);
+                                  }
+                                }}
+                              >
+                                Delete
+                              </span>
+                            )}
                           </button>
                         ))}
                         </>
@@ -6212,6 +6422,26 @@ function App() {
                                   ? t("start")
                                   : "Answer"}
                               </span>
+                              {!isClientPortal && (
+                                <span
+                                  className="selectedDayDeleteAction"
+                                  role="button"
+                                  tabIndex={0}
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    void deleteContentAssignment(assignment);
+                                  }}
+                                  onKeyDown={(event) => {
+                                    if (event.key === "Enter" || event.key === " ") {
+                                      event.preventDefault();
+                                      event.stopPropagation();
+                                      void deleteContentAssignment(assignment);
+                                    }
+                                  }}
+                                >
+                                  Delete
+                                </span>
+                              )}
                             </button>
                           ))}
                           </>
@@ -6940,6 +7170,143 @@ function App() {
                     : editingClient
                     ? "Save Client"
                     : "Create Client"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeContentAssignment && (
+          <div className="workout-modal-overlay">
+            <div className="clientFormModal contentAssignmentModal">
+              <div className="modal-header">
+                <div>
+                  <h2>
+                    {activeAssignmentIsTest
+                      ? localizeText(
+                          activeTestTemplate?.name || activeContentAssignment.templateName,
+                          activeTestTemplate?.nameCn
+                        )
+                      : localizeText(
+                          activeFormTemplate?.name || activeContentAssignment.templateName,
+                          activeFormTemplate?.nameCn
+                        )}
+                  </h2>
+                  <p>
+                    {activeAssignmentIsTest
+                      ? localizeText(
+                          activeTestTemplate?.description || "Record your test results.",
+                          activeTestTemplate?.descriptionCn
+                        )
+                      : localizeText(
+                          activeFormTemplate?.description ||
+                            "Answer the assigned questionnaire.",
+                          activeFormTemplate?.descriptionCn
+                        )}
+                  </p>
+                </div>
+
+                <button
+                  className="drawerClose"
+                  onClick={() => setActiveContentAssignment(null)}
+                >
+                  x
+                </button>
+              </div>
+
+              <div className="contentAssignmentFields">
+                {activeAssignmentIsTest
+                  ? (activeTestTemplate?.items || []).map((item) => (
+                      <label key={item.testItemId}>
+                        <span>
+                          {localizeText(item.testName, item.testNameCn)}
+                          {item.unit ? ` (${item.unit})` : ""}
+                        </span>
+                        {item.instructions || item.instructionsCn ? (
+                          <small>
+                            {localizeText(item.instructions || "", item.instructionsCn)}
+                          </small>
+                        ) : null}
+                        <input
+                          value={contentAssignmentAnswers[item.testItemId] || ""}
+                          onChange={(event) =>
+                            setContentAssignmentAnswers((current) => ({
+                              ...current,
+                              [item.testItemId]: event.target.value,
+                            }))
+                          }
+                          placeholder={item.unit || "Result"}
+                        />
+                      </label>
+                    ))
+                  : (activeFormTemplate?.questions || []).map((question) => (
+                      <label key={question.questionId}>
+                        <span>
+                          {localizeText(question.label, question.labelCn)}
+                          {question.required ? " *" : ""}
+                        </span>
+                        {question.helpText || question.helpTextCn ? (
+                          <small>
+                            {localizeText(question.helpText || "", question.helpTextCn)}
+                          </small>
+                        ) : null}
+                        {question.questionType.toLowerCase().includes("scale") ? (
+                          <select
+                            value={contentAssignmentAnswers[question.questionId] || ""}
+                            onChange={(event) =>
+                              setContentAssignmentAnswers((current) => ({
+                                ...current,
+                                [question.questionId]: event.target.value,
+                              }))
+                            }
+                          >
+                            <option value="">Select</option>
+                            {[1, 2, 3, 4, 5].map((value) => (
+                              <option key={value} value={value}>
+                                {value}
+                              </option>
+                            ))}
+                          </select>
+                        ) : question.questionType.toLowerCase().includes("long") ? (
+                          <textarea
+                            value={contentAssignmentAnswers[question.questionId] || ""}
+                            onChange={(event) =>
+                              setContentAssignmentAnswers((current) => ({
+                                ...current,
+                                [question.questionId]: event.target.value,
+                              }))
+                            }
+                            placeholder="Answer"
+                          />
+                        ) : (
+                          <input
+                            value={contentAssignmentAnswers[question.questionId] || ""}
+                            onChange={(event) =>
+                              setContentAssignmentAnswers((current) => ({
+                                ...current,
+                                [question.questionId]: event.target.value,
+                              }))
+                            }
+                            placeholder="Answer"
+                          />
+                        )}
+                      </label>
+                    ))}
+              </div>
+
+              <div className="modalActions">
+                <button
+                  className="outlineButton"
+                  onClick={() => setActiveContentAssignment(null)}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="goldButton"
+                  onClick={submitActiveContentAssignment}
+                  disabled={submittingContentAssignment}
+                >
+                  {submittingContentAssignment ? "Submitting..." : "Submit"}
                 </button>
               </div>
             </div>

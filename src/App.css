@@ -5458,6 +5458,43 @@ body {
 .assignmentBlock {
   border-color: #8faa7f;
   background: rgba(143, 170, 127, 0.14);
+  position: relative;
+}
+
+.calendarInlineDelete {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: 1px solid #d8cfc0;
+  background: #fff;
+  color: #5a1f18;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 160ms ease, transform 160ms ease, border-color 160ms ease;
+}
+
+.assignmentBlock:hover .calendarInlineDelete {
+  opacity: 1;
+}
+
+.calendarInlineDelete:hover {
+  transform: translateY(-1px);
+  border-color: #8b2b22;
+}
+
+.selectedDayDeleteAction {
+  min-width: 56px;
+  border-radius: 999px;
+  border: 1px solid #8b2b22;
+  color: #5a1f18 !important;
+  background: #fff;
+  padding: 7px 10px;
+  text-align: center;
 }
 
 .selectedDayWorkout span,
@@ -5490,6 +5527,50 @@ body {
   width: min(100%, 560px);
   margin-left: auto;
   margin-right: auto;
+}
+
+.contentAssignmentModal {
+  max-width: 680px;
+}
+
+.contentAssignmentFields {
+  display: grid;
+  gap: 16px;
+  margin-top: 22px;
+}
+
+.contentAssignmentFields label {
+  display: grid;
+  gap: 8px;
+}
+
+.contentAssignmentFields label > span {
+  color: #111;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.contentAssignmentFields small {
+  color: #666;
+  font-weight: 700;
+}
+
+.contentAssignmentFields input,
+.contentAssignmentFields select,
+.contentAssignmentFields textarea {
+  width: 100%;
+  border: 1px solid #cfc7b8;
+  border-radius: 8px;
+  background: #fff;
+  color: #111;
+  padding: 13px 14px;
+  font: inherit;
+  font-weight: 800;
+}
+
+.contentAssignmentFields textarea {
+  min-height: 110px;
+  resize: vertical;
 }
 
 .clientMonthCalendarCard {

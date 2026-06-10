@@ -19,6 +19,7 @@ import formTemplates from "../api/formTemplates.ts";
 import programs from "../api/programs.ts";
 import programTemplates from "../api/programTemplates.ts";
 import saveWorkoutLog from "../api/saveWorkoutLog.ts";
+import submitContentResponse from "../api/submitContentResponse.ts";
 import testTemplates from "../api/testTemplates.ts";
 import updateAssignedProgramDate from "../api/updateAssignedProgramDate.ts";
 import updateClient from "../api/updateClient.ts";
@@ -52,6 +53,7 @@ const handlers = {
   programs,
   programTemplates,
   saveWorkoutLog,
+  submitContentResponse,
   testTemplates,
   updateAssignedProgramDate,
   updateClient,

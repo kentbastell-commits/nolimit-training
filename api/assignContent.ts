@@ -308,12 +308,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           "assignedDate",
           "Date Assigned",
           "Start Date",
-          "Date",
         ],
         value: toLarkDate(assignedDate),
       },
       {
-        aliases: ["Due Date", "dueDate", "Scheduled Date", "Target Date"],
+        aliases: ["Due Date", "dueDate", "Scheduled Date", "Target Date", "Date"],
         value: toLarkDate(dueDate),
       },
       {
