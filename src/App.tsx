@@ -312,6 +312,7 @@ type ContentResponse = {
   label: string;
   answer: string;
   unit: string;
+  notes?: string;
   clientId: string;
   clientName: string;
   submittedAt: string;
@@ -3833,6 +3834,7 @@ function App() {
           label: localizeText(item.testName, item.testNameCn),
           unit: item.unit,
           value: contentAssignmentAnswers[item.testItemId] || "",
+          notes: contentAssignmentAnswers[`${item.testItemId}__notes`] || "",
         }))
       : (activeFormTemplate?.questions || []).map((question) => ({
           questionId: question.questionId,
@@ -3840,15 +3842,22 @@ function App() {
           value: contentAssignmentAnswers[question.questionId] || "",
         }));
 
-    const missingRequired = !activeAssignmentIsTest
-      ? (activeFormTemplate?.questions || []).filter(
+    const missingRequired = activeAssignmentIsTest
+      ? (activeTestTemplate?.items || []).filter(
+          (item) => !contentAssignmentAnswers[item.testItemId]
+        )
+      : (activeFormTemplate?.questions || []).filter(
           (question) =>
             question.required && !contentAssignmentAnswers[question.questionId]
-        )
-      : [];
+        );
 
     if (missingRequired.length > 0) {
-      notify("Please answer all required questions.", "error");
+      notify(
+        activeAssignmentIsTest
+          ? "Please enter a result for each test item."
+          : "Please answer all required questions.",
+        "error"
+      );
       return;
     }
 
@@ -3994,6 +4003,23 @@ function App() {
   ).sort((a, b) => b.submittedAt.localeCompare(a.submittedAt));
 
   const recentContentResponses = groupedContentResponses.slice(0, 4);
+
+  const getContentResponseLabel = (response: ContentResponse) => {
+    if (response.label) return response.label;
+
+    const matchingTest = savedTestTemplates.find(
+      (test) => test.testTemplateId === response.templateId
+    );
+    const matchingItem = matchingTest?.items.find(
+      (item) => item.testItemId === response.itemId
+    );
+
+    if (matchingItem) {
+      return localizeText(matchingItem.testName, matchingItem.testNameCn);
+    }
+
+    return response.responseType === "Physical Test" ? "Test Result" : "Answer";
+  };
 
   const progressExerciseOptions = Array.from(
     new Set([
@@ -6193,11 +6219,12 @@ function App() {
                                     className="submissionAnswer"
                                     key={answer.recordId}
                                   >
-                                    <span>{answer.label || "Result"}</span>
+                                    <span>{getContentResponseLabel(answer)}</span>
                                     <strong>
                                       {answer.answer || "--"}
                                       {answer.unit ? ` ${answer.unit}` : ""}
                                     </strong>
+                                    {answer.notes ? <small>{answer.notes}</small> : null}
                                   </div>
                                 ))}
                               </div>
@@ -8191,27 +8218,52 @@ function App() {
               <div className="contentAssignmentFields">
                 {activeAssignmentIsTest
                   ? (activeTestTemplate?.items || []).map((item) => (
-                      <label key={item.testItemId}>
-                        <span>
-                          {localizeText(item.testName, item.testNameCn)}
-                          {item.unit ? ` (${item.unit})` : ""}
-                        </span>
-                        {item.instructions || item.instructionsCn ? (
-                          <small>
-                            {localizeText(item.instructions || "", item.instructionsCn)}
-                          </small>
-                        ) : null}
-                        <input
-                          value={contentAssignmentAnswers[item.testItemId] || ""}
-                          onChange={(event) =>
-                            setContentAssignmentAnswers((current) => ({
-                              ...current,
-                              [item.testItemId]: event.target.value,
-                            }))
-                          }
-                          placeholder={item.unit || "Result"}
-                        />
-                      </label>
+                      <div className="testResultField" key={item.testItemId}>
+                        <label>
+                          <span>
+                            {localizeText(item.testName, item.testNameCn)}
+                            {item.unit ? ` (${item.unit})` : ""}
+                          </span>
+                          {item.instructions || item.instructionsCn ? (
+                            <small>
+                              {localizeText(
+                                item.instructions || "",
+                                item.instructionsCn
+                              )}
+                            </small>
+                          ) : null}
+                          <input
+                            type="number"
+                            inputMode="decimal"
+                            value={contentAssignmentAnswers[item.testItemId] || ""}
+                            onChange={(event) =>
+                              setContentAssignmentAnswers((current) => ({
+                                ...current,
+                                [item.testItemId]: event.target.value,
+                              }))
+                            }
+                            placeholder={item.unit || "Result"}
+                          />
+                        </label>
+                        <label className="testResultNotesField">
+                          <span>Notes</span>
+                          <input
+                            value={
+                              contentAssignmentAnswers[
+                                `${item.testItemId}__notes`
+                              ] || ""
+                            }
+                            onChange={(event) =>
+                              setContentAssignmentAnswers((current) => ({
+                                ...current,
+                                [`${item.testItemId}__notes`]:
+                                  event.target.value,
+                              }))
+                            }
+                            placeholder="Optional notes"
+                          />
+                        </label>
+                      </div>
                     ))
                   : (activeFormTemplate?.questions || []).map((question) => (
                       <label key={question.questionId}>

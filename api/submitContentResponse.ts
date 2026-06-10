@@ -311,6 +311,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           value: String(responseItem.unit || ""),
         },
         {
+          aliases: ["Notes", "Note", "Result Notes"],
+          value: String(responseItem.notes || ""),
+        },
+        {
           aliases: ["Client ID", "clientId"],
           value: String(clientId),
         },

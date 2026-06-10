@@ -148,6 +148,7 @@ function mapResponse(item: any, responseType: "Questionnaire" | "Physical Test")
   const answer = readField(fields, ["Answer", "Response", "Value", "Result"]);
   const answersJson = readField(fields, ["Answers Json", "Answers JSON", "Answers"]);
   const unit = readField(fields, ["Unit"]);
+  const notes = readField(fields, ["Notes", "Note", "Result Notes"]);
   const submittedAt = normalizeDate(
     readField(fields, ["Submitted At", "Submitted Date", "Date", "Completed At"])
   );
@@ -170,6 +171,7 @@ function mapResponse(item: any, responseType: "Questionnaire" | "Physical Test")
     answer,
     answersJson,
     unit,
+    notes,
     clientId,
     clientName,
     submittedAt,
