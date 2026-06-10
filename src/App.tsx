@@ -2,12 +2,14 @@ import {
   BookOpen,
   CalendarDays,
   ClipboardList,
+  Copy,
   Clock3,
   Dumbbell,
   Home,
   MoreVertical,
   Play,
   Plus,
+  Scissors,
   Trash2,
   UserCircle,
   Users,
@@ -123,6 +125,10 @@ type Workout = {
   clientNotes: string;
   workoutLogs: string;
 };
+
+type CopiedCalendarItem =
+  | { action: "copy" | "cut"; type: "workout"; id: string; label: string }
+  | { action: "copy" | "cut"; type: "assignment"; id: string; label: string };
 
 type ExerciseDetail = {
   id: string;
@@ -627,6 +633,8 @@ function App() {
   const [draggingAssignmentId, setDraggingAssignmentId] = useState("");
   const [movingWorkoutId, setMovingWorkoutId] = useState("");
   const [movingAssignmentId, setMovingAssignmentId] = useState("");
+  const [copiedCalendarItem, setCopiedCalendarItem] =
+    useState<CopiedCalendarItem | null>(null);
   const [useMobileWorkoutRows, setUseMobileWorkoutRows] = useState(false);
 
   const [libraryExercises, setLibraryExercises] = useState<LibraryExercise[]>([]);
@@ -2513,6 +2521,132 @@ function App() {
       setMovingAssignmentId("");
       setDraggingAssignmentId("");
     }
+  };
+
+  const copyCalendarWorkout = (workout: Workout, action: "copy" | "cut") => {
+    setCopiedCalendarItem({
+      action,
+      type: "workout",
+      id: workout.id,
+      label: localizedWorkoutName(workout),
+    });
+    notify(
+      `${action === "copy" ? "Copied" : "Cut"} ${localizedWorkoutName(
+        workout
+      )}. Choose Paste on a date.`
+    );
+  };
+
+  const copyCalendarAssignment = (
+    assignment: ContentAssignment,
+    action: "copy" | "cut"
+  ) => {
+    const label = assignment.templateName || assignment.assignmentType || "Assigned item";
+
+    setCopiedCalendarItem({
+      action,
+      type: "assignment",
+      id: assignment.recordId,
+      label,
+    });
+    notify(`${action === "copy" ? "Copied" : "Cut"} ${label}. Choose Paste on a date.`);
+  };
+
+  const pasteCalendarItemToDate = async (scheduledDate: string) => {
+    if (!copiedCalendarItem) return;
+
+    if (copiedCalendarItem.type === "workout") {
+      const workout = workouts.find((item) => item.id === copiedCalendarItem.id);
+
+      if (!workout) {
+        notify("Copied workout is no longer available.", "error");
+        setCopiedCalendarItem(null);
+        return;
+      }
+
+      if (copiedCalendarItem.action === "cut") {
+        await moveWorkoutToDate(workout, scheduledDate);
+      } else {
+        const response = await fetch("/api/duplicateAssignedWorkout", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            assignedWorkoutRecordId: workout.id,
+            scheduledDate,
+          }),
+        });
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+          console.error(data);
+          notify("Could not copy workout.", "error");
+          return;
+        }
+
+        if (selectedClient) {
+          const refresh = await fetch(
+            `/api/workouts?clientCode=${selectedClient.clientCode}`
+          );
+          const refreshData = await refresh.json();
+          setWorkouts(refreshData.workouts || []);
+        }
+        notify("Workout copied.", "success");
+      }
+      setCopiedCalendarItem(null);
+      return;
+    }
+
+    const assignment = contentAssignments.find(
+      (item) => item.recordId === copiedCalendarItem.id
+    );
+
+    if (!assignment) {
+      notify("Copied assignment is no longer available.", "error");
+      setCopiedCalendarItem(null);
+      return;
+    }
+
+    if (copiedCalendarItem.action === "cut") {
+      await moveContentAssignmentToDate(assignment, scheduledDate);
+    } else {
+      const client =
+        selectedClient || clients.find((item) => item.id === assignment.clientId);
+
+      if (!client) {
+        notify("Could not find the client for this assignment.", "error");
+        return;
+      }
+
+      const response = await fetch("/api/assignContent", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          assignmentType: assignment.assignmentType,
+          templateId: assignment.templateId,
+          templateName: assignment.templateName,
+          clientId: client.id,
+          clientCode: client.clientCode,
+          clientName: client.name,
+          assignedDate: dateToInputValue(new Date()),
+          dueDate: scheduledDate,
+        }),
+      });
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        console.error(data);
+        notify("Could not copy assigned item.", "error");
+        return;
+      }
+
+      await loadContentAssignments(client);
+      notify("Assigned item copied.", "success");
+    }
+    setCopiedCalendarItem(null);
   };
 
   const addExerciseToProgram = (exercise: LibraryExercise) => {
@@ -6326,18 +6460,36 @@ function App() {
 
                           {!isClientPortal &&
                             (calendarView === "Week" || calendarView === "Full") && (
-                              <button
-                                className="calendarDayAddButton"
-                                type="button"
-                                aria-label={`Add item on ${localizedCalendarLabel(date)}`}
-                                title="Add item"
-                                onClick={(event) => {
-                                  event.stopPropagation();
-                                  openAssignmentHubFromCalendar("Program", date);
-                                }}
-                              >
-                                <Plus size={16} aria-hidden="true" />
-                              </button>
+                              <div className="calendarDayActions">
+                                {copiedCalendarItem && (
+                                  <button
+                                    className="calendarDayActionButton pasteDayButton"
+                                    type="button"
+                                    aria-label={`Paste ${copiedCalendarItem.label} on ${localizedCalendarLabel(date)}`}
+                                    title={`Paste ${copiedCalendarItem.label}`}
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      void pasteCalendarItemToDate(date);
+                                    }}
+                                  >
+                                    {copiedCalendarItem.action === "copy"
+                                      ? "Paste Copy"
+                                      : "Paste Cut"}
+                                  </button>
+                                )}
+                                <button
+                                  className="calendarDayActionButton"
+                                  type="button"
+                                  aria-label={`Add item on ${localizedCalendarLabel(date)}`}
+                                  title="Add item"
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    openAssignmentHubFromCalendar("Program", date);
+                                  }}
+                                >
+                                  <Plus size={16} aria-hidden="true" />
+                                </button>
+                              </div>
                             )}
 
                           {isClientPortal && (
@@ -6405,19 +6557,31 @@ function App() {
                               </div>
 
                               {!isClientPortal && (
-                                <div
-                                  className="workoutMoveControls"
-                                  onClick={(event) => event.stopPropagation()}
-                                >
-                                  <input
-                                    type="date"
-                                    value={normalizeDate(String(workout.scheduledDate))}
-                                    onChange={(event) =>
-                                      moveWorkoutToDate(workout, event.target.value)
-                                    }
-                                    disabled={movingWorkoutId === workout.id}
-                                    aria-label="Move workout date"
-                                  />
+                                <div className="calendarInlineActions">
+                                  <button
+                                    className="calendarInlineAction"
+                                    type="button"
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      copyCalendarWorkout(workout, "copy");
+                                    }}
+                                    aria-label="Copy workout"
+                                    title="Copy"
+                                  >
+                                    <Copy size={14} aria-hidden="true" />
+                                  </button>
+                                  <button
+                                    className="calendarInlineAction"
+                                    type="button"
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      copyCalendarWorkout(workout, "cut");
+                                    }}
+                                    aria-label="Cut workout"
+                                    title="Cut"
+                                  >
+                                    <Scissors size={14} aria-hidden="true" />
+                                  </button>
                                 </div>
                               )}
                             </div>
@@ -6472,18 +6636,44 @@ function App() {
                                   </span>
                                 </div>
                                 {!isClientPortal && (
-                                  <button
-                                    className="calendarInlineDelete"
-                                    type="button"
-                                    onClick={(event) => {
-                                      event.stopPropagation();
-                                      void deleteContentAssignment(assignment);
-                                    }}
-                                    aria-label="Delete assigned item"
-                                    title="Delete"
-                                  >
-                                    <Trash2 size={14} aria-hidden="true" />
-                                  </button>
+                                  <div className="calendarInlineActions">
+                                    <button
+                                      className="calendarInlineAction"
+                                      type="button"
+                                      onClick={(event) => {
+                                        event.stopPropagation();
+                                        copyCalendarAssignment(assignment, "copy");
+                                      }}
+                                      aria-label="Copy assigned item"
+                                      title="Copy"
+                                    >
+                                      <Copy size={14} aria-hidden="true" />
+                                    </button>
+                                    <button
+                                      className="calendarInlineAction"
+                                      type="button"
+                                      onClick={(event) => {
+                                        event.stopPropagation();
+                                        copyCalendarAssignment(assignment, "cut");
+                                      }}
+                                      aria-label="Cut assigned item"
+                                      title="Cut"
+                                    >
+                                      <Scissors size={14} aria-hidden="true" />
+                                    </button>
+                                    <button
+                                      className="calendarInlineAction dangerInlineAction"
+                                      type="button"
+                                      onClick={(event) => {
+                                        event.stopPropagation();
+                                        void deleteContentAssignment(assignment);
+                                      }}
+                                      aria-label="Delete assigned item"
+                                      title="Delete"
+                                    >
+                                      <Trash2 size={14} aria-hidden="true" />
+                                    </button>
+                                  </div>
                                 )}
                               </div>
                             ))}
@@ -6921,6 +7111,25 @@ function App() {
                             </p>
                           )}
                           {!isClientPortal && (
+                            <>
+                            {copiedCalendarItem && (
+                              <button
+                                className="outlineButton selectedDayAddButton selectedDayPasteButton"
+                                type="button"
+                                onClick={() =>
+                                  void pasteCalendarItemToDate(calendarAnchorDate)
+                                }
+                              >
+                                {copiedCalendarItem.action === "copy" ? (
+                                  <Copy size={16} aria-hidden="true" />
+                                ) : (
+                                  <Scissors size={16} aria-hidden="true" />
+                                )}
+                                {copiedCalendarItem.action === "copy"
+                                  ? "Paste copied item"
+                                  : "Paste cut item"}
+                              </button>
+                            )}
                             <button
                               className="outlineButton selectedDayAddButton"
                               type="button"
@@ -6934,6 +7143,7 @@ function App() {
                               <Plus size={16} aria-hidden="true" />
                               Add item to this date
                             </button>
+                            </>
                           )}
                         </section>
                       </div>
