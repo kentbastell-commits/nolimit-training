@@ -619,7 +619,9 @@ function App() {
   const [editingWorkoutDate, setEditingWorkoutDate] = useState("");
   const [updatingWorkoutDate, setUpdatingWorkoutDate] = useState(false);
   const [draggingWorkoutId, setDraggingWorkoutId] = useState("");
+  const [draggingAssignmentId, setDraggingAssignmentId] = useState("");
   const [movingWorkoutId, setMovingWorkoutId] = useState("");
+  const [movingAssignmentId, setMovingAssignmentId] = useState("");
   const [useMobileWorkoutRows, setUseMobileWorkoutRows] = useState(false);
 
   const [libraryExercises, setLibraryExercises] = useState<LibraryExercise[]>([]);
@@ -1583,7 +1585,8 @@ function App() {
           }));
 
   const createContentAssignment = async () => {
-    const client = clients.find((item) => item.id === assignmentClientId);
+    const client =
+      clients.find((item) => item.id === assignmentClientId) || selectedClient;
     const selectedAssignmentTemplate = assignmentTemplateOptions.find(
       (option) => option.id === assignmentTemplateId
     );
@@ -2003,6 +2006,23 @@ function App() {
     );
   };
 
+  const shiftAssignableWorkoutsToStartDate = (scheduledDate: string) => {
+    const nextDate = normalizeDate(scheduledDate);
+
+    setAssignStartDate(nextDate);
+    setCalendarAnchorDate(nextDate);
+    setAssignableWorkouts((current) =>
+      current.map((workout) => {
+        const offsetDays = (Number(workout.week) - 1) * 7 + (Number(workout.day) - 1) * 2;
+
+        return {
+          ...workout,
+          scheduledDate: addDays(nextDate, offsetDays),
+        };
+      })
+    );
+  };
+
   const assignProgramToClient = async () => {
     if (!selectedClient || !selectedAssignProgram) {
       notify("Please select a client and program.");
@@ -2399,6 +2419,62 @@ function App() {
     } finally {
       setMovingWorkoutId("");
       setDraggingWorkoutId("");
+    }
+  };
+
+  const moveContentAssignmentToDate = async (
+    assignment: ContentAssignment,
+    scheduledDate: string
+  ) => {
+    if (!selectedClient) return;
+
+    const currentDate = normalizeDate(
+      String(assignment.dueDate || assignment.assignedDate)
+    );
+
+    if (!scheduledDate || currentDate === scheduledDate || movingAssignmentId) {
+      return;
+    }
+
+    const previousAssignments = contentAssignments;
+
+    setMovingAssignmentId(assignment.recordId);
+    setContentAssignments((current) =>
+      current.map((item) =>
+        item.recordId === assignment.recordId
+          ? { ...item, dueDate: scheduledDate }
+          : item
+      )
+    );
+
+    try {
+      const response = await fetch("/api/updateContentAssignmentDate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          assignmentType: assignment.assignmentType,
+          recordId: assignment.recordId,
+          scheduledDate,
+        }),
+      });
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        console.error(data);
+        throw new Error("Could not move assigned item.");
+      }
+
+      await loadContentAssignments(selectedClient);
+      notify("Assigned item moved.", "success");
+    } catch (error) {
+      console.error(error);
+      setContentAssignments(previousAssignments);
+      notify("Could not move assigned item. The calendar has been restored.", "error");
+    } finally {
+      setMovingAssignmentId("");
+      setDraggingAssignmentId("");
     }
   };
 
@@ -3466,6 +3542,40 @@ function App() {
           normalizeDate(String(b.scheduledDate))
         ) || Number(a.week) - Number(b.week) || Number(a.day) - Number(b.day)
     )
+    .slice(0, 5);
+  const clientPortalUpcomingAssignments = contentAssignments
+    .filter(
+      (assignment) =>
+        normalizeDate(String(assignment.dueDate || assignment.assignedDate)) >=
+          todayValue &&
+        !String(assignment.status || "").toLowerCase().includes("complete")
+    )
+    .sort((a, b) =>
+      normalizeDate(String(a.dueDate || a.assignedDate)).localeCompare(
+        normalizeDate(String(b.dueDate || b.assignedDate))
+      )
+    );
+  const clientPortalUpcomingTasks = [
+    ...clientPortalUpcomingWorkouts.map((workout) => ({
+      type: "workout" as const,
+      id: workout.id,
+      date: normalizeDate(String(workout.scheduledDate)),
+      title: localizedWorkoutName(workout),
+      meta: `${t("week")} ${workout.week} - ${t("day")} ${workout.day}`,
+      status: workout.completionStatus || t("scheduled"),
+      open: () => openWorkout(workout),
+    })),
+    ...clientPortalUpcomingAssignments.map((assignment) => ({
+      type: "assignment" as const,
+      id: assignment.recordId,
+      date: normalizeDate(String(assignment.dueDate || assignment.assignedDate)),
+      title: assignment.templateName || "Assigned item",
+      meta: assignment.assignmentType || "Questionnaire",
+      status: assignment.status || t("scheduled"),
+      open: () => handleOpenContentAssignment(assignment),
+    })),
+  ]
+    .sort((a, b) => a.date.localeCompare(b.date))
     .slice(0, 5);
 
   const progressExerciseOptions = Array.from(
@@ -5498,7 +5608,7 @@ function App() {
                     <div className="clientHomePanelHeader">
                       <div>
                         <span>{t("program")}</span>
-                        <h2>{t("upcomingWorkouts")}</h2>
+                        <h2>{isClientPortal ? "Upcoming Tasks" : "Upcoming Tasks"}</h2>
                       </div>
                       <button
                         className="outlineButton"
@@ -5509,22 +5619,16 @@ function App() {
                     </div>
 
                     <div className="homeWorkoutList">
-                      {clientPortalUpcomingWorkouts.length > 0 ? (
-                        clientPortalUpcomingWorkouts.slice(0, 4).map((workout) => (
+                      {clientPortalUpcomingTasks.length > 0 ? (
+                        clientPortalUpcomingTasks.slice(0, 4).map((task) => (
                           <button
-                            key={workout.id}
+                            key={`${task.type}-${task.id}`}
                             className="homeWorkoutItem"
-                            onClick={() => openWorkout(workout)}
+                            onClick={task.open}
                           >
-                            <span>
-                              {localizedCalendarLabel(
-                                normalizeDate(String(workout.scheduledDate))
-                              )}
-                            </span>
-                            <strong>{localizedWorkoutName(workout)}</strong>
-                            <small>
-                              {t("week")} {workout.week} - {t("day")} {workout.day}
-                            </small>
+                            <span>{localizedCalendarLabel(task.date)}</span>
+                            <strong>{task.title}</strong>
+                            <small>{task.meta} - {task.status}</small>
                           </button>
                         ))
                       ) : (
@@ -5815,6 +5919,14 @@ function App() {
                             >
                               Add Form
                             </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                openAssignmentHubFromCalendar("Physical Test");
+                              }}
+                            >
+                              Add Physical Test
+                            </button>
                           </div>
                         )}
                       </div>
@@ -5871,12 +5983,15 @@ function App() {
                           type="date"
                           value={calendarAnchorDate}
                           onChange={(e) => {
+                            const nextDate = normalizeDate(e.target.value);
                             if (isClientPortal) {
-                              selectClientCalendarDate(e.target.value);
+                              selectClientCalendarDate(nextDate);
                               return;
                             }
 
-                            setCalendarAnchorDate(e.target.value);
+                            setCalendarAnchorDate(nextDate);
+                            setAssignStartDate(nextDate);
+                            setAssignmentDueDate(nextDate);
                           }}
                         />
                       </label>
@@ -5885,55 +6000,137 @@ function App() {
 
                   {!isClientPortal && (
                   <section className="assignProgramPanel">
-                    <h3>Assign Program</h3>
+                    <h3>Assign Task</h3>
 
                     <div className="assignProgramGrid">
                       <label>
-                        <span>Program</span>
+                        <span>Type</span>
                         <select
                           className="miniSearch"
-                          value={selectedAssignProgramId}
+                          value={assignmentType}
                           onChange={(e) => {
-                            setSelectedAssignProgramId(e.target.value);
+                            const nextType = e.target.value;
+                            setAssignmentType(nextType);
+                            setAssignmentTemplateId("");
                             setAssignableWorkouts([]);
+                            if (selectedClient) {
+                              setAssignmentClientId(selectedClient.id);
+                            }
+                            setAssignmentDueDate(calendarAnchorDate);
+                            setAssignStartDate(calendarAnchorDate);
                           }}
                         >
-                          {programs.map((program) => (
-                            <option key={program.recordId} value={program.programId}>
-                              {program.programName}
-                            </option>
-                          ))}
+                          <option>Program</option>
+                          <option>Check-in</option>
+                          <option>Questionnaire</option>
+                          <option>Physical Test</option>
                         </select>
                       </label>
 
+                      {assignmentType === "Program" ? (
+                        <label>
+                          <span>Program</span>
+                          <select
+                            className="miniSearch"
+                            value={selectedAssignProgramId}
+                            onChange={(e) => {
+                              setSelectedAssignProgramId(e.target.value);
+                              setAssignableWorkouts([]);
+                            }}
+                          >
+                            {programs.map((program) => (
+                              <option key={program.recordId} value={program.programId}>
+                                {program.programName}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                      ) : (
+                        <label>
+                          <span>
+                            {assignmentType === "Physical Test"
+                              ? "Saved Test"
+                              : "Saved Form"}
+                          </span>
+                          <select
+                            key={assignmentType}
+                            className="miniSearch"
+                            value={assignmentTemplateId}
+                            onChange={(e) => setAssignmentTemplateId(e.target.value)}
+                          >
+                            <option value="">
+                              {assignmentTemplateOptions.length === 0
+                                ? assignmentType === "Physical Test"
+                                  ? "No saved tests"
+                                  : "No saved forms"
+                                : "Select saved item"}
+                            </option>
+                            {assignmentTemplateOptions.map((option) => (
+                              <option key={option.id} value={option.id}>
+                                {option.label} ({option.meta})
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                      )}
+
                       <label>
-                        <span>Start Date</span>
+                        <span>{assignmentType === "Program" ? "Start Date" : "Due Date"}</span>
                         <input
                           type="date"
                           className="miniSearch"
-                          value={assignStartDate}
-                          onChange={(e) => setAssignStartDate(e.target.value)}
+                          value={
+                            assignmentType === "Program"
+                              ? assignStartDate
+                              : assignmentDueDate
+                          }
+                          onChange={(e) => {
+                            const nextDate = normalizeDate(e.target.value);
+                            if (assignmentType === "Program") {
+                              shiftAssignableWorkoutsToStartDate(nextDate);
+                            } else {
+                              setAssignmentDueDate(nextDate);
+                              setCalendarAnchorDate(nextDate);
+                            }
+                          }}
                         />
                       </label>
 
-                      <button
-                        className="outlineButton"
-                        onClick={loadProgramSessionsForAssignment}
-                        disabled={assignLoading}
-                      >
-                        {assignLoading ? "Loading..." : "Load Sessions"}
-                      </button>
+                      {assignmentType === "Program" ? (
+                        <>
+                          <button
+                            className="outlineButton"
+                            onClick={loadProgramSessionsForAssignment}
+                            disabled={assignLoading}
+                          >
+                            {assignLoading ? "Loading..." : "Load Sessions"}
+                          </button>
 
-                      <button
-                        className="goldButton"
-                        onClick={assignProgramToClient}
-                        disabled={assigningProgram}
-                      >
-                        {assigningProgram ? "Assigning..." : "Assign Program"}
-                      </button>
+                          <button
+                            className="goldButton"
+                            onClick={assignProgramToClient}
+                            disabled={assigningProgram}
+                          >
+                            {assigningProgram ? "Assigning..." : "Assign Program"}
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          className="goldButton"
+                          onClick={() => {
+                            if (selectedClient) {
+                              setAssignmentClientId(selectedClient.id);
+                            }
+                            void createContentAssignment();
+                          }}
+                          disabled={creatingAssignment}
+                        >
+                          {creatingAssignment ? "Assigning..." : "Assign Task"}
+                        </button>
+                      )}
                     </div>
 
-                    {assignableWorkouts.length > 0 && (
+                    {assignmentType === "Program" && assignableWorkouts.length > 0 && (
                       <div className="arrangeWorkouts">
                         <h4>Arrange Workouts</h4>
 
@@ -6005,7 +6202,9 @@ function App() {
                       return (
                         <div
                           className={`calendarDay ${
-                            draggingWorkoutId ? "calendarDropTarget" : ""
+                            draggingWorkoutId || draggingAssignmentId
+                              ? "calendarDropTarget"
+                              : ""
                           } ${
                             isClientPortal && date === calendarAnchorDate
                               ? "selectedCalendarDay"
@@ -6021,11 +6220,27 @@ function App() {
                           onDrop={(event: DragEvent<HTMLDivElement>) => {
                             event.preventDefault();
 
-                            const workoutId =
+                            const transferType = event.dataTransfer.getData(
+                              "application/x-nolimit-type"
+                            );
+                            const transferId =
                               event.dataTransfer.getData("text/plain") ||
-                              draggingWorkoutId;
+                              draggingWorkoutId ||
+                              draggingAssignmentId;
+                            const assignment =
+                              transferType === "assignment"
+                                ? contentAssignments.find(
+                                    (item) => item.recordId === transferId
+                                  )
+                                : undefined;
+
+                            if (assignment) {
+                              void moveContentAssignmentToDate(assignment, date);
+                              return;
+                            }
+
                             const workout = workouts.find(
-                              (item) => item.id === workoutId
+                              (item) => item.id === transferId
                             );
 
                             if (workout) {
@@ -6156,11 +6371,34 @@ function App() {
                             clientCalendarStyle === "Full") &&
                             dayAssignments.map((assignment) => (
                               <div
-                                className="workoutBlock scheduledWorkout assignmentBlock"
+                                className={`workoutBlock scheduledWorkout assignmentBlock ${
+                                  draggingAssignmentId === assignment.recordId
+                                    ? "draggingWorkout"
+                                    : ""
+                                } ${
+                                  movingAssignmentId === assignment.recordId
+                                    ? "movingWorkout"
+                                    : ""
+                                }`}
                                 key={assignment.recordId}
                                 role="button"
                                 tabIndex={0}
+                                draggable={!isClientPortal}
                                 title="Open assignment"
+                                onDragStart={(event) => {
+                                  if (isClientPortal) return;
+                                  event.dataTransfer.setData(
+                                    "application/x-nolimit-type",
+                                    "assignment"
+                                  );
+                                  event.dataTransfer.setData(
+                                    "text/plain",
+                                    assignment.recordId
+                                  );
+                                  event.dataTransfer.effectAllowed = "move";
+                                  setDraggingAssignmentId(assignment.recordId);
+                                }}
+                                onDragEnd={() => setDraggingAssignmentId("")}
                                 onClick={() => handleOpenContentAssignment(assignment)}
                                 onKeyDown={(event) => {
                                   if (event.key === "Enter" || event.key === " ") {
@@ -6172,7 +6410,9 @@ function App() {
                                 <div className="workoutBlockMain">
                                   {assignment.templateName || "Assigned item"}
                                   <span>
-                                    {assignment.assignmentType || "Questionnaire"}
+                                    {movingAssignmentId === assignment.recordId
+                                      ? "Moving..."
+                                      : assignment.assignmentType || "Questionnaire"}
                                   </span>
                                 </div>
                                 {!isClientPortal && (
@@ -6496,6 +6736,8 @@ function App() {
                               }
 
                               const dateWorkouts = getWorkoutsForDate(date);
+                              const dateItemCount =
+                                dateWorkouts.length + getAssignmentsForDate(date).length;
                               const dayNumber = new Date(
                                 `${date}T00:00:00`
                               ).getDate();
@@ -6511,7 +6753,7 @@ function App() {
                                   } ${
                                     date === todayValue ? "todayClientMonthDay" : ""
                                   } ${
-                                    dateWorkouts.length > 0 ? "hasClientMonthWork" : ""
+                                    dateItemCount > 0 ? "hasClientMonthWork" : ""
                                   }`}
                                   onClick={() => setCalendarAnchorDate(date)}
                                 >
@@ -6520,9 +6762,13 @@ function App() {
                                     className="calendarWorkMarkers"
                                     aria-hidden="true"
                                   >
-                                    {dateWorkouts.length > 0 ? (
-                                      dateWorkouts.slice(0, 3).map((workout) => (
-                                        <span key={workout.id} />
+                                    {dateItemCount > 0 ? (
+                                      Array.from({
+                                        length: Math.min(dateItemCount, 3),
+                                      }).map((_, markerIndex) => (
+                                        <span
+                                          key={`${date}-coach-month-marker-${markerIndex}`}
+                                        />
                                       ))
                                     ) : (
                                       <span className="emptyMarker" />
@@ -6538,9 +6784,9 @@ function App() {
                           <div className="selectedDayGlanceHeader">
                             <span>{formatCalendarLabel(calendarAnchorDate)}</span>
                             <strong>
-                              {selectedCalendarDateWorkouts.length > 0
-                                ? `${selectedCalendarDateWorkouts.length} workout${
-                                    selectedCalendarDateWorkouts.length === 1
+                              {selectedCalendarDateItemCount > 0
+                                ? `${selectedCalendarDateItemCount} task${
+                                    selectedCalendarDateItemCount === 1
                                       ? ""
                                       : "s"
                                   }`
@@ -6548,8 +6794,9 @@ function App() {
                             </strong>
                           </div>
 
-                          {selectedCalendarDateWorkouts.length > 0 ? (
-                            selectedCalendarDateWorkouts.map((workout) => (
+                          {selectedCalendarDateItemCount > 0 ? (
+                            <>
+                            {selectedCalendarDateWorkouts.map((workout) => (
                               <button
                                 className="selectedDayWorkout"
                                 key={workout.id}
@@ -6568,7 +6815,46 @@ function App() {
                                   Open
                                 </span>
                               </button>
-                            ))
+                            ))}
+                            {selectedCalendarDateAssignments.map((assignment) => (
+                              <button
+                                className="selectedDayWorkout selectedDayAssignment"
+                                key={assignment.recordId}
+                                onClick={() => handleOpenContentAssignment(assignment)}
+                              >
+                                <div>
+                                  <span>
+                                    {assignment.assignmentType || "Questionnaire"}
+                                  </span>
+                                  <strong>
+                                    {assignment.templateName || "Assigned item"}
+                                  </strong>
+                                  <small>{assignment.status || "Scheduled"}</small>
+                                </div>
+                                <span className="selectedDayWorkoutAction">
+                                  Open
+                                </span>
+                                <span
+                                  className="selectedDayDeleteAction"
+                                  role="button"
+                                  tabIndex={0}
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    void deleteContentAssignment(assignment);
+                                  }}
+                                  onKeyDown={(event) => {
+                                    if (event.key === "Enter" || event.key === " ") {
+                                      event.preventDefault();
+                                      event.stopPropagation();
+                                      void deleteContentAssignment(assignment);
+                                    }
+                                  }}
+                                >
+                                  Delete
+                                </span>
+                              </button>
+                            ))}
+                            </>
                           ) : (
                             <p className="homeEmptyText">
                               Nothing scheduled for this date.

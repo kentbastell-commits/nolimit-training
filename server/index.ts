@@ -22,6 +22,7 @@ import saveWorkoutLog from "../api/saveWorkoutLog.ts";
 import submitContentResponse from "../api/submitContentResponse.ts";
 import testTemplates from "../api/testTemplates.ts";
 import updateAssignedProgramDate from "../api/updateAssignedProgramDate.ts";
+import updateContentAssignmentDate from "../api/updateContentAssignmentDate.ts";
 import updateClient from "../api/updateClient.ts";
 import updateProgram from "../api/updateProgram.ts";
 import upsertExercise from "../api/upsertExercise.ts";
@@ -56,6 +57,7 @@ const handlers = {
   submitContentResponse,
   testTemplates,
   updateAssignedProgramDate,
+  updateContentAssignmentDate,
   updateClient,
   updateProgram,
   upsertExercise,
