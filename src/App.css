@@ -5450,6 +5450,16 @@ body {
   border-color: #c8c0ac;
 }
 
+.selectedDayAssignment {
+  border-color: #b8c4b0;
+  background: #f6f8f2;
+}
+
+.assignmentBlock {
+  border-color: #8faa7f;
+  background: rgba(143, 170, 127, 0.14);
+}
+
 .selectedDayWorkout span,
 .selectedDayWorkout small {
   display: block;

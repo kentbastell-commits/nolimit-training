@@ -281,6 +281,20 @@ type SavedTestTemplate = {
   items: SavedTestItem[];
 };
 
+type ContentAssignment = {
+  recordId: string;
+  assignmentId: string;
+  assignmentType: string;
+  templateId: string;
+  templateName: string;
+  clientId: string;
+  clientCode: string;
+  clientName: string;
+  assignedDate: string;
+  dueDate: string;
+  status: string;
+};
+
 type SetLog = {
   exerciseId: string;
   exerciseName: string;
@@ -579,6 +593,9 @@ function App() {
   const [workoutPageTab, setWorkoutPageTab] =
     useState<WorkoutPageTab>("Saved Programs");
   const [workouts, setWorkouts] = useState<Workout[]>([]);
+  const [contentAssignments, setContentAssignments] = useState<ContentAssignment[]>(
+    []
+  );
   const [selectedWorkout, setSelectedWorkout] = useState<Workout | null>(null);
   const [workoutDetails, setWorkoutDetails] = useState<ExerciseDetail[]>([]);
   const [setLogs, setSetLogs] = useState<SetLog[]>([]);
@@ -1015,17 +1032,32 @@ function App() {
     setWorkoutDetails([]);
     setSetLogs([]);
     setSavedExerciseDraftIds([]);
+    setContentAssignments([]);
 
     loadPrograms();
 
-    fetch(`/api/workouts?clientCode=${selectedClient.clientCode}`)
-      .then((res) => res.json())
-      .then((data) => {
-        setWorkouts(data.workouts || []);
+    const assignmentParams = new URLSearchParams({
+      clientId: selectedClient.id,
+      clientCode: selectedClient.clientCode || "",
+      clientName: selectedClient.name || "",
+    });
+
+    Promise.all([
+      fetch(`/api/workouts?clientCode=${selectedClient.clientCode}`).then((res) =>
+        res.json()
+      ),
+      fetch(`/api/contentAssignments?${assignmentParams.toString()}`).then((res) =>
+        res.json()
+      ),
+    ])
+      .then(([workoutData, assignmentData]) => {
+        setWorkouts(workoutData.workouts || []);
+        setContentAssignments(assignmentData.assignments || []);
         setWorkoutsLoading(false);
       })
       .catch(() => {
         setWorkouts([]);
+        setContentAssignments([]);
         setWorkoutsLoading(false);
       });
   }, [selectedClient]);
@@ -3218,8 +3250,34 @@ function App() {
     );
   }
 
+  function getAssignmentsForDate(dateString: string) {
+    return contentAssignments.filter(
+      (assignment) =>
+        normalizeDate(String(assignment.dueDate || assignment.assignedDate)) ===
+        dateString
+    );
+  }
+
+  function getCalendarItemCountForDate(dateString: string) {
+    return getWorkoutsForDate(dateString).length + getAssignmentsForDate(dateString).length;
+  }
+
+  const handleOpenContentAssignment = (assignment: ContentAssignment) => {
+    const assignmentType = assignment.assignmentType.toLowerCase();
+    const action = assignmentType.includes("test")
+      ? "Physical test"
+      : assignmentType.includes("check")
+      ? "Check-in"
+      : "Questionnaire";
+
+    notify(`${action} responses are saved next. Assignment: ${assignment.templateName || "Assigned item"}.`);
+  };
+
   const todayValue = dateToInputValue(new Date());
   const selectedCalendarDateWorkouts = getWorkoutsForDate(calendarAnchorDate);
+  const selectedCalendarDateAssignments = getAssignmentsForDate(calendarAnchorDate);
+  const selectedCalendarDateItemCount =
+    selectedCalendarDateWorkouts.length + selectedCalendarDateAssignments.length;
   const clientPortalUpcomingWorkouts = workouts
     .filter(
       (workout) =>
@@ -5764,6 +5822,8 @@ function App() {
                       : calendarDates
                     ).map((date) => {
                       const dayWorkouts = getWorkoutsForDate(date);
+                      const dayAssignments = getAssignmentsForDate(date);
+                      const dayItemCount = dayWorkouts.length + dayAssignments.length;
                       const weekStripLabel = localizedWeekStripLabel(date);
 
                       return (
@@ -5775,7 +5835,7 @@ function App() {
                               ? "selectedCalendarDay"
                               : ""
                           } ${
-                            dayWorkouts.length > 0 ? "hasCalendarWork" : ""
+                            dayItemCount > 0 ? "hasCalendarWork" : ""
                           }`}
                           key={date}
                           onDragOver={(event: DragEvent<HTMLDivElement>) => {
@@ -5835,10 +5895,14 @@ function App() {
 
                           {isClientPortal && (
                             <span className="calendarWorkMarkers" aria-hidden="true">
-                              {dayWorkouts.length > 0 ? (
-                                dayWorkouts.slice(0, 3).map((workout) => (
-                                  <span key={workout.id} />
-                                ))
+                              {dayItemCount > 0 ? (
+                                <>
+                                  {Array.from({
+                                    length: Math.min(dayItemCount, 3),
+                                  }).map((_, index) => (
+                                    <span key={`${date}-marker-${index}`} />
+                                  ))}
+                                </>
                               ) : (
                                 <span className="emptyMarker" />
                               )}
@@ -5911,6 +5975,32 @@ function App() {
                               )}
                             </div>
                           ))}
+
+                          {(!isClientPortal ||
+                            clientCalendarStyle === "Full") &&
+                            dayAssignments.map((assignment) => (
+                              <div
+                                className="workoutBlock scheduledWorkout assignmentBlock"
+                                key={assignment.recordId}
+                                role="button"
+                                tabIndex={0}
+                                title="Open assignment"
+                                onClick={() => handleOpenContentAssignment(assignment)}
+                                onKeyDown={(event) => {
+                                  if (event.key === "Enter" || event.key === " ") {
+                                    event.preventDefault();
+                                    handleOpenContentAssignment(assignment);
+                                  }
+                                }}
+                              >
+                                <div className="workoutBlockMain">
+                                  {assignment.templateName || "Assigned item"}
+                                  <span>
+                                    {assignment.assignmentType || "Questionnaire"}
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
                         </div>
                       );
                     })}
@@ -5921,16 +6011,17 @@ function App() {
                       <div className="selectedDayGlanceHeader">
                         <span>{localizedCalendarLabel(calendarAnchorDate)}</span>
                         <strong>
-                          {selectedCalendarDateWorkouts.length > 0
+                          {selectedCalendarDateItemCount > 0
                             ? t("itemCount", {
-                                count: selectedCalendarDateWorkouts.length,
+                                count: selectedCalendarDateItemCount,
                               })
                             : t("nothingScheduled")}
                         </strong>
                       </div>
 
-                      {selectedCalendarDateWorkouts.length > 0 ? (
-                        selectedCalendarDateWorkouts.map((workout) => (
+                      {selectedCalendarDateItemCount > 0 ? (
+                        <>
+                        {selectedCalendarDateWorkouts.map((workout) => (
                           <button
                             className="selectedDayWorkout"
                             key={workout.id}
@@ -5949,7 +6040,30 @@ function App() {
                               {t("view")}
                             </span>
                           </button>
-                        ))
+                        ))}
+                        {selectedCalendarDateAssignments.map((assignment) => (
+                          <button
+                            className="selectedDayWorkout selectedDayAssignment"
+                            key={assignment.recordId}
+                            onClick={() => handleOpenContentAssignment(assignment)}
+                          >
+                            <div>
+                              <span>{assignment.assignmentType || "Questionnaire"}</span>
+                              <strong>
+                                {assignment.templateName || "Assigned item"}
+                              </strong>
+                              <small>{assignment.status || t("scheduled")}</small>
+                            </div>
+                            <span className="selectedDayWorkoutAction">
+                              {String(assignment.assignmentType)
+                                .toLowerCase()
+                                .includes("test")
+                                ? t("start")
+                                : "Answer"}
+                            </span>
+                          </button>
+                        ))}
+                        </>
                       ) : (
                         <p className="homeEmptyText">
                           {t("nothingScheduled")}
@@ -6001,7 +6115,7 @@ function App() {
                               );
                             }
 
-                            const dateWorkouts = getWorkoutsForDate(date);
+                            const dateItemCount = getCalendarItemCountForDate(date);
                             const dayNumber = new Date(`${date}T00:00:00`).getDate();
 
                             return (
@@ -6015,7 +6129,7 @@ function App() {
                                 } ${
                                   date === todayValue ? "todayClientMonthDay" : ""
                                 } ${
-                                  dateWorkouts.length > 0 ? "hasClientMonthWork" : ""
+                                  dateItemCount > 0 ? "hasClientMonthWork" : ""
                                 }`}
                                 onClick={() => selectClientCalendarDate(date)}
                               >
@@ -6024,9 +6138,11 @@ function App() {
                                   className="calendarWorkMarkers"
                                   aria-hidden="true"
                                 >
-                                  {dateWorkouts.length > 0 ? (
-                                    dateWorkouts.slice(0, 3).map((workout) => (
-                                      <span key={workout.id} />
+                                  {dateItemCount > 0 ? (
+                                    Array.from({
+                                      length: Math.min(dateItemCount, 3),
+                                    }).map((_, markerIndex) => (
+                                      <span key={`${date}-month-marker-${markerIndex}`} />
                                     ))
                                   ) : (
                                     <span className="emptyMarker" />
@@ -6044,16 +6160,17 @@ function App() {
                         <div className="selectedDayGlanceHeader">
                           <span>{localizedCalendarLabel(calendarAnchorDate)}</span>
                           <strong>
-                            {selectedCalendarDateWorkouts.length > 0
+                            {selectedCalendarDateItemCount > 0
                               ? t("taskCount", {
-                                  count: selectedCalendarDateWorkouts.length,
+                                  count: selectedCalendarDateItemCount,
                                 })
                               : t("nothingScheduled")}
                           </strong>
                         </div>
 
-                        {selectedCalendarDateWorkouts.length > 0 ? (
-                          selectedCalendarDateWorkouts.map((workout) => (
+                        {selectedCalendarDateItemCount > 0 ? (
+                          <>
+                          {selectedCalendarDateWorkouts.map((workout) => (
                             <button
                               className="selectedDayWorkout"
                               key={workout.id}
@@ -6072,7 +6189,32 @@ function App() {
                                 {t("start")}
                               </span>
                             </button>
-                          ))
+                          ))}
+                          {selectedCalendarDateAssignments.map((assignment) => (
+                            <button
+                              className="selectedDayWorkout selectedDayAssignment"
+                              key={assignment.recordId}
+                              onClick={() => handleOpenContentAssignment(assignment)}
+                            >
+                              <div>
+                                <span>
+                                  {assignment.assignmentType || "Questionnaire"}
+                                </span>
+                                <strong>
+                                  {assignment.templateName || "Assigned item"}
+                                </strong>
+                                <small>{assignment.status || t("scheduled")}</small>
+                              </div>
+                              <span className="selectedDayWorkoutAction">
+                                {String(assignment.assignmentType)
+                                  .toLowerCase()
+                                  .includes("test")
+                                  ? t("start")
+                                  : "Answer"}
+                              </span>
+                            </button>
+                          ))}
+                          </>
                         ) : (
                           <p className="homeEmptyText">
                             {t("nothingScheduled")}
