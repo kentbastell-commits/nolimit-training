@@ -1012,6 +1012,72 @@ body {
   white-space: nowrap;
 }
 
+.coachManagementPage {
+  display: grid;
+  gap: 22px;
+}
+
+.coachManagementSummary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.coachManagementSummary > div {
+  border: 1px solid rgba(212, 175, 55, 0.28);
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+  padding: 22px 24px;
+}
+
+.coachManagementSummary span,
+.coachManagementSummary small,
+.coachTableRow small {
+  color: #aaa;
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.coachManagementSummary strong {
+  color: #f8e27d;
+  display: block;
+  font-size: clamp(2rem, 4vw, 3.4rem);
+  line-height: 1;
+  margin: 10px 0 8px;
+}
+
+.coachTableCard {
+  overflow-x: auto;
+}
+
+.coachTableHeader,
+.coachTableRow {
+  display: grid;
+  grid-template-columns: minmax(240px, 1.4fr) 120px 130px 150px minmax(180px, 1fr) minmax(310px, 1.4fr);
+  gap: 16px;
+  min-width: 1180px;
+  align-items: center;
+}
+
+.coachTableRow {
+  padding: 18px 22px;
+}
+
+.coachRowActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.coachRowActions .outlineButton {
+  min-height: 42px;
+  padding: 0 16px;
+}
+
 .searchRow {
   display: flex;
   justify-content: space-between;
@@ -8142,5 +8208,33 @@ textarea {
 
   .app:not(.clientPortalApp) .workout-modal .mobileSetLogRow {
     gap: 10px !important;
+  }
+}
+
+.app:not(.clientPortalApp) .coachManagementSummary > div,
+.app:not(.clientPortalApp) .coachTableCard {
+  background: rgba(255, 255, 255, 0.86);
+  border-color: rgba(20, 20, 20, 0.14);
+  box-shadow: 0 16px 42px rgba(20, 20, 20, 0.06);
+}
+
+.app:not(.clientPortalApp) .coachManagementSummary span,
+.app:not(.clientPortalApp) .coachManagementSummary small,
+.app:not(.clientPortalApp) .coachTableRow small {
+  color: #6d6b64;
+}
+
+.app:not(.clientPortalApp) .coachManagementSummary strong {
+  color: #0d0d0d;
+}
+
+@media (max-width: 780px) {
+  .coachManagementSummary {
+    grid-template-columns: 1fr;
+  }
+
+  .coachTableHeader,
+  .coachTableRow {
+    min-width: 980px;
   }
 }

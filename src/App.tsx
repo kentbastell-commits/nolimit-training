@@ -30,7 +30,7 @@ import { useTranslation } from "react-i18next";
 import "./App.css";
 
 type AppMode = "Coach" | "Client";
-type Page = "Clients" | "Library" | "Workouts" | "Check-ins";
+type Page = "Clients" | "Library" | "Workouts" | "Check-ins" | "Coaches";
 type ClientTab = "Home" | "Overview" | "Training";
 type CalendarView = "Week" | "Month" | "Full";
 type CalendarDisplayMode = CalendarView;
@@ -677,6 +677,17 @@ function App() {
   const [coaches, setCoaches] = useState<Coach[]>([]);
   const [productOrders, setProductOrders] = useState<ProductOrder[]>([]);
   const [coachScope, setCoachScope] = useState("All Coaches");
+  const [showCoachModal, setShowCoachModal] = useState(false);
+  const [editingCoach, setEditingCoach] = useState<Coach | null>(null);
+  const [savingCoach, setSavingCoach] = useState(false);
+  const [coachForm, setCoachForm] = useState({
+    name: "",
+    email: "",
+    phoneWechat: "",
+    role: "Coach",
+    status: "Active",
+    bio: "",
+  });
   const [clientSearch, setClientSearch] = useState("");
   const [clientStatusFilter, setClientStatusFilter] = useState("All");
   const [checkInSearch, setCheckInSearch] = useState("");
@@ -956,6 +967,12 @@ function App() {
   const activeCoaches = (coaches.length > 0 ? coaches : fallbackCoaches).filter(
     (coach) => coach.status !== "Inactive"
   );
+  const allCoaches = coaches.length > 0 ? coaches : fallbackCoaches;
+  const currentScopedCoach = activeCoaches.find(
+    (coach) => coach.name === coachScope
+  );
+  const canManageCoaches =
+    coachScope === "All Coaches" || currentScopedCoach?.role === "Admin";
   const getCoachRecordIdByName = (name: string) =>
     activeCoaches.find((coach) => coach.name === name)?.recordId || "";
   const getCoachDisplayName = (value = "") => {
@@ -967,6 +984,23 @@ function App() {
     );
 
     return match?.name || value;
+  };
+  const clientBelongsToCoach = (client: Client, coach: Coach) => {
+    const coachValues = [client.coach, client.primaryCoach, client.secondaryCoach]
+      .filter(Boolean)
+      .map((value) => String(value).toLowerCase());
+    const coachMatches = [
+      coach.name,
+      coach.recordId,
+      coach.coachId,
+      getCoachDisplayName(coach.name),
+    ]
+      .filter(Boolean)
+      .map((value) => String(value).toLowerCase());
+
+    return coachValues.some((value) =>
+      coachMatches.some((coachValue) => value === coachValue)
+    );
   };
 
   const buildClientPortalLink = (client: Client) =>
@@ -1181,6 +1215,122 @@ function App() {
     } catch (error) {
       console.error(error);
       setProductOrders([]);
+    }
+  };
+
+  const closeCoachForm = () => {
+    setShowCoachModal(false);
+    setEditingCoach(null);
+    setCoachForm({
+      name: "",
+      email: "",
+      phoneWechat: "",
+      role: "Coach",
+      status: "Active",
+      bio: "",
+    });
+  };
+
+  const openNewCoachForm = () => {
+    setEditingCoach(null);
+    setCoachForm({
+      name: "",
+      email: "",
+      phoneWechat: "",
+      role: "Coach",
+      status: "Active",
+      bio: "",
+    });
+    setShowCoachModal(true);
+  };
+
+  const openEditCoachForm = (coach: Coach) => {
+    setEditingCoach(coach);
+    setCoachForm({
+      name: coach.name || "",
+      email: coach.email || "",
+      phoneWechat: coach.phoneWechat || "",
+      role: coach.role || "Coach",
+      status: coach.status || "Active",
+      bio: coach.bio || "",
+    });
+    setShowCoachModal(true);
+  };
+
+  const saveCoachForm = async () => {
+    if (!coachForm.name.trim()) {
+      notify("Please enter a coach name.", "error");
+      return;
+    }
+
+    setSavingCoach(true);
+
+    try {
+      const response = await fetch("/api/upsertCoach", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          ...coachForm,
+          recordId: editingCoach?.recordId,
+          coachId: editingCoach?.coachId,
+        }),
+      });
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        console.error(data);
+        notify("Could not save coach.", "error");
+        return;
+      }
+
+      await loadCoaches();
+      closeCoachForm();
+      notify(editingCoach ? "Coach updated." : "Coach created.", "success");
+    } catch (error) {
+      console.error(error);
+      notify("Could not save coach.", "error");
+    } finally {
+      setSavingCoach(false);
+    }
+  };
+
+  const updateCoachStatus = async (coach: Coach, status: "Active" | "Inactive") => {
+    if (!coach.recordId) {
+      notify("This coach needs to exist in Feishu before editing.", "error");
+      return;
+    }
+
+    setSavingCoach(true);
+
+    try {
+      const response = await fetch("/api/upsertCoach", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          ...coach,
+          phoneWechat: coach.phoneWechat || "",
+          status,
+        }),
+      });
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        console.error(data);
+        notify("Could not update coach status.", "error");
+        return;
+      }
+
+      await loadCoaches();
+      notify(`Coach marked ${status}.`, "success");
+    } catch (error) {
+      console.error(error);
+      notify("Could not update coach status.", "error");
+    } finally {
+      setSavingCoach(false);
     }
   };
 
@@ -3617,11 +3767,43 @@ function App() {
     missing: coachVisibleClients.filter((client) => getCheckInAgeDays(client) === null).length,
   };
 
-  const menuItems: { name: Page; label: string; count: number; icon: LucideIcon }[] = [
-    { name: "Clients", label: "Clients", count: coachVisibleClients.length, icon: Users },
-    { name: "Library", label: "Library", count: libraryExercises.length, icon: BookOpen },
-    { name: "Workouts", label: "Programming", count: workouts.length, icon: Dumbbell },
-  ];
+  const menuItems: { name: Page; label: string; count: number; icon: LucideIcon }[] =
+    [
+      {
+        name: "Clients",
+        label: "Clients",
+        count: coachVisibleClients.length,
+        icon: Users,
+      },
+      {
+        name: "Library",
+        label: "Library",
+        count: libraryExercises.length,
+        icon: BookOpen,
+      },
+      {
+        name: "Workouts",
+        label: "Programming",
+        count: workouts.length,
+        icon: Dumbbell,
+      },
+      ...(canManageCoaches
+        ? [
+            {
+              name: "Coaches" as Page,
+              label: "Coaches",
+              count: allCoaches.length,
+              icon: Users,
+            },
+          ]
+        : []),
+    ];
+
+  useEffect(() => {
+    if (activePage === "Coaches" && !canManageCoaches) {
+      setActivePage("Clients");
+    }
+  }, [activePage, canManageCoaches]);
 
   const clientStatusOptions = Array.from(
     new Set(coachVisibleClients.map((client) => client.status).filter(Boolean))
@@ -4898,6 +5080,14 @@ function App() {
                 </div>
               )}
 
+              {activePage === "Coaches" && canManageCoaches && (
+                <div className="topbarActions">
+                  <button className="goldButton" onClick={openNewCoachForm}>
+                    + Add Coach
+                  </button>
+                </div>
+              )}
+
               {activePage === "Workouts" && workoutPageTab === "Program Builder" && (
                 <button className="goldButton" onClick={saveFullProgram}>
                   {savingTemplate ? "Saving..." : "Save Full Program"}
@@ -5063,6 +5253,114 @@ function App() {
                   </section>
                 </section>
               </>
+            )}
+
+            {activePage === "Coaches" && canManageCoaches && (
+              <section className="coachManagementPage">
+                <div className="coachManagementSummary">
+                  <div>
+                    <span>Team</span>
+                    <strong>{allCoaches.length}</strong>
+                    <small>Total coaches</small>
+                  </div>
+                  <div>
+                    <span>Active</span>
+                    <strong>{activeCoaches.length}</strong>
+                    <small>Assignable now</small>
+                  </div>
+                  <div>
+                    <span>Admins</span>
+                    <strong>
+                      {
+                        allCoaches.filter(
+                          (coach) => coach.role?.toLowerCase() === "admin"
+                        ).length
+                      }
+                    </strong>
+                    <small>Can manage team</small>
+                  </div>
+                </div>
+
+                <section className="tableCard coachTableCard">
+                  <div className="tableHeader coachTableHeader">
+                    <span>Coach</span>
+                    <span>Role</span>
+                    <span>Status</span>
+                    <span>Assigned Clients</span>
+                    <span>Contact</span>
+                    <span>Actions</span>
+                  </div>
+
+                  {allCoaches.map((coach) => {
+                    const assignedClients = clients.filter((client) =>
+                      clientBelongsToCoach(client, coach)
+                    );
+
+                    return (
+                      <div
+                        className="clientRow coachTableRow"
+                        key={coach.recordId || coach.coachId || coach.name}
+                      >
+                        <div className="clientName">
+                          <div className="clientAvatar">
+                            {coach.name
+                              .split(" ")
+                              .map((part) => part[0])
+                              .join("")
+                              .slice(0, 2)
+                              .toUpperCase()}
+                          </div>
+                          <div>
+                            <strong>{coach.name}</strong>
+                            <small>{coach.coachId || "Coach record"}</small>
+                          </div>
+                        </div>
+                        <span>{coach.role || "Coach"}</span>
+                        <span
+                          className={
+                            coach.status === "Active"
+                              ? "status activeStatus"
+                              : "status holdStatus"
+                          }
+                        >
+                          {coach.status || "Active"}
+                        </span>
+                        <span>{assignedClients.length}</span>
+                        <span>{coach.email || coach.phoneWechat || "--"}</span>
+                        <div className="coachRowActions">
+                          <button
+                            className="outlineButton"
+                            onClick={() => openEditCoachForm(coach)}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            className="outlineButton"
+                            disabled={savingCoach}
+                            onClick={() =>
+                              updateCoachStatus(
+                                coach,
+                                coach.status === "Inactive" ? "Active" : "Inactive"
+                              )
+                            }
+                          >
+                            {coach.status === "Inactive" ? "Activate" : "Deactivate"}
+                          </button>
+                          <button
+                            className="outlineButton"
+                            onClick={() => {
+                              setCoachScope(coach.name);
+                              setActivePage("Clients");
+                            }}
+                          >
+                            View Roster
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </section>
+              </section>
             )}
 
             {activePage === "Library" && (
@@ -6669,7 +6967,7 @@ function App() {
                         Copy portal link
                       </button>
                       <button onClick={() => openEditClientForm(selectedClient)}>
-                        Edit client
+                        Edit / assign coach
                       </button>
                       <button
                         onClick={() => updateClientPackage(selectedClient, "Archived")}
@@ -9558,6 +9856,120 @@ function App() {
                     : editingClient
                     ? "Save Client"
                     : "Create Client"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {showCoachModal && (
+          <div className="workout-modal-overlay">
+            <div className="clientFormModal">
+              <div className="modal-header">
+                <div>
+                  <h2>{editingCoach ? "Edit Coach" : "Add Coach"}</h2>
+                  <p>
+                    {editingCoach
+                      ? "Update coach access and assignment details."
+                      : "Create a coach record for client ownership."}
+                  </p>
+                </div>
+
+                <button className="drawerClose" onClick={closeCoachForm}>
+                  x
+                </button>
+              </div>
+
+              <div className="clientFormGrid">
+                <label>
+                  <span>Name</span>
+                  <input
+                    value={coachForm.name}
+                    onChange={(e) =>
+                      setCoachForm({ ...coachForm, name: e.target.value })
+                    }
+                    placeholder="Coach name"
+                  />
+                </label>
+
+                <label>
+                  <span>Role</span>
+                  <select
+                    value={coachForm.role}
+                    onChange={(e) =>
+                      setCoachForm({ ...coachForm, role: e.target.value })
+                    }
+                  >
+                    <option>Coach</option>
+                    <option>Admin</option>
+                  </select>
+                </label>
+
+                <label>
+                  <span>Status</span>
+                  <select
+                    value={coachForm.status}
+                    onChange={(e) =>
+                      setCoachForm({ ...coachForm, status: e.target.value })
+                    }
+                  >
+                    <option>Active</option>
+                    <option>Inactive</option>
+                  </select>
+                </label>
+
+                <label>
+                  <span>Email</span>
+                  <input
+                    value={coachForm.email}
+                    onChange={(e) =>
+                      setCoachForm({ ...coachForm, email: e.target.value })
+                    }
+                    placeholder="coach@example.com"
+                  />
+                </label>
+
+                <label>
+                  <span>Phone/WeChat</span>
+                  <input
+                    value={coachForm.phoneWechat}
+                    onChange={(e) =>
+                      setCoachForm({
+                        ...coachForm,
+                        phoneWechat: e.target.value,
+                      })
+                    }
+                    placeholder="Phone or WeChat"
+                  />
+                </label>
+
+                <label className="clientNotesField">
+                  <span>Bio / Notes</span>
+                  <textarea
+                    value={coachForm.bio}
+                    onChange={(e) =>
+                      setCoachForm({ ...coachForm, bio: e.target.value })
+                    }
+                    placeholder="Specialty, schedule, internal notes..."
+                  />
+                </label>
+              </div>
+
+              <div className="modalActions">
+                <button className="outlineButton" onClick={closeCoachForm}>
+                  Cancel
+                </button>
+
+                <button
+                  className="goldButton"
+                  onClick={saveCoachForm}
+                  disabled={savingCoach}
+                >
+                  {savingCoach
+                    ? "Saving..."
+                    : editingCoach
+                    ? "Save Coach"
+                    : "Create Coach"}
                 </button>
               </div>
             </div>
