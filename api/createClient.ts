@@ -22,7 +22,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       email,
       phone,
       coach,
+      primaryCoachId,
+      secondaryCoachId,
+      clientType,
       packageType,
+      packageName,
+      subscriptionStatus,
+      intakeStatus,
+      paymentStatus,
+      purchasedProgramId,
+      accessStartDate,
+      accessEndDate,
+      source,
+      paymentId,
       languagePreference,
       startDate,
       notes,
@@ -64,11 +76,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       Notes: notes || "",
     };
 
+    if (clientType) fields["Client Type"] = clientType;
+    if (primaryCoachId) fields["Primary Coach"] = [primaryCoachId];
+    if (secondaryCoachId) fields["Secondary Coach"] = [secondaryCoachId];
+    if (packageName) fields.Package = packageName;
+    if (subscriptionStatus) fields["Subscription Status"] = subscriptionStatus;
+    if (intakeStatus) fields["Intake Status"] = intakeStatus;
+    if (paymentStatus) fields["Payment Status"] = paymentStatus;
+    if (purchasedProgramId) fields["Purchased Program ID"] = purchasedProgramId;
+    if (source) fields.Source = source;
+    if (paymentId) fields["Stripe/Payment ID"] = paymentId;
+
     const larkStartDate = toLarkDate(startDate || "");
 
     if (larkStartDate) {
       fields["Start Date"] = larkStartDate;
     }
+
+    const larkAccessStartDate = toLarkDate(accessStartDate || "");
+    const larkAccessEndDate = toLarkDate(accessEndDate || "");
+
+    if (larkAccessStartDate) fields["Access Start Date"] = larkAccessStartDate;
+    if (larkAccessEndDate) fields["Access End Date"] = larkAccessEndDate;
 
     const createResponse = await fetch(
       `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${process.env.FEISHU_CLIENTS_TABLE_ID}/records`,

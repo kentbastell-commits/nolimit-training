@@ -17,7 +17,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       email,
       phone,
       coach,
+      primaryCoachId,
+      secondaryCoachId,
+      clientType,
       packageType,
+      packageName,
+      subscriptionStatus,
+      intakeStatus,
+      paymentStatus,
+      purchasedProgramId,
+      accessStartDate,
+      accessEndDate,
+      source,
+      paymentId,
       startDate,
       lastCheckInDate,
       notes,
@@ -55,7 +67,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (email !== undefined) fields.Email = email;
     if (phone !== undefined) fields["Phone/WeChat"] = phone;
     if (coach !== undefined) fields["Coach Assigned"] = coach;
+    if (primaryCoachId !== undefined) fields["Primary Coach"] = primaryCoachId ? [primaryCoachId] : [];
+    if (secondaryCoachId !== undefined) fields["Secondary Coach"] = secondaryCoachId ? [secondaryCoachId] : [];
+    if (clientType !== undefined) fields["Client Type"] = clientType;
     if (packageType !== undefined) fields["Package Type"] = packageType;
+    if (packageName !== undefined) fields.Package = packageName;
+    if (subscriptionStatus !== undefined) fields["Subscription Status"] = subscriptionStatus;
+    if (intakeStatus !== undefined) fields["Intake Status"] = intakeStatus;
+    if (paymentStatus !== undefined) fields["Payment Status"] = paymentStatus;
+    if (purchasedProgramId !== undefined) fields["Purchased Program ID"] = purchasedProgramId;
+    if (source !== undefined) fields.Source = source;
+    if (paymentId !== undefined) fields["Stripe/Payment ID"] = paymentId;
     if (notes !== undefined) fields.Notes = notes;
     if (languagePreference !== undefined) {
       fields["Language Preference"] = languagePreference;
@@ -71,6 +93,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (larkLastCheckInDate) {
       fields["Last Check-in Date"] = larkLastCheckInDate;
     }
+
+    const larkAccessStartDate = toLarkDate(accessStartDate || "");
+    const larkAccessEndDate = toLarkDate(accessEndDate || "");
+
+    if (larkAccessStartDate) fields["Access Start Date"] = larkAccessStartDate;
+    if (larkAccessEndDate) fields["Access End Date"] = larkAccessEndDate;
 
     const updateResponse = await fetch(
       `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${process.env.FEISHU_CLIENTS_TABLE_ID}/records/${clientRecordId}`,

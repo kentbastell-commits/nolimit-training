@@ -87,10 +87,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         training: "--",
         program: fieldToText(fields["Program ID"]) || "--",
         status: fieldToText(fields["Package Type"]) || "Active",
+        clientType: fieldToText(fields["Client Type"]),
+        primaryCoach: fieldToText(fields["Primary Coach"]),
+        secondaryCoach: fieldToText(fields["Secondary Coach"]),
+        package: fieldToText(fields["Package"]),
+        subscriptionStatus: fieldToText(fields["Subscription Status"]),
+        intakeStatus: fieldToText(fields["Intake Status"]),
+        paymentStatus: fieldToText(fields["Payment Status"]),
+        purchasedProgramId: fieldToText(fields["Purchased Program ID"]),
+        accessStartDate: formatDate(fields["Access Start Date"]),
+        accessEndDate: formatDate(fields["Access End Date"]),
+        source: fieldToText(fields["Source"]),
+        paymentId: fieldToText(fields["Stripe/Payment ID"]),
         email: fieldToText(fields["Email"]),
         phone: fieldToText(fields["Phone/WeChat"]),
-        coach: fieldToText(fields["Coach Assigned"]),
+        coach:
+          fieldToText(fields["Primary Coach"]) ||
+          fieldToText(fields["Coach Assigned"]),
         notes: fieldToText(fields["Notes"]),
+        notesEn: fieldToText(fields["Notes EN"]),
         startDate: formatDate(fields["Start Date"]),
         languagePreference:
           fieldToText(fields["Language Preference"]) ||

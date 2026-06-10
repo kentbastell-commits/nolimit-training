@@ -96,12 +96,56 @@ type Client = {
   training: string;
   program: string;
   status: string;
+  clientType?: string;
+  primaryCoach?: string;
+  secondaryCoach?: string;
+  package?: string;
+  subscriptionStatus?: string;
+  intakeStatus?: string;
+  paymentStatus?: string;
+  purchasedProgramId?: string;
+  accessStartDate?: string;
+  accessEndDate?: string;
+  source?: string;
+  paymentId?: string;
   email?: string;
   phone?: string;
   coach?: string;
   notes?: string;
+  notesEn?: string;
   startDate?: string;
   languagePreference?: string;
+};
+
+type Coach = {
+  recordId: string;
+  coachId: string;
+  name: string;
+  email?: string;
+  phoneWechat?: string;
+  role: "Admin" | "Coach" | string;
+  status: "Active" | "Inactive" | string;
+  bio?: string;
+  createdAt?: string;
+};
+
+type ProductOrder = {
+  recordId: string;
+  orderId: string;
+  clientId: string;
+  clientName: string;
+  productType: string;
+  programId: string;
+  productName: string;
+  amount: string;
+  currency: string;
+  paymentStatus: string;
+  paymentProvider: string;
+  purchasedAt: string;
+  accessStartDate: string;
+  accessEndDate: string;
+  intakeStatus: string;
+  assignedCoach: string;
 };
 
 type Program = {
@@ -116,6 +160,16 @@ type Program = {
   sessionsPerWeek: string;
   coach: string;
   status: string;
+  productType?: string;
+  price?: string;
+  currency?: string;
+  publicStoreVisible?: boolean;
+  purchaseLink?: string;
+  defaultIntakeFormId?: string;
+  accessLengthDays?: string;
+  productStatus?: string;
+  salesDescription?: string;
+  salesDescriptionCn?: string;
 };
 
 type Workout = {
@@ -620,6 +674,9 @@ function App() {
   const publicInvitePackage = inviteSearchParams.get("package") || "Pending";
   const [activePage, setActivePage] = useState<Page>("Clients");
   const [clients, setClients] = useState<Client[]>([]);
+  const [coaches, setCoaches] = useState<Coach[]>([]);
+  const [productOrders, setProductOrders] = useState<ProductOrder[]>([]);
+  const [coachScope, setCoachScope] = useState("All Coaches");
   const [clientSearch, setClientSearch] = useState("");
   const [clientStatusFilter, setClientStatusFilter] = useState("All");
   const [checkInSearch, setCheckInSearch] = useState("");
@@ -664,7 +721,19 @@ function App() {
     email: "",
     phone: "",
     coach: "Kent Bastell",
+    primaryCoachId: "",
+    secondaryCoachId: "",
+    clientType: "Online Coaching",
     packageType: "Active",
+    packageName: "",
+    subscriptionStatus: "Active",
+    intakeStatus: "Not Sent",
+    paymentStatus: "Unpaid",
+    source: "Manual Entry",
+    purchasedProgramId: "",
+    accessStartDate: "",
+    accessEndDate: "",
+    paymentId: "",
     startDate: dateToInputValue(new Date()),
     notes: "",
     languagePreference: "English",
@@ -868,6 +937,37 @@ function App() {
 
   const coachInviteLink = buildInviteLink();
   const coachInviteMessage = `Hi, here is your NoLimit Training onboarding link. Please fill this out before we get started: ${coachInviteLink}`;
+  const fallbackCoaches: Coach[] = [
+    {
+      recordId: "",
+      coachId: "COACH-KENT",
+      name: "Kent Bastell",
+      role: "Admin",
+      status: "Active",
+    },
+    {
+      recordId: "",
+      coachId: "COACH-MARIO",
+      name: "Mario Artukovic",
+      role: "Admin",
+      status: "Active",
+    },
+  ];
+  const activeCoaches = (coaches.length > 0 ? coaches : fallbackCoaches).filter(
+    (coach) => coach.status !== "Inactive"
+  );
+  const getCoachRecordIdByName = (name: string) =>
+    activeCoaches.find((coach) => coach.name === name)?.recordId || "";
+  const getCoachDisplayName = (value = "") => {
+    const match = activeCoaches.find(
+      (coach) =>
+        coach.recordId === value ||
+        coach.coachId === value ||
+        coach.name.toLowerCase() === value.toLowerCase()
+    );
+
+    return match?.name || value;
+  };
 
   const buildClientPortalLink = (client: Client) =>
     `${window.location.origin}/?portal=client&client=${encodeURIComponent(
@@ -952,7 +1052,19 @@ function App() {
       email: "",
       phone: "",
       coach: "Kent Bastell",
+      primaryCoachId: "",
+      secondaryCoachId: "",
+      clientType: "Online Coaching",
       packageType: "Active",
+      packageName: "",
+      subscriptionStatus: "Active",
+      intakeStatus: "Not Sent",
+      paymentStatus: "Unpaid",
+      source: "Manual Entry",
+      purchasedProgramId: "",
+      accessStartDate: "",
+      accessEndDate: "",
+      paymentId: "",
       startDate: dateToInputValue(new Date()),
       notes: "",
       languagePreference: "English",
@@ -966,7 +1078,19 @@ function App() {
       email: "",
       phone: "",
       coach: "Kent Bastell",
+      primaryCoachId: "",
+      secondaryCoachId: "",
+      clientType: "Online Coaching",
       packageType: "Active",
+      packageName: "",
+      subscriptionStatus: "Active",
+      intakeStatus: "Not Sent",
+      paymentStatus: "Unpaid",
+      source: "Manual Entry",
+      purchasedProgramId: "",
+      accessStartDate: "",
+      accessEndDate: "",
+      paymentId: "",
       startDate: dateToInputValue(new Date()),
       notes: "",
       languagePreference: "English",
@@ -980,8 +1104,30 @@ function App() {
       name: client.name,
       email: client.email || "",
       phone: client.phone || "",
-      coach: client.coach || "Kent Bastell",
+      coach: getCoachDisplayName(client.coach || client.primaryCoach || "Kent Bastell"),
+      primaryCoachId: getCoachRecordIdByName(
+        getCoachDisplayName(client.coach || client.primaryCoach || "Kent Bastell")
+      ),
+      secondaryCoachId: getCoachRecordIdByName(
+        getCoachDisplayName(client.secondaryCoach || "")
+      ),
+      clientType: client.clientType || "Online Coaching",
       packageType: client.status || "Active",
+      packageName: client.package || "",
+      subscriptionStatus: client.subscriptionStatus || "Active",
+      intakeStatus: client.intakeStatus || "Not Sent",
+      paymentStatus: client.paymentStatus || "Unpaid",
+      source: client.source || "Manual Entry",
+      purchasedProgramId: client.purchasedProgramId || "",
+      accessStartDate:
+        client.accessStartDate && client.accessStartDate !== "--"
+          ? client.accessStartDate
+          : "",
+      accessEndDate:
+        client.accessEndDate && client.accessEndDate !== "--"
+          ? client.accessEndDate
+          : "",
+      paymentId: client.paymentId || "",
       startDate:
         client.startDate && client.startDate !== "--" ? client.startDate : "",
       notes: client.notes || "",
@@ -1000,6 +1146,42 @@ function App() {
         setLoading(false);
       })
       .catch(() => setLoading(false));
+  };
+
+  const loadCoaches = async () => {
+    try {
+      const response = await fetch("/api/coaches");
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error(data);
+        setCoaches([]);
+        return;
+      }
+
+      setCoaches(data.coaches || []);
+    } catch (error) {
+      console.error(error);
+      setCoaches([]);
+    }
+  };
+
+  const loadProductOrders = async () => {
+    try {
+      const response = await fetch("/api/productOrders");
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error(data);
+        setProductOrders([]);
+        return;
+      }
+
+      setProductOrders(data.orders || []);
+    } catch (error) {
+      console.error(error);
+      setProductOrders([]);
+    }
   };
 
   const loadAnalytics = async () => {
@@ -1027,6 +1209,8 @@ function App() {
 
   useEffect(() => {
     loadClients();
+    loadCoaches();
+    loadProductOrders();
   }, []);
 
   useEffect(() => {
@@ -3402,23 +3586,45 @@ function App() {
     return ageDays === null || ageDays >= 7;
   };
 
+  const clientBelongsToCoachScope = (client: Client) => {
+    if (coachScope === "All Coaches") return true;
+
+    const scopedCoach = activeCoaches.find((coach) => coach.name === coachScope);
+    const coachValues = [
+      client.coach,
+      client.primaryCoach,
+      client.secondaryCoach,
+    ]
+      .filter(Boolean)
+      .map((value) => getCoachDisplayName(String(value)).toLowerCase());
+
+    return coachValues.some(
+      (value) =>
+        value === coachScope.toLowerCase() ||
+        value === scopedCoach?.recordId.toLowerCase() ||
+        value === scopedCoach?.coachId.toLowerCase()
+    );
+  };
+
+  const coachVisibleClients = clients.filter(clientBelongsToCoachScope);
+
   const checkInStats = {
-    due: clients.filter(clientNeedsCheckIn).length,
-    recent: clients.filter((client) => {
+    due: coachVisibleClients.filter(clientNeedsCheckIn).length,
+    recent: coachVisibleClients.filter((client) => {
       const ageDays = getCheckInAgeDays(client);
       return ageDays !== null && ageDays < 7;
     }).length,
-    missing: clients.filter((client) => getCheckInAgeDays(client) === null).length,
+    missing: coachVisibleClients.filter((client) => getCheckInAgeDays(client) === null).length,
   };
 
   const menuItems: { name: Page; label: string; count: number; icon: LucideIcon }[] = [
-    { name: "Clients", label: "Clients", count: clients.length, icon: Users },
+    { name: "Clients", label: "Clients", count: coachVisibleClients.length, icon: Users },
     { name: "Library", label: "Library", count: libraryExercises.length, icon: BookOpen },
     { name: "Workouts", label: "Programming", count: workouts.length, icon: Dumbbell },
   ];
 
   const clientStatusOptions = Array.from(
-    new Set(clients.map((client) => client.status).filter(Boolean))
+    new Set(coachVisibleClients.map((client) => client.status).filter(Boolean))
   );
 
   const clientNeedsProgramming = (client: Client) =>
@@ -3442,43 +3648,43 @@ function App() {
   };
 
   const clientBuckets: { name: ClientBucket; count: number }[] = [
-    { name: "All Clients", count: clients.length },
+    { name: "All Clients", count: coachVisibleClients.length },
     {
       name: "Active",
-      count: clients.filter((client) => clientMatchesBucket(client, "Active"))
+      count: coachVisibleClients.filter((client) => clientMatchesBucket(client, "Active"))
         .length,
     },
     {
       name: "Premium",
-      count: clients.filter((client) => clientMatchesBucket(client, "Premium"))
+      count: coachVisibleClients.filter((client) => clientMatchesBucket(client, "Premium"))
         .length,
     },
     {
       name: "Online Coaching",
-      count: clients.filter((client) =>
+      count: coachVisibleClients.filter((client) =>
         clientMatchesBucket(client, "Online Coaching")
       ).length,
     },
     {
       name: "Paused",
-      count: clients.filter((client) => clientMatchesBucket(client, "Paused"))
+      count: coachVisibleClients.filter((client) => clientMatchesBucket(client, "Paused"))
         .length,
     },
     {
       name: "Needs Contact",
-      count: clients.filter(clientNeedsContact).length,
+      count: coachVisibleClients.filter(clientNeedsContact).length,
     },
     {
       name: "Needs Programming",
-      count: clients.filter(clientNeedsProgramming).length,
+      count: coachVisibleClients.filter(clientNeedsProgramming).length,
     },
     {
       name: "Archived",
-      count: clients.filter(clientIsArchived).length,
+      count: coachVisibleClients.filter(clientIsArchived).length,
     },
   ];
 
-  const filteredClients = clients.filter((client) => {
+  const filteredClients = coachVisibleClients.filter((client) => {
     const search = clientSearch.toLowerCase();
     const matchesSearch =
       client.name.toLowerCase().includes(search) ||
@@ -3492,7 +3698,7 @@ function App() {
     return matchesSearch && matchesStatus && matchesBucket;
   });
 
-  const filteredCheckInClients = clients.filter((client) => {
+  const filteredCheckInClients = coachVisibleClients.filter((client) => {
     const search = checkInSearch.toLowerCase();
     const ageDays = getCheckInAgeDays(client);
     const matchesSearch =
@@ -3530,6 +3736,15 @@ function App() {
       : selectedClientCheckInAge === 0
         ? "Today"
         : `${selectedClientCheckInAge}d ago`;
+  const selectedClientOrders = selectedClient
+    ? productOrders.filter(
+        (order) =>
+          order.clientId.includes(selectedClient.id) ||
+          order.clientId.includes(selectedClient.clientCode) ||
+          order.clientName.toLowerCase() === selectedClient.name.toLowerCase()
+      )
+    : [];
+  const selectedClientLatestOrder = selectedClientOrders[0];
   const saveClientForm = async () => {
     if (!newClient.name.trim()) {
       notify("Please enter a client name.", "error");
@@ -3539,6 +3754,16 @@ function App() {
     setSavingClient(true);
 
     try {
+      const primaryCoachId =
+        newClient.primaryCoachId || getCoachRecordIdByName(newClient.coach);
+      const selectedPrimaryCoach =
+        activeCoaches.find((coach) => coach.recordId === primaryCoachId)?.name ||
+        newClient.coach;
+      const clientPayload = {
+        ...newClient,
+        coach: selectedPrimaryCoach,
+        primaryCoachId,
+      };
       const response = await fetch(
         editingClient ? "/api/updateClient" : "/api/createClient",
         {
@@ -3548,8 +3773,8 @@ function App() {
         },
           body: JSON.stringify(
             editingClient
-              ? { ...newClient, clientRecordId: editingClient.id }
-              : newClient
+              ? { ...clientPayload, clientRecordId: editingClient.id }
+              : clientPayload
           ),
         }
       );
@@ -4616,10 +4841,27 @@ function App() {
             </span>
           </div>
           <div>
-            <strong>Kent Bastell</strong>
+            <strong>{coachScope === "All Coaches" ? "Admin View" : coachScope}</strong>
             <p>{appMode}</p>
           </div>
         </div>
+
+        {!isClientPortal && (
+          <label className="coachScopeControl">
+            <span>View as</span>
+            <select
+              value={coachScope}
+              onChange={(event) => setCoachScope(event.target.value)}
+            >
+              <option>All Coaches</option>
+              {activeCoaches.map((coach) => (
+                <option key={coach.recordId || coach.coachId} value={coach.name}>
+                  {coach.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
       </aside>
 
       <main className="main">
@@ -4725,6 +4967,20 @@ function App() {
                         ))}
                       </select>
 
+                      <select
+                        value={coachScope}
+                        onChange={(event) => setCoachScope(event.target.value)}
+                      >
+                        <option>All Coaches</option>
+                        {activeCoaches.map((coach) => (
+                          <option
+                            key={coach.recordId || coach.coachId}
+                            value={coach.name}
+                          >
+                            {coach.name}
+                          </option>
+                        ))}
+                      </select>
                     </div>
 
                     {loading && <p>Loading clients...</p>}
@@ -4735,6 +4991,7 @@ function App() {
                         <span>Name</span>
                         <span>Contact</span>
                         <span>Program</span>
+                        <span>Coach</span>
                         <span>Last Activity</span>
                         <span>Last 7d</span>
                         <span>Attention</span>
@@ -4778,6 +5035,7 @@ function App() {
                               {client.email || client.phone || "--"}
                             </span>
                             <span>{client.program}</span>
+                            <span>{getCoachDisplayName(client.coach || client.primaryCoach || "--")}</span>
                             <span>{client.activity}</span>
                             <span>{client.training}</span>
                             <span className="attentionCell">
@@ -6058,7 +6316,7 @@ function App() {
                           onChange={(e) => setAssignmentClientId(e.target.value)}
                         >
                           <option value="">Select client</option>
-                          {clients.map((client) => (
+                          {coachVisibleClients.map((client) => (
                             <option key={client.id} value={client.id}>
                               {client.name}
                             </option>
@@ -6342,9 +6600,22 @@ function App() {
                     {isClientPortal
                       ? `${selectedClient.status} - ${selectedClient.program}`
                       : `${selectedClient.clientCode || "Client"} - ${
-                          selectedClient.coach || "Coach view"
+                          getCoachDisplayName(
+                            selectedClient.coach || selectedClient.primaryCoach || "Coach view"
+                          )
                         }`}
                   </p>
+                  {!isClientPortal && (
+                    <div className="clientLayerBadges">
+                      <span>{selectedClient.clientType || "Client"}</span>
+                      <span>
+                        Intake: {selectedClient.intakeStatus || "Not Sent"}
+                      </span>
+                      <span>
+                        Payment: {selectedClient.paymentStatus || "Unpaid"}
+                      </span>
+                    </div>
+                  )}
                   <div
                     className="clientPortalLanguageSwitch"
                     aria-label={t("languagePreference")}
@@ -6874,15 +7145,60 @@ function App() {
                       </div>
                       <div>
                         <span>{t("coach")}</span>
-                        <strong>{selectedClient.coach || "--"}</strong>
+                        <strong>
+                          {getCoachDisplayName(
+                            selectedClient.coach || selectedClient.primaryCoach || "--"
+                          )}
+                        </strong>
+                      </div>
+                      <div>
+                        <span>Client Type</span>
+                        <strong>{selectedClient.clientType || "--"}</strong>
                       </div>
                       <div>
                         <span>{t("package")}</span>
-                        <strong>{selectedClient.status || "--"}</strong>
+                        <strong>
+                          {selectedClient.package ||
+                            selectedClient.status ||
+                            "--"}
+                        </strong>
+                      </div>
+                      <div>
+                        <span>Subscription</span>
+                        <strong>{selectedClient.subscriptionStatus || "--"}</strong>
+                      </div>
+                      <div>
+                        <span>Intake</span>
+                        <strong>{selectedClient.intakeStatus || "--"}</strong>
+                      </div>
+                      <div>
+                        <span>Payment</span>
+                        <strong>{selectedClient.paymentStatus || "--"}</strong>
+                      </div>
+                      <div>
+                        <span>Latest Order</span>
+                        <strong>
+                          {selectedClientLatestOrder
+                            ? `${selectedClientLatestOrder.productName || "Order"} - ${
+                                selectedClientLatestOrder.paymentStatus || "--"
+                              }`
+                            : "--"}
+                        </strong>
+                      </div>
+                      <div>
+                        <span>Source</span>
+                        <strong>{selectedClient.source || "--"}</strong>
                       </div>
                       <div>
                         <span>{t("startDate")}</span>
                         <strong>{selectedClient.startDate || "--"}</strong>
+                      </div>
+                      <div>
+                        <span>Access Window</span>
+                        <strong>
+                          {selectedClient.accessStartDate || "--"} to{" "}
+                          {selectedClient.accessEndDate || "--"}
+                        </strong>
                       </div>
                     </div>
                   </div>
@@ -8970,6 +9286,72 @@ function App() {
                 </label>
 
                 <label>
+                  <span>Client Type</span>
+                  <select
+                    value={newClient.clientType}
+                    onChange={(e) =>
+                      setNewClient({ ...newClient, clientType: e.target.value })
+                    }
+                  >
+                    <option>Digital Program</option>
+                    <option>Online Coaching</option>
+                    <option>In-Person Training</option>
+                  </select>
+                </label>
+
+                <label>
+                  <span>Primary Coach</span>
+                  <select
+                    value={newClient.primaryCoachId || newClient.coach}
+                    onChange={(e) => {
+                      const selectedCoach = activeCoaches.find(
+                        (coach) =>
+                          coach.recordId === e.target.value ||
+                          coach.name === e.target.value
+                      );
+
+                      setNewClient({
+                        ...newClient,
+                        coach: selectedCoach?.name || e.target.value,
+                        primaryCoachId: selectedCoach?.recordId || "",
+                      });
+                    }}
+                  >
+                    {activeCoaches.map((coach) => (
+                      <option
+                        key={coach.recordId || coach.coachId}
+                        value={coach.recordId || coach.name}
+                      >
+                        {coach.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label>
+                  <span>Secondary Coach</span>
+                  <select
+                    value={newClient.secondaryCoachId}
+                    onChange={(e) =>
+                      setNewClient({
+                        ...newClient,
+                        secondaryCoachId: e.target.value,
+                      })
+                    }
+                  >
+                    <option value="">None</option>
+                    {activeCoaches.map((coach) => (
+                      <option
+                        key={coach.recordId || coach.coachId}
+                        value={coach.recordId}
+                      >
+                        {coach.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label>
                   <span>Package Type</span>
                   <select
                     value={newClient.packageType}
@@ -8982,6 +9364,17 @@ function App() {
                     <option>Online Coaching</option>
                     <option>Paused</option>
                   </select>
+                </label>
+
+                <label>
+                  <span>Package</span>
+                  <input
+                    value={newClient.packageName}
+                    onChange={(e) =>
+                      setNewClient({ ...newClient, packageName: e.target.value })
+                    }
+                    placeholder="Monthly, 3 months, digital plan..."
+                  />
                 </label>
 
                 <label>
@@ -9023,23 +9416,112 @@ function App() {
                 </label>
 
                 <label>
-                  <span>Coach</span>
-                  <input
-                    value={newClient.coach}
-                    onChange={(e) =>
-                      setNewClient({ ...newClient, coach: e.target.value })
-                    }
-                    placeholder="Coach"
-                  />
-                </label>
-
-                <label>
                   <span>Start Date</span>
                   <input
                     type="date"
                     value={newClient.startDate}
                     onChange={(e) =>
                       setNewClient({ ...newClient, startDate: e.target.value })
+                    }
+                  />
+                </label>
+
+                <label>
+                  <span>Subscription Status</span>
+                  <select
+                    value={newClient.subscriptionStatus}
+                    onChange={(e) =>
+                      setNewClient({
+                        ...newClient,
+                        subscriptionStatus: e.target.value,
+                      })
+                    }
+                  >
+                    <option>Active</option>
+                    <option>Trial</option>
+                    <option>Paused</option>
+                    <option>Cancelled</option>
+                    <option>Expired</option>
+                  </select>
+                </label>
+
+                <label>
+                  <span>Intake Status</span>
+                  <select
+                    value={newClient.intakeStatus}
+                    onChange={(e) =>
+                      setNewClient({ ...newClient, intakeStatus: e.target.value })
+                    }
+                  >
+                    <option>Not Sent</option>
+                    <option>Sent</option>
+                    <option>Submitted</option>
+                    <option>Reviewed</option>
+                  </select>
+                </label>
+
+                <label>
+                  <span>Payment Status</span>
+                  <select
+                    value={newClient.paymentStatus}
+                    onChange={(e) =>
+                      setNewClient({ ...newClient, paymentStatus: e.target.value })
+                    }
+                  >
+                    <option>Unpaid</option>
+                    <option>Paid</option>
+                    <option>Failed</option>
+                    <option>Refunded</option>
+                  </select>
+                </label>
+
+                <label>
+                  <span>Source</span>
+                  <select
+                    value={newClient.source}
+                    onChange={(e) =>
+                      setNewClient({ ...newClient, source: e.target.value })
+                    }
+                  >
+                    <option>Store</option>
+                    <option>Coach Invite</option>
+                    <option>Manual Entry</option>
+                    <option>Referral</option>
+                  </select>
+                </label>
+
+                <label>
+                  <span>Purchased Program ID</span>
+                  <input
+                    value={newClient.purchasedProgramId}
+                    onChange={(e) =>
+                      setNewClient({
+                        ...newClient,
+                        purchasedProgramId: e.target.value,
+                      })
+                    }
+                    placeholder="Program ID"
+                  />
+                </label>
+
+                <label>
+                  <span>Access Start Date</span>
+                  <input
+                    type="date"
+                    value={newClient.accessStartDate}
+                    onChange={(e) =>
+                      setNewClient({ ...newClient, accessStartDate: e.target.value })
+                    }
+                  />
+                </label>
+
+                <label>
+                  <span>Access End Date</span>
+                  <input
+                    type="date"
+                    value={newClient.accessEndDate}
+                    onChange={(e) =>
+                      setNewClient({ ...newClient, accessEndDate: e.target.value })
                     }
                   />
                 </label>

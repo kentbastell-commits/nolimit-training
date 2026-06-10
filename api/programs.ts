@@ -85,6 +85,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         sessionsPerWeek: fieldToText(fields["Sessions / Week"]),
         coach: fieldToText(fields["Coach"]),
         status: fieldToText(fields["Status"]),
+        productType: fieldToText(fields["Product Type"]),
+        price: fieldToText(fields["Price"]),
+        currency: fieldToText(fields["Currency"]),
+        publicStoreVisible: Boolean(fields["Public Store Visible"]),
+        purchaseLink: fieldToText(fields["Purchase Link"]),
+        defaultIntakeFormId: fieldToText(fields["Default Intake Form ID"]),
+        accessLengthDays: fieldToText(fields["Access Length Days"]),
+        productStatus: fieldToText(fields["Product Status"]),
+        salesDescription: fieldToText(fields["Sales Description"]),
+        salesDescriptionCn: fieldToText(fields["Sales Description CN"]),
       };
     });
 
