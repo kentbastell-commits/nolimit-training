@@ -7208,3 +7208,114 @@ textarea {
     font-size: 16px;
   }
 }
+
+/* Final coach workout logging palette: mirrors the client workout card language. */
+.app:not(.clientPortalApp) .workout-modal .workoutLogExerciseCard {
+  background: #ffffff !important;
+  border: 1px solid #deded8 !important;
+  border-left: 4px solid #9a7a26 !important;
+  color: var(--brand-ink) !important;
+  box-shadow: 0 16px 36px rgba(18, 18, 16, 0.08) !important;
+}
+
+.app:not(.clientPortalApp) .workout-modal .workoutExerciseTitle h3,
+.app:not(.clientPortalApp) .workout-modal .workoutLogExerciseCard h3 {
+  color: var(--brand-ink) !important;
+  font-weight: 900 !important;
+}
+
+.app:not(.clientPortalApp) .workout-modal .workoutPrescriptionGrid {
+  border-bottom: 1px solid #d8d2c4 !important;
+}
+
+.app:not(.clientPortalApp) .workout-modal .workoutPrescriptionGrid span {
+  background: #f6f4ee !important;
+  border: 1px solid #deded8 !important;
+  color: var(--brand-ink) !important;
+}
+
+.app:not(.clientPortalApp) .workout-modal .workoutPrescriptionGrid strong,
+.app:not(.clientPortalApp) .workout-modal .setLogStatic span,
+.app:not(.clientPortalApp) .workout-modal .setLogField span,
+.app:not(.clientPortalApp) .workout-modal .desktopWorkoutSetRow .setLogField span,
+.app:not(.clientPortalApp) .workout-modal .workoutLogExerciseCard .setLogField span {
+  color: #5f5f59 !important;
+  font-weight: 900 !important;
+}
+
+.app:not(.clientPortalApp) .workout-modal .desktopWorkoutSetRow,
+.app:not(.clientPortalApp) .workout-modal .setLogRow,
+.app:not(.clientPortalApp) .workout-modal .mobileSetLogRow,
+.app:not(.clientPortalApp) .workout-modal .workoutLogExerciseCard .setLogRow,
+.app:not(.clientPortalApp) .workout-modal .workoutLogExerciseCard .desktopSetLogRow,
+.app:not(.clientPortalApp) .workout-modal .workoutLogExerciseCard .mobileSetLogRow {
+  background: #ffffff !important;
+  border: 1px solid #deded8 !important;
+  box-shadow: none !important;
+}
+
+.app:not(.clientPortalApp) .workout-modal .desktopWorkoutSetLabel,
+.app:not(.clientPortalApp) .workout-modal .setBanner,
+.app:not(.clientPortalApp) .workout-modal .workoutLogExerciseCard .setBanner,
+.app:not(.clientPortalApp) .workout-modal .workoutLogExerciseCard .desktopSetLogRow .setBanner {
+  background: #f2eee4 !important;
+  border: 1px solid #d8d0bb !important;
+  color: var(--brand-ink) !important;
+}
+
+.app:not(.clientPortalApp) .workout-modal .desktopWorkoutSetLabel strong,
+.app:not(.clientPortalApp) .workout-modal .setBanner strong,
+.app:not(.clientPortalApp) .workout-modal .workoutLogExerciseCard .setBanner strong {
+  color: var(--brand-ink) !important;
+  font-weight: 900 !important;
+}
+
+.app:not(.clientPortalApp) .workout-modal .setLogStatic strong {
+  color: var(--brand-ink) !important;
+  font-weight: 850 !important;
+}
+
+.app:not(.clientPortalApp) .workout-modal .setLogRow input,
+.app:not(.clientPortalApp) .workout-modal .setLogField input,
+.app:not(.clientPortalApp) .workout-modal .desktopWorkoutSetRow input,
+.app:not(.clientPortalApp) .workout-modal .mobileSetLogRow input {
+  background: #ffffff !important;
+  border: 1px solid #cfcfc8 !important;
+  color: var(--brand-ink) !important;
+  box-shadow: inset 0 1px 0 rgba(18, 18, 16, 0.03) !important;
+}
+
+.app:not(.clientPortalApp) .workout-modal .setLogRow input::placeholder,
+.app:not(.clientPortalApp) .workout-modal .setLogField input::placeholder {
+  color: #85857f !important;
+}
+
+.app:not(.clientPortalApp) .workout-modal .saveExerciseButton {
+  background: #ffffff !important;
+  border: 1px solid var(--brand-ink) !important;
+  color: var(--brand-ink) !important;
+}
+
+.app:not(.clientPortalApp) .workout-modal .savedExerciseButton {
+  background: #efede6 !important;
+  border-color: #9a7a26 !important;
+  color: var(--brand-ink) !important;
+}
+
+.app:not(.clientPortalApp) .workout-modal .saveWorkoutButton,
+.app:not(.clientPortalApp) .workout-modal .modalActions .goldButton {
+  background: var(--brand-ink) !important;
+  border-color: var(--brand-ink) !important;
+  color: #f1da86 !important;
+}
+
+@media (max-width: 720px) {
+  .app:not(.clientPortalApp) .workout-modal .workoutLogExerciseCard {
+    border-left-width: 0 !important;
+    border-top: 4px solid #9a7a26 !important;
+  }
+
+  .app:not(.clientPortalApp) .workout-modal .mobileSetLogRow {
+    gap: 10px !important;
+  }
+}
