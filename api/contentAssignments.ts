@@ -96,10 +96,26 @@ async function getRecords(tableId: string, token: string) {
 function mapAssignment(item: any, fallbackType: "Questionnaire" | "Physical Test") {
   const fields = item.fields || {};
   const assignedDate = normalizeDate(
-    readField(fields, ["Assigned Date", "assignedDate", "Date Assigned", "Start Date"])
+    readField(fields, ["Created At", "Created Date", "Assigned At"])
   );
   const dueDate = normalizeDate(
-    readField(fields, ["Due Date", "dueDate", "Scheduled Date", "Target Date", "Date"])
+    readField(fields, [
+      "Due Date",
+      "Due date",
+      "dueDate",
+      "Due",
+      "Deadline",
+      "Scheduled Date",
+      "Schedule Date",
+      "Assignment Date",
+      "Assigned Date",
+      "assignedDate",
+      "Date Assigned",
+      "Assigned For",
+      "Start Date",
+      "Target Date",
+      "Date",
+    ])
   );
 
   return {

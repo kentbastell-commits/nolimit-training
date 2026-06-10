@@ -73,6 +73,24 @@ function buildFields(
   return { fields, missingRequired };
 }
 
+const scheduledDateAliases = [
+  "Due Date",
+  "Due date",
+  "dueDate",
+  "Due",
+  "Deadline",
+  "Scheduled Date",
+  "Schedule Date",
+  "Assignment Date",
+  "Assigned Date",
+  "assignedDate",
+  "Date Assigned",
+  "Assigned For",
+  "Start Date",
+  "Target Date",
+  "Date",
+];
+
 async function getTenantToken() {
   const response = await fetch(
     "https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal",
@@ -303,16 +321,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         value: String(clientName || ""),
       },
       {
-        aliases: [
-          "Assigned Date",
-          "assignedDate",
-          "Date Assigned",
-          "Start Date",
-        ],
+        aliases: ["Created At", "Created Date", "Assigned At"],
         value: toLarkDate(assignedDate),
       },
       {
-        aliases: ["Due Date", "dueDate", "Scheduled Date", "Target Date", "Date"],
+        aliases: scheduledDateAliases,
         value: toLarkDate(dueDate),
       },
       {

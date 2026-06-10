@@ -6283,6 +6283,10 @@ function App() {
                                 date,
                                 clientCalendarStyle !== "Week"
                               );
+                            } else {
+                              setCalendarAnchorDate(date);
+                              setAssignStartDate(date);
+                              setAssignmentDueDate(date);
                             }
                           }}
                         >
@@ -6785,7 +6789,11 @@ function App() {
                                   } ${
                                     dateItemCount > 0 ? "hasClientMonthWork" : ""
                                   }`}
-                                  onClick={() => setCalendarAnchorDate(date)}
+                                  onClick={() => {
+                                    setCalendarAnchorDate(date);
+                                    setAssignStartDate(date);
+                                    setAssignmentDueDate(date);
+                                  }}
                                 >
                                   <span>{dayNumber}</span>
                                   <span

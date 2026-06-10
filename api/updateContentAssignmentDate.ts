@@ -103,8 +103,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const tableFields = await getTableFields(tableId, token);
     const dueDateField = resolveField(tableFields, [
       "Due Date",
+      "Due date",
       "dueDate",
+      "Due",
+      "Deadline",
       "Scheduled Date",
+      "Schedule Date",
+      "Assignment Date",
+      "Assigned Date",
+      "assignedDate",
+      "Date Assigned",
+      "Assigned For",
+      "Start Date",
       "Target Date",
       "Date",
     ]);
