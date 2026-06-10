@@ -1675,6 +1675,8 @@ function App() {
         await loadContentAssignments(client);
       }
 
+      setAssignmentDueDate(nextDueDate);
+      setCalendarAnchorDate(nextDueDate);
       notify(`${nextAssignmentType} assigned to ${client.name}.`, "success");
     } catch (error) {
       console.error(error);
@@ -5294,14 +5296,16 @@ function App() {
                         </select>
                       </label>
                       <label>
-                        <span>Due Date</span>
+                        <span>Start Date</span>
                         <input
                           className="miniSearch"
                           type="date"
                           value={assignmentDueDate}
-                          onChange={(e) =>
-                            setAssignmentDueDate(normalizeDate(e.target.value))
-                          }
+                          onChange={(e) => {
+                            const nextDate = normalizeDate(e.target.value);
+                            setAssignmentDueDate(nextDate);
+                            setCalendarAnchorDate(nextDate);
+                          }}
                         />
                       </label>
                       <button
@@ -6108,7 +6112,7 @@ function App() {
                       )}
 
                       <label>
-                        <span>{assignmentType === "Program" ? "Start Date" : "Due Date"}</span>
+                        <span>Start Date</span>
                         <input
                           type="date"
                           className="miniSearch"
