@@ -16,7 +16,7 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react";
-import { useEffect, useRef, useState, type DragEvent } from "react";
+import { useEffect, useRef, useState, type DragEvent, type TouchEvent } from "react";
 import { useTranslation } from "react-i18next";
 import "./App.css";
 
@@ -300,6 +300,26 @@ type ContentAssignment = {
   dueDate: string;
   status: string;
 };
+
+type CalendarActionMenuState =
+  | {
+      kind: "item";
+      x: number;
+      y: number;
+      item:
+        | { type: "workout"; workout: Workout }
+        | { type: "assignment"; assignment: ContentAssignment };
+    }
+  | {
+      kind: "date";
+      x: number;
+      y: number;
+      date: string;
+    };
+
+type CalendarActionMenuPayload =
+  | Omit<Extract<CalendarActionMenuState, { kind: "item" }>, "x" | "y">
+  | Omit<Extract<CalendarActionMenuState, { kind: "date" }>, "x" | "y">;
 
 type SetLog = {
   exerciseId: string;
@@ -635,6 +655,12 @@ function App() {
   const [movingAssignmentId, setMovingAssignmentId] = useState("");
   const [copiedCalendarItem, setCopiedCalendarItem] =
     useState<CopiedCalendarItem | null>(null);
+  const [calendarActionMenu, setCalendarActionMenu] =
+    useState<CalendarActionMenuState | null>(null);
+  const calendarLongPressTimer = useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  );
+  const calendarLongPressOpened = useRef(false);
   const [useMobileWorkoutRows, setUseMobileWorkoutRows] = useState(false);
 
   const [libraryExercises, setLibraryExercises] = useState<LibraryExercise[]>([]);
@@ -1335,6 +1361,35 @@ function App() {
       void loadFormTemplates();
     }
   }, [assignmentType, workoutPageTab, activePage, selectedClient]);
+
+  useEffect(() => {
+    if (!selectedClient) return;
+    if (savedFormTemplates.length === 0 && !formTemplatesLoading) {
+      void loadFormTemplates();
+    }
+    if (savedTestTemplates.length === 0 && !testTemplatesLoading) {
+      void loadTestTemplates();
+    }
+  }, [selectedClient]);
+
+  useEffect(() => {
+    const closeOnDocumentClick = () => closeCalendarActionMenu();
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        closeCalendarActionMenu();
+        setCopiedCalendarItem(null);
+      }
+    };
+
+    document.addEventListener("click", closeOnDocumentClick);
+    document.addEventListener("keydown", closeOnEscape);
+
+    return () => {
+      document.removeEventListener("click", closeOnDocumentClick);
+      document.removeEventListener("keydown", closeOnEscape);
+      clearCalendarLongPress();
+    };
+  }, []);
 
   const loadSavedFormIntoBuilder = (form: SavedFormTemplate | undefined) => {
     if (!form) {
@@ -2401,7 +2456,7 @@ function App() {
 
   const deleteContentAssignment = async (assignment: ContentAssignment) => {
     if (!selectedClient) return;
-    const name = assignment.templateName || assignment.assignmentType || "this item";
+    const name = getAssignmentDisplayName(assignment);
 
     if (!window.confirm(`Delete ${name} from the calendar?`)) return;
 
@@ -2431,6 +2486,84 @@ function App() {
       console.error(error);
       notify("Could not delete assigned item.", "error");
     }
+  };
+
+  const getAssignmentDisplayName = (assignment: ContentAssignment) => {
+    const isTest = assignment.assignmentType.toLowerCase().includes("test");
+    const savedTemplate = isTest
+      ? savedTestTemplates.find(
+          (test) =>
+            test.testTemplateId === assignment.templateId ||
+            test.recordId === assignment.templateId ||
+            test.name === assignment.templateName
+        )
+      : savedFormTemplates.find(
+          (form) =>
+            form.formId === assignment.templateId ||
+            form.recordId === assignment.templateId ||
+            form.name === assignment.templateName
+        );
+
+    if (isTest && savedTemplate && "name" in savedTemplate) {
+      return savedTemplate.name || assignment.templateName || "Physical Test";
+    }
+
+    if (!isTest && savedTemplate && "name" in savedTemplate) {
+      return savedTemplate.name || assignment.templateName || "Questionnaire";
+    }
+
+    return (
+      assignment.templateName ||
+      assignment.assignmentType ||
+      "Assigned item"
+    );
+  };
+
+  const closeCalendarActionMenu = () => setCalendarActionMenu(null);
+
+  const clearCalendarLongPress = () => {
+    if (calendarLongPressTimer.current) {
+      clearTimeout(calendarLongPressTimer.current);
+      calendarLongPressTimer.current = null;
+    }
+  };
+
+  const openCalendarActionMenu = (
+    x: number,
+    y: number,
+    menu: CalendarActionMenuPayload
+  ) => {
+    const menuWidth = 190;
+    const menuHeight = 190;
+    const maxX = Math.max(12, window.innerWidth - menuWidth - 12);
+    const maxY = Math.max(12, window.innerHeight - menuHeight - 12);
+
+    setCalendarActionMenu({
+      ...menu,
+      x: Math.min(Math.max(12, x), maxX),
+      y: Math.min(Math.max(12, y), maxY),
+    } as CalendarActionMenuState);
+  };
+
+  const startCalendarLongPress = (
+    event: TouchEvent,
+    menu: CalendarActionMenuPayload
+  ) => {
+    if (isClientPortal) return;
+    clearCalendarLongPress();
+    calendarLongPressOpened.current = false;
+    const touch = event.touches[0];
+
+    calendarLongPressTimer.current = setTimeout(() => {
+      calendarLongPressOpened.current = true;
+      openCalendarActionMenu(touch.clientX, touch.clientY, menu);
+    }, 520);
+  };
+
+  const consumeCalendarLongPressClick = () => {
+    if (!calendarLongPressOpened.current) return false;
+    calendarLongPressOpened.current = false;
+    return true;
   };
 
   const moveWorkoutToDate = async (workout: Workout, scheduledDate: string) => {
@@ -2541,7 +2674,7 @@ function App() {
     assignment: ContentAssignment,
     action: "copy" | "cut"
   ) => {
-    const label = assignment.templateName || assignment.assignmentType || "Assigned item";
+    const label = getAssignmentDisplayName(assignment);
 
     setCopiedCalendarItem({
       action,
@@ -3740,7 +3873,7 @@ function App() {
       type: "assignment" as const,
       id: assignment.recordId,
       date: normalizeDate(String(assignment.dueDate || assignment.assignedDate)),
-      title: assignment.templateName || "Assigned item",
+      title: getAssignmentDisplayName(assignment),
       meta: assignment.assignmentType || "Questionnaire",
       status: assignment.status || t("scheduled"),
       open: () => handleOpenContentAssignment(assignment),
@@ -6433,7 +6566,27 @@ function App() {
                               void moveWorkoutToDate(workout, date);
                             }
                           }}
+                          onContextMenu={(event) => {
+                            if (isClientPortal || !copiedCalendarItem) return;
+                            event.preventDefault();
+                            event.stopPropagation();
+                            openCalendarActionMenu(event.clientX, event.clientY, {
+                              kind: "date",
+                              date,
+                            });
+                          }}
+                          onTouchStart={(event) => {
+                            if (!copiedCalendarItem) return;
+                            startCalendarLongPress(event, {
+                              kind: "date",
+                              date,
+                            });
+                          }}
+                          onTouchMove={clearCalendarLongPress}
+                          onTouchEnd={clearCalendarLongPress}
+                          onTouchCancel={clearCalendarLongPress}
                           onClick={() => {
+                            if (consumeCalendarLongPressClick()) return;
                             if (isClientPortal) {
                               selectClientCalendarDate(
                                 date,
@@ -6539,7 +6692,29 @@ function App() {
                                 setDraggingWorkoutId(workout.id);
                               }}
                               onDragEnd={() => setDraggingWorkoutId("")}
-                              onClick={() => openWorkout(workout)}
+                              onContextMenu={(event) => {
+                                if (isClientPortal) return;
+                                event.preventDefault();
+                                event.stopPropagation();
+                                openCalendarActionMenu(event.clientX, event.clientY, {
+                                  kind: "item",
+                                  item: { type: "workout", workout },
+                                });
+                              }}
+                              onTouchStart={(event) => {
+                                event.stopPropagation();
+                                startCalendarLongPress(event, {
+                                  kind: "item",
+                                  item: { type: "workout", workout },
+                                });
+                              }}
+                              onTouchMove={clearCalendarLongPress}
+                              onTouchEnd={clearCalendarLongPress}
+                              onTouchCancel={clearCalendarLongPress}
+                              onClick={() => {
+                                if (consumeCalendarLongPressClick()) return;
+                                openWorkout(workout);
+                              }}
                               onKeyDown={(event) => {
                                 if (event.key === "Enter" || event.key === " ") {
                                   event.preventDefault();
@@ -6556,34 +6731,6 @@ function App() {
                                 </span>
                               </div>
 
-                              {!isClientPortal && (
-                                <div className="calendarInlineActions">
-                                  <button
-                                    className="calendarInlineAction"
-                                    type="button"
-                                    onClick={(event) => {
-                                      event.stopPropagation();
-                                      copyCalendarWorkout(workout, "copy");
-                                    }}
-                                    aria-label="Copy workout"
-                                    title="Copy"
-                                  >
-                                    <Copy size={14} aria-hidden="true" />
-                                  </button>
-                                  <button
-                                    className="calendarInlineAction"
-                                    type="button"
-                                    onClick={(event) => {
-                                      event.stopPropagation();
-                                      copyCalendarWorkout(workout, "cut");
-                                    }}
-                                    aria-label="Cut workout"
-                                    title="Cut"
-                                  >
-                                    <Scissors size={14} aria-hidden="true" />
-                                  </button>
-                                </div>
-                              )}
                             </div>
                           ))}
 
@@ -6619,7 +6766,29 @@ function App() {
                                   setDraggingAssignmentId(assignment.recordId);
                                 }}
                                 onDragEnd={() => setDraggingAssignmentId("")}
-                                onClick={() => handleOpenContentAssignment(assignment)}
+                                onContextMenu={(event) => {
+                                  if (isClientPortal) return;
+                                  event.preventDefault();
+                                  event.stopPropagation();
+                                  openCalendarActionMenu(event.clientX, event.clientY, {
+                                    kind: "item",
+                                    item: { type: "assignment", assignment },
+                                  });
+                                }}
+                                onTouchStart={(event) => {
+                                  event.stopPropagation();
+                                  startCalendarLongPress(event, {
+                                    kind: "item",
+                                    item: { type: "assignment", assignment },
+                                  });
+                                }}
+                                onTouchMove={clearCalendarLongPress}
+                                onTouchEnd={clearCalendarLongPress}
+                                onTouchCancel={clearCalendarLongPress}
+                                onClick={() => {
+                                  if (consumeCalendarLongPressClick()) return;
+                                  handleOpenContentAssignment(assignment);
+                                }}
                                 onKeyDown={(event) => {
                                   if (event.key === "Enter" || event.key === " ") {
                                     event.preventDefault();
@@ -6628,53 +6797,13 @@ function App() {
                                 }}
                               >
                                 <div className="workoutBlockMain">
-                                  {assignment.templateName || "Assigned item"}
+                                  {getAssignmentDisplayName(assignment)}
                                   <span>
                                     {movingAssignmentId === assignment.recordId
                                       ? "Moving..."
                                       : assignment.assignmentType || "Questionnaire"}
                                   </span>
                                 </div>
-                                {!isClientPortal && (
-                                  <div className="calendarInlineActions">
-                                    <button
-                                      className="calendarInlineAction"
-                                      type="button"
-                                      onClick={(event) => {
-                                        event.stopPropagation();
-                                        copyCalendarAssignment(assignment, "copy");
-                                      }}
-                                      aria-label="Copy assigned item"
-                                      title="Copy"
-                                    >
-                                      <Copy size={14} aria-hidden="true" />
-                                    </button>
-                                    <button
-                                      className="calendarInlineAction"
-                                      type="button"
-                                      onClick={(event) => {
-                                        event.stopPropagation();
-                                        copyCalendarAssignment(assignment, "cut");
-                                      }}
-                                      aria-label="Cut assigned item"
-                                      title="Cut"
-                                    >
-                                      <Scissors size={14} aria-hidden="true" />
-                                    </button>
-                                    <button
-                                      className="calendarInlineAction dangerInlineAction"
-                                      type="button"
-                                      onClick={(event) => {
-                                        event.stopPropagation();
-                                        void deleteContentAssignment(assignment);
-                                      }}
-                                      aria-label="Delete assigned item"
-                                      title="Delete"
-                                    >
-                                      <Trash2 size={14} aria-hidden="true" />
-                                    </button>
-                                  </div>
-                                )}
                               </div>
                             ))}
                         </div>
@@ -6726,7 +6855,7 @@ function App() {
                             <div>
                               <span>{assignment.assignmentType || "Questionnaire"}</span>
                               <strong>
-                                {assignment.templateName || "Assigned item"}
+                                {getAssignmentDisplayName(assignment)}
                               </strong>
                               <small>{assignment.status || t("scheduled")}</small>
                             </div>
@@ -6897,7 +7026,7 @@ function App() {
                                   {assignment.assignmentType || "Questionnaire"}
                                 </span>
                                 <strong>
-                                  {assignment.templateName || "Assigned item"}
+                                  {getAssignmentDisplayName(assignment)}
                                 </strong>
                                 <small>{assignment.status || t("scheduled")}</small>
                               </div>
@@ -7077,7 +7206,7 @@ function App() {
                                     {assignment.assignmentType || "Questionnaire"}
                                   </span>
                                   <strong>
-                                    {assignment.templateName || "Assigned item"}
+                                    {getAssignmentDisplayName(assignment)}
                                   </strong>
                                   <small>{assignment.status || "Scheduled"}</small>
                                 </div>
@@ -7508,6 +7637,116 @@ function App() {
           </div>
         )}
 
+        {calendarActionMenu && (
+          <div
+            className="calendarContextMenu"
+            style={{
+              left: calendarActionMenu.x,
+              top: calendarActionMenu.y,
+            }}
+            onClick={(event) => event.stopPropagation()}
+            role="menu"
+          >
+            {calendarActionMenu.kind === "item" ? (
+              <>
+                <strong>
+                  {calendarActionMenu.item.type === "workout"
+                    ? localizedWorkoutName(calendarActionMenu.item.workout)
+                    : getAssignmentDisplayName(calendarActionMenu.item.assignment)}
+                </strong>
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    if (calendarActionMenu.item.type === "workout") {
+                      copyCalendarWorkout(calendarActionMenu.item.workout, "copy");
+                    } else {
+                      copyCalendarAssignment(
+                        calendarActionMenu.item.assignment,
+                        "copy"
+                      );
+                    }
+                    closeCalendarActionMenu();
+                  }}
+                >
+                  <Copy size={15} aria-hidden="true" />
+                  Copy
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    if (calendarActionMenu.item.type === "workout") {
+                      copyCalendarWorkout(calendarActionMenu.item.workout, "cut");
+                    } else {
+                      copyCalendarAssignment(
+                        calendarActionMenu.item.assignment,
+                        "cut"
+                      );
+                    }
+                    closeCalendarActionMenu();
+                  }}
+                >
+                  <Scissors size={15} aria-hidden="true" />
+                  Cut
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="dangerContextAction"
+                  onClick={() => {
+                    if (calendarActionMenu.item.type === "workout") {
+                      void deleteWorkout(calendarActionMenu.item.workout);
+                    } else {
+                      void deleteContentAssignment(
+                        calendarActionMenu.item.assignment
+                      );
+                    }
+                    closeCalendarActionMenu();
+                  }}
+                >
+                  <Trash2 size={15} aria-hidden="true" />
+                  Delete
+                </button>
+              </>
+            ) : (
+              <>
+                <strong>{formatCalendarLabel(calendarActionMenu.date)}</strong>
+                {copiedCalendarItem && (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      void pasteCalendarItemToDate(calendarActionMenu.date);
+                      closeCalendarActionMenu();
+                    }}
+                  >
+                    {copiedCalendarItem.action === "copy" ? (
+                      <Copy size={15} aria-hidden="true" />
+                    ) : (
+                      <Scissors size={15} aria-hidden="true" />
+                    )}
+                    {copiedCalendarItem.action === "copy"
+                      ? "Paste copy"
+                      : "Paste cut"}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setCopiedCalendarItem(null);
+                    closeCalendarActionMenu();
+                  }}
+                >
+                  <X size={15} aria-hidden="true" />
+                  Cancel
+                </button>
+              </>
+            )}
+          </div>
+        )}
+
         {showInviteModal && (
           <div className="workout-modal-overlay">
             <div className="clientFormModal inviteModal">
@@ -7740,11 +7979,15 @@ function App() {
                   <h2>
                     {activeAssignmentIsTest
                       ? localizeText(
-                          activeTestTemplate?.name || activeContentAssignment.templateName,
+                          activeTestTemplate?.name ||
+                            activeContentAssignment.templateName ||
+                            getAssignmentDisplayName(activeContentAssignment),
                           activeTestTemplate?.nameCn
                         )
                       : localizeText(
-                          activeFormTemplate?.name || activeContentAssignment.templateName,
+                          activeFormTemplate?.name ||
+                            activeContentAssignment.templateName ||
+                            getAssignmentDisplayName(activeContentAssignment),
                           activeFormTemplate?.nameCn
                         )}
                   </h2>

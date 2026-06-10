@@ -95,6 +95,27 @@ function readFirstAvailableField(fields: Record<string, any>, fieldNames: string
   return "";
 }
 
+function buildTemplateNameMap(
+  records: any[],
+  idAliases: string[],
+  nameAliases: string[]
+) {
+  const map = new Map<string, string>();
+
+  for (const record of records) {
+    const fields = record.fields || {};
+    const name = readField(fields, nameAliases);
+    const templateId = readField(fields, idAliases);
+
+    if (name) {
+      map.set(record.record_id, name);
+      if (templateId) map.set(templateId, name);
+    }
+  }
+
+  return map;
+}
+
 function normalizeDate(value: string) {
   if (!value) return "";
   if (/^\d+$/.test(value)) {
@@ -186,7 +207,8 @@ function getScheduledDateFieldNames(tableFields: TableField[]) {
 function mapAssignment(
   item: any,
   fallbackType: "Questionnaire" | "Physical Test",
-  tableFields: TableField[]
+  tableFields: TableField[],
+  templateNameMap = new Map<string, string>()
 ) {
   const fields = item.fields || {};
   const assignedDate = normalizeDate(
@@ -196,6 +218,27 @@ function mapAssignment(
     readField(fields, scheduledDateAliases) ||
       readFirstAvailableField(fields, getScheduledDateFieldNames(tableFields))
   );
+
+  const templateId = readField(fields, [
+    "Form ID",
+    "Test Template ID",
+    "Template ID",
+    "Questionnaire ID",
+    "Saved Item ID",
+    "Content ID",
+  ]);
+  const templateName = readField(fields, [
+    "Saved Questionnaire",
+    "Saved Form",
+    "Saved Test",
+    "Questionnaire",
+    "Form",
+    "Physical Test",
+    "Test",
+    "Template Name",
+    "Assignment Name",
+    "Name",
+  ]);
 
   return {
     recordId: item.record_id,
@@ -210,26 +253,8 @@ function mapAssignment(
     assignmentType:
       readField(fields, ["Assignment Type", "Type", "Content Type", "Item Type"]) ||
       fallbackType,
-    templateId: readField(fields, [
-      "Form ID",
-      "Test Template ID",
-      "Template ID",
-      "Questionnaire ID",
-      "Saved Item ID",
-      "Content ID",
-    ]),
-    templateName: readField(fields, [
-      "Saved Questionnaire",
-      "Saved Form",
-      "Saved Test",
-      "Questionnaire",
-      "Form",
-      "Physical Test",
-      "Test",
-      "Template Name",
-      "Assignment Name",
-      "Name",
-    ]),
+    templateId,
+    templateName: templateName || templateNameMap.get(templateId) || "",
     clientId: readField(fields, [
       "Client",
       "Client ID",
@@ -259,6 +284,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     process.env.FEISHU_ASSIGNED_FORMS_TABLE_ID || process.env.ASSIGNED_FORMS;
   const assignedTestsTableId =
     process.env.FEISHU_ASSIGNED_TESTS_TABLE_ID || process.env.ASSIGNED_TESTS;
+  const formTemplatesTableId =
+    process.env.FEISHU_FORM_TEMPLATES_TABLE_ID || process.env.FORM_TEMPLATES;
+  const testTemplatesTableId =
+    process.env.FEISHU_TEST_TEMPLATES_TABLE_ID || process.env.TEST_TEMPLATES;
 
   if (!assignedFormsTableId && !assignedTestsTableId) {
     return res.status(500).json({ error: "Missing assignment table IDs" });
@@ -270,6 +299,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const requestedClientId = String(clientId).toLowerCase();
     const requestedClientCode = String(clientCode).toLowerCase();
     const requestedClientName = String(clientName).toLowerCase();
+    const [formTemplateRecords, testTemplateRecords] = await Promise.all([
+      formTemplatesTableId ? getRecords(formTemplatesTableId, token) : Promise.resolve([]),
+      testTemplatesTableId ? getRecords(testTemplatesTableId, token) : Promise.resolve([]),
+    ]);
+    const formTemplateNameMap = buildTemplateNameMap(
+      formTemplateRecords,
+      ["formId", "Form ID", "Template ID"],
+      ["name", "Name", "Form Name", "Template Name", "Title"]
+    );
+    const testTemplateNameMap = buildTemplateNameMap(
+      testTemplateRecords,
+      ["testTemplateId", "Test Template ID", "Template ID"],
+      ["name", "Name", "Test Template Name", "Template Name", "Title"]
+    );
     const records = await Promise.all([
       assignedFormsTableId
         ? Promise.all([
@@ -277,7 +320,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             getTableFields(assignedFormsTableId, token),
           ]).then(([items, tableFields]) =>
             items.map((item: any) =>
-              mapAssignment(item, "Questionnaire", tableFields)
+              mapAssignment(item, "Questionnaire", tableFields, formTemplateNameMap)
             )
           )
         : Promise.resolve([]),
@@ -287,7 +330,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             getTableFields(assignedTestsTableId, token),
           ]).then(([items, tableFields]) =>
             items.map((item: any) =>
-              mapAssignment(item, "Physical Test", tableFields)
+              mapAssignment(item, "Physical Test", tableFields, testTemplateNameMap)
             )
           )
         : Promise.resolve([]),
