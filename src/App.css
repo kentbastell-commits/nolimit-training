@@ -5240,11 +5240,14 @@ body {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
+  max-height: 360px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 4px;
 }
 
 .snapshotMetricCard,
-.snapshotTrendCard,
-.snapshotLatestTests {
+.snapshotTrendCard {
   border: 1px solid #ded8cc;
   border-radius: 12px;
   background: #faf9f5;
@@ -5252,8 +5255,7 @@ body {
 }
 
 .snapshotMetricCard span,
-.snapshotTrendCard > span,
-.snapshotLatestTests > span {
+.snapshotTrendCard > span {
   display: block;
   color: #6f6a61;
   font-size: 11px;
@@ -5279,54 +5281,27 @@ body {
   margin-top: 6px;
 }
 
-.snapshotTrendCard,
-.snapshotLatestTests {
+.snapshotTrendCard {
   grid-column: span 2;
 }
 
 .readinessSparkline {
-  height: 92px;
+  height: 120px;
   display: flex;
   align-items: end;
-  gap: 8px;
+  justify-content: center;
+  gap: 12px;
   border-radius: 10px;
   background: #fff;
   margin-top: 12px;
-  padding: 10px;
+  padding: 16px 14px 12px;
 }
 
 .readinessSparkBar {
-  flex: 1;
-  min-width: 10px;
-  border-radius: 999px 999px 4px 4px;
+  width: clamp(16px, 7vw, 44px);
+  max-width: 48px;
+  border-radius: 8px 8px 3px 3px;
   background: linear-gradient(180deg, #111 0%, #8a6a1f 100%);
-}
-
-.latestTestRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  border-top: 1px solid #e5dfd3;
-  padding-top: 10px;
-  margin-top: 10px;
-}
-
-.latestTestRow strong {
-  min-width: 0;
-  color: #111;
-  font-size: 14px;
-  font-weight: 950;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.latestTestRow span {
-  color: #8a6a1f;
-  font-size: 15px;
-  font-weight: 950;
-  white-space: nowrap;
 }
 
 .homeEmptyText {

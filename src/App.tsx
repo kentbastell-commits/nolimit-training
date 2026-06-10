@@ -4048,12 +4048,6 @@ function App() {
     return response.responseType === "Physical Test" ? "Test Result" : "Answer";
   };
 
-  const latestTestResults = contentResponses
-    .filter((response) => response.responseType.toLowerCase().includes("test"))
-    .filter((response) => response.answer)
-    .sort((a, b) => b.submittedAt.localeCompare(a.submittedAt))
-    .slice(0, 5);
-
   const questionnaireScaleAnswers = contentResponses
     .filter((response) =>
       response.responseType.toLowerCase().includes("question")
@@ -6297,23 +6291,6 @@ function App() {
                               <p className="homeEmptyText">No questionnaire data yet.</p>
                             )}
                           </div>
-                        </div>
-
-                        <div className="snapshotLatestTests">
-                          <span>Latest Tests</span>
-                          {latestTestResults.length > 0 ? (
-                            latestTestResults.slice(0, 3).map((result) => (
-                              <div className="latestTestRow" key={result.recordId}>
-                                <strong>{getContentResponseLabel(result)}</strong>
-                                <span>
-                                  {result.answer}
-                                  {result.unit ? ` ${result.unit}` : ""}
-                                </span>
-                              </div>
-                            ))
-                          ) : (
-                            <p className="homeEmptyText">No test results yet.</p>
-                          )}
                         </div>
                       </div>
                     )}
