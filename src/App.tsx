@@ -1057,13 +1057,6 @@ function App() {
   const selectedSavedProgram = programs.find(
     (program) => program.programId === selectedSavedProgramId
   );
-  const selectedSavedForm = savedFormTemplates.find(
-    (form) => form.formId === selectedSavedFormId
-  );
-  const selectedSavedTest = savedTestTemplates.find(
-    (test) => test.testTemplateId === selectedSavedTestId
-  );
-
   const loadFormTemplates = async () => {
     setFormTemplatesLoading(true);
 
@@ -4344,21 +4337,94 @@ function App() {
                           Build check-ins, intake forms, readiness surveys, and custom questionnaires for coach assignment.
                         </p>
                       </div>
-                      <button
-                        className="goldButton"
-                        onClick={saveFormTemplate}
-                        disabled={savingFormTemplate}
-                      >
-                        {savingFormTemplate
-                          ? "Saving..."
-                          : editingFormTemplate
-                          ? "Update Form Template"
-                          : "Save Form Template"}
-                      </button>
+                      <div className="builderHubActions">
+                        <details className="savedTemplateDropdown">
+                          <summary className="outlineButton">
+                            Saved Forms
+                            <span>{savedFormTemplates.length}</span>
+                          </summary>
+                          <div className="savedTemplateDropdownMenu">
+                            <div className="savedTemplateHeader">
+                              <h3>Saved Forms</h3>
+                              <button
+                                className="outlineButton"
+                                onClick={(event) => {
+                                  event.preventDefault();
+                                  void loadFormTemplates();
+                                }}
+                              >
+                                Reload
+                              </button>
+                            </div>
+
+                            {formTemplatesLoading && (
+                              <p className="emptyState">Loading forms...</p>
+                            )}
+
+                            {!formTemplatesLoading &&
+                              savedFormTemplates.length === 0 && (
+                                <p className="emptyState">No saved forms yet.</p>
+                              )}
+
+                            <div className="savedTemplateList">
+                              {savedFormTemplates.map((form) => (
+                                <div
+                                  key={form.recordId}
+                                  className={`savedTemplateItem savedTemplateCard ${
+                                    selectedSavedFormId === form.formId
+                                      ? "selectedSavedTemplateItem"
+                                      : ""
+                                  }`}
+                                >
+                                  <button
+                                    type="button"
+                                    className="savedTemplateMainButton"
+                                    onClick={() => {
+                                      setSelectedSavedFormId(form.formId);
+                                      loadSavedFormIntoBuilder(form);
+                                    }}
+                                  >
+                                    <strong>
+                                      {form.name || form.formId || "Untitled Form"}
+                                    </strong>
+                                    <span>{form.type || "Form"}</span>
+                                    <small>{form.questions.length} questions</small>
+                                  </button>
+                                  <div className="savedTemplateActions">
+                                    <button
+                                      type="button"
+                                      onClick={() => loadSavedFormIntoBuilder(form)}
+                                    >
+                                      Edit
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => deleteSavedFormTemplate(form)}
+                                    >
+                                      Delete
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </details>
+
+                        <button
+                          className="goldButton"
+                          onClick={saveFormTemplate}
+                          disabled={savingFormTemplate}
+                        >
+                          {savingFormTemplate
+                            ? "Saving..."
+                            : editingFormTemplate
+                            ? "Update Form Template"
+                            : "Save Form Template"}
+                        </button>
+                      </div>
                     </div>
 
-                    <div className="builderHubTwoColumn">
-                      <div>
+                    <div className="builderHubMain">
                         <div className="builderHubGrid">
                           <label>
                             <span>Form Name</span>
@@ -4451,83 +4517,6 @@ function App() {
                             </div>
                           ))}
                         </div>
-                      </div>
-
-                      <aside className="savedTemplatePanel">
-                        <div className="savedTemplateHeader">
-                          <h3>Saved Forms</h3>
-                          <button className="outlineButton" onClick={loadFormTemplates}>
-                            Reload
-                          </button>
-                        </div>
-
-                        {formTemplatesLoading && <p className="emptyState">Loading forms...</p>}
-
-                        {!formTemplatesLoading && savedFormTemplates.length === 0 && (
-                          <p className="emptyState">No saved forms yet.</p>
-                        )}
-
-                        <div className="savedTemplateList">
-                          {savedFormTemplates.map((form) => (
-                            <div
-                              key={form.recordId}
-                              className={`savedTemplateItem savedTemplateCard ${
-                                selectedSavedFormId === form.formId
-                                  ? "selectedSavedTemplateItem"
-                                  : ""
-                              }`}
-                            >
-                              <button
-                                type="button"
-                                className="savedTemplateMainButton"
-                                onClick={() => setSelectedSavedFormId(form.formId)}
-                              >
-                                <strong>{form.name || form.formId || "Untitled Form"}</strong>
-                                <span>{form.type || "Form"}</span>
-                                <small>{form.questions.length} questions</small>
-                              </button>
-                              <div className="savedTemplateActions">
-                                <button
-                                  type="button"
-                                  onClick={() => loadSavedFormIntoBuilder(form)}
-                                >
-                                  Edit
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => deleteSavedFormTemplate(form)}
-                                >
-                                  Delete
-                                </button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-
-                        {selectedSavedForm && (
-                          <div className="savedTemplatePreview">
-                            <strong>
-                              {selectedSavedForm.name ||
-                                selectedSavedForm.formId ||
-                                "Untitled Form"}
-                            </strong>
-                            {selectedSavedForm.questions.slice(0, 4).map((question) => (
-                              <span key={question.recordId || question.questionId}>
-                                {question.order}. {question.label}
-                              </span>
-                            ))}
-                            {selectedSavedForm.questions.length > 4 && (
-                              <span>+ {selectedSavedForm.questions.length - 4} more</span>
-                            )}
-                            <button
-                              className="goldButton"
-                              onClick={() => loadSavedFormIntoBuilder(selectedSavedForm)}
-                            >
-                              Load Into Builder
-                            </button>
-                          </div>
-                        )}
-                      </aside>
                     </div>
                   </section>
                 )}
@@ -4541,21 +4530,95 @@ function App() {
                           Build test batteries for strength, speed, power, mobility, or return-to-training checkpoints.
                         </p>
                       </div>
-                      <button
-                        className="goldButton"
-                        onClick={saveTestTemplate}
-                        disabled={savingTestTemplate}
-                      >
-                        {savingTestTemplate
-                          ? "Saving..."
-                          : editingTestTemplate
-                          ? "Update Test Template"
-                          : "Save Test Template"}
-                      </button>
+                      <div className="builderHubActions">
+                        <details className="savedTemplateDropdown">
+                          <summary className="outlineButton">
+                            Saved Tests
+                            <span>{savedTestTemplates.length}</span>
+                          </summary>
+                          <div className="savedTemplateDropdownMenu">
+                            <div className="savedTemplateHeader">
+                              <h3>Saved Tests</h3>
+                              <button
+                                className="outlineButton"
+                                onClick={(event) => {
+                                  event.preventDefault();
+                                  void loadTestTemplates();
+                                }}
+                              >
+                                Reload
+                              </button>
+                            </div>
+
+                            {testTemplatesLoading && (
+                              <p className="emptyState">Loading tests...</p>
+                            )}
+
+                            {!testTemplatesLoading && savedTestTemplates.length === 0 && (
+                              <p className="emptyState">No saved tests yet.</p>
+                            )}
+
+                            <div className="savedTemplateList">
+                              {savedTestTemplates.map((test) => (
+                                <div
+                                  key={test.recordId}
+                                  className={`savedTemplateItem savedTemplateCard ${
+                                    selectedSavedTestId === test.testTemplateId
+                                      ? "selectedSavedTemplateItem"
+                                      : ""
+                                  }`}
+                                >
+                                  <button
+                                    type="button"
+                                    className="savedTemplateMainButton"
+                                    onClick={() => {
+                                      setSelectedSavedTestId(test.testTemplateId);
+                                      loadSavedTestIntoBuilder(test);
+                                    }}
+                                  >
+                                    <strong>
+                                      {test.name ||
+                                        test.testTemplateId ||
+                                        "Untitled Test"}
+                                    </strong>
+                                    <span>{test.status || "Active"}</span>
+                                    <small>{test.items.length} test items</small>
+                                  </button>
+                                  <div className="savedTemplateActions">
+                                    <button
+                                      type="button"
+                                      onClick={() => loadSavedTestIntoBuilder(test)}
+                                    >
+                                      Edit
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => deleteSavedTestTemplate(test)}
+                                    >
+                                      Delete
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </details>
+
+                        <button
+                          className="goldButton"
+                          onClick={saveTestTemplate}
+                          disabled={savingTestTemplate}
+                        >
+                          {savingTestTemplate
+                            ? "Saving..."
+                            : editingTestTemplate
+                            ? "Update Test Template"
+                            : "Save Test Template"}
+                        </button>
+                      </div>
                     </div>
 
-                    <div className="builderHubTwoColumn">
-                      <div>
+                    <div className="builderHubMain">
                         <div className="builderHubGrid">
                           <label>
                             <span>Test Template Name</span>
@@ -4639,85 +4702,6 @@ function App() {
                             </div>
                           ))}
                         </div>
-                      </div>
-
-                      <aside className="savedTemplatePanel">
-                        <div className="savedTemplateHeader">
-                          <h3>Saved Tests</h3>
-                          <button className="outlineButton" onClick={loadTestTemplates}>
-                            Reload
-                          </button>
-                        </div>
-
-                        {testTemplatesLoading && <p className="emptyState">Loading tests...</p>}
-
-                        {!testTemplatesLoading && savedTestTemplates.length === 0 && (
-                          <p className="emptyState">No saved tests yet.</p>
-                        )}
-
-                        <div className="savedTemplateList">
-                          {savedTestTemplates.map((test) => (
-                            <div
-                              key={test.recordId}
-                              className={`savedTemplateItem savedTemplateCard ${
-                                selectedSavedTestId === test.testTemplateId
-                                  ? "selectedSavedTemplateItem"
-                                  : ""
-                              }`}
-                            >
-                              <button
-                                type="button"
-                                className="savedTemplateMainButton"
-                                onClick={() => setSelectedSavedTestId(test.testTemplateId)}
-                              >
-                                <strong>
-                                  {test.name || test.testTemplateId || "Untitled Test"}
-                                </strong>
-                                <span>{test.status || "Active"}</span>
-                                <small>{test.items.length} test items</small>
-                              </button>
-                              <div className="savedTemplateActions">
-                                <button
-                                  type="button"
-                                  onClick={() => loadSavedTestIntoBuilder(test)}
-                                >
-                                  Edit
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => deleteSavedTestTemplate(test)}
-                                >
-                                  Delete
-                                </button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-
-                        {selectedSavedTest && (
-                          <div className="savedTemplatePreview">
-                            <strong>
-                              {selectedSavedTest.name ||
-                                selectedSavedTest.testTemplateId ||
-                                "Untitled Test"}
-                            </strong>
-                            {selectedSavedTest.items.slice(0, 4).map((item) => (
-                              <span key={item.recordId || item.testItemId}>
-                                {item.order}. {item.testName} ({item.metricType})
-                              </span>
-                            ))}
-                            {selectedSavedTest.items.length > 4 && (
-                              <span>+ {selectedSavedTest.items.length - 4} more</span>
-                            )}
-                            <button
-                              className="goldButton"
-                              onClick={() => loadSavedTestIntoBuilder(selectedSavedTest)}
-                            >
-                              Load Into Builder
-                            </button>
-                          </div>
-                        )}
-                      </aside>
                     </div>
                   </section>
                 )}

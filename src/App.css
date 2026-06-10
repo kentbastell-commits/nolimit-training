@@ -1200,6 +1200,14 @@ body {
   max-width: 760px;
 }
 
+.builderHubActions {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .builderHubGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1225,6 +1233,10 @@ body {
 }
 
 .builderHubTwoColumn > * {
+  min-width: 0;
+}
+
+.builderHubMain {
   min-width: 0;
 }
 
@@ -1284,6 +1296,62 @@ body {
   border-radius: 8px;
   padding: 14px;
   background: rgba(255, 255, 255, 0.035);
+}
+
+.savedTemplateDropdown {
+  position: relative;
+  min-width: 190px;
+}
+
+.savedTemplateDropdown summary {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  list-style: none;
+  cursor: pointer;
+}
+
+.savedTemplateDropdown summary::-webkit-details-marker {
+  display: none;
+}
+
+.savedTemplateDropdown summary::after {
+  content: "v";
+  color: currentColor;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.savedTemplateDropdown[open] summary::after {
+  content: "^";
+}
+
+.savedTemplateDropdown summary span {
+  min-width: 24px;
+  border-radius: 999px;
+  background: rgba(212, 175, 55, 0.18);
+  color: #f5d77b;
+  padding: 2px 7px;
+  font-size: 12px;
+  font-weight: 900;
+  text-align: center;
+}
+
+.savedTemplateDropdownMenu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 20;
+  width: min(520px, calc(100vw - 48px));
+  max-height: min(560px, calc(100vh - 180px));
+  overflow: auto;
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  border-radius: 8px;
+  padding: 14px;
+  background: rgba(5, 5, 5, 0.98);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.45);
 }
 
 .savedTemplateHeader {
@@ -3777,11 +3845,32 @@ body {
     display: grid;
   }
 
+  .builderHubActions {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .savedTemplateDropdown {
+    width: 100%;
+  }
+
+  .savedTemplateDropdown summary {
+    width: 100%;
+  }
+
+  .savedTemplateDropdownMenu {
+    position: static;
+    width: 100%;
+    max-height: 420px;
+    margin-top: 8px;
+  }
+
   .builderHubHeader h2 {
     font-size: 24px;
   }
 
-  .builderHubHeader .goldButton {
+  .builderHubHeader .goldButton,
+  .builderHubActions .goldButton {
     width: 100%;
   }
 
@@ -5495,6 +5584,17 @@ body {
   background: #fffdf8;
   border-color: rgba(22, 22, 22, 0.14);
   box-shadow: 0 18px 48px rgba(0, 0, 0, 0.18);
+}
+
+.app:not(.clientPortalApp) .savedTemplateDropdownMenu {
+  background: #fffdf8;
+  border-color: rgba(22, 22, 22, 0.14);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.18);
+}
+
+.app:not(.clientPortalApp) .savedTemplateDropdown summary span {
+  background: #151515;
+  color: #f5d77b;
 }
 
 .app:not(.clientPortalApp) .calendarAddMenu button {
