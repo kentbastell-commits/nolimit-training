@@ -30,7 +30,13 @@ import { useTranslation } from "react-i18next";
 import "./App.css";
 
 type AppMode = "Coach" | "Client";
-type Page = "Clients" | "Library" | "Workouts" | "Check-ins" | "Coaches";
+type Page =
+  | "Clients"
+  | "Library"
+  | "Workouts"
+  | "Check-ins"
+  | "Orders"
+  | "Coaches";
 type ClientTab = "Home" | "Overview" | "Training";
 type CalendarView = "Week" | "Month" | "Full";
 type CalendarDisplayMode = CalendarView;
@@ -134,6 +140,8 @@ type ProductOrder = {
   orderId: string;
   clientId: string;
   clientName: string;
+  email?: string;
+  phone?: string;
   productType: string;
   programId: string;
   productName: string;
@@ -677,6 +685,9 @@ function App() {
   const [coaches, setCoaches] = useState<Coach[]>([]);
   const [productOrders, setProductOrders] = useState<ProductOrder[]>([]);
   const [coachScope, setCoachScope] = useState("All Coaches");
+  const [orderSearch, setOrderSearch] = useState("");
+  const [orderProcessingId, setOrderProcessingId] = useState("");
+  const [orderStartDates, setOrderStartDates] = useState<Record<string, string>>({});
   const [showCoachModal, setShowCoachModal] = useState(false);
   const [editingCoach, setEditingCoach] = useState<Coach | null>(null);
   const [savingCoach, setSavingCoach] = useState(false);
@@ -1653,18 +1664,22 @@ function App() {
     try {
       const res = await fetch("/api/programs");
       const data = await res.json();
-      setPrograms(data.programs || []);
+      const loadedPrograms = data.programs || [];
+      setPrograms(loadedPrograms);
 
-      if (!selectedAssignProgramId && data.programs?.length > 0) {
-        setSelectedAssignProgramId(data.programs[0].programId);
+      if (!selectedAssignProgramId && loadedPrograms.length > 0) {
+        setSelectedAssignProgramId(loadedPrograms[0].programId);
       }
 
-      if (!selectedSavedProgramId && data.programs?.length > 0) {
-        setSelectedSavedProgramId(data.programs[0].programId);
+      if (!selectedSavedProgramId && loadedPrograms.length > 0) {
+        setSelectedSavedProgramId(loadedPrograms[0].programId);
       }
+
+      return loadedPrograms as Program[];
     } catch (err) {
       console.error(err);
       setPrograms([]);
+      return [];
     }
   };
 
@@ -1810,6 +1825,18 @@ function App() {
       void loadFormTemplates();
     }
   }, [assignmentType, workoutPageTab, activePage, selectedClient]);
+
+  useEffect(() => {
+    if (activePage !== "Orders") return;
+
+    if (programs.length === 0) {
+      void loadPrograms();
+    }
+
+    if (savedFormTemplates.length === 0 && !formTemplatesLoading) {
+      void loadFormTemplates();
+    }
+  }, [activePage]);
 
   useEffect(() => {
     if (!selectedClient) return;
@@ -3787,6 +3814,12 @@ function App() {
         count: workouts.length,
         icon: Dumbbell,
       },
+      {
+        name: "Orders",
+        label: "Orders",
+        count: productOrders.length,
+        icon: ClipboardList,
+      },
       ...(canManageCoaches
         ? [
             {
@@ -3927,6 +3960,356 @@ function App() {
       )
     : [];
   const selectedClientLatestOrder = selectedClientOrders[0];
+  const todayInputValue = dateToInputValue(new Date());
+  const getOrderClient = (order: ProductOrder) =>
+    clients.find((client) => {
+      const orderClientId = String(order.clientId || "").toLowerCase();
+      const orderClientName = String(order.clientName || "").toLowerCase();
+
+      return (
+        (orderClientId &&
+          (orderClientId.includes(client.id.toLowerCase()) ||
+            orderClientId.includes(client.clientCode.toLowerCase()))) ||
+        (orderClientName && orderClientName === client.name.toLowerCase())
+      );
+    });
+  const getOrderProgram = (order: ProductOrder, sourcePrograms = programs) =>
+    sourcePrograms.find((program) => {
+      const orderProgramId = String(order.programId || "").toLowerCase();
+      const productName = String(order.productName || "").toLowerCase();
+
+      return (
+        (orderProgramId &&
+          (orderProgramId === program.programId.toLowerCase() ||
+            orderProgramId === program.recordId.toLowerCase())) ||
+        (productName && productName === program.programName.toLowerCase())
+      );
+    });
+  const getOrderStartDate = (order: ProductOrder) =>
+    normalizeDate(
+      orderStartDates[order.recordId] ||
+        order.accessStartDate ||
+        order.purchasedAt ||
+        todayInputValue
+    );
+  const getOrderClientType = (order: ProductOrder) => {
+    const type = `${order.productType} ${order.productName}`.toLowerCase();
+
+    if (type.includes("in-person") || type.includes("personal")) {
+      return "In-Person Training";
+    }
+
+    if (type.includes("online") || type.includes("coaching")) {
+      return "Online Coaching";
+    }
+
+    return "Digital Program";
+  };
+  const getOrderPrimaryCoach = (order: ProductOrder) => {
+    const assignedCoach = getCoachDisplayName(order.assignedCoach || "");
+
+    if (assignedCoach) return assignedCoach;
+    if (currentScopedCoach) return currentScopedCoach.name;
+    return "Kent Bastell";
+  };
+  const getOrderIntakeTemplate = (order: ProductOrder) => {
+    const program = getOrderProgram(order);
+    const defaultFormId = program?.defaultIntakeFormId || "";
+    const activeForms = savedFormTemplates.filter(
+      (form) => form.status !== "Archived"
+    );
+
+    return (
+      activeForms.find((form) => form.formId === defaultFormId) ||
+      activeForms.find((form) => {
+        const text = `${form.name} ${form.type} ${form.description}`.toLowerCase();
+        return (
+          text.includes("intake") ||
+          text.includes("onboarding") ||
+          text.includes("readiness")
+        );
+      })
+    );
+  };
+  const orderBelongsToCoachScope = (order: ProductOrder) => {
+    if (coachScope === "All Coaches") return true;
+
+    const matchedClient = getOrderClient(order);
+
+    if (matchedClient) return clientBelongsToCoachScope(matchedClient);
+
+    return getCoachDisplayName(order.assignedCoach || "").toLowerCase() ===
+      coachScope.toLowerCase();
+  };
+  const visibleProductOrders = productOrders
+    .filter(orderBelongsToCoachScope)
+    .filter((order) => {
+      const search = orderSearch.toLowerCase();
+
+      if (!search) return true;
+
+      return [
+        order.orderId,
+        order.clientName,
+        order.productName,
+        order.productType,
+        order.paymentStatus,
+        order.intakeStatus,
+      ].some((value) => String(value || "").toLowerCase().includes(search));
+    });
+  const openOrdersCount = visibleProductOrders.filter((order) => {
+    const matchedClient = getOrderClient(order);
+    const hasProgram = Boolean(getOrderProgram(order));
+
+    return !matchedClient || !hasProgram || order.intakeStatus !== "Reviewed";
+  }).length;
+
+  const createClientFromOrder = async (order: ProductOrder) => {
+    const existingClient = getOrderClient(order);
+
+    if (existingClient) return existingClient;
+
+    const primaryCoachName = getOrderPrimaryCoach(order);
+    const primaryCoachId = getCoachRecordIdByName(primaryCoachName);
+    const program = getOrderProgram(order);
+
+    setOrderProcessingId(order.recordId);
+
+    try {
+      const response = await fetch("/api/createClient", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: order.clientName || `Order ${order.orderId}`,
+          email: order.email || "",
+          phone: order.phone || "",
+          coach: primaryCoachName,
+          primaryCoachId,
+          clientType: getOrderClientType(order),
+          packageType: "Active",
+          packageName: order.productName || order.productType || "Purchased Program",
+          subscriptionStatus: "Active",
+          intakeStatus: order.intakeStatus || "Not Sent",
+          paymentStatus: order.paymentStatus || "Paid",
+          purchasedProgramId: program?.programId || order.programId,
+          accessStartDate: order.accessStartDate || getOrderStartDate(order),
+          accessEndDate: order.accessEndDate || "",
+          source: "Product Order",
+          paymentId: order.orderId,
+          startDate: getOrderStartDate(order),
+          notes: `Created from product order ${order.orderId}.`,
+        }),
+      });
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        console.error(data);
+        notify("Could not create client from order.", "error");
+        return null;
+      }
+
+      const clientsResponse = await fetch("/api/clients");
+      const clientsData = await clientsResponse.json();
+      const refreshedClients = clientsData.clients || [];
+      setClients(refreshedClients);
+
+      const createdClient =
+        refreshedClients.find((client: Client) => client.id === data.recordId) ||
+        refreshedClients.find(
+          (client: Client) =>
+            client.clientCode === data.clientId ||
+            client.name.toLowerCase() === String(order.clientName).toLowerCase()
+        );
+
+      notify(`Client created from order: ${order.clientName}.`, "success");
+      return createdClient || null;
+    } catch (error) {
+      console.error(error);
+      notify("Could not create client from order.", "error");
+      return null;
+    } finally {
+      setOrderProcessingId("");
+    }
+  };
+
+  const assignOrderIntake = async (order: ProductOrder) => {
+    if (savedFormTemplates.length === 0 && !formTemplatesLoading) {
+      await loadFormTemplates();
+    }
+
+    const client = getOrderClient(order) || (await createClientFromOrder(order));
+    const intakeTemplate = getOrderIntakeTemplate(order);
+
+    if (!client) {
+      notify("Create or match the client before sending intake.", "error");
+      return;
+    }
+
+    if (!intakeTemplate) {
+      notify("No intake form found. Create one or set a default intake form.", "error");
+      return;
+    }
+
+    setOrderProcessingId(order.recordId);
+
+    try {
+      const assignmentType = intakeTemplate.type
+        .toLowerCase()
+        .includes("check")
+        ? "Check-in"
+        : "Questionnaire";
+      const response = await fetch("/api/assignContent", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          assignmentType,
+          templateId: intakeTemplate.formId,
+          templateName: intakeTemplate.name,
+          clientId: client.id,
+          clientCode: client.clientCode,
+          clientName: client.name,
+          assignedDate: todayInputValue,
+          dueDate: getOrderStartDate(order),
+        }),
+      });
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        console.error(data);
+        notify("Could not assign intake.", "error");
+        return;
+      }
+
+      await fetch("/api/updateClient", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          clientRecordId: client.id,
+          intakeStatus: "Sent",
+          paymentStatus: order.paymentStatus || client.paymentStatus || "Paid",
+          purchasedProgramId: getOrderProgram(order)?.programId || order.programId,
+        }),
+      });
+      await loadClients();
+      notify(`Intake assigned to ${client.name}.`, "success");
+    } catch (error) {
+      console.error(error);
+      notify("Could not assign intake.", "error");
+    } finally {
+      setOrderProcessingId("");
+    }
+  };
+
+  const buildProgramWorkoutsForOrder = async (program: Program, startDate: string) => {
+    const response = await fetch(`/api/programTemplates?programId=${program.programId}`);
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || data.error || "Could not load program sessions.");
+    }
+
+    const sessions = new Map<string, AssignableWorkout>();
+
+    (data.templates || []).forEach((template: any) => {
+      const key = `${template.week}-${template.day}-${template.sessionName}`;
+
+      if (!sessions.has(key)) {
+        const offsetDays =
+          (Number(template.week) - 1) * 7 + (Number(template.day) - 1) * 2;
+
+        sessions.set(key, {
+          localId: key,
+          week: Number(template.week),
+          day: Number(template.day),
+          sessionName: template.sessionName,
+          scheduledDate: addDays(startDate, offsetDays),
+        });
+      }
+    });
+
+    return Array.from(sessions.values());
+  };
+
+  const assignOrderProgram = async (order: ProductOrder) => {
+    const availablePrograms = programs.length > 0 ? programs : await loadPrograms();
+
+    const client = getOrderClient(order) || (await createClientFromOrder(order));
+    const program = getOrderProgram(order, availablePrograms);
+
+    if (!client) {
+      notify("Create or match the client before loading the program.", "error");
+      return;
+    }
+
+    if (!program) {
+      notify("No saved program matches this order.", "error");
+      return;
+    }
+
+    setOrderProcessingId(order.recordId);
+
+    try {
+      const scheduledWorkouts = await buildProgramWorkoutsForOrder(
+        program,
+        getOrderStartDate(order)
+      );
+
+      if (scheduledWorkouts.length === 0) {
+        notify("This program has no saved workout sessions.", "error");
+        return;
+      }
+
+      const response = await fetch("/api/assignProgram", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          clientRecordId: client.id,
+          programRecordId: program.recordId,
+          scheduledWorkouts,
+        }),
+      });
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        console.error(data);
+        notify("Could not load program from order.", "error");
+        return;
+      }
+
+      await fetch("/api/updateClient", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          clientRecordId: client.id,
+          program: program.programName,
+          purchasedProgramId: program.programId,
+          paymentStatus: order.paymentStatus || client.paymentStatus || "Paid",
+          accessStartDate: order.accessStartDate || getOrderStartDate(order),
+          accessEndDate: order.accessEndDate || client.accessEndDate || "",
+        }),
+      });
+      await loadClients();
+      notify(
+        `${program.programName} loaded for ${client.name}. Workouts created: ${data.recordsCreated}`,
+        "success"
+      );
+    } catch (error) {
+      console.error(error);
+      notify("Could not load program from order.", "error");
+    } finally {
+      setOrderProcessingId("");
+    }
+  };
   const saveClientForm = async () => {
     if (!newClient.name.trim()) {
       notify("Please enter a client name.", "error");
@@ -5004,6 +5387,12 @@ function App() {
                   if (item.name === "Workouts") {
                     loadPrograms();
                   }
+
+                  if (item.name === "Orders") {
+                    loadProductOrders();
+                    loadPrograms();
+                    loadFormTemplates();
+                  }
                 }}
               >
                 <span className="navItemLabel">
@@ -5084,6 +5473,14 @@ function App() {
                 <div className="topbarActions">
                   <button className="goldButton" onClick={openNewCoachForm}>
                     + Add Coach
+                  </button>
+                </div>
+              )}
+
+              {activePage === "Orders" && (
+                <div className="topbarActions">
+                  <button className="outlineButton" onClick={loadProductOrders}>
+                    Reload Orders
                   </button>
                 </div>
               )}
@@ -5360,6 +5757,162 @@ function App() {
                     );
                   })}
                 </section>
+              </section>
+            )}
+
+            {activePage === "Orders" && (
+              <section className="ordersWorkspace">
+                <div className="ordersSummary">
+                  <div>
+                    <span>Total Orders</span>
+                    <strong>{visibleProductOrders.length}</strong>
+                  </div>
+                  <div>
+                    <span>Needs Review</span>
+                    <strong>{openOrdersCount}</strong>
+                  </div>
+                  <div>
+                    <span>Matched Clients</span>
+                    <strong>
+                      {
+                        visibleProductOrders.filter((order) =>
+                          Boolean(getOrderClient(order))
+                        ).length
+                      }
+                    </strong>
+                  </div>
+                </div>
+
+                <div className="ordersToolbar">
+                  <input
+                    value={orderSearch}
+                    onChange={(event) => setOrderSearch(event.target.value)}
+                    placeholder="Search orders, clients, or products"
+                  />
+                  <button className="outlineButton" onClick={loadProductOrders}>
+                    Reload
+                  </button>
+                </div>
+
+                <div className="ordersGrid">
+                  {visibleProductOrders.length === 0 && (
+                    <section className="orderCard emptyOrderCard">
+                      <h3>No product orders found.</h3>
+                      <p>
+                        New store purchases and manual product orders will appear here.
+                      </p>
+                    </section>
+                  )}
+
+                  {visibleProductOrders.map((order) => {
+                    const matchedClient = getOrderClient(order);
+                    const matchedProgram = getOrderProgram(order);
+                    const intakeTemplate = getOrderIntakeTemplate(order);
+                    const processing = orderProcessingId === order.recordId;
+
+                    return (
+                      <section
+                        className="orderCard"
+                        key={order.recordId || order.orderId}
+                      >
+                        <div className="orderCardHeader">
+                          <div>
+                            <span>{order.productType || "Product Order"}</span>
+                            <h3>{order.productName || "Untitled Product"}</h3>
+                            <p>
+                              {order.clientName || "Unnamed client"} ·{" "}
+                              {order.orderId || "No order ID"}
+                            </p>
+                          </div>
+                          <span
+                            className={
+                              String(order.paymentStatus).toLowerCase() === "paid"
+                                ? "status activeStatus"
+                                : "status holdStatus"
+                            }
+                          >
+                            {order.paymentStatus || "Payment unknown"}
+                          </span>
+                        </div>
+
+                        <div className="orderPipeline">
+                          <div className={matchedClient ? "complete" : ""}>
+                            <strong>Client</strong>
+                            <span>
+                              {matchedClient
+                                ? matchedClient.name
+                                : "Needs client record"}
+                            </span>
+                          </div>
+                          <div className={intakeTemplate ? "complete" : ""}>
+                            <strong>Intake</strong>
+                            <span>
+                              {intakeTemplate
+                                ? intakeTemplate.name
+                                : "No intake form matched"}
+                            </span>
+                          </div>
+                          <div className={matchedProgram ? "complete" : ""}>
+                            <strong>Program</strong>
+                            <span>
+                              {matchedProgram
+                                ? matchedProgram.programName
+                                : "No program matched"}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="orderMetaGrid">
+                          <div>
+                            <span>Coach</span>
+                            <strong>{getOrderPrimaryCoach(order)}</strong>
+                          </div>
+                          <div>
+                            <span>Purchased</span>
+                            <strong>{order.purchasedAt || "--"}</strong>
+                          </div>
+                          <label>
+                            <span>Program Start</span>
+                            <input
+                              type="date"
+                              value={getOrderStartDate(order)}
+                              onChange={(event) =>
+                                setOrderStartDates((current) => ({
+                                  ...current,
+                                  [order.recordId]: event.target.value,
+                                }))
+                              }
+                            />
+                          </label>
+                        </div>
+
+                        <div className="orderActions">
+                          <button
+                            className="outlineButton"
+                            onClick={() => void createClientFromOrder(order)}
+                            disabled={processing || Boolean(matchedClient)}
+                          >
+                            {matchedClient ? "Client Matched" : "Create Client"}
+                          </button>
+                          <button
+                            className="outlineButton"
+                            onClick={() => void assignOrderIntake(order)}
+                            disabled={processing || !intakeTemplate}
+                          >
+                            Send Intake
+                          </button>
+                          <button
+                            className="goldButton"
+                            onClick={() => void assignOrderProgram(order)}
+                            disabled={processing || !matchedProgram}
+                          >
+                            {processing ? "Working..." : "Load Program"}
+                          </button>
+                        </div>
+                      </section>
+                    );
+                  })}
+                </div>
               </section>
             )}
 

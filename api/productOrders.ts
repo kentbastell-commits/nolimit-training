@@ -88,6 +88,8 @@ export default async function handler(_req: VercelRequest, res: VercelResponse) 
         orderId: fieldToText(fields["Order ID"]) || item.record_id,
         clientId: fieldToText(fields["Client ID"]),
         clientName: fieldToText(fields["Client Name"]),
+        email: fieldToText(fields["Email"]),
+        phone: fieldToText(fields["Phone/WeChat"]) || fieldToText(fields["Phone"]),
         productType: fieldToText(fields["Product Type"]),
         programId: fieldToText(fields["Program ID"]),
         productName: fieldToText(fields["Product Name"]),

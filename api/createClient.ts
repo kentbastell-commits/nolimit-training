@@ -27,6 +27,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       clientType,
       packageType,
       packageName,
+      program,
       subscriptionStatus,
       intakeStatus,
       paymentStatus,
@@ -80,6 +81,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (primaryCoachId) fields["Primary Coach"] = [primaryCoachId];
     if (secondaryCoachId) fields["Secondary Coach"] = [secondaryCoachId];
     if (packageName) fields.Package = packageName;
+    if (program) fields.Program = program;
     if (subscriptionStatus) fields["Subscription Status"] = subscriptionStatus;
     if (intakeStatus) fields["Intake Status"] = intakeStatus;
     if (paymentStatus) fields["Payment Status"] = paymentStatus;

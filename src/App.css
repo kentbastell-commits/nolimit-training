@@ -1078,6 +1078,140 @@ body {
   padding: 0 16px;
 }
 
+.ordersWorkspace {
+  display: grid;
+  gap: 22px;
+}
+
+.ordersSummary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.ordersSummary > div,
+.orderCard {
+  border: 1px solid rgba(212, 175, 55, 0.28);
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+  padding: 22px 24px;
+}
+
+.ordersSummary span,
+.orderCardHeader span,
+.orderMetaGrid span,
+.orderPipeline strong {
+  color: #aaa;
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.ordersSummary strong {
+  color: #f8e27d;
+  display: block;
+  font-size: clamp(2rem, 4vw, 3.4rem);
+  line-height: 1;
+  margin-top: 8px;
+}
+
+.ordersToolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+}
+
+.ordersToolbar input {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.4);
+  color: white;
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  border-radius: 8px;
+  padding: 15px;
+  font-size: 16px;
+}
+
+.ordersGrid {
+  display: grid;
+  gap: 18px;
+}
+
+.orderCard {
+  display: grid;
+  gap: 18px;
+}
+
+.orderCardHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: flex-start;
+}
+
+.orderCardHeader h3 {
+  color: #f8e27d;
+  font-size: clamp(1.4rem, 2.2vw, 2.2rem);
+  margin: 4px 0 6px;
+}
+
+.orderCardHeader p {
+  color: #ddd;
+  margin: 0;
+}
+
+.orderPipeline,
+.orderMetaGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.orderPipeline > div,
+.orderMetaGrid > div,
+.orderMetaGrid label {
+  border: 1px solid rgba(212, 175, 55, 0.22);
+  border-radius: 10px;
+  padding: 14px;
+}
+
+.orderPipeline .complete {
+  border-color: rgba(124, 255, 151, 0.45);
+}
+
+.orderPipeline span,
+.orderMetaGrid strong {
+  color: #fff;
+  display: block;
+  font-weight: 800;
+  margin-top: 6px;
+}
+
+.orderMetaGrid input {
+  margin-top: 8px;
+  width: 100%;
+  background: #050505;
+  color: #fff;
+  border: 1px solid rgba(212, 175, 55, 0.36);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-weight: 800;
+}
+
+.orderActions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.emptyOrderCard {
+  min-height: 180px;
+  align-content: center;
+}
+
 .searchRow {
   display: flex;
   justify-content: space-between;
@@ -8218,18 +8352,62 @@ textarea {
   box-shadow: 0 16px 42px rgba(20, 20, 20, 0.06);
 }
 
+.app:not(.clientPortalApp) .ordersSummary > div,
+.app:not(.clientPortalApp) .orderCard {
+  background: rgba(255, 255, 255, 0.88);
+  border-color: rgba(20, 20, 20, 0.14);
+  box-shadow: 0 16px 42px rgba(20, 20, 20, 0.06);
+}
+
 .app:not(.clientPortalApp) .coachManagementSummary span,
 .app:not(.clientPortalApp) .coachManagementSummary small,
-.app:not(.clientPortalApp) .coachTableRow small {
+.app:not(.clientPortalApp) .coachTableRow small,
+.app:not(.clientPortalApp) .ordersSummary span,
+.app:not(.clientPortalApp) .orderCardHeader span,
+.app:not(.clientPortalApp) .orderMetaGrid span,
+.app:not(.clientPortalApp) .orderPipeline strong {
   color: #6d6b64;
 }
 
-.app:not(.clientPortalApp) .coachManagementSummary strong {
+.app:not(.clientPortalApp) .coachManagementSummary strong,
+.app:not(.clientPortalApp) .ordersSummary strong,
+.app:not(.clientPortalApp) .orderCardHeader h3,
+.app:not(.clientPortalApp) .orderPipeline span,
+.app:not(.clientPortalApp) .orderMetaGrid strong {
+  color: #0d0d0d;
+}
+
+.app:not(.clientPortalApp) .orderCardHeader p {
+  color: #54524b;
+}
+
+.app:not(.clientPortalApp) .orderPipeline > div,
+.app:not(.clientPortalApp) .orderMetaGrid > div,
+.app:not(.clientPortalApp) .orderMetaGrid label {
+  border-color: #ded8cc;
+  background: rgba(247, 246, 241, 0.74);
+}
+
+.app:not(.clientPortalApp) .orderPipeline .complete {
+  border-color: #7f9a6b;
+  background: rgba(239, 245, 232, 0.86);
+}
+
+.app:not(.clientPortalApp) .ordersToolbar input,
+.app:not(.clientPortalApp) .orderMetaGrid input {
+  background: #ffffff;
+  border-color: #cfc7b8;
   color: #0d0d0d;
 }
 
 @media (max-width: 780px) {
   .coachManagementSummary {
+    grid-template-columns: 1fr;
+  }
+
+  .ordersSummary,
+  .orderPipeline,
+  .orderMetaGrid {
     grid-template-columns: 1fr;
   }
 
