@@ -318,6 +318,14 @@ type ContentResponse = {
   submittedAt: string;
 };
 
+type ContentResponseGroup = {
+  key: string;
+  responseType: string;
+  title: string;
+  submittedAt: string;
+  answers: ContentResponse[];
+};
+
 type CalendarActionMenuState =
   | {
       kind: "item";
@@ -646,6 +654,8 @@ function App() {
   );
   const [contentResponses, setContentResponses] = useState<ContentResponse[]>([]);
   const [contentResponsesLoading, setContentResponsesLoading] = useState(false);
+  const [selectedContentSubmission, setSelectedContentSubmission] =
+    useState<ContentResponseGroup | null>(null);
   const [activeContentAssignment, setActiveContentAssignment] =
     useState<ContentAssignment | null>(null);
   const [contentAssignmentAnswers, setContentAssignmentAnswers] = useState<
@@ -3961,13 +3971,7 @@ function App() {
     .slice(0, 5);
 
   const groupedContentResponses = Object.values(
-    contentResponses.reduce<Record<string, {
-      key: string;
-      responseType: string;
-      title: string;
-      submittedAt: string;
-      answers: ContentResponse[];
-    }>>((groups, response) => {
+    contentResponses.reduce<Record<string, ContentResponseGroup>>((groups, response) => {
       const key =
         response.assignmentRecordId ||
         response.assignmentId ||
@@ -4002,7 +4006,30 @@ function App() {
     }, {})
   ).sort((a, b) => b.submittedAt.localeCompare(a.submittedAt));
 
-  const recentContentResponses = groupedContentResponses.slice(0, 4);
+  const recentQuestionnaireResponses = groupedContentResponses
+    .filter((submission) =>
+      submission.responseType.toLowerCase().includes("question")
+    )
+    .slice(0, 4);
+  const recentTestResponses = groupedContentResponses
+    .filter((submission) => submission.responseType.toLowerCase().includes("test"))
+    .slice(0, 4);
+  const recentWorkoutSubmissions = workouts
+    .filter((workout) => {
+      const status = String(workout.completionStatus || "").toLowerCase();
+      return (
+        status.includes("complete") ||
+        status.includes("saved") ||
+        status.includes("progress") ||
+        String(workout.workoutLogs || "").trim()
+      );
+    })
+    .sort((a, b) =>
+      normalizeDate(String(b.scheduledDate)).localeCompare(
+        normalizeDate(String(a.scheduledDate))
+      )
+    )
+    .slice(0, 4);
 
   const getContentResponseLabel = (response: ContentResponse) => {
     if (response.label) return response.label;
@@ -6199,42 +6226,63 @@ function App() {
                       </div>
 
                       <div className="submissionList">
-                        {recentContentResponses.length > 0 ? (
-                          recentContentResponses.map((submission) => (
-                            <article
-                              className="submissionCard"
-                              key={submission.key}
-                            >
-                              <div className="submissionCardTop">
-                                <div>
-                                  <strong>{submission.title}</strong>
-                                  <span>{submission.responseType}</span>
-                                </div>
-                                <time>{submission.submittedAt || "--"}</time>
-                              </div>
+                        <div className="submissionCategory">
+                          <h3>Workouts</h3>
+                          {recentWorkoutSubmissions.length > 0 ? (
+                            recentWorkoutSubmissions.map((workout) => (
+                              <button
+                                className="submissionSummaryButton"
+                                key={workout.id}
+                                onClick={() => openWorkout(workout)}
+                              >
+                                <span>{localizedWorkoutName(workout)}</span>
+                                <time>
+                                  {normalizeDate(String(workout.scheduledDate)) || "--"}
+                                </time>
+                              </button>
+                            ))
+                          ) : (
+                            <p className="homeEmptyText">No workout submissions yet.</p>
+                          )}
+                        </div>
 
-                              <div className="submissionAnswerGrid">
-                                {submission.answers.slice(0, 6).map((answer) => (
-                                  <div
-                                    className="submissionAnswer"
-                                    key={answer.recordId}
-                                  >
-                                    <span>{getContentResponseLabel(answer)}</span>
-                                    <strong>
-                                      {answer.answer || "--"}
-                                      {answer.unit ? ` ${answer.unit}` : ""}
-                                    </strong>
-                                    {answer.notes ? <small>{answer.notes}</small> : null}
-                                  </div>
-                                ))}
-                              </div>
-                            </article>
-                          ))
-                        ) : (
-                          <p className="homeEmptyText">
-                            No submitted questionnaires or tests yet.
-                          </p>
-                        )}
+                        <div className="submissionCategory">
+                          <h3>Questionnaires</h3>
+                          {recentQuestionnaireResponses.length > 0 ? (
+                            recentQuestionnaireResponses.map((submission) => (
+                              <button
+                                className="submissionSummaryButton"
+                                key={submission.key}
+                                onClick={() => setSelectedContentSubmission(submission)}
+                              >
+                                <span>{submission.title}</span>
+                                <time>{submission.submittedAt || "--"}</time>
+                              </button>
+                            ))
+                          ) : (
+                            <p className="homeEmptyText">
+                              No questionnaire submissions yet.
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="submissionCategory">
+                          <h3>Tests</h3>
+                          {recentTestResponses.length > 0 ? (
+                            recentTestResponses.map((submission) => (
+                              <button
+                                className="submissionSummaryButton"
+                                key={submission.key}
+                                onClick={() => setSelectedContentSubmission(submission)}
+                              >
+                                <span>{submission.title}</span>
+                                <time>{submission.submittedAt || "--"}</time>
+                              </button>
+                            ))
+                          ) : (
+                            <p className="homeEmptyText">No test submissions yet.</p>
+                          )}
+                        </div>
                       </div>
                     </section>
                   )}
@@ -8167,6 +8215,51 @@ function App() {
                     : editingClient
                     ? "Save Client"
                     : "Create Client"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {selectedContentSubmission && (
+          <div className="workout-modal-overlay">
+            <div className="clientFormModal submissionResultsModal">
+              <div className="modal-header">
+                <div>
+                  <h2>{selectedContentSubmission.title}</h2>
+                  <p>
+                    {selectedContentSubmission.responseType} submitted on{" "}
+                    {selectedContentSubmission.submittedAt || "--"}
+                  </p>
+                </div>
+
+                <button
+                  className="drawerClose"
+                  onClick={() => setSelectedContentSubmission(null)}
+                >
+                  x
+                </button>
+              </div>
+
+              <div className="submissionAnswerGrid submissionResultsGrid">
+                {selectedContentSubmission.answers.map((answer) => (
+                  <div className="submissionAnswer" key={answer.recordId}>
+                    <span>{getContentResponseLabel(answer)}</span>
+                    <strong>
+                      {answer.answer || "--"}
+                      {answer.unit ? ` ${answer.unit}` : ""}
+                    </strong>
+                    {answer.notes ? <small>{answer.notes}</small> : null}
+                  </div>
+                ))}
+              </div>
+
+              <div className="modalActions">
+                <button
+                  className="goldButton"
+                  onClick={() => setSelectedContentSubmission(null)}
+                >
+                  Done
                 </button>
               </div>
             </div>

@@ -5667,15 +5667,62 @@ body {
 
 .submissionList {
   display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
 }
 
-.submissionCard {
+.submissionCategory {
   border: 1px solid #d8d1c4;
   border-radius: 12px;
   background: #fff;
   padding: 16px;
   box-shadow: 0 12px 26px rgba(16, 16, 16, 0.06);
+}
+
+.submissionCategory h3 {
+  color: #111;
+  font-size: 18px;
+  font-weight: 950;
+  margin: 0 0 12px;
+}
+
+.submissionSummaryButton {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  border: 1px solid #ded8cc;
+  border-radius: 10px;
+  background: #faf9f5;
+  color: #111;
+  padding: 12px;
+  margin-top: 10px;
+  cursor: pointer;
+  text-align: left;
+  transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.submissionSummaryButton:hover {
+  border-color: #a7832c;
+  box-shadow: 0 12px 24px rgba(16, 16, 16, 0.1);
+  transform: translateY(-1px);
+}
+
+.submissionSummaryButton span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 15px;
+  font-weight: 950;
+}
+
+.submissionSummaryButton time {
+  color: #6f6a61;
+  font-size: 12px;
+  font-weight: 850;
+  white-space: nowrap;
 }
 
 .submissionCardTop {
@@ -5706,6 +5753,14 @@ body {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
+}
+
+.submissionResultsModal {
+  max-width: 720px;
+}
+
+.submissionResultsGrid {
+  margin-top: 20px;
 }
 
 .submissionAnswer {
@@ -5747,6 +5802,10 @@ body {
   }
 
   .submissionAnswerGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .submissionList {
     grid-template-columns: 1fr;
   }
 }
