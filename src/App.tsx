@@ -1,11 +1,11 @@
 import {
-  BarChart3,
   BookOpen,
   CalendarDays,
   ClipboardList,
   Clock3,
   Dumbbell,
   Home,
+  MoreVertical,
   Play,
   Plus,
   Trash2,
@@ -520,7 +520,7 @@ function App() {
     notes: "",
   });
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
-  const [clientTab, setClientTab] = useState<ClientTab>("Overview");
+  const [clientTab, setClientTab] = useState<ClientTab>("Home");
   const [calendarView, setCalendarView] = useState<CalendarView>("Week");
   const [calendarAnchorDate, setCalendarAnchorDate] = useState(
     dateToInputValue(new Date())
@@ -2702,9 +2702,6 @@ function App() {
       : selectedClientCheckInAge === 0
         ? "Today"
         : `${selectedClientCheckInAge}d ago`;
-  const selectedClientContact =
-    selectedClient?.email || selectedClient?.phone || "No contact saved";
-
   const saveClientForm = async () => {
     if (!newClient.name.trim()) {
       notify("Please enter a client name.", "error");
@@ -3511,7 +3508,7 @@ function App() {
                             key={client.id}
                             onClick={() => {
                               setSelectedClient(client);
-                              setClientTab("Overview");
+                              setClientTab("Home");
                             }}
                           >
                             <input
@@ -4940,30 +4937,6 @@ function App() {
               clientTab === "Training" ? "clientPage trainingFocus" : "clientPage"
             }
           >
-            {clientTab === "Overview" && !isClientPortal && (
-              <aside className="clientListPanel">
-                <h4>CLIENTS</h4>
-                <h2>All Clients</h2>
-
-                <input className="miniSearch" placeholder="Search client" />
-
-                {clients.map((client) => (
-                  <button
-                    key={client.id}
-                    className={`miniClient ${
-                      selectedClient.id === client.id ? "selectedMiniClient" : ""
-                    }`}
-                    onClick={() => {
-                      setSelectedClient(client);
-                      setClientTab("Overview");
-                    }}
-                  >
-                    <div className="clientAvatar">{client.initials}</div>
-                    <span>{client.name}</span>
-                  </button>
-                ))}
-              </aside>
-            )}
 
             <section className="clientWorkspace">
               {!isClientPortal && (
@@ -4995,7 +4968,7 @@ function App() {
                   onClick={() => setClientTab("Training")}
                 >
                   <CalendarDays size={21} strokeWidth={2.2} />
-                  <span>Training</span>
+                  <span>Calendar</span>
                 </button>
                 <button
                   className={clientTab === "Overview" ? "active" : ""}
@@ -5025,132 +4998,88 @@ function App() {
                         ? `Hi, ${selectedClient.name.split(" ")[0] || "there"}`
                         : clientTab === "Overview"
                         ? "Profile"
-                        : "Training"
+                        : "Calendar"
                       : selectedClient.name}
                   </h1>
                   <p>
-                    {selectedClient.status} • {selectedClient.program}
+                    {isClientPortal
+                      ? `${selectedClient.status} - ${selectedClient.program}`
+                      : `${selectedClient.clientCode || "Client"} - ${
+                          selectedClient.coach || "Coach view"
+                        }`}
                   </p>
                 </div>
                 {!isClientPortal && (
                 <div className="clientProfileActions">
-                  <button
-                    className="goldButton"
-                    onClick={() => setClientTab("Training")}
-                  >
-                    Training
-                  </button>
-
-                  <button
-                    className="iconActionButton profileIconButton"
-                    onClick={loadAnalytics}
-                    disabled={analyticsLoading}
-                    title="Workout analytics"
-                    aria-label={`Open workout analytics for ${selectedClient.name}`}
-                  >
-                    <BarChart3 size={18} aria-hidden="true" />
-                  </button>
-
-                  <button
-                    className="iconActionButton profileIconButton"
-                    onClick={() =>
-                      copyToClipboard(
-                        buildClientPortalLink(selectedClient),
-                        "Client portal link"
-                      )
-                    }
-                    title="Copy portal link"
-                    aria-label="Copy portal link"
-                  >
-                    <BookOpen size={18} aria-hidden="true" />
-                  </button>
-
-                  <button
-                    className="outlineButton"
-                    onClick={() => openEditClientForm(selectedClient)}
-                  >
-                    Edit
-                  </button>
-
-                  <button
-                    className="compactTextButton"
-                    onClick={() => updateClientPackage(selectedClient, "Paused")}
-                    disabled={updatingClientStatus}
-                  >
-                    Pause
-                  </button>
-
-                  <button
-                    className="compactTextButton"
-                    onClick={() => updateClientPackage(selectedClient, "Archived")}
-                    disabled={updatingClientStatus}
-                  >
-                    Archive
-                  </button>
-
-                  <button
-                    className="iconActionButton dangerIconButton"
-                    onClick={() => deleteClient(selectedClient)}
-                    title="Delete client"
-                    aria-label={`Delete ${selectedClient.name}`}
-                  >
-                    <Trash2 size={18} aria-hidden="true" />
-                  </button>
+                  <details className="clientActionMenu">
+                    <summary
+                      className="iconActionButton profileIconButton"
+                      aria-label="Client actions"
+                    >
+                      <MoreVertical size={18} aria-hidden="true" />
+                    </summary>
+                    <div className="clientActionDropdown">
+                      <button
+                        onClick={() =>
+                          copyToClipboard(
+                            buildClientPortalLink(selectedClient),
+                            "Client portal link"
+                          )
+                        }
+                      >
+                        Copy portal link
+                      </button>
+                      <button onClick={() => openEditClientForm(selectedClient)}>
+                        Edit client
+                      </button>
+                      <button
+                        onClick={() => updateClientPackage(selectedClient, "Archived")}
+                        disabled={updatingClientStatus}
+                      >
+                        Archive client
+                      </button>
+                      <button
+                        className="dangerMenuItem"
+                        onClick={() => deleteClient(selectedClient)}
+                      >
+                        Delete client
+                      </button>
+                    </div>
+                  </details>
                 </div>
                 )}
               </div>
 
               <div
                 className={
-                  isClientPortal || clientTab === "Training"
-                    ? "clientSnapshotGrid portalHidden"
-                    : "clientSnapshotGrid"
-                }
-              >
-                <div className="clientSnapshotCard">
-                  <span>Status</span>
-                  <strong>{selectedClient.status || "--"}</strong>
-                </div>
-
-                <div className="clientSnapshotCard">
-                  <span>Program</span>
-                  <strong>{selectedClient.program || "--"}</strong>
-                </div>
-
-                <div className="clientSnapshotCard">
-                  <span>Check-in</span>
-                  <strong>{selectedClientCheckInLabel}</strong>
-                </div>
-
-                <div className="clientSnapshotCard">
-                  <span>Contact</span>
-                  <strong>{selectedClientContact}</strong>
-                </div>
-              </div>
-
-              <div
-                className={
-                  isClientPortal || clientTab === "Training"
+                  isClientPortal
                     ? "clientTabs portalHidden"
                     : "clientTabs"
                 }
               >
                 <button
-                  className={clientTab === "Overview" ? "tab activeTab" : "tab"}
-                  onClick={() => setClientTab("Overview")}
+                  className={clientTab === "Home" ? "tab activeTab" : "tab"}
+                  onClick={() => setClientTab("Home")}
                 >
-                  Client Overview
+                  Dashboard
                 </button>
 
                 <button
                   className={clientTab === "Training" ? "tab activeTab" : "tab"}
                   onClick={() => setClientTab("Training")}
                 >
-                  Training
+                  Calendar
+                </button>
+
+                <button
+                  className={clientTab === "Overview" ? "tab activeTab" : "tab"}
+                  onClick={() => setClientTab("Overview")}
+                >
+                  Client Overview
                 </button>
               </div>
 
-              {clientTab === "Home" && isClientPortal && (
+              {clientTab === "Home" && (
                 <div className="clientHomeGrid">
                   <section className="clientHomePanel upcomingHomePanel">
                     <div className="clientHomePanelHeader">
@@ -5263,8 +5192,12 @@ function App() {
 
                     <div className="homeFocusGrid">
                       <div>
-                        <span>Assigned Forms</span>
-                        <strong>No assigned forms due.</strong>
+                        <span>Current Program</span>
+                        <strong>{selectedClient.program || "No program assigned."}</strong>
+                      </div>
+                      <div>
+                        <span>Check-in Status</span>
+                        <strong>{selectedClientCheckInLabel}</strong>
                       </div>
                       <div>
                         <span>Coach Notes</span>
@@ -7123,3 +7056,4 @@ function App() {
 }
 
 export default App;
+

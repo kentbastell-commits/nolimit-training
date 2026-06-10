@@ -157,6 +157,73 @@ body {
   overflow: hidden;
 }
 
+@media (min-width: 1101px) {
+  .app:not(.clientPortalApp) .sidebar {
+    width: 86px;
+    flex-basis: 86px;
+    padding-inline: 12px;
+    position: sticky;
+    top: 0;
+    align-self: flex-start;
+    transition: width 180ms ease, flex-basis 180ms ease, box-shadow 180ms ease;
+    z-index: 20;
+  }
+
+  .app:not(.clientPortalApp) .sidebar:hover,
+  .app:not(.clientPortalApp) .sidebar:focus-within {
+    width: 244px;
+    flex-basis: 244px;
+    box-shadow: 18px 0 42px rgba(0, 0, 0, 0.12);
+  }
+
+  .app:not(.clientPortalApp) .brand {
+    margin-bottom: 28px;
+  }
+
+  .app:not(.clientPortalApp) .brandWordmark {
+    font-size: 18px;
+    letter-spacing: 2px;
+  }
+
+  .app:not(.clientPortalApp) .sidebar:hover .brandWordmark,
+  .app:not(.clientPortalApp) .sidebar:focus-within .brandWordmark {
+    font-size: 26px;
+    letter-spacing: 4px;
+  }
+
+  .app:not(.clientPortalApp) .brandTagline,
+  .app:not(.clientPortalApp) .coachBox,
+  .app:not(.clientPortalApp) .navItem span,
+  .app:not(.clientPortalApp) .navItem .badge {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 140ms ease;
+  }
+
+  .app:not(.clientPortalApp) .sidebar:hover .brandTagline,
+  .app:not(.clientPortalApp) .sidebar:focus-within .brandTagline,
+  .app:not(.clientPortalApp) .sidebar:hover .coachBox,
+  .app:not(.clientPortalApp) .sidebar:focus-within .coachBox,
+  .app:not(.clientPortalApp) .sidebar:hover .navItem span,
+  .app:not(.clientPortalApp) .sidebar:focus-within .navItem span,
+  .app:not(.clientPortalApp) .sidebar:hover .navItem .badge,
+  .app:not(.clientPortalApp) .sidebar:focus-within .navItem .badge {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .app:not(.clientPortalApp) .navItem {
+    justify-content: center;
+    min-height: 54px;
+    padding-inline: 12px;
+  }
+
+  .app:not(.clientPortalApp) .sidebar:hover .navItem,
+  .app:not(.clientPortalApp) .sidebar:focus-within .navItem {
+    justify-content: flex-start;
+  }
+}
+
 .brand {
   text-align: center;
   margin-bottom: 42px;
@@ -1683,8 +1750,8 @@ body {
 
 .clientPage {
   display: grid;
-  grid-template-columns: 280px 1fr;
-  gap: 28px;
+  grid-template-columns: 1fr;
+  gap: 20px;
   min-height: calc(100vh - 64px);
 }
 
@@ -1814,23 +1881,74 @@ body {
 
 .clientTabs {
   display: flex;
-  gap: 20px;
-  border-bottom: 1px solid rgba(212, 175, 55, 0.25);
+  gap: 10px;
+  border-bottom: 0;
   margin-bottom: 24px;
 }
 
 .tab {
-  padding: 14px 0;
-  background: transparent;
-  border: none;
-  color: #aaa;
-  font-size: 18px;
+  padding: 13px 18px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(212, 175, 55, 0.18);
+  border-radius: 8px;
+  color: #c9c9c9;
+  font-size: 16px;
+  font-weight: 900;
   cursor: pointer;
 }
 
 .activeTab {
   color: #f5d77b;
-  border-bottom: 3px solid #d4af37;
+  background: rgba(212, 175, 55, 0.14);
+  border-color: rgba(212, 175, 55, 0.55);
+}
+
+.clientActionMenu {
+  position: relative;
+}
+
+.clientActionMenu summary {
+  list-style: none;
+}
+
+.clientActionMenu summary::-webkit-details-marker {
+  display: none;
+}
+
+.clientActionDropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 40;
+  min-width: 190px;
+  display: grid;
+  gap: 4px;
+  padding: 8px;
+  border: 1px solid rgba(212, 175, 55, 0.24);
+  border-radius: 8px;
+  background: #080808;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+}
+
+.clientActionDropdown button {
+  width: 100%;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #fff;
+  padding: 10px 12px;
+  text-align: left;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.clientActionDropdown button:hover {
+  background: rgba(212, 175, 55, 0.16);
+  color: #f5d77b;
+}
+
+.clientActionDropdown .dangerMenuItem {
+  color: #ff9d9d;
 }
 
 .overviewGrid {
@@ -6194,6 +6312,48 @@ body {
   border-color: #7f2118 !important;
   color: #ffffff !important;
   transform: translateY(-1px);
+}
+
+.app:not(.clientPortalApp) .clientPage {
+  grid-template-columns: 1fr;
+}
+
+.app:not(.clientPortalApp) .clientTabs {
+  gap: 12px;
+  margin-top: 6px;
+}
+
+.app:not(.clientPortalApp) .tab {
+  background: #fff !important;
+  border-color: #d8d2c4 !important;
+  color: #151515 !important;
+  box-shadow: 0 10px 22px rgba(20, 18, 14, 0.05);
+}
+
+.app:not(.clientPortalApp) .tab:hover,
+.app:not(.clientPortalApp) .activeTab {
+  background: #151515 !important;
+  border-color: #151515 !important;
+  color: #f5d77b !important;
+}
+
+.app:not(.clientPortalApp) .clientActionDropdown {
+  background: #fffdf8;
+  border-color: #d8d2c4;
+  box-shadow: 0 18px 44px rgba(20, 18, 14, 0.16);
+}
+
+.app:not(.clientPortalApp) .clientActionDropdown button {
+  color: #151515;
+}
+
+.app:not(.clientPortalApp) .clientActionDropdown button:hover {
+  background: #f1efe8;
+  color: #7a5a0a;
+}
+
+.app:not(.clientPortalApp) .clientActionDropdown .dangerMenuItem {
+  color: #8f1d1d;
 }
 
 @media (max-width: 820px) {
