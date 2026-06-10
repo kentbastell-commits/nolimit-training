@@ -6,6 +6,73 @@ function toLarkDate(value?: string) {
   return new Date(`${value}T00:00:00`).getTime();
 }
 
+type TableField = {
+  field_name?: string;
+  name?: string;
+  type?: number;
+  ui_type?: string;
+};
+
+function normalizeFieldName(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function isLinkField(field?: TableField) {
+  const uiType = String(field?.ui_type || "").toLowerCase();
+
+  return (
+    field?.type === 21 ||
+    uiType.includes("duplex") ||
+    uiType.includes("link") ||
+    uiType.includes("relation")
+  );
+}
+
+function resolveField(fields: TableField[], aliases: string[]) {
+  const names = fields
+    .map((field) => field.field_name || field.name)
+    .filter(Boolean) as string[];
+  const exact = aliases.find((alias) => names.includes(alias));
+
+  if (exact) {
+    return fields.find((field) => (field.field_name || field.name) === exact);
+  }
+
+  const normalizedAliases = aliases.map(normalizeFieldName);
+
+  return fields.find((field) => {
+    const name = field.field_name || field.name || "";
+    return normalizedAliases.includes(normalizeFieldName(name));
+  });
+}
+
+function buildFields(
+  tableFields: TableField[],
+  specs: {
+    aliases: string[];
+    value: any;
+    linkValue?: any;
+    required?: boolean;
+  }[]
+) {
+  const fields: Record<string, any> = {};
+  const missingRequired: string[] = [];
+
+  for (const spec of specs) {
+    const field = resolveField(tableFields, spec.aliases);
+    const fieldName = field?.field_name || field?.name;
+
+    if (!fieldName) {
+      if (spec.required) missingRequired.push(spec.aliases[0]);
+      continue;
+    }
+
+    fields[fieldName] = isLinkField(field) && spec.linkValue ? spec.linkValue : spec.value;
+  }
+
+  return { fields, missingRequired };
+}
+
 async function getTenantToken() {
   const response = await fetch(
     "https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal",
@@ -25,6 +92,24 @@ async function getTenantToken() {
   }
 
   return data.tenant_access_token;
+}
+
+async function getTableFields(tableId: string, token: string) {
+  const response = await fetch(
+    `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${tableId}/fields?page_size=100`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+  const data = await response.json();
+
+  if (data.code !== 0) {
+    throw new Error(`Could not fetch assignment table fields: ${JSON.stringify(data)}`);
+  }
+
+  return (data.data.items || []) as TableField[];
 }
 
 async function createRecord(tableId: string, token: string, fields: Record<string, any>) {
@@ -80,30 +165,66 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(500).json({ error: "Missing FEISHU_ASSIGNED_FORMS_TABLE_ID" });
     }
 
-    const fields = isTest
-      ? {
-          assignedTestId: `AT-${Date.now()}`,
-          testTemplateId: String(templateId),
-          clientId: String(clientId),
-          clientCode: String(clientCode || ""),
-          clientName: String(clientName || ""),
-          assignedDate: toLarkDate(assignedDate),
-          dueDate: toLarkDate(dueDate),
-          status: "Assigned",
-        }
-      : {
-          assignedFormId: `AF-${Date.now()}`,
-          formId: String(templateId),
-          clientId: String(clientId),
-          clientCode: String(clientCode || ""),
-          clientName: String(clientName || ""),
-          assignedDate: toLarkDate(assignedDate),
-          dueDate: toLarkDate(dueDate),
-          status: "Assigned",
-        };
+    const tableId = isTest
+      ? (assignedTestsTableId as string)
+      : (assignedFormsTableId as string);
+    const tableFields = await getTableFields(tableId, token);
+    const assignmentId = `${isTest ? "AT" : "AF"}-${Date.now()}`;
+    const { fields, missingRequired } = buildFields(tableFields, [
+      {
+        aliases: isTest
+          ? ["Assigned Test ID", "assignedTestId", "Assignment ID", "Assigned ID"]
+          : ["Assigned Form ID", "assignedFormId", "Assignment ID", "Assigned ID"],
+        value: assignmentId,
+        required: true,
+      },
+      {
+        aliases: isTest
+          ? ["Test Template ID", "testTemplateId", "Template ID", "Test ID"]
+          : ["Form ID", "formId", "Template ID", "Questionnaire ID"],
+        value: String(templateId),
+        required: true,
+      },
+      {
+        aliases: ["Client", "Client ID", "clientId"],
+        value: String(clientId),
+        linkValue: [String(clientId)],
+        required: true,
+      },
+      {
+        aliases: ["Client Code", "clientCode"],
+        value: String(clientCode || ""),
+      },
+      {
+        aliases: ["Client Name", "clientName", "Name"],
+        value: String(clientName || ""),
+      },
+      {
+        aliases: ["Assigned Date", "assignedDate", "Date"],
+        value: toLarkDate(assignedDate),
+      },
+      {
+        aliases: ["Due Date", "dueDate"],
+        value: toLarkDate(dueDate),
+      },
+      {
+        aliases: ["Status", "status"],
+        value: "Assigned",
+      },
+    ]);
+
+    if (missingRequired.length > 0) {
+      return res.status(400).json({
+        error: "Missing required Feishu assignment columns",
+        missingRequired,
+        availableFields: tableFields
+          .map((field) => field.field_name || field.name)
+          .filter(Boolean),
+      });
+    }
 
     const data = await createRecord(
-      isTest ? (assignedTestsTableId as string) : (assignedFormsTableId as string),
+      tableId,
       token,
       fields
     );
