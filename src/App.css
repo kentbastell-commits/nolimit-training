@@ -6356,6 +6356,139 @@ body {
   color: #8f1d1d;
 }
 
+@media (min-width: 1101px) {
+  .app:not(.clientPortalApp) .sidebar:not(:hover):not(:focus-within) .brandWordmark,
+  .app:not(.clientPortalApp) .sidebar:not(:hover):not(:focus-within) .brandTagline {
+    opacity: 0;
+  }
+
+  .app:not(.clientPortalApp) .sidebar:not(:hover):not(:focus-within) .brand {
+    position: relative;
+    min-height: 72px;
+    margin-bottom: 22px;
+  }
+
+  .app:not(.clientPortalApp) .sidebar:not(:hover):not(:focus-within) .brand::before {
+    content: "NL";
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    color: #151515;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 28px;
+    font-weight: 900;
+    letter-spacing: -3px;
+  }
+
+  .app:not(.clientPortalApp) .sidebar:not(:hover):not(:focus-within) .navItem {
+    width: 62px;
+    height: 62px;
+    padding: 0;
+    margin-inline: auto;
+    border-radius: 14px;
+  }
+}
+
+.app:not(.clientPortalApp) .clientTabs {
+  display: inline-grid;
+  grid-template-columns: repeat(3, minmax(190px, 1fr));
+  gap: 10px;
+  padding: 6px;
+  border: 1px solid #d8d2c4;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.62);
+}
+
+.app:not(.clientPortalApp) .tab {
+  min-height: 58px;
+  padding: 16px 22px;
+  border-radius: 10px;
+  box-shadow: none;
+  font-size: 18px;
+}
+
+.app:not(.clientPortalApp) .calendarDay {
+  position: relative;
+}
+
+.app:not(.clientPortalApp) .weekCalendar .calendarDay {
+  min-height: 360px;
+  overflow-y: auto;
+}
+
+.app:not(.clientPortalApp) .workoutBlock {
+  background: #171717 !important;
+  border-color: #171717 !important;
+  color: #f8e7ab !important;
+  box-shadow: 0 14px 28px rgba(20, 18, 14, 0.16);
+}
+
+.app:not(.clientPortalApp) .workoutBlock:hover {
+  background: #24201a !important;
+  border-color: #8f6b12 !important;
+}
+
+.app:not(.clientPortalApp) .workoutBlock span {
+  color: #d8d2c4 !important;
+}
+
+.calendarDayAddButton {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  width: 34px;
+  height: 34px;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid #151515;
+  border-radius: 10px;
+  background: #151515;
+  color: #f5d77b;
+  opacity: 0;
+  transform: translateY(-3px);
+  cursor: pointer;
+  transition: opacity 140ms ease, transform 140ms ease, background 140ms ease;
+}
+
+.calendarDay:hover .calendarDayAddButton,
+.calendarDay:focus-within .calendarDayAddButton {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.calendarDayAddButton:hover {
+  background: #2a2418;
+}
+
+.workoutMoveControls {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.selectedDayAddButton {
+  width: 100%;
+  margin-top: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.app:not(.clientPortalApp) .coachSelectedDayGlance .selectedDayWorkout {
+  background: #151515;
+  border-color: #151515;
+  color: #f5d77b;
+}
+
+.app:not(.clientPortalApp) .coachSelectedDayGlance .selectedDayWorkout strong {
+  color: #f5d77b;
+}
+
+.app:not(.clientPortalApp) .coachSelectedDayGlance .selectedDayWorkout span,
+.app:not(.clientPortalApp) .coachSelectedDayGlance .selectedDayWorkout small {
+  color: #d8d2c4;
+}
+
 @media (max-width: 820px) {
   .clientHomeGrid {
     grid-template-columns: 1fr;

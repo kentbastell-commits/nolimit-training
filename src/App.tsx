@@ -2164,14 +2164,6 @@ function App() {
     }
   };
 
-  const moveWorkoutByDays = (workout: Workout, days: number) => {
-    const currentDate = normalizeDate(String(workout.scheduledDate));
-
-    if (!currentDate) return;
-
-    void moveWorkoutToDate(workout, addDays(currentDate, days));
-  };
-
   const addExerciseToProgram = (exercise: LibraryExercise) => {
     const meta = parseExerciseNotes(exercise.notes || "");
 
@@ -3057,7 +3049,8 @@ function App() {
   };
 
   const openAssignmentHubFromCalendar = (
-    type: "Program" | "Check-in" | "Questionnaire" | "Physical Test" = "Program"
+    type: "Program" | "Check-in" | "Questionnaire" | "Physical Test" = "Program",
+    date: string = calendarAnchorDate
   ) => {
     if (selectedClient) {
       setAssignmentClientId(selectedClient.id);
@@ -3065,8 +3058,8 @@ function App() {
 
     setAssignmentType(type);
     setAssignmentTemplateId("");
-    setAssignmentDueDate(calendarAnchorDate);
-    setAssignStartDate(calendarAnchorDate);
+    setAssignmentDueDate(date);
+    setAssignStartDate(date);
     setWorkoutPageTab("Assignments");
     setActivePage("Workouts");
     setSelectedClient(null);
@@ -5625,6 +5618,22 @@ function App() {
                             )}
                           </strong>
 
+                          {!isClientPortal &&
+                            (calendarView === "Week" || calendarView === "Full") && (
+                              <button
+                                className="calendarDayAddButton"
+                                type="button"
+                                aria-label={`Add item on ${formatCalendarLabel(date)}`}
+                                title="Add item"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  openAssignmentHubFromCalendar("Program", date);
+                                }}
+                              >
+                                <Plus size={16} aria-hidden="true" />
+                              </button>
+                            )}
+
                           {isClientPortal && (
                             <span className="calendarWorkMarkers" aria-hidden="true">
                               {dayWorkouts.length > 0 ? (
@@ -5690,33 +5699,15 @@ function App() {
                                   className="workoutMoveControls"
                                   onClick={(event) => event.stopPropagation()}
                                 >
-                                <button
-                                  className="miniMoveButton"
-                                  onClick={() => moveWorkoutByDays(workout, -1)}
-                                  disabled={movingWorkoutId === workout.id}
-                                  type="button"
-                                  aria-label="Move workout back one day"
-                                >
-                                  ‹
-                                </button>
-                                <input
-                                  type="date"
-                                  value={normalizeDate(String(workout.scheduledDate))}
-                                  onChange={(event) =>
-                                    moveWorkoutToDate(workout, event.target.value)
-                                  }
-                                  disabled={movingWorkoutId === workout.id}
-                                  aria-label="Move workout date"
-                                />
-                                <button
-                                  className="miniMoveButton"
-                                  onClick={() => moveWorkoutByDays(workout, 1)}
-                                  disabled={movingWorkoutId === workout.id}
-                                  type="button"
-                                  aria-label="Move workout forward one day"
-                                >
-                                  ›
-                                </button>
+                                  <input
+                                    type="date"
+                                    value={normalizeDate(String(workout.scheduledDate))}
+                                    onChange={(event) =>
+                                      moveWorkoutToDate(workout, event.target.value)
+                                    }
+                                    disabled={movingWorkoutId === workout.id}
+                                    aria-label="Move workout date"
+                                  />
                                 </div>
                               )}
                             </div>
@@ -6012,6 +6003,21 @@ function App() {
                             <p className="homeEmptyText">
                               Nothing scheduled for this date.
                             </p>
+                          )}
+                          {!isClientPortal && (
+                            <button
+                              className="outlineButton selectedDayAddButton"
+                              type="button"
+                              onClick={() =>
+                                openAssignmentHubFromCalendar(
+                                  "Program",
+                                  calendarAnchorDate
+                                )
+                              }
+                            >
+                              <Plus size={16} aria-hidden="true" />
+                              Add item to this date
+                            </button>
                           )}
                         </section>
                       </div>
@@ -7056,4 +7062,5 @@ function App() {
 }
 
 export default App;
+
 
