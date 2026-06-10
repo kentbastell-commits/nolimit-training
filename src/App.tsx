@@ -4048,6 +4048,48 @@ function App() {
     return response.responseType === "Physical Test" ? "Test Result" : "Answer";
   };
 
+  const latestTestResults = contentResponses
+    .filter((response) => response.responseType.toLowerCase().includes("test"))
+    .filter((response) => response.answer)
+    .sort((a, b) => b.submittedAt.localeCompare(a.submittedAt))
+    .slice(0, 5);
+
+  const questionnaireScaleAnswers = contentResponses
+    .filter((response) =>
+      response.responseType.toLowerCase().includes("question")
+    )
+    .map((response) => ({
+      ...response,
+      numericAnswer: Number(response.answer),
+    }))
+    .filter((response) => Number.isFinite(response.numericAnswer))
+    .sort((a, b) => a.submittedAt.localeCompare(b.submittedAt));
+
+  const readinessTrendPoints = questionnaireScaleAnswers.slice(-8);
+  const latestReadinessScore =
+    readinessTrendPoints[readinessTrendPoints.length - 1]?.numericAnswer || 0;
+  const averageReadinessScore =
+    readinessTrendPoints.length > 0
+      ? Math.round(
+          (readinessTrendPoints.reduce(
+            (sum, point) => sum + point.numericAnswer,
+            0
+          ) /
+            readinessTrendPoints.length) *
+            10
+        ) / 10
+      : 0;
+  const completedWorkoutCount = workouts.filter((workout) =>
+    String(workout.completionStatus || "").toLowerCase().includes("complete")
+  ).length;
+  const completedAssignmentCount = contentAssignments.filter((assignment) =>
+    String(assignment.status || "").toLowerCase().includes("complete")
+  ).length;
+  const totalTaskCount = workouts.length + contentAssignments.length;
+  const completedTaskCount = completedWorkoutCount + completedAssignmentCount;
+  const completionRate =
+    totalTaskCount > 0 ? Math.round((completedTaskCount / totalTaskCount) * 100) : 0;
+
   const progressExerciseOptions = Array.from(
     new Set([
       ...libraryExercises.map((exercise) => exercise.exerciseName).filter(Boolean),
@@ -6188,25 +6230,93 @@ function App() {
                   <section className="clientHomePanel focusHomePanel">
                     <div className="clientHomePanelHeader">
                       <div>
-                        <span>{t("readiness")}</span>
-                        <h2>{t("todaysFocus")}</h2>
+                        <span>{isClientPortal ? t("readiness") : "Coach View"}</span>
+                        <h2>{isClientPortal ? t("todaysFocus") : "Client Snapshot"}</h2>
                       </div>
                     </div>
 
-                    <div className="homeFocusGrid">
-                      <div>
-                        <span>{t("currentProgram")}</span>
-                        <strong>{selectedClient.program || t("noProgramAssigned")}</strong>
+                    {isClientPortal ? (
+                      <div className="homeFocusGrid">
+                        <div>
+                          <span>{t("currentProgram")}</span>
+                          <strong>
+                            {selectedClient.program || t("noProgramAssigned")}
+                          </strong>
+                        </div>
+                        <div>
+                          <span>{t("checkInStatus")}</span>
+                          <strong>{selectedClientCheckInLabel}</strong>
+                        </div>
+                        <div>
+                          <span>{t("coachNotes")}</span>
+                          <strong>{selectedClient.notes || t("noNotesYet")}</strong>
+                        </div>
                       </div>
-                      <div>
-                        <span>{t("checkInStatus")}</span>
-                        <strong>{selectedClientCheckInLabel}</strong>
+                    ) : (
+                      <div className="coachSnapshotGrid">
+                        <div className="snapshotMetricCard">
+                          <span>Completion</span>
+                          <strong>{completionRate}%</strong>
+                          <small>
+                            {completedTaskCount}/{totalTaskCount || 0} assigned tasks
+                          </small>
+                        </div>
+
+                        <div className="snapshotMetricCard">
+                          <span>Readiness</span>
+                          <strong>
+                            {latestReadinessScore ? latestReadinessScore : "--"}
+                          </strong>
+                          <small>
+                            {averageReadinessScore
+                              ? `${averageReadinessScore} avg`
+                              : "No scale answers yet"}
+                          </small>
+                        </div>
+
+                        <div className="snapshotTrendCard">
+                          <span>Questionnaire Trend</span>
+                          <div className="readinessSparkline">
+                            {readinessTrendPoints.length > 0 ? (
+                              readinessTrendPoints.map((point) => (
+                                <div
+                                  className="readinessSparkBar"
+                                  key={`${point.recordId}-${point.itemId}`}
+                                  style={{
+                                    height: `${Math.max(
+                                      14,
+                                      Math.min(100, point.numericAnswer * 20)
+                                    )}%`,
+                                  }}
+                                  title={`${getContentResponseLabel(point)}: ${
+                                    point.numericAnswer
+                                  }`}
+                                />
+                              ))
+                            ) : (
+                              <p className="homeEmptyText">No questionnaire data yet.</p>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="snapshotLatestTests">
+                          <span>Latest Tests</span>
+                          {latestTestResults.length > 0 ? (
+                            latestTestResults.slice(0, 3).map((result) => (
+                              <div className="latestTestRow" key={result.recordId}>
+                                <strong>{getContentResponseLabel(result)}</strong>
+                                <span>
+                                  {result.answer}
+                                  {result.unit ? ` ${result.unit}` : ""}
+                                </span>
+                              </div>
+                            ))
+                          ) : (
+                            <p className="homeEmptyText">No test results yet.</p>
+                          )}
+                        </div>
                       </div>
-                      <div>
-                        <span>{t("coachNotes")}</span>
-                        <strong>{selectedClient.notes || t("noNotesYet")}</strong>
-                      </div>
-                    </div>
+                    )}
                   </section>
 
                   {!isClientPortal && (
