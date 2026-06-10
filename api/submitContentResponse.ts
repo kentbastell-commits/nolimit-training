@@ -33,6 +33,10 @@ function resolveField(fields: TableField[], aliases: string[]) {
   );
 }
 
+function hasField(fields: TableField[], aliases: string[]) {
+  return Boolean(resolveField(fields, aliases));
+}
+
 function buildFields(
   tableFields: TableField[],
   specs: { aliases: string[]; value: any; required?: boolean }[]
@@ -181,9 +185,75 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const tableFields = await getTableFields(tableId, token);
     const createdRecords: string[] = [];
 
-    for (const [index, responseItem] of responses.entries()) {
-      const responseId = `${isTest ? "TR" : "FR"}-${Date.now()}-${index + 1}`;
+    if (!isTest && hasField(tableFields, ["Answers Json", "Answers JSON", "Answers"])) {
+      const responseId = `FR-${Date.now()}`;
       const { fields, missingRequired } = buildFields(tableFields, [
+        {
+          aliases: ["Form Response ID", "Response ID", "Result ID", "ID"],
+          value: responseId,
+        },
+        {
+          aliases: [
+            "Assigned Forms ID",
+            "Assigned Form ID",
+            "Assignment ID",
+            "Assigned ID",
+          ],
+          value: String(assignmentId || assignmentRecordId || ""),
+        },
+        {
+          aliases: ["Assignment Record ID", "Record ID"],
+          value: String(assignmentRecordId || ""),
+        },
+        {
+          aliases: ["Form ID", "Template ID", "Questionnaire ID"],
+          value: String(templateId),
+        },
+        {
+          aliases: ["Client ID", "clientId"],
+          value: String(clientId),
+        },
+        {
+          aliases: ["Client Name", "clientName", "Athlete Name"],
+          value: String(clientName || ""),
+        },
+        {
+          aliases: ["Submitted At", "Submitted Date", "Date"],
+          value: toLarkDate(),
+        },
+        {
+          aliases: ["Answers Json", "Answers JSON", "Answers"],
+          value: JSON.stringify(responses),
+          required: true,
+        },
+      ]);
+
+      if (missingRequired.length > 0) {
+        return res.status(400).json({
+          error: "Missing required response columns",
+          missingRequired,
+          availableFields: tableFields
+            .map((field) => field.field_name || field.name)
+            .filter(Boolean),
+        });
+      }
+
+      const data = await createRecord(tableId, token, fields);
+
+      if (data.code !== 0) {
+        return res.status(500).json({
+          error: "Could not submit response",
+          larkResponse: data,
+          fieldsSent: fields,
+        });
+      }
+
+      createdRecords.push(data.data.record.record_id);
+    } else {
+
+      for (const [index, responseItem] of responses.entries()) {
+        const responseId = `${isTest ? "TR" : "FR"}-${Date.now()}-${index + 1}`;
+        const { fields, missingRequired } = buildFields(tableFields, [
         {
           aliases: isTest
             ? ["Test Result ID", "Result ID", "Response ID", "ID"]
@@ -193,7 +263,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         {
           aliases: isTest
             ? ["Assigned Test ID", "Assignment ID", "Assigned ID"]
-            : ["Assigned Form ID", "Assignment ID", "Assigned ID"],
+            : [
+                "Assigned Forms ID",
+                "Assigned Form ID",
+                "Assignment ID",
+                "Assigned ID",
+              ],
           value: String(assignmentId || assignmentRecordId || ""),
         },
         {
@@ -219,7 +294,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           value: String(responseItem.label || ""),
         },
         {
-          aliases: isTest ? ["Value", "Result", "Answer"] : ["Answer", "Response"],
+          aliases: isTest
+            ? ["Value", "Result", "Answer", "Result Value"]
+            : [
+                "Answer",
+                "Response",
+                "Response Value",
+                "Answer Text",
+                "Question Answer",
+              ],
           value: String(responseItem.value || ""),
           required: true,
         },
@@ -262,6 +345,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       createdRecords.push(data.data.record.record_id);
+      }
     }
 
     let assignmentUpdate: any = null;

@@ -123,6 +123,7 @@ function mapResponse(item: any, responseType: "Questionnaire" | "Physical Test")
     "Athlete",
   ]);
   const assignmentId = readField(fields, [
+    "Assigned Forms ID",
     "Assigned Form ID",
     "Assigned Test ID",
     "Assignment ID",
@@ -145,6 +146,7 @@ function mapResponse(item: any, responseType: "Questionnaire" | "Physical Test")
     "Item Name",
   ]);
   const answer = readField(fields, ["Answer", "Response", "Value", "Result"]);
+  const answersJson = readField(fields, ["Answers Json", "Answers JSON", "Answers"]);
   const unit = readField(fields, ["Unit"]);
   const submittedAt = normalizeDate(
     readField(fields, ["Submitted At", "Submitted Date", "Date", "Completed At"])
@@ -166,6 +168,7 @@ function mapResponse(item: any, responseType: "Questionnaire" | "Physical Test")
     itemId,
     label,
     answer,
+    answersJson,
     unit,
     clientId,
     clientName,
@@ -207,6 +210,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const responses = records
       .flat()
+      .flatMap((item) => {
+        if (item.responseType !== "Questionnaire" || !item.answersJson) {
+          return [item];
+        }
+
+        try {
+          const answers = JSON.parse(item.answersJson);
+
+          if (!Array.isArray(answers)) return [item];
+
+          return answers.map((answer: any, index: number) => ({
+            ...item,
+            recordId: `${item.recordId}-${answer.questionId || index}`,
+            itemId: String(answer.questionId || answer.itemId || index + 1),
+            label: String(answer.label || item.label || "Answer"),
+            answer: String(answer.value || answer.answer || ""),
+            unit: String(answer.unit || item.unit || ""),
+          }));
+        } catch {
+          return [item];
+        }
+      })
       .filter((item) => {
         if (!requestedClientId && !requestedClientName) return true;
         return (
