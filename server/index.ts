@@ -8,6 +8,7 @@ import assignContent from "../api/assignContent.ts";
 import assignProgram from "../api/assignProgram.ts";
 import checkIns from "../api/checkIns.ts";
 import clients from "../api/clients.ts";
+import contentResponses from "../api/contentResponses.ts";
 import contentAssignments from "../api/contentAssignments.ts";
 import createClient from "../api/createClient.ts";
 import createProgram from "../api/createProgram.ts";
@@ -44,6 +45,7 @@ const handlers = {
   assignProgram,
   checkIns,
   clients,
+  contentResponses,
   contentAssignments,
   createClient,
   createProgram,

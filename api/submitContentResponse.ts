@@ -110,6 +110,35 @@ async function createRecord(tableId: string, token: string, fields: Record<strin
   return response.json();
 }
 
+async function updateRecord(tableId: string, token: string, recordId: string, fields: Record<string, any>) {
+  const response = await fetch(
+    `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${tableId}/records/${recordId}`,
+    {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ fields }),
+    }
+  );
+
+  return response.json();
+}
+
+function buildCompletionFields(tableFields: TableField[]) {
+  return buildFields(tableFields, [
+    {
+      aliases: ["Status", "status", "Completion Status"],
+      value: "Completed",
+    },
+    {
+      aliases: ["Completed At", "Completed Date", "Completd At"],
+      value: Date.now(),
+    },
+  ]).fields;
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
@@ -136,6 +165,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const tableId = isTest
       ? process.env.FEISHU_TEST_RESULTS_TABLE_ID || process.env.TEST_RESULTS
       : process.env.FEISHU_FORM_RESPONSES_TABLE_ID || process.env.FORM_RESPONSES;
+    const assignmentTableId = isTest
+      ? process.env.FEISHU_ASSIGNED_TESTS_TABLE_ID || process.env.ASSIGNED_TESTS
+      : process.env.FEISHU_ASSIGNED_FORMS_TABLE_ID || process.env.ASSIGNED_FORMS;
 
     if (!tableId) {
       return res.status(500).json({
@@ -232,9 +264,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       createdRecords.push(data.data.record.record_id);
     }
 
+    let assignmentUpdate: any = null;
+
+    if (assignmentTableId && assignmentRecordId) {
+      const assignmentTableFields = await getTableFields(assignmentTableId, token);
+      const completionFields = buildCompletionFields(assignmentTableFields);
+
+      if (Object.keys(completionFields).length > 0) {
+        assignmentUpdate = await updateRecord(
+          assignmentTableId,
+          token,
+          String(assignmentRecordId),
+          completionFields
+        );
+      }
+    }
+
     return res.status(200).json({
       success: true,
       recordsCreated: createdRecords.length,
+      assignmentUpdate,
     });
   } catch (error: any) {
     return res.status(500).json({

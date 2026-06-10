@@ -301,6 +301,22 @@ type ContentAssignment = {
   status: string;
 };
 
+type ContentResponse = {
+  recordId: string;
+  responseType: string;
+  responseId: string;
+  assignmentId: string;
+  assignmentRecordId: string;
+  templateId: string;
+  itemId: string;
+  label: string;
+  answer: string;
+  unit: string;
+  clientId: string;
+  clientName: string;
+  submittedAt: string;
+};
+
 type CalendarActionMenuState =
   | {
       kind: "item";
@@ -627,6 +643,8 @@ function App() {
   const [contentAssignments, setContentAssignments] = useState<ContentAssignment[]>(
     []
   );
+  const [contentResponses, setContentResponses] = useState<ContentResponse[]>([]);
+  const [contentResponsesLoading, setContentResponsesLoading] = useState(false);
   const [activeContentAssignment, setActiveContentAssignment] =
     useState<ContentAssignment | null>(null);
   const [contentAssignmentAnswers, setContentAssignmentAnswers] = useState<
@@ -1083,6 +1101,7 @@ function App() {
     setSetLogs([]);
     setSavedExerciseDraftIds([]);
     setContentAssignments([]);
+    setContentResponses([]);
 
     loadPrograms();
 
@@ -1091,15 +1110,18 @@ function App() {
         res.json()
       ),
       loadContentAssignments(selectedClient).then((assignments) => ({ assignments })),
+      loadContentResponses(selectedClient).then((responses) => ({ responses })),
     ])
-      .then(([workoutData, assignmentData]) => {
+      .then(([workoutData, assignmentData, responseData]) => {
         setWorkouts(workoutData.workouts || []);
         setContentAssignments(assignmentData.assignments || []);
+        setContentResponses(responseData.responses || []);
         setWorkoutsLoading(false);
       })
       .catch(() => {
         setWorkouts([]);
         setContentAssignments([]);
+        setContentResponses([]);
         setWorkoutsLoading(false);
       });
   }, [selectedClient]);
@@ -1345,6 +1367,44 @@ function App() {
     const assignments = data.assignments || [];
     setContentAssignments(assignments);
     return assignments;
+  };
+
+  const loadContentResponses = async (client: Client = selectedClient as Client) => {
+    if (!client) {
+      setContentResponses([]);
+      return [];
+    }
+
+    const responseParams = new URLSearchParams({
+      clientId: client.id,
+      clientName: client.name || "",
+    });
+
+    setContentResponsesLoading(true);
+
+    try {
+      const response = await fetch(
+        `/api/contentResponses?${responseParams.toString()}`
+      );
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error(data);
+        throw new Error(data.message || data.error || "Could not load responses.");
+      }
+
+      const responses = data.responses || [];
+      setContentResponses(responses);
+      return responses;
+    } catch (error) {
+      console.error(error);
+      if (!isClientPortal) {
+        notify("Could not load questionnaire/test results.", "error");
+      }
+      return [];
+    } finally {
+      setContentResponsesLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -3817,6 +3877,15 @@ function App() {
       }
 
       notify("Assignment submitted.", "success");
+      setContentAssignments((current) =>
+        current.map((assignment) =>
+          assignment.recordId === activeContentAssignment.recordId
+            ? { ...assignment, status: "Completed" }
+            : assignment
+        )
+      );
+      void loadContentAssignments(selectedClient);
+      void loadContentResponses(selectedClient);
       setActiveContentAssignment(null);
       setContentAssignmentAnswers({});
     } catch (error) {
@@ -3881,6 +3950,50 @@ function App() {
   ]
     .sort((a, b) => a.date.localeCompare(b.date))
     .slice(0, 5);
+
+  const groupedContentResponses = Object.values(
+    contentResponses.reduce<Record<string, {
+      key: string;
+      responseType: string;
+      title: string;
+      submittedAt: string;
+      answers: ContentResponse[];
+    }>>((groups, response) => {
+      const key =
+        response.assignmentRecordId ||
+        response.assignmentId ||
+        `${response.templateId}-${response.submittedAt}`;
+      const matchingAssignment = contentAssignments.find(
+        (assignment) =>
+          assignment.recordId === response.assignmentRecordId ||
+          assignment.assignmentId === response.assignmentId ||
+          assignment.templateId === response.templateId
+      );
+      const templateTitle = matchingAssignment
+        ? getAssignmentDisplayName(matchingAssignment)
+        : response.responseType;
+
+      if (!groups[key]) {
+        groups[key] = {
+          key,
+          responseType: response.responseType,
+          title: templateTitle,
+          submittedAt: response.submittedAt,
+          answers: [],
+        };
+      }
+
+      groups[key].answers.push(response);
+
+      if (response.submittedAt > groups[key].submittedAt) {
+        groups[key].submittedAt = response.submittedAt;
+      }
+
+      return groups;
+    }, {})
+  ).sort((a, b) => b.submittedAt.localeCompare(a.submittedAt));
+
+  const recentContentResponses = groupedContentResponses.slice(0, 4);
 
   const progressExerciseOptions = Array.from(
     new Set([
@@ -6042,6 +6155,62 @@ function App() {
                       </div>
                     </div>
                   </section>
+
+                  {!isClientPortal && (
+                    <section className="clientHomePanel submissionsHomePanel">
+                      <div className="clientHomePanelHeader">
+                        <div>
+                          <span>Results</span>
+                          <h2>Recent Submissions</h2>
+                        </div>
+                        <button
+                          className="outlineButton"
+                          onClick={() => loadContentResponses(selectedClient)}
+                          disabled={contentResponsesLoading}
+                        >
+                          {contentResponsesLoading ? "Loading" : "Reload"}
+                        </button>
+                      </div>
+
+                      <div className="submissionList">
+                        {recentContentResponses.length > 0 ? (
+                          recentContentResponses.map((submission) => (
+                            <article
+                              className="submissionCard"
+                              key={submission.key}
+                            >
+                              <div className="submissionCardTop">
+                                <div>
+                                  <strong>{submission.title}</strong>
+                                  <span>{submission.responseType}</span>
+                                </div>
+                                <time>{submission.submittedAt || "--"}</time>
+                              </div>
+
+                              <div className="submissionAnswerGrid">
+                                {submission.answers.slice(0, 6).map((answer) => (
+                                  <div
+                                    className="submissionAnswer"
+                                    key={answer.recordId}
+                                  >
+                                    <span>{answer.label || "Result"}</span>
+                                    <strong>
+                                      {answer.answer || "--"}
+                                      {answer.unit ? ` ${answer.unit}` : ""}
+                                    </strong>
+                                  </div>
+                                ))}
+                              </div>
+                            </article>
+                          ))
+                        ) : (
+                          <p className="homeEmptyText">
+                            No submitted questionnaires or tests yet.
+                          </p>
+                        )}
+                      </div>
+                    </section>
+                  )}
                 </div>
               )}
 

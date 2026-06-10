@@ -5645,6 +5645,75 @@ body {
   resize: vertical;
 }
 
+.submissionsHomePanel {
+  grid-column: span 2;
+}
+
+.submissionList {
+  display: grid;
+  gap: 14px;
+}
+
+.submissionCard {
+  border: 1px solid #d8d1c4;
+  border-radius: 12px;
+  background: #fff;
+  padding: 16px;
+  box-shadow: 0 12px 26px rgba(16, 16, 16, 0.06);
+}
+
+.submissionCardTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+.submissionCardTop strong {
+  display: block;
+  color: #101010;
+  font-size: 18px;
+  font-weight: 950;
+}
+
+.submissionCardTop span,
+.submissionCardTop time {
+  color: #68645d;
+  font-size: 13px;
+  font-weight: 850;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.submissionAnswerGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.submissionAnswer {
+  border-radius: 10px;
+  background: #f2f0eb;
+  padding: 10px 12px;
+}
+
+.submissionAnswer span {
+  display: block;
+  color: #6f6a61;
+  font-size: 12px;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.submissionAnswer strong {
+  display: block;
+  color: #111;
+  font-size: 16px;
+  font-weight: 950;
+  margin-top: 4px;
+}
+
 .clientMonthCalendarCard {
   border: 1px solid #deded8;
   border-radius: 12px;
