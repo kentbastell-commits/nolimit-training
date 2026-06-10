@@ -119,22 +119,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
-    const response = await fetch(
-      `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${tableId}/records/${recordId}`,
-      {
-        method: "PUT",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          fields: {
-            [fieldName]: toLarkDate(scheduledDate),
+    const updateRecord = async (value: string | number) => {
+      const response = await fetch(
+        `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${tableId}/records/${recordId}`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
           },
-        }),
-      }
-    );
-    const data = await response.json();
+          body: JSON.stringify({
+            fields: {
+              [fieldName]: value,
+            },
+          }),
+        }
+      );
+
+      return response.json();
+    };
+
+    let data = await updateRecord(toLarkDate(scheduledDate));
+
+    if (data.code !== 0) {
+      data = await updateRecord(String(scheduledDate));
+    }
 
     if (data.code !== 0) {
       return res.status(500).json({

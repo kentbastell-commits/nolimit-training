@@ -1306,6 +1306,21 @@ function App() {
     return assignments;
   };
 
+  useEffect(() => {
+    if (assignmentType === "Program") return;
+
+    if (assignmentType === "Physical Test") {
+      if (savedTestTemplates.length === 0 && !testTemplatesLoading) {
+        void loadTestTemplates();
+      }
+      return;
+    }
+
+    if (savedFormTemplates.length === 0 && !formTemplatesLoading) {
+      void loadFormTemplates();
+    }
+  }, [assignmentType, workoutPageTab, activePage, selectedClient]);
+
   const loadSavedFormIntoBuilder = (form: SavedFormTemplate | undefined) => {
     if (!form) {
       notify("Please select a saved form.");
@@ -1584,11 +1599,24 @@ function App() {
             }`,
           }));
 
-  const createContentAssignment = async () => {
+  const createContentAssignment = async (
+    overrides: Partial<{
+      assignmentType: string;
+      assignmentTemplateId: string;
+      assignmentClientId: string;
+      assignmentDueDate: string;
+    }> = {}
+  ) => {
+    const nextAssignmentType = overrides.assignmentType || assignmentType;
+    const nextTemplateId = overrides.assignmentTemplateId || assignmentTemplateId;
+    const nextClientId = overrides.assignmentClientId || assignmentClientId;
+    const nextDueDate = normalizeDate(
+      overrides.assignmentDueDate || assignmentDueDate
+    );
     const client =
-      clients.find((item) => item.id === assignmentClientId) || selectedClient;
+      clients.find((item) => item.id === nextClientId) || selectedClient;
     const selectedAssignmentTemplate = assignmentTemplateOptions.find(
-      (option) => option.id === assignmentTemplateId
+      (option) => option.id === nextTemplateId
     );
 
     if (!client) {
@@ -1596,15 +1624,15 @@ function App() {
       return;
     }
 
-    if (!assignmentTemplateId) {
+    if (!nextTemplateId) {
       notify("Please select a saved item to assign.", "error");
       return;
     }
 
-    if (assignmentType === "Program") {
-      const program = programs.find((item) => item.programId === assignmentTemplateId);
+    if (nextAssignmentType === "Program") {
+      const program = programs.find((item) => item.programId === nextTemplateId);
 
-      setSelectedSavedProgramId(assignmentTemplateId);
+      setSelectedSavedProgramId(nextTemplateId);
       setSavedAssignClientId(client.id);
       setWorkoutPageTab("Saved Programs");
       notify(
@@ -1620,14 +1648,14 @@ function App() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          assignmentType,
-          templateId: assignmentTemplateId,
+          assignmentType: nextAssignmentType,
+          templateId: nextTemplateId,
           templateName: selectedAssignmentTemplate?.label || "",
           clientId: client.id,
           clientCode: client.clientCode,
           clientName: client.name,
           assignedDate: dateToInputValue(new Date()),
-          dueDate: normalizeDate(assignmentDueDate),
+          dueDate: nextDueDate,
         }),
       });
       const data = await response.json();
@@ -1642,7 +1670,7 @@ function App() {
         await loadContentAssignments(client);
       }
 
-      notify(`${assignmentType} assigned to ${client.name}.`, "success");
+      notify(`${nextAssignmentType} assigned to ${client.name}.`, "success");
     } catch (error) {
       console.error(error);
       notify("Could not create assignment.", "error");
@@ -5273,7 +5301,7 @@ function App() {
                       </label>
                       <button
                         className="goldButton"
-                        onClick={createContentAssignment}
+                        onClick={() => createContentAssignment()}
                         disabled={creatingAssignment}
                       >
                         {creatingAssignment ? "Creating..." : "Create Assignment"}
@@ -6118,10 +6146,12 @@ function App() {
                         <button
                           className="goldButton"
                           onClick={() => {
-                            if (selectedClient) {
-                              setAssignmentClientId(selectedClient.id);
-                            }
-                            void createContentAssignment();
+                            void createContentAssignment({
+                              assignmentType,
+                              assignmentTemplateId,
+                              assignmentClientId: selectedClient?.id || "",
+                              assignmentDueDate,
+                            });
                           }}
                           disabled={creatingAssignment}
                         >
