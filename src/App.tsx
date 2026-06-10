@@ -435,40 +435,45 @@ function getMonthCalendarDates(dateString: string) {
   ];
 }
 
-function formatCalendarLabel(dateString: string) {
-  return new Date(dateString + "T00:00:00").toLocaleDateString("en-US", {
+function formatCalendarLabel(dateString: string, locale = "en-US") {
+  return new Date(dateString + "T00:00:00").toLocaleDateString(locale, {
     weekday: "short",
     month: "short",
     day: "numeric",
   });
 }
 
-function formatMonthTitle(dateString: string) {
-  return new Date(dateString + "T00:00:00").toLocaleDateString("en-US", {
+function formatMonthTitle(dateString: string, locale = "en-US") {
+  return new Date(dateString + "T00:00:00").toLocaleDateString(locale, {
     month: "long",
     year: "numeric",
   });
 }
 
-function formatWeekStripLabel(dateString: string) {
+function formatWeekStripLabel(dateString: string, locale = "en-US") {
   const date = new Date(dateString + "T00:00:00");
 
   return {
-    weekday: date.toLocaleDateString("en-US", { weekday: "short" }),
-    day: date.toLocaleDateString("en-US", { day: "numeric" }),
+    weekday: date.toLocaleDateString(locale, { weekday: "short" }),
+    day: date.toLocaleDateString(locale, { day: "numeric" }),
   };
 }
 
-function formatCalendarRangeLabel(view: CalendarView, anchorDate: string) {
+function formatCalendarRangeLabel(
+  view: CalendarView,
+  anchorDate: string,
+  locale = "en-US"
+) {
   if (view === "Week") {
     const weekStart = getMondayStart(anchorDate);
 
-    return `${formatCalendarLabel(weekStart)} - ${formatCalendarLabel(
-      addDays(weekStart, 6)
+    return `${formatCalendarLabel(weekStart, locale)} - ${formatCalendarLabel(
+      addDays(weekStart, 6),
+      locale
     )}`;
   }
 
-  return new Date(anchorDate + "T00:00:00").toLocaleDateString("en-US", {
+  return new Date(anchorDate + "T00:00:00").toLocaleDateString(locale, {
     month: "long",
     year: "numeric",
   });
@@ -916,6 +921,7 @@ function App() {
   const useChineseClientText =
     isClientPortal &&
     languagePreferenceToCode(selectedClient?.languagePreference) === "zh";
+  const clientLocale = useChineseClientText ? "zh-CN" : "en-US";
 
   const localizeText = (english = "", chinese = "") =>
     useChineseClientText && chinese ? chinese : english;
@@ -930,6 +936,15 @@ function App() {
   const localizedExerciseNotes = (
     exercise: Pick<LibraryExercise, "notes" | "notesCn">
   ) => localizeText(exercise.notes || "", exercise.notesCn || "");
+
+  const localizedCalendarLabel = (dateString: string) =>
+    formatCalendarLabel(dateString, clientLocale);
+
+  const localizedMonthTitle = (dateString: string) =>
+    formatMonthTitle(dateString, clientLocale);
+
+  const localizedWeekStripLabel = (dateString: string) =>
+    formatWeekStripLabel(dateString, clientLocale);
 
   const updateClientLanguagePreference = async (languagePreference: string) => {
     if (!selectedClient) return;
@@ -3097,13 +3112,14 @@ function App() {
   );
   const clientMonthCalendarDates = getMonthCalendarDates(clientMonthAnchorDate);
   const coachMonthCalendarDates = getMonthCalendarDates(calendarAnchorDate);
-  const clientWeekRangeLabel = `${formatCalendarLabel(
+  const clientWeekRangeLabel = `${localizedCalendarLabel(
     clientWeekStartDate
-  )} - ${formatCalendarLabel(addDays(clientWeekStartDate, 6))}`;
+  )} - ${localizedCalendarLabel(addDays(clientWeekStartDate, 6))}`;
 
   const calendarRangeLabel = formatCalendarRangeLabel(
     calendarView,
-    calendarAnchorDate
+    calendarAnchorDate,
+    clientLocale
   );
 
   const moveCalendarRange = (direction: -1 | 1) => {
@@ -3220,6 +3236,13 @@ function App() {
     !progressExerciseOptions.includes(selectedProgressName)
       ? [selectedProgressName, ...progressExerciseOptions]
       : progressExerciseOptions;
+  const getLocalizedProgressExerciseName = (name: string) => {
+    const exercise = libraryExercises.find(
+      (item) => item.exerciseName.toLowerCase() === name.toLowerCase()
+    );
+
+    return exercise ? localizedExerciseName(exercise) : name;
+  };
 
   const progressHistoryPoints = workoutHistoryLogs
     .filter((log) =>
@@ -3409,7 +3432,9 @@ function App() {
     <div
       className={`app ${
         selectedClient ? "clientLayerActive" : "coachLayerActive"
-      } ${isClientPortal ? "clientPortalApp" : ""}`}
+      } ${isClientPortal ? "clientPortalApp" : ""} ${
+        useChineseClientText ? "chineseLocaleApp" : ""
+      }`}
     >
       <aside className="sidebar">
         <div className="brand">
@@ -5091,7 +5116,9 @@ function App() {
                   <h1>
                     {isClientPortal
                       ? clientTab === "Home"
-                        ? `Hi, ${selectedClient.name.split(" ")[0] || "there"}`
+                        ? t("hi", {
+                            name: selectedClient.name.split(" ")[0] || "there",
+                          })
                         : clientTab === "Overview"
                         ? t("profile")
                         : t("calendar")
@@ -5231,13 +5258,13 @@ function App() {
                             onClick={() => openWorkout(workout)}
                           >
                             <span>
-                              {formatCalendarLabel(
+                              {localizedCalendarLabel(
                                 normalizeDate(String(workout.scheduledDate))
                               )}
                             </span>
                             <strong>{localizedWorkoutName(workout)}</strong>
                             <small>
-                              Week {workout.week} - Day {workout.day}
+                              {t("week")} {workout.week} - {t("day")} {workout.day}
                             </small>
                           </button>
                         ))
@@ -5252,7 +5279,7 @@ function App() {
                   <section className="clientHomePanel progressHomePanel">
                     <div className="clientHomePanelHeader">
                       <div>
-                        <span>Progress</span>
+                        <span>{t("progress")}</span>
                         <h2>{t("exerciseHistory")}</h2>
                       </div>
                     </div>
@@ -5270,7 +5297,7 @@ function App() {
                         {visibleProgressExerciseOptions.length > 0 ? (
                           visibleProgressExerciseOptions.map((name) => (
                             <option key={name} value={name}>
-                              {name}
+                              {getLocalizedProgressExerciseName(name)}
                             </option>
                           ))
                         ) : (
@@ -5295,7 +5322,7 @@ function App() {
                             />
                             <small>
                               {new Date(`${point.date}T00:00:00`).toLocaleDateString(
-                                "en-US",
+                                clientLocale,
                                 { month: "short", day: "numeric" }
                               )}
                             </small>
@@ -5312,8 +5339,8 @@ function App() {
                   <section className="clientHomePanel focusHomePanel">
                     <div className="clientHomePanelHeader">
                       <div>
-                        <span>Readiness</span>
-                        <h2>Today's Focus</h2>
+                        <span>{t("readiness")}</span>
+                        <h2>{t("todaysFocus")}</h2>
                       </div>
                     </div>
 
@@ -5404,16 +5431,16 @@ function App() {
                         </h2>
                         <p>
                           {clientPortalUpcomingWorkouts[0]
-                            ? `${formatCalendarLabel(
+                            ? `${localizedCalendarLabel(
                                 normalizeDate(
                                   String(
                                     clientPortalUpcomingWorkouts[0].scheduledDate
                                   )
                                 )
-                              )} • Week ${
+                              )} • ${t("week")} ${
                                 clientPortalUpcomingWorkouts[0].week
-                              } Day ${clientPortalUpcomingWorkouts[0].day}`
-                            : "No upcoming workouts are scheduled yet."}
+                              } ${t("day")} ${clientPortalUpcomingWorkouts[0].day}`
+                            : t("noUpcomingWorkouts")}
                         </p>
                       </div>
 
@@ -5455,7 +5482,7 @@ function App() {
                   )}
 
                   <div className="calendarHeader">
-                    <h2>Training Calendar</h2>
+                    <h2>{t("trainingCalendar")}</h2>
 
                     {isClientPortal && (
                       <div className="clientCalendarViewToggle">
@@ -5468,7 +5495,7 @@ function App() {
                             onClick={() => setClientCalendarStyle(view)}
                             type="button"
                           >
-                            {view}
+                            {t(view.toLowerCase())}
                           </button>
                         ))}
                       </div>
@@ -5549,9 +5576,9 @@ function App() {
                         {isClientPortal && clientCalendarStyle === "Week"
                           ? clientWeekRangeLabel
                           : isClientPortal && clientCalendarStyle === "Month"
-                          ? formatMonthTitle(clientMonthAnchorDate)
+                          ? localizedMonthTitle(clientMonthAnchorDate)
                           : isClientPortal && clientCalendarStyle === "Full"
-                          ? formatMonthTitle(calendarAnchorDate)
+                          ? localizedMonthTitle(calendarAnchorDate)
                           : calendarRangeLabel}
                       </strong>
 
@@ -5712,7 +5739,7 @@ function App() {
                       : calendarDates
                     ).map((date) => {
                       const dayWorkouts = getWorkoutsForDate(date);
-                      const weekStripLabel = formatWeekStripLabel(date);
+                      const weekStripLabel = localizedWeekStripLabel(date);
 
                       return (
                         <div
@@ -5761,7 +5788,7 @@ function App() {
                                 <b>{weekStripLabel.day}</b>
                               </>
                             ) : (
-                              formatCalendarLabel(date)
+                              localizedCalendarLabel(date)
                             )}
                           </strong>
 
@@ -5770,7 +5797,7 @@ function App() {
                               <button
                                 className="calendarDayAddButton"
                                 type="button"
-                                aria-label={`Add item on ${formatCalendarLabel(date)}`}
+                                aria-label={`Add item on ${localizedCalendarLabel(date)}`}
                                 title="Add item"
                                 onClick={(event) => {
                                   event.stopPropagation();
@@ -5833,7 +5860,7 @@ function App() {
                               }}
                             >
                               <div className="workoutBlockMain">
-                                {workout.sessionName || "Workout"}
+                                {localizedWorkoutName(workout)}
                                 <span>
                                   {movingWorkoutId === workout.id
                                     ? "Moving..."
@@ -5867,14 +5894,12 @@ function App() {
                   {isClientPortal && clientCalendarStyle === "Week" && (
                     <section className="selectedDayGlance">
                       <div className="selectedDayGlanceHeader">
-                        <span>{formatCalendarLabel(calendarAnchorDate)}</span>
+                        <span>{localizedCalendarLabel(calendarAnchorDate)}</span>
                         <strong>
                           {selectedCalendarDateWorkouts.length > 0
-                            ? `${selectedCalendarDateWorkouts.length} item${
-                                selectedCalendarDateWorkouts.length === 1
-                                  ? ""
-                                  : "s"
-                              }`
+                            ? t("itemCount", {
+                                count: selectedCalendarDateWorkouts.length,
+                              })
                             : t("nothingScheduled")}
                         </strong>
                       </div>
@@ -5888,7 +5913,7 @@ function App() {
                           >
                             <div>
                               <span>
-                                Week {workout.week} - Day {workout.day}
+                                {t("week")} {workout.week} - {t("day")} {workout.day}
                               </span>
                               <strong>{localizedWorkoutName(workout)}</strong>
                               <small>
@@ -5920,7 +5945,7 @@ function App() {
                           >
                             {"<"}
                           </button>
-                          <strong>{formatMonthTitle(clientMonthAnchorDate)}</strong>
+                          <strong>{localizedMonthTitle(clientMonthAnchorDate)}</strong>
                           <button
                             type="button"
                             className="clientMonthArrow"
@@ -5932,7 +5957,10 @@ function App() {
                         </div>
 
                         <div className="clientMonthWeekdays">
-                          {["MO", "TU", "WE", "TH", "FR", "SA", "SU"].map((day) => (
+                          {(useChineseClientText
+                            ? ["一", "二", "三", "四", "五", "六", "日"]
+                            : ["MO", "TU", "WE", "TH", "FR", "SA", "SU"]
+                          ).map((day) => (
                             <span key={day}>{day}</span>
                           ))}
                         </div>
@@ -5989,14 +6017,12 @@ function App() {
                     {isClientPortal && clientCalendarStyle === "Month" && (
                       <section className="selectedDayGlance monthSelectedDayGlance">
                         <div className="selectedDayGlanceHeader">
-                          <span>{formatCalendarLabel(calendarAnchorDate)}</span>
+                          <span>{localizedCalendarLabel(calendarAnchorDate)}</span>
                           <strong>
                             {selectedCalendarDateWorkouts.length > 0
-                              ? `${selectedCalendarDateWorkouts.length} task${
-                                  selectedCalendarDateWorkouts.length === 1
-                                    ? ""
-                                    : "s"
-                                }`
+                              ? t("taskCount", {
+                                  count: selectedCalendarDateWorkouts.length,
+                                })
                               : t("nothingScheduled")}
                           </strong>
                         </div>
@@ -6010,7 +6036,7 @@ function App() {
                             >
                               <div>
                                 <span>
-                                  Program - Week {workout.week}, Day {workout.day}
+                                  {t("program")} - {t("week")} {workout.week}, {t("day")} {workout.day}
                                 </span>
                                 <strong>{localizedWorkoutName(workout)}</strong>
                                 <small>
@@ -6761,7 +6787,7 @@ function App() {
                   <h2>{localizedWorkoutName(selectedWorkout)}</h2>
                   <div className="workoutHeaderMeta">
                     <span>
-                      Week {selectedWorkout.week} • Day {selectedWorkout.day}
+                      {t("week")} {selectedWorkout.week} • {t("day")} {selectedWorkout.day}
                     </span>
                     <span>{selectedWorkout.completionStatus || t("scheduled")}</span>
                     {!isClientPortal && (

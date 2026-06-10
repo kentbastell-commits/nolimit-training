@@ -3,6 +3,8 @@
 @import "@fontsource/inter/latin-700.css";
 @import "@fontsource/inter/latin-800.css";
 @import "@fontsource/inter/latin-900.css";
+@import "@fontsource/noto-sans-sc/chinese-simplified-400.css";
+@import "@fontsource/noto-sans-sc/chinese-simplified-900.css";
 @import "@fontsource/bebas-neue/latin-400.css";
 @import "@fontsource/rock-salt/latin-400.css";
 
@@ -12,7 +14,7 @@
 
 body {
   margin: 0;
-  font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif;
+  font-family: Inter, "Noto Sans SC", "PingFang SC", "Microsoft YaHei", "Segoe UI", Roboto, Arial, sans-serif;
   background: #050505;
   color: #f7e4a3;
   font-size: 14px;
@@ -6529,7 +6531,8 @@ body {
 :root {
   --brand-hand: "Rock Salt", "Segoe Print", "Comic Sans MS", cursive;
   --brand-display: "Bebas Neue", Impact, "Arial Narrow", sans-serif;
-  --brand-ui: "Inter", "Segoe UI", Roboto, Arial, sans-serif;
+  --brand-ui: "Inter", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", "Segoe UI", Roboto, Arial, sans-serif;
+  --brand-cjk: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", "Heiti SC", sans-serif;
   --brand-ink: #121210;
   --brand-cream: #f5f1e8;
   --brand-gold: #9f7a1b;
@@ -6543,6 +6546,35 @@ input,
 select,
 textarea {
   font-family: var(--brand-ui);
+}
+
+.chineseLocaleApp,
+.chineseLocaleApp button,
+.chineseLocaleApp input,
+.chineseLocaleApp select,
+.chineseLocaleApp textarea {
+  font-family: var(--brand-cjk);
+}
+
+.chineseLocaleApp h1,
+.chineseLocaleApp h2,
+.chineseLocaleApp h3,
+.chineseLocaleApp .clientHomePanelHeader h2,
+.chineseLocaleApp .calendarHeader h2,
+.chineseLocaleApp .workout-modal h2,
+.chineseLocaleApp .workoutLogExerciseCard h3 {
+  font-family: var(--brand-cjk) !important;
+  font-weight: 900;
+  letter-spacing: 0;
+}
+
+.chineseLocaleApp .clientHomePanelHeader span,
+.chineseLocaleApp .clientInfoRows span,
+.chineseLocaleApp .workoutPrescriptionGrid strong,
+.chineseLocaleApp .setLogField span,
+.chineseLocaleApp .mobileClientBottomNav button {
+  font-family: var(--brand-cjk);
+  letter-spacing: 0;
 }
 
 .brandWordmark {
