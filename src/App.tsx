@@ -930,8 +930,22 @@ function App() {
     localizeText(workout.sessionName || "Workout", workout.sessionNameCn || "");
 
   const localizedExerciseName = (
-    exercise: Pick<LibraryExercise, "exerciseName" | "exerciseNameCn">
-  ) => localizeText(exercise.exerciseName || "Exercise", exercise.exerciseNameCn || "");
+    exercise: Pick<LibraryExercise, "exerciseName" | "exerciseNameCn"> & {
+      exerciseId?: string;
+    }
+  ) => {
+    const libraryMatch = libraryExercises.find(
+      (item) =>
+        (exercise.exerciseId && item.exerciseId === exercise.exerciseId) ||
+        item.exerciseName.toLowerCase() ===
+          String(exercise.exerciseName || "").toLowerCase()
+    );
+
+    return localizeText(
+      exercise.exerciseName || libraryMatch?.exerciseName || "Exercise",
+      exercise.exerciseNameCn || libraryMatch?.exerciseNameCn || ""
+    );
+  };
 
   const localizedExerciseNotes = (
     exercise: Pick<LibraryExercise, "notes" | "notesCn">
