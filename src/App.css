@@ -3517,6 +3517,29 @@ body {
     backdrop-filter: blur(16px);
   }
 
+  .app:not(.clientPortalApp) .sidebar nav,
+  .app:not(.clientPortalApp) .mobileClientBottomNav {
+    border-top-color: rgba(22, 22, 22, 0.1);
+    background: rgba(255, 253, 248, 0.96);
+    box-shadow: 0 -14px 32px rgba(0, 0, 0, 0.12);
+  }
+
+  .app:not(.clientPortalApp) .navItem,
+  .app:not(.clientPortalApp) .mobileClientBottomNav button {
+    color: #151515;
+  }
+
+  .app:not(.clientPortalApp) .navItem.active,
+  .app:not(.clientPortalApp) .mobileClientBottomNav button.active {
+    background: linear-gradient(
+      180deg,
+      rgba(212, 175, 55, 0.34),
+      rgba(212, 175, 55, 0.12)
+    );
+    border: 1px solid rgba(176, 137, 24, 0.42);
+    color: #151515;
+  }
+
   .clientLayerActive .sidebar nav {
     display: none;
   }
@@ -3673,16 +3696,16 @@ body {
   .clientProfileActions {
     margin-left: 0;
     width: 100%;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+    display: flex;
+    flex-wrap: wrap;
   }
 
   .clientProfileActions button {
-    width: 100%;
+    flex: 1 1 120px;
   }
 
   .clientProfileActions .goldButton {
-    grid-column: 1 / -1;
+    flex-basis: 100%;
   }
 
   .clientSnapshotGrid {
@@ -5320,8 +5343,195 @@ body {
   background: #1fcf88;
 }
 
+.app:not(.clientPortalApp) {
+  background: #f7f4ed;
+  color: #151515;
+}
+
+.app:not(.clientPortalApp) .sidebar {
+  border-right-color: rgba(22, 22, 22, 0.1);
+  background: #fffdf8;
+  box-shadow: 14px 0 36px rgba(0, 0, 0, 0.05);
+}
+
+.app:not(.clientPortalApp) .brandWordmark,
+.app:not(.clientPortalApp) .brandSlashO {
+  color: #151515;
+}
+
+.app:not(.clientPortalApp) .brandSlashO::after {
+  color: #fffdf8;
+  opacity: 0.78;
+}
+
+.app:not(.clientPortalApp) .brandTagline,
+.app:not(.clientPortalApp) .coachBox p,
+.app:not(.clientPortalApp) .clientTop p,
+.app:not(.clientPortalApp) .topbar p,
+.app:not(.clientPortalApp) .modal-header p {
+  color: #555;
+}
+
+.app:not(.clientPortalApp) .navItem {
+  color: #151515;
+}
+
+.app:not(.clientPortalApp) .navItem.active {
+  background: #151515;
+  border-color: #151515;
+  color: #f5d77b;
+}
+
+.app:not(.clientPortalApp) .badge,
+.app:not(.clientPortalApp) .avatar,
+.app:not(.clientPortalApp) .clientAvatar {
+  background: #151515;
+  color: #f5d77b;
+}
+
+.app:not(.clientPortalApp) .coachBox,
+.app:not(.clientPortalApp) .tableCard,
+.app:not(.clientPortalApp) .profileCard,
+.app:not(.clientPortalApp) .clientSnapshotCard,
+.app:not(.clientPortalApp) .clientListPanel,
+.app:not(.clientPortalApp) .assignProgramPanel,
+.app:not(.clientPortalApp) .clientMonthCalendarCard,
+.app:not(.clientPortalApp) .selectedDayGlance,
+.app:not(.clientPortalApp) .workout-modal,
+.app:not(.clientPortalApp) .clientFormModal,
+.app:not(.clientPortalApp) .savedTemplatePanel,
+.app:not(.clientPortalApp) .builderHubPanel {
+  border-color: rgba(22, 22, 22, 0.12);
+  background: #fffdf8;
+  color: #151515;
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.07);
+}
+
+.app:not(.clientPortalApp) h1,
+.app:not(.clientPortalApp) h2,
+.app:not(.clientPortalApp) h3,
+.app:not(.clientPortalApp) .clientTop h1,
+.app:not(.clientPortalApp) .calendarHeader h2,
+.app:not(.clientPortalApp) .topbar h1,
+.app:not(.clientPortalApp) .profileCard h3,
+.app:not(.clientPortalApp) .sectionHeader h2 {
+  color: #151515;
+}
+
+.app:not(.clientPortalApp) .goldButton {
+  background: #151515;
+  border-color: #151515;
+  color: #f5d77b;
+}
+
+.app:not(.clientPortalApp) .outlineButton,
+.app:not(.clientPortalApp) .compactTextButton,
+.app:not(.clientPortalApp) .iconActionButton,
+.app:not(.clientPortalApp) .calendarDatePickerButton,
+.app:not(.clientPortalApp) .miniMoveButton,
+.app:not(.clientPortalApp) .miniMoveWorkoutButton,
+.app:not(.clientPortalApp) .videoButton {
+  background: #fffdf8;
+  border-color: rgba(22, 22, 22, 0.2);
+  color: #151515;
+}
+
+.app:not(.clientPortalApp) input,
+.app:not(.clientPortalApp) textarea,
+.app:not(.clientPortalApp) select,
+.app:not(.clientPortalApp) .miniSearch {
+  background: #ffffff;
+  border-color: rgba(22, 22, 22, 0.18);
+  color: #151515;
+}
+
+.app:not(.clientPortalApp) input::placeholder,
+.app:not(.clientPortalApp) textarea::placeholder {
+  color: #8a8376;
+}
+
+.app:not(.clientPortalApp) .calendarDay,
+.app:not(.clientPortalApp) .workoutBlock,
+.app:not(.clientPortalApp) .savedTemplateItem,
+.app:not(.clientPortalApp) .exercise-card,
+.app:not(.clientPortalApp) .clientCard {
+  background: #ffffff;
+  border-color: rgba(22, 22, 22, 0.14);
+  color: #151515;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.05);
+}
+
+.app:not(.clientPortalApp) .calendarDateLabel,
+.app:not(.clientPortalApp) .calendarNavigator strong,
+.app:not(.clientPortalApp) .clientSnapshotCard strong,
+.app:not(.clientPortalApp) .clientInfoRows strong,
+.app:not(.clientPortalApp) .assignProgramPanel h3,
+.app:not(.clientPortalApp) .assignProgramGrid label span,
+.app:not(.clientPortalApp) .arrangeWorkouts h4,
+.app:not(.clientPortalApp) .savedTemplateItem strong {
+  color: #8f6b12;
+}
+
+.app:not(.clientPortalApp) .workoutBlock span,
+.app:not(.clientPortalApp) .clientSnapshotCard span,
+.app:not(.clientPortalApp) .clientInfoRows span,
+.app:not(.clientPortalApp) .savedTemplateItem span,
+.app:not(.clientPortalApp) .savedTemplateItem small {
+  color: #555;
+}
+
+.app:not(.clientPortalApp) .miniClient {
+  color: #151515;
+}
+
+.app:not(.clientPortalApp) .selectedMiniClient,
+.app:not(.clientPortalApp) .selectedSavedTemplateItem,
+.app:not(.clientPortalApp) .selectedCalendarDay {
+  background: #f1efe8;
+  border-color: rgba(143, 107, 18, 0.42);
+}
+
+.app:not(.clientPortalApp) .calendarAddMenu {
+  background: #fffdf8;
+  border-color: rgba(22, 22, 22, 0.14);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.18);
+}
+
+.app:not(.clientPortalApp) .calendarAddMenu button {
+  color: #151515;
+}
+
+.app:not(.clientPortalApp) .calendarAddMenu button:hover {
+  background: #f1efe8;
+}
+
+.compactTextButton {
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.coachMonthSchedule {
+  display: grid;
+  grid-template-columns: minmax(320px, 0.95fr) minmax(320px, 1.05fr);
+  gap: 18px;
+  align-items: start;
+  margin-top: 20px;
+}
+
+.coachSelectedDayGlance {
+  width: 100%;
+  margin: 0;
+}
+
 @media (max-width: 820px) {
   .clientHomeGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .coachMonthSchedule {
     grid-template-columns: 1fr;
   }
 

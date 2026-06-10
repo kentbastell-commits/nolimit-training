@@ -20,8 +20,8 @@ import "./App.css";
 type AppMode = "Coach" | "Client";
 type Page = "Clients" | "Library" | "Workouts" | "Check-ins";
 type ClientTab = "Home" | "Overview" | "Training";
-type CalendarView = "1 Day" | "1 Week" | "1 Month";
-type ClientCalendarStyle = "Week" | "Month" | "Full";
+type CalendarView = "Week" | "Month" | "Full";
+type CalendarDisplayMode = CalendarView;
 type WorkoutPageTab =
   | "Saved Programs"
   | "Program Builder"
@@ -435,11 +435,7 @@ function formatWeekStripLabel(dateString: string) {
 }
 
 function formatCalendarRangeLabel(view: CalendarView, anchorDate: string) {
-  if (view === "1 Day") {
-    return formatCalendarLabel(anchorDate);
-  }
-
-  if (view === "1 Week") {
+  if (view === "Week") {
     const weekStart = getMondayStart(anchorDate);
 
     return `${formatCalendarLabel(weekStart)} - ${formatCalendarLabel(
@@ -525,7 +521,7 @@ function App() {
   });
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [clientTab, setClientTab] = useState<ClientTab>("Overview");
-  const [calendarView, setCalendarView] = useState<CalendarView>("1 Week");
+  const [calendarView, setCalendarView] = useState<CalendarView>("Week");
   const [calendarAnchorDate, setCalendarAnchorDate] = useState(
     dateToInputValue(new Date())
   );
@@ -536,7 +532,7 @@ function App() {
     dateToInputValue(new Date())
   );
   const [clientCalendarStyle, setClientCalendarStyle] =
-    useState<ClientCalendarStyle>("Week");
+    useState<CalendarDisplayMode>("Week");
   const [showCalendarActionMenu, setShowCalendarActionMenu] = useState(false);
   const [workoutPageTab, setWorkoutPageTab] =
     useState<WorkoutPageTab>("Saved Programs");
@@ -3006,9 +3002,7 @@ function App() {
   };
 
   const calendarDates =
-    calendarView === "1 Day"
-      ? [calendarAnchorDate]
-      : calendarView === "1 Week"
+    calendarView === "Week"
       ? Array.from({ length: 7 }, (_, index) =>
           addDays(getMondayStart(calendarAnchorDate), index)
         )
@@ -3017,6 +3011,7 @@ function App() {
     addDays(clientWeekStartDate, index)
   );
   const clientMonthCalendarDates = getMonthCalendarDates(clientMonthAnchorDate);
+  const coachMonthCalendarDates = getMonthCalendarDates(calendarAnchorDate);
   const clientWeekRangeLabel = `${formatCalendarLabel(
     clientWeekStartDate
   )} - ${formatCalendarLabel(addDays(clientWeekStartDate, 6))}`;
@@ -3049,12 +3044,7 @@ function App() {
       return;
     }
 
-    if (calendarView === "1 Day") {
-      setCalendarAnchorDate(addDays(calendarAnchorDate, direction));
-      return;
-    }
-
-    if (calendarView === "1 Week") {
+    if (calendarView === "Week") {
       setCalendarAnchorDate(addDays(calendarAnchorDate, direction * 7));
       return;
     }
@@ -3074,6 +3064,25 @@ function App() {
     const today = dateToInputValue(new Date());
 
     selectClientCalendarDate(today);
+  };
+
+  const openAssignmentHubFromCalendar = (
+    type: "Program" | "Check-in" | "Questionnaire" | "Physical Test" = "Program"
+  ) => {
+    if (selectedClient) {
+      setAssignmentClientId(selectedClient.id);
+    }
+
+    setAssignmentType(type);
+    setAssignmentTemplateId("");
+    setAssignmentDueDate(calendarAnchorDate);
+    setAssignStartDate(calendarAnchorDate);
+    setWorkoutPageTab("Assignments");
+    setActivePage("Workouts");
+    setSelectedClient(null);
+    setSelectedWorkout(null);
+    setShowCalendarActionMenu(false);
+    notify("Assignment Hub is ready with this client and date.");
   };
 
   const moveClientMonth = (direction: -1 | 1) => {
@@ -5059,26 +5068,28 @@ function App() {
                   </button>
 
                   <button
-                    className="outlineButton"
+                    className="iconActionButton profileIconButton"
                     onClick={() =>
                       copyToClipboard(
                         buildClientPortalLink(selectedClient),
                         "Client portal link"
                       )
                     }
+                    title="Copy portal link"
+                    aria-label="Copy portal link"
                   >
-                    Copy Portal
+                    <BookOpen size={18} aria-hidden="true" />
                   </button>
 
                   <button
                     className="outlineButton"
                     onClick={() => openEditClientForm(selectedClient)}
                   >
-                    Edit Client
+                    Edit
                   </button>
 
                   <button
-                    className="outlineButton"
+                    className="compactTextButton"
                     onClick={() => updateClientPackage(selectedClient, "Paused")}
                     disabled={updatingClientStatus}
                   >
@@ -5086,7 +5097,7 @@ function App() {
                   </button>
 
                   <button
-                    className="outlineButton"
+                    className="compactTextButton"
                     onClick={() => updateClientPackage(selectedClient, "Archived")}
                     disabled={updatingClientStatus}
                   >
@@ -5408,7 +5419,7 @@ function App() {
 
                     {!isClientPortal && (
                     <div className="calendarControls">
-                      {(["1 Day", "1 Week", "1 Month"] as CalendarView[]).map(
+                      {(["Week", "Month", "Full"] as CalendarView[]).map(
                         (view) => (
                           <button
                             key={view}
@@ -5440,9 +5451,7 @@ function App() {
                             <button
                               type="button"
                               onClick={() => {
-                                setShowCalendarActionMenu(false);
-                                setWorkoutPageTab("Saved Programs");
-                                notify("Choose a saved program to assign workouts.");
+                                openAssignmentHubFromCalendar("Program");
                               }}
                             >
                               Add Workout
@@ -5450,8 +5459,7 @@ function App() {
                             <button
                               type="button"
                               onClick={() => {
-                                setShowCalendarActionMenu(false);
-                                notify("Check-in program builder is next.");
+                                openAssignmentHubFromCalendar("Check-in");
                               }}
                             >
                               Add Check-in Program
@@ -5459,8 +5467,7 @@ function App() {
                             <button
                               type="button"
                               onClick={() => {
-                                setShowCalendarActionMenu(false);
-                                notify("More form types can be added here.");
+                                openAssignmentHubFromCalendar("Questionnaire");
                               }}
                             >
                               Add Form
@@ -5632,9 +5639,9 @@ function App() {
                         ? "clientCalendarHidden"
                         : isClientPortal && clientCalendarStyle === "Full"
                         ? "calendarGrid monthCalendar clientFullCalendar"
-                        : calendarView === "1 Day"
-                        ? "calendarGrid oneDayCalendar"
-                        : calendarView === "1 Week"
+                        : !isClientPortal && calendarView === "Month"
+                        ? "clientCalendarHidden"
+                        : calendarView === "Week"
                         ? "calendarGrid weekCalendar"
                         : "calendarGrid monthCalendar"
                     }
@@ -5643,6 +5650,8 @@ function App() {
                       ? clientWeekStripDates
                       : isClientPortal && clientCalendarStyle === "Full"
                       ? getMonthDates(calendarAnchorDate)
+                      : !isClientPortal && calendarView === "Month"
+                      ? []
                       : calendarDates
                     ).map((date) => {
                       const dayWorkouts = getWorkoutsForDate(date);
@@ -5964,6 +5973,131 @@ function App() {
                           </p>
                         )}
                       </section>
+                    )}
+
+                    {!isClientPortal && calendarView === "Month" && (
+                      <div className="coachMonthSchedule">
+                        <aside className="clientMonthCalendarCard standaloneClientMonthCalendar">
+                          <div className="clientMonthCalendarHeader">
+                            <button
+                              type="button"
+                              className="clientMonthArrow"
+                              onClick={() => moveCalendarRange(-1)}
+                              aria-label="Previous month"
+                            >
+                              {"<"}
+                            </button>
+                            <strong>{formatMonthTitle(calendarAnchorDate)}</strong>
+                            <button
+                              type="button"
+                              className="clientMonthArrow"
+                              onClick={() => moveCalendarRange(1)}
+                              aria-label="Next month"
+                            >
+                              {">"}
+                            </button>
+                          </div>
+
+                          <div className="clientMonthWeekdays">
+                            {["MO", "TU", "WE", "TH", "FR", "SA", "SU"].map(
+                              (day) => (
+                                <span key={day}>{day}</span>
+                              )
+                            )}
+                          </div>
+
+                          <div className="clientMonthGrid">
+                            {coachMonthCalendarDates.map((date, index) => {
+                              if (!date) {
+                                return (
+                                  <span
+                                    className="clientMonthDay emptyClientMonthDay"
+                                    key={`coach-empty-${index}`}
+                                  />
+                                );
+                              }
+
+                              const dateWorkouts = getWorkoutsForDate(date);
+                              const dayNumber = new Date(
+                                `${date}T00:00:00`
+                              ).getDate();
+
+                              return (
+                                <button
+                                  type="button"
+                                  key={date}
+                                  className={`clientMonthDay ${
+                                    date === calendarAnchorDate
+                                      ? "selectedClientMonthDay"
+                                      : ""
+                                  } ${
+                                    date === todayValue ? "todayClientMonthDay" : ""
+                                  } ${
+                                    dateWorkouts.length > 0 ? "hasClientMonthWork" : ""
+                                  }`}
+                                  onClick={() => setCalendarAnchorDate(date)}
+                                >
+                                  <span>{dayNumber}</span>
+                                  <span
+                                    className="calendarWorkMarkers"
+                                    aria-hidden="true"
+                                  >
+                                    {dateWorkouts.length > 0 ? (
+                                      dateWorkouts.slice(0, 3).map((workout) => (
+                                        <span key={workout.id} />
+                                      ))
+                                    ) : (
+                                      <span className="emptyMarker" />
+                                    )}
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </aside>
+
+                        <section className="selectedDayGlance coachSelectedDayGlance">
+                          <div className="selectedDayGlanceHeader">
+                            <span>{formatCalendarLabel(calendarAnchorDate)}</span>
+                            <strong>
+                              {selectedCalendarDateWorkouts.length > 0
+                                ? `${selectedCalendarDateWorkouts.length} workout${
+                                    selectedCalendarDateWorkouts.length === 1
+                                      ? ""
+                                      : "s"
+                                  }`
+                                : "Nothing scheduled"}
+                            </strong>
+                          </div>
+
+                          {selectedCalendarDateWorkouts.length > 0 ? (
+                            selectedCalendarDateWorkouts.map((workout) => (
+                              <button
+                                className="selectedDayWorkout"
+                                key={workout.id}
+                                onClick={() => openWorkout(workout)}
+                              >
+                                <div>
+                                  <span>
+                                    Week {workout.week} - Day {workout.day}
+                                  </span>
+                                  <strong>{workout.sessionName || "Workout"}</strong>
+                                  <small>
+                                    {workout.completionStatus || "Scheduled"}
+                                  </small>
+                                </div>
+                                <span className="selectedDayWorkoutAction">
+                                  Open
+                                </span>
+                              </button>
+                            ))
+                          ) : (
+                            <p className="homeEmptyText">
+                              Nothing scheduled for this date.
+                            </p>
+                          )}
+                        </section>
+                      </div>
                     )}
                   </div>
                 </div>
