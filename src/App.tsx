@@ -4006,6 +4006,46 @@ function App() {
   ]
     .sort((a, b) => a.date.localeCompare(b.date))
     .slice(0, 5);
+  const allSelectedClientTasks = [
+    ...workouts.map((workout) => ({
+      type: "workout" as const,
+      id: workout.id,
+      date: normalizeDate(String(workout.scheduledDate)),
+      title: localizedWorkoutName(workout),
+      meta: `${t("week")} ${workout.week} - ${t("day")} ${workout.day}`,
+      status: getDisplayTaskStatus(workout.completionStatus, workout.scheduledDate),
+      open: () => openWorkout(workout),
+    })),
+    ...contentAssignments.map((assignment) => ({
+      type: "assignment" as const,
+      id: assignment.recordId,
+      date: normalizeDate(String(assignment.dueDate || assignment.assignedDate)),
+      title: getAssignmentDisplayName(assignment),
+      meta: assignment.assignmentType || "Questionnaire",
+      status: getDisplayTaskStatus(
+        assignment.status,
+        assignment.dueDate || assignment.assignedDate
+      ),
+      open: () => handleOpenContentAssignment(assignment),
+    })),
+  ].sort((a, b) => a.date.localeCompare(b.date));
+  const dueTodayTasks = allSelectedClientTasks.filter(
+    (task) => task.date === todayValue && task.status === "Scheduled"
+  );
+  const completedTodayTasks = allSelectedClientTasks.filter(
+    (task) => task.date === todayValue && task.status === "Completed"
+  );
+  const localizeTaskStatus = (status: SimpleTaskStatus) => {
+    if (status === "Completed") return t("completed");
+    if (status === "Missed") return t("missed");
+    return t("scheduled");
+  };
+  const jumpToTaskDate = (date: string) => {
+    if (!date) return;
+
+    setCalendarAnchorDate(date);
+    setClientTab("Training");
+  };
 
   const groupedContentResponses = Object.values(
     contentResponses.reduce<Record<string, ContentResponseGroup>>((groups, response) => {
@@ -6199,17 +6239,41 @@ function App() {
                       </button>
                     </div>
 
+                    {dueTodayTasks.length > 0 && (
+                      <div className="dueTodayStrip">
+                        <div>
+                          <span>{t("dueToday")}</span>
+                          <strong>{dueTodayTasks.length}</strong>
+                        </div>
+                        <div className="dueTodayActions">
+                          {dueTodayTasks.slice(0, 3).map((task) => (
+                            <button
+                              key={`due-${task.type}-${task.id}`}
+                              type="button"
+                              onClick={task.open}
+                            >
+                              {task.title}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     <div className="homeWorkoutList">
                       {clientPortalUpcomingTasks.length > 0 ? (
                         clientPortalUpcomingTasks.slice(0, 4).map((task) => (
                           <button
                             key={`${task.type}-${task.id}`}
-                            className="homeWorkoutItem"
+                            className={`homeWorkoutItem ${
+                              task.date === todayValue ? "dueTodayTaskItem" : ""
+                            }`}
                             onClick={task.open}
                           >
                             <span>{localizedCalendarLabel(task.date)}</span>
                             <strong>{task.title}</strong>
-                            <small>{task.meta} - {task.status}</small>
+                            <small>
+                              {task.meta} - {localizeTaskStatus(task.status)}
+                            </small>
                           </button>
                         ))
                       ) : (
@@ -6307,6 +6371,40 @@ function App() {
                       </div>
                     ) : (
                       <div className="coachSnapshotGrid">
+                        <button
+                          className="coachAlertCard missedAlertCard"
+                          type="button"
+                          onClick={() => {
+                            if (needsAttentionItems[0]?.date) {
+                              jumpToTaskDate(needsAttentionItems[0].date);
+                            }
+                          }}
+                        >
+                          <span>Missed</span>
+                          <strong>{needsAttentionItems.length}</strong>
+                          <small>Tasks needing follow-up</small>
+                        </button>
+
+                        <button
+                          className="coachAlertCard"
+                          type="button"
+                          onClick={() => jumpToTaskDate(todayValue)}
+                        >
+                          <span>Completed Today</span>
+                          <strong>{completedTodayTasks.length}</strong>
+                          <small>{dueTodayTasks.length} still scheduled</small>
+                        </button>
+
+                        <button
+                          className="coachAlertCard"
+                          type="button"
+                          onClick={() => setClientTab("Overview")}
+                        >
+                          <span>Check-in</span>
+                          <strong>{clientNeedsCheckIn(selectedClient) ? "Due" : "OK"}</strong>
+                          <small>{selectedClientCheckInLabel}</small>
+                        </button>
+
                         <div className="snapshotMetricCard">
                           <span>Completion</span>
                           <strong>{completionRate}%</strong>
@@ -7102,6 +7200,15 @@ function App() {
                                   workout.scheduledDate
                                 )
                               )} ${
+                                normalizeDate(String(workout.scheduledDate)) ===
+                                  todayValue &&
+                                getDisplayTaskStatus(
+                                  workout.completionStatus,
+                                  workout.scheduledDate
+                                ) === "Scheduled"
+                                  ? "dueTodayCalendarItem"
+                                  : ""
+                              } ${
                                 draggingWorkoutId === workout.id
                                   ? "draggingWorkout"
                                   : ""
@@ -7180,7 +7287,21 @@ function App() {
                                     assignment.status,
                                     assignment.dueDate || assignment.assignedDate
                                   )
-                                )} assignmentBlock ${
+                                )} ${
+                                  normalizeDate(
+                                    String(
+                                      assignment.dueDate ||
+                                        assignment.assignedDate
+                                    )
+                                  ) === todayValue &&
+                                  getDisplayTaskStatus(
+                                    assignment.status,
+                                    assignment.dueDate ||
+                                      assignment.assignedDate
+                                  ) === "Scheduled"
+                                    ? "dueTodayCalendarItem"
+                                    : ""
+                                } assignmentBlock ${
                                   draggingAssignmentId === assignment.recordId
                                     ? "draggingWorkout"
                                     : ""

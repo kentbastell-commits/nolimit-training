@@ -2444,6 +2444,27 @@ body {
   border-color: rgba(212, 175, 55, 0.45);
 }
 
+.dueTodayCalendarItem {
+  box-shadow:
+    inset 4px 0 0 #d8c177,
+    0 12px 24px rgba(0, 0, 0, 0.08);
+}
+
+.dueTodayCalendarItem .workoutBlockMain::after {
+  content: "Today";
+  display: inline-flex;
+  width: fit-content;
+  border-radius: 999px;
+  background: #111;
+  color: #f4df94;
+  padding: 3px 7px;
+  margin-top: 8px;
+  font-size: 10px;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .workout-modal-overlay {
   position: fixed;
   inset: 0;
@@ -5110,6 +5131,57 @@ body {
   gap: 10px;
 }
 
+.dueTodayStrip {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  border: 1px solid #111;
+  border-radius: 10px;
+  background: #111;
+  color: #fff;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+.dueTodayStrip > div:first-child {
+  display: grid;
+  place-items: center;
+  min-width: 74px;
+}
+
+.dueTodayStrip span {
+  color: #d8c177;
+  font-size: 10px;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.dueTodayStrip strong {
+  color: #fff;
+  font-size: 28px;
+  font-weight: 950;
+  line-height: 1;
+}
+
+.dueTodayActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.dueTodayActions button {
+  border: 1px solid rgba(216, 193, 119, 0.35);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  padding: 7px 10px;
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
 .homeWorkoutItem {
   width: 100%;
   display: grid;
@@ -5123,6 +5195,12 @@ body {
   padding: 12px;
   text-align: left;
   cursor: pointer;
+}
+
+.homeWorkoutItem.dueTodayTaskItem {
+  border-color: #111;
+  background: #fffef8;
+  box-shadow: inset 4px 0 0 #111;
 }
 
 .homeWorkoutItem:hover {
@@ -5234,12 +5312,68 @@ body {
 
 .coachSnapshotGrid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
   max-height: 360px;
   overflow-y: auto;
   overscroll-behavior: contain;
   padding-right: 4px;
+}
+
+.coachAlertCard {
+  border: 1px solid #ded8cc;
+  border-radius: 12px;
+  background: #fff;
+  color: #111;
+  padding: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.coachAlertCard:hover {
+  border-color: #111;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
+}
+
+.coachAlertCard span {
+  display: block;
+  color: #6f6a61;
+  font-size: 10px;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.coachAlertCard strong {
+  display: block;
+  color: #111;
+  font-size: 28px;
+  font-weight: 950;
+  line-height: 1;
+  margin-top: 8px;
+}
+
+.coachAlertCard small {
+  display: block;
+  color: #6f6a61;
+  font-size: 12px;
+  font-weight: 800;
+  margin-top: 7px;
+}
+
+.missedAlertCard {
+  background: #111;
+  border-color: #111;
+}
+
+.missedAlertCard span,
+.missedAlertCard strong {
+  color: #f4df94;
+}
+
+.missedAlertCard small {
+  color: #f7f2e6;
 }
 
 .snapshotMetricCard,
@@ -5280,11 +5414,11 @@ body {
 }
 
 .snapshotTrendCard {
-  grid-column: span 2;
+  grid-column: span 3;
 }
 
 .snapshotAttentionCard {
-  grid-column: span 2;
+  grid-column: span 3;
 }
 
 .snapshotAttentionHeader {
@@ -7462,6 +7596,15 @@ textarea {
 @media (max-width: 820px) {
   .clientHomeGrid {
     grid-template-columns: 1fr;
+  }
+
+  .coachSnapshotGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .snapshotTrendCard,
+  .snapshotAttentionCard {
+    grid-column: auto;
   }
 
   .coachMonthSchedule {
