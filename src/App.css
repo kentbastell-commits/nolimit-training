@@ -8643,6 +8643,42 @@ body {
   border-bottom-color: #d8d2c4 !important;
 }
 
+.app:not(.clientPortalApp) .clientFormModal.technicalCueModal {
+  background: #fbfaf6 !important;
+  border-color: #d8d2c4 !important;
+  color: var(--nl-ink) !important;
+  box-shadow: 0 26px 70px rgba(20, 18, 14, 0.22) !important;
+}
+
+.app:not(.clientPortalApp) .technicalCueModal .modal-header {
+  border-bottom: 1px solid #d8d2c4 !important;
+}
+
+.app:not(.clientPortalApp) .technicalCueModal .modal-header h2 {
+  color: var(--nl-ink) !important;
+}
+
+.app:not(.clientPortalApp) .technicalCueModal .modal-header p {
+  color: #4f4b43 !important;
+}
+
+.app:not(.clientPortalApp) .technicalCueBody {
+  border-color: #d8d2c4 !important;
+  background: #f7f3e8 !important;
+}
+
+.app:not(.clientPortalApp) .technicalCueBody pre {
+  color: #111 !important;
+  font-size: 16px;
+  font-weight: 750;
+  line-height: 1.7;
+}
+
+.app:not(.clientPortalApp) .technicalCueBody p {
+  color: #5f5a51 !important;
+  font-weight: 800;
+}
+
 .app:not(.clientPortalApp) .workout-modal h2,
 .app:not(.clientPortalApp) .workoutLogExerciseCard h3 {
   color: var(--nl-ink) !important;
