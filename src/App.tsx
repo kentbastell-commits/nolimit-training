@@ -5141,6 +5141,23 @@ function App() {
       setOrderProcessingId("");
     }
   };
+
+  const reviewAndLoadProgram = async (order: ProductOrder) => {
+    if (!getOrderClient(order)) {
+      notify("Create or match the client before loading.", "error");
+      return;
+    }
+    if (!getOrderProgram(order)) {
+      notify("No saved program matches this order.", "error");
+      return;
+    }
+    await markOrderIntakeReviewed(order);
+    const refreshed = await loadProductOrders();
+    const updatedOrder =
+      (refreshed as ProductOrder[]).find((o) => o.recordId === order.recordId) || order;
+    await assignOrderProgram(updatedOrder);
+  };
+
   const saveClientForm = async () => {
     if (!newClient.name.trim()) {
       notify("Please enter a client name.", "error");
@@ -6977,7 +6994,7 @@ function App() {
                               Mark Reviewed
                             </button>
                             <button
-                              className="goldButton"
+                              className="outlineButton"
                               onClick={() => void assignOrderProgram(orderReviewOrder)}
                               disabled={
                                 orderProcessingId === orderReviewOrder.recordId ||
@@ -6985,6 +7002,17 @@ function App() {
                               }
                             >
                               Load Program
+                            </button>
+                            <button
+                              className="goldButton"
+                              onClick={() => void reviewAndLoadProgram(orderReviewOrder)}
+                              disabled={
+                                orderProcessingId === orderReviewOrder.recordId ||
+                                !getOrderClient(orderReviewOrder) ||
+                                !getOrderProgram(orderReviewOrder)
+                              }
+                            >
+                              Reviewed + Load
                             </button>
                           </div>
                         </div>
@@ -7168,20 +7196,39 @@ function App() {
                         </div>
 
                         <div className="orderActions">
-                          <button
-                            className="outlineButton"
-                            onClick={() => void createClientFromOrder(order)}
-                            disabled={processing || Boolean(matchedClient)}
-                          >
-                            {matchedClient ? "Client Matched" : "Create Client"}
-                          </button>
-                          <button
-                            className="outlineButton"
-                            onClick={() => void assignOrderIntake(order)}
-                            disabled={processing || !intakeTemplate}
-                          >
-                            Send Intake
-                          </button>
+                          {order.intakeStatus === "Sent" ||
+                          order.intakeStatus === "Submitted" ||
+                          order.intakeStatus === "Reviewed" ? (
+                            <button className="outlineButton" disabled>
+                              Intake Sent ✓
+                            </button>
+                          ) : (
+                            <button
+                              className="outlineButton"
+                              onClick={() => void assignOrderIntake(order)}
+                              disabled={processing || !intakeTemplate}
+                              title={
+                                !intakeTemplate
+                                  ? "No intake form matched for this program"
+                                  : undefined
+                              }
+                            >
+                              {processing ? "Working..." : "Start Onboarding"}
+                            </button>
+                          )}
+                          {matchedClient && (
+                            <button
+                              className="outlineButton"
+                              onClick={() =>
+                                void copyToClipboard(
+                                  buildClientPortalLink(matchedClient),
+                                  "Portal link"
+                                )
+                              }
+                            >
+                              Copy Portal Link
+                            </button>
+                          )}
                           <button
                             className="outlineButton"
                             onClick={() => void markOrderIntakeReviewed(order)}
