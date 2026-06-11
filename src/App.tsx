@@ -789,6 +789,8 @@ function App() {
   });
   const [submittingInvite, setSubmittingInvite] = useState(false);
   const [inviteSubmitted, setInviteSubmitted] = useState(false);
+  const [inviteClientId, setInviteClientId] = useState("");
+  const [inviteLang, setInviteLang] = useState<"en" | "zh">("en");
   const [newClient, setNewClient] = useState({
     name: "",
     email: "",
@@ -1167,6 +1169,7 @@ function App() {
         return;
       }
 
+      setInviteClientId(data.clientId || "");
       setInviteSubmitted(true);
       notify("Your intake form was submitted.", "success");
     } catch (error) {
@@ -6021,6 +6024,11 @@ function App() {
   };
 
   if (isClientInvite) {
+    const iZh = inviteLang === "zh";
+    const invitePortalLink = inviteClientId
+      ? `${window.location.origin}/?portal=client&client=${encodeURIComponent(inviteClientId)}`
+      : "";
+
     return (
       <div className="invitePage">
         <div className="toastStack">
@@ -6039,41 +6047,80 @@ function App() {
               </div>
               <div className="brandTagline">INSPIRED BY MOVEMENT.</div>
             </div>
-            <span>{publicInvitePackage}</span>
+            <div className="inviteBrandRight">
+              <span>{publicInvitePackage}</span>
+              <button
+                className="outlineButton inviteLangToggle"
+                onClick={() => setInviteLang(iZh ? "en" : "zh")}
+              >
+                {iZh ? "English" : "中文"}
+              </button>
+            </div>
           </div>
 
           {inviteSubmitted ? (
             <section className="inviteSuccess">
-              <h1>You're In</h1>
+              <h1>{iZh ? "已提交" : "You're In"}</h1>
               <p>
-                Your intake form has been sent to Kent. He will review your
-                details and follow up with the next step.
+                {iZh
+                  ? "您的信息已发送给 Kent。他会尽快审核并安排您的训练计划。"
+                  : "Your intake has been submitted. Kent will review your details and get your program set up."}
               </p>
+              {invitePortalLink && (
+                <div className="invitePortalPrompt">
+                  <p>
+                    {iZh
+                      ? "您的训练门户已准备好。保存此链接以便随时访问："
+                      : "Your training portal is ready. Save this link to access it anytime:"}
+                  </p>
+                  <div className="inviteCopyRow">
+                    <input value={invitePortalLink} readOnly />
+                    <button
+                      className="goldButton"
+                      onClick={() =>
+                        void copyToClipboard(
+                          invitePortalLink,
+                          iZh ? "门户链接" : "Portal link"
+                        )
+                      }
+                    >
+                      {iZh ? "复制链接" : "Copy Link"}
+                    </button>
+                  </div>
+                  <a
+                    className="goldButton invitePortalCta"
+                    href={invitePortalLink}
+                  >
+                    {iZh ? "进入我的训练门户" : "Open My Training Portal"}
+                  </a>
+                </div>
+              )}
             </section>
           ) : (
             <section className="inviteCard">
               <div className="inviteIntro">
-                <h1>Client Intake</h1>
+                <h1>{iZh ? "客户信息表" : "Client Intake"}</h1>
                 <p>
-                  Share the basics so your training profile can be set up before
-                  your first program is assigned.
+                  {iZh
+                    ? "请填写基本信息，以便在分配训练计划之前建立您的训练档案。"
+                    : "Share the basics so your training profile can be set up before your first program is assigned."}
                 </p>
               </div>
 
               <div className="inviteFormGrid">
                 <label>
-                  <span>Full Name</span>
+                  <span>{iZh ? "姓名" : "Full Name"}</span>
                   <input
                     value={inviteForm.name}
                     onChange={(e) =>
                       setInviteForm({ ...inviteForm, name: e.target.value })
                     }
-                    placeholder="Your name"
+                    placeholder={iZh ? "您的姓名" : "Your name"}
                   />
                 </label>
 
                 <label>
-                  <span>Email</span>
+                  <span>{iZh ? "电子邮件" : "Email"}</span>
                   <input
                     type="email"
                     value={inviteForm.email}
@@ -6085,35 +6132,43 @@ function App() {
                 </label>
 
                 <label>
-                  <span>Phone / WeChat</span>
+                  <span>{iZh ? "电话 / 微信" : "Phone / WeChat"}</span>
                   <input
                     value={inviteForm.phone}
                     onChange={(e) =>
                       setInviteForm({ ...inviteForm, phone: e.target.value })
                     }
-                    placeholder="Best contact"
+                    placeholder={iZh ? "最佳联系方式" : "Best contact"}
                   />
                 </label>
 
                 <label>
-                  <span>Main Goal</span>
+                  <span>{iZh ? "主要目标" : "Main Goal"}</span>
                   <input
                     value={inviteForm.goals}
                     onChange={(e) =>
                       setInviteForm({ ...inviteForm, goals: e.target.value })
                     }
-                    placeholder="Strength, climbing, fat loss..."
+                    placeholder={
+                      iZh ? "增肌、减脂、耐力..." : "Strength, climbing, fat loss..."
+                    }
                   />
                 </label>
 
                 <label className="inviteWideField">
-                  <span>Anything Kent should know?</span>
+                  <span>
+                    {iZh ? "Kent 需要了解的其他信息" : "Anything Kent should know?"}
+                  </span>
                   <textarea
                     value={inviteForm.notes}
                     onChange={(e) =>
                       setInviteForm({ ...inviteForm, notes: e.target.value })
                     }
-                    placeholder="Training history, injuries, schedule, equipment..."
+                    placeholder={
+                      iZh
+                        ? "训练经历、伤病、时间安排、器械条件..."
+                        : "Training history, injuries, schedule, equipment..."
+                    }
                   />
                 </label>
               </div>
@@ -6121,10 +6176,12 @@ function App() {
               <div className="inviteActions">
                 <button
                   className="goldButton"
-                  onClick={submitInviteForm}
+                  onClick={() => void submitInviteForm()}
                   disabled={submittingInvite}
                 >
-                  {submittingInvite ? "Submitting..." : "Submit Intake"}
+                  {submittingInvite
+                    ? iZh ? "提交中..." : "Submitting..."
+                    : iZh ? "提交信息" : "Submit Intake"}
                 </button>
               </div>
             </section>
@@ -6397,6 +6454,7 @@ function App() {
                         <span>Last 7d</span>
                         <span>Attention</span>
                         <span>Status</span>
+                        <span>Portal</span>
                       </div>
 
                       {!loading && filteredClients.length === 0 && (
@@ -6456,6 +6514,21 @@ function App() {
                               }
                             >
                               {client.status}
+                            </span>
+                            <span>
+                              <button
+                                className="outlineButton clientPortalLinkBtn"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  void copyToClipboard(
+                                    buildClientPortalLink(client),
+                                    "Portal link"
+                                  );
+                                }}
+                                title="Copy client portal link"
+                              >
+                                Copy Link
+                              </button>
                             </span>
                           </div>
                         );
