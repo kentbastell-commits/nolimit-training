@@ -186,6 +186,9 @@ type Program = {
   productStatus?: string;
   salesDescription?: string;
   salesDescriptionCn?: string;
+  storeUrl?: string;
+  storeDescription?: string;
+  storeDescriptionCn?: string;
   sourceOrderId?: string;
   isOrderPlaceholder?: boolean;
 };
@@ -705,6 +708,7 @@ function App() {
   const inviteSearchParams = new URLSearchParams(window.location.search);
   const isClientInvite = inviteSearchParams.get("invite") === "client";
   const isClientPortal = inviteSearchParams.get("portal") === "client";
+  const isStorePage = inviteSearchParams.get("page") === "store";
   const clientPortalCode = (
     inviteSearchParams.get("client") ||
     inviteSearchParams.get("clientCode") ||
@@ -6026,6 +6030,162 @@ function App() {
       });
     }, 0);
   };
+
+  if (isStorePage) {
+    const storePrograms = programs.filter((p) => p.publicStoreVisible);
+    const [storeLang, setStoreLang] = useState<"en" | "zh">("en");
+    const sZh = storeLang === "zh";
+
+    const formatPrice = (program: Program) => {
+      const price = program.price;
+      const currency = program.currency || "CNY";
+      if (!price || price === "0") return sZh ? "联系获取价格" : "Contact for price";
+      return `${currency} ${price}`;
+    };
+
+    const formatDuration = (program: Program) => {
+      const weeks = program.durationWeeks;
+      const sessions = program.sessionsPerWeek;
+      if (weeks && sessions)
+        return sZh
+          ? `${weeks} 周 · 每周 ${sessions} 次`
+          : `${weeks} weeks · ${sessions}x/week`;
+      if (weeks) return sZh ? `${weeks} 周` : `${weeks} weeks`;
+      return "";
+    };
+
+    return (
+      <div className="storePage">
+        <div className="toastStack">
+          {toasts.map((toast) => (
+            <div className={`toast toast-${toast.type}`} key={toast.id}>
+              {toast.message}
+            </div>
+          ))}
+        </div>
+
+        <header className="storeHeader">
+          <div className="storeBrand">
+            <div className="brandWordmark">
+              N<span className="brandSlashO">O</span> LIMIT
+            </div>
+            <div className="brandTagline">
+              {sZh ? "训练为本，运动为灵。" : "BUILT FOR TRAINING. INSPIRED BY MOVEMENT."}
+            </div>
+          </div>
+          <button
+            className="outlineButton inviteLangToggle"
+            onClick={() => setStoreLang(sZh ? "en" : "zh")}
+          >
+            {sZh ? "English" : "中文"}
+          </button>
+        </header>
+
+        <main className="storeMain">
+          <div className="storeIntro">
+            <h1>{sZh ? "训练计划" : "Training Programs"}</h1>
+            <p>
+              {sZh
+                ? "专为运动员设计的系统化训练计划，适合各种目标和水平。"
+                : "Structured programs designed for athletes of all levels and goals."}
+            </p>
+          </div>
+
+          {loading ? (
+            <div className="storeLoading">
+              {sZh ? "加载中..." : "Loading programs..."}
+            </div>
+          ) : storePrograms.length === 0 ? (
+            <div className="storeEmpty">
+              {sZh ? "暂无上架计划，请稍后再来。" : "No programs listed yet. Check back soon."}
+            </div>
+          ) : (
+            <div className="storeGrid">
+              {storePrograms.map((program) => {
+                const name = sZh && program.programNameCn
+                  ? program.programNameCn
+                  : program.programName;
+                const goal = sZh && program.goalCn
+                  ? program.goalCn
+                  : program.goal;
+                const description = sZh && program.storeDescriptionCn
+                  ? program.storeDescriptionCn
+                  : program.storeDescription || (sZh ? program.salesDescriptionCn : program.salesDescription);
+                const buyUrl = program.storeUrl || program.purchaseLink;
+
+                return (
+                  <div className="storeCard" key={program.recordId}>
+                    <div className="storeCardBody">
+                      {program.productType && (
+                        <span className="storeCardTag">{program.productType}</span>
+                      )}
+                      <h2>{name}</h2>
+                      {goal && <p className="storeCardGoal">{goal}</p>}
+                      {description && (
+                        <p className="storeCardDescription">{description}</p>
+                      )}
+                      <div className="storeCardMeta">
+                        {formatDuration(program) && (
+                          <span>{formatDuration(program)}</span>
+                        )}
+                        {program.level && <span>{program.level}</span>}
+                      </div>
+                    </div>
+                    <div className="storeCardFooter">
+                      <span className="storeCardPrice">{formatPrice(program)}</span>
+                      {buyUrl ? (
+                        <a
+                          className="goldButton"
+                          href={buyUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          {sZh ? "立即购买" : "Buy Now"}
+                        </a>
+                      ) : (
+                        <button
+                          className="goldButton"
+                          onClick={() =>
+                            void copyToClipboard(
+                              sZh
+                                ? "请加微信咨询购买：[你的微信ID]"
+                                : "Contact Kent on WeChat to purchase.",
+                              sZh ? "联系方式" : "Contact info"
+                            )
+                          }
+                        >
+                          {sZh ? "联系购买" : "Contact to Buy"}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          <div className="storeContact">
+            <h2>{sZh ? "有疑问？" : "Have questions?"}</h2>
+            <p>
+              {sZh
+                ? "通过微信联系 Kent，了解适合您的训练计划。"
+                : "Reach out to Kent on WeChat to find the right program for your goals."}
+            </p>
+            <a
+              className="goldButton"
+              href={`/?invite=client&package=Pending`}
+            >
+              {sZh ? "提交咨询" : "Get Started"}
+            </a>
+          </div>
+        </main>
+
+        <footer className="storeFooter">
+          <span>© {new Date().getFullYear()} NoLimit Training</span>
+        </footer>
+      </div>
+    );
+  }
 
   if (isClientInvite) {
     const iZh = inviteLang === "zh";
