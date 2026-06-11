@@ -6246,11 +6246,9 @@ function App() {
           {storeSelectedProgram && (() => {
             const sp = storeSelectedProgram;
             const spName = sZh && sp.programNameCn ? sp.programNameCn : sp.programName;
-            const spGoal = sZh && sp.goalCn ? sp.goalCn : sp.goal;
             const spDesc = sZh && sp.storeDescriptionCn
               ? sp.storeDescriptionCn
               : sp.storeDescription || (sZh ? sp.salesDescriptionCn : sp.salesDescription);
-            const spUrl = sp.storeUrl || sp.purchaseLink;
 
             return (
               <div
@@ -6268,54 +6266,39 @@ function App() {
                     ×
                   </button>
 
-                  {sp.productImage && (
-                    <div
-                      className="storeProgramModalImage"
-                      style={{ backgroundImage: `url(${sp.productImage})` }}
-                    />
-                  )}
-                  <div className="storeProgramModalLeft">
-                    {sp.productType && (
-                      <span className="storeCardTag">{sp.productType}</span>
-                    )}
-                    <h2>{spName}</h2>
-                    {spGoal && <p className="storeCardGoal">{spGoal}</p>}
-                    {spDesc && <p className="storeCardDescription">{spDesc}</p>}
-                    <div className="storeCardMeta">
-                      {formatDuration(sp) && <span>{formatDuration(sp)}</span>}
-                      {sp.level && <span>{sp.level}</span>}
+                  <div className="storeProgramModalInner">
+                    <div className="storeProgramModalInfo">
+                      {sp.productType && (
+                        <span className="storeCardTag">{sp.productType}</span>
+                      )}
+                      <h2>{spName}</h2>
+                      <div className="storeCardMeta">
+                        {formatDuration(sp) && <span>{formatDuration(sp)}</span>}
+                        {sp.level && <span>{sp.level}</span>}
+                      </div>
+                      {spDesc && <p className="storeCardDescription">{spDesc}</p>}
+                      <div className="storeProgramModalPrice">{formatPrice(sp)}</div>
                     </div>
-                    <div className="storeProgramModalPrice">
-                      {formatPrice(sp)}
-                    </div>
-                    {spUrl && (
-                      <a
-                        className="goldButton"
-                        href={spUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        {sZh ? "立即购买" : "Buy Now"}
-                      </a>
-                    )}
-                  </div>
 
-                  <div className="storeProgramModalRight">
-                    <p className="storeProgramModalQrLabel">
-                      {sZh ? "扫码添加微信完成购买" : "Scan to add Kent on WeChat & purchase"}
-                    </p>
-                    <img
-                      src="https://i.ibb.co/Y4nXVG4g/Weixin-Image-20260611202846-56-2.jpg"
-                      alt="Kent WeChat QR"
-                      className="storeProgramModalQr"
-                    />
-                    <a
-                      className="outlineButton"
-                      href={`/?invite=client&package=Pending`}
-                      style={{ textAlign: "center", textDecoration: "none" }}
-                    >
-                      {sZh ? "提交咨询" : "Get Started"}
-                    </a>
+                    <div className="storeProgramModalPayment">
+                      <p className="storeProgramModalQrLabel">
+                        {sZh ? "扫码添加微信完成购买" : "Scan to pay via WeChat"}
+                      </p>
+                      <img
+                        src="https://i.ibb.co/Y4nXVG4g/Weixin-Image-20260611202846-56-2.jpg"
+                        alt="Kent WeChat QR"
+                        className="storeProgramModalQr"
+                      />
+                      <p className="storeProgramModalQrSub">
+                        {sZh ? "或点击下方开始咨询" : "or tap below to get in touch first"}
+                      </p>
+                      <a
+                        className="outlineButton storeProgramModalCta"
+                        href={`/?invite=client&package=Pending`}
+                      >
+                        {sZh ? "提交咨询" : "Get Started"}
+                      </a>
+                    </div>
                   </div>
                 </div>
               </div>

@@ -9734,19 +9734,10 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 
 .storeCardImage {
   width: 100%;
-  height: 180px;
+  aspect-ratio: 16 / 9;
   background-size: cover;
-  background-position: center;
+  background-position: center top;
   border-radius: 12px 12px 0 0;
-}
-
-.storeProgramModalImage {
-  width: 100%;
-  height: 260px;
-  background-size: cover;
-  background-position: center;
-  border-radius: 14px 14px 0 0;
-  flex-shrink: 0;
 }
 
 .storeCardCta {
@@ -9759,63 +9750,10 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   background: #0e0a04;
   border: 1px solid rgba(212, 175, 55, 0.35);
   border-radius: 14px;
-  width: min(820px, 95vw);
+  width: min(560px, 95vw);
   max-height: 90vh;
   overflow-y: auto;
-  display: flex;
-  gap: 0;
   position: relative;
-}
-
-.storeProgramModalLeft {
-  flex: 1;
-  padding: 40px 36px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  border-right: 1px solid rgba(212, 175, 55, 0.15);
-}
-
-.storeProgramModalLeft h2 {
-  font-size: 28px;
-  font-weight: 800;
-  color: #f5d77b;
-  margin: 4px 0 0;
-  line-height: 1.2;
-}
-
-.storeProgramModalPrice {
-  font-size: 26px;
-  font-weight: 800;
-  color: #f5d77b;
-  margin-top: 4px;
-}
-
-.storeProgramModalRight {
-  width: 260px;
-  flex-shrink: 0;
-  padding: 40px 28px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 18px;
-  justify-content: center;
-}
-
-.storeProgramModalQrLabel {
-  color: #bbb;
-  font-size: 13px;
-  text-align: center;
-  line-height: 1.5;
-  margin: 0;
-}
-
-.storeProgramModalQr {
-  width: 200px;
-  height: 200px;
-  object-fit: cover;
-  border-radius: 10px;
-  border: 2px solid rgba(212, 175, 55, 0.3);
 }
 
 .storeProgramModal .drawerClose {
@@ -9829,23 +9767,76 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   cursor: pointer;
   padding: 4px 8px;
   line-height: 1;
+  z-index: 1;
 }
 
-@media (max-width: 600px) {
-  .storeProgramModal {
-    flex-direction: column;
-  }
+.storeProgramModalInner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 36px 32px 32px;
+  gap: 24px;
+}
 
-  .storeProgramModalLeft {
-    border-right: none;
-    border-bottom: 1px solid rgba(212, 175, 55, 0.15);
-    padding: 28px 20px;
-  }
+.storeProgramModalInfo {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.15);
+}
 
-  .storeProgramModalRight {
-    width: 100%;
-    padding: 24px 20px;
-  }
+.storeProgramModalInfo h2 {
+  font-size: 26px;
+  font-weight: 800;
+  color: #f5d77b;
+  margin: 4px 0 0;
+  line-height: 1.2;
+}
+
+.storeProgramModalPrice {
+  font-size: 24px;
+  font-weight: 800;
+  color: #f5d77b;
+}
+
+.storeProgramModalPayment {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+}
+
+.storeProgramModalQrLabel {
+  color: #ccc;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+  margin: 0;
+}
+
+.storeProgramModalQr {
+  width: 220px;
+  height: 220px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 2px solid rgba(212, 175, 55, 0.35);
+}
+
+.storeProgramModalQrSub {
+  color: #777;
+  font-size: 12px;
+  text-align: center;
+  margin: 0;
+}
+
+.storeProgramModalCta {
+  text-decoration: none;
+  text-align: center;
+  width: 100%;
+  display: block;
 }
 
 .storeFooter {
