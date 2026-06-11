@@ -39,6 +39,10 @@ function normalizeFieldName(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
+function isTranslationPlaceholder(value: string) {
+  return /请提供.*(?:翻译|正文|英文)|provide.*text.*translat/i.test(value);
+}
+
 function readField(fields: Record<string, any>, aliases: string[]) {
   for (const alias of aliases) {
     if (Object.prototype.hasOwnProperty.call(fields, alias)) {
@@ -302,9 +306,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }).filter((test: any) => {
         return Boolean(
           test.name ||
-            test.nameCn ||
+            (test.nameCn && !isTranslationPlaceholder(test.nameCn)) ||
             test.description ||
-            test.descriptionCn ||
+            (test.descriptionCn && !isTranslationPlaceholder(test.descriptionCn)) ||
             test.items.length > 0
         );
       });
