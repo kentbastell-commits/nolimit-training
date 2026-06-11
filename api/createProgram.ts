@@ -27,6 +27,58 @@ async function getTableFieldNames(tableId: string, token: string) {
   );
 }
 
+async function createProgramRecord(
+  tableId: string,
+  token: string,
+  fields: Record<string, any>
+) {
+  const response = await fetch(
+    `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${tableId}/records`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ fields }),
+    }
+  );
+
+  return {
+    ok: response.ok,
+    data: await response.json(),
+  };
+}
+
+async function updateProgramField(
+  tableId: string,
+  recordId: string,
+  token: string,
+  fieldName: string,
+  value: any
+) {
+  const response = await fetch(
+    `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${tableId}/records/${recordId}`,
+    {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        fields: {
+          [fieldName]: value,
+        },
+      }),
+    }
+  );
+
+  return {
+    ok: response.ok,
+    data: await response.json(),
+  };
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {
     return res.status(405).json({
@@ -88,7 +140,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const programId = makeProgramId();
 
-    const rawFields = {
+    const stableFields = {
       "Program ID": programId,
       "Program Name": programName,
       Goal: goal || "",
@@ -99,6 +151,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       "Sessions / Week": Number(sessionsPerWeek) || 1,
       Coach: coach || "Kent Bastell",
       Status: status || "Active",
+    };
+    const optionalProductFields = {
       "Product Type": productType || "Digital Program",
       Price: price === "" || price === undefined ? "" : Number(price) || 0,
       Currency: currency || "CNY",
@@ -110,14 +164,33 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       "Sales Description": salesDescription || "",
       "Sales Description CN": salesDescriptionCn || "",
     };
+    const fallbackFields = {
+      "Program ID": programId,
+      "Program Name": programName,
+    };
     const tableId = process.env.FEISHU_PROGRAMS_TABLE_ID as string;
     const availableFieldNames = await getTableFieldNames(
       tableId,
       tokenData.tenant_access_token
     );
     const omittedFields: string[] = [];
-    const fields = Object.fromEntries(
-      Object.entries(rawFields).filter(([fieldName]) => {
+    const filterFields = (sourceFields: Record<string, any>) =>
+      Object.fromEntries(
+        Object.entries(sourceFields).filter(([fieldName]) => {
+          const shouldKeep =
+            !availableFieldNames || availableFieldNames.has(fieldName);
+
+          if (!shouldKeep) {
+            omittedFields.push(fieldName);
+          }
+
+          return shouldKeep;
+        })
+      );
+    const fields = filterFields(stableFields);
+    const fallbackCreateFields = filterFields(fallbackFields);
+    const optionalFields = Object.fromEntries(
+      Object.entries(optionalProductFields).filter(([fieldName]) => {
         const shouldKeep = !availableFieldNames || availableFieldNames.has(fieldName);
 
         if (!shouldKeep) {
@@ -128,35 +201,64 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       })
     );
 
-    const createResponse = await fetch(
-      `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${tableId}/records`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${tokenData.tenant_access_token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          fields,
-        }),
-      }
+    let createResult = await createProgramRecord(
+      tableId,
+      tokenData.tenant_access_token,
+      fields
     );
+    let createData = createResult.data;
 
-    const createData = await createResponse.json();
+    if (!createResult.ok || createData.code !== 0) {
+      createResult = await createProgramRecord(
+        tableId,
+        tokenData.tenant_access_token,
+        fallbackCreateFields
+      );
+      createData = createResult.data;
 
-    if (!createResponse.ok || createData.code !== 0) {
-      return res.status(500).json({
-        error: "Failed to create program record",
-        larkResponse: createData,
-        fieldsSent: fields,
-      });
+      if (!createResult.ok || createData.code !== 0) {
+        return res.status(500).json({
+          error: "Failed to create program record",
+          larkResponse: createData,
+          fieldsSent: fields,
+          fallbackFieldsSent: fallbackCreateFields,
+        });
+      }
+    }
+
+    const programRecordId = createData?.data?.record?.record_id;
+    const optionalUpdateErrors: Array<{
+      fieldName: string;
+      value: any;
+      larkResponse: any;
+    }> = [];
+
+    if (programRecordId) {
+      for (const [fieldName, value] of Object.entries(optionalFields)) {
+        const updateResult = await updateProgramField(
+          tableId,
+          programRecordId,
+          tokenData.tenant_access_token,
+          fieldName,
+          value
+        );
+
+        if (!updateResult.ok || updateResult.data.code !== 0) {
+          optionalUpdateErrors.push({
+            fieldName,
+            value,
+            larkResponse: updateResult.data,
+          });
+        }
+      }
     }
 
     return res.status(200).json({
       success: true,
       programId,
-      programRecordId: createData?.data?.record?.record_id,
+      programRecordId,
       omittedFields,
+      optionalUpdateErrors,
       larkResponse: createData,
     });
   } catch (error: any) {
