@@ -990,6 +990,8 @@ function App() {
     ProgramExercise[]
   >([]);
   const [programSessions, setProgramSessions] = useState<ProgramSession[]>([]);
+  const [editingProgramSessionId, setEditingProgramSessionId] = useState("");
+  const [draggedProgramSessionId, setDraggedProgramSessionId] = useState("");
   const [savingTemplate, setSavingTemplate] = useState(false);
 
   const notify = (message: string, type: ToastType = "info") => {
@@ -3651,7 +3653,53 @@ function App() {
     setSelectedProgramExercises(updated);
   };
 
-  const addCurrentSessionToProgram = () => {
+  const buildCurrentProgramSession = (localId?: string): ProgramSession | null => {
+    if (!programWeek || !programDay || !sessionName) {
+      return null;
+    }
+
+    if (selectedProgramExercises.length === 0) {
+      return null;
+    }
+
+    return {
+      localId: localId || `${Date.now()}-${Math.random()}`,
+      week: programWeek,
+      day: programDay,
+      sessionName,
+      exercises: selectedProgramExercises.map((exercise, index) => ({
+        ...exercise,
+        order: Number(exercise.order) || index + 1,
+      })),
+    };
+  };
+
+  const renumberProgramSessionsByWeek = (sessions: ProgramSession[]) => {
+    const dayCounters: Record<string, number> = {};
+
+    return sessions.map((session) => {
+      const week = String(Number(session.week) || 1);
+      const nextDay = (dayCounters[week] || 0) + 1;
+      dayCounters[week] = nextDay;
+
+      return {
+        ...session,
+        week,
+        day: String(nextDay),
+      };
+    });
+  };
+
+  const clearCurrentProgramSession = (advanceDay = true) => {
+    const nextDay = String((Number(programDay) || 1) + 1);
+
+    setSelectedProgramExercises([]);
+    setEditingProgramSessionId("");
+    setProgramDay(advanceDay ? nextDay : "1");
+    setSessionName("");
+  };
+
+  const saveCurrentSessionToProgram = (closeAfterSave = false) => {
     if (!programWeek || !programDay || !sessionName) {
       notify("Please fill Week, Day, and Session Name.");
       return;
@@ -3662,27 +3710,62 @@ function App() {
       return;
     }
 
-    const newSession: ProgramSession = {
-      localId: `${Date.now()}-${Math.random()}`,
-      week: programWeek,
-      day: programDay,
-      sessionName,
-      exercises: selectedProgramExercises.map((exercise, index) => ({
-        ...exercise,
-        order: Number(exercise.order) || index + 1,
-      })),
-    };
+    const localId = editingProgramSessionId || `${Date.now()}-${Math.random()}`;
+    const savedSession = buildCurrentProgramSession(localId);
 
-    setProgramSessions([...programSessions, newSession]);
-    setSelectedProgramExercises([]);
+    if (!savedSession) return;
 
-    const nextDay = String((Number(programDay) || 1) + 1);
-    setProgramDay(nextDay);
-    setSessionName("");
+    setProgramSessions((current) => {
+      const hasExisting = current.some((session) => session.localId === localId);
+      const nextSessions = hasExisting
+        ? current.map((session) =>
+            session.localId === localId ? savedSession : session
+          )
+        : [...current, savedSession];
+
+      return renumberProgramSessionsByWeek(nextSessions);
+    });
+
+    setEditingProgramSessionId(closeAfterSave ? "" : localId);
+
+    if (closeAfterSave) {
+      clearCurrentProgramSession(true);
+    }
+
+    notify(closeAfterSave ? "Day saved and closed." : "Day saved.");
+  };
+
+  const addCurrentSessionToProgram = () => {
+    saveCurrentSessionToProgram(true);
+  };
+
+  const reorderProgramSession = (sourceId: string, targetId: string) => {
+    if (!sourceId || !targetId || sourceId === targetId) return;
+
+    setProgramSessions((current) => {
+      const sourceIndex = current.findIndex(
+        (session) => session.localId === sourceId
+      );
+      const targetIndex = current.findIndex(
+        (session) => session.localId === targetId
+      );
+
+      if (sourceIndex < 0 || targetIndex < 0) return current;
+
+      const nextSessions = [...current];
+      const [movedSession] = nextSessions.splice(sourceIndex, 1);
+      nextSessions.splice(targetIndex, 0, movedSession);
+
+      return renumberProgramSessionsByWeek(nextSessions);
+    });
   };
 
   const removeProgramSession = (localId: string) => {
     setProgramSessions(programSessions.filter((session) => session.localId !== localId));
+
+    if (editingProgramSessionId === localId) {
+      clearCurrentProgramSession(false);
+    }
   };
 
   const loadSessionForEditing = (session: ProgramSession) => {
@@ -3690,7 +3773,7 @@ function App() {
     setProgramDay(session.day);
     setSessionName(session.sessionName);
     setSelectedProgramExercises(session.exercises);
-    removeProgramSession(session.localId);
+    setEditingProgramSessionId(session.localId);
   };
 
   const saveFullProgram = async () => {
@@ -3712,17 +3795,25 @@ function App() {
         return;
       }
 
-      sessionsToSave.push({
-        localId: `${Date.now()}-${Math.random()}`,
-        week: programWeek,
-        day: programDay,
-        sessionName,
-        exercises: selectedProgramExercises.map((exercise, index) => ({
-          ...exercise,
-          order: Number(exercise.order) || index + 1,
-        })),
-      });
+      const currentSession = buildCurrentProgramSession(
+        editingProgramSessionId || `${Date.now()}-${Math.random()}`
+      );
+
+      if (!currentSession) {
+        notify("Current session could not be saved.");
+        return;
+      }
+
+      sessionsToSave = sessionsToSave.some(
+        (session) => session.localId === currentSession.localId
+      )
+        ? sessionsToSave.map((session) =>
+            session.localId === currentSession.localId ? currentSession : session
+          )
+        : [...sessionsToSave, currentSession];
     }
+
+    sessionsToSave = renumberProgramSessionsByWeek(sessionsToSave);
 
     setSavingTemplate(true);
 
@@ -7322,7 +7413,25 @@ function App() {
                   />
                 </label>
 
-                <h3 className="builderSectionTitle">Current Session</h3>
+                <div className="builderSectionHeader">
+                  <div>
+                    <h3 className="builderSectionTitle">Current Session</h3>
+                    {editingProgramSessionId && (
+                      <p className="builderSessionHint">
+                        Editing an existing day. Save it here, then choose another
+                        session below.
+                      </p>
+                    )}
+                  </div>
+                  {editingProgramSessionId && (
+                    <button
+                      className="outlineButton"
+                      onClick={() => clearCurrentProgramSession(false)}
+                    >
+                      Close Editor
+                    </button>
+                  )}
+                </div>
 
                 <div className="currentSessionGrid">
                   <label>
@@ -7355,8 +7464,15 @@ function App() {
                     />
                   </label>
 
+                  <button
+                    className="outlineButton"
+                    onClick={() => saveCurrentSessionToProgram(false)}
+                  >
+                    Save Day
+                  </button>
+
                   <button className="goldButton" onClick={addCurrentSessionToProgram}>
-                    + Add Session
+                    Save Day & Close
                   </button>
                 </div>
 
@@ -7635,14 +7751,34 @@ function App() {
                 {programSessions.length === 0 && <p>No sessions added yet.</p>}
 
                 {programSessions.map((session) => (
-                  <div className="exercise-card" key={session.localId}>
+                  <div
+                    className={`exercise-card programSessionCard ${
+                      editingProgramSessionId === session.localId
+                        ? "editingSessionCard"
+                        : ""
+                    }`}
+                    key={session.localId}
+                    draggable
+                    onDragStart={() => setDraggedProgramSessionId(session.localId)}
+                    onDragOver={(event) => event.preventDefault()}
+                    onDrop={() => {
+                      reorderProgramSession(draggedProgramSessionId, session.localId);
+                      setDraggedProgramSessionId("");
+                    }}
+                    onDragEnd={() => setDraggedProgramSessionId("")}
+                  >
                     <div className="exerciseTitleRow">
-                      <h3>
-                        Week {session.week} / Day {session.day}:{" "}
-                        {session.sessionName}
-                      </h3>
+                      <div className="programSessionTitle">
+                        <span className="dragHandle" aria-hidden="true">
+                          Drag
+                        </span>
+                        <h3>
+                          Week {session.week} / Day {session.day}:{" "}
+                          {session.sessionName}
+                        </h3>
+                      </div>
 
-                      <div style={{ display: "flex", gap: "10px" }}>
+                      <div className="programSessionActions">
                         <button
                           className="outlineButton"
                           onClick={() => loadSessionForEditing(session)}

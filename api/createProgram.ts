@@ -5,6 +5,28 @@ function makeProgramId() {
   return `PR-${random}`;
 }
 
+async function getTableFieldNames(tableId: string, token: string) {
+  const response = await fetch(
+    `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${tableId}/fields?page_size=200`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+  const data = await response.json();
+
+  if (!response.ok || data.code !== 0) {
+    return null;
+  }
+
+  return new Set(
+    (data?.data?.items || [])
+      .map((field: any) => field.field_name || field.name)
+      .filter(Boolean)
+  );
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {
     return res.status(405).json({
@@ -66,7 +88,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const programId = makeProgramId();
 
-    const fields = {
+    const rawFields = {
       "Program ID": programId,
       "Program Name": programName,
       Goal: goal || "",
@@ -88,9 +110,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       "Sales Description": salesDescription || "",
       "Sales Description CN": salesDescriptionCn || "",
     };
+    const tableId = process.env.FEISHU_PROGRAMS_TABLE_ID as string;
+    const availableFieldNames = await getTableFieldNames(
+      tableId,
+      tokenData.tenant_access_token
+    );
+    const omittedFields: string[] = [];
+    const fields = Object.fromEntries(
+      Object.entries(rawFields).filter(([fieldName]) => {
+        const shouldKeep = !availableFieldNames || availableFieldNames.has(fieldName);
+
+        if (!shouldKeep) {
+          omittedFields.push(fieldName);
+        }
+
+        return shouldKeep;
+      })
+    );
 
     const createResponse = await fetch(
-      `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${process.env.FEISHU_PROGRAMS_TABLE_ID}/records`,
+      `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${tableId}/records`,
       {
         method: "POST",
         headers: {
@@ -117,6 +156,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       success: true,
       programId,
       programRecordId: createData?.data?.record?.record_id,
+      omittedFields,
       larkResponse: createData,
     });
   } catch (error: any) {
