@@ -9700,6 +9700,109 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   border: 2px solid rgba(212, 175, 55, 0.3);
 }
 
+.storeCard.clickableRow {
+  cursor: pointer;
+}
+
+.storeCardCta {
+  color: #d4af37;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.storeProgramModal {
+  background: #0e0a04;
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  border-radius: 14px;
+  width: min(820px, 95vw);
+  max-height: 90vh;
+  overflow-y: auto;
+  display: flex;
+  gap: 0;
+  position: relative;
+}
+
+.storeProgramModalLeft {
+  flex: 1;
+  padding: 40px 36px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  border-right: 1px solid rgba(212, 175, 55, 0.15);
+}
+
+.storeProgramModalLeft h2 {
+  font-size: 28px;
+  font-weight: 800;
+  color: #f5d77b;
+  margin: 4px 0 0;
+  line-height: 1.2;
+}
+
+.storeProgramModalPrice {
+  font-size: 26px;
+  font-weight: 800;
+  color: #f5d77b;
+  margin-top: 4px;
+}
+
+.storeProgramModalRight {
+  width: 260px;
+  flex-shrink: 0;
+  padding: 40px 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  justify-content: center;
+}
+
+.storeProgramModalQrLabel {
+  color: #bbb;
+  font-size: 13px;
+  text-align: center;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.storeProgramModalQr {
+  width: 200px;
+  height: 200px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 2px solid rgba(212, 175, 55, 0.3);
+}
+
+.storeProgramModal .drawerClose {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 22px;
+  cursor: pointer;
+  padding: 4px 8px;
+  line-height: 1;
+}
+
+@media (max-width: 600px) {
+  .storeProgramModal {
+    flex-direction: column;
+  }
+
+  .storeProgramModalLeft {
+    border-right: none;
+    border-bottom: 1px solid rgba(212, 175, 55, 0.15);
+    padding: 28px 20px;
+  }
+
+  .storeProgramModalRight {
+    width: 100%;
+    padding: 24px 20px;
+  }
+}
+
 .storeFooter {
   border-top: 1px solid rgba(212, 175, 55, 0.1);
   padding: 20px 32px;

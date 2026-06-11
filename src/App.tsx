@@ -797,6 +797,7 @@ function App() {
   const [inviteLang, setInviteLang] = useState<"en" | "zh">("en");
   const [storeLang, setStoreLang] = useState<"en" | "zh">("en");
   const [programsLoading, setProgramsLoading] = useState(false);
+  const [storeSelectedProgram, setStoreSelectedProgram] = useState<Program | null>(null);
   const [newClient, setNewClient] = useState({
     name: "",
     email: "",
@@ -6200,10 +6201,13 @@ function App() {
                 const description = sZh && program.storeDescriptionCn
                   ? program.storeDescriptionCn
                   : program.storeDescription || (sZh ? program.salesDescriptionCn : program.salesDescription);
-                const buyUrl = program.storeUrl || program.purchaseLink;
 
                 return (
-                  <div className="storeCard" key={program.recordId}>
+                  <div
+                    className="storeCard clickableRow"
+                    key={program.recordId}
+                    onClick={() => setStoreSelectedProgram(program)}
+                  >
                     <div className="storeCardBody">
                       {program.productType && (
                         <span className="storeCardTag">{program.productType}</span>
@@ -6222,36 +6226,88 @@ function App() {
                     </div>
                     <div className="storeCardFooter">
                       <span className="storeCardPrice">{formatPrice(program)}</span>
-                      {buyUrl ? (
-                        <a
-                          className="goldButton"
-                          href={buyUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          {sZh ? "立即购买" : "Buy Now"}
-                        </a>
-                      ) : (
-                        <button
-                          className="goldButton"
-                          onClick={() =>
-                            void copyToClipboard(
-                              sZh
-                                ? "请加微信咨询购买：[你的微信ID]"
-                                : "Contact Kent on WeChat to purchase.",
-                              sZh ? "联系方式" : "Contact info"
-                            )
-                          }
-                        >
-                          {sZh ? "联系购买" : "Contact to Buy"}
-                        </button>
-                      )}
+                      <span className="storeCardCta">
+                        {sZh ? "查看详情 →" : "View →"}
+                      </span>
                     </div>
                   </div>
                 );
               })}
             </div>
           )}
+
+          {storeSelectedProgram && (() => {
+            const sp = storeSelectedProgram;
+            const spName = sZh && sp.programNameCn ? sp.programNameCn : sp.programName;
+            const spGoal = sZh && sp.goalCn ? sp.goalCn : sp.goal;
+            const spDesc = sZh && sp.storeDescriptionCn
+              ? sp.storeDescriptionCn
+              : sp.storeDescription || (sZh ? sp.salesDescriptionCn : sp.salesDescription);
+            const spUrl = sp.storeUrl || sp.purchaseLink;
+
+            return (
+              <div
+                className="workout-modal-overlay"
+                onClick={() => setStoreSelectedProgram(null)}
+              >
+                <div
+                  className="storeProgramModal"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <button
+                    className="drawerClose"
+                    onClick={() => setStoreSelectedProgram(null)}
+                  >
+                    ×
+                  </button>
+
+                  <div className="storeProgramModalLeft">
+                    {sp.productType && (
+                      <span className="storeCardTag">{sp.productType}</span>
+                    )}
+                    <h2>{spName}</h2>
+                    {spGoal && <p className="storeCardGoal">{spGoal}</p>}
+                    {spDesc && <p className="storeCardDescription">{spDesc}</p>}
+                    <div className="storeCardMeta">
+                      {formatDuration(sp) && <span>{formatDuration(sp)}</span>}
+                      {sp.level && <span>{sp.level}</span>}
+                    </div>
+                    <div className="storeProgramModalPrice">
+                      {formatPrice(sp)}
+                    </div>
+                    {spUrl && (
+                      <a
+                        className="goldButton"
+                        href={spUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {sZh ? "立即购买" : "Buy Now"}
+                      </a>
+                    )}
+                  </div>
+
+                  <div className="storeProgramModalRight">
+                    <p className="storeProgramModalQrLabel">
+                      {sZh ? "扫码添加微信完成购买" : "Scan to add Kent on WeChat & purchase"}
+                    </p>
+                    <img
+                      src="https://i.ibb.co/Y4nXVG4g/Weixin-Image-20260611202846-56-2.jpg"
+                      alt="Kent WeChat QR"
+                      className="storeProgramModalQr"
+                    />
+                    <a
+                      className="outlineButton"
+                      href={`/?invite=client&package=Pending`}
+                      style={{ textAlign: "center", textDecoration: "none" }}
+                    >
+                      {sZh ? "提交咨询" : "Get Started"}
+                    </a>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
 
           <div className="storeContact">
             <h2>{sZh ? "有疑问？" : "Have questions?"}</h2>
