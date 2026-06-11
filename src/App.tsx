@@ -1480,6 +1480,28 @@ function App() {
     }
   }, [i18n, isClientPortal, selectedClient]);
 
+  useEffect(() => {
+    const openDatePickerFromClick = (event: MouseEvent) => {
+      const input = (event.target as HTMLElement | null)?.closest?.(
+        'input[type="date"]'
+      ) as HTMLInputElement | null;
+
+      if (!input || input.disabled || input.readOnly) return;
+
+      try {
+        input.showPicker?.();
+      } catch {
+        input.focus();
+      }
+    };
+
+    document.addEventListener("click", openDatePickerFromClick);
+
+    return () => {
+      document.removeEventListener("click", openDatePickerFromClick);
+    };
+  }, []);
+
   const useChineseClientText =
     isClientPortal &&
     languagePreferenceToCode(selectedClient?.languagePreference) === "zh";

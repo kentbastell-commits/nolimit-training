@@ -9074,3 +9074,23 @@ textarea {
     font-size: 10px !important;
   }
 }
+
+/* Make every date field behave like one full clickable date button. */
+input[type="date"] {
+  position: relative;
+  cursor: pointer;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  position: absolute;
+  inset: 0;
+  width: auto;
+  height: auto;
+  opacity: 0;
+  cursor: pointer;
+}
+
+input[type="date"]:disabled,
+input[type="date"]:disabled::-webkit-calendar-picker-indicator {
+  cursor: not-allowed;
+}
