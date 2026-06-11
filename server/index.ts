@@ -19,9 +19,11 @@ import duplicateAssignedWorkout from "../api/duplicateAssignedWorkout.ts";
 import exerciseResults from "../api/exerciseResults.ts";
 import exercises from "../api/exercises.ts";
 import formTemplates from "../api/formTemplates.ts";
+import notifications from "../api/notifications.ts";
 import productOrders from "../api/productOrders.ts";
 import programs from "../api/programs.ts";
 import programTemplates from "../api/programTemplates.ts";
+import reviewWorkoutComment from "../api/reviewWorkoutComment.ts";
 import saveWorkoutLog from "../api/saveWorkoutLog.ts";
 import submitContentResponse from "../api/submitContentResponse.ts";
 import testTemplates from "../api/testTemplates.ts";
@@ -33,6 +35,7 @@ import updateProgram from "../api/updateProgram.ts";
 import upsertExercise from "../api/upsertExercise.ts";
 import workoutDetails from "../api/workoutDetails.ts";
 import workoutHistory from "../api/workoutHistory.ts";
+import workoutComments from "../api/workoutComments.ts";
 import workouts from "../api/workouts.ts";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -59,9 +62,11 @@ const handlers = {
   exerciseResults,
   exercises,
   formTemplates,
+  notifications,
   productOrders,
   programs,
   programTemplates,
+  reviewWorkoutComment,
   saveWorkoutLog,
   submitContentResponse,
   testTemplates,
@@ -73,6 +78,7 @@ const handlers = {
   upsertExercise,
   workoutDetails,
   workoutHistory,
+  workoutComments,
   workouts,
 };
 

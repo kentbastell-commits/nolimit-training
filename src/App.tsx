@@ -804,8 +804,8 @@ function App() {
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [showAnalyticsModal, setShowAnalyticsModal] = useState(false);
   const [showNotificationsPanel, setShowNotificationsPanel] = useState(false);
-  const [notifications] = useState<{ id: string; title: string; body: string; type: string; read: boolean; createdAt: string }[]>([]);
-  const [notificationsLoading] = useState(false);
+  const [notifications, setNotifications] = useState<{ id: string; title: string; body: string; type: string; read: boolean; createdAt: string }[]>([]);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
   const [coachInvitePackage, setCoachInvitePackage] = useState("Pending");
   const [inviteForm, setInviteForm] = useState({
     name: "",
@@ -1502,6 +1502,7 @@ function App() {
     loadClients();
     loadCoaches();
     loadProductOrders();
+    void loadNotifications();
   }, []);
 
   useEffect(() => {
@@ -1847,6 +1848,19 @@ function App() {
       return [];
     } finally {
       setProgramsLoading(false);
+    }
+  };
+
+  const loadNotifications = async () => {
+    setNotificationsLoading(true);
+    try {
+      const res = await fetch("/api/notifications");
+      const data = await res.json();
+      setNotifications(data.notifications || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setNotificationsLoading(false);
     }
   };
 
@@ -6749,7 +6763,10 @@ function App() {
               <div className="topbarRight">
                 <button
                   className="notificationsBell"
-                  onClick={() => setShowNotificationsPanel((v) => !v)}
+                  onClick={() => {
+                    setShowNotificationsPanel((v) => !v);
+                    void loadNotifications();
+                  }}
                   title="Notifications"
                 >
                   <Bell size={20} />
