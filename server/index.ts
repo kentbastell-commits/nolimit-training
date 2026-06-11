@@ -3,6 +3,7 @@ import express from "express";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import aiSearch from "../api/aiSearch.ts";
 import analytics from "../api/analytics.ts";
 import assignContent from "../api/assignContent.ts";
 import assignProgram from "../api/assignProgram.ts";
@@ -20,6 +21,7 @@ import duplicateAssignedWorkout from "../api/duplicateAssignedWorkout.ts";
 import exerciseResults from "../api/exerciseResults.ts";
 import exercises from "../api/exercises.ts";
 import formTemplates from "../api/formTemplates.ts";
+import generateNotes from "../api/generateNotes.ts";
 import notifications from "../api/notifications.ts";
 import productOrders from "../api/productOrders.ts";
 import programs from "../api/programs.ts";
@@ -48,6 +50,7 @@ const port = Number(process.env.PORT || 3001);
 app.use(express.json({ limit: "2mb" }));
 
 const handlers = {
+  aiSearch,
   analytics,
   assignContent,
   assignProgram,
@@ -65,6 +68,7 @@ const handlers = {
   exerciseResults,
   exercises,
   formTemplates,
+  generateNotes,
   notifications,
   productOrders,
   programs,

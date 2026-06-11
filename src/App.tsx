@@ -1003,6 +1003,11 @@ function App() {
   const [programDay, setProgramDay] = useState("1");
   const [sessionName, setSessionName] = useState("Lower Strength");
   const [builderSearch, setBuilderSearch] = useState("");
+  const [aiSearchMode, setAiSearchMode] = useState(false);
+  const [aiSearchQuery, setAiSearchQuery] = useState("");
+  const [aiSearchLoading, setAiSearchLoading] = useState(false);
+  const [aiSearchResults, setAiSearchResults] = useState<string[]>([]);
+  const [generatingNotesIdx, setGeneratingNotesIdx] = useState<number | null>(null);
   const [formTemplateName, setFormTemplateName] = useState("Weekly Check-in");
   const [formTemplateType, setFormTemplateType] = useState("Check-in");
   const [formQuestions, setFormQuestions] = useState([
@@ -4179,17 +4184,72 @@ function App() {
     );
   });
 
-  const builderExercises = libraryExercises.filter((exercise) => {
-    const search = builderSearch.toLowerCase();
+  const builderExercises = (() => {
+    if (aiSearchMode && aiSearchResults.length > 0) {
+      return aiSearchResults
+        .map((name) => libraryExercises.find((e) => e.exerciseName === name))
+        .filter(Boolean) as typeof libraryExercises;
+    }
+    return libraryExercises.filter((exercise) => {
+      const search = builderSearch.toLowerCase();
+      return (
+        exercise.exerciseName?.toLowerCase().includes(search) ||
+        exercise.exerciseId?.toLowerCase().includes(search) ||
+        exercise.category?.toLowerCase().includes(search) ||
+        exercise.equipment?.toLowerCase().includes(search) ||
+        exercise.movementPattern?.toLowerCase().includes(search)
+      );
+    });
+  })();
 
-    return (
-      exercise.exerciseName?.toLowerCase().includes(search) ||
-      exercise.exerciseId?.toLowerCase().includes(search) ||
-      exercise.category?.toLowerCase().includes(search) ||
-      exercise.equipment?.toLowerCase().includes(search) ||
-      exercise.movementPattern?.toLowerCase().includes(search)
-    );
-  });
+  const runAiSearch = async () => {
+    if (!aiSearchQuery.trim()) return;
+    setAiSearchLoading(true);
+    try {
+      const exerciseList = libraryExercises.map((e) => ({
+        exerciseName: e.exerciseName,
+        movementPattern: e.movementPattern,
+        equipment: e.equipment,
+      }));
+      const res = await fetch("/api/aiSearch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: aiSearchQuery, exercises: exerciseList }),
+      });
+      const data = await res.json();
+      setAiSearchResults(data.names || []);
+    } catch {
+      notify("AI search failed", "error");
+    } finally {
+      setAiSearchLoading(false);
+    }
+  };
+
+  const generateCoachingNotes = async (index: number) => {
+    const exercise = selectedProgramExercises[index];
+    if (!exercise) return;
+    setGeneratingNotesIdx(index);
+    try {
+      const res = await fetch("/api/generateNotes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          exerciseName: exercise.exerciseName,
+          sets: exercise.sets,
+          reps: exercise.reps,
+          tempo: exercise.tempo,
+          trackingType: exercise.trackingType,
+          isUnilateral: exercise.isUnilateral,
+        }),
+      });
+      const data = await res.json();
+      if (data.notes) updateProgramExercise(index, "coachingNotes", data.notes);
+    } catch {
+      notify("Could not generate notes", "error");
+    } finally {
+      setGeneratingNotesIdx(null);
+    }
+  };
 
   const addFormQuestion = () => {
     setFormQuestions((current) => [
@@ -6016,8 +6076,10 @@ function App() {
       id: workout.id,
       date: normalizeDate(String(workout.scheduledDate)),
       title: localizedWorkoutName(workout),
+      kindLabel: t("workout"),
       meta: `${t("week")} ${workout.week} - ${t("day")} ${workout.day}`,
       status: getDisplayTaskStatus(workout.completionStatus, workout.scheduledDate),
+      hasProgress: Boolean(String(workout.workoutLogs || workout.clientNotes || "").trim()),
       open: () => openWorkout(workout),
     })),
     ...clientPortalUpcomingAssignments.map((assignment) => ({
@@ -6025,11 +6087,13 @@ function App() {
       id: assignment.recordId,
       date: normalizeDate(String(assignment.dueDate || assignment.assignedDate)),
       title: getAssignmentDisplayName(assignment),
+      kindLabel: assignment.assignmentType || t("questionnaire"),
       meta: assignment.assignmentType || "Questionnaire",
       status: getDisplayTaskStatus(
         assignment.status,
         assignment.dueDate || assignment.assignedDate
       ),
+      hasProgress: normalizeTaskStatus(assignment.status) !== "Scheduled",
       open: () => handleOpenContentAssignment(assignment),
     })),
   ]
@@ -6068,6 +6132,16 @@ function App() {
     if (status === "Completed") return t("completed");
     if (status === "Missed") return t("missed");
     return t("scheduled");
+  };
+  const getTaskActionLabel = (status: SimpleTaskStatus, hasProgress = false) => {
+    if (status === "Completed") return t("view");
+    if (hasProgress) return "Continue";
+    return t("start");
+  };
+  const getTaskTone = (status: SimpleTaskStatus) => {
+    if (status === "Completed") return "completed";
+    if (status === "Missed") return "missed";
+    return "scheduled";
   };
   const jumpToTaskDate = (date: string) => {
     if (!date) return;
@@ -6183,6 +6257,81 @@ function App() {
     .filter((item) => item.status === "Missed")
     .sort((a, b) => a.date.localeCompare(b.date))
     .slice(0, 6);
+
+  const coachReviewQueueItems = [
+    ...unreviewedWorkoutComments.map((comment) => ({
+      key: `comment-${comment.key}`,
+      type: "Workout Comment",
+      title:
+        comment.workoutName ||
+        comment.exerciseNames[0] ||
+        "Workout comment",
+      subtitle: comment.noteEn || comment.note,
+      detail: comment.noteEn && comment.noteEn !== comment.note ? comment.note : "",
+      date: comment.date || "",
+      priority: 1,
+      open: () => {
+        const matchingWorkout = workouts.find(
+          (workout) =>
+            lookupTextMatches(comment.assignedWorkoutId, workout.id) ||
+            lookupTextMatches(comment.assignedWorkoutId, workout.assignedWorkoutId)
+        );
+
+        if (matchingWorkout) {
+          openWorkout(matchingWorkout);
+        }
+      },
+      review: () => void markWorkoutCommentReviewed(comment),
+      actionLabel:
+        reviewingWorkoutCommentKey === comment.key ? "Saving" : "Reviewed",
+      disabled: reviewingWorkoutCommentKey === comment.key,
+    })),
+    ...needsAttentionItems.map((item) => ({
+      key: `missed-${item.key}`,
+      type: `${item.type} / ${t("missed")}`,
+      title: item.title,
+      subtitle: "Missed task needs follow-up",
+      detail: "",
+      date: item.date,
+      priority: 2,
+      open: item.open,
+      review: undefined,
+      actionLabel: "",
+      disabled: false,
+    })),
+    ...recentQuestionnaireResponses.map((submission) => ({
+      key: `questionnaire-${submission.key}`,
+      type: "Questionnaire",
+      title: submission.title,
+      subtitle: "Recent submission",
+      detail: "",
+      date: submission.submittedAt,
+      priority: 3,
+      open: () => setSelectedContentSubmission(submission),
+      review: undefined,
+      actionLabel: "",
+      disabled: false,
+    })),
+    ...recentTestResponses.map((submission) => ({
+      key: `test-${submission.key}`,
+      type: "Physical Test",
+      title: submission.title,
+      subtitle: "Recent result",
+      detail: "",
+      date: submission.submittedAt,
+      priority: 4,
+      open: () => setSelectedContentSubmission(submission),
+      review: undefined,
+      actionLabel: "",
+      disabled: false,
+    })),
+  ]
+    .sort(
+      (a, b) =>
+        a.priority - b.priority ||
+        String(b.date || "").localeCompare(String(a.date || ""))
+    )
+    .slice(0, 10);
 
   const progressExerciseOptions = Array.from(
     new Set([
@@ -8616,15 +8765,53 @@ function App() {
 
                 <div className="searchRow">
                   <input
-                    placeholder="Search exercise library..."
-                    value={builderSearch}
-                    onChange={(e) => setBuilderSearch(e.target.value)}
+                    placeholder={
+                      aiSearchMode
+                        ? "Describe what you need... e.g. explosive pulling for climbing"
+                        : "Search exercise library..."
+                    }
+                    value={aiSearchMode ? aiSearchQuery : builderSearch}
+                    onChange={(e) =>
+                      aiSearchMode
+                        ? setAiSearchQuery(e.target.value)
+                        : setBuilderSearch(e.target.value)
+                    }
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && aiSearchMode) void runAiSearch();
+                    }}
                   />
 
+                  {aiSearchMode && (
+                    <button
+                      className="goldButton"
+                      onClick={() => void runAiSearch()}
+                      disabled={aiSearchLoading}
+                    >
+                      {aiSearchLoading ? "Searching..." : "✦ Search"}
+                    </button>
+                  )}
+
+                  <button
+                    className={aiSearchMode ? "goldButton" : "outlineButton"}
+                    onClick={() => {
+                      setAiSearchMode(!aiSearchMode);
+                      setAiSearchResults([]);
+                      setAiSearchQuery("");
+                    }}
+                  >
+                    {aiSearchMode ? "✦ AI On" : "✦ AI"}
+                  </button>
+
                   <button className="outlineButton" onClick={loadExerciseLibrary}>
-                    Load Exercises
+                    Load
                   </button>
                 </div>
+
+                {aiSearchMode && aiSearchResults.length > 0 && (
+                  <p className="aiSearchInfo">
+                    Showing {aiSearchResults.length} AI-matched results for "{aiSearchQuery}"
+                  </p>
+                )}
 
                 <h3 className="builderSectionTitle">Exercise Library</h3>
 
@@ -8865,7 +9052,17 @@ function App() {
                       </label>
 
                       <label className="builderWideField">
-                        <span>Personalized Coach Notes</span>
+                        <span className="builderNotesLabel">
+                          Personalized Coach Notes
+                          <button
+                            type="button"
+                            className="generateNotesBtn"
+                            onClick={() => void generateCoachingNotes(index)}
+                            disabled={generatingNotesIdx === index}
+                          >
+                            {generatingNotesIdx === index ? "Generating..." : "✦ Generate"}
+                          </button>
+                        </span>
                         <textarea
                           value={exercise.coachingNotes}
                           onChange={(e) =>
@@ -9902,11 +10099,19 @@ function App() {
                             }`}
                             onClick={task.open}
                           >
-                            <span>{localizedCalendarLabel(task.date)}</span>
+                            <span className="taskDatePill">
+                              {localizedCalendarLabel(task.date)}
+                            </span>
+                            <span className={`taskTypeChip ${task.type}`}>
+                              {task.kindLabel}
+                            </span>
                             <strong>{task.title}</strong>
                             <small>
                               {task.meta} - {localizeTaskStatus(task.status)}
                             </small>
+                            <em className={`taskActionBadge ${getTaskTone(task.status)}`}>
+                              {getTaskActionLabel(task.status, task.hasProgress)}
+                            </em>
                           </button>
                         ))
                       ) : (
@@ -10137,102 +10342,43 @@ function App() {
                           </div>
                         </div>
 
-                        <div className="snapshotAttentionCard">
+                        <div className="snapshotAttentionCard coachReviewQueuePanel">
                           <div className="snapshotAttentionHeader">
-                            <span>Needs Attention</span>
-                            <strong>{needsAttentionItems.length}</strong>
+                            <span>Review Queue</span>
+                            <strong>{coachReviewQueueItems.length}</strong>
                           </div>
 
-                          {needsAttentionItems.length > 0 ? (
-                            <div className="attentionTaskList">
-                              {needsAttentionItems.map((item) => (
-                                <button
-                                  className="attentionTaskRow"
+                          {coachReviewQueueItems.length > 0 ? (
+                            <div className="coachReviewQueueList">
+                              {coachReviewQueueItems.map((item) => (
+                                <article
+                                  className={`coachReviewQueueItem priority${item.priority}`}
                                   key={item.key}
-                                  onClick={item.open}
-                                  type="button"
                                 >
-                                  <span>
+                                  <button type="button" onClick={item.open}>
+                                    <span>{item.type}</span>
                                     <strong>{item.title}</strong>
                                     <small>
-                                      {item.type} / {item.date || "--"}
+                                      {item.date || "--"} / {item.subtitle}
                                     </small>
-                                  </span>
-                                  <em>{t("missed")}</em>
-                                </button>
-                              ))}
-                            </div>
-                          ) : (
-                            <p className="homeEmptyText">
-                              No missed tasks right now.
-                            </p>
-                          )}
-                        </div>
-
-                        <div className="snapshotAttentionCard workoutCommentQueueCard">
-                          <div className="snapshotAttentionHeader">
-                            <span>Workout Comments</span>
-                            <strong>{unreviewedWorkoutComments.length}</strong>
-                          </div>
-
-                          {unreviewedWorkoutComments.length > 0 ? (
-                            <div className="workoutCommentQueue">
-                              {unreviewedWorkoutComments.map((comment) => (
-                                <article
-                                  className="workoutCommentReviewItem"
-                                  key={comment.key}
-                                >
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      const matchingWorkout = workouts.find(
-                                        (workout) =>
-                                          lookupTextMatches(
-                                            comment.assignedWorkoutId,
-                                            workout.id
-                                          ) ||
-                                          lookupTextMatches(
-                                            comment.assignedWorkoutId,
-                                            workout.assignedWorkoutId
-                                          )
-                                      );
-
-                                      if (matchingWorkout) {
-                                        openWorkout(matchingWorkout);
-                                      }
-                                    }}
-                                  >
-                                    <span>
-                                      {comment.date || "--"} /{" "}
-                                      {comment.workoutName ||
-                                        comment.exerciseNames[0] ||
-                                        "Workout"}
-                                    </span>
-                                    <strong>{comment.noteEn || comment.note}</strong>
-                                    {comment.noteEn && comment.noteEn !== comment.note ? (
-                                      <small>{comment.note}</small>
-                                    ) : null}
+                                    {item.detail ? <em>{item.detail}</em> : null}
                                   </button>
-                                  <button
-                                    type="button"
-                                    className="outlineButton compactReviewButton"
-                                    disabled={
-                                      reviewingWorkoutCommentKey === comment.key
-                                    }
-                                    onClick={() =>
-                                      void markWorkoutCommentReviewed(comment)
-                                    }
-                                  >
-                                    {reviewingWorkoutCommentKey === comment.key
-                                      ? "Saving"
-                                      : "Reviewed"}
-                                  </button>
+                                  {item.review ? (
+                                    <button
+                                      type="button"
+                                      className="outlineButton compactReviewButton"
+                                      disabled={item.disabled}
+                                      onClick={item.review}
+                                    >
+                                      {item.actionLabel}
+                                    </button>
+                                  ) : null}
                                 </article>
                               ))}
                             </div>
                           ) : (
                             <p className="homeEmptyText">
-                              No new workout comments.
+                              Nothing needs review right now.
                             </p>
                           )}
                         </div>
