@@ -8,6 +8,7 @@ import assignContent from "../api/assignContent.ts";
 import assignProgram from "../api/assignProgram.ts";
 import checkIns from "../api/checkIns.ts";
 import clients from "../api/clients.ts";
+import coaches from "../api/coaches.ts";
 import contentResponses from "../api/contentResponses.ts";
 import contentAssignments from "../api/contentAssignments.ts";
 import createClient from "../api/createClient.ts";
@@ -32,6 +33,7 @@ import updateContentAssignmentDate from "../api/updateContentAssignmentDate.ts";
 import updateClient from "../api/updateClient.ts";
 import updateProductOrder from "../api/updateProductOrder.ts";
 import updateProgram from "../api/updateProgram.ts";
+import upsertCoach from "../api/upsertCoach.ts";
 import upsertExercise from "../api/upsertExercise.ts";
 import workoutDetails from "../api/workoutDetails.ts";
 import workoutHistory from "../api/workoutHistory.ts";
@@ -51,6 +53,7 @@ const handlers = {
   assignProgram,
   checkIns,
   clients,
+  coaches,
   contentResponses,
   contentAssignments,
   createClient,
@@ -75,6 +78,7 @@ const handlers = {
   updateClient,
   updateProductOrder,
   updateProgram,
+  upsertCoach,
   upsertExercise,
   workoutDetails,
   workoutHistory,
