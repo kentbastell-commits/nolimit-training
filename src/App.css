@@ -1216,6 +1216,182 @@ body {
 .manualOrderActions {
   display: flex;
   justify-content: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.mutedText {
+  color: #6d6b64;
+  margin: 0;
+}
+
+.orderReviewWorkspace {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.85fr) minmax(0, 1.6fr);
+  gap: 18px;
+}
+
+.orderReviewQueue,
+.orderReviewDetail {
+  border: 1px solid rgba(212, 175, 55, 0.28);
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+  padding: 22px 24px;
+}
+
+.orderReviewHeader,
+.orderReviewDetailHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: flex-start;
+}
+
+.orderReviewHeader span,
+.orderReviewDetailHeader span,
+.orderReviewFacts span {
+  color: #aaa;
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.orderReviewHeader h3,
+.orderReviewDetailHeader h3,
+.emptyOrderReview h3 {
+  color: #f8e27d;
+  margin: 4px 0 6px;
+}
+
+.orderReviewHeader strong {
+  color: #f8e27d;
+  font-size: 2.3rem;
+  line-height: 1;
+}
+
+.orderReviewList {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.orderReviewItem {
+  border: 1px solid rgba(212, 175, 55, 0.24);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.28);
+  color: white;
+  cursor: pointer;
+  display: grid;
+  gap: 5px;
+  padding: 14px;
+  text-align: left;
+}
+
+.orderReviewItem:hover,
+.orderReviewItem.active {
+  border-color: rgba(248, 226, 125, 0.8);
+  background: rgba(212, 175, 55, 0.18);
+  transform: translateY(-1px);
+}
+
+.orderReviewItem span {
+  color: #d6d6d6;
+}
+
+.orderReviewItem small {
+  color: #f8e27d;
+  font-weight: 900;
+}
+
+.orderReviewDetail {
+  display: grid;
+  gap: 18px;
+}
+
+.orderReviewDetailHeader p,
+.emptyOrderReview p {
+  color: #ddd;
+  margin: 0;
+}
+
+.orderReviewDetailActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.orderReviewFacts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.orderReviewFacts > div {
+  border: 1px solid rgba(212, 175, 55, 0.22);
+  border-radius: 10px;
+  padding: 14px;
+}
+
+.orderReviewFacts strong {
+  color: #fff;
+  display: block;
+  margin-top: 6px;
+}
+
+.orderReviewResponses {
+  display: grid;
+  gap: 12px;
+}
+
+.orderReviewSubmission {
+  border: 1px solid rgba(212, 175, 55, 0.2);
+  border-radius: 12px;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.24);
+}
+
+.orderReviewSubmission > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.orderReviewSubmission strong {
+  color: #f8e27d;
+}
+
+.orderReviewSubmission span {
+  color: #aaa;
+  font-weight: 800;
+}
+
+.orderReviewSubmission dl {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+
+.orderReviewSubmission dl div {
+  display: grid;
+  grid-template-columns: minmax(150px, 0.9fr) minmax(0, 1.5fr);
+  gap: 12px;
+  border-top: 1px solid rgba(212, 175, 55, 0.12);
+  padding-top: 10px;
+}
+
+.orderReviewSubmission dt {
+  color: #aaa;
+  font-weight: 900;
+}
+
+.orderReviewSubmission dd {
+  color: #fff;
+  font-weight: 800;
+  margin: 0;
 }
 
 .orderCard {
@@ -8897,7 +9073,9 @@ textarea {
 
 .app:not(.clientPortalApp) .ordersSummary > div,
 .app:not(.clientPortalApp) .orderCard,
-.app:not(.clientPortalApp) .manualOrderPanel {
+.app:not(.clientPortalApp) .manualOrderPanel,
+.app:not(.clientPortalApp) .orderReviewQueue,
+.app:not(.clientPortalApp) .orderReviewDetail {
   background: rgba(255, 255, 255, 0.88);
   border-color: rgba(20, 20, 20, 0.14);
   box-shadow: 0 16px 42px rgba(20, 20, 20, 0.06);
@@ -8912,7 +9090,13 @@ textarea {
 .app:not(.clientPortalApp) .orderPipeline strong,
 .app:not(.clientPortalApp) .manualOrderHeader span,
 .app:not(.clientPortalApp) .manualOrderGrid span,
-.app:not(.clientPortalApp) .manualOrderNotes span {
+.app:not(.clientPortalApp) .manualOrderNotes span,
+.app:not(.clientPortalApp) .orderReviewHeader span,
+.app:not(.clientPortalApp) .orderReviewDetailHeader span,
+.app:not(.clientPortalApp) .orderReviewFacts span,
+.app:not(.clientPortalApp) .orderReviewSubmission dt,
+.app:not(.clientPortalApp) .orderReviewSubmission span,
+.app:not(.clientPortalApp) .mutedText {
   color: #6d6b64;
 }
 
@@ -8921,20 +9105,44 @@ textarea {
 .app:not(.clientPortalApp) .orderCardHeader h3,
 .app:not(.clientPortalApp) .orderPipeline span,
 .app:not(.clientPortalApp) .orderMetaGrid strong,
-.app:not(.clientPortalApp) .manualOrderHeader h3 {
+.app:not(.clientPortalApp) .manualOrderHeader h3,
+.app:not(.clientPortalApp) .orderReviewHeader h3,
+.app:not(.clientPortalApp) .orderReviewDetailHeader h3,
+.app:not(.clientPortalApp) .emptyOrderReview h3,
+.app:not(.clientPortalApp) .orderReviewFacts strong,
+.app:not(.clientPortalApp) .orderReviewSubmission dd {
   color: #0d0d0d;
 }
 
+.app:not(.clientPortalApp) .orderReviewHeader strong,
+.app:not(.clientPortalApp) .orderReviewSubmission strong,
+.app:not(.clientPortalApp) .orderReviewItem small {
+  color: #80661d;
+}
+
 .app:not(.clientPortalApp) .orderCardHeader p,
-.app:not(.clientPortalApp) .manualOrderHeader p {
+.app:not(.clientPortalApp) .manualOrderHeader p,
+.app:not(.clientPortalApp) .orderReviewDetailHeader p,
+.app:not(.clientPortalApp) .emptyOrderReview p,
+.app:not(.clientPortalApp) .orderReviewItem span {
   color: #54524b;
 }
 
 .app:not(.clientPortalApp) .orderPipeline > div,
 .app:not(.clientPortalApp) .orderMetaGrid > div,
-.app:not(.clientPortalApp) .orderMetaGrid label {
+.app:not(.clientPortalApp) .orderMetaGrid label,
+.app:not(.clientPortalApp) .orderReviewFacts > div,
+.app:not(.clientPortalApp) .orderReviewSubmission,
+.app:not(.clientPortalApp) .orderReviewItem {
   border-color: #ded8cc;
   background: rgba(247, 246, 241, 0.74);
+}
+
+.app:not(.clientPortalApp) .orderReviewItem:hover,
+.app:not(.clientPortalApp) .orderReviewItem.active {
+  border-color: #111111;
+  background: #ffffff;
+  box-shadow: inset 5px 0 0 #111111;
 }
 
 .app:not(.clientPortalApp) .orderPipeline .complete {
@@ -8990,13 +9198,18 @@ textarea {
   .orderMetaGrid,
   .onboardingTimeline,
   .programProductGrid,
-  .manualOrderGrid {
+  .manualOrderGrid,
+  .orderReviewWorkspace,
+  .orderReviewFacts,
+  .orderReviewSubmission dl div {
     grid-template-columns: 1fr;
   }
 
   .ordersToolbar,
   .manualOrderHeader,
-  .manualOrderActions {
+  .manualOrderActions,
+  .orderReviewDetailHeader,
+  .orderReviewDetailActions {
     align-items: stretch;
     flex-direction: column;
   }

@@ -855,6 +855,13 @@ function App() {
   const [contentResponsesLoading, setContentResponsesLoading] = useState(false);
   const [selectedContentSubmission, setSelectedContentSubmission] =
     useState<ContentResponseGroup | null>(null);
+  const [orderReviewOrder, setOrderReviewOrder] = useState<ProductOrder | null>(
+    null
+  );
+  const [orderReviewResponses, setOrderReviewResponses] = useState<
+    ContentResponseGroup[]
+  >([]);
+  const [orderReviewLoading, setOrderReviewLoading] = useState(false);
   const [activeContentAssignment, setActiveContentAssignment] =
     useState<ContentAssignment | null>(null);
   const [contentAssignmentAnswers, setContentAssignmentAnswers] = useState<
@@ -1300,13 +1307,16 @@ function App() {
       if (!response.ok) {
         console.error(data);
         setProductOrders([]);
-        return;
+        return [];
       }
 
-      setProductOrders(data.orders || []);
+      const orders = data.orders || [];
+      setProductOrders(orders);
+      return orders;
     } catch (error) {
       console.error(error);
       setProductOrders([]);
+      return [];
     }
   };
 
@@ -1842,7 +1852,7 @@ function App() {
     }));
   };
 
-  const createManualProductOrder = async () => {
+  const createManualProductOrder = async (startOnboarding = false) => {
     if (!manualOrder.clientName.trim()) {
       notify("Please enter the client name.", "error");
       return;
@@ -1856,22 +1866,23 @@ function App() {
     setSavingManualOrder(true);
 
     try {
+      const orderPayload = {
+        ...manualOrder,
+        programId: selectedManualOrderProgram?.programId || manualOrder.programId,
+        productName:
+          selectedManualOrderProgram?.programName || manualOrder.productName,
+        assignedCoach:
+          manualOrder.assignedCoach || currentScopedCoach?.name || "Kent Bastell",
+        onboardingStatus: "New Order",
+        intakeStatus: "Not Sent",
+        fulfillmentStatus: "Pending",
+      };
       const response = await fetch("/api/createProductOrder", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          ...manualOrder,
-          programId: selectedManualOrderProgram?.programId || manualOrder.programId,
-          productName:
-            selectedManualOrderProgram?.programName || manualOrder.productName,
-          assignedCoach:
-            manualOrder.assignedCoach || currentScopedCoach?.name || "Kent Bastell",
-          onboardingStatus: "New Order",
-          intakeStatus: "Not Sent",
-          fulfillmentStatus: "Pending",
-        }),
+        body: JSON.stringify(orderPayload),
       });
       const data = await response.json();
 
@@ -1882,6 +1893,33 @@ function App() {
       }
 
       notify(`Manual order created: ${data.orderId}.`, "success");
+      const createdOrder: ProductOrder = {
+        recordId: data.recordId,
+        orderId: data.orderId,
+        clientId: "",
+        clientName: orderPayload.clientName,
+        email: orderPayload.email,
+        phone: orderPayload.phone,
+        productType: orderPayload.productType,
+        programId: orderPayload.programId,
+        productName: orderPayload.productName,
+        amount: orderPayload.amount,
+        currency: orderPayload.currency,
+        paymentStatus: orderPayload.paymentStatus,
+        paymentProvider: orderPayload.paymentProvider,
+        purchasedAt: orderPayload.purchasedAt,
+        accessStartDate: orderPayload.accessStartDate,
+        accessEndDate: orderPayload.accessEndDate,
+        intakeStatus: orderPayload.intakeStatus,
+        assignedCoach: orderPayload.assignedCoach,
+        onboardingStatus: orderPayload.onboardingStatus,
+        fulfillmentStatus: orderPayload.fulfillmentStatus,
+      };
+
+      if (startOnboarding) {
+        await assignOrderIntake(createdOrder);
+      }
+
       resetManualOrderForm();
       setShowManualOrderForm(false);
       await loadProductOrders();
@@ -4467,6 +4505,101 @@ function App() {
   const readyOrdersCount = visibleProductOrders.filter(
     (order) => getOrderPipelineStatus(order) === "Program Ready"
   ).length;
+  const reviewQueueOrders = visibleProductOrders.filter((order) => {
+    const status = getOrderPipelineStatus(order);
+    return (
+      status === "Intake Sent" ||
+      status === "Intake Submitted" ||
+      status === "Program Ready"
+    );
+  });
+  const getResponseGroups = (
+    responses: ContentResponse[],
+    assignments = contentAssignments
+  ) =>
+    Object.values(
+      responses.reduce<Record<string, ContentResponseGroup>>((groups, response) => {
+        const key =
+          response.assignmentRecordId ||
+          response.assignmentId ||
+          `${response.templateId}-${response.submittedAt}`;
+        const matchingAssignment = assignments.find(
+          (assignment) =>
+            assignment.recordId === response.assignmentRecordId ||
+            assignment.assignmentId === response.assignmentId ||
+            assignment.templateId === response.templateId
+        );
+        const templateTitle = matchingAssignment
+          ? getAssignmentDisplayName(matchingAssignment)
+          : response.responseType;
+
+        if (!groups[key]) {
+          groups[key] = {
+            key,
+            responseType: response.responseType,
+            title: templateTitle,
+            submittedAt: response.submittedAt,
+            answers: [],
+          };
+        }
+
+        groups[key].answers.push(response);
+
+        if (response.submittedAt > groups[key].submittedAt) {
+          groups[key].submittedAt = response.submittedAt;
+        }
+
+        return groups;
+      }, {})
+    ).sort((a, b) => b.submittedAt.localeCompare(a.submittedAt));
+
+  const openOrderReview = async (order: ProductOrder) => {
+    const client = getOrderClient(order) || (await createClientFromOrder(order));
+
+    if (!client) {
+      notify("Create or match the client before reviewing intake.", "error");
+      return;
+    }
+
+    setOrderReviewOrder(order);
+    setOrderReviewLoading(true);
+
+    try {
+      const assignments = await loadContentAssignments(client);
+      const responses = await loadContentResponses(client);
+      const intakeTemplate = getOrderIntakeTemplate(order);
+      const groups = getResponseGroups(responses, assignments).filter((group) => {
+        if (!intakeTemplate) {
+          return group.responseType.toLowerCase().includes("question");
+        }
+
+        return (
+          group.title === intakeTemplate.name ||
+          group.answers.some(
+            (answer) =>
+              answer.templateId === intakeTemplate.formId ||
+              answer.templateId === intakeTemplate.recordId
+          )
+        );
+      });
+
+      setOrderReviewResponses(groups);
+
+      if (groups.length === 0) {
+        notify("No intake submission found yet for this order.", "info");
+      } else if (!String(order.intakeStatus || "").toLowerCase().includes("submitted")) {
+        await updateProductOrder(order, {
+          intakeStatus: "Submitted",
+          onboardingStatus: "Intake Submitted",
+        });
+      }
+    } catch (error) {
+      console.error(error);
+      notify("Could not load intake review.", "error");
+    } finally {
+      setOrderReviewLoading(false);
+    }
+  };
 
   const createClientFromOrder = async (order: ProductOrder) => {
     const existingClient = getOrderClient(order);
@@ -5697,41 +5830,7 @@ function App() {
     setClientTab("Training");
   };
 
-  const groupedContentResponses = Object.values(
-    contentResponses.reduce<Record<string, ContentResponseGroup>>((groups, response) => {
-      const key =
-        response.assignmentRecordId ||
-        response.assignmentId ||
-        `${response.templateId}-${response.submittedAt}`;
-      const matchingAssignment = contentAssignments.find(
-        (assignment) =>
-          assignment.recordId === response.assignmentRecordId ||
-          assignment.assignmentId === response.assignmentId ||
-          assignment.templateId === response.templateId
-      );
-      const templateTitle = matchingAssignment
-        ? getAssignmentDisplayName(matchingAssignment)
-        : response.responseType;
-
-      if (!groups[key]) {
-        groups[key] = {
-          key,
-          responseType: response.responseType,
-          title: templateTitle,
-          submittedAt: response.submittedAt,
-          answers: [],
-        };
-      }
-
-      groups[key].answers.push(response);
-
-      if (response.submittedAt > groups[key].submittedAt) {
-        groups[key].submittedAt = response.submittedAt;
-      }
-
-      return groups;
-    }, {})
-  ).sort((a, b) => b.submittedAt.localeCompare(a.submittedAt));
+  const groupedContentResponses = getResponseGroups(contentResponses);
 
   const recentQuestionnaireResponses = groupedContentResponses
     .filter((submission) =>
@@ -6777,15 +6876,181 @@ function App() {
 
                     <div className="manualOrderActions">
                       <button
-                        className="goldButton"
-                        onClick={createManualProductOrder}
+                        className="outlineButton"
+                        onClick={() => void createManualProductOrder(false)}
                         disabled={savingManualOrder}
                       >
                         {savingManualOrder ? "Creating..." : "Create Order"}
                       </button>
+                      <button
+                        className="goldButton"
+                        onClick={() => void createManualProductOrder(true)}
+                        disabled={savingManualOrder}
+                      >
+                        {savingManualOrder
+                          ? "Starting..."
+                          : "Create + Send Intake"}
+                      </button>
                     </div>
                   </section>
                 )}
+
+                <section className="orderReviewWorkspace">
+                  <div className="orderReviewQueue">
+                    <div className="orderReviewHeader">
+                      <div>
+                        <span>Coach Review</span>
+                        <h3>Intake Review Queue</h3>
+                      </div>
+                      <strong>{reviewQueueOrders.length}</strong>
+                    </div>
+
+                    {reviewQueueOrders.length === 0 ? (
+                      <p className="mutedText">
+                        No intake items need review right now.
+                      </p>
+                    ) : (
+                      <div className="orderReviewList">
+                        {reviewQueueOrders.slice(0, 8).map((order) => {
+                          const pipelineStatus = getOrderPipelineStatus(order);
+                          const active =
+                            orderReviewOrder?.recordId === order.recordId;
+
+                          return (
+                            <button
+                              key={order.recordId || order.orderId}
+                              className={[
+                                "orderReviewItem",
+                                active ? "active" : "",
+                              ]
+                                .filter(Boolean)
+                                .join(" ")}
+                              onClick={() => void openOrderReview(order)}
+                            >
+                              <strong>{order.clientName || "Unnamed client"}</strong>
+                              <span>{order.productName || "Purchased product"}</span>
+                              <small>{pipelineStatus}</small>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="orderReviewDetail">
+                    {!orderReviewOrder ? (
+                      <div className="emptyOrderReview">
+                        <span>Review Panel</span>
+                        <h3>Select an order to review the intake.</h3>
+                        <p>
+                          Use this after the client submits their intake. Once
+                          reviewed, the program can be loaded into their calendar.
+                        </p>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="orderReviewDetailHeader">
+                          <div>
+                            <span>{getOrderPipelineStatus(orderReviewOrder)}</span>
+                            <h3>{orderReviewOrder.clientName || "Unnamed client"}</h3>
+                            <p>
+                              {orderReviewOrder.productName || "Purchased product"} -{" "}
+                              {orderReviewOrder.orderId || "No order ID"}
+                            </p>
+                          </div>
+                          <div className="orderReviewDetailActions">
+                            <button
+                              className="outlineButton"
+                              onClick={() => void openOrderReview(orderReviewOrder)}
+                              disabled={orderReviewLoading}
+                            >
+                              {orderReviewLoading ? "Loading..." : "Refresh Review"}
+                            </button>
+                            <button
+                              className="outlineButton"
+                              onClick={() => void markOrderIntakeReviewed(orderReviewOrder)}
+                              disabled={
+                                orderProcessingId === orderReviewOrder.recordId ||
+                                !getOrderClient(orderReviewOrder)
+                              }
+                            >
+                              Mark Reviewed
+                            </button>
+                            <button
+                              className="goldButton"
+                              onClick={() => void assignOrderProgram(orderReviewOrder)}
+                              disabled={
+                                orderProcessingId === orderReviewOrder.recordId ||
+                                !getOrderProgram(orderReviewOrder)
+                              }
+                            >
+                              Load Program
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="orderReviewFacts">
+                          <div>
+                            <span>Client</span>
+                            <strong>
+                              {getOrderClient(orderReviewOrder)?.name ||
+                                "Needs client record"}
+                            </strong>
+                          </div>
+                          <div>
+                            <span>Intake</span>
+                            <strong>
+                              {getOrderIntakeTemplate(orderReviewOrder)?.name ||
+                                "No intake matched"}
+                            </strong>
+                          </div>
+                          <div>
+                            <span>Program</span>
+                            <strong>
+                              {getOrderProgram(orderReviewOrder)?.programName ||
+                                "No saved program matched"}
+                            </strong>
+                          </div>
+                        </div>
+
+                        <div className="orderReviewResponses">
+                          {orderReviewLoading && <p>Loading intake responses...</p>}
+
+                          {!orderReviewLoading &&
+                            orderReviewResponses.length === 0 && (
+                              <p className="mutedText">
+                                No intake submission has been found yet.
+                              </p>
+                            )}
+
+                          {!orderReviewLoading &&
+                            orderReviewResponses.map((submission) => (
+                              <article
+                                className="orderReviewSubmission"
+                                key={submission.key}
+                              >
+                                <div>
+                                  <strong>{submission.title}</strong>
+                                  <span>{submission.submittedAt || "--"}</span>
+                                </div>
+                                <dl>
+                                  {submission.answers.map((answer) => (
+                                    <div key={answer.recordId || answer.responseId}>
+                                      <dt>{getContentResponseLabel(answer)}</dt>
+                                      <dd>
+                                        {answer.answer || "--"}
+                                        {answer.unit ? ` ${answer.unit}` : ""}
+                                      </dd>
+                                    </div>
+                                  ))}
+                                </dl>
+                              </article>
+                            ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </section>
 
                 <div className="ordersGrid">
                   {visibleProductOrders.length === 0 && (
