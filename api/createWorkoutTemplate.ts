@@ -101,6 +101,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       week,
       day,
       sessionName,
+      sessionType,
+      sessionGoal,
+      estimatedDuration,
+      intensity,
+      isSingleWorkout,
       exercises,
     } = req.body;
 
@@ -164,6 +169,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           Week: Number(week),
           Day: Number(day),
           "Session Name": sessionName,
+          "Session Type": String(sessionType || "Strength"),
+          "Session Goal": String(sessionGoal || ""),
+          "Estimated Duration": Number(estimatedDuration) || "",
+          Intensity: String(intensity || "Moderate"),
+          "Is Single Workout": Boolean(isSingleWorkout),
 
           Order: Number(exercise.order) || index + 1,
           Sets: Number(exercise.sets) || 1,

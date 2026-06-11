@@ -112,6 +112,13 @@ export default async function handler(
           day: Number(fieldToText(fields["Day"])) || 1,
           sessionName: fieldToText(fields["Session Name"]),
           sessionNameCn: fieldToText(fields["Session Name CN"]),
+          sessionType: fieldToText(fields["Session Type"]),
+          sessionGoal: fieldToText(fields["Session Goal"]),
+          estimatedDuration: fieldToText(fields["Estimated Duration"]),
+          intensity: fieldToText(fields["Intensity"]),
+          isSingleWorkout: /^(true|yes|1)$/i.test(
+            fieldToText(fields["Is Single Workout"])
+          ),
           exerciseName: fieldToText(fields["Exercise Name"]),
           exerciseId: fieldToText(fields["Exercise ID"]),
           order: Number(fieldToText(fields["Order"])) || 0,

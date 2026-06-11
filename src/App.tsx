@@ -208,6 +208,10 @@ type Workout = {
   day: string;
   sessionName: string;
   sessionNameCn?: string;
+  sessionType?: string;
+  sessionGoal?: string;
+  estimatedDuration?: string;
+  intensity?: string;
   scheduledDate: string;
   completionStatus: string;
   coachNotes: string;
@@ -244,6 +248,9 @@ type ExerciseNoteMeta = {
   groupName: string;
   trackingType: TrackingType;
   isUnilateral: boolean;
+  isAccessory: boolean;
+  accessoryParentLabel: string;
+  accessoryColor: string;
   coachingNotes: string;
 };
 
@@ -312,6 +319,9 @@ type ProgramExercise = {
   isUnilateral: boolean;
   groupType: "Straight" | "Superset" | "Circuit";
   groupName: string;
+  isAccessory?: boolean;
+  accessoryParentLabel?: string;
+  accessoryColor?: string;
 };
 
 type ProgramSession = {
@@ -319,6 +329,11 @@ type ProgramSession = {
   week: string;
   day: string;
   sessionName: string;
+  sessionType?: string;
+  sessionGoal?: string;
+  estimatedDuration?: string;
+  intensity?: string;
+  isSingleWorkout?: boolean;
   exercises: ProgramExercise[];
 };
 
@@ -328,6 +343,10 @@ type AssignableWorkout = {
   day: number;
   sessionName: string;
   sessionNameCn?: string;
+  sessionType?: string;
+  sessionGoal?: string;
+  estimatedDuration?: string;
+  intensity?: string;
   scheduledDate: string;
 };
 
@@ -336,6 +355,11 @@ type SavedProgramTemplate = {
   week: number;
   day: number;
   sessionName: string;
+  sessionType?: string;
+  sessionGoal?: string;
+  estimatedDuration?: string;
+  intensity?: string;
+  isSingleWorkout?: boolean;
   exerciseName: string;
   exerciseId: string;
   order: number;
@@ -520,6 +544,9 @@ function parseExerciseNotes(notes = ""): ExerciseNoteMeta {
     groupName: "",
     trackingType: "Weight",
     isUnilateral: false,
+    isAccessory: false,
+    accessoryParentLabel: "",
+    accessoryColor: "Green",
     coachingNotes: "",
   };
   const remainingLines: string[] = [];
@@ -527,7 +554,7 @@ function parseExerciseNotes(notes = ""): ExerciseNoteMeta {
   lines.forEach((line) => {
     const trimmed = line.trim();
     const match = trimmed.match(
-      /^(Section|Label|Superset|Circuit|Tracking|Unilateral):\s*(.+)$/i
+      /^(Section|Label|Superset|Circuit|Tracking|Unilateral|Accessory|Accessory Parent|Accessory Color):\s*(.+)$/i
     );
 
     if (!match) {
@@ -549,6 +576,11 @@ function parseExerciseNotes(notes = ""): ExerciseNoteMeta {
     if (key === "unilateral") {
       meta.isUnilateral = /^(yes|true|1|y)$/i.test(value);
     }
+    if (key === "accessory") {
+      meta.isAccessory = /^(yes|true|1|y)$/i.test(value);
+    }
+    if (key === "accessory parent") meta.accessoryParentLabel = value;
+    if (key === "accessory color") meta.accessoryColor = value;
     if (key === "superset" || key === "circuit") {
       meta.groupType = key === "superset" ? "Superset" : "Circuit";
       meta.groupName = value;
@@ -872,6 +904,24 @@ function getStatusClass(status: string) {
   return "scheduledWorkout";
 }
 
+function getSessionTypeClass(sessionType = "") {
+  const clean = sessionType.toLowerCase();
+
+  if (clean.includes("cardio") || clean.includes("conditioning")) {
+    return "sessionTypeCardio";
+  }
+  if (clean.includes("mobility") || clean.includes("recovery")) {
+    return "sessionTypeMobility";
+  }
+  if (clean.includes("test")) return "sessionTypeTest";
+  if (clean.includes("skill") || clean.includes("climbing")) {
+    return "sessionTypeSkill";
+  }
+  if (clean.includes("hybrid")) return "sessionTypeHybrid";
+
+  return "sessionTypeStrength";
+}
+
 function languagePreferenceToCode(language?: string) {
   const clean = String(language || "").toLowerCase();
 
@@ -1170,6 +1220,16 @@ function App() {
   const [programWeek, setProgramWeek] = useState("1");
   const [programDay, setProgramDay] = useState("1");
   const [sessionName, setSessionName] = useState("Lower Strength");
+  const [builderMode, setBuilderMode] = useState<"Program" | "Single Workout">(
+    "Program"
+  );
+  const [sessionType, setSessionType] = useState("Strength");
+  const [sessionGoal, setSessionGoal] = useState("");
+  const [sessionEstimatedDuration, setSessionEstimatedDuration] = useState("");
+  const [sessionIntensity, setSessionIntensity] = useState("Moderate");
+  const [accessoryTargetIndex, setAccessoryTargetIndex] = useState<number | null>(
+    null
+  );
   const [builderSearch, setBuilderSearch] = useState("");
   const [formTemplateName, setFormTemplateName] = useState("Weekly Check-in");
   const [formTemplateType, setFormTemplateType] = useState("Check-in");
@@ -2925,6 +2985,11 @@ function App() {
             week: String(template.week),
             day: String(template.day),
             sessionName: template.sessionName,
+            sessionType: template.sessionType || "Strength",
+            sessionGoal: template.sessionGoal || "",
+            estimatedDuration: template.estimatedDuration || "",
+            intensity: template.intensity || "Moderate",
+            isSingleWorkout: Boolean(template.isSingleWorkout),
             exercises: [] as ProgramExercise[],
           });
         }
@@ -3029,6 +3094,10 @@ function App() {
             week: Number(template.week),
             day: Number(template.day),
             sessionName: template.sessionName,
+            sessionType: template.sessionType || "Strength",
+            sessionGoal: template.sessionGoal || "",
+            estimatedDuration: template.estimatedDuration || "",
+            intensity: template.intensity || "Moderate",
             scheduledDate: addDays(savedAssignStartDate, offsetDays),
           });
         }
@@ -3082,6 +3151,10 @@ function App() {
             week: workout.week,
             day: workout.day,
             sessionName: workout.sessionName,
+            sessionType: workout.sessionType,
+            sessionGoal: workout.sessionGoal,
+            estimatedDuration: workout.estimatedDuration,
+            intensity: workout.intensity,
             scheduledDate: workout.scheduledDate,
           })),
         }),
@@ -3133,14 +3206,21 @@ function App() {
 
             if (!sessions.has(key)) {
               sessions.set(key, {
-                week: template.week,
-                day: template.day,
+                localId: key,
+                week: String(template.week),
+                day: String(template.day),
                 sessionName: template.sessionName,
+                sessionType: template.sessionType || "Strength",
+                sessionGoal: template.sessionGoal || "",
+                estimatedDuration: template.estimatedDuration || "",
+                intensity: template.intensity || "Moderate",
+                isSingleWorkout: Boolean(template.isSingleWorkout),
+                exercises: [],
               });
             }
 
             return sessions;
-          }, new Map<string, { week: number; day: number; sessionName: string }>())
+          }, new Map<string, ProgramSession>())
           .values()
       );
 
@@ -3157,6 +3237,11 @@ function App() {
             week: String(session.week),
             day: String(session.day),
             sessionName: session.sessionName,
+            sessionType: session.sessionType,
+            sessionGoal: session.sessionGoal,
+            estimatedDuration: session.estimatedDuration,
+            intensity: session.intensity,
+            isSingleWorkout: session.isSingleWorkout,
             exercises: exercises.map((exercise, index) => {
               const meta = parseExerciseNotes(exercise.notes);
 
@@ -3176,6 +3261,9 @@ function App() {
                 isUnilateral: meta.isUnilateral,
                 groupType: meta.groupType || "Straight",
                 groupName: meta.groupName,
+                isAccessory: meta.isAccessory,
+                accessoryParentLabel: meta.accessoryParentLabel,
+                accessoryColor: meta.accessoryColor,
               };
             }),
           };
@@ -3256,6 +3344,10 @@ function App() {
             week: Number(template.week),
             day: Number(template.day),
             sessionName: template.sessionName,
+            sessionType: template.sessionType || "Strength",
+            sessionGoal: template.sessionGoal || "",
+            estimatedDuration: template.estimatedDuration || "",
+            intensity: template.intensity || "Moderate",
             scheduledDate: addDays(assignStartDate, offsetDays),
           });
         }
@@ -3321,6 +3413,10 @@ function App() {
             week: workout.week,
             day: workout.day,
             sessionName: workout.sessionName,
+            sessionType: workout.sessionType,
+            sessionGoal: workout.sessionGoal,
+            estimatedDuration: workout.estimatedDuration,
+            intensity: workout.intensity,
             scheduledDate: workout.scheduledDate,
           })),
         }),
@@ -3972,28 +4068,47 @@ function App() {
 
   const addExerciseToProgram = (exercise: LibraryExercise) => {
     const meta = parseExerciseNotes(exercise.notes || "");
+    const parent =
+      accessoryTargetIndex !== null
+        ? selectedProgramExercises[accessoryTargetIndex]
+        : null;
+    const newExercise: ProgramExercise = {
+      exerciseRecordId: exercise.recordId,
+      exerciseId: exercise.exerciseId,
+      exerciseName: exercise.exerciseName,
+      order: selectedProgramExercises.length + 1,
+      sectionName:
+        parent?.sectionName ||
+        selectedProgramExercises[selectedProgramExercises.length - 1]
+          ?.sectionName ||
+        "Main",
+      exerciseLabel: parent?.exerciseLabel || makeExerciseLabel(selectedProgramExercises.length),
+      sets: parent ? "2" : "3",
+      reps: parent ? "10" : "8",
+      tempo: parent?.tempo || "3-1-1",
+      rest: parent ? "45 sec" : "60 sec",
+      coachingNotes: "",
+      trackingType: meta.trackingType,
+      isUnilateral: meta.isUnilateral,
+      groupType: "Straight",
+      groupName: "",
+      isAccessory: Boolean(parent),
+      accessoryParentLabel: parent?.exerciseLabel || "",
+      accessoryColor: parent ? "Green" : "Gold",
+    };
+
+    if (parent && accessoryTargetIndex !== null) {
+      const updated = [...selectedProgramExercises];
+      updated.splice(accessoryTargetIndex + 1, 0, newExercise);
+      setSelectedProgramExercises(normalizeProgramExerciseOrder(updated));
+      setAccessoryTargetIndex(null);
+      notify(`Accessory added under ${parent.exerciseLabel || parent.exerciseName}.`);
+      return;
+    }
 
     setSelectedProgramExercises([
       ...selectedProgramExercises,
-      {
-        exerciseRecordId: exercise.recordId,
-        exerciseId: exercise.exerciseId,
-        exerciseName: exercise.exerciseName,
-        order: selectedProgramExercises.length + 1,
-        sectionName:
-          selectedProgramExercises[selectedProgramExercises.length - 1]
-            ?.sectionName || "Main",
-        exerciseLabel: makeExerciseLabel(selectedProgramExercises.length),
-        sets: "3",
-        reps: "8",
-        tempo: "3-1-1",
-        rest: "60 sec",
-        coachingNotes: "",
-        trackingType: meta.trackingType,
-        isUnilateral: meta.isUnilateral,
-        groupType: "Straight",
-        groupName: "",
-      },
+      newExercise,
     ]);
   };
 
@@ -4006,7 +4121,7 @@ function App() {
   const updateProgramExercise = (
     index: number,
     field: keyof ProgramExercise,
-    value: string
+    value: string | number | boolean
   ) => {
     const updated = [...selectedProgramExercises];
 
@@ -4085,6 +4200,11 @@ function App() {
       exercise.groupType !== "Straight" && exercise.groupName
         ? `${exercise.groupType}: ${exercise.groupName}`
         : "",
+      exercise.isAccessory ? "Accessory: Yes" : "",
+      exercise.accessoryParentLabel
+        ? `Accessory Parent: ${exercise.accessoryParentLabel}`
+        : "",
+      exercise.accessoryColor ? `Accessory Color: ${exercise.accessoryColor}` : "",
     ].filter(Boolean);
 
     return [...meta, exercise.coachingNotes].filter(Boolean).join("\n\n");
@@ -4115,6 +4235,11 @@ function App() {
       week: programWeek,
       day: programDay,
       sessionName,
+      sessionType,
+      sessionGoal,
+      estimatedDuration: sessionEstimatedDuration,
+      intensity: sessionIntensity,
+      isSingleWorkout: builderMode === "Single Workout",
       exercises: selectedProgramExercises.map((exercise, index) => ({
         ...exercise,
         order: Number(exercise.order) || index + 1,
@@ -4145,6 +4270,11 @@ function App() {
     setEditingProgramSessionId("");
     setProgramDay(advanceDay ? nextDay : "1");
     setSessionName("");
+    setSessionGoal("");
+    setSessionEstimatedDuration("");
+    setSessionType("Strength");
+    setSessionIntensity("Moderate");
+    setAccessoryTargetIndex(null);
   };
 
   const saveCurrentSessionToProgram = (
@@ -4227,6 +4357,11 @@ function App() {
     setProgramWeek(session.week);
     setProgramDay(session.day);
     setSessionName(session.sessionName);
+    setSessionType(session.sessionType || "Strength");
+    setSessionGoal(session.sessionGoal || "");
+    setSessionEstimatedDuration(session.estimatedDuration || "");
+    setSessionIntensity(session.intensity || "Moderate");
+    setBuilderMode(session.isSingleWorkout ? "Single Workout" : "Program");
     setSelectedProgramExercises(session.exercises);
     setEditingProgramSessionId(session.localId);
   };
@@ -4322,6 +4457,11 @@ function App() {
             week: Number(session.week),
             day: Number(session.day),
             sessionName: session.sessionName,
+            sessionType: session.sessionType,
+            sessionGoal: session.sessionGoal,
+            estimatedDuration: session.estimatedDuration,
+            intensity: session.intensity,
+            isSingleWorkout: session.isSingleWorkout,
             exercises: session.exercises.map((exercise, index) => ({
               ...exercise,
               order: Number(exercise.order) || index + 1,
@@ -5220,6 +5360,10 @@ function App() {
           day: Number(template.day),
           sessionName: template.sessionName,
           sessionNameCn: template.sessionNameCn,
+          sessionType: template.sessionType || "Strength",
+          sessionGoal: template.sessionGoal || "",
+          estimatedDuration: template.estimatedDuration || "",
+          intensity: template.intensity || "Moderate",
           scheduledDate: addDays(startDate, offsetDays),
         });
       }
@@ -9142,6 +9286,18 @@ function App() {
                   )}
                 </div>
 
+                <div className="builderModeSegment" aria-label="Builder mode">
+                  {(["Program", "Single Workout"] as const).map((mode) => (
+                    <button
+                      key={mode}
+                      className={builderMode === mode ? "active" : ""}
+                      onClick={() => setBuilderMode(mode)}
+                    >
+                      {mode}
+                    </button>
+                  ))}
+                </div>
+
                 <div className="currentSessionGrid">
                   <label>
                     <span>Week</span>
@@ -9169,6 +9325,61 @@ function App() {
                       value={sessionName}
                       onChange={(e) => setSessionName(e.target.value)}
                       placeholder="Session Name"
+                      className="miniSearch"
+                    />
+                  </label>
+
+                  <label>
+                    <span>Session Type</span>
+                    <select
+                      value={sessionType}
+                      onChange={(e) => setSessionType(e.target.value)}
+                      className="miniSearch"
+                    >
+                      <option>Strength</option>
+                      <option>Cardio</option>
+                      <option>Mobility</option>
+                      <option>Recovery</option>
+                      <option>Test</option>
+                      <option>Skill</option>
+                      <option>Climbing</option>
+                      <option>Conditioning</option>
+                      <option>Hybrid</option>
+                    </select>
+                  </label>
+
+                  <label>
+                    <span>Intensity</span>
+                    <select
+                      value={sessionIntensity}
+                      onChange={(e) => setSessionIntensity(e.target.value)}
+                      className="miniSearch"
+                    >
+                      <option>Low</option>
+                      <option>Moderate</option>
+                      <option>High</option>
+                      <option>Max</option>
+                      <option>Recovery</option>
+                    </select>
+                  </label>
+
+                  <label>
+                    <span>Duration</span>
+                    <input
+                      value={sessionEstimatedDuration}
+                      onChange={(e) => setSessionEstimatedDuration(e.target.value)}
+                      inputMode="numeric"
+                      placeholder="45"
+                      className="miniSearch"
+                    />
+                  </label>
+
+                  <label>
+                    <span>Session Goal</span>
+                    <input
+                      value={sessionGoal}
+                      onChange={(e) => setSessionGoal(e.target.value)}
+                      placeholder="Primary focus..."
                       className="miniSearch"
                     />
                   </label>
@@ -9224,7 +9435,7 @@ function App() {
                         className="goldButton"
                         onClick={() => addExerciseToProgram(exercise)}
                       >
-                        + Add
+                        {accessoryTargetIndex !== null ? "+ Accessory" : "+ Add"}
                       </button>
                     </div>
                   ))}
@@ -9242,6 +9453,8 @@ function App() {
                   <div
                     className={`exercise-card builderExerciseCard ${
                       exercise.groupType !== "Straight" ? "groupedExerciseCard" : ""
+                    } ${exercise.isAccessory ? "accessoryExerciseCard" : ""} ${
+                      accessoryTargetIndex === index ? "accessoryTargetCard" : ""
                     }`}
                     key={`${exercise.exerciseRecordId}-${index}`}
                   >
@@ -9263,9 +9476,36 @@ function App() {
                             {exercise.groupType}: {exercise.groupName}
                           </span>
                         )}
+                        {exercise.isAccessory && (
+                          <span className="exerciseAccessoryPill">
+                            Accessory for{" "}
+                            {exercise.accessoryParentLabel ||
+                              exercise.exerciseLabel ||
+                              "main lift"}
+                          </span>
+                        )}
                       </div>
 
                       <div className="builderExerciseActions">
+                        {!exercise.isAccessory && (
+                          <button
+                            className="outlineButton"
+                            onClick={() => {
+                              setAccessoryTargetIndex(
+                                accessoryTargetIndex === index ? null : index
+                              );
+                              notify(
+                                accessoryTargetIndex === index
+                                  ? "Accessory pick cancelled."
+                                  : `Choose an accessory from the library for ${
+                                      exercise.exerciseLabel || exercise.exerciseName
+                                    }.`
+                              );
+                            }}
+                          >
+                            + Accessory
+                          </button>
+                        )}
                         <button
                           className="outlineButton"
                           onClick={() => moveProgramExercise(index, -1)}
@@ -9393,6 +9633,34 @@ function App() {
                           placeholder="Rest"
                         />
                       </label>
+
+                      <label className="builderCheckboxField">
+                        <span>Accessory</span>
+                        <input
+                          type="checkbox"
+                          checked={Boolean(exercise.isAccessory)}
+                          onChange={(e) => {
+                            const checked = e.target.checked;
+                            setSelectedProgramExercises((current) =>
+                              current.map((item, itemIndex) =>
+                                itemIndex === index
+                                  ? {
+                                      ...item,
+                                      isAccessory: checked,
+                                      accessoryParentLabel: checked
+                                        ? item.accessoryParentLabel ||
+                                          item.exerciseLabel
+                                        : "",
+                                      accessoryColor: checked
+                                        ? item.accessoryColor || "Green"
+                                        : item.accessoryColor,
+                                    }
+                                  : item
+                              )
+                            );
+                          }}
+                        />
+                      </label>
                     </div>
 
                     <div className="builderGroupGrid">
@@ -9427,6 +9695,48 @@ function App() {
                           disabled={exercise.groupType === "Straight"}
                         />
                       </label>
+
+                      {exercise.isAccessory && (
+                        <>
+                          <label>
+                            <span>Accessory Parent</span>
+                            <input
+                              className="miniSearch"
+                              value={exercise.accessoryParentLabel || ""}
+                              onChange={(e) =>
+                                updateProgramExercise(
+                                  index,
+                                  "accessoryParentLabel",
+                                  e.target.value
+                                )
+                              }
+                              placeholder="A1"
+                            />
+                          </label>
+
+                          <label>
+                            <span>Accessory Color</span>
+                            <select
+                              className="miniSearch"
+                              value={exercise.accessoryColor || "Green"}
+                              onChange={(e) =>
+                                updateProgramExercise(
+                                  index,
+                                  "accessoryColor",
+                                  e.target.value
+                                )
+                              }
+                            >
+                              <option>Green</option>
+                              <option>Gold</option>
+                              <option>Blue</option>
+                              <option>Grey</option>
+                              <option>Red</option>
+                              <option>Purple</option>
+                            </select>
+                          </label>
+                        </>
+                      )}
 
                       <label className="builderWideField">
                         <span>Personalized Coach Notes</span>
@@ -9503,6 +9813,14 @@ function App() {
                           Week {session.week} / Day {session.day}:{" "}
                           {session.sessionName}
                         </h3>
+                        <div className="programSessionMeta">
+                          <span>{session.sessionType || "Strength"}</span>
+                          <span>{session.intensity || "Moderate"}</span>
+                          {session.estimatedDuration && (
+                            <span>{session.estimatedDuration} min</span>
+                          )}
+                          {session.isSingleWorkout && <span>Single Workout</span>}
+                        </div>
                       </div>
 
                       <div className="programSessionActions">
@@ -11617,6 +11935,11 @@ function App() {
                             <span>Week {workout.week}</span>
                             <span>Day {workout.day}</span>
                             <strong>{workout.sessionName}</strong>
+                            {workout.sessionType && (
+                              <span className="sessionTypeMini">
+                                {workout.sessionType}
+                              </span>
+                            )}
 
                             <input
                               type="date"
@@ -11826,7 +12149,7 @@ function App() {
                                   workout.completionStatus,
                                   workout.scheduledDate
                                 )
-                              )} ${
+                              )} ${getSessionTypeClass(workout.sessionType)} ${
                                 normalizeDate(String(workout.scheduledDate)) ===
                                   todayValue &&
                                 getDisplayTaskStatus(
@@ -11892,6 +12215,9 @@ function App() {
                               <div className="workoutBlockMain">
                                 {localizedWorkoutName(workout)}
                                 <span>
+                                  {workout.sessionType
+                                    ? `${workout.sessionType} - `
+                                    : ""}
                                   {movingWorkoutId === workout.id
                                     ? t("moving")
                                     : localizeTaskStatus(
@@ -14156,6 +14482,9 @@ function App() {
                         exercise.sets && exercise.reps
                           ? `${exercise.sets} x ${exercise.reps}`
                           : t("forCompletion");
+                      const accessoryLabel = meta.accessoryParentLabel
+                        ? `Accessory for ${meta.accessoryParentLabel}`
+                        : "Accessory";
                       const prescriptionDetails = [
                         prescription,
                         exercise.tempo ? `${t("tempo")} ${exercise.tempo}` : "",
@@ -14171,7 +14500,9 @@ function App() {
                           )}
 
                           <button
-                            className="workoutGlanceRow"
+                            className={`workoutGlanceRow ${
+                              meta.isAccessory ? "accessoryGlanceRow" : ""
+                            }`}
                             type="button"
                             onClick={() => openWorkoutExerciseFromGlance(index)}
                           >
@@ -14180,6 +14511,11 @@ function App() {
                             </span>
                             <span>
                               <strong>{localizedExerciseName(exercise)}</strong>
+                              {meta.isAccessory && (
+                                <em className="exerciseAccessoryInline">
+                                  {accessoryLabel}
+                                </em>
+                              )}
                               <small>{prescriptionDetails.join(" • ")}</small>
                             </span>
                           </button>
@@ -14221,6 +14557,9 @@ function App() {
                       meta.coachingNotes,
                       exercise.notesCn || ""
                     );
+                    const accessoryLabel = meta.accessoryParentLabel
+                      ? `Accessory for ${meta.accessoryParentLabel}`
+                      : "Accessory";
                     const exerciseHistoryLogs = workoutHistoryLogs
                       .filter((log) =>
                         log.exerciseName
@@ -14238,7 +14577,9 @@ function App() {
                         )}
 
                         <div
-                          className="exercise-card workoutLogExerciseCard"
+                          className={`exercise-card workoutLogExerciseCard ${
+                            meta.isAccessory ? "accessoryWorkoutLogExerciseCard" : ""
+                          }`}
                           id={`workout-exercise-${index}`}
                         >
                         <div className="exerciseTitleRow workoutExerciseHeader">
@@ -14246,7 +14587,14 @@ function App() {
                             <span className="exerciseLabelBadge">
                               {meta.exerciseLabel || makeExerciseLabel(index)}
                             </span>
-                            <h3>{localizedExerciseName(exercise)}</h3>
+                            <div>
+                              <h3>{localizedExerciseName(exercise)}</h3>
+                              {meta.isAccessory && (
+                                <em className="exerciseAccessoryInline">
+                                  {accessoryLabel}
+                                </em>
+                              )}
+                            </div>
                           </div>
 
                           <div className="workoutExerciseActions">

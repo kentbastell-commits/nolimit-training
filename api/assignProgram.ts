@@ -6,6 +6,10 @@ type ScheduledWorkout = {
   day: number;
   sessionName: string;
   sessionNameCn?: string;
+  sessionType?: string;
+  sessionGoal?: string;
+  estimatedDuration?: string;
+  intensity?: string;
   scheduledDate: string;
 };
 
@@ -74,6 +78,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         Week: Number(workout.week),
         Day: Number(workout.day),
         "Session Name": workout.sessionName,
+        "Session Type": workout.sessionType || "Strength",
+        "Session Goal": workout.sessionGoal || "",
+        "Estimated Duration": Number(workout.estimatedDuration) || "",
+        Intensity: workout.intensity || "Moderate",
 
         // Lark date fields usually want timestamp
         "Scheduled Date": new Date(workout.scheduledDate).getTime(),

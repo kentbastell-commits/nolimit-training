@@ -145,27 +145,54 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // 5. Build unique sessions (deduplicate by week-day-sessionName)
-    const sessionMap = new Map<string, { week: number; day: number; sessionName: string; sessionNameCn: string }>();
+    const sessionMap = new Map<
+      string,
+      {
+        week: number;
+        day: number;
+        sessionName: string;
+        sessionNameCn: string;
+        sessionType: string;
+        sessionGoal: string;
+        estimatedDuration: string;
+        intensity: string;
+      }
+    >();
     for (const item of allTemplates) {
       const f = item.fields || {};
       const week = Number(fieldToText(f["Week"])) || 1;
       const day = Number(fieldToText(f["Day"])) || 1;
       const sessionName = fieldToText(f["Session Name"]) || "Session";
       const sessionNameCn = fieldToText(f["Session Name CN"]) || sessionName;
+      const sessionType = fieldToText(f["Session Type"]) || "Strength";
+      const sessionGoal = fieldToText(f["Session Goal"]);
+      const estimatedDuration = fieldToText(f["Estimated Duration"]);
+      const intensity = fieldToText(f["Intensity"]) || "Moderate";
       const key = `${week}-${day}-${sessionName}`;
-      if (!sessionMap.has(key)) sessionMap.set(key, { week, day, sessionName, sessionNameCn });
+      if (!sessionMap.has(key)) {
+        sessionMap.set(key, {
+          week,
+          day,
+          sessionName,
+          sessionNameCn,
+          sessionType,
+          sessionGoal,
+          estimatedDuration,
+          intensity,
+        });
+      }
     }
 
     // 6. Schedule workouts starting today
-    const scheduledWorkouts = Array.from(sessionMap.values()).map(({ week, day, sessionName, sessionNameCn }) => {
-      const offsetDays = (week - 1) * 7 + (day - 1) * 2;
+    const scheduledWorkouts = Array.from(sessionMap.values()).map((session) => {
+      const offsetDays = (session.week - 1) * 7 + (session.day - 1) * 2;
       const scheduledDate = addDays(today, offsetDays);
-      return { week, day, sessionName, sessionNameCn, scheduledDate };
+      return { ...session, scheduledDate };
     });
 
     // 7. Batch create assigned workouts
     if (!assignedWorkoutsTableId) return res.status(500).json({ error: "FEISHU_ASSIGNED_WORKOUTS_TABLE_ID not set" });
-    const records = scheduledWorkouts.map(({ week, day, sessionName, sessionNameCn, scheduledDate }) => ({
+    const records = scheduledWorkouts.map(({ week, day, sessionName, sessionNameCn, sessionType, sessionGoal, estimatedDuration, intensity, scheduledDate }) => ({
       fields: {
         "Assigned Workout ID": makeId("AW"),
         "Client ID": [clientRecordId],
@@ -174,6 +201,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         Day: day,
         "Session Name": sessionName,
         "Session Name CN": sessionNameCn,
+        "Session Type": sessionType || "Strength",
+        "Session Goal": sessionGoal || "",
+        "Estimated Duration": Number(estimatedDuration) || "",
+        Intensity: intensity || "Moderate",
         "Scheduled Date": new Date(`${scheduledDate}T00:00:00`).getTime(),
         Status: "Scheduled",
       },

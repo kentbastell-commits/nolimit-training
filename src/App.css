@@ -2600,9 +2600,33 @@ body {
 }
 
 .currentSessionGrid {
-  grid-template-columns: minmax(90px, 0.7fr) minmax(90px, 0.7fr) minmax(180px, 2fr) auto auto;
+  grid-template-columns: minmax(80px, 0.55fr) minmax(80px, 0.55fr) minmax(180px, 1.4fr) minmax(130px, 0.8fr) minmax(130px, 0.8fr) minmax(120px, 0.65fr) minmax(180px, 1.4fr) auto;
   align-items: end;
   margin-bottom: 22px;
+}
+
+.builderModeSegment {
+  display: inline-flex;
+  gap: 8px;
+  border: 1px solid var(--nl-line, rgba(245, 215, 123, 0.32));
+  border-radius: 999px;
+  background: rgba(17, 17, 17, 0.04);
+  padding: 5px;
+  margin: 0 0 14px;
+}
+
+.builderModeSegment button {
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--nl-muted, #777);
+  padding: 9px 14px;
+  font-weight: 950;
+}
+
+.builderModeSegment button.active {
+  background: var(--nl-ink, #111);
+  color: var(--nl-gold-soft, #f5d77b);
 }
 
 .builderSectionHeader {
@@ -2651,6 +2675,29 @@ body {
 
 .programSessionTitle h3 {
   margin: 0;
+}
+
+.programSessionMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.programSessionMeta span,
+.sessionTypeMini {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  border: 1px solid rgba(17, 17, 17, 0.12);
+  border-radius: 999px;
+  background: rgba(17, 17, 17, 0.06);
+  color: var(--nl-muted, #666);
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
 }
 
 .dragHandle {
@@ -3367,6 +3414,46 @@ body {
 
 .workoutBlock:active {
   cursor: grabbing;
+}
+
+.workoutBlock.sessionTypeStrength {
+  border-left: 5px solid #111;
+}
+
+.workoutBlock.sessionTypeCardio {
+  border-left: 5px solid #2f8f66;
+}
+
+.workoutBlock.sessionTypeMobility {
+  border-left: 5px solid #6f8799;
+}
+
+.workoutBlock.sessionTypeTest {
+  border-left: 5px solid #a44a35;
+}
+
+.workoutBlock.sessionTypeSkill {
+  border-left: 5px solid #5c679e;
+}
+
+.workoutBlock.sessionTypeHybrid {
+  border-left: 5px solid #8b6a2b;
+}
+
+.clientPortalApp .workoutBlock.sessionTypeCardio {
+  box-shadow: inset 5px 0 0 #2f8f66;
+}
+
+.clientPortalApp .workoutBlock.sessionTypeMobility {
+  box-shadow: inset 5px 0 0 #6f8799;
+}
+
+.clientPortalApp .workoutBlock.sessionTypeTest {
+  box-shadow: inset 5px 0 0 #a44a35;
+}
+
+.clientPortalApp .workoutBlock.sessionTypeSkill {
+  box-shadow: inset 5px 0 0 #5c679e;
 }
 
 .draggingWorkout {
@@ -4183,6 +4270,40 @@ body {
   border-radius: 8px;
 }
 
+.accessoryExerciseCard {
+  border-left: 6px solid #3f8f64 !important;
+  background: linear-gradient(90deg, rgba(63, 143, 100, 0.1), rgba(255, 255, 255, 0.02));
+}
+
+.accessoryGlanceRow {
+  border-left: 5px solid #3f8f64 !important;
+  background: linear-gradient(90deg, rgba(63, 143, 100, 0.14), rgba(255, 255, 255, 0.02)) !important;
+  padding-left: 12px;
+}
+
+.accessoryWorkoutLogExerciseCard {
+  border-left: 6px solid #3f8f64 !important;
+  background: linear-gradient(90deg, rgba(63, 143, 100, 0.1), rgba(255, 255, 255, 0.04));
+}
+
+.exerciseAccessoryInline {
+  display: block;
+  margin-top: 4px;
+  color: #3f8f64;
+  font-size: 13px;
+  font-style: normal;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.accessoryTargetCard {
+  border-color: #3f8f64 !important;
+  box-shadow:
+    0 0 0 2px rgba(63, 143, 100, 0.18),
+    0 18px 48px rgba(63, 143, 100, 0.16);
+}
+
 .builderExerciseTitle,
 .workoutExerciseTitle {
   display: flex;
@@ -4298,6 +4419,19 @@ body {
   font-weight: 700;
 }
 
+.exerciseAccessoryPill {
+  display: inline-flex;
+  width: fit-content;
+  margin-top: 6px;
+  border: 1px solid rgba(63, 143, 100, 0.45);
+  border-radius: 999px;
+  padding: 4px 9px;
+  color: #d9f5e6;
+  background: rgba(63, 143, 100, 0.16);
+  font-size: 12px;
+  font-weight: 850;
+}
+
 .builderPrescriptionGrid,
 .builderGroupGrid {
   display: grid;
@@ -4306,7 +4440,14 @@ body {
 }
 
 .builderPrescriptionGrid {
-  grid-template-columns: 80px minmax(150px, 1fr) 80px 100px 120px 120px minmax(140px, 1fr);
+  grid-template-columns: 80px minmax(150px, 1fr) 80px 100px 120px 120px minmax(140px, 1fr) 92px;
+}
+
+.builderCheckboxField input {
+  width: 26px;
+  height: 26px;
+  min-height: 26px;
+  accent-color: #111;
 }
 
 .builderGroupGrid {
