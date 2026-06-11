@@ -176,6 +176,24 @@ export default async function handler(
     let assignedWorkoutUpdate: any = null;
 
     if (process.env.FEISHU_ASSIGNED_WORKOUTS_TABLE_ID) {
+      const assignedWorkoutFields = await getTableFields(
+        process.env.FEISHU_ASSIGNED_WORKOUTS_TABLE_ID,
+        token
+      );
+      const assignedClientNotesField = resolveFieldName(assignedWorkoutFields, [
+        "Client Notes",
+        "Client Comment",
+        "Workout Comment",
+        "Athlete Notes",
+      ]);
+      const assignedFields: Record<string, any> = {
+        "Completion Status": "Completed",
+      };
+
+      if (assignedClientNotesField && submissionNote) {
+        assignedFields[assignedClientNotesField] = toText(submissionNote);
+      }
+
       const updateResponse = await fetch(
         `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${process.env.FEISHU_ASSIGNED_WORKOUTS_TABLE_ID}/records/${assignedWorkoutRecordId}`,
         {
@@ -184,11 +202,7 @@ export default async function handler(
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            fields: {
-              "Completion Status": "Completed",
-            },
-          }),
+          body: JSON.stringify({ fields: assignedFields }),
         }
       );
 
