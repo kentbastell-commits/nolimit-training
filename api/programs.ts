@@ -14,6 +14,8 @@ function fieldToText(value: any): string {
         if (item?.name) return item.name;
         if (item?.link) return item.link;
         if (item?.url) return item.url;
+        if (item?.record_ids) return item.record_ids.join(", ");
+        if (item?.link_record_ids) return item.link_record_ids.join(", ");
         return JSON.stringify(item);
       })
       .join(", ");
@@ -23,6 +25,8 @@ function fieldToText(value: any): string {
   if (value?.name) return value.name;
   if (value?.link) return value.link;
   if (value?.url) return value.url;
+  if (value?.record_ids) return value.record_ids.join(", ");
+  if (value?.link_record_ids) return value.link_record_ids.join(", ");
 
   return JSON.stringify(value);
 }

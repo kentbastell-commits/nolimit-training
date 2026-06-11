@@ -28,6 +28,26 @@ function fieldToText(value: any): string {
   return JSON.stringify(value);
 }
 
+function normalizeLookupText(value?: string) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9\u4e00-\u9fff]+/gi, " ")
+    .trim();
+}
+
+function lookupTextMatches(source?: string, target?: string) {
+  const normalizedSource = normalizeLookupText(source);
+  const normalizedTarget = normalizeLookupText(target);
+
+  return Boolean(
+    normalizedSource &&
+      normalizedTarget &&
+      (normalizedSource === normalizedTarget ||
+        normalizedSource.includes(normalizedTarget) ||
+        normalizedTarget.includes(normalizedSource))
+  );
+}
+
 export default async function handler(
   req: VercelRequest,
   res: VercelResponse
@@ -75,13 +95,13 @@ export default async function handler(
       });
     }
 
+    const programSearch = String(programId);
     const templates = data.data.items
       .filter((item: any) => {
         const fields = item.fields || {};
+        const templateProgramId = fieldToText(fields["Program ID"]);
 
-        return (
-          fieldToText(fields["Program ID"]) === String(programId)
-        );
+        return lookupTextMatches(templateProgramId, programSearch);
       })
       .map((item: any) => {
         const fields = item.fields || {};

@@ -183,6 +183,8 @@ type Program = {
   productStatus?: string;
   salesDescription?: string;
   salesDescriptionCn?: string;
+  sourceOrderId?: string;
+  isOrderPlaceholder?: boolean;
 };
 
 type Workout = {
@@ -4681,12 +4683,50 @@ function App() {
         return directClientProgramMatch || orderMatch;
       })
     : [];
+  const selectedClientPurchasedOrderPrograms = selectedClientOrders
+    .filter((order) => {
+      const paymentStatus = normalizeLookupText(order.paymentStatus);
+      const productText = normalizeLookupText(
+        `${order.productType} ${order.productName}`
+      );
+
+      return (
+        (!paymentStatus || paymentStatus.includes("paid")) &&
+        (!productText ||
+          productText.includes("digital") ||
+          productText.includes("program"))
+      );
+    })
+    .map((order) => {
+      const matchedProgram = getOrderProgram(order);
+
+      if (matchedProgram) return matchedProgram;
+
+      return {
+        recordId: `order-${order.recordId}`,
+        programId: order.programId || order.orderId,
+        programName: order.productName || order.programId || "Purchased Program",
+        goal: "",
+        sport: "",
+        level: "",
+        durationWeeks: "",
+        phase: "",
+        sessionsPerWeek: "",
+        coach: getCoachDisplayName(order.assignedCoach || ""),
+        status: order.paymentStatus || "Paid",
+        productType: order.productType || "Digital Program",
+        price: order.amount,
+        currency: order.currency,
+        productStatus: order.intakeStatus,
+        sourceOrderId: order.recordId,
+        isOrderPlaceholder: true,
+      } satisfies Program;
+    });
   const uniqueClientPurchasedPrograms = Array.from(
     new Map(
-      selectedClientPurchasedPrograms.map((program) => [
-        program.programId || program.recordId,
-        program,
-      ])
+      [...selectedClientPurchasedPrograms, ...selectedClientPurchasedOrderPrograms].map(
+        (program) => [program.programId || program.recordId, program]
+      )
     ).values()
   );
   const selectedClientProgram =
@@ -4777,6 +4817,22 @@ function App() {
       return;
     }
 
+    const programForAssignment =
+      programs.find(
+        (program) =>
+          lookupTextMatches(selectedClientProgram.programId, program.programId) ||
+          lookupTextMatches(selectedClientProgram.programId, program.recordId) ||
+          lookupTextMatches(selectedClientProgram.programName, program.programName)
+      ) || selectedClientProgram;
+
+    if (selectedClientProgram.isOrderPlaceholder || programForAssignment.isOrderPlaceholder) {
+      notify(
+        "This order is visible, but it needs to match a saved Program record before it can populate the calendar.",
+        "error"
+      );
+      return;
+    }
+
     const scheduledWorkouts = getClientProgramScheduledWorkouts();
 
     if (scheduledWorkouts.length === 0) {
@@ -4794,7 +4850,7 @@ function App() {
         },
         body: JSON.stringify({
           clientRecordId: selectedClient.id,
-          programRecordId: selectedClientProgram.recordId,
+          programRecordId: programForAssignment.recordId,
           scheduledWorkouts: scheduledWorkouts.map((workout) => ({
             week: workout.week,
             day: workout.day,
