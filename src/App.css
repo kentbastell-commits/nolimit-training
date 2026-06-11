@@ -2285,6 +2285,86 @@ body {
   resize: vertical;
 }
 
+.programProductReadiness {
+  border: 1px solid rgba(212, 175, 55, 0.28);
+  border-radius: 12px;
+  background: rgba(212, 175, 55, 0.08);
+  padding: 16px;
+  margin: 0 0 22px;
+}
+
+.programProductReadiness.readyForSale {
+  border-color: rgba(84, 185, 129, 0.46);
+  background: rgba(84, 185, 129, 0.12);
+}
+
+.programProductReadinessHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+  margin-bottom: 14px;
+}
+
+.programProductReadinessHeader span {
+  color: #f5d77b;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+}
+
+.programProductReadinessHeader h3 {
+  margin: 4px 0 0;
+  color: #fff;
+  font-size: 24px;
+  line-height: 1.05;
+}
+
+.programProductReadinessHeader strong {
+  border: 1px solid rgba(245, 215, 123, 0.35);
+  border-radius: 999px;
+  color: #f5d77b;
+  padding: 8px 12px;
+  white-space: nowrap;
+}
+
+.programProductChecklist {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 10px;
+}
+
+.programProductChecklist div {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.22);
+  padding: 10px 12px;
+}
+
+.programProductChecklist div.complete {
+  border-color: rgba(84, 185, 129, 0.35);
+}
+
+.programProductChecklist span {
+  display: block;
+  color: #aaa;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.9px;
+  text-transform: uppercase;
+}
+
+.programProductChecklist div.complete span {
+  color: #82d9a5;
+}
+
+.programProductChecklist strong {
+  display: block;
+  margin-top: 4px;
+  color: #fff;
+}
+
 .savedAssignPanel {
   margin-bottom: 18px;
 }
@@ -6141,6 +6221,60 @@ body {
   font-weight: 850;
 }
 
+.clientProgramDeliveryStatus {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  border: 1px solid #d7d1c2;
+  border-radius: 10px;
+  background: #fbfaf7;
+  padding: 14px 16px;
+  margin-top: 14px;
+}
+
+.clientProgramDeliveryStatus.loaded {
+  border-color: #111;
+  background: #111;
+  color: #fff;
+}
+
+.clientProgramDeliveryStatus span {
+  display: block;
+  color: #6a6a64;
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: 1.1px;
+  text-transform: uppercase;
+}
+
+.clientProgramDeliveryStatus.loaded span {
+  color: #f0d978;
+}
+
+.clientProgramDeliveryStatus strong {
+  display: block;
+  margin-top: 3px;
+  color: #111;
+  font-size: 18px;
+  font-weight: 950;
+}
+
+.clientProgramDeliveryStatus.loaded strong {
+  color: #fff;
+}
+
+.clientProgramDeliveryStatus p {
+  margin: 5px 0 0;
+  color: #6a6a64;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.clientProgramDeliveryStatus.loaded p {
+  color: #d7d1c2;
+}
+
 .clientProgramScheduler {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 240px auto;
@@ -6279,7 +6413,8 @@ body {
 
   .clientProgramsHeader,
   .clientProgramPreviewHeader,
-  .clientProgramPreviewRow {
+  .clientProgramPreviewRow,
+  .clientProgramDeliveryStatus {
     align-items: stretch;
     flex-direction: column;
   }
@@ -9051,6 +9186,49 @@ textarea {
   background: var(--brand-ink) !important;
   border-color: var(--brand-ink) !important;
   color: #f1da86 !important;
+}
+
+.app:not(.clientPortalApp) .programProductReadiness {
+  background: #fff;
+  border-color: rgba(20, 20, 20, 0.14);
+  box-shadow: 0 16px 42px rgba(20, 20, 20, 0.06);
+}
+
+.app:not(.clientPortalApp) .programProductReadiness.readyForSale {
+  background: #f7fbf6;
+  border-color: rgba(84, 185, 129, 0.42);
+}
+
+.app:not(.clientPortalApp) .programProductReadinessHeader span {
+  color: #6d6b64;
+}
+
+.app:not(.clientPortalApp) .programProductReadinessHeader h3,
+.app:not(.clientPortalApp) .programProductChecklist strong {
+  color: var(--brand-ink);
+}
+
+.app:not(.clientPortalApp) .programProductReadinessHeader strong {
+  border-color: rgba(20, 20, 20, 0.14);
+  color: var(--brand-ink);
+}
+
+.app:not(.clientPortalApp) .programProductChecklist div {
+  background: #f8f7f2;
+  border-color: rgba(20, 20, 20, 0.1);
+}
+
+.app:not(.clientPortalApp) .programProductChecklist div.complete {
+  background: #eff8ef;
+  border-color: rgba(84, 185, 129, 0.32);
+}
+
+.app:not(.clientPortalApp) .programProductChecklist span {
+  color: #6d6b64;
+}
+
+.app:not(.clientPortalApp) .programProductChecklist div.complete span {
+  color: #2f7d50;
 }
 
 @media (max-width: 720px) {
