@@ -50,6 +50,38 @@ function readFirstField(fields: Record<string, any>, candidates: string[]) {
   return "";
 }
 
+const CUE_FIELD_CANDIDATES = [
+  "Professional Coaching Cues",
+  "Technical Cues",
+  "Technical Cue",
+  "Technique Cues",
+  "Technique Cue",
+  "Form Instructions",
+  "Form Instruction",
+  "Form Cues",
+  "Form Cue",
+  "Instructions",
+  "Instruction",
+  "Cue Notes",
+  "Cues",
+  "Exercise Notes",
+  "Coaching Notes",
+  "Coach Notes",
+  "Notes",
+  "Note",
+  "Description",
+];
+
+const CUE_CN_FIELD_CANDIDATES = [
+  "Professional Coaching Cues CN",
+  "Technical Cues CN",
+  "Coaching Cues CN",
+  "Form Instructions CN",
+  "Technical Instructions CN",
+  "Instructions CN",
+  "Notes CN",
+];
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const { programId, week, day } = req.query;
@@ -83,16 +115,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
-    const recordsResponse = await fetch(
-      `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${process.env.FEISHU_WORKOUT_TEMPLATES_TABLE_ID}/records?page_size=500`,
-      {
-        headers: {
-          Authorization: `Bearer ${tokenData.tenant_access_token}`,
-        },
-      }
-    );
+    const [recordsResponse, libraryResponse] = await Promise.all([
+      fetch(
+        `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${process.env.FEISHU_WORKOUT_TEMPLATES_TABLE_ID}/records?page_size=500`,
+        {
+          headers: {
+            Authorization: `Bearer ${tokenData.tenant_access_token}`,
+          },
+        }
+      ),
+      fetch(
+        `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${process.env.FEISHU_EXERCISE_LIBRARY_TABLE_ID}/records?page_size=500`,
+        {
+          headers: {
+            Authorization: `Bearer ${tokenData.tenant_access_token}`,
+          },
+        }
+      ),
+    ]);
 
     const data = await recordsResponse.json();
+    const libraryData = await libraryResponse.json();
 
     if (!data?.data?.items) {
       return res.status(500).json({
@@ -100,6 +143,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         larkResponse: data,
       });
     }
+
+    const exerciseLibrary = new Map<string, Record<string, any>>();
+    (libraryData?.data?.items || []).forEach((item: any) => {
+      const fields = item.fields || {};
+      const exerciseId = fieldToText(fields["Exercise ID"]);
+      const exerciseName = fieldToText(fields["Exercise Name"]);
+
+      if (exerciseId) exerciseLibrary.set(`id:${exerciseId}`, fields);
+      if (exerciseName) {
+        exerciseLibrary.set(`name:${exerciseName.trim().toLowerCase()}`, fields);
+      }
+    });
 
     const exercises = data.data.items
       .filter((item: any) => {
@@ -113,6 +168,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       })
       .map((item: any) => {
         const fields = item.fields || {};
+        const exerciseId = fieldToText(fields["Exercise ID"]);
+        const exerciseName = fieldToText(fields["Exercise Name"]);
+        const libraryFields =
+          exerciseLibrary.get(`id:${exerciseId}`) ||
+          exerciseLibrary.get(`name:${exerciseName.trim().toLowerCase()}`) ||
+          {};
 
         return {
           id: item.record_id,
@@ -122,11 +183,32 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           sessionGoal: fieldToText(fields["Session Goal"]),
           estimatedDuration: fieldToText(fields["Estimated Duration"]),
           intensity: fieldToText(fields["Intensity"]),
-          exerciseId: fieldToText(fields["Exercise ID"]),
-          exerciseName: fieldToText(fields["Exercise Name"]),
-          exerciseNameCn: readFirstField(fields, ["Exercise Name CN", "Name CN"]),
-          videoUrl: fieldToText(fields["Video URL"]),
-          videoUrlCn: readFirstField(fields, ["Video URL CN"]),
+          exerciseId,
+          exerciseName,
+          exerciseNameCn:
+            readFirstField(fields, ["Exercise Name CN", "Name CN"]) ||
+            readFirstField(libraryFields, ["Exercise Name CN", "Name CN"]),
+          videoUrl:
+            fieldToText(fields["Video URL"]) ||
+            fieldToText(libraryFields["Video URL"]),
+          videoUrlCn:
+            readFirstField(fields, ["Video URL CN"]) ||
+            readFirstField(libraryFields, ["Video URL CN"]),
+          category: fieldToText(libraryFields["Category"]),
+          categoryCn: readFirstField(libraryFields, ["Category CN"]),
+          equipment: fieldToText(libraryFields["Equipment"]),
+          equipmentCn: readFirstField(libraryFields, ["Equipment CN"]),
+          movementPattern: fieldToText(libraryFields["Movement Pattern"]),
+          movementPatternCn: readFirstField(libraryFields, ["Movement Pattern CN"]),
+          technicalInstructionsCn: readFirstField(libraryFields, [
+            "Technical Instructions CN",
+            "Form Instructions CN",
+            "Instructions CN",
+          ]),
+          coachingCuesCn: readFirstField(libraryFields, ["Coaching Cues CN"]),
+          commonMistakesCn: readFirstField(libraryFields, ["Common Mistakes CN"]),
+          cueNotes: readFirstField(libraryFields, CUE_FIELD_CANDIDATES),
+          cueNotesCn: readFirstField(libraryFields, CUE_CN_FIELD_CANDIDATES),
           order: Number(fieldToText(fields["Order"])) || 0,
           sets: fieldToText(fields["Sets"]),
           reps: fieldToText(fields["Reps"]),

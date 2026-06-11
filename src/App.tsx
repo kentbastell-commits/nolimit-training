@@ -231,6 +231,17 @@ type ExerciseDetail = {
   exerciseNameCn?: string;
   videoUrl?: string;
   videoUrlCn?: string;
+  category?: string;
+  categoryCn?: string;
+  equipment?: string;
+  equipmentCn?: string;
+  movementPattern?: string;
+  movementPatternCn?: string;
+  technicalInstructionsCn?: string;
+  coachingCuesCn?: string;
+  commonMistakesCn?: string;
+  cueNotes?: string;
+  cueNotesCn?: string;
   order: number;
   sets: string;
   reps: string;
@@ -14621,11 +14632,18 @@ function App() {
                                   exerciseNameCn: exercise.exerciseNameCn,
                                   videoUrl: exercise.videoUrl || "",
                                   videoUrlCn: exercise.videoUrlCn,
-                                  category: "",
-                                  equipment: "",
-                                  movementPattern: "",
-                                  notes: exercise.notes || "",
-                                  notesCn: exercise.notesCn,
+                                  category: exercise.category || "",
+                                  categoryCn: exercise.categoryCn,
+                                  equipment: exercise.equipment || "",
+                                  equipmentCn: exercise.equipmentCn,
+                                  movementPattern: exercise.movementPattern || "",
+                                  movementPatternCn: exercise.movementPatternCn,
+                                  technicalInstructionsCn:
+                                    exercise.technicalInstructionsCn,
+                                  coachingCuesCn: exercise.coachingCuesCn,
+                                  commonMistakesCn: exercise.commonMistakesCn,
+                                  notes: exercise.cueNotes || "",
+                                  notesCn: exercise.cueNotesCn,
                                   status: "Active",
                                 })
                               }
