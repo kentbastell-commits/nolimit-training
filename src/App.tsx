@@ -595,7 +595,7 @@ function parseExerciseCueSections(notes = ""): ExerciseCueSection[] {
     const trimmed = line.trim();
     if (!trimmed) return;
 
-    const headingMatch = trimmed.match(/^([A-Za-z][A-Za-z\s/&-]{2,35}):\s*(.*)$/);
+    const headingMatch = trimmed.match(/^([^:：]{2,35})[:：]\s*(.*)$/);
 
     if (headingMatch) {
       currentSection = {
@@ -1766,8 +1766,28 @@ function App() {
   };
 
   const localizedExerciseNotes = (
-    exercise: Pick<LibraryExercise, "notes" | "notesCn">
-  ) => localizeText(exercise.notes || "", exercise.notesCn || "");
+    exercise: Pick<
+      LibraryExercise,
+      | "notes"
+      | "notesCn"
+      | "technicalInstructionsCn"
+      | "coachingCuesCn"
+      | "commonMistakesCn"
+    >
+  ) => {
+    const englishNotes = exercise.notes || "";
+    const chineseNotes = [
+      exercise.notesCn,
+      exercise.technicalInstructionsCn &&
+        `动作说明:\n${exercise.technicalInstructionsCn}`,
+      exercise.coachingCuesCn && `技术提示:\n${exercise.coachingCuesCn}`,
+      exercise.commonMistakesCn && `常见错误:\n${exercise.commonMistakesCn}`,
+    ]
+      .filter(Boolean)
+      .join("\n\n");
+
+    return localizeText(englishNotes, chineseNotes) || englishNotes || chineseNotes;
+  };
 
   const localizedCalendarLabel = (dateString: string) =>
     formatCalendarLabel(dateString, clientLocale);

@@ -3593,6 +3593,40 @@ body {
   margin: 0;
 }
 
+.clientPortalApp .technicalCueBody {
+  border-color: #d8d2c4;
+  background: #fffdf8;
+}
+
+.clientPortalApp .exerciseDetailMeta span {
+  border-color: #d8d2c4;
+  background: #f7f3e8;
+  color: #111;
+}
+
+.clientPortalApp .exerciseDetailMeta strong {
+  color: #6f5a18;
+}
+
+.clientPortalApp .exerciseCueSections section {
+  border-color: #d8d2c4;
+  background: #ffffff;
+}
+
+.clientPortalApp .exerciseCueSections h3 {
+  color: #111;
+}
+
+.clientPortalApp .exerciseCueSections li {
+  color: #242424;
+  font-weight: 650;
+}
+
+.clientPortalApp .technicalCueBody p {
+  color: #5f5a51;
+  font-weight: 800;
+}
+
 .cueDraftActions {
   display: flex;
   flex-wrap: wrap;
