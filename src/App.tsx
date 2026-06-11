@@ -189,6 +189,7 @@ type Program = {
   storeUrl?: string;
   storeDescription?: string;
   storeDescriptionCn?: string;
+  productImage?: string;
   sourceOrderId?: string;
   isOrderPlaceholder?: boolean;
 };
@@ -6208,6 +6209,12 @@ function App() {
                     key={program.recordId}
                     onClick={() => setStoreSelectedProgram(program)}
                   >
+                    {program.productImage && (
+                      <div
+                        className="storeCardImage"
+                        style={{ backgroundImage: `url(${program.productImage})` }}
+                      />
+                    )}
                     <div className="storeCardBody">
                       {program.productType && (
                         <span className="storeCardTag">{program.productType}</span>
@@ -6261,6 +6268,12 @@ function App() {
                     ×
                   </button>
 
+                  {sp.productImage && (
+                    <div
+                      className="storeProgramModalImage"
+                      style={{ backgroundImage: `url(${sp.productImage})` }}
+                    />
+                  )}
                   <div className="storeProgramModalLeft">
                     {sp.productType && (
                       <span className="storeCardTag">{sp.productType}</span>
@@ -10919,16 +10932,15 @@ function App() {
                                   : ""
                               }`}
                               key={workout.id}
-                              draggable={!isClientPortal}
+                              draggable
                               role="button"
                               tabIndex={0}
                               title={
                                 isClientPortal
-                                  ? "Open workout"
+                                  ? "Drag to another date or tap to open"
                                   : "Drag to another day to reschedule"
                               }
                               onDragStart={(event) => {
-                                if (isClientPortal) return;
                                 event.dataTransfer.setData("text/plain", workout.id);
                                 event.dataTransfer.effectAllowed = "move";
                                 setDraggingWorkoutId(workout.id);
@@ -11100,8 +11112,22 @@ function App() {
                         <>
                         {selectedCalendarDateWorkouts.map((workout) => (
                           <button
-                            className="selectedDayWorkout"
+                            className={`selectedDayWorkout draggableSelectedDayWorkout ${
+                              draggingWorkoutId === workout.id
+                                ? "draggingWorkout"
+                                : ""
+                            } ${
+                              movingWorkoutId === workout.id ? "movingWorkout" : ""
+                            }`}
                             key={workout.id}
+                            draggable
+                            title="Drag to another date or tap to open"
+                            onDragStart={(event) => {
+                              event.dataTransfer.setData("text/plain", workout.id);
+                              event.dataTransfer.effectAllowed = "move";
+                              setDraggingWorkoutId(workout.id);
+                            }}
+                            onDragEnd={() => setDraggingWorkoutId("")}
                             onClick={() => openWorkout(workout)}
                           >
                             <div>
@@ -11110,10 +11136,12 @@ function App() {
                               </span>
                               <strong>{localizedWorkoutName(workout)}</strong>
                               <small>
-                                {getDisplayTaskStatus(
-                                  workout.completionStatus,
-                                  workout.scheduledDate
-                                )}
+                                {movingWorkoutId === workout.id
+                                  ? t("moving")
+                                  : getDisplayTaskStatus(
+                                      workout.completionStatus,
+                                      workout.scheduledDate
+                                    )}
                               </small>
                             </div>
                             <span className="selectedDayWorkoutAction">
@@ -11235,7 +11263,26 @@ function App() {
                                   date === todayValue ? "todayClientMonthDay" : ""
                                 } ${
                                   dateItemCount > 0 ? "hasClientMonthWork" : ""
+                                } ${
+                                  draggingWorkoutId ? "calendarDropTarget" : ""
                                 }`}
+                                onDragOver={(event) => {
+                                  event.preventDefault();
+                                  event.dataTransfer.dropEffect = "move";
+                                }}
+                                onDrop={(event) => {
+                                  event.preventDefault();
+                                  const transferId =
+                                    event.dataTransfer.getData("text/plain") ||
+                                    draggingWorkoutId;
+                                  const workout = workouts.find(
+                                    (item) => item.id === transferId
+                                  );
+
+                                  if (workout) {
+                                    void moveWorkoutToDate(workout, date);
+                                  }
+                                }}
                                 onClick={() => selectClientCalendarDate(date)}
                               >
                                 <span>{dayNumber}</span>
@@ -11277,8 +11324,22 @@ function App() {
                           <>
                           {selectedCalendarDateWorkouts.map((workout) => (
                             <button
-                              className="selectedDayWorkout"
+                              className={`selectedDayWorkout draggableSelectedDayWorkout ${
+                                draggingWorkoutId === workout.id
+                                  ? "draggingWorkout"
+                                  : ""
+                              } ${
+                                movingWorkoutId === workout.id ? "movingWorkout" : ""
+                              }`}
                               key={workout.id}
+                              draggable
+                              title="Drag to another date or tap to open"
+                              onDragStart={(event) => {
+                                event.dataTransfer.setData("text/plain", workout.id);
+                                event.dataTransfer.effectAllowed = "move";
+                                setDraggingWorkoutId(workout.id);
+                              }}
+                              onDragEnd={() => setDraggingWorkoutId("")}
                               onClick={() => openWorkout(workout)}
                             >
                               <div>
@@ -11287,10 +11348,12 @@ function App() {
                                 </span>
                                 <strong>{localizedWorkoutName(workout)}</strong>
                                 <small>
-                                  {getDisplayTaskStatus(
-                                    workout.completionStatus,
-                                    workout.scheduledDate
-                                  )}
+                                  {movingWorkoutId === workout.id
+                                    ? t("moving")
+                                    : getDisplayTaskStatus(
+                                        workout.completionStatus,
+                                        workout.scheduledDate
+                                      )}
                                 </small>
                               </div>
                               <span className="selectedDayWorkoutAction">

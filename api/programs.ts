@@ -105,6 +105,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         storeUrl: fieldToText(fields["Store URL"]),
         storeDescription: fieldToText(fields["Store Description"]),
         storeDescriptionCn: fieldToText(fields["Store Description CN"]),
+        productImage: fieldToText(fields["Product Image"]),
       };
     });
 

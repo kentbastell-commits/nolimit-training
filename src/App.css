@@ -3135,6 +3135,12 @@ body {
   background: rgba(212, 175, 55, 0.08);
 }
 
+.clientPortalApp .calendarDropTarget {
+  border-color: #111 !important;
+  background: #f3f0e7 !important;
+  box-shadow: inset 0 0 0 2px rgba(17, 17, 17, 0.1);
+}
+
 .monthCalendar .calendarDay {
   min-height: 112px;
   padding: 8px;
@@ -7030,6 +7036,28 @@ body {
   border-color: #c8c0ac;
 }
 
+.draggableSelectedDayWorkout {
+  cursor: grab;
+  transition: opacity 0.18s ease, transform 0.18s ease, border-color 0.18s ease,
+    background 0.18s ease;
+}
+
+.draggableSelectedDayWorkout:hover {
+  border-color: #111;
+}
+
+.draggableSelectedDayWorkout:active {
+  cursor: grabbing;
+}
+
+.clientPortalApp .workoutBlock {
+  cursor: grab;
+}
+
+.clientPortalApp .workoutBlock:active {
+  cursor: grabbing;
+}
+
 .selectedDayAssignment {
   border-color: #b8c4b0;
   background: #f6f8f2;
@@ -9702,6 +9730,23 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 
 .storeCard.clickableRow {
   cursor: pointer;
+}
+
+.storeCardImage {
+  width: 100%;
+  height: 180px;
+  background-size: cover;
+  background-position: center;
+  border-radius: 12px 12px 0 0;
+}
+
+.storeProgramModalImage {
+  width: 100%;
+  height: 260px;
+  background-size: cover;
+  background-position: center;
+  border-radius: 14px 14px 0 0;
+  flex-shrink: 0;
 }
 
 .storeCardCta {
