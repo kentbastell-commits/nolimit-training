@@ -165,11 +165,14 @@ type Program = {
   recordId: string;
   programId: string;
   programName: string;
+  programNameCn?: string;
   goal: string;
+  goalCn?: string;
   sport: string;
   level: string;
   durationWeeks: string;
   phase: string;
+  phaseCn?: string;
   sessionsPerWeek: string;
   coach: string;
   status: string;
@@ -298,6 +301,7 @@ type AssignableWorkout = {
   week: number;
   day: number;
   sessionName: string;
+  sessionNameCn?: string;
   scheduledDate: string;
 };
 
@@ -1512,6 +1516,14 @@ function App() {
 
   const localizedWorkoutName = (workout: Workout) =>
     localizeText(workout.sessionName || "Workout", workout.sessionNameCn || "");
+
+  const localizedAssignableWorkoutName = (workout: AssignableWorkout) =>
+    localizeText(workout.sessionName || "Workout", workout.sessionNameCn || "");
+
+  const localizedProductType = (productType = "") =>
+    lookupTextMatches(productType, "Digital Program")
+      ? t("digitalProgram")
+      : productType || t("program");
 
   const localizedExerciseName = (
     exercise: Pick<LibraryExercise, "exerciseName" | "exerciseNameCn"> & {
@@ -4678,6 +4690,7 @@ function App() {
           week: Number(template.week),
           day: Number(template.day),
           sessionName: template.sessionName,
+          sessionNameCn: template.sessionNameCn,
           scheduledDate: addDays(startDate, offsetDays),
         });
       }
@@ -4877,6 +4890,7 @@ function App() {
             week: workout.week,
             day: workout.day,
             sessionName: workout.sessionName,
+            sessionNameCn: workout.sessionNameCn,
             scheduledDate: workout.scheduledDate,
           })),
         }),
@@ -5756,7 +5770,7 @@ function App() {
       return localizeText(matchingItem.testName, matchingItem.testNameCn);
     }
 
-    return response.responseType === "Physical Test" ? "Test Result" : "Answer";
+    return response.responseType === "Physical Test" ? t("testResult") : t("answer");
   };
 
   const questionnaireScaleAnswers = contentResponses
@@ -8814,7 +8828,7 @@ function App() {
                     <div className="clientHomePanelHeader">
                       <div>
                         <span>{t("program")}</span>
-                        <h2>{isClientPortal ? "Upcoming Tasks" : "Upcoming Tasks"}</h2>
+                        <h2>{t("upcomingTasks")}</h2>
                       </div>
                       <button
                         className="outlineButton"
@@ -9019,7 +9033,7 @@ function App() {
                             }
                           }}
                         >
-                          <span>Missed</span>
+                          <span>{t("missed")}</span>
                           <strong>{needsAttentionItems.length}</strong>
                           <small>Tasks needing follow-up</small>
                         </button>
@@ -9110,7 +9124,7 @@ function App() {
                                       {item.type} / {item.date || "--"}
                                     </small>
                                   </span>
-                                  <em>Missed</em>
+                                  <em>{t("missed")}</em>
                                 </button>
                               ))}
                             </div>
@@ -9353,7 +9367,11 @@ function App() {
                           {selectedClientProgram && (
                             <div className="clientProgramCard">
                               <div>
-                                <span>{selectedClientProgram.productType || "Program"}</span>
+                                <span>
+                                  {localizedProductType(
+                                    selectedClientProgram.productType
+                                  )}
+                                </span>
                                 <h3>{localizedProgramName(selectedClientProgram)}</h3>
                               </div>
                               <p>
@@ -9361,7 +9379,8 @@ function App() {
                                 {Number(selectedClientProgram.durationWeeks) === 1
                                   ? ""
                                   : "s"}{" "}
-                                • {selectedClientProgram.sessionsPerWeek || "--"} sessions/week
+                                - {selectedClientProgram.sessionsPerWeek || "--"}{" "}
+                                {t("sessionsPerWeek")}
                               </p>
                             </div>
                           )}
@@ -9448,7 +9467,7 @@ function App() {
                               {clientProgramScheduledWorkouts.map((workout) => (
                                 <label key={workout.localId}>
                                   <span>
-                                    {workout.sessionName} • {t("week")}{" "}
+                                    {localizedAssignableWorkoutName(workout)} - {t("week")}{" "}
                                     {workout.week}, {t("day")} {workout.day}
                                   </span>
                                   <input
@@ -9488,7 +9507,9 @@ function App() {
                                   key={workout.localId}
                                 >
                                   <div>
-                                    <strong>{workout.sessionName}</strong>
+                                    <strong>
+                                      {localizedAssignableWorkoutName(workout)}
+                                    </strong>
                                     <span>
                                       {t("week")} {workout.week} • {t("day")}{" "}
                                       {workout.day}
@@ -10161,10 +10182,12 @@ function App() {
                                 {localizedWorkoutName(workout)}
                                 <span>
                                   {movingWorkoutId === workout.id
-                                    ? "Moving..."
-                                    : getDisplayTaskStatus(
-                                        workout.completionStatus,
-                                        workout.scheduledDate
+                                    ? t("moving")
+                                    : localizeTaskStatus(
+                                        getDisplayTaskStatus(
+                                          workout.completionStatus,
+                                          workout.scheduledDate
+                                        )
                                       )}
                                 </span>
                               </div>
@@ -10257,11 +10280,13 @@ function App() {
                                   {getAssignmentDisplayName(assignment)}
                                   <span>
                                     {movingAssignmentId === assignment.recordId
-                                      ? "Moving..."
-                                      : getDisplayTaskStatus(
-                                          assignment.status,
-                                          assignment.dueDate ||
-                                            assignment.assignedDate
+                                      ? t("moving")
+                                      : localizeTaskStatus(
+                                          getDisplayTaskStatus(
+                                            assignment.status,
+                                            assignment.dueDate ||
+                                              assignment.assignedDate
+                                          )
                                         )}
                                   </span>
                                 </div>
@@ -10811,7 +10836,7 @@ function App() {
                       <strong>{analytics.summary.upcomingWorkouts}</strong>
                     </div>
                     <div className="analyticsCard">
-                      <span>Missed</span>
+                      <span>{t("missed")}</span>
                       <strong>{analytics.summary.overdueWorkouts}</strong>
                     </div>
                     <div className="analyticsCard">

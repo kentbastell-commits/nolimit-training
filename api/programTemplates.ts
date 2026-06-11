@@ -111,6 +111,7 @@ export default async function handler(
           week: Number(fieldToText(fields["Week"])) || 1,
           day: Number(fieldToText(fields["Day"])) || 1,
           sessionName: fieldToText(fields["Session Name"]),
+          sessionNameCn: fieldToText(fields["Session Name CN"]),
           exerciseName: fieldToText(fields["Exercise Name"]),
           exerciseId: fieldToText(fields["Exercise ID"]),
           order: Number(fieldToText(fields["Order"])) || 0,

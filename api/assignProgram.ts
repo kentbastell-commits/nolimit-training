@@ -5,6 +5,7 @@ type ScheduledWorkout = {
   week: number;
   day: number;
   sessionName: string;
+  sessionNameCn?: string;
   scheduledDate: string;
 };
 
@@ -62,8 +63,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
-    const records = scheduledWorkouts.map((workout: ScheduledWorkout) => ({
-      fields: {
+    const records = scheduledWorkouts.map((workout: ScheduledWorkout) => {
+      const fields: Record<string, any> = {
         "Assigned Workout ID": makeAssignedWorkoutId(),
 
         // Duplex link fields
@@ -78,8 +79,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         "Scheduled Date": new Date(workout.scheduledDate).getTime(),
 
         "Completion Status": "Scheduled",
-      },
-    }));
+      };
+
+      if (workout.sessionNameCn) {
+        fields["Session Name CN"] = workout.sessionNameCn;
+      }
+
+      return { fields };
+    });
 
     const createResponse = await fetch(
       `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${process.env.FEISHU_ASSIGNED_WORKOUTS_TABLE_ID}/records/batch_create`,
