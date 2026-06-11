@@ -11,6 +11,7 @@ import clients from "../api/clients.ts";
 import contentResponses from "../api/contentResponses.ts";
 import contentAssignments from "../api/contentAssignments.ts";
 import createClient from "../api/createClient.ts";
+import createProductOrder from "../api/createProductOrder.ts";
 import createProgram from "../api/createProgram.ts";
 import createWorkoutTemplate from "../api/createWorkoutTemplate.ts";
 import deleteRecord from "../api/deleteRecord.ts";
@@ -18,6 +19,7 @@ import duplicateAssignedWorkout from "../api/duplicateAssignedWorkout.ts";
 import exerciseResults from "../api/exerciseResults.ts";
 import exercises from "../api/exercises.ts";
 import formTemplates from "../api/formTemplates.ts";
+import productOrders from "../api/productOrders.ts";
 import programs from "../api/programs.ts";
 import programTemplates from "../api/programTemplates.ts";
 import saveWorkoutLog from "../api/saveWorkoutLog.ts";
@@ -26,6 +28,7 @@ import testTemplates from "../api/testTemplates.ts";
 import updateAssignedProgramDate from "../api/updateAssignedProgramDate.ts";
 import updateContentAssignmentDate from "../api/updateContentAssignmentDate.ts";
 import updateClient from "../api/updateClient.ts";
+import updateProductOrder from "../api/updateProductOrder.ts";
 import updateProgram from "../api/updateProgram.ts";
 import upsertExercise from "../api/upsertExercise.ts";
 import workoutDetails from "../api/workoutDetails.ts";
@@ -48,6 +51,7 @@ const handlers = {
   contentResponses,
   contentAssignments,
   createClient,
+  createProductOrder,
   createProgram,
   createWorkoutTemplate,
   deleteRecord,
@@ -55,6 +59,7 @@ const handlers = {
   exerciseResults,
   exercises,
   formTemplates,
+  productOrders,
   programs,
   programTemplates,
   saveWorkoutLog,
@@ -63,6 +68,7 @@ const handlers = {
   updateAssignedProgramDate,
   updateContentAssignmentDate,
   updateClient,
+  updateProductOrder,
   updateProgram,
   upsertExercise,
   workoutDetails,
