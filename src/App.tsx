@@ -1003,11 +1003,6 @@ function App() {
   const [programDay, setProgramDay] = useState("1");
   const [sessionName, setSessionName] = useState("Lower Strength");
   const [builderSearch, setBuilderSearch] = useState("");
-  const [aiSearchMode, setAiSearchMode] = useState(false);
-  const [aiSearchQuery, setAiSearchQuery] = useState("");
-  const [aiSearchLoading, setAiSearchLoading] = useState(false);
-  const [aiSearchResults, setAiSearchResults] = useState<string[]>([]);
-  const [generatingNotesIdx, setGeneratingNotesIdx] = useState<number | null>(null);
   const [formTemplateName, setFormTemplateName] = useState("Weekly Check-in");
   const [formTemplateType, setFormTemplateType] = useState("Check-in");
   const [formQuestions, setFormQuestions] = useState([
@@ -4184,72 +4179,17 @@ function App() {
     );
   });
 
-  const builderExercises = (() => {
-    if (aiSearchMode && aiSearchResults.length > 0) {
-      return aiSearchResults
-        .map((name) => libraryExercises.find((e) => e.exerciseName === name))
-        .filter(Boolean) as typeof libraryExercises;
-    }
-    return libraryExercises.filter((exercise) => {
-      const search = builderSearch.toLowerCase();
-      return (
-        exercise.exerciseName?.toLowerCase().includes(search) ||
-        exercise.exerciseId?.toLowerCase().includes(search) ||
-        exercise.category?.toLowerCase().includes(search) ||
-        exercise.equipment?.toLowerCase().includes(search) ||
-        exercise.movementPattern?.toLowerCase().includes(search)
-      );
-    });
-  })();
+  const builderExercises = libraryExercises.filter((exercise) => {
+    const search = builderSearch.toLowerCase();
 
-  const runAiSearch = async () => {
-    if (!aiSearchQuery.trim()) return;
-    setAiSearchLoading(true);
-    try {
-      const exerciseList = libraryExercises.map((e) => ({
-        exerciseName: e.exerciseName,
-        movementPattern: e.movementPattern,
-        equipment: e.equipment,
-      }));
-      const res = await fetch("/api/aiSearch", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: aiSearchQuery, exercises: exerciseList }),
-      });
-      const data = await res.json();
-      setAiSearchResults(data.names || []);
-    } catch {
-      notify("AI search failed", "error");
-    } finally {
-      setAiSearchLoading(false);
-    }
-  };
-
-  const generateCoachingNotes = async (index: number) => {
-    const exercise = selectedProgramExercises[index];
-    if (!exercise) return;
-    setGeneratingNotesIdx(index);
-    try {
-      const res = await fetch("/api/generateNotes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          exerciseName: exercise.exerciseName,
-          sets: exercise.sets,
-          reps: exercise.reps,
-          tempo: exercise.tempo,
-          trackingType: exercise.trackingType,
-          isUnilateral: exercise.isUnilateral,
-        }),
-      });
-      const data = await res.json();
-      if (data.notes) updateProgramExercise(index, "coachingNotes", data.notes);
-    } catch {
-      notify("Could not generate notes", "error");
-    } finally {
-      setGeneratingNotesIdx(null);
-    }
-  };
+    return (
+      exercise.exerciseName?.toLowerCase().includes(search) ||
+      exercise.exerciseId?.toLowerCase().includes(search) ||
+      exercise.category?.toLowerCase().includes(search) ||
+      exercise.equipment?.toLowerCase().includes(search) ||
+      exercise.movementPattern?.toLowerCase().includes(search)
+    );
+  });
 
   const addFormQuestion = () => {
     setFormQuestions((current) => [
@@ -8765,53 +8705,15 @@ function App() {
 
                 <div className="searchRow">
                   <input
-                    placeholder={
-                      aiSearchMode
-                        ? "Describe what you need... e.g. explosive pulling for climbing"
-                        : "Search exercise library..."
-                    }
-                    value={aiSearchMode ? aiSearchQuery : builderSearch}
-                    onChange={(e) =>
-                      aiSearchMode
-                        ? setAiSearchQuery(e.target.value)
-                        : setBuilderSearch(e.target.value)
-                    }
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && aiSearchMode) void runAiSearch();
-                    }}
+                    placeholder="Search exercise library..."
+                    value={builderSearch}
+                    onChange={(e) => setBuilderSearch(e.target.value)}
                   />
 
-                  {aiSearchMode && (
-                    <button
-                      className="goldButton"
-                      onClick={() => void runAiSearch()}
-                      disabled={aiSearchLoading}
-                    >
-                      {aiSearchLoading ? "Searching..." : "✦ Search"}
-                    </button>
-                  )}
-
-                  <button
-                    className={aiSearchMode ? "goldButton" : "outlineButton"}
-                    onClick={() => {
-                      setAiSearchMode(!aiSearchMode);
-                      setAiSearchResults([]);
-                      setAiSearchQuery("");
-                    }}
-                  >
-                    {aiSearchMode ? "✦ AI On" : "✦ AI"}
-                  </button>
-
                   <button className="outlineButton" onClick={loadExerciseLibrary}>
-                    Load
+                    Load Exercises
                   </button>
                 </div>
-
-                {aiSearchMode && aiSearchResults.length > 0 && (
-                  <p className="aiSearchInfo">
-                    Showing {aiSearchResults.length} AI-matched results for "{aiSearchQuery}"
-                  </p>
-                )}
 
                 <h3 className="builderSectionTitle">Exercise Library</h3>
 
@@ -9052,17 +8954,7 @@ function App() {
                       </label>
 
                       <label className="builderWideField">
-                        <span className="builderNotesLabel">
-                          Personalized Coach Notes
-                          <button
-                            type="button"
-                            className="generateNotesBtn"
-                            onClick={() => void generateCoachingNotes(index)}
-                            disabled={generatingNotesIdx === index}
-                          >
-                            {generatingNotesIdx === index ? "Generating..." : "✦ Generate"}
-                          </button>
-                        </span>
+                        <span>Personalized Coach Notes</span>
                         <textarea
                           value={exercise.coachingNotes}
                           onChange={(e) =>

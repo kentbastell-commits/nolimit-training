@@ -4057,41 +4057,6 @@ body {
   resize: vertical;
 }
 
-.builderNotesLabel {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.generateNotesBtn {
-  background: transparent;
-  border: 1px solid rgba(212, 175, 55, 0.5);
-  color: #d4af37;
-  border-radius: 6px;
-  padding: 2px 10px;
-  font-size: 11px;
-  cursor: pointer;
-  transition: background 0.15s;
-  white-space: nowrap;
-}
-
-.generateNotesBtn:hover:not(:disabled) {
-  background: rgba(212, 175, 55, 0.12);
-}
-
-.generateNotesBtn:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-
-.aiSearchInfo {
-  font-size: 12px;
-  color: #d4af37;
-  margin: 0 0 8px;
-  opacity: 0.8;
-}
-
 .workoutExerciseHeader {
   align-items: flex-start;
 }
