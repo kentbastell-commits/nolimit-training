@@ -4233,7 +4233,14 @@ function App() {
   };
 
   const buildCurrentProgramSession = (localId?: string): ProgramSession | null => {
-    if (!programWeek || !programDay || !sessionName) {
+    const singleWorkoutMode = builderMode === "Single Workout";
+    const effectiveWeek = singleWorkoutMode ? "1" : programWeek;
+    const effectiveDay = singleWorkoutMode ? "1" : programDay;
+    const effectiveSessionName = singleWorkoutMode
+      ? programName.trim() || sessionName.trim() || "Single Workout"
+      : sessionName.trim();
+
+    if (!effectiveWeek || !effectiveDay || !effectiveSessionName) {
       return null;
     }
 
@@ -4243,9 +4250,9 @@ function App() {
 
     return {
       localId: localId || `${Date.now()}-${Math.random()}`,
-      week: programWeek,
-      day: programDay,
-      sessionName,
+      week: effectiveWeek,
+      day: effectiveDay,
+      sessionName: effectiveSessionName,
       sessionType,
       sessionGoal,
       estimatedDuration: sessionEstimatedDuration,
@@ -4276,11 +4283,12 @@ function App() {
 
   const clearCurrentProgramSession = (advanceDay = true) => {
     const nextDay = String((Number(programDay) || 1) + 1);
+    const singleWorkoutMode = builderMode === "Single Workout";
 
     setSelectedProgramExercises([]);
     setEditingProgramSessionId("");
-    setProgramDay(advanceDay ? nextDay : "1");
-    setSessionName("");
+    setProgramDay(singleWorkoutMode ? "1" : advanceDay ? nextDay : "1");
+    setSessionName(singleWorkoutMode ? sessionName : "");
     setSessionGoal("");
     setSessionEstimatedDuration("");
     setSessionType("Strength");
@@ -4292,7 +4300,14 @@ function App() {
     closeAfterSave = false,
     advanceAfterClose = true
   ) => {
-    if (!programWeek || !programDay || !sessionName) {
+    const singleWorkoutMode = builderMode === "Single Workout";
+
+    if (singleWorkoutMode && !programName.trim()) {
+      notify("Please fill Workout Name.");
+      return;
+    }
+
+    if (!singleWorkoutMode && (!programWeek || !programDay || !sessionName)) {
       notify("Please fill Week, Day, and Session Name.");
       return;
     }
@@ -4325,14 +4340,16 @@ function App() {
     }
 
     notify(
-      closeAfterSave && advanceAfterClose
+      singleWorkoutMode
+        ? "Workout saved."
+        : closeAfterSave && advanceAfterClose
         ? "Day saved. Ready for the next day."
         : "Day saved."
     );
   };
 
   const addCurrentSessionToProgram = () => {
-    saveCurrentSessionToProgram(true, true);
+    saveCurrentSessionToProgram(true, builderMode !== "Single Workout");
   };
 
   const reorderProgramSession = (sourceId: string, targetId: string) => {
@@ -4378,8 +4395,12 @@ function App() {
   };
 
   const saveFullProgram = async () => {
-    if (!programName) {
-      notify("Please fill Program Name.");
+    const singleWorkoutMode = builderMode === "Single Workout";
+    const digitalProductProgram =
+      !singleWorkoutMode && programProductType === "Digital Program";
+
+    if (!programName.trim()) {
+      notify(singleWorkoutMode ? "Please fill Workout Name." : "Please fill Program Name.");
       return;
     }
 
@@ -4391,7 +4412,7 @@ function App() {
     let sessionsToSave = [...programSessions];
 
     if (selectedProgramExercises.length > 0) {
-      if (!programWeek || !programDay || !sessionName) {
+      if (!singleWorkoutMode && (!programWeek || !programDay || !sessionName)) {
         notify("Current session has exercises but is missing Week, Day, or Session Name.");
         return;
       }
@@ -4426,23 +4447,23 @@ function App() {
         },
         body: JSON.stringify({
           programName,
-          goal: programGoal,
+          goal: singleWorkoutMode ? "Single Workout" : programGoal,
           sport: programSport,
           level: programLevel,
-          durationWeeks: Number(programDurationWeeks),
-          phase: programPhase,
-          sessionsPerWeek: Number(programSessionsPerWeek),
+          durationWeeks: singleWorkoutMode ? 1 : Number(programDurationWeeks),
+          phase: singleWorkoutMode ? "Single Day" : programPhase,
+          sessionsPerWeek: singleWorkoutMode ? 1 : Number(programSessionsPerWeek),
           coach: programCoach,
           status: "Active",
-          productType: programProductType,
-          price: programPrice,
-          currency: programCurrency,
-          publicStoreVisible: programPublicStoreVisible,
-          purchaseLink: programPurchaseLink,
-          defaultIntakeFormId: programDefaultIntakeFormId,
-          accessLengthDays: programAccessLengthDays,
-          productStatus: programProductStatus,
-          salesDescription: programSalesDescription,
+          productType: singleWorkoutMode ? "Single Workout" : programProductType,
+          price: digitalProductProgram ? programPrice : "",
+          currency: digitalProductProgram ? programCurrency : "",
+          publicStoreVisible: digitalProductProgram ? programPublicStoreVisible : false,
+          purchaseLink: digitalProductProgram ? programPurchaseLink : "",
+          defaultIntakeFormId: digitalProductProgram ? programDefaultIntakeFormId : "",
+          accessLengthDays: digitalProductProgram ? programAccessLengthDays : "",
+          productStatus: digitalProductProgram ? programProductStatus : "Draft",
+          salesDescription: digitalProductProgram ? programSalesDescription : "",
         }),
       });
 
@@ -5545,6 +5566,9 @@ function App() {
   const programProductReadyForSale =
     programProductChecklist.length > 0 &&
     programProductReadyCount === programProductChecklist.length;
+  const isSingleWorkoutBuilder = builderMode === "Single Workout";
+  const showDigitalProductSettings =
+    !isSingleWorkoutBuilder && programProductType === "Digital Program";
 
   const getClientProgramScheduledWorkouts = (
     sessions = clientProgramSessions
@@ -9148,83 +9172,115 @@ function App() {
 
                 {workoutPageTab === "Program Builder" && (
               <section className="tableCard programBuilderPanel">
+                <div className="builderModeSelectRow">
+                  <label>
+                    <span>Builder Type</span>
+                    <select
+                      value={builderMode}
+                      onChange={(e) =>
+                        setBuilderMode(e.target.value as "Program" | "Single Workout")
+                      }
+                      className="miniSearch"
+                    >
+                      <option value="Program">Multi-Day Builder</option>
+                      <option value="Single Workout">Single Day Builder</option>
+                    </select>
+                  </label>
+                </div>
+
                 <h2 className="builderPageTitle">
-                  Multi-Day Program Builder
+                  {isSingleWorkoutBuilder
+                    ? "Single Day Workout Builder"
+                    : "Multi-Day Program Builder"}
                 </h2>
 
-                <h3 className="builderSectionTitle">Program Details</h3>
+                <h3 className="builderSectionTitle">
+                  {isSingleWorkoutBuilder ? "Workout Details" : "Program Details"}
+                </h3>
 
                 <div className="programDetailsGrid programDetailsPrimary">
                   <label>
-                    <span>Program Name</span>
+                    <span>{isSingleWorkoutBuilder ? "Workout Name" : "Program Name"}</span>
                     <input
                       value={programName}
                       onChange={(e) => setProgramName(e.target.value)}
-                      placeholder="Program Name"
+                      placeholder={isSingleWorkoutBuilder ? "Workout Name" : "Program Name"}
                       className="miniSearch"
                     />
                   </label>
 
-                  <label>
-                    <span>Goal</span>
-                    <input
-                      value={programGoal}
-                      onChange={(e) => setProgramGoal(e.target.value)}
-                      placeholder="Goal"
-                      className="miniSearch"
-                    />
-                  </label>
+                  {!isSingleWorkoutBuilder && (
+                    <label>
+                      <span>Goal</span>
+                      <input
+                        value={programGoal}
+                        onChange={(e) => setProgramGoal(e.target.value)}
+                        placeholder="Goal"
+                        className="miniSearch"
+                      />
+                    </label>
+                  )}
                 </div>
 
-                <div className="programDetailsGrid programDetailsSecondary">
-                  <label>
-                    <span>Duration Weeks</span>
-                    <input
-                      value={programDurationWeeks}
-                      onChange={(e) => setProgramDurationWeeks(e.target.value)}
-                      placeholder="Duration Weeks"
-                      className="miniSearch"
-                    />
-                  </label>
+                {!isSingleWorkoutBuilder && (
+                  <>
+                    <div className="programDetailsGrid programDetailsSecondary">
+                      <label>
+                        <span>Duration Weeks</span>
+                        <input
+                          value={programDurationWeeks}
+                          onChange={(e) => setProgramDurationWeeks(e.target.value)}
+                          placeholder="Duration Weeks"
+                          className="miniSearch"
+                        />
+                      </label>
 
-                  <label>
-                    <span>Phase</span>
-                    <input
-                      value={programPhase}
-                      onChange={(e) => setProgramPhase(e.target.value)}
-                      placeholder="Phase"
-                      className="miniSearch"
-                    />
-                  </label>
+                      <label>
+                        <span>Phase</span>
+                        <input
+                          value={programPhase}
+                          onChange={(e) => setProgramPhase(e.target.value)}
+                          placeholder="Phase"
+                          className="miniSearch"
+                        />
+                      </label>
 
-                  <label>
-                    <span>Sessions / Week</span>
-                    <input
-                      value={programSessionsPerWeek}
-                      onChange={(e) => setProgramSessionsPerWeek(e.target.value)}
-                      placeholder="Sessions / Week"
-                      className="miniSearch"
-                    />
-                  </label>
-                </div>
+                      <label>
+                        <span>Sessions / Week</span>
+                        <input
+                          value={programSessionsPerWeek}
+                          onChange={(e) => setProgramSessionsPerWeek(e.target.value)}
+                          placeholder="Sessions / Week"
+                          className="miniSearch"
+                        />
+                      </label>
+                    </div>
 
-                <h3 className="builderSectionTitle">Product Settings</h3>
+                    <h3 className="builderSectionTitle">Program Type</h3>
 
-                <div className="programProductGrid">
-                  <label>
-                    <span>Program Type</span>
-                    <select
-                      value={programProductType}
-                      onChange={(e) => setProgramProductType(e.target.value)}
-                      className="miniSearch"
-                    >
-                      <option>Digital Program</option>
-                      <option>Online Coaching</option>
-                      <option>In-Person Training</option>
-                      <option>Internal Coaching Template</option>
-                    </select>
-                  </label>
+                    <div className="programProductGrid programTypeGrid">
+                      <label>
+                        <span>Program Type</span>
+                        <select
+                          value={programProductType}
+                          onChange={(e) => setProgramProductType(e.target.value)}
+                          className="miniSearch"
+                        >
+                          <option>Digital Program</option>
+                          <option>Online Coaching</option>
+                          <option>In-Person Training</option>
+                          <option>Internal Coaching Template</option>
+                        </select>
+                      </label>
+                    </div>
+                  </>
+                )}
 
+                {showDigitalProductSettings && (
+                  <>
+                    <h3 className="builderSectionTitle">Product Settings</h3>
+
+                    <div className="programProductGrid">
                   <label>
                     <span>Price</span>
                     <input
@@ -9306,22 +9362,22 @@ function App() {
                       className="miniSearch"
                     />
                   </label>
-                </div>
+                    </div>
 
-                <label className="programSalesDescription">
-                  <span>Sales Description</span>
-                  <textarea
-                    value={programSalesDescription}
-                    onChange={(e) => setProgramSalesDescription(e.target.value)}
-                    placeholder="Short product description for the store or order workflow."
-                  />
-                </label>
+                    <label className="programSalesDescription">
+                      <span>Sales Description</span>
+                      <textarea
+                        value={programSalesDescription}
+                        onChange={(e) => setProgramSalesDescription(e.target.value)}
+                        placeholder="Short product description for the store or order workflow."
+                      />
+                    </label>
 
-                <div
-                  className={`programProductReadiness ${
-                    programProductReadyForSale ? "readyForSale" : ""
-                  }`}
-                >
+                    <div
+                      className={`programProductReadiness ${
+                        programProductReadyForSale ? "readyForSale" : ""
+                      }`}
+                    >
                   <div className="programProductReadinessHeader">
                     <div>
                       <span>Product Setup</span>
@@ -9347,15 +9403,20 @@ function App() {
                       </div>
                     ))}
                   </div>
-                </div>
+                    </div>
+                  </>
+                )}
 
                 <div className="builderSectionHeader">
                   <div>
-                    <h3 className="builderSectionTitle">Current Session</h3>
+                    <h3 className="builderSectionTitle">
+                      {isSingleWorkoutBuilder ? "Workout Session" : "Current Session"}
+                    </h3>
                     {editingProgramSessionId && (
                       <p className="builderSessionHint">
-                        Editing an existing day. Save it here, then choose another
-                        session below.
+                        {isSingleWorkoutBuilder
+                          ? "Editing this workout. Save it here when it is ready."
+                          : "Editing an existing day. Save it here, then choose another session below."}
                       </p>
                     )}
                   </div>
@@ -9369,48 +9430,44 @@ function App() {
                   )}
                 </div>
 
-                <div className="builderModeSegment" aria-label="Builder mode">
-                  {(["Program", "Single Workout"] as const).map((mode) => (
-                    <button
-                      key={mode}
-                      className={builderMode === mode ? "active" : ""}
-                      onClick={() => setBuilderMode(mode)}
-                    >
-                      {mode}
-                    </button>
-                  ))}
-                </div>
+                <div
+                  className={`currentSessionGrid ${
+                    isSingleWorkoutBuilder ? "singleWorkoutSessionGrid" : ""
+                  }`}
+                >
+                  {!isSingleWorkoutBuilder && (
+                    <>
+                      <label>
+                        <span>Week</span>
+                        <input
+                          value={programWeek}
+                          onChange={(e) => setProgramWeek(e.target.value)}
+                          placeholder="Week"
+                          className="miniSearch"
+                        />
+                      </label>
 
-                <div className="currentSessionGrid">
-                  <label>
-                    <span>Week</span>
-                    <input
-                      value={programWeek}
-                      onChange={(e) => setProgramWeek(e.target.value)}
-                      placeholder="Week"
-                      className="miniSearch"
-                    />
-                  </label>
+                      <label>
+                        <span>Day</span>
+                        <input
+                          value={programDay}
+                          onChange={(e) => setProgramDay(e.target.value)}
+                          placeholder="Day"
+                          className="miniSearch"
+                        />
+                      </label>
 
-                  <label>
-                    <span>Day</span>
-                    <input
-                      value={programDay}
-                      onChange={(e) => setProgramDay(e.target.value)}
-                      placeholder="Day"
-                      className="miniSearch"
-                    />
-                  </label>
-
-                  <label>
-                    <span>Session Name</span>
-                    <input
-                      value={sessionName}
-                      onChange={(e) => setSessionName(e.target.value)}
-                      placeholder="Session Name"
-                      className="miniSearch"
-                    />
-                  </label>
+                      <label>
+                        <span>Session Name</span>
+                        <input
+                          value={sessionName}
+                          onChange={(e) => setSessionName(e.target.value)}
+                          placeholder="Session Name"
+                          className="miniSearch"
+                        />
+                      </label>
+                    </>
+                  )}
 
                   <label>
                     <span>Session Type</span>
@@ -9468,7 +9525,7 @@ function App() {
                   </label>
 
                   <button className="goldButton" onClick={addCurrentSessionToProgram}>
-                    Save & Next
+                    {isSingleWorkoutBuilder ? "Save" : "Save & Next"}
                   </button>
                 </div>
 
@@ -9843,32 +9900,49 @@ function App() {
                   <div className="builderSessionSaveBar">
                     <div>
                       <strong>
-                        {editingProgramSessionId ? "Editing day" : "New day"}
+                        {isSingleWorkoutBuilder
+                          ? editingProgramSessionId
+                            ? "Editing workout"
+                            : "New workout"
+                          : editingProgramSessionId
+                          ? "Editing day"
+                          : "New day"}
                       </strong>
                       <span>
-                        Week {programWeek || "--"} / Day {programDay || "--"}:{" "}
-                        {sessionName || "Untitled Session"}
+                        {isSingleWorkoutBuilder
+                          ? programName || "Untitled Workout"
+                          : `Week ${programWeek || "--"} / Day ${
+                              programDay || "--"
+                            }: ${sessionName || "Untitled Session"}`}
                       </span>
                     </div>
                     <div>
-                      <button
-                        className="outlineButton"
-                        onClick={() => saveCurrentSessionToProgram(true, false)}
-                      >
-                        Save Day
-                      </button>
+                      {!isSingleWorkoutBuilder && (
+                        <button
+                          className="outlineButton"
+                          onClick={() => saveCurrentSessionToProgram(true, false)}
+                        >
+                          Save Day
+                        </button>
+                      )}
                       <button className="goldButton" onClick={addCurrentSessionToProgram}>
-                        Save & Next
+                        {isSingleWorkoutBuilder ? "Save" : "Save & Next"}
                       </button>
                     </div>
                   </div>
                 )}
 
                 <h3 className="builderSectionTitle builderSectionTitleSpaced">
-                  Program Sessions
+                  {isSingleWorkoutBuilder ? "Saved Workout" : "Program Sessions"}
                 </h3>
 
-                {programSessions.length === 0 && <p>No sessions added yet.</p>}
+                {programSessions.length === 0 && (
+                  <p>
+                    {isSingleWorkoutBuilder
+                      ? "No workout saved yet."
+                      : "No sessions added yet."}
+                  </p>
+                )}
 
                 {programSessions.map((session) => (
                   <div
@@ -9893,8 +9967,9 @@ function App() {
                           Drag
                         </span>
                         <h3>
-                          Week {session.week} / Day {session.day}:{" "}
-                          {session.sessionName}
+                          {isSingleWorkoutBuilder
+                            ? session.sessionName
+                            : `Week ${session.week} / Day ${session.day}: ${session.sessionName}`}
                         </h3>
                         <div className="programSessionMeta">
                           <span>{session.sessionType || "Strength"}</span>
@@ -9939,7 +10014,11 @@ function App() {
                   onClick={saveFullProgram}
                   disabled={savingTemplate}
                 >
-                  {savingTemplate ? "Saving..." : "Save Full Program"}
+                  {savingTemplate
+                    ? "Saving..."
+                    : isSingleWorkoutBuilder
+                    ? "Save Workout"
+                    : "Save Full Program"}
                 </button>
               </section>
                 )}
