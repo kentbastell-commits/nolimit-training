@@ -82,7 +82,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const existing = searchData?.data?.items?.[0];
       if (existing) {
         clientRecordId = existing.record_id;
-        clientCode = fieldToText(existing.fields?.["Client ID"]) || makeId("CL");
+        clientCode =
+          fieldToText(existing.fields?.["Client ID"]) ||
+          fieldToText(existing.fields?.["client id"]) ||
+          makeId("CL");
       }
     }
 
@@ -94,15 +97,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         headers,
         body: JSON.stringify({
           fields: {
-            Name: clientName,
+            "Full Name": clientName,
             "Phone/WeChat": phone,
             ...(email ? { Email: email } : {}),
             "Client ID": clientCode,
             Source: "Store",
-            "Payment Status": "Pending Payment",
+            "Payment Status": "Paid",
             "Intake Status": "Not Sent",
             "Subscription Status": "Active",
             "Client Type": "Digital Program",
+            "Coach Assigned": "Kent Bastell",
+            "Package Type": "Active",
+            "Language Preference": "Chinese",
           },
         }),
       });
@@ -188,6 +194,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             fields: {
               "Intake Status": "Sent",
               "Purchased Program ID": programId,
+              Program: programName,
             },
           }),
         });
