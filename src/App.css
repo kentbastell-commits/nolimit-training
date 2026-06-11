@@ -6533,8 +6533,8 @@ body {
 .homeWorkoutItem {
   width: 100%;
   display: grid;
-  grid-template-columns: 92px minmax(0, 1fr);
-  gap: 4px 12px;
+  grid-template-columns: 108px minmax(0, 1fr) auto;
+  gap: 6px 12px;
   align-items: center;
   border: 1px solid #deded8;
   border-radius: 8px;
@@ -6556,11 +6556,37 @@ body {
   border-color: #c8c0ac;
 }
 
-.homeWorkoutItem span {
-  grid-row: span 2;
+.homeWorkoutItem .taskDatePill {
+  grid-row: span 3;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: #111;
+  color: #f4df94;
+  padding: 8px;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.taskTypeChip {
+  justify-self: start;
+  border: 1px solid #d8d1c4;
+  border-radius: 999px;
+  background: #fff;
   color: #7a5a0a;
-  font-size: 13px;
+  padding: 4px 8px;
+  font-size: 10px;
   font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.taskTypeChip.workout {
+  border-color: #111;
+  background: #111;
+  color: #f4df94;
 }
 
 .homeWorkoutItem strong {
@@ -6574,6 +6600,33 @@ body {
   color: #666;
   font-size: 13px;
   font-weight: 700;
+}
+
+.taskActionBadge {
+  grid-column: 3;
+  grid-row: 1 / span 3;
+  min-width: 82px;
+  border: 1px solid #111;
+  border-radius: 999px;
+  padding: 8px 10px;
+  text-align: center;
+  color: #f4df94;
+  background: #111;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 950;
+}
+
+.taskActionBadge.completed {
+  border-color: #b8d5bb;
+  background: #eef7ed;
+  color: #255c33;
+}
+
+.taskActionBadge.missed {
+  border-color: #e6bcae;
+  background: #fff3ef;
+  color: #7a2f1b;
 }
 
 .progressControls {
@@ -6837,6 +6890,99 @@ body {
 .workoutCommentQueueCard .snapshotAttentionHeader strong {
   background: #f4df94;
   color: #111;
+}
+
+.coachReviewQueuePanel {
+  grid-column: span 3;
+  background: #111;
+  border-color: #111;
+  color: #f7f2e6;
+}
+
+.coachReviewQueuePanel .snapshotAttentionHeader span {
+  color: #d9d3c4;
+}
+
+.coachReviewQueuePanel .snapshotAttentionHeader strong {
+  background: #f4df94;
+  color: #111;
+}
+
+.coachReviewQueueList {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+  max-height: 330px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.coachReviewQueueItem {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: stretch;
+  border: 1px solid rgba(244, 223, 148, 0.2);
+  border-left-width: 5px;
+  border-radius: 12px;
+  background: #191917;
+  padding: 10px;
+}
+
+.coachReviewQueueItem.priority1 {
+  border-left-color: #f4df94;
+}
+
+.coachReviewQueueItem.priority2 {
+  border-left-color: #d86745;
+}
+
+.coachReviewQueueItem.priority3,
+.coachReviewQueueItem.priority4 {
+  border-left-color: #77b98d;
+}
+
+.coachReviewQueueItem > button:first-child {
+  border: 0;
+  background: transparent;
+  color: #fff;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+}
+
+.coachReviewQueueItem span {
+  display: block;
+  color: #d9d3c4;
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.coachReviewQueueItem strong {
+  display: block;
+  margin-top: 5px;
+  color: #fff;
+  font-size: 15px;
+  line-height: 1.25;
+}
+
+.coachReviewQueueItem small {
+  display: block;
+  margin-top: 5px;
+  color: #d9d3c4;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.coachReviewQueueItem em {
+  display: block;
+  margin-top: 6px;
+  color: #a9a39a;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 750;
 }
 
 .workoutCommentQueue {
@@ -9278,7 +9424,28 @@ textarea {
   }
 
   .homeWorkoutItem {
-    grid-template-columns: 84px minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .homeWorkoutItem .taskDatePill {
+    grid-column: 1 / -1;
+    grid-row: auto;
+    justify-content: flex-start;
+  }
+
+  .taskActionBadge {
+    grid-column: 2;
+    grid-row: 2 / span 3;
+    min-width: 74px;
+    padding: 7px 9px;
+  }
+
+  .coachReviewQueuePanel {
+    grid-column: auto;
+  }
+
+  .coachReviewQueueItem {
+    grid-template-columns: 1fr;
   }
 
   .clientPortalApp .calendarHeader {
