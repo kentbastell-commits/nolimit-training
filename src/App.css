@@ -1139,6 +1139,80 @@ body {
   gap: 18px;
 }
 
+.manualOrderPanel {
+  border: 1px solid rgba(212, 175, 55, 0.28);
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+  display: grid;
+  gap: 18px;
+  padding: 22px 24px;
+}
+
+.manualOrderHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.manualOrderHeader span,
+.manualOrderGrid span,
+.manualOrderNotes span {
+  color: #aaa;
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.manualOrderHeader h3 {
+  color: #f8e27d;
+  font-size: clamp(1.45rem, 2.2vw, 2.2rem);
+  margin: 4px 0 6px;
+}
+
+.manualOrderHeader p {
+  color: #ddd;
+  margin: 0;
+}
+
+.manualOrderGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(160px, 1fr));
+  gap: 14px;
+}
+
+.manualOrderGrid label,
+.manualOrderNotes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.manualOrderGrid input,
+.manualOrderGrid select,
+.manualOrderNotes textarea {
+  background: #050505;
+  border: 1px solid rgba(212, 175, 55, 0.36);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 800;
+  min-height: 48px;
+  padding: 12px 14px;
+}
+
+.manualOrderNotes textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.manualOrderActions {
+  display: flex;
+  justify-content: flex-end;
+}
+
 .orderCard {
   display: grid;
   gap: 18px;
@@ -8423,7 +8497,8 @@ textarea {
 }
 
 .app:not(.clientPortalApp) .ordersSummary > div,
-.app:not(.clientPortalApp) .orderCard {
+.app:not(.clientPortalApp) .orderCard,
+.app:not(.clientPortalApp) .manualOrderPanel {
   background: rgba(255, 255, 255, 0.88);
   border-color: rgba(20, 20, 20, 0.14);
   box-shadow: 0 16px 42px rgba(20, 20, 20, 0.06);
@@ -8435,7 +8510,10 @@ textarea {
 .app:not(.clientPortalApp) .ordersSummary span,
 .app:not(.clientPortalApp) .orderCardHeader span,
 .app:not(.clientPortalApp) .orderMetaGrid span,
-.app:not(.clientPortalApp) .orderPipeline strong {
+.app:not(.clientPortalApp) .orderPipeline strong,
+.app:not(.clientPortalApp) .manualOrderHeader span,
+.app:not(.clientPortalApp) .manualOrderGrid span,
+.app:not(.clientPortalApp) .manualOrderNotes span {
   color: #6d6b64;
 }
 
@@ -8443,11 +8521,13 @@ textarea {
 .app:not(.clientPortalApp) .ordersSummary strong,
 .app:not(.clientPortalApp) .orderCardHeader h3,
 .app:not(.clientPortalApp) .orderPipeline span,
-.app:not(.clientPortalApp) .orderMetaGrid strong {
+.app:not(.clientPortalApp) .orderMetaGrid strong,
+.app:not(.clientPortalApp) .manualOrderHeader h3 {
   color: #0d0d0d;
 }
 
-.app:not(.clientPortalApp) .orderCardHeader p {
+.app:not(.clientPortalApp) .orderCardHeader p,
+.app:not(.clientPortalApp) .manualOrderHeader p {
   color: #54524b;
 }
 
@@ -8492,7 +8572,10 @@ textarea {
 }
 
 .app:not(.clientPortalApp) .ordersToolbar input,
-.app:not(.clientPortalApp) .orderMetaGrid input {
+.app:not(.clientPortalApp) .orderMetaGrid input,
+.app:not(.clientPortalApp) .manualOrderGrid input,
+.app:not(.clientPortalApp) .manualOrderGrid select,
+.app:not(.clientPortalApp) .manualOrderNotes textarea {
   background: #ffffff;
   border-color: #cfc7b8;
   color: #0d0d0d;
@@ -8507,8 +8590,16 @@ textarea {
   .orderPipeline,
   .orderMetaGrid,
   .onboardingTimeline,
-  .programProductGrid {
+  .programProductGrid,
+  .manualOrderGrid {
     grid-template-columns: 1fr;
+  }
+
+  .ordersToolbar,
+  .manualOrderHeader,
+  .manualOrderActions {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .coachTableHeader,

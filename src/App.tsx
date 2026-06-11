@@ -692,6 +692,26 @@ function App() {
   const [orderSearch, setOrderSearch] = useState("");
   const [orderProcessingId, setOrderProcessingId] = useState("");
   const [orderStartDates, setOrderStartDates] = useState<Record<string, string>>({});
+  const [showManualOrderForm, setShowManualOrderForm] = useState(false);
+  const [savingManualOrder, setSavingManualOrder] = useState(false);
+  const [manualOrder, setManualOrder] = useState({
+    clientName: "",
+    email: "",
+    phone: "",
+    productType: "Digital Program",
+    programId: "",
+    productName: "",
+    amount: "",
+    currency: "CNY",
+    paymentStatus: "Paid",
+    paymentProvider: "WeChat QR",
+    paymentReference: "",
+    assignedCoach: "Kent Bastell",
+    purchasedAt: dateToInputValue(new Date()),
+    accessStartDate: dateToInputValue(new Date()),
+    accessEndDate: "",
+    notes: "",
+  });
   const [showCoachModal, setShowCoachModal] = useState(false);
   const [editingCoach, setEditingCoach] = useState<Coach | null>(null);
   const [savingCoach, setSavingCoach] = useState(false);
@@ -1703,6 +1723,98 @@ function App() {
   const selectedSavedProgram = programs.find(
     (program) => program.programId === selectedSavedProgramId
   );
+  const selectedManualOrderProgram = programs.find(
+    (program) => program.programId === manualOrder.programId
+  );
+
+  const resetManualOrderForm = () => {
+    setManualOrder({
+      clientName: "",
+      email: "",
+      phone: "",
+      productType: "Digital Program",
+      programId: "",
+      productName: "",
+      amount: "",
+      currency: "CNY",
+      paymentStatus: "Paid",
+      paymentProvider: "WeChat QR",
+      paymentReference: "",
+      assignedCoach: currentScopedCoach?.name || "Kent Bastell",
+      purchasedAt: dateToInputValue(new Date()),
+      accessStartDate: dateToInputValue(new Date()),
+      accessEndDate: "",
+      notes: "",
+    });
+  };
+
+  const selectManualOrderProgram = (programId: string) => {
+    const program = programs.find((item) => item.programId === programId);
+    const startDate = manualOrder.accessStartDate || dateToInputValue(new Date());
+    const accessLength = Number(program?.accessLengthDays || 0);
+
+    setManualOrder((current) => ({
+      ...current,
+      programId,
+      productName: program?.programName || current.productName,
+      productType: program?.productType || current.productType,
+      amount: program?.price || current.amount,
+      currency: program?.currency || current.currency,
+      accessEndDate:
+        accessLength > 0 ? addDays(startDate, Math.max(0, accessLength - 1)) : current.accessEndDate,
+    }));
+  };
+
+  const createManualProductOrder = async () => {
+    if (!manualOrder.clientName.trim()) {
+      notify("Please enter the client name.", "error");
+      return;
+    }
+
+    if (!manualOrder.productName.trim() && !manualOrder.programId) {
+      notify("Please choose a program or enter a product name.", "error");
+      return;
+    }
+
+    setSavingManualOrder(true);
+
+    try {
+      const response = await fetch("/api/createProductOrder", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          ...manualOrder,
+          programId: selectedManualOrderProgram?.programId || manualOrder.programId,
+          productName:
+            selectedManualOrderProgram?.programName || manualOrder.productName,
+          assignedCoach:
+            manualOrder.assignedCoach || currentScopedCoach?.name || "Kent Bastell",
+          onboardingStatus: "New Order",
+          intakeStatus: "Not Sent",
+          fulfillmentStatus: "Pending",
+        }),
+      });
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        console.error(data);
+        notify(data.error || "Could not create manual order.", "error");
+        return;
+      }
+
+      notify(`Manual order created: ${data.orderId}.`, "success");
+      resetManualOrderForm();
+      setShowManualOrderForm(false);
+      await loadProductOrders();
+    } catch (error) {
+      console.error(error);
+      notify("Could not create manual order.", "error");
+    } finally {
+      setSavingManualOrder(false);
+    }
+  };
   const loadFormTemplates = async () => {
     setFormTemplatesLoading(true);
 
@@ -5975,10 +6087,311 @@ function App() {
                     onChange={(event) => setOrderSearch(event.target.value)}
                     placeholder="Search orders, clients, or products"
                   />
+                  <button
+                    className="goldButton"
+                    onClick={() => setShowManualOrderForm((current) => !current)}
+                  >
+                    {showManualOrderForm ? "Close Order Form" : "+ Manual Order"}
+                  </button>
                   <button className="outlineButton" onClick={loadProductOrders}>
                     Reload
                   </button>
                 </div>
+
+                {showManualOrderForm && (
+                  <section className="manualOrderPanel">
+                    <div className="manualOrderHeader">
+                      <div>
+                        <span>External Sale</span>
+                        <h3>Create Manual Order</h3>
+                        <p>
+                          Use this after a WeChat QR, transfer, or external payment.
+                          The order will enter the onboarding pipeline.
+                        </p>
+                      </div>
+                      <button
+                        className="outlineButton"
+                        onClick={resetManualOrderForm}
+                        disabled={savingManualOrder}
+                      >
+                        Clear
+                      </button>
+                    </div>
+
+                    <div className="manualOrderGrid">
+                      <label>
+                        <span>Client Name</span>
+                        <input
+                          value={manualOrder.clientName}
+                          onChange={(event) =>
+                            setManualOrder({
+                              ...manualOrder,
+                              clientName: event.target.value,
+                            })
+                          }
+                          placeholder="Client name"
+                        />
+                      </label>
+
+                      <label>
+                        <span>Phone / WeChat</span>
+                        <input
+                          value={manualOrder.phone}
+                          onChange={(event) =>
+                            setManualOrder({
+                              ...manualOrder,
+                              phone: event.target.value,
+                            })
+                          }
+                          placeholder="wechat_id"
+                        />
+                      </label>
+
+                      <label>
+                        <span>Email</span>
+                        <input
+                          value={manualOrder.email}
+                          onChange={(event) =>
+                            setManualOrder({
+                              ...manualOrder,
+                              email: event.target.value,
+                            })
+                          }
+                          placeholder="Optional"
+                        />
+                      </label>
+
+                      <label>
+                        <span>Coach</span>
+                        <select
+                          value={manualOrder.assignedCoach}
+                          onChange={(event) =>
+                            setManualOrder({
+                              ...manualOrder,
+                              assignedCoach: event.target.value,
+                            })
+                          }
+                        >
+                          <option value="">Unassigned</option>
+                          {activeCoaches.map((coach) => (
+                            <option key={coach.recordId || coach.name} value={coach.name}>
+                              {coach.name}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+
+                      <label>
+                        <span>Saved Program</span>
+                        <select
+                          value={manualOrder.programId}
+                          onChange={(event) =>
+                            selectManualOrderProgram(event.target.value)
+                          }
+                        >
+                          <option value="">Manual product only</option>
+                          {programs
+                            .filter((program) => program.status !== "Archived")
+                            .map((program) => (
+                              <option key={program.programId} value={program.programId}>
+                                {program.programName}
+                              </option>
+                            ))}
+                        </select>
+                      </label>
+
+                      <label>
+                        <span>Product Name</span>
+                        <input
+                          value={manualOrder.productName}
+                          onChange={(event) =>
+                            setManualOrder({
+                              ...manualOrder,
+                              productName: event.target.value,
+                            })
+                          }
+                          placeholder="Program or product name"
+                        />
+                      </label>
+
+                      <label>
+                        <span>Product Type</span>
+                        <select
+                          value={manualOrder.productType}
+                          onChange={(event) =>
+                            setManualOrder({
+                              ...manualOrder,
+                              productType: event.target.value,
+                            })
+                          }
+                        >
+                          <option>Digital Program</option>
+                          <option>Online Coaching</option>
+                          <option>In-Person Training</option>
+                          <option>Internal Coaching Template</option>
+                        </select>
+                      </label>
+
+                      <label>
+                        <span>Payment</span>
+                        <select
+                          value={manualOrder.paymentStatus}
+                          onChange={(event) =>
+                            setManualOrder({
+                              ...manualOrder,
+                              paymentStatus: event.target.value,
+                            })
+                          }
+                        >
+                          <option>Paid</option>
+                          <option>Pending</option>
+                          <option>Comped</option>
+                          <option>Refunded</option>
+                        </select>
+                      </label>
+
+                      <label>
+                        <span>Amount</span>
+                        <input
+                          value={manualOrder.amount}
+                          onChange={(event) =>
+                            setManualOrder({
+                              ...manualOrder,
+                              amount: event.target.value,
+                            })
+                          }
+                          placeholder="0"
+                        />
+                      </label>
+
+                      <label>
+                        <span>Currency</span>
+                        <select
+                          value={manualOrder.currency}
+                          onChange={(event) =>
+                            setManualOrder({
+                              ...manualOrder,
+                              currency: event.target.value,
+                            })
+                          }
+                        >
+                          <option>CNY</option>
+                          <option>USD</option>
+                          <option>CAD</option>
+                        </select>
+                      </label>
+
+                      <label>
+                        <span>Payment Method</span>
+                        <select
+                          value={manualOrder.paymentProvider}
+                          onChange={(event) =>
+                            setManualOrder({
+                              ...manualOrder,
+                              paymentProvider: event.target.value,
+                            })
+                          }
+                        >
+                          <option>WeChat QR</option>
+                          <option>Alipay QR</option>
+                          <option>Bank Transfer</option>
+                          <option>Cash</option>
+                          <option>External Payment</option>
+                        </select>
+                      </label>
+
+                      <label>
+                        <span>Payment Reference</span>
+                        <input
+                          value={manualOrder.paymentReference}
+                          onChange={(event) =>
+                            setManualOrder({
+                              ...manualOrder,
+                              paymentReference: event.target.value,
+                            })
+                          }
+                          placeholder="Receipt, screenshot, or note"
+                        />
+                      </label>
+
+                      <label>
+                        <span>Purchase Date</span>
+                        <input
+                          type="date"
+                          value={manualOrder.purchasedAt}
+                          onChange={(event) =>
+                            setManualOrder({
+                              ...manualOrder,
+                              purchasedAt: event.target.value,
+                            })
+                          }
+                        />
+                      </label>
+
+                      <label>
+                        <span>Program Start</span>
+                        <input
+                          type="date"
+                          value={manualOrder.accessStartDate}
+                          onChange={(event) => {
+                            const accessLength = Number(
+                              selectedManualOrderProgram?.accessLengthDays || 0
+                            );
+                            setManualOrder({
+                              ...manualOrder,
+                              accessStartDate: event.target.value,
+                              accessEndDate:
+                                accessLength > 0
+                                  ? addDays(
+                                      event.target.value,
+                                      Math.max(0, accessLength - 1)
+                                    )
+                                  : manualOrder.accessEndDate,
+                            });
+                          }}
+                        />
+                      </label>
+
+                      <label>
+                        <span>Access End</span>
+                        <input
+                          type="date"
+                          value={manualOrder.accessEndDate}
+                          onChange={(event) =>
+                            setManualOrder({
+                              ...manualOrder,
+                              accessEndDate: event.target.value,
+                            })
+                          }
+                        />
+                      </label>
+                    </div>
+
+                    <label className="manualOrderNotes">
+                      <span>Internal Notes</span>
+                      <textarea
+                        value={manualOrder.notes}
+                        onChange={(event) =>
+                          setManualOrder({
+                            ...manualOrder,
+                            notes: event.target.value,
+                          })
+                        }
+                        placeholder="Example: Paid by WeChat QR. Intake should be sent after payment confirmation."
+                      />
+                    </label>
+
+                    <div className="manualOrderActions">
+                      <button
+                        className="goldButton"
+                        onClick={createManualProductOrder}
+                        disabled={savingManualOrder}
+                      >
+                        {savingManualOrder ? "Creating..." : "Create Order"}
+                      </button>
+                    </div>
+                  </section>
+                )}
 
                 <div className="ordersGrid">
                   {visibleProductOrders.length === 0 && (
