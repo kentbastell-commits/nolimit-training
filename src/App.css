@@ -1553,8 +1553,8 @@ body {
 
 .clientTableHeader,
 .clientTableRow {
-  grid-template-columns: 30px minmax(180px, 1.25fr) minmax(190px, 1.15fr) minmax(120px, 0.9fr) minmax(130px, 0.9fr) 96px 78px minmax(122px, 0.9fr) minmax(116px, 0.85fr);
-  min-width: 1240px;
+  grid-template-columns: 30px minmax(180px, 1.25fr) minmax(190px, 1.15fr) minmax(120px, 0.9fr) minmax(130px, 0.9fr) 96px 78px minmax(122px, 0.9fr) minmax(116px, 0.85fr) minmax(116px, 0.85fr);
+  min-width: 1360px;
 }
 
 .clientTableHeader {

@@ -4771,7 +4771,7 @@ function App() {
 
     if (!client) {
       notify("Create or match the client before reviewing intake.", "error");
-      return;
+      return false;
     }
 
     setOrderProcessingId(order.recordId);
@@ -4796,9 +4796,11 @@ function App() {
       });
       await loadClients();
       notify(`${client.name}'s intake is marked reviewed.`, "success");
+      return true;
     } catch (error) {
       console.error(error);
       notify("Could not mark intake reviewed.", "error");
+      return false;
     } finally {
       setOrderProcessingId("");
     }
@@ -5154,7 +5156,9 @@ function App() {
       notify("No saved program matches this order.", "error");
       return;
     }
-    await markOrderIntakeReviewed(order);
+    const reviewSaved = await markOrderIntakeReviewed(order);
+    if (!reviewSaved) return;
+
     const refreshed = await loadProductOrders();
     const updatedOrder =
       (refreshed as ProductOrder[]).find((o) => o.recordId === order.recordId) || order;
