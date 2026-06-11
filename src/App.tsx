@@ -3699,7 +3699,10 @@ function App() {
     setSessionName("");
   };
 
-  const saveCurrentSessionToProgram = (closeAfterSave = false) => {
+  const saveCurrentSessionToProgram = (
+    closeAfterSave = false,
+    advanceAfterClose = true
+  ) => {
     if (!programWeek || !programDay || !sessionName) {
       notify("Please fill Week, Day, and Session Name.");
       return;
@@ -3729,14 +3732,18 @@ function App() {
     setEditingProgramSessionId(closeAfterSave ? "" : localId);
 
     if (closeAfterSave) {
-      clearCurrentProgramSession(true);
+      clearCurrentProgramSession(advanceAfterClose);
     }
 
-    notify(closeAfterSave ? "Day saved and closed." : "Day saved.");
+    notify(
+      closeAfterSave && advanceAfterClose
+        ? "Day saved. Ready for the next day."
+        : "Day saved."
+    );
   };
 
   const addCurrentSessionToProgram = () => {
-    saveCurrentSessionToProgram(true);
+    saveCurrentSessionToProgram(true, true);
   };
 
   const reorderProgramSession = (sourceId: string, targetId: string) => {
@@ -7464,15 +7471,8 @@ function App() {
                     />
                   </label>
 
-                  <button
-                    className="outlineButton"
-                    onClick={() => saveCurrentSessionToProgram(false)}
-                  >
-                    Save Day
-                  </button>
-
                   <button className="goldButton" onClick={addCurrentSessionToProgram}>
-                    Save Day & Close
+                    Save & Next
                   </button>
                 </div>
 
@@ -7743,6 +7743,31 @@ function App() {
                     </div>
                   </div>
                 ))}
+
+                {selectedProgramExercises.length > 0 && (
+                  <div className="builderSessionSaveBar">
+                    <div>
+                      <strong>
+                        {editingProgramSessionId ? "Editing day" : "New day"}
+                      </strong>
+                      <span>
+                        Week {programWeek || "--"} / Day {programDay || "--"}:{" "}
+                        {sessionName || "Untitled Session"}
+                      </span>
+                    </div>
+                    <div>
+                      <button
+                        className="outlineButton"
+                        onClick={() => saveCurrentSessionToProgram(true, false)}
+                      >
+                        Save Day
+                      </button>
+                      <button className="goldButton" onClick={addCurrentSessionToProgram}>
+                        Save & Next
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 <h3 className="builderSectionTitle builderSectionTitleSpaced">
                   Program Sessions

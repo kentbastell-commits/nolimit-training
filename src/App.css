@@ -2246,6 +2246,42 @@ body {
   gap: 10px;
 }
 
+.builderSessionSaveBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border: 1px solid var(--nl-line, rgba(245, 215, 123, 0.32));
+  border-radius: 8px;
+  background: rgba(17, 17, 17, 0.04);
+  margin: 16px 0 28px;
+  padding: 14px 16px;
+}
+
+.builderSessionSaveBar strong,
+.builderSessionSaveBar span {
+  display: block;
+}
+
+.builderSessionSaveBar strong {
+  color: var(--nl-ink, #f5d77b);
+  font-size: 17px;
+  font-weight: 950;
+}
+
+.builderSessionSaveBar span {
+  color: var(--nl-muted, #a5a5a5);
+  font-weight: 800;
+  margin-top: 3px;
+}
+
+.builderSessionSaveBar > div:last-child {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
 .clientPage {
   display: grid;
   grid-template-columns: 1fr;
