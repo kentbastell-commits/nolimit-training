@@ -5723,6 +5723,268 @@ body {
   font-weight: 900;
 }
 
+.clientProgramsPage {
+  margin-top: 18px;
+}
+
+.clientProgramsPanel {
+  border: 1px solid #deded8;
+  border-radius: 8px;
+  background: #fff;
+  color: #111;
+  padding: 20px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.06);
+}
+
+.clientProgramsHeader,
+.clientProgramPreviewHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.clientProgramsHeader span,
+.clientProgramScheduler span,
+.clientProgramCard span {
+  display: block;
+  color: #6a6a64;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+}
+
+.clientProgramsHeader h2,
+.clientProgramPreviewHeader h3 {
+  margin: 4px 0 0;
+  color: #111;
+  font-size: 28px;
+  line-height: 1;
+  font-weight: 950;
+}
+
+.clientProgramsHeader strong {
+  border: 1px solid #cfc9b8;
+  border-radius: 999px;
+  padding: 8px 12px;
+  color: #111;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.clientProgramPicker {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 14px;
+  align-items: stretch;
+}
+
+.clientProgramPicker label,
+.clientProgramScheduler label,
+.clientProgramDateGrid label,
+.clientProgramDayList label {
+  display: grid;
+  gap: 7px;
+  color: #111;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.clientProgramPicker select,
+.clientProgramScheduler input,
+.clientProgramDateGrid input,
+.clientProgramDayList input {
+  width: 100%;
+  border: 1px solid #c9c2ae;
+  border-radius: 8px;
+  background: #fff;
+  color: #111;
+  min-height: 48px;
+  padding: 0 14px;
+  font: inherit;
+  font-weight: 850;
+}
+
+.clientProgramCard {
+  border: 1px solid #111;
+  border-radius: 8px;
+  background: #111;
+  color: #f7f3ea;
+  padding: 16px;
+}
+
+.clientProgramCard h3 {
+  margin: 4px 0 8px;
+  color: #f7e18a;
+  font-size: 24px;
+  line-height: 1.05;
+}
+
+.clientProgramCard p {
+  margin: 0;
+  color: #d7d1c2;
+  font-weight: 850;
+}
+
+.clientProgramScheduler {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 240px auto;
+  gap: 14px;
+  align-items: end;
+  margin-top: 16px;
+}
+
+.clientProgramModeToggle {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 7px;
+}
+
+.clientProgramModeToggle button {
+  border: 1px solid #c9c2ae;
+  border-radius: 8px;
+  background: #fff;
+  color: #111;
+  min-height: 48px;
+  font-weight: 950;
+}
+
+.clientProgramModeToggle button.active {
+  background: #111;
+  border-color: #111;
+  color: #f7e18a;
+}
+
+.clientProgramDateGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.clientProgramDayList,
+.clientProgramPreviewRows {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.clientProgramDayList label,
+.clientProgramPreviewRow {
+  border: 1px solid #deded8;
+  border-radius: 8px;
+  background: #fbfaf7;
+  padding: 12px;
+}
+
+.clientProgramDayList label {
+  grid-template-columns: minmax(0, 1fr) 190px;
+  align-items: center;
+}
+
+.clientProgramDayList label span {
+  color: #111;
+  font-size: 15px;
+  font-weight: 950;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.clientProgramPreview {
+  border-top: 1px solid #e7e2d5;
+  margin-top: 18px;
+  padding-top: 18px;
+}
+
+.clientProgramPreviewRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.clientProgramPreviewRow strong {
+  display: block;
+  color: #111;
+  font-size: 17px;
+  font-weight: 950;
+}
+
+.clientProgramPreviewRow span {
+  color: #6a6a64;
+  font-weight: 850;
+}
+
+.clientProgramPreviewRow time {
+  color: #111;
+  font-weight: 950;
+  white-space: nowrap;
+}
+
+.clientProgramEmpty {
+  display: grid;
+  place-items: center;
+  gap: 10px;
+  border: 1px dashed #c9c2ae;
+  border-radius: 8px;
+  background: #fbfaf7;
+  min-height: 220px;
+  padding: 24px;
+  text-align: center;
+}
+
+.clientProgramEmpty h3 {
+  margin: 0;
+  color: #111;
+  font-size: 22px;
+}
+
+.clientProgramEmpty p {
+  max-width: 440px;
+  margin: 0;
+  color: #666;
+  font-weight: 750;
+}
+
+@media (max-width: 720px) {
+  .clientProgramsPage {
+    padding-bottom: 120px;
+  }
+
+  .clientProgramPicker,
+  .clientProgramScheduler,
+  .clientProgramDayList label {
+    grid-template-columns: 1fr;
+  }
+
+  .clientProgramsPanel {
+    padding: 16px;
+  }
+
+  .clientProgramsHeader,
+  .clientProgramPreviewHeader,
+  .clientProgramPreviewRow {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .clientProgramsHeader h2,
+  .clientProgramPreviewHeader h3 {
+    font-size: 24px;
+  }
+
+  .clientProgramModeToggle {
+    grid-template-columns: 1fr;
+  }
+
+  .clientProgramPreviewHeader .primaryButton {
+    width: 100%;
+  }
+}
+
 .homeWorkoutList {
   display: grid;
   gap: 10px;

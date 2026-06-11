@@ -37,9 +37,10 @@ type Page =
   | "Check-ins"
   | "Orders"
   | "Coaches";
-type ClientTab = "Home" | "Overview" | "Training";
+type ClientTab = "Home" | "Programs" | "Overview" | "Training";
 type CalendarView = "Week" | "Month" | "Full";
 type CalendarDisplayMode = CalendarView;
+type ClientProgramScheduleMode = "Month" | "Week" | "Day";
 type WorkoutPageTab =
   | "Saved Programs"
   | "Program Builder"
@@ -798,6 +799,24 @@ function App() {
   );
   const [clientCalendarStyle, setClientCalendarStyle] =
     useState<CalendarDisplayMode>("Week");
+  const [selectedClientProgramId, setSelectedClientProgramId] = useState("");
+  const [clientProgramScheduleMode, setClientProgramScheduleMode] =
+    useState<ClientProgramScheduleMode>("Month");
+  const [clientProgramStartDate, setClientProgramStartDate] = useState(
+    dateToInputValue(new Date())
+  );
+  const [clientProgramWeekStarts, setClientProgramWeekStarts] = useState<
+    Record<string, string>
+  >({});
+  const [clientProgramDayDates, setClientProgramDayDates] = useState<
+    Record<string, string>
+  >({});
+  const [clientProgramSessions, setClientProgramSessions] = useState<
+    AssignableWorkout[]
+  >([]);
+  const [loadingClientProgramSessions, setLoadingClientProgramSessions] =
+    useState(false);
+  const [populatingClientProgram, setPopulatingClientProgram] = useState(false);
   const [showCalendarActionMenu, setShowCalendarActionMenu] = useState(false);
   const [showAssignmentDrawer, setShowAssignmentDrawer] = useState(false);
   const [workoutPageTab, setWorkoutPageTab] =
@@ -4527,6 +4546,179 @@ function App() {
     return Array.from(sessions.values());
   };
 
+  const selectedClientPurchasedPrograms = selectedClient
+    ? programs.filter((program) => {
+        const purchasedProgramId = String(
+          selectedClient.purchasedProgramId || ""
+        ).toLowerCase();
+        const directClientProgramMatch =
+          purchasedProgramId &&
+          (purchasedProgramId === program.programId.toLowerCase() ||
+            purchasedProgramId === program.recordId.toLowerCase());
+        const orderMatch = selectedClientOrders.some((order) => {
+          const orderProgramId = String(order.programId || "").toLowerCase();
+          const orderProductName = String(order.productName || "").toLowerCase();
+
+          return (
+            (orderProgramId &&
+              (orderProgramId === program.programId.toLowerCase() ||
+                orderProgramId === program.recordId.toLowerCase())) ||
+            (orderProductName &&
+              orderProductName === program.programName.toLowerCase())
+          );
+        });
+
+        return directClientProgramMatch || orderMatch;
+      })
+    : [];
+  const uniqueClientPurchasedPrograms = Array.from(
+    new Map(
+      selectedClientPurchasedPrograms.map((program) => [
+        program.programId || program.recordId,
+        program,
+      ])
+    ).values()
+  );
+  const selectedClientProgram =
+    uniqueClientPurchasedPrograms.find(
+      (program) => program.recordId === selectedClientProgramId
+    ) || uniqueClientPurchasedPrograms[0];
+  const localizedProgramName = (program: Program) => {
+    const programNameCn =
+      (program as Program & { programNameCn?: string; nameCn?: string })
+        .programNameCn ||
+      (program as Program & { programNameCn?: string; nameCn?: string }).nameCn;
+
+    return useChineseClientText && programNameCn ? programNameCn : program.programName;
+  };
+
+  const getClientProgramScheduledWorkouts = (
+    sessions = clientProgramSessions
+  ) => {
+    const scheduleStart = normalizeDate(clientProgramStartDate || todayInputValue);
+
+    return sessions.map((session) => {
+      const defaultDate = addDays(
+        scheduleStart,
+        (Number(session.week) - 1) * 7 + (Number(session.day) - 1) * 2
+      );
+      const scheduledDate =
+        clientProgramScheduleMode === "Day"
+          ? clientProgramDayDates[session.localId] || defaultDate
+          : clientProgramScheduleMode === "Week"
+            ? addDays(
+                clientProgramWeekStarts[String(session.week)] ||
+                  addDays(scheduleStart, (Number(session.week) - 1) * 7),
+                (Number(session.day) - 1) * 2
+              )
+            : defaultDate;
+
+      return {
+        ...session,
+        scheduledDate: normalizeDate(scheduledDate || defaultDate),
+      };
+    });
+  };
+
+  const loadClientProgramSessions = async (program = selectedClientProgram) => {
+    if (!program) return;
+
+    setLoadingClientProgramSessions(true);
+
+    try {
+      const startDate = normalizeDate(
+        clientProgramStartDate ||
+          selectedClient?.accessStartDate ||
+          selectedClientLatestOrder?.accessStartDate ||
+          todayInputValue
+      );
+      const sessions = await buildProgramWorkoutsForOrder(program, startDate);
+      const weekStarts = sessions.reduce<Record<string, string>>((weeks, session) => {
+        const weekKey = String(session.week);
+        if (!weeks[weekKey]) {
+          weeks[weekKey] = addDays(startDate, (Number(session.week) - 1) * 7);
+        }
+        return weeks;
+      }, {});
+      const dayDates = sessions.reduce<Record<string, string>>((dates, session) => {
+        dates[session.localId] = session.scheduledDate;
+        return dates;
+      }, {});
+
+      setClientProgramStartDate(startDate);
+      setClientProgramSessions(sessions);
+      setClientProgramWeekStarts(weekStarts);
+      setClientProgramDayDates(dayDates);
+
+      if (sessions.length === 0) {
+        notify("No saved sessions found for this program.", "info");
+      }
+    } catch (error) {
+      console.error(error);
+      notify("Could not load this program schedule.", "error");
+    } finally {
+      setLoadingClientProgramSessions(false);
+    }
+  };
+
+  const populateClientProgramCalendar = async () => {
+    if (!selectedClient || !selectedClientProgram) {
+      notify("Please select a program first.", "error");
+      return;
+    }
+
+    const scheduledWorkouts = getClientProgramScheduledWorkouts();
+
+    if (scheduledWorkouts.length === 0) {
+      notify("Please preview this program schedule first.", "error");
+      return;
+    }
+
+    setPopulatingClientProgram(true);
+
+    try {
+      const response = await fetch("/api/assignProgram", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          clientRecordId: selectedClient.id,
+          programRecordId: selectedClientProgram.recordId,
+          scheduledWorkouts: scheduledWorkouts.map((workout) => ({
+            week: workout.week,
+            day: workout.day,
+            sessionName: workout.sessionName,
+            scheduledDate: workout.scheduledDate,
+          })),
+        }),
+      });
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        console.error(data);
+        notify("Could not populate your calendar.", "error");
+        return;
+      }
+
+      notify("Program added to your calendar.", "success");
+      const refresh = await fetch(`/api/workouts?clientCode=${selectedClient.clientCode}`);
+      const refreshData = await refresh.json();
+      setWorkouts(refreshData.workouts || []);
+      setClientTab("Training");
+    } catch (error) {
+      console.error(error);
+      notify("Could not populate your calendar.", "error");
+    } finally {
+      setPopulatingClientProgram(false);
+    }
+  };
+
+  const clientProgramScheduledWorkouts = getClientProgramScheduledWorkouts();
+  const clientProgramWeekNumbers = Array.from(
+    new Set(clientProgramSessions.map((session) => Number(session.week)))
+  ).sort((a, b) => a - b);
+
   const assignOrderProgram = async (order: ProductOrder) => {
     const availablePrograms = programs.length > 0 ? programs : await loadPrograms();
 
@@ -8202,6 +8394,13 @@ function App() {
                   <span>{t("calendar")}</span>
                 </button>
                 <button
+                  className={clientTab === "Programs" ? "active" : ""}
+                  onClick={() => setClientTab("Programs")}
+                >
+                  <BookOpen size={21} strokeWidth={2.2} />
+                  <span>{t("myPrograms")}</span>
+                </button>
+                <button
                   className={clientTab === "Overview" ? "active" : ""}
                   onClick={() => setClientTab("Overview")}
                 >
@@ -8231,6 +8430,8 @@ function App() {
                           })
                         : clientTab === "Overview"
                         ? t("profile")
+                        : clientTab === "Programs"
+                        ? t("myPrograms")
                         : t("calendar")
                       : selectedClient.name}
                   </h1>
@@ -8850,6 +9051,216 @@ function App() {
                     <textarea placeholder="Add private coach notes here..." />
                   </div>
                   )}
+                </div>
+              )}
+
+              {clientTab === "Programs" && (
+                <div className="clientProgramsPage">
+                  <section className="clientProgramsPanel">
+                    <div className="clientProgramsHeader">
+                      <div>
+                        <span>{t("purchasedPrograms")}</span>
+                        <h2>{t("myPrograms")}</h2>
+                      </div>
+                      {clientProgramSessions.length > 0 && (
+                        <strong>
+                          {t("sessionsReady", {
+                            count: clientProgramSessions.length,
+                          })}
+                        </strong>
+                      )}
+                    </div>
+
+                    {uniqueClientPurchasedPrograms.length > 0 ? (
+                      <>
+                        <div className="clientProgramPicker">
+                          <label>
+                            {t("chooseProgram")}
+                            <select
+                              value={
+                                selectedClientProgram?.recordId ||
+                                selectedClientProgramId
+                              }
+                              onChange={(event) => {
+                                setSelectedClientProgramId(event.target.value);
+                                setClientProgramSessions([]);
+                                setClientProgramDayDates({});
+                                setClientProgramWeekStarts({});
+                              }}
+                            >
+                              {uniqueClientPurchasedPrograms.map((program) => (
+                                <option
+                                  value={program.recordId}
+                                  key={program.recordId}
+                                >
+                                  {localizedProgramName(program)}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+
+                          {selectedClientProgram && (
+                            <div className="clientProgramCard">
+                              <div>
+                                <span>{selectedClientProgram.productType || "Program"}</span>
+                                <h3>{localizedProgramName(selectedClientProgram)}</h3>
+                              </div>
+                              <p>
+                                {selectedClientProgram.durationWeeks || "--"} {t("week")}
+                                {Number(selectedClientProgram.durationWeeks) === 1
+                                  ? ""
+                                  : "s"}{" "}
+                                • {selectedClientProgram.sessionsPerWeek || "--"} sessions/week
+                              </p>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="clientProgramScheduler">
+                          <div>
+                            <span>{t("scheduleMethod")}</span>
+                            <div className="clientProgramModeToggle">
+                              {(["Month", "Week", "Day"] as ClientProgramScheduleMode[]).map(
+                                (mode) => (
+                                  <button
+                                    key={mode}
+                                    type="button"
+                                    className={
+                                      clientProgramScheduleMode === mode
+                                        ? "active"
+                                        : ""
+                                    }
+                                    onClick={() => setClientProgramScheduleMode(mode)}
+                                  >
+                                    {mode === "Day" ? t("dayByDay") : t(mode.toLowerCase())}
+                                  </button>
+                                )
+                              )}
+                            </div>
+                          </div>
+
+                          <label>
+                            {t("programStartDate")}
+                            <input
+                              type="date"
+                              value={clientProgramStartDate}
+                              onChange={(event) =>
+                                setClientProgramStartDate(event.target.value)
+                              }
+                            />
+                          </label>
+
+                          <button
+                            type="button"
+                            className="outlineButton"
+                            onClick={() => loadClientProgramSessions()}
+                            disabled={
+                              loadingClientProgramSessions || !selectedClientProgram
+                            }
+                          >
+                            {loadingClientProgramSessions
+                              ? t("loadingWorkouts")
+                              : t("previewDates")}
+                          </button>
+                        </div>
+
+                        {clientProgramScheduleMode === "Week" &&
+                          clientProgramWeekNumbers.length > 0 && (
+                            <div className="clientProgramDateGrid">
+                              {clientProgramWeekNumbers.map((week) => (
+                                <label key={week}>
+                                  {t("weekStarts", { week })}
+                                  <input
+                                    type="date"
+                                    value={
+                                      clientProgramWeekStarts[String(week)] ||
+                                      addDays(
+                                        clientProgramStartDate,
+                                        (Number(week) - 1) * 7
+                                      )
+                                    }
+                                    onChange={(event) =>
+                                      setClientProgramWeekStarts((current) => ({
+                                        ...current,
+                                        [String(week)]: event.target.value,
+                                      }))
+                                    }
+                                  />
+                                </label>
+                              ))}
+                            </div>
+                          )}
+
+                        {clientProgramScheduleMode === "Day" &&
+                          clientProgramSessions.length > 0 && (
+                            <div className="clientProgramDayList">
+                              {clientProgramScheduledWorkouts.map((workout) => (
+                                <label key={workout.localId}>
+                                  <span>
+                                    {workout.sessionName} • {t("week")}{" "}
+                                    {workout.week}, {t("day")} {workout.day}
+                                  </span>
+                                  <input
+                                    type="date"
+                                    value={workout.scheduledDate}
+                                    onChange={(event) =>
+                                      setClientProgramDayDates((current) => ({
+                                        ...current,
+                                        [workout.localId]: event.target.value,
+                                      }))
+                                    }
+                                  />
+                                </label>
+                              ))}
+                            </div>
+                          )}
+
+                        {clientProgramScheduledWorkouts.length > 0 && (
+                          <div className="clientProgramPreview">
+                            <div className="clientProgramPreviewHeader">
+                              <h3>{t("atAGlance")}</h3>
+                              <button
+                                type="button"
+                                className="primaryButton"
+                                onClick={populateClientProgramCalendar}
+                                disabled={populatingClientProgram}
+                              >
+                                {populatingClientProgram
+                                  ? t("submitting")
+                                  : t("populateCalendar")}
+                              </button>
+                            </div>
+                            <div className="clientProgramPreviewRows">
+                              {clientProgramScheduledWorkouts.map((workout) => (
+                                <div
+                                  className="clientProgramPreviewRow"
+                                  key={workout.localId}
+                                >
+                                  <div>
+                                    <strong>{workout.sessionName}</strong>
+                                    <span>
+                                      {t("week")} {workout.week} • {t("day")}{" "}
+                                      {workout.day}
+                                    </span>
+                                  </div>
+                                  <time>{localizedCalendarLabel(workout.scheduledDate)}</time>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div className="clientProgramEmpty">
+                        <BookOpen size={34} strokeWidth={1.8} />
+                        <h3>{t("noPurchasedPrograms")}</h3>
+                        <p>
+                          Your purchased digital programs will appear here after
+                          checkout or coach setup.
+                        </p>
+                      </div>
+                    )}
+                  </section>
                 </div>
               )}
 
