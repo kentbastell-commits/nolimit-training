@@ -1307,6 +1307,13 @@ body {
   opacity: 0.45;
 }
 
+.pendingOrderActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
 .portalSharePanel {
   background: rgba(212, 175, 55, 0.08);
   border: 1px solid rgba(212, 175, 55, 0.35);

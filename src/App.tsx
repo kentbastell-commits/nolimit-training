@@ -4932,6 +4932,54 @@ function App() {
       return false;
     }
   };
+
+  const deleteProductOrder = async (order: ProductOrder) => {
+    const label = order.orderId || order.productName || "this order";
+
+    if (!window.confirm(`Delete ${label}? This cannot be undone.`)) return;
+
+    setOrderProcessingId(order.recordId);
+
+    try {
+      const response = await fetch("/api/deleteRecord", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          resource: "productOrder",
+          recordId: order.recordId,
+        }),
+      });
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        console.error(data);
+        notify("Could not delete product order.", "error");
+        return;
+      }
+
+      setProductOrders((current) =>
+        current.filter((item) => item.recordId !== order.recordId)
+      );
+      setOrderStartDates((current) => {
+        const next = { ...current };
+        delete next[order.recordId];
+        return next;
+      });
+      if (orderReviewOrder?.recordId === order.recordId) {
+        setOrderReviewOrder(null);
+        setOrderReviewResponses([]);
+      }
+      notify("Product order deleted.", "success");
+    } catch (error) {
+      console.error(error);
+      notify("Could not delete product order.", "error");
+    } finally {
+      setOrderProcessingId("");
+    }
+  };
+
   const getOrderPipelineStatus = (order: ProductOrder) => {
     const statusText = `${order.onboardingStatus || ""} ${
       order.fulfillmentStatus || ""
@@ -8265,15 +8313,28 @@ function App() {
                               <span>{order.productName || "Product"}</span>
                               <small>{order.phone || order.email || "No contact"}</small>
                             </div>
-                            <button
-                              className="goldButton"
-                              disabled={orderProcessingId === order.recordId}
-                              onClick={() => void assignOrderIntake(order)}
-                            >
-                              {orderProcessingId === order.recordId
-                                ? "Activating..."
-                                : "Activate"}
-                            </button>
+                            <div className="pendingOrderActions">
+                              <button
+                                className="goldButton"
+                                disabled={orderProcessingId === order.recordId}
+                                onClick={() => void assignOrderIntake(order)}
+                              >
+                                {orderProcessingId === order.recordId
+                                  ? "Activating..."
+                                  : "Activate"}
+                              </button>
+                              <button
+                                className="iconActionButton dangerIconButton"
+                                disabled={orderProcessingId === order.recordId}
+                                onClick={() => void deleteProductOrder(order)}
+                                title="Delete order"
+                                aria-label={`Delete order ${
+                                  order.orderId || order.productName || ""
+                                }`}
+                              >
+                                <Trash2 size={17} aria-hidden="true" />
+                              </button>
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -8651,6 +8712,17 @@ function App() {
                             disabled={processing || !matchedProgram}
                           >
                             {processing ? "Working..." : "Load Program"}
+                          </button>
+                          <button
+                            className="iconActionButton dangerIconButton"
+                            onClick={() => void deleteProductOrder(order)}
+                            disabled={processing}
+                            title="Delete order"
+                            aria-label={`Delete order ${
+                              order.orderId || order.productName || ""
+                            }`}
+                          >
+                            <Trash2 size={17} aria-hidden="true" />
                           </button>
                         </div>
                       </section>
