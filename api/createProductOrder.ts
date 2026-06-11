@@ -233,7 +233,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       tableFields,
       fields,
       omittedFields,
-      ["Assigned Coach", "Coach", "Coach Assigned"],
+      ["Assign Coach", "Assigned Coach", "Coach", "Coach Assigned"],
       assignedCoach
     );
     applyField(

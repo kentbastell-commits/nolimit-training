@@ -452,6 +452,26 @@ function normalizeDate(value: string) {
   return value.split("T")[0].split(" ")[0];
 }
 
+function normalizeLookupText(value?: string) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9\u4e00-\u9fff]+/gi, " ")
+    .trim();
+}
+
+function lookupTextMatches(source?: string, target?: string) {
+  const normalizedSource = normalizeLookupText(source);
+  const normalizedTarget = normalizeLookupText(target);
+
+  return Boolean(
+    normalizedSource &&
+      normalizedTarget &&
+      (normalizedSource === normalizedTarget ||
+        normalizedSource.includes(normalizedTarget) ||
+        normalizedTarget.includes(normalizedSource))
+  );
+}
+
 function makeExerciseLabel(index: number) {
   const groupIndex = Math.floor(index / 4);
   const letter = String.fromCharCode(65 + Math.min(groupIndex, 25));
@@ -4229,35 +4249,33 @@ function App() {
   const selectedClientOrders = selectedClient
     ? productOrders.filter(
         (order) =>
-          order.clientId.includes(selectedClient.id) ||
-          order.clientId.includes(selectedClient.clientCode) ||
-          order.clientName.toLowerCase() === selectedClient.name.toLowerCase()
+          lookupTextMatches(order.clientId, selectedClient.id) ||
+          lookupTextMatches(order.clientId, selectedClient.clientCode) ||
+          lookupTextMatches(order.clientId, selectedClient.name) ||
+          lookupTextMatches(order.clientName, selectedClient.name) ||
+          lookupTextMatches(order.clientName, selectedClient.clientCode)
       )
     : [];
   const selectedClientLatestOrder = selectedClientOrders[0];
   const todayInputValue = dateToInputValue(new Date());
   const getOrderClient = (order: ProductOrder) =>
     clients.find((client) => {
-      const orderClientId = String(order.clientId || "").toLowerCase();
-      const orderClientName = String(order.clientName || "").toLowerCase();
-
       return (
-        (orderClientId &&
-          (orderClientId.includes(client.id.toLowerCase()) ||
-            orderClientId.includes(client.clientCode.toLowerCase()))) ||
-        (orderClientName && orderClientName === client.name.toLowerCase())
+        lookupTextMatches(order.clientId, client.id) ||
+        lookupTextMatches(order.clientId, client.clientCode) ||
+        lookupTextMatches(order.clientId, client.name) ||
+        lookupTextMatches(order.clientName, client.name) ||
+        lookupTextMatches(order.clientName, client.clientCode)
       );
     });
   const getOrderProgram = (order: ProductOrder, sourcePrograms = programs) =>
     sourcePrograms.find((program) => {
-      const orderProgramId = String(order.programId || "").toLowerCase();
-      const productName = String(order.productName || "").toLowerCase();
-
       return (
-        (orderProgramId &&
-          (orderProgramId === program.programId.toLowerCase() ||
-            orderProgramId === program.recordId.toLowerCase())) ||
-        (productName && productName === program.programName.toLowerCase())
+        lookupTextMatches(order.programId, program.programId) ||
+        lookupTextMatches(order.programId, program.recordId) ||
+        lookupTextMatches(order.programId, program.programName) ||
+        lookupTextMatches(order.productName, program.programName) ||
+        lookupTextMatches(order.productName, program.programId)
       );
     });
   const getOrderStartDate = (order: ProductOrder) =>
@@ -4646,23 +4664,17 @@ function App() {
 
   const selectedClientPurchasedPrograms = selectedClient
     ? programs.filter((program) => {
-        const purchasedProgramId = String(
-          selectedClient.purchasedProgramId || ""
-        ).toLowerCase();
         const directClientProgramMatch =
-          purchasedProgramId &&
-          (purchasedProgramId === program.programId.toLowerCase() ||
-            purchasedProgramId === program.recordId.toLowerCase());
+          lookupTextMatches(selectedClient.purchasedProgramId, program.programId) ||
+          lookupTextMatches(selectedClient.purchasedProgramId, program.recordId) ||
+          lookupTextMatches(selectedClient.purchasedProgramId, program.programName);
         const orderMatch = selectedClientOrders.some((order) => {
-          const orderProgramId = String(order.programId || "").toLowerCase();
-          const orderProductName = String(order.productName || "").toLowerCase();
-
           return (
-            (orderProgramId &&
-              (orderProgramId === program.programId.toLowerCase() ||
-                orderProgramId === program.recordId.toLowerCase())) ||
-            (orderProductName &&
-              orderProductName === program.programName.toLowerCase())
+            lookupTextMatches(order.programId, program.programId) ||
+            lookupTextMatches(order.programId, program.recordId) ||
+            lookupTextMatches(order.programId, program.programName) ||
+            lookupTextMatches(order.productName, program.programName) ||
+            lookupTextMatches(order.productName, program.programId)
           );
         });
 
