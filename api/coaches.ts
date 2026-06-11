@@ -26,6 +26,13 @@ function fieldToText(value: any): string {
   if (value?.name) return value.name;
   if (value?.record_ids) return value.record_ids.join(", ");
   if (value?.link_record_ids) return value.link_record_ids.join(", ");
+  if (
+    Array.isArray(value?.text_arr) ||
+    Object.prototype.hasOwnProperty.call(value, "record_ids") ||
+    Object.prototype.hasOwnProperty.call(value, "link_record_ids")
+  ) {
+    return "";
+  }
 
   return JSON.stringify(value);
 }
@@ -82,20 +89,31 @@ export default async function handler(_req: VercelRequest, res: VercelResponse) 
 
     const coaches = data.data.items.map((item: any) => {
       const fields = item.fields || {};
-      const name = fieldToText(fields["Name"]) || "Unnamed Coach";
+      const name = fieldToText(fields["Name"]);
+      const coachId = fieldToText(fields["Coach ID"]);
+      const email = fieldToText(fields["Email"]);
+      const phoneWechat =
+        fieldToText(fields["Phone/WeChat"]) ||
+        fieldToText(fields["Phone/Wechat"]) ||
+        fieldToText(fields["Phone"]) ||
+        fieldToText(fields["Wechat"]);
+      const bio = fieldToText(fields["Bio"]);
 
       return {
         recordId: item.record_id,
-        coachId: fieldToText(fields["Coach ID"]) || item.record_id,
-        name,
-        email: fieldToText(fields["Email"]),
-        phoneWechat: fieldToText(fields["Phone/WeChat"]),
+        coachId: coachId || item.record_id,
+        name: name || "Unnamed Coach",
+        email,
+        phoneWechat,
         role: fieldToText(fields["Role"]) || "Coach",
         status: fieldToText(fields["Status"]) || "Active",
-        bio: fieldToText(fields["Bio"]),
+        bio,
         createdAt: formatDate(fields["Created At"]),
+        hasRealData: Boolean(name || coachId || email || phoneWechat || bio),
       };
-    });
+    }).filter((coach: any) => {
+      return coach.hasRealData;
+    }).map(({ hasRealData, ...coach }: any) => coach);
 
     return res.status(200).json({ coaches });
   } catch (error: any) {

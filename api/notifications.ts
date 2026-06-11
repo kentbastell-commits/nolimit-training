@@ -11,6 +11,8 @@ function fieldToText(value: any): string {
         if (typeof item === "string") return item;
         if (item?.text) return item.text;
         if (item?.name) return item.name;
+        if (item?.record_ids) return item.record_ids.join(", ");
+        if (item?.link_record_ids) return item.link_record_ids.join(", ");
         return JSON.stringify(item);
       })
       .filter(Boolean)
@@ -18,6 +20,15 @@ function fieldToText(value: any): string {
   }
   if (value?.text) return value.text;
   if (value?.name) return value.name;
+  if (value?.record_ids) return value.record_ids.join(", ");
+  if (value?.link_record_ids) return value.link_record_ids.join(", ");
+  if (
+    Array.isArray(value?.text_arr) ||
+    Object.prototype.hasOwnProperty.call(value, "record_ids") ||
+    Object.prototype.hasOwnProperty.call(value, "link_record_ids")
+  ) {
+    return "";
+  }
   return JSON.stringify(value);
 }
 
@@ -77,6 +88,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             ? new Date(Number(fieldToText(f["Created At"]))).toISOString()
             : new Date().toISOString(),
         };
+      }).filter((notification: any) => {
+        return Boolean(
+          notification.notificationId ||
+            notification.clientId ||
+            notification.title ||
+            notification.body ||
+            notification.type
+        );
       });
 
       return res.status(200).json({ notifications });

@@ -1097,10 +1097,14 @@ function App() {
       status: "Active",
     },
   ];
-  const activeCoaches = (coaches.length > 0 ? coaches : fallbackCoaches).filter(
+  const validCoaches = coaches.filter(
+    (coach) => coach.name && coach.name !== "Unnamed Coach"
+  );
+  const visibleCoaches = validCoaches.length > 0 ? validCoaches : fallbackCoaches;
+  const activeCoaches = visibleCoaches.filter(
     (coach) => coach.status !== "Inactive"
   );
-  const allCoaches = coaches.length > 0 ? coaches : fallbackCoaches;
+  const allCoaches = visibleCoaches;
   const currentScopedCoach = activeCoaches.find(
     (coach) => coach.name === coachScope
   );

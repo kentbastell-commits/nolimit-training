@@ -14,6 +14,13 @@ function fieldToText(value: any): string {
         if (item?.name) return item.name;
         if (item?.record_ids) return item.record_ids.join(", ");
         if (item?.link_record_ids) return item.link_record_ids.join(", ");
+        if (
+          Array.isArray(item?.text_arr) ||
+          Object.prototype.hasOwnProperty.call(item, "record_ids") ||
+          Object.prototype.hasOwnProperty.call(item, "link_record_ids")
+        ) {
+          return "";
+        }
         return JSON.stringify(item);
       })
       .filter(Boolean)
@@ -25,6 +32,13 @@ function fieldToText(value: any): string {
   if (value?.value) return fieldToText(value.value);
   if (value?.record_ids) return value.record_ids.join(", ");
   if (value?.link_record_ids) return value.link_record_ids.join(", ");
+  if (
+    Array.isArray(value?.text_arr) ||
+    Object.prototype.hasOwnProperty.call(value, "record_ids") ||
+    Object.prototype.hasOwnProperty.call(value, "link_record_ids")
+  ) {
+    return "";
+  }
 
   return JSON.stringify(value);
 }

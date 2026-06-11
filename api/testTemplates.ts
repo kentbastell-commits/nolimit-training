@@ -13,6 +13,7 @@ function fieldToText(value: any): string {
         if (item?.text) return item.text;
         if (item?.name) return item.name;
         if (item?.record_ids) return item.record_ids.join(", ");
+        if (item?.link_record_ids) return item.link_record_ids.join(", ");
         return JSON.stringify(item);
       })
       .filter(Boolean)
@@ -22,6 +23,14 @@ function fieldToText(value: any): string {
   if (value?.text) return value.text;
   if (value?.name) return value.name;
   if (value?.record_ids) return value.record_ids.join(", ");
+  if (value?.link_record_ids) return value.link_record_ids.join(", ");
+  if (
+    Array.isArray(value?.text_arr) ||
+    Object.prototype.hasOwnProperty.call(value, "record_ids") ||
+    Object.prototype.hasOwnProperty.call(value, "link_record_ids")
+  ) {
+    return "";
+  }
 
   return JSON.stringify(value);
 }
@@ -242,24 +251,37 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             "Notes CN",
           ]),
         };
+      }).filter((item: any) => {
+        return Boolean(
+          item.testItemId ||
+            item.testTemplateId ||
+            item.testName ||
+            item.metricType ||
+            item.unit ||
+            item.instructions
+        );
       });
 
       const tests = templateRecords.map((item: any) => {
         const fields = item.fields || {};
-        const testTemplateId =
-          readField(fields, ["testTemplateId", "Test Template ID", "Template ID"]) ||
-          item.record_id;
+        const rawTestTemplateId = readField(fields, [
+          "testTemplateId",
+          "Test Template ID",
+          "Template ID",
+        ]);
+        const testTemplateId = rawTestTemplateId || item.record_id;
+        const name = readField(fields, [
+          "name",
+          "Name",
+          "Test Template Name",
+          "Template Name",
+          "Title",
+        ]);
 
         return {
           recordId: item.record_id,
           testTemplateId,
-          name: readField(fields, [
-            "name",
-            "Name",
-            "Test Template Name",
-            "Template Name",
-            "Title",
-          ]),
+          name,
           nameCn: readField(fields, [
             "Name CN",
             "Test Template Name CN",
@@ -277,6 +299,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             )
             .sort((a: any, b: any) => Number(a.order) - Number(b.order)),
         };
+      }).filter((test: any) => {
+        return Boolean(
+          test.name ||
+            test.nameCn ||
+            test.description ||
+            test.descriptionCn ||
+            test.items.length > 0
+        );
       });
 
       return res.status(200).json({ tests });

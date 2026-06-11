@@ -13,6 +13,7 @@ function fieldToText(value: any): string {
         if (item?.text) return item.text;
         if (item?.name) return item.name;
         if (item?.record_ids) return item.record_ids.join(", ");
+        if (item?.link_record_ids) return item.link_record_ids.join(", ");
         return JSON.stringify(item);
       })
       .filter(Boolean)
@@ -23,6 +24,14 @@ function fieldToText(value: any): string {
   if (value?.name) return value.name;
   if (value?.value) return fieldToText(value.value);
   if (value?.record_ids) return value.record_ids.join(", ");
+  if (value?.link_record_ids) return value.link_record_ids.join(", ");
+  if (
+    Array.isArray(value?.text_arr) ||
+    Object.prototype.hasOwnProperty.call(value, "record_ids") ||
+    Object.prototype.hasOwnProperty.call(value, "link_record_ids")
+  ) {
+    return "";
+  }
 
   return JSON.stringify(value);
 }
@@ -338,6 +347,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const assignments = records
       .flat()
+      .filter((assignment) => {
+        return Boolean(
+          assignment.templateId ||
+            assignment.templateName ||
+            assignment.clientId ||
+            assignment.clientCode ||
+            assignment.clientName ||
+            assignment.assignedDate ||
+            assignment.dueDate
+        );
+      })
       .filter((assignment) => {
         if (!requestedClientId && !requestedClientCode && !requestedClientName) {
           return true;
