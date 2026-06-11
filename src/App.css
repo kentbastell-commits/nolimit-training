@@ -9692,6 +9692,14 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   text-decoration: none;
 }
 
+.storeWechatQr {
+  width: 220px;
+  height: 220px;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 2px solid rgba(212, 175, 55, 0.3);
+}
+
 .storeFooter {
   border-top: 1px solid rgba(212, 175, 55, 0.1);
   padding: 20px 32px;

@@ -6257,9 +6257,14 @@ function App() {
             <h2>{sZh ? "有疑问？" : "Have questions?"}</h2>
             <p>
               {sZh
-                ? "通过微信联系 Kent，了解适合您的训练计划。"
-                : "Reach out to Kent on WeChat to find the right program for your goals."}
+                ? "扫描下方微信二维码联系 Kent，了解适合您的训练计划或完成购买。"
+                : "Scan the WeChat QR below to reach Kent — ask questions or complete your purchase."}
             </p>
+            <img
+              src="https://i.ibb.co/Y4nXVG4g/Weixin-Image-20260611202846-56-2.jpg"
+              alt="Kent WeChat Pay QR"
+              className="storeWechatQr"
+            />
             <a
               className="goldButton"
               href={`/?invite=client&package=Pending`}
