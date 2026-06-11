@@ -1,6 +1,8 @@
 import {
   Area,
   AreaChart,
+  Bar,
+  BarChart,
   CartesianGrid,
   ResponsiveContainer,
   Tooltip,
@@ -20,6 +22,8 @@ import {
   Plus,
   Scissors,
   Trash2,
+  Bell,
+  TrendingUp,
   UserCircle,
   Users,
   X,
@@ -36,6 +40,7 @@ type Page =
   | "Workouts"
   | "Check-ins"
   | "Orders"
+  | "Revenue"
   | "Coaches";
 type ClientTab = "Home" | "Programs" | "Overview" | "Training";
 type CalendarView = "Week" | "Month" | "Full";
@@ -252,6 +257,20 @@ type WorkoutHistoryLog = {
   actualWeight: string;
   actualTime: string;
   actualDistance: string;
+};
+
+type WorkoutComment = {
+  key: string;
+  recordIds: string[];
+  clientId: string;
+  clientName: string;
+  assignedWorkoutId: string;
+  workoutName: string;
+  exerciseNames: string[];
+  date: string;
+  note: string;
+  noteEn?: string;
+  reviewed: boolean;
 };
 
 type LibraryExercise = {
@@ -784,6 +803,9 @@ function App() {
   const [analytics, setAnalytics] = useState<CoachAnalytics | null>(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [showAnalyticsModal, setShowAnalyticsModal] = useState(false);
+  const [showNotificationsPanel, setShowNotificationsPanel] = useState(false);
+  const [notifications] = useState<{ id: string; title: string; body: string; type: string; read: boolean; createdAt: string }[]>([]);
+  const [notificationsLoading] = useState(false);
   const [coachInvitePackage, setCoachInvitePackage] = useState("Pending");
   const [inviteForm, setInviteForm] = useState({
     name: "",
@@ -863,6 +885,8 @@ function App() {
   );
   const [contentResponses, setContentResponses] = useState<ContentResponse[]>([]);
   const [contentResponsesLoading, setContentResponsesLoading] = useState(false);
+  const [workoutComments, setWorkoutComments] = useState<WorkoutComment[]>([]);
+  const [reviewingWorkoutCommentKey, setReviewingWorkoutCommentKey] = useState("");
   const [selectedContentSubmission, setSelectedContentSubmission] =
     useState<ContentResponseGroup | null>(null);
   const [orderReviewOrder, setOrderReviewOrder] = useState<ProductOrder | null>(
@@ -1638,6 +1662,7 @@ function App() {
     setSavedExerciseDraftIds([]);
     setContentAssignments([]);
     setContentResponses([]);
+    setWorkoutComments([]);
 
     loadPrograms();
 
@@ -1647,17 +1672,20 @@ function App() {
       ),
       loadContentAssignments(selectedClient).then((assignments) => ({ assignments })),
       loadContentResponses(selectedClient).then((responses) => ({ responses })),
+      loadWorkoutComments(selectedClient).then((comments) => ({ comments })),
     ])
-      .then(([workoutData, assignmentData, responseData]) => {
+      .then(([workoutData, assignmentData, responseData, commentData]) => {
         setWorkouts(workoutData.workouts || []);
         setContentAssignments(assignmentData.assignments || []);
         setContentResponses(responseData.responses || []);
+        setWorkoutComments(commentData.comments || []);
         setWorkoutsLoading(false);
       })
       .catch(() => {
         setWorkouts([]);
         setContentAssignments([]);
         setContentResponses([]);
+        setWorkoutComments([]);
         setWorkoutsLoading(false);
       });
   }, [selectedClient]);
@@ -2067,6 +2095,75 @@ function App() {
       return [];
     } finally {
       setContentResponsesLoading(false);
+    }
+  };
+
+  const loadWorkoutComments = async (client: Client = selectedClient as Client) => {
+    if (!client) {
+      setWorkoutComments([]);
+      return [];
+    }
+
+    const commentParams = new URLSearchParams({
+      clientId: client.id,
+      clientName: client.name || "",
+    });
+
+    try {
+      const response = await fetch(
+        `/api/workoutComments?${commentParams.toString()}`
+      );
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error(data);
+        throw new Error(data.message || data.error || "Could not load comments.");
+      }
+
+      const comments = data.comments || [];
+      setWorkoutComments(comments);
+      return comments;
+    } catch (error) {
+      console.error(error);
+      if (!isClientPortal) {
+        notify("Could not load workout comments.", "error");
+      }
+      return [];
+    }
+  };
+
+  const markWorkoutCommentReviewed = async (comment: WorkoutComment) => {
+    if (!comment.recordIds.length) return;
+
+    setReviewingWorkoutCommentKey(comment.key);
+
+    try {
+      const response = await fetch("/api/reviewWorkoutComment", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ recordIds: comment.recordIds }),
+      });
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        console.error(data);
+        notify("Could not mark comment reviewed.", "error");
+        return;
+      }
+
+      setWorkoutComments((current) =>
+        current.map((item) =>
+          item.key === comment.key ? { ...item, reviewed: true } : item
+        )
+      );
+      notify("Workout comment reviewed.", "success");
+    } catch (error) {
+      console.error(error);
+      notify("Could not mark comment reviewed.", "error");
+    } finally {
+      setReviewingWorkoutCommentKey("");
     }
   };
 
@@ -3192,10 +3289,15 @@ function App() {
       setWorkouts((current) =>
         current.map((workout) =>
           workout.id === selectedWorkout.id
-            ? { ...workout, completionStatus: "Completed" }
+            ? {
+                ...workout,
+                completionStatus: "Completed",
+                clientNotes: workoutSubmissionNote.trim() || workout.clientNotes,
+              }
             : workout
         )
       );
+      void loadWorkoutComments(selectedClient);
       setSelectedWorkout(null);
       setWorkoutLoggingStarted(false);
       setSavedExerciseDraftIds([]);
@@ -4206,6 +4308,12 @@ function App() {
         label: "Orders",
         count: productOrders.length,
         icon: ClipboardList,
+      },
+      {
+        name: "Revenue",
+        label: "Revenue",
+        count: 0,
+        icon: TrendingUp,
       },
       ...(canManageCoaches
         ? [
@@ -5974,6 +6082,12 @@ function App() {
       )
     )
     .slice(0, 4);
+  const unreviewedWorkoutComments = workoutComments
+    .filter((comment) => !comment.reviewed && comment.note.trim())
+    .slice(0, 8);
+  const recentReviewedWorkoutComments = workoutComments
+    .filter((comment) => comment.reviewed && comment.note.trim())
+    .slice(0, 4);
 
   const getContentResponseLabel = (response: ContentResponse) => {
     if (response.label) return response.label;
@@ -6632,6 +6746,20 @@ function App() {
                 <h1>{activePage}</h1>
                 <p>NoLimit Training System</p>
               </div>
+              <div className="topbarRight">
+                <button
+                  className="notificationsBell"
+                  onClick={() => setShowNotificationsPanel((v) => !v)}
+                  title="Notifications"
+                >
+                  <Bell size={20} />
+                  {notifications.filter((n) => !n.read).length > 0 && (
+                    <span className="notificationsBadge">
+                      {notifications.filter((n) => !n.read).length}
+                    </span>
+                  )}
+                </button>
+              </div>
 
               {activePage === "Clients" && (
                 <div className="topbarActions">
@@ -6848,6 +6976,164 @@ function App() {
                 </section>
               </>
             )}
+
+            {activePage === "Revenue" && (() => {
+              const now = new Date();
+              const paidOrders = productOrders.filter(
+                (o) => o.paymentStatus === "Paid" || o.paymentStatus === "paid"
+              );
+
+              const parseAmount = (o: ProductOrder) => parseFloat(o.amount || "0") || 0;
+
+              const totalRevenue = paidOrders.reduce((sum, o) => sum + parseAmount(o), 0);
+
+              const thisMonthOrders = paidOrders.filter((o) => {
+                const d = new Date(o.purchasedAt);
+                return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+              });
+              const thisMonthRevenue = thisMonthOrders.reduce((sum, o) => sum + parseAmount(o), 0);
+
+              const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+              const lastMonthOrders = paidOrders.filter((o) => {
+                const d = new Date(o.purchasedAt);
+                return d.getFullYear() === lastMonthDate.getFullYear() && d.getMonth() === lastMonthDate.getMonth();
+              });
+              const lastMonthRevenue = lastMonthOrders.reduce((sum, o) => sum + parseAmount(o), 0);
+              const revenueGrowth = lastMonthRevenue > 0
+                ? Math.round(((thisMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100)
+                : null;
+
+              const activeClientCount = clients.filter(
+                (c) => c.status === "Active" || c.status === "Premium" || c.status === "Online Coaching"
+              ).length;
+
+              const programCounts: Record<string, number> = {};
+              paidOrders.forEach((o) => {
+                if (o.productName) programCounts[o.productName] = (programCounts[o.productName] || 0) + 1;
+              });
+              const topPrograms = Object.entries(programCounts)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 5);
+
+              const monthlyData = Array.from({ length: 6 }, (_, i) => {
+                const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
+                const label = d.toLocaleString("default", { month: "short" });
+                const rev = paidOrders
+                  .filter((o) => {
+                    const od = new Date(o.purchasedAt);
+                    return od.getFullYear() === d.getFullYear() && od.getMonth() === d.getMonth();
+                  })
+                  .reduce((sum, o) => sum + parseAmount(o), 0);
+                return { month: label, revenue: Math.round(rev) };
+              });
+
+              const formatCurrency = (n: number) =>
+                n >= 1000 ? `¥${(n / 1000).toFixed(1)}k` : `¥${Math.round(n)}`;
+
+              return (
+                <section className="revenuePage">
+                  <div className="revenueStatGrid">
+                    <div className="revenueStat">
+                      <span>This Month</span>
+                      <strong>{formatCurrency(thisMonthRevenue)}</strong>
+                      <small>
+                        {revenueGrowth !== null
+                          ? `${revenueGrowth >= 0 ? "+" : ""}${revenueGrowth}% vs last month`
+                          : `${thisMonthOrders.length} orders`}
+                      </small>
+                    </div>
+                    <div className="revenueStat">
+                      <span>Total Revenue</span>
+                      <strong>{formatCurrency(totalRevenue)}</strong>
+                      <small>{paidOrders.length} paid orders</small>
+                    </div>
+                    <div className="revenueStat">
+                      <span>Active Clients</span>
+                      <strong>{activeClientCount}</strong>
+                      <small>Active + Premium + Online</small>
+                    </div>
+                    <div className="revenueStat">
+                      <span>Last Month</span>
+                      <strong>{formatCurrency(lastMonthRevenue)}</strong>
+                      <small>{lastMonthOrders.length} orders</small>
+                    </div>
+                  </div>
+
+                  <div className="revenueChartCard">
+                    <h3>Revenue — Last 6 Months</h3>
+                    <ResponsiveContainer width="100%" height={220}>
+                      <BarChart data={monthlyData} barSize={36}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(212,175,55,0.1)" />
+                        <XAxis dataKey="month" stroke="#888" tick={{ fill: "#888", fontSize: 12 }} />
+                        <YAxis stroke="#888" tick={{ fill: "#888", fontSize: 12 }} tickFormatter={(v) => `¥${v}`} />
+                        <Tooltip
+                          contentStyle={{ background: "#0e0a04", border: "1px solid rgba(212,175,55,0.3)", borderRadius: 8 }}
+                          labelStyle={{ color: "#f5d77b" }}
+                          formatter={(v: unknown) => `¥${v as number}`}
+                        />
+                        <Bar dataKey="revenue" fill="#d4af37" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  <div className="revenueBottomGrid">
+                    <div className="revenueTableCard">
+                      <h3>Top Programs</h3>
+                      {topPrograms.length === 0 ? (
+                        <p className="emptyTableMessage">No paid orders yet.</p>
+                      ) : (
+                        <table className="revenueTable">
+                          <thead>
+                            <tr>
+                              <th>Program</th>
+                              <th>Orders</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {topPrograms.map(([name, count]) => (
+                              <tr key={name}>
+                                <td>{name}</td>
+                                <td>{count}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      )}
+                    </div>
+
+                    <div className="revenueTableCard">
+                      <h3>Recent Orders</h3>
+                      {paidOrders.length === 0 ? (
+                        <p className="emptyTableMessage">No paid orders yet.</p>
+                      ) : (
+                        <table className="revenueTable">
+                          <thead>
+                            <tr>
+                              <th>Client</th>
+                              <th>Program</th>
+                              <th>Amount</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {paidOrders
+                              .slice()
+                              .sort((a, b) => new Date(b.purchasedAt).getTime() - new Date(a.purchasedAt).getTime())
+                              .slice(0, 8)
+                              .map((o) => (
+                                <tr key={o.recordId}>
+                                  <td>{o.clientName || "—"}</td>
+                                  <td>{o.productName || "—"}</td>
+                                  <td>¥{o.amount}</td>
+                                </tr>
+                              ))}
+                          </tbody>
+                        </table>
+                      )}
+                    </div>
+                  </div>
+                </section>
+              );
+            })()}
 
             {activePage === "Coaches" && canManageCoaches && (
               <section className="coachManagementPage">
@@ -9861,6 +10147,74 @@ function App() {
                             </p>
                           )}
                         </div>
+
+                        <div className="snapshotAttentionCard workoutCommentQueueCard">
+                          <div className="snapshotAttentionHeader">
+                            <span>Workout Comments</span>
+                            <strong>{unreviewedWorkoutComments.length}</strong>
+                          </div>
+
+                          {unreviewedWorkoutComments.length > 0 ? (
+                            <div className="workoutCommentQueue">
+                              {unreviewedWorkoutComments.map((comment) => (
+                                <article
+                                  className="workoutCommentReviewItem"
+                                  key={comment.key}
+                                >
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const matchingWorkout = workouts.find(
+                                        (workout) =>
+                                          lookupTextMatches(
+                                            comment.assignedWorkoutId,
+                                            workout.id
+                                          ) ||
+                                          lookupTextMatches(
+                                            comment.assignedWorkoutId,
+                                            workout.assignedWorkoutId
+                                          )
+                                      );
+
+                                      if (matchingWorkout) {
+                                        openWorkout(matchingWorkout);
+                                      }
+                                    }}
+                                  >
+                                    <span>
+                                      {comment.date || "--"} /{" "}
+                                      {comment.workoutName ||
+                                        comment.exerciseNames[0] ||
+                                        "Workout"}
+                                    </span>
+                                    <strong>{comment.noteEn || comment.note}</strong>
+                                    {comment.noteEn && comment.noteEn !== comment.note ? (
+                                      <small>{comment.note}</small>
+                                    ) : null}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="outlineButton compactReviewButton"
+                                    disabled={
+                                      reviewingWorkoutCommentKey === comment.key
+                                    }
+                                    onClick={() =>
+                                      void markWorkoutCommentReviewed(comment)
+                                    }
+                                  >
+                                    {reviewingWorkoutCommentKey === comment.key
+                                      ? "Saving"
+                                      : "Reviewed"}
+                                  </button>
+                                </article>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="homeEmptyText">
+                              No new workout comments.
+                            </p>
+                          )}
+                        </div>
                       </div>
                     )}
                   </section>
@@ -9895,10 +10249,52 @@ function App() {
                                 <time>
                                   {normalizeDate(String(workout.scheduledDate)) || "--"}
                                 </time>
+                                {workout.clientNotes ? (
+                                  <small>{workout.clientNotes}</small>
+                                ) : null}
                               </button>
                             ))
                           ) : (
                             <p className="homeEmptyText">No workout submissions yet.</p>
+                          )}
+                        </div>
+
+                        <div className="submissionCategory">
+                          <h3>Reviewed Comments</h3>
+                          {recentReviewedWorkoutComments.length > 0 ? (
+                            recentReviewedWorkoutComments.map((comment) => (
+                              <button
+                                className="submissionSummaryButton"
+                                key={comment.key}
+                                onClick={() => {
+                                  const matchingWorkout = workouts.find(
+                                    (workout) =>
+                                      lookupTextMatches(
+                                        comment.assignedWorkoutId,
+                                        workout.id
+                                      ) ||
+                                      lookupTextMatches(
+                                        comment.assignedWorkoutId,
+                                        workout.assignedWorkoutId
+                                      )
+                                  );
+
+                                  if (matchingWorkout) openWorkout(matchingWorkout);
+                                }}
+                              >
+                                <span>
+                                  {comment.workoutName ||
+                                    comment.exerciseNames[0] ||
+                                    "Workout"}
+                                </span>
+                                <time>{comment.date || "--"}</time>
+                                <small>{comment.noteEn || comment.note}</small>
+                              </button>
+                            ))
+                          ) : (
+                            <p className="homeEmptyText">
+                              No reviewed workout comments yet.
+                            </p>
                           )}
                         </div>
 
@@ -13565,6 +13961,50 @@ function App() {
                 </button>
               </div>
             </div>
+          </div>
+        )}
+
+        {showNotificationsPanel && (
+          <div className="notificationsPanel">
+            <div className="notificationsPanelHeader">
+              <h3>Notifications</h3>
+              <button
+                className="drawerClose"
+                onClick={() => setShowNotificationsPanel(false)}
+              >
+                ×
+              </button>
+            </div>
+            {notificationsLoading ? (
+              <div className="notificationsPanelEmpty">Loading...</div>
+            ) : notifications.length === 0 ? (
+              <div className="notificationsPanelEmpty">
+                <Bell size={32} strokeWidth={1.2} />
+                <p>No notifications yet.</p>
+                <small>
+                  When clients are assigned workouts, submit check-ins, or complete programs, notifications will appear here.
+                </small>
+              </div>
+            ) : (
+              <div className="notificationsList">
+                {notifications
+                  .slice()
+                  .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                  .map((n) => (
+                    <div
+                      className={`notificationItem ${n.read ? "notificationRead" : "notificationUnread"}`}
+                      key={n.id}
+                    >
+                      <div className="notificationItemDot" />
+                      <div>
+                        <strong>{n.title}</strong>
+                        <p>{n.body}</p>
+                        <small>{new Date(n.createdAt).toLocaleDateString()}</small>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            )}
           </div>
         )}
       </main>

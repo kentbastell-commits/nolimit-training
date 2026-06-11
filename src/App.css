@@ -6789,6 +6789,83 @@ body {
   margin-top: 12px;
 }
 
+.workoutCommentQueueCard {
+  background: #111;
+  border-color: #111;
+  color: #f7f2e6;
+}
+
+.workoutCommentQueueCard .snapshotAttentionHeader span {
+  color: #f4df94;
+}
+
+.workoutCommentQueueCard .snapshotAttentionHeader strong {
+  background: #f4df94;
+  color: #111;
+}
+
+.workoutCommentQueue {
+  display: grid;
+  gap: 10px;
+  max-height: 330px;
+  margin-top: 12px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.workoutCommentReviewItem {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: stretch;
+}
+
+.workoutCommentReviewItem > button:first-child {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  border: 1px solid rgba(244, 223, 148, 0.26);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.07);
+  color: #f7f2e6;
+  padding: 10px 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.workoutCommentReviewItem > button:first-child:hover {
+  border-color: #f4df94;
+  box-shadow: 0 10px 24px rgba(244, 223, 148, 0.14);
+}
+
+.workoutCommentReviewItem span {
+  color: #f4df94;
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.workoutCommentReviewItem strong {
+  color: #fff;
+  font-size: 14px;
+  font-weight: 950;
+}
+
+.workoutCommentReviewItem small {
+  color: #ddd6c7;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.compactReviewButton {
+  min-height: 0;
+  border-radius: 10px;
+  padding: 0 12px;
+  white-space: nowrap;
+}
+
 .attentionTaskRow {
   display: flex;
   align-items: center;
@@ -7332,13 +7409,87 @@ body {
   font-size: 13px;
 }
 
+.workoutCommentQueueCard {
+  background: #111;
+  border-color: #111;
+}
+
+.workoutCommentQueueCard .snapshotAttentionHeader span {
+  color: #d9d3c4;
+}
+
+.workoutCommentQueueCard .snapshotAttentionHeader strong {
+  background: #f4df94;
+  color: #111;
+}
+
+.workoutCommentQueue {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+  max-height: 330px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.workoutCommentReviewItem {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: stretch;
+  border: 1px solid rgba(244, 223, 148, 0.22);
+  border-radius: 12px;
+  background: #191917;
+  padding: 10px;
+}
+
+.workoutCommentReviewItem > button:first-child {
+  border: 0;
+  background: transparent;
+  color: #fff;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+}
+
+.workoutCommentReviewItem span {
+  display: block;
+  color: #d9d3c4;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.workoutCommentReviewItem strong {
+  display: block;
+  margin-top: 5px;
+  color: #fff;
+  font-size: 15px;
+  line-height: 1.35;
+}
+
+.workoutCommentReviewItem small {
+  display: block;
+  margin-top: 5px;
+  color: #b9b3a6;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.compactReviewButton {
+  min-height: 44px;
+  padding: 0 14px;
+  white-space: nowrap;
+}
+
 .submissionsHomePanel {
   grid-column: span 2;
 }
 
 .submissionList {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 14px;
 }
 
@@ -7360,6 +7511,7 @@ body {
 .submissionSummaryButton {
   width: 100%;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 14px;
@@ -7394,6 +7546,14 @@ body {
   font-size: 12px;
   font-weight: 850;
   white-space: nowrap;
+}
+
+.submissionSummaryButton small {
+  flex-basis: 100%;
+  color: #6f6a61;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.35;
 }
 
 .submissionCardTop {
@@ -9868,4 +10028,259 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   .storeContact {
     padding: 28px 20px;
   }
+}
+
+/* ── Revenue Dashboard ──────────────────────────────────── */
+
+.revenuePage {
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 1100px;
+}
+
+.revenueStatGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.revenueStat {
+  border: 1px solid rgba(212, 175, 55, 0.25);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.45);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.revenueStat span {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(212, 175, 55, 0.6);
+}
+
+.revenueStat strong {
+  font-size: 28px;
+  font-weight: 800;
+  color: #f5d77b;
+  line-height: 1;
+}
+
+.revenueStat small {
+  font-size: 12px;
+  color: #777;
+}
+
+.revenueChartCard {
+  border: 1px solid rgba(212, 175, 55, 0.2);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.45);
+  padding: 24px;
+}
+
+.revenueChartCard h3 {
+  margin: 0 0 20px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #f5d77b;
+  letter-spacing: 0.05em;
+}
+
+.revenueBottomGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.revenueTableCard {
+  border: 1px solid rgba(212, 175, 55, 0.2);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.45);
+  padding: 20px;
+}
+
+.revenueTableCard h3 {
+  margin: 0 0 16px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #f5d77b;
+  letter-spacing: 0.05em;
+}
+
+.revenueTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.revenueTable th {
+  text-align: left;
+  color: #888;
+  font-weight: 600;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.1);
+}
+
+.revenueTable td {
+  padding: 9px 0;
+  color: #ddd;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.revenueTable tr:last-child td {
+  border-bottom: none;
+}
+
+@media (max-width: 700px) {
+  .revenueStatGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .revenueBottomGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Notifications ──────────────────────────────────────── */
+
+.topbarRight {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.notificationsBell {
+  position: relative;
+  background: none;
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  border-radius: 8px;
+  color: #f7e4a3;
+  padding: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.notificationsBadge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: #d4af37;
+  color: #000;
+  font-size: 10px;
+  font-weight: 800;
+  border-radius: 999px;
+  min-width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 3px;
+}
+
+.notificationsPanel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100vh;
+  width: 340px;
+  background: #0e0a04;
+  border-left: 1px solid rgba(212, 175, 55, 0.25);
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  box-shadow: -8px 0 40px rgba(0, 0, 0, 0.5);
+}
+
+.notificationsPanelHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 20px 16px;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.15);
+}
+
+.notificationsPanelHeader h3 {
+  margin: 0;
+  color: #f5d77b;
+  font-size: 16px;
+}
+
+.notificationsPanelEmpty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 40px 24px;
+  color: #666;
+  text-align: center;
+}
+
+.notificationsPanelEmpty p {
+  margin: 0;
+  color: #888;
+  font-size: 15px;
+}
+
+.notificationsPanelEmpty small {
+  color: #555;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.notificationsList {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+
+.notificationItem {
+  display: flex;
+  gap: 12px;
+  padding: 14px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.notificationUnread {
+  background: rgba(212, 175, 55, 0.04);
+}
+
+.notificationItemDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #d4af37;
+  flex-shrink: 0;
+  margin-top: 5px;
+}
+
+.notificationRead .notificationItemDot {
+  background: #444;
+}
+
+.notificationItem strong {
+  font-size: 13px;
+  color: #f5d77b;
+  display: block;
+  margin-bottom: 3px;
+}
+
+.notificationItem p {
+  font-size: 12px;
+  color: #999;
+  margin: 0 0 4px;
+  line-height: 1.4;
+}
+
+.notificationItem small {
+  font-size: 11px;
+  color: #555;
 }
