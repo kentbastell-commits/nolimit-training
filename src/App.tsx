@@ -5545,6 +5545,9 @@ function App() {
   const programProductReadyForSale =
     programProductChecklist.length > 0 &&
     programProductReadyCount === programProductChecklist.length;
+  const isSingleWorkoutBuilder = builderMode === "Single Workout";
+  const showDigitalProductSettings =
+    !isSingleWorkoutBuilder && programProductType === "Digital Program";
 
   const getClientProgramScheduledWorkouts = (
     sessions = clientProgramSessions
