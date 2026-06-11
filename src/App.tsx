@@ -796,6 +796,7 @@ function App() {
   const [inviteClientId, setInviteClientId] = useState("");
   const [inviteLang, setInviteLang] = useState<"en" | "zh">("en");
   const [storeLang, setStoreLang] = useState<"en" | "zh">("en");
+  const [programsLoading, setProgramsLoading] = useState(false);
   const [newClient, setNewClient] = useState({
     name: "",
     email: "",
@@ -1794,6 +1795,7 @@ function App() {
   };
 
   const loadPrograms = async () => {
+    setProgramsLoading(true);
     try {
       const res = await fetch("/api/programs");
       const data = await res.json();
@@ -1813,6 +1815,8 @@ function App() {
       console.error(err);
       setPrograms([]);
       return [];
+    } finally {
+      setProgramsLoading(false);
     }
   };
 
@@ -6176,7 +6180,7 @@ function App() {
             </p>
           </div>
 
-          {loading ? (
+          {programsLoading ? (
             <div className="storeLoading">
               {sZh ? "加载中..." : "Loading programs..."}
             </div>
