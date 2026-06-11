@@ -379,6 +379,7 @@ body {
   max-width: 1180px;
   margin: 0 auto;
   color: #151515;
+  padding-bottom: 104px;
 }
 
 .clientPortalApp .clientPage {
@@ -391,35 +392,39 @@ body {
 
 .clientPortalApp .mobileClientBottomNav {
   position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  left: 50%;
+  right: auto;
+  bottom: 14px;
+  transform: translateX(-50%);
+  width: min(620px, calc(100vw - 32px));
   z-index: 1200;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 4px;
-  padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
-  border-top: 1px solid rgba(22, 22, 22, 0.1);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  padding: 6px;
+  border: 1px solid rgba(22, 22, 22, 0.1);
+  border-radius: 16px;
   background: rgba(255, 253, 248, 0.96);
-  box-shadow: 0 -14px 32px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 14px 40px rgba(18, 18, 18, 0.16);
   backdrop-filter: blur(16px);
 }
 
 .clientPortalApp .mobileClientBottomNav button {
-  min-height: 58px;
+  min-height: 46px;
   border: 0;
-  border-radius: 8px;
+  border-radius: 12px;
   background: transparent;
   color: #151515;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
   justify-content: center;
-  gap: 3px;
-  padding: 7px 4px;
-  font-size: 11px;
+  gap: 6px;
+  padding: 8px 10px;
+  font-size: 12px;
   line-height: 1.1;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .clientPortalApp .mobileClientBottomNav button.active {
@@ -4336,6 +4341,34 @@ body {
     padding-bottom: calc(74px + env(safe-area-inset-bottom));
   }
 
+  .clientPortalApp .main {
+    padding-bottom: calc(104px + env(safe-area-inset-bottom));
+  }
+
+  .clientPortalApp .mobileClientBottomNav {
+    left: 0;
+    right: 0;
+    bottom: 0;
+    transform: none;
+    width: auto;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 4px;
+    padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+    border-right: 0;
+    border-bottom: 0;
+    border-left: 0;
+    border-radius: 0;
+    box-shadow: 0 -14px 32px rgba(0, 0, 0, 0.12);
+  }
+
+  .clientPortalApp .mobileClientBottomNav button {
+    min-height: 56px;
+    flex-direction: column;
+    gap: 3px;
+    padding: 7px 4px;
+    font-size: 10px;
+  }
+
   .app:not(.clientPortalApp) {
     display: block;
     min-height: 100dvh;
@@ -4486,7 +4519,7 @@ body {
     bottom: 0;
     z-index: 1200;
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 4px;
     padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
     border-top: 1px solid rgba(212, 175, 55, 0.32);
@@ -8971,5 +9004,73 @@ textarea {
   .coachTableHeader,
   .coachTableRow {
     min-width: 980px;
+  }
+}
+
+/* Final client portal navigation sizing */
+.clientPortalApp .main,
+.clientPortalApp .clientWorkspace {
+  padding-bottom: 112px !important;
+}
+
+.clientPortalApp .mobileClientBottomNav {
+  left: 50% !important;
+  right: auto !important;
+  bottom: 14px !important;
+  transform: translateX(-50%) !important;
+  width: min(620px, calc(100vw - 32px)) !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 6px !important;
+  padding: 6px !important;
+  border: 1px solid #deded8 !important;
+  border-radius: 16px !important;
+  background: rgba(255, 255, 255, 0.96) !important;
+  box-shadow: 0 14px 40px rgba(18, 18, 18, 0.16) !important;
+}
+
+.clientPortalApp .mobileClientBottomNav button {
+  min-height: 46px !important;
+  flex-direction: row !important;
+  gap: 6px !important;
+  padding: 8px 10px !important;
+  border-radius: 12px !important;
+  font-size: 12px !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+}
+
+.clientPortalApp .mobileClientBottomNav button svg {
+  width: 18px !important;
+  height: 18px !important;
+}
+
+@media (max-width: 720px) {
+  .clientPortalApp .main,
+  .clientPortalApp .clientWorkspace {
+    padding-bottom: calc(104px + env(safe-area-inset-bottom)) !important;
+  }
+
+  .clientPortalApp .mobileClientBottomNav {
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    transform: none !important;
+    width: auto !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 4px !important;
+    padding: 8px 8px calc(8px + env(safe-area-inset-bottom)) !important;
+    border-right: 0 !important;
+    border-bottom: 0 !important;
+    border-left: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: 0 -14px 32px rgba(0, 0, 0, 0.12) !important;
+  }
+
+  .clientPortalApp .mobileClientBottomNav button {
+    min-height: 56px !important;
+    flex-direction: column !important;
+    gap: 3px !important;
+    padding: 7px 4px !important;
+    font-size: 10px !important;
   }
 }
