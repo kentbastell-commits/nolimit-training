@@ -1225,6 +1225,172 @@ body {
   margin: 0;
 }
 
+.pendingActivationSection {
+  background: rgba(212, 175, 55, 0.06);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.pendingActivationHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.pendingActivationHeader span {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #d4af37;
+  opacity: 0.8;
+}
+
+.pendingActivationHeader h3 {
+  margin: 2px 0 0;
+  font-size: 16px;
+}
+
+.pendingActivationHeader strong {
+  font-size: 22px;
+  color: #d4af37;
+}
+
+.pendingActivationBody {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.85fr) minmax(0, 1.6fr);
+  gap: 18px;
+}
+
+.pendingActivationList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pendingOrderCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+
+.pendingOrderInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pendingOrderInfo strong {
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pendingOrderInfo span {
+  font-size: 12px;
+  opacity: 0.6;
+}
+
+.pendingOrderInfo small {
+  font-size: 11px;
+  opacity: 0.45;
+}
+
+.portalSharePanel {
+  background: rgba(212, 175, 55, 0.08);
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  border-radius: 10px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.portalShareHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.portalShareHeader span {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #d4af37;
+}
+
+.portalShareDismiss {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.4);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 0;
+}
+
+.portalShareDismiss:hover {
+  color: white;
+}
+
+.portalShareClientName {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.portalShareLinkRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.portalShareUrl {
+  flex: 1;
+  font-size: 11px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 6px 10px;
+  color: #d4af37;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.portalShareMessage {
+  width: 100%;
+  min-height: 90px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: white;
+  font-size: 13px;
+  line-height: 1.5;
+  resize: none;
+  cursor: text;
+  box-sizing: border-box;
+}
+
+.portalShareHint {
+  font-size: 11px;
+  opacity: 0.45;
+  margin: 0;
+}
+
 .orderReviewWorkspace {
   display: grid;
   grid-template-columns: minmax(260px, 0.85fr) minmax(0, 1.6fr);
@@ -3356,6 +3522,64 @@ body {
   padding: 16px;
 }
 
+.exerciseDetailMeta {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.exerciseDetailMeta span {
+  display: grid;
+  gap: 4px;
+  border: 1px solid rgba(212, 175, 55, 0.22);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 10px 12px;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.exerciseDetailMeta strong {
+  color: #f5d77b;
+  font-size: 10px;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.exerciseCueSections {
+  display: grid;
+  gap: 12px;
+}
+
+.exerciseCueSections section {
+  border: 1px solid rgba(212, 175, 55, 0.18);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.18);
+  padding: 14px;
+}
+
+.exerciseCueSections h3 {
+  margin: 0 0 8px;
+  color: #f5d77b;
+  font-size: 16px;
+  font-weight: 950;
+}
+
+.exerciseCueSections ul {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding-left: 18px;
+}
+
+.exerciseCueSections li {
+  color: #fff;
+  line-height: 1.5;
+}
+
 .technicalCueBody pre {
   margin: 0;
   white-space: pre-wrap;
@@ -3367,6 +3591,19 @@ body {
 .technicalCueBody p {
   color: #aaa;
   margin: 0;
+}
+
+.cueDraftActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: -2px 0 10px;
+}
+
+.cueDraftActions .outlineButton {
+  min-height: 38px;
+  padding: 8px 12px;
+  font-size: 13px;
 }
 
 .clientFormGrid {
@@ -8667,6 +8904,29 @@ body {
   background: #f7f3e8 !important;
 }
 
+.app:not(.clientPortalApp) .exerciseDetailMeta span {
+  border-color: #d8d2c4 !important;
+  background: #fffdf8 !important;
+  color: var(--nl-ink) !important;
+}
+
+.app:not(.clientPortalApp) .exerciseDetailMeta strong {
+  color: #7a5a0a !important;
+}
+
+.app:not(.clientPortalApp) .exerciseCueSections section {
+  border-color: #d8d2c4 !important;
+  background: #fffdf8 !important;
+}
+
+.app:not(.clientPortalApp) .exerciseCueSections h3 {
+  color: var(--nl-ink) !important;
+}
+
+.app:not(.clientPortalApp) .exerciseCueSections li {
+  color: #201f1b !important;
+}
+
 .app:not(.clientPortalApp) .technicalCueBody pre {
   color: #111 !important;
   font-size: 16px;
@@ -9449,6 +9709,14 @@ textarea {
     grid-template-columns: 1fr;
   }
 
+  .exerciseDetailMeta {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .cueDraftActions .outlineButton {
+    flex: 1 1 160px;
+  }
+
   .clientPortalApp .calendarHeader {
     align-items: center;
   }
@@ -10200,6 +10468,204 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   text-align: center;
   width: 100%;
   display: block;
+}
+
+.storeRegForm {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  margin-top: 4px;
+}
+
+.storeRegLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: #d4af37;
+  margin: 0 0 4px;
+  text-align: center;
+  line-height: 1.4;
+}
+
+.storeRegForm input {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: white;
+  font-size: 14px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.storeRegForm input::placeholder {
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.storeRegSuccess {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  margin-top: 8px;
+}
+
+.storeRegSuccessCheck {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(212, 175, 55, 0.2);
+  border: 2px solid #d4af37;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  color: #d4af37;
+}
+
+.storeRegSuccess p {
+  font-size: 13px;
+  text-align: center;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.storeRegSuccess a,
+.storeRegSuccess button {
+  width: 100%;
+  text-align: center;
+  text-decoration: none;
+  display: block;
+}
+
+/* Portal Welcome Screen */
+.portalWelcomeShell {
+  min-height: 100vh;
+  background: #080808;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.portalWelcome {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  max-width: 420px;
+  width: 100%;
+  padding: 40px 24px;
+  text-align: center;
+}
+
+.portalWelcomeBrand {
+  font-family: "Bebas Neue", sans-serif;
+  font-size: 28px;
+  letter-spacing: 0.12em;
+  color: #d4af37;
+}
+
+.portalWelcomeBrand span {
+  color: white;
+}
+
+.portalWelcomeCheck {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: rgba(212, 175, 55, 0.15);
+  border: 2px solid #d4af37;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  color: #d4af37;
+}
+
+.portalWelcome h1 {
+  font-size: 26px;
+  margin: 0;
+}
+
+.portalWelcomeProgramName {
+  font-size: 14px;
+  color: #d4af37;
+  font-weight: 600;
+  margin: 0;
+}
+
+.portalWelcomeSubtitle {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.6);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.portalWelcomeSpinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid rgba(212, 175, 55, 0.2);
+  border-top-color: #d4af37;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.portalWelcomeSteps {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+}
+
+.portalWelcomeStep {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+
+.portalWelcomeStep span {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(212, 175, 55, 0.15);
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: #d4af37;
+  flex-shrink: 0;
+}
+
+.portalWelcomeStep p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.portalWelcomeActions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.portalWelcomeActions a,
+.portalWelcomeActions button {
+  width: 100%;
+  text-align: center;
+  text-decoration: none;
 }
 
 .storeFooter {

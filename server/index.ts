@@ -3,7 +3,9 @@ import express from "express";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import activateDigitalOrder from "../api/activateDigitalOrder.ts";
 import analytics from "../api/analytics.ts";
+import autoLoadProgram from "../api/autoLoadProgram.ts";
 import assignContent from "../api/assignContent.ts";
 import assignProgram from "../api/assignProgram.ts";
 import checkIns from "../api/checkIns.ts";
@@ -48,7 +50,9 @@ const port = Number(process.env.PORT || 3001);
 app.use(express.json({ limit: "2mb" }));
 
 const handlers = {
+  activateDigitalOrder,
   analytics,
+  autoLoadProgram,
   assignContent,
   assignProgram,
   checkIns,

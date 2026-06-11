@@ -157,6 +157,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         equipment: fieldToText(fields["Equipment"]),
         equipmentCn: readFirstField(fields, ["Equipment CN"]),
         movementPattern: fieldToText(fields["Movement Pattern"]),
+        movementPatternCn: readFirstField(fields, ["Movement Pattern CN"]),
+        primaryMuscles: readFirstField(fields, [
+          "Primary Muscles",
+          "Primary Muscle",
+          "Muscles",
+        ]),
         primaryMusclesCn: readFirstField(fields, ["Primary Muscles CN"]),
         technicalInstructionsCn: readFirstField(fields, [
           "Technical Instructions CN",

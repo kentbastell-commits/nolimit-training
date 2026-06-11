@@ -285,6 +285,9 @@ type LibraryExercise = {
   equipment?: string;
   equipmentCn?: string;
   movementPattern?: string;
+  movementPatternCn?: string;
+  primaryMuscles?: string;
+  primaryMusclesCn?: string;
   technicalInstructionsCn?: string;
   coachingCuesCn?: string;
   commonMistakesCn?: string;
@@ -574,6 +577,162 @@ function composeExerciseNotes(
     .join("\n");
 }
 
+type ExerciseCueSection = {
+  title: string;
+  lines: string[];
+};
+
+function parseExerciseCueSections(notes = ""): ExerciseCueSection[] {
+  const meta = parseExerciseNotes(notes);
+  const cleanNotes = meta.coachingNotes.trim();
+
+  if (!cleanNotes) return [];
+
+  const sections: ExerciseCueSection[] = [];
+  let currentSection: ExerciseCueSection | null = null;
+
+  cleanNotes.split(/\r?\n/).forEach((line) => {
+    const trimmed = line.trim();
+    if (!trimmed) return;
+
+    const headingMatch = trimmed.match(/^([A-Za-z][A-Za-z\s/&-]{2,35}):\s*(.*)$/);
+
+    if (headingMatch) {
+      currentSection = {
+        title: headingMatch[1].trim(),
+        lines: headingMatch[2].trim() ? [headingMatch[2].trim()] : [],
+      };
+      sections.push(currentSection);
+      return;
+    }
+
+    const cleanLine = trimmed.replace(/^[-*•]\s*/, "");
+
+    if (!currentSection) {
+      currentSection = { title: "Coaching Notes", lines: [] };
+      sections.push(currentSection);
+    }
+
+    currentSection.lines.push(cleanLine);
+  });
+
+  return sections.filter((section) => section.lines.length > 0);
+}
+
+function buildExerciseCueDraft(
+  exercise: {
+    exerciseName: string;
+    category?: string;
+    equipment?: string;
+    movementPattern?: string;
+    trackingType: TrackingType;
+    isUnilateral: boolean;
+  }
+) {
+  const name = exercise.exerciseName.trim() || "Exercise";
+  const category = String(exercise.category || "").trim() || "General";
+  const equipment =
+    String(exercise.equipment || "").trim() || "Bodyweight or available equipment";
+  const pattern =
+    String(exercise.movementPattern || "").trim() || "General movement";
+  const limbNote = exercise.isUnilateral
+    ? "Track left and right sides separately when logging."
+    : "Track both sides together unless the coach notes otherwise.";
+
+  return [
+    `Technical Cues:`,
+    `- Start ${name} with a controlled setup and clear body position before every rep.`,
+    `- Keep the movement smooth and repeatable; prioritize quality before load or speed.`,
+    `- Use the assigned ${exercise.trackingType.toLowerCase()} target and stop the set if form breaks down.`,
+    ``,
+    `Setup:`,
+    `- Equipment: ${equipment}.`,
+    `- Category: ${category}. Movement pattern: ${pattern}.`,
+    `- Brace before initiating the rep and keep the working joints aligned.`,
+    ``,
+    `Execution:`,
+    `- Move through the intended range of motion with control.`,
+    `- Match the prescribed tempo and avoid rushing the hardest part of the movement.`,
+    `- ${limbNote}`,
+    ``,
+    `Common Mistakes:`,
+    `- Losing position to complete extra reps.`,
+    `- Moving too quickly and missing the intended training effect.`,
+    `- Changing range of motion from rep to rep.`,
+    ``,
+    `Safety Notes:`,
+    `- Stop if sharp pain, numbness, or unusual symptoms appear.`,
+    `- Reduce load, range, or speed if the client cannot keep stable positions.`,
+    ``,
+    `Regression:`,
+    `- Use a simpler variation, lighter load, shorter range, or slower pace.`,
+    ``,
+    `Progression:`,
+    `- Increase load, range, tempo demand, volume, or complexity only after consistent quality reps.`,
+    ``,
+    `Client Instructions:`,
+    `Focus on clean reps and steady control. Follow the prescribed ${exercise.trackingType.toLowerCase()} target, record your result, and leave a note if anything felt painful or unclear.`,
+  ].join("\n");
+}
+
+function buildExerciseAiPrompt(
+  exercise: {
+    exerciseName: string;
+    category?: string;
+    equipment?: string;
+    movementPattern?: string;
+    trackingType: TrackingType;
+    isUnilateral: boolean;
+  }
+) {
+  return [
+    "You are a professional strength and conditioning coach writing exercise instructions for climbers and general fitness clients.",
+    "",
+    "Create concise, practical technical coaching cues for a mobile training app. Use clear coaching language, not academic language. Prioritize safety, body position, breathing/bracing, tempo control, and common mistakes.",
+    "",
+    `Exercise Name: ${exercise.exerciseName || "Exercise"}`,
+    `Category: ${exercise.category || "General"}`,
+    `Equipment: ${exercise.equipment || "Not specified"}`,
+    `Movement Pattern: ${exercise.movementPattern || "Not specified"}`,
+    `Tracking Type: ${exercise.trackingType}`,
+    `Unilateral/Bilateral: ${exercise.isUnilateral ? "Unilateral" : "Bilateral"}`,
+    "",
+    "Return exactly this structure:",
+    "Technical Cues:",
+    "-",
+    "-",
+    "-",
+    "",
+    "Setup:",
+    "-",
+    "-",
+    "",
+    "Execution:",
+    "-",
+    "-",
+    "-",
+    "",
+    "Common Mistakes:",
+    "-",
+    "-",
+    "",
+    "Safety Notes:",
+    "-",
+    "",
+    "Regression:",
+    "-",
+    "",
+    "Progression:",
+    "-",
+    "",
+    "Client Instructions:",
+    "A short 2-3 sentence version for the client.",
+    "",
+    "Chinese Version:",
+    "Translate all sections into professional Simplified Chinese fitness terminology. Keep it natural for Chinese athletes, not literal translation.",
+  ].join("\n");
+}
+
 function dateToInputValue(date: Date) {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -744,6 +903,8 @@ function App() {
   const [orderProcessingId, setOrderProcessingId] = useState("");
   const [orderStartDates, setOrderStartDates] = useState<Record<string, string>>({});
   const [showManualOrderForm, setShowManualOrderForm] = useState(false);
+  const [activationPortalLink, setActivationPortalLink] = useState("");
+  const [activationClientName, setActivationClientName] = useState("");
   const [savingManualOrder, setSavingManualOrder] = useState(false);
   const [manualOrder, setManualOrder] = useState({
     clientName: "",
@@ -821,6 +982,13 @@ function App() {
   const [storeLang, setStoreLang] = useState<"en" | "zh">("en");
   const [programsLoading, setProgramsLoading] = useState(false);
   const [storeSelectedProgram, setStoreSelectedProgram] = useState<Program | null>(null);
+  const [storeRegName, setStoreRegName] = useState("");
+  const [storeRegPhone, setStoreRegPhone] = useState("");
+  const [storeRegistering, setStoreRegistering] = useState(false);
+  const [storeRegisteredCode, setStoreRegisteredCode] = useState("");
+  const [portalPostIntake, setPortalPostIntake] = useState(false);
+  const [portalAutoLoading, setPortalAutoLoading] = useState(false);
+  const [portalLoadedProgram, setPortalLoadedProgram] = useState("");
   const [newClient, setNewClient] = useState({
     name: "",
     email: "",
@@ -1765,6 +1933,34 @@ function App() {
       isUnilateral: meta.isUnilateral,
     });
     setShowExerciseModal(true);
+  };
+
+  const applyExerciseCueDraft = () => {
+    const draft = buildExerciseCueDraft(exerciseForm);
+    const currentNotes = exerciseForm.notes.trim();
+
+    setExerciseForm({
+      ...exerciseForm,
+      notes: currentNotes
+        ? `${currentNotes}\n\n--- Draft Cues ---\n${draft}`
+        : draft,
+    });
+    notify("Cue draft added. Review it before saving.", "success");
+  };
+
+  const copyExerciseAiPrompt = async () => {
+    const prompt = buildExerciseAiPrompt(exerciseForm);
+
+    try {
+      await navigator.clipboard.writeText(prompt);
+      notify("AI cue prompt copied. Paste it into Feishu AI or your AI tool.", "success");
+    } catch {
+      setExerciseForm({
+        ...exerciseForm,
+        notes: `${exerciseForm.notes.trim()}\n\n--- AI Prompt ---\n${prompt}`.trim(),
+      });
+      notify("Clipboard blocked. Prompt added to notes instead.", "info");
+    }
   };
 
   const closeExerciseForm = () => {
@@ -4191,6 +4387,35 @@ function App() {
     );
   });
 
+  const registerForProgram = async (program: Program) => {
+    if (!storeRegName.trim() || !storeRegPhone.trim()) {
+      notify("Please enter your name and WeChat ID.", "error");
+      return;
+    }
+    setStoreRegistering(true);
+    try {
+      const res = await fetch("/api/activateDigitalOrder", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clientName: storeRegName.trim(),
+          phone: storeRegPhone.trim(),
+          programId: program.programId,
+          programName: program.programName,
+          defaultIntakeFormId: program.defaultIntakeFormId || "",
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Registration failed");
+      setStoreRegisteredCode(data.clientCode);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Registration failed";
+      notify(msg, "error");
+    } finally {
+      setStoreRegistering(false);
+    }
+  };
+
   const addFormQuestion = () => {
     setFormQuestions((current) => [
       ...current,
@@ -4657,6 +4882,9 @@ function App() {
       status === "Program Ready"
     );
   });
+  const newOrdersQueue = visibleProductOrders.filter(
+    (order) => getOrderPipelineStatus(order) === "New Order"
+  );
   const getResponseGroups = (
     responses: ContentResponse[],
     assignments = contentAssignments
@@ -4898,6 +5126,8 @@ function App() {
         programName: getOrderProgram(order)?.programName || order.productName,
       });
       await loadClients();
+      setActivationClientName(client.name);
+      setActivationPortalLink(buildClientPortalLink(client));
       notify(`Intake assigned to ${client.name}.`, "success");
     } catch (error) {
       console.error(error);
@@ -5959,7 +6189,6 @@ function App() {
         return;
       }
 
-      notify("Assignment submitted.", "success");
       setContentAssignments((current) =>
         current.map((assignment) =>
           assignment.recordId === activeContentAssignment.recordId
@@ -5972,6 +6201,31 @@ function App() {
       setActiveContentAssignment(null);
       setContentAssignmentAnswers({});
       setContentAssignmentComment("");
+
+      // Auto-load program if client just submitted an intake in the portal
+      const isIntake = activeContentAssignment.assignmentType === "Questionnaire";
+      if (isClientPortal && isIntake && selectedClient) {
+        setPortalPostIntake(true);
+        setPortalAutoLoading(true);
+        try {
+          const loadRes = await fetch("/api/autoLoadProgram", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ clientRecordId: selectedClient.id }),
+          });
+          const loadData = await loadRes.json();
+          if (loadData.success && loadData.programName && !loadData.alreadyLoaded) {
+            setPortalLoadedProgram(loadData.programName);
+          }
+          void loadContentAssignments(selectedClient);
+        } catch {
+          // Silent — program loading can be retried by coach
+        } finally {
+          setPortalAutoLoading(false);
+        }
+      } else {
+        notify("Assignment submitted.", "success");
+      }
     } catch (error) {
       console.error(error);
       notify("Could not submit assignment.", "error");
@@ -6474,7 +6728,7 @@ function App() {
             return (
               <div
                 className="workout-modal-overlay"
-                onClick={() => setStoreSelectedProgram(null)}
+                onClick={() => { setStoreSelectedProgram(null); setStoreRegisteredCode(""); setStoreRegName(""); setStoreRegPhone(""); }}
               >
                 <div
                   className="storeProgramModal"
@@ -6482,7 +6736,7 @@ function App() {
                 >
                   <button
                     className="drawerClose"
-                    onClick={() => setStoreSelectedProgram(null)}
+                    onClick={() => { setStoreSelectedProgram(null); setStoreRegisteredCode(""); setStoreRegName(""); setStoreRegPhone(""); }}
                   >
                     ×
                   </button>
@@ -6503,22 +6757,64 @@ function App() {
 
                     <div className="storeProgramModalPayment">
                       <p className="storeProgramModalQrLabel">
-                        {sZh ? "扫码添加微信完成购买" : "Scan to pay via WeChat"}
+                        {sZh ? "步骤1：扫码付款" : "Step 1 — Pay via WeChat"}
                       </p>
                       <img
                         src="https://i.ibb.co/Y4nXVG4g/Weixin-Image-20260611202846-56-2.jpg"
                         alt="Kent WeChat QR"
                         className="storeProgramModalQr"
                       />
-                      <p className="storeProgramModalQrSub">
-                        {sZh ? "或点击下方开始咨询" : "or tap below to get in touch first"}
-                      </p>
-                      <a
-                        className="outlineButton storeProgramModalCta"
-                        href={`/?invite=client&package=Pending`}
-                      >
-                        {sZh ? "提交咨询" : "Get Started"}
-                      </a>
+
+                      {storeRegisteredCode ? (
+                        <div className="storeRegSuccess">
+                          <div className="storeRegSuccessCheck">✓</div>
+                          <p>{sZh ? "注册成功！打开您的训练门户：" : "You're registered! Open your training portal:"}</p>
+                          <a
+                            className="goldButton"
+                            href={`/?portal=client&client=${encodeURIComponent(storeRegisteredCode)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            {sZh ? "打开训练门户 →" : "Open My Training Portal →"}
+                          </a>
+                          <button
+                            className="outlineButton"
+                            onClick={() =>
+                              void copyToClipboard(
+                                `${window.location.origin}/?portal=client&client=${encodeURIComponent(storeRegisteredCode)}`,
+                                "Portal link"
+                              )
+                            }
+                          >
+                            {sZh ? "复制链接" : "Copy Link"}
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="storeRegForm">
+                          <p className="storeRegLabel">
+                            {sZh ? "步骤2：付款后注册获取训练门户" : "Step 2 — Register after paying to get your portal"}
+                          </p>
+                          <input
+                            placeholder={sZh ? "您的姓名" : "Your name"}
+                            value={storeRegName}
+                            onChange={(e) => setStoreRegName(e.target.value)}
+                          />
+                          <input
+                            placeholder={sZh ? "微信号" : "WeChat ID"}
+                            value={storeRegPhone}
+                            onChange={(e) => setStoreRegPhone(e.target.value)}
+                          />
+                          <button
+                            className="goldButton"
+                            disabled={storeRegistering || !storeRegName || !storeRegPhone}
+                            onClick={() => void registerForProgram(sp)}
+                          >
+                            {storeRegistering
+                              ? (sZh ? "处理中..." : "Setting up...")
+                              : (sZh ? "获取训练门户 →" : "Get My Training Portal →")}
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -6718,6 +7014,87 @@ function App() {
             </section>
           )}
         </main>
+      </div>
+    );
+  }
+
+  if (isClientPortal && portalPostIntake && selectedClient) {
+    const iZh = useChineseClientText;
+    const portalLink = `${window.location.origin}/?portal=client&client=${encodeURIComponent(selectedClient.clientCode || selectedClient.id)}`;
+    return (
+      <div className="clientPortalShell portalWelcomeShell">
+        <div className="toastStack">
+          {toasts.map((toast) => (
+            <div className={`toast toast-${toast.type}`} key={toast.id}>
+              {toast.message}
+            </div>
+          ))}
+        </div>
+        <section className="portalWelcome">
+          <div className="portalWelcomeBrand">
+            N<span>O</span> LIMIT
+          </div>
+
+          {portalAutoLoading ? (
+            <>
+              <h1>{iZh ? "正在加载您的训练计划..." : "Loading your program..."}</h1>
+              <p className="portalWelcomeSubtitle">
+                {iZh ? "请稍候，您的训练日历正在生成。" : "Please wait while your training calendar is being built."}
+              </p>
+              <div className="portalWelcomeSpinner" />
+            </>
+          ) : (
+            <>
+              <div className="portalWelcomeCheck">✓</div>
+              <h1>
+                {iZh
+                  ? `欢迎，${selectedClient.name.split(" ")[0]}！`
+                  : `You're all set, ${selectedClient.name.split(" ")[0]}!`}
+              </h1>
+              {portalLoadedProgram && (
+                <p className="portalWelcomeProgramName">
+                  {iZh ? `课程：${portalLoadedProgram}` : portalLoadedProgram}
+                </p>
+              )}
+              <p className="portalWelcomeSubtitle">
+                {iZh
+                  ? "您的训练计划已加载到日历中。打开训练门户查看您的日程安排。"
+                  : "Your training program has been added to your calendar. Open your portal to see your schedule."}
+              </p>
+              <div className="portalWelcomeSteps">
+                <div className="portalWelcomeStep">
+                  <span>1</span>
+                  <p>{iZh ? "保存您的个人门户链接" : "Save your personal portal link"}</p>
+                </div>
+                <div className="portalWelcomeStep">
+                  <span>2</span>
+                  <p>{iZh ? "查看您的训练日历" : "Check your training calendar"}</p>
+                </div>
+                <div className="portalWelcomeStep">
+                  <span>3</span>
+                  <p>{iZh ? "每次训练后记录您的成绩" : "Log your results after each session"}</p>
+                </div>
+              </div>
+              <div className="portalWelcomeActions">
+                <button
+                  className="goldButton"
+                  onClick={() => {
+                    setPortalPostIntake(false);
+                    setClientTab("Training");
+                  }}
+                >
+                  {iZh ? "查看我的训练计划 →" : "Open My Training Calendar →"}
+                </button>
+                <button
+                  className="outlineButton"
+                  onClick={() => void copyToClipboard(portalLink, "Portal link")}
+                >
+                  {iZh ? "复制门户链接" : "Copy My Portal Link"}
+                </button>
+              </div>
+            </>
+          )}
+        </section>
       </div>
     );
   }
@@ -7691,11 +8068,89 @@ function App() {
                   </section>
                 )}
 
+                {(newOrdersQueue.length > 0 || activationPortalLink) && (
+                  <section className="pendingActivationSection">
+                    <div className="pendingActivationHeader">
+                      <div>
+                        <span>Step 1 of 3</span>
+                        <h3>Pending Activation</h3>
+                      </div>
+                      <strong>{newOrdersQueue.length}</strong>
+                    </div>
+
+                    <div className="pendingActivationBody">
+                      <div className="pendingActivationList">
+                        {newOrdersQueue.length === 0 && (
+                          <p className="mutedText">No new orders pending.</p>
+                        )}
+                        {newOrdersQueue.map((order) => (
+                          <div className="pendingOrderCard" key={order.recordId}>
+                            <div className="pendingOrderInfo">
+                              <strong>{order.clientName || "Unnamed client"}</strong>
+                              <span>{order.productName || "Product"}</span>
+                              <small>{order.phone || order.email || "No contact"}</small>
+                            </div>
+                            <button
+                              className="goldButton"
+                              disabled={orderProcessingId === order.recordId}
+                              onClick={() => void assignOrderIntake(order)}
+                            >
+                              {orderProcessingId === order.recordId
+                                ? "Activating..."
+                                : "Activate"}
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+
+                      {activationPortalLink && (
+                        <div className="portalSharePanel">
+                          <div className="portalShareHeader">
+                            <span>Step 2 — Send to client via WeChat</span>
+                            <button
+                              className="portalShareDismiss"
+                              onClick={() => {
+                                setActivationPortalLink("");
+                                setActivationClientName("");
+                              }}
+                            >
+                              ✕
+                            </button>
+                          </div>
+                          <p className="portalShareClientName">
+                            {activationClientName}
+                          </p>
+                          <div className="portalShareLinkRow">
+                            <code className="portalShareUrl">{activationPortalLink}</code>
+                            <button
+                              className="goldButton"
+                              onClick={() =>
+                                void copyToClipboard(activationPortalLink, "Portal link")
+                              }
+                            >
+                              Copy Link
+                            </button>
+                          </div>
+                          <textarea
+                            className="portalShareMessage"
+                            readOnly
+                            value={`Hi ${activationClientName}, welcome to NoLimit Training! Please open your personal training portal and complete your intake form here:\n\n${activationPortalLink}`}
+                            onClick={(e) => (e.target as HTMLTextAreaElement).select()}
+                          />
+                          <p className="portalShareHint">
+                            Click the message above to select all, then copy and paste into WeChat.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </section>
+                )}
+
                 <section className="orderReviewWorkspace">
                   <div className="orderReviewQueue">
                     <div className="orderReviewHeader">
                       <div>
-                        <span>Coach Review</span>
+                        <span>Step 2 of 3 — Coach Review</span>
                         <h3>Intake Review Queue</h3>
                       </div>
                       <strong>{reviewQueueOrders.length}</strong>
@@ -12193,8 +12648,57 @@ function App() {
               </div>
 
               <div className="technicalCueBody">
-                {localizedExerciseNotes(technicalCueExercise) ? (
-                  <pre>{localizedExerciseNotes(technicalCueExercise)}</pre>
+                <div className="exerciseDetailMeta">
+                  <span>
+                    <strong>Category</strong>
+                    {localizeText(
+                      technicalCueExercise.category || "--",
+                      technicalCueExercise.categoryCn || ""
+                    )}
+                  </span>
+                  <span>
+                    <strong>Equipment</strong>
+                    {localizeText(
+                      technicalCueExercise.equipment || "--",
+                      technicalCueExercise.equipmentCn || ""
+                    )}
+                  </span>
+                  <span>
+                    <strong>Pattern</strong>
+                    {localizeText(
+                      technicalCueExercise.movementPattern || "--",
+                      technicalCueExercise.movementPatternCn || ""
+                    )}
+                  </span>
+                  <span>
+                    <strong>Record</strong>
+                    {parseExerciseNotes(technicalCueExercise.notes || "").trackingType}
+                  </span>
+                  <span>
+                    <strong>Limb</strong>
+                    {parseExerciseNotes(technicalCueExercise.notes || "").isUnilateral
+                      ? "Unilateral"
+                      : "Bilateral"}
+                  </span>
+                </div>
+
+                {parseExerciseCueSections(
+                  localizedExerciseNotes(technicalCueExercise)
+                ).length > 0 ? (
+                  <div className="exerciseCueSections">
+                    {parseExerciseCueSections(
+                      localizedExerciseNotes(technicalCueExercise)
+                    ).map((section) => (
+                      <section key={section.title}>
+                        <h3>{section.title}</h3>
+                        <ul>
+                          {section.lines.map((line, index) => (
+                            <li key={`${section.title}-${index}`}>{line}</li>
+                          ))}
+                        </ul>
+                      </section>
+                    ))}
+                  </div>
                 ) : (
                   <p>{t("noTechnicalCues")}</p>
                 )}
@@ -12642,6 +13146,22 @@ function App() {
 
                 <label className="clientNotesField">
                   <span>Form Instructions / Library Notes</span>
+                  <div className="cueDraftActions">
+                    <button
+                      className="outlineButton"
+                      type="button"
+                      onClick={applyExerciseCueDraft}
+                    >
+                      Generate Cue Draft
+                    </button>
+                    <button
+                      className="outlineButton"
+                      type="button"
+                      onClick={() => void copyExerciseAiPrompt()}
+                    >
+                      Copy AI Prompt
+                    </button>
+                  </div>
                   <textarea
                     value={exerciseForm.notes}
                     onChange={(e) =>
