@@ -795,6 +795,7 @@ function App() {
   const [inviteSubmitted, setInviteSubmitted] = useState(false);
   const [inviteClientId, setInviteClientId] = useState("");
   const [inviteLang, setInviteLang] = useState<"en" | "zh">("en");
+  const [storeLang, setStoreLang] = useState<"en" | "zh">("en");
   const [newClient, setNewClient] = useState({
     name: "",
     email: "",
@@ -1467,6 +1468,10 @@ function App() {
   };
 
   useEffect(() => {
+    if (isStorePage) {
+      void loadPrograms();
+      return;
+    }
     loadClients();
     loadCoaches();
     loadProductOrders();
@@ -4919,6 +4924,43 @@ function App() {
     return useChineseClientText && programNameCn ? programNameCn : program.programName;
   };
 
+  const programProductChecklist = [
+    {
+      label: "Digital product type",
+      complete: programProductType === "Digital Program",
+    },
+    {
+      label: "Price set",
+      complete: Number(programPrice) > 0 && Boolean(programCurrency),
+    },
+    {
+      label: "Access window set",
+      complete: Number(programAccessLengthDays) > 0,
+    },
+    {
+      label: "Default intake attached",
+      complete: Boolean(programDefaultIntakeFormId),
+    },
+    {
+      label: "Store visibility decided",
+      complete: Boolean(programPublicStoreVisible || programProductStatus !== "Active"),
+    },
+    {
+      label: "Sales description written",
+      complete: Boolean(programSalesDescription.trim()),
+    },
+    {
+      label: "Workout days saved",
+      complete: programSessions.length > 0,
+    },
+  ];
+  const programProductReadyCount = programProductChecklist.filter(
+    (item) => item.complete
+  ).length;
+  const programProductReadyForSale =
+    programProductChecklist.length > 0 &&
+    programProductReadyCount === programProductChecklist.length;
+
   const getClientProgramScheduledWorkouts = (
     sessions = clientProgramSessions
   ) => {
@@ -4944,6 +4986,23 @@ function App() {
         ...session,
         scheduledDate: normalizeDate(scheduledDate || defaultDate),
       };
+    });
+  };
+
+  const getClientProgramCalendarWorkouts = (program = selectedClientProgram) => {
+    if (!selectedClient || !program) return [];
+
+    return workouts.filter((workout) => {
+      const clientMatch =
+        lookupTextMatches(workout.clientId, selectedClient.clientCode) ||
+        lookupTextMatches(workout.clientId, selectedClient.id) ||
+        lookupTextMatches(workout.clientId, selectedClient.name);
+      const programMatch =
+        lookupTextMatches(workout.programId, program.programId) ||
+        lookupTextMatches(workout.programId, program.recordId) ||
+        lookupTextMatches(workout.programId, program.programName);
+
+      return clientMatch && programMatch;
     });
   };
 
@@ -5017,6 +5076,18 @@ function App() {
       return;
     }
 
+    const existingCalendarWorkouts =
+      getClientProgramCalendarWorkouts(programForAssignment);
+
+    if (existingCalendarWorkouts.length > 0) {
+      notify(
+        "This program is already loaded in your calendar. Open Calendar to edit dates.",
+        "info"
+      );
+      setClientTab("Training");
+      return;
+    }
+
     setPopulatingClientProgram(true);
 
     try {
@@ -5062,6 +5133,21 @@ function App() {
   const clientProgramWeekNumbers = Array.from(
     new Set(clientProgramSessions.map((session) => Number(session.week)))
   ).sort((a, b) => a - b);
+  const selectedClientProgramCalendarWorkouts =
+    getClientProgramCalendarWorkouts(selectedClientProgram);
+  const selectedClientProgramAlreadyLoaded =
+    selectedClientProgramCalendarWorkouts.length > 0;
+  const selectedClientProgramFirstDate =
+    selectedClientProgramCalendarWorkouts
+      .map((workout) => normalizeDate(String(workout.scheduledDate)))
+      .filter(Boolean)
+      .sort()[0] || "";
+  const selectedClientProgramSortedDates = selectedClientProgramCalendarWorkouts
+    .map((workout) => normalizeDate(String(workout.scheduledDate)))
+    .filter(Boolean)
+    .sort();
+  const selectedClientProgramLastDate =
+    selectedClientProgramSortedDates[selectedClientProgramSortedDates.length - 1] || "";
 
   const assignOrderProgram = async (order: ProductOrder) => {
     const availablePrograms = programs.length > 0 ? programs : await loadPrograms();
@@ -6033,7 +6119,6 @@ function App() {
 
   if (isStorePage) {
     const storePrograms = programs.filter((p) => p.publicStoreVisible);
-    const [storeLang, setStoreLang] = useState<"en" | "zh">("en");
     const sZh = storeLang === "zh";
 
     const formatPrice = (program: Program) => {
@@ -8073,6 +8158,38 @@ function App() {
                   />
                 </label>
 
+                <div
+                  className={`programProductReadiness ${
+                    programProductReadyForSale ? "readyForSale" : ""
+                  }`}
+                >
+                  <div className="programProductReadinessHeader">
+                    <div>
+                      <span>Product Setup</span>
+                      <h3>
+                        {programProductReadyForSale
+                          ? "Ready for external checkout"
+                          : "Prep this program for sale"}
+                      </h3>
+                    </div>
+                    <strong>
+                      {programProductReadyCount}/{programProductChecklist.length}
+                    </strong>
+                  </div>
+
+                  <div className="programProductChecklist">
+                    {programProductChecklist.map((item) => (
+                      <div
+                        key={item.label}
+                        className={item.complete ? "complete" : ""}
+                      >
+                        <span>{item.complete ? "Ready" : "Missing"}</span>
+                        <strong>{item.label}</strong>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
                 <div className="builderSectionHeader">
                   <div>
                     <h3 className="builderSectionTitle">Current Session</h3>
@@ -9913,7 +10030,7 @@ function App() {
                             </select>
                           </label>
 
-                          {selectedClientProgram && (
+                              {selectedClientProgram && (
                             <div className="clientProgramCard">
                               <div>
                                 <span>
@@ -9934,6 +10051,56 @@ function App() {
                             </div>
                           )}
                         </div>
+
+                        {selectedClientProgram && (
+                          <div
+                            className={`clientProgramDeliveryStatus ${
+                              selectedClientProgramAlreadyLoaded ? "loaded" : ""
+                            }`}
+                          >
+                            <div>
+                              <span>
+                                {selectedClientProgramAlreadyLoaded
+                                  ? "Calendar loaded"
+                                  : "Ready to schedule"}
+                              </span>
+                              <strong>{localizedProgramName(selectedClientProgram)}</strong>
+                              <p>
+                                {selectedClientProgramAlreadyLoaded
+                                  ? `${selectedClientProgramCalendarWorkouts.length} sessions on calendar${
+                                      selectedClientProgramFirstDate
+                                        ? ` from ${localizedCalendarLabel(
+                                            selectedClientProgramFirstDate
+                                          )}${
+                                            selectedClientProgramLastDate &&
+                                            selectedClientProgramLastDate !==
+                                              selectedClientProgramFirstDate
+                                              ? ` to ${localizedCalendarLabel(
+                                                  selectedClientProgramLastDate
+                                                )}`
+                                              : ""
+                                          }`
+                                        : ""
+                                    }.`
+                                  : "Choose how you want to place this program, preview the dates, then add it to the calendar."}
+                              </p>
+                            </div>
+
+                            <button
+                              type="button"
+                              className={
+                                selectedClientProgramAlreadyLoaded
+                                  ? "primaryButton"
+                                  : "outlineButton"
+                              }
+                              onClick={() => setClientTab("Training")}
+                            >
+                              {selectedClientProgramAlreadyLoaded
+                                ? t("calendar")
+                                : "Open Calendar"}
+                            </button>
+                          </div>
+                        )}
 
                         <div className="clientProgramScheduler">
                           <div>
@@ -10042,11 +10209,16 @@ function App() {
                                 type="button"
                                 className="primaryButton"
                                 onClick={populateClientProgramCalendar}
-                                disabled={populatingClientProgram}
+                                disabled={
+                                  populatingClientProgram ||
+                                  selectedClientProgramAlreadyLoaded
+                                }
                               >
-                                {populatingClientProgram
-                                  ? t("submitting")
-                                  : t("populateCalendar")}
+                                {selectedClientProgramAlreadyLoaded
+                                  ? "Already Loaded"
+                                  : populatingClientProgram
+                                    ? t("submitting")
+                                    : t("populateCalendar")}
                               </button>
                             </div>
                             <div className="clientProgramPreviewRows">
