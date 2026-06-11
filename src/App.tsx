@@ -6856,7 +6856,7 @@ function App() {
         <header className="storeHeader">
           <div className="storeBrand">
             <div className="brandWordmark">
-              N<span className="brandSlashO">O</span> LIMIT
+              <img src="/nl_monogram.png" alt="NL" className="brandMonogram" />
             </div>
             <div className="brandTagline">
               {sZh ? "训练为本，运动为灵。" : "BUILT FOR TRAINING. INSPIRED BY MOVEMENT."}
@@ -7255,7 +7255,7 @@ function App() {
         </div>
         <section className="portalWelcome">
           <div className="portalWelcomeBrand">
-            N<span>O</span> LIMIT
+            <img src="/nl_monogram.png" alt="NL" className="portalWelcomeMonogram" />
           </div>
 
           {portalAutoLoading ? (
@@ -7361,7 +7361,7 @@ function App() {
       <aside className="sidebar">
         <div className="brand">
           <div className="brandWordmark">
-            N<span className="brandSlashO">O</span> LIMIT
+            <img src="/nl_monogram.png" alt="NL" className="brandMonogram" />
           </div>
           <div className="brandTagline">BUILT FOR TRAINING.</div>
         </div>
