@@ -6879,8 +6879,12 @@ function App() {
 
         <header className="storeHeader">
           <div className="storeBrand">
-            <div className="brandWordmark">
-              <img src="/nl_monogram.png" alt="NL" className="brandMonogram" />
+            <div className="brandWordmark brandLogoLockup">
+              <img
+                src="/nl_wordmark_clean.png"
+                alt="NO LIMIT"
+                className="brandWordmarkImage"
+              />
             </div>
             <div className="brandTagline">
               {sZh ? "训练为本，运动为灵。" : "BUILT FOR TRAINING. INSPIRED BY MOVEMENT."}
@@ -7116,8 +7120,12 @@ function App() {
         <main className="inviteShell">
           <div className="inviteBrand">
             <div>
-              <div className="brandWordmark">
-                N<span className="brandSlashO">O</span> LIMIT
+              <div className="brandWordmark brandLogoLockup">
+                <img
+                  src="/nl_wordmark_clean.png"
+                  alt="NO LIMIT"
+                  className="brandWordmarkImage"
+                />
               </div>
               <div className="brandTagline">INSPIRED BY MOVEMENT.</div>
             </div>
@@ -7279,7 +7287,7 @@ function App() {
         </div>
         <section className="portalWelcome">
           <div className="portalWelcomeBrand">
-            <img src="/nl_monogram.png" alt="NL" className="portalWelcomeMonogram" />
+            <img src="/nl_monogram_clean.png" alt="NL" className="portalWelcomeMonogram" />
           </div>
 
           {portalAutoLoading ? (
@@ -7364,8 +7372,12 @@ function App() {
         </div>
 
         <section className="clientPortalEmpty">
-          <div className="brandWordmark">
-            N<span className="brandSlashO">O</span> LIMIT
+          <div className="brandWordmark brandLogoLockup">
+            <img
+              src="/nl_wordmark_clean.png"
+              alt="NO LIMIT"
+              className="brandWordmarkImage"
+            />
           </div>
           <h1>Client Portal</h1>
           <p>{portalMessage}</p>
@@ -7384,8 +7396,18 @@ function App() {
     >
       <aside className="sidebar">
         <div className="brand">
-          <div className="brandWordmark">
-            <img src="/nl_monogram.png" alt="NL" className="brandMonogram" />
+          <div className="brandWordmark brandLogoLockup">
+            <img
+              src="/nl_wordmark_clean.png"
+              alt="NO LIMIT"
+              className="brandWordmarkImage"
+            />
+            <img
+              src="/nl_monogram_clean.png"
+              alt=""
+              aria-hidden="true"
+              className="brandCollapsedMonogram"
+            />
           </div>
           <div className="brandTagline">BUILT FOR TRAINING.</div>
         </div>
