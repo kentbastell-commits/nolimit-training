@@ -262,7 +262,16 @@ type ExerciseNoteMeta = {
   isAccessory: boolean;
   accessoryParentLabel: string;
   accessoryColor: string;
+  setPrescriptions: ExerciseSetPrescription[];
   coachingNotes: string;
+};
+
+type ExerciseSetPrescription = {
+  setNumber: number;
+  reps: string;
+  load: string;
+  tempo: string;
+  rest: string;
 };
 
 type WorkoutHistoryLog = {
@@ -334,6 +343,7 @@ type ProgramExercise = {
   isAccessory?: boolean;
   accessoryParentLabel?: string;
   accessoryColor?: string;
+  setPrescriptions?: ExerciseSetPrescription[];
 };
 
 type BuilderLibraryMode = "Exercises" | "Sections";
@@ -562,6 +572,7 @@ function parseExerciseNotes(notes = ""): ExerciseNoteMeta {
     isAccessory: false,
     accessoryParentLabel: "",
     accessoryColor: "Green",
+    setPrescriptions: [],
     coachingNotes: "",
   };
   const remainingLines: string[] = [];
@@ -569,7 +580,7 @@ function parseExerciseNotes(notes = ""): ExerciseNoteMeta {
   lines.forEach((line) => {
     const trimmed = line.trim();
     const match = trimmed.match(
-      /^(Section|Label|Superset|Circuit|Tracking|Unilateral|Accessory|Accessory Parent|Accessory Color):\s*(.+)$/i
+      /^(Section|Label|Superset|Circuit|Tracking|Unilateral|Accessory|Accessory Parent|Accessory Color|Set Prescriptions):\s*(.+)$/i
     );
 
     if (!match) {
@@ -596,6 +607,24 @@ function parseExerciseNotes(notes = ""): ExerciseNoteMeta {
     }
     if (key === "accessory parent") meta.accessoryParentLabel = value;
     if (key === "accessory color") meta.accessoryColor = value;
+    if (key === "set prescriptions") {
+      try {
+        const parsedSets = JSON.parse(value);
+        if (Array.isArray(parsedSets)) {
+          meta.setPrescriptions = parsedSets
+            .map((set, index) => ({
+              setNumber: Number(set?.setNumber) || index + 1,
+              reps: String(set?.reps || ""),
+              load: String(set?.load || ""),
+              tempo: String(set?.tempo || ""),
+              rest: String(set?.rest || ""),
+            }))
+            .filter((set) => set.setNumber > 0);
+        }
+      } catch {
+        remainingLines.push(line);
+      }
+    }
     if (key === "superset" || key === "circuit") {
       meta.groupType = key === "superset" ? "Superset" : "Circuit";
       meta.groupName = value;
@@ -1259,6 +1288,9 @@ function App() {
   const [pendingSectionName, setPendingSectionName] = useState("Main");
   const [customBuilderSectionName, setCustomBuilderSectionName] = useState("");
   const [isWorkoutArrangementOpen, setIsWorkoutArrangementOpen] = useState(false);
+  const [arrangementDragIndex, setArrangementDragIndex] = useState<number | null>(
+    null
+  );
   const [formTemplateName, setFormTemplateName] = useState("Weekly Check-in");
   const [formTemplateType, setFormTemplateType] = useState("Check-in");
   const [formQuestions, setFormQuestions] = useState([
@@ -3042,7 +3074,7 @@ function App() {
           });
         }
 
-        sessions.get(key)?.exercises.push({
+        const baseExercise: ProgramExercise = {
           exerciseRecordId: "",
           exerciseId: template.exerciseId,
           exerciseName: template.exerciseName,
@@ -3061,7 +3093,9 @@ function App() {
           isUnilateral: false,
           groupType: "Straight",
           groupName: "",
-        });
+        };
+
+        sessions.get(key)?.exercises.push(withNormalizedSetFields(baseExercise));
 
         return sessions;
       }, new Map<string, ProgramSession>())
@@ -3294,7 +3328,7 @@ function App() {
             exercises: exercises.map((exercise, index) => {
               const meta = parseExerciseNotes(exercise.notes);
 
-              return {
+              const baseExercise: ProgramExercise = {
                 exerciseRecordId: "",
                 exerciseId: exercise.exerciseId,
                 exerciseName: exercise.exerciseName,
@@ -3314,7 +3348,10 @@ function App() {
                 isAccessory: meta.isAccessory,
                 accessoryParentLabel: meta.accessoryParentLabel,
                 accessoryColor: meta.accessoryColor,
+                setPrescriptions: meta.setPrescriptions,
               };
+
+              return withNormalizedSetFields(baseExercise);
             }),
           };
         })
@@ -4156,6 +4193,86 @@ function App() {
     return match ? match[0].toUpperCase() : "";
   };
 
+  const normalizeBuilderSection = (sectionName?: string) =>
+    String(sectionName || "Main").trim() || "Main";
+
+  const isWarmupSection = (sectionName?: string) => {
+    const clean = normalizeBuilderSection(sectionName).toLowerCase();
+    return clean.includes("warm") || clean.includes("prep");
+  };
+
+  const getLabelColorClass = (label?: string, sectionName?: string) => {
+    if (isWarmupSection(sectionName)) return "labelWarmup";
+    const group = getExerciseLabelGroup(label);
+    if (group.startsWith("A")) return "labelA";
+    if (group.startsWith("B")) return "labelB";
+    if (group.startsWith("C")) return "labelC";
+    if (group.startsWith("D")) return "labelD";
+    return "labelDefault";
+  };
+
+  const renderExerciseLabelBadge = (exercise: ProgramExercise, index: number) => {
+    if (isWarmupSection(exercise.sectionName)) {
+      return (
+        <span className="exerciseLabelBadge exerciseLabelBadgeWarmup">
+          {index + 1}
+        </span>
+      );
+    }
+
+    return (
+      <span
+        className={`exerciseLabelBadge ${getLabelColorClass(
+          exercise.exerciseLabel,
+          exercise.sectionName
+        )}`}
+      >
+        {exercise.exerciseLabel || index + 1}
+      </span>
+    );
+  };
+
+  const makeSetPrescription = (
+    exercise: ProgramExercise,
+    setNumber: number,
+    source?: Partial<ExerciseSetPrescription>
+  ): ExerciseSetPrescription => ({
+    setNumber,
+    reps: String(source?.reps ?? exercise.reps ?? ""),
+    load: String(source?.load ?? exercise.load ?? ""),
+    tempo: String(source?.tempo ?? exercise.tempo ?? ""),
+    rest: String(source?.rest ?? exercise.rest ?? ""),
+  });
+
+  const normalizeExerciseSetPrescriptions = (
+    exercise: ProgramExercise
+  ): ExerciseSetPrescription[] => {
+    const setCount = Math.max(1, Number(exercise.sets) || 1);
+    const existing = Array.isArray(exercise.setPrescriptions)
+      ? exercise.setPrescriptions
+      : [];
+
+    return Array.from({ length: setCount }, (_, index) => {
+      const source = existing[index] || existing[existing.length - 1];
+      return makeSetPrescription(exercise, index + 1, source);
+    });
+  };
+
+  const withNormalizedSetFields = (exercise: ProgramExercise) => {
+    const setPrescriptions = normalizeExerciseSetPrescriptions(exercise);
+    const firstSet = setPrescriptions[0];
+
+    return {
+      ...exercise,
+      sets: String(setPrescriptions.length),
+      reps: firstSet?.reps ?? exercise.reps,
+      load: firstSet?.load ?? exercise.load,
+      tempo: firstSet?.tempo ?? exercise.tempo,
+      rest: firstSet?.rest ?? exercise.rest,
+      setPrescriptions,
+    };
+  };
+
   const toggleBuilderExerciseExpanded = (index: number) => {
     setExpandedBuilderExerciseIndexes((current) => {
       const next = new Set(current);
@@ -4196,9 +4313,169 @@ function App() {
   };
 
   const adjustProgramExerciseSets = (index: number, amount: number) => {
-    const currentSets = Number(selectedProgramExercises[index]?.sets) || 0;
-    const nextSets = Math.max(1, currentSets + amount);
-    updateProgramExercise(index, "sets", String(nextSets));
+    setSelectedProgramExercises((current) =>
+      current.map((exercise, itemIndex) => {
+        if (itemIndex !== index) return exercise;
+
+        const normalizedSets = normalizeExerciseSetPrescriptions(exercise);
+        const nextSetCount = Math.max(1, normalizedSets.length + amount);
+        const nextSets = [...normalizedSets];
+
+        if (amount > 0) {
+          const source = normalizedSets[0] || nextSets[nextSets.length - 1];
+          for (let setIndex = normalizedSets.length; setIndex < nextSetCount; setIndex += 1) {
+            nextSets.push(makeSetPrescription(exercise, setIndex + 1, source));
+          }
+        } else {
+          nextSets.length = nextSetCount;
+        }
+
+        return withNormalizedSetFields({
+          ...exercise,
+          sets: String(nextSetCount),
+          setPrescriptions: nextSets.map((set, setIndex) => ({
+            ...set,
+            setNumber: setIndex + 1,
+          })),
+        });
+      })
+    );
+  };
+
+  const addMultipleExerciseSets = (index: number, amount: number) => {
+    adjustProgramExerciseSets(index, Math.max(1, amount));
+  };
+
+  const updateExerciseSetPrescription = (
+    exerciseIndex: number,
+    setIndex: number,
+    field: keyof Omit<ExerciseSetPrescription, "setNumber">,
+    value: string
+  ) => {
+    setSelectedProgramExercises((current) =>
+      current.map((exercise, itemIndex) => {
+        if (itemIndex !== exerciseIndex) return exercise;
+
+        const nextSets = normalizeExerciseSetPrescriptions(exercise).map(
+          (set, currentSetIndex) =>
+            currentSetIndex === setIndex ? { ...set, [field]: value } : set
+        );
+
+        return withNormalizedSetFields({
+          ...exercise,
+          setPrescriptions: nextSets,
+        });
+      })
+    );
+  };
+
+  const renderSetPrescriptionTable = (
+    exercise: ProgramExercise,
+    exerciseIndex: number
+  ) => {
+    const setPrescriptions = normalizeExerciseSetPrescriptions(exercise);
+
+    return (
+      <div className="builderSetPrescriptionBlock">
+        <div className="builderSetTableHeader">
+          <span>Set</span>
+          <span>Load</span>
+          <span>Reps</span>
+          <span>Tempo</span>
+          <span>Rest</span>
+        </div>
+        {setPrescriptions.map((set, setIndex) => (
+          <div className="builderSetTableRow" key={`${exerciseIndex}-set-${setIndex}`}>
+            <strong>{set.setNumber}</strong>
+            <input
+              className="miniSearch"
+              value={set.load}
+              onChange={(event) =>
+                updateExerciseSetPrescription(
+                  exerciseIndex,
+                  setIndex,
+                  "load",
+                  event.target.value
+                )
+              }
+              placeholder="kg / % / RPE"
+            />
+            <input
+              className="miniSearch"
+              value={set.reps}
+              onChange={(event) =>
+                updateExerciseSetPrescription(
+                  exerciseIndex,
+                  setIndex,
+                  "reps",
+                  event.target.value
+                )
+              }
+              placeholder="Reps"
+            />
+            <input
+              className="miniSearch"
+              value={set.tempo}
+              onChange={(event) =>
+                updateExerciseSetPrescription(
+                  exerciseIndex,
+                  setIndex,
+                  "tempo",
+                  event.target.value
+                )
+              }
+              placeholder="Tempo"
+            />
+            <input
+              className="miniSearch"
+              value={set.rest}
+              onChange={(event) =>
+                updateExerciseSetPrescription(
+                  exerciseIndex,
+                  setIndex,
+                  "rest",
+                  event.target.value
+                )
+              }
+              placeholder="Rest"
+            />
+          </div>
+        ))}
+        <div className="builderSetTableActions">
+          <button
+            className="outlineButton compactBuilderButton"
+            onClick={() => adjustProgramExerciseSets(exerciseIndex, 1)}
+            type="button"
+          >
+            Add Set
+          </button>
+          <div className="builderSetAddMenu">
+            <button className="outlineButton compactBuilderButton" type="button">
+              +
+            </button>
+            <div className="builderSetAddMenuOptions">
+              {[2, 3, 4, 5, 6, 7, 8].map((amount) => (
+                <button
+                  key={amount}
+                  type="button"
+                  onClick={() => addMultipleExerciseSets(exerciseIndex, amount)}
+                >
+                  + {amount} Sets
+                </button>
+              ))}
+            </div>
+          </div>
+          <button
+            className="outlineButton compactBuilderButton"
+            onClick={() => adjustProgramExerciseSets(exerciseIndex, -1)}
+            disabled={setPrescriptions.length <= 1}
+            type="button"
+          >
+            Remove Set
+          </button>
+        </div>
+      </div>
+    );
   };
 
   const addExerciseToProgram = (exercise: LibraryExercise) => {
@@ -4207,18 +4484,20 @@ function App() {
       accessoryTargetIndex !== null
         ? selectedProgramExercises[accessoryTargetIndex]
         : null;
-    const newExercise: ProgramExercise = {
+    const exerciseSection =
+      parent?.sectionName ||
+      pendingSectionName ||
+      selectedProgramExercises[selectedProgramExercises.length - 1]?.sectionName ||
+      "Main";
+    const initialExercise: ProgramExercise = {
       exerciseRecordId: exercise.recordId,
       exerciseId: exercise.exerciseId,
       exerciseName: exercise.exerciseName,
       order: selectedProgramExercises.length + 1,
-      sectionName:
-        parent?.sectionName ||
-        pendingSectionName ||
-        selectedProgramExercises[selectedProgramExercises.length - 1]
-          ?.sectionName ||
-        "Main",
-      exerciseLabel: parent?.exerciseLabel || makeExerciseLabel(selectedProgramExercises.length),
+      sectionName: exerciseSection,
+      exerciseLabel: isWarmupSection(exerciseSection)
+        ? ""
+        : parent?.exerciseLabel || makeExerciseLabel(selectedProgramExercises.length),
       sets: parent ? "2" : "3",
       reps: parent ? "10" : "8",
       load: "",
@@ -4233,6 +4512,7 @@ function App() {
       accessoryParentLabel: parent?.exerciseLabel || "",
       accessoryColor: parent ? "Green" : "Gold",
     };
+    const newExercise = withNormalizedSetFields(initialExercise);
 
     if (parent && accessoryTargetIndex !== null) {
       const updated = [...selectedProgramExercises];
@@ -4273,10 +4553,15 @@ function App() {
   ) => {
     const updated = [...selectedProgramExercises];
 
-    updated[index] = {
+    const nextExercise = {
       ...updated[index],
       [field]: field === "order" ? Number(value) : value,
     };
+
+    updated[index] =
+      field === "sets" || field === "reps" || field === "load" || field === "tempo" || field === "rest"
+        ? withNormalizedSetFields(nextExercise)
+        : nextExercise;
 
     setSelectedProgramExercises(updated);
   };
@@ -4292,6 +4577,23 @@ function App() {
     const [movedExercise] = updated.splice(index, 1);
     updated.splice(targetIndex, 0, movedExercise);
 
+    setSelectedProgramExercises(normalizeProgramExerciseOrder(updated));
+  };
+
+  const reorderProgramExercise = (sourceIndex: number, targetIndex: number) => {
+    if (
+      sourceIndex === targetIndex ||
+      sourceIndex < 0 ||
+      targetIndex < 0 ||
+      sourceIndex >= selectedProgramExercises.length ||
+      targetIndex >= selectedProgramExercises.length
+    ) {
+      return;
+    }
+
+    const updated = [...selectedProgramExercises];
+    const [movedExercise] = updated.splice(sourceIndex, 1);
+    updated.splice(targetIndex, 0, movedExercise);
     setSelectedProgramExercises(normalizeProgramExerciseOrder(updated));
   };
 
@@ -4353,6 +4655,9 @@ function App() {
         ? `Accessory Parent: ${exercise.accessoryParentLabel}`
         : "",
       exercise.accessoryColor ? `Accessory Color: ${exercise.accessoryColor}` : "",
+      `Set Prescriptions: ${JSON.stringify(
+        normalizeExerciseSetPrescriptions(exercise)
+      )}`,
     ].filter(Boolean);
 
     return [...meta, exercise.coachingNotes].filter(Boolean).join("\n\n");
@@ -4397,7 +4702,7 @@ function App() {
       intensity: sessionIntensity,
       isSingleWorkout: builderMode === "Single Workout",
       exercises: selectedProgramExercises.map((exercise, index) => ({
-        ...exercise,
+        ...withNormalizedSetFields(exercise),
         order: Number(exercise.order) || index + 1,
       })),
     };
@@ -9957,25 +10262,22 @@ function App() {
                               ref={builderModalListRef}
                             >
                               {selectedProgramExercises.map((exercise, index) => {
-                                const currentGroup = getExerciseLabelGroup(
-                                  exercise.exerciseLabel || exercise.order
+                                const currentSection = normalizeBuilderSection(
+                                  exercise.sectionName
                                 );
-                                const previousGroup = getExerciseLabelGroup(
-                                  selectedProgramExercises[index - 1]?.exerciseLabel ||
-                                    selectedProgramExercises[index - 1]?.order
+                                const previousSection = normalizeBuilderSection(
+                                  selectedProgramExercises[index - 1]?.sectionName
                                 );
-                                const showGroupDivider =
-                                  index > 0 &&
-                                  currentGroup &&
-                                  currentGroup !== previousGroup;
+                                const showSectionDivider =
+                                  index === 0 || currentSection !== previousSection;
 
                                 return (
                                   <Fragment
                                     key={`${exercise.exerciseRecordId}-${index}-modal-wrap`}
                                   >
-                                    {showGroupDivider && (
-                                      <div className="builderExerciseGroupDivider">
-                                        <span>{currentGroup} exercises</span>
+                                    {showSectionDivider && (
+                                      <div className="builderExerciseSectionDivider">
+                                        <span>{currentSection}</span>
                                       </div>
                                     )}
                                     <div
@@ -9989,9 +10291,7 @@ function App() {
                                       }
                                     >
                                   <div className="builderModalExerciseHeader">
-                                    <span className="exerciseLabelBadge">
-                                      {exercise.exerciseLabel || index + 1}
-                                    </span>
+                                    {renderExerciseLabelBadge(exercise, index)}
                                     <div>
                                       <strong>{exercise.exerciseName}</strong>
                                       <small>{exercise.sectionName || "Main"}</small>
@@ -10031,89 +10331,6 @@ function App() {
                                         }
                                       />
                                     </label>
-                                    <label>
-                                      <span>Sets</span>
-                                      <div className="builderSetStepper">
-                                        <button
-                                          onClick={() =>
-                                            adjustProgramExerciseSets(index, -1)
-                                          }
-                                          disabled={(Number(exercise.sets) || 1) <= 1}
-                                        >
-                                          -
-                                        </button>
-                                        <input
-                                          value={exercise.sets}
-                                          onChange={(e) =>
-                                            updateProgramExercise(
-                                              index,
-                                              "sets",
-                                              e.target.value
-                                            )
-                                          }
-                                        />
-                                        <button
-                                          onClick={() =>
-                                            adjustProgramExerciseSets(index, 1)
-                                          }
-                                        >
-                                          +
-                                        </button>
-                                      </div>
-                                    </label>
-                                    <label>
-                                      <span>Reps</span>
-                                      <input
-                                        value={exercise.reps}
-                                        onChange={(e) =>
-                                          updateProgramExercise(
-                                            index,
-                                            "reps",
-                                            e.target.value
-                                          )
-                                        }
-                                      />
-                                    </label>
-                                    <label>
-                                      <span>Load</span>
-                                      <input
-                                        value={exercise.load}
-                                        onChange={(e) =>
-                                          updateProgramExercise(
-                                            index,
-                                            "load",
-                                            e.target.value
-                                          )
-                                        }
-                                        placeholder="kg / % / RPE"
-                                      />
-                                    </label>
-                                    <label>
-                                      <span>Tempo</span>
-                                      <input
-                                        value={exercise.tempo}
-                                        onChange={(e) =>
-                                          updateProgramExercise(
-                                            index,
-                                            "tempo",
-                                            e.target.value
-                                          )
-                                        }
-                                      />
-                                    </label>
-                                    <label>
-                                      <span>Rest</span>
-                                      <input
-                                        value={exercise.rest}
-                                        onChange={(e) =>
-                                          updateProgramExercise(
-                                            index,
-                                            "rest",
-                                            e.target.value
-                                          )
-                                        }
-                                      />
-                                    </label>
                                     <label className="builderModalCheck">
                                       <span>Accessory</span>
                                       <input
@@ -10129,6 +10346,8 @@ function App() {
                                       />
                                     </label>
                                   </div>
+
+                                  {renderSetPrescriptionTable(exercise, index)}
 
                                   <div className="builderModalExerciseTools">
                                     <button
@@ -10233,12 +10452,23 @@ function App() {
                       <div className="builderArrangementList">
                         {selectedProgramExercises.map((exercise, index) => (
                           <div
-                            className="builderArrangementItem"
+                            className={`builderArrangementItem ${
+                              arrangementDragIndex === index ? "isDragging" : ""
+                            }`}
                             key={`${exercise.exerciseRecordId}-${index}-arrange`}
+                            draggable
+                            onDragStart={() => setArrangementDragIndex(index)}
+                            onDragOver={(event) => event.preventDefault()}
+                            onDrop={(event) => {
+                              event.preventDefault();
+                              if (arrangementDragIndex !== null) {
+                                reorderProgramExercise(arrangementDragIndex, index);
+                              }
+                              setArrangementDragIndex(null);
+                            }}
+                            onDragEnd={() => setArrangementDragIndex(null)}
                           >
-                            <span className="exerciseLabelBadge">
-                              {exercise.exerciseLabel || index + 1}
-                            </span>
+                            {renderExerciseLabelBadge(exercise, index)}
                             <div>
                               <strong>{exercise.exerciseName}</strong>
                               <small>{exercise.sectionName || "Main"}</small>
@@ -10290,21 +10520,18 @@ function App() {
 
                 {selectedProgramExercises.map((exercise, index) => {
                   const isExpanded = expandedBuilderExerciseIndexes.has(index);
-                  const currentGroup = getExerciseLabelGroup(
-                    exercise.exerciseLabel || exercise.order
+                  const currentSection = normalizeBuilderSection(exercise.sectionName);
+                  const previousSection = normalizeBuilderSection(
+                    selectedProgramExercises[index - 1]?.sectionName
                   );
-                  const previousGroup = getExerciseLabelGroup(
-                    selectedProgramExercises[index - 1]?.exerciseLabel ||
-                      selectedProgramExercises[index - 1]?.order
-                  );
-                  const showGroupDivider =
-                    index > 0 && currentGroup && currentGroup !== previousGroup;
+                  const showSectionDivider =
+                    index === 0 || currentSection !== previousSection;
 
                   return (
                     <Fragment key={`${exercise.exerciseRecordId}-${index}`}>
-                      {showGroupDivider && (
-                        <div className="builderExerciseGroupDivider pageDivider">
-                          <span>{currentGroup} exercises</span>
+                      {showSectionDivider && (
+                        <div className="builderExerciseSectionDivider pageDivider">
+                          <span>{currentSection}</span>
                         </div>
                       )}
                       <div
@@ -10320,9 +10547,7 @@ function App() {
                           type="button"
                         >
                           <div className="builderExerciseSummaryTitle">
-                            <span className="exerciseLabelBadge">
-                              {exercise.exerciseLabel || exercise.order}
-                            </span>
+                            {renderExerciseLabelBadge(exercise, index)}
                             <div>
                               <span className="exerciseSectionName">
                                 {exercise.sectionName || "Main"}
@@ -10366,19 +10591,6 @@ function App() {
                         {isExpanded && (
                           <>
                             <div className="builderExerciseActions compactPageActions">
-                              <button
-                                className="outlineButton compactBuilderButton"
-                                onClick={() => adjustProgramExerciseSets(index, -1)}
-                                disabled={(Number(exercise.sets) || 1) <= 1}
-                              >
-                                - Set
-                              </button>
-                              <button
-                                className="outlineButton compactBuilderButton"
-                                onClick={() => adjustProgramExerciseSets(index, 1)}
-                              >
-                                + Set
-                              </button>
                               <button
                                 className="outlineButton compactBuilderButton"
                                 onClick={() => moveProgramExercise(index, -1)}
@@ -10458,66 +10670,6 @@ function App() {
                         />
                       </label>
 
-                      <label>
-                        <span>Sets</span>
-                        <input
-                          className="miniSearch"
-                          value={exercise.sets}
-                          onChange={(e) =>
-                            updateProgramExercise(index, "sets", e.target.value)
-                          }
-                          placeholder="Sets"
-                        />
-                      </label>
-
-                      <label>
-                        <span>Reps</span>
-                        <input
-                          className="miniSearch"
-                          value={exercise.reps}
-                          onChange={(e) =>
-                            updateProgramExercise(index, "reps", e.target.value)
-                          }
-                          placeholder="Reps"
-                        />
-                      </label>
-
-                      <label>
-                        <span>Load</span>
-                        <input
-                          className="miniSearch"
-                          value={exercise.load}
-                          onChange={(e) =>
-                            updateProgramExercise(index, "load", e.target.value)
-                          }
-                          placeholder="70% / RPE 8 / 60kg"
-                        />
-                      </label>
-
-                      <label>
-                        <span>Tempo</span>
-                        <input
-                          className="miniSearch"
-                          value={exercise.tempo}
-                          onChange={(e) =>
-                            updateProgramExercise(index, "tempo", e.target.value)
-                          }
-                          placeholder="Tempo"
-                        />
-                      </label>
-
-                      <label>
-                        <span>Rest</span>
-                        <input
-                          className="miniSearch"
-                          value={exercise.rest}
-                          onChange={(e) =>
-                            updateProgramExercise(index, "rest", e.target.value)
-                          }
-                          placeholder="Rest"
-                        />
-                      </label>
-
                       <label className="builderCheckboxField">
                         <span>Accessory</span>
                         <input
@@ -10546,6 +10698,8 @@ function App() {
                         />
                       </label>
                     </div>
+
+                    {renderSetPrescriptionTable(exercise, index)}
 
                     <div className="builderGroupGrid">
                       <label>
