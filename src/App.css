@@ -10063,16 +10063,16 @@ body {
   transform: translateY(-1px);
 }
 
-.app:not(.clientPortalApp) .dangerIconButton,
-.clientPortalApp .dangerIconButton {
+.app:not(.clientPortalApp) .iconActionButton.dangerIconButton,
+.clientPortalApp .iconActionButton.dangerIconButton {
   background: #2b0d0b !important;
   border-color: #a73325 !important;
   color: #e05555 !important;
   box-shadow: 0 8px 18px rgba(167, 51, 37, 0.16);
 }
 
-.app:not(.clientPortalApp) .dangerIconButton:hover,
-.clientPortalApp .dangerIconButton:hover {
+.app:not(.clientPortalApp) .iconActionButton.dangerIconButton:hover,
+.clientPortalApp .iconActionButton.dangerIconButton:hover {
   background: #7f2118 !important;
   border-color: #7f2118 !important;
   color: #ffffff !important;
