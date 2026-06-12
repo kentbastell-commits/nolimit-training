@@ -9580,7 +9580,7 @@ function App() {
                     <span>Add</span>
                   </div>
 
-                  {builderExercises.slice(0, 8).map((exercise) => (
+                  {builderExercises.map((exercise) => (
                     <div
                       className="clientRow builderLibraryRow"
                       key={exercise.recordId || exercise.exerciseId}
@@ -9603,6 +9603,11 @@ function App() {
                       </button>
                     </div>
                   ))}
+                  {builderExercises.length === 0 && (
+                    <div className="builderLibraryEmpty">
+                      No exercises match this search.
+                    </div>
+                  )}
                 </div>
 
                 <h3 className="builderSectionTitle builderSectionTitleSpaced">

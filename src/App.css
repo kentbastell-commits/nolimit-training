@@ -2556,6 +2556,29 @@ body {
   padding: 22px;
 }
 
+.programBuilderPanel .builderLibraryTable {
+  max-height: min(660px, 68vh);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.programBuilderPanel .builderLibraryHeader {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: #0b0b09;
+  border-bottom: 1px solid rgba(245, 215, 123, 0.28);
+}
+
+.builderLibraryEmpty {
+  padding: 22px;
+  color: #aaa;
+  text-align: center;
+  border-top: 1px solid rgba(245, 215, 123, 0.16);
+}
+
 .builderPageTitle,
 .builderSectionTitle {
   color: #f5d77b;
