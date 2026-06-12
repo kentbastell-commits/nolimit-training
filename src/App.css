@@ -190,15 +190,6 @@ body {
     margin-bottom: 28px;
   }
 
-  .app:not(.clientPortalApp) .brandMonogram {
-    height: 34px;
-  }
-
-  .app:not(.clientPortalApp) .sidebar:hover .brandMonogram,
-  .app:not(.clientPortalApp) .sidebar:focus-within .brandMonogram {
-    height: 50px;
-  }
-
   .app:not(.clientPortalApp) .brandTagline,
   .app:not(.clientPortalApp) .coachBox,
   .app:not(.clientPortalApp) .navItem span,
@@ -242,14 +233,6 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.brandMonogram {
-  height: 52px;
-  width: auto;
-  display: block;
-  transition: height 180ms ease;
-  filter: drop-shadow(0 2px 8px rgba(212, 175, 55, 0.35));
 }
 
 .brandTagline {
@@ -6126,12 +6109,6 @@ body {
   transform: none;
 }
 
-.brandSlashO::after {
-  color: currentColor;
-  opacity: 0.85;
-  font-family: Inter, "Segoe UI", sans-serif;
-}
-
 .clientPortalApp {
   background: #f4f4f1;
   color: #111;
@@ -9636,22 +9613,6 @@ textarea {
   text-transform: uppercase;
   transform: rotate(-3deg);
   text-shadow: none;
-}
-
-.brandSlashO {
-  margin-inline: 4px;
-}
-
-.brandSlashO::after {
-  content: "";
-  left: 50%;
-  top: 50%;
-  width: 0.16em;
-  height: 1.08em;
-  border-radius: 999px;
-  background: currentColor;
-  transform: translate(-50%, -50%) rotate(24deg);
-  opacity: 0.88;
 }
 
 .brandTagline {
