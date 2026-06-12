@@ -3527,13 +3527,34 @@ body {
 }
 
 .currentSessionGrid {
-  grid-template-columns: minmax(80px, 0.55fr) minmax(80px, 0.55fr) minmax(180px, 1.4fr) minmax(130px, 0.8fr) minmax(130px, 0.8fr) minmax(120px, 0.65fr) minmax(180px, 1.4fr) auto;
+  grid-template-columns:
+    minmax(74px, 0.45fr)
+    minmax(74px, 0.45fr)
+    minmax(190px, 1.15fr)
+    minmax(170px, 1fr)
+    minmax(145px, 0.82fr)
+    minmax(135px, 0.76fr)
+    minmax(150px, 0.82fr)
+    minmax(240px, 1.35fr);
   align-items: end;
-  margin-bottom: 22px;
+  margin-bottom: 18px;
 }
 
 .currentSessionGrid.singleWorkoutSessionGrid {
-  grid-template-columns: minmax(150px, 1fr) minmax(150px, 1fr) minmax(140px, 0.8fr) minmax(180px, 1.2fr) auto;
+  grid-template-columns:
+    minmax(170px, 1fr)
+    minmax(150px, 0.85fr)
+    minmax(150px, 0.8fr)
+    minmax(260px, 1.4fr);
+}
+
+.currentSessionGrid label,
+.currentSessionGrid .miniSearch {
+  min-width: 0;
+}
+
+.sessionGoalField {
+  min-width: 220px;
 }
 
 .builderModeSegment {
@@ -3566,6 +3587,20 @@ body {
   justify-content: space-between;
   gap: 14px;
   margin-top: 24px;
+}
+
+.builderSessionHeaderActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+}
+
+.builderSessionHeaderActions .sessionSaveButton {
+  min-width: 128px;
+  min-height: 46px;
+  padding-inline: 18px;
 }
 
 .builderSessionHint {
@@ -12699,10 +12734,24 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   text-transform: uppercase !important;
 }
 
+.builderExerciseListToolbar span small {
+  display: block !important;
+  margin-top: 2px !important;
+  color: #111 !important;
+  font-size: 12px !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+}
+
 .builderExerciseListToolbar > div {
   display: flex !important;
   flex-wrap: wrap !important;
   gap: 8px !important;
+}
+
+.builderExerciseActionToolbar {
+  margin-top: 10px !important;
+  margin-bottom: 10px !important;
 }
 
 .app:not(.clientPortalApp) .builderExerciseCardCompact {

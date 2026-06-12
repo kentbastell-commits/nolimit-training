@@ -10084,14 +10084,22 @@ function App() {
                       </p>
                     )}
                   </div>
-                  {editingProgramSessionId && (
+                  <div className="builderSessionHeaderActions">
+                    {editingProgramSessionId && (
+                      <button
+                        className="outlineButton"
+                        onClick={() => clearCurrentProgramSession(false)}
+                      >
+                        Close Editor
+                      </button>
+                    )}
                     <button
-                      className="outlineButton"
-                      onClick={() => clearCurrentProgramSession(false)}
+                      className="goldButton sessionSaveButton"
+                      onClick={addCurrentSessionToProgram}
                     >
-                      Close Editor
+                      {isSingleWorkoutBuilder ? "Save" : "Save & Next"}
                     </button>
-                  )}
+                  </div>
                 </div>
 
                 <div
@@ -10101,7 +10109,7 @@ function App() {
                 >
                   {!isSingleWorkoutBuilder && (
                     <>
-                      <label>
+                      <label className="sessionWeekField">
                         <span>Week</span>
                         <input
                           value={programWeek}
@@ -10111,7 +10119,7 @@ function App() {
                         />
                       </label>
 
-                      <label>
+                      <label className="sessionDayField">
                         <span>Day</span>
                         <input
                           value={programDay}
@@ -10121,7 +10129,7 @@ function App() {
                         />
                       </label>
 
-                      <label>
+                      <label className="sessionNameField">
                         <span>Session Name</span>
                         <input
                           value={sessionName}
@@ -10131,7 +10139,7 @@ function App() {
                         />
                       </label>
 
-                      <label>
+                      <label className="sessionNameCnField">
                         <span>Session Name CN</span>
                         <input
                           value={sessionNameCn}
@@ -10143,7 +10151,7 @@ function App() {
                     </>
                   )}
 
-                  <label>
+                  <label className="sessionTypeField">
                     <span>Session Type</span>
                     <select
                       value={sessionType}
@@ -10162,7 +10170,7 @@ function App() {
                     </select>
                   </label>
 
-                  <label>
+                  <label className="sessionIntensityField">
                     <span>Intensity</span>
                     <select
                       value={sessionIntensity}
@@ -10177,7 +10185,7 @@ function App() {
                     </select>
                   </label>
 
-                  <label>
+                  <label className="sessionDurationField">
                     <span>Duration</span>
                     <input
                       value={sessionEstimatedDuration}
@@ -10188,7 +10196,7 @@ function App() {
                     />
                   </label>
 
-                  <label>
+                  <label className="sessionGoalField">
                     <span>Session Goal</span>
                     <input
                       value={sessionGoal}
@@ -10198,9 +10206,6 @@ function App() {
                     />
                   </label>
 
-                  <button className="goldButton" onClick={addCurrentSessionToProgram}>
-                    {isSingleWorkoutBuilder ? "Save" : "Save & Next"}
-                  </button>
                 </div>
 
                 <label className="builderSessionNotesField">
@@ -10212,35 +10217,6 @@ function App() {
                     rows={3}
                   />
                 </label>
-
-                <div className="builderWorkspaceHeader" id="builder-exercises">
-                  <div>
-                    <span className="eyebrow">Workout Canvas</span>
-                    <h3 className="builderSectionTitle">Current Session Exercises</h3>
-                    <p>
-                      Build the day by choosing a section, then adding exercises from
-                      the picker.
-                    </p>
-                  </div>
-
-                  <div className="builderWorkspaceActions">
-                    <span className="activeBuilderSectionPill">
-                      Active section: {pendingSectionName || "Main"}
-                    </span>
-                    <button
-                      className="outlineButton"
-                      onClick={() => openBuilderLibrary("Sections")}
-                    >
-                      + Add Section
-                    </button>
-                    <button
-                      className="goldButton"
-                      onClick={() => openBuilderLibrary("Exercises")}
-                    >
-                      + Add Exercise
-                    </button>
-                  </div>
-                </div>
 
                 {selectedProgramExercises.length === 0 && (
                   <div className="builderEmptyCanvas">
@@ -10607,9 +10583,24 @@ function App() {
                 )}
 
                 {selectedProgramExercises.length > 0 && (
-                  <div className="builderExerciseListToolbar">
-                    <span>{selectedProgramExercises.length} exercises</span>
+                  <div className="builderExerciseListToolbar builderExerciseActionToolbar">
+                    <span>
+                      {selectedProgramExercises.length} exercises
+                      <small>Active: {pendingSectionName || "Main"}</small>
+                    </span>
                     <div>
+                      <button
+                        className="outlineButton compactBuilderButton"
+                        onClick={() => openBuilderLibrary("Sections")}
+                      >
+                        + Section
+                      </button>
+                      <button
+                        className="goldButton compactBuilderButton"
+                        onClick={() => openBuilderLibrary("Exercises")}
+                      >
+                        + Exercise
+                      </button>
                       <button
                         className="outlineButton compactBuilderButton"
                         onClick={expandAllBuilderExercises}
