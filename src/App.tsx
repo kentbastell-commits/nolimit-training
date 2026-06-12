@@ -6936,10 +6936,14 @@ function App() {
                     onClick={() => setStoreSelectedProgram(program)}
                   >
                     {program.productImage && (
-                      <div
-                        className="storeCardImage"
-                        style={{ backgroundImage: `url(${program.productImage})` }}
-                      />
+                      <div className="storeCardImageFrame">
+                        <img
+                          src={program.productImage}
+                          alt={name}
+                          className="storeCardImage"
+                          loading="lazy"
+                        />
+                      </div>
                     )}
                     <div className="storeCardBody">
                       {program.productType && (
