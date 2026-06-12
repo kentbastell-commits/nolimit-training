@@ -4201,15 +4201,16 @@ function App() {
     return match ? match[0].toUpperCase() : "";
   };
 
-  const normalizeBuilderSection = (sectionName?: string) =>
-    String(sectionName || "Main").trim() || "Main";
+  function normalizeBuilderSection(sectionName?: string) {
+    return String(sectionName || "Main").trim() || "Main";
+  }
 
-  const isWarmupSection = (sectionName?: string) => {
+  function isWarmupSection(sectionName?: string) {
     const clean = normalizeBuilderSection(sectionName).toLowerCase();
     return clean.includes("warm") || clean.includes("prep");
-  };
+  }
 
-  const getLabelColorClass = (label?: string, sectionName?: string) => {
+  function getLabelColorClass(label?: string, sectionName?: string) {
     if (isWarmupSection(sectionName)) return "labelWarmup";
     const group = getExerciseLabelGroup(label);
     if (group.startsWith("A")) return "labelA";
@@ -4217,9 +4218,9 @@ function App() {
     if (group.startsWith("C")) return "labelC";
     if (group.startsWith("D")) return "labelD";
     return "labelDefault";
-  };
+  }
 
-  const renderExerciseLabelBadge = (exercise: ProgramExercise, index: number) => {
+  function renderExerciseLabelBadge(exercise: ProgramExercise, index: number) {
     if (isWarmupSection(exercise.sectionName)) {
       return (
         <span className="exerciseLabelBadge exerciseLabelBadgeWarmup">
@@ -4238,23 +4239,25 @@ function App() {
         {exercise.exerciseLabel || index + 1}
       </span>
     );
-  };
+  }
 
-  const makeSetPrescription = (
+  function makeSetPrescription(
     exercise: ProgramExercise,
     setNumber: number,
     source?: Partial<ExerciseSetPrescription>
-  ): ExerciseSetPrescription => ({
-    setNumber,
-    reps: String(source?.reps ?? exercise.reps ?? ""),
-    load: String(source?.load ?? exercise.load ?? ""),
-    tempo: String(source?.tempo ?? exercise.tempo ?? ""),
-    rest: String(source?.rest ?? exercise.rest ?? ""),
-  });
+  ): ExerciseSetPrescription {
+    return {
+      setNumber,
+      reps: String(source?.reps ?? exercise.reps ?? ""),
+      load: String(source?.load ?? exercise.load ?? ""),
+      tempo: String(source?.tempo ?? exercise.tempo ?? ""),
+      rest: String(source?.rest ?? exercise.rest ?? ""),
+    };
+  }
 
-  const normalizeExerciseSetPrescriptions = (
+  function normalizeExerciseSetPrescriptions(
     exercise: ProgramExercise
-  ): ExerciseSetPrescription[] => {
+  ): ExerciseSetPrescription[] {
     const setCount = Math.max(1, Number(exercise.sets) || 1);
     const existing = Array.isArray(exercise.setPrescriptions)
       ? exercise.setPrescriptions
@@ -4264,9 +4267,9 @@ function App() {
       const source = existing[index] || existing[existing.length - 1];
       return makeSetPrescription(exercise, index + 1, source);
     });
-  };
+  }
 
-  const withNormalizedSetFields = (exercise: ProgramExercise) => {
+  function withNormalizedSetFields(exercise: ProgramExercise) {
     const setPrescriptions = normalizeExerciseSetPrescriptions(exercise);
     const firstSet = setPrescriptions[0];
 
@@ -4279,7 +4282,7 @@ function App() {
       rest: firstSet?.rest ?? exercise.rest,
       setPrescriptions,
     };
-  };
+  }
 
   const toggleBuilderExerciseExpanded = (index: number) => {
     setExpandedBuilderExerciseIndexes((current) => {
