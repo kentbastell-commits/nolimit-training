@@ -13080,11 +13080,11 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
     white-space: nowrap !important;
   }
 
-  .app:not(.clientPortalApp) .desktopNavLabel {
+  .app:not(.clientPortalApp) .navItemLabel > .desktopNavLabel {
     display: none !important;
   }
 
-  .app:not(.clientPortalApp) .mobileNavLabel {
+  .app:not(.clientPortalApp) .navItemLabel > .mobileNavLabel {
     display: block !important;
   }
 
