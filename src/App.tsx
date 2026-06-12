@@ -1185,6 +1185,9 @@ function App() {
   const [updatingWorkoutDate, setUpdatingWorkoutDate] = useState(false);
   const [draggingWorkoutId, setDraggingWorkoutId] = useState("");
   const [draggingAssignmentId, setDraggingAssignmentId] = useState("");
+  const [clientCalendarWorkoutOrder, setClientCalendarWorkoutOrder] = useState<
+    Record<string, string[]>
+  >({});
   const [movingWorkoutId, setMovingWorkoutId] = useState("");
   const [movingAssignmentId, setMovingAssignmentId] = useState("");
   const [copiedCalendarItem, setCopiedCalendarItem] =
@@ -1831,6 +1834,22 @@ function App() {
       void i18n.changeLanguage(nextLanguage);
     }
   }, [i18n, isClientPortal, selectedClient]);
+
+  useEffect(() => {
+    if (!selectedClient) {
+      setClientCalendarWorkoutOrder({});
+      return;
+    }
+
+    try {
+      const savedOrder = window.localStorage.getItem(
+        getClientCalendarWorkoutOrderStorageKey(selectedClient)
+      );
+      setClientCalendarWorkoutOrder(savedOrder ? JSON.parse(savedOrder) : {});
+    } catch {
+      setClientCalendarWorkoutOrder({});
+    }
+  }, [selectedClient?.clientCode, selectedClient?.id]);
 
   useEffect(() => {
     const openDatePickerFromClick = (event: MouseEvent) => {
@@ -3953,6 +3972,7 @@ function App() {
     }
 
     const previousWorkouts = workouts;
+    const previousWorkoutOrder = clientCalendarWorkoutOrder;
 
     setMovingWorkoutId(workout.id);
     setWorkouts((prev) =>
@@ -3960,6 +3980,19 @@ function App() {
         item.id === workout.id ? { ...item, scheduledDate } : item
       )
     );
+    setClientCalendarWorkoutOrder((currentOrder) => {
+      const workoutKey = getCalendarWorkoutOrderKey(workout);
+      const nextOrder = { ...currentOrder };
+      nextOrder[currentDate] = (nextOrder[currentDate] || []).filter(
+        (key) => key !== workoutKey
+      );
+      nextOrder[scheduledDate] = [
+        ...(nextOrder[scheduledDate] || []).filter((key) => key !== workoutKey),
+        workoutKey,
+      ];
+      persistClientCalendarWorkoutOrder(nextOrder);
+      return nextOrder;
+    });
 
     try {
       await updateAssignedWorkoutScheduledDate(workout.id, scheduledDate);
@@ -3970,6 +4003,8 @@ function App() {
     } catch (error) {
       console.error(error);
       setWorkouts(previousWorkouts);
+      setClientCalendarWorkoutOrder(previousWorkoutOrder);
+      persistClientCalendarWorkoutOrder(previousWorkoutOrder);
       notify("Could not move workout. The calendar has been restored.");
     } finally {
       setMovingWorkoutId("");
@@ -6906,10 +6941,55 @@ function App() {
     setClientMonthAnchorDate((current) => addMonths(current, direction));
   };
 
+  function getClientCalendarWorkoutOrderStorageKey(client: Client) {
+    return `nolimit-client-calendar-workout-order-${
+      client.clientCode || client.id
+    }`;
+  }
+
+  function getCalendarWorkoutOrderKey(workout: Workout) {
+    return `workout:${workout.id}`;
+  }
+
+  function persistClientCalendarWorkoutOrder(nextOrder: Record<string, string[]>) {
+    if (!selectedClient) return;
+
+    try {
+      window.localStorage.setItem(
+        getClientCalendarWorkoutOrderStorageKey(selectedClient),
+        JSON.stringify(nextOrder)
+      );
+    } catch {
+      // Local ordering is a convenience layer; failing to persist should not block training.
+    }
+  }
+
+  function orderWorkoutsForDate(
+    dateString: string,
+    dayWorkouts: Workout[],
+    orderMap: Record<string, string[]> = clientCalendarWorkoutOrder
+  ) {
+    const savedOrder = orderMap[dateString] || [];
+
+    return dayWorkouts
+      .map((workout, originalIndex) => ({ workout, originalIndex }))
+      .sort((a, b) => {
+        const aIndex = savedOrder.indexOf(getCalendarWorkoutOrderKey(a.workout));
+        const bIndex = savedOrder.indexOf(getCalendarWorkoutOrderKey(b.workout));
+        const normalizedAIndex = aIndex === -1 ? Number.MAX_SAFE_INTEGER : aIndex;
+        const normalizedBIndex = bIndex === -1 ? Number.MAX_SAFE_INTEGER : bIndex;
+
+        return normalizedAIndex - normalizedBIndex || a.originalIndex - b.originalIndex;
+      })
+      .map(({ workout }) => workout);
+  }
+
   function getWorkoutsForDate(dateString: string) {
-    return workouts.filter(
+    const dayWorkouts = workouts.filter(
       (workout) => normalizeDate(String(workout.scheduledDate)) === dateString
     );
+
+    return orderWorkoutsForDate(dateString, dayWorkouts);
   }
 
   function getAssignmentsForDate(dateString: string) {
@@ -6922,6 +7002,68 @@ function App() {
 
   function getCalendarItemCountForDate(dateString: string) {
     return getWorkoutsForDate(dateString).length + getAssignmentsForDate(dateString).length;
+  }
+
+  function reorderClientCalendarWorkout(
+    dateString: string,
+    sourceWorkoutId: string,
+    targetWorkoutId: string
+  ) {
+    if (!isClientPortal || !dateString || sourceWorkoutId === targetWorkoutId) return;
+
+    setClientCalendarWorkoutOrder((currentOrder) => {
+      const dayWorkouts = workouts.filter(
+        (workout) => normalizeDate(String(workout.scheduledDate)) === dateString
+      );
+      const validKeys = dayWorkouts.map(getCalendarWorkoutOrderKey);
+      const baseOrder = [
+        ...(currentOrder[dateString] || []).filter((key) => validKeys.includes(key)),
+        ...validKeys.filter((key) => !(currentOrder[dateString] || []).includes(key)),
+      ];
+      const sourceKey = `workout:${sourceWorkoutId}`;
+      const targetKey = `workout:${targetWorkoutId}`;
+      const sourceIndex = baseOrder.indexOf(sourceKey);
+      const targetIndex = baseOrder.indexOf(targetKey);
+
+      if (sourceIndex === -1 || targetIndex === -1 || sourceIndex === targetIndex) {
+        return currentOrder;
+      }
+
+      const nextDayOrder = [...baseOrder];
+      const [movedKey] = nextDayOrder.splice(sourceIndex, 1);
+      nextDayOrder.splice(targetIndex, 0, movedKey);
+
+      const nextOrder = { ...currentOrder, [dateString]: nextDayOrder };
+      persistClientCalendarWorkoutOrder(nextOrder);
+      return nextOrder;
+    });
+  }
+
+  function handleClientCalendarWorkoutDrop(
+    event: DragEvent<HTMLElement>,
+    targetWorkout: Workout,
+    targetDate: string
+  ) {
+    if (!isClientPortal) return;
+
+    const sourceWorkoutId =
+      event.dataTransfer.getData("text/plain") || draggingWorkoutId;
+
+    if (!sourceWorkoutId || sourceWorkoutId === targetWorkout.id) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    const sourceWorkout = workouts.find((workout) => workout.id === sourceWorkoutId);
+    const sourceDate = normalizeDate(String(sourceWorkout?.scheduledDate || ""));
+
+    if (sourceWorkout && sourceDate && sourceDate !== targetDate) {
+      void moveWorkoutToDate(sourceWorkout, targetDate);
+      return;
+    }
+
+    reorderClientCalendarWorkout(targetDate, sourceWorkoutId, targetWorkout.id);
+    setDraggingWorkoutId("");
   }
 
   const handleOpenContentAssignment = async (assignment: ContentAssignment) => {
@@ -13476,6 +13618,22 @@ function App() {
                                 event.dataTransfer.effectAllowed = "move";
                                 setDraggingWorkoutId(workout.id);
                               }}
+                              onDragOver={(event) => {
+                                if (
+                                  !isClientPortal ||
+                                  !draggingWorkoutId ||
+                                  draggingWorkoutId === workout.id
+                                ) {
+                                  return;
+                                }
+
+                                event.preventDefault();
+                                event.stopPropagation();
+                                event.dataTransfer.dropEffect = "move";
+                              }}
+                              onDrop={(event) =>
+                                handleClientCalendarWorkoutDrop(event, workout, date)
+                              }
                               onDragEnd={() => setDraggingWorkoutId("")}
                               onContextMenu={(event) => {
                                 if (isClientPortal) return;
@@ -13661,6 +13819,25 @@ function App() {
                               event.dataTransfer.effectAllowed = "move";
                               setDraggingWorkoutId(workout.id);
                             }}
+                            onDragOver={(event) => {
+                              if (
+                                !draggingWorkoutId ||
+                                draggingWorkoutId === workout.id
+                              ) {
+                                return;
+                              }
+
+                              event.preventDefault();
+                              event.stopPropagation();
+                              event.dataTransfer.dropEffect = "move";
+                            }}
+                            onDrop={(event) =>
+                              handleClientCalendarWorkoutDrop(
+                                event,
+                                workout,
+                                calendarAnchorDate
+                              )
+                            }
                             onDragEnd={() => setDraggingWorkoutId("")}
                             onClick={() => openWorkout(workout)}
                           >
