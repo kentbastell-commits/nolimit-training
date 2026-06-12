@@ -4175,6 +4175,14 @@ function App() {
     }
   };
 
+  const setBuilderLibraryModeAndLoad = (mode: BuilderLibraryMode) => {
+    setBuilderLibraryMode(mode);
+
+    if (mode === "Exercises" && libraryExercises.length === 0 && !libraryLoading) {
+      void loadExerciseLibrary();
+    }
+  };
+
   const selectBuilderSection = (sectionName: string) => {
     const cleanSectionName = sectionName.trim();
 
@@ -10129,7 +10137,7 @@ function App() {
                             className={
                               builderLibraryMode === "Exercises" ? "active" : ""
                             }
-                            onClick={() => setBuilderLibraryMode("Exercises")}
+                            onClick={() => setBuilderLibraryModeAndLoad("Exercises")}
                           >
                             Exercises
                           </button>
@@ -10137,7 +10145,7 @@ function App() {
                             className={
                               builderLibraryMode === "Sections" ? "active" : ""
                             }
-                            onClick={() => setBuilderLibraryMode("Sections")}
+                            onClick={() => setBuilderLibraryModeAndLoad("Sections")}
                           >
                             Sections
                           </button>
@@ -10158,6 +10166,11 @@ function App() {
                         </div>
 
                         <div className="builderDrawerExerciseGrid">
+                          {libraryLoading && builderExercises.length === 0 && (
+                            <div className="builderLibraryEmpty">
+                              Loading exercises...
+                            </div>
+                          )}
                           {builderExercises.map((exercise) => (
                             <button
                               className="builderExercisePickCard"
@@ -10178,7 +10191,7 @@ function App() {
                               </small>
                             </button>
                           ))}
-                          {builderExercises.length === 0 && (
+                          {!libraryLoading && builderExercises.length === 0 && (
                             <div className="builderLibraryEmpty">
                               No exercises match this search.
                             </div>
@@ -10375,7 +10388,7 @@ function App() {
                                               ? null
                                               : index
                                           );
-                                          setBuilderLibraryMode("Exercises");
+                                          setBuilderLibraryModeAndLoad("Exercises");
                                           notify(
                                             accessoryTargetIndex === index
                                               ? "Accessory pick cancelled."
