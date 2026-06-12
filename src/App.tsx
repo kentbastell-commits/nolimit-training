@@ -1194,6 +1194,13 @@ function App() {
     useState<CopiedCalendarItem | null>(null);
   const [calendarActionMenu, setCalendarActionMenu] =
     useState<CalendarActionMenuState | null>(null);
+  const clientCalendarTouchDrag = useRef<{
+    workoutId: string;
+    date: string;
+    startY: number;
+    moved: boolean;
+  } | null>(null);
+  const suppressClientCalendarTouchClick = useRef(false);
   const calendarLongPressTimer = useRef<ReturnType<typeof setTimeout> | null>(
     null
   );
@@ -7064,6 +7071,69 @@ function App() {
 
     reorderClientCalendarWorkout(targetDate, sourceWorkoutId, targetWorkout.id);
     setDraggingWorkoutId("");
+  }
+
+  function startClientCalendarWorkoutTouch(
+    event: TouchEvent<HTMLElement>,
+    workout: Workout,
+    dateString: string
+  ) {
+    if (!isClientPortal) return;
+
+    const touch = event.touches[0];
+    clientCalendarTouchDrag.current = {
+      workoutId: workout.id,
+      date: dateString,
+      startY: touch.clientY,
+      moved: false,
+    };
+    setDraggingWorkoutId(workout.id);
+  }
+
+  function moveClientCalendarWorkoutTouch(event: TouchEvent<HTMLElement>) {
+    const touchDrag = clientCalendarTouchDrag.current;
+    if (!touchDrag) return;
+
+    const touch = event.touches[0];
+    if (Math.abs(touch.clientY - touchDrag.startY) > 10) {
+      touchDrag.moved = true;
+      event.preventDefault();
+    }
+  }
+
+  function endClientCalendarWorkoutTouch(event: TouchEvent<HTMLElement>) {
+    const touchDrag = clientCalendarTouchDrag.current;
+    clientCalendarTouchDrag.current = null;
+    setDraggingWorkoutId("");
+
+    if (!touchDrag?.moved) return;
+
+    suppressClientCalendarTouchClick.current = true;
+    window.setTimeout(() => {
+      suppressClientCalendarTouchClick.current = false;
+    }, 0);
+
+    const touch = event.changedTouches[0];
+    const targetElement = document
+      .elementFromPoint(touch.clientX, touch.clientY)
+      ?.closest("[data-client-calendar-workout-id]") as HTMLElement | null;
+    const targetWorkoutId = targetElement?.dataset.clientCalendarWorkoutId;
+    const targetDate = targetElement?.dataset.clientCalendarDate;
+
+    if (!targetWorkoutId || !targetDate || targetWorkoutId === touchDrag.workoutId) {
+      return;
+    }
+
+    const sourceWorkout = workouts.find(
+      (workout) => workout.id === touchDrag.workoutId
+    );
+
+    if (sourceWorkout && touchDrag.date !== targetDate) {
+      void moveWorkoutToDate(sourceWorkout, targetDate);
+      return;
+    }
+
+    reorderClientCalendarWorkout(targetDate, touchDrag.workoutId, targetWorkoutId);
   }
 
   const handleOpenContentAssignment = async (assignment: ContentAssignment) => {
@@ -13605,6 +13675,8 @@ function App() {
                                   : ""
                               }`}
                               key={workout.id}
+                              data-client-calendar-workout-id={workout.id}
+                              data-client-calendar-date={date}
                               draggable
                               role="button"
                               tabIndex={0}
@@ -13646,15 +13718,43 @@ function App() {
                               }}
                               onTouchStart={(event) => {
                                 event.stopPropagation();
+                                if (isClientPortal) {
+                                  startClientCalendarWorkoutTouch(
+                                    event,
+                                    workout,
+                                    date
+                                  );
+                                  return;
+                                }
                                 startCalendarLongPress(event, {
                                   kind: "item",
                                   item: { type: "workout", workout },
                                 });
                               }}
-                              onTouchMove={clearCalendarLongPress}
-                              onTouchEnd={clearCalendarLongPress}
-                              onTouchCancel={clearCalendarLongPress}
+                              onTouchMove={(event) => {
+                                if (isClientPortal) {
+                                  moveClientCalendarWorkoutTouch(event);
+                                  return;
+                                }
+                                clearCalendarLongPress();
+                              }}
+                              onTouchEnd={(event) => {
+                                if (isClientPortal) {
+                                  endClientCalendarWorkoutTouch(event);
+                                  return;
+                                }
+                                clearCalendarLongPress();
+                              }}
+                              onTouchCancel={() => {
+                                if (isClientPortal) {
+                                  clientCalendarTouchDrag.current = null;
+                                  setDraggingWorkoutId("");
+                                  return;
+                                }
+                                clearCalendarLongPress();
+                              }}
                               onClick={() => {
+                                if (suppressClientCalendarTouchClick.current) return;
                                 if (consumeCalendarLongPressClick()) return;
                                 openWorkout(workout);
                               }}
@@ -13812,6 +13912,8 @@ function App() {
                               movingWorkoutId === workout.id ? "movingWorkout" : ""
                             }`}
                             key={workout.id}
+                            data-client-calendar-workout-id={workout.id}
+                            data-client-calendar-date={calendarAnchorDate}
                             draggable
                             title="Drag to another date or tap to open"
                             onDragStart={(event) => {
@@ -14049,10 +14151,26 @@ function App() {
                                 event.dataTransfer.setData("text/plain", workout.id);
                                 event.dataTransfer.effectAllowed = "move";
                                 setDraggingWorkoutId(workout.id);
-                              }}
-                              onDragEnd={() => setDraggingWorkoutId("")}
-                              onClick={() => openWorkout(workout)}
-                            >
+                            }}
+                            onDragEnd={() => setDraggingWorkoutId("")}
+                            onTouchStart={(event) =>
+                              startClientCalendarWorkoutTouch(
+                                event,
+                                workout,
+                                calendarAnchorDate
+                              )
+                            }
+                            onTouchMove={moveClientCalendarWorkoutTouch}
+                            onTouchEnd={endClientCalendarWorkoutTouch}
+                            onTouchCancel={() => {
+                              clientCalendarTouchDrag.current = null;
+                              setDraggingWorkoutId("");
+                            }}
+                            onClick={() => {
+                              if (suppressClientCalendarTouchClick.current) return;
+                              openWorkout(workout);
+                            }}
+                          >
                               <div>
                                 <span>
                                   {t("program")} - {t("week")} {workout.week}, {t("day")} {workout.day}
