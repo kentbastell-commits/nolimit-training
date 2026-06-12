@@ -5223,7 +5223,7 @@ function App() {
     missing: coachVisibleClients.filter((client) => getCheckInAgeDays(client) === null).length,
   };
 
-  const menuItems: { name: Page; label: string; count: number; icon: LucideIcon }[] =
+  const menuItems: { name: Page; label: string; mobileLabel?: string; count: number; icon: LucideIcon }[] =
     [
       {
         name: "Clients",
@@ -5240,6 +5240,7 @@ function App() {
       {
         name: "Workouts",
         label: "Programming",
+        mobileLabel: "Build",
         count: workouts.length,
         icon: Dumbbell,
       },
@@ -5260,6 +5261,7 @@ function App() {
             {
               name: "Coaches" as Page,
               label: "Coaches",
+              mobileLabel: "Team",
               count: allCoaches.length,
               icon: Users,
             },
@@ -7957,7 +7959,10 @@ function App() {
               >
                 <span className="navItemLabel">
                   <NavIcon size={20} strokeWidth={2.2} />
-                  <span>{item.label}</span>
+                  <span className="desktopNavLabel">{item.label}</span>
+                  <span className="mobileNavLabel">
+                    {"mobileLabel" in item ? item.mobileLabel : item.label}
+                  </span>
                 </span>
                 <span className="badge">{item.count}</span>
               </button>
@@ -10482,12 +10487,41 @@ function App() {
                           </button>
                         </div>
                       </section>
+
+                      {selectedProgramExercises.length > 0 && (
+                        <aside className="builderArrangementSidebar builderModalOrderSidebar">
+                          <div className="builderArrangementSidebarHeader">
+                            <span className="eyebrow">Order</span>
+                            <h4>Exercise Order</h4>
+                          </div>
+                          <div className="builderArrangementSidebarList">
+                            {selectedProgramExercises.map((exercise, index) => (
+                              <div
+                                key={`${exercise.exerciseRecordId}-${index}-modal-sidebar`}
+                                className={`builderSidebarItem${arrangementDragIndex === index ? " isDragging" : ""}`}
+                                draggable
+                                onDragStart={() => setArrangementDragIndex(index)}
+                                onDragOver={(e) => e.preventDefault()}
+                                onDrop={(e) => {
+                                  e.preventDefault();
+                                  if (arrangementDragIndex !== null) {
+                                    reorderProgramExercise(arrangementDragIndex, index);
+                                  }
+                                  setArrangementDragIndex(null);
+                                }}
+                                onDragEnd={() => setArrangementDragIndex(null)}
+                              >
+                                <GripVertical size={13} className="sidebarDragHandle" />
+                                {renderExerciseLabelBadge(exercise, index)}
+                                <span className="sidebarItemName">{exercise.exerciseName}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </aside>
+                      )}
                     </div>
                   </div>
                 )}
-
-                <div className="builderWorkspaceCanvas">
-                <div className="builderExerciseColumn">
 
                 {selectedProgramExercises.length > 0 && (
                   <div className="builderExerciseListToolbar">
@@ -10530,7 +10564,18 @@ function App() {
                           exercise.groupType !== "Straight" ? "groupedExerciseCard" : ""
                         } ${exercise.isAccessory ? "accessoryExerciseCard" : ""} ${
                           accessoryTargetIndex === index ? "accessoryTargetCard" : ""
-                        }`}
+                        } ${arrangementDragIndex === index ? "isDraggingCard" : ""}`}
+                        draggable
+                        onDragStart={() => setArrangementDragIndex(index)}
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          if (arrangementDragIndex !== null) {
+                            reorderProgramExercise(arrangementDragIndex, index);
+                          }
+                          setArrangementDragIndex(null);
+                        }}
+                        onDragEnd={() => setArrangementDragIndex(null)}
                       >
                         <button
                           className="builderExerciseSummaryButton"
@@ -10828,40 +10873,6 @@ function App() {
                     </div>
                   </div>
                 )}
-                </div>{/* end builderExerciseColumn */}
-
-                {selectedProgramExercises.length > 0 && (
-                  <aside className="builderArrangementSidebar">
-                    <div className="builderArrangementSidebarHeader">
-                      <span className="eyebrow">Order</span>
-                      <h4>Exercise Order</h4>
-                    </div>
-                    <div className="builderArrangementSidebarList">
-                      {selectedProgramExercises.map((exercise, index) => (
-                        <div
-                          key={`${exercise.exerciseRecordId}-${index}-sidebar`}
-                          className={`builderSidebarItem${arrangementDragIndex === index ? " isDragging" : ""}`}
-                          draggable
-                          onDragStart={() => setArrangementDragIndex(index)}
-                          onDragOver={(e) => e.preventDefault()}
-                          onDrop={(e) => {
-                            e.preventDefault();
-                            if (arrangementDragIndex !== null) {
-                              reorderProgramExercise(arrangementDragIndex, index);
-                            }
-                            setArrangementDragIndex(null);
-                          }}
-                          onDragEnd={() => setArrangementDragIndex(null)}
-                        >
-                          <GripVertical size={13} className="sidebarDragHandle" />
-                          {renderExerciseLabelBadge(exercise, index)}
-                          <span className="sidebarItemName">{exercise.exerciseName}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </aside>
-                )}
-                </div>{/* end builderWorkspaceCanvas */}
 
                 <h3
                   className="builderSectionTitle builderSectionTitleSpaced"

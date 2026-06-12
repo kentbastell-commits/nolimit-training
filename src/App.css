@@ -121,14 +121,23 @@
 .builderLibraryDrawer {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(300px, 400px) 1fr;
-  width: min(1360px, calc(100vw - 48px));
+  grid-template-columns: minmax(280px, 360px) 1fr 180px;
+  width: min(1440px, calc(100vw - 48px));
   height: min(860px, calc(100dvh - 48px));
   overflow: hidden;
   border: 1px solid rgba(17, 17, 17, 0.12);
   border-radius: 22px;
   background: #fffdf8;
   box-shadow: 0 32px 90px rgba(0, 0, 0, 0.28);
+}
+
+.builderModalOrderSidebar {
+  position: static !important;
+  max-height: none !important;
+  border-radius: 0 !important;
+  border: 0 !important;
+  border-left: 1px solid rgba(17, 17, 17, 0.1) !important;
+  overflow-y: auto;
 }
 
 .builderLibraryDrawerSide {
@@ -808,6 +817,10 @@
     overflow-y: auto;
   }
 
+  .builderModalOrderSidebar {
+    display: none !important;
+  }
+
   .builderLibraryDrawerSide {
     border-right: 0;
     padding: 16px;
@@ -1137,6 +1150,10 @@ body {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.mobileNavLabel {
+  display: none;
 }
 
 .navItem.active {
@@ -12652,10 +12669,16 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 }
 
 .app:not(.clientPortalApp) .builderExerciseCardCompact {
-  margin-top: 10px !important;
-  border-radius: 14px !important;
-  padding: 12px !important;
+  margin-top: 6px !important;
+  border-radius: 10px !important;
+  padding: 8px 12px !important;
   background: #fffefa !important;
+  cursor: grab;
+}
+
+.app:not(.clientPortalApp) .builderExerciseCardCompact.isDraggingCard {
+  opacity: 0.5;
+  cursor: grabbing;
 }
 
 .builderExerciseSummaryButton {
@@ -12681,7 +12704,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 .builderExerciseSummaryTitle h3 {
   margin: 0 !important;
   color: #111 !important;
-  font-size: clamp(21px, 2vw, 30px) !important;
+  font-size: clamp(15px, 1.4vw, 20px) !important;
   line-height: 1.05 !important;
 }
 
@@ -12696,8 +12719,8 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   border-radius: 999px !important;
   background: #f3f0e7 !important;
   color: #363631 !important;
-  padding: 6px 10px !important;
-  font-size: 13px !important;
+  padding: 4px 8px !important;
+  font-size: 12px !important;
   font-weight: 900 !important;
 }
 
@@ -12707,8 +12730,8 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   border-radius: 999px !important;
   background: #fff !important;
   color: #111 !important;
-  padding: 8px 13px !important;
-  font-size: 13px !important;
+  padding: 5px 11px !important;
+  font-size: 12px !important;
   font-weight: 950 !important;
 }
 
@@ -12936,5 +12959,159 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   .builderSetTableRow input:nth-of-type(3),
   .builderSetTableRow input:nth-of-type(4) {
     grid-column: span 1 !important;
+  }
+}
+
+/* Coach mobile shell cleanup: final overrides */
+@media (max-width: 720px) {
+  .app:not(.clientPortalApp) .sidebar {
+    height: 0 !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: 0 !important;
+    overflow: visible !important;
+  }
+
+  .app:not(.clientPortalApp) .sidebar .brand,
+  .app:not(.clientPortalApp) .sidebar .brandWordmark,
+  .app:not(.clientPortalApp) .sidebar .brandWordmarkImage,
+  .app:not(.clientPortalApp) .sidebar .brandCollapsedMonogram,
+  .app:not(.clientPortalApp) .sidebar .brandTagline,
+  .app:not(.clientPortalApp) .coachBox,
+  .app:not(.clientPortalApp) .coachScopeControl {
+    display: none !important;
+  }
+
+  .app:not(.clientPortalApp) .main {
+    width: 100% !important;
+    padding: 14px 12px calc(118px + env(safe-area-inset-bottom)) !important;
+    overflow-x: hidden !important;
+  }
+
+  .app:not(.clientPortalApp) .topbar {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    align-items: start !important;
+    gap: 10px !important;
+    margin-bottom: 14px !important;
+  }
+
+  .app:not(.clientPortalApp) .topbar > div:first-child {
+    min-width: 0 !important;
+  }
+
+  .app:not(.clientPortalApp) .topbar h1 {
+    max-width: 100% !important;
+    margin: 0 !important;
+    color: #111 !important;
+    font-size: clamp(34px, 11vw, 46px) !important;
+    line-height: 0.92 !important;
+    overflow-wrap: anywhere !important;
+  }
+
+  .app:not(.clientPortalApp) .topbar p {
+    margin-top: 8px !important;
+    color: #464640 !important;
+    font-size: 15px !important;
+    line-height: 1.25 !important;
+  }
+
+  .app:not(.clientPortalApp) .topbarRight {
+    justify-self: end !important;
+  }
+
+  .app:not(.clientPortalApp) .topbarActions {
+    grid-column: 1 / -1 !important;
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+
+  .app:not(.clientPortalApp) .sidebar nav {
+    position: fixed !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    z-index: 1200 !important;
+    display: grid !important;
+    grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+    grid-auto-flow: initial !important;
+    grid-auto-columns: initial !important;
+    gap: 2px !important;
+    width: 100% !important;
+    overflow: visible !important;
+    padding: 7px 6px calc(7px + env(safe-area-inset-bottom)) !important;
+    border-top: 1px solid #d8d2c4 !important;
+    background: rgba(255, 253, 248, 0.98) !important;
+    box-shadow: 0 -14px 30px rgba(18, 18, 18, 0.14) !important;
+    backdrop-filter: blur(18px) !important;
+  }
+
+  .app:not(.clientPortalApp) .navItem {
+    min-width: 0 !important;
+    min-height: 54px !important;
+    width: 100% !important;
+    gap: 2px !important;
+    padding: 6px 2px !important;
+    border-radius: 13px !important;
+    color: #111 !important;
+    font-size: clamp(8px, 2.25vw, 10px) !important;
+    line-height: 1.05 !important;
+  }
+
+  .app:not(.clientPortalApp) .navItemLabel {
+    min-width: 0 !important;
+    width: 100% !important;
+    gap: 2px !important;
+  }
+
+  .app:not(.clientPortalApp) .navItemLabel svg {
+    width: 19px !important;
+    height: 19px !important;
+  }
+
+  .app:not(.clientPortalApp) .navItemLabel > span {
+    display: block !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+
+  .app:not(.clientPortalApp) .desktopNavLabel {
+    display: none !important;
+  }
+
+  .app:not(.clientPortalApp) .mobileNavLabel {
+    display: block !important;
+  }
+
+  .app:not(.clientPortalApp) .navItem .badge {
+    top: 2px !important;
+    right: 2px !important;
+    min-width: 17px !important;
+    height: 17px !important;
+    padding: 0 4px !important;
+    border-color: #d8c277 !important;
+    background: #fffdf8 !important;
+    color: #7a5b12 !important;
+    font-size: 8px !important;
+    line-height: 17px !important;
+    box-shadow: 0 4px 10px rgba(18, 18, 18, 0.08) !important;
+  }
+
+  .app:not(.clientPortalApp) .navItem.active {
+    background: #111 !important;
+    border-color: #111 !important;
+    color: #f0d46f !important;
+    box-shadow: 0 8px 18px rgba(18, 18, 18, 0.2) !important;
+  }
+
+  .app:not(.clientPortalApp) .navItem.active .badge {
+    background: #f0d46f !important;
+    border-color: #f0d46f !important;
+    color: #111 !important;
   }
 }
