@@ -12,10 +12,13 @@ import {
 import {
   BookOpen,
   CalendarDays,
+  ChevronDown,
+  ChevronUp,
   ClipboardList,
   Copy,
   Clock3,
   Dumbbell,
+  GripVertical,
   Home,
   MoreVertical,
   Play,
@@ -1265,6 +1268,7 @@ function App() {
   const [programDay, setProgramDay] = useState("1");
   const [sessionName, setSessionName] = useState("Lower Strength");
   const [sessionNameCn, setSessionNameCn] = useState("");
+  const [sessionNotes, setSessionNotes] = useState("");
   const [builderMode, setBuilderMode] = useState<"Program" | "Single Workout">(
     "Program"
   );
@@ -1287,7 +1291,6 @@ function App() {
     useState<Set<number>>(new Set());
   const [pendingSectionName, setPendingSectionName] = useState("Main");
   const [customBuilderSectionName, setCustomBuilderSectionName] = useState("");
-  const [isWorkoutArrangementOpen, setIsWorkoutArrangementOpen] = useState(false);
   const [arrangementDragIndex, setArrangementDragIndex] = useState<number | null>(
     null
   );
@@ -4357,6 +4360,22 @@ function App() {
     adjustProgramExerciseSets(index, Math.max(1, amount));
   };
 
+  const fillSetColumn = (
+    exerciseIndex: number,
+    field: keyof Omit<ExerciseSetPrescription, "setNumber">
+  ) => {
+    setSelectedProgramExercises((current) =>
+      current.map((exercise, itemIndex) => {
+        if (itemIndex !== exerciseIndex) return exercise;
+        const sets = normalizeExerciseSetPrescriptions(exercise);
+        if (sets.length <= 1) return exercise;
+        const firstValue = sets[0][field];
+        const nextSets = sets.map((set) => ({ ...set, [field]: firstValue }));
+        return withNormalizedSetFields({ ...exercise, setPrescriptions: nextSets });
+      })
+    );
+  };
+
   const updateExerciseSetPrescription = (
     exerciseIndex: number,
     setIndex: number,
@@ -4390,10 +4409,22 @@ function App() {
       <div className="builderSetPrescriptionBlock">
         <div className="builderSetTableHeader">
           <span>Set</span>
-          <span>Load</span>
-          <span>Reps</span>
-          <span>Tempo</span>
-          <span>Rest</span>
+          <span>
+            Load
+            <button className="fillColumnButton" type="button" title="Fill all sets with set 1 value" onClick={() => fillSetColumn(exerciseIndex, "load")}>↓</button>
+          </span>
+          <span>
+            Reps
+            <button className="fillColumnButton" type="button" title="Fill all sets with set 1 value" onClick={() => fillSetColumn(exerciseIndex, "reps")}>↓</button>
+          </span>
+          <span>
+            Tempo
+            <button className="fillColumnButton" type="button" title="Fill all sets with set 1 value" onClick={() => fillSetColumn(exerciseIndex, "tempo")}>↓</button>
+          </span>
+          <span>
+            Rest
+            <button className="fillColumnButton" type="button" title="Fill all sets with set 1 value" onClick={() => fillSetColumn(exerciseIndex, "rest")}>↓</button>
+          </span>
         </div>
         {setPrescriptions.map((set, setIndex) => (
           <div className="builderSetTableRow" key={`${exerciseIndex}-set-${setIndex}`}>
@@ -4744,6 +4775,7 @@ function App() {
     setProgramDay(singleWorkoutMode ? "1" : advanceDay ? nextDay : "1");
     setSessionName(singleWorkoutMode ? sessionName : "");
     setSessionNameCn("");
+    setSessionNotes("");
     setSessionGoal("");
     setSessionEstimatedDuration("");
     setSessionType("Strength");
@@ -4850,6 +4882,7 @@ function App() {
     setProgramDay(session.day);
     setSessionName(session.sessionName);
     setSessionNameCn(session.sessionNameCn || "");
+    setSessionNotes((session as any).sessionNotes || "");
     setSessionType(session.sessionType || "Strength");
     setSessionGoal(session.sessionGoal || "");
     setSessionEstimatedDuration(session.estimatedDuration || "");
@@ -10065,6 +10098,16 @@ function App() {
                   </button>
                 </div>
 
+                <label className="builderSessionNotesField">
+                  <span>Session Notes</span>
+                  <textarea
+                    value={sessionNotes}
+                    onChange={(e) => setSessionNotes(e.target.value)}
+                    placeholder="Coach notes for this session, intensity cues, warm-up instructions..."
+                    rows={3}
+                  />
+                </label>
+
                 <div className="builderWorkspaceHeader" id="builder-exercises">
                   <div>
                     <span className="eyebrow">Workout Canvas</span>
@@ -10090,13 +10133,6 @@ function App() {
                       onClick={() => openBuilderLibrary("Exercises")}
                     >
                       + Add Exercise
-                    </button>
-                    <button
-                      className="outlineButton"
-                      onClick={() => setIsWorkoutArrangementOpen(true)}
-                      disabled={selectedProgramExercises.length === 0}
-                    >
-                      Arrange
                     </button>
                   </div>
                 </div>
@@ -10370,20 +10406,24 @@ function App() {
 
                                   <div className="builderModalExerciseTools">
                                     <button
-                                      className="outlineButton compactBuilderButton"
+                                      className="outlineButton compactBuilderButton builderMoveButton"
                                       onClick={() => moveProgramExercise(index, -1)}
                                       disabled={index === 0}
+                                      title="Move up"
+                                      aria-label="Move exercise up"
                                     >
-                                      Up
+                                      <ChevronUp size={15} />
                                     </button>
                                     <button
-                                      className="outlineButton compactBuilderButton"
+                                      className="outlineButton compactBuilderButton builderMoveButton"
                                       onClick={() => moveProgramExercise(index, 1)}
                                       disabled={
                                         index === selectedProgramExercises.length - 1
                                       }
+                                      title="Move down"
+                                      aria-label="Move exercise down"
                                     >
-                                      Down
+                                      <ChevronDown size={15} />
                                     </button>
                                     {!exercise.isAccessory && (
                                       <button
@@ -10446,76 +10486,8 @@ function App() {
                   </div>
                 )}
 
-                {isWorkoutArrangementOpen && (
-                  <div
-                    className="builderArrangementOverlay"
-                    onClick={() => setIsWorkoutArrangementOpen(false)}
-                  >
-                    <aside
-                      className="builderArrangementPanel"
-                      onClick={(event) => event.stopPropagation()}
-                    >
-                      <div className="builderArrangementHeader">
-                        <div>
-                          <span className="eyebrow">Order</span>
-                          <h3>Workout Arrangement</h3>
-                        </div>
-                        <button
-                          className="iconOnlyButton"
-                          onClick={() => setIsWorkoutArrangementOpen(false)}
-                          aria-label="Close arrangement"
-                        >
-                          <X size={20} />
-                        </button>
-                      </div>
-                      <div className="builderArrangementList">
-                        {selectedProgramExercises.map((exercise, index) => (
-                          <div
-                            className={`builderArrangementItem ${
-                              arrangementDragIndex === index ? "isDragging" : ""
-                            }`}
-                            key={`${exercise.exerciseRecordId}-${index}-arrange`}
-                            draggable
-                            onDragStart={() => setArrangementDragIndex(index)}
-                            onDragOver={(event) => event.preventDefault()}
-                            onDrop={(event) => {
-                              event.preventDefault();
-                              if (arrangementDragIndex !== null) {
-                                reorderProgramExercise(arrangementDragIndex, index);
-                              }
-                              setArrangementDragIndex(null);
-                            }}
-                            onDragEnd={() => setArrangementDragIndex(null)}
-                          >
-                            {renderExerciseLabelBadge(exercise, index)}
-                            <div>
-                              <strong>{exercise.exerciseName}</strong>
-                              <small>{exercise.sectionName || "Main"}</small>
-                            </div>
-                            <div className="builderArrangeControls">
-                              <button
-                                className="outlineButton"
-                                onClick={() => moveProgramExercise(index, -1)}
-                                disabled={index === 0}
-                              >
-                                Up
-                              </button>
-                              <button
-                                className="outlineButton"
-                                onClick={() => moveProgramExercise(index, 1)}
-                                disabled={
-                                  index === selectedProgramExercises.length - 1
-                                }
-                              >
-                                Down
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </aside>
-                  </div>
-                )}
+                <div className="builderWorkspaceCanvas">
+                <div className="builderExerciseColumn">
 
                 {selectedProgramExercises.length > 0 && (
                   <div className="builderExerciseListToolbar">
@@ -10611,18 +10583,22 @@ function App() {
                           <>
                             <div className="builderExerciseActions compactPageActions">
                               <button
-                                className="outlineButton compactBuilderButton"
+                                className="outlineButton compactBuilderButton builderMoveButton"
                                 onClick={() => moveProgramExercise(index, -1)}
                                 disabled={index === 0}
+                                title="Move up"
+                                aria-label="Move exercise up"
                               >
-                                Up
+                                <ChevronUp size={15} />
                               </button>
                               <button
-                                className="outlineButton compactBuilderButton"
+                                className="outlineButton compactBuilderButton builderMoveButton"
                                 onClick={() => moveProgramExercise(index, 1)}
                                 disabled={index === selectedProgramExercises.length - 1}
+                                title="Move down"
+                                aria-label="Move exercise down"
                               >
-                                Down
+                                <ChevronDown size={15} />
                               </button>
                               <button
                                 className="outlineButton compactBuilderButton"
@@ -10637,7 +10613,7 @@ function App() {
                                 Circuit
                               </button>
                               <button
-                                className="outlineButton compactBuilderButton"
+                                className="outlineButton compactBuilderButton builderRemoveButton"
                                 onClick={() => removeProgramExercise(index)}
                               >
                                 Remove
@@ -10852,6 +10828,40 @@ function App() {
                     </div>
                   </div>
                 )}
+                </div>{/* end builderExerciseColumn */}
+
+                {selectedProgramExercises.length > 0 && (
+                  <aside className="builderArrangementSidebar">
+                    <div className="builderArrangementSidebarHeader">
+                      <span className="eyebrow">Order</span>
+                      <h4>Exercise Order</h4>
+                    </div>
+                    <div className="builderArrangementSidebarList">
+                      {selectedProgramExercises.map((exercise, index) => (
+                        <div
+                          key={`${exercise.exerciseRecordId}-${index}-sidebar`}
+                          className={`builderSidebarItem${arrangementDragIndex === index ? " isDragging" : ""}`}
+                          draggable
+                          onDragStart={() => setArrangementDragIndex(index)}
+                          onDragOver={(e) => e.preventDefault()}
+                          onDrop={(e) => {
+                            e.preventDefault();
+                            if (arrangementDragIndex !== null) {
+                              reorderProgramExercise(arrangementDragIndex, index);
+                            }
+                            setArrangementDragIndex(null);
+                          }}
+                          onDragEnd={() => setArrangementDragIndex(null)}
+                        >
+                          <GripVertical size={13} className="sidebarDragHandle" />
+                          {renderExerciseLabelBadge(exercise, index)}
+                          <span className="sidebarItemName">{exercise.exerciseName}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </aside>
+                )}
+                </div>{/* end builderWorkspaceCanvas */}
 
                 <h3
                   className="builderSectionTitle builderSectionTitleSpaced"

@@ -595,6 +595,188 @@
   font-size: 12px;
 }
 
+/* Persistent arrangement sidebar */
+.builderWorkspaceCanvas {
+  display: grid;
+  grid-template-columns: 1fr 196px;
+  align-items: start;
+  gap: 14px;
+}
+
+.builderExerciseColumn {
+  min-width: 0;
+}
+
+.builderArrangementSidebar {
+  position: sticky;
+  top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border: 1px solid rgba(17, 17, 17, 0.1);
+  border-radius: 16px;
+  background: #f7f4eb;
+  overflow: hidden;
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+}
+
+.builderArrangementSidebarHeader {
+  padding: 12px 14px 10px;
+  border-bottom: 1px solid rgba(17, 17, 17, 0.08);
+}
+
+.builderArrangementSidebarHeader .eyebrow {
+  display: block;
+  font-size: 10px;
+  font-weight: 950;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #888;
+  margin-bottom: 2px;
+}
+
+.builderArrangementSidebarHeader h4 {
+  margin: 0;
+  font-size: 14px;
+  color: #111;
+}
+
+.builderArrangementSidebarList {
+  display: flex;
+  flex-direction: column;
+  padding: 8px;
+  gap: 5px;
+}
+
+.builderSidebarItem {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 10px;
+  border: 1px solid rgba(17, 17, 17, 0.08);
+  border-radius: 10px;
+  background: #fffdf8;
+  cursor: grab;
+  transition: border-color 140ms ease, box-shadow 140ms ease;
+  min-width: 0;
+}
+
+.builderSidebarItem:hover {
+  border-color: rgba(17, 17, 17, 0.22);
+  box-shadow: 0 6px 14px rgba(17, 17, 17, 0.08);
+}
+
+.builderSidebarItem.isDragging {
+  opacity: 0.5;
+  cursor: grabbing;
+}
+
+.sidebarDragHandle {
+  flex: 0 0 auto;
+  color: #aaa;
+}
+
+.sidebarItemName {
+  font-size: 12px;
+  font-weight: 850;
+  color: #111;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  flex: 1;
+}
+
+/* Up/Down icon buttons */
+.builderMoveButton {
+  width: 34px !important;
+  padding: 0 !important;
+  display: inline-grid;
+  place-items: center;
+}
+
+/* Remove button danger style */
+.builderRemoveButton {
+  color: #e05555 !important;
+  border-color: rgba(224, 85, 85, 0.3) !important;
+  margin-left: auto;
+}
+
+.builderRemoveButton:hover {
+  background: rgba(224, 85, 85, 0.07) !important;
+  border-color: rgba(224, 85, 85, 0.5) !important;
+}
+
+/* Fill-down column button */
+.builderSetTableHeader span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.fillColumnButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 1px solid rgba(17, 17, 17, 0.18);
+  border-radius: 4px;
+  background: rgba(17, 17, 17, 0.06);
+  color: #555;
+  font-size: 10px;
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.fillColumnButton:hover {
+  background: #111;
+  border-color: #111;
+  color: #ead47a;
+}
+
+/* Session notes */
+.builderSessionNotesField {
+  display: grid;
+  gap: 6px;
+  margin: 12px 0 0;
+}
+
+.builderSessionNotesField > span {
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #777;
+}
+
+.builderSessionNotesField textarea {
+  width: 100%;
+  min-height: 72px;
+  border: 1px solid rgba(17, 17, 17, 0.16);
+  border-radius: 12px;
+  background: #fffdf8;
+  color: #111;
+  padding: 10px 14px;
+  font-size: 14px;
+  font-weight: 800;
+  resize: vertical;
+}
+
+@media (max-width: 820px) {
+  .builderWorkspaceCanvas {
+    grid-template-columns: 1fr;
+  }
+
+  .builderArrangementSidebar {
+    position: static;
+    max-height: none;
+  }
+}
+
 @media (max-width: 820px) {
   .builderWorkspaceHeader {
     display: grid;
