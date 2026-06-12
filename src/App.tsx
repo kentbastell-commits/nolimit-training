@@ -1989,15 +1989,25 @@ function App() {
 
     try {
       const res = await fetch("/api/exercises");
+      if (!res.ok) {
+        throw new Error(`Exercise library request failed: ${res.status}`);
+      }
       const data = await res.json();
-      setLibraryExercises(data.exercises || []);
+      setLibraryExercises(Array.isArray(data.exercises) ? data.exercises : []);
     } catch (err) {
       console.error(err);
-      setLibraryExercises([]);
     } finally {
       setLibraryLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (activePage !== "Library") return;
+
+    if (libraryExercises.length === 0 && !libraryLoading) {
+      void loadExerciseLibrary();
+    }
+  }, [activePage]);
 
   const resetExerciseForm = () => {
     setExerciseForm({
@@ -2131,8 +2141,11 @@ function App() {
     setProgramsLoading(true);
     try {
       const res = await fetch("/api/programs");
+      if (!res.ok) {
+        throw new Error(`Programs request failed: ${res.status}`);
+      }
       const data = await res.json();
-      const loadedPrograms = data.programs || [];
+      const loadedPrograms = Array.isArray(data.programs) ? data.programs : [];
       setPrograms(loadedPrograms);
 
       if (!selectedAssignProgramId && loadedPrograms.length > 0) {
@@ -2146,12 +2159,19 @@ function App() {
       return loadedPrograms as Program[];
     } catch (err) {
       console.error(err);
-      setPrograms([]);
       return [];
     } finally {
       setProgramsLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (activePage !== "Workouts") return;
+
+    if (programs.length === 0 && !programsLoading) {
+      void loadPrograms();
+    }
+  }, [activePage, workoutPageTab]);
 
   const loadNotifications = async () => {
     setNotificationsLoading(true);
@@ -4106,6 +4126,10 @@ function App() {
   const openBuilderLibrary = (mode: BuilderLibraryMode = "Exercises") => {
     setBuilderLibraryMode(mode);
     setIsBuilderLibraryOpen(true);
+
+    if (mode === "Exercises" && libraryExercises.length === 0 && !libraryLoading) {
+      void loadExerciseLibrary();
+    }
   };
 
   const selectBuilderSection = (sectionName: string) => {
@@ -8876,14 +8900,15 @@ function App() {
                     <span>Actions</span>
                   </div>
 
-                  {libraryLoading && <p>Loading exercises...</p>}
+                  {libraryLoading && filteredLibraryExercises.length === 0 && (
+                    <p>Loading exercises...</p>
+                  )}
 
                   {!libraryLoading && filteredLibraryExercises.length === 0 && (
                     <p style={{ padding: "18px 22px" }}>No exercises found.</p>
                   )}
 
-                  {!libraryLoading &&
-                    filteredLibraryExercises.map((exercise) => (
+                  {filteredLibraryExercises.map((exercise) => (
                       <div
                         className="clientRow exerciseTableRow"
                         key={exercise.recordId || exercise.exerciseId}
@@ -9037,8 +9062,13 @@ function App() {
                           </option>
                         </select>
 
-                        {programs.length === 0 && <p>No saved programs found.</p>}
-                        {programs.length > 0 && visibleSavedPrograms.length === 0 && (
+                        {programsLoading && programs.length === 0 && (
+                          <p>Loading saved programs...</p>
+                        )}
+                        {!programsLoading && programs.length === 0 && (
+                          <p>No saved programs found.</p>
+                        )}
+                        {!programsLoading && programs.length > 0 && visibleSavedPrograms.length === 0 && (
                           <p>No programs match your search.</p>
                         )}
 
