@@ -29,7 +29,7 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react";
-import { useEffect, useRef, useState, type DragEvent, type TouchEvent } from "react";
+import { Fragment, useEffect, useRef, useState, type DragEvent, type TouchEvent } from "react";
 import { useTranslation } from "react-i18next";
 import "./App.css";
 
@@ -1254,6 +1254,8 @@ function App() {
   const latestBuilderExerciseRef = useRef<HTMLDivElement | null>(null);
   const [latestBuilderExerciseIndex, setLatestBuilderExerciseIndex] =
     useState<number | null>(null);
+  const [expandedBuilderExerciseIndexes, setExpandedBuilderExerciseIndexes] =
+    useState<Set<number>>(new Set());
   const [pendingSectionName, setPendingSectionName] = useState("Main");
   const [customBuilderSectionName, setCustomBuilderSectionName] = useState("");
   const [isWorkoutArrangementOpen, setIsWorkoutArrangementOpen] = useState(false);
@@ -4149,6 +4151,33 @@ function App() {
     notify(`Section set to ${cleanSectionName}.`);
   };
 
+  const getExerciseLabelGroup = (label?: string | number) => {
+    const match = String(label || "").trim().match(/^[A-Za-z]+/);
+    return match ? match[0].toUpperCase() : "";
+  };
+
+  const toggleBuilderExerciseExpanded = (index: number) => {
+    setExpandedBuilderExerciseIndexes((current) => {
+      const next = new Set(current);
+      if (next.has(index)) {
+        next.delete(index);
+      } else {
+        next.add(index);
+      }
+      return next;
+    });
+  };
+
+  const expandAllBuilderExercises = () => {
+    setExpandedBuilderExerciseIndexes(
+      new Set(selectedProgramExercises.map((_, index) => index))
+    );
+  };
+
+  const collapseAllBuilderExercises = () => {
+    setExpandedBuilderExerciseIndexes(new Set());
+  };
+
   const scrollLatestBuilderExerciseIntoView = () => {
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
@@ -4210,6 +4239,13 @@ function App() {
       updated.splice(accessoryTargetIndex + 1, 0, newExercise);
       setSelectedProgramExercises(normalizeProgramExerciseOrder(updated));
       setLatestBuilderExerciseIndex(accessoryTargetIndex + 1);
+      setExpandedBuilderExerciseIndexes((current) => {
+        const next = new Set<number>();
+        current.forEach((itemIndex) => {
+          next.add(itemIndex > accessoryTargetIndex ? itemIndex + 1 : itemIndex);
+        });
+        return next;
+      });
       setAccessoryTargetIndex(null);
       notify(`Accessory added under ${parent.exerciseLabel || parent.exerciseName}.`);
       scrollLatestBuilderExerciseIntoView();
@@ -4504,7 +4540,13 @@ function App() {
     setSessionIntensity(session.intensity || "Moderate");
     setBuilderMode(session.isSingleWorkout ? "Single Workout" : "Program");
     setSelectedProgramExercises(session.exercises);
+    setExpandedBuilderExerciseIndexes(new Set());
     setEditingProgramSessionId(session.localId);
+    setIsBuilderLibraryOpen(true);
+    setBuilderLibraryMode("Exercises");
+    if (libraryExercises.length === 0 && !libraryLoading) {
+      void loadExerciseLibrary();
+    }
   };
 
   const saveFullProgram = async () => {
@@ -9914,18 +9956,38 @@ function App() {
                               className="builderModalExerciseList"
                               ref={builderModalListRef}
                             >
-                              {selectedProgramExercises.map((exercise, index) => (
-                                <div
-                                  className={`builderModalExerciseEditor ${
-                                    exercise.isAccessory ? "isAccessory" : ""
-                                  }`}
-                                  key={`${exercise.exerciseRecordId}-${index}-modal`}
-                                  ref={
-                                    index === latestBuilderExerciseIndex
-                                      ? latestBuilderExerciseRef
-                                      : null
-                                  }
-                                >
+                              {selectedProgramExercises.map((exercise, index) => {
+                                const currentGroup = getExerciseLabelGroup(
+                                  exercise.exerciseLabel || exercise.order
+                                );
+                                const previousGroup = getExerciseLabelGroup(
+                                  selectedProgramExercises[index - 1]?.exerciseLabel ||
+                                    selectedProgramExercises[index - 1]?.order
+                                );
+                                const showGroupDivider =
+                                  index > 0 &&
+                                  currentGroup &&
+                                  currentGroup !== previousGroup;
+
+                                return (
+                                  <Fragment
+                                    key={`${exercise.exerciseRecordId}-${index}-modal-wrap`}
+                                  >
+                                    {showGroupDivider && (
+                                      <div className="builderExerciseGroupDivider">
+                                        <span>{currentGroup} exercises</span>
+                                      </div>
+                                    )}
+                                    <div
+                                      className={`builderModalExerciseEditor ${
+                                        exercise.isAccessory ? "isAccessory" : ""
+                                      }`}
+                                      ref={
+                                        index === latestBuilderExerciseIndex
+                                          ? latestBuilderExerciseRef
+                                          : null
+                                      }
+                                    >
                                   <div className="builderModalExerciseHeader">
                                     <span className="exerciseLabelBadge">
                                       {exercise.exerciseLabel || index + 1}
@@ -10109,8 +10171,10 @@ function App() {
                                       </button>
                                     )}
                                   </div>
-                                </div>
-                              ))}
+                                    </div>
+                                  </Fragment>
+                                );
+                              })}
                             </div>
                           )}
                         </div>
@@ -10204,110 +10268,150 @@ function App() {
                   </div>
                 )}
 
-                {selectedProgramExercises.map((exercise, index) => (
-                  <div
-                    className={`exercise-card builderExerciseCard ${
-                      exercise.groupType !== "Straight" ? "groupedExerciseCard" : ""
-                    } ${exercise.isAccessory ? "accessoryExerciseCard" : ""} ${
-                      accessoryTargetIndex === index ? "accessoryTargetCard" : ""
-                    }`}
-                    key={`${exercise.exerciseRecordId}-${index}`}
-                  >
-                    <div className="exerciseTitleRow">
-                      <div>
-                        <div className="builderExerciseTitle">
-                          <span className="exerciseLabelBadge">
-                            {exercise.exerciseLabel || exercise.order}
-                          </span>
-                          <div>
-                            <span className="exerciseSectionName">
-                              {exercise.sectionName || "Main"}
-                            </span>
-                            <h3>{exercise.exerciseName}</h3>
-                          </div>
-                        </div>
-                        {exercise.groupType !== "Straight" && exercise.groupName && (
-                          <span className="exerciseGroupPill">
-                            {exercise.groupType}: {exercise.groupName}
-                          </span>
-                        )}
-                        {exercise.isAccessory && (
-                          <span className="exerciseAccessoryPill">
-                            Accessory for{" "}
-                            {exercise.accessoryParentLabel ||
-                              exercise.exerciseLabel ||
-                              "main lift"}
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="builderExerciseActions">
-                        {!exercise.isAccessory && (
-                          <button
-                            className="outlineButton"
-                            onClick={() => {
-                              setAccessoryTargetIndex(
-                                accessoryTargetIndex === index ? null : index
-                              );
-                              notify(
-                                accessoryTargetIndex === index
-                                  ? "Accessory pick cancelled."
-                                  : `Choose an accessory from the library for ${
-                                      exercise.exerciseLabel || exercise.exerciseName
-                                    }.`
-                              );
-                            }}
-                          >
-                            + Accessory
-                          </button>
-                        )}
-                        <button
-                          className="outlineButton compactBuilderButton"
-                          onClick={() => adjustProgramExerciseSets(index, -1)}
-                          disabled={(Number(exercise.sets) || 1) <= 1}
-                        >
-                          - Set
-                        </button>
-                        <button
-                          className="outlineButton compactBuilderButton"
-                          onClick={() => adjustProgramExerciseSets(index, 1)}
-                        >
-                          + Set
-                        </button>
-                        <button
-                          className="outlineButton"
-                          onClick={() => moveProgramExercise(index, -1)}
-                          disabled={index === 0}
-                        >
-                          Up
-                        </button>
-                        <button
-                          className="outlineButton"
-                          onClick={() => moveProgramExercise(index, 1)}
-                          disabled={index === selectedProgramExercises.length - 1}
-                        >
-                          Down
-                        </button>
-                        <button
-                          className="outlineButton"
-                          onClick={() => linkExerciseWithPrevious(index, "Superset")}
-                        >
-                          Superset
-                        </button>
-                        <button
-                          className="outlineButton"
-                          onClick={() => linkExerciseWithPrevious(index, "Circuit")}
-                        >
-                          Circuit
-                        </button>
-                        <button
-                          className="outlineButton"
-                          onClick={() => removeProgramExercise(index)}
-                        >
-                          Remove
-                        </button>
-                      </div>
+                {selectedProgramExercises.length > 0 && (
+                  <div className="builderExerciseListToolbar">
+                    <span>{selectedProgramExercises.length} exercises</span>
+                    <div>
+                      <button
+                        className="outlineButton compactBuilderButton"
+                        onClick={expandAllBuilderExercises}
+                      >
+                        Expand All
+                      </button>
+                      <button
+                        className="outlineButton compactBuilderButton"
+                        onClick={collapseAllBuilderExercises}
+                      >
+                        Collapse All
+                      </button>
                     </div>
+                  </div>
+                )}
+
+                {selectedProgramExercises.map((exercise, index) => {
+                  const isExpanded = expandedBuilderExerciseIndexes.has(index);
+                  const currentGroup = getExerciseLabelGroup(
+                    exercise.exerciseLabel || exercise.order
+                  );
+                  const previousGroup = getExerciseLabelGroup(
+                    selectedProgramExercises[index - 1]?.exerciseLabel ||
+                      selectedProgramExercises[index - 1]?.order
+                  );
+                  const showGroupDivider =
+                    index > 0 && currentGroup && currentGroup !== previousGroup;
+
+                  return (
+                    <Fragment key={`${exercise.exerciseRecordId}-${index}`}>
+                      {showGroupDivider && (
+                        <div className="builderExerciseGroupDivider pageDivider">
+                          <span>{currentGroup} exercises</span>
+                        </div>
+                      )}
+                      <div
+                        className={`exercise-card builderExerciseCard builderExerciseCardCompact ${
+                          exercise.groupType !== "Straight" ? "groupedExerciseCard" : ""
+                        } ${exercise.isAccessory ? "accessoryExerciseCard" : ""} ${
+                          accessoryTargetIndex === index ? "accessoryTargetCard" : ""
+                        }`}
+                      >
+                        <button
+                          className="builderExerciseSummaryButton"
+                          onClick={() => toggleBuilderExerciseExpanded(index)}
+                          type="button"
+                        >
+                          <div className="builderExerciseSummaryTitle">
+                            <span className="exerciseLabelBadge">
+                              {exercise.exerciseLabel || exercise.order}
+                            </span>
+                            <div>
+                              <span className="exerciseSectionName">
+                                {exercise.sectionName || "Main"}
+                              </span>
+                              <h3>{exercise.exerciseName}</h3>
+                            </div>
+                          </div>
+
+                          <div className="builderExerciseSummaryStats">
+                            <span>{exercise.sets || "--"} sets</span>
+                            <span>{exercise.reps || "--"} reps</span>
+                            {exercise.load && <span>{exercise.load}</span>}
+                            {exercise.tempo && <span>Tempo {exercise.tempo}</span>}
+                            {exercise.rest && <span>Rest {exercise.rest}</span>}
+                          </div>
+
+                          <span className="builderExerciseExpandIndicator">
+                            {isExpanded ? "Collapse" : "Edit"}
+                          </span>
+                        </button>
+
+                        {(exercise.groupType !== "Straight" && exercise.groupName) ||
+                        exercise.isAccessory ? (
+                          <div className="builderExerciseCompactPills">
+                            {exercise.groupType !== "Straight" && exercise.groupName && (
+                              <span className="exerciseGroupPill">
+                                {exercise.groupType}: {exercise.groupName}
+                              </span>
+                            )}
+                            {exercise.isAccessory && (
+                              <span className="exerciseAccessoryPill">
+                                Accessory for{" "}
+                                {exercise.accessoryParentLabel ||
+                                  exercise.exerciseLabel ||
+                                  "main lift"}
+                              </span>
+                            )}
+                          </div>
+                        ) : null}
+
+                        {isExpanded && (
+                          <>
+                            <div className="builderExerciseActions compactPageActions">
+                              <button
+                                className="outlineButton compactBuilderButton"
+                                onClick={() => adjustProgramExerciseSets(index, -1)}
+                                disabled={(Number(exercise.sets) || 1) <= 1}
+                              >
+                                - Set
+                              </button>
+                              <button
+                                className="outlineButton compactBuilderButton"
+                                onClick={() => adjustProgramExerciseSets(index, 1)}
+                              >
+                                + Set
+                              </button>
+                              <button
+                                className="outlineButton compactBuilderButton"
+                                onClick={() => moveProgramExercise(index, -1)}
+                                disabled={index === 0}
+                              >
+                                Up
+                              </button>
+                              <button
+                                className="outlineButton compactBuilderButton"
+                                onClick={() => moveProgramExercise(index, 1)}
+                                disabled={index === selectedProgramExercises.length - 1}
+                              >
+                                Down
+                              </button>
+                              <button
+                                className="outlineButton compactBuilderButton"
+                                onClick={() => linkExerciseWithPrevious(index, "Superset")}
+                              >
+                                Superset
+                              </button>
+                              <button
+                                className="outlineButton compactBuilderButton"
+                                onClick={() => linkExerciseWithPrevious(index, "Circuit")}
+                              >
+                                Circuit
+                              </button>
+                              <button
+                                className="outlineButton compactBuilderButton"
+                                onClick={() => removeProgramExercise(index)}
+                              >
+                                Remove
+                              </button>
+                            </div>
 
                     <div className="builderPrescriptionGrid">
                       <label>
@@ -10533,8 +10637,12 @@ function App() {
                         />
                       </label>
                     </div>
-                  </div>
-                ))}
+                          </>
+                        )}
+                      </div>
+                    </Fragment>
+                  );
+                })}
 
                 {selectedProgramExercises.length > 0 && (
                   <div className="builderSessionSaveBar">
