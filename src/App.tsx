@@ -323,6 +323,7 @@ type ProgramExercise = {
   exerciseLabel: string;
   sets: string;
   reps: string;
+  load: string;
   tempo: string;
   rest: string;
   coachingNotes: string;
@@ -340,6 +341,7 @@ type ProgramSession = {
   week: string;
   day: string;
   sessionName: string;
+  sessionNameCn?: string;
   sessionType?: string;
   sessionGoal?: string;
   estimatedDuration?: string;
@@ -1231,6 +1233,7 @@ function App() {
   const [programWeek, setProgramWeek] = useState("1");
   const [programDay, setProgramDay] = useState("1");
   const [sessionName, setSessionName] = useState("Lower Strength");
+  const [sessionNameCn, setSessionNameCn] = useState("");
   const [builderMode, setBuilderMode] = useState<"Program" | "Single Workout">(
     "Program"
   );
@@ -3016,6 +3019,7 @@ function App() {
           ),
           sets: "",
           reps: "",
+          load: "",
           tempo: "",
           rest: "",
           coachingNotes: "",
@@ -3265,6 +3269,7 @@ function App() {
                 exerciseLabel: meta.exerciseLabel || makeExerciseLabel(index),
                 sets: exercise.sets,
                 reps: exercise.reps,
+                load: "",
                 tempo: exercise.tempo,
                 rest: exercise.rest,
                 coachingNotes: meta.coachingNotes,
@@ -4096,6 +4101,7 @@ function App() {
       exerciseLabel: parent?.exerciseLabel || makeExerciseLabel(selectedProgramExercises.length),
       sets: parent ? "2" : "3",
       reps: parent ? "10" : "8",
+      load: "",
       tempo: parent?.tempo || "3-1-1",
       rest: parent ? "45 sec" : "60 sec",
       coachingNotes: "",
@@ -4253,6 +4259,7 @@ function App() {
       week: effectiveWeek,
       day: effectiveDay,
       sessionName: effectiveSessionName,
+      sessionNameCn: sessionNameCn.trim() || undefined,
       sessionType,
       sessionGoal,
       estimatedDuration: sessionEstimatedDuration,
@@ -4289,6 +4296,7 @@ function App() {
     setEditingProgramSessionId("");
     setProgramDay(singleWorkoutMode ? "1" : advanceDay ? nextDay : "1");
     setSessionName(singleWorkoutMode ? sessionName : "");
+    setSessionNameCn("");
     setSessionGoal("");
     setSessionEstimatedDuration("");
     setSessionType("Strength");
@@ -4385,6 +4393,7 @@ function App() {
     setProgramWeek(session.week);
     setProgramDay(session.day);
     setSessionName(session.sessionName);
+    setSessionNameCn(session.sessionNameCn || "");
     setSessionType(session.sessionType || "Strength");
     setSessionGoal(session.sessionGoal || "");
     setSessionEstimatedDuration(session.estimatedDuration || "");
@@ -4489,6 +4498,7 @@ function App() {
             week: Number(session.week),
             day: Number(session.day),
             sessionName: session.sessionName,
+            sessionNameCn: session.sessionNameCn || "",
             sessionType: session.sessionType,
             sessionGoal: session.sessionGoal,
             estimatedDuration: session.estimatedDuration,
@@ -9490,6 +9500,16 @@ function App() {
                           className="miniSearch"
                         />
                       </label>
+
+                      <label>
+                        <span>Session Name CN</span>
+                        <input
+                          value={sessionNameCn}
+                          onChange={(e) => setSessionNameCn(e.target.value)}
+                          placeholder="中文课程名称"
+                          className="miniSearch"
+                        />
+                      </label>
                     </>
                   )}
 
@@ -9776,6 +9796,18 @@ function App() {
                             updateProgramExercise(index, "reps", e.target.value)
                           }
                           placeholder="Reps"
+                        />
+                      </label>
+
+                      <label>
+                        <span>Load</span>
+                        <input
+                          className="miniSearch"
+                          value={exercise.load}
+                          onChange={(e) =>
+                            updateProgramExercise(index, "load", e.target.value)
+                          }
+                          placeholder="70% / RPE 8 / 60kg"
                         />
                       </label>
 

@@ -7,6 +7,7 @@ type ProgramExercise = {
   order: number;
   sets: number;
   reps: string;
+  load?: string;
   tempo: string;
   rest: string;
   coachingNotes: string;
@@ -101,6 +102,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       week,
       day,
       sessionName,
+      sessionNameCn,
       sessionType,
       sessionGoal,
       estimatedDuration,
@@ -169,6 +171,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           Week: Number(week),
           Day: Number(day),
           "Session Name": sessionName,
+          "Session Name CN": String(sessionNameCn || ""),
           "Session Type": String(sessionType || "Strength"),
           "Session Goal": String(sessionGoal || ""),
           "Estimated Duration": Number(estimatedDuration) || "",
@@ -178,6 +181,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           Order: Number(exercise.order) || index + 1,
           Sets: Number(exercise.sets) || 1,
           Reps: String(exercise.reps || ""),
+          Load: String(exercise.load || ""),
           Tempo: String(exercise.tempo || ""),
           Rest: String(exercise.rest || ""),
           "Coaching Notes": String(exercise.coachingNotes || ""),
