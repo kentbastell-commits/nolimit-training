@@ -9765,7 +9765,6 @@ function App() {
                                   key={exercise.recordId || exercise.exerciseId}
                                   onClick={() => {
                                     addExerciseToProgram(exercise);
-                                    setIsBuilderLibraryOpen(false);
                                   }}
                                 >
                                   <span>{exercise.exerciseName}</span>
@@ -9851,11 +9850,210 @@ function App() {
                           <strong>{pendingSectionName || "Main"}</strong>
                         </p>
                         <div className="builderDropHint">
-                          <Dumbbell size={28} />
-                          <span>
-                            Choose an exercise from the left to add it to this
-                            session.
-                          </span>
+                          {selectedProgramExercises.length === 0 ? (
+                            <>
+                              <Dumbbell size={28} />
+                              <span>
+                                Choose an exercise from the left to add it to this
+                                session.
+                              </span>
+                            </>
+                          ) : (
+                            <div className="builderModalExerciseList">
+                              {selectedProgramExercises.map((exercise, index) => (
+                                <div
+                                  className={`builderModalExerciseEditor ${
+                                    exercise.isAccessory ? "isAccessory" : ""
+                                  }`}
+                                  key={`${exercise.exerciseRecordId}-${index}-modal`}
+                                >
+                                  <div className="builderModalExerciseHeader">
+                                    <span className="exerciseLabelBadge">
+                                      {exercise.exerciseLabel || index + 1}
+                                    </span>
+                                    <div>
+                                      <strong>{exercise.exerciseName}</strong>
+                                      <small>{exercise.sectionName || "Main"}</small>
+                                    </div>
+                                    <button
+                                      className="outlineButton compactBuilderButton"
+                                      onClick={() => removeProgramExercise(index)}
+                                    >
+                                      Remove
+                                    </button>
+                                  </div>
+
+                                  <div className="builderModalEditGrid">
+                                    <label>
+                                      <span>Label</span>
+                                      <input
+                                        value={exercise.exerciseLabel}
+                                        onChange={(e) =>
+                                          updateProgramExercise(
+                                            index,
+                                            "exerciseLabel",
+                                            e.target.value
+                                          )
+                                        }
+                                      />
+                                    </label>
+                                    <label>
+                                      <span>Section</span>
+                                      <input
+                                        value={exercise.sectionName}
+                                        onChange={(e) =>
+                                          updateProgramExercise(
+                                            index,
+                                            "sectionName",
+                                            e.target.value
+                                          )
+                                        }
+                                      />
+                                    </label>
+                                    <label>
+                                      <span>Sets</span>
+                                      <div className="builderSetStepper">
+                                        <button
+                                          onClick={() =>
+                                            adjustProgramExerciseSets(index, -1)
+                                          }
+                                          disabled={(Number(exercise.sets) || 1) <= 1}
+                                        >
+                                          -
+                                        </button>
+                                        <input
+                                          value={exercise.sets}
+                                          onChange={(e) =>
+                                            updateProgramExercise(
+                                              index,
+                                              "sets",
+                                              e.target.value
+                                            )
+                                          }
+                                        />
+                                        <button
+                                          onClick={() =>
+                                            adjustProgramExerciseSets(index, 1)
+                                          }
+                                        >
+                                          +
+                                        </button>
+                                      </div>
+                                    </label>
+                                    <label>
+                                      <span>Reps</span>
+                                      <input
+                                        value={exercise.reps}
+                                        onChange={(e) =>
+                                          updateProgramExercise(
+                                            index,
+                                            "reps",
+                                            e.target.value
+                                          )
+                                        }
+                                      />
+                                    </label>
+                                    <label>
+                                      <span>Load</span>
+                                      <input
+                                        value={exercise.load}
+                                        onChange={(e) =>
+                                          updateProgramExercise(
+                                            index,
+                                            "load",
+                                            e.target.value
+                                          )
+                                        }
+                                        placeholder="kg / % / RPE"
+                                      />
+                                    </label>
+                                    <label>
+                                      <span>Tempo</span>
+                                      <input
+                                        value={exercise.tempo}
+                                        onChange={(e) =>
+                                          updateProgramExercise(
+                                            index,
+                                            "tempo",
+                                            e.target.value
+                                          )
+                                        }
+                                      />
+                                    </label>
+                                    <label>
+                                      <span>Rest</span>
+                                      <input
+                                        value={exercise.rest}
+                                        onChange={(e) =>
+                                          updateProgramExercise(
+                                            index,
+                                            "rest",
+                                            e.target.value
+                                          )
+                                        }
+                                      />
+                                    </label>
+                                    <label className="builderModalCheck">
+                                      <span>Accessory</span>
+                                      <input
+                                        type="checkbox"
+                                        checked={Boolean(exercise.isAccessory)}
+                                        onChange={(e) =>
+                                          updateProgramExercise(
+                                            index,
+                                            "isAccessory",
+                                            e.target.checked
+                                          )
+                                        }
+                                      />
+                                    </label>
+                                  </div>
+
+                                  <div className="builderModalExerciseTools">
+                                    <button
+                                      className="outlineButton compactBuilderButton"
+                                      onClick={() => moveProgramExercise(index, -1)}
+                                      disabled={index === 0}
+                                    >
+                                      Up
+                                    </button>
+                                    <button
+                                      className="outlineButton compactBuilderButton"
+                                      onClick={() => moveProgramExercise(index, 1)}
+                                      disabled={
+                                        index === selectedProgramExercises.length - 1
+                                      }
+                                    >
+                                      Down
+                                    </button>
+                                    {!exercise.isAccessory && (
+                                      <button
+                                        className="outlineButton compactBuilderButton"
+                                        onClick={() => {
+                                          setAccessoryTargetIndex(
+                                            accessoryTargetIndex === index
+                                              ? null
+                                              : index
+                                          );
+                                          setBuilderLibraryMode("Exercises");
+                                          notify(
+                                            accessoryTargetIndex === index
+                                              ? "Accessory pick cancelled."
+                                              : `Choose an accessory for ${
+                                                  exercise.exerciseLabel ||
+                                                  exercise.exerciseName
+                                                }.`
+                                          );
+                                        }}
+                                      >
+                                        + Accessory
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
                         <div className="builderDrawerFooter">
                           <button
@@ -9865,10 +10063,21 @@ function App() {
                             Cancel
                           </button>
                           <button
-                            className="goldButton"
-                            onClick={() => setIsBuilderLibraryOpen(false)}
+                            className="outlineButton"
+                            onClick={() => saveCurrentSessionToProgram(false, false)}
                           >
-                            Done
+                            Save
+                          </button>
+                          <button
+                            className="goldButton"
+                            onClick={() => {
+                              saveCurrentSessionToProgram(false, false);
+                              if (selectedProgramExercises.length > 0) {
+                                setIsBuilderLibraryOpen(false);
+                              }
+                            }}
+                          >
+                            Save & Close
                           </button>
                         </div>
                       </section>
