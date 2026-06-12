@@ -9228,7 +9228,28 @@ function App() {
                     : "Multi-Day Program Builder"}
                 </h2>
 
-                <h3 className="builderSectionTitle">
+                <div className="mobileBuilderQuickNav" aria-label="Builder quick navigation">
+                  {[
+                    ["Details", "builder-details"],
+                    ["Session", "builder-session"],
+                    ["Exercises", "builder-exercises"],
+                    ["Review", "builder-review"],
+                  ].map(([label, targetId]) => (
+                    <button
+                      key={targetId}
+                      type="button"
+                      onClick={() =>
+                        document
+                          .getElementById(targetId)
+                          ?.scrollIntoView({ behavior: "smooth", block: "start" })
+                      }
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+
+                <h3 className="builderSectionTitle" id="builder-details">
                   {isSingleWorkoutBuilder ? "Workout Details" : "Program Details"}
                 </h3>
 
@@ -9441,7 +9462,7 @@ function App() {
                   </>
                 )}
 
-                <div className="builderSectionHeader">
+                <div className="builderSectionHeader" id="builder-session">
                   <div>
                     <h3 className="builderSectionTitle">
                       {isSingleWorkoutBuilder ? "Workout Session" : "Current Session"}
@@ -9585,7 +9606,9 @@ function App() {
                   </button>
                 </div>
 
-                <h3 className="builderSectionTitle">Exercise Library</h3>
+                <h3 className="builderSectionTitle" id="builder-exercises">
+                  Exercise Library
+                </h3>
 
                 <div className="tableCard builderLibraryTable">
                   <div
@@ -9993,7 +10016,10 @@ function App() {
                   </div>
                 )}
 
-                <h3 className="builderSectionTitle builderSectionTitleSpaced">
+                <h3
+                  className="builderSectionTitle builderSectionTitleSpaced"
+                  id="builder-review"
+                >
                   {isSingleWorkoutBuilder ? "Saved Workout" : "Program Sessions"}
                 </h3>
 
