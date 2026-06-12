@@ -12,8 +12,6 @@ import {
 import {
   BookOpen,
   CalendarDays,
-  ChevronDown,
-  ChevronUp,
   ClipboardList,
   Copy,
   Clock3,
@@ -1283,6 +1281,7 @@ function App() {
   const [builderLibraryMode, setBuilderLibraryMode] =
     useState<BuilderLibraryMode>("Exercises");
   const [isBuilderLibraryOpen, setIsBuilderLibraryOpen] = useState(false);
+  const [isBuilderOrderOpen, setIsBuilderOrderOpen] = useState(false);
   const builderModalListRef = useRef<HTMLDivElement | null>(null);
   const latestBuilderExerciseRef = useRef<HTMLDivElement | null>(null);
   const [latestBuilderExerciseIndex, setLatestBuilderExerciseIndex] =
@@ -4244,6 +4243,65 @@ function App() {
     );
   }
 
+  function relabelProgramExercises(exercises: ProgramExercise[]) {
+    const sectionLetters = new Map<string, string>();
+    const sectionCounts = new Map<string, number>();
+    const lastMainLabelBySection = new Map<string, string>();
+
+    return exercises.map((exercise, index) => {
+      const sectionName = normalizeBuilderSection(exercise.sectionName);
+      const sectionKey = sectionName.toLowerCase();
+      const baseExercise = {
+        ...exercise,
+        sectionName,
+        order: index + 1,
+      };
+
+      if (isWarmupSection(sectionName)) {
+        return {
+          ...baseExercise,
+          exerciseLabel: "",
+          accessoryParentLabel: "",
+        };
+      }
+
+      if (!sectionLetters.has(sectionKey)) {
+        const letterIndex = sectionLetters.size;
+        sectionLetters.set(
+          sectionKey,
+          String.fromCharCode(65 + Math.min(letterIndex, 25))
+        );
+      }
+
+      const sectionLetter = sectionLetters.get(sectionKey) || "A";
+
+      if (exercise.isAccessory) {
+        const parentLabel =
+          lastMainLabelBySection.get(sectionKey) ||
+          exercise.accessoryParentLabel ||
+          exercise.exerciseLabel ||
+          `${sectionLetter}${Math.max(sectionCounts.get(sectionKey) || 1, 1)}`;
+
+        return {
+          ...baseExercise,
+          exerciseLabel: parentLabel,
+          accessoryParentLabel: parentLabel,
+        };
+      }
+
+      const nextCount = (sectionCounts.get(sectionKey) || 0) + 1;
+      const nextLabel = `${sectionLetter}${nextCount}`;
+      sectionCounts.set(sectionKey, nextCount);
+      lastMainLabelBySection.set(sectionKey, nextLabel);
+
+      return {
+        ...baseExercise,
+        exerciseLabel: nextLabel,
+        accessoryParentLabel: "",
+      };
+    });
+  }
+
   function makeSetPrescription(
     exercise: ProgramExercise,
     setNumber: number,
@@ -4360,6 +4418,30 @@ function App() {
     adjustProgramExerciseSets(index, Math.max(1, amount));
   };
 
+  const removeExerciseSet = (exerciseIndex: number, setIndex: number) => {
+    setSelectedProgramExercises((current) =>
+      current.map((exercise, itemIndex) => {
+        if (itemIndex !== exerciseIndex) return exercise;
+
+        const nextSets = normalizeExerciseSetPrescriptions(exercise)
+          .filter((_, currentSetIndex) => currentSetIndex !== setIndex)
+          .map((set, currentSetIndex) => ({
+            ...set,
+            setNumber: currentSetIndex + 1,
+          }));
+
+        return withNormalizedSetFields({
+          ...exercise,
+          sets: String(Math.max(nextSets.length, 1)),
+          setPrescriptions:
+            nextSets.length > 0
+              ? nextSets
+              : [makeSetPrescription(exercise, 1)],
+        });
+      })
+    );
+  };
+
   const fillSetColumn = (
     exerciseIndex: number,
     field: keyof Omit<ExerciseSetPrescription, "setNumber">
@@ -4428,7 +4510,20 @@ function App() {
         </div>
         {setPrescriptions.map((set, setIndex) => (
           <div className="builderSetTableRow" key={`${exerciseIndex}-set-${setIndex}`}>
-            <strong>{set.setNumber}</strong>
+            <div className="builderSetNumberCell">
+              <strong>{set.setNumber}</strong>
+              {setPrescriptions.length > 1 && (
+                <button
+                  className="builderSetRemoveButton"
+                  type="button"
+                  title={`Remove set ${set.setNumber}`}
+                  aria-label={`Remove set ${set.setNumber}`}
+                  onClick={() => removeExerciseSet(exerciseIndex, setIndex)}
+                >
+                  <X size={13} />
+                </button>
+              )}
+            </div>
             <input
               className="miniSearch"
               value={set.load}
@@ -4507,14 +4602,6 @@ function App() {
               ))}
             </div>
           </div>
-          <button
-            className="outlineButton compactBuilderButton"
-            onClick={() => adjustProgramExerciseSets(exerciseIndex, -1)}
-            disabled={setPrescriptions.length <= 1}
-            type="button"
-          >
-            Remove Set
-          </button>
         </div>
       </div>
     );
@@ -4559,7 +4646,7 @@ function App() {
     if (parent && accessoryTargetIndex !== null) {
       const updated = [...selectedProgramExercises];
       updated.splice(accessoryTargetIndex + 1, 0, newExercise);
-      setSelectedProgramExercises(normalizeProgramExerciseOrder(updated));
+      setSelectedProgramExercises(relabelProgramExercises(updated));
       setLatestBuilderExerciseIndex(accessoryTargetIndex + 1);
       setExpandedBuilderExerciseIndexes((current) => {
         const next = new Set<number>();
@@ -4574,19 +4661,12 @@ function App() {
       return;
     }
 
-    setSelectedProgramExercises([
-      ...selectedProgramExercises,
-      newExercise,
-    ]);
+    setSelectedProgramExercises(
+      relabelProgramExercises([...selectedProgramExercises, newExercise])
+    );
     setLatestBuilderExerciseIndex(selectedProgramExercises.length);
     scrollLatestBuilderExerciseIntoView();
   };
-
-  const normalizeProgramExerciseOrder = (exercises: ProgramExercise[]) =>
-    exercises.map((exercise, index) => ({
-      ...exercise,
-      order: index + 1,
-    }));
 
   const updateProgramExercise = (
     index: number,
@@ -4600,26 +4680,24 @@ function App() {
       [field]: field === "order" ? Number(value) : value,
     };
 
-    updated[index] =
+    const nextExercises =
       field === "sets" || field === "reps" || field === "load" || field === "tempo" || field === "rest"
-        ? withNormalizedSetFields(nextExercise)
-        : nextExercise;
+        ? [
+            ...updated.slice(0, index),
+            withNormalizedSetFields(nextExercise),
+            ...updated.slice(index + 1),
+          ]
+        : [
+            ...updated.slice(0, index),
+            nextExercise,
+            ...updated.slice(index + 1),
+          ];
 
-    setSelectedProgramExercises(updated);
-  };
-
-  const moveProgramExercise = (index: number, direction: -1 | 1) => {
-    const targetIndex = index + direction;
-
-    if (targetIndex < 0 || targetIndex >= selectedProgramExercises.length) {
-      return;
-    }
-
-    const updated = [...selectedProgramExercises];
-    const [movedExercise] = updated.splice(index, 1);
-    updated.splice(targetIndex, 0, movedExercise);
-
-    setSelectedProgramExercises(normalizeProgramExerciseOrder(updated));
+    setSelectedProgramExercises(
+      field === "sectionName" || field === "isAccessory"
+        ? relabelProgramExercises(nextExercises)
+        : nextExercises
+    );
   };
 
   const reorderProgramExercise = (sourceIndex: number, targetIndex: number) => {
@@ -4636,7 +4714,7 @@ function App() {
     const updated = [...selectedProgramExercises];
     const [movedExercise] = updated.splice(sourceIndex, 1);
     updated.splice(targetIndex, 0, movedExercise);
-    setSelectedProgramExercises(normalizeProgramExerciseOrder(updated));
+    setSelectedProgramExercises(relabelProgramExercises(updated));
   };
 
   const updateExerciseGrouping = (
@@ -4706,12 +4784,9 @@ function App() {
   };
 
   const removeProgramExercise = (index: number) => {
-    const updated = selectedProgramExercises
-      .filter((_, itemIndex) => itemIndex !== index)
-      .map((exercise, itemIndex) => ({
-        ...exercise,
-        order: itemIndex + 1,
-      }));
+    const updated = relabelProgramExercises(
+      selectedProgramExercises.filter((_, itemIndex) => itemIndex !== index)
+    );
 
     setSelectedProgramExercises(updated);
   };
@@ -10200,7 +10275,11 @@ function App() {
                     onClick={() => setIsBuilderLibraryOpen(false)}
                   >
                     <div
-                      className="builderLibraryDrawer"
+                      className={`builderLibraryDrawer${
+                        isBuilderOrderOpen && selectedProgramExercises.length > 0
+                          ? " orderOpen"
+                          : ""
+                      }`}
                       onClick={(event) => event.stopPropagation()}
                     >
                       <aside className="builderLibraryDrawerSide">
@@ -10286,7 +10365,23 @@ function App() {
                                 programDay || "--"
                               }`}
                         </span>
-                        <h2>{sessionName || programName || "Name your workout"}</h2>
+                        <div className="builderPreviewTitleRow">
+                          <h2>{sessionName || programName || "Name your workout"}</h2>
+                          {selectedProgramExercises.length > 0 && (
+                            <button
+                              className={`outlineButton builderOrderToggle${
+                                isBuilderOrderOpen ? " active" : ""
+                              }`}
+                              type="button"
+                              onClick={() =>
+                                setIsBuilderOrderOpen((current) => !current)
+                              }
+                            >
+                              <GripVertical size={16} />
+                              Exercise Order
+                            </button>
+                          )}
+                        </div>
                         <p>
                           Active section:{" "}
                           <strong>{pendingSectionName || "Main"}</strong>
@@ -10434,51 +10529,6 @@ function App() {
 
                                   {renderSetPrescriptionTable(exercise, index)}
 
-                                  <div className="builderModalExerciseTools">
-                                    <button
-                                      className="outlineButton compactBuilderButton builderMoveButton"
-                                      onClick={() => moveProgramExercise(index, -1)}
-                                      disabled={index === 0}
-                                      title="Move up"
-                                      aria-label="Move exercise up"
-                                    >
-                                      <ChevronUp size={15} />
-                                    </button>
-                                    <button
-                                      className="outlineButton compactBuilderButton builderMoveButton"
-                                      onClick={() => moveProgramExercise(index, 1)}
-                                      disabled={
-                                        index === selectedProgramExercises.length - 1
-                                      }
-                                      title="Move down"
-                                      aria-label="Move exercise down"
-                                    >
-                                      <ChevronDown size={15} />
-                                    </button>
-                                    {!exercise.isAccessory && (
-                                      <button
-                                        className="outlineButton compactBuilderButton"
-                                        onClick={() => {
-                                          setAccessoryTargetIndex(
-                                            accessoryTargetIndex === index
-                                              ? null
-                                              : index
-                                          );
-                                          setBuilderLibraryModeAndLoad("Exercises");
-                                          notify(
-                                            accessoryTargetIndex === index
-                                              ? "Accessory pick cancelled."
-                                              : `Choose an accessory for ${
-                                                  exercise.exerciseLabel ||
-                                                  exercise.exerciseName
-                                                }.`
-                                          );
-                                        }}
-                                      >
-                                        + Accessory
-                                      </button>
-                                    )}
-                                  </div>
                                     </div>
                                   </Fragment>
                                 );
@@ -10513,11 +10563,19 @@ function App() {
                         </div>
                       </section>
 
-                      {selectedProgramExercises.length > 0 && (
+                      {isBuilderOrderOpen && selectedProgramExercises.length > 0 && (
                         <aside className="builderArrangementSidebar builderModalOrderSidebar">
                           <div className="builderArrangementSidebarHeader">
                             <span className="eyebrow">Order</span>
                             <h4>Exercise Order</h4>
+                            <button
+                              className="iconButton compactIconButton"
+                              type="button"
+                              onClick={() => setIsBuilderOrderOpen(false)}
+                              aria-label="Collapse exercise order"
+                            >
+                              <X size={15} />
+                            </button>
                           </div>
                           <div className="builderArrangementSidebarList">
                             {selectedProgramExercises.map((exercise, index) => (
@@ -10652,24 +10710,6 @@ function App() {
                         {isExpanded && (
                           <>
                             <div className="builderExerciseActions compactPageActions">
-                              <button
-                                className="outlineButton compactBuilderButton builderMoveButton"
-                                onClick={() => moveProgramExercise(index, -1)}
-                                disabled={index === 0}
-                                title="Move up"
-                                aria-label="Move exercise up"
-                              >
-                                <ChevronUp size={15} />
-                              </button>
-                              <button
-                                className="outlineButton compactBuilderButton builderMoveButton"
-                                onClick={() => moveProgramExercise(index, 1)}
-                                disabled={index === selectedProgramExercises.length - 1}
-                                title="Move down"
-                                aria-label="Move exercise down"
-                              >
-                                <ChevronDown size={15} />
-                              </button>
                               <button
                                 className="outlineButton compactBuilderButton"
                                 onClick={() => linkExerciseWithPrevious(index, "Superset")}
