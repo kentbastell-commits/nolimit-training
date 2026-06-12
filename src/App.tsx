@@ -5448,7 +5448,10 @@ function App() {
 
       if (!response.ok || !data.success) {
         console.error(data);
-        notify("Could not delete product order.", "error");
+        notify(
+          data.message || data.error || "Could not delete product order.",
+          "error"
+        );
         return;
       }
 

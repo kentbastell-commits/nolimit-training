@@ -11,6 +11,10 @@ const TABLES = {
 
 type DeleteResource = keyof typeof TABLES;
 
+const FALLBACK_TABLE_IDS: Partial<Record<DeleteResource, string>> = {
+  productOrder: "tbllinXYFDiUboKX",
+};
+
 async function readResponseJson(response: Response) {
   const text = await response.text();
 
@@ -64,7 +68,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const tableEnvName = TABLES[resource as DeleteResource];
-    const tableId = process.env[tableEnvName];
+    const tableId =
+      process.env[tableEnvName] ||
+      FALLBACK_TABLE_IDS[resource as DeleteResource];
 
     if (!tableId) {
       return res.status(500).json({ error: `Missing ${tableEnvName}` });
