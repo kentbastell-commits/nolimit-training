@@ -2731,6 +2731,80 @@ body {
   gap: 10px;
 }
 
+.programWeekGrid {
+  margin: 12px 0 20px;
+  overflow-x: auto;
+}
+
+.programWeekGridHeader,
+.programWeekGridRow {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.programWeekGridLabel {
+  width: 44px;
+  min-width: 44px;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--nl-muted, #b8b8b8);
+  display: flex;
+  align-items: center;
+}
+
+.programWeekGridDayLabel {
+  flex: 1;
+  min-width: 100px;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--nl-muted, #b8b8b8);
+  padding-bottom: 4px;
+  border-bottom: 1px solid rgba(245, 215, 123, 0.2);
+}
+
+.programWeekGridCell {
+  flex: 1;
+  min-width: 100px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(212, 175, 55, 0.25);
+  background: rgba(255, 255, 255, 0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.programWeekGridCell.emptySess {
+  background: transparent;
+  border: 1px dashed rgba(245, 215, 123, 0.12);
+  align-items: center;
+  justify-content: center;
+}
+
+.gridCellName {
+  font-size: 12px;
+  font-weight: 700;
+  color: #f5d77b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.gridCellMeta {
+  font-size: 11px;
+  color: var(--nl-muted, #b8b8b8);
+}
+
+.gridCellEmpty {
+  font-size: 14px;
+  color: rgba(184, 184, 184, 0.3);
+}
+
 .builderSessionSaveBar {
   display: flex;
   align-items: center;

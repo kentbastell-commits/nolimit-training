@@ -4389,6 +4389,15 @@ function App() {
     }
   };
 
+  const duplicateProgramSession = (session: ProgramSession) => {
+    const newSession: ProgramSession = {
+      ...session,
+      localId: Date.now().toString(),
+      week: String(Number(session.week) + 1),
+    };
+    setProgramSessions([...programSessions, newSession]);
+  };
+
   const loadSessionForEditing = (session: ProgramSession) => {
     setProgramWeek(session.week);
     setProgramDay(session.day);
@@ -10031,6 +10040,43 @@ function App() {
                   </p>
                 )}
 
+                {!isSingleWorkoutBuilder && programSessions.length > 0 && (() => {
+                  const maxWeek = Math.max(...programSessions.map((s) => Number(s.week)));
+                  const maxDay = Math.max(...programSessions.map((s) => Number(s.day)));
+                  const weeks = Array.from({ length: maxWeek }, (_, i) => i + 1);
+                  const days = Array.from({ length: maxDay }, (_, i) => i + 1);
+                  return (
+                    <div className="programWeekGrid">
+                      <div className="programWeekGridHeader">
+                        <div className="programWeekGridLabel"></div>
+                        {days.map((d) => (
+                          <div key={d} className="programWeekGridDayLabel">Day {d}</div>
+                        ))}
+                      </div>
+                      {weeks.map((w) => (
+                        <div key={w} className="programWeekGridRow">
+                          <div className="programWeekGridLabel">Wk {w}</div>
+                          {days.map((d) => {
+                            const s = programSessions.find((x) => x.week === String(w) && x.day === String(d));
+                            return (
+                              <div key={d} className={`programWeekGridCell${s ? " hasSess" : " emptySess"}`}>
+                                {s ? (
+                                  <>
+                                    <span className="gridCellName">{s.sessionName}</span>
+                                    <span className="gridCellMeta">{s.sessionType || "Strength"} · {s.exercises.length}ex</span>
+                                  </>
+                                ) : (
+                                  <span className="gridCellEmpty">—</span>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+
                 {programSessions.map((session) => (
                   <div
                     className={`exercise-card programSessionCard ${
@@ -10075,6 +10121,15 @@ function App() {
                         >
                           Edit
                         </button>
+
+                        {!isSingleWorkoutBuilder && (
+                          <button
+                            className="outlineButton"
+                            onClick={() => duplicateProgramSession(session)}
+                          >
+                            Duplicate
+                          </button>
+                        )}
 
                         <button
                           className="outlineButton"
