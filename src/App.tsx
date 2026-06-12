@@ -9758,91 +9758,116 @@ function App() {
                   ))}
                 </div>
 
-                <h3 className="builderSectionTitle" id="builder-details">
-                  {isSingleWorkoutBuilder ? "Workout Details" : "Program Details"}
-                </h3>
+                <details className="builderCollapsiblePanel" id="builder-details">
+                  <summary>
+                    <div>
+                      <span className="eyebrow">
+                        {isSingleWorkoutBuilder ? "Workout Setup" : "Program Setup"}
+                      </span>
+                      <strong>
+                        {isSingleWorkoutBuilder ? "Workout Details" : "Program Details"}
+                      </strong>
+                      <small>
+                        {programName || "Untitled"}{" "}
+                        {!isSingleWorkoutBuilder &&
+                          `/ ${programProductType || "Program"} / ${
+                            programDurationWeeks || "--"
+                          } weeks`}
+                      </small>
+                    </div>
+                    <span>Open</span>
+                  </summary>
 
-                <div className="programDetailsGrid programDetailsPrimary">
-                  <label>
-                    <span>{isSingleWorkoutBuilder ? "Workout Name" : "Program Name"}</span>
-                    <input
-                      value={programName}
-                      onChange={(e) => setProgramName(e.target.value)}
-                      placeholder={isSingleWorkoutBuilder ? "Workout Name" : "Program Name"}
-                      className="miniSearch"
-                    />
-                  </label>
-
-                  {!isSingleWorkoutBuilder && (
+                  <div className="programDetailsGrid programDetailsPrimary">
                     <label>
-                      <span>Goal</span>
+                      <span>{isSingleWorkoutBuilder ? "Workout Name" : "Program Name"}</span>
                       <input
-                        value={programGoal}
-                        onChange={(e) => setProgramGoal(e.target.value)}
-                        placeholder="Goal"
+                        value={programName}
+                        onChange={(e) => setProgramName(e.target.value)}
+                        placeholder={isSingleWorkoutBuilder ? "Workout Name" : "Program Name"}
                         className="miniSearch"
                       />
                     </label>
+
+                    {!isSingleWorkoutBuilder && (
+                      <label>
+                        <span>Goal</span>
+                        <input
+                          value={programGoal}
+                          onChange={(e) => setProgramGoal(e.target.value)}
+                          placeholder="Goal"
+                          className="miniSearch"
+                        />
+                      </label>
+                    )}
+                  </div>
+
+                  {!isSingleWorkoutBuilder && (
+                    <>
+                      <div className="programDetailsGrid programDetailsSecondary">
+                        <label>
+                          <span>Duration Weeks</span>
+                          <input
+                            value={programDurationWeeks}
+                            onChange={(e) => setProgramDurationWeeks(e.target.value)}
+                            placeholder="Duration Weeks"
+                            className="miniSearch"
+                          />
+                        </label>
+
+                        <label>
+                          <span>Phase</span>
+                          <input
+                            value={programPhase}
+                            onChange={(e) => setProgramPhase(e.target.value)}
+                            placeholder="Phase"
+                            className="miniSearch"
+                          />
+                        </label>
+
+                        <label>
+                          <span>Sessions / Week</span>
+                          <input
+                            value={programSessionsPerWeek}
+                            onChange={(e) => setProgramSessionsPerWeek(e.target.value)}
+                            placeholder="Sessions / Week"
+                            className="miniSearch"
+                          />
+                        </label>
+                      </div>
+
+                      <div className="programProductGrid programTypeGrid">
+                        <label>
+                          <span>Program Type</span>
+                          <select
+                            value={programProductType}
+                            onChange={(e) => setProgramProductType(e.target.value)}
+                            className="miniSearch"
+                          >
+                            <option>Digital Program</option>
+                            <option>Online Coaching</option>
+                            <option>In-Person Training</option>
+                            <option>Internal Coaching Template</option>
+                          </select>
+                        </label>
+                      </div>
+                    </>
                   )}
-                </div>
-
-                {!isSingleWorkoutBuilder && (
-                  <>
-                    <div className="programDetailsGrid programDetailsSecondary">
-                      <label>
-                        <span>Duration Weeks</span>
-                        <input
-                          value={programDurationWeeks}
-                          onChange={(e) => setProgramDurationWeeks(e.target.value)}
-                          placeholder="Duration Weeks"
-                          className="miniSearch"
-                        />
-                      </label>
-
-                      <label>
-                        <span>Phase</span>
-                        <input
-                          value={programPhase}
-                          onChange={(e) => setProgramPhase(e.target.value)}
-                          placeholder="Phase"
-                          className="miniSearch"
-                        />
-                      </label>
-
-                      <label>
-                        <span>Sessions / Week</span>
-                        <input
-                          value={programSessionsPerWeek}
-                          onChange={(e) => setProgramSessionsPerWeek(e.target.value)}
-                          placeholder="Sessions / Week"
-                          className="miniSearch"
-                        />
-                      </label>
-                    </div>
-
-                    <h3 className="builderSectionTitle">Program Type</h3>
-
-                    <div className="programProductGrid programTypeGrid">
-                      <label>
-                        <span>Program Type</span>
-                        <select
-                          value={programProductType}
-                          onChange={(e) => setProgramProductType(e.target.value)}
-                          className="miniSearch"
-                        >
-                          <option>Digital Program</option>
-                          <option>Online Coaching</option>
-                          <option>In-Person Training</option>
-                          <option>Internal Coaching Template</option>
-                        </select>
-                      </label>
-                    </div>
-                  </>
-                )}
+                </details>
 
                 {showDigitalProductSettings && (
-                  <>
-                    <h3 className="builderSectionTitle">Product Settings</h3>
+                  <details className="builderCollapsiblePanel builderProductPanel">
+                    <summary>
+                      <div>
+                        <span className="eyebrow">Digital Product</span>
+                        <strong>Product Settings</strong>
+                        <small>
+                          {programPrice || "--"} {programCurrency || "CNY"} /{" "}
+                          {programProductStatus || "Draft"}
+                        </small>
+                      </div>
+                      <span>Open</span>
+                    </summary>
 
                     <div className="programProductGrid">
                   <label>
@@ -9968,7 +9993,7 @@ function App() {
                     ))}
                   </div>
                     </div>
-                  </>
+                  </details>
                 )}
 
                 <div className="builderSectionHeader" id="builder-session">
