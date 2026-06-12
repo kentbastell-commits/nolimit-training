@@ -7455,9 +7455,7 @@ function App() {
 
         <div className="coachBox">
           <div className="avatar monogramAvatar">
-            <span className="monogramMark">
-              N<span>L</span>
-            </span>
+            <img src="/nl_monogram_clean.png" alt="" aria-hidden="true" />
           </div>
           <div>
             <strong>{coachScope === "All Coaches" ? "Admin View" : coachScope}</strong>
@@ -10777,9 +10775,7 @@ function App() {
               <div className="clientTop">
                 {isClientPortal ? (
                   <div className="clientPortalMonogram" aria-hidden="true">
-                    <span className="monogramMark">
-                      N<span>L</span>
-                    </span>
+                    <img src="/nl_monogram_clean.png" alt="" aria-hidden="true" />
                   </div>
                 ) : (
                   <div className="clientAvatar largeAvatar">
