@@ -3527,15 +3527,7 @@ body {
 }
 
 .currentSessionGrid {
-  grid-template-columns:
-    minmax(74px, 0.45fr)
-    minmax(74px, 0.45fr)
-    minmax(190px, 1.15fr)
-    minmax(170px, 1fr)
-    minmax(145px, 0.82fr)
-    minmax(135px, 0.76fr)
-    minmax(150px, 0.82fr)
-    minmax(240px, 1.35fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   align-items: end;
   margin-bottom: 18px;
 }
@@ -3554,7 +3546,7 @@ body {
 }
 
 .sessionGoalField {
-  min-width: 220px;
+  min-width: 0;
 }
 
 .builderModeSegment {
@@ -3601,6 +3593,113 @@ body {
   min-width: 128px;
   min-height: 46px;
   padding-inline: 18px;
+}
+
+.builderTopbarActions {
+  align-items: center;
+  gap: 10px;
+}
+
+.builderSaveStatusPill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  border: 1px solid #d6cec0;
+  border-radius: 999px;
+  padding: 0 12px;
+  background: #fffefa;
+  color: #66635d;
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.builderSaveStatusPill.isDirty {
+  border-color: #111;
+  background: #111;
+  color: #ead47a;
+}
+
+.builderSaveStatusPill.isSaved {
+  background: #f6f3ea;
+  color: #5f5f59;
+}
+
+.builderSaveStatusPill.compact {
+  min-height: 32px;
+  padding-inline: 10px;
+  font-size: 11px;
+}
+
+.builderSectionPresetBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin: 12px 0 14px;
+  padding: 12px;
+  border: 1px solid rgba(17, 17, 17, 0.12);
+  border-radius: 16px;
+  background: #fffefa;
+  box-shadow: 0 12px 28px rgba(18, 18, 18, 0.05);
+}
+
+.builderSectionPresetBar > div:first-child {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 160px;
+}
+
+.builderSectionPresetBar strong {
+  color: #111;
+  font-size: 14px;
+  font-weight: 950;
+}
+
+.builderSectionPresetBar > div:last-child {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.builderSectionPresetBar button {
+  min-height: 34px;
+  border: 1px solid #d6cec0;
+  border-radius: 999px;
+  background: #fff;
+  color: #1a1a17;
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 950;
+  cursor: pointer;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    transform 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.builderSectionPresetBar button:hover {
+  transform: translateY(-1px);
+  border-color: #111;
+  box-shadow: 0 10px 22px rgba(18, 18, 18, 0.08);
+}
+
+.builderSectionPresetBar button.active {
+  border-color: #111;
+  background: #111;
+  color: #ead47a;
+}
+
+.builderSectionPresetBar .customSectionButton {
+  border-style: dashed;
+  background: #f7f4ec;
 }
 
 .builderSessionHint {
@@ -12522,12 +12621,81 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
     gap: 10px !important;
   }
 
+  .builderTopbarActions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .builderSaveStatusPill {
+    min-height: 30px;
+    padding-inline: 9px;
+    font-size: 10px;
+  }
+
+  .builderSessionHeaderActions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .builderSessionHeaderActions .builderSaveStatusPill {
+    justify-self: start;
+  }
+
+  .builderSessionHeaderActions .sessionSaveButton {
+    width: 100%;
+    min-height: 42px;
+  }
+
+  .builderSessionHeaderActions .outlineButton {
+    grid-column: 1 / -1;
+  }
+
   .builderSectionHeader .outlineButton {
     width: 100%;
   }
 
   .currentSessionGrid {
-    gap: 12px !important;
+    gap: 10px !important;
+  }
+
+  .builderSectionPresetBar {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 10px;
+    margin: 10px 0 12px;
+    padding: 10px;
+  }
+
+  .builderSectionPresetBar > div:first-child {
+    min-width: 0;
+  }
+
+  .builderSectionPresetBar > div:last-child {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    justify-content: stretch;
+    gap: 6px;
+  }
+
+  .builderSectionPresetBar button {
+    min-height: 36px;
+    padding: 0 8px;
+    font-size: 11px;
+  }
+
+  .builderSessionNotesField textarea {
+    min-height: 76px;
+  }
+
+  .builderEmptyCanvas {
+    min-height: 190px;
+    padding: 22px 14px;
+  }
+
+  .builderEmptyCanvas h3 {
+    font-size: 28px;
   }
 
   .mobileBuilderAddExerciseBar {

@@ -1350,6 +1350,10 @@ function App() {
   const [editingProgramSessionId, setEditingProgramSessionId] = useState("");
   const [draggedProgramSessionId, setDraggedProgramSessionId] = useState("");
   const [savingTemplate, setSavingTemplate] = useState(false);
+  const [builderSaveStatus, setBuilderSaveStatus] = useState<"saved" | "dirty">(
+    "saved"
+  );
+  const builderSaveStatusReadyRef = useRef(false);
 
   const notify = (message: string, type: ToastType = "info") => {
     const id = Date.now() + Math.random();
@@ -4908,6 +4912,8 @@ function App() {
         ? "Day saved. Ready for the next day."
         : "Day saved."
     );
+
+    window.setTimeout(() => setBuilderSaveStatus("saved"), 0);
   };
 
   const addCurrentSessionToProgram = () => {
@@ -5122,6 +5128,7 @@ function App() {
       setSessionName("");
       setProgramWeek("1");
       setProgramDay("1");
+      window.setTimeout(() => setBuilderSaveStatus("saved"), 0);
       loadPrograms();
     } catch (error) {
       console.error(error);
@@ -5158,6 +5165,43 @@ function App() {
       exercise.movementPattern?.toLowerCase().includes(search)
     );
   });
+
+  useEffect(() => {
+    if (!builderSaveStatusReadyRef.current) {
+      builderSaveStatusReadyRef.current = true;
+      return;
+    }
+
+    setBuilderSaveStatus("dirty");
+  }, [
+    builderMode,
+    programName,
+    programGoal,
+    programDurationWeeks,
+    programPhase,
+    programSessionsPerWeek,
+    programProductType,
+    programPrice,
+    programCurrency,
+    programPublicStoreVisible,
+    programPurchaseLink,
+    programDefaultIntakeFormId,
+    programAccessLengthDays,
+    programProductStatus,
+    programSalesDescription,
+    programWeek,
+    programDay,
+    sessionName,
+    sessionNameCn,
+    sessionNotes,
+    sessionType,
+    sessionGoal,
+    sessionEstimatedDuration,
+    sessionIntensity,
+    pendingSectionName,
+    selectedProgramExercises,
+    programSessions,
+  ]);
 
   const registerForProgram = async (program: Program) => {
     if (!storeRegName.trim() || !storeRegPhone.trim()) {
@@ -8141,9 +8185,18 @@ function App() {
               )}
 
               {activePage === "Workouts" && workoutPageTab === "Program Builder" && (
-                <button className="goldButton" onClick={saveFullProgram}>
-                  {savingTemplate ? "Saving..." : "Save Full Program"}
-                </button>
+                <div className="topbarActions builderTopbarActions">
+                  <span
+                    className={`builderSaveStatusPill ${
+                      builderSaveStatus === "dirty" ? "isDirty" : "isSaved"
+                    }`}
+                  >
+                    {builderSaveStatus === "dirty" ? "Unsaved changes" : "Saved"}
+                  </span>
+                  <button className="goldButton" onClick={saveFullProgram}>
+                    {savingTemplate ? "Saving..." : "Save Full Program"}
+                  </button>
+                </div>
               )}
             </header>
 
@@ -10085,6 +10138,13 @@ function App() {
                     )}
                   </div>
                   <div className="builderSessionHeaderActions">
+                    <span
+                      className={`builderSaveStatusPill compact ${
+                        builderSaveStatus === "dirty" ? "isDirty" : "isSaved"
+                      }`}
+                    >
+                      {builderSaveStatus === "dirty" ? "Unsaved" : "Saved"}
+                    </span>
                     {editingProgramSessionId && (
                       <button
                         className="outlineButton"
@@ -10217,6 +10277,34 @@ function App() {
                     rows={3}
                   />
                 </label>
+
+                <div className="builderSectionPresetBar" id="builder-exercises">
+                  <div>
+                    <span className="eyebrow">Section Presets</span>
+                    <strong>Active: {pendingSectionName || "Main"}</strong>
+                  </div>
+                  <div>
+                    {builderSectionOptions.slice(0, 8).map((section) => (
+                      <button
+                        key={section}
+                        type="button"
+                        className={
+                          pendingSectionName === section ? "active" : ""
+                        }
+                        onClick={() => selectBuilderSection(section)}
+                      >
+                        {section}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      className="customSectionButton"
+                      onClick={() => openBuilderLibrary("Sections")}
+                    >
+                      Custom
+                    </button>
+                  </div>
+                </div>
 
                 {selectedProgramExercises.length === 0 && (
                   <div className="builderEmptyCanvas">
