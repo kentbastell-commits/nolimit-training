@@ -1250,6 +1250,10 @@ function App() {
   const [builderLibraryMode, setBuilderLibraryMode] =
     useState<BuilderLibraryMode>("Exercises");
   const [isBuilderLibraryOpen, setIsBuilderLibraryOpen] = useState(false);
+  const builderModalListRef = useRef<HTMLDivElement | null>(null);
+  const latestBuilderExerciseRef = useRef<HTMLDivElement | null>(null);
+  const [latestBuilderExerciseIndex, setLatestBuilderExerciseIndex] =
+    useState<number | null>(null);
   const [pendingSectionName, setPendingSectionName] = useState("Main");
   const [customBuilderSectionName, setCustomBuilderSectionName] = useState("");
   const [isWorkoutArrangementOpen, setIsWorkoutArrangementOpen] = useState(false);
@@ -4142,8 +4146,24 @@ function App() {
     setPendingSectionName(cleanSectionName);
     setCustomBuilderSectionName("");
     setBuilderLibraryMode("Exercises");
-    setIsBuilderLibraryOpen(false);
     notify(`Section set to ${cleanSectionName}.`);
+  };
+
+  const scrollLatestBuilderExerciseIntoView = () => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        latestBuilderExerciseRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "nearest",
+        });
+        if (!latestBuilderExerciseRef.current) {
+          builderModalListRef.current?.scrollTo({
+            top: builderModalListRef.current.scrollHeight,
+            behavior: "smooth",
+          });
+        }
+      });
+    });
   };
 
   const adjustProgramExerciseSets = (index: number, amount: number) => {
@@ -4189,8 +4209,10 @@ function App() {
       const updated = [...selectedProgramExercises];
       updated.splice(accessoryTargetIndex + 1, 0, newExercise);
       setSelectedProgramExercises(normalizeProgramExerciseOrder(updated));
+      setLatestBuilderExerciseIndex(accessoryTargetIndex + 1);
       setAccessoryTargetIndex(null);
       notify(`Accessory added under ${parent.exerciseLabel || parent.exerciseName}.`);
+      scrollLatestBuilderExerciseIntoView();
       return;
     }
 
@@ -4198,6 +4220,8 @@ function App() {
       ...selectedProgramExercises,
       newExercise,
     ]);
+    setLatestBuilderExerciseIndex(selectedProgramExercises.length);
+    scrollLatestBuilderExerciseIntoView();
   };
 
   const normalizeProgramExerciseOrder = (exercises: ProgramExercise[]) =>
@@ -9772,52 +9796,71 @@ function App() {
                           </button>
                         </div>
 
-                        {builderLibraryMode === "Exercises" ? (
-                          <>
-                            <div className="builderDrawerSearch">
-                              <input
-                                placeholder="Search exercise library..."
-                                value={builderSearch}
-                                onChange={(e) => setBuilderSearch(e.target.value)}
-                              />
-                              <button
-                                className="outlineButton"
-                                onClick={loadExerciseLibrary}
-                              >
-                                Load
-                              </button>
-                            </div>
+                        <div className="builderDrawerSearch">
+                          <input
+                            placeholder="Search exercise library..."
+                            value={builderSearch}
+                            onChange={(e) => setBuilderSearch(e.target.value)}
+                          />
+                          <button
+                            className="outlineButton"
+                            onClick={loadExerciseLibrary}
+                          >
+                            Load
+                          </button>
+                        </div>
 
-                            <div className="builderDrawerExerciseGrid">
-                              {builderExercises.map((exercise) => (
-                                <button
-                                  className="builderExercisePickCard"
-                                  key={exercise.recordId || exercise.exerciseId}
-                                  onClick={() => {
-                                    addExerciseToProgram(exercise);
-                                  }}
-                                >
-                                  <span>{exercise.exerciseName}</span>
-                                  <small>
-                                    {[
-                                      exercise.equipment,
-                                      exercise.movementPattern,
-                                      exercise.category,
-                                    ]
-                                      .filter(Boolean)
-                                      .join(" / ") || "Exercise"}
-                                  </small>
-                                </button>
-                              ))}
-                              {builderExercises.length === 0 && (
-                                <div className="builderLibraryEmpty">
-                                  No exercises match this search.
-                                </div>
-                              )}
+                        <div className="builderDrawerExerciseGrid">
+                          {builderExercises.map((exercise) => (
+                            <button
+                              className="builderExercisePickCard"
+                              key={exercise.recordId || exercise.exerciseId}
+                              onClick={() => {
+                                addExerciseToProgram(exercise);
+                              }}
+                            >
+                              <span>{exercise.exerciseName}</span>
+                              <small>
+                                {[
+                                  exercise.equipment,
+                                  exercise.movementPattern,
+                                  exercise.category,
+                                ]
+                                  .filter(Boolean)
+                                  .join(" / ") || "Exercise"}
+                              </small>
+                            </button>
+                          ))}
+                          {builderExercises.length === 0 && (
+                            <div className="builderLibraryEmpty">
+                              No exercises match this search.
                             </div>
-                          </>
-                        ) : (
-                          <div className="builderSectionPicker">
+                          )}
+                        </div>
+                      </aside>
+
+                      <section className="builderLibraryPreview">
+                        <button
+                          className="builderDrawerClose"
+                          onClick={() => setIsBuilderLibraryOpen(false)}
+                          aria-label="Close builder library"
+                        >
+                          <X size={22} />
+                        </button>
+                        <span className="eyebrow">
+                          {builderMode === "Single Workout"
+                            ? "Single Workout"
+                            : `Week ${programWeek || "--"} / Day ${
+                                programDay || "--"
+                              }`}
+                        </span>
+                        <h2>{sessionName || programName || "Name your workout"}</h2>
+                        <p>
+                          Active section:{" "}
+                          <strong>{pendingSectionName || "Main"}</strong>
+                        </p>
+                        {builderLibraryMode === "Sections" && (
+                          <div className="builderSectionPicker builderSectionPickerInline">
                             <h3>Choose a section</h3>
                             <p>
                               New exercises will be added under the selected section.
@@ -9857,28 +9900,6 @@ function App() {
                             </label>
                           </div>
                         )}
-                      </aside>
-
-                      <section className="builderLibraryPreview">
-                        <button
-                          className="builderDrawerClose"
-                          onClick={() => setIsBuilderLibraryOpen(false)}
-                          aria-label="Close builder library"
-                        >
-                          <X size={22} />
-                        </button>
-                        <span className="eyebrow">
-                          {builderMode === "Single Workout"
-                            ? "Single Workout"
-                            : `Week ${programWeek || "--"} / Day ${
-                                programDay || "--"
-                              }`}
-                        </span>
-                        <h2>{sessionName || programName || "Name your workout"}</h2>
-                        <p>
-                          Active section:{" "}
-                          <strong>{pendingSectionName || "Main"}</strong>
-                        </p>
                         <div className="builderDropHint">
                           {selectedProgramExercises.length === 0 ? (
                             <>
@@ -9889,13 +9910,21 @@ function App() {
                               </span>
                             </>
                           ) : (
-                            <div className="builderModalExerciseList">
+                            <div
+                              className="builderModalExerciseList"
+                              ref={builderModalListRef}
+                            >
                               {selectedProgramExercises.map((exercise, index) => (
                                 <div
                                   className={`builderModalExerciseEditor ${
                                     exercise.isAccessory ? "isAccessory" : ""
                                   }`}
                                   key={`${exercise.exerciseRecordId}-${index}-modal`}
+                                  ref={
+                                    index === latestBuilderExerciseIndex
+                                      ? latestBuilderExerciseRef
+                                      : null
+                                  }
                                 >
                                   <div className="builderModalExerciseHeader">
                                     <span className="exerciseLabelBadge">
