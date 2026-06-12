@@ -4875,15 +4875,10 @@ body {
   height: 42px;
 }
 
-.dangerIconButton {
-  color: #e05555;
-  border-color: rgba(255, 123, 100, 0.5);
-  background: rgba(255, 123, 100, 0.08);
-}
-
 .dangerIconButton:hover {
-  border-color: rgba(255, 150, 130, 0.85);
-  background: rgba(255, 123, 100, 0.16);
+  color: #e05555 !important;
+  border-color: rgba(224, 85, 85, 0.4) !important;
+  background: rgba(224, 85, 85, 0.07) !important;
 }
 
 .workoutSummaryStrip {
@@ -10063,19 +10058,11 @@ body {
   transform: translateY(-1px);
 }
 
-.app:not(.clientPortalApp) .iconActionButton.dangerIconButton,
-.clientPortalApp .iconActionButton.dangerIconButton {
-  background: #2b0d0b !important;
-  border-color: #a73325 !important;
-  color: #e05555 !important;
-  box-shadow: 0 8px 18px rgba(167, 51, 37, 0.16);
-}
-
 .app:not(.clientPortalApp) .iconActionButton.dangerIconButton:hover,
 .clientPortalApp .iconActionButton.dangerIconButton:hover {
-  background: #7f2118 !important;
-  border-color: #7f2118 !important;
-  color: #ffffff !important;
+  color: #e05555 !important;
+  border-color: rgba(224, 85, 85, 0.4) !important;
+  background: rgba(224, 85, 85, 0.07) !important;
   transform: translateY(-1px);
 }
 
