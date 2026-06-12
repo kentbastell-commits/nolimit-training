@@ -1188,6 +1188,7 @@ function App() {
   const [clientCalendarWorkoutOrder, setClientCalendarWorkoutOrder] = useState<
     Record<string, string[]>
   >({});
+  const [calendarDropWorkoutId, setCalendarDropWorkoutId] = useState("");
   const [movingWorkoutId, setMovingWorkoutId] = useState("");
   const [movingAssignmentId, setMovingAssignmentId] = useState("");
   const [copiedCalendarItem, setCopiedCalendarItem] =
@@ -1303,6 +1304,10 @@ function App() {
   const [arrangementDragIndex, setArrangementDragIndex] = useState<number | null>(
     null
   );
+  const [arrangementDropIndex, setArrangementDropIndex] = useState<number | null>(
+    null
+  );
+  const [programSessionDropId, setProgramSessionDropId] = useState("");
   const [formTemplateName, setFormTemplateName] = useState("Weekly Check-in");
   const [formTemplateType, setFormTemplateType] = useState("Check-in");
   const [formQuestions, setFormQuestions] = useState([
@@ -7060,6 +7065,7 @@ function App() {
 
     event.preventDefault();
     event.stopPropagation();
+    setCalendarDropWorkoutId("");
 
     const sourceWorkout = workouts.find((workout) => workout.id === sourceWorkoutId);
     const sourceDate = normalizeDate(String(sourceWorkout?.scheduledDate || ""));
@@ -7098,6 +7104,16 @@ function App() {
     if (Math.abs(touch.clientY - touchDrag.startY) > 10) {
       touchDrag.moved = true;
       event.preventDefault();
+
+      const targetElement = document
+        .elementFromPoint(touch.clientX, touch.clientY)
+        ?.closest("[data-client-calendar-workout-id]") as HTMLElement | null;
+      const targetWorkoutId = targetElement?.dataset.clientCalendarWorkoutId || "";
+      setCalendarDropWorkoutId(
+        targetWorkoutId && targetWorkoutId !== touchDrag.workoutId
+          ? targetWorkoutId
+          : ""
+      );
     }
   }
 
@@ -7105,6 +7121,7 @@ function App() {
     const touchDrag = clientCalendarTouchDrag.current;
     clientCalendarTouchDrag.current = null;
     setDraggingWorkoutId("");
+    setCalendarDropWorkoutId("");
 
     if (!touchDrag?.moved) return;
 
@@ -10857,18 +10874,34 @@ function App() {
                             {selectedProgramExercises.map((exercise, index) => (
                               <div
                                 key={`${exercise.exerciseRecordId}-${index}-modal-sidebar`}
-                                className={`builderSidebarItem${arrangementDragIndex === index ? " isDragging" : ""}`}
+                                className={`builderSidebarItem${
+                                  arrangementDragIndex === index ? " isDragging" : ""
+                                }${
+                                  arrangementDropIndex === index ? " isDropTarget" : ""
+                                }`}
                                 draggable
-                                onDragStart={() => setArrangementDragIndex(index)}
-                                onDragOver={(e) => e.preventDefault()}
+                                onDragStart={(event) => {
+                                  event.dataTransfer.effectAllowed = "move";
+                                  setArrangementDragIndex(index);
+                                }}
+                                onDragEnter={() => setArrangementDropIndex(index)}
+                                onDragOver={(event) => {
+                                  event.preventDefault();
+                                  event.dataTransfer.dropEffect = "move";
+                                  setArrangementDropIndex(index);
+                                }}
                                 onDrop={(e) => {
                                   e.preventDefault();
                                   if (arrangementDragIndex !== null) {
                                     reorderProgramExercise(arrangementDragIndex, index);
                                   }
                                   setArrangementDragIndex(null);
+                                  setArrangementDropIndex(null);
                                 }}
-                                onDragEnd={() => setArrangementDragIndex(null)}
+                                onDragEnd={() => {
+                                  setArrangementDragIndex(null);
+                                  setArrangementDropIndex(null);
+                                }}
                               >
                                 <GripVertical size={13} className="sidebarDragHandle" />
                                 {renderExerciseLabelBadge(exercise, index)}
@@ -10938,18 +10971,32 @@ function App() {
                           exercise.groupType !== "Straight" ? "groupedExerciseCard" : ""
                         } ${exercise.isAccessory ? "accessoryExerciseCard" : ""} ${
                           accessoryTargetIndex === index ? "accessoryTargetCard" : ""
-                        } ${arrangementDragIndex === index ? "isDraggingCard" : ""}`}
+                        } ${arrangementDragIndex === index ? "isDraggingCard" : ""} ${
+                          arrangementDropIndex === index ? "isDropTargetCard" : ""
+                        }`}
                         draggable
-                        onDragStart={() => setArrangementDragIndex(index)}
-                        onDragOver={(e) => e.preventDefault()}
+                        onDragStart={(event) => {
+                          event.dataTransfer.effectAllowed = "move";
+                          setArrangementDragIndex(index);
+                        }}
+                        onDragEnter={() => setArrangementDropIndex(index)}
+                        onDragOver={(event) => {
+                          event.preventDefault();
+                          event.dataTransfer.dropEffect = "move";
+                          setArrangementDropIndex(index);
+                        }}
                         onDrop={(e) => {
                           e.preventDefault();
                           if (arrangementDragIndex !== null) {
                             reorderProgramExercise(arrangementDragIndex, index);
                           }
                           setArrangementDragIndex(null);
+                          setArrangementDropIndex(null);
                         }}
-                        onDragEnd={() => setArrangementDragIndex(null)}
+                        onDragEnd={() => {
+                          setArrangementDragIndex(null);
+                          setArrangementDropIndex(null);
+                        }}
                       >
                         <button
                           className="builderExerciseSummaryButton"
@@ -11288,16 +11335,36 @@ function App() {
                       editingProgramSessionId === session.localId
                         ? "editingSessionCard"
                         : ""
+                    } ${
+                      draggedProgramSessionId === session.localId
+                        ? "isDraggingSession"
+                        : ""
+                    } ${
+                      programSessionDropId === session.localId
+                        ? "isDropTargetSession"
+                        : ""
                     }`}
                     key={session.localId}
                     draggable
-                    onDragStart={() => setDraggedProgramSessionId(session.localId)}
-                    onDragOver={(event) => event.preventDefault()}
+                    onDragStart={(event) => {
+                      event.dataTransfer.effectAllowed = "move";
+                      setDraggedProgramSessionId(session.localId);
+                    }}
+                    onDragEnter={() => setProgramSessionDropId(session.localId)}
+                    onDragOver={(event) => {
+                      event.preventDefault();
+                      event.dataTransfer.dropEffect = "move";
+                      setProgramSessionDropId(session.localId);
+                    }}
                     onDrop={() => {
                       reorderProgramSession(draggedProgramSessionId, session.localId);
                       setDraggedProgramSessionId("");
+                      setProgramSessionDropId("");
                     }}
-                    onDragEnd={() => setDraggedProgramSessionId("")}
+                    onDragEnd={() => {
+                      setDraggedProgramSessionId("");
+                      setProgramSessionDropId("");
+                    }}
                   >
                     <div className="exerciseTitleRow">
                       <div className="programSessionTitle">
@@ -13524,6 +13591,7 @@ function App() {
                           }}
                           onDrop={(event: DragEvent<HTMLDivElement>) => {
                             event.preventDefault();
+                            setCalendarDropWorkoutId("");
 
                             const transferType = event.dataTransfer.getData(
                               "application/x-nolimit-type"
@@ -13673,6 +13741,10 @@ function App() {
                                 movingWorkoutId === workout.id
                                   ? "movingWorkout"
                                   : ""
+                              } ${
+                                calendarDropWorkoutId === workout.id
+                                  ? "calendarReorderTarget"
+                                  : ""
                               }`}
                               key={workout.id}
                               data-client-calendar-workout-id={workout.id}
@@ -13701,12 +13773,16 @@ function App() {
 
                                 event.preventDefault();
                                 event.stopPropagation();
+                                setCalendarDropWorkoutId(workout.id);
                                 event.dataTransfer.dropEffect = "move";
                               }}
                               onDrop={(event) =>
                                 handleClientCalendarWorkoutDrop(event, workout, date)
                               }
-                              onDragEnd={() => setDraggingWorkoutId("")}
+                              onDragEnd={() => {
+                                setDraggingWorkoutId("");
+                                setCalendarDropWorkoutId("");
+                              }}
                               onContextMenu={(event) => {
                                 if (isClientPortal) return;
                                 event.preventDefault();
@@ -13910,6 +13986,10 @@ function App() {
                                 : ""
                             } ${
                               movingWorkoutId === workout.id ? "movingWorkout" : ""
+                            } ${
+                              calendarDropWorkoutId === workout.id
+                                ? "calendarReorderTarget"
+                                : ""
                             }`}
                             key={workout.id}
                             data-client-calendar-workout-id={workout.id}
@@ -13931,6 +14011,7 @@ function App() {
 
                               event.preventDefault();
                               event.stopPropagation();
+                              setCalendarDropWorkoutId(workout.id);
                               event.dataTransfer.dropEffect = "move";
                             }}
                             onDrop={(event) =>
@@ -13940,7 +14021,10 @@ function App() {
                                 calendarAnchorDate
                               )
                             }
-                            onDragEnd={() => setDraggingWorkoutId("")}
+                            onDragEnd={() => {
+                              setDraggingWorkoutId("");
+                              setCalendarDropWorkoutId("");
+                            }}
                             onClick={() => openWorkout(workout)}
                           >
                             <div>
@@ -14085,6 +14169,7 @@ function App() {
                                 }}
                                 onDrop={(event) => {
                                   event.preventDefault();
+                                  setCalendarDropWorkoutId("");
                                   const transferId =
                                     event.dataTransfer.getData("text/plain") ||
                                     draggingWorkoutId;
@@ -14143,34 +14228,64 @@ function App() {
                                   : ""
                               } ${
                                 movingWorkoutId === workout.id ? "movingWorkout" : ""
+                              } ${
+                                calendarDropWorkoutId === workout.id
+                                  ? "calendarReorderTarget"
+                                  : ""
                               }`}
                               key={workout.id}
+                              data-client-calendar-workout-id={workout.id}
+                              data-client-calendar-date={calendarAnchorDate}
                               draggable
                               title="Drag to another date or tap to open"
                               onDragStart={(event) => {
                                 event.dataTransfer.setData("text/plain", workout.id);
                                 event.dataTransfer.effectAllowed = "move";
                                 setDraggingWorkoutId(workout.id);
-                            }}
-                            onDragEnd={() => setDraggingWorkoutId("")}
-                            onTouchStart={(event) =>
-                              startClientCalendarWorkoutTouch(
-                                event,
-                                workout,
-                                calendarAnchorDate
-                              )
-                            }
-                            onTouchMove={moveClientCalendarWorkoutTouch}
-                            onTouchEnd={endClientCalendarWorkoutTouch}
-                            onTouchCancel={() => {
-                              clientCalendarTouchDrag.current = null;
-                              setDraggingWorkoutId("");
-                            }}
-                            onClick={() => {
-                              if (suppressClientCalendarTouchClick.current) return;
-                              openWorkout(workout);
-                            }}
-                          >
+                              }}
+                              onDragOver={(event) => {
+                                if (
+                                  !draggingWorkoutId ||
+                                  draggingWorkoutId === workout.id
+                                ) {
+                                  return;
+                                }
+
+                                event.preventDefault();
+                                event.stopPropagation();
+                                setCalendarDropWorkoutId(workout.id);
+                                event.dataTransfer.dropEffect = "move";
+                              }}
+                              onDrop={(event) =>
+                                handleClientCalendarWorkoutDrop(
+                                  event,
+                                  workout,
+                                  calendarAnchorDate
+                                )
+                              }
+                              onDragEnd={() => {
+                                setDraggingWorkoutId("");
+                                setCalendarDropWorkoutId("");
+                              }}
+                              onTouchStart={(event) =>
+                                startClientCalendarWorkoutTouch(
+                                  event,
+                                  workout,
+                                  calendarAnchorDate
+                                )
+                              }
+                              onTouchMove={moveClientCalendarWorkoutTouch}
+                              onTouchEnd={endClientCalendarWorkoutTouch}
+                              onTouchCancel={() => {
+                                clientCalendarTouchDrag.current = null;
+                                setDraggingWorkoutId("");
+                                setCalendarDropWorkoutId("");
+                              }}
+                              onClick={() => {
+                                if (suppressClientCalendarTouchClick.current) return;
+                                openWorkout(workout);
+                              }}
+                            >
                               <div>
                                 <span>
                                   {t("program")} - {t("week")} {workout.week}, {t("day")} {workout.day}
