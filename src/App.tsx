@@ -336,6 +336,8 @@ type ProgramExercise = {
   accessoryColor?: string;
 };
 
+type BuilderLibraryMode = "Exercises" | "Sections";
+
 type ProgramSession = {
   localId: string;
   week: string;
@@ -1245,6 +1247,12 @@ function App() {
     null
   );
   const [builderSearch, setBuilderSearch] = useState("");
+  const [builderLibraryMode, setBuilderLibraryMode] =
+    useState<BuilderLibraryMode>("Exercises");
+  const [isBuilderLibraryOpen, setIsBuilderLibraryOpen] = useState(false);
+  const [pendingSectionName, setPendingSectionName] = useState("Main");
+  const [customBuilderSectionName, setCustomBuilderSectionName] = useState("");
+  const [isWorkoutArrangementOpen, setIsWorkoutArrangementOpen] = useState(false);
   const [formTemplateName, setFormTemplateName] = useState("Weekly Check-in");
   const [formTemplateType, setFormTemplateType] = useState("Check-in");
   const [formQuestions, setFormQuestions] = useState([
@@ -4082,6 +4090,44 @@ function App() {
     setCopiedCalendarItem(null);
   };
 
+  const builderSectionOptions = [
+    "Warmup",
+    "Strength",
+    "Power",
+    "Accessory",
+    "Conditioning",
+    "Cardio",
+    "Mobility",
+    "Skill",
+    "Recovery",
+    "Climbing",
+  ];
+
+  const openBuilderLibrary = (mode: BuilderLibraryMode = "Exercises") => {
+    setBuilderLibraryMode(mode);
+    setIsBuilderLibraryOpen(true);
+  };
+
+  const selectBuilderSection = (sectionName: string) => {
+    const cleanSectionName = sectionName.trim();
+
+    if (!cleanSectionName) {
+      return;
+    }
+
+    setPendingSectionName(cleanSectionName);
+    setCustomBuilderSectionName("");
+    setBuilderLibraryMode("Exercises");
+    setIsBuilderLibraryOpen(false);
+    notify(`Section set to ${cleanSectionName}.`);
+  };
+
+  const adjustProgramExerciseSets = (index: number, amount: number) => {
+    const currentSets = Number(selectedProgramExercises[index]?.sets) || 0;
+    const nextSets = Math.max(1, currentSets + amount);
+    updateProgramExercise(index, "sets", String(nextSets));
+  };
+
   const addExerciseToProgram = (exercise: LibraryExercise) => {
     const meta = parseExerciseNotes(exercise.notes || "");
     const parent =
@@ -4095,6 +4141,7 @@ function App() {
       order: selectedProgramExercises.length + 1,
       sectionName:
         parent?.sectionName ||
+        pendingSectionName ||
         selectedProgramExercises[selectedProgramExercises.length - 1]
           ?.sectionName ||
         "Main",
@@ -9603,71 +9650,290 @@ function App() {
                   </button>
                 </div>
 
-                <div className="searchRow">
-                  <input
-                    placeholder="Search exercise library..."
-                    value={builderSearch}
-                    onChange={(e) => setBuilderSearch(e.target.value)}
-                  />
-
-                  <button className="outlineButton" onClick={loadExerciseLibrary}>
-                    Load Exercises
-                  </button>
-                </div>
-
-                <h3 className="builderSectionTitle" id="builder-exercises">
-                  Exercise Library
-                </h3>
-
-                <div className="tableCard builderLibraryTable">
-                  <div
-                    className="tableHeader builderLibraryHeader"
-                    style={{
-                      gridTemplateColumns: "2fr 1fr 1fr auto",
-                    }}
-                  >
-                    <span>Exercise</span>
-                    <span>Equipment</span>
-                    <span>Pattern</span>
-                    <span>Add</span>
+                <div className="builderWorkspaceHeader" id="builder-exercises">
+                  <div>
+                    <span className="eyebrow">Workout Canvas</span>
+                    <h3 className="builderSectionTitle">Current Session Exercises</h3>
+                    <p>
+                      Build the day by choosing a section, then adding exercises from
+                      the picker.
+                    </p>
                   </div>
 
-                  {builderExercises.map((exercise) => (
-                    <div
-                      className="clientRow builderLibraryRow"
-                      key={exercise.recordId || exercise.exerciseId}
-                      style={{
-                        gridTemplateColumns: "2fr 1fr 1fr auto",
-                      }}
+                  <div className="builderWorkspaceActions">
+                    <span className="activeBuilderSectionPill">
+                      Active section: {pendingSectionName || "Main"}
+                    </span>
+                    <button
+                      className="outlineButton"
+                      onClick={() => openBuilderLibrary("Sections")}
                     >
-                      <div>
-                        <strong>{exercise.exerciseName}</strong>
-                      </div>
-
-                      <span>{exercise.equipment || "--"}</span>
-                      <span>{exercise.movementPattern || "--"}</span>
-
-                      <button
-                        className="goldButton"
-                        onClick={() => addExerciseToProgram(exercise)}
-                      >
-                        {accessoryTargetIndex !== null ? "+ Accessory" : "+ Add"}
-                      </button>
-                    </div>
-                  ))}
-                  {builderExercises.length === 0 && (
-                    <div className="builderLibraryEmpty">
-                      No exercises match this search.
-                    </div>
-                  )}
+                      + Add Section
+                    </button>
+                    <button
+                      className="goldButton"
+                      onClick={() => openBuilderLibrary("Exercises")}
+                    >
+                      + Add Exercise
+                    </button>
+                    <button
+                      className="outlineButton"
+                      onClick={() => setIsWorkoutArrangementOpen(true)}
+                      disabled={selectedProgramExercises.length === 0}
+                    >
+                      Arrange
+                    </button>
+                  </div>
                 </div>
 
-                <h3 className="builderSectionTitle builderSectionTitleSpaced">
-                  Current Session Exercises
-                </h3>
-
                 {selectedProgramExercises.length === 0 && (
-                  <p>No exercises added to current session yet.</p>
+                  <div className="builderEmptyCanvas">
+                    <div className="builderEmptyCanvasIcon">
+                      <Dumbbell size={34} />
+                    </div>
+                    <h3>Drag your session into shape</h3>
+                    <p>
+                      Add an exercise, or choose a custom section such as Warmup,
+                      Strength, Power, Cardio, or Mobility first.
+                    </p>
+                    <div>
+                      <button
+                        className="goldButton"
+                        onClick={() => openBuilderLibrary("Exercises")}
+                      >
+                        + Add Exercise
+                      </button>
+                      <button
+                        className="outlineButton"
+                        onClick={() => openBuilderLibrary("Sections")}
+                      >
+                        + Add Section
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {isBuilderLibraryOpen && (
+                  <div
+                    className="builderLibraryOverlay"
+                    onClick={() => setIsBuilderLibraryOpen(false)}
+                  >
+                    <div
+                      className="builderLibraryDrawer"
+                      onClick={(event) => event.stopPropagation()}
+                    >
+                      <aside className="builderLibraryDrawerSide">
+                        <div className="builderDrawerTabs">
+                          <button
+                            className={
+                              builderLibraryMode === "Exercises" ? "active" : ""
+                            }
+                            onClick={() => setBuilderLibraryMode("Exercises")}
+                          >
+                            Exercises
+                          </button>
+                          <button
+                            className={
+                              builderLibraryMode === "Sections" ? "active" : ""
+                            }
+                            onClick={() => setBuilderLibraryMode("Sections")}
+                          >
+                            Sections
+                          </button>
+                        </div>
+
+                        {builderLibraryMode === "Exercises" ? (
+                          <>
+                            <div className="builderDrawerSearch">
+                              <input
+                                placeholder="Search exercise library..."
+                                value={builderSearch}
+                                onChange={(e) => setBuilderSearch(e.target.value)}
+                              />
+                              <button
+                                className="outlineButton"
+                                onClick={loadExerciseLibrary}
+                              >
+                                Load
+                              </button>
+                            </div>
+
+                            <div className="builderDrawerExerciseGrid">
+                              {builderExercises.map((exercise) => (
+                                <button
+                                  className="builderExercisePickCard"
+                                  key={exercise.recordId || exercise.exerciseId}
+                                  onClick={() => {
+                                    addExerciseToProgram(exercise);
+                                    setIsBuilderLibraryOpen(false);
+                                  }}
+                                >
+                                  <span>{exercise.exerciseName}</span>
+                                  <small>
+                                    {[
+                                      exercise.equipment,
+                                      exercise.movementPattern,
+                                      exercise.category,
+                                    ]
+                                      .filter(Boolean)
+                                      .join(" / ") || "Exercise"}
+                                  </small>
+                                </button>
+                              ))}
+                              {builderExercises.length === 0 && (
+                                <div className="builderLibraryEmpty">
+                                  No exercises match this search.
+                                </div>
+                              )}
+                            </div>
+                          </>
+                        ) : (
+                          <div className="builderSectionPicker">
+                            <h3>Choose a section</h3>
+                            <p>
+                              New exercises will be added under the selected section.
+                            </p>
+                            <div className="builderSectionOptionGrid">
+                              {builderSectionOptions.map((section) => (
+                                <button
+                                  key={section}
+                                  className={
+                                    pendingSectionName === section ? "active" : ""
+                                  }
+                                  onClick={() => selectBuilderSection(section)}
+                                >
+                                  {section}
+                                </button>
+                              ))}
+                            </div>
+                            <label>
+                              <span>Custom section</span>
+                              <div className="builderCustomSectionRow">
+                                <input
+                                  value={customBuilderSectionName}
+                                  onChange={(e) =>
+                                    setCustomBuilderSectionName(e.target.value)
+                                  }
+                                  placeholder="Return to sport, Fingerboard..."
+                                />
+                                <button
+                                  className="goldButton"
+                                  onClick={() =>
+                                    selectBuilderSection(customBuilderSectionName)
+                                  }
+                                >
+                                  Use
+                                </button>
+                              </div>
+                            </label>
+                          </div>
+                        )}
+                      </aside>
+
+                      <section className="builderLibraryPreview">
+                        <button
+                          className="builderDrawerClose"
+                          onClick={() => setIsBuilderLibraryOpen(false)}
+                          aria-label="Close builder library"
+                        >
+                          <X size={22} />
+                        </button>
+                        <span className="eyebrow">
+                          {builderMode === "Single Workout"
+                            ? "Single Workout"
+                            : `Week ${programWeek || "--"} / Day ${
+                                programDay || "--"
+                              }`}
+                        </span>
+                        <h2>{sessionName || programName || "Name your workout"}</h2>
+                        <p>
+                          Active section:{" "}
+                          <strong>{pendingSectionName || "Main"}</strong>
+                        </p>
+                        <div className="builderDropHint">
+                          <Dumbbell size={28} />
+                          <span>
+                            Choose an exercise from the left to add it to this
+                            session.
+                          </span>
+                        </div>
+                        <div className="builderDrawerFooter">
+                          <button
+                            className="outlineButton"
+                            onClick={() => setIsBuilderLibraryOpen(false)}
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            className="goldButton"
+                            onClick={() => setIsBuilderLibraryOpen(false)}
+                          >
+                            Done
+                          </button>
+                        </div>
+                      </section>
+                    </div>
+                  </div>
+                )}
+
+                {isWorkoutArrangementOpen && (
+                  <div
+                    className="builderArrangementOverlay"
+                    onClick={() => setIsWorkoutArrangementOpen(false)}
+                  >
+                    <aside
+                      className="builderArrangementPanel"
+                      onClick={(event) => event.stopPropagation()}
+                    >
+                      <div className="builderArrangementHeader">
+                        <div>
+                          <span className="eyebrow">Order</span>
+                          <h3>Workout Arrangement</h3>
+                        </div>
+                        <button
+                          className="iconOnlyButton"
+                          onClick={() => setIsWorkoutArrangementOpen(false)}
+                          aria-label="Close arrangement"
+                        >
+                          <X size={20} />
+                        </button>
+                      </div>
+                      <div className="builderArrangementList">
+                        {selectedProgramExercises.map((exercise, index) => (
+                          <div
+                            className="builderArrangementItem"
+                            key={`${exercise.exerciseRecordId}-${index}-arrange`}
+                          >
+                            <span className="exerciseLabelBadge">
+                              {exercise.exerciseLabel || index + 1}
+                            </span>
+                            <div>
+                              <strong>{exercise.exerciseName}</strong>
+                              <small>{exercise.sectionName || "Main"}</small>
+                            </div>
+                            <div className="builderArrangeControls">
+                              <button
+                                className="outlineButton"
+                                onClick={() => moveProgramExercise(index, -1)}
+                                disabled={index === 0}
+                              >
+                                Up
+                              </button>
+                              <button
+                                className="outlineButton"
+                                onClick={() => moveProgramExercise(index, 1)}
+                                disabled={
+                                  index === selectedProgramExercises.length - 1
+                                }
+                              >
+                                Down
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </aside>
+                  </div>
                 )}
 
                 {selectedProgramExercises.map((exercise, index) => (
@@ -9727,6 +9993,19 @@ function App() {
                             + Accessory
                           </button>
                         )}
+                        <button
+                          className="outlineButton compactBuilderButton"
+                          onClick={() => adjustProgramExerciseSets(index, -1)}
+                          disabled={(Number(exercise.sets) || 1) <= 1}
+                        >
+                          - Set
+                        </button>
+                        <button
+                          className="outlineButton compactBuilderButton"
+                          onClick={() => adjustProgramExerciseSets(index, 1)}
+                        >
+                          + Set
+                        </button>
                         <button
                           className="outlineButton"
                           onClick={() => moveProgramExercise(index, -1)}
