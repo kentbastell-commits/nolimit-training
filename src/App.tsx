@@ -977,6 +977,12 @@ function languagePreferenceToCode(language?: string) {
     : "en";
 }
 
+const DATA_CACHE_MS = 5 * 60 * 1000;
+
+function isFreshCache(timestamp: number) {
+  return Date.now() - timestamp < DATA_CACHE_MS;
+}
+
 function App() {
   const { t, i18n } = useTranslation();
   const inviteSearchParams = new URLSearchParams(window.location.search);
@@ -1189,8 +1195,8 @@ function App() {
     Record<string, string[]>
   >({});
   const [calendarDropWorkoutId, setCalendarDropWorkoutId] = useState("");
-  const [movingWorkoutId, setMovingWorkoutId] = useState("");
-  const [movingAssignmentId, setMovingAssignmentId] = useState("");
+  const movingWorkoutId = "";
+  const movingAssignmentId = "";
   const [copiedCalendarItem, setCopiedCalendarItem] =
     useState<CopiedCalendarItem | null>(null);
   const [calendarActionMenu, setCalendarActionMenu] =
@@ -1213,6 +1219,18 @@ function App() {
   const [librarySearch, setLibrarySearch] = useState("");
   const [progressSearch, setProgressSearch] = useState("");
   const [selectedProgressExercise, setSelectedProgressExercise] = useState("");
+  const clientsCacheRef = useRef<{ data: Client[]; timestamp: number } | null>(
+    null
+  );
+  const exerciseLibraryCacheRef = useRef<{
+    data: LibraryExercise[];
+    timestamp: number;
+  } | null>(null);
+  const workoutCacheRef = useRef<
+    Record<string, { data: Workout[]; timestamp: number }>
+  >({});
+  const pendingWorkoutMoveIds = useRef(new Set<string>());
+  const pendingAssignmentMoveIds = useRef(new Set<string>());
   const [showExerciseModal, setShowExerciseModal] = useState(false);
   const [technicalCueExercise, setTechnicalCueExercise] =
     useState<LibraryExercise | null>(null);
@@ -1617,16 +1635,31 @@ function App() {
     setShowAddClientModal(true);
   };
 
-  const loadClients = async () => {
+  const loadClients = async (force = false) => {
+    const shouldForce = force === true;
+    const cached = clientsCacheRef.current;
+
+    if (!shouldForce && cached && isFreshCache(cached.timestamp)) {
+      setClients(cached.data);
+      setLoading(false);
+      return cached.data;
+    }
+
     setLoading(true);
 
-    fetch("/api/clients")
-      .then((res) => res.json())
-      .then((data) => {
-        setClients(data.clients || []);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
+    try {
+      const response = await fetch("/api/clients");
+      const data = await response.json();
+      const nextClients = data.clients || [];
+      clientsCacheRef.current = { data: nextClients, timestamp: Date.now() };
+      setClients(nextClients);
+      return nextClients;
+    } catch (error) {
+      console.error(error);
+      return clients;
+    } finally {
+      setLoading(false);
+    }
   };
 
   const loadCoaches = async () => {
@@ -2002,10 +2035,41 @@ function App() {
     return () => window.removeEventListener("resize", updateWorkoutRowMode);
   }, []);
 
+  const cacheClientWorkouts = (clientCode: string, nextWorkouts: Workout[]) => {
+    if (!clientCode) return;
+
+    workoutCacheRef.current[clientCode] = {
+      data: nextWorkouts,
+      timestamp: Date.now(),
+    };
+  };
+
+  const loadClientWorkouts = async (client: Client, force = false) => {
+    const shouldForce = force === true;
+    const clientCode = client.clientCode;
+    const cached = workoutCacheRef.current[clientCode];
+
+    if (!shouldForce && cached && isFreshCache(cached.timestamp)) {
+      setWorkouts(cached.data);
+      return cached.data;
+    }
+
+    const response = await fetch(`/api/workouts?clientCode=${clientCode}`);
+    const data = await response.json();
+    const nextWorkouts = data.workouts || [];
+    cacheClientWorkouts(clientCode, nextWorkouts);
+    setWorkouts(nextWorkouts);
+    return nextWorkouts;
+  };
+
   useEffect(() => {
     if (!selectedClient) return;
 
-    setWorkoutsLoading(true);
+    const cachedWorkouts = workoutCacheRef.current[selectedClient.clientCode];
+    const hasFreshWorkouts =
+      Boolean(cachedWorkouts) && isFreshCache(cachedWorkouts.timestamp);
+
+    setWorkoutsLoading(!hasFreshWorkouts);
     setSelectedWorkout(null);
     setWorkoutDetails([]);
     setSetLogs([]);
@@ -2013,19 +2077,18 @@ function App() {
     setContentAssignments([]);
     setContentResponses([]);
     setWorkoutComments([]);
+    setWorkouts(hasFreshWorkouts && cachedWorkouts ? cachedWorkouts.data : []);
 
     loadPrograms();
 
     Promise.all([
-      fetch(`/api/workouts?clientCode=${selectedClient.clientCode}`).then((res) =>
-        res.json()
-      ),
+      loadClientWorkouts(selectedClient),
       loadContentAssignments(selectedClient).then((assignments) => ({ assignments })),
       loadContentResponses(selectedClient).then((responses) => ({ responses })),
       loadWorkoutComments(selectedClient).then((comments) => ({ comments })),
     ])
       .then(([workoutData, assignmentData, responseData, commentData]) => {
-        setWorkouts(workoutData.workouts || []);
+        setWorkouts(workoutData || []);
         setContentAssignments(assignmentData.assignments || []);
         setContentResponses(responseData.responses || []);
         setWorkoutComments(commentData.comments || []);
@@ -2059,7 +2122,16 @@ function App() {
     loadSavedProgramTemplates(selectedSavedProgramId);
   }, [activePage, selectedSavedProgramId]);
 
-  const loadExerciseLibrary = async () => {
+  const loadExerciseLibrary = async (force = false) => {
+    const shouldForce = force === true;
+    const cached = exerciseLibraryCacheRef.current;
+
+    if (!shouldForce && cached && isFreshCache(cached.timestamp)) {
+      setLibraryExercises(cached.data);
+      setLibraryLoading(false);
+      return cached.data;
+    }
+
     setLibraryLoading(true);
 
     try {
@@ -2068,9 +2140,16 @@ function App() {
         throw new Error(`Exercise library request failed: ${res.status}`);
       }
       const data = await res.json();
-      setLibraryExercises(Array.isArray(data.exercises) ? data.exercises : []);
+      const nextExercises = Array.isArray(data.exercises) ? data.exercises : [];
+      exerciseLibraryCacheRef.current = {
+        data: nextExercises,
+        timestamp: Date.now(),
+      };
+      setLibraryExercises(nextExercises);
+      return nextExercises;
     } catch (err) {
       console.error(err);
+      return libraryExercises;
     } finally {
       setLibraryLoading(false);
     }
@@ -2192,7 +2271,7 @@ function App() {
         return;
       }
 
-      await loadExerciseLibrary();
+      await loadExerciseLibrary(true);
       closeExerciseForm();
       notify(
         archive
@@ -3558,9 +3637,7 @@ function App() {
       setAssignableWorkouts([]);
       setShowAssignmentDrawer(false);
 
-      const refresh = await fetch(`/api/workouts?clientCode=${selectedClient.clientCode}`);
-      const refreshData = await refresh.json();
-      setWorkouts(refreshData.workouts || []);
+      await loadClientWorkouts(selectedClient, true);
     } catch (error) {
       console.error(error);
       notify("Could not assign program.");
@@ -3855,10 +3932,9 @@ function App() {
       setSelectedWorkout(null);
       setWorkoutDetails([]);
       setSetLogs([]);
-
-      const refresh = await fetch(`/api/workouts?clientCode=${selectedClient.clientCode}`);
-      const refreshData = await refresh.json();
-      setWorkouts(refreshData.workouts || []);
+      const nextWorkouts = workouts.filter((item) => item.id !== workout.id);
+      setWorkouts(nextWorkouts);
+      cacheClientWorkouts(selectedClient.clientCode, nextWorkouts);
       notify("Workout deleted.", "success");
     } catch (error) {
       console.error(error);
@@ -3983,19 +4059,25 @@ function App() {
 
     const currentDate = normalizeDate(String(workout.scheduledDate));
 
-    if (!scheduledDate || currentDate === scheduledDate || movingWorkoutId) {
+    if (
+      !scheduledDate ||
+      currentDate === scheduledDate ||
+      pendingWorkoutMoveIds.current.has(workout.id)
+    ) {
       return;
     }
 
     const previousWorkouts = workouts;
     const previousWorkoutOrder = clientCalendarWorkoutOrder;
 
-    setMovingWorkoutId(workout.id);
-    setWorkouts((prev) =>
-      prev.map((item) =>
+    pendingWorkoutMoveIds.current.add(workout.id);
+    setWorkouts((prev) => {
+      const nextWorkouts = prev.map((item) =>
         item.id === workout.id ? { ...item, scheduledDate } : item
-      )
-    );
+      );
+      cacheClientWorkouts(selectedClient.clientCode, nextWorkouts);
+      return nextWorkouts;
+    });
     setClientCalendarWorkoutOrder((currentOrder) => {
       const workoutKey = getCalendarWorkoutOrderKey(workout);
       const nextOrder = { ...currentOrder };
@@ -4015,11 +4097,12 @@ function App() {
     } catch (error) {
       console.error(error);
       setWorkouts(previousWorkouts);
+      cacheClientWorkouts(selectedClient.clientCode, previousWorkouts);
       setClientCalendarWorkoutOrder(previousWorkoutOrder);
       persistClientCalendarWorkoutOrder(previousWorkoutOrder);
       notify("Could not move workout. The calendar has been restored.");
     } finally {
-      setMovingWorkoutId("");
+      pendingWorkoutMoveIds.current.delete(workout.id);
       setDraggingWorkoutId("");
     }
   };
@@ -4034,13 +4117,17 @@ function App() {
       String(assignment.dueDate || assignment.assignedDate)
     );
 
-    if (!scheduledDate || currentDate === scheduledDate || movingAssignmentId) {
+    if (
+      !scheduledDate ||
+      currentDate === scheduledDate ||
+      pendingAssignmentMoveIds.current.has(assignment.recordId)
+    ) {
       return;
     }
 
     const previousAssignments = contentAssignments;
 
-    setMovingAssignmentId(assignment.recordId);
+    pendingAssignmentMoveIds.current.add(assignment.recordId);
     setContentAssignments((current) =>
       current.map((item) =>
         item.recordId === assignment.recordId
@@ -4072,7 +4159,7 @@ function App() {
       setContentAssignments(previousAssignments);
       notify("Could not move assigned item. The calendar has been restored.", "error");
     } finally {
-      setMovingAssignmentId("");
+      pendingAssignmentMoveIds.current.delete(assignment.recordId);
       setDraggingAssignmentId("");
     }
   };
@@ -4140,11 +4227,7 @@ function App() {
         }
 
         if (selectedClient) {
-          const refresh = await fetch(
-            `/api/workouts?clientCode=${selectedClient.clientCode}`
-          );
-          const refreshData = await refresh.json();
-          setWorkouts(refreshData.workouts || []);
+          await loadClientWorkouts(selectedClient, true);
         }
         notify("Workout copied.", "success");
       }
@@ -5932,10 +6015,7 @@ function App() {
         return null;
       }
 
-      const clientsResponse = await fetch("/api/clients");
-      const clientsData = await clientsResponse.json();
-      const refreshedClients = clientsData.clients || [];
-      setClients(refreshedClients);
+      const refreshedClients = await loadClients(true);
 
       const createdClient =
         refreshedClients.find((client: Client) => client.id === data.recordId) ||
@@ -6038,7 +6118,7 @@ function App() {
         programId: getOrderProgram(order)?.programId || order.programId,
         programName: getOrderProgram(order)?.programName || order.productName,
       });
-      await loadClients();
+      await loadClients(true);
       setActivationClientName(client.name);
       setActivationPortalLink(buildClientPortalLink(client));
       notify(`Intake assigned to ${client.name}.`, "success");
@@ -6078,7 +6158,7 @@ function App() {
         intakeStatus: "Reviewed",
         onboardingStatus: "Program Ready",
       });
-      await loadClients();
+      await loadClients(true);
       notify(`${client.name}'s intake is marked reviewed.`, "success");
       return true;
     } catch (error) {
@@ -6399,9 +6479,7 @@ function App() {
       }
 
       notify("Program added to your calendar.", "success");
-      const refresh = await fetch(`/api/workouts?clientCode=${selectedClient.clientCode}`);
-      const refreshData = await refresh.json();
-      setWorkouts(refreshData.workouts || []);
+      await loadClientWorkouts(selectedClient, true);
       setClientTab("Training");
     } catch (error) {
       console.error(error);
@@ -6506,7 +6584,7 @@ function App() {
         accessStartDate: order.accessStartDate || getOrderStartDate(order),
         accessEndDate: order.accessEndDate || client.accessEndDate || "",
       });
-      await loadClients();
+      await loadClients(true);
       notify(
         `${program.programName} loaded for ${client.name}. Workouts created: ${data.recordsCreated}`,
         "success"
@@ -6578,11 +6656,7 @@ function App() {
         return;
       }
 
-      const clientsResponse = await fetch("/api/clients");
-      const clientsData = await clientsResponse.json();
-      const refreshedClients = clientsData.clients || [];
-
-      setClients(refreshedClients);
+      const refreshedClients = await loadClients(true);
       refreshSelectedClient(refreshedClients);
       closeClientForm();
       notify(
@@ -6619,11 +6693,7 @@ function App() {
         return;
       }
 
-      const clientsResponse = await fetch("/api/clients");
-      const clientsData = await clientsResponse.json();
-      const refreshedClients = clientsData.clients || [];
-
-      setClients(refreshedClients);
+      const refreshedClients = await loadClients(true);
       refreshSelectedClient(refreshedClients);
       notify(`Client marked ${packageType}.`, "success");
     } catch (error) {
@@ -6657,7 +6727,7 @@ function App() {
       }
 
       setSelectedClient(null);
-      await loadClients();
+      await loadClients(true);
       notify("Client deleted.", "success");
     } catch (error) {
       console.error(error);
@@ -6689,7 +6759,7 @@ function App() {
         return;
       }
 
-      await loadExerciseLibrary();
+      await loadExerciseLibrary(true);
       notify("Exercise deleted.", "success");
     } catch (error) {
       console.error(error);
@@ -6742,11 +6812,7 @@ function App() {
         return;
       }
 
-      const clientsResponse = await fetch("/api/clients");
-      const clientsData = await clientsResponse.json();
-      const refreshedClients = clientsData.clients || [];
-
-      setClients(refreshedClients);
+      const refreshedClients = await loadClients(true);
       refreshSelectedClient(refreshedClients);
       notify(`${client.name} checked in today.`, "success");
     } catch (error) {
@@ -6820,11 +6886,7 @@ function App() {
         notify("Check-in saved, but client date did not update.", "error");
       }
 
-      const clientsResponse = await fetch("/api/clients");
-      const clientsData = await clientsResponse.json();
-      const refreshedClients = clientsData.clients || [];
-
-      setClients(refreshedClients);
+      const refreshedClients = await loadClients(true);
       refreshSelectedClient(refreshedClients);
       setCheckInFormClient(null);
       notify("Check-in questionnaire submitted.", "success");
@@ -8432,7 +8494,10 @@ function App() {
                   <aside className="clientBucketsPanel">
                     <div className="clientBucketsHeader">
                       <h3>Clients</h3>
-                      <button className="iconTextButton" onClick={loadClients}>
+                      <button
+                        className="iconTextButton"
+                        onClick={() => void loadClients(true)}
+                      >
                         Refresh
                       </button>
                     </div>
@@ -9658,7 +9723,10 @@ function App() {
                   <button className="goldButton" onClick={openNewExerciseForm}>
                     + Add Exercise
                   </button>
-                  <button className="outlineButton" onClick={loadExerciseLibrary}>
+                  <button
+                    className="outlineButton"
+                    onClick={() => void loadExerciseLibrary(true)}
+                  >
                     Reload
                   </button>
                 </section>
@@ -10600,7 +10668,7 @@ function App() {
                           />
                           <button
                             className="outlineButton"
-                            onClick={loadExerciseLibrary}
+                            onClick={() => void loadExerciseLibrary(true)}
                           >
                             Load
                           </button>
@@ -12026,7 +12094,10 @@ function App() {
                     <option value="All">All</option>
                   </select>
 
-                  <button className="outlineButton" onClick={loadClients}>
+                  <button
+                    className="outlineButton"
+                    onClick={() => void loadClients(true)}
+                  >
                     Refresh
                   </button>
                 </div>
