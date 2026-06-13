@@ -4966,6 +4966,38 @@ function App() {
     return { start, end };
   };
 
+  const getBuilderOrderItems = (exercises: ProgramExercise[]) => {
+    const items: Array<{
+      key: string;
+      start: number;
+      end: number;
+      exercises: ProgramExercise[];
+      isLinkedGroup: boolean;
+    }> = [];
+
+    let index = 0;
+    while (index < exercises.length) {
+      const range = getExerciseGroupMoveRange(exercises, index);
+      const groupExercises = exercises.slice(range.start, range.end + 1);
+      const firstExercise = groupExercises[0];
+      const isLinkedGroup = range.end > range.start;
+
+      items.push({
+        key: isLinkedGroup
+          ? `${firstExercise.groupType}-${firstExercise.groupName}-${range.start}-${range.end}`
+          : `${firstExercise.exerciseRecordId || firstExercise.exerciseName}-${index}`,
+        start: range.start,
+        end: range.end,
+        exercises: groupExercises,
+        isLinkedGroup,
+      });
+
+      index = range.end + 1;
+    }
+
+    return items;
+  };
+
   const reorderProgramExercise = (sourceIndex: number, targetIndex: number) => {
     if (
       sourceIndex === targetIndex ||
@@ -11559,43 +11591,84 @@ function App() {
                             </button>
                           </div>
                           <div className="builderArrangementSidebarList">
-                            {selectedProgramExercises.map((exercise, index) => (
-                              <div
-                                key={`${exercise.exerciseRecordId}-${index}-modal-sidebar`}
-                                className={`builderSidebarItem${
-                                  arrangementDragIndex === index ? " isDragging" : ""
-                                }${
-                                  arrangementDropIndex === index ? " isDropTarget" : ""
-                                }`}
-                                draggable
-                                onDragStart={(event) => {
-                                  event.dataTransfer.effectAllowed = "move";
-                                  setArrangementDragIndex(index);
-                                }}
-                                onDragEnter={() => setArrangementDropIndex(index)}
-                                onDragOver={(event) => {
-                                  event.preventDefault();
-                                  event.dataTransfer.dropEffect = "move";
-                                  setArrangementDropIndex(index);
-                                }}
-                                onDrop={(e) => {
-                                  e.preventDefault();
-                                  if (arrangementDragIndex !== null) {
-                                    reorderProgramExercise(arrangementDragIndex, index);
-                                  }
-                                  setArrangementDragIndex(null);
-                                  setArrangementDropIndex(null);
-                                }}
-                                onDragEnd={() => {
-                                  setArrangementDragIndex(null);
-                                  setArrangementDropIndex(null);
-                                }}
-                              >
-                                <GripVertical size={13} className="sidebarDragHandle" />
-                                {renderExerciseLabelBadge(exercise, index)}
-                                <span className="sidebarItemName">{exercise.exerciseName}</span>
-                              </div>
-                            ))}
+                            {getBuilderOrderItems(selectedProgramExercises).map((item) => {
+                              const primaryExercise = item.exercises[0];
+                              const isDraggingItem =
+                                arrangementDragIndex !== null &&
+                                arrangementDragIndex >= item.start &&
+                                arrangementDragIndex <= item.end;
+                              const isDropTargetItem =
+                                arrangementDropIndex !== null &&
+                                arrangementDropIndex >= item.start &&
+                                arrangementDropIndex <= item.end;
+
+                              return (
+                                <div
+                                  key={`${item.key}-modal-sidebar`}
+                                  className={`builderSidebarItem${
+                                    item.isLinkedGroup ? " builderSidebarGroupItem" : ""
+                                  }${isDraggingItem ? " isDragging" : ""}${
+                                    isDropTargetItem ? " isDropTarget" : ""
+                                  }`}
+                                  draggable
+                                  onDragStart={(event) => {
+                                    event.dataTransfer.effectAllowed = "move";
+                                    setArrangementDragIndex(item.start);
+                                  }}
+                                  onDragEnter={() => setArrangementDropIndex(item.start)}
+                                  onDragOver={(event) => {
+                                    event.preventDefault();
+                                    event.dataTransfer.dropEffect = "move";
+                                    setArrangementDropIndex(item.start);
+                                  }}
+                                  onDrop={(e) => {
+                                    e.preventDefault();
+                                    if (arrangementDragIndex !== null) {
+                                      reorderProgramExercise(
+                                        arrangementDragIndex,
+                                        item.start
+                                      );
+                                    }
+                                    setArrangementDragIndex(null);
+                                    setArrangementDropIndex(null);
+                                  }}
+                                  onDragEnd={() => {
+                                    setArrangementDragIndex(null);
+                                    setArrangementDropIndex(null);
+                                  }}
+                                >
+                                  <GripVertical size={13} className="sidebarDragHandle" />
+                                  {item.isLinkedGroup ? (
+                                    <div className="builderSidebarGroupBadge">
+                                      <Link2 size={14} />
+                                    </div>
+                                  ) : (
+                                    renderExerciseLabelBadge(primaryExercise, item.start)
+                                  )}
+                                  <div className="builderSidebarItemStack">
+                                    {item.isLinkedGroup && (
+                                      <span className="builderSidebarGroupLabel">
+                                        {primaryExercise.groupType}:{" "}
+                                        {primaryExercise.groupName}
+                                      </span>
+                                    )}
+                                    {item.exercises.map((exercise, exerciseOffset) => (
+                                      <span
+                                        className="sidebarItemName"
+                                        key={`${exercise.exerciseRecordId}-${item.start + exerciseOffset}-order-name`}
+                                      >
+                                        {item.isLinkedGroup &&
+                                          renderExerciseLabelBadge(
+                                            exercise,
+                                            item.start + exerciseOffset
+                                          )}
+                                        {exercise.exerciseName}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              );
+                            })}
                           </div>
                         </aside>
                       )}

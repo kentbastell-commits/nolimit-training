@@ -801,6 +801,55 @@
   transform: scale(0.98);
 }
 
+.builderSidebarGroupItem {
+  align-items: flex-start;
+  border-color: rgba(17, 17, 17, 0.18);
+  background: #f8f5ec;
+}
+
+.builderSidebarGroupBadge {
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  display: inline-grid;
+  place-items: center;
+  background: #111;
+  color: #ead36d;
+  box-shadow: 0 8px 18px rgba(17, 17, 17, 0.12);
+}
+
+.builderSidebarItemStack {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex: 1;
+}
+
+.builderSidebarGroupLabel {
+  font-size: 10px;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #6f6a5f;
+}
+
+.builderSidebarGroupItem .sidebarItemName {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+.builderSidebarGroupItem .exerciseLabelBadge {
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  font-size: 11px;
+}
+
 .sidebarDragHandle {
   flex: 0 0 auto;
   color: #aaa;
