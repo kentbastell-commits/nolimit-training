@@ -193,6 +193,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const fields: Record<string, any> = {
       "Exercise ID": exerciseId || makeExerciseId(exerciseName),
       "Exercise Name": exerciseName || "",
+      Status: archive ? "Archived" : "Active",
     };
 
     if (cueFieldName) {

@@ -19,6 +19,7 @@ import {
   Eye,
   GripVertical,
   Home,
+  Link2,
   MoreVertical,
   Play,
   Plus,
@@ -2281,6 +2282,11 @@ function App() {
     setSavingExercise(true);
 
     try {
+      const composedNotes = composeExerciseNotes(
+        exerciseForm.notes,
+        exerciseForm.trackingType,
+        exerciseForm.isUnilateral
+      );
       const response = await fetch("/api/upsertExercise", {
         method: "POST",
         headers: {
@@ -2288,11 +2294,7 @@ function App() {
         },
         body: JSON.stringify({
           ...exerciseForm,
-          notes: composeExerciseNotes(
-            exerciseForm.notes,
-            exerciseForm.trackingType,
-            exerciseForm.isUnilateral
-          ),
+          notes: composedNotes,
           recordId: editingExercise?.recordId,
           archive,
         }),
@@ -2308,7 +2310,46 @@ function App() {
         return;
       }
 
-      await loadExerciseLibrary(true);
+      const savedExercise: LibraryExercise = {
+        ...(editingExercise || {}),
+        recordId: data.recordId || editingExercise?.recordId || "",
+        exerciseId: data.exerciseId || exerciseForm.exerciseId,
+        exerciseName: exerciseForm.exerciseName.trim(),
+        videoUrl: exerciseForm.videoUrl,
+        category: exerciseForm.category,
+        equipment: exerciseForm.equipment,
+        movementPattern: exerciseForm.movementPattern,
+        notes: archive ? `[Archived]\n${composedNotes}`.trim() : composedNotes,
+        status: archive ? "Archived" : "Active",
+      };
+
+      setLibraryExercises((currentExercises) => {
+        const nextExercises = archive
+          ? currentExercises.filter(
+              (exercise) =>
+                exercise.recordId !== savedExercise.recordId &&
+                exercise.exerciseId !== savedExercise.exerciseId
+            )
+          : [
+              savedExercise,
+              ...currentExercises.filter(
+                (exercise) =>
+                  exercise.recordId !== savedExercise.recordId &&
+                  exercise.exerciseId !== savedExercise.exerciseId
+              ),
+            ];
+
+        exerciseLibraryCacheRef.current = {
+          data: nextExercises,
+          timestamp: Date.now(),
+        };
+
+        return nextExercises;
+      });
+
+      window.setTimeout(() => {
+        void loadExerciseLibrary(true);
+      }, 2000);
       closeExerciseForm();
       notify(
         archive
@@ -5298,7 +5339,57 @@ function App() {
       groupName,
     };
 
-    setSelectedProgramExercises(updated);
+    setSelectedProgramExercises(relabelProgramExercises(updated));
+  };
+
+  const isExerciseLinkedWithPrevious = (index: number) => {
+    if (index <= 0) return false;
+
+    const current = selectedProgramExercises[index];
+    const previous = selectedProgramExercises[index - 1];
+
+    return Boolean(
+      current &&
+        previous &&
+        current.groupType !== "Straight" &&
+        current.groupType === previous.groupType &&
+        current.groupName &&
+        current.groupName === previous.groupName
+    );
+  };
+
+  const unlinkExerciseGroup = (index: number) => {
+    const exercise = selectedProgramExercises[index];
+
+    if (!exercise || exercise.groupType === "Straight" || !exercise.groupName) {
+      return;
+    }
+
+    const groupKey = `${exercise.groupType}:${exercise.groupName}`.toLowerCase();
+    const updated = selectedProgramExercises.map((item) => {
+      const itemKey = `${item.groupType}:${item.groupName}`.toLowerCase();
+
+      if (item.groupType !== "Straight" && itemKey === groupKey) {
+        return {
+          ...item,
+          groupType: "Straight" as const,
+          groupName: "",
+        };
+      }
+
+      return item;
+    });
+
+    setSelectedProgramExercises(relabelProgramExercises(updated));
+  };
+
+  const toggleBuilderSupersetLink = (index: number) => {
+    if (isExerciseLinkedWithPrevious(index)) {
+      unlinkExerciseGroup(index);
+      return;
+    }
+
+    linkExerciseWithPrevious(index, "Superset");
   };
 
   const buildExerciseCoachingNotes = (exercise: ProgramExercise) => {
@@ -11294,6 +11385,10 @@ function App() {
                                 );
                                 const showSectionDivider =
                                   index === 0 || currentSection !== previousSection;
+                                const canLinkWithPrevious =
+                                  index > 0 && currentSection === previousSection;
+                                const isLinkedToPrevious =
+                                  isExerciseLinkedWithPrevious(index);
 
                                 return (
                                   <Fragment
@@ -11302,6 +11397,29 @@ function App() {
                                     {showSectionDivider && (
                                       <div className="builderExerciseSectionDivider">
                                         <span>{currentSection}</span>
+                                      </div>
+                                    )}
+                                    {canLinkWithPrevious && (
+                                      <div className="builderSupersetLinkRow">
+                                        <button
+                                          type="button"
+                                          className={`builderSupersetLinkButton ${
+                                            isLinkedToPrevious ? "isLinked" : ""
+                                          }`}
+                                          onClick={() => toggleBuilderSupersetLink(index)}
+                                          title={
+                                            isLinkedToPrevious
+                                              ? "Unlink this superset"
+                                              : "Link these exercises as a superset"
+                                          }
+                                        >
+                                          <Link2 size={15} />
+                                          <span>
+                                            {isLinkedToPrevious
+                                              ? "Linked superset"
+                                              : "Link superset"}
+                                          </span>
+                                        </button>
                                       </div>
                                     )}
                                     <div

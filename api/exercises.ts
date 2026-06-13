@@ -103,6 +103,44 @@ async function getFieldNames(token: string) {
     .filter(Boolean);
 }
 
+async function getExerciseRecords(token: string) {
+  const records: any[] = [];
+  let pageToken = "";
+
+  do {
+    const params = new URLSearchParams({ page_size: "500" });
+
+    if (pageToken) {
+      params.set("page_token", pageToken);
+    }
+
+    const response = await fetch(
+      `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${process.env.FEISHU_EXERCISE_LIBRARY_TABLE_ID}/records?${params.toString()}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    const data = await readResponseJson(response);
+
+    if (!response.ok || data.code !== 0 || !data?.data?.items) {
+      throw new Error(
+        `Lark did not return exercise records: ${JSON.stringify(data)}`
+      );
+    }
+
+    records.push(...data.data.items);
+    pageToken = data.data.page_token || "";
+
+    if (!data.data.has_more) {
+      break;
+    }
+  } while (pageToken);
+
+  return records;
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const tokenResponse = await fetch(
@@ -120,28 +158,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const tokenData = await tokenResponse.json();
 
     const token = tokenData.tenant_access_token;
-    const [recordsResponse, availableFields] = await Promise.all([
-      fetch(
-      `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${process.env.FEISHU_EXERCISE_LIBRARY_TABLE_ID}/records?page_size=500`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-      ),
+    const [records, availableFields] = await Promise.all([
+      getExerciseRecords(token),
       getFieldNames(token),
     ]);
 
-    const data = await readResponseJson(recordsResponse);
-
-    if (!data?.data?.items) {
-      return res.status(500).json({
-        error: "Lark did not return exercise records",
-        larkResponse: data,
-      });
-    }
-
-    const exercises = data.data.items.map((item: any) => {
+    const exercises = records.map((item: any) => {
       const fields = item.fields || {};
       const notes = readFirstField(fields, CUE_FIELD_CANDIDATES);
 
