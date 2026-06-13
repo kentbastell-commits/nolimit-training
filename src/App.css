@@ -5650,28 +5650,42 @@ body {
 
 .exerciseGroupPill {
   display: inline-flex;
+  align-items: center;
   width: fit-content;
   margin-top: 6px;
-  border: 1px solid rgba(120, 200, 255, 0.45);
+  border: 1px solid transparent;
   border-radius: 999px;
-  padding: 4px 9px;
-  color: #cdeaff;
-  background: rgba(120, 200, 255, 0.1);
+  padding: 5px 11px;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 950;
+  letter-spacing: 0.01em;
+}
+
+.exerciseGroupPillSuperset {
+  border-color: rgba(40, 104, 164, 0.42);
+  color: #123f67;
+  background: #e1f0fb;
+}
+
+.exerciseGroupPillCircuit {
+  border-color: rgba(116, 82, 158, 0.42);
+  color: #452971;
+  background: #eee6f8;
 }
 
 .exerciseAccessoryPill {
   display: inline-flex;
+  align-items: center;
   width: fit-content;
   margin-top: 6px;
-  border: 1px solid rgba(63, 143, 100, 0.45);
+  border: 1px solid rgba(43, 124, 76, 0.42);
   border-radius: 999px;
-  padding: 4px 9px;
-  color: #d9f5e6;
-  background: rgba(63, 143, 100, 0.16);
+  padding: 5px 11px;
+  color: #1f5d3d;
+  background: #e4f3e9;
   font-size: 12px;
-  font-weight: 850;
+  font-weight: 950;
+  letter-spacing: 0.01em;
 }
 
 .builderPrescriptionGrid,

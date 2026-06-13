@@ -11523,7 +11523,13 @@ function App() {
                         exercise.isAccessory ? (
                           <div className="builderExerciseCompactPills">
                             {exercise.groupType !== "Straight" && exercise.groupName && (
-                              <span className="exerciseGroupPill">
+                              <span
+                                className={`exerciseGroupPill ${
+                                  exercise.groupType === "Circuit"
+                                    ? "exerciseGroupPillCircuit"
+                                    : "exerciseGroupPillSuperset"
+                                }`}
+                              >
                                 {exercise.groupType}: {exercise.groupName}
                               </span>
                             )}
