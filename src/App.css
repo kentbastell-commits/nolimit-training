@@ -12993,6 +12993,13 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   cursor: grabbing;
 }
 
+.builderExerciseCardHeader {
+  display: flex !important;
+  align-items: flex-start !important;
+  gap: 10px !important;
+  width: 100% !important;
+}
+
 .builderExerciseSummaryButton {
   display: grid !important;
   grid-template-columns: minmax(240px, 1.1fr) minmax(260px, 1.4fr) auto !important;
@@ -13004,6 +13011,70 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   color: #111 !important;
   padding: 0 !important;
   text-align: left !important;
+}
+
+.builderExerciseCardHeader .builderExerciseSummaryButton {
+  flex: 1 1 auto !important;
+}
+
+.builderExerciseOptions {
+  position: relative !important;
+  z-index: 12 !important;
+  flex: 0 0 auto !important;
+}
+
+.builderExerciseOptionsButton {
+  display: grid !important;
+  place-items: center !important;
+  width: 38px !important;
+  height: 38px !important;
+  border: 1px solid rgba(17, 17, 17, 0.18) !important;
+  border-radius: 10px !important;
+  background: #fffefa !important;
+  color: #111 !important;
+  box-shadow: 0 10px 24px rgba(17, 17, 17, 0.08) !important;
+}
+
+.builderExerciseOptionsButton:hover,
+.builderExerciseOptionsButton.active {
+  border-color: #111 !important;
+  background: #111 !important;
+  color: #ead47a !important;
+}
+
+.builderExerciseOptionsMenu {
+  position: absolute !important;
+  top: calc(100% + 8px) !important;
+  right: 0 !important;
+  z-index: 80 !important;
+  min-width: 230px !important;
+  overflow: hidden !important;
+  border: 1px solid rgba(17, 17, 17, 0.14) !important;
+  border-radius: 12px !important;
+  background: #fffefa !important;
+  box-shadow: 0 18px 46px rgba(17, 17, 17, 0.18) !important;
+}
+
+.builderExerciseOptionsMenu button {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  width: 100% !important;
+  border: 0 !important;
+  background: transparent !important;
+  color: #111 !important;
+  padding: 12px 14px !important;
+  text-align: left !important;
+  font-size: 14px !important;
+  font-weight: 900 !important;
+}
+
+.builderExerciseOptionsMenu button:hover {
+  background: #f0eee7 !important;
+}
+
+.builderExerciseOptionsMenu .dangerMenuItem {
+  color: #8e2418 !important;
 }
 
 .builderExerciseSummaryTitle {
@@ -13063,6 +13134,135 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   margin-top: 12px !important;
   border-top: 1px solid rgba(17, 17, 17, 0.1) !important;
   padding-top: 12px !important;
+}
+
+.alternateExerciseEditor {
+  margin: 12px 0 !important;
+  border: 1px solid rgba(17, 17, 17, 0.14) !important;
+  border-radius: 14px !important;
+  background: #f8f7f2 !important;
+  padding: 14px !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.58) !important;
+}
+
+.alternateEditorHeader,
+.alternateEditorFooter {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+}
+
+.alternateEditorHeader strong {
+  display: block !important;
+  color: #111 !important;
+  font-size: 16px !important;
+  font-weight: 950 !important;
+}
+
+.alternateSearchInput {
+  width: 100% !important;
+  margin: 12px 0 !important;
+}
+
+.alternateExerciseEditorBody {
+  display: grid !important;
+  grid-template-columns: minmax(260px, 1fr) minmax(260px, 1fr) !important;
+  gap: 14px !important;
+}
+
+.alternateSelectedList,
+.alternateLibraryList {
+  min-height: 132px !important;
+  border: 1px solid rgba(17, 17, 17, 0.1) !important;
+  border-radius: 12px !important;
+  background: #fffefa !important;
+  padding: 10px !important;
+}
+
+.alternateSelectedList p,
+.alternateLibraryList p {
+  margin: 0 !important;
+  color: #676761 !important;
+  font-size: 13px !important;
+  font-weight: 800 !important;
+}
+
+.alternateSelectedItem {
+  display: grid !important;
+  grid-template-columns: auto 1fr auto auto !important;
+  align-items: center !important;
+  gap: 10px !important;
+  margin-bottom: 8px !important;
+  border: 1px solid rgba(17, 17, 17, 0.12) !important;
+  border-radius: 10px !important;
+  background: #fff !important;
+  padding: 9px 10px !important;
+  color: #111 !important;
+  font-size: 14px !important;
+  font-weight: 900 !important;
+  cursor: grab !important;
+}
+
+.alternateSelectedItem.isDragging {
+  opacity: 0.55 !important;
+  cursor: grabbing !important;
+}
+
+.alternateOrderNumber {
+  color: #676761 !important;
+  font-weight: 950 !important;
+}
+
+.alternateDragHandle {
+  color: #898982 !important;
+}
+
+.alternateRemoveButton {
+  display: grid !important;
+  place-items: center !important;
+  width: 24px !important;
+  height: 24px !important;
+  border: 1px solid rgba(17, 17, 17, 0.2) !important;
+  border-radius: 999px !important;
+  background: #111 !important;
+  color: #ead47a !important;
+}
+
+.alternateRemoveButton:hover {
+  background: #8e2418 !important;
+  color: #fff !important;
+}
+
+.alternateLibraryList {
+  display: grid !important;
+  align-content: start !important;
+  gap: 8px !important;
+}
+
+.alternateLibraryList button {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  width: 100% !important;
+  border: 1px solid rgba(17, 17, 17, 0.12) !important;
+  border-radius: 10px !important;
+  background: #fff !important;
+  color: #111 !important;
+  padding: 9px 10px !important;
+  text-align: left !important;
+  font-size: 13px !important;
+  font-weight: 900 !important;
+}
+
+.alternateLibraryList button:hover {
+  border-color: #111 !important;
+  background: #111 !important;
+  color: #ead47a !important;
+}
+
+.alternateEditorFooter {
+  margin-top: 12px !important;
 }
 
 .builderExerciseGroupDivider {
@@ -13281,6 +13481,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
     minmax(76px, 0.6fr)
     minmax(150px, 1.3fr)
     minmax(82px, 0.6fr)
+    minmax(82px, 0.5fr)
     minmax(82px, 0.5fr) !important;
   align-items: end !important;
 }

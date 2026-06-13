@@ -16,11 +16,13 @@ import {
   Copy,
   Clock3,
   Dumbbell,
+  Eye,
   GripVertical,
   Home,
   MoreVertical,
   Play,
   Plus,
+  Shuffle,
   Scissors,
   Trash2,
   Bell,
@@ -264,6 +266,7 @@ type ExerciseNoteMeta = {
   accessoryParentLabel: string;
   accessoryColor: string;
   setPrescriptions: ExerciseSetPrescription[];
+  alternateExercises: ExerciseAlternate[];
   coachingNotes: string;
 };
 
@@ -273,6 +276,12 @@ type ExerciseSetPrescription = {
   load: string;
   tempo: string;
   rest: string;
+};
+
+type ExerciseAlternate = {
+  exerciseRecordId: string;
+  exerciseId: string;
+  exerciseName: string;
 };
 
 type WorkoutHistoryLog = {
@@ -345,6 +354,7 @@ type ProgramExercise = {
   accessoryParentLabel?: string;
   accessoryColor?: string;
   setPrescriptions?: ExerciseSetPrescription[];
+  alternateExercises?: ExerciseAlternate[];
 };
 
 type BuilderLibraryMode = "Exercises" | "Sections";
@@ -574,6 +584,7 @@ function parseExerciseNotes(notes = ""): ExerciseNoteMeta {
     accessoryParentLabel: "",
     accessoryColor: "Green",
     setPrescriptions: [],
+    alternateExercises: [],
     coachingNotes: "",
   };
   const remainingLines: string[] = [];
@@ -581,7 +592,7 @@ function parseExerciseNotes(notes = ""): ExerciseNoteMeta {
   lines.forEach((line) => {
     const trimmed = line.trim();
     const match = trimmed.match(
-      /^(Section|Label|Superset|Circuit|Tracking|Unilateral|Accessory|Accessory Parent|Accessory Color|Set Prescriptions):\s*(.+)$/i
+      /^(Section|Label|Superset|Circuit|Tracking|Unilateral|Accessory|Accessory Parent|Accessory Color|Set Prescriptions|Alternate Exercises):\s*(.+)$/i
     );
 
     if (!match) {
@@ -621,6 +632,24 @@ function parseExerciseNotes(notes = ""): ExerciseNoteMeta {
               rest: String(set?.rest || ""),
             }))
             .filter((set) => set.setNumber > 0);
+        }
+      } catch {
+        remainingLines.push(line);
+      }
+    }
+    if (key === "alternate exercises") {
+      try {
+        const parsedAlternates = JSON.parse(value);
+        if (Array.isArray(parsedAlternates)) {
+          meta.alternateExercises = parsedAlternates
+            .map((alternate) => ({
+              exerciseRecordId: String(alternate?.exerciseRecordId || ""),
+              exerciseId: String(alternate?.exerciseId || ""),
+              exerciseName: String(alternate?.exerciseName || ""),
+            }))
+            .filter(
+              (alternate) => alternate.exerciseName || alternate.exerciseId
+            );
         }
       } catch {
         remainingLines.push(line);
@@ -1317,6 +1346,14 @@ function App() {
     useState<number | null>(null);
   const [expandedBuilderExerciseIndexes, setExpandedBuilderExerciseIndexes] =
     useState<Set<number>>(new Set());
+  const [builderExerciseOptionsIndex, setBuilderExerciseOptionsIndex] =
+    useState<number | null>(null);
+  const [alternateEditorExerciseIndex, setAlternateEditorExerciseIndex] =
+    useState<number | null>(null);
+  const [alternateSearch, setAlternateSearch] = useState("");
+  const [alternateDragIndex, setAlternateDragIndex] = useState<number | null>(
+    null
+  );
   const [pendingSectionName, setPendingSectionName] = useState("Main");
   const [customBuilderSectionName, setCustomBuilderSectionName] = useState("");
   const [arrangementDragIndex, setArrangementDragIndex] = useState<number | null>(
@@ -3465,6 +3502,7 @@ function App() {
                 accessoryParentLabel: meta.accessoryParentLabel,
                 accessoryColor: meta.accessoryColor,
                 setPrescriptions: meta.setPrescriptions,
+                alternateExercises: meta.alternateExercises,
               };
 
               return withNormalizedSetFields(baseExercise);
@@ -4771,6 +4809,7 @@ function App() {
       isAccessory: Boolean(parent),
       accessoryParentLabel: parent?.exerciseLabel || "",
       accessoryColor: parent ? "Green" : "Gold",
+      alternateExercises: [],
     };
     const newExercise = withNormalizedSetFields(initialExercise);
 
@@ -4864,6 +4903,304 @@ function App() {
     setSelectedProgramExercises(updated);
   };
 
+  const findLibraryExerciseForProgramExercise = (exercise: ProgramExercise) =>
+    libraryExercises.find(
+      (item) =>
+        item.recordId === exercise.exerciseRecordId ||
+        item.exerciseId === exercise.exerciseId ||
+        item.exerciseName === exercise.exerciseName
+    );
+
+  const viewProgramExercise = (exercise: ProgramExercise) => {
+    const libraryExercise = findLibraryExerciseForProgramExercise(exercise);
+
+    setTechnicalCueExercise(
+      libraryExercise || {
+        recordId: exercise.exerciseRecordId,
+        exerciseId: exercise.exerciseId,
+        exerciseName: exercise.exerciseName,
+        videoUrl: "",
+        notes: exercise.coachingNotes,
+        status: "Active",
+      }
+    );
+    setBuilderExerciseOptionsIndex(null);
+  };
+
+  const duplicateProgramExercise = (index: number) => {
+    const source = selectedProgramExercises[index];
+    if (!source) return;
+
+    const duplicate: ProgramExercise = {
+      ...source,
+      order: source.order + 1,
+      alternateExercises: source.alternateExercises
+        ? [...source.alternateExercises]
+        : [],
+      setPrescriptions: normalizeExerciseSetPrescriptions(source).map((set) => ({
+        ...set,
+      })),
+    };
+
+    const updated = [...selectedProgramExercises];
+    updated.splice(index + 1, 0, duplicate);
+    setSelectedProgramExercises(relabelProgramExercises(updated));
+    setExpandedBuilderExerciseIndexes((current) => {
+      const next = new Set<number>();
+      current.forEach((itemIndex) => {
+        next.add(itemIndex > index ? itemIndex + 1 : itemIndex);
+      });
+      next.add(index + 1);
+      return next;
+    });
+    setBuilderExerciseOptionsIndex(null);
+  };
+
+  const openAlternateExerciseEditor = (index: number) => {
+    setAlternateEditorExerciseIndex(index);
+    setAlternateSearch("");
+    setBuilderExerciseOptionsIndex(null);
+  };
+
+  const addAlternateExercise = (
+    exerciseIndex: number,
+    alternate: LibraryExercise
+  ) => {
+    setSelectedProgramExercises((current) =>
+      current.map((exercise, itemIndex) => {
+        if (itemIndex !== exerciseIndex) return exercise;
+
+        const currentAlternates = exercise.alternateExercises || [];
+        const alreadyAdded = currentAlternates.some(
+          (item) =>
+            item.exerciseRecordId === alternate.recordId ||
+            item.exerciseId === alternate.exerciseId ||
+            item.exerciseName === alternate.exerciseName
+        );
+
+        if (alreadyAdded) return exercise;
+
+        return {
+          ...exercise,
+          alternateExercises: [
+            ...currentAlternates,
+            {
+              exerciseRecordId: alternate.recordId,
+              exerciseId: alternate.exerciseId,
+              exerciseName: alternate.exerciseName,
+            },
+          ],
+        };
+      })
+    );
+  };
+
+  const removeAlternateExercise = (exerciseIndex: number, alternateIndex: number) => {
+    setSelectedProgramExercises((current) =>
+      current.map((exercise, itemIndex) =>
+        itemIndex === exerciseIndex
+          ? {
+              ...exercise,
+              alternateExercises: (exercise.alternateExercises || []).filter(
+                (_, itemAlternateIndex) => itemAlternateIndex !== alternateIndex
+              ),
+            }
+          : exercise
+      )
+    );
+  };
+
+  const reorderAlternateExercise = (
+    exerciseIndex: number,
+    sourceIndex: number,
+    targetIndex: number
+  ) => {
+    if (sourceIndex === targetIndex || sourceIndex < 0 || targetIndex < 0) return;
+
+    setSelectedProgramExercises((current) =>
+      current.map((exercise, itemIndex) => {
+        if (itemIndex !== exerciseIndex) return exercise;
+
+        const alternates = [...(exercise.alternateExercises || [])];
+        if (
+          sourceIndex >= alternates.length ||
+          targetIndex >= alternates.length
+        ) {
+          return exercise;
+        }
+
+        const [movedAlternate] = alternates.splice(sourceIndex, 1);
+        alternates.splice(targetIndex, 0, movedAlternate);
+
+        return {
+          ...exercise,
+          alternateExercises: alternates,
+        };
+      })
+    );
+  };
+
+  const clearAlternateExercises = (exerciseIndex: number) => {
+    setSelectedProgramExercises((current) =>
+      current.map((exercise, itemIndex) =>
+        itemIndex === exerciseIndex
+          ? { ...exercise, alternateExercises: [] }
+          : exercise
+      )
+    );
+  };
+
+  const renderAlternateExerciseEditor = (
+    exercise: ProgramExercise,
+    index: number
+  ) => {
+    if (alternateEditorExerciseIndex !== index) return null;
+
+    const alternates = exercise.alternateExercises || [];
+    const normalizedSearch = alternateSearch.trim().toLowerCase();
+    const availableAlternates = libraryExercises
+      .filter((libraryExercise) => {
+        const isCurrentExercise =
+          libraryExercise.recordId === exercise.exerciseRecordId ||
+          libraryExercise.exerciseId === exercise.exerciseId ||
+          libraryExercise.exerciseName === exercise.exerciseName;
+        const isAlreadyAdded = alternates.some(
+          (alternate) =>
+            alternate.exerciseRecordId === libraryExercise.recordId ||
+            alternate.exerciseId === libraryExercise.exerciseId ||
+            alternate.exerciseName === libraryExercise.exerciseName
+        );
+        const matchesSearch =
+          !normalizedSearch ||
+          [
+            libraryExercise.exerciseName,
+            libraryExercise.equipment,
+            libraryExercise.movementPattern,
+            libraryExercise.category,
+          ]
+            .filter(Boolean)
+            .join(" ")
+            .toLowerCase()
+            .includes(normalizedSearch);
+
+        return !isCurrentExercise && !isAlreadyAdded && matchesSearch;
+      })
+      .slice(0, 8);
+
+    return (
+      <div className="alternateExerciseEditor">
+        <div className="alternateEditorHeader">
+          <div>
+            <span className="eyebrow">Alternate Exercises</span>
+            <strong>Edit alternate exercises</strong>
+          </div>
+          <button
+            className="iconButton compactIconButton"
+            type="button"
+            aria-label="Close alternate exercise editor"
+            onClick={() => setAlternateEditorExerciseIndex(null)}
+          >
+            <X size={15} />
+          </button>
+        </div>
+
+        <input
+          className="miniSearch alternateSearchInput"
+          value={alternateSearch}
+          onChange={(event) => setAlternateSearch(event.target.value)}
+          placeholder="Search exercise library..."
+        />
+
+        <div className="alternateExerciseEditorBody">
+          <div className="alternateSelectedList">
+            {alternates.length === 0 ? (
+              <p>No alternate exercises added yet.</p>
+            ) : (
+              alternates.map((alternate, alternateIndex) => (
+                <div
+                  className={`alternateSelectedItem${
+                    alternateDragIndex === alternateIndex ? " isDragging" : ""
+                  }`}
+                  key={`${alternate.exerciseRecordId || alternate.exerciseId}-${alternateIndex}`}
+                  draggable
+                  onDragStart={(event) => {
+                    event.dataTransfer.effectAllowed = "move";
+                    setAlternateDragIndex(alternateIndex);
+                  }}
+                  onDragOver={(event) => {
+                    event.preventDefault();
+                    event.dataTransfer.dropEffect = "move";
+                  }}
+                  onDrop={(event) => {
+                    event.preventDefault();
+                    if (alternateDragIndex !== null) {
+                      reorderAlternateExercise(
+                        index,
+                        alternateDragIndex,
+                        alternateIndex
+                      );
+                    }
+                    setAlternateDragIndex(null);
+                  }}
+                  onDragEnd={() => setAlternateDragIndex(null)}
+                >
+                  <span className="alternateOrderNumber">
+                    {alternateIndex + 1}.
+                  </span>
+                  <span>{alternate.exerciseName}</span>
+                  <GripVertical size={16} className="alternateDragHandle" />
+                  <button
+                    className="alternateRemoveButton"
+                    type="button"
+                    aria-label={`Remove ${alternate.exerciseName}`}
+                    title={`Remove ${alternate.exerciseName}`}
+                    onClick={() => removeAlternateExercise(index, alternateIndex)}
+                  >
+                    <X size={13} />
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+
+          <div className="alternateLibraryList">
+            <span className="eyebrow">Add from library</span>
+            {availableAlternates.map((alternate) => (
+              <button
+                type="button"
+                key={alternate.recordId || alternate.exerciseId}
+                onClick={() => addAlternateExercise(index, alternate)}
+              >
+                <Plus size={14} />
+                <span>{alternate.exerciseName}</span>
+              </button>
+            ))}
+            {availableAlternates.length === 0 && (
+              <p>No matching exercises available.</p>
+            )}
+          </div>
+        </div>
+
+        <div className="alternateEditorFooter">
+          <button
+            className="textButton"
+            type="button"
+            onClick={() => clearAlternateExercises(index)}
+          >
+            Remove All
+          </button>
+          <button
+            className="outlineButton compactBuilderButton"
+            type="button"
+            onClick={() => setAlternateEditorExerciseIndex(null)}
+          >
+            Done
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   const linkExerciseWithPrevious = (
     index: number,
     groupType: "Superset" | "Circuit"
@@ -4909,6 +5246,9 @@ function App() {
       `Set Prescriptions: ${JSON.stringify(
         normalizeExerciseSetPrescriptions(exercise)
       )}`,
+      (exercise.alternateExercises || []).length > 0
+        ? `Alternate Exercises: ${JSON.stringify(exercise.alternateExercises)}`
+        : "",
     ].filter(Boolean);
 
     return [...meta, exercise.coachingNotes].filter(Boolean).join("\n\n");
@@ -4920,7 +5260,81 @@ function App() {
     );
 
     setSelectedProgramExercises(updated);
+    setBuilderExerciseOptionsIndex(null);
+    if (alternateEditorExerciseIndex === index) {
+      setAlternateEditorExerciseIndex(null);
+    }
   };
+
+  const renderBuilderExerciseOptionsMenu = (
+    exercise: ProgramExercise,
+    index: number
+  ) => (
+    <div className="builderExerciseOptions">
+      <button
+        className={`builderExerciseOptionsButton${
+          builderExerciseOptionsIndex === index ? " active" : ""
+        }`}
+        type="button"
+        title="More options"
+        aria-label={`More options for ${exercise.exerciseName}`}
+        onClick={(event) => {
+          event.stopPropagation();
+          setBuilderExerciseOptionsIndex((current) =>
+            current === index ? null : index
+          );
+        }}
+      >
+        <MoreVertical size={18} />
+      </button>
+
+      {builderExerciseOptionsIndex === index && (
+        <div className="builderExerciseOptionsMenu">
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              viewProgramExercise(exercise);
+            }}
+          >
+            <Eye size={16} />
+            View exercise
+          </button>
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              openAlternateExerciseEditor(index);
+            }}
+          >
+            <Shuffle size={16} />
+            Add alternate exercise
+          </button>
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              duplicateProgramExercise(index);
+            }}
+          >
+            <Copy size={16} />
+            Duplicate
+          </button>
+          <button
+            className="dangerMenuItem"
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              removeProgramExercise(index);
+            }}
+          >
+            <Trash2 size={16} />
+            Delete
+          </button>
+        </div>
+      )}
+    </div>
+  );
 
   const buildCurrentProgramSession = (localId?: string): ProgramSession | null => {
     const singleWorkoutMode = builderMode === "Single Workout";
@@ -10834,12 +11248,7 @@ function App() {
                                       <strong>{exercise.exerciseName}</strong>
                                       <small>{exercise.sectionName || "Main"}</small>
                                     </div>
-                                    <button
-                                      className="outlineButton compactBuilderButton"
-                                      onClick={() => removeProgramExercise(index)}
-                                    >
-                                      Remove
-                                    </button>
+                                    {renderBuilderExerciseOptionsMenu(exercise, index)}
                                   </div>
 
                                   <div className="builderModalEditGrid">
@@ -10883,7 +11292,23 @@ function App() {
                                         }
                                       />
                                     </label>
+                                    <label className="builderModalCheck">
+                                      <span>Each Side</span>
+                                      <input
+                                        type="checkbox"
+                                        checked={Boolean(exercise.isUnilateral)}
+                                        onChange={(e) =>
+                                          updateProgramExercise(
+                                            index,
+                                            "isUnilateral",
+                                            e.target.checked
+                                          )
+                                        }
+                                      />
+                                    </label>
                                   </div>
+
+                                  {renderAlternateExerciseEditor(exercise, index)}
 
                                   {renderSetPrescriptionTable(exercise, index)}
 
@@ -11063,33 +11488,36 @@ function App() {
                           setArrangementDropIndex(null);
                         }}
                       >
-                        <button
-                          className="builderExerciseSummaryButton"
-                          onClick={() => toggleBuilderExerciseExpanded(index)}
-                          type="button"
-                        >
-                          <div className="builderExerciseSummaryTitle">
-                            {renderExerciseLabelBadge(exercise, index)}
-                            <div>
-                              <span className="exerciseSectionName">
-                                {exercise.sectionName || "Main"}
-                              </span>
-                              <h3>{exercise.exerciseName}</h3>
+                        <div className="builderExerciseCardHeader">
+                          <button
+                            className="builderExerciseSummaryButton"
+                            onClick={() => toggleBuilderExerciseExpanded(index)}
+                            type="button"
+                          >
+                            <div className="builderExerciseSummaryTitle">
+                              {renderExerciseLabelBadge(exercise, index)}
+                              <div>
+                                <span className="exerciseSectionName">
+                                  {exercise.sectionName || "Main"}
+                                </span>
+                                <h3>{exercise.exerciseName}</h3>
+                              </div>
                             </div>
-                          </div>
 
-                          <div className="builderExerciseSummaryStats">
-                            <span>{exercise.sets || "--"} sets</span>
-                            <span>{exercise.reps || "--"} reps</span>
-                            {exercise.load && <span>{exercise.load}</span>}
-                            {exercise.tempo && <span>Tempo {exercise.tempo}</span>}
-                            {exercise.rest && <span>Rest {exercise.rest}</span>}
-                          </div>
+                            <div className="builderExerciseSummaryStats">
+                              <span>{exercise.sets || "--"} sets</span>
+                              <span>{exercise.reps || "--"} reps</span>
+                              {exercise.load && <span>{exercise.load}</span>}
+                              {exercise.tempo && <span>Tempo {exercise.tempo}</span>}
+                              {exercise.rest && <span>Rest {exercise.rest}</span>}
+                            </div>
 
-                          <span className="builderExerciseExpandIndicator">
-                            {isExpanded ? "Collapse" : "Edit"}
-                          </span>
-                        </button>
+                            <span className="builderExerciseExpandIndicator">
+                              {isExpanded ? "Collapse" : "Edit"}
+                            </span>
+                          </button>
+                          {renderBuilderExerciseOptionsMenu(exercise, index)}
+                        </div>
 
                         {(exercise.groupType !== "Straight" && exercise.groupName) ||
                         exercise.isAccessory ? (
@@ -11110,6 +11538,8 @@ function App() {
                           </div>
                         ) : null}
 
+                        {renderAlternateExerciseEditor(exercise, index)}
+
                         {isExpanded && (
                           <>
                             <div className="builderExerciseActions compactPageActions">
@@ -11124,12 +11554,6 @@ function App() {
                                 onClick={() => linkExerciseWithPrevious(index, "Circuit")}
                               >
                                 Circuit
-                              </button>
-                              <button
-                                className="outlineButton compactBuilderButton builderRemoveButton"
-                                onClick={() => removeProgramExercise(index)}
-                              >
-                                Remove
                               </button>
                             </div>
 
@@ -11203,6 +11627,21 @@ function App() {
                               )
                             );
                           }}
+                        />
+                      </label>
+
+                      <label className="builderCheckboxField">
+                        <span>Each Side</span>
+                        <input
+                          type="checkbox"
+                          checked={Boolean(exercise.isUnilateral)}
+                          onChange={(e) =>
+                            updateProgramExercise(
+                              index,
+                              "isUnilateral",
+                              e.target.checked
+                            )
+                          }
                         />
                       </label>
                     </div>
