@@ -3800,25 +3800,29 @@ function App() {
     if (!selectedWorkout || !selectedClient) return;
 
     setUpdatingWorkoutDate(true);
+    const previousWorkouts = workouts;
+    const previousSelectedWorkout = selectedWorkout;
+    const nextDate = normalizeDate(editingWorkoutDate);
+
+    setWorkouts((current) =>
+      current.map((workout) =>
+        workout.id === selectedWorkout.id
+          ? { ...workout, scheduledDate: nextDate }
+          : workout
+      )
+    );
+    setSelectedWorkout((current) =>
+      current ? { ...current, scheduledDate: nextDate } : current
+    );
 
     try {
-      await updateAssignedWorkoutScheduledDate(selectedWorkout.id, editingWorkoutDate);
-
+      await updateAssignedWorkoutScheduledDate(selectedWorkout.id, nextDate);
       notify("Workout date updated.");
-
-      const refresh = await fetch(`/api/workouts?clientCode=${selectedClient.clientCode}`);
-      const refreshData = await refresh.json();
-      setWorkouts(refreshData.workouts || []);
-      const updatedWorkout = refreshData.workouts?.find(
-        (workout: Workout) => workout.id === selectedWorkout.id
-      );
-
-      if (updatedWorkout) {
-        setSelectedWorkout(updatedWorkout);
-        setEditingWorkoutDate(normalizeDate(String(updatedWorkout.scheduledDate)));
-      }
     } catch (error) {
       console.error(error);
+      setWorkouts(previousWorkouts);
+      setSelectedWorkout(previousSelectedWorkout);
+      setEditingWorkoutDate(normalizeDate(String(previousSelectedWorkout.scheduledDate)));
       notify("Could not update workout date.");
     } finally {
       setUpdatingWorkoutDate(false);
@@ -4008,10 +4012,6 @@ function App() {
 
     try {
       await updateAssignedWorkoutScheduledDate(workout.id, scheduledDate);
-
-      const refresh = await fetch(`/api/workouts?clientCode=${selectedClient.clientCode}`);
-      const refreshData = await refresh.json();
-      setWorkouts(refreshData.workouts || []);
     } catch (error) {
       console.error(error);
       setWorkouts(previousWorkouts);
@@ -4067,9 +4067,6 @@ function App() {
         console.error(data);
         throw new Error("Could not move assigned item.");
       }
-
-      await loadContentAssignments(selectedClient);
-      notify("Assigned item moved.", "success");
     } catch (error) {
       console.error(error);
       setContentAssignments(previousAssignments);
