@@ -132,7 +132,7 @@
 }
 
 .builderLibraryDrawer.orderOpen {
-  grid-template-columns: minmax(280px, 360px) minmax(0, 1fr) 190px;
+  grid-template-columns: minmax(280px, 360px) minmax(0, 0.86fr) minmax(260px, 300px);
 }
 
 .builderModalOrderSidebar {
@@ -149,6 +149,7 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
+  padding-right: 72px;
 }
 
 .builderPreviewTitleRow h2 {
@@ -159,6 +160,7 @@
   display: inline-flex !important;
   align-items: center;
   gap: 8px;
+  margin-top: 18px;
   min-height: 42px !important;
   padding: 0 14px !important;
   white-space: nowrap;
@@ -417,7 +419,8 @@
   text-transform: uppercase;
 }
 
-.builderModalEditGrid input {
+.builderModalEditGrid input,
+.builderModalEditGrid select {
   min-height: 40px;
   width: 100%;
   border: 1px solid rgba(17, 17, 17, 0.16);
@@ -426,6 +429,18 @@
   color: #111;
   padding: 0 12px;
   font-weight: 900;
+}
+
+.builderModalEditGrid select {
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, #111 50%),
+    linear-gradient(135deg, #111 50%, transparent 50%);
+  background-position:
+    calc(100% - 18px) 50%,
+    calc(100% - 13px) 50%;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+  padding-right: 32px;
 }
 
 .builderSetStepper {
@@ -13607,10 +13622,14 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 }
 
 .app:not(.clientPortalApp) .builderLibraryDrawer {
-  grid-template-columns: minmax(260px, 330px) minmax(0, 1fr) 164px !important;
+  grid-template-columns: minmax(260px, 330px) minmax(0, 0.82fr) minmax(260px, 300px) !important;
   width: min(1380px, calc(100vw - 32px)) !important;
   height: min(800px, calc(100dvh - 32px)) !important;
   border-radius: 18px !important;
+}
+
+.app:not(.clientPortalApp) .builderLibraryDrawer:not(.orderOpen) {
+  grid-template-columns: minmax(260px, 330px) minmax(0, 1fr) !important;
 }
 
 .app:not(.clientPortalApp) .builderLibraryDrawerSide {
@@ -13666,6 +13685,18 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   padding: 22px 30px 18px !important;
 }
 
+.app:not(.clientPortalApp) .builderLibraryDrawer.orderOpen .builderLibraryPreview {
+  padding-right: 24px !important;
+}
+
+.app:not(.clientPortalApp) .builderPreviewTitleRow {
+  padding-right: 82px !important;
+}
+
+.app:not(.clientPortalApp) .builderOrderToggle {
+  margin-top: 22px !important;
+}
+
 .app:not(.clientPortalApp) .builderLibraryPreview h2 {
   font-size: clamp(28px, 3.4vw, 46px) !important;
 }
@@ -13714,11 +13745,19 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   gap: 8px !important;
 }
 
-.app:not(.clientPortalApp) .builderModalEditGrid input {
+.app:not(.clientPortalApp) .builderModalEditGrid input,
+.app:not(.clientPortalApp) .builderModalEditGrid select {
   min-height: 34px !important;
   border-radius: 10px !important;
   padding: 0 9px !important;
   font-size: 13px !important;
+}
+
+.app:not(.clientPortalApp) .builderModalEditGrid select {
+  padding-right: 28px !important;
+  background-position:
+    calc(100% - 16px) 50%,
+    calc(100% - 11px) 50% !important;
 }
 
 .app:not(.clientPortalApp) .builderModalCheck input,
@@ -13796,7 +13835,8 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 }
 
 .app:not(.clientPortalApp) .builderModalOrderSidebar {
-  width: 164px !important;
+  width: auto !important;
+  min-width: 260px !important;
 }
 
 .app:not(.clientPortalApp) .builderArrangementSidebarHeader {
@@ -13809,14 +13849,19 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 }
 
 .app:not(.clientPortalApp) .builderSidebarItem {
-  gap: 5px !important;
-  padding: 6px !important;
-  border-radius: 8px !important;
+  display: grid !important;
+  grid-template-columns: 14px 42px minmax(0, 1fr) !important;
+  gap: 8px !important;
+  padding: 8px !important;
+  border-radius: 10px !important;
 }
 
 .app:not(.clientPortalApp) .sidebarItemName {
-  font-size: 11px !important;
-  line-height: 1.12 !important;
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  font-size: 13px !important;
+  line-height: 1.16 !important;
 }
 
 .app:not(.clientPortalApp) .builderExerciseListToolbar {

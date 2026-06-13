@@ -1354,7 +1354,7 @@ function App() {
   const [alternateDragIndex, setAlternateDragIndex] = useState<number | null>(
     null
   );
-  const [pendingSectionName, setPendingSectionName] = useState("Main");
+  const [pendingSectionName, setPendingSectionName] = useState("Warmup");
   const [customBuilderSectionName, setCustomBuilderSectionName] = useState("");
   const [arrangementDragIndex, setArrangementDragIndex] = useState<number | null>(
     null
@@ -4337,6 +4337,22 @@ function App() {
     "Climbing",
   ];
 
+  const getBuilderSectionSelectOptions = (currentSection?: string) => {
+    const options = new Set<string>();
+
+    [...builderSectionOptions, pendingSectionName, currentSection || ""]
+      .map((section) => section.trim())
+      .filter(Boolean)
+      .forEach((section) => options.add(section));
+
+    selectedProgramExercises
+      .map((exercise) => exercise.sectionName.trim())
+      .filter(Boolean)
+      .forEach((section) => options.add(section));
+
+    return Array.from(options);
+  };
+
   const openBuilderLibrary = (mode: BuilderLibraryMode = "Exercises") => {
     setBuilderLibraryMode(mode);
     setIsBuilderLibraryOpen(true);
@@ -4783,10 +4799,10 @@ function App() {
         ? selectedProgramExercises[accessoryTargetIndex]
         : null;
     const exerciseSection =
-      parent?.sectionName ||
       pendingSectionName ||
+      parent?.sectionName ||
       selectedProgramExercises[selectedProgramExercises.length - 1]?.sectionName ||
-      "Main";
+      builderSectionOptions[0];
     const initialExercise: ProgramExercise = {
       exerciseRecordId: exercise.recordId,
       exerciseId: exercise.exerciseId,
@@ -4870,6 +4886,45 @@ function App() {
     );
   };
 
+  const getExerciseGroupMoveRange = (
+    exercises: ProgramExercise[],
+    index: number
+  ) => {
+    const exercise = exercises[index];
+
+    if (
+      !exercise ||
+      exercise.groupType === "Straight" ||
+      !exercise.groupName.trim()
+    ) {
+      return { start: index, end: index };
+    }
+
+    const groupKey = `${exercise.groupType}:${exercise.groupName.trim().toLowerCase()}`;
+    let start = index;
+    let end = index;
+
+    while (start > 0) {
+      const previous = exercises[start - 1];
+      const previousKey = `${previous.groupType}:${previous.groupName
+        .trim()
+        .toLowerCase()}`;
+
+      if (previous.groupType === "Straight" || previousKey !== groupKey) break;
+      start -= 1;
+    }
+
+    while (end < exercises.length - 1) {
+      const next = exercises[end + 1];
+      const nextKey = `${next.groupType}:${next.groupName.trim().toLowerCase()}`;
+
+      if (next.groupType === "Straight" || nextKey !== groupKey) break;
+      end += 1;
+    }
+
+    return { start, end };
+  };
+
   const reorderProgramExercise = (sourceIndex: number, targetIndex: number) => {
     if (
       sourceIndex === targetIndex ||
@@ -4882,8 +4937,25 @@ function App() {
     }
 
     const updated = [...selectedProgramExercises];
-    const [movedExercise] = updated.splice(sourceIndex, 1);
-    updated.splice(targetIndex, 0, movedExercise);
+    const sourceRange = getExerciseGroupMoveRange(updated, sourceIndex);
+
+    if (targetIndex >= sourceRange.start && targetIndex <= sourceRange.end) {
+      return;
+    }
+
+    const targetRange = getExerciseGroupMoveRange(updated, targetIndex);
+    const insertIndex =
+      targetIndex > sourceIndex ? targetRange.end + 1 : targetRange.start;
+    const movedExercises = updated.splice(
+      sourceRange.start,
+      sourceRange.end - sourceRange.start + 1
+    );
+    const adjustedInsertIndex =
+      insertIndex > sourceRange.start
+        ? insertIndex - movedExercises.length
+        : insertIndex;
+
+    updated.splice(adjustedInsertIndex, 0, ...movedExercises);
     setSelectedProgramExercises(relabelProgramExercises(updated));
   };
 
@@ -11156,7 +11228,7 @@ function App() {
                         </div>
                         <p>
                           Active section:{" "}
-                          <strong>{pendingSectionName || "Main"}</strong>
+                          <strong>{pendingSectionName || builderSectionOptions[0]}</strong>
                         </p>
                         {builderLibraryMode === "Sections" && (
                           <div className="builderSectionPicker builderSectionPickerInline">
@@ -11267,7 +11339,7 @@ function App() {
                                     </label>
                                     <label>
                                       <span>Section</span>
-                                      <input
+                                      <select
                                         value={exercise.sectionName}
                                         onChange={(e) =>
                                           updateProgramExercise(
@@ -11276,7 +11348,15 @@ function App() {
                                             e.target.value
                                           )
                                         }
-                                      />
+                                      >
+                                        {getBuilderSectionSelectOptions(
+                                          exercise.sectionName
+                                        ).map((section) => (
+                                          <option key={section} value={section}>
+                                            {section}
+                                          </option>
+                                        ))}
+                                      </select>
                                     </label>
                                     <label className="builderModalCheck">
                                       <span>Accessory</span>
@@ -11409,7 +11489,7 @@ function App() {
                   <div className="builderExerciseListToolbar builderExerciseActionToolbar">
                     <span>
                       {selectedProgramExercises.length} exercises
-                      <small>Active: {pendingSectionName || "Main"}</small>
+                      <small>Active: {pendingSectionName || builderSectionOptions[0]}</small>
                     </span>
                     <div>
                       <button
@@ -11582,7 +11662,7 @@ function App() {
 
                       <label>
                         <span>Section</span>
-                        <input
+                        <select
                           className="miniSearch"
                           value={exercise.sectionName}
                           onChange={(e) =>
@@ -11592,8 +11672,15 @@ function App() {
                               e.target.value
                             )
                           }
-                          placeholder="Prep, Power..."
-                        />
+                        >
+                          {getBuilderSectionSelectOptions(exercise.sectionName).map(
+                            (section) => (
+                              <option key={section} value={section}>
+                                {section}
+                              </option>
+                            )
+                          )}
+                        </select>
                       </label>
 
                       <label>
