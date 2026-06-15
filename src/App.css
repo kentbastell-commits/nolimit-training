@@ -1240,23 +1240,46 @@ body {
 
   .app:not(.clientPortalApp) .brandTagline,
   .app:not(.clientPortalApp) .coachBox,
-  .app:not(.clientPortalApp) .navItem span,
+  .app:not(.clientPortalApp) .navItem .desktopNavLabel,
   .app:not(.clientPortalApp) .navItem .badge {
     opacity: 0;
     pointer-events: none;
     transition: opacity 140ms ease;
   }
 
+  /* Collapsed rail: keep the icon visible, only collapse the text label.
+     (Previously `.navItem span` matched `.navItemLabel`, hiding the icon too.) */
+  .app:not(.clientPortalApp) .navItemLabel {
+    gap: 0;
+  }
+
+  .app:not(.clientPortalApp) .navItem .desktopNavLabel {
+    max-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    transition: opacity 140ms ease, max-width 160ms ease;
+  }
+
   .app:not(.clientPortalApp) .sidebar:hover .brandTagline,
   .app:not(.clientPortalApp) .sidebar:focus-within .brandTagline,
   .app:not(.clientPortalApp) .sidebar:hover .coachBox,
   .app:not(.clientPortalApp) .sidebar:focus-within .coachBox,
-  .app:not(.clientPortalApp) .sidebar:hover .navItem span,
-  .app:not(.clientPortalApp) .sidebar:focus-within .navItem span,
+  .app:not(.clientPortalApp) .sidebar:hover .navItem .desktopNavLabel,
+  .app:not(.clientPortalApp) .sidebar:focus-within .navItem .desktopNavLabel,
   .app:not(.clientPortalApp) .sidebar:hover .navItem .badge,
   .app:not(.clientPortalApp) .sidebar:focus-within .navItem .badge {
     opacity: 1;
     pointer-events: auto;
+  }
+
+  .app:not(.clientPortalApp) .sidebar:hover .navItemLabel,
+  .app:not(.clientPortalApp) .sidebar:focus-within .navItemLabel {
+    gap: 10px;
+  }
+
+  .app:not(.clientPortalApp) .sidebar:hover .navItem .desktopNavLabel,
+  .app:not(.clientPortalApp) .sidebar:focus-within .navItem .desktopNavLabel {
+    max-width: 160px;
   }
 
   .app:not(.clientPortalApp) .navItem {
@@ -1319,6 +1342,10 @@ body {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.navItemLabel svg {
+  flex-shrink: 0;
 }
 
 .mobileNavLabel {
