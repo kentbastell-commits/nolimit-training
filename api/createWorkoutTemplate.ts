@@ -12,6 +12,12 @@ type ProgramExercise = {
   rest: string;
   coachingNotes: string;
   status?: string;
+  targetSource?: string;
+  targetMetric?: string;
+  targetPercent?: string;
+  targetAdjustment?: string;
+  autoTarget?: boolean;
+  displayTarget?: string;
 };
 
 function makeTemplateId() {
@@ -23,6 +29,7 @@ function fieldToText(value: any): string {
   if (!value) return "";
   if (typeof value === "string") return value;
   if (typeof value === "number") return String(value);
+  if (typeof value === "boolean") return value ? "true" : "false";
 
   if (Array.isArray(value)) {
     return value
@@ -186,6 +193,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           Rest: String(exercise.rest || ""),
           "Coaching Notes": String(exercise.coachingNotes || ""),
           Status: String(exercise.status || "Active"),
+          "Target Source": String(exercise.targetSource || ""),
+          "Target Metric": String(exercise.targetMetric || ""),
+          "Target Percent": String(exercise.targetPercent || ""),
+          "Target Adjustment": String(exercise.targetAdjustment || ""),
+          "Auto Target": Boolean(exercise.autoTarget),
+          "Display Target": String(exercise.displayTarget || ""),
         },
       };
     });

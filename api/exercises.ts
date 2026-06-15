@@ -5,6 +5,7 @@ function fieldToText(value: any): string {
 
   if (typeof value === "string") return value;
   if (typeof value === "number") return String(value);
+  if (typeof value === "boolean") return value ? "true" : "false";
 
   if (Array.isArray(value)) {
     return value
@@ -44,6 +45,12 @@ function readFirstField(fields: Record<string, any>, candidates: string[]) {
   }
 
   return "";
+}
+
+function readBooleanField(fields: Record<string, any>, candidates: string[]) {
+  const value = readFirstField(fields, candidates).trim().toLowerCase();
+
+  return ["true", "yes", "1", "checked", "active"].includes(value);
 }
 
 const CUE_FIELD_CANDIDATES = [
@@ -198,6 +205,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         ]),
         commonMistakesCn: readFirstField(fields, ["Common Mistakes CN"]),
         notes,
+        defaultMetric: readFirstField(fields, [
+          "Default Metric",
+          "Target Metric",
+          "Metric",
+        ]),
+        metricCategory: readFirstField(fields, [
+          "Metric Category",
+          "Metric Type",
+        ]),
+        usesAutoTarget: readBooleanField(fields, [
+          "Uses Auto Target",
+          "Auto Target",
+        ]),
         status: notes.startsWith("[Archived]")
           ? "Archived"
           : "Active",

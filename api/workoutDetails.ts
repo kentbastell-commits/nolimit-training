@@ -5,6 +5,7 @@ function fieldToText(value: any): string {
 
   if (typeof value === "string") return value;
   if (typeof value === "number") return String(value);
+  if (typeof value === "boolean") return value ? "true" : "false";
 
   if (Array.isArray(value)) {
     return value
@@ -48,6 +49,12 @@ function readFirstField(fields: Record<string, any>, candidates: string[]) {
   }
 
   return "";
+}
+
+function readBooleanField(fields: Record<string, any>, candidates: string[]) {
+  const value = readFirstField(fields, candidates).trim().toLowerCase();
+
+  return ["true", "yes", "1", "checked", "active"].includes(value);
 }
 
 const CUE_FIELD_CANDIDATES = [
@@ -222,6 +229,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             "Form Instructions CN",
           ]),
           sectionNameCn: readFirstField(fields, ["Section CN"]),
+          targetSource: readFirstField(fields, ["Target Source"]),
+          targetMetric: readFirstField(fields, ["Target Metric"]),
+          targetPercent: readFirstField(fields, ["Target Percent"]),
+          targetAdjustment: readFirstField(fields, ["Target Adjustment"]),
+          autoTarget: readBooleanField(fields, ["Auto Target"]),
+          displayTarget: readFirstField(fields, ["Display Target"]),
         };
       })
       .sort((a: any, b: any) => a.order - b.order);

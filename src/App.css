@@ -3063,6 +3063,32 @@ body {
   height: 18px;
 }
 
+.builderMetricCheckbox {
+  align-self: end;
+  min-height: 48px;
+  padding: 10px 12px;
+  border: 1px solid rgba(17, 17, 17, 0.14);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.72);
+  color: #111;
+  font-weight: 900;
+}
+
+.builderMetricCheckbox input {
+  width: 20px;
+  height: 20px;
+  accent-color: #111;
+}
+
+.builderMetricConfig {
+  grid-column: 1 / -1;
+  width: 100%;
+  margin-top: 4px;
+  padding: 14px;
+  border-color: rgba(17, 17, 17, 0.14);
+  background: rgba(255, 255, 255, 0.68);
+}
+
 .savedTemplatePanel {
   border: 1px solid rgba(212, 175, 55, 0.22);
   border-radius: 8px;

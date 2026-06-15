@@ -254,6 +254,12 @@ type ExerciseDetail = {
   notes: string;
   notesCn?: string;
   sectionNameCn?: string;
+  targetSource?: string;
+  targetMetric?: string;
+  targetPercent?: string;
+  targetAdjustment?: string;
+  autoTarget?: boolean;
+  displayTarget?: string;
 };
 
 type ExerciseNoteMeta = {
@@ -331,6 +337,9 @@ type LibraryExercise = {
   commonMistakesCn?: string;
   notes?: string;
   notesCn?: string;
+  defaultMetric?: string;
+  metricCategory?: string;
+  usesAutoTarget?: boolean;
   status?: string;
 };
 
@@ -356,6 +365,12 @@ type ProgramExercise = {
   accessoryColor?: string;
   setPrescriptions?: ExerciseSetPrescription[];
   alternateExercises?: ExerciseAlternate[];
+  targetSource?: string;
+  targetMetric?: string;
+  targetPercent?: string;
+  targetAdjustment?: string;
+  autoTarget?: boolean;
+  displayTarget?: string;
 };
 
 type BuilderLibraryMode = "Exercises" | "Sections";
@@ -442,6 +457,11 @@ type SavedTestItem = {
   unit: string;
   instructions?: string;
   instructionsCn?: string;
+  createsMetric?: boolean;
+  metricName?: string;
+  metricUnit?: string;
+  calculationMethod?: string;
+  inputUnit?: string;
 };
 
 type SavedTestTemplate = {
@@ -1392,6 +1412,11 @@ function App() {
       testName: "Back Squat 3RM",
       metricType: "Weight",
       unit: "kg",
+      createsMetric: true,
+      metricName: "Predicted 1RM",
+      metricUnit: "kg",
+      calculationMethod: "Epley 1RM",
+      inputUnit: "kg x reps",
     },
   ]);
   const [savedTestTemplates, setSavedTestTemplates] = useState<
@@ -2870,6 +2895,11 @@ function App() {
             testName: item.testName,
             metricType: item.metricType || "Weight",
             unit: item.unit || "kg",
+            createsMetric: Boolean(item.createsMetric),
+            metricName: item.metricName || "",
+            metricUnit: item.metricUnit || "",
+            calculationMethod: item.calculationMethod || "Direct Value",
+            inputUnit: item.inputUnit || "",
           }))
         : [
             {
@@ -2877,6 +2907,11 @@ function App() {
               testName: "New Test",
               metricType: "Weight",
               unit: "kg",
+              createsMetric: false,
+              metricName: "",
+              metricUnit: "",
+              calculationMethod: "Direct Value",
+              inputUnit: "",
             },
           ]
     );
@@ -2898,6 +2933,11 @@ function App() {
             testName: item.testName,
             metricType: item.metricType || "Weight",
             unit: item.unit || "kg",
+            createsMetric: Boolean(item.createsMetric),
+            metricName: item.metricName || "",
+            metricUnit: item.metricUnit || "",
+            calculationMethod: item.calculationMethod || "Direct Value",
+            inputUnit: item.inputUnit || "",
           }))
         : [
             {
@@ -2905,6 +2945,11 @@ function App() {
               testName: "New Test",
               metricType: "Weight",
               unit: "kg",
+              createsMetric: false,
+              metricName: "",
+              metricUnit: "",
+              calculationMethod: "Direct Value",
+              inputUnit: "",
             },
           ]
     );
@@ -4867,6 +4912,12 @@ function App() {
       accessoryParentLabel: parent?.exerciseLabel || "",
       accessoryColor: parent ? "Green" : "Gold",
       alternateExercises: [],
+      targetSource: exercise.usesAutoTarget ? "Athlete Metric" : "",
+      targetMetric: exercise.defaultMetric || "",
+      targetPercent: "",
+      targetAdjustment: "",
+      autoTarget: Boolean(exercise.usesAutoTarget),
+      displayTarget: "",
     };
     const newExercise = withNormalizedSetFields(initialExercise);
 
@@ -6006,6 +6057,11 @@ function App() {
         testName: "",
         metricType: "Weight",
         unit: "kg",
+        createsMetric: false,
+        metricName: "",
+        metricUnit: "",
+        calculationMethod: "Direct Value",
+        inputUnit: "",
       },
     ]);
   };
@@ -6013,7 +6069,7 @@ function App() {
   const updateTestItem = (
     index: number,
     field: keyof (typeof testItems)[number],
-    value: string
+    value: string | boolean
   ) => {
     setTestItems((current) =>
       current.map((item, itemIndex) =>
@@ -12642,6 +12698,90 @@ function App() {
                                   <option>none</option>
                                 </select>
                               </label>
+                              <label className="checkboxRow builderMetricCheckbox">
+                                <input
+                                  type="checkbox"
+                                  checked={Boolean(item.createsMetric)}
+                                  onChange={(e) =>
+                                    updateTestItem(
+                                      index,
+                                      "createsMetric",
+                                      e.target.checked
+                                    )
+                                  }
+                                />
+                                <span>Create athlete metric</span>
+                              </label>
+                              {item.createsMetric && (
+                                <div className="builderHubRow builderMetricConfig">
+                                  <label>
+                                    <span>Metric Name</span>
+                                    <input
+                                      className="miniSearch"
+                                      value={item.metricName || ""}
+                                      onChange={(e) =>
+                                        updateTestItem(
+                                          index,
+                                          "metricName",
+                                          e.target.value
+                                        )
+                                      }
+                                      placeholder="Predicted 1RM, MAS..."
+                                    />
+                                  </label>
+                                  <label>
+                                    <span>Metric Unit</span>
+                                    <input
+                                      className="miniSearch"
+                                      value={item.metricUnit || ""}
+                                      onChange={(e) =>
+                                        updateTestItem(
+                                          index,
+                                          "metricUnit",
+                                          e.target.value
+                                        )
+                                      }
+                                      placeholder="kg, m/s, km/h..."
+                                    />
+                                  </label>
+                                  <label>
+                                    <span>Calculation</span>
+                                    <select
+                                      className="miniSearch"
+                                      value={item.calculationMethod || "Direct Value"}
+                                      onChange={(e) =>
+                                        updateTestItem(
+                                          index,
+                                          "calculationMethod",
+                                          e.target.value
+                                        )
+                                      }
+                                    >
+                                      <option>Direct Value</option>
+                                      <option>Epley 1RM</option>
+                                      <option>Brzycki 1RM</option>
+                                      <option>2km Time Trial Speed</option>
+                                      <option>Max Aerobic Speed</option>
+                                      <option>Lactate Threshold</option>
+                                    </select>
+                                  </label>
+                                  <label>
+                                    <span>Input Unit</span>
+                                    <input
+                                      className="miniSearch"
+                                      value={item.inputUnit || ""}
+                                      onChange={(e) =>
+                                        updateTestItem(
+                                          index,
+                                          "inputUnit",
+                                          e.target.value
+                                        )
+                                      }
+                                      placeholder="kg x reps, mm:ss..."
+                                    />
+                                  </label>
+                                </div>
+                              )}
                               <button
                                 className="outlineButton"
                                 onClick={() => removeTestItem(index)}

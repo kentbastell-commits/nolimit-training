@@ -58,6 +58,11 @@ function readField(fields: Record<string, any>, aliases: string[]) {
   return matchingKey ? fieldToText(fields[matchingKey]) : "";
 }
 
+function readBoolField(fields: Record<string, any>, aliases: string[]) {
+  const text = readField(fields, aliases).trim().toLowerCase();
+  return ["true", "yes", "1", "checked", "active"].includes(text);
+}
+
 function toLarkDate(value?: string) {
   if (!value) return Date.now();
   if (/^\d+$/.test(value)) return Number(value);
@@ -248,6 +253,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           ]),
           metricType: readField(fields, ["metricType", "Metric Type", "Metric"]),
           unit: readField(fields, ["unit", "Unit"]),
+          createsMetric: readBoolField(fields, [
+            "Creates Metric",
+            "Create Metric",
+            "Metric Enabled",
+          ]),
+          metricName: readField(fields, ["Metric Name", "metricName"]),
+          metricUnit: readField(fields, ["Metric Unit", "metricUnit"]),
+          calculationMethod: readField(fields, [
+            "Calculation Method",
+            "Calculation",
+            "Formula",
+          ]),
+          inputUnit: readField(fields, ["Input Unit", "Input Format"]),
           instructions: readField(fields, ["instructions", "Instructions"]),
           instructionsCn: readField(fields, [
             "Instructions CN",
@@ -479,6 +497,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             },
             { aliases: ["Unit", "unit"], value: String(item.unit || "kg") },
             {
+              aliases: ["Creates Metric", "Create Metric", "Metric Enabled"],
+              value: Boolean(item.createsMetric),
+            },
+            {
+              aliases: ["Metric Name", "metricName"],
+              value: String(item.metricName || ""),
+            },
+            {
+              aliases: ["Metric Unit", "metricUnit"],
+              value: String(item.metricUnit || item.unit || ""),
+            },
+            {
+              aliases: ["Calculation Method", "Calculation", "Formula"],
+              value: String(item.calculationMethod || ""),
+            },
+            {
+              aliases: ["Input Unit", "Input Format"],
+              value: String(item.inputUnit || item.unit || ""),
+            },
+            {
               aliases: ["Instructions", "instructions"],
               value: String(item.instructions || ""),
             },
@@ -597,6 +635,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             value: String(item.metricType || "Weight"),
           },
           { aliases: ["Unit", "unit"], value: String(item.unit || "kg") },
+          {
+            aliases: ["Creates Metric", "Create Metric", "Metric Enabled"],
+            value: Boolean(item.createsMetric),
+          },
+          {
+            aliases: ["Metric Name", "metricName"],
+            value: String(item.metricName || ""),
+          },
+          {
+            aliases: ["Metric Unit", "metricUnit"],
+            value: String(item.metricUnit || item.unit || ""),
+          },
+          {
+            aliases: ["Calculation Method", "Calculation", "Formula"],
+            value: String(item.calculationMethod || ""),
+          },
+          {
+            aliases: ["Input Unit", "Input Format"],
+            value: String(item.inputUnit || item.unit || ""),
+          },
           {
             aliases: ["Instructions", "instructions"],
             value: String(item.instructions || ""),
