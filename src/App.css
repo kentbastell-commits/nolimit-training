@@ -9345,13 +9345,40 @@ body {
 
 .testResultField {
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(180px, 0.8fr);
+  grid-template-columns: 1fr;
   gap: 12px;
-  align-items: end;
   border: 1px solid #ded8cc;
   border-radius: 12px;
   background: #faf9f5;
   padding: 14px;
+}
+
+.testResultHeader {
+  display: grid;
+  gap: 4px;
+}
+
+.testResultHeader span {
+  color: #111;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.testResultHeader small {
+  color: #6f6a61;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.structuredTestInputs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.structuredTestInputs.threeFields {
+  grid-template-columns: 1.2fr 0.9fr 0.9fr;
 }
 
 .testResultNotesField span {
@@ -9575,6 +9602,11 @@ body {
 
 @media (max-width: 720px) {
   .testResultField {
+    grid-template-columns: 1fr;
+  }
+
+  .structuredTestInputs,
+  .structuredTestInputs.threeFields {
     grid-template-columns: 1fr;
   }
 

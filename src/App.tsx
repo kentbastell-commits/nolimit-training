@@ -7933,6 +7933,121 @@ function App() {
         )
       : undefined;
 
+  const getTestAnswerKey = (item: SavedTestItem, suffix?: string) =>
+    suffix ? `${item.testItemId}__${suffix}` : item.testItemId;
+
+  const getTestInputMode = (
+    item: SavedTestItem
+  ): "weightReps" | "distanceTime" | "single" => {
+    const descriptor = [
+      item.testName,
+      item.metricType,
+      item.unit,
+      item.inputUnit,
+      item.calculationMethod,
+      item.metricName,
+      item.metricUnit,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+
+    if (
+      descriptor.includes("epley") ||
+      descriptor.includes("brzycki") ||
+      descriptor.includes("1rm") ||
+      descriptor.includes("3rm") ||
+      descriptor.includes("5rm") ||
+      descriptor.includes("weight x reps") ||
+      descriptor.includes("weight/reps")
+    ) {
+      return "weightReps";
+    }
+
+    if (
+      descriptor.includes("2km") ||
+      descriptor.includes("2000") ||
+      descriptor.includes("aerobic") ||
+      descriptor.includes("mas") ||
+      descriptor.includes("threshold") ||
+      descriptor.includes("time") ||
+      descriptor.includes("duration") ||
+      descriptor.includes("minute") ||
+      descriptor.includes("second") ||
+      descriptor.includes("distance") ||
+      descriptor.includes("meter") ||
+      descriptor.includes("metre")
+    ) {
+      return "distanceTime";
+    }
+
+    return "single";
+  };
+
+  const isTwoKilometerTest = (item: SavedTestItem) => {
+    const descriptor = [
+      item.testName,
+      item.metricType,
+      item.inputUnit,
+      item.calculationMethod,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+
+    return descriptor.includes("2km") || descriptor.includes("2000");
+  };
+
+  const buildStructuredTestValue = (item: SavedTestItem) => {
+    const mode = getTestInputMode(item);
+
+    if (mode === "weightReps") {
+      const weight = contentAssignmentAnswers[getTestAnswerKey(item, "weight")] || "";
+      const reps = contentAssignmentAnswers[getTestAnswerKey(item, "reps")] || "";
+      const unit = item.inputUnit || item.unit || "kg";
+      return weight && reps ? `${weight} ${unit} x ${reps} reps` : "";
+    }
+
+    if (mode === "distanceTime") {
+      const defaultDistance = isTwoKilometerTest(item) ? "2000" : "";
+      const distance =
+        contentAssignmentAnswers[getTestAnswerKey(item, "distance")] ||
+        defaultDistance;
+      const minutes = contentAssignmentAnswers[getTestAnswerKey(item, "minutes")] || "0";
+      const secondsRaw = contentAssignmentAnswers[getTestAnswerKey(item, "seconds")] || "";
+      const seconds = secondsRaw ? secondsRaw.padStart(2, "0") : "00";
+      return distance && (minutes !== "0" || secondsRaw)
+        ? `${distance} m in ${minutes}:${seconds}`
+        : "";
+    }
+
+    return contentAssignmentAnswers[item.testItemId] || "";
+  };
+
+  const isStructuredTestComplete = (item: SavedTestItem) => {
+    const mode = getTestInputMode(item);
+
+    if (mode === "weightReps") {
+      return Boolean(
+        contentAssignmentAnswers[getTestAnswerKey(item, "weight")] &&
+          contentAssignmentAnswers[getTestAnswerKey(item, "reps")]
+      );
+    }
+
+    if (mode === "distanceTime") {
+      const hasDistance =
+        Boolean(contentAssignmentAnswers[getTestAnswerKey(item, "distance")]) ||
+        isTwoKilometerTest(item);
+      const hasTime = Boolean(
+        contentAssignmentAnswers[getTestAnswerKey(item, "minutes")] ||
+          contentAssignmentAnswers[getTestAnswerKey(item, "seconds")]
+      );
+      return hasDistance && hasTime;
+    }
+
+    return Boolean(contentAssignmentAnswers[item.testItemId]);
+  };
+
   const submitActiveContentAssignment = async () => {
     if (!activeContentAssignment || !selectedClient) return;
 
@@ -7943,7 +8058,7 @@ function App() {
           itemId: item.testItemId,
           label: localizeText(item.testName, item.testNameCn),
           unit: item.unit,
-          value: contentAssignmentAnswers[item.testItemId] || "",
+          value: buildStructuredTestValue(item),
           notes: contentAssignmentAnswers[`${item.testItemId}__notes`] || "",
           })),
           ...(clientComment
@@ -7977,7 +8092,7 @@ function App() {
 
     const missingRequired = activeAssignmentIsTest
       ? (activeTestTemplate?.items || []).filter(
-          (item) => !contentAssignmentAnswers[item.testItemId]
+          (item) => !isStructuredTestComplete(item)
         )
       : (activeFormTemplate?.questions || []).filter(
           (question) =>
@@ -16884,54 +16999,167 @@ function App() {
 
               <div className="contentAssignmentFields">
                 {activeAssignmentIsTest
-                  ? (activeTestTemplate?.items || []).map((item) => (
-                      <div className="testResultField" key={item.testItemId}>
-                        <label>
-                          <span>
-                            {localizeText(item.testName, item.testNameCn)}
-                            {item.unit ? ` (${item.unit})` : ""}
-                          </span>
-                          {item.instructions || item.instructionsCn ? (
-                            <small>
-                              {localizeText(
-                                item.instructions || "",
-                                item.instructionsCn
-                              )}
-                            </small>
-                          ) : null}
-                          <input
-                            type="number"
-                            inputMode="decimal"
-                            value={contentAssignmentAnswers[item.testItemId] || ""}
-                            onChange={(event) =>
-                              setContentAssignmentAnswers((current) => ({
-                                ...current,
-                                [item.testItemId]: event.target.value,
-                              }))
-                            }
-                            placeholder={item.unit || "Result"}
-                          />
-                        </label>
-                        <label className="testResultNotesField">
-                          <span>Notes</span>
-                          <input
-                            value={
-                              contentAssignmentAnswers[
-                                `${item.testItemId}__notes`
-                              ] || ""
-                            }
-                            onChange={(event) =>
-                              setContentAssignmentAnswers((current) => ({
-                                ...current,
-                                [`${item.testItemId}__notes`]:
-                                  event.target.value,
-                              }))
-                            }
-                            placeholder="Optional notes"
-                          />
-                        </label>
-                      </div>
-                    ))
+                  ? (activeTestTemplate?.items || []).map((item) => {
+                      const testMode = getTestInputMode(item);
+                      const updateTestAnswer = (key: string, value: string) =>
+                        setContentAssignmentAnswers((current) => ({
+                          ...current,
+                          [key]: value,
+                        }));
+
+                      return (
+                        <div className="testResultField" key={item.testItemId}>
+                          <div className="testResultHeader">
+                            <span>
+                              {localizeText(item.testName, item.testNameCn)}
+                              {item.unit ? ` (${item.unit})` : ""}
+                            </span>
+                            {item.instructions || item.instructionsCn ? (
+                              <small>
+                                {localizeText(
+                                  item.instructions || "",
+                                  item.instructionsCn
+                                )}
+                              </small>
+                            ) : null}
+                          </div>
+
+                          {testMode === "weightReps" ? (
+                            <div className="structuredTestInputs">
+                              <label>
+                                <span>Weight</span>
+                                <input
+                                  type="number"
+                                  inputMode="decimal"
+                                  value={
+                                    contentAssignmentAnswers[
+                                      getTestAnswerKey(item, "weight")
+                                    ] || ""
+                                  }
+                                  onChange={(event) =>
+                                    updateTestAnswer(
+                                      getTestAnswerKey(item, "weight"),
+                                      event.target.value
+                                    )
+                                  }
+                                  placeholder={item.inputUnit || item.unit || "kg"}
+                                />
+                              </label>
+                              <label>
+                                <span>Reps</span>
+                                <input
+                                  type="number"
+                                  inputMode="numeric"
+                                  value={
+                                    contentAssignmentAnswers[
+                                      getTestAnswerKey(item, "reps")
+                                    ] || ""
+                                  }
+                                  onChange={(event) =>
+                                    updateTestAnswer(
+                                      getTestAnswerKey(item, "reps"),
+                                      event.target.value
+                                    )
+                                  }
+                                  placeholder="reps"
+                                />
+                              </label>
+                            </div>
+                          ) : testMode === "distanceTime" ? (
+                            <div className="structuredTestInputs threeFields">
+                              <label>
+                                <span>Distance</span>
+                                <input
+                                  type="number"
+                                  inputMode="decimal"
+                                  value={
+                                    contentAssignmentAnswers[
+                                      getTestAnswerKey(item, "distance")
+                                    ] || ""
+                                  }
+                                  onChange={(event) =>
+                                    updateTestAnswer(
+                                      getTestAnswerKey(item, "distance"),
+                                      event.target.value
+                                    )
+                                  }
+                                  placeholder={isTwoKilometerTest(item) ? "2000 m" : "m"}
+                                />
+                              </label>
+                              <label>
+                                <span>Minutes</span>
+                                <input
+                                  type="number"
+                                  inputMode="numeric"
+                                  value={
+                                    contentAssignmentAnswers[
+                                      getTestAnswerKey(item, "minutes")
+                                    ] || ""
+                                  }
+                                  onChange={(event) =>
+                                    updateTestAnswer(
+                                      getTestAnswerKey(item, "minutes"),
+                                      event.target.value
+                                    )
+                                  }
+                                  placeholder="min"
+                                />
+                              </label>
+                              <label>
+                                <span>Seconds</span>
+                                <input
+                                  type="number"
+                                  inputMode="numeric"
+                                  value={
+                                    contentAssignmentAnswers[
+                                      getTestAnswerKey(item, "seconds")
+                                    ] || ""
+                                  }
+                                  onChange={(event) =>
+                                    updateTestAnswer(
+                                      getTestAnswerKey(item, "seconds"),
+                                      event.target.value
+                                    )
+                                  }
+                                  placeholder="sec"
+                                />
+                              </label>
+                            </div>
+                          ) : (
+                            <label>
+                              <span>{t("testResult")}</span>
+                              <input
+                                type="number"
+                                inputMode="decimal"
+                                value={contentAssignmentAnswers[item.testItemId] || ""}
+                                onChange={(event) =>
+                                  updateTestAnswer(item.testItemId, event.target.value)
+                                }
+                                placeholder={item.unit || "Result"}
+                              />
+                            </label>
+                          )}
+
+                          <label className="testResultNotesField">
+                            <span>Notes</span>
+                            <input
+                              value={
+                                contentAssignmentAnswers[
+                                  `${item.testItemId}__notes`
+                                ] || ""
+                              }
+                              onChange={(event) =>
+                                updateTestAnswer(
+                                  `${item.testItemId}__notes`,
+                                  event.target.value
+                                )
+                              }
+                              placeholder="Optional notes"
+                            />
+                          </label>
+                        </div>
+                      );
+                    })
                   : (activeFormTemplate?.questions || []).map((question) => (
                       <label key={question.questionId}>
                         <span>
