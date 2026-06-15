@@ -563,6 +563,7 @@ type SetLog = {
   trackingType: TrackingType;
   prescribedSets: string;
   prescribedReps: string;
+  prescribedLoad: string;
   actualReps: string;
   actualWeight: string;
   actualTime: string;
@@ -1069,6 +1070,7 @@ function App() {
   const [coaches, setCoaches] = useState<Coach[]>([]);
   const [productOrders, setProductOrders] = useState<ProductOrder[]>([]);
   const [coachScope, setCoachScope] = useState("All Coaches");
+  const [coachSharePercent, setCoachSharePercent] = useState(70);
   const [orderSearch, setOrderSearch] = useState("");
   const [orderProcessingId, setOrderProcessingId] = useState("");
   const [orderStartDates, setOrderStartDates] = useState<Record<string, string>>({});
@@ -3846,6 +3848,8 @@ function App() {
       for (let i = 1; i <= setCount; i++) {
         sides.forEach((side) => {
           const exerciseName = exercise.exerciseName || `Exercise ${exercise.order}`;
+          const setPrescription = meta.setPrescriptions?.[i - 1];
+          const prescribedLoad = String(setPrescription?.load ?? "").trim();
 
           logs.push({
             exerciseId: exercise.exerciseId,
@@ -3856,6 +3860,7 @@ function App() {
             trackingType: meta.trackingType,
             prescribedSets: exercise.sets,
             prescribedReps: exercise.reps,
+            prescribedLoad,
             actualReps: meta.trackingType === "Weight" ? exercise.reps : "",
             actualWeight: "",
             actualTime: "",
@@ -8433,6 +8438,53 @@ function App() {
   const sortedAthleteMetrics = [...athleteMetrics].sort(
     (a, b) => getAthleteMetricTimestamp(b) - getAthleteMetricTimestamp(a)
   );
+  // Auto-prescription: turn a "% 1RM" load into an actual weight for THIS client.
+  // One program template -> individualized per client at view time.
+  const roundToLoadIncrement = (value: number, increment = 2.5) =>
+    Number.isFinite(value) && increment > 0
+      ? Math.round(value / increment) * increment
+      : value;
+  const resolvePrescribedLoad = (rawLoad: string, exerciseName: string) => {
+    const raw = String(rawLoad || "").trim();
+    const pctMatch = raw.match(/^(\d+(?:\.\d+)?)\s*%$/);
+    if (!pctMatch) return { display: raw, resolved: false, isPercent: false };
+
+    const pct = parseFloat(pctMatch[1]);
+    if (!Number.isFinite(pct))
+      return { display: raw, resolved: false, isPercent: false };
+
+    const oneRepMaxMetrics = sortedAthleteMetrics.filter((metric) =>
+      /1\s*rm|one rep max|1 rep max|rep max/.test(
+        `${metric.metricType} ${metric.metricName} ${metric.calculationMethod}`.toLowerCase()
+      )
+    );
+    const exerciseTokens = exerciseName
+      .toLowerCase()
+      .split(/\s+/)
+      .filter((token) => token.length > 2);
+    const metric =
+      oneRepMaxMetrics.find((candidate) => {
+        const haystack = `${candidate.metricName} ${candidate.sourceTestName}`.toLowerCase();
+        return exerciseTokens.some((token) => haystack.includes(token));
+      }) || oneRepMaxMetrics[0];
+
+    const base = metric
+      ? parseFloat(String(metric.metricValue).replace(/[^\d.]/g, ""))
+      : NaN;
+    if (!metric || !Number.isFinite(base) || base <= 0)
+      return { display: `${pct}% 1RM`, resolved: false, isPercent: true };
+
+    const unit = String(metric.metricUnit || "kg").trim() || "kg";
+    const weight = roundToLoadIncrement((base * pct) / 100);
+    const weightStr = Number.isInteger(weight)
+      ? String(weight)
+      : weight.toFixed(1);
+    return {
+      display: `${weightStr} ${unit} (${pct}%)`,
+      resolved: true,
+      isPercent: true,
+    };
+  };
   const findLatestAthleteMetric = (tokens: string[]) =>
     sortedAthleteMetrics.find((metric) => {
       const searchableMetric = `${metric.metricType} ${metric.metricName} ${metric.sourceTestName}`.toLowerCase();
@@ -9567,7 +9619,9 @@ function App() {
 
             {activePage === "Revenue" && (() => {
               const now = new Date();
-              const paidOrders = productOrders.filter(
+              const isCoachScoped = coachScope !== "All Coaches";
+              const scopedOrders = productOrders.filter(orderBelongsToCoachScope);
+              const paidOrders = scopedOrders.filter(
                 (o) => o.paymentStatus === "Paid" || o.paymentStatus === "paid"
               );
 
@@ -9591,7 +9645,7 @@ function App() {
                 ? Math.round(((thisMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100)
                 : null;
 
-              const activeClientCount = clients.filter(
+              const activeClientCount = coachVisibleClients.filter(
                 (c) => c.status === "Active" || c.status === "Premium" || c.status === "Online Coaching"
               ).length;
 
@@ -9646,6 +9700,68 @@ function App() {
                       <small>{lastMonthOrders.length} orders</small>
                     </div>
                   </div>
+
+                  {isCoachScoped && (
+                    <div className="coachEarningsCard">
+                      <div className="coachEarningsHeader">
+                        <div>
+                          <span className="eyebrow">Coach Portal</span>
+                          <h3>{coachScope} — Earnings</h3>
+                        </div>
+                        <label className="coachShareControl">
+                          <span>Revenue share</span>
+                          <div>
+                            <input
+                              type="number"
+                              min={0}
+                              max={100}
+                              value={coachSharePercent}
+                              onChange={(e) =>
+                                setCoachSharePercent(
+                                  Math.max(
+                                    0,
+                                    Math.min(100, Number(e.target.value) || 0)
+                                  )
+                                )
+                              }
+                            />
+                            <strong>%</strong>
+                          </div>
+                        </label>
+                      </div>
+                      <div className="coachEarningsGrid">
+                        <div className="coachEarningsStat">
+                          <span>Attributed Revenue</span>
+                          <strong>{formatCurrency(totalRevenue)}</strong>
+                          <small>{paidOrders.length} paid orders</small>
+                        </div>
+                        <div className="coachEarningsStat">
+                          <span>This Month</span>
+                          <strong>{formatCurrency(thisMonthRevenue)}</strong>
+                          <small>{thisMonthOrders.length} orders</small>
+                        </div>
+                        <div className="coachEarningsStat">
+                          <span>Active Clients</span>
+                          <strong>{activeClientCount}</strong>
+                          <small>Active + Premium + Online</small>
+                        </div>
+                        <div className="coachEarningsStat coachEarningsPayout">
+                          <span>Est. Payout ({coachSharePercent}%)</span>
+                          <strong>
+                            {formatCurrency(
+                              (totalRevenue * coachSharePercent) / 100
+                            )}
+                          </strong>
+                          <small>
+                            This month:{" "}
+                            {formatCurrency(
+                              (thisMonthRevenue * coachSharePercent) / 100
+                            )}
+                          </small>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   <div className="revenueChartCard">
                     <h3>Revenue — Last 6 Months</h3>
@@ -17717,6 +17833,29 @@ function App() {
 
                               {showWeightInputs && (
                                 <>
+                                  {(() => {
+                                    const target = resolvePrescribedLoad(
+                                      log.prescribedLoad,
+                                      log.exerciseName.split(" - ")[0]
+                                    );
+                                    if (!target.display) return null;
+                                    return (
+                                      <div
+                                        className={`setLogStatic setLogTarget${
+                                          target.resolved
+                                            ? " setLogTargetResolved"
+                                            : ""
+                                        }`}
+                                      >
+                                        <span>
+                                          {i18n.language === "zh"
+                                            ? "目标"
+                                            : "Target"}
+                                        </span>
+                                        <strong>{target.display}</strong>
+                                      </div>
+                                    );
+                                  })()}
                                   <label className="setLogField">
                                     <span>{t("actualReps")}</span>
                                     <input

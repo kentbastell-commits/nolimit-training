@@ -5999,6 +5999,19 @@ body {
   font-weight: 500;
 }
 
+.setLogTarget strong {
+  white-space: nowrap;
+}
+
+.setLogTargetResolved strong {
+  color: #d4af37;
+  font-weight: 700;
+}
+
+.clientPortalApp .setLogTargetResolved strong {
+  color: #8f6b12;
+}
+
 .limbCell {
   display: none;
 }
@@ -12392,6 +12405,125 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   border-radius: 10px;
   background: rgba(0, 0, 0, 0.45);
   padding: 24px;
+}
+
+.coachEarningsCard {
+  border: 1px solid rgba(212, 175, 55, 0.45);
+  border-radius: 12px;
+  background: linear-gradient(
+    135deg,
+    rgba(212, 175, 55, 0.12),
+    rgba(0, 0, 0, 0.5)
+  );
+  padding: 22px 24px;
+}
+
+.coachEarningsHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.coachEarningsHeader .eyebrow {
+  display: block;
+  font-size: 10px;
+  font-weight: 950;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(212, 175, 55, 0.7);
+  margin-bottom: 4px;
+}
+
+.coachEarningsHeader h3 {
+  margin: 0;
+  font-size: 22px;
+  color: #f5d77b;
+}
+
+.coachShareControl {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-end;
+}
+
+.coachShareControl > span {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(212, 175, 55, 0.6);
+}
+
+.coachShareControl > div {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.coachShareControl input {
+  width: 64px;
+  padding: 6px 8px;
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.4);
+  color: #f5d77b;
+  font-weight: 800;
+  text-align: right;
+}
+
+.coachShareControl strong {
+  color: #f5d77b;
+  font-weight: 800;
+}
+
+.coachEarningsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.coachEarningsStat {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px;
+  border: 1px solid rgba(212, 175, 55, 0.2);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.coachEarningsStat span {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(212, 175, 55, 0.6);
+}
+
+.coachEarningsStat strong {
+  font-size: 26px;
+  font-weight: 800;
+  color: #f5d77b;
+  line-height: 1;
+}
+
+.coachEarningsStat small {
+  font-size: 12px;
+  color: #888;
+}
+
+.coachEarningsPayout {
+  border-color: rgba(212, 175, 55, 0.5);
+  background: rgba(212, 175, 55, 0.1);
+}
+
+@media (max-width: 900px) {
+  .coachEarningsGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .revenueChartCard h3 {
