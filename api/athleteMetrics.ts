@@ -133,7 +133,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const clientId = String(req.query.clientId || "").trim();
+    const clientRecordId = String(req.query.clientRecordId || "").trim();
+    const clientCode = String(req.query.clientCode || "").trim();
+    const clientName = String(req.query.clientName || "").trim();
     const metricType = String(req.query.metricType || "").trim().toLowerCase();
+    const normalize = (value: string) =>
+      String(value || "")
+        .trim()
+        .toLowerCase();
+    const clientTokens = [clientId, clientRecordId, clientCode]
+      .map(normalize)
+      .filter(Boolean);
     const token = await getTenantToken();
     const records = await getRecords(tableId, token);
 
@@ -161,11 +171,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         };
       })
       .filter((metric) => {
-        if (clientId && metric.clientId !== clientId) return false;
+        if (clientTokens.length || clientName) {
+          const metricClientId = normalize(metric.clientId);
+          const metricClientName = normalize(metric.clientName);
+          const idMatches = clientTokens.includes(metricClientId);
+          const nameMatches =
+            Boolean(clientName) && metricClientName === normalize(clientName);
+
+          if (!idMatches && !nameMatches) return false;
+        }
+
+        const searchableMetric = `${metric.metricType} ${metric.metricName} ${metric.sourceTestName}`
+          .trim()
+          .toLowerCase();
+
         if (
           metricType &&
-          metric.metricType.trim().toLowerCase() !== metricType &&
-          metric.metricName.trim().toLowerCase() !== metricType
+          !searchableMetric.includes(metricType)
         ) {
           return false;
         }

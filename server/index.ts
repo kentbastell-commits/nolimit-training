@@ -8,6 +8,7 @@ import analytics from "../api/analytics.ts";
 import autoLoadProgram from "../api/autoLoadProgram.ts";
 import assignContent from "../api/assignContent.ts";
 import assignProgram from "../api/assignProgram.ts";
+import athleteMetrics from "../api/athleteMetrics.ts";
 import checkIns from "../api/checkIns.ts";
 import clients from "../api/clients.ts";
 import coaches from "../api/coaches.ts";
@@ -55,6 +56,7 @@ const handlers = {
   autoLoadProgram,
   assignContent,
   assignProgram,
+  athleteMetrics,
   checkIns,
   clients,
   coaches,

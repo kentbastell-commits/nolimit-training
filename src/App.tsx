@@ -507,6 +507,25 @@ type ContentResponse = {
   submittedAt: string;
 };
 
+type AthleteMetric = {
+  recordId: string;
+  metricId: string;
+  clientId: string;
+  clientName: string;
+  metricType: string;
+  metricName: string;
+  metricValue: string;
+  metricUnit: string;
+  sourceType: string;
+  sourceRecordId: string;
+  sourceTestId: string;
+  sourceTestName: string;
+  calculationMethod: string;
+  measuredAt: string;
+  status: string;
+  notes: string;
+};
+
 type ContentResponseGroup = {
   key: string;
   responseType: string;
@@ -1204,6 +1223,8 @@ function App() {
   );
   const [contentResponses, setContentResponses] = useState<ContentResponse[]>([]);
   const [contentResponsesLoading, setContentResponsesLoading] = useState(false);
+  const [athleteMetrics, setAthleteMetrics] = useState<AthleteMetric[]>([]);
+  const [athleteMetricsLoading, setAthleteMetricsLoading] = useState(false);
   const [workoutComments, setWorkoutComments] = useState<WorkoutComment[]>([]);
   const [reviewingWorkoutCommentKey, setReviewingWorkoutCommentKey] = useState("");
   const [selectedContentSubmission, setSelectedContentSubmission] =
@@ -2139,6 +2160,7 @@ function App() {
     setSavedExerciseDraftIds([]);
     setContentAssignments([]);
     setContentResponses([]);
+    setAthleteMetrics([]);
     setWorkoutComments([]);
     setWorkouts(hasFreshWorkouts && cachedWorkouts ? cachedWorkouts.data : []);
 
@@ -2148,12 +2170,14 @@ function App() {
       loadClientWorkouts(selectedClient),
       loadContentAssignments(selectedClient).then((assignments) => ({ assignments })),
       loadContentResponses(selectedClient).then((responses) => ({ responses })),
+      loadAthleteMetrics(selectedClient).then((metrics) => ({ metrics })),
       loadWorkoutComments(selectedClient).then((comments) => ({ comments })),
     ])
-      .then(([workoutData, assignmentData, responseData, commentData]) => {
+      .then(([workoutData, assignmentData, responseData, metricData, commentData]) => {
         setWorkouts(workoutData || []);
         setContentAssignments(assignmentData.assignments || []);
         setContentResponses(responseData.responses || []);
+        setAthleteMetrics(metricData.metrics || []);
         setWorkoutComments(commentData.comments || []);
         setWorkoutsLoading(false);
       })
@@ -2161,6 +2185,7 @@ function App() {
         setWorkouts([]);
         setContentAssignments([]);
         setContentResponses([]);
+        setAthleteMetrics([]);
         setWorkoutComments([]);
         setWorkoutsLoading(false);
       });
@@ -2688,6 +2713,44 @@ function App() {
       return [];
     } finally {
       setContentResponsesLoading(false);
+    }
+  };
+
+  const loadAthleteMetrics = async (client: Client = selectedClient as Client) => {
+    if (!client) {
+      setAthleteMetrics([]);
+      return [];
+    }
+
+    const metricParams = new URLSearchParams({
+      clientId: client.clientCode || client.id || "",
+      clientCode: client.clientCode || "",
+      clientRecordId: client.id || "",
+      clientName: client.name || "",
+    });
+
+    setAthleteMetricsLoading(true);
+
+    try {
+      const response = await fetch(`/api/athleteMetrics?${metricParams.toString()}`);
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error(data);
+        throw new Error(data.message || data.error || "Could not load athlete metrics.");
+      }
+
+      const metrics = data.metrics || [];
+      setAthleteMetrics(metrics);
+      return metrics;
+    } catch (error) {
+      console.error(error);
+      if (!isClientPortal) {
+        notify("Could not load athlete metrics.", "error");
+      }
+      return [];
+    } finally {
+      setAthleteMetricsLoading(false);
     }
   };
 
@@ -8361,6 +8424,61 @@ function App() {
             10
         ) / 10
       : 0;
+  const getAthleteMetricTimestamp = (metric: AthleteMetric) => {
+    const normalizedDate = normalizeDate(metric.measuredAt || "");
+    const parsedDate = normalizedDate ? Date.parse(`${normalizedDate}T00:00:00`) : 0;
+
+    return Number.isFinite(parsedDate) ? parsedDate : 0;
+  };
+  const sortedAthleteMetrics = [...athleteMetrics].sort(
+    (a, b) => getAthleteMetricTimestamp(b) - getAthleteMetricTimestamp(a)
+  );
+  const findLatestAthleteMetric = (tokens: string[]) =>
+    sortedAthleteMetrics.find((metric) => {
+      const searchableMetric = `${metric.metricType} ${metric.metricName} ${metric.sourceTestName}`.toLowerCase();
+
+      return tokens.some((token) => searchableMetric.includes(token));
+    });
+  const latestOneRepMaxMetric = findLatestAthleteMetric([
+    "1rm",
+    "one rep max",
+    "estimated 1rm",
+    "predicted 1rm",
+  ]);
+  const latestMasMetric = findLatestAthleteMetric([
+    "mas",
+    "maximum aerobic speed",
+  ]);
+  const formatAthleteMetricValue = (metric?: AthleteMetric) => {
+    if (!metric) return "--";
+
+    const value = String(metric.metricValue || "").trim();
+    const unit = String(metric.metricUnit || "").trim();
+
+    return value ? `${value}${unit ? ` ${unit}` : ""}` : "--";
+  };
+  const formatAthleteMetricMeta = (metric?: AthleteMetric) => {
+    if (!metric) return t("noTestDataYet");
+
+    const date = normalizeDate(metric.measuredAt || "");
+    const source = metric.sourceTestName || metric.metricName || t("latest");
+
+    return date ? `${source} - ${date}` : source;
+  };
+  const clientPerformanceMetrics = [
+    {
+      key: "estimated-one-rep-max",
+      label: t("estimatedOneRepMax"),
+      value: formatAthleteMetricValue(latestOneRepMaxMetric),
+      meta: formatAthleteMetricMeta(latestOneRepMaxMetric),
+    },
+    {
+      key: "estimated-mas",
+      label: t("estimatedMas"),
+      value: formatAthleteMetricValue(latestMasMetric),
+      meta: formatAthleteMetricMeta(latestMasMetric),
+    },
+  ];
   const completedWorkoutCount = workouts.filter(
     (workout) => normalizeTaskStatus(workout.completionStatus) === "Completed"
   ).length;
@@ -13544,27 +13662,24 @@ function App() {
                   <section className="clientHomePanel focusHomePanel">
                     <div className="clientHomePanelHeader">
                       <div>
-                        <span>{isClientPortal ? t("readiness") : "Coach View"}</span>
-                        <h2>{isClientPortal ? t("todaysFocus") : "Client Snapshot"}</h2>
+                        <span>{isClientPortal ? t("testingData") : "Coach View"}</span>
+                        <h2>
+                          {isClientPortal ? t("performanceMetrics") : "Client Snapshot"}
+                        </h2>
                       </div>
                     </div>
 
                     {isClientPortal ? (
-                      <div className="homeFocusGrid">
-                        <div>
-                          <span>{t("currentProgram")}</span>
-                          <strong>
-                            {selectedClient.program || t("noProgramAssigned")}
-                          </strong>
-                        </div>
-                        <div>
-                          <span>{t("checkInStatus")}</span>
-                          <strong>{selectedClientCheckInLabel}</strong>
-                        </div>
-                        <div>
-                          <span>{t("coachNotes")}</span>
-                          <strong>{selectedClient.notes || t("noNotesYet")}</strong>
-                        </div>
+                      <div className="homeFocusGrid performanceMetricGrid">
+                        {clientPerformanceMetrics.map((metric) => (
+                          <div className="performanceMetricCard" key={metric.key}>
+                            <span>{metric.label}</span>
+                            <strong>{athleteMetricsLoading ? "..." : metric.value}</strong>
+                            <small>
+                              {athleteMetricsLoading ? t("loadingMetrics") : metric.meta}
+                            </small>
+                          </div>
+                        ))}
                       </div>
                     ) : (
                       <div className="coachSnapshotGrid">

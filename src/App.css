@@ -8502,6 +8502,29 @@ body {
   line-height: 1.35;
 }
 
+.performanceMetricGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.performanceMetricCard {
+  min-height: 132px;
+}
+
+.performanceMetricCard strong {
+  margin-top: 10px;
+  font-size: 38px;
+  line-height: 0.95;
+  letter-spacing: 0;
+}
+
+.performanceMetricCard small {
+  display: block;
+  color: #66645f;
+  font-size: 13px;
+  font-weight: 850;
+  line-height: 1.35;
+}
+
 .coachSnapshotGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -8510,6 +8533,16 @@ body {
   overflow-y: auto;
   overscroll-behavior: contain;
   padding-right: 4px;
+}
+
+@media (max-width: 760px) {
+  .performanceMetricGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .performanceMetricCard strong {
+    font-size: 32px;
+  }
 }
 
 .coachAlertCard {
