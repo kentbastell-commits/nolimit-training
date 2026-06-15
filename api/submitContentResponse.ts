@@ -3,6 +3,9 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 type TableField = {
   field_name?: string;
   name?: string;
+  type?: number;
+  ui_type?: string;
+  property?: Record<string, any>;
 };
 
 type FeishuRecord = {
@@ -40,6 +43,53 @@ function resolveField(fields: TableField[], aliases: string[]) {
 
 function hasField(fields: TableField[], aliases: string[]) {
   return Boolean(resolveField(fields, aliases));
+}
+
+function fieldTypeText(field?: TableField) {
+  return `${field?.type || ""} ${field?.ui_type || ""}`.toLowerCase();
+}
+
+function isNumberField(field?: TableField) {
+  const typeText = fieldTypeText(field);
+  return field?.type === 2 || typeText.includes("number");
+}
+
+function isLinkField(field?: TableField) {
+  const typeText = fieldTypeText(field);
+  return (
+    field?.type === 21 ||
+    typeText.includes("duplex") ||
+    typeText.includes("link") ||
+    typeText.includes("relation")
+  );
+}
+
+function coerceFieldValue(field: TableField | undefined, value: any) {
+  if (value === undefined || value === null) return undefined;
+
+  if (isNumberField(field)) {
+    if (typeof value === "number") return Number.isFinite(value) ? value : undefined;
+    const numeric = parseNumbers(String(value))[0];
+    return Number.isFinite(numeric) ? numeric : undefined;
+  }
+
+  if (isLinkField(field)) {
+    const values = Array.isArray(value) ? value : [value];
+    const recordIds = values
+      .flatMap((item) => {
+        if (typeof item === "string") return item;
+        if (item?.record_id) return item.record_id;
+        if (Array.isArray(item?.record_ids)) return item.record_ids;
+        if (Array.isArray(item?.link_record_ids)) return item.link_record_ids;
+        return "";
+      })
+      .map((item) => String(item).trim())
+      .filter((item) => /^rec[a-z0-9]+$/i.test(item));
+
+    return recordIds.length > 0 ? recordIds : undefined;
+  }
+
+  return value;
 }
 
 function fieldToText(value: any): string {
@@ -106,7 +156,18 @@ function buildFields(
       continue;
     }
 
-    fields[fieldName] = spec.value;
+    const coercedValue = coerceFieldValue(field, spec.value);
+
+    if (
+      coercedValue === undefined ||
+      coercedValue === "" ||
+      (Array.isArray(coercedValue) && coercedValue.length === 0)
+    ) {
+      if (spec.required) missingRequired.push(spec.aliases[0]);
+      continue;
+    }
+
+    fields[fieldName] = coercedValue;
   }
 
   return { fields, missingRequired };
@@ -466,6 +527,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       for (const [index, responseItem] of responses.entries()) {
         const responseId = `${isTest ? "TR" : "FR"}-${Date.now()}-${index + 1}`;
+        const responseValue = String(responseItem.value || "");
+        const responseNotes = String(responseItem.notes || "");
+        const storedNotes =
+          isTest && responseValue
+            ? [responseNotes, `Result input: ${responseValue}`]
+                .filter(Boolean)
+                .join("\n")
+            : responseNotes;
         const { fields, missingRequired } = buildFields(tableFields, [
         {
           aliases: isTest
@@ -516,7 +585,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 "Answer Text",
                 "Question Answer",
               ],
-          value: String(responseItem.value || ""),
+          value: responseValue,
           required: true,
         },
         {
@@ -531,7 +600,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             "Client Comment",
             "Athlete Notes",
           ],
-          value: String(responseItem.notes || ""),
+          value: storedNotes,
         },
         {
           aliases: ["Client ID", "clientId"],
