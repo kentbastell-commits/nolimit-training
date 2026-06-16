@@ -718,11 +718,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             // MAS is a speed, so its unit is km/h (or m/s if configured) —
             // not the test's input distance unit (e.g. "m"). 1RM keeps the
             // input weight unit (kg in -> kg out).
+            // MAS unit is driven by the chosen method ("... (m/s)") or an
+            // explicit metric/input unit; defaults to km/h. (The Test Items
+            // table has no Metric Unit column, so the method name is the
+            // reliable signal.)
+            const wantsMetersPerSecond =
+              methodLower.includes("m/s") ||
+              String(metricConfig.metricUnit || metricConfig.inputUnit || "")
+                .toLowerCase()
+                .includes("m/s");
             const metricUnit =
               metricKind === "MAS"
-                ? String(metricConfig.metricUnit || metricConfig.inputUnit || "")
-                    .toLowerCase()
-                    .includes("m/s")
+                ? wantsMetersPerSecond
                   ? "m/s"
                   : "km/h"
                 : metricKind === "Pace"

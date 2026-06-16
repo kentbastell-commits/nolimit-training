@@ -13156,6 +13156,7 @@ function App() {
                                       <option>Brzycki 1RM</option>
                                       <option>2km Time Trial Speed</option>
                                       <option>Max Aerobic Speed</option>
+                                      <option>Max Aerobic Speed (m/s)</option>
                                       <option>Run Pace (min/km)</option>
                                       <option>Lactate Threshold</option>
                                     </select>
