@@ -80,7 +80,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         "Session Name": workout.sessionName,
         "Session Type": workout.sessionType || "Strength",
         "Session Goal": workout.sessionGoal || "",
-        "Estimated Duration": Number(workout.estimatedDuration) || "",
         Intensity: workout.intensity || "Moderate",
 
         // Lark date fields usually want timestamp
@@ -88,6 +87,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         "Completion Status": "Scheduled",
       };
+
+      // "Estimated Duration" is a Number field — only send a real number, never
+      // "" (which Feishu rejects with NumberFieldConvFail).
+      const durationNumber = Number(workout.estimatedDuration);
+      if (Number.isFinite(durationNumber) && durationNumber > 0) {
+        fields["Estimated Duration"] = durationNumber;
+      }
 
       if (workout.sessionNameCn) {
         fields["Session Name CN"] = workout.sessionNameCn;

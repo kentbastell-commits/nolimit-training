@@ -159,7 +159,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       "Public Store Visible": Boolean(publicStoreVisible),
       "Purchase Link": purchaseLink || "",
       "Default Intake Form ID": defaultIntakeFormId || "",
-      "Access Length Days": Number(accessLengthDays) || "",
+      "Access Length Days": Number(accessLengthDays) || undefined,
       "Product Status": productStatus || "Draft",
       "Sales Description": salesDescription || "",
       "Sales Description CN": salesDescriptionCn || "",

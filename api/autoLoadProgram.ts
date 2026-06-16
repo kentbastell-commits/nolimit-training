@@ -203,7 +203,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         "Session Name CN": sessionNameCn,
         "Session Type": sessionType || "Strength",
         "Session Goal": sessionGoal || "",
-        "Estimated Duration": Number(estimatedDuration) || "",
+        // Number field — omit when empty (Feishu rejects "" for Number).
+        "Estimated Duration": Number(estimatedDuration) || undefined,
         Intensity: intensity || "Moderate",
         "Scheduled Date": new Date(`${scheduledDate}T00:00:00`).getTime(),
         Status: "Scheduled",
