@@ -14767,3 +14767,50 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
     color: #111 !important;
   }
 }
+
+/* Tighter mobile workout logging — compact the Set banner, target chips,
+   and Done toggle so cardio sets (pace + speed + HR + done) aren't so tall. */
+.mobileSetLogRow {
+  padding: 9px !important;
+  gap: 7px !important;
+}
+
+.mobileSetLogRow .setBanner {
+  min-height: 0 !important;
+  padding: 5px 10px !important;
+  border-radius: 7px !important;
+}
+
+.mobileSetLogRow .setBanner strong {
+  font-size: 12px !important;
+}
+
+.mobileSetLogRow .setLogStatic {
+  min-height: 0 !important;
+  padding: 6px 9px !important;
+}
+
+.mobileSetLogRow .setLogStatic strong {
+  font-size: 14px !important;
+}
+
+.mobileSetLogRow .setLogStatic span,
+.mobileSetLogRow .setLogField span {
+  font-size: 10px !important;
+  margin-bottom: 2px !important;
+}
+
+.mobileSetLogRow .setLogDoneField {
+  grid-column: 1 / -1 !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 8px !important;
+  border: 1px solid rgba(143, 107, 18, 0.2);
+  border-radius: 8px;
+  padding: 7px 10px !important;
+}
+
+.mobileSetLogRow .setLogDoneField span {
+  margin-bottom: 0 !important;
+}
