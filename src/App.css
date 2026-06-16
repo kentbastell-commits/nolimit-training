@@ -3,8 +3,8 @@
 @import "@fontsource/inter/latin-700.css";
 @import "@fontsource/inter/latin-800.css";
 @import "@fontsource/inter/latin-900.css";
-@import "@fontsource/noto-sans-sc/chinese-simplified-400.css";
-@import "@fontsource/noto-sans-sc/chinese-simplified-900.css";
+/* Noto Sans SC (Chinese, ~2MB) is loaded on demand only when the language is
+   Chinese — see loadChineseFonts() in App.tsx. */
 @import "@fontsource/bebas-neue/latin-400.css";
 @import "@fontsource/rock-salt/latin-400.css";
 
@@ -12502,6 +12502,14 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   border-radius: 10px;
   background: rgba(0, 0, 0, 0.45);
   padding: 24px;
+}
+
+.chartLoading {
+  display: grid;
+  place-items: center;
+  min-height: 210px;
+  color: #8a8376;
+  font-weight: 800;
 }
 
 .coachEarningsCard {

@@ -1,15 +1,4 @@
 import {
-  Area,
-  AreaChart,
-  Bar,
-  BarChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
-import {
   BookOpen,
   CalendarDays,
   ClipboardList,
@@ -33,9 +22,22 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react";
-import { Fragment, useEffect, useRef, useState, type DragEvent, type TouchEvent } from "react";
+import {
+  Fragment,
+  Suspense,
+  lazy,
+  useEffect,
+  useRef,
+  useState,
+  type DragEvent,
+  type TouchEvent,
+} from "react";
 import { useTranslation } from "react-i18next";
 import "./App.css";
+
+// Charts are lazy-loaded so recharts stays out of the main bundle.
+const RevenueChart = lazy(() => import("./RevenueChart"));
+const ProgressChart = lazy(() => import("./ProgressChart"));
 
 type AppMode = "Coach" | "Client";
 type Page =
@@ -1147,6 +1149,13 @@ function clearPersistentCache(key: string) {
 
 function App() {
   const { t, i18n } = useTranslation();
+  // Load the ~2MB Chinese font set only when the language is Chinese.
+  useEffect(() => {
+    if (i18n.language === "zh") {
+      void import("@fontsource/noto-sans-sc/chinese-simplified-400.css");
+      void import("@fontsource/noto-sans-sc/chinese-simplified-900.css");
+    }
+  }, [i18n.language]);
   const inviteSearchParams = new URLSearchParams(window.location.search);
   const isClientInvite = inviteSearchParams.get("invite") === "client";
   const isClientPortal = inviteSearchParams.get("portal") === "client";
@@ -10609,19 +10618,11 @@ function App() {
 
                   <div className="revenueChartCard">
                     <h3>Revenue — Last 6 Months</h3>
-                    <ResponsiveContainer width="100%" height={220}>
-                      <BarChart data={monthlyData} barSize={36}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(212,175,55,0.1)" />
-                        <XAxis dataKey="month" stroke="#888" tick={{ fill: "#888", fontSize: 12 }} />
-                        <YAxis stroke="#888" tick={{ fill: "#888", fontSize: 12 }} tickFormatter={(v) => `¥${v}`} />
-                        <Tooltip
-                          contentStyle={{ background: "#0e0a04", border: "1px solid rgba(212,175,55,0.3)", borderRadius: 8 }}
-                          labelStyle={{ color: "#f5d77b" }}
-                          formatter={(v: unknown) => `¥${v as number}`}
-                        />
-                        <Bar dataKey="revenue" fill="#d4af37" radius={[4, 4, 0, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
+                    <Suspense
+                      fallback={<div className="chartLoading">{t("loading")}</div>}
+                    >
+                      <RevenueChart data={monthlyData} />
+                    </Suspense>
                   </div>
 
                   <div className="revenueBottomGrid">
@@ -14558,60 +14559,17 @@ function App() {
                             </div>
                           </div>
 
-                          <ResponsiveContainer width="100%" height={210}>
-                            <AreaChart
-                              data={progressHistoryPoints.map((point) => ({
-                                ...point,
-                                label: new Date(
-                                  `${point.date}T00:00:00`
-                                ).toLocaleDateString(clientLocale, {
-                                  month: "short",
-                                  day: "numeric",
-                                }),
-                              }))}
-                              margin={{ top: 10, right: 8, left: -18, bottom: 0 }}
-                            >
-                              <defs>
-                                <linearGradient id="progressGold" x1="0" y1="0" x2="0" y2="1">
-                                  <stop offset="5%" stopColor="#151515" stopOpacity={0.9} />
-                                  <stop offset="95%" stopColor="#9f7a26" stopOpacity={0.08} />
-                                </linearGradient>
-                              </defs>
-                              <CartesianGrid stroke="#e5dfd2" vertical={false} />
-                              <XAxis
-                                dataKey="label"
-                                tickLine={false}
-                                axisLine={false}
-                                tick={{ fill: "#68645d", fontSize: 11, fontWeight: 800 }}
-                              />
-                              <YAxis
-                                tickLine={false}
-                                axisLine={false}
-                                tick={{ fill: "#68645d", fontSize: 11, fontWeight: 800 }}
-                              />
-                              <Tooltip
-                                contentStyle={{
-                                  border: "1px solid #d8d1c4",
-                                  borderRadius: 10,
-                                  color: "#111",
-                                  fontWeight: 800,
-                                }}
-                                formatter={(value) => [
-                                  `${value}${progressUnit ? ` ${progressUnit}` : ""}`,
-                                  "Result",
-                                ]}
-                              />
-                              <Area
-                                type="monotone"
-                                dataKey="value"
-                                stroke="#111"
-                                strokeWidth={3}
-                                fill="url(#progressGold)"
-                                dot={{ r: 4, fill: "#111", stroke: "#d5b24c", strokeWidth: 2 }}
-                                activeDot={{ r: 6, fill: "#d5b24c", stroke: "#111", strokeWidth: 2 }}
-                              />
-                            </AreaChart>
-                          </ResponsiveContainer>
+                          <Suspense
+                            fallback={
+                              <div className="chartLoading">{t("loading")}</div>
+                            }
+                          >
+                            <ProgressChart
+                              points={progressHistoryPoints}
+                              locale={clientLocale}
+                              unit={progressUnit}
+                            />
+                          </Suspense>
                         </>
                       ) : (
                         <p className="homeEmptyText">
