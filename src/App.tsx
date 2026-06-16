@@ -9013,6 +9013,22 @@ function App() {
     };
   });
   const hasMasForZones = Number.isFinite(masKmhForZones);
+  // For a %MAS prescription, map to the nearest zone and return its Karvonen HR range.
+  const resolvePrescribedHr = (rawPercentMas: string) => {
+    if (!hasKarvonenHr) return { display: "", resolved: false };
+    const pct = parseFloat(String(rawPercentMas || "").trim());
+    if (!Number.isFinite(pct) || pct <= 0)
+      return { display: "", resolved: false };
+    const zone = PACE_ZONE_DEFS.reduce((best, candidate) =>
+      Math.abs(candidate.percent - pct) < Math.abs(best.percent - pct)
+        ? candidate
+        : best
+    );
+    return {
+      display: `${karvonenHr(zone.hrrLow)}–${karvonenHr(zone.hrrHigh)} bpm`,
+      resolved: true,
+    };
+  };
   const formatAthleteMetricValue = (metric?: AthleteMetric) => {
     if (!metric) return "--";
 
@@ -18484,6 +18500,25 @@ function App() {
                                           : "Target pace"}
                                       </span>
                                       <strong>{pace.display}</strong>
+                                    </div>
+                                  );
+                                })()}
+
+                              {(showTimeInput || showDistanceInput) &&
+                                log.prescribedPercentMas &&
+                                (() => {
+                                  const hr = resolvePrescribedHr(
+                                    log.prescribedPercentMas
+                                  );
+                                  if (!hr.display) return null;
+                                  return (
+                                    <div className="setLogStatic setLogTarget setLogTargetResolved">
+                                      <span>
+                                        {i18n.language === "zh"
+                                          ? "目标心率"
+                                          : "Target HR"}
+                                      </span>
+                                      <strong>{hr.display}</strong>
                                     </div>
                                   );
                                 })()}
