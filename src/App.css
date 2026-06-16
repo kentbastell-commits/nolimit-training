@@ -14230,6 +14230,42 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   min-width: 0;
 }
 
+.builderIntensityRow {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.builderIntensityMethod {
+  flex: 0 0 auto;
+  width: 66px !important;
+  padding-inline: 6px !important;
+}
+
+.builderIntensityValue {
+  flex: 1 1 auto;
+  min-width: 0;
+  text-align: center;
+}
+
+.builderIntensityRevert {
+  flex: 0 0 auto;
+  width: 30px;
+  border: 1px solid rgba(17, 17, 17, 0.18);
+  border-radius: 8px;
+  background: #f4f1ea;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 7px 0;
+}
+
+.builderIntensityRevert:hover {
+  background: #111;
+  color: #ead47a;
+}
+
 .builderIntervalCell {
   display: flex;
   align-items: center;

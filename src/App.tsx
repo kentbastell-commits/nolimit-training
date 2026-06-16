@@ -283,6 +283,11 @@ type ExerciseSetPrescription = {
   load: string;
   percent: string;
   percentMas: string;
+  // Cardio intensity method: "" = zone (%MAS), "custom" = custom %MAS,
+  // "hr" = direct heart-rate target, "rpe" = direct RPE. intensityValue holds
+  // the bpm (hr) or 1-10 (rpe).
+  intensityMode: string;
+  intensityValue: string;
   tempo: string;
   rest: string;
 };
@@ -587,6 +592,8 @@ type SetLog = {
   prescribedLoad: string;
   prescribedPercent: string;
   prescribedPercentMas: string;
+  prescribedIntensityMode: string;
+  prescribedIntensityValue: string;
   actualReps: string;
   actualWeight: string;
   actualTime: string;
@@ -694,6 +701,8 @@ function parseExerciseNotes(notes = ""): ExerciseNoteMeta {
               load: String(set?.load || ""),
               percent: String(set?.percent || ""),
               percentMas: String(set?.percentMas || ""),
+              intensityMode: String(set?.intensityMode || ""),
+              intensityValue: String(set?.intensityValue || ""),
               tempo: String(set?.tempo || ""),
               rest: String(set?.rest || ""),
             }))
@@ -4134,6 +4143,12 @@ function App() {
           const prescribedPercentMas = String(
             setPrescription?.percentMas ?? ""
           ).trim();
+          const prescribedIntensityMode = String(
+            setPrescription?.intensityMode ?? ""
+          ).trim();
+          const prescribedIntensityValue = String(
+            setPrescription?.intensityValue ?? ""
+          ).trim();
 
           logs.push({
             exerciseId: exercise.exerciseId,
@@ -4147,6 +4162,8 @@ function App() {
             prescribedLoad,
             prescribedPercent,
             prescribedPercentMas,
+            prescribedIntensityMode,
+            prescribedIntensityValue,
             actualReps: meta.trackingType === "Weight" ? exercise.reps : "",
             actualWeight: "",
             actualTime: "",
@@ -4957,6 +4974,8 @@ function App() {
       load: String(source?.load ?? exercise.load ?? ""),
       percent: String(source?.percent ?? ""),
       percentMas: String(source?.percentMas ?? ""),
+      intensityMode: String(source?.intensityMode ?? ""),
+      intensityValue: String(source?.intensityValue ?? ""),
       tempo: String(source?.tempo ?? exercise.tempo ?? ""),
       rest: String(source?.rest ?? exercise.rest ?? ""),
     };
@@ -5316,56 +5335,148 @@ function App() {
                       })()}
                 </div>
                 <div className="builderZoneCell">
-                  <select
-                    className="miniSearch builderZoneSelect"
-                    value={(() => {
-                      const matched = RUNNING_ZONE_OPTIONS.find(
-                        (zone) => String(zone.percent) === String(set.percentMas)
-                      );
-                      return matched
-                        ? matched.key
-                        : set.percentMas
-                          ? "custom"
-                          : "";
-                    })()}
-                    onChange={(event) => {
-                      const value = event.target.value;
-                      if (value === "custom") return;
-                      const zone = RUNNING_ZONE_OPTIONS.find(
-                        (option) => option.key === value
-                      );
+                  {(() => {
+                    const mode = set.intensityMode || "";
+                    const setField = (
+                      field: keyof Omit<ExerciseSetPrescription, "setNumber">,
+                      value: string
+                    ) =>
                       updateExerciseSetPrescription(
                         exerciseIndex,
                         setIndex,
-                        "percentMas",
-                        zone ? String(zone.percent) : ""
+                        field,
+                        value
                       );
-                    }}
-                  >
-                    <option value="">Zone…</option>
-                    {RUNNING_ZONE_OPTIONS.map((zone) => (
-                      <option key={zone.key} value={zone.key}>
-                        {zone.label} ({zone.percent}%)
-                      </option>
-                    ))}
-                    {isRunExercise && <option value="custom">Custom %</option>}
-                  </select>
-                  {isRunExercise && (
-                    <input
-                      className="miniSearch builderZonePercent"
-                      inputMode="decimal"
-                      value={set.percentMas}
-                      onChange={(event) =>
-                        updateExerciseSetPrescription(
-                          exerciseIndex,
-                          setIndex,
-                          "percentMas",
-                          event.target.value.replace(/[^\d.]/g, "")
-                        )
-                      }
-                      placeholder="% MAS"
-                    />
-                  )}
+
+                    // Machine cardio: HR/RPE method + value (no zone).
+                    if (!isRunExercise) {
+                      const machineMode = mode === "hr" ? "hr" : "rpe";
+                      return (
+                        <div className="builderIntensityRow">
+                          <select
+                            className="miniSearch builderIntensityMethod"
+                            value={machineMode}
+                            onChange={(event) =>
+                              setField("intensityMode", event.target.value)
+                            }
+                          >
+                            <option value="rpe">RPE</option>
+                            <option value="hr">HR</option>
+                          </select>
+                          <input
+                            className="miniSearch builderIntensityValue"
+                            inputMode="numeric"
+                            value={set.intensityValue}
+                            onChange={(event) =>
+                              setField(
+                                "intensityValue",
+                                event.target.value.replace(/[^\d.\-]/g, "")
+                              )
+                            }
+                            placeholder={machineMode === "hr" ? "bpm" : "RPE"}
+                          />
+                        </div>
+                      );
+                    }
+
+                    // Run: direct HR or RPE.
+                    if (mode === "hr" || mode === "rpe") {
+                      return (
+                        <div className="builderIntensityRow">
+                          <input
+                            className="miniSearch builderIntensityValue"
+                            inputMode="numeric"
+                            value={set.intensityValue}
+                            onChange={(event) =>
+                              setField(
+                                "intensityValue",
+                                event.target.value.replace(/[^\d.\-]/g, "")
+                              )
+                            }
+                            placeholder={mode === "hr" ? "bpm" : "RPE"}
+                          />
+                          <button
+                            type="button"
+                            className="builderIntensityRevert"
+                            title="Back to zones"
+                            onClick={() => {
+                              setField("intensityMode", "");
+                              setField("intensityValue", "");
+                            }}
+                          >
+                            ↺
+                          </button>
+                        </div>
+                      );
+                    }
+
+                    // Run: custom % (fills the main box, no second field).
+                    if (mode === "custom") {
+                      return (
+                        <div className="builderIntensityRow">
+                          <input
+                            className="miniSearch builderIntensityValue"
+                            inputMode="decimal"
+                            value={set.percentMas}
+                            onChange={(event) =>
+                              setField(
+                                "percentMas",
+                                event.target.value.replace(/[^\d.]/g, "")
+                              )
+                            }
+                            placeholder="% MAS"
+                          />
+                          <button
+                            type="button"
+                            className="builderIntensityRevert"
+                            title="Back to zones"
+                            onClick={() => {
+                              setField("intensityMode", "");
+                              setField("percentMas", "");
+                            }}
+                          >
+                            ↺
+                          </button>
+                        </div>
+                      );
+                    }
+
+                    // Run: named zone dropdown (default).
+                    const matched = RUNNING_ZONE_OPTIONS.find(
+                      (zone) => String(zone.percent) === String(set.percentMas)
+                    );
+                    return (
+                      <select
+                        className="miniSearch builderZoneSelect"
+                        value={matched ? matched.key : set.percentMas ? "custom" : ""}
+                        onChange={(event) => {
+                          const value = event.target.value;
+                          if (value === "custom") {
+                            setField("intensityMode", "custom");
+                            return;
+                          }
+                          if (value === "hr" || value === "rpe") {
+                            setField("intensityMode", value);
+                            return;
+                          }
+                          const zone = RUNNING_ZONE_OPTIONS.find(
+                            (option) => option.key === value
+                          );
+                          setField("percentMas", zone ? String(zone.percent) : "");
+                        }}
+                      >
+                        <option value="">Zone…</option>
+                        {RUNNING_ZONE_OPTIONS.map((zone) => (
+                          <option key={zone.key} value={zone.key}>
+                            {zone.label} ({zone.percent}%)
+                          </option>
+                        ))}
+                        <option value="custom">Custom %</option>
+                        <option value="hr">HR (bpm)</option>
+                        <option value="rpe">RPE</option>
+                      </select>
+                    );
+                  })()}
                 </div>
                 {(() => {
                   const raw = String(set.rest || "").trim();
@@ -5526,7 +5637,10 @@ function App() {
       sets: parent ? "2" : "3",
       reps: parent ? "10" : "8",
       load: "",
-      tempo: parent?.tempo || "3-1-1",
+      // Cardio has no lifting tempo.
+      tempo: isCardioCategory(exercise.category)
+        ? ""
+        : parent?.tempo || "3-1-1",
       rest: parent ? "45 sec" : "60 sec",
       coachingNotes: "",
       // Cardio exercises default to Distance tracking so the run/Zone layout
@@ -5548,7 +5662,22 @@ function App() {
       autoTarget: Boolean(exercise.usesAutoTarget),
       displayTarget: "",
     };
-    const newExercise = withNormalizedSetFields(initialExercise);
+    let newExercise = withNormalizedSetFields(initialExercise);
+
+    // Cardio machines (bike, rower, etc.) are HR/RPE-driven, not %MAS — default
+    // their sets to an RPE prescription so no zone is required.
+    const isCardioMachine =
+      isCardioCategory(exercise.category) &&
+      !/run|treadmill|track|jog/i.test(exercise.exerciseName || "");
+    if (isCardioMachine) {
+      newExercise = {
+        ...newExercise,
+        setPrescriptions: (newExercise.setPrescriptions || []).map((set) => ({
+          ...set,
+          intensityMode: "rpe",
+        })),
+      };
+    }
 
     if (parent && accessoryTargetIndex !== null) {
       const updated = [...selectedProgramExercises];
@@ -9139,18 +9268,6 @@ function App() {
       resolved: true,
       speedKmh,
     };
-  };
-  // RPE (1-10) for a %MAS prescription, from its nearest zone — used for
-  // cardio machines where pace (min/km) doesn't apply.
-  const resolvePrescribedRpe = (rawPercentMas: string) => {
-    const pct = parseFloat(String(rawPercentMas || "").trim());
-    if (!Number.isFinite(pct) || pct <= 0) return "";
-    const zone = PACE_ZONE_DEFS.reduce((best, candidate) =>
-      Math.abs(candidate.percent - pct) < Math.abs(best.percent - pct)
-        ? candidate
-        : best
-    );
-    return `${zone.rpe}/10`;
   };
   const paceZh = i18n.language === "zh";
   // Each zone: %MAS drives pace; %HRR drives Karvonen HR; %LT drives the pace
@@ -18688,96 +18805,71 @@ function App() {
                                 </>
                               )}
 
-                              {/* Pace target: running exercises only (pace is run-specific). */}
+                              {/* Cardio targets, by prescription method. */}
                               {(showTimeInput || showDistanceInput) &&
-                                log.prescribedPercentMas &&
-                                /run|treadmill|track|jog/i.test(log.exerciseName) &&
                                 (() => {
-                                  const pace = resolvePrescribedPace(
-                                    log.prescribedPercentMas,
-                                    log.exerciseName.split(" - ")[0]
+                                  const zh = i18n.language === "zh";
+                                  const mode = log.prescribedIntensityMode || "";
+                                  const exName = log.exerciseName.split(" - ")[0];
+                                  const isRun = /run|treadmill|track|jog/i.test(
+                                    log.exerciseName
                                   );
-                                  if (!pace.display) return null;
-                                  return (
+                                  const isTread = /treadmill/i.test(log.exerciseName);
+                                  const chips: { label: string; value: string }[] = [];
+
+                                  if (mode === "hr") {
+                                    if (log.prescribedIntensityValue)
+                                      chips.push({
+                                        label: zh ? "目标心率" : "Target HR",
+                                        value: `${log.prescribedIntensityValue} bpm`,
+                                      });
+                                  } else if (mode === "rpe") {
+                                    if (log.prescribedIntensityValue)
+                                      chips.push({
+                                        label: zh ? "目标RPE" : "Target RPE",
+                                        value: `${log.prescribedIntensityValue}/10`,
+                                      });
+                                  } else if (log.prescribedPercentMas) {
+                                    if (isRun) {
+                                      const pace = resolvePrescribedPace(
+                                        log.prescribedPercentMas,
+                                        exName
+                                      );
+                                      if (pace.display)
+                                        chips.push({
+                                          label: zh ? "目标配速" : "Target pace",
+                                          value: pace.display,
+                                        });
+                                      if (
+                                        isTread &&
+                                        pace.resolved &&
+                                        Number.isFinite(pace.speedKmh)
+                                      )
+                                        chips.push({
+                                          label: zh ? "跑步机速度" : "Treadmill speed",
+                                          value: `${pace.speedKmh.toFixed(1)} km/h`,
+                                        });
+                                    }
+                                    const hr = resolvePrescribedHr(
+                                      log.prescribedPercentMas
+                                    );
+                                    if (hr.display)
+                                      chips.push({
+                                        label: zh ? "目标心率" : "Target HR",
+                                        value: hr.display,
+                                      });
+                                  }
+
+                                  if (!chips.length) return null;
+                                  return chips.map((chip, chipIndex) => (
                                     <div
-                                      className={`setLogStatic setLogTarget${
-                                        pace.resolved
-                                          ? " setLogTargetResolved"
-                                          : ""
-                                      }`}
+                                      key={chipIndex}
+                                      className="setLogStatic setLogTarget setLogTargetResolved"
                                     >
-                                      <span>
-                                        {i18n.language === "zh"
-                                          ? "目标配速"
-                                          : "Target pace"}
-                                      </span>
-                                      <strong>{pace.display}</strong>
+                                      <span>{chip.label}</span>
+                                      <strong>{chip.value}</strong>
                                     </div>
-                                  );
-                                })()}
-
-                              {/* Treadmill: also show the speed to set (km/h). */}
-                              {(showTimeInput || showDistanceInput) &&
-                                log.prescribedPercentMas &&
-                                /treadmill/i.test(log.exerciseName) &&
-                                (() => {
-                                  const pace = resolvePrescribedPace(
-                                    log.prescribedPercentMas,
-                                    log.exerciseName.split(" - ")[0]
-                                  );
-                                  if (!pace.resolved || !Number.isFinite(pace.speedKmh))
-                                    return null;
-                                  return (
-                                    <div className="setLogStatic setLogTarget setLogTargetResolved">
-                                      <span>
-                                        {i18n.language === "zh"
-                                          ? "跑步机速度"
-                                          : "Treadmill speed"}
-                                      </span>
-                                      <strong>{pace.speedKmh.toFixed(1)} km/h</strong>
-                                    </div>
-                                  );
-                                })()}
-
-                              {/* HR target: all cardio (running + machines). */}
-                              {(showTimeInput || showDistanceInput) &&
-                                log.prescribedPercentMas &&
-                                (() => {
-                                  const hr = resolvePrescribedHr(
-                                    log.prescribedPercentMas
-                                  );
-                                  if (!hr.display) return null;
-                                  return (
-                                    <div className="setLogStatic setLogTarget setLogTargetResolved">
-                                      <span>
-                                        {i18n.language === "zh"
-                                          ? "目标心率"
-                                          : "Target HR"}
-                                      </span>
-                                      <strong>{hr.display}</strong>
-                                    </div>
-                                  );
-                                })()}
-
-                              {/* RPE target: machines only (no pace applies). */}
-                              {(showTimeInput || showDistanceInput) &&
-                                log.prescribedPercentMas &&
-                                !/run|treadmill|track|jog/i.test(log.exerciseName) &&
-                                (() => {
-                                  const rpe = resolvePrescribedRpe(
-                                    log.prescribedPercentMas
-                                  );
-                                  if (!rpe) return null;
-                                  return (
-                                    <div className="setLogStatic setLogTarget setLogTargetResolved">
-                                      <span>
-                                        {i18n.language === "zh"
-                                          ? "目标RPE"
-                                          : "Target RPE"}
-                                      </span>
-                                      <strong>{rpe}</strong>
-                                    </div>
-                                  );
+                                  ));
                                 })()}
 
                               {showTimeInput && (
