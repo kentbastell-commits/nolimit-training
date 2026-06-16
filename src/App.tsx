@@ -1322,10 +1322,6 @@ function App() {
   };
   // All weights are stored in kg; convert only for display when lb is chosen.
   const KG_TO_LB = 2.20462;
-  const formatWeightInUnit = (kg: number) => {
-    const value = weightUnit === "lb" ? kg * KG_TO_LB : kg;
-    return Number.isInteger(value) ? String(value) : value.toFixed(1);
-  };
   const [clientProgramSessions, setClientProgramSessions] = useState<
     AssignableWorkout[]
   >([]);
