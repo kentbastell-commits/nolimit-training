@@ -12694,6 +12694,67 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   }
 }
 
+/* Revenue page is dark-themed by default; the coach app is light, so re-skin
+   the cards to cream/dark to match the rest of the UI. */
+.app:not(.clientPortalApp) .revenueStat,
+.app:not(.clientPortalApp) .revenueChartCard,
+.app:not(.clientPortalApp) .revenueTableCard,
+.app:not(.clientPortalApp) .coachEarningsStat {
+  background: #fffdf8;
+  border-color: rgba(17, 17, 17, 0.12);
+}
+
+.app:not(.clientPortalApp) .revenueStat span,
+.app:not(.clientPortalApp) .coachEarningsStat span,
+.app:not(.clientPortalApp) .coachEarningsHeader .eyebrow,
+.app:not(.clientPortalApp) .coachShareControl > span {
+  color: #8f6b12;
+}
+
+.app:not(.clientPortalApp) .revenueStat strong,
+.app:not(.clientPortalApp) .coachEarningsStat strong,
+.app:not(.clientPortalApp) .coachEarningsHeader h3,
+.app:not(.clientPortalApp) .coachShareControl strong,
+.app:not(.clientPortalApp) .revenueChartCard h3,
+.app:not(.clientPortalApp) .revenueTableCard h3 {
+  color: #111;
+}
+
+.app:not(.clientPortalApp) .revenueStat small,
+.app:not(.clientPortalApp) .coachEarningsStat small {
+  color: #6a675f;
+}
+
+.app:not(.clientPortalApp) .coachEarningsCard {
+  background: linear-gradient(
+    135deg,
+    rgba(212, 175, 55, 0.16),
+    #fffdf8
+  );
+  border-color: rgba(212, 175, 55, 0.45);
+}
+
+.app:not(.clientPortalApp) .coachEarningsPayout {
+  background: rgba(212, 175, 55, 0.14);
+  border-color: rgba(212, 175, 55, 0.5);
+}
+
+.app:not(.clientPortalApp) .coachShareControl input {
+  background: #fff;
+  color: #111;
+  border-color: rgba(212, 175, 55, 0.45);
+}
+
+.app:not(.clientPortalApp) .revenueTable th {
+  color: #888;
+  border-bottom-color: rgba(17, 17, 17, 0.12);
+}
+
+.app:not(.clientPortalApp) .revenueTable td {
+  color: #2a2a2a;
+  border-bottom-color: rgba(17, 17, 17, 0.07);
+}
+
 /* ── Notifications ──────────────────────────────────────── */
 
 .topbarRight {
