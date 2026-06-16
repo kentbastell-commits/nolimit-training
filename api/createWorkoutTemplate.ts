@@ -188,17 +188,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           Order: Number(exercise.order) || index + 1,
           Sets: Number(exercise.sets) || 1,
           Reps: String(exercise.reps || ""),
-          Load: String(exercise.load || ""),
           Tempo: String(exercise.tempo || ""),
           Rest: String(exercise.rest || ""),
+          // Per-set loads (including "% 1RM" targets) and target metadata are
+          // serialized into "Coaching Notes" (see buildExerciseCoachingNotes),
+          // so they round-trip without dedicated Feishu columns. Do not add a
+          // top-level "Load"/"Target *" field here unless those columns exist
+          // in the Workout Templates table — Feishu rejects unknown fields.
           "Coaching Notes": String(exercise.coachingNotes || ""),
           Status: String(exercise.status || "Active"),
-          "Target Source": String(exercise.targetSource || ""),
-          "Target Metric": String(exercise.targetMetric || ""),
-          "Target Percent": String(exercise.targetPercent || ""),
-          "Target Adjustment": String(exercise.targetAdjustment || ""),
-          "Auto Target": Boolean(exercise.autoTarget),
-          "Display Target": String(exercise.displayTarget || ""),
         },
       };
     });
