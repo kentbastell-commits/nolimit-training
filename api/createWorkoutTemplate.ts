@@ -77,22 +77,37 @@ async function getTenantToken() {
 }
 
 async function getRecords(tableId: string, token: string) {
-  const response = await fetch(
-    `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${tableId}/records?page_size=500`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+  // Paginate — the exercise library can exceed one page (500). Without this,
+  // exercises beyond the first page can't be found when saving a workout.
+  const items: any[] = [];
+  let pageToken = "";
+
+  do {
+    const params = new URLSearchParams({ page_size: "500" });
+    if (pageToken) params.set("page_token", pageToken);
+
+    const response = await fetch(
+      `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${tableId}/records?${params.toString()}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    const data = await response.json();
+
+    if (!data?.data?.items) {
+      throw new Error(`Could not load records: ${JSON.stringify(data)}`);
     }
-  );
 
-  const data = await response.json();
+    items.push(...data.data.items);
+    pageToken = data.data.page_token || "";
 
-  if (!data?.data?.items) {
-    throw new Error(`Could not load records: ${JSON.stringify(data)}`);
-  }
+    if (!data.data.has_more) break;
+  } while (pageToken);
 
-  return data.data.items;
+  return items;
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
