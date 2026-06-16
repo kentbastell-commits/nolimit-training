@@ -8923,10 +8923,11 @@ function App() {
     if (!metric) return NaN;
     const raw = parseFloat(String(metric.metricValue).replace(/[^\d.]/g, ""));
     if (!Number.isFinite(raw) || raw <= 0) return NaN;
-    // MAS is stored in km/h by default, m/s when the metric unit says so.
-    return String(metric.metricUnit || "").toLowerCase().includes("m/s")
-      ? raw * 3.6
-      : raw;
+    // Speed metrics are stored km/h by default; convert m/s, or a pace (min/km).
+    const unit = String(metric.metricUnit || "").toLowerCase();
+    if (unit.includes("m/s")) return raw * 3.6;
+    if (unit.includes("min/km") || unit.includes("/km")) return 60 / raw;
+    return raw;
   };
   const formatPace = (speedKmh: number) => {
     if (!Number.isFinite(speedKmh) || speedKmh <= 0) return "--";
@@ -8968,13 +8969,14 @@ function App() {
     };
   };
   const paceZh = i18n.language === "zh";
-  // Each zone: %MAS drives pace; a %HRR band drives the Karvonen HR range.
+  // Each zone: %MAS drives pace; %HRR drives Karvonen HR; %LT drives the pace
+  // from a measured lactate-threshold speed (% of threshold speed).
   const PACE_ZONE_DEFS = [
-    { key: "mas", label: "MAS", percent: 100, hrrLow: 95, hrrHigh: 100 },
-    { key: "5k", label: paceZh ? "5公里配速" : "5K", percent: 95, hrrLow: 90, hrrHigh: 95 },
-    { key: "10k", label: paceZh ? "10公里配速" : "10K", percent: 91, hrrLow: 85, hrrHigh: 90 },
-    { key: "threshold", label: paceZh ? "阈值" : "Threshold", percent: 85, hrrLow: 80, hrrHigh: 85 },
-    { key: "easy", label: paceZh ? "轻松" : "Easy", percent: 70, hrrLow: 60, hrrHigh: 70 },
+    { key: "mas", label: "MAS", percent: 100, hrrLow: 95, hrrHigh: 100, ltPercent: 112 },
+    { key: "5k", label: paceZh ? "5公里配速" : "5K", percent: 95, hrrLow: 90, hrrHigh: 95, ltPercent: 106 },
+    { key: "10k", label: paceZh ? "10公里配速" : "10K", percent: 91, hrrLow: 85, hrrHigh: 90, ltPercent: 102 },
+    { key: "threshold", label: paceZh ? "阈值" : "Threshold", percent: 85, hrrLow: 80, hrrHigh: 85, ltPercent: 100 },
+    { key: "easy", label: paceZh ? "轻松" : "Easy", percent: 70, hrrLow: 60, hrrHigh: 70, ltPercent: 80 },
   ];
   // Heart-rate metrics for Karvonen zones (HR = RHR + (HRmax - RHR) * %HRR).
   const parseBpm = (metric?: AthleteMetric) =>
@@ -8999,13 +9001,23 @@ function App() {
     hrMaxValue > restingHrValue;
   const karvonenHr = (hrrPercent: number) =>
     Math.round(restingHrValue + (hrMaxValue - restingHrValue) * (hrrPercent / 100));
+  // Lactate-threshold pace metric (a speed; % of it gives each zone's LT pace).
+  const ltMetric = sortedAthleteMetrics.find((metric) =>
+    /lactate|threshold|\blt\b/.test(
+      `${metric.metricName} ${metric.sourceTestName} ${metric.calculationMethod}`.toLowerCase()
+    )
+  );
+  const ltSpeedKmh = getMasKmh(ltMetric);
+  const hasLtPace = Number.isFinite(ltSpeedKmh);
   const masKmhForZones = getMasKmh(latestMasMetric);
   const paceZones = PACE_ZONE_DEFS.map((zone) => {
     const speedKmh = masKmhForZones * (zone.percent / 100);
+    const ltZoneSpeed = ltSpeedKmh * (zone.ltPercent / 100);
     return {
       ...zone,
       speed: Number.isFinite(speedKmh) ? `${speedKmh.toFixed(1)} km/h` : "--",
       pace: formatPace(speedKmh),
+      ltPace: hasLtPace ? formatPace(ltZoneSpeed) : "--",
       hrr: `${zone.hrrLow}–${zone.hrrHigh}%`,
       hr: hasKarvonenHr
         ? `${karvonenHr(zone.hrrLow)}–${karvonenHr(zone.hrrHigh)} bpm`
@@ -14338,13 +14350,13 @@ function App() {
                                 {paceZh ? "训练区间" : "Training Zones"}
                               </span>
                               <small>
-                                {hasKarvonenHr
-                                  ? paceZh
-                                    ? "基于最大有氧速度 + 心率"
-                                    : "From MAS + HR"
-                                  : paceZh
-                                    ? "基于最大有氧速度"
-                                    : "From MAS"}
+                                {`${paceZh ? "来源" : "From"} ${[
+                                  "MAS",
+                                  hasLtPace ? "LT" : "",
+                                  hasKarvonenHr ? "HR" : "",
+                                ]
+                                  .filter(Boolean)
+                                  .join(" + ")}`}
                               </small>
                             </div>
                             <table className="runningPacesTable">
@@ -14353,6 +14365,9 @@ function App() {
                                   <th>{paceZh ? "区间" : "Zone"}</th>
                                   <th>%MAS</th>
                                   <th>{paceZh ? "配速" : "Pace"}</th>
+                                  {hasLtPace && (
+                                    <th>{paceZh ? "阈值配速" : "LT Pace"}</th>
+                                  )}
                                   {hasKarvonenHr && <th>%HRR</th>}
                                   {hasKarvonenHr && <th>{paceZh ? "心率" : "HR"}</th>}
                                 </tr>
@@ -14365,6 +14380,11 @@ function App() {
                                     <td>
                                       <strong>{zone.pace}</strong>
                                     </td>
+                                    {hasLtPace && (
+                                      <td>
+                                        <strong>{zone.ltPace}</strong>
+                                      </td>
+                                    )}
                                     {hasKarvonenHr && <td>{zone.hrr}</td>}
                                     {hasKarvonenHr && (
                                       <td>
@@ -14375,6 +14395,12 @@ function App() {
                                 ))}
                               </tbody>
                             </table>
+                            {hasLtPace && (
+                              <small className="runningPacesFootnote">
+                                {paceZh ? "阈值配速" : "LT pace"}:{" "}
+                                {formatPace(ltSpeedKmh)} ({ltSpeedKmh.toFixed(1)} km/h)
+                              </small>
+                            )}
                             {hasKarvonenHr && (
                               <small className="runningPacesFootnote">
                                 {paceZh ? "卡尔沃宁公式" : "Karvonen"}: HRmax{" "}

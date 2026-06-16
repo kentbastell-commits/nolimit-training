@@ -365,6 +365,29 @@ function calculateMetric(params: {
     return Math.round(value * 100) / 100;
   }
 
+  if (method.includes("lactate") || method.includes("threshold")) {
+    // Threshold pace -> speed in km/h.
+    const seconds = parseDurationSeconds(sourceText);
+    const kmMatch = sourceText.match(/(\d+(?:\.\d+)?)\s*km/i);
+    const mMatch = sourceText.match(/(\d+(?:\.\d+)?)\s*m(?![a-z/])/i);
+    const distanceKm = kmMatch
+      ? Number(kmMatch[1])
+      : mMatch
+        ? Number(mMatch[1]) / 1000
+        : NaN;
+    // A time-trial (distance + time) -> average speed.
+    if (seconds && Number.isFinite(distanceKm) && distanceKm > 0) {
+      return Math.round((distanceKm / (seconds / 3600)) * 100) / 100;
+    }
+    // A pace entered as m:ss (per km) -> speed.
+    if (seconds) {
+      return Math.round((3600 / seconds) * 100) / 100;
+    }
+    // A direct speed value.
+    const directSpeed = numbers[0];
+    return Number.isFinite(directSpeed) ? directSpeed : null;
+  }
+
   const direct = numbers[0];
   return Number.isFinite(direct) ? direct : null;
 }
@@ -707,7 +730,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                       methodLower.includes("mas") ||
                       methodLower.includes("2km")
                     ? "MAS"
-                    : "";
+                    : methodLower.includes("lactate") ||
+                        methodLower.includes("threshold")
+                      ? "LT Pace"
+                      : "";
             const metricBaseName =
               metricConfig.testName || responseItem.label || "Test";
             const metricName =
@@ -728,7 +754,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 .toLowerCase()
                 .includes("m/s");
             const metricUnit =
-              metricKind === "MAS"
+              metricKind === "MAS" || metricKind === "LT Pace"
                 ? wantsMetersPerSecond
                   ? "m/s"
                   : "km/h"
