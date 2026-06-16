@@ -8454,7 +8454,14 @@ function App() {
         ) / 10
       : 0;
   const getAthleteMetricTimestamp = (metric: AthleteMetric) => {
-    const normalizedDate = normalizeDate(metric.measuredAt || "");
+    const raw = String(metric.measuredAt || "").trim();
+    // Feishu date fields return epoch milliseconds; parse those directly so the
+    // newest metric (and its unit) sorts first instead of tying at 0.
+    if (/^\d{10,}$/.test(raw)) {
+      const ms = Number(raw);
+      return Number.isFinite(ms) ? ms : 0;
+    }
+    const normalizedDate = normalizeDate(raw);
     const parsedDate = normalizedDate ? Date.parse(`${normalizedDate}T00:00:00`) : 0;
 
     return Number.isFinite(parsedDate) ? parsedDate : 0;
@@ -8547,7 +8554,10 @@ function App() {
   const formatAthleteMetricMeta = (metric?: AthleteMetric) => {
     if (!metric) return t("noTestDataYet");
 
-    const date = normalizeDate(metric.measuredAt || "");
+    const raw = String(metric.measuredAt || "").trim();
+    const date = /^\d{10,}$/.test(raw)
+      ? new Date(Number(raw)).toISOString().slice(0, 10)
+      : normalizeDate(raw);
     const source = metric.sourceTestName || metric.metricName || t("latest");
 
     return date ? `${source} - ${date}` : source;
