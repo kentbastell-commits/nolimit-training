@@ -5134,6 +5134,11 @@ function App() {
     const setPrescriptions = normalizeExerciseSetPrescriptions(exercise);
     const isRunning =
       exercise.trackingType === "Time" || exercise.trackingType === "Distance";
+    const isTimeTracked = exercise.trackingType === "Time";
+    const intervalLabel = isTimeTracked ? "Time" : "Distance";
+    const intervalPlaceholder = isTimeTracked
+      ? "20:00 / 3:00 (mm:ss)"
+      : "1 km / 400 m";
 
     return (
       <div
@@ -5164,7 +5169,7 @@ function App() {
           {isRunning ? (
             <>
               <span>
-                Distance / Time
+                {intervalLabel}
                 <button className="fillColumnButton" type="button" title="Fill all sets with set 1 value" onClick={() => fillSetColumn(exerciseIndex, "reps")}>↓</button>
               </span>
               <span>
@@ -5230,7 +5235,7 @@ function App() {
                       event.target.value
                     )
                   }
-                  placeholder="1 km / 400 m / 3:00"
+                  placeholder={intervalPlaceholder}
                 />
                 <div className="builderZoneCell">
                   <select
@@ -9025,23 +9030,36 @@ function App() {
 
     const masKmh = getMasKmh(metric);
     if (!Number.isFinite(masKmh))
-      return { display: `${pct}% MAS`, resolved: false };
+      return { display: `${pct}% MAS`, resolved: false, speedKmh: NaN };
 
     const speedKmh = masKmh * (pct / 100);
     return {
       display: `${formatPace(speedKmh)} (${pct}% MAS)`,
       resolved: true,
+      speedKmh,
     };
+  };
+  // RPE (1-10) for a %MAS prescription, from its nearest zone — used for
+  // cardio machines where pace (min/km) doesn't apply.
+  const resolvePrescribedRpe = (rawPercentMas: string) => {
+    const pct = parseFloat(String(rawPercentMas || "").trim());
+    if (!Number.isFinite(pct) || pct <= 0) return "";
+    const zone = PACE_ZONE_DEFS.reduce((best, candidate) =>
+      Math.abs(candidate.percent - pct) < Math.abs(best.percent - pct)
+        ? candidate
+        : best
+    );
+    return `${zone.rpe}/10`;
   };
   const paceZh = i18n.language === "zh";
   // Each zone: %MAS drives pace; %HRR drives Karvonen HR; %LT drives the pace
   // from a measured lactate-threshold speed (% of threshold speed).
   const PACE_ZONE_DEFS = [
-    { key: "mas", label: "MAS", percent: 100, hrrLow: 95, hrrHigh: 100, ltPercent: 112 },
-    { key: "5k", label: paceZh ? "5公里配速" : "5K", percent: 95, hrrLow: 90, hrrHigh: 95, ltPercent: 106 },
-    { key: "10k", label: paceZh ? "10公里配速" : "10K", percent: 91, hrrLow: 85, hrrHigh: 90, ltPercent: 102 },
-    { key: "threshold", label: paceZh ? "阈值" : "Threshold", percent: 85, hrrLow: 80, hrrHigh: 85, ltPercent: 100 },
-    { key: "easy", label: paceZh ? "轻松" : "Easy", percent: 70, hrrLow: 60, hrrHigh: 70, ltPercent: 80 },
+    { key: "mas", label: "MAS", percent: 100, hrrLow: 95, hrrHigh: 100, ltPercent: 112, rpe: 10 },
+    { key: "5k", label: paceZh ? "5公里配速" : "5K", percent: 95, hrrLow: 90, hrrHigh: 95, ltPercent: 106, rpe: 9 },
+    { key: "10k", label: paceZh ? "10公里配速" : "10K", percent: 91, hrrLow: 85, hrrHigh: 90, ltPercent: 102, rpe: 8 },
+    { key: "threshold", label: paceZh ? "阈值" : "Threshold", percent: 85, hrrLow: 80, hrrHigh: 85, ltPercent: 100, rpe: 7 },
+    { key: "easy", label: paceZh ? "轻松" : "Easy", percent: 70, hrrLow: 60, hrrHigh: 70, ltPercent: 80, rpe: 4 },
   ];
   // Heart-rate metrics for Karvonen zones (HR = RHR + (HRmax - RHR) * %HRR).
   const parseBpm = (metric?: AthleteMetric) =>
@@ -18569,8 +18587,10 @@ function App() {
                                 </>
                               )}
 
+                              {/* Pace target: running exercises only (pace is run-specific). */}
                               {(showTimeInput || showDistanceInput) &&
                                 log.prescribedPercentMas &&
+                                /run|treadmill|track|jog/i.test(log.exerciseName) &&
                                 (() => {
                                   const pace = resolvePrescribedPace(
                                     log.prescribedPercentMas,
@@ -18595,6 +18615,30 @@ function App() {
                                   );
                                 })()}
 
+                              {/* Treadmill: also show the speed to set (km/h). */}
+                              {(showTimeInput || showDistanceInput) &&
+                                log.prescribedPercentMas &&
+                                /treadmill/i.test(log.exerciseName) &&
+                                (() => {
+                                  const pace = resolvePrescribedPace(
+                                    log.prescribedPercentMas,
+                                    log.exerciseName.split(" - ")[0]
+                                  );
+                                  if (!pace.resolved || !Number.isFinite(pace.speedKmh))
+                                    return null;
+                                  return (
+                                    <div className="setLogStatic setLogTarget setLogTargetResolved">
+                                      <span>
+                                        {i18n.language === "zh"
+                                          ? "跑步机速度"
+                                          : "Treadmill speed"}
+                                      </span>
+                                      <strong>{pace.speedKmh.toFixed(1)} km/h</strong>
+                                    </div>
+                                  );
+                                })()}
+
+                              {/* HR target: all cardio (running + machines). */}
                               {(showTimeInput || showDistanceInput) &&
                                 log.prescribedPercentMas &&
                                 (() => {
@@ -18610,6 +18654,27 @@ function App() {
                                           : "Target HR"}
                                       </span>
                                       <strong>{hr.display}</strong>
+                                    </div>
+                                  );
+                                })()}
+
+                              {/* RPE target: machines only (no pace applies). */}
+                              {(showTimeInput || showDistanceInput) &&
+                                log.prescribedPercentMas &&
+                                !/run|treadmill|track|jog/i.test(log.exerciseName) &&
+                                (() => {
+                                  const rpe = resolvePrescribedRpe(
+                                    log.prescribedPercentMas
+                                  );
+                                  if (!rpe) return null;
+                                  return (
+                                    <div className="setLogStatic setLogTarget setLogTargetResolved">
+                                      <span>
+                                        {i18n.language === "zh"
+                                          ? "目标RPE"
+                                          : "Target RPE"}
+                                      </span>
+                                      <strong>{rpe}</strong>
                                     </div>
                                   );
                                 })()}
