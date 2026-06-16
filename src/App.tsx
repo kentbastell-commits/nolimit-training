@@ -5136,6 +5136,11 @@ function App() {
       exercise.trackingType === "Time" || exercise.trackingType === "Distance";
     const isTimeTracked = exercise.trackingType === "Time";
     const intervalLabel = isTimeTracked ? "Time" : "Distance";
+    // Treadmill/track/outdoor runs are pace-driven (%MAS); machines (bike, row,
+    // erg, etc.) are HR/RPE-driven, so they only need the named zone.
+    const isRunExercise = /run|treadmill|track|jog/i.test(
+      exercise.exerciseName || ""
+    );
 
     return (
       <div
@@ -5143,24 +5148,25 @@ function App() {
           isRunning ? " builderSetPrescriptionRunning" : ""
         }`}
       >
-        <div className="builderSetTrackingToggle">
-          {([
-            { tt: "Weight" as TrackingType, label: "Weight" },
-            { tt: "Distance" as TrackingType, label: "Run · Distance" },
-            { tt: "Time" as TrackingType, label: "Run · Time" },
-          ]).map(({ tt, label }) => (
-            <button
-              key={tt}
-              type="button"
-              className={exercise.trackingType === tt ? "active" : ""}
-              onClick={() =>
-                updateProgramExercise(exerciseIndex, "trackingType", tt)
-              }
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+        {isRunning && (
+          <div className="builderSetTrackingToggle">
+            {([
+              { tt: "Distance" as TrackingType, label: "Distance" },
+              { tt: "Time" as TrackingType, label: "Time" },
+            ]).map(({ tt, label }) => (
+              <button
+                key={tt}
+                type="button"
+                className={exercise.trackingType === tt ? "active" : ""}
+                onClick={() =>
+                  updateProgramExercise(exerciseIndex, "trackingType", tt)
+                }
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
         <div className="builderSetTableHeader">
           <span>Set</span>
           {isRunning ? (
@@ -5222,58 +5228,92 @@ function App() {
             {isRunning ? (
               <>
                 <div className="builderIntervalCell">
-                  {(() => {
-                    const raw = String(set.reps || "").trim();
-                    const value = (raw.match(/[\d.]+/) || [""])[0];
-                    const unitWord = (raw.match(/[a-z]+/i) || [""])[0].toLowerCase();
-                    const unit = isTimeTracked
-                      ? unitWord === "s"
-                        ? "s"
-                        : "min"
-                      : unitWord === "m"
-                        ? "m"
-                        : "km";
-                    const write = (nextValue: string, nextUnit: string) =>
-                      updateExerciseSetPrescription(
-                        exerciseIndex,
-                        setIndex,
-                        "reps",
-                        nextValue ? `${nextValue} ${nextUnit}` : ""
-                      );
-                    return (
-                      <>
-                        <input
-                          className="miniSearch builderIntervalValue"
-                          inputMode="decimal"
-                          value={value}
-                          onChange={(event) =>
-                            write(
-                              event.target.value.replace(/[^\d.]/g, ""),
-                              unit
-                            )
-                          }
-                          placeholder={isTimeTracked ? "Time" : "Dist"}
-                        />
-                        <select
-                          className="miniSearch builderIntervalUnit"
-                          value={unit}
-                          onChange={(event) => write(value, event.target.value)}
-                        >
-                          {isTimeTracked ? (
-                            <>
-                              <option value="min">min</option>
-                              <option value="s">s</option>
-                            </>
-                          ) : (
-                            <>
+                  {isTimeTracked
+                    ? (() => {
+                        const raw = String(set.reps || "").trim();
+                        const colon = raw.split(":");
+                        const minutes =
+                          colon.length >= 2
+                            ? colon[0].replace(/\D/g, "")
+                            : (raw.match(/\d+/) || [""])[0];
+                        const seconds =
+                          colon.length >= 2 ? colon[1].replace(/\D/g, "") : "";
+                        const writeTime = (m: string, s: string) =>
+                          updateExerciseSetPrescription(
+                            exerciseIndex,
+                            setIndex,
+                            "reps",
+                            m || s
+                              ? `${m || "0"}:${String(s || "0").padStart(2, "0")}`
+                              : ""
+                          );
+                        return (
+                          <>
+                            <input
+                              className="miniSearch builderTimeValue"
+                              inputMode="numeric"
+                              value={minutes}
+                              onChange={(event) =>
+                                writeTime(
+                                  event.target.value.replace(/\D/g, ""),
+                                  seconds
+                                )
+                              }
+                              placeholder="min"
+                            />
+                            <span className="builderTimeColon">:</span>
+                            <input
+                              className="miniSearch builderTimeValue"
+                              inputMode="numeric"
+                              value={seconds}
+                              onChange={(event) =>
+                                writeTime(
+                                  minutes,
+                                  event.target.value.replace(/\D/g, "").slice(0, 2)
+                                )
+                              }
+                              placeholder="sec"
+                            />
+                          </>
+                        );
+                      })()
+                    : (() => {
+                        const raw = String(set.reps || "").trim();
+                        const value = (raw.match(/[\d.]+/) || [""])[0];
+                        const unitWord = (raw.match(/[a-z]+/i) || [""])[0].toLowerCase();
+                        const unit = unitWord === "m" ? "m" : "km";
+                        const write = (nextValue: string, nextUnit: string) =>
+                          updateExerciseSetPrescription(
+                            exerciseIndex,
+                            setIndex,
+                            "reps",
+                            nextValue ? `${nextValue} ${nextUnit}` : ""
+                          );
+                        return (
+                          <>
+                            <input
+                              className="miniSearch builderDistanceValue"
+                              inputMode="decimal"
+                              value={value}
+                              onChange={(event) =>
+                                write(
+                                  event.target.value.replace(/[^\d.]/g, ""),
+                                  unit
+                                )
+                              }
+                              placeholder="Dist"
+                            />
+                            <select
+                              className="miniSearch builderIntervalUnit"
+                              value={unit}
+                              onChange={(event) => write(value, event.target.value)}
+                            >
                               <option value="km">km</option>
                               <option value="m">m</option>
-                            </>
-                          )}
-                        </select>
-                      </>
-                    );
-                  })()}
+                            </select>
+                          </>
+                        );
+                      })()}
                 </div>
                 <div className="builderZoneCell">
                   <select
@@ -5308,36 +5348,59 @@ function App() {
                         {zone.label} ({zone.percent}%)
                       </option>
                     ))}
-                    <option value="custom">Custom %</option>
+                    {isRunExercise && <option value="custom">Custom %</option>}
                   </select>
-                  <input
-                    className="miniSearch builderZonePercent"
-                    inputMode="decimal"
-                    value={set.percentMas}
-                    onChange={(event) =>
-                      updateExerciseSetPrescription(
-                        exerciseIndex,
-                        setIndex,
-                        "percentMas",
-                        event.target.value.replace(/[^\d.]/g, "")
-                      )
-                    }
-                    placeholder="% MAS"
-                  />
+                  {isRunExercise && (
+                    <input
+                      className="miniSearch builderZonePercent"
+                      inputMode="decimal"
+                      value={set.percentMas}
+                      onChange={(event) =>
+                        updateExerciseSetPrescription(
+                          exerciseIndex,
+                          setIndex,
+                          "percentMas",
+                          event.target.value.replace(/[^\d.]/g, "")
+                        )
+                      }
+                      placeholder="% MAS"
+                    />
+                  )}
                 </div>
-                <input
-                  className="miniSearch"
-                  value={set.rest}
-                  onChange={(event) =>
+                {(() => {
+                  const raw = String(set.rest || "").trim();
+                  const value = (raw.match(/[\d.]+/) || [""])[0];
+                  const unitWord = (raw.match(/[a-z]+/i) || [""])[0].toLowerCase();
+                  const unit = unitWord.startsWith("m") ? "min" : "s";
+                  const write = (nextValue: string, nextUnit: string) =>
                     updateExerciseSetPrescription(
                       exerciseIndex,
                       setIndex,
                       "rest",
-                      event.target.value
-                    )
-                  }
-                  placeholder="Rest"
-                />
+                      nextValue ? `${nextValue} ${nextUnit}` : ""
+                    );
+                  return (
+                    <div className="builderIntervalCell">
+                      <input
+                        className="miniSearch builderDistanceValue"
+                        inputMode="numeric"
+                        value={value}
+                        onChange={(event) =>
+                          write(event.target.value.replace(/[^\d.]/g, ""), unit)
+                        }
+                        placeholder="Rest"
+                      />
+                      <select
+                        className="miniSearch builderIntervalUnit"
+                        value={unit}
+                        onChange={(event) => write(value, event.target.value)}
+                      >
+                        <option value="s">s</option>
+                        <option value="min">min</option>
+                      </select>
+                    </div>
+                  );
+                })()}
               </>
             ) : (
               <>

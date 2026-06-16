@@ -14219,7 +14219,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 .builderSetPrescriptionRunning .builderSetTableRow,
 .app:not(.clientPortalApp) .builderSetPrescriptionRunning .builderSetTableHeader,
 .app:not(.clientPortalApp) .builderSetPrescriptionRunning .builderSetTableRow {
-  grid-template-columns: 42px minmax(110px, 1.3fr) minmax(108px, 1fr) minmax(68px, 0.7fr) !important;
+  grid-template-columns: 42px minmax(116px, 1.05fr) minmax(104px, 1fr) minmax(96px, 0.85fr) !important;
   align-items: start !important;
 }
 
@@ -14232,6 +14232,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 
 .builderIntervalCell {
   display: flex;
+  align-items: center;
   gap: 4px;
   min-width: 0;
 }
@@ -14241,9 +14242,27 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   min-width: 0;
 }
 
+.builderDistanceValue {
+  flex: 1 1 auto;
+  min-width: 0;
+  text-align: center;
+}
+
+.builderTimeValue {
+  flex: 1 1 0;
+  min-width: 0;
+  text-align: center;
+}
+
+.builderTimeColon {
+  flex: 0 0 auto;
+  font-weight: 950;
+  color: #66665f;
+}
+
 .builderIntervalUnit {
   flex: 0 0 auto;
-  width: 58px !important;
+  width: 54px !important;
   padding-inline: 6px !important;
 }
 
