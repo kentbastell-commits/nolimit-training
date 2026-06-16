@@ -14208,6 +14208,35 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   grid-template-columns: 42px minmax(130px, 1.5fr) minmax(70px, 0.7fr) minmax(80px, 0.9fr) !important;
 }
 
+.builderSetTrackingToggle {
+  display: inline-flex !important;
+  gap: 0 !important;
+  margin-bottom: 8px !important;
+  border: 1px solid rgba(17, 17, 17, 0.14) !important;
+  border-radius: 9px !important;
+  overflow: hidden !important;
+  background: #f4f1ea !important;
+}
+
+.builderSetTrackingToggle button {
+  border: 0 !important;
+  background: transparent !important;
+  padding: 5px 12px !important;
+  font-size: 11px !important;
+  font-weight: 850 !important;
+  color: #6a675f !important;
+  cursor: pointer !important;
+}
+
+.builderSetTrackingToggle button + button {
+  border-left: 1px solid rgba(17, 17, 17, 0.12) !important;
+}
+
+.builderSetTrackingToggle button.active {
+  background: #111 !important;
+  color: #ead47a !important;
+}
+
 .app:not(.clientPortalApp) .builderSetTableHeader {
   font-size: 9px !important;
 }

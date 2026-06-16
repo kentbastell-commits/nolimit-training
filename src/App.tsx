@@ -5122,6 +5122,24 @@ function App() {
           isRunning ? " builderSetPrescriptionRunning" : ""
         }`}
       >
+        <div className="builderSetTrackingToggle">
+          {([
+            { tt: "Weight" as TrackingType, label: "Weight" },
+            { tt: "Distance" as TrackingType, label: "Run · Distance" },
+            { tt: "Time" as TrackingType, label: "Run · Time" },
+          ]).map(({ tt, label }) => (
+            <button
+              key={tt}
+              type="button"
+              className={exercise.trackingType === tt ? "active" : ""}
+              onClick={() =>
+                updateProgramExercise(exerciseIndex, "trackingType", tt)
+              }
+            >
+              {label}
+            </button>
+          ))}
+        </div>
         <div className="builderSetTableHeader">
           <span>Set</span>
           {isRunning ? (
