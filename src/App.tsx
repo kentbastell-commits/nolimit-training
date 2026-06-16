@@ -287,6 +287,16 @@ type ExerciseSetPrescription = {
   rest: string;
 };
 
+// Named running zones for the builder dropdown (percent = % MAS).
+// Mirrors PACE_ZONE_DEFS so a picked zone resolves to pace + HR per client.
+const RUNNING_ZONE_OPTIONS = [
+  { key: "mas", label: "MAS", percent: 100 },
+  { key: "5k", label: "5K", percent: 95 },
+  { key: "10k", label: "10K", percent: 91 },
+  { key: "threshold", label: "Threshold", percent: 85 },
+  { key: "easy", label: "Easy", percent: 70 },
+];
+
 type ExerciseAlternate = {
   exerciseRecordId: string;
   exerciseId: string;
@@ -5149,7 +5159,7 @@ function App() {
                 <button className="fillColumnButton" type="button" title="Fill all sets with set 1 value" onClick={() => fillSetColumn(exerciseIndex, "reps")}>↓</button>
               </span>
               <span>
-                %MAS
+                Zone
                 <button className="fillColumnButton" type="button" title="Fill all sets with set 1 value" onClick={() => fillSetColumn(exerciseIndex, "percentMas")}>↓</button>
               </span>
               <span>
@@ -5213,20 +5223,56 @@ function App() {
                   }
                   placeholder="1 km / 400 m / 3:00"
                 />
-                <input
-                  className="miniSearch"
-                  inputMode="decimal"
-                  value={set.percentMas}
-                  onChange={(event) =>
-                    updateExerciseSetPrescription(
-                      exerciseIndex,
-                      setIndex,
-                      "percentMas",
-                      event.target.value.replace(/[^\d.]/g, "")
-                    )
-                  }
-                  placeholder="% MAS"
-                />
+                <div className="builderZoneCell">
+                  <select
+                    className="miniSearch builderZoneSelect"
+                    value={(() => {
+                      const matched = RUNNING_ZONE_OPTIONS.find(
+                        (zone) => String(zone.percent) === String(set.percentMas)
+                      );
+                      return matched
+                        ? matched.key
+                        : set.percentMas
+                          ? "custom"
+                          : "";
+                    })()}
+                    onChange={(event) => {
+                      const value = event.target.value;
+                      if (value === "custom") return;
+                      const zone = RUNNING_ZONE_OPTIONS.find(
+                        (option) => option.key === value
+                      );
+                      updateExerciseSetPrescription(
+                        exerciseIndex,
+                        setIndex,
+                        "percentMas",
+                        zone ? String(zone.percent) : ""
+                      );
+                    }}
+                  >
+                    <option value="">Zone…</option>
+                    {RUNNING_ZONE_OPTIONS.map((zone) => (
+                      <option key={zone.key} value={zone.key}>
+                        {zone.label} ({zone.percent}%)
+                      </option>
+                    ))}
+                    <option value="custom">Custom %</option>
+                  </select>
+                  <input
+                    className="miniSearch builderZonePercent"
+                    inputMode="decimal"
+                    value={set.percentMas}
+                    onChange={(event) =>
+                      updateExerciseSetPrescription(
+                        exerciseIndex,
+                        setIndex,
+                        "percentMas",
+                        event.target.value.replace(/[^\d.]/g, "")
+                      )
+                    }
+                    placeholder="% MAS"
+                  />
+                </div>
                 <input
                   className="miniSearch"
                   value={set.rest}
