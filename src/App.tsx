@@ -1310,6 +1310,8 @@ function App() {
   >({});
   const pendingWorkoutMoveIds = useRef(new Set<string>());
   const pendingAssignmentMoveIds = useRef(new Set<string>());
+  const workoutMoveVersions = useRef<Record<string, number>>({});
+  const assignmentMoveVersions = useRef<Record<string, number>>({});
   const [showExerciseModal, setShowExerciseModal] = useState(false);
   const [technicalCueExercise, setTechnicalCueExercise] =
     useState<LibraryExercise | null>(null);
@@ -4262,34 +4264,38 @@ function App() {
     if (!selectedClient) return;
 
     const currentDate = normalizeDate(String(workout.scheduledDate));
+    const nextDate = normalizeDate(scheduledDate);
 
-    if (
-      !scheduledDate ||
-      currentDate === scheduledDate ||
-      pendingWorkoutMoveIds.current.has(workout.id)
-    ) {
+    if (!nextDate || currentDate === nextDate) {
       return;
     }
 
+    const moveVersion = (workoutMoveVersions.current[workout.id] || 0) + 1;
+    workoutMoveVersions.current[workout.id] = moveVersion;
+
     const previousWorkouts = workouts;
     const previousWorkoutOrder = clientCalendarWorkoutOrder;
+    const previousSelectedWorkout = selectedWorkout;
 
     pendingWorkoutMoveIds.current.add(workout.id);
     setWorkouts((prev) => {
       const nextWorkouts = prev.map((item) =>
-        item.id === workout.id ? { ...item, scheduledDate } : item
+        item.id === workout.id ? { ...item, scheduledDate: nextDate } : item
       );
       cacheClientWorkouts(selectedClient.clientCode, nextWorkouts);
       return nextWorkouts;
     });
+    setSelectedWorkout((current) =>
+      current?.id === workout.id ? { ...current, scheduledDate: nextDate } : current
+    );
     setClientCalendarWorkoutOrder((currentOrder) => {
       const workoutKey = getCalendarWorkoutOrderKey(workout);
       const nextOrder = { ...currentOrder };
       nextOrder[currentDate] = (nextOrder[currentDate] || []).filter(
         (key) => key !== workoutKey
       );
-      nextOrder[scheduledDate] = [
-        ...(nextOrder[scheduledDate] || []).filter((key) => key !== workoutKey),
+      nextOrder[nextDate] = [
+        ...(nextOrder[nextDate] || []).filter((key) => key !== workoutKey),
         workoutKey,
       ];
       persistClientCalendarWorkoutOrder(nextOrder);
@@ -4297,17 +4303,23 @@ function App() {
     });
 
     try {
-      await updateAssignedWorkoutScheduledDate(workout.id, scheduledDate);
+      await updateAssignedWorkoutScheduledDate(workout.id, nextDate);
     } catch (error) {
       console.error(error);
-      setWorkouts(previousWorkouts);
-      cacheClientWorkouts(selectedClient.clientCode, previousWorkouts);
-      setClientCalendarWorkoutOrder(previousWorkoutOrder);
-      persistClientCalendarWorkoutOrder(previousWorkoutOrder);
-      notify("Could not move workout. The calendar has been restored.");
+      if (workoutMoveVersions.current[workout.id] === moveVersion) {
+        setWorkouts(previousWorkouts);
+        cacheClientWorkouts(selectedClient.clientCode, previousWorkouts);
+        setSelectedWorkout(previousSelectedWorkout);
+        setClientCalendarWorkoutOrder(previousWorkoutOrder);
+        persistClientCalendarWorkoutOrder(previousWorkoutOrder);
+        notify("Could not move workout. The calendar has been restored.");
+      }
     } finally {
-      pendingWorkoutMoveIds.current.delete(workout.id);
-      setDraggingWorkoutId("");
+      if (workoutMoveVersions.current[workout.id] === moveVersion) {
+        delete workoutMoveVersions.current[workout.id];
+        pendingWorkoutMoveIds.current.delete(workout.id);
+        setDraggingWorkoutId("");
+      }
     }
   };
 
@@ -4320,14 +4332,15 @@ function App() {
     const currentDate = normalizeDate(
       String(assignment.dueDate || assignment.assignedDate)
     );
+    const nextDate = normalizeDate(scheduledDate);
 
-    if (
-      !scheduledDate ||
-      currentDate === scheduledDate ||
-      pendingAssignmentMoveIds.current.has(assignment.recordId)
-    ) {
+    if (!nextDate || currentDate === nextDate) {
       return;
     }
+
+    const moveVersion =
+      (assignmentMoveVersions.current[assignment.recordId] || 0) + 1;
+    assignmentMoveVersions.current[assignment.recordId] = moveVersion;
 
     const previousAssignments = contentAssignments;
 
@@ -4335,7 +4348,7 @@ function App() {
     setContentAssignments((current) =>
       current.map((item) =>
         item.recordId === assignment.recordId
-          ? { ...item, dueDate: scheduledDate }
+          ? { ...item, dueDate: nextDate }
           : item
       )
     );
@@ -4349,7 +4362,7 @@ function App() {
         body: JSON.stringify({
           assignmentType: assignment.assignmentType,
           recordId: assignment.recordId,
-          scheduledDate,
+          scheduledDate: nextDate,
         }),
       });
       const data = await response.json();
@@ -4360,11 +4373,19 @@ function App() {
       }
     } catch (error) {
       console.error(error);
-      setContentAssignments(previousAssignments);
-      notify("Could not move assigned item. The calendar has been restored.", "error");
+      if (assignmentMoveVersions.current[assignment.recordId] === moveVersion) {
+        setContentAssignments(previousAssignments);
+        notify(
+          "Could not move assigned item. The calendar has been restored.",
+          "error"
+        );
+      }
     } finally {
-      pendingAssignmentMoveIds.current.delete(assignment.recordId);
-      setDraggingAssignmentId("");
+      if (assignmentMoveVersions.current[assignment.recordId] === moveVersion) {
+        delete assignmentMoveVersions.current[assignment.recordId];
+        pendingAssignmentMoveIds.current.delete(assignment.recordId);
+        setDraggingAssignmentId("");
+      }
     }
   };
 
