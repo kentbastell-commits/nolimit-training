@@ -282,6 +282,7 @@ type ExerciseSetPrescription = {
   reps: string;
   load: string;
   percent: string;
+  percentMas: string;
   tempo: string;
   rest: string;
 };
@@ -566,6 +567,7 @@ type SetLog = {
   prescribedReps: string;
   prescribedLoad: string;
   prescribedPercent: string;
+  prescribedPercentMas: string;
   actualReps: string;
   actualWeight: string;
   actualTime: string;
@@ -672,6 +674,7 @@ function parseExerciseNotes(notes = ""): ExerciseNoteMeta {
               reps: String(set?.reps || ""),
               load: String(set?.load || ""),
               percent: String(set?.percent || ""),
+              percentMas: String(set?.percentMas || ""),
               tempo: String(set?.tempo || ""),
               rest: String(set?.rest || ""),
             }))
@@ -3854,6 +3857,9 @@ function App() {
           const setPrescription = meta.setPrescriptions?.[i - 1];
           const prescribedLoad = String(setPrescription?.load ?? "").trim();
           const prescribedPercent = String(setPrescription?.percent ?? "").trim();
+          const prescribedPercentMas = String(
+            setPrescription?.percentMas ?? ""
+          ).trim();
 
           logs.push({
             exerciseId: exercise.exerciseId,
@@ -3866,6 +3872,7 @@ function App() {
             prescribedReps: exercise.reps,
             prescribedLoad,
             prescribedPercent,
+            prescribedPercentMas,
             actualReps: meta.trackingType === "Weight" ? exercise.reps : "",
             actualWeight: "",
             actualTime: "",
@@ -4656,6 +4663,7 @@ function App() {
       reps: String(source?.reps ?? exercise.reps ?? ""),
       load: String(source?.load ?? exercise.load ?? ""),
       percent: String(source?.percent ?? ""),
+      percentMas: String(source?.percentMas ?? ""),
       tempo: String(source?.tempo ?? exercise.tempo ?? ""),
       rest: String(source?.rest ?? exercise.rest ?? ""),
     };
@@ -4831,31 +4839,56 @@ function App() {
     exerciseIndex: number
   ) => {
     const setPrescriptions = normalizeExerciseSetPrescriptions(exercise);
+    const isRunning =
+      exercise.trackingType === "Time" || exercise.trackingType === "Distance";
 
     return (
-      <div className="builderSetPrescriptionBlock">
+      <div
+        className={`builderSetPrescriptionBlock${
+          isRunning ? " builderSetPrescriptionRunning" : ""
+        }`}
+      >
         <div className="builderSetTableHeader">
           <span>Set</span>
-          <span>
-            Load
-            <button className="fillColumnButton" type="button" title="Fill all sets with set 1 value" onClick={() => fillSetColumn(exerciseIndex, "load")}>↓</button>
-          </span>
-          <span>
-            %1RM
-            <button className="fillColumnButton" type="button" title="Fill all sets with set 1 value" onClick={() => fillSetColumn(exerciseIndex, "percent")}>↓</button>
-          </span>
-          <span>
-            Reps
-            <button className="fillColumnButton" type="button" title="Fill all sets with set 1 value" onClick={() => fillSetColumn(exerciseIndex, "reps")}>↓</button>
-          </span>
-          <span>
-            Tempo
-            <button className="fillColumnButton" type="button" title="Fill all sets with set 1 value" onClick={() => fillSetColumn(exerciseIndex, "tempo")}>↓</button>
-          </span>
-          <span>
-            Rest
-            <button className="fillColumnButton" type="button" title="Fill all sets with set 1 value" onClick={() => fillSetColumn(exerciseIndex, "rest")}>↓</button>
-          </span>
+          {isRunning ? (
+            <>
+              <span>
+                Distance / Time
+                <button className="fillColumnButton" type="button" title="Fill all sets with set 1 value" onClick={() => fillSetColumn(exerciseIndex, "reps")}>↓</button>
+              </span>
+              <span>
+                %MAS
+                <button className="fillColumnButton" type="button" title="Fill all sets with set 1 value" onClick={() => fillSetColumn(exerciseIndex, "percentMas")}>↓</button>
+              </span>
+              <span>
+                Rest
+                <button className="fillColumnButton" type="button" title="Fill all sets with set 1 value" onClick={() => fillSetColumn(exerciseIndex, "rest")}>↓</button>
+              </span>
+            </>
+          ) : (
+            <>
+              <span>
+                Load
+                <button className="fillColumnButton" type="button" title="Fill all sets with set 1 value" onClick={() => fillSetColumn(exerciseIndex, "load")}>↓</button>
+              </span>
+              <span>
+                %1RM
+                <button className="fillColumnButton" type="button" title="Fill all sets with set 1 value" onClick={() => fillSetColumn(exerciseIndex, "percent")}>↓</button>
+              </span>
+              <span>
+                Reps
+                <button className="fillColumnButton" type="button" title="Fill all sets with set 1 value" onClick={() => fillSetColumn(exerciseIndex, "reps")}>↓</button>
+              </span>
+              <span>
+                Tempo
+                <button className="fillColumnButton" type="button" title="Fill all sets with set 1 value" onClick={() => fillSetColumn(exerciseIndex, "tempo")}>↓</button>
+              </span>
+              <span>
+                Rest
+                <button className="fillColumnButton" type="button" title="Fill all sets with set 1 value" onClick={() => fillSetColumn(exerciseIndex, "rest")}>↓</button>
+              </span>
+            </>
+          )}
         </div>
         {setPrescriptions.map((set, setIndex) => (
           <div className="builderSetTableRow" key={`${exerciseIndex}-set-${setIndex}`}>
@@ -4873,72 +4906,119 @@ function App() {
                 </button>
               )}
             </div>
-            <input
-              className="miniSearch"
-              value={set.load}
-              onChange={(event) =>
-                updateExerciseSetPrescription(
-                  exerciseIndex,
-                  setIndex,
-                  "load",
-                  event.target.value
-                )
-              }
-              placeholder="kg / RPE"
-            />
-            <input
-              className="miniSearch"
-              inputMode="decimal"
-              value={set.percent}
-              onChange={(event) =>
-                updateExerciseSetPrescription(
-                  exerciseIndex,
-                  setIndex,
-                  "percent",
-                  event.target.value.replace(/[^\d.]/g, "")
-                )
-              }
-              placeholder="% 1RM"
-            />
-            <input
-              className="miniSearch"
-              value={set.reps}
-              onChange={(event) =>
-                updateExerciseSetPrescription(
-                  exerciseIndex,
-                  setIndex,
-                  "reps",
-                  event.target.value
-                )
-              }
-              placeholder="Reps"
-            />
-            <input
-              className="miniSearch"
-              value={set.tempo}
-              onChange={(event) =>
-                updateExerciseSetPrescription(
-                  exerciseIndex,
-                  setIndex,
-                  "tempo",
-                  event.target.value
-                )
-              }
-              placeholder="Tempo"
-            />
-            <input
-              className="miniSearch"
-              value={set.rest}
-              onChange={(event) =>
-                updateExerciseSetPrescription(
-                  exerciseIndex,
-                  setIndex,
-                  "rest",
-                  event.target.value
-                )
-              }
-              placeholder="Rest"
-            />
+            {isRunning ? (
+              <>
+                <input
+                  className="miniSearch"
+                  value={set.reps}
+                  onChange={(event) =>
+                    updateExerciseSetPrescription(
+                      exerciseIndex,
+                      setIndex,
+                      "reps",
+                      event.target.value
+                    )
+                  }
+                  placeholder="1 km / 400 m / 3:00"
+                />
+                <input
+                  className="miniSearch"
+                  inputMode="decimal"
+                  value={set.percentMas}
+                  onChange={(event) =>
+                    updateExerciseSetPrescription(
+                      exerciseIndex,
+                      setIndex,
+                      "percentMas",
+                      event.target.value.replace(/[^\d.]/g, "")
+                    )
+                  }
+                  placeholder="% MAS"
+                />
+                <input
+                  className="miniSearch"
+                  value={set.rest}
+                  onChange={(event) =>
+                    updateExerciseSetPrescription(
+                      exerciseIndex,
+                      setIndex,
+                      "rest",
+                      event.target.value
+                    )
+                  }
+                  placeholder="Rest"
+                />
+              </>
+            ) : (
+              <>
+                <input
+                  className="miniSearch"
+                  value={set.load}
+                  onChange={(event) =>
+                    updateExerciseSetPrescription(
+                      exerciseIndex,
+                      setIndex,
+                      "load",
+                      event.target.value
+                    )
+                  }
+                  placeholder="kg / RPE"
+                />
+                <input
+                  className="miniSearch"
+                  inputMode="decimal"
+                  value={set.percent}
+                  onChange={(event) =>
+                    updateExerciseSetPrescription(
+                      exerciseIndex,
+                      setIndex,
+                      "percent",
+                      event.target.value.replace(/[^\d.]/g, "")
+                    )
+                  }
+                  placeholder="% 1RM"
+                />
+                <input
+                  className="miniSearch"
+                  value={set.reps}
+                  onChange={(event) =>
+                    updateExerciseSetPrescription(
+                      exerciseIndex,
+                      setIndex,
+                      "reps",
+                      event.target.value
+                    )
+                  }
+                  placeholder="Reps"
+                />
+                <input
+                  className="miniSearch"
+                  value={set.tempo}
+                  onChange={(event) =>
+                    updateExerciseSetPrescription(
+                      exerciseIndex,
+                      setIndex,
+                      "tempo",
+                      event.target.value
+                    )
+                  }
+                  placeholder="Tempo"
+                />
+                <input
+                  className="miniSearch"
+                  value={set.rest}
+                  onChange={(event) =>
+                    updateExerciseSetPrescription(
+                      exerciseIndex,
+                      setIndex,
+                      "rest",
+                      event.target.value
+                    )
+                  }
+                  placeholder="Rest"
+                />
+              </>
+            )}
           </div>
         ))}
         <div className="builderSetTableActions">
@@ -8543,6 +8623,73 @@ function App() {
     "mas",
     "maximum aerobic speed",
   ]);
+  // --- Running paces from MAS (the running analog of % 1RM -> weight) ---
+  const getMasKmh = (metric?: AthleteMetric) => {
+    if (!metric) return NaN;
+    const raw = parseFloat(String(metric.metricValue).replace(/[^\d.]/g, ""));
+    if (!Number.isFinite(raw) || raw <= 0) return NaN;
+    // MAS is stored in km/h by default, m/s when the metric unit says so.
+    return String(metric.metricUnit || "").toLowerCase().includes("m/s")
+      ? raw * 3.6
+      : raw;
+  };
+  const formatPace = (speedKmh: number) => {
+    if (!Number.isFinite(speedKmh) || speedKmh <= 0) return "--";
+    const secPerKm = Math.round(3600 / speedKmh);
+    const minutes = Math.floor(secPerKm / 60);
+    const seconds = secPerKm % 60;
+    return `${minutes}:${String(seconds).padStart(2, "0")}/km`;
+  };
+  const resolvePrescribedPace = (rawPercentMas: string, exerciseName: string) => {
+    const pct = parseFloat(String(rawPercentMas || "").trim());
+    if (!Number.isFinite(pct) || pct <= 0)
+      return { display: "", resolved: false };
+
+    const masMetrics = sortedAthleteMetrics.filter((metric) =>
+      /mas|aerobic/.test(
+        `${metric.metricType} ${metric.metricName} ${metric.calculationMethod}`.toLowerCase()
+      )
+    );
+    const exerciseTokens = exerciseName
+      .toLowerCase()
+      .split(/\s+/)
+      .filter((token) => token.length > 2);
+    const metric =
+      masMetrics.find((candidate) => {
+        const haystack = `${candidate.metricName} ${candidate.sourceTestName}`.toLowerCase();
+        return exerciseTokens.some((token) => haystack.includes(token));
+      }) ||
+      masMetrics[0] ||
+      latestMasMetric;
+
+    const masKmh = getMasKmh(metric);
+    if (!Number.isFinite(masKmh))
+      return { display: `${pct}% MAS`, resolved: false };
+
+    const speedKmh = masKmh * (pct / 100);
+    return {
+      display: `${formatPace(speedKmh)} (${pct}% MAS)`,
+      resolved: true,
+    };
+  };
+  const paceZh = i18n.language === "zh";
+  const PACE_ZONE_DEFS = [
+    { key: "mas", label: "MAS", percent: 100 },
+    { key: "5k", label: paceZh ? "5公里配速" : "5K", percent: 95 },
+    { key: "10k", label: paceZh ? "10公里配速" : "10K", percent: 91 },
+    { key: "threshold", label: paceZh ? "阈值" : "Threshold", percent: 85 },
+    { key: "easy", label: paceZh ? "轻松" : "Easy", percent: 70 },
+  ];
+  const masKmhForZones = getMasKmh(latestMasMetric);
+  const paceZones = PACE_ZONE_DEFS.map((zone) => {
+    const speedKmh = masKmhForZones * (zone.percent / 100);
+    return {
+      ...zone,
+      speed: Number.isFinite(speedKmh) ? `${speedKmh.toFixed(1)} km/h` : "--",
+      pace: formatPace(speedKmh),
+    };
+  });
+  const hasMasForZones = Number.isFinite(masKmhForZones);
   const formatAthleteMetricValue = (metric?: AthleteMetric) => {
     if (!metric) return "--";
 
@@ -13833,17 +13980,51 @@ function App() {
                     </div>
 
                     {isClientPortal ? (
-                      <div className="homeFocusGrid performanceMetricGrid">
-                        {clientPerformanceMetrics.map((metric) => (
-                          <div className="performanceMetricCard" key={metric.key}>
-                            <span>{metric.label}</span>
-                            <strong>{athleteMetricsLoading ? "..." : metric.value}</strong>
-                            <small>
-                              {athleteMetricsLoading ? t("loadingMetrics") : metric.meta}
-                            </small>
+                      <>
+                        <div className="homeFocusGrid performanceMetricGrid">
+                          {clientPerformanceMetrics.map((metric) => (
+                            <div className="performanceMetricCard" key={metric.key}>
+                              <span>{metric.label}</span>
+                              <strong>{athleteMetricsLoading ? "..." : metric.value}</strong>
+                              <small>
+                                {athleteMetricsLoading ? t("loadingMetrics") : metric.meta}
+                              </small>
+                            </div>
+                          ))}
+                        </div>
+                        {hasMasForZones && (
+                          <div className="runningPacesCard">
+                            <div className="runningPacesHeader">
+                              <span className="eyebrow">
+                                {paceZh ? "跑步配速" : "Running Paces"}
+                              </span>
+                              <small>{paceZh ? "基于最大有氧速度" : "From MAS"}</small>
+                            </div>
+                            <table className="runningPacesTable">
+                              <thead>
+                                <tr>
+                                  <th>{paceZh ? "区间" : "Zone"}</th>
+                                  <th>%MAS</th>
+                                  <th>{paceZh ? "速度" : "Speed"}</th>
+                                  <th>{paceZh ? "配速" : "Pace"}</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {paceZones.map((zone) => (
+                                  <tr key={zone.key}>
+                                    <td>{zone.label}</td>
+                                    <td>{zone.percent}%</td>
+                                    <td>{zone.speed}</td>
+                                    <td>
+                                      <strong>{zone.pace}</strong>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
                           </div>
-                        ))}
-                      </div>
+                        )}
+                      </>
                     ) : (
                       <div className="coachSnapshotGrid">
                         <button
@@ -17936,6 +18117,32 @@ function App() {
                                   </label>
                                 </>
                               )}
+
+                              {(showTimeInput || showDistanceInput) &&
+                                log.prescribedPercentMas &&
+                                (() => {
+                                  const pace = resolvePrescribedPace(
+                                    log.prescribedPercentMas,
+                                    log.exerciseName.split(" - ")[0]
+                                  );
+                                  if (!pace.display) return null;
+                                  return (
+                                    <div
+                                      className={`setLogStatic setLogTarget${
+                                        pace.resolved
+                                          ? " setLogTargetResolved"
+                                          : ""
+                                      }`}
+                                    >
+                                      <span>
+                                        {i18n.language === "zh"
+                                          ? "目标配速"
+                                          : "Target pace"}
+                                      </span>
+                                      <strong>{pace.display}</strong>
+                                    </div>
+                                  );
+                                })()}
 
                               {showTimeInput && (
                                 <label className="setLogField">

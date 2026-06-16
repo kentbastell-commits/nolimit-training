@@ -8565,6 +8565,67 @@ body {
   line-height: 1.35;
 }
 
+.runningPacesCard {
+  margin-top: 14px;
+  padding: 16px 18px;
+  border: 1px solid rgba(17, 17, 17, 0.12);
+  border-radius: 14px;
+  background: #fffdf8;
+}
+
+.runningPacesHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.runningPacesHeader .eyebrow {
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #8f6b12;
+}
+
+.runningPacesHeader small {
+  color: #888;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.runningPacesTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.runningPacesTable th,
+.runningPacesTable td {
+  text-align: left;
+  padding: 7px 8px;
+  font-size: 13px;
+  border-bottom: 1px solid rgba(17, 17, 17, 0.07);
+}
+
+.runningPacesTable th {
+  font-size: 10px;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #999;
+}
+
+.runningPacesTable td strong {
+  color: #111;
+  font-weight: 900;
+}
+
+.runningPacesTable tr:first-child td {
+  color: #8f6b12;
+}
+
 .coachSnapshotGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -14137,6 +14198,14 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 .app:not(.clientPortalApp) .builderSetTableRow {
   grid-template-columns: 42px minmax(78px, 1fr) minmax(56px, 0.56fr) minmax(66px, 0.68fr) minmax(72px, 0.78fr) minmax(74px, 0.78fr) !important;
   gap: 4px !important;
+}
+
+/* Running exercises (Time/Distance): Set | Distance/Time | %MAS | Rest */
+.builderSetPrescriptionRunning .builderSetTableHeader,
+.builderSetPrescriptionRunning .builderSetTableRow,
+.app:not(.clientPortalApp) .builderSetPrescriptionRunning .builderSetTableHeader,
+.app:not(.clientPortalApp) .builderSetPrescriptionRunning .builderSetTableRow {
+  grid-template-columns: 42px minmax(130px, 1.5fr) minmax(70px, 0.7fr) minmax(80px, 0.9fr) !important;
 }
 
 .app:not(.clientPortalApp) .builderSetTableHeader {
