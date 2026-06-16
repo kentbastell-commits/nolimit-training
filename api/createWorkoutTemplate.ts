@@ -167,38 +167,45 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         );
       }
 
-      return {
-        fields: {
-          "Template ID": makeTemplateId(),
+      const fields: Record<string, any> = {
+        "Template ID": makeTemplateId(),
 
-          // Duplex link fields must be arrays of record IDs
-          "Program ID": [programRecordId],
-          "Exercise ID": [matchingExercise.record_id],
+        // Duplex link fields must be arrays of record IDs
+        "Program ID": [programRecordId],
+        "Exercise ID": [matchingExercise.record_id],
 
-          Week: Number(week),
-          Day: Number(day),
-          "Session Name": sessionName,
-          "Session Name CN": String(sessionNameCn || ""),
-          "Session Type": String(sessionType || "Strength"),
-          "Session Goal": String(sessionGoal || ""),
-          "Estimated Duration": Number(estimatedDuration) || "",
-          Intensity: String(intensity || "Moderate"),
-          "Is Single Workout": Boolean(isSingleWorkout),
+        Week: Number(week),
+        Day: Number(day),
+        "Session Name": sessionName,
+        "Session Name CN": String(sessionNameCn || ""),
+        "Session Type": String(sessionType || "Strength"),
+        "Session Goal": String(sessionGoal || ""),
+        Intensity: String(intensity || "Moderate"),
+        "Is Single Workout": Boolean(isSingleWorkout),
 
-          Order: Number(exercise.order) || index + 1,
-          Sets: Number(exercise.sets) || 1,
-          Reps: String(exercise.reps || ""),
-          Tempo: String(exercise.tempo || ""),
-          Rest: String(exercise.rest || ""),
-          // Per-set loads (including "% 1RM" targets) and target metadata are
-          // serialized into "Coaching Notes" (see buildExerciseCoachingNotes),
-          // so they round-trip without dedicated Feishu columns. Do not add a
-          // top-level "Load"/"Target *" field here unless those columns exist
-          // in the Workout Templates table — Feishu rejects unknown fields.
-          "Coaching Notes": String(exercise.coachingNotes || ""),
-          Status: String(exercise.status || "Active"),
-        },
+        Order: Number(exercise.order) || index + 1,
+        Sets: Number(exercise.sets) || 1,
+        Reps: String(exercise.reps || ""),
+        Tempo: String(exercise.tempo || ""),
+        Rest: String(exercise.rest || ""),
+        // Per-set loads (including "% 1RM" targets) and target metadata are
+        // serialized into "Coaching Notes" (see buildExerciseCoachingNotes),
+        // so they round-trip without dedicated Feishu columns. Do not add a
+        // top-level "Load"/"Target *" field here unless those columns exist
+        // in the Workout Templates table — Feishu rejects unknown fields.
+        "Coaching Notes": String(exercise.coachingNotes || ""),
+        Status: String(exercise.status || "Active"),
       };
+
+      // "Estimated Duration" is a Number field in Feishu — only send it when
+      // it is a real number. Sending "" (the common empty case) makes Feishu
+      // reject the whole batch with NumberFieldConvFail.
+      const durationNumber = Number(estimatedDuration);
+      if (Number.isFinite(durationNumber) && durationNumber > 0) {
+        fields["Estimated Duration"] = durationNumber;
+      }
+
+      return { fields };
     });
 
     const createResponse = await fetch(
