@@ -297,6 +297,15 @@ const RUNNING_ZONE_OPTIONS = [
   { key: "easy", label: "Easy", percent: 70 },
 ];
 
+// A cardio exercise is detected by its Category (set to "Cardio" in the library),
+// so it gets the running/Distance layout and only shows in cardio sections.
+function isCardioCategory(category?: string) {
+  return /cardio|conditioning|aerobic/i.test(String(category || ""));
+}
+function isCardioSectionName(name?: string) {
+  return /cardio|conditioning|aerobic/i.test(String(name || ""));
+}
+
 type ExerciseAlternate = {
   exerciseRecordId: string;
   exerciseId: string;
@@ -5414,7 +5423,11 @@ function App() {
       tempo: parent?.tempo || "3-1-1",
       rest: parent ? "45 sec" : "60 sec",
       coachingNotes: "",
-      trackingType: meta.trackingType,
+      // Cardio exercises default to Distance tracking so the run/Zone layout
+      // shows immediately (coach can still toggle to Time/Weight).
+      trackingType: isCardioCategory(exercise.category)
+        ? "Distance"
+        : meta.trackingType,
       isUnilateral: meta.isUnilateral,
       groupType: "Straight",
       groupName: "",
@@ -6451,16 +6464,22 @@ function App() {
     );
   });
 
+  const cardioSectionActive = isCardioSectionName(pendingSectionName);
   const builderExercises = libraryExercises.filter((exercise) => {
     const search = builderSearch.toLowerCase();
-
-    return (
+    const matchesSearch =
       exercise.exerciseName?.toLowerCase().includes(search) ||
       exercise.exerciseId?.toLowerCase().includes(search) ||
       exercise.category?.toLowerCase().includes(search) ||
       exercise.equipment?.toLowerCase().includes(search) ||
-      exercise.movementPattern?.toLowerCase().includes(search)
-    );
+      exercise.movementPattern?.toLowerCase().includes(search);
+
+    if (!matchesSearch) return false;
+
+    // Cardio section shows only cardio exercises; other sections hide them.
+    return cardioSectionActive
+      ? isCardioCategory(exercise.category)
+      : !isCardioCategory(exercise.category);
   });
 
   useEffect(() => {
