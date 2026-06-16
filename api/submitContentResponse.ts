@@ -64,6 +64,11 @@ function isLinkField(field?: TableField) {
   );
 }
 
+function isSelectField(field?: TableField) {
+  const typeText = fieldTypeText(field);
+  return field?.type === 3 || field?.type === 4 || typeText.includes("select");
+}
+
 function coerceFieldValue(field: TableField | undefined, value: any) {
   if (value === undefined || value === null) return undefined;
 
@@ -87,6 +92,25 @@ function coerceFieldValue(field: TableField | undefined, value: any) {
       .filter((item) => /^rec[a-z0-9]+$/i.test(item));
 
     return recordIds.length > 0 ? recordIds : undefined;
+  }
+
+  if (isSelectField(field)) {
+    const options = Array.isArray(field?.property?.options)
+      ? field!.property!.options
+          .map((option: any) => String(option?.name ?? ""))
+          .filter(Boolean)
+      : [];
+    const valueStr = String(value);
+    // When the select has a fixed option list, only write a value that matches
+    // an existing option. Otherwise skip it — Feishu rejects the whole record
+    // for an unknown option (SingleSelectFieldConvFail).
+    if (options.length > 0) {
+      return (
+        options.find((option) => option.toLowerCase() === valueStr.toLowerCase()) ||
+        undefined
+      );
+    }
+    return valueStr;
   }
 
   return value;
