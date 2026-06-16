@@ -1310,6 +1310,22 @@ function App() {
   const [clientProgramDayDates, setClientProgramDayDates] = useState<
     Record<string, string>
   >({});
+  const [weightUnit, setWeightUnit] = useState<"kg" | "lb">(() => {
+    if (typeof window === "undefined") return "kg";
+    return window.localStorage.getItem("nl_weight_unit") === "lb" ? "lb" : "kg";
+  });
+  const setWeightUnitPref = (unit: "kg" | "lb") => {
+    setWeightUnit(unit);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("nl_weight_unit", unit);
+    }
+  };
+  // All weights are stored in kg; convert only for display when lb is chosen.
+  const KG_TO_LB = 2.20462;
+  const formatWeightInUnit = (kg: number) => {
+    const value = weightUnit === "lb" ? kg * KG_TO_LB : kg;
+    return Number.isInteger(value) ? String(value) : value.toFixed(1);
+  };
   const [clientProgramSessions, setClientProgramSessions] = useState<
     AssignableWorkout[]
   >([]);
@@ -2084,10 +2100,11 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (activePage !== "Orders" && activePage !== "Revenue") return;
+    if (activePage !== "Orders" && activePage !== "Revenue" && !isClientPortal)
+      return;
 
     void loadProductOrders();
-  }, [activePage]);
+  }, [activePage, isClientPortal]);
 
   useEffect(() => {
     if (!isClientPortal || !clientPortalCode || clients.length === 0) return;
@@ -9200,13 +9217,19 @@ function App() {
     if (!metric || !Number.isFinite(base) || base <= 0)
       return { display: `${pct}% 1RM`, resolved: false, isPercent: true };
 
-    const unit = String(metric.metricUnit || "kg").trim() || "kg";
-    const weight = roundToLoadIncrement((base * pct) / 100);
-    const weightStr = Number.isInteger(weight)
-      ? String(weight)
-      : weight.toFixed(1);
+    const metricUnit = String(metric.metricUnit || "kg").trim() || "kg";
+    const weightKg = roundToLoadIncrement((base * pct) / 100);
+    // 1RM metrics are stored in kg; convert to the coach/athlete's chosen unit.
+    const isKgMetric = /^kg$/i.test(metricUnit);
+    const displayUnit = isKgMetric ? weightUnit : metricUnit;
+    const displayValue =
+      isKgMetric && weightUnit === "lb"
+        ? (weightKg * KG_TO_LB).toFixed(1)
+        : Number.isInteger(weightKg)
+          ? String(weightKg)
+          : weightKg.toFixed(1);
     return {
-      display: `${weightStr} ${unit} (${pct}%)`,
+      display: `${displayValue} ${displayUnit} (${pct}%)`,
       resolved: true,
       isPercent: true,
     };
@@ -9335,6 +9358,72 @@ function App() {
     };
   });
   const hasMasForZones = Number.isFinite(masKmhForZones);
+  // Performance metrics + training zones, reused on the client home (no %)
+  // and the coach client profile (with %MAS/%HRR).
+  const renderPerformanceMetrics = (showPercents: boolean) => (
+    <>
+      <div className="homeFocusGrid performanceMetricGrid">
+        {clientPerformanceMetrics.map((metric) => (
+          <div className="performanceMetricCard" key={metric.key}>
+            <span>{metric.label}</span>
+            <strong>{athleteMetricsLoading ? "..." : metric.value}</strong>
+            <small>
+              {athleteMetricsLoading ? t("loadingMetrics") : metric.meta}
+            </small>
+          </div>
+        ))}
+      </div>
+      {(hasMasForZones || hasKarvonenHr) && (
+        <div className="runningPacesCard">
+          <div className="runningPacesHeader">
+            <span className="eyebrow">
+              {paceZh ? "训练区间" : "Training Zones"}
+            </span>
+            <small>
+              {`${paceZh ? "来源" : "From"} ${["MAS", hasKarvonenHr ? "HR" : ""]
+                .filter(Boolean)
+                .join(" + ")}`}
+            </small>
+          </div>
+          <table className="runningPacesTable">
+            <thead>
+              <tr>
+                <th>{paceZh ? "区间" : "Zone"}</th>
+                {showPercents && <th>%MAS</th>}
+                <th>{paceZh ? "配速" : "Pace"}</th>
+                {showPercents && hasKarvonenHr && <th>%HRR</th>}
+                {hasKarvonenHr && <th>{paceZh ? "心率" : "HR"}</th>}
+              </tr>
+            </thead>
+            <tbody>
+              {paceZones.map((zone) => (
+                <tr key={zone.key}>
+                  <td>{zone.label}</td>
+                  {showPercents && <td>{zone.percent}%</td>}
+                  <td>
+                    <strong>{zone.pace}</strong>
+                  </td>
+                  {showPercents && hasKarvonenHr && <td>{zone.hrr}</td>}
+                  {hasKarvonenHr && (
+                    <td>
+                      <strong>{zone.hr}</strong>
+                    </td>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {hasKarvonenHr && (
+            <small className="runningPacesFootnote">
+              {paceZh ? "卡尔沃宁公式" : "Karvonen"}: HRmax{" "}
+              {Math.round(hrMaxValue)} · {paceZh ? "静息" : "Rest"}{" "}
+              {Math.round(restingHrValue)} bpm
+            </small>
+          )}
+        </div>
+      )}
+    </>
+  );
   // For a %MAS prescription, map to the nearest zone and return its Karvonen HR range.
   const resolvePrescribedHr = (rawPercentMas: string) => {
     if (!hasKarvonenHr) return { display: "", resolved: false };
@@ -14508,6 +14597,18 @@ function App() {
                     </div>
                   </section>
 
+                  {isClientPortal && (
+                    <section className="clientHomePanel focusHomePanel">
+                      <div className="clientHomePanelHeader">
+                        <div>
+                          <span>{t("testingData")}</span>
+                          <h2>{t("performanceMetrics")}</h2>
+                        </div>
+                      </div>
+                      {renderPerformanceMetrics(false)}
+                    </section>
+                  )}
+
                   <section className="clientHomePanel progressHomePanel">
                     <div className="clientHomePanelHeader">
                       <div>
@@ -14579,13 +14680,12 @@ function App() {
                     </div>
                   </section>
 
+                  {!isClientPortal && (
                   <section className="clientHomePanel focusHomePanel">
                     <div className="clientHomePanelHeader">
                       <div>
-                        <span>{isClientPortal ? t("testingData") : "Coach View"}</span>
-                        <h2>
-                          {isClientPortal ? t("performanceMetrics") : "Client Snapshot"}
-                        </h2>
+                        <span>Coach View</span>
+                        <h2>Client Snapshot</h2>
                       </div>
                     </div>
 
@@ -14779,6 +14879,7 @@ function App() {
                       </div>
                     )}
                   </section>
+                  )}
 
                   {!isClientPortal && (
                     <section className="clientHomePanel submissionsHomePanel">
@@ -14920,6 +15021,22 @@ function App() {
                             <option value="Mandarin">{t("mandarin")}</option>
                           </select>
                         </div>
+                        <div>
+                          <span>
+                            {i18n.language === "zh" ? "重量单位" : "Weight units"}
+                          </span>
+                          <select
+                            value={weightUnit}
+                            onChange={(event) =>
+                              setWeightUnitPref(
+                                event.target.value === "lb" ? "lb" : "kg"
+                              )
+                            }
+                          >
+                            <option value="kg">kg</option>
+                            <option value="lb">lb</option>
+                          </select>
+                        </div>
                       </div>
                     </div>
 
@@ -14992,6 +15109,22 @@ function App() {
                           >
                             <option value="English">{t("english")}</option>
                             <option value="Mandarin">{t("mandarin")}</option>
+                          </select>
+                        </div>
+                        <div>
+                          <span>
+                            {i18n.language === "zh" ? "重量单位" : "Weight units"}
+                          </span>
+                          <select
+                            value={weightUnit}
+                            onChange={(event) =>
+                              setWeightUnitPref(
+                                event.target.value === "lb" ? "lb" : "kg"
+                              )
+                            }
+                          >
+                            <option value="kg">kg</option>
+                            <option value="lb">lb</option>
                           </select>
                         </div>
                       <div>
@@ -15072,6 +15205,11 @@ function App() {
                       {selectedClient.notes || "No notes yet."}
                     </p>
                     <textarea placeholder="Add private coach notes here..." />
+                  </div>
+
+                  <div className="profileCard profileMetricsCard">
+                    <h3>{t("performanceMetrics")}</h3>
+                    {renderPerformanceMetrics(true)}
                   </div>
                 </div>
                 ))}
@@ -18821,11 +18959,13 @@ function App() {
                                   </label>
 
                                   <label className="setLogField">
-                                    <span>{t("weight")}</span>
+                                    <span>
+                                      {t("weight")} ({weightUnit})
+                                    </span>
                                     <input
                                       inputMode="decimal"
                                       value={log.actualWeight}
-                                      placeholder="kg"
+                                      placeholder={weightUnit}
                                       onChange={(e) =>
                                         updateSetLog(
                                           globalIndex,

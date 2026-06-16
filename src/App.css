@@ -4325,6 +4325,15 @@ body {
   gap: 14px;
 }
 
+.profileMetricsCard {
+  grid-column: 1 / -1;
+}
+
+.app:not(.clientPortalApp) .profileMetricsCard {
+  background: #fffdf8;
+  color: #1a1a1a;
+}
+
 .portalProfileHelp {
   margin: 4px 2px 0;
   color: #6a675f;
@@ -14815,4 +14824,21 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 
 .mobileSetLogRow .setLogDoneField span {
   margin-bottom: 0 !important;
+}
+
+/* Compact the reps/weight inputs and tighten the grid gap so strength rows
+   (Set · Target · Reps · Weight · Done) take less vertical space. */
+.workoutLogExerciseCard .mobileSetLogRow {
+  gap: 7px 7px !important;
+  padding: 9px !important;
+  margin-bottom: 9px !important;
+}
+
+.mobileSetLogRow .setLogField {
+  gap: 2px !important;
+}
+
+.mobileSetLogRow .setLogField input {
+  padding: 7px 9px !important;
+  font-size: 15px !important;
 }
