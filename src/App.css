@@ -14230,6 +14230,23 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   min-width: 0;
 }
 
+.builderIntervalCell {
+  display: flex;
+  gap: 4px;
+  min-width: 0;
+}
+
+.builderIntervalValue {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.builderIntervalUnit {
+  flex: 0 0 auto;
+  width: 58px !important;
+  padding-inline: 6px !important;
+}
+
 .builderZoneSelect {
   width: 100%;
 }

@@ -5136,9 +5136,6 @@ function App() {
       exercise.trackingType === "Time" || exercise.trackingType === "Distance";
     const isTimeTracked = exercise.trackingType === "Time";
     const intervalLabel = isTimeTracked ? "Time" : "Distance";
-    const intervalPlaceholder = isTimeTracked
-      ? "20:00 / 3:00 (mm:ss)"
-      : "1 km / 400 m";
 
     return (
       <div
@@ -5224,19 +5221,60 @@ function App() {
             </div>
             {isRunning ? (
               <>
-                <input
-                  className="miniSearch"
-                  value={set.reps}
-                  onChange={(event) =>
-                    updateExerciseSetPrescription(
-                      exerciseIndex,
-                      setIndex,
-                      "reps",
-                      event.target.value
-                    )
-                  }
-                  placeholder={intervalPlaceholder}
-                />
+                <div className="builderIntervalCell">
+                  {(() => {
+                    const raw = String(set.reps || "").trim();
+                    const value = (raw.match(/[\d.]+/) || [""])[0];
+                    const unitWord = (raw.match(/[a-z]+/i) || [""])[0].toLowerCase();
+                    const unit = isTimeTracked
+                      ? unitWord === "s"
+                        ? "s"
+                        : "min"
+                      : unitWord === "m"
+                        ? "m"
+                        : "km";
+                    const write = (nextValue: string, nextUnit: string) =>
+                      updateExerciseSetPrescription(
+                        exerciseIndex,
+                        setIndex,
+                        "reps",
+                        nextValue ? `${nextValue} ${nextUnit}` : ""
+                      );
+                    return (
+                      <>
+                        <input
+                          className="miniSearch builderIntervalValue"
+                          inputMode="decimal"
+                          value={value}
+                          onChange={(event) =>
+                            write(
+                              event.target.value.replace(/[^\d.]/g, ""),
+                              unit
+                            )
+                          }
+                          placeholder={isTimeTracked ? "Time" : "Dist"}
+                        />
+                        <select
+                          className="miniSearch builderIntervalUnit"
+                          value={unit}
+                          onChange={(event) => write(value, event.target.value)}
+                        >
+                          {isTimeTracked ? (
+                            <>
+                              <option value="min">min</option>
+                              <option value="s">s</option>
+                            </>
+                          ) : (
+                            <>
+                              <option value="km">km</option>
+                              <option value="m">m</option>
+                            </>
+                          )}
+                        </select>
+                      </>
+                    );
+                  })()}
+                </div>
                 <div className="builderZoneCell">
                   <select
                     className="miniSearch builderZoneSelect"
