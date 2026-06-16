@@ -14775,7 +14775,9 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   gap: 7px !important;
 }
 
-.mobileSetLogRow .setBanner {
+/* Higher specificity to beat .workoutLogExerciseCard .mobileSetLogRow rules. */
+.clientPortalApp .workoutLogExerciseCard .mobileSetLogRow .setBanner,
+.workoutLogExerciseCard .mobileSetLogRow .setBanner {
   min-height: 0 !important;
   padding: 5px 10px !important;
   border-radius: 7px !important;
