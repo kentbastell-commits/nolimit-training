@@ -650,9 +650,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               `Metric not created for ${responseItem.label || responseItemId}: missing Athlete Metrics table`
             );
           } else {
+            // Name the metric after its calculation so downstream features
+            // (dashboard 1RM card, auto-prescription resolver) can recognize
+            // it by name. The Athlete Metrics table has no calc-method column.
+            const methodLower = String(
+              metricConfig.calculationMethod || ""
+            ).toLowerCase();
+            const metricKind =
+              methodLower.includes("epley") || methodLower.includes("brzycki")
+                ? "Predicted 1RM"
+                : methodLower.includes("aerobic") ||
+                    methodLower.includes("mas") ||
+                    methodLower.includes("2km")
+                  ? "MAS"
+                  : "";
+            const metricBaseName =
+              metricConfig.testName || responseItem.label || "Test";
             const metricName =
               metricConfig.metricName ||
-              `${metricConfig.testName || responseItem.label || "Test"} Metric`;
+              (metricKind
+                ? `${metricBaseName} — ${metricKind}`
+                : `${metricBaseName} Metric`);
             const metricUnit = metricConfig.metricUnit || responseItem.unit || "";
             const calculatedValue = calculateMetric({
               value: String(responseItem.value || ""),
@@ -698,8 +716,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                   value: String(metricName),
                 },
                 {
+                  // Sent as a string so it works whether the Feishu column is
+                  // Text or Number — coerceFieldValue converts to number when
+                  // the field is numeric. (Live "Metric Value" is a text field.)
                   aliases: ["Metric Value", "metricValue", "Value"],
-                  value: Number(calculatedValue),
+                  value: String(calculatedValue),
                 },
                 {
                   aliases: ["Metric Unit", "metricUnit", "Unit"],
@@ -725,7 +746,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                   aliases: ["Calculation Method", "calculationMethod", "Formula"],
                   value: String(metricConfig.calculationMethod || "Direct Value"),
                 },
-                { aliases: ["Measured At", "Measured Date", "Date"], value: toLarkDate() },
+                {
+                  aliases: ["Measured At", "Measured Date", "Date", "Valid From"],
+                  value: toLarkDate(),
+                },
                 { aliases: ["Status", "status"], value: "Active" },
                 {
                   aliases: ["Notes", "notes"],
@@ -743,7 +767,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                   { aliases: ["Metric Created"], value: true },
                   {
                     aliases: ["Calculated Metric Value", "Metric Value"],
-                    value: Number(calculatedValue),
+                    value: String(calculatedValue),
                   },
                   {
                     aliases: ["Calculated Metric Unit", "Metric Unit"],
