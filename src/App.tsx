@@ -14611,7 +14611,6 @@ function App() {
                               <small>
                                 {`${paceZh ? "来源" : "From"} ${[
                                   "MAS",
-                                  hasLtPace ? "LT" : "",
                                   hasKarvonenHr ? "HR" : "",
                                 ]
                                   .filter(Boolean)
@@ -14624,9 +14623,6 @@ function App() {
                                   <th>{paceZh ? "区间" : "Zone"}</th>
                                   <th>%MAS</th>
                                   <th>{paceZh ? "配速" : "Pace"}</th>
-                                  {hasLtPace && (
-                                    <th>{paceZh ? "阈值配速" : "LT Pace"}</th>
-                                  )}
                                   {hasKarvonenHr && <th>%HRR</th>}
                                   {hasKarvonenHr && <th>{paceZh ? "心率" : "HR"}</th>}
                                 </tr>
@@ -14639,11 +14635,6 @@ function App() {
                                     <td>
                                       <strong>{zone.pace}</strong>
                                     </td>
-                                    {hasLtPace && (
-                                      <td>
-                                        <strong>{zone.ltPace}</strong>
-                                      </td>
-                                    )}
                                     {hasKarvonenHr && <td>{zone.hrr}</td>}
                                     {hasKarvonenHr && (
                                       <td>
@@ -14654,12 +14645,6 @@ function App() {
                                 ))}
                               </tbody>
                             </table>
-                            {hasLtPace && (
-                              <small className="runningPacesFootnote">
-                                {paceZh ? "阈值配速" : "LT pace"}:{" "}
-                                {formatPace(ltSpeedKmh)} ({ltSpeedKmh.toFixed(1)} km/h)
-                              </small>
-                            )}
                             {hasKarvonenHr && (
                               <small className="runningPacesFootnote">
                                 {paceZh ? "卡尔沃宁公式" : "Karvonen"}: HRmax{" "}
@@ -14917,7 +14902,82 @@ function App() {
                 </div>
               )}
 
-              {clientTab === "Overview" && (
+              {clientTab === "Overview" &&
+                (isClientPortal ? (
+                  <div className="overviewGrid portalProfileGrid">
+                    <div className="profileCard">
+                      <h3>{i18n.language === "zh" ? "设置" : "Settings"}</h3>
+                      <div className="clientInfoRows">
+                        <div>
+                          <span>{t("languagePreference")}</span>
+                          <select
+                            value={selectedClient.languagePreference || "English"}
+                            onChange={(event) =>
+                              updateClientLanguagePreference(event.target.value)
+                            }
+                          >
+                            <option value="English">{t("english")}</option>
+                            <option value="Mandarin">{t("mandarin")}</option>
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="profileCard">
+                      <h3>{i18n.language === "zh" ? "我的教练" : "My Coaching"}</h3>
+                      <div className="clientInfoRows">
+                        <div>
+                          <span>{t("coach")}</span>
+                          <strong>
+                            {getCoachDisplayName(
+                              selectedClient.coach ||
+                                selectedClient.primaryCoach ||
+                                "--"
+                            )}
+                          </strong>
+                        </div>
+                        <div>
+                          <span>{i18n.language === "zh" ? "套餐" : "Plan"}</span>
+                          <strong>
+                            {selectedClient.package ||
+                              selectedClient.status ||
+                              "--"}
+                          </strong>
+                        </div>
+                        <div>
+                          <span>
+                            {i18n.language === "zh" ? "有效期至" : "Access until"}
+                          </span>
+                          <strong>{selectedClient.accessEndDate || "--"}</strong>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="profileCard">
+                      <h3>{i18n.language === "zh" ? "我的资料" : "My Details"}</h3>
+                      <div className="clientInfoRows">
+                        <div>
+                          <span>{t("name")}</span>
+                          <strong>{selectedClient.name || "--"}</strong>
+                        </div>
+                        <div>
+                          <span>{t("email")}</span>
+                          <strong>{selectedClient.email || "--"}</strong>
+                        </div>
+                        <div>
+                          <span>{t("phoneWechat")}</span>
+                          <strong>{selectedClient.phone || "--"}</strong>
+                        </div>
+                      </div>
+                    </div>
+
+                    <p className="portalProfileHelp">
+                      {i18n.language === "zh"
+                        ? "关于训练有疑问？请联系您的教练。"
+                        : "Questions about your training? Message your coach."}
+                    </p>
+                  </div>
+                ) : (
                 <div className="overviewGrid">
                   <div className="profileCard">
                     <h3>{t("clientInformation")}</h3>
@@ -15006,7 +15066,6 @@ function App() {
                     </div>
                   </div>
 
-                  {!isClientPortal && (
                   <div className="profileCard">
                     <h3>Coach Notes</h3>
                     <p className="coachNotesPreview">
@@ -15014,9 +15073,8 @@ function App() {
                     </p>
                     <textarea placeholder="Add private coach notes here..." />
                   </div>
-                  )}
                 </div>
-              )}
+                ))}
 
               {clientTab === "Programs" && (
                 <div className="clientProgramsPage">

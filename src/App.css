@@ -4310,6 +4310,29 @@ body {
   color: #f5d77b;
 }
 
+/* Portal profile cards are cream — make the values dark (base color is white,
+   which was invisible on the light card). */
+.clientPortalApp .profileCard {
+  color: #1a1a1a;
+}
+
+.clientPortalApp .clientInfoRows strong {
+  color: #111;
+}
+
+.portalProfileGrid {
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+
+.portalProfileHelp {
+  margin: 4px 2px 0;
+  color: #6a675f;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+}
+
 .clientInfoRows {
   display: grid;
   gap: 10px;
