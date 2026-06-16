@@ -13703,7 +13703,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 .builderSetTableHeader,
 .builderSetTableRow {
   display: grid !important;
-  grid-template-columns: 56px minmax(110px, 1fr) minmax(82px, 0.72fr) minmax(96px, 0.82fr) minmax(96px, 0.82fr) !important;
+  grid-template-columns: 56px minmax(100px, 1fr) minmax(72px, 0.62fr) minmax(82px, 0.72fr) minmax(96px, 0.82fr) minmax(96px, 0.82fr) !important;
   align-items: center !important;
   gap: 6px !important;
 }
@@ -14135,7 +14135,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 
 .app:not(.clientPortalApp) .builderSetTableHeader,
 .app:not(.clientPortalApp) .builderSetTableRow {
-  grid-template-columns: 42px minmax(84px, 1fr) minmax(66px, 0.68fr) minmax(72px, 0.78fr) minmax(74px, 0.78fr) !important;
+  grid-template-columns: 42px minmax(78px, 1fr) minmax(56px, 0.56fr) minmax(66px, 0.68fr) minmax(72px, 0.78fr) minmax(74px, 0.78fr) !important;
   gap: 4px !important;
 }
 

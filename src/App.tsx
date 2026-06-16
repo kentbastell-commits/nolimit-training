@@ -281,6 +281,7 @@ type ExerciseSetPrescription = {
   setNumber: number;
   reps: string;
   load: string;
+  percent: string;
   tempo: string;
   rest: string;
 };
@@ -564,6 +565,7 @@ type SetLog = {
   prescribedSets: string;
   prescribedReps: string;
   prescribedLoad: string;
+  prescribedPercent: string;
   actualReps: string;
   actualWeight: string;
   actualTime: string;
@@ -669,6 +671,7 @@ function parseExerciseNotes(notes = ""): ExerciseNoteMeta {
               setNumber: Number(set?.setNumber) || index + 1,
               reps: String(set?.reps || ""),
               load: String(set?.load || ""),
+              percent: String(set?.percent || ""),
               tempo: String(set?.tempo || ""),
               rest: String(set?.rest || ""),
             }))
@@ -3850,6 +3853,7 @@ function App() {
           const exerciseName = exercise.exerciseName || `Exercise ${exercise.order}`;
           const setPrescription = meta.setPrescriptions?.[i - 1];
           const prescribedLoad = String(setPrescription?.load ?? "").trim();
+          const prescribedPercent = String(setPrescription?.percent ?? "").trim();
 
           logs.push({
             exerciseId: exercise.exerciseId,
@@ -3861,6 +3865,7 @@ function App() {
             prescribedSets: exercise.sets,
             prescribedReps: exercise.reps,
             prescribedLoad,
+            prescribedPercent,
             actualReps: meta.trackingType === "Weight" ? exercise.reps : "",
             actualWeight: "",
             actualTime: "",
@@ -4650,6 +4655,7 @@ function App() {
       setNumber,
       reps: String(source?.reps ?? exercise.reps ?? ""),
       load: String(source?.load ?? exercise.load ?? ""),
+      percent: String(source?.percent ?? ""),
       tempo: String(source?.tempo ?? exercise.tempo ?? ""),
       rest: String(source?.rest ?? exercise.rest ?? ""),
     };
@@ -4835,6 +4841,10 @@ function App() {
             <button className="fillColumnButton" type="button" title="Fill all sets with set 1 value" onClick={() => fillSetColumn(exerciseIndex, "load")}>↓</button>
           </span>
           <span>
+            %1RM
+            <button className="fillColumnButton" type="button" title="Fill all sets with set 1 value" onClick={() => fillSetColumn(exerciseIndex, "percent")}>↓</button>
+          </span>
+          <span>
             Reps
             <button className="fillColumnButton" type="button" title="Fill all sets with set 1 value" onClick={() => fillSetColumn(exerciseIndex, "reps")}>↓</button>
           </span>
@@ -4874,7 +4884,21 @@ function App() {
                   event.target.value
                 )
               }
-              placeholder="kg / % / RPE"
+              placeholder="kg / RPE"
+            />
+            <input
+              className="miniSearch"
+              inputMode="decimal"
+              value={set.percent}
+              onChange={(event) =>
+                updateExerciseSetPrescription(
+                  exerciseIndex,
+                  setIndex,
+                  "percent",
+                  event.target.value.replace(/[^\d.]/g, "")
+                )
+              }
+              placeholder="% 1RM"
             />
             <input
               className="miniSearch"
@@ -8444,14 +8468,25 @@ function App() {
     Number.isFinite(value) && increment > 0
       ? Math.round(value / increment) * increment
       : value;
-  const resolvePrescribedLoad = (rawLoad: string, exerciseName: string) => {
-    const raw = String(rawLoad || "").trim();
-    const pctMatch = raw.match(/^(\d+(?:\.\d+)?)\s*%$/);
-    if (!pctMatch) return { display: raw, resolved: false, isPercent: false };
+  const resolvePrescribedLoad = (
+    rawPercent: string,
+    rawLoad: string,
+    exerciseName: string
+  ) => {
+    const load = String(rawLoad || "").trim();
+    // Accept a percent from its own column, or a legacy "80%" typed in load.
+    const percentRaw = String(rawPercent || "").trim();
+    const legacyPctMatch = !percentRaw && load.match(/^(\d+(?:\.\d+)?)\s*%$/);
+    const pct = percentRaw
+      ? parseFloat(percentRaw)
+      : legacyPctMatch
+        ? parseFloat(legacyPctMatch[1])
+        : NaN;
 
-    const pct = parseFloat(pctMatch[1]);
-    if (!Number.isFinite(pct))
-      return { display: raw, resolved: false, isPercent: false };
+    if (!Number.isFinite(pct)) {
+      // No percent target — show the manually entered load (kg/RPE) if any.
+      return { display: load, resolved: false, isPercent: false };
+    }
 
     const oneRepMaxMetrics = sortedAthleteMetrics.filter((metric) =>
       /1\s*rm|one rep max|1 rep max|rep max/.test(
@@ -17835,6 +17870,7 @@ function App() {
                                 <>
                                   {(() => {
                                     const target = resolvePrescribedLoad(
+                                      log.prescribedPercent,
                                       log.prescribedLoad,
                                       log.exerciseName.split(" - ")[0]
                                     );
