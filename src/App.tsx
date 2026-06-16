@@ -18670,24 +18670,41 @@ function App() {
                           </div>
                         </div>
 
-                        <div className="workoutPrescriptionGrid">
-                          <span>
-                            <strong>{t("sets")}</strong>
-                            {exercise.sets || "--"}
-                          </span>
-                          <span>
-                            <strong>{t("reps")}</strong>
-                            {exercise.reps || "--"}
-                          </span>
-                          <span>
-                            <strong>{t("tempo")}</strong>
-                            {exercise.tempo || "--"}
-                          </span>
-                          <span>
-                            <strong>{t("rest")}</strong>
-                            {exercise.rest || "--"}
-                          </span>
-                        </div>
+                        {(() => {
+                          const exTracking = parseExerciseNotes(
+                            exercise.notes
+                          ).trackingType;
+                          const isCardioEx =
+                            exTracking === "Time" || exTracking === "Distance";
+                          return (
+                            <div className="workoutPrescriptionGrid">
+                              <span>
+                                <strong>{t("sets")}</strong>
+                                {exercise.sets || "--"}
+                              </span>
+                              <span>
+                                <strong>
+                                  {exTracking === "Time"
+                                    ? t("time")
+                                    : exTracking === "Distance"
+                                      ? t("distance")
+                                      : t("reps")}
+                                </strong>
+                                {exercise.reps || "--"}
+                              </span>
+                              {!isCardioEx && (
+                                <span>
+                                  <strong>{t("tempo")}</strong>
+                                  {exercise.tempo || "--"}
+                                </span>
+                              )}
+                              <span>
+                                <strong>{t("rest")}</strong>
+                                {exercise.rest || "--"}
+                              </span>
+                            </div>
+                          );
+                        })()}
 
                         {coachingNotes && (
                           <p className="workoutCoachNotes">{coachingNotes}</p>
@@ -18872,41 +18889,48 @@ function App() {
                                   ));
                                 })()}
 
-                              {showTimeInput && (
-                                <label className="setLogField">
-                                  <span>{t("time")}</span>
-                                  <input
-                                    inputMode="decimal"
-                                    value={log.actualTime}
-                                    placeholder="sec"
-                                    onChange={(e) =>
-                                      updateSetLog(
-                                        globalIndex,
-                                        "actualTime",
-                                        e.target.value
-                                      )
-                                    }
-                                  />
-                                </label>
-                              )}
-
-                              {showDistanceInput && (
-                                <label className="setLogField">
-                                  <span>{t("distance")}</span>
-                                  <input
-                                    inputMode="decimal"
-                                    value={log.actualDistance}
-                                    placeholder="m"
-                                    onChange={(e) =>
-                                      updateSetLog(
-                                        globalIndex,
-                                        "actualDistance",
-                                        e.target.value
-                                      )
-                                    }
-                                  />
-                                </label>
-                              )}
+                              {(showTimeInput || showDistanceInput) &&
+                                (() => {
+                                  // Cardio sets: a simple completion checkbox (for
+                                  // now). Checking it logs the prescribed amount.
+                                  const field = showTimeInput
+                                    ? "actualTime"
+                                    : "actualDistance";
+                                  const done = showTimeInput
+                                    ? Boolean(log.actualTime)
+                                    : Boolean(log.actualDistance);
+                                  const raw = String(log.prescribedReps || "");
+                                  const completedValue = showTimeInput
+                                    ? raw.includes(":")
+                                      ? String(
+                                          (Number(raw.split(":")[0]) || 0) * 60 +
+                                            (Number(raw.split(":")[1]) || 0)
+                                        )
+                                      : /min/i.test(raw)
+                                        ? String((parseFloat(raw) || 0) * 60)
+                                        : String(parseFloat(raw) || 0)
+                                    : /km/i.test(raw)
+                                      ? String((parseFloat(raw) || 0) * 1000)
+                                      : String(parseFloat(raw) || 0);
+                                  return (
+                                    <label className="setLogField setLogDoneField">
+                                      <span>
+                                        {i18n.language === "zh" ? "完成" : "Done"}
+                                      </span>
+                                      <input
+                                        type="checkbox"
+                                        checked={done}
+                                        onChange={() =>
+                                          updateSetLog(
+                                            globalIndex,
+                                            field,
+                                            done ? "" : completedValue || "1"
+                                          )
+                                        }
+                                      />
+                                    </label>
+                                  );
+                                })()}
                             </div>
                           );
                         })}

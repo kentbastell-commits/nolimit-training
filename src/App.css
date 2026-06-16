@@ -7476,10 +7476,10 @@ body {
 }
 
 .desktopWorkoutSetRow {
-  display: grid;
-  grid-template-columns: minmax(220px, 300px) repeat(4, minmax(170px, 220px));
+  display: flex;
+  flex-wrap: wrap;
   gap: 14px;
-  align-items: end;
+  align-items: flex-end;
   margin-bottom: 10px;
   padding: 12px 14px;
   border: 1px solid rgba(212, 175, 55, 0.16);
@@ -7487,7 +7487,22 @@ body {
   background: rgba(0, 0, 0, 0.18);
 }
 
+/* Items flex and wrap so wide cardio rows (pace + speed + HR + done) never
+   overflow off-screen. */
+.desktopWorkoutSetRow .setLogStatic,
+.desktopWorkoutSetRow .setLogField {
+  flex: 1 1 150px;
+  min-width: 130px;
+}
+
+.desktopWorkoutSetRow .setLogDoneField {
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
 .desktopWorkoutSetLabel {
+  flex: 0 0 auto;
+  min-width: 120px;
   min-height: 54px;
   display: flex;
   align-items: center;
@@ -7496,6 +7511,13 @@ body {
   border-radius: 8px;
   padding: 9px 10px;
   background: rgba(212, 175, 55, 0.1);
+}
+
+.setLogDoneField input[type="checkbox"] {
+  width: 26px;
+  height: 26px;
+  cursor: pointer;
+  accent-color: #d4af37;
 }
 
 .desktopWorkoutSetLabel strong {
