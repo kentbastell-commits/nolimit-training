@@ -1054,9 +1054,67 @@ function languagePreferenceToCode(language?: string) {
 }
 
 const DATA_CACHE_MS = 5 * 60 * 1000;
+const PERSISTENT_CACHE_PREFIX = "nolimit-training:data:";
+
+type CachedData<T> = {
+  data: T;
+  timestamp: number;
+};
+
+const CACHE_KEYS = {
+  clients: "clients:v1",
+  exercises: "exercises:v1",
+  productOrders: "product-orders:v1",
+  programs: "programs:v1",
+  formTemplates: "form-templates:v1",
+  testTemplates: "test-templates:v1",
+  clientWorkouts: (clientCode: string) => `client-workouts:${clientCode}:v1`,
+};
 
 function isFreshCache(timestamp: number) {
   return Date.now() - timestamp < DATA_CACHE_MS;
+}
+
+function readPersistentCache<T>(key: string): CachedData<T> | null {
+  if (typeof window === "undefined") return null;
+
+  try {
+    const rawCache = window.localStorage.getItem(`${PERSISTENT_CACHE_PREFIX}${key}`);
+    if (!rawCache) return null;
+
+    const parsedCache = JSON.parse(rawCache) as CachedData<T>;
+    if (!parsedCache || !isFreshCache(parsedCache.timestamp)) {
+      window.localStorage.removeItem(`${PERSISTENT_CACHE_PREFIX}${key}`);
+      return null;
+    }
+
+    return parsedCache;
+  } catch {
+    return null;
+  }
+}
+
+function writePersistentCache<T>(key: string, data: T) {
+  if (typeof window === "undefined") return;
+
+  try {
+    window.localStorage.setItem(
+      `${PERSISTENT_CACHE_PREFIX}${key}`,
+      JSON.stringify({ data, timestamp: Date.now() })
+    );
+  } catch {
+    // Local storage can be unavailable in private mode or when quota is full.
+  }
+}
+
+function clearPersistentCache(key: string) {
+  if (typeof window === "undefined") return;
+
+  try {
+    window.localStorage.removeItem(`${PERSISTENT_CACHE_PREFIX}${key}`);
+  } catch {
+    // Ignore storage cleanup failures.
+  }
 }
 
 function App() {
@@ -1308,6 +1366,12 @@ function App() {
   const workoutCacheRef = useRef<
     Record<string, { data: Workout[]; timestamp: number }>
   >({});
+  const productOrdersCacheRef = useRef<CachedData<ProductOrder[]> | null>(null);
+  const programsCacheRef = useRef<CachedData<Program[]> | null>(null);
+  const formTemplatesCacheRef =
+    useRef<CachedData<SavedFormTemplate[]> | null>(null);
+  const testTemplatesCacheRef =
+    useRef<CachedData<SavedTestTemplate[]> | null>(null);
   const pendingWorkoutMoveIds = useRef(new Set<string>());
   const pendingAssignmentMoveIds = useRef(new Set<string>());
   const workoutMoveVersions = useRef<Record<string, number>>({});
@@ -1733,10 +1797,24 @@ function App() {
     const shouldForce = force === true;
     const cached = clientsCacheRef.current;
 
+    if (shouldForce) {
+      clearPersistentCache(CACHE_KEYS.clients);
+    }
+
     if (!shouldForce && cached && isFreshCache(cached.timestamp)) {
       setClients(cached.data);
       setLoading(false);
       return cached.data;
+    }
+
+    const persistentCache = shouldForce
+      ? null
+      : readPersistentCache<Client[]>(CACHE_KEYS.clients);
+    if (persistentCache) {
+      clientsCacheRef.current = persistentCache;
+      setClients(persistentCache.data);
+      setLoading(false);
+      return persistentCache.data;
     }
 
     setLoading(true);
@@ -1746,6 +1824,7 @@ function App() {
       const data = await response.json();
       const nextClients = data.clients || [];
       clientsCacheRef.current = { data: nextClients, timestamp: Date.now() };
+      writePersistentCache(CACHE_KEYS.clients, nextClients);
       setClients(nextClients);
       return nextClients;
     } catch (error) {
@@ -1774,7 +1853,28 @@ function App() {
     }
   };
 
-  const loadProductOrders = async () => {
+  const loadProductOrders = async (force?: unknown) => {
+    const shouldForce = force === true;
+    const cached = productOrdersCacheRef.current;
+
+    if (shouldForce) {
+      clearPersistentCache(CACHE_KEYS.productOrders);
+    }
+
+    if (!shouldForce && cached && isFreshCache(cached.timestamp)) {
+      setProductOrders(cached.data);
+      return cached.data;
+    }
+
+    const persistentCache = shouldForce
+      ? null
+      : readPersistentCache<ProductOrder[]>(CACHE_KEYS.productOrders);
+    if (persistentCache) {
+      productOrdersCacheRef.current = persistentCache;
+      setProductOrders(persistentCache.data);
+      return persistentCache.data;
+    }
+
     try {
       const response = await fetch("/api/productOrders");
       const data = await response.json();
@@ -1786,6 +1886,8 @@ function App() {
       }
 
       const orders = data.orders || [];
+      productOrdersCacheRef.current = { data: orders, timestamp: Date.now() };
+      writePersistentCache(CACHE_KEYS.productOrders, orders);
       setProductOrders(orders);
       return orders;
     } catch (error) {
@@ -1941,9 +2043,14 @@ function App() {
     }
     loadClients();
     loadCoaches();
-    loadProductOrders();
     void loadNotifications();
   }, []);
+
+  useEffect(() => {
+    if (activePage !== "Orders" && activePage !== "Revenue") return;
+
+    void loadProductOrders();
+  }, [activePage]);
 
   useEffect(() => {
     if (!isClientPortal || !clientPortalCode || clients.length === 0) return;
@@ -2136,6 +2243,7 @@ function App() {
       data: nextWorkouts,
       timestamp: Date.now(),
     };
+    writePersistentCache(CACHE_KEYS.clientWorkouts(clientCode), nextWorkouts);
   };
 
   const loadClientWorkouts = async (client: Client, force = false) => {
@@ -2143,9 +2251,22 @@ function App() {
     const clientCode = client.clientCode;
     const cached = workoutCacheRef.current[clientCode];
 
+    if (shouldForce) {
+      clearPersistentCache(CACHE_KEYS.clientWorkouts(clientCode));
+    }
+
     if (!shouldForce && cached && isFreshCache(cached.timestamp)) {
       setWorkouts(cached.data);
       return cached.data;
+    }
+
+    const persistentCache = shouldForce
+      ? null
+      : readPersistentCache<Workout[]>(CACHE_KEYS.clientWorkouts(clientCode));
+    if (persistentCache) {
+      workoutCacheRef.current[clientCode] = persistentCache;
+      setWorkouts(persistentCache.data);
+      return persistentCache.data;
     }
 
     const response = await fetch(`/api/workouts?clientCode=${clientCode}`);
@@ -2224,10 +2345,24 @@ function App() {
     const shouldForce = force === true;
     const cached = exerciseLibraryCacheRef.current;
 
+    if (shouldForce) {
+      clearPersistentCache(CACHE_KEYS.exercises);
+    }
+
     if (!shouldForce && cached && isFreshCache(cached.timestamp)) {
       setLibraryExercises(cached.data);
       setLibraryLoading(false);
       return cached.data;
+    }
+
+    const persistentCache = shouldForce
+      ? null
+      : readPersistentCache<LibraryExercise[]>(CACHE_KEYS.exercises);
+    if (persistentCache) {
+      exerciseLibraryCacheRef.current = persistentCache;
+      setLibraryExercises(persistentCache.data);
+      setLibraryLoading(false);
+      return persistentCache.data;
     }
 
     setLibraryLoading(true);
@@ -2243,6 +2378,7 @@ function App() {
         data: nextExercises,
         timestamp: Date.now(),
       };
+      writePersistentCache(CACHE_KEYS.exercises, nextExercises);
       setLibraryExercises(nextExercises);
       return nextExercises;
     } catch (err) {
@@ -2403,6 +2539,7 @@ function App() {
           data: nextExercises,
           timestamp: Date.now(),
         };
+        writePersistentCache(CACHE_KEYS.exercises, nextExercises);
 
         return nextExercises;
       });
@@ -2429,7 +2566,48 @@ function App() {
     }
   };
 
-  const loadPrograms = async () => {
+  const loadPrograms = async (force?: unknown) => {
+    const shouldForce = force === true;
+    const cached = programsCacheRef.current;
+
+    if (shouldForce) {
+      clearPersistentCache(CACHE_KEYS.programs);
+    }
+
+    if (!shouldForce && cached && isFreshCache(cached.timestamp)) {
+      setPrograms(cached.data);
+
+      if (!selectedAssignProgramId && cached.data.length > 0) {
+        setSelectedAssignProgramId(cached.data[0].programId);
+      }
+
+      if (!selectedSavedProgramId && cached.data.length > 0) {
+        setSelectedSavedProgramId(cached.data[0].programId);
+      }
+
+      setProgramsLoading(false);
+      return cached.data;
+    }
+
+    const persistentCache = shouldForce
+      ? null
+      : readPersistentCache<Program[]>(CACHE_KEYS.programs);
+    if (persistentCache) {
+      programsCacheRef.current = persistentCache;
+      setPrograms(persistentCache.data);
+
+      if (!selectedAssignProgramId && persistentCache.data.length > 0) {
+        setSelectedAssignProgramId(persistentCache.data[0].programId);
+      }
+
+      if (!selectedSavedProgramId && persistentCache.data.length > 0) {
+        setSelectedSavedProgramId(persistentCache.data[0].programId);
+      }
+
+      setProgramsLoading(false);
+      return persistentCache.data;
+    }
+
     setProgramsLoading(true);
     try {
       const res = await fetch("/api/programs");
@@ -2438,6 +2616,11 @@ function App() {
       }
       const data = await res.json();
       const loadedPrograms = Array.isArray(data.programs) ? data.programs : [];
+      programsCacheRef.current = {
+        data: loadedPrograms,
+        timestamp: Date.now(),
+      };
+      writePersistentCache(CACHE_KEYS.programs, loadedPrograms);
       setPrograms(loadedPrograms);
 
       if (!selectedAssignProgramId && loadedPrograms.length > 0) {
@@ -2596,7 +2779,7 @@ function App() {
 
       resetManualOrderForm();
       setShowManualOrderForm(false);
-      await loadProductOrders();
+      await loadProductOrders(true);
     } catch (error) {
       console.error(error);
       notify("Could not create manual order.", "error");
@@ -2604,7 +2787,40 @@ function App() {
       setSavingManualOrder(false);
     }
   };
-  const loadFormTemplates = async () => {
+  const loadFormTemplates = async (force?: unknown) => {
+    const shouldForce = force === true;
+    const cached = formTemplatesCacheRef.current;
+
+    if (shouldForce) {
+      clearPersistentCache(CACHE_KEYS.formTemplates);
+    }
+
+    if (!shouldForce && cached && isFreshCache(cached.timestamp)) {
+      setSavedFormTemplates(cached.data);
+
+      if (!selectedSavedFormId && cached.data.length > 0) {
+        setSelectedSavedFormId(cached.data[0].formId);
+      }
+
+      setFormTemplatesLoading(false);
+      return cached.data;
+    }
+
+    const persistentCache = shouldForce
+      ? null
+      : readPersistentCache<SavedFormTemplate[]>(CACHE_KEYS.formTemplates);
+    if (persistentCache) {
+      formTemplatesCacheRef.current = persistentCache;
+      setSavedFormTemplates(persistentCache.data);
+
+      if (!selectedSavedFormId && persistentCache.data.length > 0) {
+        setSelectedSavedFormId(persistentCache.data[0].formId);
+      }
+
+      setFormTemplatesLoading(false);
+      return persistentCache.data;
+    }
+
     setFormTemplatesLoading(true);
 
     try {
@@ -2618,6 +2834,8 @@ function App() {
       }
 
       const forms = data.forms || [];
+      formTemplatesCacheRef.current = { data: forms, timestamp: Date.now() };
+      writePersistentCache(CACHE_KEYS.formTemplates, forms);
       setSavedFormTemplates(forms);
 
       if (!selectedSavedFormId && forms.length > 0) {
@@ -2633,7 +2851,40 @@ function App() {
     }
   };
 
-  const loadTestTemplates = async () => {
+  const loadTestTemplates = async (force?: unknown) => {
+    const shouldForce = force === true;
+    const cached = testTemplatesCacheRef.current;
+
+    if (shouldForce) {
+      clearPersistentCache(CACHE_KEYS.testTemplates);
+    }
+
+    if (!shouldForce && cached && isFreshCache(cached.timestamp)) {
+      setSavedTestTemplates(cached.data);
+
+      if (!selectedSavedTestId && cached.data.length > 0) {
+        setSelectedSavedTestId(cached.data[0].testTemplateId);
+      }
+
+      setTestTemplatesLoading(false);
+      return cached.data;
+    }
+
+    const persistentCache = shouldForce
+      ? null
+      : readPersistentCache<SavedTestTemplate[]>(CACHE_KEYS.testTemplates);
+    if (persistentCache) {
+      testTemplatesCacheRef.current = persistentCache;
+      setSavedTestTemplates(persistentCache.data);
+
+      if (!selectedSavedTestId && persistentCache.data.length > 0) {
+        setSelectedSavedTestId(persistentCache.data[0].testTemplateId);
+      }
+
+      setTestTemplatesLoading(false);
+      return persistentCache.data;
+    }
+
     setTestTemplatesLoading(true);
 
     try {
@@ -2647,6 +2898,8 @@ function App() {
       }
 
       const tests = data.tests || [];
+      testTemplatesCacheRef.current = { data: tests, timestamp: Date.now() };
+      writePersistentCache(CACHE_KEYS.testTemplates, tests);
       setSavedTestTemplates(tests);
 
       if (!selectedSavedTestId && tests.length > 0) {
@@ -3060,7 +3313,7 @@ function App() {
       if (editingFormTemplate?.formId === form.formId) {
         setEditingFormTemplate(null);
       }
-      await loadFormTemplates();
+      await loadFormTemplates(true);
     } catch (error) {
       console.error(error);
       notify("Could not delete saved form.", "error");
@@ -3098,7 +3351,7 @@ function App() {
       if (editingTestTemplate?.testTemplateId === test.testTemplateId) {
         setEditingTestTemplate(null);
       }
-      await loadTestTemplates();
+      await loadTestTemplates(true);
     } catch (error) {
       console.error(error);
       notify("Could not delete saved test.", "error");
@@ -3145,7 +3398,7 @@ function App() {
           ? `Form updated. Questions saved: ${data.questionRecordsCreated}`
           : `Form saved. Questions created: ${data.questionRecordsCreated}`
       );
-      await loadFormTemplates();
+      await loadFormTemplates(true);
       setSelectedSavedFormId(data.formId);
       setEditingFormTemplate({
         recordId: data.formRecordId,
@@ -3197,7 +3450,7 @@ function App() {
           ? `Test template updated. Items saved: ${data.itemRecordsCreated}`
           : `Test template saved. Items created: ${data.itemRecordsCreated}`
       );
-      await loadTestTemplates();
+      await loadTestTemplates(true);
       setSelectedSavedTestId(data.testTemplateId);
       setEditingTestTemplate({
         recordId: data.testRecordId,
@@ -6109,7 +6362,7 @@ function App() {
       setProgramWeek("1");
       setProgramDay("1");
       window.setTimeout(() => setBuilderSaveStatus("saved"), 0);
-      loadPrograms();
+      void loadPrograms(true);
     } catch (error) {
       console.error(error);
       notify("Could not save full program.");
@@ -6557,7 +6810,7 @@ function App() {
         console.info("Optional product order columns not found", data.omittedFields);
       }
 
-      await loadProductOrders();
+      await loadProductOrders(true);
       return true;
     } catch (error) {
       console.warn("Product order pipeline update failed", error);
@@ -6594,9 +6847,12 @@ function App() {
         return;
       }
 
-      setProductOrders((current) =>
-        current.filter((item) => item.recordId !== order.recordId)
-      );
+      setProductOrders((current) => {
+        const nextOrders = current.filter((item) => item.recordId !== order.recordId);
+        productOrdersCacheRef.current = { data: nextOrders, timestamp: Date.now() };
+        writePersistentCache(CACHE_KEYS.productOrders, nextOrders);
+        return nextOrders;
+      });
       setOrderStartDates((current) => {
         const next = { ...current };
         delete next[order.recordId];
@@ -7467,7 +7723,7 @@ function App() {
     const reviewSaved = await markOrderIntakeReviewed(order);
     if (!reviewSaved) return;
 
-    const refreshed = await loadProductOrders();
+    const refreshed = await loadProductOrders(true);
     const updatedOrder =
       (refreshed as ProductOrder[]).find((o) => o.recordId === order.recordId) || order;
     await assignOrderProgram(updatedOrder);
@@ -9521,7 +9777,7 @@ function App() {
                   }
 
                   if (item.name === "Orders") {
-                    loadProductOrders();
+                    loadProductOrders(true);
                     loadPrograms();
                     loadFormTemplates();
                   }
@@ -11070,15 +11326,15 @@ function App() {
                         setWorkoutPageTab(tab);
 
                         if (tab === "Saved Programs") {
-                          loadPrograms();
+                          loadPrograms(true);
                         }
 
                         if (tab === "Forms") {
-                          loadFormTemplates();
+                          loadFormTemplates(true);
                         }
 
                         if (tab === "Tests") {
-                          loadTestTemplates();
+                          loadTestTemplates(true);
                         }
 
                         if (tab === "Assignments") {
@@ -12865,7 +13121,7 @@ function App() {
                                 className="outlineButton"
                                 onClick={(event) => {
                                   event.preventDefault();
-                                  void loadFormTemplates();
+                                  void loadFormTemplates(true);
                                 }}
                               >
                                 Reload
@@ -13084,7 +13340,7 @@ function App() {
                                 className="outlineButton"
                                 onClick={(event) => {
                                   event.preventDefault();
-                                  void loadTestTemplates();
+                                  void loadTestTemplates(true);
                                 }}
                               >
                                 Reload
