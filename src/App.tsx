@@ -9009,7 +9009,7 @@ function App() {
   const resolvePrescribedPace = (rawPercentMas: string, exerciseName: string) => {
     const pct = parseFloat(String(rawPercentMas || "").trim());
     if (!Number.isFinite(pct) || pct <= 0)
-      return { display: "", resolved: false };
+      return { display: "", resolved: false, speedKmh: NaN };
 
     const masMetrics = sortedAthleteMetrics.filter((metric) =>
       /mas|aerobic/.test(
