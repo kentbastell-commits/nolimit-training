@@ -331,6 +331,24 @@ function calculateMetric(params: {
     return Math.round((weight * (1 + reps / 30)) * 10) / 10;
   }
 
+  if (method.includes("pace") || method.includes("min/km")) {
+    const seconds = parseDurationSeconds(sourceText);
+    if (!seconds) return null;
+
+    // Distance in km: explicit "Xkm" / "X m", else assume the 2km test.
+    const kmMatch = sourceText.match(/(\d+(?:\.\d+)?)\s*km/i);
+    const mMatch = sourceText.match(/(\d+(?:\.\d+)?)\s*m(?![a-z/])/i);
+    const distanceKm = kmMatch
+      ? Number(kmMatch[1])
+      : mMatch
+        ? Number(mMatch[1]) / 1000
+        : 2;
+    if (!distanceKm) return null;
+
+    const minutesPerKm = seconds / 60 / distanceKm;
+    return Math.round(minutesPerKm * 100) / 100;
+  }
+
   if (
     method.includes("2km") ||
     method.includes("aerobic speed") ||
@@ -683,11 +701,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             const metricKind =
               methodLower.includes("epley") || methodLower.includes("brzycki")
                 ? "Predicted 1RM"
-                : methodLower.includes("aerobic") ||
-                    methodLower.includes("mas") ||
-                    methodLower.includes("2km")
-                  ? "MAS"
-                  : "";
+                : methodLower.includes("pace") || methodLower.includes("min/km")
+                  ? "Pace"
+                  : methodLower.includes("aerobic") ||
+                      methodLower.includes("mas") ||
+                      methodLower.includes("2km")
+                    ? "MAS"
+                    : "";
             const metricBaseName =
               metricConfig.testName || responseItem.label || "Test";
             const metricName =
@@ -705,7 +725,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     .includes("m/s")
                   ? "m/s"
                   : "km/h"
-                : metricConfig.metricUnit || responseItem.unit || "";
+                : metricKind === "Pace"
+                  ? "min/km"
+                  : metricConfig.metricUnit || responseItem.unit || "";
             const calculatedValue = calculateMetric({
               value: String(responseItem.value || ""),
               notes: String(responseItem.notes || ""),
