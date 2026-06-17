@@ -136,8 +136,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const tmplData = await tmplRes.json();
 
     const allTemplates = (tmplData?.data?.items || []).filter((item: any) => {
-      const tPid = fieldToText(item.fields?.["Program ID"]);
-      return textMatches(tPid, programIdText);
+      const pidField = item.fields?.["Program ID"];
+      const tPid = fieldToText(pidField);
+      // Newer templates store "Program ID" as a record link, so also match by
+      // the program's record id (fieldToText returns the linked record id).
+      const linkedIds = Array.isArray(pidField)
+        ? pidField.flatMap((o: any) => o?.record_ids || [])
+        : [];
+      return (
+        textMatches(tPid, programIdText) ||
+        (programRecordId &&
+          (linkedIds.includes(programRecordId) ||
+            textMatches(tPid, programRecordId)))
+      );
     });
 
     if (allTemplates.length === 0) {

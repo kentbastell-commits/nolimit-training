@@ -28,6 +28,22 @@ function fieldToText(value: any): string {
   return JSON.stringify(value);
 }
 
+// Pull linked record ids out of a Bitable link/relation field value, whatever
+// shape the API returns it in.
+function extractRecordIds(value: any): string[] {
+  if (!value) return [];
+  const out: string[] = [];
+  const pushFrom = (o: any) => {
+    if (!o || typeof o !== "object") return;
+    if (Array.isArray(o.record_ids)) out.push(...o.record_ids);
+    if (Array.isArray(o.link_record_ids)) out.push(...o.link_record_ids);
+    if (typeof o.record_id === "string") out.push(o.record_id);
+  };
+  if (Array.isArray(value)) value.forEach(pushFrom);
+  else pushFrom(value);
+  return out;
+}
+
 function normalizeLookupText(value?: string) {
   return String(value || "")
     .toLowerCase()
@@ -53,9 +69,9 @@ export default async function handler(
   res: VercelResponse
 ) {
   try {
-    const { programId } = req.query;
+    const { programId, programRecordId } = req.query;
 
-    if (!programId) {
+    if (!programId && !programRecordId) {
       return res.status(400).json({
         error: "Missing programId",
       });
@@ -95,13 +111,24 @@ export default async function handler(
       });
     }
 
-    const programSearch = String(programId);
+    const programSearch = String(programId || "");
+    const recordIdTarget = String(programRecordId || "");
     const templates = data.data.items
       .filter((item: any) => {
         const fields = item.fields || {};
-        const templateProgramId = fieldToText(fields["Program ID"]);
+        const programIdField = fields["Program ID"];
+        const templateProgramId = fieldToText(programIdField);
+        const linkedRecordIds = extractRecordIds(programIdField);
 
-        return lookupTextMatches(templateProgramId, programSearch);
+        // Match by the PR-#### text (older text-based templates) OR by the
+        // linked program record id (newer link-based templates, which no longer
+        // resolve to the PR text).
+        return (
+          (programSearch && lookupTextMatches(templateProgramId, programSearch)) ||
+          (recordIdTarget &&
+            (linkedRecordIds.includes(recordIdTarget) ||
+              lookupTextMatches(templateProgramId, recordIdTarget)))
+        );
       })
       .map((item: any) => {
         const fields = item.fields || {};

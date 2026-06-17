@@ -3925,7 +3925,13 @@ function App() {
     setSavedAssignableWorkouts([]);
 
     try {
-      const response = await fetch(`/api/programTemplates?programId=${programId}`);
+      const recordId =
+        programs.find((p) => p.programId === programId)?.recordId || "";
+      const response = await fetch(
+        `/api/programTemplates?programId=${encodeURIComponent(
+          programId
+        )}&programRecordId=${encodeURIComponent(recordId)}`
+      );
       const data = await response.json();
 
       if (!response.ok) {
@@ -3962,7 +3968,7 @@ function App() {
         const templatesResponse = await fetch(
           `/api/programTemplates?programId=${encodeURIComponent(
             program.programId || program.recordId
-          )}`
+          )}&programRecordId=${encodeURIComponent(program.recordId || "")}`
         );
         const templatesData = await templatesResponse.json();
         if (templatesResponse.ok) {
@@ -4035,7 +4041,11 @@ function App() {
 
       if (templates.length === 0) {
         const response = await fetch(
-          `/api/programTemplates?programId=${selectedSavedProgram.programId}`
+          `/api/programTemplates?programId=${encodeURIComponent(
+            selectedSavedProgram.programId
+          )}&programRecordId=${encodeURIComponent(
+            selectedSavedProgram.recordId || ""
+          )}`
         );
         const data = await response.json();
 
@@ -4157,7 +4167,11 @@ function App() {
 
     try {
       const templateResponse = await fetch(
-        `/api/programTemplates?programId=${selectedSavedProgram.programId}`
+        `/api/programTemplates?programId=${encodeURIComponent(
+          selectedSavedProgram.programId
+        )}&programRecordId=${encodeURIComponent(
+          selectedSavedProgram.recordId || ""
+        )}`
       );
       const templateData = await templateResponse.json();
 
@@ -4292,7 +4306,11 @@ function App() {
 
     try {
       const res = await fetch(
-        `/api/programTemplates?programId=${selectedAssignProgram.programId}`
+        `/api/programTemplates?programId=${encodeURIComponent(
+          selectedAssignProgram.programId
+        )}&programRecordId=${encodeURIComponent(
+          selectedAssignProgram.recordId || ""
+        )}`
       );
 
       const data = await res.json();
@@ -7542,6 +7560,19 @@ function App() {
 
   const coachVisibleClients = clients.filter(clientBelongsToCoachScope);
 
+  // Resolve a client id / client code / record id to a readable name; never
+  // surface a raw Feishu record id (recXXXX) in the UI.
+  const clientLabel = (value?: string) => {
+    const v = String(value || "").trim();
+    if (!v) return "Client";
+    const match = clients.find(
+      (client) =>
+        client.id === v || client.clientCode === v || client.name === v
+    );
+    if (match) return match.name || match.clientCode || "Client";
+    return /^rec[A-Za-z0-9]{6,}$/.test(v) ? "Client" : v;
+  };
+
   const checkInStats = {
     due: coachVisibleClients.filter(clientNeedsCheckIn).length,
     recent: coachVisibleClients.filter((client) => {
@@ -8437,7 +8468,11 @@ function App() {
   };
 
   const buildProgramWorkoutsForOrder = async (program: Program, startDate: string) => {
-    const response = await fetch(`/api/programTemplates?programId=${program.programId}`);
+    const response = await fetch(
+      `/api/programTemplates?programId=${encodeURIComponent(
+        program.programId
+      )}&programRecordId=${encodeURIComponent(program.recordId || "")}`
+    );
     const data = await response.json();
 
     if (!response.ok) {
@@ -11856,7 +11891,9 @@ function App() {
                             }
                           >
                             <span>Workout comment</span>
-                            <strong>{comment.clientName || "Client"}</strong>
+                            <strong>
+                              {clientLabel(comment.clientName || comment.clientId)}
+                            </strong>
                             <small>
                               {comment.workoutName || "Workout"} -{" "}
                               {comment.date || "--"}
@@ -11930,8 +11967,8 @@ function App() {
                           <span>Missed workout</span>
                           <strong>{workout.sessionName || "Workout"}</strong>
                           <small>
-                            {workout.scheduledDate || "--"} -{" "}
-                            {workout.clientId || "Client"}
+                            {normalizeDate(String(workout.scheduledDate)) || "--"}{" "}
+                            - {clientLabel(workout.clientId)}
                           </small>
                         </button>
                       ))}
@@ -11971,9 +12008,9 @@ function App() {
                             <span>{group.responseType}</span>
                             <strong>{group.title || "Submission"}</strong>
                             <small>
-                              {first?.clientName ||
-                                first?.clientId ||
-                                "Client"}{" "}
+                              {clientLabel(
+                                first?.clientName || first?.clientId
+                              )}{" "}
                               - {group.submittedAt || "--"}
                             </small>
                           </button>
