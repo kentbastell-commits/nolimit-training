@@ -145,7 +145,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Manual performance-metric overrides (Number columns). Match the column by
     // name case-insensitively across a few common variants so small naming
     // differences in the base still resolve.
-    const norm = (s: string) => s.toLowerCase().replace(/\s+/g, " ").trim();
+    // Ignore case AND all whitespace so "Zone 5K %" matches "Zone 5K%", etc.
+    const norm = (s: string) => s.toLowerCase().replace(/\s+/g, "");
     const availableByNorm = availableFieldNames
       ? new Map(
           [...availableFieldNames].map((n) => [norm(String(n)), String(n)])

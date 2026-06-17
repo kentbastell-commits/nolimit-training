@@ -30,7 +30,7 @@ return JSON.stringify(value);
 
 // Read a field by name, matching case-insensitively across naming variants.
 function pickField(fields: Record<string, any>, candidates: string[]): string {
-  const norm = (s: string) => s.toLowerCase().replace(/\s+/g, " ").trim();
+  const norm = (s: string) => s.toLowerCase().replace(/\s+/g, "");
   const byNorm = new Map(
     Object.keys(fields || {}).map((key) => [norm(key), key])
   );
