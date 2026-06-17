@@ -136,26 +136,44 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (larkAccessStartDate) fields["Access Start Date"] = larkAccessStartDate;
     if (larkAccessEndDate) fields["Access End Date"] = larkAccessEndDate;
 
-    // Manual performance-metric overrides (Number columns).
-    const numberOverrides: Record<string, unknown> = {
-      "MAS (km/h)": masKmhOverride,
-      "HR Max": hrMaxOverride,
-      "Resting HR": restingHrOverride,
-      "Zone 5K %": zone5kPct,
-      "Zone 10K %": zone10kPct,
-      "Zone Threshold %": zoneThresholdPct,
-      "Zone Easy %": zoneEasyPct,
-    };
-    for (const [columnName, rawValue] of Object.entries(numberOverrides)) {
-      const larkValue = toLarkNumber(rawValue);
-      if (larkValue !== undefined) fields[columnName] = larkValue;
-    }
-
     // Drop any field this base doesn't have yet so unknown columns never 500
     // the update (e.g. before the override columns are added in Feishu).
     const availableFieldNames = await getClientsTableFieldNames(
       tokenData.tenant_access_token
     );
+
+    // Manual performance-metric overrides (Number columns). Match the column by
+    // name case-insensitively across a few common variants so small naming
+    // differences in the base still resolve.
+    const norm = (s: string) => s.toLowerCase().replace(/\s+/g, " ").trim();
+    const availableByNorm = availableFieldNames
+      ? new Map(
+          [...availableFieldNames].map((n) => [norm(String(n)), String(n)])
+        )
+      : null;
+    const resolveColumn = (candidates: string[]) => {
+      if (!availableByNorm) return candidates[0];
+      for (const candidate of candidates) {
+        const hit = availableByNorm.get(norm(candidate));
+        if (hit) return hit;
+      }
+      return null;
+    };
+    const numberOverrides: Array<{ candidates: string[]; value: unknown }> = [
+      { candidates: ["MAS (km/h)", "MAS km/h", "MAS (kmh)", "MAS"], value: masKmhOverride },
+      { candidates: ["HR Max", "HRmax", "Max HR"], value: hrMaxOverride },
+      { candidates: ["Resting HR", "RHR", "Resting Heart Rate"], value: restingHrOverride },
+      { candidates: ["Zone 5K %", "5K %", "Zone 5K"], value: zone5kPct },
+      { candidates: ["Zone 10K %", "10K %", "Zone 10K"], value: zone10kPct },
+      { candidates: ["Zone Threshold %", "Threshold %", "Zone Threshold"], value: zoneThresholdPct },
+      { candidates: ["Zone Easy %", "Easy %", "Zone Easy"], value: zoneEasyPct },
+    ];
+    for (const { candidates, value } of numberOverrides) {
+      const larkValue = toLarkNumber(value);
+      if (larkValue === undefined) continue;
+      const columnName = resolveColumn(candidates);
+      if (columnName) fields[columnName] = larkValue;
+    }
     const omittedFields: string[] = [];
     const filteredFields = availableFieldNames
       ? Object.fromEntries(

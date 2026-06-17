@@ -28,6 +28,19 @@ if (value?.link_record_ids) return value.link_record_ids.join(", ");
 return JSON.stringify(value);
 }
 
+// Read a field by name, matching case-insensitively across naming variants.
+function pickField(fields: Record<string, any>, candidates: string[]): string {
+  const norm = (s: string) => s.toLowerCase().replace(/\s+/g, " ").trim();
+  const byNorm = new Map(
+    Object.keys(fields || {}).map((key) => [norm(key), key])
+  );
+  for (const candidate of candidates) {
+    const hit = byNorm.get(norm(candidate));
+    if (hit) return fieldToText(fields[hit]);
+  }
+  return "";
+}
+
 function formatDate(value: any): string {
   const text = fieldToText(value);
 
@@ -111,14 +124,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           fieldToText(fields["Language Preference"]) ||
           fieldToText(fields["Language"]) ||
           "English",
-        // Manual performance-metric overrides (per client, optional).
-        masKmhOverride: fieldToText(fields["MAS (km/h)"]),
-        hrMaxOverride: fieldToText(fields["HR Max"]),
-        restingHrOverride: fieldToText(fields["Resting HR"]),
-        zone5kPct: fieldToText(fields["Zone 5K %"]),
-        zone10kPct: fieldToText(fields["Zone 10K %"]),
-        zoneThresholdPct: fieldToText(fields["Zone Threshold %"]),
-        zoneEasyPct: fieldToText(fields["Zone Easy %"]),
+        // Manual performance-metric overrides (per client, optional). Match
+        // the column case-insensitively across a few naming variants.
+        masKmhOverride: pickField(fields, ["MAS (km/h)", "MAS km/h", "MAS (kmh)", "MAS"]),
+        hrMaxOverride: pickField(fields, ["HR Max", "HRmax", "Max HR"]),
+        restingHrOverride: pickField(fields, ["Resting HR", "RHR", "Resting Heart Rate"]),
+        zone5kPct: pickField(fields, ["Zone 5K %", "5K %", "Zone 5K"]),
+        zone10kPct: pickField(fields, ["Zone 10K %", "10K %", "Zone 10K"]),
+        zoneThresholdPct: pickField(fields, ["Zone Threshold %", "Threshold %", "Zone Threshold"]),
+        zoneEasyPct: pickField(fields, ["Zone Easy %", "Easy %", "Zone Easy"]),
       };
     });
 
