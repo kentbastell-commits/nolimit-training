@@ -4037,26 +4037,31 @@ function App() {
     setSavedAssignLoading(true);
 
     try {
-      let templates = savedProgramTemplates;
+      // Always fetch the currently-selected program's sessions — never reuse
+      // whatever is in state, which could belong to a previously-viewed
+      // program and would assign the wrong sessions.
+      const response = await fetch(
+        `/api/programTemplates?programId=${encodeURIComponent(
+          selectedSavedProgram.programId
+        )}&programRecordId=${encodeURIComponent(
+          selectedSavedProgram.recordId || ""
+        )}`
+      );
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error(data);
+        notify("Could not load program templates.");
+        return;
+      }
+
+      const templates: typeof savedProgramTemplates = data.templates || [];
+      setSavedProgramTemplates(templates);
 
       if (templates.length === 0) {
-        const response = await fetch(
-          `/api/programTemplates?programId=${encodeURIComponent(
-            selectedSavedProgram.programId
-          )}&programRecordId=${encodeURIComponent(
-            selectedSavedProgram.recordId || ""
-          )}`
-        );
-        const data = await response.json();
-
-        if (!response.ok) {
-          console.error(data);
-          notify("Could not load program templates.");
-          return;
-        }
-
-        templates = data.templates || [];
-        setSavedProgramTemplates(templates);
+        setSavedAssignableWorkouts([]);
+        notify("This program has no sessions to assign.", "error");
+        return;
       }
 
       const uniqueSessionsMap = new Map<string, AssignableWorkout>();
