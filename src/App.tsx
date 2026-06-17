@@ -21241,54 +21241,99 @@ function App() {
                                   ));
                                 })()}
 
-                              {(showTimeInput || showDistanceInput || showPaceInput) &&
-                                (() => {
-                                  // Cardio sets: a simple completion checkbox (for
-                                  // now). Checking it logs the prescribed amount.
-                                  const field = showTimeInput
-                                    ? "actualTime"
-                                    : showPaceInput
-                                      ? "actualReps"
-                                      : "actualDistance";
-                                  const done = showTimeInput
-                                    ? Boolean(log.actualTime)
-                                    : showPaceInput
-                                      ? Boolean(log.actualReps)
-                                      : Boolean(log.actualDistance);
-                                  const raw = String(log.prescribedReps || "");
-                                  const completedValue = showPaceInput
-                                    ? "1"
-                                    : showTimeInput
-                                    ? raw.includes(":")
-                                      ? String(
-                                          (Number(raw.split(":")[0]) || 0) * 60 +
-                                            (Number(raw.split(":")[1]) || 0)
-                                        )
-                                      : /min/i.test(raw)
-                                        ? String((parseFloat(raw) || 0) * 60)
-                                        : String(parseFloat(raw) || 0)
-                                    : /km/i.test(raw)
-                                      ? String((parseFloat(raw) || 0) * 1000)
-                                      : String(parseFloat(raw) || 0);
-                                  return (
-                                    <label className="setLogField setLogDoneField">
-                                      <span>
-                                        {i18n.language === "zh" ? "完成" : "Done"}
-                                      </span>
-                                      <input
-                                        type="checkbox"
-                                        checked={done}
-                                        onChange={() =>
-                                          updateSetLog(
-                                            globalIndex,
-                                            field,
-                                            done ? "" : completedValue || "1"
-                                          )
-                                        }
-                                      />
-                                    </label>
-                                  );
-                                })()}
+                              {(showTimeInput ||
+                                showDistanceInput ||
+                                showPaceInput) && (
+                                <>
+                                  <label className="setLogField">
+                                    <span>
+                                      {i18n.language === "zh"
+                                        ? "实际距离 (km)"
+                                        : "Actual (km)"}
+                                    </span>
+                                    <input
+                                      inputMode="decimal"
+                                      value={
+                                        log.actualDistance
+                                          ? String(
+                                              Number(log.actualDistance) / 1000
+                                            )
+                                          : ""
+                                      }
+                                      placeholder="km"
+                                      onChange={(e) => {
+                                        const km = e.target.value.replace(
+                                          /[^\d.]/g,
+                                          ""
+                                        );
+                                        updateSetLog(
+                                          globalIndex,
+                                          "actualDistance",
+                                          km
+                                            ? String(
+                                                Math.round(parseFloat(km) * 1000)
+                                              )
+                                            : ""
+                                        );
+                                      }}
+                                    />
+                                  </label>
+                                  {(() => {
+                                    const totalSec = Number(log.actualTime) || 0;
+                                    const mm = totalSec
+                                      ? String(Math.floor(totalSec / 60))
+                                      : "";
+                                    const ss = totalSec
+                                      ? String(totalSec % 60).padStart(2, "0")
+                                      : "";
+                                    const writeTime = (m: string, s: string) => {
+                                      const sec =
+                                        (Number(m) || 0) * 60 + (Number(s) || 0);
+                                      updateSetLog(
+                                        globalIndex,
+                                        "actualTime",
+                                        sec ? String(sec) : ""
+                                      );
+                                    };
+                                    return (
+                                      <label className="setLogField">
+                                        <span>
+                                          {i18n.language === "zh"
+                                            ? "实际时间"
+                                            : "Actual time"}
+                                        </span>
+                                        <div className="setLogTimeRow">
+                                          <input
+                                            inputMode="numeric"
+                                            value={mm}
+                                            placeholder="min"
+                                            onChange={(e) =>
+                                              writeTime(
+                                                e.target.value.replace(/\D/g, ""),
+                                                ss
+                                              )
+                                            }
+                                          />
+                                          <span>:</span>
+                                          <input
+                                            inputMode="numeric"
+                                            value={ss}
+                                            placeholder="sec"
+                                            onChange={(e) =>
+                                              writeTime(
+                                                mm,
+                                                e.target.value
+                                                  .replace(/\D/g, "")
+                                                  .slice(0, 2)
+                                              )
+                                            }
+                                          />
+                                        </div>
+                                      </label>
+                                    );
+                                  })()}
+                                </>
+                              )}
                             </div>
                           );
                         })}

@@ -16402,3 +16402,19 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 .mbSetColWide {
   grid-column: span 2;
 }
+
+/* Actual-time mm:ss inputs in cardio logging */
+.setLogTimeRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.setLogTimeRow input {
+  width: 100%;
+  min-width: 0;
+  text-align: center;
+}
+.setLogTimeRow span {
+  color: #888;
+  font-weight: 800;
+}
