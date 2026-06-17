@@ -2747,12 +2747,11 @@ function App() {
     if (!shouldForce && cached && isFreshCache(cached.timestamp)) {
       setPrograms(cached.data);
 
-      if (!selectedAssignProgramId && cached.data.length > 0) {
-        setSelectedAssignProgramId(cached.data[0].programId);
-      }
-
-      if (!selectedSavedProgramId && cached.data.length > 0) {
-        setSelectedSavedProgramId(cached.data[0].programId);
+      if (cached.data.length > 0) {
+        // Functional updater: never clobber a selection the user made while
+        // this (possibly async) load was in flight.
+        setSelectedAssignProgramId((cur) => cur || cached.data[0].programId);
+        setSelectedSavedProgramId((cur) => cur || cached.data[0].programId);
       }
 
       setProgramsLoading(false);
@@ -2766,12 +2765,9 @@ function App() {
       programsCacheRef.current = persistentCache;
       setPrograms(persistentCache.data);
 
-      if (!selectedAssignProgramId && persistentCache.data.length > 0) {
-        setSelectedAssignProgramId(persistentCache.data[0].programId);
-      }
-
-      if (!selectedSavedProgramId && persistentCache.data.length > 0) {
-        setSelectedSavedProgramId(persistentCache.data[0].programId);
+      if (persistentCache.data.length > 0) {
+        setSelectedAssignProgramId((cur) => cur || persistentCache.data[0].programId);
+        setSelectedSavedProgramId((cur) => cur || persistentCache.data[0].programId);
       }
 
       setProgramsLoading(false);
@@ -2793,12 +2789,9 @@ function App() {
       writePersistentCache(CACHE_KEYS.programs, loadedPrograms);
       setPrograms(loadedPrograms);
 
-      if (!selectedAssignProgramId && loadedPrograms.length > 0) {
-        setSelectedAssignProgramId(loadedPrograms[0].programId);
-      }
-
-      if (!selectedSavedProgramId && loadedPrograms.length > 0) {
-        setSelectedSavedProgramId(loadedPrograms[0].programId);
+      if (loadedPrograms.length > 0) {
+        setSelectedAssignProgramId((cur: string) => cur || loadedPrograms[0].programId);
+        setSelectedSavedProgramId((cur: string) => cur || loadedPrograms[0].programId);
       }
 
       return loadedPrograms as Program[];
