@@ -62,7 +62,7 @@ type WorkoutPageTab =
   | "Assignments";
 type ToastType = "success" | "error" | "info";
 type CheckInFilter = "Due" | "Recent" | "No Check-in" | "All";
-type TrackingType = "Weight" | "Time" | "Distance";
+type TrackingType = "Weight" | "Time" | "Distance" | "Pace";
 type ClientBucket =
   | "All Clients"
   | "Active"
@@ -5445,9 +5445,16 @@ function App() {
   ) => {
     const setPrescriptions = normalizeExerciseSetPrescriptions(exercise);
     const isRunning =
-      exercise.trackingType === "Time" || exercise.trackingType === "Distance";
+      exercise.trackingType === "Time" ||
+      exercise.trackingType === "Distance" ||
+      exercise.trackingType === "Pace";
     const isTimeTracked = exercise.trackingType === "Time";
-    const intervalLabel = isTimeTracked ? "Time" : "Distance";
+    const isPaceTracked = exercise.trackingType === "Pace";
+    const intervalLabel = isTimeTracked
+      ? "Time"
+      : isPaceTracked
+        ? "Pace"
+        : "Distance";
     // Treadmill/track/outdoor runs are pace-driven (%MAS); machines (bike, row,
     // erg, etc.) are HR/RPE-driven, so they only need the named zone.
     const isRunExercise = /run|treadmill|track|jog/i.test(
@@ -5465,6 +5472,7 @@ function App() {
             {([
               { tt: "Distance" as TrackingType, label: "Distance" },
               { tt: "Time" as TrackingType, label: "Time" },
+              { tt: "Pace" as TrackingType, label: "Pace" },
             ]).map(({ tt, label }) => (
               <button
                 key={tt}
@@ -5540,7 +5548,56 @@ function App() {
             {isRunning ? (
               <>
                 <div className="builderIntervalCell">
-                  {isTimeTracked
+                  {isPaceTracked
+                    ? (() => {
+                        // Pace target as mm:ss per km, stored as "M:SS/km".
+                        const raw = String(set.reps || "").trim();
+                        const match = raw.match(/(\d+):(\d{1,2})/);
+                        const minutes = match ? match[1] : "";
+                        const seconds = match ? match[2] : "";
+                        const writePace = (m: string, s: string) =>
+                          updateExerciseSetPrescription(
+                            exerciseIndex,
+                            setIndex,
+                            "reps",
+                            m || s
+                              ? `${m || "0"}:${String(s || "0").padStart(2, "0")}/km`
+                              : ""
+                          );
+                        return (
+                          <>
+                            <input
+                              className="miniSearch builderTimeValue"
+                              inputMode="numeric"
+                              value={minutes}
+                              onChange={(event) =>
+                                writePace(
+                                  event.target.value.replace(/\D/g, ""),
+                                  seconds
+                                )
+                              }
+                              placeholder="min"
+                            />
+                            <span className="builderTimeColon">:</span>
+                            <input
+                              className="miniSearch builderTimeValue"
+                              inputMode="numeric"
+                              value={seconds}
+                              onChange={(event) =>
+                                writePace(
+                                  minutes,
+                                  event.target.value.replace(/\D/g, "").slice(0, 2)
+                                )
+                              }
+                              placeholder="sec"
+                            />
+                            <span className="builderIntervalUnit builderPaceUnit">
+                              /km
+                            </span>
+                          </>
+                        );
+                      })()
+                    : isTimeTracked
                     ? (() => {
                         const raw = String(set.reps || "").trim();
                         const colon = raw.split(":");
@@ -7209,13 +7266,16 @@ function App() {
   ) => {
     const sets = normalizeExerciseSetPrescriptions(exercise);
     const isRunning =
-      exercise.trackingType === "Time" || exercise.trackingType === "Distance";
+      exercise.trackingType === "Time" ||
+      exercise.trackingType === "Distance" ||
+      exercise.trackingType === "Pace";
     const isTime = exercise.trackingType === "Time";
+    const isPace = exercise.trackingType === "Pace";
     return (
       <div className="mbSetTable">
         <div className="mbSetHead">
           <span>Set</span>
-          <span>{isRunning ? (isTime ? "Time" : "Dist") : "Kg"}</span>
+          <span>{isRunning ? (isTime ? "Time" : isPace ? "Pace" : "Dist") : "Kg"}</span>
           <span>{isRunning ? "Zone" : "Reps"}</span>
           <span>Rest</span>
           <span />
@@ -10229,6 +10289,34 @@ function App() {
 
     return date ? `${source} - ${date}` : source;
   };
+  // Running volume from logged distance (stored in metres). Calendar week
+  // (Mon–Sun) and calendar month totals, in km.
+  const runningHistoryLogs = workoutHistoryLogs.filter(
+    (log) =>
+      /run|jog|treadmill|track|sprint/i.test(log.exerciseName || "") &&
+      Number(log.actualDistance) > 0
+  );
+  const startOfThisWeek = (() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); // back to Monday
+    return d;
+  })();
+  const startOfThisMonth = (() => {
+    const d = new Date();
+    return new Date(d.getFullYear(), d.getMonth(), 1);
+  })();
+  const sumRunningKm = (since: Date) =>
+    runningHistoryLogs.reduce((acc, log) => {
+      const dt = new Date(`${normalizeDate(log.date)}T00:00:00`);
+      return dt >= since
+        ? acc + (Number(log.actualDistance) || 0) / 1000
+        : acc;
+    }, 0);
+  const runKmThisWeek = sumRunningKm(startOfThisWeek);
+  const runKmThisMonth = sumRunningKm(startOfThisMonth);
+  const hasRunningHistory = runningHistoryLogs.length > 0;
+
   const clientPerformanceMetrics = [
     {
       key: "estimated-one-rep-max",
@@ -10248,6 +10336,22 @@ function App() {
           : "Manual"
         : formatAthleteMetricMeta(latestMasMetric),
     },
+    ...(hasRunningHistory
+      ? [
+          {
+            key: "run-week",
+            label: paceZh ? "本周跑量" : "Run This Week",
+            value: `${runKmThisWeek.toFixed(1)} km`,
+            meta: paceZh ? "周一至周日" : "Mon–Sun",
+          },
+          {
+            key: "run-month",
+            label: paceZh ? "本月跑量" : "Run This Month",
+            value: `${runKmThisMonth.toFixed(1)} km`,
+            meta: paceZh ? "本日历月" : "This month",
+          },
+        ]
+      : []),
   ];
   const completedWorkoutCount = workouts.filter(
     (workout) => normalizeTaskStatus(workout.completionStatus) === "Completed"
@@ -20935,6 +21039,7 @@ function App() {
                           const showWeightInputs = log.trackingType === "Weight";
                           const showTimeInput = log.trackingType === "Time";
                           const showDistanceInput = log.trackingType === "Distance";
+                          const showPaceInput = log.trackingType === "Pace";
                           const sideLabel =
                             log.side === "Right"
                               ? t("right")
@@ -21032,7 +21137,7 @@ function App() {
                               )}
 
                               {/* Cardio targets, by prescription method. */}
-                              {(showTimeInput || showDistanceInput) &&
+                              {(showTimeInput || showDistanceInput || showPaceInput) &&
                                 (() => {
                                   const zh = i18n.language === "zh";
                                   const mode = log.prescribedIntensityMode || "";
@@ -21042,6 +21147,14 @@ function App() {
                                   );
                                   const isTread = /treadmill/i.test(log.exerciseName);
                                   const chips: { label: string; value: string }[] = [];
+
+                                  // Pace-tracked sets carry the target pace directly.
+                                  if (showPaceInput && log.prescribedReps) {
+                                    chips.push({
+                                      label: zh ? "目标配速" : "Target pace",
+                                      value: log.prescribedReps,
+                                    });
+                                  }
 
                                   if (mode === "hr") {
                                     if (log.prescribedIntensityValue)
@@ -21098,18 +21211,24 @@ function App() {
                                   ));
                                 })()}
 
-                              {(showTimeInput || showDistanceInput) &&
+                              {(showTimeInput || showDistanceInput || showPaceInput) &&
                                 (() => {
                                   // Cardio sets: a simple completion checkbox (for
                                   // now). Checking it logs the prescribed amount.
                                   const field = showTimeInput
                                     ? "actualTime"
-                                    : "actualDistance";
+                                    : showPaceInput
+                                      ? "actualReps"
+                                      : "actualDistance";
                                   const done = showTimeInput
                                     ? Boolean(log.actualTime)
-                                    : Boolean(log.actualDistance);
+                                    : showPaceInput
+                                      ? Boolean(log.actualReps)
+                                      : Boolean(log.actualDistance);
                                   const raw = String(log.prescribedReps || "");
-                                  const completedValue = showTimeInput
+                                  const completedValue = showPaceInput
+                                    ? "1"
+                                    : showTimeInput
                                     ? raw.includes(":")
                                       ? String(
                                           (Number(raw.split(":")[0]) || 0) * 60 +

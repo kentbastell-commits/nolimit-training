@@ -16383,3 +16383,14 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* Pace prescription "/km" unit label in the cardio builder */
+.builderPaceUnit {
+  display: inline-grid;
+  place-items: center;
+  padding: 0 6px;
+  color: #66665f;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
