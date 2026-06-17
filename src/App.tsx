@@ -1538,6 +1538,7 @@ function App() {
     number | null
   >(null);
   const [workoutTabsMenuOpen, setWorkoutTabsMenuOpen] = useState(false);
+  const [reviewFlashColumn, setReviewFlashColumn] = useState<string | null>(null);
   const [builderLibraryMode, setBuilderLibraryMode] =
     useState<BuilderLibraryMode>("Exercises");
   const [isBuilderLibraryOpen, setIsBuilderLibraryOpen] = useState(false);
@@ -7077,6 +7078,16 @@ function App() {
     setMobileBuilderStep("details");
   };
 
+  const focusReviewColumn = (columnId: string) => {
+    const el = document.getElementById(columnId);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    setReviewFlashColumn(columnId);
+    window.setTimeout(
+      () => setReviewFlashColumn((current) => (current === columnId ? null : current)),
+      1200
+    );
+  };
+
   const openMobileAlternate = (index: number) => {
     if (libraryExercises.length === 0 && !libraryLoading) {
       void loadExerciseLibrary();
@@ -11483,26 +11494,49 @@ function App() {
                 )}
 
                 <div className="coachReviewSummaryGrid">
-                  <article className="coachReviewSummaryCard">
+                  <button
+                    type="button"
+                    className="coachReviewSummaryCard"
+                    onClick={() => focusReviewColumn("reviewColComments")}
+                  >
                     <span>Workout comments</span>
                     <strong>{globalUnreviewedWorkoutComments.length}</strong>
-                  </article>
-                  <article className="coachReviewSummaryCard">
+                  </button>
+                  <button
+                    type="button"
+                    className="coachReviewSummaryCard"
+                    onClick={() => focusReviewColumn("reviewColSubmissions")}
+                  >
                     <span>Submissions</span>
                     <strong>{globalReviewSubmissionItems.length}</strong>
-                  </article>
-                  <article className="coachReviewSummaryCard">
+                  </button>
+                  <button
+                    type="button"
+                    className="coachReviewSummaryCard"
+                    onClick={() => focusReviewColumn("reviewColMissed")}
+                  >
                     <span>Missed tasks</span>
                     <strong>{globalMissedWorkouts.length}</strong>
-                  </article>
-                  <article className="coachReviewSummaryCard">
+                  </button>
+                  <button
+                    type="button"
+                    className="coachReviewSummaryCard"
+                    onClick={() => focusReviewColumn("reviewColComments")}
+                  >
                     <span>Order reviews</span>
                     <strong>{globalReviewOrders.length}</strong>
-                  </article>
+                  </button>
                 </div>
 
                 <div className="coachReviewBoard">
-                  <article className="coachReviewColumn">
+                  <article
+                    id="reviewColComments"
+                    className={`coachReviewColumn ${
+                      reviewFlashColumn === "reviewColComments"
+                        ? "coachReviewColumnFlash"
+                        : ""
+                    }`}
+                  >
                     <div className="coachReviewColumnHeader">
                       <div>
                         <span>Needs review</span>
@@ -11594,7 +11628,14 @@ function App() {
                     </div>
                   </article>
 
-                  <article className="coachReviewColumn">
+                  <article
+                    id="reviewColMissed"
+                    className={`coachReviewColumn ${
+                      reviewFlashColumn === "reviewColMissed"
+                        ? "coachReviewColumnFlash"
+                        : ""
+                    }`}
+                  >
                     <div className="coachReviewColumnHeader">
                       <div>
                         <span>Training</span>
@@ -11628,7 +11669,14 @@ function App() {
                     </div>
                   </article>
 
-                  <article className="coachReviewColumn">
+                  <article
+                    id="reviewColSubmissions"
+                    className={`coachReviewColumn ${
+                      reviewFlashColumn === "reviewColSubmissions"
+                        ? "coachReviewColumnFlash"
+                        : ""
+                    }`}
+                  >
                     <div className="coachReviewColumnHeader">
                       <div>
                         <span>Submissions</span>

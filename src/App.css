@@ -2772,6 +2772,18 @@ body {
 .coachReviewSummaryCard {
   position: relative;
   overflow: hidden;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+.coachReviewSummaryCard:hover,
+.coachReviewSummaryCard:focus-visible {
+  border-color: #b08918;
+  box-shadow: 0 0.85rem 1.8rem rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
 }
 
 .coachReviewSummaryCard::before {
@@ -2782,6 +2794,28 @@ body {
   left: 0;
   width: 4px;
   background: #d4af37;
+}
+
+.coachReviewColumn {
+  scroll-margin-top: 90px;
+  transition: box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.coachReviewColumnFlash {
+  border-color: #b08918;
+  box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.55),
+    0 0.9rem 2rem rgba(0, 0, 0, 0.1);
+  animation: coachReviewFlash 1.2s ease;
+}
+
+@keyframes coachReviewFlash {
+  0% {
+    box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.75),
+      0 0.9rem 2rem rgba(0, 0, 0, 0.12);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(212, 175, 55, 0);
+  }
 }
 
 .coachReviewHero {
