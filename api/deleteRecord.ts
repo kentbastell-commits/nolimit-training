@@ -7,6 +7,8 @@ const TABLES = {
   assignedForm: "FEISHU_ASSIGNED_FORMS_TABLE_ID",
   assignedTest: "FEISHU_ASSIGNED_TESTS_TABLE_ID",
   productOrder: "FEISHU_PRODUCT_ORDERS_TABLE_ID",
+  program: "FEISHU_PROGRAMS_TABLE_ID",
+  workoutTemplate: "FEISHU_WORKOUT_TEMPLATES_TABLE_ID",
 } as const;
 
 type DeleteResource = keyof typeof TABLES;

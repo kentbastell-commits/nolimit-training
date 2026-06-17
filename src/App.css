@@ -14224,6 +14224,22 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   border-radius: 9px !important;
 }
 
+/* Each strength field is wrapped in a label so it can carry its own caption on
+   mobile (where the column header is hidden). On desktop the label is invisible
+   chrome — it just fills its grid column and the input fills the label. */
+.builderSetField {
+  display: block !important;
+  min-width: 0 !important;
+}
+
+.builderSetField .miniSearch {
+  width: 100% !important;
+}
+
+.builderSetFieldLabel {
+  display: none !important;
+}
+
 .builderSetTableActions {
   display: flex !important;
   flex-wrap: wrap !important;
@@ -14322,13 +14338,49 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
     display: none !important;
   }
 
+  /* Portrait: the column header is hidden, so lay each set out as a labeled
+     2-up grid that fits a phone without horizontal scroll (no landscape). */
   .builderSetTableRow {
-    grid-template-columns: 46px 1fr 1fr !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+    padding: 10px !important;
   }
 
-  .builderSetTableRow input:nth-of-type(3),
-  .builderSetTableRow input:nth-of-type(4) {
-    grid-column: span 1 !important;
+  .builderSetNumberCell {
+    grid-column: 1 / -1 !important;
+  }
+
+  .builderSetTableRow strong {
+    height: 30px !important;
+    place-items: center start !important;
+    padding: 0 10px !important;
+  }
+
+  .builderSetRemoveButton {
+    opacity: 1 !important;
+    left: auto !important;
+    right: 6px !important;
+    transform: translateY(-50%) scale(1) !important;
+  }
+
+  .builderSetField {
+    display: grid !important;
+    gap: 3px !important;
+  }
+
+  .builderSetFieldLabel {
+    display: block !important;
+    font-size: 10px !important;
+    font-weight: 900 !important;
+    letter-spacing: 0.06em !important;
+    text-transform: uppercase !important;
+    color: #66665f !important;
+  }
+
+  /* Cardio cells (interval / zone / rest) keep their own widths but should fill
+     the 2-up grid rather than overflow. */
+  .builderSetPrescriptionRunning .builderSetTableRow {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
 }
 
@@ -15090,4 +15142,63 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 .mobileSetLogRow .setLogField input {
   padding: 7px 9px !important;
   font-size: 15px !important;
+}
+
+/* ---- Mobile program builder: portrait-friendly set table ----
+   The coach builder's set table is normally a wide multi-column grid (defined
+   by the high-specificity `.app:not(.clientPortalApp) .builderSetTableRow`
+   rule, which lives outside any media query). To make the builder usable in
+   portrait without landscape, re-declare the layout here — last in source and
+   at matching specificity so it wins — as a labeled 2-up grid. */
+@media (max-width: 980px) {
+  .app:not(.clientPortalApp) .builderSetTableHeader,
+  .clientPortalApp .builderSetTableHeader {
+    display: none !important;
+  }
+
+  .app:not(.clientPortalApp) .builderSetTableRow,
+  .clientPortalApp .builderSetTableRow,
+  .app:not(.clientPortalApp) .builderSetPrescriptionRunning .builderSetTableRow,
+  .clientPortalApp .builderSetPrescriptionRunning .builderSetTableRow {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+    padding: 10px !important;
+  }
+
+  .app:not(.clientPortalApp) .builderSetNumberCell,
+  .clientPortalApp .builderSetNumberCell {
+    grid-column: 1 / -1 !important;
+  }
+
+  .app:not(.clientPortalApp) .builderSetTableRow strong,
+  .clientPortalApp .builderSetTableRow strong {
+    height: 30px !important;
+    place-items: center start !important;
+    padding: 0 10px !important;
+    font-size: 13px !important;
+  }
+
+  .app:not(.clientPortalApp) .builderSetRemoveButton,
+  .clientPortalApp .builderSetRemoveButton {
+    opacity: 1 !important;
+    left: auto !important;
+    right: 6px !important;
+    transform: translateY(-50%) scale(1) !important;
+  }
+
+  .app:not(.clientPortalApp) .builderSetField,
+  .clientPortalApp .builderSetField {
+    display: grid !important;
+    gap: 3px !important;
+  }
+
+  .app:not(.clientPortalApp) .builderSetFieldLabel,
+  .clientPortalApp .builderSetFieldLabel {
+    display: block !important;
+    font-size: 10px !important;
+    font-weight: 900 !important;
+    letter-spacing: 0.06em !important;
+    text-transform: uppercase !important;
+    color: #66665f !important;
+  }
 }
