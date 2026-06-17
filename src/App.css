@@ -15530,9 +15530,221 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 .mbCardControls {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: space-between;
   gap: 10px;
   margin-top: 10px;
+}
+
+.mbAddSet {
+  border: none;
+  background: transparent;
+  color: #8f6b12;
+  font-size: 14px;
+  font-weight: 900;
+  padding: 4px 2px;
+  cursor: pointer;
+}
+
+/* Compact Everfit-style set table */
+.mbSetTable {
+  margin-top: 4px;
+}
+
+.mbSetHead,
+.mbSetRow {
+  display: grid;
+  grid-template-columns: 34px 1fr 1fr 1fr 26px;
+  align-items: center;
+  gap: 6px;
+}
+
+.mbSetHead {
+  padding: 4px 0 6px;
+  border-bottom: 1px solid rgba(17, 17, 17, 0.08);
+}
+
+.mbSetHead span {
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #8a8a82;
+  text-align: center;
+}
+
+.mbSetHead span:first-child {
+  text-align: left;
+  padding-left: 4px;
+}
+
+.mbSetRow {
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(17, 17, 17, 0.05);
+}
+
+.mbSetNum {
+  font-size: 15px;
+  font-weight: 900;
+  color: #111;
+  padding-left: 6px;
+}
+
+.mbSetInput {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid rgba(17, 17, 17, 0.12);
+  border-radius: 9px;
+  background: #fff;
+  color: #111;
+  font-size: 15px;
+  font-weight: 700;
+  text-align: center;
+  padding: 6px 4px;
+}
+
+.mbSetInput::placeholder {
+  color: #c2bdb1;
+}
+
+.mbSetDel {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: #b46b6b;
+  cursor: pointer;
+}
+
+.mbCardMenuBtn {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  color: #66665f;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+/* Bottom-sheet popups (arrange / exercise options / details) */
+.mobileBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 3200;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  background: rgba(15, 15, 15, 0.42);
+  backdrop-filter: blur(2px);
+}
+
+.mobileBottomSheet {
+  display: flex;
+  flex-direction: column;
+  max-height: 78vh;
+  padding: 8px 16px calc(20px + env(safe-area-inset-bottom));
+  border-radius: 22px 22px 0 0;
+  background: #fffdf8;
+  box-shadow: 0 -18px 50px rgba(0, 0, 0, 0.3);
+  animation: mbSheetUp 200ms ease;
+}
+
+@keyframes mbSheetUp {
+  from {
+    transform: translateY(18px);
+    opacity: 0.6;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.mobileSheetHandle {
+  width: 44px;
+  height: 5px;
+  margin: 4px auto 12px;
+  border-radius: 999px;
+  background: rgba(17, 17, 17, 0.18);
+  flex-shrink: 0;
+}
+
+.mobileSheetTitleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.mobileSheetTitleRow h3 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 950;
+  color: #111;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mobileSheetScroll {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.mobileOptionsTitle {
+  margin: 0 0 16px;
+  text-align: center;
+  font-size: 18px;
+  font-weight: 950;
+  color: #111;
+}
+
+.mobileOptionsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px 8px;
+  padding-bottom: 6px;
+}
+
+.mobileOptionsGrid button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  background: transparent;
+  color: #333;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.mbOptIcon {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 999px;
+  background: #151515;
+  color: #f5d77b;
+}
+
+.mbOptIconDanger {
+  background: #7a1c1c;
+  color: #ffd9d9;
+}
+
+.mbDetailsHint {
+  margin: 0 0 10px;
+  color: #66665f;
+  font-size: 13px;
+  font-weight: 700;
 }
 
 .mbEachSide {

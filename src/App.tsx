@@ -1529,6 +1529,10 @@ function App() {
   const mobileArrangeRefs = useRef<(HTMLDivElement | null)[]>([]);
   const mobileDragIndexRef = useRef<number | null>(null);
   const mobileDragOverIndexRef = useRef<number | null>(null);
+  const [mobileMenuIndex, setMobileMenuIndex] = useState<number | null>(null);
+  const [mobileDetailsIndex, setMobileDetailsIndex] = useState<number | null>(
+    null
+  );
   const [builderLibraryMode, setBuilderLibraryMode] =
     useState<BuilderLibraryMode>("Exercises");
   const [isBuilderLibraryOpen, setIsBuilderLibraryOpen] = useState(false);
@@ -7055,6 +7059,86 @@ function App() {
   const finishMobileProgram = async () => {
     await saveFullProgram();
     setMobileBuilderStep("details");
+  };
+
+  // Compact Everfit-style set table for the mobile card. The full editor
+  // (%1RM, tempo, cardio zones) lives behind the card's ⋯ "Details" sheet,
+  // which reuses renderSetPrescriptionTable.
+  const renderMobileSetTable = (
+    exercise: ProgramExercise,
+    exerciseIndex: number
+  ) => {
+    const sets = normalizeExerciseSetPrescriptions(exercise);
+    const isRunning =
+      exercise.trackingType === "Time" || exercise.trackingType === "Distance";
+    const isTime = exercise.trackingType === "Time";
+    return (
+      <div className="mbSetTable">
+        <div className="mbSetHead">
+          <span>Set</span>
+          <span>{isRunning ? (isTime ? "Time" : "Dist") : "Kg"}</span>
+          <span>{isRunning ? "Zone" : "Reps"}</span>
+          <span>Rest</span>
+          <span />
+        </div>
+        {sets.map((set, setIndex) => (
+          <div className="mbSetRow" key={setIndex}>
+            <span className="mbSetNum">{set.setNumber}</span>
+            <input
+              className="mbSetInput"
+              value={isRunning ? set.reps : set.load}
+              placeholder="–"
+              onChange={(e) =>
+                updateExerciseSetPrescription(
+                  exerciseIndex,
+                  setIndex,
+                  isRunning ? "reps" : "load",
+                  e.target.value
+                )
+              }
+            />
+            <input
+              className="mbSetInput"
+              value={isRunning ? set.percentMas : set.reps}
+              placeholder="–"
+              inputMode={isRunning ? "decimal" : "numeric"}
+              onChange={(e) =>
+                updateExerciseSetPrescription(
+                  exerciseIndex,
+                  setIndex,
+                  isRunning ? "percentMas" : "reps",
+                  e.target.value
+                )
+              }
+            />
+            <input
+              className="mbSetInput"
+              value={set.rest}
+              placeholder="0:00"
+              onChange={(e) =>
+                updateExerciseSetPrescription(
+                  exerciseIndex,
+                  setIndex,
+                  "rest",
+                  e.target.value
+                )
+              }
+            />
+            {sets.length > 1 ? (
+              <button
+                className="mbSetDel"
+                aria-label={`Remove set ${set.setNumber}`}
+                onClick={() => removeExerciseSet(exerciseIndex, setIndex)}
+              >
+                <X size={14} />
+              </button>
+            ) : (
+              <span />
+            )}
+          </div>
+        ))}
+      </div>
+    );
   };
 
   useEffect(() => {
@@ -14478,25 +14562,16 @@ function App() {
                                             : ""}
                                           {exercise.exerciseName}
                                         </strong>
-                                        <div className="mbCardActions">
-                                          <button
-                                            onClick={() =>
-                                              duplicateProgramExercise(index)
-                                            }
-                                            aria-label="Duplicate exercise"
-                                          >
-                                            <Copy size={16} />
-                                          </button>
-                                          <button
-                                            onClick={() => removeProgramExercise(index)}
-                                            aria-label="Remove exercise"
-                                          >
-                                            <X size={16} />
-                                          </button>
-                                        </div>
+                                        <button
+                                          className="mbCardMenuBtn"
+                                          aria-label="Exercise options"
+                                          onClick={() => setMobileMenuIndex(index)}
+                                        >
+                                          <MoreVertical size={18} />
+                                        </button>
                                       </div>
 
-                                      {renderSetPrescriptionTable(exercise, index)}
+                                      {renderMobileSetTable(exercise, index)}
 
                                       <div className="mbCardControls">
                                         <label className="mbEachSide">
@@ -14513,6 +14588,14 @@ function App() {
                                           />
                                           Each side
                                         </label>
+                                        <button
+                                          className="mbAddSet"
+                                          onClick={() =>
+                                            adjustProgramExerciseSets(index, 1)
+                                          }
+                                        >
+                                          + Add Set
+                                        </button>
                                       </div>
 
                                       <textarea
@@ -14668,60 +14751,158 @@ function App() {
                     )}
 
                     {mobileBuilderStep === "arrange" && (
-                      <div className="mobileSheet">
-                        <header className="mobileBuilderHeader">
-                          <button
-                            className="mbHeaderBack"
-                            onClick={() => setMobileBuilderStep("editor")}
-                            aria-label="Back"
-                          >
-                            ‹
-                          </button>
-                          <h2>Arrange exercises</h2>
-                          <button
-                            className="mbHeaderAction"
-                            onClick={() => setMobileBuilderStep("editor")}
-                          >
-                            Done
-                          </button>
-                        </header>
-                        <div className="mobileBuilderBody">
-                          {selectedProgramExercises.map((exercise, index) => (
-                            <div
-                              key={`${exercise.exerciseId}-${index}`}
-                              ref={(el) => {
-                                mobileArrangeRefs.current[index] = el;
-                              }}
-                              className={`mobileArrangeRow ${
-                                mobileDragIndex === index
-                                  ? "mobileArrangeRowDragging"
-                                  : ""
-                              } ${
-                                mobileDragOverIndex === index &&
-                                mobileDragIndex !== null &&
-                                mobileDragIndex !== index
-                                  ? "mobileArrangeRowOver"
-                                  : ""
-                              }`}
+                      <div
+                        className="mobileBackdrop"
+                        onClick={() => setMobileBuilderStep("editor")}
+                      >
+                        <div
+                          className="mobileBottomSheet"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <div className="mobileSheetHandle" />
+                          <div className="mobileSheetTitleRow">
+                            <h3>Arrange exercises</h3>
+                            <button
+                              className="mbHeaderAction"
+                              onClick={() => setMobileBuilderStep("editor")}
                             >
-                              <span className="mobileArrangeName">
-                                {exercise.exerciseLabel
-                                  ? `${exercise.exerciseLabel} · `
-                                  : ""}
-                                {exercise.exerciseName}
-                              </span>
-                              <button
-                                className="mobileArrangeHandle"
-                                aria-label="Drag to reorder"
-                                onPointerDown={(e) => startMobileDrag(e, index)}
+                              Done
+                            </button>
+                          </div>
+                          <div className="mobileSheetScroll">
+                            {selectedProgramExercises.map((exercise, index) => (
+                              <div
+                                key={`${exercise.exerciseId}-${index}`}
+                                ref={(el) => {
+                                  mobileArrangeRefs.current[index] = el;
+                                }}
+                                className={`mobileArrangeRow ${
+                                  mobileDragIndex === index
+                                    ? "mobileArrangeRowDragging"
+                                    : ""
+                                } ${
+                                  mobileDragOverIndex === index &&
+                                  mobileDragIndex !== null &&
+                                  mobileDragIndex !== index
+                                    ? "mobileArrangeRowOver"
+                                    : ""
+                                }`}
                               >
-                                <GripVertical size={20} />
-                              </button>
-                            </div>
-                          ))}
+                                <span className="mobileArrangeName">
+                                  {exercise.exerciseLabel
+                                    ? `${exercise.exerciseLabel} · `
+                                    : ""}
+                                  {exercise.exerciseName}
+                                </span>
+                                <button
+                                  className="mobileArrangeHandle"
+                                  aria-label="Drag to reorder"
+                                  onPointerDown={(e) => startMobileDrag(e, index)}
+                                >
+                                  <GripVertical size={20} />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       </div>
                     )}
+
+                    {mobileMenuIndex !== null &&
+                      selectedProgramExercises[mobileMenuIndex] && (
+                        <div
+                          className="mobileBackdrop"
+                          onClick={() => setMobileMenuIndex(null)}
+                        >
+                          <div
+                            className="mobileBottomSheet mobileOptionsSheet"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <div className="mobileSheetHandle" />
+                            <h3 className="mobileOptionsTitle">Exercise options</h3>
+                            <div className="mobileOptionsGrid">
+                              <button
+                                onClick={() => {
+                                  setMobileDetailsIndex(mobileMenuIndex);
+                                  setMobileMenuIndex(null);
+                                }}
+                              >
+                                <span className="mbOptIcon">
+                                  <Eye size={22} />
+                                </span>
+                                Details
+                              </button>
+                              <button
+                                onClick={() => {
+                                  duplicateProgramExercise(mobileMenuIndex);
+                                  setMobileMenuIndex(null);
+                                }}
+                              >
+                                <span className="mbOptIcon">
+                                  <Copy size={22} />
+                                </span>
+                                Duplicate
+                              </button>
+                              <button
+                                onClick={() => {
+                                  removeProgramExercise(mobileMenuIndex);
+                                  setMobileMenuIndex(null);
+                                }}
+                              >
+                                <span className="mbOptIcon mbOptIconDanger">
+                                  <Trash2 size={22} />
+                                </span>
+                                Delete
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                    {mobileDetailsIndex !== null &&
+                      selectedProgramExercises[mobileDetailsIndex] && (
+                        <div
+                          className="mobileBackdrop"
+                          onClick={() => setMobileDetailsIndex(null)}
+                        >
+                          <div
+                            className="mobileBottomSheet mobileDetailsSheet"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <div className="mobileSheetHandle" />
+                            <div className="mobileSheetTitleRow">
+                              <h3>
+                                {
+                                  selectedProgramExercises[mobileDetailsIndex]
+                                    .exerciseName
+                                }
+                              </h3>
+                              <button
+                                className="mbHeaderAction"
+                                onClick={() => setMobileDetailsIndex(null)}
+                              >
+                                Done
+                              </button>
+                            </div>
+                            <div className="mobileSheetScroll">
+                              <p className="mbDetailsHint">
+                                Full set detail — load, %1RM, tempo, rest
+                                {isCardioCategory(
+                                  selectedProgramExercises[mobileDetailsIndex]
+                                    .sectionName
+                                )
+                                  ? " and zones"
+                                  : ""}
+                                .
+                              </p>
+                              {renderSetPrescriptionTable(
+                                selectedProgramExercises[mobileDetailsIndex],
+                                mobileDetailsIndex
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
                   </>
                 )}
 
