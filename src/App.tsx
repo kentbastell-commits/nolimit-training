@@ -5478,9 +5478,7 @@ function App() {
                 key={tt}
                 type="button"
                 className={exercise.trackingType === tt ? "active" : ""}
-                onClick={() =>
-                  updateProgramExercise(exerciseIndex, "trackingType", tt)
-                }
+                onClick={() => changeExerciseTrackingType(exerciseIndex, tt)}
               >
                 {label}
               </button>
@@ -6133,6 +6131,26 @@ function App() {
       field === "sectionName" || field === "isAccessory"
         ? relabelProgramExercises(nextExercises)
         : nextExercises
+    );
+  };
+
+  // Switching cardio tracking type (Distance / Time / Pace) clears the now
+  // format-mismatched interval values so no stale number lingers.
+  const changeExerciseTrackingType = (index: number, tt: TrackingType) => {
+    setSelectedProgramExercises((current) =>
+      current.map((exercise, itemIndex) =>
+        itemIndex === index
+          ? {
+              ...exercise,
+              trackingType: tt,
+              reps: "",
+              setPrescriptions: (exercise.setPrescriptions || []).map((set) => ({
+                ...set,
+                reps: "",
+              })),
+            }
+          : exercise
+      )
     );
   };
 
