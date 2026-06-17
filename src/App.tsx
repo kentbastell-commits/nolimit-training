@@ -1514,6 +1514,21 @@ function App() {
     null
   );
   const [builderSearch, setBuilderSearch] = useState("");
+  // Mobile-native builder (Everfit-style portrait flow). These only drive the
+  // mobile render branch; the desktop builder ignores them entirely.
+  const [mobileBuilderStep, setMobileBuilderStep] = useState<
+    "details" | "editor" | "picker" | "arrange"
+  >("details");
+  const [mobilePickerSelected, setMobilePickerSelected] = useState<Set<string>>(
+    new Set()
+  );
+  const [mobileDragIndex, setMobileDragIndex] = useState<number | null>(null);
+  const [mobileDragOverIndex, setMobileDragOverIndex] = useState<number | null>(
+    null
+  );
+  const mobileArrangeRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const mobileDragIndexRef = useRef<number | null>(null);
+  const mobileDragOverIndexRef = useRef<number | null>(null);
   const [builderLibraryMode, setBuilderLibraryMode] =
     useState<BuilderLibraryMode>("Exercises");
   const [isBuilderLibraryOpen, setIsBuilderLibraryOpen] = useState(false);
@@ -6917,6 +6932,89 @@ function App() {
       ? isCardioCategory(exercise.category)
       : !isCardioCategory(exercise.category);
   });
+
+  // ---- Mobile builder helpers (only used by the mobile render branch) ----
+  const openMobilePicker = () => {
+    setAccessoryTargetIndex(null);
+    if (libraryExercises.length === 0 && !libraryLoading) {
+      void loadExerciseLibrary();
+    }
+    setMobilePickerSelected(new Set());
+    setMobileBuilderStep("picker");
+  };
+
+  const toggleMobilePick = (key: string) => {
+    setMobilePickerSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  const commitMobilePicker = () => {
+    const chosen = builderExercises.filter((exercise) =>
+      mobilePickerSelected.has(exercise.recordId || exercise.exerciseId)
+    );
+    chosen.forEach((exercise) => addExerciseToProgram(exercise));
+    setMobilePickerSelected(new Set());
+    setMobileBuilderStep("editor");
+  };
+
+  const startMobileDrag = (
+    event: React.PointerEvent<HTMLButtonElement>,
+    index: number
+  ) => {
+    event.preventDefault();
+    mobileDragIndexRef.current = index;
+    mobileDragOverIndexRef.current = index;
+    setMobileDragIndex(index);
+    setMobileDragOverIndex(index);
+
+    const onMove = (moveEvent: PointerEvent) => {
+      const y = moveEvent.clientY;
+      let over = mobileDragIndexRef.current ?? index;
+      mobileArrangeRefs.current.forEach((el, i) => {
+        if (!el) return;
+        const rect = el.getBoundingClientRect();
+        if (y >= rect.top && y <= rect.bottom) over = i;
+      });
+      mobileDragOverIndexRef.current = over;
+      setMobileDragOverIndex(over);
+    };
+
+    const onUp = () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      const from = mobileDragIndexRef.current;
+      const to = mobileDragOverIndexRef.current;
+      if (from !== null && to !== null && from !== to) {
+        reorderProgramExercise(from, to);
+      }
+      mobileDragIndexRef.current = null;
+      mobileDragOverIndexRef.current = null;
+      setMobileDragIndex(null);
+      setMobileDragOverIndex(null);
+    };
+
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+  };
+
+  const saveMobileWorkout = async () => {
+    await saveFullProgram();
+    setMobileBuilderStep("details");
+  };
+
+  const saveMobileProgramDay = () => {
+    saveCurrentSessionToProgram(true, true);
+    setMobileBuilderStep("details");
+  };
+
+  const finishMobileProgram = async () => {
+    await saveFullProgram();
+    setMobileBuilderStep("details");
+  };
 
   useEffect(() => {
     if (!builderSaveStatusReadyRef.current) {
@@ -12694,7 +12792,7 @@ function App() {
                   </section>
                 )}
 
-                {workoutPageTab === "Program Builder" && (
+                {workoutPageTab === "Program Builder" && !useMobileWorkoutRows && (
               <section className="tableCard programBuilderPanel">
                 <div className="builderModeSelectRow">
                   <label>
@@ -14173,6 +14271,417 @@ function App() {
                     : "Save Full Program"}
                 </button>
               </section>
+                )}
+
+                {workoutPageTab === "Program Builder" && useMobileWorkoutRows && (
+                  <>
+                    <section className="mobileBuilder">
+                      {mobileBuilderStep === "details" ? (
+                        <div className="mobileBuilderBody">
+                          <h2 className="mbScreenTitle">
+                            {isSingleWorkoutBuilder ? "New Workout" : "New Program"}
+                          </h2>
+
+                          <div className="mbField">
+                            <span className="mbFieldLabel">Builder type</span>
+                            <select
+                              className="miniSearch"
+                              value={builderMode}
+                              onChange={(e) =>
+                                setBuilderMode(
+                                  e.target.value as "Program" | "Single Workout"
+                                )
+                              }
+                            >
+                              <option value="Single Workout">Single Workout</option>
+                              <option value="Program">Multi-Day Program</option>
+                            </select>
+                          </div>
+
+                          <div className="mbField">
+                            <span className="mbFieldLabel">
+                              {isSingleWorkoutBuilder ? "Workout name" : "Program name"}
+                            </span>
+                            <input
+                              className="miniSearch"
+                              value={programName}
+                              onChange={(e) => setProgramName(e.target.value)}
+                              placeholder={
+                                isSingleWorkoutBuilder
+                                  ? "e.g. Lower Strength"
+                                  : "e.g. Off-Season Block"
+                              }
+                            />
+                          </div>
+
+                          <div className="mbField">
+                            <span className="mbFieldLabel">
+                              {isSingleWorkoutBuilder ? "Description" : "Goal"}
+                            </span>
+                            <textarea
+                              className="miniSearch mbTextarea"
+                              value={programGoal}
+                              onChange={(e) => setProgramGoal(e.target.value)}
+                              placeholder="Optional"
+                            />
+                          </div>
+
+                          {!isSingleWorkoutBuilder && (
+                            <>
+                              <div className="mbFieldRow">
+                                <div className="mbField">
+                                  <span className="mbFieldLabel">Week</span>
+                                  <input
+                                    className="miniSearch"
+                                    inputMode="numeric"
+                                    value={programWeek}
+                                    onChange={(e) => setProgramWeek(e.target.value)}
+                                  />
+                                </div>
+                                <div className="mbField">
+                                  <span className="mbFieldLabel">Day</span>
+                                  <input
+                                    className="miniSearch"
+                                    inputMode="numeric"
+                                    value={programDay}
+                                    onChange={(e) => setProgramDay(e.target.value)}
+                                  />
+                                </div>
+                              </div>
+                              <div className="mbField">
+                                <span className="mbFieldLabel">Session name</span>
+                                <input
+                                  className="miniSearch"
+                                  value={sessionName}
+                                  onChange={(e) => setSessionName(e.target.value)}
+                                  placeholder="e.g. Lower Strength"
+                                />
+                              </div>
+                              {programSessions.length > 0 && (
+                                <p className="mbHint">
+                                  {programSessions.length} day
+                                  {programSessions.length === 1 ? "" : "s"} added so far.
+                                </p>
+                              )}
+                            </>
+                          )}
+
+                          <button
+                            className="goldButton mbFullButton"
+                            onClick={() => setMobileBuilderStep("editor")}
+                          >
+                            Next
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="mobileBuilderBody mbEditorBody">
+                            <div className="mbEditorTop">
+                              <button
+                                className="mbTextButton"
+                                onClick={() => setMobileBuilderStep("details")}
+                              >
+                                ‹ Details
+                              </button>
+                              <strong>{programName || "Untitled"}</strong>
+                            </div>
+
+                            {selectedProgramExercises.length === 0 ? (
+                              <div className="mbEmpty">
+                                <h3>Add Exercises</h3>
+                                <p>
+                                  Add at least one exercise to build this{" "}
+                                  {isSingleWorkoutBuilder ? "workout" : "day"}.
+                                </p>
+                                <button
+                                  className="goldButton mbFullButton"
+                                  onClick={openMobilePicker}
+                                >
+                                  Add Exercise
+                                </button>
+                              </div>
+                            ) : (
+                              selectedProgramExercises.map((exercise, index) => {
+                                const showSectionHeading =
+                                  index === 0 ||
+                                  selectedProgramExercises[index - 1].sectionName !==
+                                    exercise.sectionName;
+                                const linked = isExerciseLinkedWithPrevious(index);
+                                return (
+                                  <div
+                                    className="mbExerciseGroup"
+                                    key={`${exercise.exerciseId}-${index}`}
+                                  >
+                                    {showSectionHeading && (
+                                      <div className="mobileSectionHeading">
+                                        {exercise.sectionName || "Main"}
+                                      </div>
+                                    )}
+                                    {index > 0 && !showSectionHeading && (
+                                      <button
+                                        className={`mobileSupersetLinkButton ${
+                                          linked ? "linked" : ""
+                                        }`}
+                                        onClick={() => toggleBuilderSupersetLink(index)}
+                                      >
+                                        {linked
+                                          ? "🔗 Superset with above"
+                                          : "+ Link as superset"}
+                                      </button>
+                                    )}
+                                    <div className="mobileExerciseCard">
+                                      <div className="mobileExerciseCardHeader">
+                                        <strong>
+                                          {exercise.exerciseLabel
+                                            ? `${exercise.exerciseLabel} · `
+                                            : ""}
+                                          {exercise.exerciseName}
+                                        </strong>
+                                        <div className="mbCardActions">
+                                          <button
+                                            onClick={() =>
+                                              duplicateProgramExercise(index)
+                                            }
+                                            aria-label="Duplicate exercise"
+                                          >
+                                            <Copy size={16} />
+                                          </button>
+                                          <button
+                                            onClick={() => removeProgramExercise(index)}
+                                            aria-label="Remove exercise"
+                                          >
+                                            <X size={16} />
+                                          </button>
+                                        </div>
+                                      </div>
+
+                                      {renderSetPrescriptionTable(exercise, index)}
+
+                                      <div className="mbCardControls">
+                                        <label className="mbEachSide">
+                                          <input
+                                            type="checkbox"
+                                            checked={Boolean(exercise.isUnilateral)}
+                                            onChange={(e) =>
+                                              updateProgramExercise(
+                                                index,
+                                                "isUnilateral",
+                                                e.target.checked
+                                              )
+                                            }
+                                          />
+                                          Each side
+                                        </label>
+                                      </div>
+
+                                      <textarea
+                                        className="miniSearch mbNote"
+                                        value={exercise.coachingNotes}
+                                        onChange={(e) =>
+                                          updateProgramExercise(
+                                            index,
+                                            "coachingNotes",
+                                            e.target.value
+                                          )
+                                        }
+                                        placeholder="Add note…"
+                                      />
+                                    </div>
+                                  </div>
+                                );
+                              })
+                            )}
+                          </div>
+
+                          <div className="mobileBuilderActionBar">
+                            <button
+                              className="outlineButton"
+                              onClick={openMobilePicker}
+                            >
+                              + Add
+                            </button>
+                            {selectedProgramExercises.length > 1 && (
+                              <button
+                                className="outlineButton"
+                                onClick={() => setMobileBuilderStep("arrange")}
+                              >
+                                Arrange
+                              </button>
+                            )}
+                            {isSingleWorkoutBuilder ? (
+                              <button
+                                className="goldButton"
+                                disabled={savingTemplate}
+                                onClick={saveMobileWorkout}
+                              >
+                                {savingTemplate ? "Saving…" : "Save"}
+                              </button>
+                            ) : (
+                              <>
+                                <button
+                                  className="outlineButton"
+                                  disabled={savingTemplate}
+                                  onClick={saveMobileProgramDay}
+                                >
+                                  Save Day
+                                </button>
+                                <button
+                                  className="goldButton"
+                                  disabled={savingTemplate}
+                                  onClick={finishMobileProgram}
+                                >
+                                  {savingTemplate ? "Saving…" : "Finish"}
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </>
+                      )}
+                    </section>
+
+                    {mobileBuilderStep === "picker" && (
+                      <div className="mobileSheet">
+                        <header className="mobileBuilderHeader">
+                          <button
+                            className="mbHeaderBack"
+                            onClick={() => {
+                              setMobilePickerSelected(new Set());
+                              setMobileBuilderStep("editor");
+                            }}
+                            aria-label="Back"
+                          >
+                            ‹
+                          </button>
+                          <h2>Select exercises</h2>
+                          <button
+                            className="mbHeaderAction"
+                            disabled={mobilePickerSelected.size === 0}
+                            onClick={commitMobilePicker}
+                          >
+                            {mobilePickerSelected.size > 0
+                              ? `Add ${mobilePickerSelected.size}`
+                              : "Add"}
+                          </button>
+                        </header>
+                        <div className="mobileBuilderBody">
+                          <div className="mbField">
+                            <span className="mbFieldLabel">Section</span>
+                            <select
+                              className="miniSearch"
+                              value={pendingSectionName}
+                              onChange={(e) => setPendingSectionName(e.target.value)}
+                            >
+                              {builderSectionOptions.map((section) => (
+                                <option key={section} value={section}>
+                                  {section}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <input
+                            className="miniSearch mbSearchInput"
+                            value={builderSearch}
+                            onChange={(e) => setBuilderSearch(e.target.value)}
+                            placeholder="Search exercise…"
+                          />
+                          {libraryLoading && builderExercises.length === 0 && (
+                            <p className="mbHint">Loading exercises…</p>
+                          )}
+                          {builderExercises.map((exercise) => {
+                            const key =
+                              exercise.recordId || exercise.exerciseId;
+                            const checked = mobilePickerSelected.has(key);
+                            return (
+                              <button
+                                key={key}
+                                type="button"
+                                className={`mobilePickerRow ${
+                                  checked ? "mobilePickerRowSelected" : ""
+                                }`}
+                                onClick={() => toggleMobilePick(key)}
+                              >
+                                <span
+                                  className={`mobilePickerCheck ${
+                                    checked ? "checked" : ""
+                                  }`}
+                                >
+                                  {checked ? "✓" : ""}
+                                </span>
+                                <span className="mobilePickerInfo">
+                                  <strong>{exercise.exerciseName}</strong>
+                                  <small>
+                                    {[exercise.equipment, exercise.category]
+                                      .filter(Boolean)
+                                      .join(" · ") || "Exercise"}
+                                  </small>
+                                </span>
+                              </button>
+                            );
+                          })}
+                          {!libraryLoading &&
+                            builderExercises.length === 0 && (
+                              <p className="mbHint">No exercises match.</p>
+                            )}
+                        </div>
+                      </div>
+                    )}
+
+                    {mobileBuilderStep === "arrange" && (
+                      <div className="mobileSheet">
+                        <header className="mobileBuilderHeader">
+                          <button
+                            className="mbHeaderBack"
+                            onClick={() => setMobileBuilderStep("editor")}
+                            aria-label="Back"
+                          >
+                            ‹
+                          </button>
+                          <h2>Arrange exercises</h2>
+                          <button
+                            className="mbHeaderAction"
+                            onClick={() => setMobileBuilderStep("editor")}
+                          >
+                            Done
+                          </button>
+                        </header>
+                        <div className="mobileBuilderBody">
+                          {selectedProgramExercises.map((exercise, index) => (
+                            <div
+                              key={`${exercise.exerciseId}-${index}`}
+                              ref={(el) => {
+                                mobileArrangeRefs.current[index] = el;
+                              }}
+                              className={`mobileArrangeRow ${
+                                mobileDragIndex === index
+                                  ? "mobileArrangeRowDragging"
+                                  : ""
+                              } ${
+                                mobileDragOverIndex === index &&
+                                mobileDragIndex !== null &&
+                                mobileDragIndex !== index
+                                  ? "mobileArrangeRowOver"
+                                  : ""
+                              }`}
+                            >
+                              <span className="mobileArrangeName">
+                                {exercise.exerciseLabel
+                                  ? `${exercise.exerciseLabel} · `
+                                  : ""}
+                                {exercise.exerciseName}
+                              </span>
+                              <button
+                                className="mobileArrangeHandle"
+                                aria-label="Drag to reorder"
+                                onPointerDown={(e) => startMobileDrag(e, index)}
+                              >
+                                <GripVertical size={20} />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
 
                 {workoutPageTab === "Forms" && (
