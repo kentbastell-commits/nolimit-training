@@ -1527,6 +1527,7 @@ function App() {
     null
   );
   const mobileArrangeRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const mobileArrangeItemsRef = useRef<{ start: number }[]>([]);
   const mobileDragIndexRef = useRef<number | null>(null);
   const mobileDragOverIndexRef = useRef<number | null>(null);
   const [mobileMenuIndex, setMobileMenuIndex] = useState<number | null>(null);
@@ -6993,20 +6994,22 @@ function App() {
     setMobileBuilderStep("editor");
   };
 
+  // Drag operates on arrange *items* (a single exercise OR a whole superset
+  // group), so linked exercises move together and stay linked.
   const startMobileDrag = (
-    event: React.PointerEvent<HTMLButtonElement>,
-    index: number
+    event: React.PointerEvent<HTMLDivElement>,
+    itemIndex: number
   ) => {
     event.preventDefault();
-    mobileDragIndexRef.current = index;
-    mobileDragOverIndexRef.current = index;
-    setMobileDragIndex(index);
-    setMobileDragOverIndex(index);
+    mobileDragIndexRef.current = itemIndex;
+    mobileDragOverIndexRef.current = itemIndex;
+    setMobileDragIndex(itemIndex);
+    setMobileDragOverIndex(itemIndex);
 
     const onMove = (moveEvent: PointerEvent) => {
       const y = moveEvent.clientY;
       const rows = mobileArrangeRefs.current.filter(Boolean) as HTMLDivElement[];
-      let over = mobileDragIndexRef.current ?? index;
+      let over = mobileDragIndexRef.current ?? itemIndex;
       let matched = false;
       mobileArrangeRefs.current.forEach((el, i) => {
         if (!el) return;
@@ -7016,7 +7019,7 @@ function App() {
           matched = true;
         }
       });
-      // Clamp to the ends when the pointer is dragged past the first/last row.
+      // Clamp to the ends when dragged past the first/last row.
       if (!matched && rows.length > 0) {
         const firstRect = rows[0].getBoundingClientRect();
         const lastRect = rows[rows.length - 1].getBoundingClientRect();
@@ -7032,10 +7035,19 @@ function App() {
     const onUp = () => {
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
-      const from = mobileDragIndexRef.current;
-      const to = mobileDragOverIndexRef.current;
-      if (from !== null && to !== null && from !== to) {
-        reorderProgramExercise(from, to);
+      const fromItem = mobileDragIndexRef.current;
+      const toItem = mobileDragOverIndexRef.current;
+      const items = mobileArrangeItemsRef.current;
+      if (
+        fromItem !== null &&
+        toItem !== null &&
+        fromItem !== toItem &&
+        items[fromItem] &&
+        items[toItem]
+      ) {
+        // Map item rows back to their first exercise index; reorder is
+        // group-aware and moves the entire group.
+        reorderProgramExercise(items[fromItem].start, items[toItem].start);
       }
       mobileDragIndexRef.current = null;
       mobileDragOverIndexRef.current = null;
@@ -14806,39 +14818,61 @@ function App() {
                             </button>
                           </div>
                           <div className="mobileSheetScroll">
-                            {selectedProgramExercises.map((exercise, index) => (
-                              <div
-                                key={`${exercise.exerciseId}-${index}`}
-                                ref={(el) => {
-                                  mobileArrangeRefs.current[index] = el;
-                                }}
-                                className={`mobileArrangeRow ${
-                                  mobileDragIndex === index
-                                    ? "mobileArrangeRowDragging"
-                                    : ""
-                                } ${
-                                  mobileDragOverIndex === index &&
-                                  mobileDragIndex !== null &&
-                                  mobileDragIndex !== index
-                                    ? "mobileArrangeRowOver"
-                                    : ""
-                                }`}
-                              >
-                                <span className="mobileArrangeName">
-                                  {exercise.exerciseLabel
-                                    ? `${exercise.exerciseLabel} · `
-                                    : ""}
-                                  {exercise.exerciseName}
-                                </span>
-                                <button
-                                  className="mobileArrangeHandle"
-                                  aria-label="Drag to reorder"
-                                  onPointerDown={(e) => startMobileDrag(e, index)}
+                            {(() => {
+                              const items = getBuilderOrderItems(
+                                selectedProgramExercises
+                              );
+                              mobileArrangeItemsRef.current = items;
+                              return items.map((item, itemIndex) => (
+                                <div
+                                  key={item.key}
+                                  ref={(el) => {
+                                    mobileArrangeRefs.current[itemIndex] = el;
+                                  }}
+                                  className={`mobileArrangeRow ${
+                                    item.isLinkedGroup ? "mobileArrangeRowGroup" : ""
+                                  } ${
+                                    mobileDragIndex === itemIndex
+                                      ? "mobileArrangeRowDragging"
+                                      : ""
+                                  } ${
+                                    mobileDragOverIndex === itemIndex &&
+                                    mobileDragIndex !== null &&
+                                    mobileDragIndex !== itemIndex
+                                      ? "mobileArrangeRowOver"
+                                      : ""
+                                  }`}
+                                  onPointerDown={(e) =>
+                                    startMobileDrag(e, itemIndex)
+                                  }
                                 >
-                                  <GripVertical size={20} />
-                                </button>
-                              </div>
-                            ))}
+                                  <div className="mobileArrangeBody">
+                                    {item.isLinkedGroup && (
+                                      <span className="mobileArrangeSupersetTag">
+                                        <Link2 size={13} /> Superset
+                                      </span>
+                                    )}
+                                    {item.exercises.map((exercise, subIndex) => (
+                                      <span
+                                        className="mobileArrangeName"
+                                        key={`${exercise.exerciseId}-${subIndex}`}
+                                      >
+                                        {exercise.exerciseLabel
+                                          ? `${exercise.exerciseLabel} · `
+                                          : ""}
+                                        {exercise.exerciseName}
+                                      </span>
+                                    ))}
+                                  </div>
+                                  <span
+                                    className="mobileArrangeHandle"
+                                    aria-hidden="true"
+                                  >
+                                    <GripVertical size={22} />
+                                  </span>
+                                </div>
+                              ));
+                            })()}
                           </div>
                         </div>
                       </div>

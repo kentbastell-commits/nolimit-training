@@ -15986,7 +15986,38 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   background: #fff;
   padding: 14px 12px;
   margin-bottom: 8px;
+  cursor: grab;
   touch-action: none;
+  user-select: none;
+  transition: transform 120ms ease, box-shadow 120ms ease,
+    border-color 120ms ease, background 120ms ease;
+}
+
+.mobileArrangeRow:active {
+  cursor: grabbing;
+}
+
+.mobileArrangeRowGroup {
+  border-left: 3px solid #8f6b12;
+  background: #fffdf6;
+}
+
+.mobileArrangeBody {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.mobileArrangeSupersetTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 950;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #8f6b12;
 }
 
 .mobileArrangeName {
@@ -16001,22 +16032,25 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 .mobileArrangeHandle {
   display: grid;
   place-items: center;
-  border: none;
-  background: transparent;
-  color: #8f6b12;
+  color: #b8ad92;
   padding: 4px;
   flex-shrink: 0;
-  cursor: grab;
-  touch-action: none;
 }
 
+/* Obvious "grabbed" state: lifts, scales up, gold ring. */
 .mobileArrangeRowDragging {
-  opacity: 0.6;
-  border-color: rgba(143, 107, 18, 0.6);
-  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.18);
+  transform: scale(1.03);
+  border-color: #8f6b12;
+  background: #fffaf0;
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.26);
+}
+
+.mobileArrangeRowDragging .mobileArrangeHandle {
+  color: #8f6b12;
 }
 
 .mobileArrangeRowOver {
   border-color: #8f6b12;
   border-style: dashed;
+  background: rgba(212, 175, 55, 0.12);
 }
