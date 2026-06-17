@@ -132,10 +132,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // 4. Fetch program workout templates
     if (!templatesTableId) return res.status(500).json({ error: "FEISHU_WORKOUT_TEMPLATES_TABLE_ID not set" });
-    const tmplRes = await fetch(`${base}/${templatesTableId}/records?page_size=500`, { headers });
-    const tmplData = await tmplRes.json();
+    // Paginate — the templates table can exceed one page.
+    const tmplItems: any[] = [];
+    let tmplToken = "";
+    do {
+      const tu = new URL(`${base}/${templatesTableId}/records`);
+      tu.searchParams.set("page_size", "500");
+      if (tmplToken) tu.searchParams.set("page_token", tmplToken);
+      const tmplRes = await fetch(tu.toString(), { headers });
+      const tmplData = await tmplRes.json();
+      if (!tmplData?.data?.items) break;
+      tmplItems.push(...tmplData.data.items);
+      tmplToken = tmplData.data.has_more ? tmplData.data.page_token : "";
+    } while (tmplToken);
 
-    const allTemplates = (tmplData?.data?.items || []).filter((item: any) => {
+    const allTemplates = tmplItems.filter((item: any) => {
       const pidField = item.fields?.["Program ID"];
       const tPid = fieldToText(pidField);
       // Newer templates store "Program ID" as a record link, so also match by
