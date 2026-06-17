@@ -5491,14 +5491,16 @@ function App() {
           <span>Set</span>
           {isRunning ? (
             <>
-              <span>
+              <span className={isPaceTracked ? "builderPaceSpan" : undefined}>
                 {intervalLabel}
                 <button className="fillColumnButton" type="button" title="Fill all sets with set 1 value" onClick={() => fillSetColumn(exerciseIndex, "reps")}>↓</button>
               </span>
-              <span>
-                Zone
-                <button className="fillColumnButton" type="button" title="Fill all sets with set 1 value" onClick={() => fillSetColumn(exerciseIndex, "percentMas")}>↓</button>
-              </span>
+              {!isPaceTracked && (
+                <span>
+                  Zone
+                  <button className="fillColumnButton" type="button" title="Fill all sets with set 1 value" onClick={() => fillSetColumn(exerciseIndex, "percentMas")}>↓</button>
+                </span>
+              )}
               <span>
                 Rest
                 <button className="fillColumnButton" type="button" title="Fill all sets with set 1 value" onClick={() => fillSetColumn(exerciseIndex, "rest")}>↓</button>
@@ -5547,7 +5549,11 @@ function App() {
             </div>
             {isRunning ? (
               <>
-                <div className="builderIntervalCell">
+                <div
+                  className={`builderIntervalCell${
+                    isPaceTracked ? " builderPaceSpan" : ""
+                  }`}
+                >
                   {isPaceTracked
                     ? (() => {
                         // Pace target as mm:ss per km, stored as "M:SS/km".
@@ -5684,6 +5690,7 @@ function App() {
                         );
                       })()}
                 </div>
+                {!isPaceTracked && (
                 <div className="builderZoneCell">
                   {(() => {
                     const mode = set.intensityMode || "";
@@ -5828,6 +5835,7 @@ function App() {
                     );
                   })()}
                 </div>
+                )}
                 {(() => {
                   const raw = String(set.rest || "").trim();
                   const value = (raw.match(/[\d.]+/) || [""])[0];
@@ -7275,8 +7283,10 @@ function App() {
       <div className="mbSetTable">
         <div className="mbSetHead">
           <span>Set</span>
-          <span>{isRunning ? (isTime ? "Time" : isPace ? "Pace" : "Dist") : "Kg"}</span>
-          <span>{isRunning ? "Zone" : "Reps"}</span>
+          <span className={isPace ? "mbSetColWide" : undefined}>
+            {isRunning ? (isTime ? "Time" : isPace ? "Pace" : "Dist") : "Kg"}
+          </span>
+          {!isPace && <span>{isRunning ? "Zone" : "Reps"}</span>}
           <span>Rest</span>
           <span />
         </div>
@@ -7284,7 +7294,7 @@ function App() {
           <div className="mbSetRow" key={setIndex}>
             <span className="mbSetNum">{set.setNumber}</span>
             <input
-              className="mbSetInput"
+              className={`mbSetInput${isPace ? " mbSetColWide" : ""}`}
               value={isRunning ? set.reps : set.load}
               placeholder="–"
               onChange={(e) =>
@@ -7296,20 +7306,22 @@ function App() {
                 )
               }
             />
-            <input
-              className="mbSetInput"
-              value={isRunning ? set.percentMas : set.reps}
-              placeholder="–"
-              inputMode={isRunning ? "decimal" : "numeric"}
-              onChange={(e) =>
-                updateExerciseSetPrescription(
-                  exerciseIndex,
-                  setIndex,
-                  isRunning ? "percentMas" : "reps",
-                  e.target.value
-                )
-              }
-            />
+            {!isPace && (
+              <input
+                className="mbSetInput"
+                value={isRunning ? set.percentMas : set.reps}
+                placeholder="–"
+                inputMode={isRunning ? "decimal" : "numeric"}
+                onChange={(e) =>
+                  updateExerciseSetPrescription(
+                    exerciseIndex,
+                    setIndex,
+                    isRunning ? "percentMas" : "reps",
+                    e.target.value
+                  )
+                }
+              />
+            )}
             <input
               className="mbSetInput"
               value={set.rest}

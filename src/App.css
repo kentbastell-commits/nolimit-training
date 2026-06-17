@@ -16394,3 +16394,11 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   font-weight: 800;
   white-space: nowrap;
 }
+
+/* Pace prescription spans the (removed) zone column so the grid stays aligned */
+.builderPaceSpan {
+  grid-column: span 2;
+}
+.mbSetColWide {
+  grid-column: span 2;
+}
