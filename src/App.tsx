@@ -7000,12 +7000,26 @@ function App() {
 
     const onMove = (moveEvent: PointerEvent) => {
       const y = moveEvent.clientY;
+      const rows = mobileArrangeRefs.current.filter(Boolean) as HTMLDivElement[];
       let over = mobileDragIndexRef.current ?? index;
+      let matched = false;
       mobileArrangeRefs.current.forEach((el, i) => {
         if (!el) return;
         const rect = el.getBoundingClientRect();
-        if (y >= rect.top && y <= rect.bottom) over = i;
+        if (y >= rect.top && y <= rect.bottom) {
+          over = i;
+          matched = true;
+        }
       });
+      // Clamp to the ends when the pointer is dragged past the first/last row.
+      if (!matched && rows.length > 0) {
+        const firstRect = rows[0].getBoundingClientRect();
+        const lastRect = rows[rows.length - 1].getBoundingClientRect();
+        if (y < firstRect.top) over = 0;
+        else if (y > lastRect.bottom) {
+          over = mobileArrangeRefs.current.length - 1;
+        }
+      }
       mobileDragOverIndexRef.current = over;
       setMobileDragOverIndex(over);
     };
