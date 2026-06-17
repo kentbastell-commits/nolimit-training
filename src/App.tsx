@@ -5830,33 +5830,34 @@ function App() {
     );
   };
 
-  const addExerciseToProgram = (exercise: LibraryExercise) => {
+  // Pure construction of a ProgramExercise from a library item, given the list
+  // it will be appended to. Used by both single-add and the mobile multi-add so
+  // sequential adds compose correctly (no stale-state overwrites).
+  const buildProgramExerciseFromLibrary = (
+    exercise: LibraryExercise,
+    baseList: ProgramExercise[],
+    parent: ProgramExercise | null
+  ): ProgramExercise => {
     const meta = parseExerciseNotes(exercise.notes || "");
-    const parent =
-      accessoryTargetIndex !== null
-        ? selectedProgramExercises[accessoryTargetIndex]
-        : null;
     const exerciseSection =
       pendingSectionName ||
       parent?.sectionName ||
-      selectedProgramExercises[selectedProgramExercises.length - 1]?.sectionName ||
+      baseList[baseList.length - 1]?.sectionName ||
       builderSectionOptions[0];
     const initialExercise: ProgramExercise = {
       exerciseRecordId: exercise.recordId,
       exerciseId: exercise.exerciseId,
       exerciseName: exercise.exerciseName,
-      order: selectedProgramExercises.length + 1,
+      order: baseList.length + 1,
       sectionName: exerciseSection,
       exerciseLabel: isWarmupSection(exerciseSection)
         ? ""
-        : parent?.exerciseLabel || makeExerciseLabel(selectedProgramExercises.length),
+        : parent?.exerciseLabel || makeExerciseLabel(baseList.length),
       sets: parent ? "2" : "3",
       reps: parent ? "10" : "8",
       load: "",
       // Cardio has no lifting tempo.
-      tempo: isCardioCategory(exercise.category)
-        ? ""
-        : parent?.tempo || "3-1-1",
+      tempo: isCardioCategory(exercise.category) ? "" : parent?.tempo || "3-1-1",
       rest: parent ? "45 sec" : "60 sec",
       coachingNotes: "",
       // Cardio exercises default to Distance tracking so the run/Zone layout
@@ -5894,6 +5895,19 @@ function App() {
         })),
       };
     }
+    return newExercise;
+  };
+
+  const addExerciseToProgram = (exercise: LibraryExercise) => {
+    const parent =
+      accessoryTargetIndex !== null
+        ? selectedProgramExercises[accessoryTargetIndex]
+        : null;
+    const newExercise = buildProgramExerciseFromLibrary(
+      exercise,
+      selectedProgramExercises,
+      parent
+    );
 
     if (parent && accessoryTargetIndex !== null) {
       const updated = [...selectedProgramExercises];
@@ -5918,6 +5932,19 @@ function App() {
     );
     setLatestBuilderExerciseIndex(selectedProgramExercises.length);
     scrollLatestBuilderExerciseIntoView();
+  };
+
+  // Append several library exercises in a single state update so they all land
+  // (a forEach of addExerciseToProgram would overwrite due to stale state).
+  const addExercisesToProgram = (exercises: LibraryExercise[]) => {
+    if (exercises.length === 0) return;
+    setSelectedProgramExercises((prev) => {
+      let list = prev;
+      exercises.forEach((exercise) => {
+        list = [...list, buildProgramExerciseFromLibrary(exercise, list, null)];
+      });
+      return relabelProgramExercises(list);
+    });
   };
 
   const updateProgramExercise = (
@@ -6956,7 +6983,7 @@ function App() {
     const chosen = builderExercises.filter((exercise) =>
       mobilePickerSelected.has(exercise.recordId || exercise.exerciseId)
     );
-    chosen.forEach((exercise) => addExerciseToProgram(exercise));
+    addExercisesToProgram(chosen);
     setMobilePickerSelected(new Set());
     setMobileBuilderStep("editor");
   };
