@@ -1533,6 +1533,7 @@ function App() {
   const [mobileDetailsIndex, setMobileDetailsIndex] = useState<number | null>(
     null
   );
+  const [workoutTabsMenuOpen, setWorkoutTabsMenuOpen] = useState(false);
   const [builderLibraryMode, setBuilderLibraryMode] =
     useState<BuilderLibraryMode>("Exercises");
   const [isBuilderLibraryOpen, setIsBuilderLibraryOpen] = useState(false);
@@ -7059,6 +7060,27 @@ function App() {
   const finishMobileProgram = async () => {
     await saveFullProgram();
     setMobileBuilderStep("details");
+  };
+
+  const workoutTabList: WorkoutPageTab[] = [
+    "Saved Programs",
+    "Program Builder",
+    "Forms",
+    "Tests",
+    "Assignments",
+  ];
+
+  const selectWorkoutTab = (tab: WorkoutPageTab) => {
+    setWorkoutPageTab(tab);
+    if (tab === "Saved Programs") loadPrograms(true);
+    if (tab === "Forms") loadFormTemplates(true);
+    if (tab === "Tests") loadTestTemplates(true);
+    if (tab === "Assignments") {
+      loadPrograms();
+      loadFormTemplates();
+      loadTestTemplates();
+      setAssignmentTemplateId("");
+    }
   };
 
   // Compact Everfit-style set table for the mobile card. The full editor
@@ -12601,38 +12623,52 @@ function App() {
 
             {activePage === "Workouts" && (
               <>
-                <div className="workoutPageTabs">
-                  {(["Saved Programs", "Program Builder", "Forms", "Tests", "Assignments"] as WorkoutPageTab[]).map((tab) => (
+                {useMobileWorkoutRows ? (
+                  <div
+                    className={`workoutTabMenu ${
+                      workoutTabsMenuOpen ? "workoutTabMenuOpen" : ""
+                    }`}
+                  >
                     <button
-                      key={tab}
-                      className={workoutPageTab === tab ? "goldButton" : "outlineButton"}
-                      onClick={() => {
-                        setWorkoutPageTab(tab);
-
-                        if (tab === "Saved Programs") {
-                          loadPrograms(true);
-                        }
-
-                        if (tab === "Forms") {
-                          loadFormTemplates(true);
-                        }
-
-                        if (tab === "Tests") {
-                          loadTestTemplates(true);
-                        }
-
-                        if (tab === "Assignments") {
-                          loadPrograms();
-                          loadFormTemplates();
-                          loadTestTemplates();
-                          setAssignmentTemplateId("");
-                        }
-                      }}
+                      className="workoutTabMenuTrigger"
+                      aria-expanded={workoutTabsMenuOpen}
+                      onClick={() => setWorkoutTabsMenuOpen((open) => !open)}
                     >
-                      {tab}
+                      <span>{workoutPageTab}</span>
+                      <ChevronDown size={18} className="workoutTabMenuCaret" />
                     </button>
-                  ))}
-                </div>
+                    {workoutTabsMenuOpen && (
+                      <div className="workoutTabMenuList">
+                        {workoutTabList.map((tab) => (
+                          <button
+                            key={tab}
+                            className={workoutPageTab === tab ? "active" : ""}
+                            onClick={() => {
+                              selectWorkoutTab(tab);
+                              setWorkoutTabsMenuOpen(false);
+                            }}
+                          >
+                            {tab}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="workoutPageTabs">
+                    {workoutTabList.map((tab) => (
+                      <button
+                        key={tab}
+                        className={
+                          workoutPageTab === tab ? "goldButton" : "outlineButton"
+                        }
+                        onClick={() => selectWorkoutTab(tab)}
+                      >
+                        {tab}
+                      </button>
+                    ))}
+                  </div>
+                )}
 
                 {workoutPageTab === "Saved Programs" && (
                   <section className="programLibraryPanel">
