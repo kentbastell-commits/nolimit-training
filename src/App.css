@@ -1369,6 +1369,144 @@ body {
   font-weight: bold;
 }
 
+/* ---- Grouped sidebar navigation (hover/tap flyout menus) ---- */
+.navGroup {
+  position: relative;
+}
+
+.navGroupCaret {
+  flex-shrink: 0;
+  opacity: 0.55;
+  transition: transform 150ms ease;
+}
+
+.navGroupOpen .navGroupCaret {
+  transform: rotate(180deg);
+}
+
+.navGroupDot {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: #e05656;
+  box-shadow: 0 0 0 2px #fffdf8;
+}
+
+/* Default flyout: a dropdown anchored under the trigger (tablet top grid). */
+.navFlyout {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 60;
+  display: none;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 200px;
+  padding: 8px;
+  border-radius: 14px;
+  border: 1px solid rgba(22, 22, 22, 0.12);
+  background: #fffdf8;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.22);
+}
+
+.navGroup:hover .navFlyout,
+.navGroupOpen .navFlyout {
+  display: flex;
+}
+
+.navFlyoutItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: #1a1a1a;
+  padding: 11px 12px;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+  text-align: left;
+}
+
+.navFlyoutItem svg {
+  flex-shrink: 0;
+}
+
+.navFlyoutLabel {
+  flex: 1;
+  white-space: nowrap;
+}
+
+.navFlyoutItem:hover {
+  background: rgba(212, 175, 55, 0.16);
+}
+
+.navFlyoutItem.active {
+  background: #151515;
+  color: #f5d77b;
+}
+
+.navFlyoutItem .badge {
+  background: #151515;
+  color: #f5d77b;
+  font-size: 12px;
+}
+
+.navFlyoutItem.active .badge {
+  background: #f5d77b;
+  color: #151515;
+}
+
+/* Desktop collapsing rail: flyout opens to the right of the rail. */
+@media (min-width: 1101px) {
+  .app:not(.clientPortalApp) .sidebar {
+    overflow: visible;
+  }
+
+  .app:not(.clientPortalApp) .navFlyout {
+    top: -6px;
+    left: calc(100% + 12px);
+  }
+
+  /* The caret is part of the collapsible label set — hide it on the rail. */
+  .app:not(.clientPortalApp) .navGroupCaret {
+    opacity: 0;
+    transition: opacity 140ms ease;
+  }
+
+  .app:not(.clientPortalApp) .sidebar:hover .navGroupCaret,
+  .app:not(.clientPortalApp) .sidebar:focus-within .navGroupCaret {
+    opacity: 0.55;
+  }
+}
+
+/* Phone bottom bar: flyout becomes a sheet above the bar. */
+@media (max-width: 720px) {
+  .navFlyout {
+    position: fixed;
+    left: 10px;
+    right: 10px;
+    top: auto;
+    bottom: calc(78px + env(safe-area-inset-bottom));
+    min-width: 0;
+    box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.28);
+  }
+
+  .navFlyoutItem {
+    min-height: 48px;
+    font-size: 16px;
+  }
+
+  .navGroupCaret {
+    display: none;
+  }
+}
+
 .mobileClientBottomNav {
   display: none;
 }

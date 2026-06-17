@@ -1,6 +1,7 @@
 import {
   BookOpen,
   CalendarDays,
+  ChevronDown,
   ClipboardList,
   Copy,
   Clock3,
@@ -1168,6 +1169,7 @@ function App() {
   ).trim();
   const publicInvitePackage = inviteSearchParams.get("package") || "Pending";
   const [activePage, setActivePage] = useState<Page>("Clients");
+  const [openNavGroup, setOpenNavGroup] = useState<string | null>(null);
   const [clients, setClients] = useState<Client[]>([]);
   const [coaches, setCoaches] = useState<Coach[]>([]);
   const [productOrders, setProductOrders] = useState<ProductOrder[]>([]);
@@ -7097,66 +7099,146 @@ function App() {
     missing: coachVisibleClients.filter((client) => getCheckInAgeDays(client) === null).length,
   };
 
-  const menuItems: { name: Page; label: string; mobileLabel?: string; count: number; icon: LucideIcon }[] =
-    [
-      {
-        name: "Clients",
-        label: "Clients",
-        count: coachVisibleClients.length,
-        icon: Users,
-      },
-      {
-        name: "Library",
-        label: "Library",
-        count: libraryExercises.length,
-        icon: BookOpen,
-      },
-      {
-        name: "Workouts",
-        label: "Programming",
-        mobileLabel: "Build",
-        count: workouts.length,
-        icon: Dumbbell,
-      },
-      {
-        name: "Orders",
-        label: "Orders",
-        count: productOrders.length,
-        icon: ClipboardList,
-      },
-      {
-        name: "Review",
-        label: "Review",
-        count:
-          coachReviewComments.filter((comment) => !comment.reviewed).length +
-          coachReviewResponses.length +
-          productOrders.length,
-        icon: Bell,
-      },
-      {
-        name: "Revenue",
-        label: "Revenue",
-        count: 0,
-        icon: TrendingUp,
-      },
-      ...(canManageCoaches
-        ? [
-            {
-              name: "Coaches" as Page,
-              label: "Coaches",
-              mobileLabel: "Team",
-              count: allCoaches.length,
-              icon: Users,
-            },
-          ]
-        : []),
-    ];
+  // Navigate to a top-level page and trigger any data the page needs. Shared by
+  // the grouped sidebar menu and any other in-app navigation.
+  const goToPage = (page: Page) => {
+    setSelectedClient(null);
+    setSelectedWorkout(null);
+    setWorkoutDetails([]);
+    setSetLogs([]);
+    setSavedExerciseDraftIds([]);
+    setActivePage(page);
+
+    if (page === "Library" || page === "Workouts") {
+      loadExerciseLibrary();
+    }
+    if (page === "Workouts") {
+      loadPrograms();
+    }
+    if (page === "Orders") {
+      loadProductOrders(true);
+      loadPrograms();
+      loadFormTemplates();
+    }
+    if (page === "Review") {
+      void loadCoachReviewQueue(true);
+      loadPrograms();
+      loadFormTemplates();
+    }
+  };
+
+  const reviewQueueCount =
+    coachReviewComments.filter((comment) => !comment.reviewed).length +
+    coachReviewResponses.length +
+    productOrders.length;
+
+  type NavLeaf = {
+    name: Page;
+    label: string;
+    mobileLabel?: string;
+    count: number;
+    icon: LucideIcon;
+    attention?: boolean;
+  };
+  type NavGroup = {
+    key: string;
+    label: string;
+    icon: LucideIcon;
+    items: NavLeaf[];
+  };
+
+  // Tabs are grouped into hover/tap menus to keep the rail short.
+  const navGroups: NavGroup[] = [
+    {
+      key: "clients",
+      label: "Clients",
+      icon: Users,
+      items: [
+        {
+          name: "Clients",
+          label: "Clients",
+          count: coachVisibleClients.length,
+          icon: Users,
+        },
+        {
+          name: "Review",
+          label: "Review",
+          count: reviewQueueCount,
+          icon: Bell,
+          attention: true,
+        },
+      ],
+    },
+    {
+      key: "library",
+      label: "Library",
+      icon: BookOpen,
+      items: [
+        {
+          name: "Library",
+          label: "Library",
+          count: libraryExercises.length,
+          icon: BookOpen,
+        },
+        {
+          name: "Workouts",
+          label: "Programming",
+          mobileLabel: "Build",
+          count: workouts.length,
+          icon: Dumbbell,
+        },
+      ],
+    },
+    {
+      key: "business",
+      label: canManageCoaches ? "Team" : "Business",
+      icon: canManageCoaches ? Users : ClipboardList,
+      items: [
+        ...(canManageCoaches
+          ? [
+              {
+                name: "Coaches" as Page,
+                label: "Coaches",
+                count: allCoaches.length,
+                icon: Users,
+              },
+            ]
+          : []),
+        {
+          name: "Orders",
+          label: "Orders",
+          count: productOrders.length,
+          icon: ClipboardList,
+          attention: true,
+        },
+        {
+          name: "Revenue",
+          label: "Revenue",
+          count: 0,
+          icon: TrendingUp,
+        },
+      ],
+    },
+  ];
 
   useEffect(() => {
     if (activePage === "Coaches" && !canManageCoaches) {
       setActivePage("Clients");
     }
   }, [activePage, canManageCoaches]);
+
+  // Close any open nav menu when tapping/clicking outside the sidebar nav.
+  useEffect(() => {
+    if (!openNavGroup) return;
+    const handlePointerDown = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target && !target.closest(".navGroup")) {
+        setOpenNavGroup(null);
+      }
+    };
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => document.removeEventListener("pointerdown", handlePointerDown);
+  }, [openNavGroup]);
 
   const clientStatusOptions = Array.from(
     new Set(coachVisibleClients.map((client) => client.status).filter(Boolean))
@@ -10492,51 +10574,71 @@ function App() {
         </div>
 
         <nav>
-          {menuItems.map((item) => {
-            const NavIcon = item.icon;
+          {navGroups.map((group) => {
+            const GroupIcon = group.icon;
+            const isActiveGroup = group.items.some(
+              (leaf) => leaf.name === activePage
+            );
+            const isOpen = openNavGroup === group.key;
+            const hasAttention = group.items.some(
+              (leaf) =>
+                leaf.attention && leaf.count > 0 && leaf.name !== activePage
+            );
 
             return (
-              <button
-                key={item.name}
-                className={`navItem ${activePage === item.name ? "active" : ""}`}
-                onClick={() => {
-                  setSelectedClient(null);
-                  setSelectedWorkout(null);
-                  setWorkoutDetails([]);
-                  setSetLogs([]);
-                  setSavedExerciseDraftIds([]);
-                  setActivePage(item.name);
-
-                  if (item.name === "Library" || item.name === "Workouts") {
-                    loadExerciseLibrary();
-                  }
-
-                  if (item.name === "Workouts") {
-                    loadPrograms();
-                  }
-
-                  if (item.name === "Orders") {
-                    loadProductOrders(true);
-                    loadPrograms();
-                    loadFormTemplates();
-                  }
-
-                  if (item.name === "Review") {
-                    void loadCoachReviewQueue(true);
-                    loadPrograms();
-                    loadFormTemplates();
-                  }
-                }}
+              <div
+                key={group.key}
+                className={`navGroup ${isActiveGroup ? "navGroupActive" : ""} ${
+                  isOpen ? "navGroupOpen" : ""
+                }`}
               >
-                <span className="navItemLabel">
-                  <NavIcon size={20} strokeWidth={2.2} />
-                  <span className="desktopNavLabel">{item.label}</span>
-                  <span className="mobileNavLabel">
-                    {"mobileLabel" in item ? item.mobileLabel : item.label}
+                <button
+                  type="button"
+                  className={`navItem navGroupTrigger ${
+                    isActiveGroup ? "active" : ""
+                  }`}
+                  aria-haspopup="true"
+                  aria-expanded={isOpen}
+                  onClick={() =>
+                    setOpenNavGroup((current) =>
+                      current === group.key ? null : group.key
+                    )
+                  }
+                >
+                  <span className="navItemLabel">
+                    <GroupIcon size={20} strokeWidth={2.2} />
+                    <span className="desktopNavLabel">{group.label}</span>
+                    <span className="mobileNavLabel">{group.label}</span>
                   </span>
-                </span>
-                <span className="badge">{item.count}</span>
-              </button>
+                  <ChevronDown size={15} className="navGroupCaret" />
+                  {hasAttention && <span className="navGroupDot" />}
+                </button>
+
+                <div className="navFlyout" role="menu">
+                  {group.items.map((leaf) => {
+                    const LeafIcon = leaf.icon;
+
+                    return (
+                      <button
+                        key={leaf.name}
+                        type="button"
+                        role="menuitem"
+                        className={`navFlyoutItem ${
+                          activePage === leaf.name ? "active" : ""
+                        }`}
+                        onClick={() => {
+                          goToPage(leaf.name);
+                          setOpenNavGroup(null);
+                        }}
+                      >
+                        <LeafIcon size={17} strokeWidth={2.2} />
+                        <span className="navFlyoutLabel">{leaf.label}</span>
+                        <span className="badge">{leaf.count}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             );
           })}
         </nav>
