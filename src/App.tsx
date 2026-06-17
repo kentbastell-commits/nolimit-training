@@ -7416,7 +7416,8 @@ function App() {
     items: NavLeaf[];
   };
 
-  // Tabs are grouped into hover/tap menus to keep the rail short.
+  // Single-item entries render as direct nav buttons; multi-item entries get a
+  // hover/tap flyout. This keeps the rail short without over-nesting.
   const navGroups: NavGroup[] = [
     {
       key: "clients",
@@ -7429,6 +7430,13 @@ function App() {
           count: coachVisibleClients.length,
           icon: Users,
         },
+      ],
+    },
+    {
+      key: "review",
+      label: "Review",
+      icon: Bell,
+      items: [
         {
           name: "Review",
           label: "Review",
@@ -10854,6 +10862,41 @@ function App() {
                 leaf.attention && leaf.count > 0 && leaf.name !== activePage
             );
 
+            // Single-item entries are direct nav buttons (no flyout).
+            if (group.items.length === 1) {
+              const leaf = group.items[0];
+              const showDot =
+                Boolean(leaf.attention) &&
+                leaf.count > 0 &&
+                activePage !== leaf.name;
+              return (
+                <div
+                  key={group.key}
+                  className={`navGroup ${
+                    isActiveGroup ? "navGroupActive" : ""
+                  }`}
+                >
+                  <button
+                    type="button"
+                    className={`navItem navGroupTrigger ${
+                      isActiveGroup ? "active" : ""
+                    }`}
+                    onClick={() => goToPage(leaf.name)}
+                  >
+                    <span className="navItemLabel">
+                      <GroupIcon size={20} strokeWidth={2.2} />
+                      <span className="desktopNavLabel">{group.label}</span>
+                      <span className="mobileNavLabel">{group.label}</span>
+                    </span>
+                    {leaf.count > 0 && (
+                      <span className="badge">{leaf.count}</span>
+                    )}
+                    {showDot && <span className="navGroupDot" />}
+                  </button>
+                </div>
+              );
+            }
+
             return (
               <div
                 key={group.key}
@@ -11430,23 +11473,10 @@ function App() {
 
             {activePage === "Review" && (
               <section className="coachReviewWorkspacePage">
-                <div className="coachReviewHero">
-                  <div>
-                    <span>Coach View</span>
-                    <h2>Review Queue</h2>
-                    <p>
-                      Client comments, form and test submissions, missed tasks,
-                      and order follow-ups that need a coach decision.
-                    </p>
-                  </div>
-                  <button
-                    className="outlineButton"
-                    onClick={() => void loadCoachReviewQueue(true)}
-                    disabled={coachReviewLoading}
-                  >
-                    {coachReviewLoading ? "Refreshing..." : "Refresh Queue"}
-                  </button>
-                </div>
+                <p className="coachReviewIntro">
+                  Client comments, form and test submissions, missed tasks, and
+                  order follow-ups that need a coach decision.
+                </p>
 
                 {coachReviewError && (
                   <div className="formError">{coachReviewError}</div>

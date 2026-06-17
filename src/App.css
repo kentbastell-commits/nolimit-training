@@ -2760,6 +2760,30 @@ body {
   gap: 1.2rem;
 }
 
+.coachReviewIntro {
+  margin: 0;
+  max-width: 60rem;
+  color: #66645e;
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.coachReviewSummaryCard {
+  position: relative;
+  overflow: hidden;
+}
+
+.coachReviewSummaryCard::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 4px;
+  background: #d4af37;
+}
+
 .coachReviewHero {
   align-items: flex-end;
   background: #10100f;
