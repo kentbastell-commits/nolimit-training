@@ -46,6 +46,7 @@ type Page =
   | "Workouts"
   | "Check-ins"
   | "Orders"
+  | "Review"
   | "Revenue"
   | "Coaches";
 type ClientTab = "Home" | "Programs" | "Overview" | "Training";
@@ -1351,6 +1352,15 @@ function App() {
     ContentResponseGroup[]
   >([]);
   const [orderReviewLoading, setOrderReviewLoading] = useState(false);
+  const [coachReviewResponses, setCoachReviewResponses] = useState<
+    ContentResponse[]
+  >([]);
+  const [coachReviewComments, setCoachReviewComments] = useState<
+    WorkoutComment[]
+  >([]);
+  const [coachReviewWorkouts, setCoachReviewWorkouts] = useState<Workout[]>([]);
+  const [coachReviewLoading, setCoachReviewLoading] = useState(false);
+  const [coachReviewError, setCoachReviewError] = useState("");
   const [activeContentAssignment, setActiveContentAssignment] =
     useState<ContentAssignment | null>(null);
   const [contentAssignmentAnswers, setContentAssignmentAnswers] = useState<
@@ -1446,6 +1456,7 @@ function App() {
 
   const [programs, setPrograms] = useState<Program[]>([]);
   const [selectedSavedProgramId, setSelectedSavedProgramId] = useState("");
+  const [deletingSavedProgramId, setDeletingSavedProgramId] = useState("");
   const [savedProgramTemplates, setSavedProgramTemplates] = useState<
     SavedProgramTemplate[]
   >([]);
@@ -3102,7 +3113,7 @@ function App() {
   };
 
   const markWorkoutCommentReviewed = async (comment: WorkoutComment) => {
-    if (!comment.recordIds.length) return;
+    if (!comment.recordIds.length) return false;
 
     setReviewingWorkoutCommentKey(comment.key);
 
@@ -3119,7 +3130,7 @@ function App() {
       if (!response.ok || !data.success) {
         console.error(data);
         notify("Could not mark comment reviewed.", "error");
-        return;
+        return false;
       }
 
       setWorkoutComments((current) =>
@@ -3128,12 +3139,84 @@ function App() {
         )
       );
       notify("Workout comment reviewed.", "success");
+      return true;
     } catch (error) {
       console.error(error);
       notify("Could not mark comment reviewed.", "error");
+      return false;
     } finally {
       setReviewingWorkoutCommentKey("");
     }
+  };
+
+  const fetchAllContentResponses = async () => {
+    const response = await fetch("/api/contentResponses");
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data?.error || "Could not load submissions.");
+    }
+
+    return (data.responses || []) as ContentResponse[];
+  };
+
+  const fetchAllWorkoutComments = async () => {
+    const response = await fetch("/api/workoutComments");
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data?.error || "Could not load workout comments.");
+    }
+
+    return (data.comments || []) as WorkoutComment[];
+  };
+
+  const fetchAllAssignedWorkouts = async () => {
+    const response = await fetch("/api/workouts");
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data?.error || "Could not load workouts.");
+    }
+
+    return (data.workouts || []) as Workout[];
+  };
+
+  const loadCoachReviewQueue = async (force = false) => {
+    setCoachReviewLoading(true);
+    setCoachReviewError("");
+
+    try {
+      const [, responses, comments, assignedWorkouts] = await Promise.all([
+        loadProductOrders(force),
+        fetchAllContentResponses(),
+        fetchAllWorkoutComments(),
+        fetchAllAssignedWorkouts(),
+      ]);
+
+      setCoachReviewResponses(responses);
+      setCoachReviewComments(comments);
+      setCoachReviewWorkouts(assignedWorkouts);
+    } catch (error) {
+      console.error(error);
+      const message =
+        error instanceof Error ? error.message : "Could not load review queue.";
+      setCoachReviewError(message);
+      notify("Could not load coach review queue.", "error");
+    } finally {
+      setCoachReviewLoading(false);
+    }
+  };
+
+  const markGlobalWorkoutCommentReviewed = async (comment: WorkoutComment) => {
+    const reviewed = await markWorkoutCommentReviewed(comment);
+    if (!reviewed) return;
+
+    setCoachReviewComments((current) =>
+      current.map((item) =>
+        item.key === comment.key ? { ...item, reviewed: true } : item
+      )
+    );
   };
 
   useEffect(() => {
@@ -3152,7 +3235,7 @@ function App() {
   }, [assignmentType, workoutPageTab, activePage, selectedClient]);
 
   useEffect(() => {
-    if (activePage !== "Orders") return;
+    if (activePage !== "Orders" && activePage !== "Review") return;
 
     if (programs.length === 0) {
       void loadPrograms();
@@ -3161,6 +3244,11 @@ function App() {
     if (savedFormTemplates.length === 0 && !formTemplatesLoading) {
       void loadFormTemplates();
     }
+  }, [activePage]);
+
+  useEffect(() => {
+    if (activePage !== "Review") return;
+    void loadCoachReviewQueue();
   }, [activePage]);
 
   useEffect(() => {
@@ -3743,6 +3831,80 @@ function App() {
       notify("Could not load saved program templates.");
     } finally {
       setSavedTemplatesLoading(false);
+    }
+  };
+
+  const deleteSavedProgram = async (program: Program) => {
+    const label = program.programName || "this program";
+
+    if (
+      !window.confirm(
+        `Delete "${label}" and all of its saved sessions? This cannot be undone.`
+      )
+    )
+      return;
+
+    setDeletingSavedProgramId(program.recordId);
+
+    try {
+      // Remove the program's session/template records first so none are orphaned.
+      let templates: { recordId?: string }[] = [];
+      try {
+        const templatesResponse = await fetch(
+          `/api/programTemplates?programId=${encodeURIComponent(
+            program.programId || program.recordId
+          )}`
+        );
+        const templatesData = await templatesResponse.json();
+        if (templatesResponse.ok) {
+          templates = templatesData.templates || [];
+        }
+      } catch (templateError) {
+        console.warn("Could not load templates for deletion", templateError);
+      }
+
+      for (const template of templates) {
+        if (!template.recordId) continue;
+        await fetch("/api/deleteRecord", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            resource: "workoutTemplate",
+            recordId: template.recordId,
+          }),
+        });
+      }
+
+      const response = await fetch("/api/deleteRecord", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          resource: "program",
+          recordId: program.recordId,
+        }),
+      });
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        console.error(data);
+        notify(data.message || data.error || "Could not delete program.", "error");
+        return;
+      }
+
+      setPrograms((current) =>
+        current.filter((item) => item.recordId !== program.recordId)
+      );
+      if (selectedSavedProgramId === program.programId) {
+        setSelectedSavedProgramId("");
+      }
+      setSavedProgramTemplates([]);
+      notify("Program deleted.", "success");
+      void loadPrograms(true);
+    } catch (error) {
+      console.error(error);
+      notify("Could not delete program.", "error");
+    } finally {
+      setDeletingSavedProgramId("");
     }
   };
 
@@ -5537,72 +5699,87 @@ function App() {
               </>
             ) : (
               <>
-                <input
-                  className="miniSearch"
-                  value={set.load}
-                  onChange={(event) =>
-                    updateExerciseSetPrescription(
-                      exerciseIndex,
-                      setIndex,
-                      "load",
-                      event.target.value
-                    )
-                  }
-                  placeholder="kg / RPE"
-                />
-                <input
-                  className="miniSearch"
-                  inputMode="decimal"
-                  value={set.percent}
-                  onChange={(event) =>
-                    updateExerciseSetPrescription(
-                      exerciseIndex,
-                      setIndex,
-                      "percent",
-                      event.target.value.replace(/[^\d.]/g, "")
-                    )
-                  }
-                  placeholder="% 1RM"
-                />
-                <input
-                  className="miniSearch"
-                  value={set.reps}
-                  onChange={(event) =>
-                    updateExerciseSetPrescription(
-                      exerciseIndex,
-                      setIndex,
-                      "reps",
-                      event.target.value
-                    )
-                  }
-                  placeholder="Reps"
-                />
-                <input
-                  className="miniSearch"
-                  value={set.tempo}
-                  onChange={(event) =>
-                    updateExerciseSetPrescription(
-                      exerciseIndex,
-                      setIndex,
-                      "tempo",
-                      event.target.value
-                    )
-                  }
-                  placeholder="Tempo"
-                />
-                <input
-                  className="miniSearch"
-                  value={set.rest}
-                  onChange={(event) =>
-                    updateExerciseSetPrescription(
-                      exerciseIndex,
-                      setIndex,
-                      "rest",
-                      event.target.value
-                    )
-                  }
-                  placeholder="Rest"
-                />
+                <label className="builderSetField">
+                  <span className="builderSetFieldLabel">Load</span>
+                  <input
+                    className="miniSearch"
+                    value={set.load}
+                    onChange={(event) =>
+                      updateExerciseSetPrescription(
+                        exerciseIndex,
+                        setIndex,
+                        "load",
+                        event.target.value
+                      )
+                    }
+                    placeholder="kg / RPE"
+                  />
+                </label>
+                <label className="builderSetField">
+                  <span className="builderSetFieldLabel">%1RM</span>
+                  <input
+                    className="miniSearch"
+                    inputMode="decimal"
+                    value={set.percent}
+                    onChange={(event) =>
+                      updateExerciseSetPrescription(
+                        exerciseIndex,
+                        setIndex,
+                        "percent",
+                        event.target.value.replace(/[^\d.]/g, "")
+                      )
+                    }
+                    placeholder="% 1RM"
+                  />
+                </label>
+                <label className="builderSetField">
+                  <span className="builderSetFieldLabel">Reps</span>
+                  <input
+                    className="miniSearch"
+                    value={set.reps}
+                    onChange={(event) =>
+                      updateExerciseSetPrescription(
+                        exerciseIndex,
+                        setIndex,
+                        "reps",
+                        event.target.value
+                      )
+                    }
+                    placeholder="Reps"
+                  />
+                </label>
+                <label className="builderSetField">
+                  <span className="builderSetFieldLabel">Tempo</span>
+                  <input
+                    className="miniSearch"
+                    value={set.tempo}
+                    onChange={(event) =>
+                      updateExerciseSetPrescription(
+                        exerciseIndex,
+                        setIndex,
+                        "tempo",
+                        event.target.value
+                      )
+                    }
+                    placeholder="Tempo"
+                  />
+                </label>
+                <label className="builderSetField">
+                  <span className="builderSetFieldLabel">Rest</span>
+                  <input
+                    className="miniSearch"
+                    value={set.rest}
+                    onChange={(event) =>
+                      updateExerciseSetPrescription(
+                        exerciseIndex,
+                        setIndex,
+                        "rest",
+                        event.target.value
+                      )
+                    }
+                    placeholder="Rest"
+                  />
+                </label>
               </>
             )}
           </div>
@@ -6948,6 +7125,15 @@ function App() {
         icon: ClipboardList,
       },
       {
+        name: "Review",
+        label: "Review",
+        count:
+          coachReviewComments.filter((comment) => !comment.reviewed).length +
+          coachReviewResponses.length +
+          productOrders.length,
+        icon: Bell,
+      },
+      {
         name: "Revenue",
         label: "Revenue",
         count: 0,
@@ -7302,9 +7488,8 @@ function App() {
     return getCoachDisplayName(order.assignedCoach || "").toLowerCase() ===
       coachScope.toLowerCase();
   };
-  const visibleProductOrders = productOrders
-    .filter(orderBelongsToCoachScope)
-    .filter((order) => {
+  const coachScopedProductOrders = productOrders.filter(orderBelongsToCoachScope);
+  const visibleProductOrders = coachScopedProductOrders.filter((order) => {
       const search = orderSearch.toLowerCase();
 
       if (!search) return true;
@@ -7314,10 +7499,10 @@ function App() {
         order.clientName,
         order.productName,
         order.productType,
-        order.paymentStatus,
-        order.intakeStatus,
-      ].some((value) => String(value || "").toLowerCase().includes(search));
-    });
+      order.paymentStatus,
+      order.intakeStatus,
+    ].some((value) => String(value || "").toLowerCase().includes(search));
+  });
   const openOrdersCount = visibleProductOrders.filter(
     (order) => getOrderPipelineStatus(order) !== "Program Loaded"
   ).length;
@@ -7325,6 +7510,14 @@ function App() {
     (order) => getOrderPipelineStatus(order) === "Program Ready"
   ).length;
   const reviewQueueOrders = visibleProductOrders.filter((order) => {
+    const status = getOrderPipelineStatus(order);
+    return (
+      status === "Intake Sent" ||
+      status === "Intake Submitted" ||
+      status === "Program Ready"
+    );
+  });
+  const globalReviewOrders = coachScopedProductOrders.filter((order) => {
     const status = getOrderPipelineStatus(order);
     return (
       status === "Intake Sent" ||
@@ -7374,6 +7567,83 @@ function App() {
         return groups;
       }, {})
     ).sort((a, b) => b.submittedAt.localeCompare(a.submittedAt));
+
+  const findClientForReviewItem = (clientId?: string, clientName?: string) =>
+    clients.find(
+      (client) =>
+        lookupTextMatches(client.id, clientId || "") ||
+        lookupTextMatches(client.clientCode, clientId || "") ||
+        lookupTextMatches(client.name, clientName || "")
+    );
+
+  const reviewItemBelongsToCoachScope = (
+    clientId?: string,
+    clientName?: string
+  ) => {
+    if (coachScope === "All Coaches") return true;
+    const matchedClient = findClientForReviewItem(clientId, clientName);
+    return matchedClient ? clientBelongsToCoachScope(matchedClient) : true;
+  };
+
+  const globalReviewResponseGroups = getResponseGroups(
+    coachReviewResponses,
+    []
+  );
+  const globalReviewSubmissionItems = globalReviewResponseGroups
+    .filter((group) => {
+      const first = group.answers[0];
+      return reviewItemBelongsToCoachScope(first?.clientId, first?.clientName);
+    })
+    .slice(0, 18);
+
+  const globalUnreviewedWorkoutComments = coachReviewComments
+    .filter(
+      (comment) =>
+        !comment.reviewed &&
+        reviewItemBelongsToCoachScope(comment.clientId, comment.clientName)
+    )
+    .sort((a, b) => (b.date || "").localeCompare(a.date || ""))
+    .slice(0, 18);
+
+  const globalMissedWorkouts = coachReviewWorkouts
+    .filter(
+      (workout) =>
+        reviewItemBelongsToCoachScope(workout.clientId, "") &&
+        getDisplayTaskStatus(
+          workout.completionStatus,
+          workout.scheduledDate
+        ) === "Missed"
+    )
+    .sort((a, b) => (b.scheduledDate || "").localeCompare(a.scheduledDate || ""))
+    .slice(0, 18);
+
+  const openReviewClient = (clientId?: string, clientName?: string) => {
+    const client = findClientForReviewItem(clientId, clientName);
+
+    if (!client) {
+      notify("Could not match this review item to a client.", "info");
+      return;
+    }
+
+    setSelectedClient(client);
+    setSelectedWorkout(null);
+    setActivePage("Clients");
+    setClientTab("Home");
+  };
+
+  const openReviewWorkout = (workout: Workout) => {
+    const client = findClientForReviewItem(workout.clientId, "");
+
+    if (!client) {
+      notify("Could not match this workout to a client.", "info");
+      return;
+    }
+
+    setSelectedClient(client);
+    setSelectedWorkout(workout);
+    setActivePage("Clients");
+    setClientTab("Training");
+  };
 
   const openOrderReview = async (order: ProductOrder) => {
     const client = getOrderClient(order) || (await createClientFromOrder(order));
@@ -10250,6 +10520,12 @@ function App() {
                     loadPrograms();
                     loadFormTemplates();
                   }
+
+                  if (item.name === "Review") {
+                    void loadCoachReviewQueue(true);
+                    loadPrograms();
+                    loadFormTemplates();
+                  }
                 }}
               >
                 <span className="navItemLabel">
@@ -10356,6 +10632,18 @@ function App() {
                 <div className="topbarActions">
                   <button className="outlineButton" onClick={loadProductOrders}>
                     Reload Orders
+                  </button>
+                </div>
+              )}
+
+              {activePage === "Review" && (
+                <div className="topbarActions">
+                  <button
+                    className="outlineButton"
+                    onClick={() => void loadCoachReviewQueue(true)}
+                    disabled={coachReviewLoading}
+                  >
+                    {coachReviewLoading ? "Refreshing..." : "Refresh Queue"}
                   </button>
                 </div>
               )}
@@ -10768,6 +11056,216 @@ function App() {
                 </section>
               );
             })()}
+
+            {activePage === "Review" && (
+              <section className="coachReviewWorkspacePage">
+                <div className="coachReviewHero">
+                  <div>
+                    <span>Coach View</span>
+                    <h2>Review Queue</h2>
+                    <p>
+                      Client comments, form and test submissions, missed tasks,
+                      and order follow-ups that need a coach decision.
+                    </p>
+                  </div>
+                  <button
+                    className="outlineButton"
+                    onClick={() => void loadCoachReviewQueue(true)}
+                    disabled={coachReviewLoading}
+                  >
+                    {coachReviewLoading ? "Refreshing..." : "Refresh Queue"}
+                  </button>
+                </div>
+
+                {coachReviewError && (
+                  <div className="formError">{coachReviewError}</div>
+                )}
+
+                <div className="coachReviewSummaryGrid">
+                  <article className="coachReviewSummaryCard">
+                    <span>Workout comments</span>
+                    <strong>{globalUnreviewedWorkoutComments.length}</strong>
+                  </article>
+                  <article className="coachReviewSummaryCard">
+                    <span>Submissions</span>
+                    <strong>{globalReviewSubmissionItems.length}</strong>
+                  </article>
+                  <article className="coachReviewSummaryCard">
+                    <span>Missed tasks</span>
+                    <strong>{globalMissedWorkouts.length}</strong>
+                  </article>
+                  <article className="coachReviewSummaryCard">
+                    <span>Order reviews</span>
+                    <strong>{globalReviewOrders.length}</strong>
+                  </article>
+                </div>
+
+                <div className="coachReviewBoard">
+                  <article className="coachReviewColumn">
+                    <div className="coachReviewColumnHeader">
+                      <div>
+                        <span>Needs review</span>
+                        <strong>Comments & Orders</strong>
+                      </div>
+                      <em>
+                        {globalUnreviewedWorkoutComments.length +
+                          globalReviewOrders.length}
+                      </em>
+                    </div>
+
+                    <div className="coachReviewGlobalList">
+                      {globalReviewOrders.slice(0, 6).map((order) => (
+                        <button
+                          key={`order-${order.recordId || order.orderId}`}
+                          className="coachReviewGlobalItem urgent"
+                          onClick={() => {
+                            setActivePage("Orders");
+                            void openOrderReview(order);
+                          }}
+                        >
+                          <span>{getOrderPipelineStatus(order)}</span>
+                          <strong>{order.clientName || "New client"}</strong>
+                          <small>
+                            {order.productName || order.productType || "Order"}
+                          </small>
+                        </button>
+                      ))}
+
+                      {globalUnreviewedWorkoutComments.map((comment) => (
+                        <div
+                          key={comment.key}
+                          className="coachReviewGlobalItem"
+                        >
+                          <button
+                            type="button"
+                            className="coachReviewItemMain"
+                            onClick={() =>
+                              openReviewClient(
+                                comment.clientId,
+                                comment.clientName
+                              )
+                            }
+                          >
+                            <span>Workout comment</span>
+                            <strong>{comment.clientName || "Client"}</strong>
+                            <small>
+                              {comment.workoutName || "Workout"} -{" "}
+                              {comment.date || "--"}
+                            </small>
+                            <span className="coachReviewPreview">
+                              {comment.noteEn || comment.note}
+                            </span>
+                          </button>
+                          <div className="coachReviewItemActions">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                openReviewClient(
+                                  comment.clientId,
+                                  comment.clientName
+                                )
+                              }
+                            >
+                              Open Client
+                            </button>
+                            <button
+                              type="button"
+                              className="reviewDoneButton"
+                              disabled={reviewingWorkoutCommentKey === comment.key}
+                              onClick={() =>
+                                void markGlobalWorkoutCommentReviewed(comment)
+                              }
+                            >
+                              {reviewingWorkoutCommentKey === comment.key
+                                ? "Saving..."
+                                : "Mark Reviewed"}
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+
+                      {globalReviewOrders.length === 0 &&
+                        globalUnreviewedWorkoutComments.length === 0 && (
+                          <p className="mutedText">
+                            No comments or order reviews waiting.
+                          </p>
+                        )}
+                    </div>
+                  </article>
+
+                  <article className="coachReviewColumn">
+                    <div className="coachReviewColumnHeader">
+                      <div>
+                        <span>Training</span>
+                        <strong>Missed Tasks</strong>
+                      </div>
+                      <em>{globalMissedWorkouts.length}</em>
+                    </div>
+
+                    <div className="coachReviewGlobalList">
+                      {globalMissedWorkouts.map((workout) => (
+                        <button
+                          key={`missed-${
+                            workout.assignedWorkoutId || workout.id
+                          }`}
+                          className="coachReviewGlobalItem missed"
+                          onClick={() => openReviewWorkout(workout)}
+                        >
+                          <span>Missed workout</span>
+                          <strong>{workout.sessionName || "Workout"}</strong>
+                          <small>
+                            {workout.scheduledDate || "--"} -{" "}
+                            {workout.clientId || "Client"}
+                          </small>
+                        </button>
+                      ))}
+                      {globalMissedWorkouts.length === 0 && (
+                        <p className="mutedText">
+                          No missed workouts need attention.
+                        </p>
+                      )}
+                    </div>
+                  </article>
+
+                  <article className="coachReviewColumn">
+                    <div className="coachReviewColumnHeader">
+                      <div>
+                        <span>Submissions</span>
+                        <strong>Forms & Tests</strong>
+                      </div>
+                      <em>{globalReviewSubmissionItems.length}</em>
+                    </div>
+
+                    <div className="coachReviewGlobalList">
+                      {globalReviewSubmissionItems.map((group) => {
+                        const first = group.answers[0];
+                        return (
+                          <button
+                            key={`submission-${group.key}`}
+                            className="coachReviewGlobalItem"
+                            onClick={() => setSelectedContentSubmission(group)}
+                          >
+                            <span>{group.responseType}</span>
+                            <strong>{group.title || "Submission"}</strong>
+                            <small>
+                              {first?.clientName ||
+                                first?.clientId ||
+                                "Client"}{" "}
+                              - {group.submittedAt || "--"}
+                            </small>
+                          </button>
+                        );
+                      })}
+                      {globalReviewSubmissionItems.length === 0 && (
+                        <p className="mutedText">
+                          No new form or test submissions.
+                        </p>
+                      )}
+                    </div>
+                  </article>
+                </div>
+              </section>
+            )}
 
             {activePage === "Coaches" && canManageCoaches && (
               <section className="coachManagementPage">
@@ -11907,6 +12405,21 @@ function App() {
                                   Duplicate in Builder
                                 </button>
 
+                                <button
+                                  className="dangerButton"
+                                  onClick={() =>
+                                    deleteSavedProgram(selectedSavedProgram)
+                                  }
+                                  disabled={
+                                    deletingSavedProgramId ===
+                                    selectedSavedProgram.recordId
+                                  }
+                                >
+                                  {deletingSavedProgramId ===
+                                  selectedSavedProgram.recordId
+                                    ? "Deleting..."
+                                    : "Delete Program"}
+                                </button>
                               </div>
                             </div>
 

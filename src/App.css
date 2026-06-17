@@ -1811,11 +1811,28 @@ body {
 
 .goldButton,
 .outlineButton,
+.dangerButton,
 .filters button {
   border-radius: 10px;
   padding: 14px 18px;
   font-size: 16px;
   cursor: pointer;
+}
+
+.dangerButton {
+  background: rgba(120, 22, 22, 0.35);
+  color: #ffb4b4;
+  border: 1px solid rgba(220, 80, 80, 0.5);
+  font-weight: 600;
+}
+
+.dangerButton:hover {
+  background: rgba(150, 28, 28, 0.5);
+}
+
+.dangerButton:disabled {
+  opacity: 0.6;
+  cursor: default;
 }
 
 .goldButton {
@@ -2598,6 +2615,238 @@ body {
   color: #fff;
   font-weight: 800;
   margin: 0;
+}
+
+.coachReviewWorkspacePage {
+  display: grid;
+  gap: 1.2rem;
+}
+
+.coachReviewHero {
+  align-items: flex-end;
+  background: #10100f;
+  border-radius: 1.5rem;
+  box-shadow: 0 1.1rem 3rem rgba(0, 0, 0, 0.14);
+  color: #fff;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  padding: 1.5rem;
+}
+
+.coachReviewHero span {
+  color: #d0b24e;
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.coachReviewHero h2 {
+  color: #fff;
+  font-size: clamp(2rem, 4vw, 4.3rem);
+  line-height: 0.95;
+  margin: 0.15rem 0;
+}
+
+.coachReviewHero p {
+  color: #ddd8ca;
+  margin: 0;
+  max-width: 46rem;
+}
+
+.coachReviewSummaryGrid {
+  display: grid;
+  gap: 0.8rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.coachReviewSummaryCard,
+.coachReviewColumn {
+  background: #fffdf8;
+  border: 1px solid #d8d1bf;
+  box-shadow: 0 0.65rem 1.6rem rgba(0, 0, 0, 0.06);
+}
+
+.coachReviewSummaryCard {
+  border-radius: 1.15rem;
+  padding: 1rem;
+}
+
+.coachReviewSummaryCard span,
+.coachReviewColumnHeader span {
+  color: #66645e;
+  display: block;
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.coachReviewSummaryCard strong {
+  color: #10100f;
+  display: block;
+  font-size: 2.2rem;
+  line-height: 1;
+  margin-top: 0.45rem;
+}
+
+.coachReviewBoard {
+  align-items: start;
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.coachReviewColumn {
+  border-radius: 1.25rem;
+  min-height: 20rem;
+  padding: 1rem;
+}
+
+.coachReviewColumnHeader {
+  align-items: flex-start;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  margin-bottom: 0.9rem;
+}
+
+.coachReviewColumnHeader strong {
+  color: #10100f;
+  display: block;
+  font-size: 1.35rem;
+}
+
+.coachReviewColumnHeader em {
+  background: #10100f;
+  border-radius: 999px;
+  color: #f0dc88;
+  font-style: normal;
+  font-weight: 900;
+  min-width: 2rem;
+  padding: 0.25rem 0.55rem;
+  text-align: center;
+}
+
+.coachReviewGlobalList {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.coachReviewGlobalItem {
+  background: #fff;
+  border: 1px solid #ddd5c5;
+  border-radius: 1rem;
+  color: #10100f;
+  padding: 0.85rem;
+  text-align: left;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+  width: 100%;
+}
+
+button.coachReviewGlobalItem,
+.coachReviewItemMain {
+  cursor: pointer;
+}
+
+.coachReviewGlobalItem:hover,
+.coachReviewGlobalItem:focus-within {
+  border-color: #10100f;
+  box-shadow: 0 0.75rem 1.6rem rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
+}
+
+.coachReviewGlobalItem.urgent {
+  border-left: 5px solid #10100f;
+}
+
+.coachReviewGlobalItem.missed {
+  border-left: 5px solid #9f3f2f;
+}
+
+.coachReviewItemMain {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  display: grid;
+  gap: 0.25rem;
+  padding: 0;
+  text-align: left;
+  width: 100%;
+}
+
+.coachReviewGlobalItem span {
+  color: #806a18;
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.coachReviewGlobalItem strong {
+  color: #10100f;
+  display: block;
+  font-size: 1rem;
+}
+
+.coachReviewGlobalItem small,
+.coachReviewPreview {
+  color: #66645e;
+  display: block;
+  font-weight: 800;
+  margin: 0.1rem 0 0;
+}
+
+.coachReviewItemActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.7rem;
+}
+
+.coachReviewItemActions button {
+  background: #fffdf8;
+  border: 1px solid #d4cbb7;
+  border-radius: 999px;
+  color: #10100f;
+  cursor: pointer;
+  font-weight: 900;
+  padding: 0.45rem 0.7rem;
+}
+
+.coachReviewItemActions .reviewDoneButton {
+  background: #10100f;
+  border-color: #10100f;
+  color: #f0dc88;
+}
+
+@media (max-width: 1100px) {
+  .coachReviewSummaryGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .coachReviewBoard {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 700px) {
+  .coachReviewHero {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .coachReviewHero h2 {
+    font-size: 2.35rem;
+  }
+
+  .coachReviewSummaryGrid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .orderCard {
