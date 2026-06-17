@@ -1534,6 +1534,9 @@ function App() {
   const [mobileDetailsIndex, setMobileDetailsIndex] = useState<number | null>(
     null
   );
+  const [mobileAlternateIndex, setMobileAlternateIndex] = useState<
+    number | null
+  >(null);
   const [workoutTabsMenuOpen, setWorkoutTabsMenuOpen] = useState(false);
   const [builderLibraryMode, setBuilderLibraryMode] =
     useState<BuilderLibraryMode>("Exercises");
@@ -7072,6 +7075,15 @@ function App() {
   const finishMobileProgram = async () => {
     await saveFullProgram();
     setMobileBuilderStep("details");
+  };
+
+  const openMobileAlternate = (index: number) => {
+    if (libraryExercises.length === 0 && !libraryLoading) {
+      void loadExerciseLibrary();
+    }
+    setAlternateSearch("");
+    setMobileMenuIndex(null);
+    setMobileAlternateIndex(index);
   };
 
   const workoutTabList: WorkoutPageTab[] = [
@@ -14903,6 +14915,21 @@ function App() {
                                 Details
                               </button>
                               <button
+                                onClick={() =>
+                                  openMobileAlternate(mobileMenuIndex)
+                                }
+                              >
+                                <span className="mbOptIcon">
+                                  <Shuffle size={22} />
+                                </span>
+                                {(
+                                  selectedProgramExercises[mobileMenuIndex]
+                                    .alternateExercises || []
+                                ).length > 0
+                                  ? "Edit alternates"
+                                  : "Alternates"}
+                              </button>
+                              <button
                                 onClick={() => {
                                   duplicateProgramExercise(mobileMenuIndex);
                                   setMobileMenuIndex(null);
@@ -14973,6 +15000,151 @@ function App() {
                           </div>
                         </div>
                       )}
+
+                    {mobileAlternateIndex !== null &&
+                      selectedProgramExercises[mobileAlternateIndex] &&
+                      (() => {
+                        const exIdx = mobileAlternateIndex;
+                        const ex = selectedProgramExercises[exIdx];
+                        const alts = ex.alternateExercises || [];
+                        const q = alternateSearch.trim().toLowerCase();
+                        const available = libraryExercises
+                          .filter((le) => {
+                            const isCurrent =
+                              le.recordId === ex.exerciseRecordId ||
+                              le.exerciseId === ex.exerciseId ||
+                              le.exerciseName === ex.exerciseName;
+                            const added = alts.some(
+                              (a) =>
+                                a.exerciseRecordId === le.recordId ||
+                                a.exerciseId === le.exerciseId ||
+                                a.exerciseName === le.exerciseName
+                            );
+                            const matches =
+                              !q ||
+                              [le.exerciseName, le.equipment, le.category]
+                                .filter(Boolean)
+                                .join(" ")
+                                .toLowerCase()
+                                .includes(q);
+                            return !isCurrent && !added && matches;
+                          })
+                          .slice(0, 30);
+                        return (
+                          <div
+                            className="mobileBackdrop"
+                            onClick={() => setMobileAlternateIndex(null)}
+                          >
+                            <div
+                              className="mobileBottomSheet mobileAltSheet"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <div className="mobileSheetHandle" />
+                              <div className="mobileSheetTitleRow">
+                                <h3>Alternates · {ex.exerciseName}</h3>
+                                <button
+                                  className="mbHeaderAction"
+                                  onClick={() => setMobileAlternateIndex(null)}
+                                >
+                                  Done
+                                </button>
+                              </div>
+                              <div className="mobileSheetScroll">
+                                <p className="mbDetailsHint">
+                                  Swaps the athlete can use instead of this
+                                  exercise.
+                                </p>
+
+                                {alts.length === 0 ? (
+                                  <p className="mbHint">No alternates yet.</p>
+                                ) : (
+                                  <div className="mbAltList">
+                                    {alts.map((a, ai) => (
+                                      <div
+                                        className="mbAltRow"
+                                        key={`${a.exerciseId || a.exerciseName}-${ai}`}
+                                      >
+                                        <span className="mbAltNum">{ai + 1}</span>
+                                        <span className="mbAltName">
+                                          {a.exerciseName}
+                                        </span>
+                                        <div className="mbAltActions">
+                                          <button
+                                            disabled={ai === 0}
+                                            aria-label="Move up"
+                                            onClick={() =>
+                                              reorderAlternateExercise(
+                                                exIdx,
+                                                ai,
+                                                ai - 1
+                                              )
+                                            }
+                                          >
+                                            ▲
+                                          </button>
+                                          <button
+                                            disabled={ai === alts.length - 1}
+                                            aria-label="Move down"
+                                            onClick={() =>
+                                              reorderAlternateExercise(
+                                                exIdx,
+                                                ai,
+                                                ai + 1
+                                              )
+                                            }
+                                          >
+                                            ▼
+                                          </button>
+                                          <button
+                                            className="mbAltDel"
+                                            aria-label={`Remove ${a.exerciseName}`}
+                                            onClick={() =>
+                                              removeAlternateExercise(exIdx, ai)
+                                            }
+                                          >
+                                            <X size={14} />
+                                          </button>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+
+                                <input
+                                  className="miniSearch mbAltSearch"
+                                  value={alternateSearch}
+                                  onChange={(e) =>
+                                    setAlternateSearch(e.target.value)
+                                  }
+                                  placeholder="Search to add an alternate…"
+                                />
+                                <div className="mbAltLibrary">
+                                  {libraryLoading &&
+                                    libraryExercises.length === 0 && (
+                                      <p className="mbHint">Loading…</p>
+                                    )}
+                                  {available.map((le) => (
+                                    <button
+                                      className="mbAltAddRow"
+                                      key={le.recordId || le.exerciseId}
+                                      onClick={() =>
+                                        addAlternateExercise(exIdx, le)
+                                      }
+                                    >
+                                      <Plus size={16} />
+                                      <span>{le.exerciseName}</span>
+                                    </button>
+                                  ))}
+                                  {!libraryLoading &&
+                                    available.length === 0 && (
+                                      <p className="mbHint">No matches.</p>
+                                    )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()}
                   </>
                 )}
 
