@@ -5,6 +5,33 @@ function toLarkDate(value: string) {
   return new Date(`${value}T00:00:00`).getTime();
 }
 
+// For Number columns: a finite number sets the cell, "" / "--" clears it (null),
+// undefined leaves it untouched.
+function toLarkNumber(value: unknown) {
+  if (value === undefined) return undefined;
+  if (value === null || value === "" || value === "--") return null;
+  const num = Number(value);
+  return Number.isFinite(num) ? num : null;
+}
+
+async function getClientsTableFieldNames(token: string) {
+  try {
+    const response = await fetch(
+      `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${process.env.FEISHU_CLIENTS_TABLE_ID}/fields?page_size=200`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    const data = await response.json();
+    if (!response.ok || data.code !== 0) return null;
+    return new Set(
+      (data?.data?.items || [])
+        .map((field: any) => field.field_name || field.name)
+        .filter(Boolean)
+    );
+  } catch {
+    return null;
+  }
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
@@ -35,6 +62,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       lastCheckInDate,
       notes,
       languagePreference,
+      masKmhOverride,
+      hrMaxOverride,
+      restingHrOverride,
+      zone5kPct,
+      zone10kPct,
+      zoneThresholdPct,
+      zoneEasyPct,
     } = req.body;
 
     if (!clientRecordId) {
@@ -102,6 +136,37 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (larkAccessStartDate) fields["Access Start Date"] = larkAccessStartDate;
     if (larkAccessEndDate) fields["Access End Date"] = larkAccessEndDate;
 
+    // Manual performance-metric overrides (Number columns).
+    const numberOverrides: Record<string, unknown> = {
+      "MAS (km/h)": masKmhOverride,
+      "HR Max": hrMaxOverride,
+      "Resting HR": restingHrOverride,
+      "Zone 5K %": zone5kPct,
+      "Zone 10K %": zone10kPct,
+      "Zone Threshold %": zoneThresholdPct,
+      "Zone Easy %": zoneEasyPct,
+    };
+    for (const [columnName, rawValue] of Object.entries(numberOverrides)) {
+      const larkValue = toLarkNumber(rawValue);
+      if (larkValue !== undefined) fields[columnName] = larkValue;
+    }
+
+    // Drop any field this base doesn't have yet so unknown columns never 500
+    // the update (e.g. before the override columns are added in Feishu).
+    const availableFieldNames = await getClientsTableFieldNames(
+      tokenData.tenant_access_token
+    );
+    const omittedFields: string[] = [];
+    const filteredFields = availableFieldNames
+      ? Object.fromEntries(
+          Object.entries(fields).filter(([fieldName]) => {
+            const keep = availableFieldNames.has(fieldName);
+            if (!keep) omittedFields.push(fieldName);
+            return keep;
+          })
+        )
+      : fields;
+
     const updateResponse = await fetch(
       `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${process.env.FEISHU_CLIENTS_TABLE_ID}/records/${clientRecordId}`,
       {
@@ -110,7 +175,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           Authorization: `Bearer ${tokenData.tenant_access_token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ fields }),
+        body: JSON.stringify({ fields: filteredFields }),
       }
     );
 
@@ -120,12 +185,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(500).json({
         error: "Failed to update client",
         larkResponse: updateData,
-        fieldsSent: fields,
+        fieldsSent: filteredFields,
       });
     }
 
     return res.status(200).json({
       success: true,
+      omittedFields,
       clientRecordId,
       larkResponse: updateData,
     });

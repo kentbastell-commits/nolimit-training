@@ -135,6 +135,14 @@ type Client = {
   notesEn?: string;
   startDate?: string;
   languagePreference?: string;
+  // Manual performance-metric overrides (per client, optional).
+  masKmhOverride?: string;
+  hrMaxOverride?: string;
+  restingHrOverride?: string;
+  zone5kPct?: string;
+  zone10kPct?: string;
+  zoneThresholdPct?: string;
+  zoneEasyPct?: string;
 };
 
 type Coach = {
@@ -1539,6 +1547,17 @@ function App() {
   >(null);
   const [workoutTabsMenuOpen, setWorkoutTabsMenuOpen] = useState(false);
   const [reviewFlashColumn, setReviewFlashColumn] = useState<string | null>(null);
+  const [editingMetrics, setEditingMetrics] = useState(false);
+  const [savingMetrics, setSavingMetrics] = useState(false);
+  const [metricsDraft, setMetricsDraft] = useState({
+    mas: "",
+    hrMax: "",
+    restingHr: "",
+    z5k: "",
+    z10k: "",
+    zThreshold: "",
+    zEasy: "",
+  });
   const [builderLibraryMode, setBuilderLibraryMode] =
     useState<BuilderLibraryMode>("Exercises");
   const [isBuilderLibraryOpen, setIsBuilderLibraryOpen] = useState(false);
@@ -2307,6 +2326,69 @@ function App() {
     } catch (error) {
       console.error(error);
       notify("Could not update language preference.", "error");
+    }
+  };
+
+  const openMetricsEditor = () => {
+    if (!selectedClient) return;
+    setMetricsDraft({
+      mas: selectedClient.masKmhOverride || "",
+      hrMax: selectedClient.hrMaxOverride || "",
+      restingHr: selectedClient.restingHrOverride || "",
+      z5k: selectedClient.zone5kPct || "",
+      z10k: selectedClient.zone10kPct || "",
+      zThreshold: selectedClient.zoneThresholdPct || "",
+      zEasy: selectedClient.zoneEasyPct || "",
+    });
+    setEditingMetrics(true);
+  };
+
+  const saveMetricsOverrides = async () => {
+    if (!selectedClient) return;
+    setSavingMetrics(true);
+
+    const patch = {
+      masKmhOverride: metricsDraft.mas.trim(),
+      hrMaxOverride: metricsDraft.hrMax.trim(),
+      restingHrOverride: metricsDraft.restingHr.trim(),
+      zone5kPct: metricsDraft.z5k.trim(),
+      zone10kPct: metricsDraft.z10k.trim(),
+      zoneThresholdPct: metricsDraft.zThreshold.trim(),
+      zoneEasyPct: metricsDraft.zEasy.trim(),
+    };
+
+    // Optimistic local update so the zone table recomputes immediately.
+    setSelectedClient({ ...selectedClient, ...patch });
+    setClients((current) =>
+      current.map((client) =>
+        client.id === selectedClient.id ? { ...client, ...patch } : client
+      )
+    );
+
+    try {
+      const response = await fetch("/api/updateClient", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clientRecordId: selectedClient.id, ...patch }),
+      });
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        notify("Could not save performance metrics.", "error");
+      } else if (data.omittedFields?.length) {
+        notify(
+          `Saved for this session. Add these Clients columns in Feishu to persist: ${data.omittedFields.join(", ")}`,
+          "info"
+        );
+      } else {
+        notify("Performance metrics updated.", "success");
+      }
+    } catch (error) {
+      console.error(error);
+      notify("Could not save performance metrics.", "error");
+    } finally {
+      setSavingMetrics(false);
+      setEditingMetrics(false);
     }
   };
 
@@ -9926,7 +10008,10 @@ function App() {
       masMetrics[0] ||
       latestMasMetric;
 
-    const masKmh = getMasKmh(metric);
+    // A manual per-client MAS override is the source of truth when set.
+    const masKmh = Number.isFinite(masOverride)
+      ? masOverride
+      : getMasKmh(metric);
     if (!Number.isFinite(masKmh))
       return { display: `${pct}% MAS`, resolved: false, speedKmh: NaN };
 
@@ -9938,16 +10023,59 @@ function App() {
     };
   };
   const paceZh = i18n.language === "zh";
+  // Parse a manual override string ("" / "--" => not set).
+  const parseOverride = (raw?: string) => {
+    const value = parseFloat(String(raw ?? "").replace(/[^\d.]/g, ""));
+    return Number.isFinite(value) && value > 0 ? value : NaN;
+  };
+  const masOverride = parseOverride(selectedClient?.masKmhOverride);
+  const hrMaxOverride = parseOverride(selectedClient?.hrMaxOverride);
+  const restingHrOverride = parseOverride(selectedClient?.restingHrOverride);
+  const zonePctOverride = (raw?: string) => parseOverride(raw);
   // Each zone: %MAS drives pace; %HRR drives Karvonen HR; %LT drives the pace
-  // from a measured lactate-threshold speed (% of threshold speed).
+  // from a measured lactate-threshold speed (% of threshold speed). The 5K/10K/
+  // Threshold/Easy %MAS can be overridden per client.
   const PACE_ZONE_DEFS = [
     { key: "mas", label: "MAS", percent: 100, hrrLow: 95, hrrHigh: 100, ltPercent: 112, rpe: 10 },
-    { key: "5k", label: paceZh ? "5公里配速" : "5K", percent: 95, hrrLow: 90, hrrHigh: 95, ltPercent: 106, rpe: 9 },
-    { key: "10k", label: paceZh ? "10公里配速" : "10K", percent: 91, hrrLow: 85, hrrHigh: 90, ltPercent: 102, rpe: 8 },
-    { key: "threshold", label: paceZh ? "阈值" : "Threshold", percent: 85, hrrLow: 80, hrrHigh: 85, ltPercent: 100, rpe: 7 },
-    { key: "easy", label: paceZh ? "轻松" : "Easy", percent: 70, hrrLow: 60, hrrHigh: 70, ltPercent: 80, rpe: 4 },
+    {
+      key: "5k",
+      label: paceZh ? "5公里配速" : "5K",
+      percent: zonePctOverride(selectedClient?.zone5kPct) || 95,
+      hrrLow: 90,
+      hrrHigh: 95,
+      ltPercent: 106,
+      rpe: 9,
+    },
+    {
+      key: "10k",
+      label: paceZh ? "10公里配速" : "10K",
+      percent: zonePctOverride(selectedClient?.zone10kPct) || 91,
+      hrrLow: 85,
+      hrrHigh: 90,
+      ltPercent: 102,
+      rpe: 8,
+    },
+    {
+      key: "threshold",
+      label: paceZh ? "阈值" : "Threshold",
+      percent: zonePctOverride(selectedClient?.zoneThresholdPct) || 85,
+      hrrLow: 80,
+      hrrHigh: 85,
+      ltPercent: 100,
+      rpe: 7,
+    },
+    {
+      key: "easy",
+      label: paceZh ? "轻松" : "Easy",
+      percent: zonePctOverride(selectedClient?.zoneEasyPct) || 70,
+      hrrLow: 60,
+      hrrHigh: 70,
+      ltPercent: 80,
+      rpe: 4,
+    },
   ];
   // Heart-rate metrics for Karvonen zones (HR = RHR + (HRmax - RHR) * %HRR).
+  // A manual HRmax / Resting HR override wins over the test-derived value.
   const parseBpm = (metric?: AthleteMetric) =>
     metric
       ? parseFloat(String(metric.metricValue).replace(/[^\d.]/g, ""))
@@ -9962,8 +10090,12 @@ function App() {
       `${metric.metricName} ${metric.sourceTestName}`.toLowerCase()
     )
   );
-  const hrMaxValue = parseBpm(hrMaxMetric);
-  const restingHrValue = parseBpm(restingHrMetric);
+  const hrMaxValue = Number.isFinite(hrMaxOverride)
+    ? hrMaxOverride
+    : parseBpm(hrMaxMetric);
+  const restingHrValue = Number.isFinite(restingHrOverride)
+    ? restingHrOverride
+    : parseBpm(restingHrMetric);
   const hasKarvonenHr =
     Number.isFinite(hrMaxValue) &&
     Number.isFinite(restingHrValue) &&
@@ -9978,7 +10110,9 @@ function App() {
   );
   const ltSpeedKmh = getMasKmh(ltMetric);
   const hasLtPace = Number.isFinite(ltSpeedKmh);
-  const masKmhForZones = getMasKmh(latestMasMetric);
+  const masKmhForZones = Number.isFinite(masOverride)
+    ? masOverride
+    : getMasKmh(latestMasMetric);
   const paceZones = PACE_ZONE_DEFS.map((zone) => {
     const speedKmh = masKmhForZones * (zone.percent / 100);
     const ltZoneSpeed = ltSpeedKmh * (zone.ltPercent / 100);
@@ -10105,8 +10239,14 @@ function App() {
     {
       key: "estimated-mas",
       label: t("estimatedMas"),
-      value: formatAthleteMetricValue(latestMasMetric),
-      meta: formatAthleteMetricMeta(latestMasMetric),
+      value: Number.isFinite(masOverride)
+        ? `${masOverride} km/h`
+        : formatAthleteMetricValue(latestMasMetric),
+      meta: Number.isFinite(masOverride)
+        ? paceZh
+          ? "手动设置"
+          : "Manual"
+        : formatAthleteMetricMeta(latestMasMetric),
     },
   ];
   const completedWorkoutCount = workouts.filter(
@@ -16870,11 +17010,262 @@ function App() {
                   </div>
 
                   <div className="profileCard profileMetricsCard">
-                    <h3>{t("performanceMetrics")}</h3>
+                    <div className="profileMetricsHeader">
+                      <h3>{t("performanceMetrics")}</h3>
+                      {/online coaching|in[-\s]?person/i.test(
+                        selectedClient.clientType || ""
+                      ) && (
+                        <button
+                          className="outlineButton compactBuilderButton"
+                          onClick={openMetricsEditor}
+                        >
+                          Edit
+                        </button>
+                      )}
+                    </div>
                     {renderPerformanceMetrics(true)}
                   </div>
                 </div>
                 ))}
+
+              {editingMetrics && selectedClient && (
+                <div
+                  className="metricsEditorOverlay"
+                  onClick={() => setEditingMetrics(false)}
+                >
+                  <div
+                    className="metricsEditorModal"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div className="metricsEditorHeader">
+                      <div>
+                        <span className="eyebrow">{selectedClient.name}</span>
+                        <h3>Edit Performance Metrics</h3>
+                      </div>
+                      <button
+                        className="iconButton"
+                        aria-label="Close"
+                        onClick={() => setEditingMetrics(false)}
+                      >
+                        <X size={18} />
+                      </button>
+                    </div>
+
+                    <p className="metricsEditorHint">
+                      Leave a field blank to use the latest test value. MAS is in
+                      km/h; zones are %MAS.
+                    </p>
+
+                    <div className="metricsEditorGrid">
+                      <label>
+                        <span>MAS (km/h)</span>
+                        <input
+                          inputMode="decimal"
+                          value={metricsDraft.mas}
+                          placeholder={
+                            Number.isFinite(getMasKmh(latestMasMetric))
+                              ? `${getMasKmh(latestMasMetric).toFixed(1)} (test)`
+                              : "e.g. 16.5"
+                          }
+                          onChange={(e) =>
+                            setMetricsDraft((d) => ({ ...d, mas: e.target.value }))
+                          }
+                        />
+                      </label>
+                      <label>
+                        <span>HR Max (bpm)</span>
+                        <input
+                          inputMode="numeric"
+                          value={metricsDraft.hrMax}
+                          placeholder={
+                            Number.isFinite(parseBpm(hrMaxMetric))
+                              ? `${parseBpm(hrMaxMetric)} (test)`
+                              : "e.g. 190"
+                          }
+                          onChange={(e) =>
+                            setMetricsDraft((d) => ({
+                              ...d,
+                              hrMax: e.target.value,
+                            }))
+                          }
+                        />
+                      </label>
+                      <label>
+                        <span>Resting HR (bpm)</span>
+                        <input
+                          inputMode="numeric"
+                          value={metricsDraft.restingHr}
+                          placeholder={
+                            Number.isFinite(parseBpm(restingHrMetric))
+                              ? `${parseBpm(restingHrMetric)} (test)`
+                              : "e.g. 50"
+                          }
+                          onChange={(e) =>
+                            setMetricsDraft((d) => ({
+                              ...d,
+                              restingHr: e.target.value,
+                            }))
+                          }
+                        />
+                      </label>
+                    </div>
+
+                    <span className="eyebrow metricsEditorZonesTitle">
+                      Zone %MAS
+                    </span>
+                    <div className="metricsEditorGrid metricsEditorZones">
+                      <label>
+                        <span>5K %</span>
+                        <input
+                          inputMode="numeric"
+                          value={metricsDraft.z5k}
+                          placeholder="95"
+                          onChange={(e) =>
+                            setMetricsDraft((d) => ({ ...d, z5k: e.target.value }))
+                          }
+                        />
+                      </label>
+                      <label>
+                        <span>10K %</span>
+                        <input
+                          inputMode="numeric"
+                          value={metricsDraft.z10k}
+                          placeholder="91"
+                          onChange={(e) =>
+                            setMetricsDraft((d) => ({
+                              ...d,
+                              z10k: e.target.value,
+                            }))
+                          }
+                        />
+                      </label>
+                      <label>
+                        <span>Threshold %</span>
+                        <input
+                          inputMode="numeric"
+                          value={metricsDraft.zThreshold}
+                          placeholder="85"
+                          onChange={(e) =>
+                            setMetricsDraft((d) => ({
+                              ...d,
+                              zThreshold: e.target.value,
+                            }))
+                          }
+                        />
+                      </label>
+                      <label>
+                        <span>Easy %</span>
+                        <input
+                          inputMode="numeric"
+                          value={metricsDraft.zEasy}
+                          placeholder="70"
+                          onChange={(e) =>
+                            setMetricsDraft((d) => ({
+                              ...d,
+                              zEasy: e.target.value,
+                            }))
+                          }
+                        />
+                      </label>
+                    </div>
+
+                    {(() => {
+                      const dMas =
+                        parseOverride(metricsDraft.mas) ||
+                        getMasKmh(latestMasMetric);
+                      const dHrMax =
+                        parseOverride(metricsDraft.hrMax) ||
+                        parseBpm(hrMaxMetric);
+                      const dRhr =
+                        parseOverride(metricsDraft.restingHr) ||
+                        parseBpm(restingHrMetric);
+                      const dHasHr =
+                        Number.isFinite(dHrMax) &&
+                        Number.isFinite(dRhr) &&
+                        dHrMax > dRhr;
+                      const dKarvonen = (p: number) =>
+                        Math.round(dRhr + (dHrMax - dRhr) * (p / 100));
+                      const rows = [
+                        { label: "MAS", pct: 100, lo: 95, hi: 100 },
+                        {
+                          label: "5K",
+                          pct: parseOverride(metricsDraft.z5k) || 95,
+                          lo: 90,
+                          hi: 95,
+                        },
+                        {
+                          label: "10K",
+                          pct: parseOverride(metricsDraft.z10k) || 91,
+                          lo: 85,
+                          hi: 90,
+                        },
+                        {
+                          label: "Threshold",
+                          pct: parseOverride(metricsDraft.zThreshold) || 85,
+                          lo: 80,
+                          hi: 85,
+                        },
+                        {
+                          label: "Easy",
+                          pct: parseOverride(metricsDraft.zEasy) || 70,
+                          lo: 60,
+                          hi: 70,
+                        },
+                      ];
+                      return (
+                        <div className="metricsEditorPreview">
+                          <span className="eyebrow">Live preview</span>
+                          <table>
+                            <thead>
+                              <tr>
+                                <th>Zone</th>
+                                <th>%MAS</th>
+                                <th>Pace</th>
+                                {dHasHr && <th>HR</th>}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {rows.map((row) => (
+                                <tr key={row.label}>
+                                  <td>{row.label}</td>
+                                  <td>{row.pct}%</td>
+                                  <td>
+                                    {Number.isFinite(dMas)
+                                      ? formatPace(dMas * (row.pct / 100))
+                                      : "--"}
+                                  </td>
+                                  {dHasHr && (
+                                    <td>
+                                      {dKarvonen(row.lo)}–{dKarvonen(row.hi)}
+                                    </td>
+                                  )}
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      );
+                    })()}
+
+                    <div className="metricsEditorActions">
+                      <button
+                        className="outlineButton"
+                        onClick={() => setEditingMetrics(false)}
+                        disabled={savingMetrics}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        className="goldButton"
+                        onClick={saveMetricsOverrides}
+                        disabled={savingMetrics}
+                      >
+                        {savingMetrics ? "Saving..." : "Save"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {clientTab === "Programs" && (
                 <div className="clientProgramsPage">

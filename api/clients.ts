@@ -111,6 +111,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           fieldToText(fields["Language Preference"]) ||
           fieldToText(fields["Language"]) ||
           "English",
+        // Manual performance-metric overrides (per client, optional).
+        masKmhOverride: fieldToText(fields["MAS (km/h)"]),
+        hrMaxOverride: fieldToText(fields["HR Max"]),
+        restingHrOverride: fieldToText(fields["Resting HR"]),
+        zone5kPct: fieldToText(fields["Zone 5K %"]),
+        zone10kPct: fieldToText(fields["Zone 10K %"]),
+        zoneThresholdPct: fieldToText(fields["Zone Threshold %"]),
+        zoneEasyPct: fieldToText(fields["Zone Easy %"]),
       };
     });
 
