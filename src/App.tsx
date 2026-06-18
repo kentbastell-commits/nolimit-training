@@ -11918,50 +11918,23 @@ function App() {
             {activePage === "Clients" && (
               <>
                 <section className="clientCommandCenter">
-                  <aside className="clientBucketsPanel">
-                    <div className="clientBucketsHeader">
-                      <h3>Clients</h3>
-                      <button
-                        className="iconTextButton"
-                        onClick={() => void loadClients(true)}
-                      >
-                        Refresh
-                      </button>
-                    </div>
-
-                    {clientBuckets.map((bucket) => (
-                      <button
-                        key={bucket.name}
-                        className={
-                          clientBucket === bucket.name
-                            ? "clientBucket activeClientBucket"
-                            : "clientBucket"
-                        }
-                        onClick={() => {
-                          setClientBucket(bucket.name);
+                  <section className="clientTableWorkspace">
+                    <div className="clientToolbar">
+                      <select
+                        className="clientBucketSelect"
+                        value={clientBucket}
+                        onChange={(e) => {
+                          setClientBucket(e.target.value as ClientBucket);
                           setClientStatusFilter("All");
                         }}
                       >
-                        <span>{bucket.name}</span>
-                        <strong>{bucket.count}</strong>
-                      </button>
-                    ))}
+                        {clientBuckets.map((bucket) => (
+                          <option key={bucket.name} value={bucket.name}>
+                            {bucket.name} ({bucket.count})
+                          </option>
+                        ))}
+                      </select>
 
-                    <div className="inviteLinkBox">
-                      <span>Invite Link</span>
-                      <button
-                        className="outlineButton"
-                        onClick={() =>
-                          copyToClipboard(coachInviteLink, "Invite link")
-                        }
-                      >
-                        Copy Invite
-                      </button>
-                    </div>
-                  </aside>
-
-                  <section className="clientTableWorkspace">
-                    <div className="clientToolbar">
                       <input
                         placeholder="Search client"
                         value={clientSearch}
@@ -11994,6 +11967,22 @@ function App() {
                           </option>
                         ))}
                       </select>
+
+                      <button
+                        className="outlineButton"
+                        onClick={() => void loadClients(true)}
+                      >
+                        Refresh
+                      </button>
+
+                      <button
+                        className="outlineButton"
+                        onClick={() =>
+                          copyToClipboard(coachInviteLink, "Invite link")
+                        }
+                      >
+                        Copy Invite
+                      </button>
                     </div>
 
                     {loading && <p>Loading clients...</p>}

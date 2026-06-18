@@ -2043,7 +2043,7 @@ body {
 
 .clientCommandCenter {
   display: grid;
-  grid-template-columns: 220px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 16px;
   align-items: start;
   margin-top: 22px;
@@ -2202,16 +2202,24 @@ body {
 }
 
 .clientToolbar {
-  display: grid;
-  grid-template-columns: minmax(220px, 1fr) minmax(150px, 190px) minmax(170px, 210px);
+  display: flex;
+  flex-wrap: wrap;
   gap: 12px;
   margin: 0 0 12px;
   align-items: center;
 }
 
+.clientToolbar input {
+  flex: 1 1 240px;
+}
+
+.clientToolbar select {
+  flex: 0 0 auto;
+}
+
 .clientToolbar input,
 .clientToolbar select {
-  width: 100%;
+  width: auto;
   background: rgba(0, 0, 0, 0.4);
   color: white;
   border: 1px solid rgba(212, 175, 55, 0.35);
