@@ -116,10 +116,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const workouts = workoutRecords.map((item: any) => {
       const fields = item.fields || {};
+      const clientField = fields["Client ID"];
 
       return {
         recordId: item.record_id,
-        clientId: fieldToText(fields["Client ID"]),
+        clientId: fieldToText(clientField),
+        clientRecordIds: Array.isArray(clientField)
+          ? clientField.flatMap(
+              (x: any) => x?.record_ids || x?.link_record_ids || []
+            )
+          : [],
         sessionName: fieldToText(fields["Session Name"]),
         scheduledDate: normalizeDate(fields["Scheduled Date"]),
         status: fieldToText(fields["Completion Status"]) || "Scheduled",
@@ -129,6 +135,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const today = new Date();
     const todayString = today.toISOString().split("T")[0];
     const nextWeekString = addDays(today, 7).toISOString().split("T")[0];
+    const weekAgoString = addDays(today, -6).toISOString().split("T")[0];
     const workoutsWithDisplayStatus = workouts.map((workout) => ({
       ...workout,
       displayStatus: getDisplayTaskStatus(
@@ -189,7 +196,33 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .sort((a, b) => b.overdueWorkouts - a.overdueWorkouts)
       .slice(0, 8);
 
+    // Per-client training activity over the last 7 days, for the cross-client
+    // Clients list. Match workouts to a client by record-id link (reliable) or
+    // by the resolved Client ID code; never match on an empty code.
+    const clientActivity = clients.map((client) => {
+      const clientWorkouts = workoutsWithDisplayStatus.filter(
+        (workout) =>
+          workout.clientRecordIds.includes(client.recordId) ||
+          (client.clientId && workout.clientId.includes(client.clientId))
+      );
+      const inWeek = (date: string) =>
+        Boolean(date) && date >= weekAgoString && date <= todayString;
+
+      return {
+        recordId: client.recordId,
+        clientId: client.clientId,
+        completed7d: clientWorkouts.filter(
+          (workout) =>
+            workout.displayStatus === "Completed" && inWeek(workout.scheduledDate)
+        ).length,
+        scheduled7d: clientWorkouts.filter((workout) =>
+          inWeek(workout.scheduledDate)
+        ).length,
+      };
+    });
+
     return res.status(200).json({
+      clientActivity,
       summary: {
         totalClients: clients.length,
         activeClients: clients.filter((client) =>

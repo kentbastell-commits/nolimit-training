@@ -1368,6 +1368,11 @@ function App() {
   const [athleteMetrics, setAthleteMetrics] = useState<AthleteMetric[]>([]);
   const [athleteMetricsLoading, setAthleteMetricsLoading] = useState(false);
   const [exerciseResults, setExerciseResults] = useState<ExerciseResult[]>([]);
+  // Cross-client Clients list: per-client 7-day training activity, keyed by
+  // client record id. Quiet-loaded from /api/analytics on the Clients page.
+  const [clientActivityMap, setClientActivityMap] = useState<
+    Record<string, { completed7d: number; scheduled7d: number }>
+  >({});
   // Coach Overview: which PR metric drives the leaderboard ordering.
   const [prMetric, setPrMetric] = useState<"weight" | "e1rm" | "volume">("e1rm");
   // Coach Dashboard: filter for the Recent Submissions list.
@@ -2166,6 +2171,33 @@ function App() {
       setAnalyticsLoading(false);
     }
   };
+
+  // Quiet-load per-client 7-day activity for the Clients list (no modal).
+  useEffect(() => {
+    if (isClientPortal || activePage !== "Clients") return;
+
+    let cancelled = false;
+    fetch("/api/analytics")
+      .then((res) => res.json())
+      .then((data) => {
+        if (cancelled) return;
+        const map: Record<string, { completed7d: number; scheduled7d: number }> = {};
+        (data.clientActivity || []).forEach((entry: any) => {
+          if (entry.recordId) {
+            map[entry.recordId] = {
+              completed7d: entry.completed7d || 0,
+              scheduled7d: entry.scheduled7d || 0,
+            };
+          }
+        });
+        setClientActivityMap(map);
+      })
+      .catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isClientPortal, activePage, clients.length]);
 
   useEffect(() => {
     if (isStorePage) {
@@ -11822,7 +11854,24 @@ function App() {
                             <span>{client.program}</span>
                             <span>{getCoachDisplayName(client.coach || client.primaryCoach || "--")}</span>
                             <span>{client.activity}</span>
-                            <span>{client.training}</span>
+                            <span className="last7dCell">
+                              {(() => {
+                                const activity = clientActivityMap[client.id];
+                                if (!activity || activity.scheduled7d === 0) {
+                                  return <span className="last7dIdle">--</span>;
+                                }
+                                return (
+                                  <span
+                                    className={`last7dBadge ${
+                                      activity.completed7d > 0 ? "active" : "idle"
+                                    }`}
+                                    title={`${activity.completed7d} completed of ${activity.scheduled7d} scheduled in the last 7 days`}
+                                  >
+                                    {activity.completed7d}/{activity.scheduled7d}
+                                  </span>
+                                );
+                              })()}
+                            </span>
                             <span className="attentionCell">
                               {attentionItems.length === 0
                                 ? "--"

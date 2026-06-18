@@ -16341,6 +16341,32 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   background: rgba(212, 175, 55, 0.2);
 }
 
+/* --- Cross-client Clients list: last-7-day activity badge --- */
+.last7dBadge {
+  display: inline-block;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.last7dBadge.active {
+  background: rgba(46, 160, 67, 0.16);
+  color: #1a7f37;
+  border: 1px solid rgba(46, 160, 67, 0.35);
+}
+
+.last7dBadge.idle {
+  background: rgba(180, 130, 20, 0.14);
+  color: #8a6d1a;
+  border: 1px solid rgba(180, 130, 20, 0.3);
+}
+
+.last7dIdle {
+  color: rgba(0, 0, 0, 0.35);
+}
+
 /* --- Coach Dashboard: Recent Submissions filter --- */
 .submissionHeaderControls {
   display: flex;
