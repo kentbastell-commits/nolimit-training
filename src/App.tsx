@@ -1494,6 +1494,11 @@ function App() {
   const [coachReviewWorkouts, setCoachReviewWorkouts] = useState<Workout[]>([]);
   const [coachReviewLoading, setCoachReviewLoading] = useState(false);
   const [coachReviewError, setCoachReviewError] = useState("");
+  const [openReviewSections, setOpenReviewSections] = useState<
+    Record<string, boolean>
+  >({ comments: true, missed: true, submissions: true });
+  const toggleReviewSection = (key: string) =>
+    setOpenReviewSections((prev) => ({ ...prev, [key]: !prev[key] }));
   const [activeContentAssignment, setActiveContentAssignment] =
     useState<ContentAssignment | null>(null);
   const [contentAssignmentAnswers, setContentAssignmentAnswers] = useState<
@@ -12422,17 +12427,31 @@ function App() {
                         : ""
                     }`}
                   >
-                    <div className="coachReviewColumnHeader">
+                    <button
+                      type="button"
+                      className="coachReviewColumnHeader"
+                      aria-expanded={openReviewSections.comments}
+                      onClick={() => toggleReviewSection("comments")}
+                    >
                       <div>
                         <span>Needs review</span>
                         <strong>Comments & Orders</strong>
                       </div>
-                      <em>
-                        {globalUnreviewedWorkoutComments.length +
-                          globalReviewOrders.length}
-                      </em>
-                    </div>
+                      <div className="coachReviewHeaderRight">
+                        <em>
+                          {globalUnreviewedWorkoutComments.length +
+                            globalReviewOrders.length}
+                        </em>
+                        <ChevronDown
+                          size={18}
+                          className={`coachReviewChevron ${
+                            openReviewSections.comments ? "open" : ""
+                          }`}
+                        />
+                      </div>
+                    </button>
 
+                    {openReviewSections.comments && (
                     <div className="coachReviewGlobalList">
                       {globalReviewOrders.slice(0, 6).map((order) => (
                         <button
@@ -12513,6 +12532,7 @@ function App() {
                           </p>
                         )}
                     </div>
+                    )}
                   </article>
 
                   <article
@@ -12523,14 +12543,28 @@ function App() {
                         : ""
                     }`}
                   >
-                    <div className="coachReviewColumnHeader">
+                    <button
+                      type="button"
+                      className="coachReviewColumnHeader"
+                      aria-expanded={openReviewSections.missed}
+                      onClick={() => toggleReviewSection("missed")}
+                    >
                       <div>
                         <span>Training</span>
                         <strong>Missed Tasks</strong>
                       </div>
-                      <em>{globalMissedWorkouts.length}</em>
-                    </div>
+                      <div className="coachReviewHeaderRight">
+                        <em>{globalMissedWorkouts.length}</em>
+                        <ChevronDown
+                          size={18}
+                          className={`coachReviewChevron ${
+                            openReviewSections.missed ? "open" : ""
+                          }`}
+                        />
+                      </div>
+                    </button>
 
+                    {openReviewSections.missed && (
                     <div className="coachReviewGlobalList">
                       {globalMissedWorkouts.map((workout) => (
                         <button
@@ -12554,6 +12588,7 @@ function App() {
                         </p>
                       )}
                     </div>
+                    )}
                   </article>
 
                   <article
@@ -12564,14 +12599,28 @@ function App() {
                         : ""
                     }`}
                   >
-                    <div className="coachReviewColumnHeader">
+                    <button
+                      type="button"
+                      className="coachReviewColumnHeader"
+                      aria-expanded={openReviewSections.submissions}
+                      onClick={() => toggleReviewSection("submissions")}
+                    >
                       <div>
                         <span>Submissions</span>
                         <strong>Forms & Tests</strong>
                       </div>
-                      <em>{globalReviewSubmissionItems.length}</em>
-                    </div>
+                      <div className="coachReviewHeaderRight">
+                        <em>{globalReviewSubmissionItems.length}</em>
+                        <ChevronDown
+                          size={18}
+                          className={`coachReviewChevron ${
+                            openReviewSections.submissions ? "open" : ""
+                          }`}
+                        />
+                      </div>
+                    </button>
 
+                    {openReviewSections.submissions && (
                     <div className="coachReviewGlobalList">
                       {globalReviewSubmissionItems.map((group) => {
                         const first = group.answers[0];
@@ -12598,6 +12647,7 @@ function App() {
                         </p>
                       )}
                     </div>
+                    )}
                   </article>
                 </div>
               </section>
