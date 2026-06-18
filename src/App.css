@@ -16769,3 +16769,43 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   color: #3f4230;
   border: 1px solid rgba(76, 79, 60, 0.34);
 }
+
+/* ===== Palette spice-up (cream strips + moss-accented tiles) ===== */
+.app:not(.clientPortalApp) .clientHomePanelHeader,
+.clientPortalApp .clientHomePanelHeader,
+.app:not(.clientPortalApp) .profileMetricsHeader,
+.clientPortalApp .profileMetricsHeader {
+  background: #f2ede1;
+  border: 1px solid #e7dcc8;
+  border-radius: 12px;
+  padding: 12px 16px !important;
+  margin-bottom: 18px;
+}
+
+.performanceMetricCard {
+  background: #faf6ef !important;
+  border: 1px solid #e9dfcd !important;
+  border-left: 4px solid #4c4f3c !important;
+  border-radius: 12px !important;
+  padding: 16px 18px !important;
+}
+
+.performanceMetricCard > span:first-child {
+  color: #4c4f3c !important;
+}
+
+.performanceMetricCard strong {
+  color: #1a1a1a;
+}
+
+.runningPacesCard {
+  border: 1px solid #e9dfcd !important;
+  border-radius: 12px !important;
+  background: #ffffff !important;
+}
+
+.runningPacesHeader {
+  background: #f2ede1;
+  border-radius: 8px;
+  padding: 8px 12px;
+}
