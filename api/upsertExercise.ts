@@ -169,6 +169,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       category,
       equipment,
       movementPattern,
+      muscleGroup,
       notes,
       archive,
     } = req.body;
@@ -228,6 +229,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (category) fields.Category = category;
     if (equipmentField.length > 0) fields.Equipment = equipmentField;
     if (movementPattern) fields["Movement Pattern"] = movementPattern;
+    if (muscleGroup) fields["Primary Muscles"] = muscleGroup;
 
     const { existingFields, omittedFields } = filterExistingFields(
       fields,

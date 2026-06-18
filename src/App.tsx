@@ -631,6 +631,29 @@ type SetLog = {
   actualDistance: string;
 };
 
+// Convert a YouTube watch/short/embed/youtu.be link to an embeddable URL.
+function toYoutubeEmbed(url: string): string {
+  const match = String(url || "").match(
+    /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{6,})/
+  );
+  return match ? `https://www.youtube.com/embed/${match[1]}` : "";
+}
+
+const MOVEMENT_PATTERN_OPTIONS = [
+  "Lower Body Squat",
+  "Lower Body Hinge",
+  "Lower Body Lunge",
+  "Upper Body Horizontal Push",
+  "Upper Body Vertical Push",
+  "Upper Body Horizontal Pull",
+  "Upper Body Vertical Pull",
+  "Core / Anti-Rotation",
+  "Carry / Loaded Carry",
+  "Olympic / Power",
+  "Locomotion / Cardio",
+  "Mobility / Flexibility",
+];
+
 function normalizeDate(value: string) {
   if (!value) return "";
 
@@ -1494,8 +1517,9 @@ function App() {
     videoUrl: "",
     longVideoUrl: "",
     category: "",
-    equipment: "",
+    muscleGroup: "",
     movementPattern: "",
+    equipment: "",
     notes: "",
     trackingType: "Weight" as TrackingType,
     isUnilateral: false,
@@ -2679,8 +2703,9 @@ function App() {
       videoUrl: "",
       longVideoUrl: "",
       category: "",
-      equipment: "",
+      muscleGroup: "",
       movementPattern: "",
+      equipment: "",
       notes: "",
       trackingType: "Weight",
       isUnilateral: false,
@@ -2703,13 +2728,66 @@ function App() {
       videoUrl: exercise.videoUrl || "",
       longVideoUrl: exercise.longVideoUrl || "",
       category: exercise.category || "",
-      equipment: exercise.equipment || "",
+      muscleGroup: exercise.primaryMuscles || "",
       movementPattern: exercise.movementPattern || "",
+      equipment: exercise.equipment || "",
       notes: meta.coachingNotes || "",
       trackingType: meta.trackingType,
       isUnilateral: meta.isUnilateral,
     });
     setShowExerciseModal(true);
+  };
+
+  // Datalist suggestions for the exercise editor, drawn from the real library so
+  // the vocab stays consistent (multi-value fields split on comma/slash).
+  const distinctLibraryValues = (key: keyof LibraryExercise) =>
+    Array.from(
+      new Set(
+        libraryExercises
+          .flatMap((ex) =>
+            String((ex[key] as string) || "")
+              .split(/[,/]/)
+              .map((part) => part.trim())
+          )
+          .filter(Boolean)
+      )
+    ).sort((a, b) => a.localeCompare(b));
+  const categoryOptions = distinctLibraryValues("category");
+  const equipmentOptions = distinctLibraryValues("equipment");
+  const muscleGroupOptions = distinctLibraryValues("primaryMuscles");
+  const movementPatternOptions = Array.from(
+    new Set([...MOVEMENT_PATTERN_OPTIONS, ...distinctLibraryValues("movementPattern")])
+  );
+
+  const renderVideoPreview = (url: string) => {
+    const clean = String(url || "").trim();
+    if (!clean) return null;
+    const embed = toYoutubeEmbed(clean);
+    if (embed) {
+      return (
+        <div className="exerciseVideoPreview">
+          <iframe
+            src={embed}
+            title="Video preview"
+            allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          />
+        </div>
+      );
+    }
+    if (/\.(mp4|webm|mov)(\?|#|$)/i.test(clean)) {
+      return <video className="exerciseVideoPreview" src={clean} controls />;
+    }
+    return (
+      <a
+        className="exerciseVideoPreviewLink"
+        href={clean}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        Open video ↗
+      </a>
+    );
   };
 
   const applyExerciseCueDraft = () => {
@@ -2793,6 +2871,7 @@ function App() {
         category: exerciseForm.category,
         equipment: exerciseForm.equipment,
         movementPattern: exerciseForm.movementPattern,
+        primaryMuscles: exerciseForm.muscleGroup,
         notes: archive ? `[Archived]\n${composedNotes}`.trim() : composedNotes,
         status: archive ? "Archived" : "Active",
       };
@@ -20217,6 +20296,7 @@ function App() {
                 <label>
                   <span>Category</span>
                   <input
+                    list="exCategoryOptions"
                     value={exerciseForm.category}
                     onChange={(e) =>
                       setExerciseForm({
@@ -20224,8 +20304,73 @@ function App() {
                         category: e.target.value,
                       })
                     }
-                    placeholder="Strength"
+                    placeholder="Squat"
                   />
+                  <datalist id="exCategoryOptions">
+                    {categoryOptions.map((opt) => (
+                      <option key={opt} value={opt} />
+                    ))}
+                  </datalist>
+                </label>
+
+                <label>
+                  <span>Muscle group</span>
+                  <input
+                    list="exMuscleOptions"
+                    value={exerciseForm.muscleGroup}
+                    onChange={(e) =>
+                      setExerciseForm({
+                        ...exerciseForm,
+                        muscleGroup: e.target.value,
+                      })
+                    }
+                    placeholder="Shoulders"
+                  />
+                  <datalist id="exMuscleOptions">
+                    {muscleGroupOptions.map((opt) => (
+                      <option key={opt} value={opt} />
+                    ))}
+                  </datalist>
+                </label>
+
+                <label>
+                  <span>Movement pattern</span>
+                  <input
+                    list="exMovementOptions"
+                    value={exerciseForm.movementPattern}
+                    onChange={(e) =>
+                      setExerciseForm({
+                        ...exerciseForm,
+                        movementPattern: e.target.value,
+                      })
+                    }
+                    placeholder="Upper Body Vertical Push"
+                  />
+                  <datalist id="exMovementOptions">
+                    {movementPatternOptions.map((opt) => (
+                      <option key={opt} value={opt} />
+                    ))}
+                  </datalist>
+                </label>
+
+                <label>
+                  <span>Equipment</span>
+                  <input
+                    list="exEquipmentOptions"
+                    value={exerciseForm.equipment}
+                    onChange={(e) =>
+                      setExerciseForm({
+                        ...exerciseForm,
+                        equipment: e.target.value,
+                      })
+                    }
+                    placeholder="Dumbbell"
+                  />
+                  <datalist id="exEquipmentOptions">
+                    {equipmentOptions.map((opt) => (
+                      <option key={opt} value={opt} />
+                    ))}
+                  </datalist>
                 </label>
 
                 <label>
@@ -20271,6 +20416,7 @@ function App() {
                     }
                     placeholder="https://..."
                   />
+                  {renderVideoPreview(exerciseForm.videoUrl)}
                 </label>
 
                 <label>

@@ -16355,6 +16355,32 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   white-space: nowrap;
 }
 
+.exerciseVideoPreview {
+  margin-top: 10px;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  background: #000;
+}
+
+.exerciseVideoPreview iframe,
+.exerciseVideoPreview video {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+}
+
+.exerciseVideoPreviewLink {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 13px;
+  color: #8a6d1a;
+  text-decoration: underline;
+}
+
 .coachNotesTextarea {
   width: 100%;
   min-height: 120px;
