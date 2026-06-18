@@ -16693,3 +16693,41 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   color: #888;
   font-weight: 800;
 }
+
+/* ===== Flat white-blend layout: cards dissolve into the white page and are
+   separated by spacing + a hairline under each section title (not a box). ===== */
+.app:not(.clientPortalApp),
+.clientPortalApp,
+.clientPortalShell,
+.clientPortalApp .main {
+  background: #ffffff;
+}
+
+.app:not(.clientPortalApp) .clientHomePanel,
+.clientPortalApp .clientHomePanel,
+.app:not(.clientPortalApp) .profileCard,
+.clientPortalApp .profileCard,
+.app:not(.clientPortalApp) .tableCard,
+.app:not(.clientPortalApp) .exerciseLibraryTable {
+  background: #ffffff !important;
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+}
+
+/* Hairline under section titles to "section off" without a surrounding box. */
+.app:not(.clientPortalApp) .clientHomePanelHeader,
+.clientPortalApp .clientHomePanelHeader {
+  border-bottom: 1px solid #edeef1;
+  padding-bottom: 14px;
+  margin-bottom: 18px;
+}
+
+.app:not(.clientPortalApp) .profileCard > h3,
+.clientPortalApp .profileCard > h3,
+.app:not(.clientPortalApp) .profileMetricsHeader,
+.clientPortalApp .profileMetricsHeader {
+  border-bottom: 1px solid #edeef1;
+  padding-bottom: 12px;
+  margin-bottom: 4px;
+}
