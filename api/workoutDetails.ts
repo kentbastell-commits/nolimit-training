@@ -181,11 +181,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             readFirstField(fields, ["Exercise Name CN", "Name CN"]) ||
             readFirstField(libraryFields, ["Exercise Name CN", "Name CN"]),
           videoUrl:
-            fieldToText(fields["Video URL"]) ||
-            fieldToText(libraryFields["Video URL"]),
+            readFirstField(fields, ["Short Video URL", "Video URL"]) ||
+            readFirstField(libraryFields, ["Short Video URL", "Video URL"]),
           videoUrlCn:
             readFirstField(fields, ["Video URL CN"]) ||
             readFirstField(libraryFields, ["Video URL CN"]),
+          longVideoUrl:
+            readFirstField(fields, ["Long Video URL"]) ||
+            readFirstField(libraryFields, ["Long Video URL"]),
           category: fieldToText(libraryFields["Category"]),
           categoryCn: readFirstField(libraryFields, ["Category CN"]),
           equipment: fieldToText(libraryFields["Equipment"]),

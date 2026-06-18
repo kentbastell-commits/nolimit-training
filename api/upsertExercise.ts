@@ -158,6 +158,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       exerciseId,
       exerciseName,
       videoUrl,
+      longVideoUrl,
       category,
       equipment,
       movementPattern,
@@ -201,9 +202,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const videoField = makeUrlField(videoUrl);
+    const longVideoField = makeUrlField(longVideoUrl);
     const equipmentField = makeMultiSelectField(equipment);
 
     if (videoField) fields["Video URL"] = videoField;
+    if (longVideoField) fields["Long Video URL"] = longVideoField;
     if (category) fields.Category = category;
     if (equipmentField.length > 0) fields.Equipment = equipmentField;
     if (movementPattern) fields["Movement Pattern"] = movementPattern;

@@ -4,6 +4,7 @@ import {
   ChevronDown,
   ClipboardList,
   Copy,
+  Film,
   Clock3,
   Dumbbell,
   Eye,
@@ -247,6 +248,7 @@ type ExerciseDetail = {
   exerciseNameCn?: string;
   videoUrl?: string;
   videoUrlCn?: string;
+  longVideoUrl?: string;
   category?: string;
   categoryCn?: string;
   equipment?: string;
@@ -362,6 +364,7 @@ type LibraryExercise = {
   exerciseNameCn?: string;
   videoUrl: string;
   videoUrlCn?: string;
+  longVideoUrl?: string;
   category?: string;
   categoryCn?: string;
   equipment?: string;
@@ -1489,6 +1492,7 @@ function App() {
     exerciseId: "",
     exerciseName: "",
     videoUrl: "",
+    longVideoUrl: "",
     category: "",
     equipment: "",
     movementPattern: "",
@@ -2673,6 +2677,7 @@ function App() {
       exerciseId: "",
       exerciseName: "",
       videoUrl: "",
+      longVideoUrl: "",
       category: "",
       equipment: "",
       movementPattern: "",
@@ -2696,6 +2701,7 @@ function App() {
       exerciseId: exercise.exerciseId || "",
       exerciseName: exercise.exerciseName || "",
       videoUrl: exercise.videoUrl || "",
+      longVideoUrl: exercise.longVideoUrl || "",
       category: exercise.category || "",
       equipment: exercise.equipment || "",
       movementPattern: exercise.movementPattern || "",
@@ -2783,6 +2789,7 @@ function App() {
         exerciseId: data.exerciseId || exerciseForm.exerciseId,
         exerciseName: exerciseForm.exerciseName.trim(),
         videoUrl: exerciseForm.videoUrl,
+        longVideoUrl: exerciseForm.longVideoUrl,
         category: exerciseForm.category,
         equipment: exerciseForm.equipment,
         movementPattern: exerciseForm.movementPattern,
@@ -13429,25 +13436,41 @@ function App() {
                           </button>
                         </span>
 
-                        <span>
+                        <span className="libraryVideoCell">
                           {exercise.videoUrl ? (
                             <a
                               className="iconActionButton libraryVideoButton"
                               href={exercise.videoUrl}
                               target="_blank"
                               rel="noopener noreferrer"
-                              title={`Open video for ${
+                              title={`Open short video for ${
                                 exercise.exerciseName || "exercise"
                               }`}
-                              aria-label={`Open video for ${
+                              aria-label={`Open short video for ${
                                 exercise.exerciseName || "exercise"
                               }`}
                             >
-                              🎥 Video
+                              🎥 Short
                             </a>
                           ) : (
                             "--"
                           )}
+                          {exercise.longVideoUrl ? (
+                            <a
+                              className="libraryLongVideoLink"
+                              href={exercise.longVideoUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              title={`Open in-depth video for ${
+                                exercise.exerciseName || "exercise"
+                              }`}
+                              aria-label={`Open in-depth video for ${
+                                exercise.exerciseName || "exercise"
+                              }`}
+                            >
+                              In-depth
+                            </a>
+                          ) : null}
                         </span>
 
                         <span className="rowActions">
@@ -20237,13 +20260,27 @@ function App() {
                 </label>
 
                 <label>
-                  <span>Video URL</span>
+                  <span>Short Video URL (quick demo)</span>
                   <input
                     value={exerciseForm.videoUrl}
                     onChange={(e) =>
                       setExerciseForm({
                         ...exerciseForm,
                         videoUrl: e.target.value,
+                      })
+                    }
+                    placeholder="https://..."
+                  />
+                </label>
+
+                <label>
+                  <span>Long Video URL (in-depth, optional)</span>
+                  <input
+                    value={exerciseForm.longVideoUrl}
+                    onChange={(e) =>
+                      setExerciseForm({
+                        ...exerciseForm,
+                        longVideoUrl: e.target.value,
                       })
                     }
                     placeholder="https://..."
@@ -21491,6 +21528,19 @@ function App() {
                                 aria-label={`Open video for ${exercise.exerciseName}`}
                               >
                                 <Play size={18} fill="currentColor" aria-hidden="true" />
+                              </a>
+                            )}
+
+                            {exercise.longVideoUrl && (
+                              <a
+                                className="iconActionButton"
+                                href={exercise.longVideoUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                title={paceZh ? "详细讲解" : "In-depth video"}
+                                aria-label={`Open in-depth video for ${exercise.exerciseName}`}
+                              >
+                                <Film size={18} aria-hidden="true" />
                               </a>
                             )}
 

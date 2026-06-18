@@ -16341,6 +16341,20 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   background: rgba(212, 175, 55, 0.2);
 }
 
+.libraryVideoCell {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.libraryLongVideoLink {
+  font-size: 12px;
+  font-weight: 600;
+  color: #8a6d1a;
+  text-decoration: underline;
+  white-space: nowrap;
+}
+
 .coachNotesTextarea {
   width: 100%;
   min-height: 120px;
