@@ -9907,8 +9907,17 @@ function App() {
   };
   const getTaskActionLabel = (status: SimpleTaskStatus, hasProgress = false) => {
     if (status === "Completed") return t("view");
-    if (hasProgress) return "Continue";
+    if (hasProgress) return t("continueTask");
     return t("start");
+  };
+  const localizeAssignmentKind = (assignmentType?: string) => {
+    const clean = String(assignmentType || "").toLowerCase();
+    if (clean.includes("question") || clean.includes("intake") || clean.includes("survey"))
+      return t("questionnaire");
+    if (clean.includes("physical") || clean.includes("test")) return t("physicalTest");
+    if (clean.includes("check")) return t("checkIn");
+    if (clean.includes("program")) return t("program");
+    return assignmentType || t("questionnaire");
   };
   const getTaskTone = (status: SimpleTaskStatus) => {
     if (status === "Completed") return "completed";
@@ -16549,7 +16558,9 @@ function App() {
                               {localizedCalendarLabel(task.date)}
                             </span>
                             <span className={`taskTypeChip ${task.type}`}>
-                              {task.kindLabel}
+                              {task.type === "assignment"
+                                ? localizeAssignmentKind(task.kindLabel)
+                                : task.kindLabel}
                             </span>
                             <strong>{task.title}</strong>
                             <small>
@@ -17493,7 +17504,8 @@ function App() {
                               </div>
                               <p>
                                 {selectedClientProgram.durationWeeks || "--"} {t("week")}
-                                {Number(selectedClientProgram.durationWeeks) === 1
+                                {paceZh ||
+                                Number(selectedClientProgram.durationWeeks) === 1
                                   ? ""
                                   : "s"}{" "}
                                 - {selectedClientProgram.sessionsPerWeek || "--"}{" "}
@@ -17512,27 +17524,49 @@ function App() {
                             <div>
                               <span>
                                 {selectedClientProgramAlreadyLoaded
-                                  ? "Calendar loaded"
+                                  ? paceZh
+                                    ? "日历已加载"
+                                    : "Calendar loaded"
+                                  : paceZh
+                                  ? "准备排程"
                                   : "Ready to schedule"}
                               </span>
                               <strong>{localizedProgramName(selectedClientProgram)}</strong>
                               <p>
                                 {selectedClientProgramAlreadyLoaded
-                                  ? `${selectedClientProgramCalendarWorkouts.length} sessions on calendar${
-                                      selectedClientProgramFirstDate
-                                        ? ` from ${localizedCalendarLabel(
-                                            selectedClientProgramFirstDate
-                                          )}${
-                                            selectedClientProgramLastDate &&
-                                            selectedClientProgramLastDate !==
+                                  ? paceZh
+                                    ? `日历上有 ${selectedClientProgramCalendarWorkouts.length} 节训练${
+                                        selectedClientProgramFirstDate
+                                          ? `，从 ${localizedCalendarLabel(
                                               selectedClientProgramFirstDate
-                                              ? ` to ${localizedCalendarLabel(
-                                                  selectedClientProgramLastDate
-                                                )}`
-                                              : ""
-                                          }`
-                                        : ""
-                                    }.`
+                                            )}${
+                                              selectedClientProgramLastDate &&
+                                              selectedClientProgramLastDate !==
+                                                selectedClientProgramFirstDate
+                                                ? ` 至 ${localizedCalendarLabel(
+                                                    selectedClientProgramLastDate
+                                                  )}`
+                                                : ""
+                                            }`
+                                          : ""
+                                      }。`
+                                    : `${selectedClientProgramCalendarWorkouts.length} sessions on calendar${
+                                        selectedClientProgramFirstDate
+                                          ? ` from ${localizedCalendarLabel(
+                                              selectedClientProgramFirstDate
+                                            )}${
+                                              selectedClientProgramLastDate &&
+                                              selectedClientProgramLastDate !==
+                                                selectedClientProgramFirstDate
+                                                ? ` to ${localizedCalendarLabel(
+                                                    selectedClientProgramLastDate
+                                                  )}`
+                                                : ""
+                                            }`
+                                          : ""
+                                      }.`
+                                  : paceZh
+                                  ? "选择排程方式，预览日期，然后添加到日历。"
                                   : "Choose how you want to place this program, preview the dates, then add it to the calendar."}
                               </p>
                             </div>
@@ -20781,9 +20815,11 @@ function App() {
                       {t("week")} {selectedWorkout.week} • {t("day")} {selectedWorkout.day}
                     </span>
                     <span>
-                      {getDisplayTaskStatus(
-                        selectedWorkout.completionStatus,
-                        selectedWorkout.scheduledDate
+                      {t(
+                        getDisplayTaskStatus(
+                          selectedWorkout.completionStatus,
+                          selectedWorkout.scheduledDate
+                        ).toLowerCase()
                       )}
                     </span>
                     {!isClientPortal && (
