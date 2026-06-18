@@ -52,6 +52,30 @@ function readFirstField(fields: Record<string, any>, candidates: string[]) {
   return "";
 }
 
+// Extract the actual link from a URL-field value (which is { link, text }) —
+// prefer the link over the display text so video buttons get a real href.
+function fieldToUrl(value: any): string {
+  if (!value) return "";
+  if (typeof value === "string") return value;
+  const pick = (item: any) =>
+    item?.link || item?.url || item?.text || "";
+  if (Array.isArray(value)) return value.map(pick).filter(Boolean)[0] || "";
+  return pick(value);
+}
+
+function readFirstUrl(fields: Record<string, any>, candidates: string[]) {
+  const normalizedFields = new Map(
+    Object.keys(fields).map((fieldName) => [fieldName.trim().toLowerCase(), fieldName])
+  );
+  for (const candidate of candidates) {
+    const fieldName =
+      normalizedFields.get(candidate.trim().toLowerCase()) || candidate;
+    const value = fieldToUrl(fields[fieldName]);
+    if (value) return value;
+  }
+  return "";
+}
+
 function readBooleanField(fields: Record<string, any>, candidates: string[]) {
   const value = readFirstField(fields, candidates).trim().toLowerCase();
 
@@ -181,14 +205,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             readFirstField(fields, ["Exercise Name CN", "Name CN"]) ||
             readFirstField(libraryFields, ["Exercise Name CN", "Name CN"]),
           videoUrl:
-            readFirstField(fields, ["Short Video URL", "Video URL"]) ||
-            readFirstField(libraryFields, ["Short Video URL", "Video URL"]),
+            readFirstUrl(fields, ["Short Video URL", "Video URL"]) ||
+            readFirstUrl(libraryFields, ["Short Video URL", "Video URL"]),
           videoUrlCn:
-            readFirstField(fields, ["Video URL CN"]) ||
-            readFirstField(libraryFields, ["Video URL CN"]),
+            readFirstUrl(fields, ["Video URL CN"]) ||
+            readFirstUrl(libraryFields, ["Video URL CN"]),
           longVideoUrl:
-            readFirstField(fields, ["Long Video URL"]) ||
-            readFirstField(libraryFields, ["Long Video URL"]),
+            readFirstUrl(fields, ["Long Video URL"]) ||
+            readFirstUrl(libraryFields, ["Long Video URL"]),
           category: fieldToText(libraryFields["Category"]),
           categoryCn: readFirstField(libraryFields, ["Category CN"]),
           equipment: fieldToText(libraryFields["Equipment"]),
