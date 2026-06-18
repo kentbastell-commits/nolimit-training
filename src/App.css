@@ -16809,3 +16809,11 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   border-radius: 8px;
   padding: 8px 12px;
 }
+
+/* TEST: Warm Stone (#D8D2C4) replacing cream on the Clients page only */
+.app:not(.clientPortalApp) .clientTableHeader {
+  background: #d8d2c4 !important;
+}
+.app:not(.clientPortalApp) .clientTableRow:hover {
+  background: #ece8df !important;
+}
