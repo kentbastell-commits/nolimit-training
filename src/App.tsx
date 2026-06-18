@@ -10155,6 +10155,36 @@ function App() {
     };
   };
   const paceZh = i18n.language === "zh";
+  // Localize the default English section names (Main/Warmup/etc.) when the
+  // coach hasn't provided a Chinese section name. Custom names pass through.
+  const localizeDefaultSection = (name: string) => {
+    if (!paceZh) return name;
+    const map: Record<string, string> = {
+      main: "主要训练",
+      "main set": "主要训练",
+      warmup: "热身",
+      "warm up": "热身",
+      "warm-up": "热身",
+      cooldown: "放松",
+      "cool down": "放松",
+      "cool-down": "放松",
+      accessory: "辅助训练",
+      conditioning: "体能训练",
+      core: "核心训练",
+      mobility: "灵活性训练",
+      strength: "力量训练",
+      finisher: "收尾训练",
+    };
+    return map[name.trim().toLowerCase()] || name;
+  };
+  // Localize free-text rest/duration unit suffixes for display (data is stored
+  // in English like "60 sec"). Only swaps the unit words, leaves numbers alone.
+  const localizeRestValue = (value: string) => {
+    if (!paceZh) return value;
+    return String(value)
+      .replace(/\bsec(onds?)?\b/gi, "秒")
+      .replace(/\bmins?\b|\bminutes?\b/gi, "分钟");
+  };
   // Parse a manual override string ("" / "--" => not set).
   const parseOverride = (raw?: string) => {
     const value = parseFloat(String(raw ?? "").replace(/[^\d.]/g, ""));
@@ -20893,10 +20923,9 @@ function App() {
                           ? parseExerciseNotes(workoutDetails[index - 1].notes)
                           : null;
                       const sectionName = meta.sectionName || "Main";
-                      const sectionNameDisplay = localizeText(
-                        sectionName,
-                        exercise.sectionNameCn || ""
-                      );
+                      const sectionNameDisplay = exercise.sectionNameCn
+                        ? localizeText(sectionName, exercise.sectionNameCn)
+                        : localizeDefaultSection(sectionName);
                       const showSectionHeader =
                         !previousMeta ||
                         sectionName !== (previousMeta.sectionName || "Main");
@@ -20905,12 +20934,18 @@ function App() {
                           ? `${exercise.sets} x ${exercise.reps}`
                           : t("forCompletion");
                       const accessoryLabel = meta.accessoryParentLabel
-                        ? `Accessory for ${meta.accessoryParentLabel}`
+                        ? paceZh
+                          ? `${meta.accessoryParentLabel} 的辅助动作`
+                          : `Accessory for ${meta.accessoryParentLabel}`
+                        : paceZh
+                        ? "辅助动作"
                         : "Accessory";
                       const prescriptionDetails = [
                         prescription,
                         exercise.tempo ? `${t("tempo")} ${exercise.tempo}` : "",
-                        exercise.rest ? `${t("rest")} ${exercise.rest}` : "",
+                        exercise.rest
+                          ? `${t("rest")} ${localizeRestValue(exercise.rest)}`
+                          : "",
                       ].filter(Boolean);
 
                       return (
@@ -20968,10 +21003,9 @@ function App() {
                         ? parseExerciseNotes(workoutDetails[index - 1].notes)
                         : null;
                     const sectionName = meta.sectionName || "Main";
-                    const sectionNameDisplay = localizeText(
-                      sectionName,
-                      exercise.sectionNameCn || ""
-                    );
+                    const sectionNameDisplay = exercise.sectionNameCn
+                      ? localizeText(sectionName, exercise.sectionNameCn)
+                      : localizeDefaultSection(sectionName);
                     const showSectionHeader =
                       !previousMeta ||
                       sectionName !== (previousMeta.sectionName || "Main");
@@ -20980,7 +21014,11 @@ function App() {
                       exercise.notesCn || ""
                     );
                     const accessoryLabel = meta.accessoryParentLabel
-                      ? `Accessory for ${meta.accessoryParentLabel}`
+                      ? paceZh
+                        ? `${meta.accessoryParentLabel} 的辅助动作`
+                        : `Accessory for ${meta.accessoryParentLabel}`
+                      : paceZh
+                      ? "辅助动作"
                       : "Accessory";
                     const exerciseHistoryLogs = workoutHistoryLogs
                       .filter((log) =>
@@ -21112,7 +21150,9 @@ function App() {
                               )}
                               <span>
                                 <strong>{t("rest")}</strong>
-                                {exercise.rest || "--"}
+                                {exercise.rest
+                                  ? localizeRestValue(exercise.rest)
+                                  : "--"}
                               </span>
                             </div>
                           );
