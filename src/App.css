@@ -16248,7 +16248,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 .prMetricToggle button {
   border: 0;
   background: transparent;
-  color: rgba(255, 255, 255, 0.7);
+  color: #6b6b6b;
   padding: 7px 14px;
   font-size: 13px;
   font-weight: 600;
@@ -16260,7 +16260,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 }
 
 .prMetricToggle button.active {
-  background: linear-gradient(180deg, rgba(212, 175, 55, 0.32), rgba(212, 175, 55, 0.12));
+  background: #1a1a1a;
   color: #f5d77b;
 }
 
@@ -16328,7 +16328,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   align-items: center;
   gap: 10px;
   margin: 18px 0 12px;
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(0, 0, 0, 0.5);
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.04em;

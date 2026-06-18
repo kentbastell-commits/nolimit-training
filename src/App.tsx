@@ -10771,7 +10771,9 @@ function App() {
   );
 
   // PR leaderboard + the progress chart, for the coach Overview's capacity view.
-  const renderPersonalRecords = () => (
+  // PR metric toggle + ranked leaderboard. Clicking a row selects that exercise
+  // so any nearby progress chart follows. Shared by coach Overview + portal Home.
+  const renderPrLeaderboard = () => (
     <>
       <div className="prLeaderboardControls">
         <div className="prMetricToggle" role="group" aria-label="PR metric">
@@ -10840,6 +10842,12 @@ function App() {
             : "No personal records yet — they appear once workouts are logged."}
         </p>
       )}
+    </>
+  );
+
+  const renderPersonalRecords = () => (
+    <>
+      {renderPrLeaderboard()}
 
       <div className="prChartDivider">
         <span>
@@ -16846,6 +16854,18 @@ function App() {
                         </div>
                       </div>
                       {renderPerformanceMetrics(false)}
+                    </section>
+                  )}
+
+                  {isClientPortal && (
+                    <section className="clientHomePanel prHomePanel">
+                      <div className="clientHomePanelHeader">
+                        <div>
+                          <span>{paceZh ? "成绩" : "Records"}</span>
+                          <h2>{paceZh ? "我的个人记录" : "My Personal Records"}</h2>
+                        </div>
+                      </div>
+                      {renderPrLeaderboard()}
                     </section>
                   )}
 
