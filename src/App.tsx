@@ -10162,11 +10162,54 @@ function App() {
         return exerciseTokens.some((token) => haystack.includes(token));
       }) || oneRepMaxMetrics[0];
 
+    // Fallback base: best estimated 1RM from this exercise's logged training
+    // (Exercise Results), in kg. Lets %1RM prescriptions resolve for athletes
+    // who train but have no formal 1RM test on file.
+    const bestTrainingOneRepMaxKg = (() => {
+      const target = exerciseName.toLowerCase().trim();
+      if (!target) return NaN;
+      let best = NaN;
+      for (const result of exerciseResults) {
+        const name = String(result.exerciseName || "").toLowerCase().trim();
+        if (!name) continue;
+        const matches =
+          name === target || name.startsWith(target) || target.startsWith(name);
+        if (!matches) continue;
+        const estimate = Number(result.estimatedOneRepMax);
+        if (
+          Number.isFinite(estimate) &&
+          estimate > 0 &&
+          (!Number.isFinite(best) || estimate > best)
+        ) {
+          best = estimate;
+        }
+      }
+      return best;
+    })();
+
     const base = metric
       ? parseFloat(String(metric.metricValue).replace(/[^\d.]/g, ""))
       : NaN;
-    if (!metric || !Number.isFinite(base) || base <= 0)
+    if (!metric || !Number.isFinite(base) || base <= 0) {
+      // No test-based 1RM — try the training-based estimate (always kg).
+      if (Number.isFinite(bestTrainingOneRepMaxKg) && bestTrainingOneRepMaxKg > 0) {
+        const weightKg = roundToLoadIncrement(
+          (bestTrainingOneRepMaxKg * pct) / 100
+        );
+        const displayValue =
+          weightUnit === "lb"
+            ? (weightKg * KG_TO_LB).toFixed(1)
+            : Number.isInteger(weightKg)
+              ? String(weightKg)
+              : weightKg.toFixed(1);
+        return {
+          display: `${displayValue} ${weightUnit} (${pct}%)`,
+          resolved: true,
+          isPercent: true,
+        };
+      }
       return { display: `${pct}% 1RM`, resolved: false, isPercent: true };
+    }
 
     const metricUnit = String(metric.metricUnit || "kg").trim() || "kg";
     const weightKg = roundToLoadIncrement((base * pct) / 100);
