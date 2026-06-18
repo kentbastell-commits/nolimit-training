@@ -127,7 +127,7 @@
   overflow: hidden;
   border: 1px solid rgba(17, 17, 17, 0.12);
   border-radius: 22px;
-  background: #fffdf8;
+  background: #ffffff;
   box-shadow: 0 32px 90px rgba(0, 0, 0, 0.28);
 }
 
@@ -178,7 +178,7 @@
   gap: 16px;
   padding: 22px;
   border-right: 1px solid rgba(17, 17, 17, 0.1);
-  background: #f7f4eb;
+  background: #f3f4f6;
 }
 
 .builderDrawerTabs {
@@ -188,7 +188,7 @@
   border: 1px solid #111;
   border-radius: 14px;
   padding: 5px;
-  background: #fffdf8;
+  background: #ffffff;
 }
 
 .builderDrawerTabs button {
@@ -238,7 +238,7 @@
   width: 100%;
   border: 1px solid rgba(17, 17, 17, 0.1);
   border-radius: 16px;
-  background: #fffdf8;
+  background: #ffffff;
   color: #111;
   padding: 15px;
   text-align: left;
@@ -293,7 +293,7 @@
   min-height: 64px;
   border: 1px solid rgba(17, 17, 17, 0.16);
   border-radius: 16px;
-  background: #fffdf8;
+  background: #ffffff;
   color: #111;
   font-weight: 950;
 }
@@ -317,7 +317,7 @@
   flex-direction: column;
   gap: 12px;
   padding: 34px 44px 28px;
-  background: #fffdf8;
+  background: #ffffff;
 }
 
 .builderLibraryPreview h2 {
@@ -381,7 +381,7 @@
   min-height: 34px;
   border: 1px solid rgba(17, 17, 17, 0.22);
   border-radius: 999px;
-  background: #fffdf8;
+  background: #ffffff;
   color: #111;
   padding: 0 13px;
   font-size: 12px;
@@ -407,14 +407,14 @@
   gap: 10px;
   border: 1px solid rgba(17, 17, 17, 0.12);
   border-radius: 18px;
-  background: #fffdf8;
+  background: #ffffff;
   padding: 14px;
   box-shadow: 0 14px 32px rgba(18, 18, 18, 0.08);
 }
 
 .builderModalExerciseEditor.isAccessory {
   border-color: rgba(68, 132, 92, 0.34);
-  background: linear-gradient(135deg, #fffdf8, rgba(221, 238, 226, 0.72));
+  background: linear-gradient(135deg, #ffffff, rgba(221, 238, 226, 0.72));
 }
 
 .builderModalExerciseHeader {
@@ -505,7 +505,7 @@
 
 .builderSetStepper button {
   border: 0;
-  background: #f1eee4;
+  background: #eef0f3;
   color: #111;
   font-size: 20px;
   font-weight: 950;
@@ -554,7 +554,7 @@
   overflow-y: auto;
   border: 1px solid rgba(17, 17, 17, 0.12);
   border-radius: 18px;
-  background: #f7f4eb;
+  background: #f3f4f6;
   padding: 16px;
 }
 
@@ -599,7 +599,7 @@
   flex-direction: column;
   gap: 16px;
   padding: 24px;
-  background: #fffdf8;
+  background: #ffffff;
   box-shadow: -24px 0 70px rgba(0, 0, 0, 0.24);
 }
 
@@ -624,7 +624,7 @@
   height: 44px;
   border: 1px solid rgba(17, 17, 17, 0.14);
   border-radius: 12px;
-  background: #fffdf8;
+  background: #ffffff;
   color: #111;
 }
 
@@ -638,7 +638,7 @@
   align-items: center;
   border: 1px solid rgba(17, 17, 17, 0.12);
   border-radius: 16px;
-  background: #f7f4eb;
+  background: #f3f4f6;
   padding: 12px;
   cursor: grab;
   user-select: none;
@@ -728,7 +728,7 @@
   gap: 0;
   border: 1px solid rgba(17, 17, 17, 0.1);
   border-radius: 16px;
-  background: #f7f4eb;
+  background: #f3f4f6;
   overflow: hidden;
   max-height: calc(100vh - 120px);
   overflow-y: auto;
@@ -777,7 +777,7 @@
   padding: 8px 10px;
   border: 1px solid rgba(17, 17, 17, 0.08);
   border-radius: 10px;
-  background: #fffdf8;
+  background: #ffffff;
   cursor: grab;
   user-select: none;
   transition:
@@ -936,7 +936,7 @@
   min-height: 72px;
   border: 1px solid rgba(17, 17, 17, 0.16);
   border-radius: 12px;
-  background: #fffdf8;
+  background: #ffffff;
   color: #111;
   padding: 10px 14px;
   font-size: 14px;
@@ -1412,7 +1412,7 @@ body {
   height: 9px;
   border-radius: 999px;
   background: #e05656;
-  box-shadow: 0 0 0 2px #fffdf8;
+  box-shadow: 0 0 0 2px #ffffff;
 }
 
 /* Default flyout: a dropdown anchored under the trigger (tablet top grid). */
@@ -1428,7 +1428,7 @@ body {
   padding: 8px;
   border-radius: 14px;
   border: 1px solid rgba(22, 22, 22, 0.12);
-  background: #fffdf8;
+  background: #ffffff;
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.22);
 }
 
@@ -1540,7 +1540,7 @@ body {
   display: grid;
   place-items: center;
   padding: 24px;
-  background: #f7f4ed;
+  background: #f3f4f6;
   color: #151515;
 }
 
@@ -1548,7 +1548,7 @@ body {
   width: min(520px, 100%);
   border: 1px solid rgba(22, 22, 22, 0.12);
   border-radius: 8px;
-  background: #fffdf8;
+  background: #ffffff;
   padding: 28px;
   text-align: center;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08);
@@ -1566,7 +1566,7 @@ body {
 }
 
 .clientPortalApp {
-  background: #f7f4ed;
+  background: #f3f4f6;
   color: #151515;
 }
 
@@ -1662,7 +1662,7 @@ body {
 .clientPortalApp .workout-modal,
 .clientPortalApp .clientFormModal {
   border-color: rgba(22, 22, 22, 0.12);
-  background: #fffdf8;
+  background: #ffffff;
   color: #151515;
   box-shadow: 0 18px 45px rgba(0, 0, 0, 0.07);
 }
@@ -1700,14 +1700,14 @@ body {
 .clientPortalApp .clientPortalTrainingHero {
   border-color: rgba(176, 137, 24, 0.28);
   background: #151515;
-  color: #fffdf8;
+  color: #ffffff;
   box-shadow: 0 18px 45px rgba(0, 0, 0, 0.12);
 }
 
 .clientPortalApp .clientPortalTrainingHero h2,
 .clientPortalApp .clientPortalTrainingHero p,
 .clientPortalApp .clientPortalTrainingHero span {
-  color: #fffdf8;
+  color: #ffffff;
 }
 
 .clientPortalApp .goldButton {
@@ -1720,7 +1720,7 @@ body {
 .clientPortalApp .miniMoveWorkoutButton,
 .clientPortalApp .iconActionButton,
 .clientPortalApp .videoButton {
-  background: #fffdf8;
+  background: #ffffff;
   color: #151515;
   border-color: rgba(22, 22, 22, 0.2);
 }
@@ -1734,7 +1734,7 @@ body {
 }
 
 .clientPortalApp .workoutBlock {
-  background: #fffdf8;
+  background: #ffffff;
   color: #151515;
   border-color: rgba(176, 137, 24, 0.34);
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.06);
@@ -2880,7 +2880,7 @@ body {
 
 .coachReviewSummaryCard,
 .coachReviewColumn {
-  background: #fffdf8;
+  background: #ffffff;
   border: 1px solid #d8d1bf;
   box-shadow: 0 0.65rem 1.6rem rgba(0, 0, 0, 0.06);
 }
@@ -3025,7 +3025,7 @@ button.coachReviewGlobalItem,
 }
 
 .coachReviewItemActions button {
-  background: #fffdf8;
+  background: #ffffff;
   border: 1px solid #d4cbb7;
   border-radius: 999px;
   color: #10100f;
@@ -4795,7 +4795,7 @@ button.coachReviewGlobalItem,
 }
 
 .app:not(.clientPortalApp) .profileMetricsCard {
-  background: #fffdf8;
+  background: #ffffff;
   color: #1a1a1a;
 }
 
@@ -5558,12 +5558,12 @@ button.coachReviewGlobalItem,
 
 .clientPortalApp .technicalCueBody {
   border-color: #d8d2c4;
-  background: #fffdf8;
+  background: #ffffff;
 }
 
 .clientPortalApp .exerciseDetailMeta span {
   border-color: #d8d2c4;
-  background: #f7f3e8;
+  background: #eef1f5;
   color: #111;
 }
 
@@ -9107,7 +9107,7 @@ button.coachReviewGlobalItem,
   padding: 16px 18px;
   border: 1px solid rgba(17, 17, 17, 0.12);
   border-radius: 14px;
-  background: #fffdf8;
+  background: #ffffff;
   overflow-x: auto;
 }
 
@@ -9995,7 +9995,7 @@ button.coachReviewGlobalItem,
 .submissionCommentField {
   border: 1px solid #ded8cc;
   border-radius: 12px;
-  background: #fffdf8;
+  background: #ffffff;
   padding: 14px;
 }
 
@@ -10422,13 +10422,13 @@ button.coachReviewGlobalItem,
 }
 
 .app:not(.clientPortalApp) {
-  background: #f7f4ed;
+  background: #f3f4f6;
   color: #151515;
 }
 
 .app:not(.clientPortalApp) .sidebar {
   border-right-color: rgba(22, 22, 22, 0.1);
-  background: #fffdf8;
+  background: #ffffff;
   box-shadow: 14px 0 36px rgba(0, 0, 0, 0.05);
 }
 
@@ -10475,7 +10475,7 @@ button.coachReviewGlobalItem,
 .app:not(.clientPortalApp) .savedTemplatePanel,
 .app:not(.clientPortalApp) .builderHubPanel {
   border-color: rgba(22, 22, 22, 0.12);
-  background: #fffdf8;
+  background: #ffffff;
   color: #151515;
   box-shadow: 0 18px 45px rgba(0, 0, 0, 0.07);
 }
@@ -10486,7 +10486,7 @@ button.coachReviewGlobalItem,
 
 .app:not(.clientPortalApp) .coachScopeControl select {
   border-color: rgba(22, 22, 22, 0.16);
-  background: #fffdf8;
+  background: #ffffff;
   color: #151515;
 }
 
@@ -10513,7 +10513,7 @@ button.coachReviewGlobalItem,
 .app:not(.clientPortalApp) .calendarDatePickerButton,
 .app:not(.clientPortalApp) .miniMoveWorkoutButton,
 .app:not(.clientPortalApp) .videoButton {
-  background: #fffdf8;
+  background: #ffffff;
   border-color: rgba(22, 22, 22, 0.2);
   color: #151515;
 }
@@ -10574,27 +10574,27 @@ button.coachReviewGlobalItem,
 }
 
 .app:not(.clientPortalApp) .calendarAddMenu {
-  background: #fffdf8;
+  background: #ffffff;
   border-color: rgba(22, 22, 22, 0.14);
   box-shadow: 0 18px 48px rgba(0, 0, 0, 0.18);
 }
 
 .app:not(.clientPortalApp) .savedTemplateDropdownMenu {
-  background: #fffdf8;
+  background: #ffffff;
   border-color: rgba(22, 22, 22, 0.14);
   box-shadow: 0 18px 48px rgba(0, 0, 0, 0.18);
 }
 
 .app:not(.clientPortalApp) .templateActionMenu > div {
   border-color: rgba(22, 22, 22, 0.16);
-  background: #fffdf8;
+  background: #ffffff;
   color: #151515;
   box-shadow: 0 18px 42px rgba(0, 0, 0, 0.14);
 }
 
 .app:not(.clientPortalApp) .templateActionMenu summary {
   border-color: rgba(22, 22, 22, 0.2);
-  background: #fffdf8;
+  background: #ffffff;
   color: #151515;
 }
 
@@ -10693,7 +10693,7 @@ button.coachReviewGlobalItem,
 .clientPortalApp .clientFormModal,
 .clientPortalApp .workoutGlancePanel,
 .clientPortalEmpty {
-  background: #fffdf8 !important;
+  background: #ffffff !important;
   border-color: #d7d2c7 !important;
   color: #111 !important;
   box-shadow: 0 18px 48px rgba(17, 17, 17, 0.08);
@@ -10719,7 +10719,7 @@ button.coachReviewGlobalItem,
 .app:not(.clientPortalApp) .tableHeader,
 .app:not(.clientPortalApp) .clientTableHeader,
 .app:not(.clientPortalApp) .exerciseTableHeader {
-  background: #f1eee6;
+  background: #eef0f3;
   border-bottom-color: #d8d1c2;
   text-transform: uppercase;
   letter-spacing: 0.6px;
@@ -10790,7 +10790,7 @@ button.coachReviewGlobalItem,
 .clientPortalApp .outlineButton,
 .clientPortalApp .iconActionButton,
 .clientPortalApp .videoButton {
-  background: #fffdf8 !important;
+  background: #ffffff !important;
   border-color: #cfc8bb !important;
   color: #111 !important;
   font-weight: 800;
@@ -11168,12 +11168,12 @@ button.coachReviewGlobalItem,
 
 .app:not(.clientPortalApp) .technicalCueBody {
   border-color: #d8d2c4 !important;
-  background: #f7f3e8 !important;
+  background: #eef1f5 !important;
 }
 
 .app:not(.clientPortalApp) .exerciseDetailMeta span {
   border-color: #d8d2c4 !important;
-  background: #fffdf8 !important;
+  background: #ffffff !important;
   color: var(--nl-ink) !important;
 }
 
@@ -11183,7 +11183,7 @@ button.coachReviewGlobalItem,
 
 .app:not(.clientPortalApp) .exerciseCueSections section {
   border-color: #d8d2c4 !important;
-  background: #fffdf8 !important;
+  background: #ffffff !important;
 }
 
 .app:not(.clientPortalApp) .exerciseCueSections h3 {
@@ -11253,8 +11253,8 @@ button.coachReviewGlobalItem,
 }
 
 .app:not(.clientPortalApp) .workoutGlanceRow:hover {
-  background: #f7f3e8 !important;
-  border-color: #e1daca !important;
+  background: #eef1f5 !important;
+  border-color: #e3e7ee !important;
 }
 
 .app:not(.clientPortalApp) .workoutGlanceRow strong {
@@ -11383,7 +11383,7 @@ button.coachReviewGlobalItem,
 }
 
 .app:not(.clientPortalApp) .clientActionDropdown {
-  background: #fffdf8;
+  background: #ffffff;
   border-color: #d8d2c4;
   box-shadow: 0 18px 44px rgba(20, 18, 14, 0.16);
 }
@@ -11429,14 +11429,14 @@ button.coachReviewGlobalItem,
 }
 
 .app:not(.clientPortalApp) .exerciseTableRow {
-  background: #fffdf8 !important;
-  border-color: #e1daca !important;
+  background: #ffffff !important;
+  border-color: #e3e7ee !important;
   color: var(--nl-ink) !important;
 }
 
 .app:not(.clientPortalApp) .exerciseTableRow:hover {
   border-color: #bda75e !important;
-  background: #f7f3e8 !important;
+  background: #eef1f5 !important;
 }
 
 .app:not(.clientPortalApp) .exerciseTableRow .clientName strong {
@@ -13248,7 +13248,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 .app:not(.clientPortalApp) .revenueChartCard,
 .app:not(.clientPortalApp) .revenueTableCard,
 .app:not(.clientPortalApp) .coachEarningsStat {
-  background: #fffdf8;
+  background: #ffffff;
   border-color: rgba(17, 17, 17, 0.12);
 }
 
@@ -13277,7 +13277,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   background: linear-gradient(
     135deg,
     rgba(212, 175, 55, 0.16),
-    #fffdf8
+    #ffffff
   );
   border-color: rgba(212, 175, 55, 0.45);
 }
@@ -13693,7 +13693,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
     gap: 5px;
     margin: 0 -4px 14px;
     padding: 6px 4px;
-    background: #fffdf8;
+    background: #ffffff;
   }
 
   .mobileBuilderStepper button {
@@ -13723,7 +13723,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
     gap: 5px;
     margin: 0 -4px 14px;
     padding: 6px 4px;
-    background: #fffdf8;
+    background: #ffffff;
   }
 
   .mobileBuilderQuickNav button {
@@ -13883,7 +13883,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
     flex-direction: column;
     padding: 14px 14px calc(14px + env(safe-area-inset-bottom));
     border-radius: 24px 24px 0 0;
-    background: #fffdf8;
+    background: #ffffff;
     box-shadow: 0 -24px 70px rgba(18, 18, 18, 0.35);
   }
 
@@ -14375,7 +14375,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 .builderExerciseGroupDivider span {
   border: 1px solid rgba(143, 107, 18, 0.28) !important;
   border-radius: 999px !important;
-  background: #f7f4eb !important;
+  background: #f3f4f6 !important;
   padding: 6px 12px !important;
 }
 
@@ -14463,7 +14463,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   padding: 0 !important;
   border: 1.5px solid #111 !important;
   border-radius: 999px !important;
-  background: #fffdf8 !important;
+  background: #ffffff !important;
   color: #111 !important;
   opacity: 0 !important;
   transform: translateY(-50%) scale(0.88) !important;
@@ -15324,7 +15324,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
     height: 17px !important;
     padding: 0 4px !important;
     border-color: #d8c277 !important;
-    background: #fffdf8 !important;
+    background: #ffffff !important;
     color: #7a5b12 !important;
     font-size: 8px !important;
     line-height: 17px !important;
@@ -15651,7 +15651,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   height: 32px;
   border: 1px solid rgba(17, 17, 17, 0.12);
   border-radius: 9px;
-  background: #fffdf8;
+  background: #ffffff;
   color: #444;
   cursor: pointer;
 }
@@ -15778,7 +15778,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   max-height: 78vh;
   padding: 8px 16px calc(20px + env(safe-area-inset-bottom));
   border-radius: 22px 22px 0 0;
-  background: #fffdf8;
+  background: #ffffff;
   box-shadow: 0 -18px 50px rgba(0, 0, 0, 0.3);
   animation: mbSheetUp 200ms ease;
 }
@@ -15919,7 +15919,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   padding: 6px;
   border: 1px solid rgba(17, 17, 17, 0.12);
   border-radius: 14px;
-  background: #fffdf8;
+  background: #ffffff;
   box-shadow: 0 22px 50px rgba(0, 0, 0, 0.2);
 }
 
@@ -15996,7 +15996,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   height: 30px;
   border: 1px solid rgba(17, 17, 17, 0.12);
   border-radius: 8px;
-  background: #fffdf8;
+  background: #ffffff;
   color: #444;
   font-size: 13px;
   font-weight: 900;
@@ -16099,7 +16099,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   z-index: 3000;
   display: flex;
   flex-direction: column;
-  background: #f7f4ed;
+  background: #f3f4f6;
 }
 
 .mobileSheet .mobileBuilderBody {
@@ -16115,7 +16115,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   align-items: center;
   padding: calc(12px + env(safe-area-inset-top)) 12px 12px;
   border-bottom: 1px solid rgba(17, 17, 17, 0.1);
-  background: #fffdf8;
+  background: #ffffff;
 }
 
 .mobileBuilderHeader h2 {
@@ -16523,7 +16523,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   overflow-y: auto;
   border: 1px solid rgba(17, 17, 17, 0.12);
   border-radius: 18px;
-  background: #fffdf8;
+  background: #ffffff;
   padding: 22px;
   box-shadow: 0 30px 70px rgba(0, 0, 0, 0.3);
 }
