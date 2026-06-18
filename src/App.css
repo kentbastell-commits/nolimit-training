@@ -6256,25 +6256,44 @@ button.coachReviewGlobalItem,
   font-size: 14px;
 }
 
-.exerciseLabelBadge.labelA {
-  border-color: rgba(17, 17, 17, 0.42) !important;
-  background: #111 !important;
-  color: #ead47a !important;
+/* Exercise label badge colored by SECTION type (hues that represent each
+   section; cardio = blue). Solid fill + light text for contrast. */
+.exerciseLabelBadge.labelStrength {
+  border-color: rgba(91, 103, 112, 0.5) !important;
+  background: #5b6770 !important;
+  color: #ffffff !important;
 }
 
-.exerciseLabelBadge.labelB {
-  border-color: rgba(58, 80, 61, 0.42) !important;
-  background: #3a503d !important;
-  color: #f8f3df !important;
+.exerciseLabelBadge.labelPower {
+  border-color: rgba(181, 115, 26, 0.5) !important;
+  background: #b5731a !important;
+  color: #fff7e8 !important;
 }
 
-.exerciseLabelBadge.labelC {
-  border-color: rgba(115, 87, 39, 0.42) !important;
-  background: #735727 !important;
-  color: #fff7d6 !important;
+.exerciseLabelBadge.labelAccessory {
+  border-color: rgba(21, 137, 122, 0.5) !important;
+  background: #15897a !important;
+  color: #effaf8 !important;
 }
 
-.exerciseLabelBadge.labelD,
+.exerciseLabelBadge.labelCardio {
+  border-color: rgba(58, 134, 255, 0.5) !important;
+  background: #3a86ff !important;
+  color: #ffffff !important;
+}
+
+.exerciseLabelBadge.labelMobility {
+  border-color: rgba(46, 139, 61, 0.5) !important;
+  background: #2e8b3d !important;
+  color: #f1fbf2 !important;
+}
+
+.exerciseLabelBadge.labelSkill {
+  border-color: rgba(106, 75, 201, 0.5) !important;
+  background: #6a4bc9 !important;
+  color: #f4f0ff !important;
+}
+
 .exerciseLabelBadge.labelDefault {
   border-color: rgba(79, 82, 88, 0.34) !important;
   background: #4f5258 !important;
@@ -6282,9 +6301,9 @@ button.coachReviewGlobalItem,
 }
 
 .exerciseLabelBadge.exerciseLabelBadgeWarmup {
-  border-color: rgba(17, 17, 17, 0.16) !important;
-  background: #e8e6df !important;
-  color: #5f5f59 !important;
+  border-color: rgba(194, 103, 28, 0.4) !important;
+  background: #f0e0cf !important;
+  color: #9a531a !important;
 }
 
 .exerciseSectionName {
@@ -14819,7 +14838,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 }
 
 .builderCollapsiblePanel summary strong {
-  color: #111 !important;
+  color: #565249 !important;
   font-size: 20px !important;
   font-weight: 950 !important;
   line-height: 1 !important;

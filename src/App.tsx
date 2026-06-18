@@ -5424,11 +5424,6 @@ function App() {
     notify(`Section set to ${cleanSectionName}.`);
   };
 
-  const getExerciseLabelGroup = (label?: string | number) => {
-    const match = String(label || "").trim().match(/^[A-Za-z]+/);
-    return match ? match[0].toUpperCase() : "";
-  };
-
   function normalizeBuilderSection(sectionName?: string) {
     return String(sectionName || "Main").trim() || "Main";
   }
@@ -5438,13 +5433,49 @@ function App() {
     return clean.includes("warm") || clean.includes("prep");
   }
 
-  function getLabelColorClass(label?: string, sectionName?: string) {
-    if (isWarmupSection(sectionName)) return "labelWarmup";
-    const group = getExerciseLabelGroup(label);
-    if (group.startsWith("A")) return "labelA";
-    if (group.startsWith("B")) return "labelB";
-    if (group.startsWith("C")) return "labelC";
-    if (group.startsWith("D")) return "labelD";
+  // Color the exercise label (A1, B1...) by its SECTION type, with hues that
+  // represent each section (cardio = blue, etc.). Only the label badge is
+  // colored, never the whole card.
+  function getLabelColorClass(_label?: string, sectionName?: string) {
+    const clean = normalizeBuilderSection(sectionName).toLowerCase();
+    if (clean.includes("warm") || clean.includes("prep")) return "labelWarmup";
+    if (
+      clean.includes("cardio") ||
+      clean.includes("condition") ||
+      clean.includes("run") ||
+      clean.includes("interval")
+    ) {
+      return "labelCardio";
+    }
+    if (
+      clean.includes("mobility") ||
+      clean.includes("recovery") ||
+      clean.includes("stretch") ||
+      clean.includes("flex")
+    ) {
+      return "labelMobility";
+    }
+    if (
+      clean.includes("skill") ||
+      clean.includes("climb") ||
+      clean.includes("technique")
+    ) {
+      return "labelSkill";
+    }
+    if (
+      clean.includes("power") ||
+      clean.includes("olympic") ||
+      clean.includes("plyo") ||
+      clean.includes("explos")
+    ) {
+      return "labelPower";
+    }
+    if (clean.includes("accessor") || clean.includes("auxiliary")) {
+      return "labelAccessory";
+    }
+    if (clean.includes("strength") || clean.includes("main")) {
+      return "labelStrength";
+    }
     return "labelDefault";
   }
 
@@ -7824,7 +7855,17 @@ function App() {
         client.id === v || client.clientCode === v || client.name === v
     );
     if (match) return match.name || match.clientCode || "Client";
-    return /^rec[A-Za-z0-9]{6,}$/.test(v) ? "Client" : v;
+    // Guard against unresolved Feishu link/record blobs leaking into the UI
+    // (e.g. {"record_ids":null,"table_id":"tbl...","type":"text"} or a raw recXX: id).
+    if (
+      /^rec[A-Za-z0-9]{6,}$/.test(v) ||
+      v.startsWith("{") ||
+      v.includes("record_ids") ||
+      v.includes("table_id")
+    ) {
+      return "Client";
+    }
+    return v;
   };
 
   const checkInStats = {
@@ -14344,6 +14385,17 @@ function App() {
                   </div>
                 </div>
 
+                <details
+                  className="builderCollapsiblePanel builderSessionDetails"
+                  open
+                >
+                  <summary>
+                    <div>
+                      <span className="eyebrow">Session</span>
+                      <strong>Session Settings</strong>
+                    </div>
+                    <span>Open</span>
+                  </summary>
                 <div
                   className={`currentSessionGrid ${
                     isSingleWorkoutBuilder ? "singleWorkoutSessionGrid" : ""
@@ -14459,6 +14511,7 @@ function App() {
                     rows={3}
                   />
                 </label>
+                </details>
 
                 <div className="builderSectionPresetBar" id="builder-exercises">
                   <div>
