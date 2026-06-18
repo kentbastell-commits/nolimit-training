@@ -16977,6 +16977,20 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
    - Cardio = soft electric blue, Questionnaire = purple.
    ============================================================ */
 
+/* Tinted tabs need dark ink (the coach app otherwise paints tabs gold). */
+.app:not(.clientPortalApp) .calendarDay .workoutBlock,
+.clientPortalApp .calendarDay .workoutBlock {
+  color: #1a1a1a !important;
+}
+.app:not(.clientPortalApp) .calendarDay .workoutBlock .workoutBlockMain,
+.clientPortalApp .calendarDay .workoutBlock .workoutBlockMain {
+  color: #1a1a1a !important;
+}
+.app:not(.clientPortalApp) .calendarDay .workoutBlock span,
+.clientPortalApp .calendarDay .workoutBlock span {
+  color: #5c5c5c !important;
+}
+
 /* Calendar tab background tints by type (override the flat white tabs). */
 .app:not(.clientPortalApp) .calendarDay .workoutBlock.wcol-blue,
 .clientPortalApp .calendarDay .workoutBlock.wcol-blue {
