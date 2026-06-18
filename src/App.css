@@ -16285,10 +16285,14 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   transition: border-color 0.15s ease, background 0.15s ease;
 }
 
-.prLeaderboardRow:hover,
-.prLeaderboardRow.active {
+.prLeaderboardRow:hover {
   border-color: rgba(212, 175, 55, 0.55);
-  background: rgba(212, 175, 55, 0.08);
+}
+
+.prLeaderboardRow.active {
+  border-color: rgba(212, 175, 55, 0.8);
+  background: rgba(0, 0, 0, 0.45);
+  box-shadow: inset 3px 0 0 #d4af37;
 }
 
 .prLeaderboardRow .prRank {
