@@ -71,25 +71,37 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
-    const recordsResponse = await fetch(
-      `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${process.env.FEISHU_ASSIGNED_WORKOUTS_TABLE_ID}/records?page_size=100`,
-      {
-        headers: {
-          Authorization: `Bearer ${tokenData.tenant_access_token}`,
-        },
-      }
-    );
+    // Paginate the assigned-workouts table — a single page would drop recent
+    // assignments once the table exceeds one page (it's shared across clients).
+    const allItems: any[] = [];
+    let pageToken = "";
+    do {
+      const url = new URL(
+        `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${process.env.FEISHU_ASSIGNED_WORKOUTS_TABLE_ID}/records`
+      );
+      url.searchParams.set("page_size", "500");
+      if (pageToken) url.searchParams.set("page_token", pageToken);
 
-    const recordsData = await recordsResponse.json();
-
-    if (recordsData.code !== 0) {
-      return res.status(500).json({
-        error: "Could not fetch assigned workouts",
-        details: recordsData,
+      const recordsResponse = await fetch(url.toString(), {
+        headers: { Authorization: `Bearer ${tokenData.tenant_access_token}` },
       });
-    }
+      const recordsData = await recordsResponse.json();
 
-    const workouts = recordsData.data.items
+      if (recordsData.code !== 0) {
+        if (allItems.length === 0) {
+          return res.status(500).json({
+            error: "Could not fetch assigned workouts",
+            details: recordsData,
+          });
+        }
+        break;
+      }
+
+      allItems.push(...(recordsData.data?.items || []));
+      pageToken = recordsData.data?.has_more ? recordsData.data.page_token : "";
+    } while (pageToken);
+
+    const workouts = allItems
       .map((item: any) => {
         const fields = item.fields || {};
 

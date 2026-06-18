@@ -67,24 +67,37 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const exerciseNameFilter = String(req.query.exerciseName || "").toLowerCase();
     const token = await getTenantToken();
 
-    const recordsResponse = await fetch(
-      `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${process.env.FEISHU_WORKOUT_LOGS_TABLE_ID}/records?page_size=500`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
-    const recordsData = await recordsResponse.json();
+    // Paginate — the workout-logs table grows fast; a single 500-row page would
+    // drop the most recent logs (and whole clients' histories) once it's full.
+    const allItems: any[] = [];
+    let pageToken = "";
+    do {
+      const url = new URL(
+        `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${process.env.FEISHU_WORKOUT_LOGS_TABLE_ID}/records`
+      );
+      url.searchParams.set("page_size", "500");
+      if (pageToken) url.searchParams.set("page_token", pageToken);
 
-    if (!recordsData?.data?.items) {
-      return res.status(500).json({
-        error: "Could not fetch workout logs",
-        larkResponse: recordsData,
+      const recordsResponse = await fetch(url.toString(), {
+        headers: { Authorization: `Bearer ${token}` },
       });
-    }
+      const recordsData = await recordsResponse.json();
 
-    const logs = recordsData.data.items
+      if (!recordsData?.data?.items) {
+        if (allItems.length === 0) {
+          return res.status(500).json({
+            error: "Could not fetch workout logs",
+            larkResponse: recordsData,
+          });
+        }
+        break;
+      }
+
+      allItems.push(...recordsData.data.items);
+      pageToken = recordsData.data.has_more ? recordsData.data.page_token : "";
+    } while (pageToken);
+
+    const logs = allItems
       .map((item: any) => {
         const fields = item.fields || {};
 
