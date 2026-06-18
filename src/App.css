@@ -16907,7 +16907,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   margin: 0 auto;
   padding: 16px 16px 13px;
   box-sizing: border-box;
-  background: #0d0d0d;
+  background: #000000;
   border: 1px solid #2a2a2a;
   border-radius: 14px;
 }
