@@ -10606,10 +10606,25 @@ function App() {
     )
     .sort((a, b) => a.localeCompare(b));
 
+  // The athlete's headline PR (highest estimated 1RM, else heaviest) — used as
+  // the default charted exercise so the history shows real data immediately
+  // instead of the first alphabetical library entry (which usually has none).
+  const topPrExerciseName = exerciseResults.reduce(
+    (best, result) => {
+      const value =
+        Number(result.estimatedOneRepMax) || Number(result.bestWeight) || 0;
+      return value > best.value
+        ? { name: result.exerciseName, value }
+        : best;
+    },
+    { name: "", value: 0 }
+  ).name;
+
   const selectedProgressName =
     selectedProgressExercise ||
-    progressExerciseOptions[0] ||
+    topPrExerciseName ||
     workoutHistoryLogs[0]?.exerciseName ||
+    progressExerciseOptions[0] ||
     "";
   const visibleProgressExerciseOptions =
     selectedProgressName &&
