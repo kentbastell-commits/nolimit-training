@@ -16897,6 +16897,19 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 .overviewGrid > .profileCard:nth-of-type(3) .profileMetricsHeader { background: #cfc8ba !important; }
 .overviewGrid > .profileCard:nth-of-type(4) .profileMetricsHeader { background: #ddd8ce !important; }
 
+/* Client portal only: swap warm stone (#D8D2C4) for lighter Warm App Grey
+   (#E8E6DF). Coach app keeps warm stone for now. */
+.clientPortalApp .clientHomePanelHeader,
+.clientPortalApp .profileMetricsHeader,
+.clientPortalApp .runningPacesHeader {
+  background: #e8e6df !important;
+  border-color: #dcd8cd !important;
+}
+.clientPortalApp .performanceMetricCard {
+  background: #e8e6df !important;
+  border-color: #dcd8cd !important;
+}
+
 /* Sidebar brand: NoLimit seal (dark-gold ring text reads best on the white
    sidebar, so no dark backplate). */
 .brandSeal {
