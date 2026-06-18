@@ -5628,7 +5628,7 @@ button.coachReviewGlobalItem,
 /* Coach app modal is on a cream background — pale gold labels washed out, so
    use a punchy deep gold that reads clearly. */
 .app:not(.clientPortalApp) .clientFormGrid label {
-  color: #8a6510;
+  color: #4c4f3c;
   font-weight: 800;
   letter-spacing: 0.2px;
 }
@@ -11458,7 +11458,7 @@ button.coachReviewGlobalItem,
 
 /* Punchier list: gold headers, exercise names, and a gold category pill. */
 .app:not(.clientPortalApp) .exerciseTableHeader {
-  color: #9a7613 !important;
+  color: #1a1a1a !important;
 }
 
 .app:not(.clientPortalApp) .exerciseTableRow .clientName strong {
@@ -11471,8 +11471,8 @@ button.coachReviewGlobalItem,
   width: fit-content;
   padding: 4px 12px;
   border-radius: 999px;
-  background: rgba(212, 175, 55, 0.2);
-  color: #7a5d0a !important;
+  background: rgba(76, 79, 60, 0.14);
+  color: #4c4f3c !important;
   font-weight: 800;
   font-size: 12.5px;
   letter-spacing: 0.2px;
@@ -16426,7 +16426,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 .libraryLongVideoLink {
   font-size: 12px;
   font-weight: 600;
-  color: #8a6d1a;
+  color: #4c4f3c;
   text-decoration: underline;
   white-space: nowrap;
 }
@@ -16453,7 +16453,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   display: inline-block;
   margin-top: 8px;
   font-size: 13px;
-  color: #8a6d1a;
+  color: #4c4f3c;
   text-decoration: underline;
 }
 
