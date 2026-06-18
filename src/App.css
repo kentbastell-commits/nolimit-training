@@ -1128,7 +1128,7 @@ body {
   border: 1px solid rgba(212, 175, 55, 0.42);
   border-radius: 999px;
   padding: 8px 14px;
-  color: #f5d77b;
+  color: #d4af37;
   background: rgba(0, 0, 0, 0.35);
 }
 
@@ -1144,7 +1144,7 @@ body {
 .inviteIntro h1,
 .inviteSuccess h1 {
   margin: 0;
-  color: #f5d77b;
+  color: #d4af37;
   font-size: 42px;
 }
 
@@ -1166,7 +1166,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 7px;
-  color: #f5d77b;
+  color: #d4af37;
   font-weight: bold;
 }
 
@@ -1468,17 +1468,17 @@ body {
 
 .navFlyoutItem.active {
   background: #151515;
-  color: #f5d77b;
+  color: #d4af37;
 }
 
 .navFlyoutItem .badge {
   background: #151515;
-  color: #f5d77b;
+  color: #d4af37;
   font-size: 12px;
 }
 
 .navFlyoutItem.active .badge {
-  background: #f5d77b;
+  background: #d4af37;
   color: #151515;
 }
 
@@ -1555,7 +1555,7 @@ body {
 }
 
 .clientPortalEmpty h1 {
-  color: #f5d77b;
+  color: #d4af37;
   margin: 18px 0 8px;
   font-size: 34px;
 }
@@ -1712,7 +1712,7 @@ body {
 
 .clientPortalApp .goldButton {
   background: #151515;
-  color: #f5d77b;
+  color: #d4af37;
   border-color: #151515;
 }
 
@@ -1782,7 +1782,7 @@ body {
 
 .clientPortalApp .workoutSectionHeading {
   background: #050505;
-  color: #f5d77b;
+  color: #d4af37;
   border: 0;
   border-radius: 8px;
   padding: 10px 14px;
@@ -1959,7 +1959,7 @@ body {
 .topbar h1 {
   margin: 0;
   font-size: 42px;
-  color: #f5d77b;
+  color: #d4af37;
 }
 
 .topbar p {
@@ -2037,7 +2037,7 @@ body {
 }
 
 .clientStat strong {
-  color: #f5d77b;
+  color: #d4af37;
   font-size: 24px;
 }
 
@@ -2065,7 +2065,7 @@ body {
 }
 
 .clientBucketsHeader h3 {
-  color: #f5d77b;
+  color: #d4af37;
   margin: 0;
 }
 
@@ -2096,11 +2096,11 @@ body {
 .clientBucket:hover,
 .activeClientBucket {
   background: rgba(212, 175, 55, 0.12);
-  color: #f5d77b;
+  color: #d4af37;
 }
 
 .clientBucket strong {
-  color: #f5d77b;
+  color: #d4af37;
 }
 
 .inviteLinkBox {
@@ -2177,7 +2177,7 @@ body {
 
 .checkInMeta strong {
   display: block;
-  color: #f5d77b;
+  color: #d4af37;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -2809,7 +2809,7 @@ body {
 
 .coachReviewSummaryCard:hover,
 .coachReviewSummaryCard:focus-visible {
-  border-color: #b08918;
+  border-color: #d4af37;
   box-shadow: 0 0.85rem 1.8rem rgba(0, 0, 0, 0.1);
   transform: translateY(-2px);
 }
@@ -2830,7 +2830,7 @@ body {
 }
 
 .coachReviewColumnFlash {
-  border-color: #b08918;
+  border-color: #d4af37;
   box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.55),
     0 0.9rem 2rem rgba(0, 0, 0, 0.1);
   animation: coachReviewFlash 1.2s ease;
@@ -2859,7 +2859,7 @@ body {
 }
 
 .coachReviewHero span {
-  color: #d0b24e;
+  color: #d4af37;
   display: block;
   font-size: 0.78rem;
   font-weight: 900;
@@ -3283,7 +3283,7 @@ button.coachReviewGlobalItem,
   border: 1px solid rgba(212, 175, 55, 0.45);
   border-radius: 8px;
   background: rgba(212, 175, 55, 0.08);
-  color: #f5d77b;
+  color: #d4af37;
   cursor: pointer;
 }
 
@@ -3383,7 +3383,7 @@ button.coachReviewGlobalItem,
   border: 1px solid rgba(212, 175, 55, 0.35);
   border-radius: 999px;
   padding: 4px 8px;
-  color: #f5d77b;
+  color: #d4af37;
   background: rgba(212, 175, 55, 0.08);
   font-size: 12px;
 }
@@ -3393,7 +3393,7 @@ button.coachReviewGlobalItem,
   height: 44px;
   min-width: 44px;
   border: 1px solid #d4af37;
-  color: #f5d77b;
+  color: #d4af37;
   border-radius: 50%;
   display: grid;
   place-items: center;
@@ -3409,7 +3409,7 @@ button.coachReviewGlobalItem,
 
 .activeStatus {
   background: rgba(212, 175, 55, 0.18);
-  color: #f5d77b;
+  color: #d4af37;
   border: 1px solid rgba(212, 175, 55, 0.5);
 }
 
@@ -3428,7 +3428,7 @@ button.coachReviewGlobalItem,
 }
 
 .placeholder h2 {
-  color: #f5d77b;
+  color: #d4af37;
 }
 
 .workoutPageTabs {
@@ -3462,7 +3462,7 @@ button.coachReviewGlobalItem,
 
 .builderHubHeader h2 {
   margin: 0 0 6px;
-  color: #f5d77b;
+  color: #d4af37;
   font-size: 28px;
 }
 
@@ -3630,7 +3630,7 @@ button.coachReviewGlobalItem,
   min-width: 24px;
   border-radius: 999px;
   background: rgba(212, 175, 55, 0.18);
-  color: #f5d77b;
+  color: #d4af37;
   padding: 2px 7px;
   font-size: 12px;
   font-weight: 900;
@@ -3662,7 +3662,7 @@ button.coachReviewGlobalItem,
 
 .savedTemplateHeader h3 {
   margin: 0;
-  color: #f5d77b;
+  color: #d4af37;
   font-size: 19px;
 }
 
@@ -3789,7 +3789,7 @@ button.coachReviewGlobalItem,
 
 .savedTemplateItem strong {
   overflow-wrap: anywhere;
-  color: #f5d77b;
+  color: #d4af37;
 }
 
 .savedTemplateItem span,
@@ -3864,7 +3864,7 @@ button.coachReviewGlobalItem,
 .programDetailTop h3,
 .savedAssignPanel h3,
 .savedProgramSessions h3 {
-  color: #f5d77b;
+  color: #d4af37;
   margin: 0;
 }
 
@@ -3906,7 +3906,7 @@ button.coachReviewGlobalItem,
 }
 
 .programListItem span {
-  color: #f5d77b;
+  color: #d4af37;
   font-size: 13px;
 }
 
@@ -3945,7 +3945,7 @@ button.coachReviewGlobalItem,
 }
 
 .programMetaGrid strong {
-  color: #f5d77b;
+  color: #d4af37;
   font-size: 13px;
 }
 
@@ -3988,7 +3988,7 @@ button.coachReviewGlobalItem,
 
 .programProductGrid label span,
 .programSalesDescription span {
-  color: #f5d77b;
+  color: #d4af37;
   font-weight: 900;
 }
 
@@ -4035,7 +4035,7 @@ button.coachReviewGlobalItem,
 }
 
 .programProductReadinessHeader span {
-  color: #f5d77b;
+  color: #d4af37;
   font-size: 12px;
   font-weight: 900;
   letter-spacing: 1.2px;
@@ -4052,7 +4052,7 @@ button.coachReviewGlobalItem,
 .programProductReadinessHeader strong {
   border: 1px solid rgba(245, 215, 123, 0.35);
   border-radius: 999px;
-  color: #f5d77b;
+  color: #d4af37;
   padding: 8px 12px;
   white-space: nowrap;
 }
@@ -4112,7 +4112,7 @@ button.coachReviewGlobalItem,
 }
 
 .savedAssignGrid label span {
-  color: #f5d77b;
+  color: #d4af37;
   font-weight: bold;
 }
 
@@ -4159,7 +4159,7 @@ button.coachReviewGlobalItem,
 
 .builderPageTitle,
 .builderSectionTitle {
-  color: #f5d77b;
+  color: #d4af37;
 }
 
 .builderPageTitle {
@@ -4228,7 +4228,7 @@ button.coachReviewGlobalItem,
 
 .builderModeSegment button.active {
   background: var(--nl-ink, #111);
-  color: var(--nl-gold-soft, #f5d77b);
+  color: var(--nl-gold-soft, #d4af37);
 }
 
 .builderSectionHeader {
@@ -4389,7 +4389,7 @@ button.coachReviewGlobalItem,
 
 .programSessionCard:hover,
 .editingSessionCard {
-  border-color: var(--nl-ink, #f5d77b);
+  border-color: var(--nl-ink, #d4af37);
   box-shadow: 0 14px 36px rgba(17, 17, 17, 0.16);
 }
 
@@ -4509,7 +4509,7 @@ button.coachReviewGlobalItem,
 .gridCellName {
   font-size: 12px;
   font-weight: 700;
-  color: #f5d77b;
+  color: #d4af37;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -4543,7 +4543,7 @@ button.coachReviewGlobalItem,
 }
 
 .builderSessionSaveBar strong {
-  color: var(--nl-ink, #f5d77b);
+  color: var(--nl-ink, #d4af37);
   font-size: 17px;
   font-weight: 950;
 }
@@ -4582,7 +4582,7 @@ button.coachReviewGlobalItem,
 
 .clientListPanel h2 {
   margin-top: 6px;
-  color: #f5d77b;
+  color: #d4af37;
 }
 
 .miniSearch {
@@ -4641,7 +4641,7 @@ button.coachReviewGlobalItem,
 
 .clientTop h1 {
   margin: 0;
-  color: #f5d77b;
+  color: #d4af37;
   font-size: 38px;
 }
 
@@ -4684,7 +4684,7 @@ button.coachReviewGlobalItem,
 
 .clientSnapshotCard strong {
   display: block;
-  color: #f5d77b;
+  color: #d4af37;
   font-size: 15px;
   line-height: 1.25;
   overflow: hidden;
@@ -4711,7 +4711,7 @@ button.coachReviewGlobalItem,
 }
 
 .activeTab {
-  color: #f5d77b;
+  color: #d4af37;
   background: rgba(212, 175, 55, 0.14);
   border-color: rgba(212, 175, 55, 0.55);
 }
@@ -4757,7 +4757,7 @@ button.coachReviewGlobalItem,
 
 .clientActionDropdown button:hover {
   background: rgba(212, 175, 55, 0.16);
-  color: #f5d77b;
+  color: #d4af37;
 }
 
 .clientActionDropdown .dangerMenuItem {
@@ -4780,7 +4780,7 @@ button.coachReviewGlobalItem,
 
 .profileCard h3 {
   margin-top: 0;
-  color: #f5d77b;
+  color: #d4af37;
 }
 
 /* Portal profile cards are cream — make the values dark (base color is white,
@@ -4890,7 +4890,7 @@ button.coachReviewGlobalItem,
 }
 
 .clientPortalTrainingHero h2 {
-  color: #f5d77b;
+  color: #d4af37;
   margin: 4px 0;
   font-size: 34px;
   line-height: 1.08;
@@ -4910,7 +4910,7 @@ button.coachReviewGlobalItem,
 }
 
 .clientPortalWorkoutList h3 {
-  color: #f5d77b;
+  color: #d4af37;
   margin: 0 0 12px;
   font-size: 20px;
 }
@@ -4940,7 +4940,7 @@ button.coachReviewGlobalItem,
 }
 
 .clientPortalWorkoutItem strong {
-  color: #f5d77b;
+  color: #d4af37;
   font-size: 18px;
 }
 
@@ -4958,7 +4958,7 @@ button.coachReviewGlobalItem,
 }
 
 .calendarHeader h2 {
-  color: #f5d77b;
+  color: #d4af37;
   margin: 0;
 }
 
@@ -5030,7 +5030,7 @@ button.coachReviewGlobalItem,
 .calendarNavigator strong {
   min-width: 230px;
   text-align: center;
-  color: #f5d77b;
+  color: #d4af37;
   font-size: 18px;
 }
 
@@ -5051,7 +5051,7 @@ button.coachReviewGlobalItem,
   border-radius: 8px;
   background: #050505;
   border: 1px solid rgba(212, 175, 55, 0.35);
-  color: #f5d77b;
+  color: #d4af37;
   cursor: pointer;
   overflow: hidden;
 }
@@ -5094,7 +5094,7 @@ button.coachReviewGlobalItem,
 }
 
 .assignProgramPanel h3 {
-  color: #f5d77b;
+  color: #d4af37;
   margin: 0 0 14px;
   font-size: 22px;
 }
@@ -5114,7 +5114,7 @@ button.coachReviewGlobalItem,
 }
 
 .assignProgramGrid label span {
-  color: #f5d77b;
+  color: #d4af37;
   font-weight: bold;
 }
 
@@ -5127,7 +5127,7 @@ button.coachReviewGlobalItem,
 }
 
 .arrangeWorkouts h4 {
-  color: #f5d77b;
+  color: #d4af37;
   margin: 0 0 10px;
 }
 
@@ -5202,7 +5202,7 @@ button.coachReviewGlobalItem,
 
 .calendarDateLabel {
   display: block;
-  color: #f5d77b;
+  color: #d4af37;
   font-size: 16px;
   line-height: 1.25;
   margin-bottom: 8px;
@@ -5446,7 +5446,7 @@ button.coachReviewGlobalItem,
 }
 
 .analyticsCard strong {
-  color: #f5d77b;
+  color: #d4af37;
   font-size: 28px;
   line-height: 1;
 }
@@ -5513,7 +5513,7 @@ button.coachReviewGlobalItem,
 }
 
 .exerciseDetailMeta strong {
-  color: #f5d77b;
+  color: #d4af37;
   font-size: 10px;
   font-weight: 950;
   letter-spacing: 0.08em;
@@ -5534,7 +5534,7 @@ button.coachReviewGlobalItem,
 
 .exerciseCueSections h3 {
   margin: 0 0 8px;
-  color: #f5d77b;
+  color: #d4af37;
   font-size: 16px;
   font-weight: 950;
 }
@@ -5621,7 +5621,7 @@ button.coachReviewGlobalItem,
   display: flex;
   flex-direction: column;
   gap: 7px;
-  color: #f5d77b;
+  color: #d4af37;
   font-weight: bold;
 }
 
@@ -5704,7 +5704,7 @@ button.coachReviewGlobalItem,
 
 .modal-header h2 {
   margin: 0;
-  color: #f5d77b;
+  color: #d4af37;
   font-size: 34px;
 }
 
@@ -5756,7 +5756,7 @@ button.coachReviewGlobalItem,
   border-radius: 8px;
   border: 1px solid rgba(212, 175, 55, 0.36);
   background: rgba(212, 175, 55, 0.1);
-  color: #f5d77b;
+  color: #d4af37;
   font-size: 14px;
   font-weight: 800;
   cursor: pointer;
@@ -5768,7 +5768,7 @@ button.coachReviewGlobalItem,
 }
 
 .modal-body h3 {
-  color: #f5d77b;
+  color: #d4af37;
 }
 
 .workoutLogTitleRow {
@@ -5966,7 +5966,7 @@ button.coachReviewGlobalItem,
 
 .drawerClose {
   background: transparent;
-  color: #f5d77b;
+  color: #d4af37;
   border: none;
   font-size: 36px;
   cursor: pointer;
@@ -6016,7 +6016,7 @@ button.coachReviewGlobalItem,
 
 .workoutSummaryStrip strong {
   display: block;
-  color: #f5d77b;
+  color: #d4af37;
   font-size: 15px;
   line-height: 1.25;
   overflow: hidden;
@@ -6044,7 +6044,7 @@ button.coachReviewGlobalItem,
 
 .workoutGlancePanel h3 {
   margin: 0 0 12px;
-  color: #f5d77b;
+  color: #d4af37;
   font-size: 22px;
   line-height: 1.15;
 }
@@ -6091,7 +6091,7 @@ button.coachReviewGlobalItem,
 }
 
 .workoutGlanceRow strong {
-  color: #f5d77b;
+  color: #d4af37;
   font-size: 20px;
   line-height: 1.2;
 }
@@ -6150,7 +6150,7 @@ button.coachReviewGlobalItem,
 
 .exercise-card h3 {
   margin-top: 0;
-  color: #f5d77b;
+  color: #d4af37;
 }
 
 .exerciseTitleRow {
@@ -6219,7 +6219,7 @@ button.coachReviewGlobalItem,
   place-items: center;
   border: 1px solid rgba(212, 175, 55, 0.35);
   border-radius: 50%;
-  color: #f5d77b;
+  color: #d4af37;
   background: rgba(0, 0, 0, 0.35);
   font-weight: 800;
   font-size: 14px;
@@ -6270,7 +6270,7 @@ button.coachReviewGlobalItem,
   margin: 28px 0 10px;
   padding-top: 12px;
   border-top: 1px solid rgba(212, 175, 55, 0.2);
-  color: #f5d77b;
+  color: #d4af37;
   font-size: 17px;
   letter-spacing: 0;
   text-transform: uppercase;
@@ -6431,7 +6431,7 @@ button.coachReviewGlobalItem,
   padding: 0;
   border-radius: 8px;
   border: 1px solid rgba(212, 175, 55, 0.45);
-  color: #f5d77b;
+  color: #d4af37;
   text-decoration: none;
   background: rgba(212, 175, 55, 0.08);
   cursor: pointer;
@@ -6468,7 +6468,7 @@ button.coachReviewGlobalItem,
 
 .setLogHeader {
   display: none;
-  color: #f5d77b;
+  color: #d4af37;
   font-weight: bold;
   margin-top: 18px;
   margin-bottom: 8px;
@@ -6496,7 +6496,7 @@ button.coachReviewGlobalItem,
 
 .setBanner strong {
   display: block;
-  color: #f5d77b;
+  color: #d4af37;
   font-size: 14px;
   line-height: 1.1;
 }
@@ -6585,7 +6585,7 @@ button.coachReviewGlobalItem,
 }
 
 .historyLogRow strong {
-  color: #f5d77b;
+  color: #d4af37;
 }
 
 .historyLogRow span {
@@ -7179,7 +7179,7 @@ button.coachReviewGlobalItem,
       rgba(212, 175, 55, 0.08)
     );
     border: 1px solid rgba(212, 175, 55, 0.55);
-    color: #f5d77b;
+    color: #d4af37;
   }
 
   .clientPage {
@@ -7882,7 +7882,7 @@ button.coachReviewGlobalItem,
   display: flex;
   flex-direction: column;
   gap: 6px;
-  color: #f5d77b;
+  color: #d4af37;
   font-weight: bold;
 }
 
@@ -8045,7 +8045,7 @@ button.coachReviewGlobalItem,
 
 .desktopWorkoutSetLabel strong {
   display: block;
-  color: #f5d77b;
+  color: #d4af37;
   font-size: 14px;
   line-height: 1.1;
 }
@@ -8240,7 +8240,7 @@ button.coachReviewGlobalItem,
   width: fit-content;
   border-radius: 0;
   border: 0;
-  border-bottom: 3px solid #9a7a26;
+  border-bottom: 3px solid #d4af37;
   background: transparent;
   color: #111;
   padding: 0 2px 6px;
@@ -8250,7 +8250,7 @@ button.coachReviewGlobalItem,
 
 .clientPortalApp .workoutLogExerciseCard {
   border: 1px solid #deded8;
-  border-left: 4px solid #9a7a26;
+  border-left: 4px solid #d4af37;
   border-radius: 8px;
   background: #fff;
   box-shadow: 0 16px 36px rgba(0, 0, 0, 0.08);
@@ -8345,7 +8345,7 @@ button.coachReviewGlobalItem,
 
 .clientPortalApp .savedExerciseButton {
   background: #f2ede1;
-  border-color: #9a7a26;
+  border-color: #d4af37;
   color: #111;
 }
 
@@ -8366,7 +8366,7 @@ button.coachReviewGlobalItem,
 .clientPortalApp .calendarNavigator input,
 .clientPortalApp .clientPortalTrainingHero p,
 .clientPortalApp .workoutGlanceRow small {
-  color: #7a5a0a !important;
+  color: #4c4f3c !important;
 }
 
 .clientPortalApp .calendarDay {
@@ -8375,14 +8375,14 @@ button.coachReviewGlobalItem,
 
 .clientPortalApp .calendarNavigator input,
 .clientPortalApp input[type="date"] {
-  color: #7a5a0a;
+  color: #4c4f3c;
   font-weight: 800;
 }
 
 .clientPortalApp .calendarDatePickerButton {
   background: #fff;
   border-color: #c9c2b0;
-  color: #7a5a0a;
+  color: #4c4f3c;
 }
 
 .clientPortalApp .calendarDatePickerButton input {
@@ -8921,7 +8921,7 @@ button.coachReviewGlobalItem,
   border: 1px solid #ddd3c0;
   border-radius: 999px;
   background: #fff;
-  color: #7a5a0a;
+  color: #4c4f3c;
   padding: 4px 8px;
   font-size: 10px;
   font-weight: 900;
@@ -9713,7 +9713,7 @@ button.coachReviewGlobalItem,
 }
 
 .selectedDayGlanceHeader span {
-  color: #7a5a0a;
+  color: #4c4f3c;
   font-size: 13px;
   font-weight: 900;
 }
@@ -10417,7 +10417,7 @@ button.coachReviewGlobalItem,
 }
 
 .todayClientMonthDay:not(.selectedClientMonthDay) {
-  border-color: #b08a1b;
+  border-color: #4c4f3c;
 }
 
 .selectedClientMonthDay .calendarWorkMarkers .emptyMarker {
@@ -10456,14 +10456,14 @@ button.coachReviewGlobalItem,
 .app:not(.clientPortalApp) .navItem.active {
   background: #151515;
   border-color: #151515;
-  color: #f5d77b;
+  color: #d4af37;
 }
 
 .app:not(.clientPortalApp) .badge,
 .app:not(.clientPortalApp) .avatar,
 .app:not(.clientPortalApp) .clientAvatar {
   background: #151515;
-  color: #f5d77b;
+  color: #d4af37;
 }
 
 .app:not(.clientPortalApp) .coachBox,
@@ -10512,7 +10512,7 @@ button.coachReviewGlobalItem,
 .app:not(.clientPortalApp) .goldButton {
   background: #151515;
   border-color: #151515;
-  color: #f5d77b;
+  color: #d4af37;
 }
 
 .app:not(.clientPortalApp) .outlineButton,
@@ -10612,12 +10612,12 @@ button.coachReviewGlobalItem,
 
 .app:not(.clientPortalApp) .templateActionMenu button:hover {
   background: #151515;
-  color: #f5d77b;
+  color: #d4af37;
 }
 
 .app:not(.clientPortalApp) .savedTemplateDropdown summary span {
   background: #151515;
-  color: #f5d77b;
+  color: #d4af37;
 }
 
 .app:not(.clientPortalApp) .calendarAddMenu button {
@@ -10752,7 +10752,7 @@ button.coachReviewGlobalItem,
 
 .app:not(.clientPortalApp) .clientBucket:hover strong,
 .app:not(.clientPortalApp) .activeClientBucket strong {
-  color: #f5d77b;
+  color: #d4af37;
 }
 
 .app:not(.clientPortalApp) .inviteLinkBox {
@@ -10830,7 +10830,7 @@ button.coachReviewGlobalItem,
 
 .app:not(.clientPortalApp) .badge {
   background: #111;
-  color: #f5d77b;
+  color: #d4af37;
   font-weight: 950;
 }
 
@@ -10874,7 +10874,7 @@ button.coachReviewGlobalItem,
   --nl-surface-strong: #ffffff;
   --nl-page: #f9f5ef;
   --nl-line: #ddd3c0;
-  --nl-gold-dark: #7a5a0a;
+  --nl-gold-dark: #4c4f3c;
   --nl-gold-soft: #eadfbf;
   --nl-gold-quiet: #f2ede1;
 }
@@ -11186,7 +11186,7 @@ button.coachReviewGlobalItem,
 }
 
 .app:not(.clientPortalApp) .exerciseDetailMeta strong {
-  color: #7a5a0a !important;
+  color: #4c4f3c !important;
 }
 
 .app:not(.clientPortalApp) .exerciseCueSections section {
@@ -11247,7 +11247,7 @@ button.coachReviewGlobalItem,
 .app:not(.clientPortalApp) .workoutSectionHeading {
   width: fit-content;
   border: 0 !important;
-  border-bottom: 3px solid #9a7a26 !important;
+  border-bottom: 3px solid #d4af37 !important;
   background: transparent !important;
   color: var(--nl-ink) !important;
   padding: 0 2px 6px !important;
@@ -11387,7 +11387,7 @@ button.coachReviewGlobalItem,
 .app:not(.clientPortalApp) .activeTab {
   background: #151515 !important;
   border-color: #151515 !important;
-  color: #f5d77b !important;
+  color: #d4af37 !important;
 }
 
 .app:not(.clientPortalApp) .clientActionDropdown {
@@ -11402,7 +11402,7 @@ button.coachReviewGlobalItem,
 
 .app:not(.clientPortalApp) .clientActionDropdown button:hover {
   background: #f2ede1;
-  color: #7a5a0a;
+  color: #4c4f3c;
 }
 
 .app:not(.clientPortalApp) .clientActionDropdown .dangerMenuItem {
@@ -11645,7 +11645,7 @@ button.coachReviewGlobalItem,
   border: 1px solid #151515;
   border-radius: 10px;
   background: #151515;
-  color: #f5d77b;
+  color: #d4af37;
   cursor: pointer;
   font-weight: 900;
   transition: transform 140ms ease, background 140ms ease;
@@ -11680,11 +11680,11 @@ button.coachReviewGlobalItem,
 .app:not(.clientPortalApp) .coachSelectedDayGlance .selectedDayWorkout {
   background: #151515;
   border-color: #151515;
-  color: #f5d77b;
+  color: #d4af37;
 }
 
 .app:not(.clientPortalApp) .coachSelectedDayGlance .selectedDayWorkout strong {
-  color: #f5d77b;
+  color: #d4af37;
 }
 
 .app:not(.clientPortalApp) .coachSelectedDayGlance .selectedDayWorkout span,
@@ -12030,7 +12030,7 @@ textarea {
 .app:not(.clientPortalApp) .workout-modal .workoutLogExerciseCard {
   background: #ffffff !important;
   border: 1px solid #deded8 !important;
-  border-left: 4px solid #9a7a26 !important;
+  border-left: 4px solid #d4af37 !important;
   color: var(--brand-ink) !important;
   box-shadow: 0 16px 36px rgba(18, 18, 16, 0.08) !important;
 }
@@ -12115,7 +12115,7 @@ textarea {
 
 .app:not(.clientPortalApp) .workout-modal .savedExerciseButton {
   background: #f2ede1 !important;
-  border-color: #9a7a26 !important;
+  border-color: #d4af37 !important;
   color: var(--brand-ink) !important;
 }
 
@@ -12172,7 +12172,7 @@ textarea {
 @media (max-width: 720px) {
   .app:not(.clientPortalApp) .workout-modal .workoutLogExerciseCard {
     border-left-width: 0 !important;
-    border-top: 4px solid #9a7a26 !important;
+    border-top: 4px solid #d4af37 !important;
   }
 
   .app:not(.clientPortalApp) .workout-modal .mobileSetLogRow {
@@ -12444,7 +12444,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   font-family: "Bebas Neue", sans-serif;
   font-size: 32px;
   letter-spacing: 0.08em;
-  color: #f5d77b;
+  color: #d4af37;
 }
 
 .storeBrand .brandTagline {
@@ -12468,7 +12468,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   font-family: "Bebas Neue", sans-serif;
   font-size: 56px;
   letter-spacing: 0.04em;
-  color: #f5d77b;
+  color: #d4af37;
   margin: 0 0 10px;
 }
 
@@ -12535,7 +12535,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 .storeCardBody h2 {
   font-size: 20px;
   font-weight: 800;
-  color: #f5d77b;
+  color: #d4af37;
   margin: 4px 0 0;
   line-height: 1.25;
 }
@@ -12583,7 +12583,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 .storeCardPrice {
   font-size: 18px;
   font-weight: 800;
-  color: #f5d77b;
+  color: #d4af37;
 }
 
 .storeCardFooter .goldButton,
@@ -12611,7 +12611,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   font-family: "Bebas Neue", sans-serif;
   font-size: 36px;
   letter-spacing: 0.04em;
-  color: #f5d77b;
+  color: #d4af37;
   margin: 0;
 }
 
@@ -12728,7 +12728,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 .storeProgramModalInfo h2 {
   font-size: 26px;
   font-weight: 800;
-  color: #f5d77b;
+  color: #d4af37;
   margin: 4px 0 0;
   line-height: 1.2;
 }
@@ -12736,7 +12736,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 .storeProgramModalPrice {
   font-size: 24px;
   font-weight: 800;
-  color: #f5d77b;
+  color: #d4af37;
 }
 
 .storeProgramModalPayment {
@@ -13044,7 +13044,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 .revenueStat strong {
   font-size: 28px;
   font-weight: 800;
-  color: #f5d77b;
+  color: #d4af37;
   line-height: 1;
 }
 
@@ -13100,7 +13100,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 .coachEarningsHeader h3 {
   margin: 0;
   font-size: 22px;
-  color: #f5d77b;
+  color: #d4af37;
 }
 
 .coachShareControl {
@@ -13130,13 +13130,13 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   border: 1px solid rgba(212, 175, 55, 0.4);
   border-radius: 8px;
   background: rgba(0, 0, 0, 0.4);
-  color: #f5d77b;
+  color: #d4af37;
   font-weight: 800;
   text-align: right;
 }
 
 .coachShareControl strong {
-  color: #f5d77b;
+  color: #d4af37;
   font-weight: 800;
 }
 
@@ -13167,7 +13167,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 .coachEarningsStat strong {
   font-size: 26px;
   font-weight: 800;
-  color: #f5d77b;
+  color: #d4af37;
   line-height: 1;
 }
 
@@ -13191,7 +13191,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   margin: 0 0 20px;
   font-size: 14px;
   font-weight: 700;
-  color: #f5d77b;
+  color: #d4af37;
   letter-spacing: 0.05em;
 }
 
@@ -13212,7 +13212,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   margin: 0 0 16px;
   font-size: 14px;
   font-weight: 700;
-  color: #f5d77b;
+  color: #d4af37;
   letter-spacing: 0.05em;
 }
 
@@ -13373,7 +13373,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 
 .notificationsPanelHeader h3 {
   margin: 0;
-  color: #f5d77b;
+  color: #d4af37;
   font-size: 16px;
 }
 
@@ -13433,7 +13433,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 
 .notificationItem strong {
   font-size: 13px;
-  color: #f5d77b;
+  color: #d4af37;
   display: block;
   margin-bottom: 3px;
 }
@@ -15333,7 +15333,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
     padding: 0 4px !important;
     border-color: #d8c277 !important;
     background: #ffffff !important;
-    color: #7a5b12 !important;
+    color: #4c4f3c !important;
     font-size: 8px !important;
     line-height: 17px !important;
     box-shadow: 0 4px 10px rgba(18, 18, 18, 0.08) !important;
@@ -15869,7 +15869,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   height: 56px;
   border-radius: 999px;
   background: #151515;
-  color: #f5d77b;
+  color: #d4af37;
 }
 
 .mbOptIconDanger {
@@ -15899,7 +15899,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   border: 1px solid rgba(17, 17, 17, 0.14);
   border-radius: 12px;
   background: #151515;
-  color: #f5d77b;
+  color: #d4af37;
   font-size: 16px;
   font-weight: 950;
   padding: 13px 16px;
@@ -15945,7 +15945,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 
 .workoutTabMenuList button.active {
   background: #151515;
-  color: #f5d77b;
+  color: #d4af37;
 }
 
 /* Mobile alternate-exercises pane */
@@ -16193,7 +16193,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 .mobilePickerCheck.checked {
   background: #151515;
   border-color: #151515;
-  color: #f5d77b;
+  color: #d4af37;
 }
 
 .mobilePickerInfo {
@@ -16337,7 +16337,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 
 .prMetricToggle button.active {
   background: #1a1a1a;
-  color: #f5d77b;
+  color: #d4af37;
 }
 
 .prLeaderboard {
@@ -16373,7 +16373,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 
 .prLeaderboardRow .prRank {
   font-weight: 700;
-  color: #f5d77b;
+  color: #d4af37;
   font-size: 15px;
   text-align: center;
 }
@@ -16488,7 +16488,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 
 .last7dBadge.idle {
   background: rgba(180, 130, 20, 0.14);
-  color: #8a6d1a;
+  color: #4c4f3c;
   border: 1px solid rgba(180, 130, 20, 0.3);
 }
 
