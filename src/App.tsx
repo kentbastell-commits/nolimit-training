@@ -17129,26 +17129,6 @@ function App() {
                       </button>
                     </div>
 
-                    {dueTodayTasks.length > 0 && (
-                      <div className="dueTodayStrip">
-                        <div>
-                          <span>{t("dueToday")}</span>
-                          <strong>{dueTodayTasks.length}</strong>
-                        </div>
-                        <div className="dueTodayActions">
-                          {dueTodayTasks.slice(0, 3).map((task) => (
-                            <button
-                              key={`due-${task.type}-${task.id}`}
-                              type="button"
-                              onClick={task.open}
-                            >
-                              {task.title}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
                     <div className="homeWorkoutList">
                       {clientPortalUpcomingTasks.length > 0 ? (
                         clientPortalUpcomingTasks.slice(0, 4).map((task) => (
@@ -17162,10 +17142,17 @@ function App() {
                             <span className="taskDatePill">
                               {localizedCalendarLabel(task.date)}
                             </span>
-                            <span className={`taskTypeChip ${task.type}`}>
-                              {task.type === "assignment"
-                                ? localizeAssignmentKind(task.kindLabel)
-                                : task.kindLabel}
+                            <span className="taskChipRow">
+                              <span className={`taskTypeChip ${task.type}`}>
+                                {task.type === "assignment"
+                                  ? localizeAssignmentKind(task.kindLabel)
+                                  : task.kindLabel}
+                              </span>
+                              {task.date === todayValue && (
+                                <span className="taskTodayMarker">
+                                  {paceZh ? "今天" : "Today"}
+                                </span>
+                              )}
                             </span>
                             <strong>{task.title}</strong>
                             <small>
@@ -17574,7 +17561,9 @@ function App() {
                 (isClientPortal ? (
                   <div className="overviewGrid portalProfileGrid">
                     <div className="profileCard">
-                      <h3>{i18n.language === "zh" ? "设置" : "Settings"}</h3>
+                      <div className="profileMetricsHeader">
+                        <h3>{i18n.language === "zh" ? "设置" : "Settings"}</h3>
+                      </div>
                       <div className="clientInfoRows">
                         <div>
                           <span>{t("languagePreference")}</span>
@@ -17608,7 +17597,9 @@ function App() {
                     </div>
 
                     <div className="profileCard">
-                      <h3>{i18n.language === "zh" ? "我的教练" : "My Coaching"}</h3>
+                      <div className="profileMetricsHeader">
+                        <h3>{i18n.language === "zh" ? "我的教练" : "My Coaching"}</h3>
+                      </div>
                       <div className="clientInfoRows">
                         <div>
                           <span>{t("coach")}</span>
@@ -17638,7 +17629,9 @@ function App() {
                     </div>
 
                     <div className="profileCard">
-                      <h3>{i18n.language === "zh" ? "我的资料" : "My Details"}</h3>
+                      <div className="profileMetricsHeader">
+                        <h3>{i18n.language === "zh" ? "我的资料" : "My Details"}</h3>
+                      </div>
                       <div className="clientInfoRows">
                         <div>
                           <span>{t("name")}</span>

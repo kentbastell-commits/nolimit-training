@@ -8929,10 +8929,38 @@ button.coachReviewGlobalItem,
   text-transform: uppercase;
 }
 
+.taskChipRow {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Type chip colored by task type (label only). Workout = light gunmetal
+   (matches the calendar), questionnaire/assignment = purple. */
 .taskTypeChip.workout {
-  border-color: #111;
-  background: #111;
-  color: #f4df94;
+  border-color: color-mix(in srgb, #5b6770 38%, #fff);
+  background: color-mix(in srgb, #5b6770 20%, #fff);
+  color: #1a1a1a;
+}
+
+.taskTypeChip.assignment {
+  border-color: color-mix(in srgb, #7b3fbf 32%, #fff);
+  background: color-mix(in srgb, #7b3fbf 15%, #fff);
+  color: #6a2f9e;
+}
+
+/* Small teal "Today" marker, shown only on tasks actually due today. */
+.taskTodayMarker {
+  border-radius: 999px;
+  background: color-mix(in srgb, #15897a 16%, #fff);
+  color: #0f7468;
+  border: 1px solid color-mix(in srgb, #15897a 36%, #fff);
+  padding: 3px 8px;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .homeWorkoutItem strong {
@@ -16858,7 +16886,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 .performanceMetricCard {
   background: #ffffff !important;
   border: 1px solid #dcd8cd !important;
-  border-left: 4px solid #3a86ff !important;
+  border-left: 4px solid #0d0d0d !important;
   border-radius: 12px !important;
   padding: 16px 18px !important;
 }
@@ -16925,12 +16953,12 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   margin-top: 2px;
   padding-top: 9px;
   font-family: Georgia, "Times New Roman", serif;
-  font-size: 9px;
-  font-weight: 600;
+  font-size: 10px;
+  font-weight: 700;
   letter-spacing: 2px;
   text-transform: uppercase;
   white-space: nowrap;
-  color: #d4af37;
+  color: #f0d987;
 }
 
 .brandTagline::before {
