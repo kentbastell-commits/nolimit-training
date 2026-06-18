@@ -1373,6 +1373,9 @@ function App() {
   const [clientActivityMap, setClientActivityMap] = useState<
     Record<string, { completed7d: number; scheduled7d: number }>
   >({});
+  // Coach Overview: editable Coach Notes (draft + saving state).
+  const [coachNotesDraft, setCoachNotesDraft] = useState("");
+  const [savingCoachNotes, setSavingCoachNotes] = useState(false);
   // Coach Overview: which PR metric drives the leaderboard ordering.
   const [prMetric, setPrMetric] = useState<"weight" | "e1rm" | "volume">("e1rm");
   // Coach Dashboard: filter for the Recent Submissions list.
@@ -2386,6 +2389,40 @@ function App() {
     }
   };
 
+  const saveCoachNotes = async () => {
+    if (!selectedClient) return;
+    const notes = coachNotesDraft;
+    setSavingCoachNotes(true);
+
+    // Optimistic update so the saved value sticks locally.
+    setSelectedClient({ ...selectedClient, notes });
+    setClients((current) =>
+      current.map((client) =>
+        client.id === selectedClient.id ? { ...client, notes } : client
+      )
+    );
+
+    try {
+      const response = await fetch("/api/updateClient", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clientRecordId: selectedClient.id, notes }),
+      });
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        notify("Could not save coach notes.", "error");
+      } else {
+        notify("Coach notes saved.", "success");
+      }
+    } catch (error) {
+      console.error(error);
+      notify("Could not save coach notes.", "error");
+    } finally {
+      setSavingCoachNotes(false);
+    }
+  };
+
   const openMetricsEditor = () => {
     if (!selectedClient) return;
     setMetricsDraft({
@@ -2561,6 +2598,8 @@ function App() {
       .then((res) => res.json())
       .then((data) => setExerciseResults(data.results || []))
       .catch(() => setExerciseResults([]));
+
+    setCoachNotesDraft(selectedClient.notes || "");
 
     if (isClientPortal && libraryExercises.length === 0) {
       loadExerciseLibrary();
@@ -17556,11 +17595,25 @@ function App() {
                   </div>
 
                   <div className="profileCard">
-                    <h3>Coach Notes</h3>
-                    <p className="coachNotesPreview">
-                      {selectedClient.notes || "No notes yet."}
-                    </p>
-                    <textarea placeholder="Add private coach notes here..." />
+                    <div className="profileMetricsHeader">
+                      <h3>Coach Notes</h3>
+                      <button
+                        className="outlineButton compactBuilderButton"
+                        onClick={saveCoachNotes}
+                        disabled={
+                          savingCoachNotes ||
+                          coachNotesDraft === (selectedClient.notes || "")
+                        }
+                      >
+                        {savingCoachNotes ? "Saving…" : "Save"}
+                      </button>
+                    </div>
+                    <textarea
+                      className="coachNotesTextarea"
+                      placeholder="Add private coach notes here..."
+                      value={coachNotesDraft}
+                      onChange={(event) => setCoachNotesDraft(event.target.value)}
+                    />
                   </div>
                 </div>
                 ))}
