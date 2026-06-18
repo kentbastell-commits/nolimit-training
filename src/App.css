@@ -5370,7 +5370,9 @@ button.coachReviewGlobalItem,
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 999;
+  /* Must sit above the fixed mobile bottom nav (z-index 1200), otherwise the
+     nav overlaps the modal and intercepts taps on the Submit Workout button. */
+  z-index: 2000;
   padding: 24px;
 }
 
@@ -7449,6 +7451,7 @@ button.coachReviewGlobalItem,
     max-height: 100vh;
     border-radius: 0;
     padding: 14px;
+    padding-bottom: calc(20px + env(safe-area-inset-bottom));
   }
 
   .modal-header h2 {
