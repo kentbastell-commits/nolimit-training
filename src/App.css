@@ -1852,7 +1852,7 @@ body {
 .monogramAvatar {
   border: 1px solid rgba(215, 207, 189, 0.45);
   background: #050505;
-  color: #d7cfbd;
+  color: #d5dae3;
   border-radius: 8px;
 }
 
@@ -2867,7 +2867,7 @@ body {
 }
 
 .coachReviewHero p {
-  color: #ddd8ca;
+  color: #dde2ea;
   margin: 0;
   max-width: 46rem;
 }
@@ -2881,7 +2881,7 @@ body {
 .coachReviewSummaryCard,
 .coachReviewColumn {
   background: #ffffff;
-  border: 1px solid #d8d1bf;
+  border: 1px solid #d5dae3;
   box-shadow: 0 0.65rem 1.6rem rgba(0, 0, 0, 0.06);
 }
 
@@ -2953,7 +2953,7 @@ body {
 
 .coachReviewGlobalItem {
   background: #fff;
-  border: 1px solid #ddd5c5;
+  border: 1px solid #dde2ea;
   border-radius: 1rem;
   color: #10100f;
   padding: 0.85rem;
@@ -3664,7 +3664,7 @@ button.coachReviewGlobalItem,
 
 .templateSearchInput {
   width: 100%;
-  border: 1px solid #d8d2c4;
+  border: 1px solid #d5dae3;
   border-radius: 10px;
   background: #fff;
   color: #111;
@@ -3726,7 +3726,7 @@ button.coachReviewGlobalItem,
   height: 34px;
   display: grid;
   place-items: center;
-  border: 1px solid #d8d2c4;
+  border: 1px solid #d5dae3;
   border-radius: 9px;
   background: #fff;
   color: #111;
@@ -3749,7 +3749,7 @@ button.coachReviewGlobalItem,
   min-width: 140px;
   display: grid;
   gap: 4px;
-  border: 1px solid #d8d2c4;
+  border: 1px solid #d5dae3;
   border-radius: 10px;
   background: #fff;
   box-shadow: 0 16px 34px rgba(0, 0, 0, 0.16);
@@ -3819,7 +3819,7 @@ button.coachReviewGlobalItem,
 }
 
 .assignmentTypeGrid div {
-  border: 1px solid #d8d2c4;
+  border: 1px solid #d5dae3;
   border-radius: 8px;
   padding: 14px;
   background: #fff;
@@ -4255,7 +4255,7 @@ button.coachReviewGlobalItem,
   align-items: center;
   justify-content: center;
   min-height: 36px;
-  border: 1px solid #d6cec0;
+  border: 1px solid #d5dae3;
   border-radius: 999px;
   padding: 0 12px;
   background: #ffffff;
@@ -4319,7 +4319,7 @@ button.coachReviewGlobalItem,
 
 .builderSectionPresetBar button {
   min-height: 34px;
-  border: 1px solid #d6cec0;
+  border: 1px solid #d5dae3;
   border-radius: 999px;
   background: #fff;
   color: #1a1a17;
@@ -5557,12 +5557,12 @@ button.coachReviewGlobalItem,
 }
 
 .clientPortalApp .technicalCueBody {
-  border-color: #d8d2c4;
+  border-color: #d5dae3;
   background: #ffffff;
 }
 
 .clientPortalApp .exerciseDetailMeta span {
-  border-color: #d8d2c4;
+  border-color: #d5dae3;
   background: #eef1f5;
   color: #111;
 }
@@ -5572,7 +5572,7 @@ button.coachReviewGlobalItem,
 }
 
 .clientPortalApp .exerciseCueSections section {
-  border-color: #d8d2c4;
+  border-color: #d5dae3;
   background: #ffffff;
 }
 
@@ -5795,7 +5795,7 @@ button.coachReviewGlobalItem,
   overflow-y: auto;
   background: #f3f4f6;
   color: #111;
-  border-left: 1px solid #d8d1c2;
+  border-left: 1px solid #d5dae3;
   box-shadow: -22px 0 60px rgba(0, 0, 0, 0.2);
   padding: 26px;
 }
@@ -5889,7 +5889,7 @@ button.coachReviewGlobalItem,
 }
 
 .assignmentDrawerForm input[readonly] {
-  background: #efede5;
+  background: #eef0f3;
 }
 
 .assignmentDrawerWide {
@@ -5899,7 +5899,7 @@ button.coachReviewGlobalItem,
 .assignmentDrawerSessions {
   display: grid;
   gap: 10px;
-  border: 1px solid #d8d1c2;
+  border: 1px solid #d5dae3;
   border-radius: 12px;
   background: #fff;
   margin-top: 18px;
@@ -5924,7 +5924,7 @@ button.coachReviewGlobalItem,
   grid-template-columns: minmax(0, 1fr) 150px;
   align-items: center;
   gap: 12px;
-  border-top: 1px solid #eee7d9;
+  border-top: 1px solid #eef0f3;
   padding-top: 10px;
 }
 
@@ -8098,7 +8098,7 @@ button.coachReviewGlobalItem,
   gap: 4px;
   margin-top: 8px;
   padding: 4px;
-  border: 1px solid #d6d1c6;
+  border: 1px solid #d5dae3;
   border-radius: 999px;
   background: #fff;
 }
@@ -8126,10 +8126,10 @@ button.coachReviewGlobalItem,
   height: 52px;
   display: grid;
   place-items: center;
-  border: 1px solid #d6d1c6;
+  border: 1px solid #d5dae3;
   border-radius: 8px;
   background: #111;
-  color: #eee5d6;
+  color: #eef0f3;
   flex: 0 0 auto;
 }
 
@@ -8200,7 +8200,7 @@ button.coachReviewGlobalItem,
 .clientPortalApp .iconActionButton,
 .clientPortalApp .videoButton {
   background: #fff;
-  border-color: #d7d5cf;
+  border-color: #d5dae3;
   color: #111;
 }
 
@@ -8279,7 +8279,7 @@ button.coachReviewGlobalItem,
 .clientPortalApp .desktopWorkoutSetLabel,
 .clientPortalApp .setBanner {
   background: #eef0f3;
-  border-color: #d8d0bb;
+  border-color: #d5dae3;
   color: #111;
 }
 
@@ -8362,7 +8362,7 @@ button.coachReviewGlobalItem,
 }
 
 .clientPortalApp .calendarDay {
-  border-color: #d7d2c5;
+  border-color: #d5dae3;
 }
 
 .clientPortalApp .calendarNavigator input,
@@ -8596,7 +8596,7 @@ button.coachReviewGlobalItem,
 
 .clientProgramCard p {
   margin: 0;
-  color: #d7d1c2;
+  color: #d5dae3;
   font-weight: 850;
 }
 
@@ -8605,7 +8605,7 @@ button.coachReviewGlobalItem,
   justify-content: space-between;
   align-items: center;
   gap: 16px;
-  border: 1px solid #d7d1c2;
+  border: 1px solid #d5dae3;
   border-radius: 10px;
   background: #ffffff;
   padding: 14px 16px;
@@ -8651,7 +8651,7 @@ button.coachReviewGlobalItem,
 }
 
 .clientProgramDeliveryStatus.loaded p {
-  color: #d7d1c2;
+  color: #d5dae3;
 }
 
 .clientProgramScheduler {
@@ -8720,7 +8720,7 @@ button.coachReviewGlobalItem,
 }
 
 .clientProgramPreview {
-  border-top: 1px solid #e7e2d5;
+  border-top: 1px solid #e7eaf0;
   margin-top: 18px;
   padding-top: 18px;
 }
@@ -8910,7 +8910,7 @@ button.coachReviewGlobalItem,
 
 .taskTypeChip {
   justify-self: start;
-  border: 1px solid #d8d1c4;
+  border: 1px solid #d5dae3;
   border-radius: 999px;
   background: #fff;
   color: #7a5a0a;
@@ -8989,7 +8989,7 @@ button.coachReviewGlobalItem,
   min-height: 260px;
   display: grid;
   gap: 12px;
-  border: 1px solid #e2e0d9;
+  border: 1px solid #e3e7ee;
   border-radius: 8px;
   background: #ffffff;
   padding: 14px;
@@ -9002,7 +9002,7 @@ button.coachReviewGlobalItem,
 }
 
 .progressChartSummary > div {
-  border: 1px solid #ded8cc;
+  border: 1px solid #dde2ea;
   border-radius: 8px;
   background: #fff;
   padding: 10px 12px;
@@ -9065,7 +9065,7 @@ button.coachReviewGlobalItem,
 }
 
 .homeFocusGrid > div {
-  border: 1px solid #e1dfd7;
+  border: 1px solid #e3e7ee;
   border-radius: 8px;
   background: #ffffff;
   padding: 12px;
@@ -9198,7 +9198,7 @@ button.coachReviewGlobalItem,
 }
 
 .coachAlertCard {
-  border: 1px solid #ded8cc;
+  border: 1px solid #dde2ea;
   border-radius: 12px;
   background: #fff;
   color: #111;
@@ -9256,7 +9256,7 @@ button.coachReviewGlobalItem,
 .snapshotMetricCard,
 .snapshotTrendCard,
 .snapshotAttentionCard {
-  border: 1px solid #ded8cc;
+  border: 1px solid #dde2ea;
   border-radius: 12px;
   background: #ffffff;
   padding: 14px;
@@ -9346,7 +9346,7 @@ button.coachReviewGlobalItem,
 }
 
 .coachReviewQueuePanel .snapshotAttentionHeader span {
-  color: #d9d3c4;
+  color: #d5dae3;
 }
 
 .coachReviewQueuePanel .snapshotAttentionHeader strong {
@@ -9399,7 +9399,7 @@ button.coachReviewGlobalItem,
 
 .coachReviewQueueItem span {
   display: block;
-  color: #d9d3c4;
+  color: #d5dae3;
   font-size: 11px;
   font-weight: 950;
   letter-spacing: 0.05em;
@@ -9417,7 +9417,7 @@ button.coachReviewGlobalItem,
 .coachReviewQueueItem small {
   display: block;
   margin-top: 5px;
-  color: #d9d3c4;
+  color: #d5dae3;
   font-size: 12px;
   font-weight: 750;
 }
@@ -9480,7 +9480,7 @@ button.coachReviewGlobalItem,
 }
 
 .workoutCommentReviewItem small {
-  color: #ddd6c7;
+  color: #dde2ea;
   font-size: 12px;
   font-weight: 800;
   line-height: 1.35;
@@ -9499,7 +9499,7 @@ button.coachReviewGlobalItem,
   justify-content: space-between;
   gap: 12px;
   width: 100%;
-  border: 1px solid #ded8cc;
+  border: 1px solid #dde2ea;
   border-radius: 10px;
   background: #fff;
   color: #111;
@@ -9562,7 +9562,7 @@ button.coachReviewGlobalItem,
 .clientCalendarViewToggle {
   display: inline-flex;
   gap: 4px;
-  border: 1px solid #d8d4c9;
+  border: 1px solid #d5dae3;
   border-radius: 8px;
   background: #fff;
   padding: 4px;
@@ -9794,7 +9794,7 @@ button.coachReviewGlobalItem,
   width: 28px;
   height: 28px;
   border-radius: 999px;
-  border: 1px solid #d8cfc0;
+  border: 1px solid #d5dae3;
   background: #fff;
   color: #161512;
   display: inline-flex;
@@ -9993,7 +9993,7 @@ button.coachReviewGlobalItem,
 }
 
 .submissionCommentField {
-  border: 1px solid #ded8cc;
+  border: 1px solid #dde2ea;
   border-radius: 12px;
   background: #ffffff;
   padding: 14px;
@@ -10002,7 +10002,7 @@ button.coachReviewGlobalItem,
 .workoutSubmissionNoteField {
   display: grid;
   gap: 8px;
-  border: 1px solid #ded8cc;
+  border: 1px solid #dde2ea;
   border-radius: 12px;
   background: #ffffff;
   padding: 16px;
@@ -10032,7 +10032,7 @@ button.coachReviewGlobalItem,
   display: grid;
   grid-template-columns: 1fr;
   gap: 12px;
-  border: 1px solid #ded8cc;
+  border: 1px solid #dde2ea;
   border-radius: 12px;
   background: #ffffff;
   padding: 14px;
@@ -10077,7 +10077,7 @@ button.coachReviewGlobalItem,
 }
 
 .workoutCommentQueueCard .snapshotAttentionHeader span {
-  color: #d9d3c4;
+  color: #d5dae3;
 }
 
 .workoutCommentQueueCard .snapshotAttentionHeader strong {
@@ -10116,7 +10116,7 @@ button.coachReviewGlobalItem,
 
 .workoutCommentReviewItem span {
   display: block;
-  color: #d9d3c4;
+  color: #d5dae3;
   font-size: 11px;
   font-weight: 900;
   letter-spacing: 0.05em;
@@ -10156,7 +10156,7 @@ button.coachReviewGlobalItem,
 }
 
 .submissionCategory {
-  border: 1px solid #d8d1c4;
+  border: 1px solid #d5dae3;
   border-radius: 12px;
   background: #fff;
   padding: 16px;
@@ -10177,7 +10177,7 @@ button.coachReviewGlobalItem,
   align-items: center;
   justify-content: space-between;
   gap: 14px;
-  border: 1px solid #ded8cc;
+  border: 1px solid #dde2ea;
   border-radius: 10px;
   background: #ffffff;
   color: #111;
@@ -10339,7 +10339,7 @@ button.coachReviewGlobalItem,
 .clientMonthArrow {
   width: 38px;
   height: 38px;
-  border: 1px solid #d8d4c9;
+  border: 1px solid #d5dae3;
   border-radius: 8px;
   background: #ffffff;
   color: #111;
@@ -10694,7 +10694,7 @@ button.coachReviewGlobalItem,
 .clientPortalApp .workoutGlancePanel,
 .clientPortalEmpty {
   background: #ffffff !important;
-  border-color: #d7d2c7 !important;
+  border-color: #d5dae3 !important;
   color: #111 !important;
   box-shadow: 0 18px 48px rgba(17, 17, 17, 0.08);
 }
@@ -10720,7 +10720,7 @@ button.coachReviewGlobalItem,
 .app:not(.clientPortalApp) .clientTableHeader,
 .app:not(.clientPortalApp) .exerciseTableHeader {
   background: #eef0f3;
-  border-bottom-color: #d8d1c2;
+  border-bottom-color: #d5dae3;
   text-transform: uppercase;
   letter-spacing: 0.6px;
   font-size: 12px;
@@ -10748,7 +10748,7 @@ button.coachReviewGlobalItem,
 }
 
 .app:not(.clientPortalApp) .inviteLinkBox {
-  border-top-color: #d8d1c2;
+  border-top-color: #d5dae3;
 }
 
 .app:not(.clientPortalApp) .inviteLinkBox span,
@@ -10841,7 +10841,7 @@ button.coachReviewGlobalItem,
 .clientPortalApp .workoutGlanceRow,
 .clientPortalApp .calendarDay {
   background: #fff !important;
-  border-color: #d7d2c7 !important;
+  border-color: #d5dae3 !important;
 }
 
 .app:not(.clientPortalApp) .calendarWorkMarkers span,
@@ -10865,7 +10865,7 @@ button.coachReviewGlobalItem,
   --nl-surface: #ffffff;
   --nl-surface-strong: #ffffff;
   --nl-page: #f3f4f6;
-  --nl-line: #d7d2c7;
+  --nl-line: #d5dae3;
   --nl-gold-dark: #7a5a0a;
   --nl-gold-soft: #eadfbf;
   --nl-gold-quiet: #eef0f3;
@@ -10945,7 +10945,7 @@ button.coachReviewGlobalItem,
 .app:not(.clientPortalApp) .tableHeader,
 .app:not(.clientPortalApp) .clientTableHeader,
 .app:not(.clientPortalApp) .exerciseTableHeader {
-  background: #eee8d9 !important;
+  background: #eef0f3 !important;
   color: var(--nl-ink) !important;
   border-bottom-color: #cec5b3 !important;
   font-weight: 900 !important;
@@ -11133,7 +11133,7 @@ button.coachReviewGlobalItem,
 
 .app:not(.clientPortalApp) .workout-modal {
   background: #ffffff !important;
-  border-color: #d8d2c4 !important;
+  border-color: #d5dae3 !important;
   color: var(--nl-ink) !important;
   box-shadow: 0 26px 70px rgba(20, 18, 14, 0.22) !important;
 }
@@ -11144,18 +11144,18 @@ button.coachReviewGlobalItem,
 }
 
 .app:not(.clientPortalApp) .workout-modal .modal-header {
-  border-bottom-color: #d8d2c4 !important;
+  border-bottom-color: #d5dae3 !important;
 }
 
 .app:not(.clientPortalApp) .clientFormModal.technicalCueModal {
   background: #ffffff !important;
-  border-color: #d8d2c4 !important;
+  border-color: #d5dae3 !important;
   color: var(--nl-ink) !important;
   box-shadow: 0 26px 70px rgba(20, 18, 14, 0.22) !important;
 }
 
 .app:not(.clientPortalApp) .technicalCueModal .modal-header {
-  border-bottom: 1px solid #d8d2c4 !important;
+  border-bottom: 1px solid #d5dae3 !important;
 }
 
 .app:not(.clientPortalApp) .technicalCueModal .modal-header h2 {
@@ -11167,12 +11167,12 @@ button.coachReviewGlobalItem,
 }
 
 .app:not(.clientPortalApp) .technicalCueBody {
-  border-color: #d8d2c4 !important;
+  border-color: #d5dae3 !important;
   background: #eef1f5 !important;
 }
 
 .app:not(.clientPortalApp) .exerciseDetailMeta span {
-  border-color: #d8d2c4 !important;
+  border-color: #d5dae3 !important;
   background: #ffffff !important;
   color: var(--nl-ink) !important;
 }
@@ -11182,7 +11182,7 @@ button.coachReviewGlobalItem,
 }
 
 .app:not(.clientPortalApp) .exerciseCueSections section {
-  border-color: #d8d2c4 !important;
+  border-color: #d5dae3 !important;
   background: #ffffff !important;
 }
 
@@ -11219,14 +11219,14 @@ button.coachReviewGlobalItem,
 
 .app:not(.clientPortalApp) .workoutLogExerciseCard {
   background: #ffffff !important;
-  border-color: #d8d2c4 !important;
+  border-color: #d5dae3 !important;
   color: var(--nl-ink) !important;
   box-shadow: 0 18px 42px rgba(20, 18, 14, 0.08);
 }
 
 .app:not(.clientPortalApp) .workoutGlancePanel {
   background: #ffffff !important;
-  border-color: #d8d2c4 !important;
+  border-color: #d5dae3 !important;
   color: var(--nl-ink) !important;
   box-shadow: 0 18px 42px rgba(20, 18, 14, 0.08);
 }
@@ -11286,7 +11286,7 @@ button.coachReviewGlobalItem,
 
 .app:not(.clientPortalApp) .desktopWorkoutSetLabel,
 .app:not(.clientPortalApp) .setBanner {
-  background: #d6d2c7 !important;
+  background: #d5dae3 !important;
   border-color: #bfb7a5 !important;
   color: var(--nl-ink) !important;
 }
@@ -11300,7 +11300,7 @@ button.coachReviewGlobalItem,
 .app:not(.clientPortalApp) .desktopWorkoutSetRow,
 .app:not(.clientPortalApp) .mobileSetLogRow {
   background: #ffffff !important;
-  border-color: #d8d2c4 !important;
+  border-color: #d5dae3 !important;
 }
 
 .app:not(.clientPortalApp) .workoutCoachNotes {
@@ -11309,7 +11309,7 @@ button.coachReviewGlobalItem,
 
 .clientPortalApp .desktopWorkoutSetLabel,
 .clientPortalApp .setBanner {
-  background: #d6d2c7 !important;
+  background: #d5dae3 !important;
   border-color: #bfb7a5 !important;
   color: var(--nl-ink) !important;
 }
@@ -11370,7 +11370,7 @@ button.coachReviewGlobalItem,
 
 .app:not(.clientPortalApp) .tab {
   background: #fff !important;
-  border-color: #d8d2c4 !important;
+  border-color: #d5dae3 !important;
   color: #151515 !important;
   box-shadow: 0 10px 22px rgba(20, 18, 14, 0.05);
 }
@@ -11384,7 +11384,7 @@ button.coachReviewGlobalItem,
 
 .app:not(.clientPortalApp) .clientActionDropdown {
   background: #ffffff;
-  border-color: #d8d2c4;
+  border-color: #d5dae3;
   box-shadow: 0 18px 44px rgba(20, 18, 14, 0.16);
 }
 
@@ -11405,7 +11405,7 @@ button.coachReviewGlobalItem,
   align-items: center;
   grid-template-columns: minmax(280px, 1fr) auto auto;
   padding: 6px;
-  border: 1px solid #d8d2c4;
+  border: 1px solid #d5dae3;
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.72);
   box-shadow: 0 16px 38px rgba(20, 18, 14, 0.06);
@@ -11493,7 +11493,7 @@ button.coachReviewGlobalItem,
   width: 38px !important;
   height: 38px !important;
   border-radius: 11px !important;
-  border-color: #d8d2c4 !important;
+  border-color: #d5dae3 !important;
   background: #ffffff !important;
   color: var(--nl-ink) !important;
   box-shadow: 0 8px 16px rgba(20, 18, 14, 0.06);
@@ -11579,7 +11579,7 @@ button.coachReviewGlobalItem,
   grid-template-columns: repeat(3, minmax(190px, 1fr));
   gap: 10px;
   padding: 6px;
-  border: 1px solid #d8d2c4;
+  border: 1px solid #d5dae3;
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.62);
 }
@@ -11614,7 +11614,7 @@ button.coachReviewGlobalItem,
 }
 
 .app:not(.clientPortalApp) .workoutBlock span {
-  color: #d8d2c4 !important;
+  color: #d5dae3 !important;
 }
 
 .calendarDayActions {
@@ -11681,7 +11681,7 @@ button.coachReviewGlobalItem,
 
 .app:not(.clientPortalApp) .coachSelectedDayGlance .selectedDayWorkout span,
 .app:not(.clientPortalApp) .coachSelectedDayGlance .selectedDayWorkout small {
-  color: #d8d2c4;
+  color: #d5dae3;
 }
 
 /* Brand and design system refinement */
@@ -11694,7 +11694,7 @@ button.coachReviewGlobalItem,
   --brand-cream: #f5f1e8;
   --brand-gold: #9f7a1b;
   --brand-gold-soft: #d8bd62;
-  --brand-border: #d8d1c2;
+  --brand-border: #d5dae3;
 }
 
 body,
@@ -11849,8 +11849,8 @@ textarea {
 }
 
 .app:not(.clientPortalApp) .clientTabs {
-  background: #e7e2d7;
-  border: 1px solid #d3cabb;
+  background: #e7eaf0;
+  border: 1px solid #d5dae3;
   box-shadow: inset 0 1px 2px rgba(18, 18, 16, 0.05);
 }
 
@@ -11912,7 +11912,7 @@ textarea {
     width: 100%;
     height: min(88vh, 720px);
     border-left: 0;
-    border-top: 1px solid #d8d1c2;
+    border-top: 1px solid #d5dae3;
     border-radius: 18px 18px 0 0;
     padding: 20px;
   }
@@ -12034,7 +12034,7 @@ textarea {
 }
 
 .app:not(.clientPortalApp) .workout-modal .workoutPrescriptionGrid {
-  border-bottom: 1px solid #d8d2c4 !important;
+  border-bottom: 1px solid #d5dae3 !important;
 }
 
 .app:not(.clientPortalApp) .workout-modal .workoutPrescriptionGrid span {
@@ -12068,7 +12068,7 @@ textarea {
 .app:not(.clientPortalApp) .workout-modal .workoutLogExerciseCard .setBanner,
 .app:not(.clientPortalApp) .workout-modal .workoutLogExerciseCard .desktopSetLogRow .setBanner {
   background: #eef0f3 !important;
-  border: 1px solid #d8d0bb !important;
+  border: 1px solid #d5dae3 !important;
   color: var(--brand-ink) !important;
 }
 
@@ -12242,7 +12242,7 @@ textarea {
 .app:not(.clientPortalApp) .orderReviewFacts > div,
 .app:not(.clientPortalApp) .orderReviewSubmission,
 .app:not(.clientPortalApp) .orderReviewItem {
-  border-color: #ded8cc;
+  border-color: #dde2ea;
   background: rgba(247, 246, 241, 0.74);
 }
 
@@ -12260,7 +12260,7 @@ textarea {
 
 .app:not(.clientPortalApp) .onboardingStage {
   background: #ffffff;
-  border-color: #ded8cc;
+  border-color: #dde2ea;
   color: #6d6b64;
 }
 
@@ -13621,7 +13621,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
     gap: 3px !important;
     overflow-x: auto !important;
     padding: 6px 8px calc(6px + env(safe-area-inset-bottom)) !important;
-    border-top: 1px solid #d8d2c4 !important;
+    border-top: 1px solid #d5dae3 !important;
     background: rgba(255, 253, 248, 0.98) !important;
     box-shadow: 0 -10px 24px rgba(18, 18, 18, 0.12) !important;
     scrollbar-width: none;
@@ -13698,7 +13698,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 
   .mobileBuilderStepper button {
     min-height: 38px;
-    border: 1px solid #d6cec0;
+    border: 1px solid #d5dae3;
     border-radius: 12px;
     background: #fff;
     color: #1a1a17;
@@ -13728,7 +13728,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 
   .mobileBuilderQuickNav button {
     min-height: 38px;
-    border: 1px solid #d6cec0;
+    border: 1px solid #d5dae3;
     border-radius: 12px;
     background: #fff;
     color: #1a1a17;
@@ -13852,7 +13852,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
     gap: 12px;
     margin-bottom: 14px;
     padding: 10px;
-    border: 1px solid #d8d2c4;
+    border: 1px solid #d5dae3;
     border-radius: 14px;
     background: rgba(255, 253, 248, 0.96);
     box-shadow: 0 10px 24px rgba(18, 18, 18, 0.08);
@@ -15272,7 +15272,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
     width: 100% !important;
     overflow: visible !important;
     padding: 7px 6px calc(7px + env(safe-area-inset-bottom)) !important;
-    border-top: 1px solid #d8d2c4 !important;
+    border-top: 1px solid #d5dae3 !important;
     background: rgba(255, 253, 248, 0.98) !important;
     box-shadow: 0 -14px 30px rgba(18, 18, 18, 0.14) !important;
     backdrop-filter: blur(18px) !important;
