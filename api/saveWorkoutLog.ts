@@ -6,6 +6,18 @@ function toText(value: any): string {
   return String(value);
 }
 
+// Coerce to a number for Feishu Number fields; undefined for blank/non-numeric
+// so the field is omitted (Feishu rejects "" on Number fields).
+function toNum(value: any): number | undefined {
+  if (value === undefined || value === null || value === "") return undefined;
+  const direct = Number(value);
+  if (Number.isFinite(direct)) return direct;
+  const match = String(value).match(/-?\d+(\.\d+)?/);
+  if (!match) return undefined;
+  const parsed = Number(match[0]);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
 function toLarkDate(value: string): number {
   if (!value) return Date.now();
   if (/^\d+$/.test(value)) return Number(value);
@@ -128,20 +140,30 @@ export default async function handler(
 
         "Date": larkDate,
 
+        // Set Number is a Text field; the rest are Number fields — only send
+        // them when numeric so blanks (e.g. cardio with no reps) don't trip
+        // NumberFieldConvFail and fail the whole record.
         "Set Number": toText(log.setNumber),
-        "Prescribed Sets": toText(log.prescribedSets),
-        "Prescribed Reps": toText(log.prescribedReps),
-        "Actual Reps": toText(log.actualReps),
-        "Actual Weight": toText(log.actualWeight),
         "Weight Unit": "kg",
-        "Actual Time": toText(log.actualTime),
         "Time Unit": "s",
-        "Actual Distance": toText(log.actualDistance),
         "Distance Unit": "m",
-        "Exercise Order": toText(log.exerciseOrder),
 
         "Completed": true,
       };
+
+      const numberFields: Array<[string, any]> = [
+        ["Prescribed Sets", log.prescribedSets],
+        ["Prescribed Reps", log.prescribedReps],
+        ["Actual Reps", log.actualReps],
+        ["Actual Weight", log.actualWeight],
+        ["Actual Time", log.actualTime],
+        ["Actual Distance", log.actualDistance],
+        ["Exercise Order", log.exerciseOrder],
+      ];
+      for (const [name, raw] of numberFields) {
+        const value = toNum(raw);
+        if (value !== undefined) fields[name] = value;
+      }
 
       if (notesFieldName && submissionNote) {
         fields[notesFieldName] = toText(submissionNote);
