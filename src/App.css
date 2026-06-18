@@ -5597,6 +5597,14 @@ button.coachReviewGlobalItem,
   font-weight: bold;
 }
 
+/* Coach app modal is on a cream background — pale gold labels washed out, so
+   use a punchy deep gold that reads clearly. */
+.app:not(.clientPortalApp) .clientFormGrid label {
+  color: #8a6510;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+}
+
 .clientFormGrid input,
 .clientFormGrid select,
 .clientFormGrid textarea {
