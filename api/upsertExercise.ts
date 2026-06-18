@@ -48,17 +48,6 @@ async function readResponseJson(response: Response) {
   }
 }
 
-function makeUrlField(value: string) {
-  const clean = String(value || "").trim();
-
-  if (!clean) return "";
-
-  return {
-    link: clean,
-    text: clean,
-  };
-}
-
 function makeMultiSelectField(value: string) {
   return String(value || "")
     .split(/[\/,]/)
@@ -81,9 +70,27 @@ async function getFieldNames(token: string) {
     throw new Error(`Could not load exercise table fields: ${JSON.stringify(data)}`);
   }
 
-  return (data?.data?.items || [])
+  const items = (data?.data?.items || []) as any[];
+  const names = items
     .map((field: any) => field.field_name || field.name)
     .filter(Boolean);
+  const typeByName = new Map<string, number>(
+    items
+      .filter((field: any) => field.field_name || field.name)
+      .map((field: any) => [field.field_name || field.name, field.type])
+  );
+  return { names, typeByName };
+}
+
+// Build a value for a URL(15) or Text(1) field; returns undefined for empty or
+// for unsupported field types (e.g. an Attachment field) so we never send a
+// value Feishu will reject.
+function videoFieldValue(value: unknown, type: number | undefined) {
+  const clean = String(value || "").trim();
+  if (!clean) return undefined;
+  if (type === 15) return { link: clean, text: clean };
+  if (type === 1) return clean;
+  return undefined;
 }
 
 function filterExistingFields(
@@ -172,7 +179,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const token = await getTenantToken();
     const tableUrl = `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${process.env.FEISHU_EXERCISE_LIBRARY_TABLE_ID}/records`;
-    const availableFields = await getFieldNames(token);
+    const fieldInfo = await getFieldNames(token);
+    const availableFields = fieldInfo.names;
+    const typeByName = fieldInfo.typeByName;
     const cueFieldName = findFirstField(availableFields, CUE_FIELD_CANDIDATES);
     const hasNotesToSave = notes !== undefined && String(notes).trim() !== "";
 
@@ -201,12 +210,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       fields[cueFieldName] = archive ? archivedNotes : notes || "";
     }
 
-    const videoField = makeUrlField(videoUrl);
-    const longVideoField = makeUrlField(longVideoUrl);
     const equipmentField = makeMultiSelectField(equipment);
 
-    if (videoField) fields["Video URL"] = videoField;
-    if (longVideoField) fields["Long Video URL"] = longVideoField;
+    // Short video: the field was renamed "Video URL" -> "Short Video URL"; write
+    // to whichever exists, honoring its column type. Long video only if its
+    // column is URL/Text (skip silently if it's e.g. an Attachment field).
+    const shortVideoFieldName =
+      ["Short Video URL", "Video URL"].find((name) => typeByName.has(name)) || "";
+    if (shortVideoFieldName) {
+      const value = videoFieldValue(videoUrl, typeByName.get(shortVideoFieldName));
+      if (value !== undefined) fields[shortVideoFieldName] = value;
+    }
+    if (typeByName.has("Long Video URL")) {
+      const value = videoFieldValue(longVideoUrl, typeByName.get("Long Video URL"));
+      if (value !== undefined) fields["Long Video URL"] = value;
+    }
     if (category) fields.Category = category;
     if (equipmentField.length > 0) fields.Equipment = equipmentField;
     if (movementPattern) fields["Movement Pattern"] = movementPattern;
