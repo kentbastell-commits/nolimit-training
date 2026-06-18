@@ -10152,12 +10152,6 @@ function App() {
 
       return tokens.some((token) => searchableMetric.includes(token));
     });
-  const latestOneRepMaxMetric = findLatestAthleteMetric([
-    "1rm",
-    "one rep max",
-    "estimated 1rm",
-    "predicted 1rm",
-  ]);
   const latestMasMetric = findLatestAthleteMetric([
     "mas",
     "maximum aerobic speed",
@@ -10505,12 +10499,9 @@ function App() {
   const hasTrainingVolume = volumeThisWeek > 0;
 
   const clientPerformanceMetrics = [
-    {
-      key: "estimated-one-rep-max",
-      label: t("estimatedOneRepMax"),
-      value: formatAthleteMetricValue(latestOneRepMaxMetric),
-      meta: formatAthleteMetricMeta(latestOneRepMaxMetric),
-    },
+    // Note: a test-derived "Estimated 1RM" card used to live here, but it
+    // duplicated the per-exercise Est 1RM in Personal Records (which is computed
+    // from logged training and is far more useful), so it was removed.
     {
       key: "estimated-mas",
       label: t("estimatedMas"),
