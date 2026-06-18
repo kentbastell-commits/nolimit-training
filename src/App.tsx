@@ -649,6 +649,16 @@ function videoThumbnail(url: string): string {
   return match ? `https://img.youtube.com/vi/${match[1]}/mqdefault.jpg` : "";
 }
 
+// Slug for color-coding exercise categories in the library (e.g. "Olympic/Power"
+// -> "cat-olympic-power"). Pairs with the .cat-* rules in App.css.
+function categorySlug(category?: string): string {
+  const slug = String(category || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return slug ? `cat-${slug}` : "";
+}
+
 const MOVEMENT_PATTERN_OPTIONS = [
   "Lower Body Squat",
   "Lower Body Hinge",
@@ -13501,7 +13511,11 @@ function App() {
                           </div>
                         </div>
 
-                        <span className="exerciseCategoryCell">
+                        <span
+                          className={`exerciseCategoryCell ${categorySlug(
+                            exercise.category
+                          )}`}
+                        >
                           {exercise.category || "--"}
                         </span>
 

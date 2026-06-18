@@ -11471,11 +11471,80 @@ button.coachReviewGlobalItem,
   width: fit-content;
   padding: 4px 12px;
   border-radius: 999px;
+  border: 1px solid transparent;
   background: #e6e1d6;
   color: #1a1a1a !important;
   font-weight: 800;
   font-size: 12.5px;
   letter-spacing: 0.2px;
+}
+
+/* Color-coded category pills: each movement family gets a distinct hue so the
+   library scans fast. Soft tinted fill + saturated text from the same hue. */
+.app:not(.clientPortalApp) .exerciseTableRow .exerciseCategoryCell.cat-squat {
+  color: #c0392b !important;
+  background: color-mix(in srgb, #c0392b 12%, #fff);
+  border-color: color-mix(in srgb, #c0392b 26%, #fff);
+}
+.app:not(.clientPortalApp) .exerciseTableRow .exerciseCategoryCell.cat-hinge {
+  color: #b35a13 !important;
+  background: color-mix(in srgb, #b35a13 12%, #fff);
+  border-color: color-mix(in srgb, #b35a13 26%, #fff);
+}
+.app:not(.clientPortalApp) .exerciseTableRow .exerciseCategoryCell.cat-horizontal-push {
+  color: #2f5fd0 !important;
+  background: color-mix(in srgb, #2f5fd0 12%, #fff);
+  border-color: color-mix(in srgb, #2f5fd0 26%, #fff);
+}
+.app:not(.clientPortalApp) .exerciseTableRow .exerciseCategoryCell.cat-vertical-push {
+  color: #1f7bb5 !important;
+  background: color-mix(in srgb, #1f7bb5 12%, #fff);
+  border-color: color-mix(in srgb, #1f7bb5 26%, #fff);
+}
+.app:not(.clientPortalApp) .exerciseTableRow .exerciseCategoryCell.cat-horizontal-pull {
+  color: #15897a !important;
+  background: color-mix(in srgb, #15897a 12%, #fff);
+  border-color: color-mix(in srgb, #15897a 26%, #fff);
+}
+.app:not(.clientPortalApp) .exerciseTableRow .exerciseCategoryCell.cat-vertical-pull {
+  color: #0f8a9a !important;
+  background: color-mix(in srgb, #0f8a9a 12%, #fff);
+  border-color: color-mix(in srgb, #0f8a9a 26%, #fff);
+}
+.app:not(.clientPortalApp) .exerciseTableRow .exerciseCategoryCell.cat-core {
+  color: #7b3fbf !important;
+  background: color-mix(in srgb, #7b3fbf 12%, #fff);
+  border-color: color-mix(in srgb, #7b3fbf 26%, #fff);
+}
+.app:not(.clientPortalApp) .exerciseTableRow .exerciseCategoryCell.cat-carry {
+  color: #b02f9e !important;
+  background: color-mix(in srgb, #b02f9e 12%, #fff);
+  border-color: color-mix(in srgb, #b02f9e 26%, #fff);
+}
+.app:not(.clientPortalApp) .exerciseTableRow .exerciseCategoryCell.cat-olympic-power {
+  color: #4b46c9 !important;
+  background: color-mix(in srgb, #4b46c9 12%, #fff);
+  border-color: color-mix(in srgb, #4b46c9 26%, #fff);
+}
+.app:not(.clientPortalApp) .exerciseTableRow .exerciseCategoryCell.cat-plyometric {
+  color: #c02d6a !important;
+  background: color-mix(in srgb, #c02d6a 12%, #fff);
+  border-color: color-mix(in srgb, #c02d6a 26%, #fff);
+}
+.app:not(.clientPortalApp) .exerciseTableRow .exerciseCategoryCell.cat-mobility {
+  color: #2e8b3d !important;
+  background: color-mix(in srgb, #2e8b3d 12%, #fff);
+  border-color: color-mix(in srgb, #2e8b3d 26%, #fff);
+}
+.app:not(.clientPortalApp) .exerciseTableRow .exerciseCategoryCell.cat-cardio {
+  color: #8a6d0c !important;
+  background: color-mix(in srgb, #8a6d0c 12%, #fff);
+  border-color: color-mix(in srgb, #8a6d0c 26%, #fff);
+}
+.app:not(.clientPortalApp) .exerciseTableRow .exerciseCategoryCell.cat-climbing-specific {
+  color: #8a5a2b !important;
+  background: color-mix(in srgb, #8a5a2b 12%, #fff);
+  border-color: color-mix(in srgb, #8a5a2b 26%, #fff);
 }
 
 /* Video-derived thumbnail in place of initials — a larger 16:9 frame so the
