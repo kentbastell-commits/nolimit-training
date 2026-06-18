@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { fetchAllBitableRecords } from "./_pagination.ts";
 
 function fieldToText(value: any): string {
   if (!value) return "";
@@ -56,25 +57,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
-    const recordsResponse = await fetch(
-      `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${process.env.FEISHU_PROGRAMS_TABLE_ID}/records?page_size=500`,
-      {
-        headers: {
-          Authorization: `Bearer ${tokenData.tenant_access_token}`,
-        },
-      }
+    const programItems = await fetchAllBitableRecords(
+      process.env.FEISHU_BASE_APP_TOKEN as string,
+      process.env.FEISHU_PROGRAMS_TABLE_ID as string,
+      tokenData.tenant_access_token
     );
 
-    const data = await recordsResponse.json();
-
-    if (!data?.data?.items) {
-      return res.status(500).json({
-        error: "Lark did not return program records",
-        larkResponse: data,
-      });
-    }
-
-    const programs = data.data.items.map((item: any) => {
+    const programs = programItems.map((item: any) => {
       const fields = item.fields || {};
 
       return {

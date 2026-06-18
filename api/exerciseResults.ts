@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { fetchAllBitableRecords } from "./_pagination.ts";
 
 function fieldToText(value: any): string {
   if (!value) return "";
@@ -188,24 +189,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method === "GET") {
       const clientId = String(req.query.clientId || "");
       const exerciseNameFilter = String(req.query.exerciseName || "").toLowerCase();
-      const recordsResponse = await fetch(
-        `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${process.env.FEISHU_EXERCISE_RESULTS_TABLE_ID}/records?page_size=500`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+      const resultItems = await fetchAllBitableRecords(
+        process.env.FEISHU_BASE_APP_TOKEN as string,
+        process.env.FEISHU_EXERCISE_RESULTS_TABLE_ID as string,
+        token
       );
-      const recordsData = await recordsResponse.json();
 
-      if (recordsData.code !== 0) {
-        return res.status(500).json({
-          error: "Could not fetch exercise results",
-          larkResponse: recordsData,
-        });
-      }
-
-      const results = (recordsData.data.items || [])
+      const results = resultItems
         .map((item: any) => {
           const fields = item.fields || {};
 

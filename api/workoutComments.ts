@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { fetchAllBitableRecords } from "./_pagination.ts";
 
 function fieldToText(value: any): string {
   if (!value) return "";
@@ -112,26 +113,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const { clientId = "", clientName = "" } = req.query;
     const requestedClientId = String(clientId).toLowerCase();
     const requestedClientName = String(clientName).toLowerCase();
-    const response = await fetch(
-      `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${workoutLogsTableId}/records?page_size=500`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
+    const commentItems = await fetchAllBitableRecords(
+      process.env.FEISHU_BASE_APP_TOKEN as string,
+      workoutLogsTableId as string,
+      token
     );
-    const data = await response.json();
-
-    if (data.code !== 0) {
-      return res.status(500).json({
-        error: "Could not fetch workout comments",
-        details: data,
-      });
-    }
 
     const commentMap = new Map<string, any>();
 
-    for (const item of data.data?.items || []) {
+    for (const item of commentItems) {
       const fields = item.fields || {};
       const note = readField(fields, [
         "Client Comment",

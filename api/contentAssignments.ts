@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { fetchAllBitableRecords } from "./_pagination.ts";
 
 function fieldToText(value: any): string {
   if (!value) return "";
@@ -161,21 +162,11 @@ async function getTenantToken() {
 }
 
 async function getRecords(tableId: string, token: string) {
-  const response = await fetch(
-    `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${tableId}/records?page_size=500`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
+  return fetchAllBitableRecords(
+    process.env.FEISHU_BASE_APP_TOKEN as string,
+    tableId,
+    token
   );
-  const data = await response.json();
-
-  if (data.code !== 0) {
-    throw new Error(`Could not fetch content assignments: ${JSON.stringify(data)}`);
-  }
-
-  return data.data.items || [];
 }
 
 async function getTableFields(tableId: string, token: string) {

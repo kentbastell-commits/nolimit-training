@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { fetchAllBitableRecords } from "./_pagination.ts";
 
 const PRODUCT_ORDERS_TABLE_ID =
   process.env.FEISHU_PRODUCT_ORDERS_TABLE_ID || "tbllinXYFDiUboKX";
@@ -63,24 +64,13 @@ async function getTenantToken() {
 export default async function handler(_req: VercelRequest, res: VercelResponse) {
   try {
     const token = await getTenantToken();
-    const response = await fetch(
-      `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${PRODUCT_ORDERS_TABLE_ID}/records?page_size=500`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
+    const orderItems = await fetchAllBitableRecords(
+      process.env.FEISHU_BASE_APP_TOKEN as string,
+      PRODUCT_ORDERS_TABLE_ID as string,
+      token
     );
-    const data = await response.json();
 
-    if (!data?.data?.items) {
-      return res.status(500).json({
-        error: "Could not fetch product orders",
-        larkResponse: data,
-      });
-    }
-
-    const orders = data.data.items.map((item: any) => {
+    const orders = orderItems.map((item: any) => {
       const fields = item.fields || {};
 
       return {

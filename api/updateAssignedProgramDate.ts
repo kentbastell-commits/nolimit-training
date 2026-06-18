@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { fetchAllBitableRecords } from "./_pagination.ts";
 
 function fieldToText(value: any): string {
   if (!value) return "";
@@ -68,16 +69,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     let recordId = assignedWorkoutRecordId;
 
     if (!String(recordId || "").startsWith("rec") && assignedWorkoutId) {
-      const recordsResponse = await fetch(
-        `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${process.env.FEISHU_ASSIGNED_WORKOUTS_TABLE_ID}/records?page_size=500`,
-        {
-          headers: {
-            Authorization: `Bearer ${tokenData.tenant_access_token}`,
-          },
-        }
+      const items = await fetchAllBitableRecords(
+        process.env.FEISHU_BASE_APP_TOKEN as string,
+        process.env.FEISHU_ASSIGNED_WORKOUTS_TABLE_ID as string,
+        tokenData.tenant_access_token
       );
-      const recordsData = await recordsResponse.json();
-      const match = recordsData?.data?.items?.find((item: any) => {
+      const match = items.find((item: any) => {
         return fieldToText(item.fields?.["Assigned Workout ID"]) ===
           String(assignedWorkoutId);
       });

@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { fetchAllBitableRecords } from "./_pagination.ts";
 
 function fieldToText(value: any): string {
   if (!value) return "";
@@ -70,18 +71,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const tokenData = await tokenResponse.json();
 
-    const recordsResponse = await fetch(
-      `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${process.env.FEISHU_CLIENTS_TABLE_ID}/records?page_size=100`,
-      {
-        headers: {
-          Authorization: `Bearer ${tokenData.tenant_access_token}`,
-        },
-      }
+    const clientItems = await fetchAllBitableRecords(
+      process.env.FEISHU_BASE_APP_TOKEN as string,
+      process.env.FEISHU_CLIENTS_TABLE_ID as string,
+      tokenData.tenant_access_token
     );
 
-    const recordsData = await recordsResponse.json();
-
-    const clients = recordsData.data.items.map((item: any) => {
+    const clients = clientItems.map((item: any) => {
       const fields = item.fields || {};
       const name = fieldToText(fields["Full Name"]) || "Unnamed Client";
       const clientCode = fieldToText(fields["Client ID"]);

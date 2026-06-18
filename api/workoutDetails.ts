@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { fetchAllBitableRecords } from "./_pagination.ts";
 
 function fieldToText(value: any): string {
   if (!value) return "";
@@ -122,37 +123,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
-    const [recordsResponse, libraryResponse] = await Promise.all([
-      fetch(
-        `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${process.env.FEISHU_WORKOUT_TEMPLATES_TABLE_ID}/records?page_size=500`,
-        {
-          headers: {
-            Authorization: `Bearer ${tokenData.tenant_access_token}`,
-          },
-        }
+    const [templateItems, libraryItems] = await Promise.all([
+      fetchAllBitableRecords(
+        process.env.FEISHU_BASE_APP_TOKEN as string,
+        process.env.FEISHU_WORKOUT_TEMPLATES_TABLE_ID as string,
+        tokenData.tenant_access_token
       ),
-      fetch(
-        `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${process.env.FEISHU_EXERCISE_LIBRARY_TABLE_ID}/records?page_size=500`,
-        {
-          headers: {
-            Authorization: `Bearer ${tokenData.tenant_access_token}`,
-          },
-        }
+      fetchAllBitableRecords(
+        process.env.FEISHU_BASE_APP_TOKEN as string,
+        process.env.FEISHU_EXERCISE_LIBRARY_TABLE_ID as string,
+        tokenData.tenant_access_token
       ),
     ]);
 
-    const data = await recordsResponse.json();
-    const libraryData = await libraryResponse.json();
-
-    if (!data?.data?.items) {
-      return res.status(500).json({
-        error: "Lark did not return workout template records",
-        larkResponse: data,
-      });
-    }
-
     const exerciseLibrary = new Map<string, Record<string, any>>();
-    (libraryData?.data?.items || []).forEach((item: any) => {
+    libraryItems.forEach((item: any) => {
       const fields = item.fields || {};
       const exerciseId = fieldToText(fields["Exercise ID"]);
       const exerciseName = fieldToText(fields["Exercise Name"]);
@@ -163,7 +148,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     });
 
-    const exercises = data.data.items
+    const exercises = templateItems
       .filter((item: any) => {
         const fields = item.fields || {};
 

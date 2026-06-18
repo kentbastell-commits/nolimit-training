@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { fetchAllBitableRecords } from "./_pagination.ts";
 
 function fieldToText(value: any): string {
   if (!value) return "";
@@ -64,17 +65,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method === "GET") {
       const { clientId } = req.query;
 
-      let url = `https://open.feishu.cn/open-apis/bitable/v1/apps/${appToken}/tables/${tableId}/records?page_size=100`;
-      if (clientId) {
-        url += `&filter=CurrentValue.[Client ID]="${clientId}"`;
-      }
+      const notifItems = await fetchAllBitableRecords(
+        appToken as string,
+        tableId as string,
+        token,
+        clientId
+          ? { filter: `CurrentValue.[Client ID]="${clientId}"` }
+          : {}
+      );
 
-      const r = await fetch(url, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await r.json();
-
-      const notifications = (data?.data?.items || []).map((item: any) => {
+      const notifications = notifItems.map((item: any) => {
         const f = item.fields || {};
         return {
           id: item.record_id,
