@@ -1292,6 +1292,26 @@ body {
   .app:not(.clientPortalApp) .sidebar:focus-within .navItem {
     justify-content: flex-start;
   }
+
+  /* Collapsed rail: drop the caret + count badge from the flow so every nav
+     icon centers identically (single- and multi-item groups alike). They
+     return when the rail expands on hover/focus. The attention dot is absolute,
+     so it stays. */
+  .app:not(.clientPortalApp) .navItem .badge,
+  .app:not(.clientPortalApp) .navGroupCaret {
+    display: none;
+  }
+
+  .app:not(.clientPortalApp) .sidebar:hover .navItem .badge,
+  .app:not(.clientPortalApp) .sidebar:focus-within .navItem .badge {
+    display: inline-flex;
+    opacity: 1;
+  }
+
+  .app:not(.clientPortalApp) .sidebar:hover .navGroupCaret,
+  .app:not(.clientPortalApp) .sidebar:focus-within .navGroupCaret {
+    display: block;
+  }
 }
 
 .brand {
@@ -11486,18 +11506,11 @@ button.coachReviewGlobalItem,
   color: #f6e7b0 !important;
 }
 
+/* The short-video button now renders a real Play icon (was a CSS triangle). */
 .libraryVideoButton {
-  font-size: 0 !important;
-}
-
-.libraryVideoButton::before {
-  content: "";
-  width: 0;
-  height: 0;
-  border-top: 7px solid transparent;
-  border-bottom: 7px solid transparent;
-  border-left: 11px solid currentColor;
-  transform: translateX(1px);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .app:not(.clientPortalApp) .exerciseTableRow .rowActions {

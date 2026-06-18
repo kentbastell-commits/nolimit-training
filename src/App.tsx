@@ -5,6 +5,7 @@ import {
   ClipboardList,
   Copy,
   Film,
+  UserCog,
   Clock3,
   Dumbbell,
   Eye,
@@ -7877,7 +7878,7 @@ function App() {
     {
       key: "business",
       label: canManageCoaches ? "Team" : "Business",
-      icon: canManageCoaches ? Users : ClipboardList,
+      icon: canManageCoaches ? UserCog : ClipboardList,
       items: [
         ...(canManageCoaches
           ? [
@@ -7885,7 +7886,7 @@ function App() {
                 name: "Coaches" as Page,
                 label: "Coaches",
                 count: allCoaches.length,
-                icon: Users,
+                icon: UserCog,
               },
             ]
           : []),
@@ -13531,7 +13532,7 @@ function App() {
                               exercise.exerciseName || "exercise"
                             }`}
                           >
-                            <span className="dumbbellGlyph" aria-hidden="true" />
+                            <ClipboardList size={18} aria-hidden="true" />
                           </button>
                         </span>
 
@@ -13549,7 +13550,7 @@ function App() {
                                 exercise.exerciseName || "exercise"
                               }`}
                             >
-                              🎥 Short
+                              <Play size={17} fill="currentColor" aria-hidden="true" />
                             </a>
                           ) : (
                             "--"
