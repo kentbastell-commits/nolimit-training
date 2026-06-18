@@ -10354,10 +10354,19 @@ function App() {
   const hasMasForZones = Number.isFinite(masKmhForZones);
   // Performance metrics + training zones, reused on the client home (no %)
   // and the coach client profile (with %MAS/%HRR).
-  const renderPerformanceMetrics = (showPercents: boolean) => (
+  const renderPerformanceMetrics = (showPercents: boolean) => {
+    // showPercents marks the coach view: always include the weekly-load cards
+    // there. The athlete portal only shows the ones relevant to that athlete.
+    const metricsToShow = [
+      ...clientPerformanceMetrics,
+      ...(showPercents || hasTrainingVolume ? [weeklyVolumeCard] : []),
+      ...(showPercents || hasRunningHistory ? [runWeekCard, runMonthCard] : []),
+    ];
+
+    return (
     <>
       <div className="homeFocusGrid performanceMetricGrid">
-        {clientPerformanceMetrics.map((metric) => (
+        {metricsToShow.map((metric) => (
           <div className="performanceMetricCard" key={metric.key}>
             <span>{metric.label}</span>
             <strong>{athleteMetricsLoading ? "..." : metric.value}</strong>
@@ -10417,7 +10426,8 @@ function App() {
         </div>
       )}
     </>
-  );
+    );
+  };
   // For a %MAS prescription, map to the nearest zone and return its Karvonen HR range.
   const resolvePrescribedHr = (rawPercentMas: string) => {
     if (!hasKarvonenHr) return { display: "", resolved: false };
@@ -10513,33 +10523,28 @@ function App() {
           : "Manual"
         : formatAthleteMetricMeta(latestMasMetric),
     },
-    ...(hasTrainingVolume
-      ? [
-          {
-            key: "volume-week",
-            label: paceZh ? "本周训练量" : "Volume This Week",
-            value: `${Math.round(volumeThisWeek).toLocaleString()} kg`,
-            meta: paceZh ? "重量 × 次数 · 周一至周日" : "weight × reps · Mon–Sun",
-          },
-        ]
-      : []),
-    ...(hasRunningHistory
-      ? [
-          {
-            key: "run-week",
-            label: paceZh ? "本周跑量" : "Run This Week",
-            value: `${runKmThisWeek.toFixed(1)} km`,
-            meta: paceZh ? "周一至周日" : "Mon–Sun",
-          },
-          {
-            key: "run-month",
-            label: paceZh ? "本月跑量" : "Run This Month",
-            value: `${runKmThisMonth.toFixed(1)} km`,
-            meta: paceZh ? "本日历月" : "This month",
-          },
-        ]
-      : []),
   ];
+  // Weekly-load cards (current calendar week). On the coach view these always
+  // show (0 when no training, so the coach can tell "no data" from "missing");
+  // on the athlete portal they appear only when that athlete has matching data.
+  const weeklyVolumeCard = {
+    key: "volume-week",
+    label: paceZh ? "本周训练量" : "Volume This Week",
+    value: `${Math.round(volumeThisWeek).toLocaleString()} kg`,
+    meta: paceZh ? "重量 × 次数 · 周一至周日" : "weight × reps · Mon–Sun",
+  };
+  const runWeekCard = {
+    key: "run-week",
+    label: paceZh ? "本周跑量" : "Run This Week",
+    value: `${runKmThisWeek.toFixed(1)} km`,
+    meta: paceZh ? "周一至周日" : "Mon–Sun",
+  };
+  const runMonthCard = {
+    key: "run-month",
+    label: paceZh ? "本月跑量" : "Run This Month",
+    value: `${runKmThisMonth.toFixed(1)} km`,
+    meta: paceZh ? "本日历月" : "This month",
+  };
   const completedWorkoutCount = workouts.filter(
     (workout) => normalizeTaskStatus(workout.completionStatus) === "Completed"
   ).length;
