@@ -1145,6 +1145,53 @@ function getSessionTypeClass(sessionType = "") {
   return "sessionTypeStrength";
 }
 
+// Color palette for calendar/builder workout tabs. Cardio is always soft
+// electric blue and questionnaires are purple; every other workout type gets a
+// stable color picked from this palette (no reds — red is reserved for the
+// "missed" status bar).
+const WORKOUT_COLOR_PALETTE = [
+  "wcol-teal",
+  "wcol-amber",
+  "wcol-violet",
+  "wcol-green",
+  "wcol-cyan",
+  "wcol-magenta",
+  "wcol-indigo",
+  "wcol-bronze",
+];
+
+function hashString(value: string) {
+  let hash = 0;
+  for (let i = 0; i < value.length; i += 1) {
+    hash = (hash * 31 + value.charCodeAt(i)) | 0;
+  }
+  return Math.abs(hash);
+}
+
+function getWorkoutColorClass(workoutName = "", sessionType = "") {
+  const haystack = `${workoutName} ${sessionType}`.toLowerCase();
+  if (
+    haystack.includes("cardio") ||
+    haystack.includes("conditioning") ||
+    haystack.includes("run") ||
+    haystack.includes("treadmill") ||
+    haystack.includes("erg") ||
+    haystack.includes("bike") ||
+    haystack.includes("row")
+  ) {
+    return "wcol-blue";
+  }
+  const key = (workoutName || sessionType || "").trim().toLowerCase();
+  if (!key) return "wcol-bronze";
+  return WORKOUT_COLOR_PALETTE[hashString(key) % WORKOUT_COLOR_PALETTE.length];
+}
+
+function getAssignmentColorClass(assignmentType = "") {
+  return assignmentType.toLowerCase().includes("test")
+    ? "wcol-amber"
+    : "wcol-purple";
+}
+
 function languagePreferenceToCode(language?: string) {
   const clean = String(language || "").toLowerCase();
 
@@ -15344,7 +15391,12 @@ function App() {
                         <span className="dragHandle" aria-hidden="true">
                           Drag
                         </span>
-                        <h3>
+                        <h3
+                          className={`builderSessionLabel ${getWorkoutColorClass(
+                            session.sessionName,
+                            session.sessionType
+                          )}`}
+                        >
                           {isSingleWorkoutBuilder
                             ? session.sessionName
                             : `Week ${session.week} / Day ${session.day}: ${session.sessionName}`}
@@ -18904,7 +18956,12 @@ function App() {
                                   workout.completionStatus,
                                   workout.scheduledDate
                                 )
-                              )} ${getSessionTypeClass(workout.sessionType)} ${
+                              )} ${getSessionTypeClass(
+                                workout.sessionType
+                              )} ${getWorkoutColorClass(
+                                workout.sessionName,
+                                workout.sessionType
+                              )} ${
                                 normalizeDate(String(workout.scheduledDate)) ===
                                   todayValue &&
                                 getDisplayTaskStatus(
@@ -19064,7 +19121,9 @@ function App() {
                                   ) === "Scheduled"
                                     ? "dueTodayCalendarItem"
                                     : ""
-                                } assignmentBlock ${
+                                } assignmentBlock ${getAssignmentColorClass(
+                                  assignment.assignmentType
+                                )} ${
                                   draggingAssignmentId === assignment.recordId
                                     ? "draggingWorkout"
                                     : ""

@@ -16856,7 +16856,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 }
 
 .performanceMetricCard {
-  background: #e8e6df !important;
+  background: #ffffff !important;
   border: 1px solid #dcd8cd !important;
   border-left: 4px solid #3a86ff !important;
   border-radius: 12px !important;
@@ -16901,11 +16901,11 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 9px;
+  gap: 8px;
   width: 100%;
-  max-width: 168px;
+  max-width: 196px;
   margin: 0 auto;
-  padding: 16px 16px 13px;
+  padding: 18px 18px 14px;
   box-sizing: border-box;
   background: #000000;
   border: 1px solid #2a2a2a;
@@ -16914,17 +16914,39 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 
 .brandWordmarkImg {
   width: 100%;
+  max-width: 150px;
   height: auto;
   display: block;
 }
 
+/* thin gold hairline between wordmark and tagline for a sealed, premium feel */
 .brandTagline {
+  position: relative;
+  margin-top: 2px;
+  padding-top: 9px;
   font-family: Georgia, "Times New Roman", serif;
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 600;
-  letter-spacing: 2.6px;
+  letter-spacing: 2px;
   text-transform: uppercase;
+  white-space: nowrap;
   color: #d4af37;
+}
+
+.brandTagline::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 44px;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    rgba(212, 175, 55, 0),
+    rgba(212, 175, 55, 0.65),
+    rgba(212, 175, 55, 0)
+  );
 }
 
 .brandCollapsedSeal {
@@ -16947,3 +16969,88 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
     display: block;
   }
 }
+
+/* ============================================================
+   Workout-type color coding
+   - Calendar tabs (coach + client): whole tab tinted by type.
+   - Left bar = STATUS: dark by default, red when missed.
+   - Cardio = soft electric blue, Questionnaire = purple.
+   ============================================================ */
+
+/* Calendar tab background tints by type (override the flat white tabs). */
+.app:not(.clientPortalApp) .calendarDay .workoutBlock.wcol-blue,
+.clientPortalApp .calendarDay .workoutBlock.wcol-blue {
+  background: color-mix(in srgb, #3a86ff 15%, #fff) !important;
+  border-color: color-mix(in srgb, #3a86ff 32%, #fff) !important;
+}
+.app:not(.clientPortalApp) .calendarDay .workoutBlock.wcol-purple,
+.clientPortalApp .calendarDay .workoutBlock.wcol-purple {
+  background: color-mix(in srgb, #7b3fbf 15%, #fff) !important;
+  border-color: color-mix(in srgb, #7b3fbf 32%, #fff) !important;
+}
+.app:not(.clientPortalApp) .calendarDay .workoutBlock.wcol-teal,
+.clientPortalApp .calendarDay .workoutBlock.wcol-teal {
+  background: color-mix(in srgb, #15897a 15%, #fff) !important;
+  border-color: color-mix(in srgb, #15897a 32%, #fff) !important;
+}
+.app:not(.clientPortalApp) .calendarDay .workoutBlock.wcol-amber,
+.clientPortalApp .calendarDay .workoutBlock.wcol-amber {
+  background: color-mix(in srgb, #c98a1a 16%, #fff) !important;
+  border-color: color-mix(in srgb, #c98a1a 34%, #fff) !important;
+}
+.app:not(.clientPortalApp) .calendarDay .workoutBlock.wcol-violet,
+.clientPortalApp .calendarDay .workoutBlock.wcol-violet {
+  background: color-mix(in srgb, #6a4bc9 15%, #fff) !important;
+  border-color: color-mix(in srgb, #6a4bc9 32%, #fff) !important;
+}
+.app:not(.clientPortalApp) .calendarDay .workoutBlock.wcol-green,
+.clientPortalApp .calendarDay .workoutBlock.wcol-green {
+  background: color-mix(in srgb, #2e8b3d 15%, #fff) !important;
+  border-color: color-mix(in srgb, #2e8b3d 32%, #fff) !important;
+}
+.app:not(.clientPortalApp) .calendarDay .workoutBlock.wcol-cyan,
+.clientPortalApp .calendarDay .workoutBlock.wcol-cyan {
+  background: color-mix(in srgb, #0f8a9a 15%, #fff) !important;
+  border-color: color-mix(in srgb, #0f8a9a 32%, #fff) !important;
+}
+.app:not(.clientPortalApp) .calendarDay .workoutBlock.wcol-magenta,
+.clientPortalApp .calendarDay .workoutBlock.wcol-magenta {
+  background: color-mix(in srgb, #b02f9e 15%, #fff) !important;
+  border-color: color-mix(in srgb, #b02f9e 32%, #fff) !important;
+}
+.app:not(.clientPortalApp) .calendarDay .workoutBlock.wcol-indigo,
+.clientPortalApp .calendarDay .workoutBlock.wcol-indigo {
+  background: color-mix(in srgb, #3f5bd9 15%, #fff) !important;
+  border-color: color-mix(in srgb, #3f5bd9 32%, #fff) !important;
+}
+.app:not(.clientPortalApp) .calendarDay .workoutBlock.wcol-bronze,
+.clientPortalApp .calendarDay .workoutBlock.wcol-bronze {
+  background: color-mix(in srgb, #8a5a2b 15%, #fff) !important;
+  border-color: color-mix(in srgb, #8a5a2b 32%, #fff) !important;
+}
+
+/* Left status bar: dark by default, red when the task was missed. Overrides
+   the older session-type bars and the portal inset-shadow bars. */
+.app:not(.clientPortalApp) .calendarDay .workoutBlock,
+.clientPortalApp .calendarDay .workoutBlock {
+  border-left: 5px solid #1a1a1a !important;
+}
+.clientPortalApp .calendarDay .workoutBlock:not(.dueTodayCalendarItem) {
+  box-shadow: none !important;
+}
+.app:not(.clientPortalApp) .calendarDay .workoutBlock.missedWorkout,
+.clientPortalApp .calendarDay .workoutBlock.missedWorkout {
+  border-left-color: #c0392b !important;
+}
+
+/* Program builder: only the session LABEL takes the type color (no tab tint). */
+.builderSessionLabel.wcol-blue { color: #2f6fd0 !important; }
+.builderSessionLabel.wcol-purple { color: #6a2f9e !important; }
+.builderSessionLabel.wcol-teal { color: #0f7468 !important; }
+.builderSessionLabel.wcol-amber { color: #a06a10 !important; }
+.builderSessionLabel.wcol-violet { color: #5538a8 !important; }
+.builderSessionLabel.wcol-green { color: #237a30 !important; }
+.builderSessionLabel.wcol-cyan { color: #0c7382 !important; }
+.builderSessionLabel.wcol-magenta { color: #97287f !important; }
+.builderSessionLabel.wcol-indigo { color: #2f46b0 !important; }
+.builderSessionLabel.wcol-bronze { color: #74471f !important; }
