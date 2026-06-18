@@ -11671,20 +11671,13 @@ function App() {
     >
       <aside className="sidebar">
         <div className="brand">
-          <div className="brandWordmark brandLogoLockup">
+          <div className="brandSeal">
             <img
-              src="/nl_wordmark_clean.png"
-              alt="NO LIMIT"
-              className="brandWordmarkImage"
-            />
-            <img
-              src="/nl_monogram_clean.png"
-              alt=""
-              aria-hidden="true"
-              className="brandCollapsedMonogram"
+              src="/nl_seal.png"
+              alt="NoLimit — Built for Training"
+              className="brandSealImg"
             />
           </div>
-          <div className="brandTagline">BUILT FOR TRAINING.</div>
         </div>
 
         <nav>

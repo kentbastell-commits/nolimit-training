@@ -16823,3 +16823,25 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 .overviewGrid > .profileCard:nth-of-type(2) .profileMetricsHeader { background: #e3ded2 !important; }
 .overviewGrid > .profileCard:nth-of-type(3) .profileMetricsHeader { background: #cfc8ba !important; }
 .overviewGrid > .profileCard:nth-of-type(4) .profileMetricsHeader { background: #ddd8ce !important; }
+
+/* Sidebar brand: NoLimit seal on a black circle (matches the monogram avatars) */
+.brandSeal {
+  width: 100%;
+  max-width: 132px;
+  aspect-ratio: 1 / 1;
+  margin: 0 auto;
+  background: #0d0d0d;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  box-sizing: border-box;
+}
+
+.brandSealImg {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
