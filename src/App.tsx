@@ -10481,6 +10481,19 @@ function App() {
   const runKmThisMonth = sumRunningKm(startOfThisMonth);
   const hasRunningHistory = runningHistoryLogs.length > 0;
 
+  // Weekly strength training volume = Σ(actual weight × actual reps) for sets
+  // logged since the start of this calendar week.
+  const sumTrainingVolume = (since: Date) =>
+    workoutHistoryLogs.reduce((acc, log) => {
+      const dt = new Date(`${normalizeDate(log.date)}T00:00:00`);
+      if (dt < since) return acc;
+      const weight = Number(log.actualWeight) || 0;
+      const reps = Number(log.actualReps) || 0;
+      return acc + weight * reps;
+    }, 0);
+  const volumeThisWeek = sumTrainingVolume(startOfThisWeek);
+  const hasTrainingVolume = volumeThisWeek > 0;
+
   const clientPerformanceMetrics = [
     {
       key: "estimated-one-rep-max",
@@ -10500,6 +10513,16 @@ function App() {
           : "Manual"
         : formatAthleteMetricMeta(latestMasMetric),
     },
+    ...(hasTrainingVolume
+      ? [
+          {
+            key: "volume-week",
+            label: paceZh ? "本周训练量" : "Volume This Week",
+            value: `${Math.round(volumeThisWeek).toLocaleString()} kg`,
+            meta: paceZh ? "重量 × 次数 · 周一至周日" : "weight × reps · Mon–Sun",
+          },
+        ]
+      : []),
     ...(hasRunningHistory
       ? [
           {
