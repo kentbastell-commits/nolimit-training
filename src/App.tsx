@@ -639,6 +639,15 @@ function toYoutubeEmbed(url: string): string {
   return match ? `https://www.youtube.com/embed/${match[1]}` : "";
 }
 
+// Derive a thumbnail image URL from a video link (currently YouTube). Returns
+// "" when none can be derived, so callers fall back to initials.
+function videoThumbnail(url: string): string {
+  const match = String(url || "").match(
+    /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{6,})/
+  );
+  return match ? `https://img.youtube.com/vi/${match[1]}/mqdefault.jpg` : "";
+}
+
 const MOVEMENT_PATTERN_OPTIONS = [
   "Lower Body Squat",
   "Lower Body Hinge",
@@ -13488,11 +13497,20 @@ function App() {
                         }}
                       >
                         <div className="clientName">
-                          <div className="clientAvatar">
-                            {exercise.exerciseName
-                              ? exercise.exerciseName.slice(0, 2).toUpperCase()
-                              : "EX"}
-                          </div>
+                          {(() => {
+                            const thumb = videoThumbnail(exercise.videoUrl || "");
+                            return thumb ? (
+                              <div className="clientAvatar exerciseThumbAvatar">
+                                <img src={thumb} alt="" loading="lazy" />
+                              </div>
+                            ) : (
+                              <div className="clientAvatar">
+                                {exercise.exerciseName
+                                  ? exercise.exerciseName.slice(0, 2).toUpperCase()
+                                  : "EX"}
+                              </div>
+                            );
+                          })()}
                           <div>
                             <strong>
                               {exercise.exerciseName || "Unnamed Exercise"}
@@ -13500,7 +13518,9 @@ function App() {
                           </div>
                         </div>
 
-                        <span>{exercise.category || "--"}</span>
+                        <span className="exerciseCategoryCell">
+                          {exercise.category || "--"}
+                        </span>
 
                         <span className="iconCell">
                           <button

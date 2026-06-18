@@ -5615,7 +5615,14 @@ button.coachReviewGlobalItem,
 }
 
 .toggleField {
-  justify-content: space-between;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+}
+
+.toggleField span {
+  flex: 0 0 auto;
 }
 
 .toggleField input {
@@ -11411,6 +11418,41 @@ button.coachReviewGlobalItem,
 .app:not(.clientPortalApp) .exerciseTableRow > span {
   color: #605a50 !important;
   font-weight: 750;
+}
+
+/* Punchier list: gold headers, exercise names, and a gold category pill. */
+.app:not(.clientPortalApp) .exerciseTableHeader {
+  color: #9a7613 !important;
+}
+
+.app:not(.clientPortalApp) .exerciseTableRow .clientName strong {
+  color: #1a1712 !important;
+  font-weight: 850;
+}
+
+.app:not(.clientPortalApp) .exerciseTableRow .exerciseCategoryCell {
+  align-self: center;
+  width: fit-content;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgba(212, 175, 55, 0.2);
+  color: #7a5d0a !important;
+  font-weight: 800;
+  font-size: 12.5px;
+  letter-spacing: 0.2px;
+}
+
+/* Video-derived thumbnail in place of initials. */
+.exerciseThumbAvatar {
+  padding: 0 !important;
+  overflow: hidden;
+}
+
+.exerciseThumbAvatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .app:not(.clientPortalApp) .cueIconButton,
