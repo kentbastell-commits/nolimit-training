@@ -1145,31 +1145,12 @@ function getSessionTypeClass(sessionType = "") {
   return "sessionTypeStrength";
 }
 
-// Color palette for calendar/builder workout tabs. Cardio is always soft
-// electric blue and questionnaires are purple; every other workout type gets a
-// stable color picked from this palette (no reds — red is reserved for the
-// "missed" status bar).
-const WORKOUT_COLOR_PALETTE = [
-  "wcol-teal",
-  "wcol-amber",
-  "wcol-violet",
-  "wcol-green",
-  "wcol-cyan",
-  "wcol-magenta",
-  "wcol-indigo",
-  "wcol-bronze",
-];
-
-function hashString(value: string) {
-  let hash = 0;
-  for (let i = 0; i < value.length; i += 1) {
-    hash = (hash * 31 + value.charCodeAt(i)) | 0;
-  }
-  return Math.abs(hash);
-}
-
+// Color coding by TASK TYPE (not per session). Strength/power work shares one
+// light-gunmetal color; cardio = electric blue; tests = red; mobility/skill get
+// their own hues; questionnaires = purple.
 function getWorkoutColorClass(workoutName = "", sessionType = "") {
   const haystack = `${workoutName} ${sessionType}`.toLowerCase();
+  if (haystack.includes("test")) return "wcol-test";
   if (
     haystack.includes("cardio") ||
     haystack.includes("conditioning") ||
@@ -1177,18 +1158,34 @@ function getWorkoutColorClass(workoutName = "", sessionType = "") {
     haystack.includes("treadmill") ||
     haystack.includes("erg") ||
     haystack.includes("bike") ||
-    haystack.includes("row")
+    haystack.includes("row") ||
+    haystack.includes("interval")
   ) {
-    return "wcol-blue";
+    return "wcol-cardio";
   }
-  const key = (workoutName || sessionType || "").trim().toLowerCase();
-  if (!key) return "wcol-bronze";
-  return WORKOUT_COLOR_PALETTE[hashString(key) % WORKOUT_COLOR_PALETTE.length];
+  if (
+    haystack.includes("mobility") ||
+    haystack.includes("recovery") ||
+    haystack.includes("stretch") ||
+    haystack.includes("yoga") ||
+    haystack.includes("flexibility")
+  ) {
+    return "wcol-mobility";
+  }
+  if (
+    haystack.includes("skill") ||
+    haystack.includes("climb") ||
+    haystack.includes("technique")
+  ) {
+    return "wcol-skill";
+  }
+  // Push, Pull, Power + Core, Full Body, etc. — all strength/power.
+  return "wcol-strength";
 }
 
 function getAssignmentColorClass(assignmentType = "") {
   return assignmentType.toLowerCase().includes("test")
-    ? "wcol-amber"
+    ? "wcol-test"
     : "wcol-purple";
 }
 
@@ -19219,7 +19216,15 @@ function App() {
                         <>
                         {selectedCalendarDateWorkouts.map((workout) => (
                           <button
-                            className={`selectedDayWorkout draggableSelectedDayWorkout ${
+                            className={`selectedDayWorkout draggableSelectedDayWorkout ${getStatusClass(
+                              getDisplayTaskStatus(
+                                workout.completionStatus,
+                                workout.scheduledDate
+                              )
+                            )} ${getWorkoutColorClass(
+                              workout.sessionName,
+                              workout.sessionType
+                            )} ${
                               draggingWorkoutId === workout.id
                                 ? "draggingWorkout"
                                 : ""
@@ -19287,7 +19292,14 @@ function App() {
                         ))}
                         {selectedCalendarDateAssignments.map((assignment) => (
                           <button
-                            className="selectedDayWorkout selectedDayAssignment"
+                            className={`selectedDayWorkout selectedDayAssignment ${getStatusClass(
+                              getDisplayTaskStatus(
+                                assignment.status,
+                                assignment.dueDate || assignment.assignedDate
+                              )
+                            )} ${getAssignmentColorClass(
+                              assignment.assignmentType
+                            )}`}
                             key={assignment.recordId}
                             onClick={() => handleOpenContentAssignment(assignment)}
                           >
@@ -19461,7 +19473,15 @@ function App() {
                           <>
                           {selectedCalendarDateWorkouts.map((workout) => (
                             <button
-                              className={`selectedDayWorkout draggableSelectedDayWorkout ${
+                              className={`selectedDayWorkout draggableSelectedDayWorkout ${getStatusClass(
+                              getDisplayTaskStatus(
+                                workout.completionStatus,
+                                workout.scheduledDate
+                              )
+                            )} ${getWorkoutColorClass(
+                              workout.sessionName,
+                              workout.sessionType
+                            )} ${
                                 draggingWorkoutId === workout.id
                                   ? "draggingWorkout"
                                   : ""
@@ -19546,7 +19566,14 @@ function App() {
                           ))}
                           {selectedCalendarDateAssignments.map((assignment) => (
                             <button
-                              className="selectedDayWorkout selectedDayAssignment"
+                              className={`selectedDayWorkout selectedDayAssignment ${getStatusClass(
+                              getDisplayTaskStatus(
+                                assignment.status,
+                                assignment.dueDate || assignment.assignedDate
+                              )
+                            )} ${getAssignmentColorClass(
+                              assignment.assignmentType
+                            )}`}
                               key={assignment.recordId}
                               onClick={() => handleOpenContentAssignment(assignment)}
                             >
@@ -19734,7 +19761,14 @@ function App() {
                             ))}
                             {selectedCalendarDateAssignments.map((assignment) => (
                               <button
-                                className="selectedDayWorkout selectedDayAssignment"
+                                className={`selectedDayWorkout selectedDayAssignment ${getStatusClass(
+                              getDisplayTaskStatus(
+                                assignment.status,
+                                assignment.dueDate || assignment.assignedDate
+                              )
+                            )} ${getAssignmentColorClass(
+                              assignment.assignmentType
+                            )}`}
                                 key={assignment.recordId}
                                 onClick={() => handleOpenContentAssignment(assignment)}
                               >

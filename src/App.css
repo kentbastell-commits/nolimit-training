@@ -16991,80 +16991,66 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   color: #5c5c5c !important;
 }
 
-/* Calendar tab background tints by type (override the flat white tabs). */
-.app:not(.clientPortalApp) .calendarDay .workoutBlock.wcol-blue,
-.clientPortalApp .calendarDay .workoutBlock.wcol-blue {
+/* Tab background tint BY TASK TYPE — same selectors cover the grid calendar
+   tabs (.calendarDay .workoutBlock) and the day-detail cards in the other
+   views (.selectedDayWorkout). */
+.app:not(.clientPortalApp) .calendarDay .workoutBlock.wcol-strength,
+.clientPortalApp .calendarDay .workoutBlock.wcol-strength,
+.selectedDayWorkout.wcol-strength {
+  background: color-mix(in srgb, #5b6770 20%, #fff) !important;
+  border-color: color-mix(in srgb, #5b6770 38%, #fff) !important;
+}
+.app:not(.clientPortalApp) .calendarDay .workoutBlock.wcol-cardio,
+.clientPortalApp .calendarDay .workoutBlock.wcol-cardio,
+.selectedDayWorkout.wcol-cardio {
   background: color-mix(in srgb, #3a86ff 15%, #fff) !important;
   border-color: color-mix(in srgb, #3a86ff 32%, #fff) !important;
 }
-.app:not(.clientPortalApp) .calendarDay .workoutBlock.wcol-purple,
-.clientPortalApp .calendarDay .workoutBlock.wcol-purple {
-  background: color-mix(in srgb, #7b3fbf 15%, #fff) !important;
-  border-color: color-mix(in srgb, #7b3fbf 32%, #fff) !important;
-}
-.app:not(.clientPortalApp) .calendarDay .workoutBlock.wcol-teal,
-.clientPortalApp .calendarDay .workoutBlock.wcol-teal {
+.app:not(.clientPortalApp) .calendarDay .workoutBlock.wcol-mobility,
+.clientPortalApp .calendarDay .workoutBlock.wcol-mobility,
+.selectedDayWorkout.wcol-mobility {
   background: color-mix(in srgb, #15897a 15%, #fff) !important;
   border-color: color-mix(in srgb, #15897a 32%, #fff) !important;
 }
-.app:not(.clientPortalApp) .calendarDay .workoutBlock.wcol-amber,
-.clientPortalApp .calendarDay .workoutBlock.wcol-amber {
-  background: color-mix(in srgb, #c98a1a 16%, #fff) !important;
-  border-color: color-mix(in srgb, #c98a1a 34%, #fff) !important;
-}
-.app:not(.clientPortalApp) .calendarDay .workoutBlock.wcol-violet,
-.clientPortalApp .calendarDay .workoutBlock.wcol-violet {
+.app:not(.clientPortalApp) .calendarDay .workoutBlock.wcol-skill,
+.clientPortalApp .calendarDay .workoutBlock.wcol-skill,
+.selectedDayWorkout.wcol-skill {
   background: color-mix(in srgb, #6a4bc9 15%, #fff) !important;
   border-color: color-mix(in srgb, #6a4bc9 32%, #fff) !important;
 }
-.app:not(.clientPortalApp) .calendarDay .workoutBlock.wcol-green,
-.clientPortalApp .calendarDay .workoutBlock.wcol-green {
-  background: color-mix(in srgb, #2e8b3d 15%, #fff) !important;
-  border-color: color-mix(in srgb, #2e8b3d 32%, #fff) !important;
+.app:not(.clientPortalApp) .calendarDay .workoutBlock.wcol-test,
+.clientPortalApp .calendarDay .workoutBlock.wcol-test,
+.selectedDayWorkout.wcol-test {
+  background: color-mix(in srgb, #d64545 16%, #fff) !important;
+  border-color: color-mix(in srgb, #d64545 34%, #fff) !important;
 }
-.app:not(.clientPortalApp) .calendarDay .workoutBlock.wcol-cyan,
-.clientPortalApp .calendarDay .workoutBlock.wcol-cyan {
-  background: color-mix(in srgb, #0f8a9a 15%, #fff) !important;
-  border-color: color-mix(in srgb, #0f8a9a 32%, #fff) !important;
-}
-.app:not(.clientPortalApp) .calendarDay .workoutBlock.wcol-magenta,
-.clientPortalApp .calendarDay .workoutBlock.wcol-magenta {
-  background: color-mix(in srgb, #b02f9e 15%, #fff) !important;
-  border-color: color-mix(in srgb, #b02f9e 32%, #fff) !important;
-}
-.app:not(.clientPortalApp) .calendarDay .workoutBlock.wcol-indigo,
-.clientPortalApp .calendarDay .workoutBlock.wcol-indigo {
-  background: color-mix(in srgb, #3f5bd9 15%, #fff) !important;
-  border-color: color-mix(in srgb, #3f5bd9 32%, #fff) !important;
-}
-.app:not(.clientPortalApp) .calendarDay .workoutBlock.wcol-bronze,
-.clientPortalApp .calendarDay .workoutBlock.wcol-bronze {
-  background: color-mix(in srgb, #8a5a2b 15%, #fff) !important;
-  border-color: color-mix(in srgb, #8a5a2b 32%, #fff) !important;
+.app:not(.clientPortalApp) .calendarDay .workoutBlock.wcol-purple,
+.clientPortalApp .calendarDay .workoutBlock.wcol-purple,
+.selectedDayWorkout.wcol-purple {
+  background: color-mix(in srgb, #7b3fbf 15%, #fff) !important;
+  border-color: color-mix(in srgb, #7b3fbf 32%, #fff) !important;
 }
 
 /* Left status bar: dark by default, red when the task was missed. Overrides
    the older session-type bars and the portal inset-shadow bars. */
 .app:not(.clientPortalApp) .calendarDay .workoutBlock,
-.clientPortalApp .calendarDay .workoutBlock {
+.clientPortalApp .calendarDay .workoutBlock,
+.selectedDayWorkout {
   border-left: 5px solid #1a1a1a !important;
 }
 .clientPortalApp .calendarDay .workoutBlock:not(.dueTodayCalendarItem) {
   box-shadow: none !important;
 }
 .app:not(.clientPortalApp) .calendarDay .workoutBlock.missedWorkout,
-.clientPortalApp .calendarDay .workoutBlock.missedWorkout {
+.clientPortalApp .calendarDay .workoutBlock.missedWorkout,
+.selectedDayWorkout.missedWorkout {
   border-left-color: #c0392b !important;
 }
 
 /* Program builder: only the session LABEL takes the type color (no tab tint). */
-.builderSessionLabel.wcol-blue { color: #2f6fd0 !important; }
+.builderSessionLabel.wcol-strength { color: #46535c !important; }
+.builderSessionLabel.wcol-cardio { color: #2f6fd0 !important; }
+.builderSessionLabel.wcol-mobility { color: #0f7468 !important; }
+.builderSessionLabel.wcol-skill { color: #5538a8 !important; }
+.builderSessionLabel.wcol-test { color: #b3261e !important; }
 .builderSessionLabel.wcol-purple { color: #6a2f9e !important; }
-.builderSessionLabel.wcol-teal { color: #0f7468 !important; }
-.builderSessionLabel.wcol-amber { color: #a06a10 !important; }
-.builderSessionLabel.wcol-violet { color: #5538a8 !important; }
-.builderSessionLabel.wcol-green { color: #237a30 !important; }
-.builderSessionLabel.wcol-cyan { color: #0c7382 !important; }
-.builderSessionLabel.wcol-magenta { color: #97287f !important; }
-.builderSessionLabel.wcol-indigo { color: #2f46b0 !important; }
-.builderSessionLabel.wcol-bronze { color: #74471f !important; }
