@@ -16817,3 +16817,9 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 .app:not(.clientPortalApp) .clientTableRow:hover {
   background: #ece8df !important;
 }
+
+/* TEST: light-neutral candidates on each Overview section header for comparison */
+.overviewGrid > .profileCard:nth-of-type(1) .profileMetricsHeader { background: #d8d2c4 !important; }
+.overviewGrid > .profileCard:nth-of-type(2) .profileMetricsHeader { background: #e3ded2 !important; }
+.overviewGrid > .profileCard:nth-of-type(3) .profileMetricsHeader { background: #cfc8ba !important; }
+.overviewGrid > .profileCard:nth-of-type(4) .profileMetricsHeader { background: #ddd8ce !important; }
