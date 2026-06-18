@@ -26,6 +26,22 @@ function fieldToText(value: any): string {
   return JSON.stringify(value);
 }
 
+// Linked record ids out of a Bitable link field (so a "Client ID" link can be
+// matched by the client's record id, not just its resolved display text).
+function extractRecordIds(value: any): string[] {
+  if (!value) return [];
+  const out: string[] = [];
+  const pushFrom = (o: any) => {
+    if (!o || typeof o !== "object") return;
+    if (Array.isArray(o.record_ids)) out.push(...o.record_ids);
+    if (Array.isArray(o.link_record_ids)) out.push(...o.link_record_ids);
+    if (typeof o.record_id === "string") out.push(o.record_id);
+  };
+  if (Array.isArray(value)) value.forEach(pushFrom);
+  else pushFrom(value);
+  return out;
+}
+
 function normalizeDate(value: any) {
   const text = fieldToText(value);
 
@@ -104,6 +120,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return {
           recordId: item.record_id,
           clientId: fieldToText(fields["Client ID"]),
+          clientRecordIds: extractRecordIds(fields["Client ID"]),
           exerciseName: fieldToText(fields["Exercise Name"]),
           date: normalizeDate(fields["Date"]),
           setNumber: fieldToText(fields["Set Number"]),
@@ -115,7 +132,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         };
       })
       .filter((log: any) => {
-        const matchesClient = !clientId || log.clientId.includes(clientId);
+        const matchesClient =
+          !clientId ||
+          log.clientId.includes(clientId) ||
+          log.clientRecordIds.includes(clientId);
         const matchesExercise =
           !exerciseNameFilter ||
           log.exerciseName.toLowerCase().includes(exerciseNameFilter);
