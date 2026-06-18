@@ -305,10 +305,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .map((item: any) => {
           const fields = item.fields || {};
 
+          const clientField = fields[fClient];
+          const clientRecordIds = Array.isArray(clientField)
+            ? clientField.flatMap(
+                (x: any) => x?.record_ids || x?.link_record_ids || []
+              )
+            : [];
+
           return {
             recordId: item.record_id,
             resultId: fieldToText(fields[fId]),
-            clientId: fieldToText(fields[fClient]),
+            clientId: fieldToText(clientField),
+            clientRecordIds,
             exerciseId: fieldToText(fields[fExercise]),
             exerciseName: fieldToText(fields[fName]),
             workoutId: fieldToText(fields[fWorkout]),
@@ -320,7 +328,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           };
         })
         .filter((result: any) => {
-          const matchesClient = !clientId || result.clientId.includes(clientId);
+          const matchesClient =
+            !clientId ||
+            result.clientId.includes(clientId) ||
+            result.clientRecordIds.includes(clientId);
           const matchesExercise =
             !exerciseNameFilter ||
             result.exerciseName.toLowerCase().includes(exerciseNameFilter);

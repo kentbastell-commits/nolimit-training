@@ -564,6 +564,22 @@ type AthleteMetric = {
   notes: string;
 };
 
+// Per-exercise PR/summary row from the Exercise Results table (one per exercise
+// per logged workout): best weight + reps, estimated 1RM, and total volume.
+type ExerciseResult = {
+  recordId: string;
+  resultId: string;
+  clientId: string;
+  exerciseId: string;
+  exerciseName: string;
+  workoutId: string;
+  date: string;
+  bestReps: string;
+  bestWeight: string;
+  estimatedOneRepMax: string;
+  volume: string;
+};
+
 type ContentResponseGroup = {
   key: string;
   responseType: string;
@@ -1351,6 +1367,15 @@ function App() {
   const [contentResponsesLoading, setContentResponsesLoading] = useState(false);
   const [athleteMetrics, setAthleteMetrics] = useState<AthleteMetric[]>([]);
   const [athleteMetricsLoading, setAthleteMetricsLoading] = useState(false);
+  const [exerciseResults, setExerciseResults] = useState<ExerciseResult[]>([]);
+  // Coach Overview: which PR metric drives the leaderboard ordering.
+  const [prMetric, setPrMetric] = useState<"weight" | "e1rm" | "volume">("e1rm");
+  // Coach Dashboard: filter for the Recent Submissions list.
+  const [submissionFilter, setSubmissionFilter] = useState<
+    "all" | "workouts" | "questionnaires" | "tests" | "reviewed"
+  >("all");
+  // Coach Overview: collapse the long account/profile detail list by default.
+  const [overviewDetailsOpen, setOverviewDetailsOpen] = useState(false);
   const [workoutComments, setWorkoutComments] = useState<WorkoutComment[]>([]);
   const [reviewingWorkoutCommentKey, setReviewingWorkoutCommentKey] = useState("");
   const [selectedContentSubmission, setSelectedContentSubmission] =
@@ -2499,6 +2524,11 @@ function App() {
       .then((res) => res.json())
       .then((data) => setWorkoutHistoryLogs(data.logs || []))
       .catch(() => setWorkoutHistoryLogs([]));
+
+    fetch(`/api/exerciseResults?clientId=${selectedClient.id}`)
+      .then((res) => res.json())
+      .then((data) => setExerciseResults(data.results || []))
+      .catch(() => setExerciseResults([]));
 
     if (isClientPortal && libraryExercises.length === 0) {
       loadExerciseLibrary();
@@ -10623,6 +10653,204 @@ function App() {
   );
   const progressUnit = progressHistoryPoints.find((point) => point.unit)?.unit || "";
 
+  // Personal-records leaderboard for the coach Overview: best lift per exercise,
+  // ranked by the selected metric (heaviest weight / estimated 1RM / volume).
+  const prLeaderboard = (() => {
+    const byExercise = new Map<
+      string,
+      {
+        exerciseName: string;
+        bestWeight: number;
+        bestWeightReps: number;
+        bestE1rm: number;
+        bestVolume: number;
+        latestDate: string;
+      }
+    >();
+
+    for (const result of exerciseResults) {
+      const name = result.exerciseName;
+      if (!name) continue;
+
+      const weight = Number(result.bestWeight) || 0;
+      const reps = Number(result.bestReps) || 0;
+      const e1rm = Number(result.estimatedOneRepMax) || 0;
+      const volume = Number(result.volume) || 0;
+      const current = byExercise.get(name) || {
+        exerciseName: name,
+        bestWeight: 0,
+        bestWeightReps: 0,
+        bestE1rm: 0,
+        bestVolume: 0,
+        latestDate: "",
+      };
+
+      if (weight > current.bestWeight) {
+        current.bestWeight = weight;
+        current.bestWeightReps = reps;
+      }
+      if (e1rm > current.bestE1rm) current.bestE1rm = e1rm;
+      if (volume > current.bestVolume) current.bestVolume = volume;
+      if (result.date > current.latestDate) current.latestDate = result.date;
+
+      byExercise.set(name, current);
+    }
+
+    const metricValue = (row: { bestWeight: number; bestE1rm: number; bestVolume: number }) =>
+      prMetric === "weight"
+        ? row.bestWeight
+        : prMetric === "volume"
+        ? row.bestVolume
+        : row.bestE1rm;
+
+    return Array.from(byExercise.values())
+      .filter((row) => metricValue(row) > 0)
+      .sort((a, b) => metricValue(b) - metricValue(a));
+  })();
+
+  // Exercise-history controls + progress chart, shared by the athlete Home and
+  // the coach Overview's Personal Records card.
+  const renderExerciseHistoryBody = () => (
+    <>
+      <div className="progressControls">
+        <input
+          value={progressSearch}
+          onChange={(e) => setProgressSearch(e.target.value)}
+          placeholder={t("searchExercise")}
+        />
+        <select
+          value={selectedProgressName}
+          onChange={(e) => setSelectedProgressExercise(e.target.value)}
+        >
+          {visibleProgressExerciseOptions.length > 0 ? (
+            visibleProgressExerciseOptions.map((name) => (
+              <option key={name} value={name}>
+                {getLocalizedProgressExerciseName(name)}
+              </option>
+            ))
+          ) : (
+            <option value="">{t("noExerciseHistory")}</option>
+          )}
+        </select>
+      </div>
+
+      <div className="progressChartCard" aria-label="Exercise progress chart">
+        {progressHistoryPoints.length > 0 ? (
+          <>
+            <div className="progressChartSummary">
+              <div>
+                <span>{t("best")}</span>
+                <strong>
+                  {progressMaxValue}
+                  {progressUnit && ` ${progressUnit}`}
+                </strong>
+              </div>
+              <div>
+                <span>{t("latest")}</span>
+                <strong>
+                  {progressHistoryPoints[progressHistoryPoints.length - 1]?.value ||
+                    "--"}
+                  {progressUnit && ` ${progressUnit}`}
+                </strong>
+              </div>
+            </div>
+
+            <Suspense fallback={<div className="chartLoading">{t("loading")}</div>}>
+              <ProgressChart
+                points={progressHistoryPoints}
+                locale={clientLocale}
+                unit={progressUnit}
+              />
+            </Suspense>
+          </>
+        ) : (
+          <p className="homeEmptyText">{t("noExerciseHistory")}</p>
+        )}
+      </div>
+    </>
+  );
+
+  // PR leaderboard + the progress chart, for the coach Overview's capacity view.
+  const renderPersonalRecords = () => (
+    <>
+      <div className="prLeaderboardControls">
+        <div className="prMetricToggle" role="group" aria-label="PR metric">
+          {([
+            ["e1rm", paceZh ? "预估1RM" : "Est 1RM"],
+            ["weight", paceZh ? "最大重量" : "Best Weight"],
+            ["volume", paceZh ? "总容量" : "Volume"],
+          ] as const).map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              className={prMetric === key ? "active" : ""}
+              onClick={() => setPrMetric(key)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {prLeaderboard.length > 0 ? (
+        <div className="prLeaderboard">
+          {prLeaderboard.slice(0, 8).map((row, index) => {
+            const value =
+              prMetric === "weight"
+                ? `${row.bestWeight} kg`
+                : prMetric === "volume"
+                ? `${Math.round(row.bestVolume)}`
+                : `${row.bestE1rm} kg`;
+            const sub =
+              prMetric === "weight"
+                ? `× ${row.bestWeightReps} ${paceZh ? "次" : "reps"}`
+                : prMetric === "volume"
+                ? paceZh
+                  ? "总容量"
+                  : "total volume"
+                : paceZh
+                ? `预估 1RM`
+                : "estimated 1RM";
+            const isActive =
+              selectedProgressName.toLowerCase() === row.exerciseName.toLowerCase();
+
+            return (
+              <button
+                type="button"
+                key={row.exerciseName}
+                className={`prLeaderboardRow${isActive ? " active" : ""}`}
+                onClick={() => setSelectedProgressExercise(row.exerciseName)}
+              >
+                <span className="prRank">{index + 1}</span>
+                <span className="prName">
+                  {getLocalizedProgressExerciseName(row.exerciseName)}
+                </span>
+                <span className="prValue">
+                  <strong>{value}</strong>
+                  <small>{sub}</small>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      ) : (
+        <p className="homeEmptyText">
+          {paceZh
+            ? "暂无个人记录，完成训练后将显示。"
+            : "No personal records yet — they appear once workouts are logged."}
+        </p>
+      )}
+
+      <div className="prChartDivider">
+        <span>
+          {getLocalizedProgressExerciseName(selectedProgressName) ||
+            (paceZh ? "动作趋势" : "Exercise trend")}
+        </span>
+      </div>
+      {renderExerciseHistoryBody()}
+    </>
+  );
+
   const openWorkoutExerciseFromGlance = (index: number) => {
     if (isClientPortal) {
       setWorkoutLoggingStarted(true);
@@ -16621,83 +16849,24 @@ function App() {
                     </section>
                   )}
 
-                  <section className="clientHomePanel progressHomePanel">
-                    <div className="clientHomePanelHeader">
-                      <div>
-                        <span>{t("progress")}</span>
-                        <h2>{t("exerciseHistory")}</h2>
+                  {isClientPortal && (
+                    <section className="clientHomePanel progressHomePanel">
+                      <div className="clientHomePanelHeader">
+                        <div>
+                          <span>{t("progress")}</span>
+                          <h2>{t("exerciseHistory")}</h2>
+                        </div>
                       </div>
-                    </div>
-
-                    <div className="progressControls">
-                      <input
-                        value={progressSearch}
-                        onChange={(e) => setProgressSearch(e.target.value)}
-                        placeholder={t("searchExercise")}
-                      />
-                      <select
-                        value={selectedProgressName}
-                        onChange={(e) => setSelectedProgressExercise(e.target.value)}
-                      >
-                        {visibleProgressExerciseOptions.length > 0 ? (
-                          visibleProgressExerciseOptions.map((name) => (
-                            <option key={name} value={name}>
-                              {getLocalizedProgressExerciseName(name)}
-                            </option>
-                          ))
-                        ) : (
-                          <option value="">{t("noExerciseHistory")}</option>
-                        )}
-                      </select>
-                    </div>
-
-                    <div className="progressChartCard" aria-label="Exercise progress chart">
-                      {progressHistoryPoints.length > 0 ? (
-                        <>
-                          <div className="progressChartSummary">
-                            <div>
-                              <span>{t("best")}</span>
-                              <strong>
-                                {progressMaxValue}
-                                {progressUnit && ` ${progressUnit}`}
-                              </strong>
-                            </div>
-                            <div>
-                              <span>{t("latest")}</span>
-                              <strong>
-                                {progressHistoryPoints[progressHistoryPoints.length - 1]
-                                  ?.value || "--"}
-                                {progressUnit && ` ${progressUnit}`}
-                              </strong>
-                            </div>
-                          </div>
-
-                          <Suspense
-                            fallback={
-                              <div className="chartLoading">{t("loading")}</div>
-                            }
-                          >
-                            <ProgressChart
-                              points={progressHistoryPoints}
-                              locale={clientLocale}
-                              unit={progressUnit}
-                            />
-                          </Suspense>
-                        </>
-                      ) : (
-                        <p className="homeEmptyText">
-                          {t("noExerciseHistory")}
-                        </p>
-                      )}
-                    </div>
-                  </section>
+                      {renderExerciseHistoryBody()}
+                    </section>
+                  )}
 
                   {!isClientPortal && (
                   <section className="clientHomePanel focusHomePanel">
                     <div className="clientHomePanelHeader">
                       <div>
-                        <span>Coach View</span>
-                        <h2>Client Snapshot</h2>
+                        <span>Triage</span>
+                        <h2>Needs Attention &amp; Status</h2>
                       </div>
                     </div>
 
@@ -16900,16 +17069,33 @@ function App() {
                           <span>Results</span>
                           <h2>Recent Submissions</h2>
                         </div>
-                        <button
-                          className="outlineButton"
-                          onClick={() => loadContentResponses(selectedClient)}
-                          disabled={contentResponsesLoading}
-                        >
-                          {contentResponsesLoading ? "Loading" : "Reload"}
-                        </button>
+                        <div className="submissionHeaderControls">
+                          <select
+                            className="submissionFilterSelect"
+                            value={submissionFilter}
+                            onChange={(e) =>
+                              setSubmissionFilter(e.target.value as typeof submissionFilter)
+                            }
+                          >
+                            <option value="all">All types</option>
+                            <option value="workouts">Workouts</option>
+                            <option value="reviewed">Reviewed comments</option>
+                            <option value="questionnaires">Questionnaires</option>
+                            <option value="tests">Tests</option>
+                          </select>
+                          <button
+                            className="outlineButton"
+                            onClick={() => loadContentResponses(selectedClient)}
+                            disabled={contentResponsesLoading}
+                          >
+                            {contentResponsesLoading ? "Loading" : "Reload"}
+                          </button>
+                        </div>
                       </div>
 
                       <div className="submissionList">
+                        {(submissionFilter === "all" ||
+                          submissionFilter === "workouts") && (
                         <div className="submissionCategory">
                           <h3>Workouts</h3>
                           {recentWorkoutSubmissions.length > 0 ? (
@@ -16932,7 +17118,10 @@ function App() {
                             <p className="homeEmptyText">No workout submissions yet.</p>
                           )}
                         </div>
+                        )}
 
+                        {(submissionFilter === "all" ||
+                          submissionFilter === "reviewed") && (
                         <div className="submissionCategory">
                           <h3>Reviewed Comments</h3>
                           {recentReviewedWorkoutComments.length > 0 ? (
@@ -16971,7 +17160,10 @@ function App() {
                             </p>
                           )}
                         </div>
+                        )}
 
+                        {(submissionFilter === "all" ||
+                          submissionFilter === "questionnaires") && (
                         <div className="submissionCategory">
                           <h3>Questionnaires</h3>
                           {recentQuestionnaireResponses.length > 0 ? (
@@ -16991,7 +17183,10 @@ function App() {
                             </p>
                           )}
                         </div>
+                        )}
 
+                        {(submissionFilter === "all" ||
+                          submissionFilter === "tests") && (
                         <div className="submissionCategory">
                           <h3>Tests</h3>
                           {recentTestResponses.length > 0 ? (
@@ -17009,6 +17204,7 @@ function App() {
                             <p className="homeEmptyText">No test submissions yet.</p>
                           )}
                         </div>
+                        )}
                       </div>
                     </section>
                   )}
@@ -17108,117 +17304,6 @@ function App() {
                   </div>
                 ) : (
                 <div className="overviewGrid">
-                  <div className="profileCard">
-                    <h3>{t("clientInformation")}</h3>
-                    <div className="clientInfoRows">
-                        <div>
-                          <span>{t("languagePreference")}</span>
-                          <select
-                            value={selectedClient.languagePreference || "English"}
-                            onChange={(event) =>
-                              updateClientLanguagePreference(event.target.value)
-                            }
-                          >
-                            <option value="English">{t("english")}</option>
-                            <option value="Mandarin">{t("mandarin")}</option>
-                          </select>
-                        </div>
-                        <div>
-                          <span>
-                            {i18n.language === "zh" ? "重量单位" : "Weight units"}
-                          </span>
-                          <select
-                            value={weightUnit}
-                            onChange={(event) =>
-                              setWeightUnitPref(
-                                event.target.value === "lb" ? "lb" : "kg"
-                              )
-                            }
-                          >
-                            <option value="kg">kg</option>
-                            <option value="lb">lb</option>
-                          </select>
-                        </div>
-                      <div>
-                        <span>{t("name")}</span>
-                        <strong>{selectedClient.name}</strong>
-                      </div>
-                      <div>
-                        <span>{t("email")}</span>
-                        <strong>{selectedClient.email || "--"}</strong>
-                      </div>
-                      <div>
-                        <span>{t("phoneWechat")}</span>
-                        <strong>{selectedClient.phone || "--"}</strong>
-                      </div>
-                      <div>
-                        <span>{t("coach")}</span>
-                        <strong>
-                          {getCoachDisplayName(
-                            selectedClient.coach || selectedClient.primaryCoach || "--"
-                          )}
-                        </strong>
-                      </div>
-                      <div>
-                        <span>Client Type</span>
-                        <strong>{selectedClient.clientType || "--"}</strong>
-                      </div>
-                      <div>
-                        <span>{t("package")}</span>
-                        <strong>
-                          {selectedClient.package ||
-                            selectedClient.status ||
-                            "--"}
-                        </strong>
-                      </div>
-                      <div>
-                        <span>Subscription</span>
-                        <strong>{selectedClient.subscriptionStatus || "--"}</strong>
-                      </div>
-                      <div>
-                        <span>Intake</span>
-                        <strong>{selectedClient.intakeStatus || "--"}</strong>
-                      </div>
-                      <div>
-                        <span>Payment</span>
-                        <strong>{selectedClient.paymentStatus || "--"}</strong>
-                      </div>
-                      <div>
-                        <span>Latest Order</span>
-                        <strong>
-                          {selectedClientLatestOrder
-                            ? `${selectedClientLatestOrder.productName || "Order"} - ${
-                                selectedClientLatestOrder.paymentStatus || "--"
-                              }`
-                            : "--"}
-                        </strong>
-                      </div>
-                      <div>
-                        <span>Source</span>
-                        <strong>{selectedClient.source || "--"}</strong>
-                      </div>
-                      <div>
-                        <span>{t("startDate")}</span>
-                        <strong>{selectedClient.startDate || "--"}</strong>
-                      </div>
-                      <div>
-                        <span>Access Window</span>
-                        <strong>
-                          {selectedClient.accessStartDate || "--"} to{" "}
-                          {selectedClient.accessEndDate || "--"}
-                        </strong>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="profileCard">
-                    <h3>Coach Notes</h3>
-                    <p className="coachNotesPreview">
-                      {selectedClient.notes || "No notes yet."}
-                    </p>
-                    <textarea placeholder="Add private coach notes here..." />
-                  </div>
-
                   <div className="profileCard profileMetricsCard">
                     <div className="profileMetricsHeader">
                       <h3>{t("performanceMetrics")}</h3>
@@ -17234,6 +17319,145 @@ function App() {
                       )}
                     </div>
                     {renderPerformanceMetrics(true)}
+                  </div>
+
+                  <div className="profileCard prCard">
+                    <div className="profileMetricsHeader">
+                      <h3>{paceZh ? "个人记录" : "Personal Records"}</h3>
+                    </div>
+                    {renderPersonalRecords()}
+                  </div>
+
+                  <div className="profileCard">
+                    <div className="profileMetricsHeader">
+                      <h3>{t("clientInformation")}</h3>
+                      <button
+                        className="outlineButton compactBuilderButton"
+                        onClick={() => setOverviewDetailsOpen((open) => !open)}
+                      >
+                        {overviewDetailsOpen
+                          ? paceZh
+                            ? "收起"
+                            : "Hide details"
+                          : paceZh
+                          ? "展开"
+                          : "Show details"}
+                      </button>
+                    </div>
+                    <div className="clientInfoRows">
+                      <div>
+                        <span>{t("name")}</span>
+                        <strong>{selectedClient.name}</strong>
+                      </div>
+                      <div>
+                        <span>{t("languagePreference")}</span>
+                        <select
+                          value={selectedClient.languagePreference || "English"}
+                          onChange={(event) =>
+                            updateClientLanguagePreference(event.target.value)
+                          }
+                        >
+                          <option value="English">{t("english")}</option>
+                          <option value="Mandarin">{t("mandarin")}</option>
+                        </select>
+                      </div>
+                      <div>
+                        <span>
+                          {i18n.language === "zh" ? "重量单位" : "Weight units"}
+                        </span>
+                        <select
+                          value={weightUnit}
+                          onChange={(event) =>
+                            setWeightUnitPref(
+                              event.target.value === "lb" ? "lb" : "kg"
+                            )
+                          }
+                        >
+                          <option value="kg">kg</option>
+                          <option value="lb">lb</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {overviewDetailsOpen && (
+                      <div className="clientInfoRows">
+                        <div>
+                          <span>{t("email")}</span>
+                          <strong>{selectedClient.email || "--"}</strong>
+                        </div>
+                        <div>
+                          <span>{t("phoneWechat")}</span>
+                          <strong>{selectedClient.phone || "--"}</strong>
+                        </div>
+                        <div>
+                          <span>{t("coach")}</span>
+                          <strong>
+                            {getCoachDisplayName(
+                              selectedClient.coach ||
+                                selectedClient.primaryCoach ||
+                                "--"
+                            )}
+                          </strong>
+                        </div>
+                        <div>
+                          <span>Client Type</span>
+                          <strong>{selectedClient.clientType || "--"}</strong>
+                        </div>
+                        <div>
+                          <span>{t("package")}</span>
+                          <strong>
+                            {selectedClient.package || selectedClient.status || "--"}
+                          </strong>
+                        </div>
+                        <div>
+                          <span>Subscription</span>
+                          <strong>{selectedClient.subscriptionStatus || "--"}</strong>
+                        </div>
+                        <div>
+                          <span>Intake</span>
+                          <strong>{selectedClient.intakeStatus || "--"}</strong>
+                        </div>
+                        <div>
+                          <span>Payment</span>
+                          <strong>{selectedClient.paymentStatus || "--"}</strong>
+                        </div>
+                        <div>
+                          <span>Latest Order</span>
+                          <strong>
+                            {selectedClientLatestOrder
+                              ? `${
+                                  selectedClientLatestOrder.productName || "Order"
+                                } - ${
+                                  selectedClientLatestOrder.paymentStatus || "--"
+                                }`
+                              : "--"}
+                          </strong>
+                        </div>
+                        <div>
+                          <span>Source</span>
+                          <strong>{selectedClient.source || "--"}</strong>
+                        </div>
+                        <div>
+                          <span>{t("startDate")}</span>
+                          <strong>{selectedClient.startDate || "--"}</strong>
+                        </div>
+                        <div>
+                          <span>Access Window</span>
+                          <strong>
+                            {selectedClient.accessStartDate || "--"} to{" "}
+                            {selectedClient.accessEndDate || "--"}
+                          </strong>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="profileCard">
+                    <h3>Coach Notes</h3>
+                    <p className="coachNotesPreview">
+                      {selectedClient.notes || "No notes yet."}
+                    </p>
+                    <textarea placeholder="Add private coach notes here..." />
                   </div>
                 </div>
                 ))}
