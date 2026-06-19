@@ -22,7 +22,7 @@ function fieldToText(value: any): string {
         ) {
           return "";
         }
-        return JSON.stringify(item);
+        return "";
       })
       .filter(Boolean)
       .join(", ");
@@ -41,7 +41,7 @@ function fieldToText(value: any): string {
     return "";
   }
 
-  return JSON.stringify(value);
+  return "";
 }
 
 function normalizeFieldName(value: string) {

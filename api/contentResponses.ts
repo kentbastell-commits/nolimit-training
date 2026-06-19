@@ -14,7 +14,7 @@ function fieldToText(value: any): string {
         if (item?.text) return item.text;
         if (item?.name) return item.name;
         if (item?.record_ids) return item.record_ids.join(", ");
-        return JSON.stringify(item);
+        return "";
       })
       .filter(Boolean)
       .join(", ");
@@ -25,7 +25,7 @@ function fieldToText(value: any): string {
   if (value?.value) return fieldToText(value.value);
   if (value?.record_ids) return value.record_ids.join(", ");
 
-  return JSON.stringify(value);
+  return "";
 }
 
 function normalizeFieldName(value: string) {

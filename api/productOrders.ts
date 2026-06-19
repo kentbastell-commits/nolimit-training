@@ -28,7 +28,7 @@ function fieldToText(value: any): string {
   if (value?.record_ids) return value.record_ids.join(", ");
   if (value?.link_record_ids) return value.link_record_ids.join(", ");
 
-  return JSON.stringify(value);
+  return "";
 }
 
 function formatDate(value: any): string {

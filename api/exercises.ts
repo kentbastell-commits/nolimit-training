@@ -15,7 +15,7 @@ function fieldToText(value: any): string {
         if (item?.url) return item.url;
         if (item?.text) return item.text;
         if (item?.name) return item.name;
-        return JSON.stringify(item);
+        return "";
       })
       .join(", ");
   }
@@ -25,7 +25,7 @@ function fieldToText(value: any): string {
   if (value?.text) return value.text;
   if (value?.name) return value.name;
 
-  return JSON.stringify(value);
+  return "";
 }
 
 function readFirstField(fields: Record<string, any>, candidates: string[]) {

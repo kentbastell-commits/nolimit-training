@@ -34,7 +34,7 @@ function fieldToText(value: any): string {
     return "";
   }
 
-  return JSON.stringify(value);
+  return "";
 }
 
 function formatDate(value: any): string {

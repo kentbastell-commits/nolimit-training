@@ -17,7 +17,7 @@ function fieldToText(value: any): string {
         if (item?.url) return item.url;
         if (item?.record_ids) return item.record_ids.join(", ");
         if (item?.link_record_ids) return item.link_record_ids.join(", ");
-        return JSON.stringify(item);
+        return "";
       })
       .join(", ");
   }
@@ -29,7 +29,7 @@ function fieldToText(value: any): string {
   if (value?.record_ids) return value.record_ids.join(", ");
   if (value?.link_record_ids) return value.link_record_ids.join(", ");
 
-  return JSON.stringify(value);
+  return "";
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {

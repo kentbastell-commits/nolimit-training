@@ -212,7 +212,7 @@ function fieldToText(value: any): string {
         if (item?.name) return item.name;
         if (item?.link) return item.link;
         if (item?.url) return item.url;
-        return JSON.stringify(item);
+        return "";
       })
       .join(", ");
   }
@@ -222,7 +222,7 @@ function fieldToText(value: any): string {
   if (value?.link) return value.link;
   if (value?.url) return value.url;
 
-  return JSON.stringify(value);
+  return "";
 }
 
 async function getTenantToken() {

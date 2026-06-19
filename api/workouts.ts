@@ -1,30 +1,39 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 
-function fieldToText(value: any): string {
-  if (!value) return "";
+// Extract a single Bitable cell item to text. Handles link/lookup objects
+// (which carry text/text_arr) and returns "" for empty links so an unresolved
+// relation never leaks a raw JSON blob into the UI.
+function itemToText(item: any): string {
+  if (item === null || item === undefined) return "";
+  if (typeof item === "string") return item;
+  if (typeof item === "number") return String(item);
+  if (typeof item === "boolean") return item ? "true" : "false";
+  if (item.text) return String(item.text);
+  if (Array.isArray(item.text_arr) && item.text_arr.length) {
+    return item.text_arr.filter(Boolean).join(", ");
+  }
+  if (item.name) return String(item.name);
+  if (item.value !== undefined) return fieldToText(item.value);
+  if (Array.isArray(item.record_ids) && item.record_ids.length) {
+    return item.record_ids.join(", ");
+  }
+  if (Array.isArray(item.link_record_ids) && item.link_record_ids.length) {
+    return item.link_record_ids.join(", ");
+  }
+  return "";
+}
 
+function fieldToText(value: any): string {
+  if (value === null || value === undefined) return "";
   if (typeof value === "string") return value;
   if (typeof value === "number") return String(value);
+  if (typeof value === "boolean") return value ? "true" : "false";
 
   if (Array.isArray(value)) {
-    return value
-      .map((item) => {
-        if (typeof item === "string") return item;
-        if (item?.text) return item.text;
-        if (item?.name) return item.name;
-        if (item?.record_ids) return item.record_ids.join(", ");
-        if (item?.link_record_ids) return item.link_record_ids.join(", ");
-        return JSON.stringify(item);
-      })
-      .join(", ");
+    return value.map(itemToText).filter(Boolean).join(", ");
   }
 
-  if (value?.text) return value.text;
-  if (value?.name) return value.name;
-  if (value?.record_ids) return value.record_ids.join(", ");
-  if (value?.link_record_ids) return value.link_record_ids.join(", ");
-
-  return JSON.stringify(value);
+  return itemToText(value);
 }
 
 function readFirstField(fields: Record<string, any>, candidates: string[]) {

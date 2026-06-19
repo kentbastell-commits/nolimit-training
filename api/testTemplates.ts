@@ -15,7 +15,7 @@ function fieldToText(value: any): string {
         if (item?.name) return item.name;
         if (item?.record_ids) return item.record_ids.join(", ");
         if (item?.link_record_ids) return item.link_record_ids.join(", ");
-        return JSON.stringify(item);
+        return "";
       })
       .filter(Boolean)
       .join(", ");
@@ -33,7 +33,7 @@ function fieldToText(value: any): string {
     return "";
   }
 
-  return JSON.stringify(value);
+  return "";
 }
 
 function normalizeFieldName(value: string) {
