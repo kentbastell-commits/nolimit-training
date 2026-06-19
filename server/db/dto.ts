@@ -213,6 +213,80 @@ export type WorkoutDetailDTO = {
   displayTarget: string;
 };
 
+export type TemplateSummaryDTO = {
+  recordId: string;
+  week: number;
+  day: number;
+  sessionName: string;
+  sessionNameCn: string;
+  sessionType: string;
+  sessionGoal: string;
+  estimatedDuration: string;
+  intensity: string;
+  isSingleWorkout: boolean;
+  exerciseName: string;
+  exerciseId: string;
+  order: number;
+};
+
+// Internal: carries the program reference used for filtering before it's stripped.
+export type TemplateRow = TemplateSummaryDTO & {
+  programId: string;
+  programRecordIds: string[];
+};
+
+export type ResponseDTO = {
+  recordId: string;
+  responseType: "Questionnaire" | "Physical Test";
+  responseId: string;
+  assignmentId: string;
+  assignmentRecordId: string;
+  templateId: string;
+  itemId: string;
+  label: string;
+  answer: string;
+  answersJson: string;
+  unit: string;
+  notes: string;
+  clientId: string;
+  clientName: string;
+  submittedAt: string;
+};
+
+export type AnalyticsResult = {
+  clientActivity: {
+    recordId: string;
+    clientId: string;
+    completed7d: number;
+    scheduled7d: number;
+  }[];
+  summary: {
+    totalClients: number;
+    activeClients: number;
+    premiumClients: number;
+    needsProgramming: number;
+    needsContact: number;
+    totalWorkouts: number;
+    completedWorkouts: number;
+    missedWorkouts: number;
+    inProgressWorkouts: number;
+    scheduledWorkouts: number;
+    upcomingWorkouts: number;
+    overdueWorkouts: number;
+    completionRate: number;
+  };
+  attentionClients: {
+    clientId: string;
+    name: string;
+    status: string;
+    overdueWorkouts: number;
+    completedWorkouts: number;
+    totalWorkouts: number;
+    needsProgram: boolean;
+    needsContact: boolean;
+  }[];
+};
+
 export type MetricDTO = {
   recordId: string;
   metricId: string;
