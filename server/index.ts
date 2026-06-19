@@ -31,6 +31,8 @@ import programTemplates from "../api/programTemplates.ts";
 import reviewWorkoutComment from "../api/reviewWorkoutComment.ts";
 import saveWorkoutLog from "../api/saveWorkoutLog.ts";
 import submitContentResponse from "../api/submitContentResponse.ts";
+import subscriptions from "../api/subscriptions.ts";
+import upsertSubscription from "../api/upsertSubscription.ts";
 import teams from "../api/teams.ts";
 import testTemplates from "../api/testTemplates.ts";
 import updateAssignedProgramDate from "../api/updateAssignedProgramDate.ts";
@@ -82,6 +84,8 @@ const handlers = {
   reviewWorkoutComment,
   saveWorkoutLog,
   submitContentResponse,
+  subscriptions,
+  upsertSubscription,
   teams,
   testTemplates,
   updateAssignedProgramDate,

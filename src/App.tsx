@@ -450,6 +450,24 @@ type AssignableWorkout = {
   scheduledDate: string;
 };
 
+type Subscription = {
+  id: string;
+  subscriptionId: string;
+  clientId: string;
+  clientRecordIds: string[];
+  plan: string;
+  price: number;
+  currency: string;
+  billingCycle: string;
+  startDate: string;
+  nextBillingDate: string;
+  status: string;
+  coach: string;
+  autoRenew: boolean;
+  paymentId: string;
+  notes: string;
+};
+
 type Team = {
   id: string;
   name: string;
@@ -1670,6 +1688,31 @@ function App() {
   const [assignLoading, setAssignLoading] = useState(false);
   const [assigningProgram, setAssigningProgram] = useState(false);
 
+  // Subscriptions
+  const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
+  const [subDraft, setSubDraft] = useState<{
+    plan: string;
+    price: string;
+    currency: string;
+    billingCycle: string;
+    startDate: string;
+    nextBillingDate: string;
+    status: string;
+    autoRenew: boolean;
+    paymentId: string;
+  }>({
+    plan: "Online Coaching",
+    price: "",
+    currency: "CNY",
+    billingCycle: "1 Month",
+    startDate: "",
+    nextBillingDate: "",
+    status: "Active",
+    autoRenew: false,
+    paymentId: "",
+  });
+  const [savingSub, setSavingSub] = useState(false);
+
   // Teams
   const [teams, setTeams] = useState<Team[]>([]);
   const [teamsLoading, setTeamsLoading] = useState(false);
@@ -2214,6 +2257,25 @@ function App() {
     }
   };
 
+  const loadSubscriptions = async () => {
+    try {
+      const response = await fetch("/api/subscriptions");
+      const data = await response.json();
+      if (!response.ok) {
+        console.error(data);
+        setSubscriptions([]);
+        return [];
+      }
+      const next: Subscription[] = data.subscriptions || [];
+      setSubscriptions(next);
+      return next;
+    } catch (error) {
+      console.error(error);
+      setSubscriptions([]);
+      return [];
+    }
+  };
+
   const loadProductOrders = async (force?: unknown) => {
     const shouldForce = force === true;
     const cached = productOrdersCacheRef.current;
@@ -2432,6 +2494,7 @@ function App() {
     loadClients();
     loadCoaches();
     void loadTeams();
+    void loadSubscriptions();
     void loadNotifications();
   }, []);
 
@@ -5203,6 +5266,89 @@ function App() {
     setAccountStartDate(dateToInputValue(new Date()));
     if (programs.length === 0) void loadPrograms();
     if (teams.length === 0) void loadTeams();
+    const sub = subscriptions.find((s) => s.clientRecordIds.includes(client.id));
+    setSubDraft(
+      sub
+        ? {
+            plan: sub.plan || "Online Coaching",
+            price: sub.price ? String(sub.price) : "",
+            currency: sub.currency || "CNY",
+            billingCycle: sub.billingCycle || "1 Month",
+            startDate: sub.startDate || "",
+            nextBillingDate: sub.nextBillingDate || "",
+            status: sub.status || "Active",
+            autoRenew: sub.autoRenew,
+            paymentId: sub.paymentId || "",
+          }
+        : {
+            plan: "Online Coaching",
+            price: "",
+            currency: "CNY",
+            billingCycle: "1 Month",
+            startDate: dateToInputValue(new Date()),
+            nextBillingDate: "",
+            status: "Active",
+            autoRenew: false,
+            paymentId: "",
+          }
+    );
+  };
+
+  const cycleMonths = (label: string): number => {
+    if (/1\s*year|annual/i.test(label)) return 12;
+    if (/6\s*month/i.test(label)) return 6;
+    if (/3\s*month|quarter/i.test(label)) return 3;
+    return 1;
+  };
+
+  const accountSubscription = accountClient
+    ? subscriptions.find((s) => s.clientRecordIds.includes(accountClient.id)) ||
+      null
+    : null;
+
+  const saveSubscription = async () => {
+    if (!accountClient) return;
+    setSavingSub(true);
+    try {
+      // Default the next billing date to start + one cycle if left blank.
+      let nextBilling = subDraft.nextBillingDate;
+      if (!nextBilling && subDraft.startDate) {
+        const d = new Date(subDraft.startDate);
+        d.setMonth(d.getMonth() + cycleMonths(subDraft.billingCycle));
+        nextBilling = dateToInputValue(d);
+      }
+      const res = await fetch("/api/upsertSubscription", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          recordId: accountSubscription?.id || undefined,
+          clientRecordId: accountClient.id,
+          plan: subDraft.plan,
+          price: subDraft.price,
+          currency: subDraft.currency,
+          billingCycle: subDraft.billingCycle,
+          startDate: subDraft.startDate,
+          nextBillingDate: nextBilling,
+          status: subDraft.status,
+          coach: currentCoachName,
+          autoRenew: subDraft.autoRenew,
+          paymentId: subDraft.paymentId,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        console.error(data);
+        notify("Could not save subscription.");
+        return;
+      }
+      await loadSubscriptions();
+      notify("Subscription saved.", "success");
+    } catch (error) {
+      console.error(error);
+      notify("Could not save subscription.");
+    } finally {
+      setSavingSub(false);
+    }
   };
   const addAccountChip = (kind: "tags" | "categories", value: string) => {
     const v = value.trim();
@@ -8723,6 +8869,10 @@ function App() {
     if (page === "Teams") {
       void loadTeams();
       loadPrograms();
+    }
+    if (page === "Revenue") {
+      void loadSubscriptions();
+      loadProductOrders(true);
     }
     if (page === "Orders") {
       loadProductOrders(true);
@@ -13203,8 +13353,106 @@ function App() {
               const formatCurrency = (n: number) =>
                 n >= 1000 ? `¥${(n / 1000).toFixed(1)}k` : `¥${Math.round(n)}`;
 
+              // Subscriptions (recurring revenue)
+              const scopedSubs = subscriptions.filter(
+                (s) =>
+                  coachScope === "All Coaches" ||
+                  !s.coach ||
+                  s.coach === coachScope
+              );
+              const subCycleMonths = (label: string) =>
+                /year|annual/i.test(label)
+                  ? 12
+                  : /6\s*month/i.test(label)
+                  ? 6
+                  : /3\s*month|quarter/i.test(label)
+                  ? 3
+                  : 1;
+              const activeSubs = scopedSubs.filter((s) =>
+                /active|trial|past due/i.test(s.status)
+              );
+              const mrrByCurrency: Record<string, number> = {};
+              activeSubs.forEach((s) => {
+                const m = (s.price || 0) / subCycleMonths(s.billingCycle);
+                mrrByCurrency[s.currency || "CNY"] =
+                  (mrrByCurrency[s.currency || "CNY"] || 0) + m;
+              });
+              const dueCutoff = new Date();
+              dueCutoff.setDate(dueCutoff.getDate() + 14);
+              const renewalsDue = scopedSubs
+                .filter(
+                  (s) =>
+                    /active|trial|past due/i.test(s.status) &&
+                    s.nextBillingDate &&
+                    new Date(s.nextBillingDate) <= dueCutoff
+                )
+                .sort((a, b) => a.nextBillingDate.localeCompare(b.nextBillingDate));
+              const curSymbol = (c: string) => (c === "USD" ? "$" : "¥");
+
               return (
                 <section className="revenuePage">
+                  {scopedSubs.length > 0 && (
+                    <section className="tableCard subsPanel">
+                      <div className="subsPanelHeader">
+                        <div>
+                          <span className="eyebrow">Recurring</span>
+                          <h3>Subscriptions</h3>
+                        </div>
+                        <div className="subsMetrics">
+                          <div>
+                            <strong>{activeSubs.length}</strong>
+                            <small>Active</small>
+                          </div>
+                          {Object.entries(mrrByCurrency).map(([cur, amt]) => (
+                            <div key={cur}>
+                              <strong>
+                                {curSymbol(cur)}
+                                {Math.round(amt)}
+                              </strong>
+                              <small>MRR ({cur})</small>
+                            </div>
+                          ))}
+                          <div>
+                            <strong>{renewalsDue.length}</strong>
+                            <small>Renewals ≤14d</small>
+                          </div>
+                        </div>
+                      </div>
+                      {renewalsDue.length > 0 && (
+                        <div className="subsRenewList">
+                          {renewalsDue.slice(0, 8).map((s) => {
+                            const c = clients.find(
+                              (cl) =>
+                                cl.clientCode === s.clientId ||
+                                s.clientRecordIds.includes(cl.id)
+                            );
+                            return (
+                              <div key={s.id} className="subsRenewRow">
+                                <strong>
+                                  {c?.name || s.clientId || "Client"}
+                                </strong>
+                                <span>{s.plan}</span>
+                                <span>
+                                  {curSymbol(s.currency)}
+                                  {s.price}/{s.billingCycle}
+                                </span>
+                                <span className="subsDue">
+                                  {s.nextBillingDate}
+                                </span>
+                                <span
+                                  className={`attentionChip subStatusChip status-${s.status
+                                    .toLowerCase()
+                                    .replace(/\s+/g, "")}`}
+                                >
+                                  {s.status}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </section>
+                  )}
                   <div className="revenueStatGrid">
                     <div className="revenueStat">
                       <span>This Month</span>
@@ -22597,6 +22845,144 @@ function App() {
                       })}
                     </div>
                   )}
+                </div>
+
+                <div className="accountSection">
+                  <span className="teamPickerLabel">
+                    Subscription{" "}
+                    {accountSubscription && (
+                      <em className="subStatusInline">
+                        · {accountSubscription.status}
+                      </em>
+                    )}
+                  </span>
+                  <div className="subGrid">
+                    <label>
+                      <span>Plan</span>
+                      <select
+                        value={subDraft.plan}
+                        onChange={(e) =>
+                          setSubDraft((d) => ({ ...d, plan: e.target.value }))
+                        }
+                      >
+                        <option>Online Coaching</option>
+                        <option>In-Person Coaching</option>
+                        <option>Hybrid</option>
+                        <option>Custom</option>
+                      </select>
+                    </label>
+                    <label>
+                      <span>Status</span>
+                      <select
+                        value={subDraft.status}
+                        onChange={(e) =>
+                          setSubDraft((d) => ({ ...d, status: e.target.value }))
+                        }
+                      >
+                        <option>Active</option>
+                        <option>Trial</option>
+                        <option>Past Due</option>
+                        <option>Paused</option>
+                        <option>Cancelled</option>
+                      </select>
+                    </label>
+                    <label>
+                      <span>Price</span>
+                      <input
+                        inputMode="decimal"
+                        value={subDraft.price}
+                        onChange={(e) =>
+                          setSubDraft((d) => ({
+                            ...d,
+                            price: e.target.value.replace(/[^\d.]/g, ""),
+                          }))
+                        }
+                        placeholder="0"
+                      />
+                    </label>
+                    <label>
+                      <span>Currency</span>
+                      <select
+                        value={subDraft.currency}
+                        onChange={(e) =>
+                          setSubDraft((d) => ({
+                            ...d,
+                            currency: e.target.value,
+                          }))
+                        }
+                      >
+                        <option>CNY</option>
+                        <option>USD</option>
+                      </select>
+                    </label>
+                    <label>
+                      <span>Billing Cycle</span>
+                      <select
+                        value={subDraft.billingCycle}
+                        onChange={(e) =>
+                          setSubDraft((d) => ({
+                            ...d,
+                            billingCycle: e.target.value,
+                          }))
+                        }
+                      >
+                        <option>1 Month</option>
+                        <option>3 Month</option>
+                        <option>6 Month</option>
+                        <option>1 Year</option>
+                      </select>
+                    </label>
+                    <label>
+                      <span>Start Date</span>
+                      <input
+                        type="date"
+                        value={subDraft.startDate}
+                        onChange={(e) =>
+                          setSubDraft((d) => ({
+                            ...d,
+                            startDate: e.target.value,
+                          }))
+                        }
+                      />
+                    </label>
+                    <label>
+                      <span>Next Billing</span>
+                      <input
+                        type="date"
+                        value={subDraft.nextBillingDate}
+                        onChange={(e) =>
+                          setSubDraft((d) => ({
+                            ...d,
+                            nextBillingDate: e.target.value,
+                          }))
+                        }
+                      />
+                    </label>
+                    <label className="subAutoRenew">
+                      <input
+                        type="checkbox"
+                        checked={subDraft.autoRenew}
+                        onChange={(e) =>
+                          setSubDraft((d) => ({
+                            ...d,
+                            autoRenew: e.target.checked,
+                          }))
+                        }
+                      />
+                      <span>Auto-renew</span>
+                    </label>
+                  </div>
+                  <button
+                    className="goldButton accountSaveBtn"
+                    onClick={saveSubscription}
+                    disabled={savingSub}
+                  >
+                    {savingSub
+                      ? "Saving…"
+                      : accountSubscription
+                      ? "Update Subscription"
+                      : "Create Subscription"}
+                  </button>
                 </div>
 
                 <div className="accountSection">
