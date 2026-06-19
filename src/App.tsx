@@ -12949,6 +12949,8 @@ function App() {
                     className={`navItem navGroupTrigger ${
                       isActiveGroup ? "active" : ""
                     }`}
+                    title={group.label}
+                    aria-label={group.label}
                     onClick={() => goToPage(leaf.name)}
                   >
                     <span className="navItemLabel">
@@ -12977,6 +12979,8 @@ function App() {
                   className={`navItem navGroupTrigger ${
                     isActiveGroup ? "active" : ""
                   }`}
+                  title={group.label}
+                  aria-label={group.label}
                   aria-haspopup="true"
                   aria-expanded={isOpen}
                   onClick={() =>
