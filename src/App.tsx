@@ -747,6 +747,8 @@ const CATEGORY_OPTIONS = [
   "Mobility",
   "Cardio",
   "Climbing Specific",
+  "Conditioning",
+  "Accessory",
   "Skills / Drills",
   "Breathing",
 ];

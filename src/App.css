@@ -11694,6 +11694,16 @@ button.coachReviewGlobalItem,
   background: color-mix(in srgb, #0f9b8e 14%, #fff);
   border-color: color-mix(in srgb, #0f9b8e 30%, #fff);
 }
+.app:not(.clientPortalApp) .exerciseLibraryTable .exerciseCategoryCell.cat-conditioning {
+  color: #d9531e !important;
+  background: color-mix(in srgb, #d9531e 13%, #fff);
+  border-color: color-mix(in srgb, #d9531e 28%, #fff);
+}
+.app:not(.clientPortalApp) .exerciseLibraryTable .exerciseCategoryCell.cat-accessory {
+  color: #5b6470 !important;
+  background: color-mix(in srgb, #5b6470 12%, #fff);
+  border-color: color-mix(in srgb, #5b6470 26%, #fff);
+}
 
 /* Video-derived thumbnail in place of initials — a larger 16:9 frame so the
    image is actually legible (initials avatars stay small circles). */
