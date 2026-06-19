@@ -22,7 +22,7 @@ import {
   TrendingUp,
   UserCircle,
   Users,
-  UsersRound,
+  Shield,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -1301,6 +1301,7 @@ function App() {
   const [coaches, setCoaches] = useState<Coach[]>([]);
   const [productOrders, setProductOrders] = useState<ProductOrder[]>([]);
   const [coachScope, setCoachScope] = useState("All Coaches");
+  const [coachMenuOpen, setCoachMenuOpen] = useState(false);
   const [coachSharePercent, setCoachSharePercent] = useState(70);
   const [orderSearch, setOrderSearch] = useState("");
   const [orderProcessingId, setOrderProcessingId] = useState("");
@@ -8296,13 +8297,13 @@ function App() {
     {
       key: "teams",
       label: "Teams",
-      icon: UsersRound,
+      icon: Shield,
       items: [
         {
           name: "Teams",
           label: "Teams",
           count: teams.length,
-          icon: UsersRound,
+          icon: Shield,
         },
       ],
     },
@@ -8390,6 +8391,18 @@ function App() {
     document.addEventListener("pointerdown", handlePointerDown);
     return () => document.removeEventListener("pointerdown", handlePointerDown);
   }, [openNavGroup]);
+
+  useEffect(() => {
+    if (!coachMenuOpen) return;
+    const handlePointerDown = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target && !target.closest(".coachBoxWrap")) {
+        setCoachMenuOpen(false);
+      }
+    };
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => document.removeEventListener("pointerdown", handlePointerDown);
+  }, [coachMenuOpen]);
 
   const clientStatusOptions = Array.from(
     new Set(coachVisibleClients.map((client) => client.status).filter(Boolean))
@@ -12256,32 +12269,53 @@ function App() {
           })}
         </nav>
 
-        <div className="coachBox">
-          <div className="avatar monogramAvatar">
-            <img src="/nl_monogram_clean.png" alt="" aria-hidden="true" />
-          </div>
-          <div>
-            <strong>{coachScope === "All Coaches" ? "Admin View" : coachScope}</strong>
-            <p>{appMode}</p>
-          </div>
-        </div>
+        <div className="coachBoxWrap">
+          <button
+            type="button"
+            className="coachBox coachBoxButton"
+            aria-haspopup="true"
+            aria-expanded={coachMenuOpen}
+            onClick={() =>
+              !isClientPortal && setCoachMenuOpen((open) => !open)
+            }
+          >
+            <div className="avatar monogramAvatar">
+              <img src="/nl_monogram_clean.png" alt="" aria-hidden="true" />
+            </div>
+            <div className="coachBoxMeta">
+              <strong>
+                {coachScope === "All Coaches" ? "Admin View" : coachScope}
+              </strong>
+              <p>{appMode}</p>
+            </div>
+            {!isClientPortal && (
+              <ChevronDown size={16} className="coachBoxCaret" />
+            )}
+          </button>
 
-        {!isClientPortal && (
-          <label className="coachScopeControl">
-            <span>View as</span>
-            <select
-              value={coachScope}
-              onChange={(event) => setCoachScope(event.target.value)}
-            >
-              <option>All Coaches</option>
-              {activeCoaches.map((coach) => (
-                <option key={coach.recordId || coach.coachId} value={coach.name}>
-                  {coach.name}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
+          {!isClientPortal && coachMenuOpen && (
+            <div className="coachScopeMenu" role="menu">
+              <span className="coachScopeMenuLabel">View as</span>
+              {["All Coaches", ...activeCoaches.map((c) => c.name)].map(
+                (name) => (
+                  <button
+                    key={name}
+                    type="button"
+                    role="menuitemradio"
+                    aria-checked={coachScope === name}
+                    className={coachScope === name ? "active" : ""}
+                    onClick={() => {
+                      setCoachScope(name);
+                      setCoachMenuOpen(false);
+                    }}
+                  >
+                    {name === "All Coaches" ? "Admin View (All Coaches)" : name}
+                  </button>
+                )
+              )}
+            </div>
+          )}
+        </div>
       </aside>
 
       <main className="main">

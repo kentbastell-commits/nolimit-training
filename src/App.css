@@ -1825,18 +1825,78 @@ body {
   color: #8a8376;
 }
 
-.coachBox {
+.coachBoxWrap {
   position: absolute;
-  bottom: 94px;
+  bottom: 22px;
   left: 18px;
   right: 18px;
+}
+
+.coachBox {
   display: flex;
   gap: 12px;
   align-items: center;
+  width: 100%;
+  box-sizing: border-box;
   border: 1px solid rgba(212, 175, 55, 0.35);
   padding: 14px;
   border-radius: 14px;
 }
+
+.coachBoxButton {
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.coachBoxButton:hover { border-color: rgba(212, 175, 55, 0.6); }
+.coachBoxMeta { flex: 1; min-width: 0; }
+.coachBoxCaret {
+  flex: 0 0 auto;
+  opacity: 0.6;
+  transition: transform 0.15s ease;
+}
+.coachBoxButton[aria-expanded="true"] .coachBoxCaret { transform: rotate(180deg); }
+
+.coachScopeMenu {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: #ffffff;
+  border: 1px solid #dcd8cd;
+  border-radius: 12px;
+  box-shadow: 0 18px 40px rgba(20, 18, 14, 0.18);
+  padding: 8px;
+  max-height: 320px;
+  overflow-y: auto;
+  z-index: 50;
+}
+.coachScopeMenuLabel {
+  padding: 4px 8px;
+  font-size: 0.66rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #66645e;
+}
+.coachScopeMenu button {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  border-radius: 8px;
+  padding: 9px 10px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #1a1a1a;
+  cursor: pointer;
+}
+.coachScopeMenu button:hover { background: #f2f0ea; }
+.coachScopeMenu button.active { background: #1a1a1a; color: #f0d987; }
 
 .avatar {
   background: #d4af37;
@@ -11726,6 +11786,32 @@ button.coachReviewGlobalItem,
     padding: 0;
     margin-inline: auto;
     border-radius: 14px;
+    justify-content: center;
+  }
+  .app:not(.clientPortalApp)
+    .sidebar:not(:hover):not(:focus-within)
+    .navItemLabel {
+    justify-content: center;
+    gap: 0;
+  }
+  .app:not(.clientPortalApp)
+    .sidebar:not(:hover):not(:focus-within)
+    .navGroupCaret {
+    display: none;
+  }
+  .app:not(.clientPortalApp)
+    .sidebar:not(:hover):not(:focus-within)
+    .coachBoxMeta,
+  .app:not(.clientPortalApp)
+    .sidebar:not(:hover):not(:focus-within)
+    .coachBoxCaret {
+    display: none;
+  }
+  .app:not(.clientPortalApp)
+    .sidebar:not(:hover):not(:focus-within)
+    .coachBox {
+    justify-content: center;
+    padding: 10px;
   }
 }
 
@@ -17374,7 +17460,9 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 .teamMemberPickItem { flex-direction: column; align-items: stretch; gap: 6px; }
 .teamPickToggle { display: flex; align-items: center; gap: 8px; cursor: pointer; }
 .teamPositionInput {
+  align-self: stretch;
   width: 100%;
+  min-width: 0;
   box-sizing: border-box;
   border: 1px solid #dcd8cd;
   border-radius: 8px;
