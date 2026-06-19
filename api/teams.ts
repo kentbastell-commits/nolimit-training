@@ -77,6 +77,7 @@ export default async function handler(_req: VercelRequest, res: VercelResponse) 
         name: fieldToText(fields["Team Name"]) || "Untitled Team",
         coach: fieldToText(fields["Coach"]),
         notes: fieldToText(fields["Notes"]),
+        focus: fieldToText(fields["Focus"]),
         memberIds,
         memberCount: memberIds.length,
         positions,

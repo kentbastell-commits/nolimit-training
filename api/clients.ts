@@ -30,6 +30,22 @@ return "";
 }
 
 // Read a field by name, matching case-insensitively across naming variants.
+// Parse a JSON array stored in a text field; tolerate plain comma lists and empties.
+function parseJsonList(raw: string): string[] {
+  const clean = String(raw || "").trim();
+  if (!clean) return [];
+  try {
+    const parsed = JSON.parse(clean);
+    if (Array.isArray(parsed)) return parsed.map((x) => String(x)).filter(Boolean);
+  } catch {
+    return clean
+      .split(",")
+      .map((x) => x.trim())
+      .filter(Boolean);
+  }
+  return [];
+}
+
 function pickField(fields: Record<string, any>, candidates: string[]): string {
   const norm = (s: string) => s.toLowerCase().replace(/\s+/g, "");
   const byNorm = new Map(
@@ -129,6 +145,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         zone10kPct: pickField(fields, ["Zone 10K %", "10K %", "Zone 10K"]),
         zoneThresholdPct: pickField(fields, ["Zone Threshold %", "Threshold %", "Zone Threshold"]),
         zoneEasyPct: pickField(fields, ["Zone Easy %", "Easy %", "Zone Easy"]),
+        tags: parseJsonList(pickField(fields, ["Tags"])),
+        categories: parseJsonList(pickField(fields, ["Categories"])),
+        lastLogin: Number(pickField(fields, ["Last Login"])) || 0,
       };
     });
 

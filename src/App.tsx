@@ -17,6 +17,7 @@ import {
   Plus,
   Shuffle,
   Scissors,
+  Settings,
   Trash2,
   Bell,
   TrendingUp,
@@ -147,6 +148,9 @@ type Client = {
   zone10kPct?: string;
   zoneThresholdPct?: string;
   zoneEasyPct?: string;
+  tags?: string[];
+  categories?: string[];
+  lastLogin?: number;
 };
 
 type Coach = {
@@ -451,6 +455,7 @@ type Team = {
   name: string;
   coach: string;
   notes: string;
+  focus: string;
   memberIds: string[];
   memberCount: number;
   positions: Record<string, string>;
@@ -1474,7 +1479,7 @@ function App() {
   const [exerciseResults, setExerciseResults] = useState<ExerciseResult[]>([]);
   // Cross-client Clients list: per-client 7-day training activity, keyed by
   // client record id. Quiet-loaded from /api/analytics on the Clients page.
-  const [clientActivityMap, setClientActivityMap] = useState<
+  const [, setClientActivityMap] = useState<
     Record<string, { completed7d: number; scheduled7d: number }>
   >({});
   // Coach Overview: editable Coach Notes (draft + saving state).
@@ -1642,10 +1647,31 @@ function App() {
   const [teamDraft, setTeamDraft] = useState<{
     name: string;
     notes: string;
+    focus: string;
     memberIds: string[];
     positions: Record<string, string>;
-  }>({ name: "", notes: "", memberIds: [], positions: {} });
+  }>({ name: "", notes: "", focus: "", memberIds: [], positions: {} });
   const [teamAssignSubgroup, setTeamAssignSubgroup] = useState("All");
+  // Teams table UI
+  const [teamRowMenuId, setTeamRowMenuId] = useState("");
+  const [teamInviteId, setTeamInviteId] = useState("");
+  const [teamInviteMemberIds, setTeamInviteMemberIds] = useState<string[]>([]);
+  const [teamPlannedCounts, setTeamPlannedCounts] = useState<
+    Record<string, number>
+  >({});
+  // Athlete Account modal
+  const [accountClientId, setAccountClientId] = useState("");
+  const [accountDraft, setAccountDraft] = useState<{
+    tags: string[];
+    categories: string[];
+  }>({ tags: [], categories: [] });
+  const [accountTagInput, setAccountTagInput] = useState("");
+  const [accountCategoryInput, setAccountCategoryInput] = useState("");
+  const [accountProgramId, setAccountProgramId] = useState("");
+  const [accountStartDate, setAccountStartDate] = useState(
+    dateToInputValue(new Date())
+  );
+  const [savingAccount, setSavingAccount] = useState(false);
   const [teamAssignProgramId, setTeamAssignProgramId] = useState("");
   const [teamAssignStartDate, setTeamAssignStartDate] = useState(
     dateToInputValue(new Date())
@@ -4677,7 +4703,7 @@ function App() {
 
   const openNewTeam = () => {
     setSelectedTeamId("");
-    setTeamDraft({ name: "", notes: "", memberIds: [], positions: {} });
+    setTeamDraft({ name: "", notes: "", focus: "", memberIds: [], positions: {} });
     setEditingTeam(true);
   };
 
@@ -4686,6 +4712,7 @@ function App() {
     setTeamDraft({
       name: team.name,
       notes: team.notes,
+      focus: team.focus || "",
       memberIds: [...team.memberIds],
       positions: { ...team.positions },
     });
@@ -4734,6 +4761,7 @@ function App() {
           memberRecordIds: teamDraft.memberIds,
           notes: teamDraft.notes.trim(),
           positions: teamDraft.positions,
+          focus: teamDraft.focus.trim(),
         }),
       });
       const data = await res.json();
@@ -4922,6 +4950,232 @@ function App() {
     setSelectedClient(client);
     setActivePage("Clients");
     setClientTab("Programs");
+  };
+
+  // ---- Roster helpers (Clients/Teams tables) ----
+  const clientTeams = (clientId: string) =>
+    teams.filter((t) => t.memberIds.includes(clientId));
+
+  const daysSinceLogin = (lastLogin?: number): number | null => {
+    if (!lastLogin) return null;
+    return Math.max(0, Math.floor((Date.now() - lastLogin) / 86400000));
+  };
+
+  // Shared single/multi program assignment (used by team + account modal).
+  const assignProgramByIds = async (
+    clientRecordIds: string[],
+    programId: string,
+    startDate: string
+  ): Promise<number> => {
+    const program = programs.find((p) => p.programId === programId);
+    if (!program) {
+      notify("Select a program to assign.");
+      return 0;
+    }
+    if (clientRecordIds.length === 0) {
+      notify("No athletes selected.");
+      return 0;
+    }
+    const res = await fetch(
+      `/api/programTemplates?programId=${encodeURIComponent(
+        program.programId
+      )}&programRecordId=${encodeURIComponent(program.recordId || "")}`
+    );
+    const data = await res.json();
+    if (!res.ok) {
+      notify("Could not load program sessions.");
+      return 0;
+    }
+    const map = new Map<string, AssignableWorkout>();
+    (data.templates || []).forEach((tpl: any) => {
+      const key = `${tpl.week}-${tpl.day}-${tpl.sessionName}`;
+      if (!map.has(key)) {
+        const offsetDays = (Number(tpl.week) - 1) * 7 + (Number(tpl.day) - 1) * 2;
+        map.set(key, {
+          localId: key,
+          week: Number(tpl.week),
+          day: Number(tpl.day),
+          sessionName: tpl.sessionName,
+          sessionType: tpl.sessionType || "Strength",
+          sessionGoal: tpl.sessionGoal || "",
+          estimatedDuration: tpl.estimatedDuration || "",
+          intensity: tpl.intensity || "Moderate",
+          scheduledDate: addDays(startDate, offsetDays),
+        });
+      }
+    });
+    const scheduledWorkouts = Array.from(map.values());
+    if (scheduledWorkouts.length === 0) {
+      notify("This program has no sessions to assign.");
+      return 0;
+    }
+    const assignRes = await fetch("/api/assignProgram", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        clientRecordIds,
+        programRecordId: program.recordId,
+        scheduledWorkouts: scheduledWorkouts.map((w) => ({
+          week: w.week,
+          day: w.day,
+          sessionName: w.sessionName,
+          sessionType: w.sessionType,
+          sessionGoal: w.sessionGoal,
+          estimatedDuration: w.estimatedDuration,
+          intensity: w.intensity,
+          scheduledDate: w.scheduledDate,
+        })),
+      }),
+    });
+    const assignData = await assignRes.json();
+    if (!assignRes.ok || !assignData.success) {
+      console.error(assignData);
+      notify("Could not assign program.");
+      return 0;
+    }
+    return assignData.recordsCreated || 0;
+  };
+
+  // ---- Invite Athletes (team) ----
+  const openTeamInvite = (team: Team) => {
+    setTeamInviteId(team.id);
+    setTeamInviteMemberIds([...team.memberIds]);
+    setTeamRowMenuId("");
+  };
+  const toggleInviteMember = (id: string) =>
+    setTeamInviteMemberIds((ids) =>
+      ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]
+    );
+  const saveTeamInvite = async () => {
+    const team = teams.find((t) => t.id === teamInviteId);
+    if (!team) return;
+    setSavingTeam(true);
+    try {
+      const res = await fetch("/api/upsertTeam", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          recordId: team.id,
+          memberRecordIds: teamInviteMemberIds,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        notify("Could not update team roster.");
+        return;
+      }
+      await loadTeams();
+      notify("Team roster updated.", "success");
+      setTeamInviteId("");
+    } catch (error) {
+      console.error(error);
+      notify("Could not update team roster.");
+    } finally {
+      setSavingTeam(false);
+    }
+  };
+
+  // ---- Athlete Account modal ----
+  const accountClient = clients.find((c) => c.id === accountClientId) || null;
+  const openAccountModal = (client: Client) => {
+    setAccountClientId(client.id);
+    setAccountDraft({
+      tags: [...(client.tags || [])],
+      categories: [...(client.categories || [])],
+    });
+    setAccountTagInput("");
+    setAccountCategoryInput("");
+    setAccountProgramId("");
+    setAccountStartDate(dateToInputValue(new Date()));
+    if (programs.length === 0) void loadPrograms();
+    if (teams.length === 0) void loadTeams();
+  };
+  const addAccountChip = (kind: "tags" | "categories", value: string) => {
+    const v = value.trim();
+    if (!v) return;
+    setAccountDraft((d) =>
+      d[kind].includes(v) ? d : { ...d, [kind]: [...d[kind], v] }
+    );
+    if (kind === "tags") setAccountTagInput("");
+    else setAccountCategoryInput("");
+  };
+  const removeAccountChip = (kind: "tags" | "categories", value: string) =>
+    setAccountDraft((d) => ({ ...d, [kind]: d[kind].filter((x) => x !== value) }));
+  const saveAccountTagsCategories = async () => {
+    if (!accountClient) return;
+    setSavingAccount(true);
+    try {
+      const res = await fetch("/api/updateClient", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clientRecordId: accountClient.id,
+          tags: accountDraft.tags,
+          categories: accountDraft.categories,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        notify("Could not save athlete details.");
+        return;
+      }
+      setClients((cur) =>
+        cur.map((c) =>
+          c.id === accountClient.id
+            ? { ...c, tags: accountDraft.tags, categories: accountDraft.categories }
+            : c
+        )
+      );
+      notify("Athlete details saved.", "success");
+    } catch (error) {
+      console.error(error);
+      notify("Could not save athlete details.");
+    } finally {
+      setSavingAccount(false);
+    }
+  };
+  const toggleAccountTeam = async (team: Team) => {
+    const isMember = team.memberIds.includes(accountClientId);
+    const nextMembers = isMember
+      ? team.memberIds.filter((id) => id !== accountClientId)
+      : [...team.memberIds, accountClientId];
+    try {
+      const res = await fetch("/api/upsertTeam", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ recordId: team.id, memberRecordIds: nextMembers }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        notify("Could not update team.");
+        return;
+      }
+      await loadTeams();
+    } catch (error) {
+      console.error(error);
+      notify("Could not update team.");
+    }
+  };
+  const assignProgramFromAccount = async () => {
+    if (!accountClient) return;
+    if (!accountProgramId) {
+      notify("Select a program to assign.");
+      return;
+    }
+    setSavingAccount(true);
+    try {
+      const created = await assignProgramByIds(
+        [accountClient.id],
+        accountProgramId,
+        accountStartDate
+      );
+      if (created > 0) {
+        notify(`Program assigned — ${created} workouts created.`, "success");
+        setAccountProgramId("");
+      }
+    } finally {
+      setSavingAccount(false);
+    }
   };
 
   const updateAssignableWorkoutDate = (localId: string, scheduledDate: string) => {
@@ -8403,6 +8657,57 @@ function App() {
     document.addEventListener("pointerdown", handlePointerDown);
     return () => document.removeEventListener("pointerdown", handlePointerDown);
   }, [coachMenuOpen]);
+
+  // Stamp the athlete's last login once when their portal loads.
+  const loginStampedRef = useRef("");
+  useEffect(() => {
+    if (!isClientPortal || !selectedClient) return;
+    const key = selectedClient.clientCode || selectedClient.id;
+    if (!key || loginStampedRef.current === key) return;
+    loginStampedRef.current = key;
+    void fetch("/api/recordLogin", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        clientRecordId: selectedClient.id,
+        clientCode: selectedClient.clientCode,
+      }),
+    }).catch(() => {});
+  }, [isClientPortal, selectedClient]);
+
+  // Compute each team's upcoming planned-session count from members' workouts.
+  useEffect(() => {
+    if (activePage !== "Teams" || teams.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await (await fetch("/api/workouts")).json();
+        if (cancelled) return;
+        const workoutList = data.workouts || [];
+        const today = dateToInputValue(new Date());
+        const counts: Record<string, number> = {};
+        teams.forEach((team) => {
+          const codes = new Set(
+            team.memberIds
+              .map((id) => clients.find((c) => c.id === id)?.clientCode)
+              .filter(Boolean)
+          );
+          counts[team.id] = workoutList.filter(
+            (w: any) =>
+              codes.has(w.clientId) &&
+              normalizeDate(String(w.scheduledDate)) >= today &&
+              normalizeTaskStatus(w.completionStatus) === "Scheduled"
+          ).length;
+        });
+        setTeamPlannedCounts(counts);
+      } catch (error) {
+        console.error(error);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [activePage, teams, clients]);
 
   const clientStatusOptions = Array.from(
     new Set(coachVisibleClients.map((client) => client.status).filter(Boolean))
@@ -12488,15 +12793,13 @@ function App() {
                     <section className="tableCard clientTableCard">
                       <div className="tableHeader clientTableHeader">
                         <span></span>
-                        <span>Name</span>
-                        <span>Contact</span>
-                        <span>Program</span>
-                        <span>Coach</span>
-                        <span>Last Activity</span>
-                        <span>Last 7d</span>
+                        <span>Athlete</span>
+                        <span>Actions</span>
+                        <span>Athlete Type</span>
+                        <span>Teams</span>
+                        <span>Tags</span>
+                        <span>Last Login</span>
                         <span>Attention</span>
-                        <span>Status</span>
-                        <span>Portal</span>
                       </div>
 
                       {!loading && filteredClients.length === 0 && (
@@ -12529,33 +12832,78 @@ function App() {
                               <div className="clientAvatar">{client.initials}</div>
                               <div>
                                 <strong>{client.name}</strong>
+                                <small>
+                                  {client.email || client.phone || "--"}
+                                </small>
                               </div>
                             </div>
 
-                            <span className="clientContactCell">
-                              {client.email || client.phone || "--"}
-                            </span>
-                            <span>{client.program}</span>
-                            <span>{getCoachDisplayName(client.coach || client.primaryCoach || "--")}</span>
-                            <span>{client.activity}</span>
-                            <span className="last7dCell">
-                              {(() => {
-                                const activity = clientActivityMap[client.id];
-                                if (!activity || activity.scheduled7d === 0) {
-                                  return <span className="last7dIdle">--</span>;
+                            <span
+                              className="clientRowActions"
+                              onClick={(event) => event.stopPropagation()}
+                            >
+                              <button
+                                className="iconActionButton"
+                                title="Athlete's calendar"
+                                onClick={() => {
+                                  setSelectedClient(client);
+                                  setClientTab("Training");
+                                }}
+                              >
+                                <CalendarDays size={17} aria-hidden="true" />
+                              </button>
+                              <button
+                                className="iconActionButton"
+                                title="Account info"
+                                onClick={() => openAccountModal(client)}
+                              >
+                                <UserCircle size={17} aria-hidden="true" />
+                              </button>
+                              <button
+                                className="iconActionButton"
+                                title="Copy portal link"
+                                onClick={() =>
+                                  void copyToClipboard(
+                                    buildClientPortalLink(client),
+                                    "Portal link"
+                                  )
                                 }
-                                return (
-                                  <span
-                                    className={`last7dBadge ${
-                                      activity.completed7d > 0 ? "active" : "idle"
-                                    }`}
-                                    title={`${activity.completed7d} completed of ${activity.scheduled7d} scheduled in the last 7 days`}
-                                  >
-                                    {activity.completed7d}/{activity.scheduled7d}
-                                  </span>
-                                );
+                              >
+                                <Link2 size={17} aria-hidden="true" />
+                              </button>
+                            </span>
+
+                            <span>{client.clientType || "--"}</span>
+
+                            <span className="rosterChips">
+                              {clientTeams(client.id).length === 0
+                                ? "--"
+                                : clientTeams(client.id).map((t) => (
+                                    <span className="teamChip" key={t.id}>
+                                      {t.name}
+                                    </span>
+                                  ))}
+                            </span>
+
+                            <span className="rosterChips">
+                              {(client.tags || []).length === 0
+                                ? "--"
+                                : (client.tags || []).map((t) => (
+                                    <span className="tagChip" key={t}>
+                                      {t}
+                                    </span>
+                                  ))}
+                            </span>
+
+                            <span className="lastLoginCell">
+                              {(() => {
+                                const d = daysSinceLogin(client.lastLogin);
+                                if (d === null) return "—";
+                                if (d === 0) return "Today";
+                                return `${d}d`;
                               })()}
                             </span>
+
                             <span className="attentionCell">
                               {attentionItems.length === 0
                                 ? "--"
@@ -12564,30 +12912,6 @@ function App() {
                                       {item}
                                     </span>
                                   ))}
-                            </span>
-                            <span
-                              className={
-                                client.status === "Active"
-                                  ? "status activeStatus"
-                                  : "status holdStatus"
-                              }
-                            >
-                              {client.status}
-                            </span>
-                            <span>
-                              <button
-                                className="outlineButton clientPortalLinkBtn"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  void copyToClipboard(
-                                    buildClientPortalLink(client),
-                                    "Portal link"
-                                  );
-                                }}
-                                title="Copy client portal link"
-                              >
-                                Copy Link
-                              </button>
                             </span>
                           </div>
                         );
@@ -13105,40 +13429,119 @@ function App() {
                   </button>
                 </div>
 
-                <div className="teamsLayout">
-                  <aside className="teamsList">
-                    {teamsLoading && visibleTeams.length === 0 && (
-                      <p className="mutedText">Loading teams…</p>
-                    )}
-                    {!teamsLoading && visibleTeams.length === 0 && (
-                      <p className="mutedText">
-                        No teams yet. Create one to group athletes and assign
-                        programs in bulk.
-                      </p>
-                    )}
-                    {visibleTeams.map((team) => (
-                      <button
-                        key={team.id}
-                        className={`teamCard ${
-                          selectedTeamId === team.id && !editingTeam
-                            ? "active"
-                            : ""
-                        }`}
-                        onClick={() => {
-                          setSelectedTeamId(team.id);
-                          setEditingTeam(false);
-                        }}
-                      >
-                        <strong>{team.name}</strong>
-                        <small>
-                          {team.memberCount} athlete
-                          {team.memberCount === 1 ? "" : "s"}
-                          {team.coach ? ` · ${team.coach}` : ""}
-                        </small>
-                      </button>
-                    ))}
-                  </aside>
+                <section className="tableCard teamsTableCard">
+                  <div className="tableHeader teamsTableHeader">
+                    <span></span>
+                    <span>Title</span>
+                    <span>Planned Sessions</span>
+                    <span>Athletes</span>
+                    <span>Focus</span>
+                    <span>Created</span>
+                    <span>Actions</span>
+                  </div>
 
+                  {teamsLoading && visibleTeams.length === 0 && (
+                    <p className="emptyTableMessage">Loading teams…</p>
+                  )}
+                  {!teamsLoading && visibleTeams.length === 0 && (
+                    <p className="emptyTableMessage">
+                      No teams yet. Create one to group athletes and assign
+                      programs in bulk.
+                    </p>
+                  )}
+
+                  {visibleTeams.map((team) => (
+                    <div
+                      key={team.id}
+                      className={`clientRow clickableRow teamsTableRow ${
+                        selectedTeamId === team.id && !editingTeam ? "active" : ""
+                      }`}
+                      onClick={() => {
+                        setSelectedTeamId(team.id);
+                        setEditingTeam(false);
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        onClick={(event) => event.stopPropagation()}
+                      />
+                      <div className="clientName">
+                        <div className="clientAvatar teamAvatarSquare">
+                          {team.name
+                            .split(" ")
+                            .map((w) => w[0])
+                            .join("")
+                            .slice(0, 2)
+                            .toUpperCase() || "TM"}
+                        </div>
+                        <div>
+                          <strong>{team.name}</strong>
+                          <small>{team.coach || currentCoachName || "—"}</small>
+                        </div>
+                      </div>
+                      <span>{teamPlannedCounts[team.id] ?? 0}</span>
+                      <span>{team.memberCount}</span>
+                      <span>{team.focus || "—"}</span>
+                      <span>
+                        {team.createdTime
+                          ? new Date(team.createdTime).toLocaleDateString()
+                          : "—"}
+                      </span>
+                      <span
+                        className="teamRowActions"
+                        onClick={(event) => event.stopPropagation()}
+                      >
+                        <button
+                          className="iconActionButton"
+                          title="Edit team"
+                          onClick={() => openTeamEditor(team)}
+                        >
+                          <Settings size={17} aria-hidden="true" />
+                        </button>
+                        <div className="teamRowMenuWrap">
+                          <button
+                            className="iconActionButton"
+                            title="More actions"
+                            onClick={() =>
+                              setTeamRowMenuId((id) =>
+                                id === team.id ? "" : team.id
+                              )
+                            }
+                          >
+                            <MoreVertical size={17} aria-hidden="true" />
+                          </button>
+                          {teamRowMenuId === team.id && (
+                            <div className="teamRowMenu" role="menu">
+                              <button onClick={() => openTeamInvite(team)}>
+                                Invite Athletes
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setSelectedTeamId(team.id);
+                                  setEditingTeam(false);
+                                  setTeamRowMenuId("");
+                                }}
+                              >
+                                View Athletes
+                              </button>
+                              <button
+                                className="danger"
+                                onClick={() => {
+                                  setTeamRowMenuId("");
+                                  void deleteTeam(team);
+                                }}
+                              >
+                                Delete Team
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </span>
+                    </div>
+                  ))}
+                </section>
+
+                {(editingTeam || selectedTeam) && (
                   <div className="teamDetail">
                     {editingTeam ? (
                       <div className="teamEditor">
@@ -13151,6 +13554,19 @@ function App() {
                               setTeamDraft((d) => ({ ...d, name: e.target.value }))
                             }
                             placeholder="e.g. Morning HYROX Squad"
+                          />
+                        </label>
+                        <label className="teamField">
+                          <span>Focus</span>
+                          <input
+                            value={teamDraft.focus}
+                            onChange={(e) =>
+                              setTeamDraft((d) => ({
+                                ...d,
+                                focus: e.target.value,
+                              }))
+                            }
+                            placeholder="e.g. Bouldering / Power"
                           />
                         </label>
                         <label className="teamField">
@@ -13411,13 +13827,9 @@ function App() {
                           </p>
                         </div>
                       </>
-                    ) : (
-                      <p className="mutedText teamEmptyDetail">
-                        Select a team to see its athletes, or create a new one.
-                      </p>
-                    )}
+                    ) : null}
                   </div>
-                </div>
+                )}
               </section>
             )}
 
@@ -21577,6 +21989,271 @@ function App() {
                 </button>
               </>
             )}
+          </div>
+        )}
+
+        {teamInviteId &&
+          (() => {
+            const team = teams.find((t) => t.id === teamInviteId);
+            if (!team) return null;
+            return (
+              <div className="workout-modal-overlay">
+                <div className="clientFormModal inviteModal">
+                  <div className="modal-header">
+                    <div>
+                      <h2>Invite Athletes</h2>
+                      <p>Team: {team.name}</p>
+                    </div>
+                    <button
+                      className="drawerClose"
+                      onClick={() => setTeamInviteId("")}
+                    >
+                      x
+                    </button>
+                  </div>
+
+                  <div className="teamInviteBody">
+                    <span className="teamPickerLabel">
+                      Add existing athletes ({teamInviteMemberIds.length})
+                    </span>
+                    <div className="teamMemberPickList">
+                      {coachVisibleClients.map((client) => (
+                        <label
+                          key={client.id}
+                          className={`teamMemberPickItem ${
+                            teamInviteMemberIds.includes(client.id)
+                              ? "selected"
+                              : ""
+                          }`}
+                        >
+                          <span className="teamPickToggle">
+                            <input
+                              type="checkbox"
+                              checked={teamInviteMemberIds.includes(client.id)}
+                              onChange={() => toggleInviteMember(client.id)}
+                            />
+                            <span className="clientAvatar">
+                              {client.initials}
+                            </span>
+                            <span>{client.name}</span>
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+
+                    <label className="clientNotesField teamInviteLink">
+                      <span>Or invite by link (send via WeChat or email)</span>
+                      <div className="inviteCopyRow">
+                        <input value={coachInviteLink} readOnly />
+                        <button
+                          className="outlineButton"
+                          onClick={() =>
+                            copyToClipboard(coachInviteLink, "Invite link")
+                          }
+                        >
+                          Copy
+                        </button>
+                      </div>
+                    </label>
+                  </div>
+
+                  <div className="modalActions">
+                    <button
+                      className="outlineButton"
+                      onClick={() => setTeamInviteId("")}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      className="goldButton"
+                      onClick={saveTeamInvite}
+                      disabled={savingTeam}
+                    >
+                      {savingTeam ? "Saving…" : "Save Roster"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
+        {accountClient && (
+          <div className="workout-modal-overlay">
+            <div className="clientFormModal accountModal">
+              <div className="modal-header accountModalHeader">
+                <div className="accountModalIdentity">
+                  <div className="clientAvatar largeAvatar">
+                    {accountClient.initials}
+                  </div>
+                  <div>
+                    <h2>{accountClient.name}</h2>
+                    <p>{accountClient.email || accountClient.phone || "—"}</p>
+                  </div>
+                </div>
+                <button
+                  className="drawerClose"
+                  onClick={() => setAccountClientId("")}
+                >
+                  x
+                </button>
+              </div>
+
+              <div className="accountModalBody">
+                <div className="accountSection">
+                  <span className="teamPickerLabel">
+                    Categories (Sports / Positions / Groups)
+                  </span>
+                  <div className="chipRow">
+                    {accountDraft.categories.map((c) => (
+                      <span className="editChip" key={c}>
+                        {c}
+                        <button
+                          onClick={() => removeAccountChip("categories", c)}
+                          aria-label={`Remove ${c}`}
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                    {accountDraft.categories.length === 0 && (
+                      <span className="mutedText">None yet</span>
+                    )}
+                  </div>
+                  <div className="chipAddRow">
+                    <input
+                      list="accountCategoryOptions"
+                      value={accountCategoryInput}
+                      placeholder="Add a category"
+                      onChange={(e) => setAccountCategoryInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          addAccountChip("categories", accountCategoryInput);
+                        }
+                      }}
+                    />
+                    <datalist id="accountCategoryOptions">
+                      {Array.from(
+                        new Set(clients.flatMap((c) => c.categories || []))
+                      ).map((c) => (
+                        <option key={c} value={c} />
+                      ))}
+                    </datalist>
+                    <button
+                      className="outlineButton"
+                      onClick={() =>
+                        addAccountChip("categories", accountCategoryInput)
+                      }
+                    >
+                      Add
+                    </button>
+                  </div>
+                </div>
+
+                <div className="accountSection">
+                  <span className="teamPickerLabel">Tags</span>
+                  <div className="chipRow">
+                    {accountDraft.tags.map((t) => (
+                      <span className="editChip" key={t}>
+                        {t}
+                        <button
+                          onClick={() => removeAccountChip("tags", t)}
+                          aria-label={`Remove ${t}`}
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                    {accountDraft.tags.length === 0 && (
+                      <span className="mutedText">None yet</span>
+                    )}
+                  </div>
+                  <div className="chipAddRow">
+                    <input
+                      list="accountTagOptions"
+                      value={accountTagInput}
+                      placeholder="Add a tag"
+                      onChange={(e) => setAccountTagInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          addAccountChip("tags", accountTagInput);
+                        }
+                      }}
+                    />
+                    <datalist id="accountTagOptions">
+                      {Array.from(
+                        new Set(clients.flatMap((c) => c.tags || []))
+                      ).map((t) => (
+                        <option key={t} value={t} />
+                      ))}
+                    </datalist>
+                    <button
+                      className="outlineButton"
+                      onClick={() => addAccountChip("tags", accountTagInput)}
+                    >
+                      Add
+                    </button>
+                  </div>
+                  <button
+                    className="goldButton accountSaveBtn"
+                    onClick={saveAccountTagsCategories}
+                    disabled={savingAccount}
+                  >
+                    {savingAccount ? "Saving…" : "Save Tags & Categories"}
+                  </button>
+                </div>
+
+                <div className="accountSection">
+                  <span className="teamPickerLabel">Teams</span>
+                  {teams.length === 0 ? (
+                    <p className="mutedText">No teams created yet.</p>
+                  ) : (
+                    <div className="accountTeamList">
+                      {teams.map((team) => (
+                        <label key={team.id} className="accountTeamRow">
+                          <input
+                            type="checkbox"
+                            checked={team.memberIds.includes(accountClientId)}
+                            onChange={() => void toggleAccountTeam(team)}
+                          />
+                          <span>{team.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="accountSection">
+                  <span className="teamPickerLabel">Assign a program</span>
+                  <div className="teamAssignRow">
+                    <select
+                      value={accountProgramId}
+                      onChange={(e) => setAccountProgramId(e.target.value)}
+                    >
+                      <option value="">Select a program…</option>
+                      {programs.map((p) => (
+                        <option key={p.programId} value={p.programId}>
+                          {p.programName}
+                        </option>
+                      ))}
+                    </select>
+                    <input
+                      type="date"
+                      value={accountStartDate}
+                      onChange={(e) => setAccountStartDate(e.target.value)}
+                    />
+                    <button
+                      className="goldButton"
+                      onClick={assignProgramFromAccount}
+                      disabled={savingAccount || !accountProgramId}
+                    >
+                      Assign
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 

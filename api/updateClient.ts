@@ -69,6 +69,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       zone10kPct,
       zoneThresholdPct,
       zoneEasyPct,
+      tags,
+      categories,
     } = req.body;
 
     if (!clientRecordId) {
@@ -174,6 +176,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (larkValue === undefined) continue;
       const columnName = resolveColumn(candidates);
       if (columnName) fields[columnName] = larkValue;
+    }
+    if (tags !== undefined) {
+      fields["Tags"] = JSON.stringify(Array.isArray(tags) ? tags : []);
+    }
+    if (categories !== undefined) {
+      fields["Categories"] = JSON.stringify(
+        Array.isArray(categories) ? categories : []
+      );
     }
     const omittedFields: string[] = [];
     const filteredFields = availableFieldNames

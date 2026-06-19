@@ -18,7 +18,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { recordId, teamName, coach, memberRecordIds, notes, positions } =
+    const { recordId, teamName, coach, memberRecordIds, notes, positions, focus } =
       req.body;
 
     if (!teamName && !recordId) {
@@ -51,6 +51,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (teamName !== undefined) allFields["Team Name"] = String(teamName);
     if (coach !== undefined) allFields["Coach"] = String(coach || "");
     if (notes !== undefined) allFields["Notes"] = String(notes || "");
+    if (focus !== undefined) allFields["Focus"] = String(focus || "");
     if (Array.isArray(memberRecordIds)) {
       // Link field accepts an array of linked record ids (empty array clears it).
       allFields["Members"] = memberRecordIds.filter(Boolean);

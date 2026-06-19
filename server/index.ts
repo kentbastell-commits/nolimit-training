@@ -26,6 +26,7 @@ import formTemplates from "../api/formTemplates.ts";
 import notifications from "../api/notifications.ts";
 import productOrders from "../api/productOrders.ts";
 import programs from "../api/programs.ts";
+import recordLogin from "../api/recordLogin.ts";
 import programTemplates from "../api/programTemplates.ts";
 import reviewWorkoutComment from "../api/reviewWorkoutComment.ts";
 import saveWorkoutLog from "../api/saveWorkoutLog.ts";
@@ -76,6 +77,7 @@ const handlers = {
   notifications,
   productOrders,
   programs,
+  recordLogin,
   programTemplates,
   reviewWorkoutComment,
   saveWorkoutLog,
