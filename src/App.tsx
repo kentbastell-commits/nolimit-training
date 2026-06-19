@@ -1551,6 +1551,7 @@ function App() {
   const [libraryExercises, setLibraryExercises] = useState<LibraryExercise[]>([]);
   const [libraryLoading, setLibraryLoading] = useState(false);
   const [librarySearch, setLibrarySearch] = useState("");
+  const [libraryCategoryFilter, setLibraryCategoryFilter] = useState("All");
   const [progressSearch, setProgressSearch] = useState("");
   const [selectedProgressExercise, setSelectedProgressExercise] = useState("");
   const clientsCacheRef = useRef<{ data: Client[]; timestamp: number } | null>(
@@ -7404,8 +7405,25 @@ function App() {
     }
   };
 
+  // Distinct categories present in the library, for the filter dropdown.
+  const libraryCategoryOptions = Array.from(
+    new Set(
+      libraryExercises
+        .filter((e) => !String(e.notes || "").startsWith("[Archived]"))
+        .map((e) => String(e.category || "").trim())
+        .filter(Boolean)
+    )
+  ).sort((a, b) => a.localeCompare(b));
+
   const filteredLibraryExercises = libraryExercises.filter((exercise) => {
     if (String(exercise.notes || "").startsWith("[Archived]")) {
+      return false;
+    }
+
+    if (
+      libraryCategoryFilter !== "All" &&
+      String(exercise.category || "").trim() !== libraryCategoryFilter
+    ) {
       return false;
     }
 
@@ -7419,6 +7437,22 @@ function App() {
       exercise.movementPattern?.toLowerCase().includes(search)
     );
   });
+
+  // Group the filtered exercises by category so the main library page shows all
+  // squats together, hinges together, etc. Uncategorized exercises sort last.
+  const groupedLibraryExercises = (() => {
+    const groups = new Map<string, LibraryExercise[]>();
+    filteredLibraryExercises.forEach((exercise) => {
+      const category = String(exercise.category || "").trim() || "Uncategorized";
+      if (!groups.has(category)) groups.set(category, []);
+      groups.get(category)!.push(exercise);
+    });
+    return Array.from(groups.entries()).sort(([a], [b]) => {
+      if (a === "Uncategorized") return 1;
+      if (b === "Uncategorized") return -1;
+      return a.localeCompare(b);
+    });
+  })();
 
   const cardioSectionActive = isCardioSectionName(pendingSectionName);
   const builderExercises = libraryExercises.filter((exercise) => {
@@ -13589,6 +13623,19 @@ function App() {
                     value={librarySearch}
                     onChange={(e) => setLibrarySearch(e.target.value)}
                   />
+                  <select
+                    className="libraryCategorySelect"
+                    value={libraryCategoryFilter}
+                    onChange={(e) => setLibraryCategoryFilter(e.target.value)}
+                    aria-label="Filter by category"
+                  >
+                    <option value="All">All categories</option>
+                    {libraryCategoryOptions.map((category) => (
+                      <option key={category} value={category}>
+                        {category}
+                      </option>
+                    ))}
+                  </select>
                   <button className="goldButton" onClick={openNewExerciseForm}>
                     + Add Exercise
                   </button>
@@ -13622,7 +13669,19 @@ function App() {
                     <p style={{ padding: "18px 22px" }}>No exercises found.</p>
                   )}
 
-                  {filteredLibraryExercises.map((exercise) => (
+                  {groupedLibraryExercises.map(([category, items]) => (
+                    <Fragment key={category}>
+                      <div className="libraryCategoryGroupHeader">
+                        <span
+                          className={`exerciseCategoryCell ${categorySlug(
+                            category === "Uncategorized" ? "" : category
+                          )}`}
+                        >
+                          {category}
+                        </span>
+                        <em>{items.length}</em>
+                      </div>
+                      {items.map((exercise) => (
                       <div
                         className="clientRow exerciseTableRow"
                         key={exercise.recordId || exercise.exerciseId}
@@ -13727,7 +13786,9 @@ function App() {
                           </button>
                         </span>
                       </div>
-                    ))}
+                      ))}
+                    </Fragment>
+                  ))}
                 </section>
               </>
             )}
@@ -14109,6 +14170,7 @@ function App() {
                   ))}
                 </div>
 
+                {!isSingleWorkoutBuilder && (
                 <details className="builderCollapsiblePanel" id="builder-details">
                   <summary>
                     <div>
@@ -14205,6 +14267,7 @@ function App() {
                     </>
                   )}
                 </details>
+                )}
 
                 {showDigitalProductSettings && (
                   <details className="builderCollapsiblePanel builderProductPanel">
@@ -14391,8 +14454,14 @@ function App() {
                 >
                   <summary>
                     <div>
-                      <span className="eyebrow">Session</span>
-                      <strong>Session Settings</strong>
+                      <span className="eyebrow">
+                        {isSingleWorkoutBuilder ? "Workout Setup" : "Session"}
+                      </span>
+                      <strong>
+                        {isSingleWorkoutBuilder
+                          ? "Workout Details"
+                          : "Session Settings"}
+                      </strong>
                     </div>
                     <span>Open</span>
                   </summary>
@@ -14401,6 +14470,17 @@ function App() {
                     isSingleWorkoutBuilder ? "singleWorkoutSessionGrid" : ""
                   }`}
                 >
+                  {isSingleWorkoutBuilder && (
+                    <label className="sessionNameField">
+                      <span>Workout Name</span>
+                      <input
+                        value={programName}
+                        onChange={(e) => setProgramName(e.target.value)}
+                        placeholder="Workout Name"
+                        className="miniSearch"
+                      />
+                    </label>
+                  )}
                   {!isSingleWorkoutBuilder && (
                     <>
                       <label className="sessionWeekField">

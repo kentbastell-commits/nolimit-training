@@ -11177,8 +11177,8 @@ button.coachReviewGlobalItem,
 
 
 .app:not(.clientPortalApp) .brandTagline {
-  color: var(--nl-muted) !important;
-  font-weight: 800 !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
 }
 
 .app:not(.clientPortalApp) .navItem,
@@ -11544,7 +11544,7 @@ button.coachReviewGlobalItem,
   font-weight: 850;
 }
 
-.app:not(.clientPortalApp) .exerciseTableRow .exerciseCategoryCell {
+.app:not(.clientPortalApp) .exerciseLibraryTable .exerciseCategoryCell {
   align-self: center;
   width: fit-content;
   padding: 4px 12px;
@@ -11559,67 +11559,67 @@ button.coachReviewGlobalItem,
 
 /* Color-coded category pills: each movement family gets a distinct hue so the
    library scans fast. Soft tinted fill + saturated text from the same hue. */
-.app:not(.clientPortalApp) .exerciseTableRow .exerciseCategoryCell.cat-squat {
+.app:not(.clientPortalApp) .exerciseLibraryTable .exerciseCategoryCell.cat-squat {
   color: #c0392b !important;
   background: color-mix(in srgb, #c0392b 12%, #fff);
   border-color: color-mix(in srgb, #c0392b 26%, #fff);
 }
-.app:not(.clientPortalApp) .exerciseTableRow .exerciseCategoryCell.cat-hinge {
+.app:not(.clientPortalApp) .exerciseLibraryTable .exerciseCategoryCell.cat-hinge {
   color: #b35a13 !important;
   background: color-mix(in srgb, #b35a13 12%, #fff);
   border-color: color-mix(in srgb, #b35a13 26%, #fff);
 }
-.app:not(.clientPortalApp) .exerciseTableRow .exerciseCategoryCell.cat-horizontal-push {
+.app:not(.clientPortalApp) .exerciseLibraryTable .exerciseCategoryCell.cat-horizontal-push {
   color: #2f5fd0 !important;
   background: color-mix(in srgb, #2f5fd0 12%, #fff);
   border-color: color-mix(in srgb, #2f5fd0 26%, #fff);
 }
-.app:not(.clientPortalApp) .exerciseTableRow .exerciseCategoryCell.cat-vertical-push {
+.app:not(.clientPortalApp) .exerciseLibraryTable .exerciseCategoryCell.cat-vertical-push {
   color: #1f7bb5 !important;
   background: color-mix(in srgb, #1f7bb5 12%, #fff);
   border-color: color-mix(in srgb, #1f7bb5 26%, #fff);
 }
-.app:not(.clientPortalApp) .exerciseTableRow .exerciseCategoryCell.cat-horizontal-pull {
+.app:not(.clientPortalApp) .exerciseLibraryTable .exerciseCategoryCell.cat-horizontal-pull {
   color: #15897a !important;
   background: color-mix(in srgb, #15897a 12%, #fff);
   border-color: color-mix(in srgb, #15897a 26%, #fff);
 }
-.app:not(.clientPortalApp) .exerciseTableRow .exerciseCategoryCell.cat-vertical-pull {
+.app:not(.clientPortalApp) .exerciseLibraryTable .exerciseCategoryCell.cat-vertical-pull {
   color: #0f8a9a !important;
   background: color-mix(in srgb, #0f8a9a 12%, #fff);
   border-color: color-mix(in srgb, #0f8a9a 26%, #fff);
 }
-.app:not(.clientPortalApp) .exerciseTableRow .exerciseCategoryCell.cat-core {
+.app:not(.clientPortalApp) .exerciseLibraryTable .exerciseCategoryCell.cat-core {
   color: #7b3fbf !important;
   background: color-mix(in srgb, #7b3fbf 12%, #fff);
   border-color: color-mix(in srgb, #7b3fbf 26%, #fff);
 }
-.app:not(.clientPortalApp) .exerciseTableRow .exerciseCategoryCell.cat-carry {
+.app:not(.clientPortalApp) .exerciseLibraryTable .exerciseCategoryCell.cat-carry {
   color: #b02f9e !important;
   background: color-mix(in srgb, #b02f9e 12%, #fff);
   border-color: color-mix(in srgb, #b02f9e 26%, #fff);
 }
-.app:not(.clientPortalApp) .exerciseTableRow .exerciseCategoryCell.cat-olympic-power {
+.app:not(.clientPortalApp) .exerciseLibraryTable .exerciseCategoryCell.cat-olympic-power {
   color: #4b46c9 !important;
   background: color-mix(in srgb, #4b46c9 12%, #fff);
   border-color: color-mix(in srgb, #4b46c9 26%, #fff);
 }
-.app:not(.clientPortalApp) .exerciseTableRow .exerciseCategoryCell.cat-plyometric {
+.app:not(.clientPortalApp) .exerciseLibraryTable .exerciseCategoryCell.cat-plyometric {
   color: #c02d6a !important;
   background: color-mix(in srgb, #c02d6a 12%, #fff);
   border-color: color-mix(in srgb, #c02d6a 26%, #fff);
 }
-.app:not(.clientPortalApp) .exerciseTableRow .exerciseCategoryCell.cat-mobility {
+.app:not(.clientPortalApp) .exerciseLibraryTable .exerciseCategoryCell.cat-mobility {
   color: #2e8b3d !important;
   background: color-mix(in srgb, #2e8b3d 12%, #fff);
   border-color: color-mix(in srgb, #2e8b3d 26%, #fff);
 }
-.app:not(.clientPortalApp) .exerciseTableRow .exerciseCategoryCell.cat-cardio {
+.app:not(.clientPortalApp) .exerciseLibraryTable .exerciseCategoryCell.cat-cardio {
   color: #8a6d0c !important;
   background: color-mix(in srgb, #8a6d0c 12%, #fff);
   border-color: color-mix(in srgb, #8a6d0c 26%, #fff);
 }
-.app:not(.clientPortalApp) .exerciseTableRow .exerciseCategoryCell.cat-climbing-specific {
+.app:not(.clientPortalApp) .exerciseLibraryTable .exerciseCategoryCell.cat-climbing-specific {
   color: #8a5a2b !important;
   background: color-mix(in srgb, #8a5a2b 12%, #fff);
   border-color: color-mix(in srgb, #8a5a2b 26%, #fff);
@@ -17008,7 +17008,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   letter-spacing: 2px;
   text-transform: uppercase;
   white-space: nowrap;
-  color: #f0d987;
+  color: #ffffff;
 }
 
 .brandTagline::before {
@@ -17132,3 +17132,40 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 .builderSessionLabel.wcol-skill { color: #5538a8 !important; }
 .builderSessionLabel.wcol-test { color: #b3261e !important; }
 .builderSessionLabel.wcol-purple { color: #6a2f9e !important; }
+
+/* Exercise library: category group headers + filter select */
+.libraryCategoryGroupHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 22px 8px;
+  border-top: 1px solid #ece8df;
+}
+
+.exerciseLibraryTable > .libraryCategoryGroupHeader:first-of-type {
+  border-top: 0;
+  padding-top: 10px;
+}
+
+.libraryCategoryGroupHeader em {
+  font-style: normal;
+  font-weight: 800;
+  font-size: 12px;
+  color: #66645e;
+  background: #f2f0ea;
+  border: 1px solid #e4e0d6;
+  border-radius: 999px;
+  padding: 2px 9px;
+}
+
+.libraryCategorySelect {
+  border: 1px solid #dcd8cd;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #1a1a1a;
+  font-weight: 700;
+  font-size: 14px;
+  padding: 0 12px;
+  min-height: 44px;
+  cursor: pointer;
+}
