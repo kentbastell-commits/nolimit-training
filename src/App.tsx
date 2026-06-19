@@ -8419,15 +8419,12 @@ function App() {
       exercise.trackingType === "Distance" ||
       exercise.trackingType === "Pace";
     const isTime = exercise.trackingType === "Time";
-    const isPace = exercise.trackingType === "Pace";
     return (
       <div className="mbSetTable">
         <div className="mbSetHead">
           <span>Set</span>
-          <span className={isPace ? "mbSetColWide" : undefined}>
-            {isRunning ? (isTime ? "Time" : isPace ? "Pace" : "Dist") : "Kg"}
-          </span>
-          {!isPace && <span>{isRunning ? "Zone" : "Reps"}</span>}
+          <span>{isRunning ? (isTime ? "Time" : "Dist") : "Kg"}</span>
+          <span>{isRunning ? "Zone" : "Reps"}</span>
           <span>Rest</span>
           <span />
         </div>
@@ -8435,7 +8432,7 @@ function App() {
           <div className="mbSetRow" key={setIndex}>
             <span className="mbSetNum">{set.setNumber}</span>
             <input
-              className={`mbSetInput${isPace ? " mbSetColWide" : ""}`}
+              className="mbSetInput"
               value={isRunning ? set.reps : set.load}
               placeholder="–"
               onChange={(e) =>
@@ -8447,22 +8444,20 @@ function App() {
                 )
               }
             />
-            {!isPace && (
-              <input
-                className="mbSetInput"
-                value={isRunning ? set.percentMas : set.reps}
-                placeholder="–"
-                inputMode={isRunning ? "decimal" : "numeric"}
-                onChange={(e) =>
-                  updateExerciseSetPrescription(
-                    exerciseIndex,
-                    setIndex,
-                    isRunning ? "percentMas" : "reps",
-                    e.target.value
-                  )
-                }
-              />
-            )}
+            <input
+              className="mbSetInput"
+              value={isRunning ? set.percentMas : set.reps}
+              placeholder="–"
+              inputMode={isRunning ? "decimal" : "numeric"}
+              onChange={(e) =>
+                updateExerciseSetPrescription(
+                  exerciseIndex,
+                  setIndex,
+                  isRunning ? "percentMas" : "reps",
+                  e.target.value
+                )
+              }
+            />
             <input
               className="mbSetInput"
               value={set.rest}
@@ -11046,6 +11041,7 @@ function App() {
       date: normalizeDate(String(workout.scheduledDate)),
       title: localizedWorkoutName(workout),
       kindLabel: t("workout"),
+      colorClass: getWorkoutColorClass(workout.sessionName, workout.sessionType),
       meta: `${t("week")} ${workout.week} - ${t("day")} ${workout.day}`,
       status: getDisplayTaskStatus(workout.completionStatus, workout.scheduledDate),
       hasProgress: Boolean(String(workout.workoutLogs || workout.clientNotes || "").trim()),
@@ -11057,6 +11053,7 @@ function App() {
       date: normalizeDate(String(assignment.dueDate || assignment.assignedDate)),
       title: getAssignmentDisplayName(assignment),
       kindLabel: assignment.assignmentType || t("questionnaire"),
+      colorClass: getAssignmentColorClass(assignment.assignmentType),
       meta: assignment.assignmentType || "Questionnaire",
       status: getDisplayTaskStatus(
         assignment.status,
@@ -18744,7 +18741,7 @@ function App() {
                         clientPortalUpcomingTasks.slice(0, 4).map((task) => (
                           <button
                             key={`${task.type}-${task.id}`}
-                            className={`homeWorkoutItem ${
+                            className={`homeWorkoutItem ${task.colorClass} ${
                               task.date === todayValue ? "dueTodayTaskItem" : ""
                             }`}
                             onClick={task.open}

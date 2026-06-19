@@ -17725,3 +17725,11 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
+
+/* Color-code the portal Upcoming Tasks cards by workout/task type (left accent) */
+.homeWorkoutItem.wcol-strength { border-left: 4px solid #5b6770; }
+.homeWorkoutItem.wcol-cardio { border-left: 4px solid #3a86ff; }
+.homeWorkoutItem.wcol-mobility { border-left: 4px solid #15897a; }
+.homeWorkoutItem.wcol-skill { border-left: 4px solid #6a4bc9; }
+.homeWorkoutItem.wcol-test { border-left: 4px solid #c0392b; }
+.homeWorkoutItem.wcol-purple { border-left: 4px solid #7b3fbf; }
