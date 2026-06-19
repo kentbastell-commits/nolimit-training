@@ -142,6 +142,77 @@ export type WorkoutDTO = {
   workoutLogs: string;
 };
 
+export type LogDTO = {
+  recordId: string;
+  clientId: string;
+  clientRecordIds: string[];
+  exerciseName: string;
+  date: string;
+  setNumber: string;
+  prescribedReps: string;
+  actualReps: string;
+  actualWeight: string;
+  actualTime: string;
+  actualDistance: string;
+};
+
+export type ExerciseHistoryDTO = {
+  exerciseName: string;
+  totalSets: number;
+  lastDate: string;
+  lastReps: string;
+  lastWeight: string;
+  bestWeight: number;
+  bestReps: number;
+};
+
+export type WorkoutHistoryResult = {
+  logs: LogDTO[];
+  history: ExerciseHistoryDTO[];
+  summary: { totalLogs: number; uniqueExercises: number; bestWeight: number; bestReps: number };
+};
+
+export type WorkoutDetailDTO = {
+  id: string;
+  templateId: string;
+  programId: string;
+  sessionType: string;
+  sessionGoal: string;
+  estimatedDuration: string;
+  intensity: string;
+  exerciseId: string;
+  exerciseName: string;
+  exerciseNameCn: string;
+  videoUrl: string;
+  videoUrlCn: string;
+  longVideoUrl: string;
+  category: string;
+  categoryCn: string;
+  equipment: string;
+  equipmentCn: string;
+  movementPattern: string;
+  movementPatternCn: string;
+  technicalInstructionsCn: string;
+  coachingCuesCn: string;
+  commonMistakesCn: string;
+  cueNotes: string;
+  cueNotesCn: string;
+  order: number;
+  sets: string;
+  reps: string;
+  tempo: string;
+  rest: string;
+  notes: string;
+  notesCn: string;
+  sectionNameCn: string;
+  targetSource: string;
+  targetMetric: string;
+  targetPercent: string;
+  targetAdjustment: string;
+  autoTarget: boolean;
+  displayTarget: string;
+};
+
 export type MetricDTO = {
   recordId: string;
   metricId: string;
