@@ -1,5 +1,13 @@
-import { fieldText, formatDate, parseJsonList, pickField, listRecords } from "./client.ts";
-import type { ClientDTO } from "../dto.ts";
+import {
+  fieldText,
+  formatDate,
+  parseJsonList,
+  pickField,
+  listRecords,
+  getFieldNames,
+  updateRecord,
+} from "./client.ts";
+import type { ClientDTO, UpdateClientInput, WriteResult } from "../dto.ts";
 
 export async function listClients(): Promise<ClientDTO[]> {
   const items = await listRecords(process.env.FEISHU_CLIENTS_TABLE_ID as string);
@@ -53,4 +61,119 @@ export async function listClients(): Promise<ClientDTO[]> {
       lastLogin: Number(pickField(fields, ["Last Login"])) || 0,
     };
   });
+}
+
+function toLarkDate(value: string) {
+  if (!value || value === "--") return undefined;
+  return new Date(`${value}T00:00:00`).getTime();
+}
+
+function toLarkNumber(value: unknown) {
+  if (value === undefined) return undefined;
+  if (value === null || value === "" || value === "--") return null;
+  const num = Number(value);
+  return Number.isFinite(num) ? num : null;
+}
+
+export async function recordLogin(
+  clientRecordId?: string,
+  clientCode?: string
+): Promise<WriteResult> {
+  const tableId = process.env.FEISHU_CLIENTS_TABLE_ID as string;
+  let recordId = clientRecordId;
+  if (!recordId) {
+    const items = await listRecords(tableId);
+    const match = items.find(
+      (it: any) => fieldText(it.fields?.["Client ID"]) === String(clientCode)
+    );
+    recordId = match?.record_id;
+  }
+  if (!recordId) return { success: false, error: "Client not found" };
+  const data = await updateRecord(tableId, recordId, { "Last Login": Date.now() });
+  if (data.code !== 0) return { success: false, larkResponse: data };
+  return { success: true, recordId };
+}
+
+export async function updateClient(input: UpdateClientInput): Promise<WriteResult> {
+  const tableId = process.env.FEISHU_CLIENTS_TABLE_ID as string;
+  const fields: Record<string, any> = {};
+  const i = input;
+  if (i.name !== undefined) fields["Full Name"] = i.name;
+  if (i.email !== undefined) fields.Email = i.email;
+  if (i.phone !== undefined) fields["Phone/WeChat"] = i.phone;
+  if (i.coach !== undefined) fields["Coach Assigned"] = i.coach;
+  if (i.primaryCoachId !== undefined)
+    fields["Primary Coach"] = i.primaryCoachId ? [i.primaryCoachId] : [];
+  if (i.secondaryCoachId !== undefined)
+    fields["Secondary Coach"] = i.secondaryCoachId ? [i.secondaryCoachId] : [];
+  if (i.clientType !== undefined) fields["Client Type"] = i.clientType;
+  if (i.packageType !== undefined) fields["Package Type"] = i.packageType;
+  if (i.packageName !== undefined) fields.Package = i.packageName;
+  if (i.program !== undefined) fields.Program = i.program;
+  if (i.subscriptionStatus !== undefined) fields["Subscription Status"] = i.subscriptionStatus;
+  if (i.intakeStatus !== undefined) fields["Intake Status"] = i.intakeStatus;
+  if (i.paymentStatus !== undefined) fields["Payment Status"] = i.paymentStatus;
+  if (i.purchasedProgramId !== undefined) fields["Purchased Program ID"] = i.purchasedProgramId;
+  if (i.source !== undefined) fields.Source = i.source;
+  if (i.paymentId !== undefined) fields["Stripe/Payment ID"] = i.paymentId;
+  if (i.notes !== undefined) fields.Notes = i.notes;
+  if (i.languagePreference !== undefined) fields["Language Preference"] = i.languagePreference;
+  const sd = toLarkDate(i.startDate || "");
+  if (sd) fields["Start Date"] = sd;
+  const lc = toLarkDate(i.lastCheckInDate || "");
+  if (lc) fields["Last Check-in Date"] = lc;
+  const asd = toLarkDate(i.accessStartDate || "");
+  if (asd) fields["Access Start Date"] = asd;
+  const aed = toLarkDate(i.accessEndDate || "");
+  if (aed) fields["Access End Date"] = aed;
+
+  const namesArr = await getFieldNames(tableId);
+  const availableFieldNames = namesArr.length ? new Set(namesArr) : null;
+  const norm = (s: string) => s.toLowerCase().replace(/\s+/g, "");
+  const availableByNorm = availableFieldNames
+    ? new Map([...availableFieldNames].map((n) => [norm(String(n)), String(n)]))
+    : null;
+  const resolveColumn = (candidates: string[]) => {
+    if (!availableByNorm) return candidates[0];
+    for (const candidate of candidates) {
+      const hit = availableByNorm.get(norm(candidate));
+      if (hit) return hit;
+    }
+    return null;
+  };
+  const numberOverrides: Array<{ candidates: string[]; value: unknown }> = [
+    { candidates: ["MAS (km/h)", "MAS km/h", "MAS (kmh)", "MAS"], value: i.masKmhOverride },
+    { candidates: ["HR Max", "HRmax", "Max HR"], value: i.hrMaxOverride },
+    { candidates: ["Resting HR", "RHR", "Resting Heart Rate"], value: i.restingHrOverride },
+    { candidates: ["Zone 5K %", "5K %", "Zone 5K"], value: i.zone5kPct },
+    { candidates: ["Zone 10K %", "10K %", "Zone 10K"], value: i.zone10kPct },
+    { candidates: ["Zone Threshold %", "Threshold %", "Zone Threshold"], value: i.zoneThresholdPct },
+    { candidates: ["Zone Easy %", "Easy %", "Zone Easy"], value: i.zoneEasyPct },
+  ];
+  for (const { candidates, value } of numberOverrides) {
+    const larkValue = toLarkNumber(value);
+    if (larkValue === undefined) continue;
+    const columnName = resolveColumn(candidates);
+    if (columnName) fields[columnName] = larkValue;
+  }
+  if (i.tags !== undefined) fields["Tags"] = JSON.stringify(Array.isArray(i.tags) ? i.tags : []);
+  if (i.categories !== undefined)
+    fields["Categories"] = JSON.stringify(Array.isArray(i.categories) ? i.categories : []);
+
+  const omittedFields: string[] = [];
+  const filteredFields = availableFieldNames
+    ? Object.fromEntries(
+        Object.entries(fields).filter(([fieldName]) => {
+          const keep = availableFieldNames.has(fieldName);
+          if (!keep) omittedFields.push(fieldName);
+          return keep;
+        })
+      )
+    : fields;
+
+  const data = await updateRecord(tableId, i.clientRecordId, filteredFields);
+  if (data.code !== 0) {
+    return { success: false, error: "Failed to update client", larkResponse: data, fieldsSent: filteredFields };
+  }
+  return { success: true, omittedFields, clientRecordId: i.clientRecordId, larkResponse: data };
 }

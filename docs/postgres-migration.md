@@ -115,9 +115,20 @@ deferral.
    record_id→code. Verified e.g. teams positions `{"CL-0001":"Forwards"}`,
    analytics summary, workoutDetails join.
 
-   **Remaining: the write paths** — GET+POST/CRUD handlers (testTemplates,
-   formTemplates, notifications, checkIns, exerciseResults) + all create/update/
-   upsert/assign/save/delete endpoints, then translate-on-write + attachments→COS.
+   **Write paths — STARTED + pattern verified.** Done + verified on Postgres:
+   `updateClient`, `recordLogin` (POST then read-back confirms notes/categories/
+   mas/lastLogin persisted). Write pattern: feishu impl verbatim (uses generic
+   `createRecord`/`updateRecord`/`deleteRecord` in feishu/client.ts) + pg impl
+   (Drizzle update/insert) + repository dispatch + thin handler. Key: the
+   frontend's `clientRecordId` is the business code in pg mode, so pg writes
+   locate rows by code — consistent with the reads.
+   Remaining writes: createClient, assignProgram, saveWorkoutLog, createProgram/
+   updateProgram, createWorkoutTemplate, upsertExercise/Coach/Team/Subscription,
+   createProductOrder/updateProductOrder, submitContentResponse,
+   duplicateAssignedWorkout, updateAssignedProgramDate/updateContentAssignmentDate,
+   assignContent, autoLoadProgram, activateDigitalOrder, deleteRecord,
+   reviewWorkoutComment, and the CRUD halves of testTemplates/formTemplates/
+   notifications/checkIns/exerciseResults. Then translate-on-write + attachments→COS.
 
    Note: live test data has many workout_templates with empty Program ID links and
    a few junk values (e.g. reps "46244") — not ETL bugs, just test data.

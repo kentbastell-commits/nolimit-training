@@ -38,6 +38,44 @@ export type ExerciseListResult = {
 // (no record_ids exist). Consistent within a backend; everything flips together
 // at cutover. See docs/postgres-migration.md.
 
+// Generic write result (handlers pass it straight back as JSON).
+export type WriteResult = { success: boolean; [key: string]: unknown };
+
+export type UpdateClientInput = {
+  clientRecordId: string;
+  name?: string;
+  email?: string;
+  phone?: string;
+  coach?: string;
+  primaryCoachId?: string;
+  secondaryCoachId?: string;
+  clientType?: string;
+  packageType?: string;
+  packageName?: string;
+  program?: string;
+  subscriptionStatus?: string;
+  intakeStatus?: string;
+  paymentStatus?: string;
+  purchasedProgramId?: string;
+  accessStartDate?: string;
+  accessEndDate?: string;
+  source?: string;
+  paymentId?: string;
+  startDate?: string;
+  lastCheckInDate?: string;
+  notes?: string;
+  languagePreference?: string;
+  masKmhOverride?: unknown;
+  hrMaxOverride?: unknown;
+  restingHrOverride?: unknown;
+  zone5kPct?: unknown;
+  zone10kPct?: unknown;
+  zoneThresholdPct?: unknown;
+  zoneEasyPct?: unknown;
+  tags?: string[];
+  categories?: string[];
+};
+
 export type CoachDTO = {
   recordId: string;
   coachId: string;

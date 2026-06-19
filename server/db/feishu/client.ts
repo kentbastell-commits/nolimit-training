@@ -65,6 +65,43 @@ export async function getFieldNames(tableId: string): Promise<string[]> {
     .filter(Boolean);
 }
 
+/* ------------------------------- writes ---------------------------------- */
+
+export async function createRecord(tableId: string, fields: Record<string, any>) {
+  const token = await getTenantToken();
+  const res = await fetch(
+    `${FEISHU}/bitable/v1/apps/${appToken()}/tables/${tableId}/records`,
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ fields }),
+    }
+  );
+  return res.json();
+}
+
+export async function updateRecord(tableId: string, recordId: string, fields: Record<string, any>) {
+  const token = await getTenantToken();
+  const res = await fetch(
+    `${FEISHU}/bitable/v1/apps/${appToken()}/tables/${tableId}/records/${recordId}`,
+    {
+      method: "PUT",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ fields }),
+    }
+  );
+  return res.json();
+}
+
+export async function deleteRecord(tableId: string, recordId: string) {
+  const token = await getTenantToken();
+  const res = await fetch(
+    `${FEISHU}/bitable/v1/apps/${appToken()}/tables/${tableId}/records/${recordId}`,
+    { method: "DELETE", headers: { Authorization: `Bearer ${token}` } }
+  );
+  return res.json();
+}
+
 /* --------- shared field parsing (text-first; matches the old handlers) ----- */
 
 export function fieldText(value: any): string {
