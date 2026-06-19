@@ -133,10 +133,8 @@ function makeFieldResolver(tableFields: any[]) {
 export async function createExerciseResultRecords(
   token: string,
   {
-    clientId,
     clientRecordId,
     assignedWorkoutId,
-    programId,
     workoutDate,
     logs,
   }: {

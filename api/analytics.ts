@@ -90,7 +90,7 @@ function addDays(date: Date, days: number) {
   return next;
 }
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default async function handler(_req: VercelRequest, res: VercelResponse) {
   try {
     const token = await getTenantToken();
     const [clientRecords, workoutRecords] = await Promise.all([

@@ -21,24 +21,6 @@ function toLarkDate(value?: string) {
   return new Date(value).getTime();
 }
 
-function resolveField(fields: TableField[], aliases: string[]) {
-  const exact = aliases.find((alias) =>
-    fields.some((field) => (field.field_name || field.name) === alias)
-  );
-
-  if (exact) {
-    return fields.find((field) => (field.field_name || field.name) === exact);
-  }
-
-  const normalizedAliases = aliases.map(normalizeFieldName);
-
-  return fields.find((field) =>
-    normalizedAliases.includes(
-      normalizeFieldName(field.field_name || field.name || "")
-    )
-  );
-}
-
 function resolveFields(fields: TableField[], aliases: string[]) {
   const normalizedAliases = aliases.map(normalizeFieldName);
   const seen = new Set<string>();
