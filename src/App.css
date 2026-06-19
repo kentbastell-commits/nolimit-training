@@ -17169,3 +17169,172 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   min-height: 44px;
   cursor: pointer;
 }
+
+/* ===================== Teams page ===================== */
+.teamsPage { width: 100%; }
+
+.teamsHeader {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.teamsHeader h2 { margin: 2px 0 0; font-size: 1.9rem; color: #10100f; }
+
+.teamsLayout {
+  display: grid;
+  grid-template-columns: minmax(220px, 300px) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.teamsList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.teamCard {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;
+  background: #fff;
+  border: 1px solid #dcd8cd;
+  border-radius: 12px;
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.teamCard:hover { border-color: #c3bca8; }
+.teamCard.active {
+  border-color: #1a1a1a;
+  box-shadow: inset 4px 0 0 #1a1a1a;
+}
+.teamCard strong { font-size: 1rem; color: #10100f; }
+.teamCard small { color: #66645e; font-weight: 700; font-size: 0.8rem; }
+
+.teamDetail {
+  background: #fff;
+  border: 1px solid #dcd8cd;
+  border-radius: 14px;
+  padding: 18px 20px;
+  min-height: 320px;
+}
+.teamEmptyDetail { padding: 40px 0; text-align: center; }
+
+.teamDetailHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+.teamDetailHeader h3 { margin: 2px 0 0; font-size: 1.5rem; color: #10100f; }
+.teamNotes { margin: 6px 0 0; color: #66645e; font-weight: 600; }
+.teamDetailActions { display: flex; align-items: center; gap: 8px; }
+
+.teamSection { margin-top: 18px; }
+.teamSection .profileMetricsHeader { margin-bottom: 12px; }
+
+.teamMembersGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 10px;
+}
+.teamMemberRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid #e4e0d6;
+  border-radius: 10px;
+  padding: 8px 10px;
+}
+.teamMemberMeta { flex: 1; min-width: 0; }
+.teamMemberMeta strong { display: block; color: #10100f; font-size: 0.95rem; }
+.teamMemberMeta small { color: #66645e; font-weight: 700; }
+
+.teamAssignRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+.teamAssignRow select,
+.teamAssignRow input[type="date"] {
+  border: 1px solid #dcd8cd;
+  border-radius: 10px;
+  background: #fff;
+  color: #1a1a1a;
+  font-weight: 700;
+  font-size: 14px;
+  padding: 0 12px;
+  min-height: 44px;
+}
+.teamAssignRow select { min-width: 220px; }
+.teamAssignHint { margin: 10px 0 0; color: #66645e; font-weight: 600; font-size: 0.85rem; }
+
+/* Team editor */
+.teamEditor h3 { margin: 0 0 14px; font-size: 1.4rem; color: #10100f; }
+.teamField { display: block; margin-bottom: 12px; }
+.teamField span {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #66645e;
+}
+.teamField input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #dcd8cd;
+  border-radius: 10px;
+  background: #fff;
+  color: #1a1a1a;
+  font-size: 15px;
+  padding: 11px 12px;
+}
+.teamPickerLabel {
+  display: block;
+  margin: 6px 0 8px;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #66645e;
+}
+.teamMemberPickList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 8px;
+  max-height: 340px;
+  overflow-y: auto;
+  padding: 2px;
+}
+.teamMemberPickItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #e4e0d6;
+  border-radius: 10px;
+  padding: 7px 10px;
+  cursor: pointer;
+}
+.teamMemberPickItem.selected {
+  border-color: #1a1a1a;
+  background: #f6f4ef;
+}
+.teamMemberPickItem input { width: 16px; height: 16px; }
+.teamMemberPickItem .clientAvatar { width: 30px; height: 30px; font-size: 11px; }
+.teamEditorActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+@media (max-width: 900px) {
+  .teamsLayout { grid-template-columns: 1fr; }
+}

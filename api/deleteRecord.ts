@@ -9,6 +9,7 @@ const TABLES = {
   productOrder: "FEISHU_PRODUCT_ORDERS_TABLE_ID",
   program: "FEISHU_PROGRAMS_TABLE_ID",
   workoutTemplate: "FEISHU_WORKOUT_TEMPLATES_TABLE_ID",
+  team: "FEISHU_TEAMS_TABLE_ID",
 } as const;
 
 type DeleteResource = keyof typeof TABLES;

@@ -22,6 +22,7 @@ import {
   TrendingUp,
   UserCircle,
   Users,
+  UsersRound,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -45,6 +46,7 @@ const ProgressChart = lazy(() => import("./ProgressChart"));
 type AppMode = "Coach" | "Client";
 type Page =
   | "Clients"
+  | "Teams"
   | "Library"
   | "Workouts"
   | "Check-ins"
@@ -442,6 +444,16 @@ type AssignableWorkout = {
   estimatedDuration?: string;
   intensity?: string;
   scheduledDate: string;
+};
+
+type Team = {
+  id: string;
+  name: string;
+  coach: string;
+  notes: string;
+  memberIds: string[];
+  memberCount: number;
+  createdTime?: number;
 };
 
 type SavedProgramTemplate = {
@@ -1619,6 +1631,23 @@ function App() {
   const [assignLoading, setAssignLoading] = useState(false);
   const [assigningProgram, setAssigningProgram] = useState(false);
 
+  // Teams
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [teamsLoading, setTeamsLoading] = useState(false);
+  const [selectedTeamId, setSelectedTeamId] = useState("");
+  const [editingTeam, setEditingTeam] = useState(false);
+  const [savingTeam, setSavingTeam] = useState(false);
+  const [teamDraft, setTeamDraft] = useState<{
+    name: string;
+    notes: string;
+    memberIds: string[];
+  }>({ name: "", notes: "", memberIds: [] });
+  const [teamAssignProgramId, setTeamAssignProgramId] = useState("");
+  const [teamAssignStartDate, setTeamAssignStartDate] = useState(
+    dateToInputValue(new Date())
+  );
+  const [teamAssigning, setTeamAssigning] = useState(false);
+
   const [programName, setProgramName] = useState("Foundation Program");
   const [programGoal, setProgramGoal] = useState("General Strength");
   const [programSport, setProgramSport] = useState("Fitness");
@@ -2090,6 +2119,28 @@ function App() {
     }
   };
 
+  const loadTeams = async () => {
+    setTeamsLoading(true);
+    try {
+      const response = await fetch("/api/teams");
+      const data = await response.json();
+      if (!response.ok) {
+        console.error(data);
+        setTeams([]);
+        return [];
+      }
+      const nextTeams: Team[] = data.teams || [];
+      setTeams(nextTeams);
+      return nextTeams;
+    } catch (error) {
+      console.error(error);
+      setTeams([]);
+      return [];
+    } finally {
+      setTeamsLoading(false);
+    }
+  };
+
   const loadProductOrders = async (force?: unknown) => {
     const shouldForce = force === true;
     const cached = productOrdersCacheRef.current;
@@ -2307,6 +2358,7 @@ function App() {
     }
     loadClients();
     loadCoaches();
+    void loadTeams();
     void loadNotifications();
   }, []);
 
@@ -4606,6 +4658,192 @@ function App() {
       notify("Could not load program sessions.");
     } finally {
       setAssignLoading(false);
+    }
+  };
+
+  // ---- Teams ----
+  const currentCoachName = coachScope === "All Coaches" ? "" : coachScope;
+  const visibleTeams =
+    coachScope === "All Coaches"
+      ? teams
+      : teams.filter((team) => !team.coach || team.coach === coachScope);
+  const selectedTeam = teams.find((team) => team.id === selectedTeamId) || null;
+
+  const openNewTeam = () => {
+    setSelectedTeamId("");
+    setTeamDraft({ name: "", notes: "", memberIds: [] });
+    setEditingTeam(true);
+  };
+
+  const openTeamEditor = (team: Team) => {
+    setSelectedTeamId(team.id);
+    setTeamDraft({
+      name: team.name,
+      notes: team.notes,
+      memberIds: [...team.memberIds],
+    });
+    setEditingTeam(true);
+  };
+
+  const toggleTeamMember = (clientRecordId: string) => {
+    setTeamDraft((draft) => ({
+      ...draft,
+      memberIds: draft.memberIds.includes(clientRecordId)
+        ? draft.memberIds.filter((id) => id !== clientRecordId)
+        : [...draft.memberIds, clientRecordId],
+    }));
+  };
+
+  const saveTeam = async () => {
+    if (!teamDraft.name.trim()) {
+      notify("Please name the team.");
+      return;
+    }
+    setSavingTeam(true);
+    try {
+      const res = await fetch("/api/upsertTeam", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          recordId: selectedTeamId || undefined,
+          teamName: teamDraft.name.trim(),
+          coach: currentCoachName,
+          memberRecordIds: teamDraft.memberIds,
+          notes: teamDraft.notes.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        console.error(data);
+        notify("Could not save team.");
+        return;
+      }
+      await loadTeams();
+      setSelectedTeamId(data.recordId || selectedTeamId);
+      setEditingTeam(false);
+      notify("Team saved.", "success");
+    } catch (error) {
+      console.error(error);
+      notify("Could not save team.");
+    } finally {
+      setSavingTeam(false);
+    }
+  };
+
+  const deleteTeam = async (team: Team) => {
+    if (
+      !window.confirm(
+        `Delete team "${team.name}"? This removes the team only — the athletes and their workouts stay.`
+      )
+    ) {
+      return;
+    }
+    try {
+      const res = await fetch("/api/deleteRecord", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ resource: "team", recordId: team.id }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        notify("Could not delete team.");
+        return;
+      }
+      if (selectedTeamId === team.id) setSelectedTeamId("");
+      await loadTeams();
+      notify("Team deleted.", "success");
+    } catch (error) {
+      console.error(error);
+      notify("Could not delete team.");
+    }
+  };
+
+  const assignProgramToTeamNow = async () => {
+    const team = teams.find((t) => t.id === selectedTeamId);
+    if (!team) return;
+    if (team.memberIds.length === 0) {
+      notify("Add athletes to the team first.");
+      return;
+    }
+    const program = programs.find((p) => p.programId === teamAssignProgramId);
+    if (!program) {
+      notify("Select a program to assign.");
+      return;
+    }
+    if (!teamAssignStartDate) {
+      notify("Choose a start date.");
+      return;
+    }
+    setTeamAssigning(true);
+    try {
+      const res = await fetch(
+        `/api/programTemplates?programId=${encodeURIComponent(
+          program.programId
+        )}&programRecordId=${encodeURIComponent(program.recordId || "")}`
+      );
+      const data = await res.json();
+      if (!res.ok) {
+        notify("Could not load program sessions.");
+        return;
+      }
+      const templates = data.templates || [];
+      const map = new Map<string, AssignableWorkout>();
+      templates.forEach((tpl: any) => {
+        const key = `${tpl.week}-${tpl.day}-${tpl.sessionName}`;
+        if (!map.has(key)) {
+          const offsetDays =
+            (Number(tpl.week) - 1) * 7 + (Number(tpl.day) - 1) * 2;
+          map.set(key, {
+            localId: key,
+            week: Number(tpl.week),
+            day: Number(tpl.day),
+            sessionName: tpl.sessionName,
+            sessionType: tpl.sessionType || "Strength",
+            sessionGoal: tpl.sessionGoal || "",
+            estimatedDuration: tpl.estimatedDuration || "",
+            intensity: tpl.intensity || "Moderate",
+            scheduledDate: addDays(teamAssignStartDate, offsetDays),
+          });
+        }
+      });
+      const scheduledWorkouts = Array.from(map.values());
+      if (scheduledWorkouts.length === 0) {
+        notify("This program has no sessions to assign.");
+        return;
+      }
+      const assignRes = await fetch("/api/assignProgram", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clientRecordIds: team.memberIds,
+          programRecordId: program.recordId,
+          scheduledWorkouts: scheduledWorkouts.map((w) => ({
+            week: w.week,
+            day: w.day,
+            sessionName: w.sessionName,
+            sessionType: w.sessionType,
+            sessionGoal: w.sessionGoal,
+            estimatedDuration: w.estimatedDuration,
+            intensity: w.intensity,
+            scheduledDate: w.scheduledDate,
+          })),
+        }),
+      });
+      const assignData = await assignRes.json();
+      if (!assignRes.ok || !assignData.success) {
+        console.error(assignData);
+        notify("Could not assign program to team.");
+        return;
+      }
+      notify(
+        `Assigned ${program.programName} to ${team.memberIds.length} athlete(s) — ${assignData.recordsCreated} workouts created.`,
+        "success"
+      );
+    } catch (error) {
+      console.error(error);
+      notify("Could not assign program to team.");
+    } finally {
+      setTeamAssigning(false);
     }
   };
 
@@ -7927,6 +8165,10 @@ function App() {
     if (page === "Workouts") {
       loadPrograms();
     }
+    if (page === "Teams") {
+      void loadTeams();
+      loadPrograms();
+    }
     if (page === "Orders") {
       loadProductOrders(true);
       loadPrograms();
@@ -7976,16 +8218,15 @@ function App() {
       ],
     },
     {
-      key: "review",
-      label: "Review",
-      icon: Bell,
+      key: "teams",
+      label: "Teams",
+      icon: UsersRound,
       items: [
         {
-          name: "Review",
-          label: "Review",
-          count: reviewQueueCount,
-          icon: Bell,
-          attention: true,
+          name: "Teams",
+          label: "Teams",
+          count: teams.length,
+          icon: UsersRound,
         },
       ],
     },
@@ -8010,8 +8251,22 @@ function App() {
       ],
     },
     {
-      key: "business",
-      label: canManageCoaches ? "Team" : "Business",
+      key: "review",
+      label: "Review",
+      icon: Bell,
+      items: [
+        {
+          name: "Review",
+          label: "Review",
+          count: reviewQueueCount,
+          icon: Bell,
+          attention: true,
+        },
+      ],
+    },
+    {
+      key: "admin",
+      label: "Admin",
       icon: canManageCoaches ? UserCog : ClipboardList,
       items: [
         ...(canManageCoaches
@@ -12728,11 +12983,256 @@ function App() {
               </section>
             )}
 
+            {activePage === "Teams" && (
+              <section className="teamsPage">
+                <div className="teamsHeader">
+                  <div>
+                    <span className="eyebrow">Squads</span>
+                    <h2>Teams</h2>
+                  </div>
+                  <button className="goldButton" onClick={openNewTeam}>
+                    + Create Team
+                  </button>
+                </div>
+
+                <div className="teamsLayout">
+                  <aside className="teamsList">
+                    {teamsLoading && visibleTeams.length === 0 && (
+                      <p className="mutedText">Loading teams…</p>
+                    )}
+                    {!teamsLoading && visibleTeams.length === 0 && (
+                      <p className="mutedText">
+                        No teams yet. Create one to group athletes and assign
+                        programs in bulk.
+                      </p>
+                    )}
+                    {visibleTeams.map((team) => (
+                      <button
+                        key={team.id}
+                        className={`teamCard ${
+                          selectedTeamId === team.id && !editingTeam
+                            ? "active"
+                            : ""
+                        }`}
+                        onClick={() => {
+                          setSelectedTeamId(team.id);
+                          setEditingTeam(false);
+                        }}
+                      >
+                        <strong>{team.name}</strong>
+                        <small>
+                          {team.memberCount} athlete
+                          {team.memberCount === 1 ? "" : "s"}
+                          {team.coach ? ` · ${team.coach}` : ""}
+                        </small>
+                      </button>
+                    ))}
+                  </aside>
+
+                  <div className="teamDetail">
+                    {editingTeam ? (
+                      <div className="teamEditor">
+                        <h3>{selectedTeamId ? "Edit Team" : "New Team"}</h3>
+                        <label className="teamField">
+                          <span>Team name</span>
+                          <input
+                            value={teamDraft.name}
+                            onChange={(e) =>
+                              setTeamDraft((d) => ({ ...d, name: e.target.value }))
+                            }
+                            placeholder="e.g. Morning HYROX Squad"
+                          />
+                        </label>
+                        <label className="teamField">
+                          <span>Notes</span>
+                          <input
+                            value={teamDraft.notes}
+                            onChange={(e) =>
+                              setTeamDraft((d) => ({
+                                ...d,
+                                notes: e.target.value,
+                              }))
+                            }
+                            placeholder="Optional"
+                          />
+                        </label>
+                        <div className="teamMemberPicker">
+                          <span className="teamPickerLabel">
+                            Athletes ({teamDraft.memberIds.length})
+                          </span>
+                          <div className="teamMemberPickList">
+                            {coachVisibleClients.map((client) => (
+                              <label
+                                key={client.id}
+                                className={`teamMemberPickItem ${
+                                  teamDraft.memberIds.includes(client.id)
+                                    ? "selected"
+                                    : ""
+                                }`}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={teamDraft.memberIds.includes(
+                                    client.id
+                                  )}
+                                  onChange={() => toggleTeamMember(client.id)}
+                                />
+                                <span className="clientAvatar">
+                                  {client.initials}
+                                </span>
+                                <span>{client.name}</span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="teamEditorActions">
+                          <button
+                            className="outlineButton"
+                            onClick={() => setEditingTeam(false)}
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            className="goldButton"
+                            onClick={saveTeam}
+                            disabled={savingTeam}
+                          >
+                            {savingTeam ? "Saving…" : "Save Team"}
+                          </button>
+                        </div>
+                      </div>
+                    ) : selectedTeam ? (
+                      <>
+                        <div className="teamDetailHeader">
+                          <div>
+                            <span className="eyebrow">Team</span>
+                            <h3>{selectedTeam.name}</h3>
+                            {selectedTeam.notes && (
+                              <p className="teamNotes">{selectedTeam.notes}</p>
+                            )}
+                          </div>
+                          <div className="teamDetailActions">
+                            <button
+                              className="outlineButton"
+                              onClick={() => openTeamEditor(selectedTeam)}
+                            >
+                              Edit / Members
+                            </button>
+                            <button
+                              className="iconActionButton dangerIconButton"
+                              onClick={() => deleteTeam(selectedTeam)}
+                              title="Delete team"
+                              aria-label={`Delete team ${selectedTeam.name}`}
+                            >
+                              <Trash2 size={17} aria-hidden="true" />
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="teamSection">
+                          <div className="profileMetricsHeader">
+                            <h3>Athletes ({selectedTeam.memberCount})</h3>
+                          </div>
+                          {selectedTeam.memberIds.length === 0 ? (
+                            <p className="mutedText">
+                              No athletes yet — use “Edit / Members” to add some.
+                            </p>
+                          ) : (
+                            <div className="teamMembersGrid">
+                              {selectedTeam.memberIds.map((mid) => {
+                                const c = clients.find((cl) => cl.id === mid);
+                                return (
+                                  <div key={mid} className="teamMemberRow">
+                                    <span className="clientAvatar">
+                                      {c?.initials || "?"}
+                                    </span>
+                                    <div className="teamMemberMeta">
+                                      <strong>
+                                        {c?.name || "Unknown athlete"}
+                                      </strong>
+                                      <small>{c?.clientType || ""}</small>
+                                    </div>
+                                    <button
+                                      className="outlineButton"
+                                      disabled={!c}
+                                      onClick={() => {
+                                        if (!c) return;
+                                        setSelectedClient(c);
+                                        setActivePage("Clients");
+                                        setClientTab("Programs");
+                                      }}
+                                    >
+                                      Open
+                                    </button>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="teamSection">
+                          <div className="profileMetricsHeader">
+                            <h3>Assign program to team</h3>
+                          </div>
+                          <div className="teamAssignRow">
+                            <select
+                              value={teamAssignProgramId}
+                              onChange={(e) =>
+                                setTeamAssignProgramId(e.target.value)
+                              }
+                            >
+                              <option value="">Select a program…</option>
+                              {programs.map((p) => (
+                                <option key={p.programId} value={p.programId}>
+                                  {p.programName}
+                                </option>
+                              ))}
+                            </select>
+                            <input
+                              type="date"
+                              value={teamAssignStartDate}
+                              onChange={(e) =>
+                                setTeamAssignStartDate(e.target.value)
+                              }
+                            />
+                            <button
+                              className="goldButton"
+                              onClick={assignProgramToTeamNow}
+                              disabled={
+                                teamAssigning || selectedTeam.memberCount === 0
+                              }
+                            >
+                              {teamAssigning
+                                ? "Assigning…"
+                                : `Assign to ${selectedTeam.memberCount} athlete${
+                                    selectedTeam.memberCount === 1 ? "" : "s"
+                                  }`}
+                            </button>
+                          </div>
+                          <p className="teamAssignHint">
+                            Creates the program’s workouts for every current
+                            member, starting on the chosen date. To program one
+                            athlete differently, open them and assign
+                            individually.
+                          </p>
+                        </div>
+                      </>
+                    ) : (
+                      <p className="mutedText teamEmptyDetail">
+                        Select a team to see its athletes, or create a new one.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </section>
+            )}
+
             {activePage === "Coaches" && canManageCoaches && (
               <section className="coachManagementPage">
                 <div className="coachManagementSummary">
                   <div>
-                    <span>Team</span>
+                    <span>Coaches</span>
                     <strong>{allCoaches.length}</strong>
                     <small>Total coaches</small>
                   </div>

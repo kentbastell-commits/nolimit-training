@@ -1,0 +1,14 @@
+import { chromium } from 'playwright';
+const b=await chromium.launch();
+const p=await(await b.newContext({viewport:{width:1500,height:1100}})).newPage();
+p.on('response',async r=>{if(/workoutHistory/.test(r.url())){try{const j=await r.json();console.log('NET workoutHistory ->',(j.logs||[]).length);}catch{}}});
+await p.goto('http://43.132.228.109/',{waitUntil:'networkidle',timeout:30000});
+await p.waitForTimeout(5000);
+await p.getByText('Coach Desktop Demo',{exact:true}).first().click().catch(e=>console.log('click err',e.message));
+await p.waitForTimeout(7000);
+await p.getByRole('button',{name:'Client Overview'}).first().click().catch(e=>console.log('tab err',e.message));
+await p.waitForTimeout(3000);
+const cards=await p.locator('.performanceMetricCard').allInnerTexts().catch(()=>[]);
+console.log('metric cards:', JSON.stringify(cards.map(c=>c.replace(/\n+/g,' | '))));
+await p.screenshot({path:'cd.png',fullPage:true});
+await b.close();

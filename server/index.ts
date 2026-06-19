@@ -30,6 +30,7 @@ import programTemplates from "../api/programTemplates.ts";
 import reviewWorkoutComment from "../api/reviewWorkoutComment.ts";
 import saveWorkoutLog from "../api/saveWorkoutLog.ts";
 import submitContentResponse from "../api/submitContentResponse.ts";
+import teams from "../api/teams.ts";
 import testTemplates from "../api/testTemplates.ts";
 import updateAssignedProgramDate from "../api/updateAssignedProgramDate.ts";
 import updateContentAssignmentDate from "../api/updateContentAssignmentDate.ts";
@@ -38,6 +39,7 @@ import updateProductOrder from "../api/updateProductOrder.ts";
 import updateProgram from "../api/updateProgram.ts";
 import upsertCoach from "../api/upsertCoach.ts";
 import upsertExercise from "../api/upsertExercise.ts";
+import upsertTeam from "../api/upsertTeam.ts";
 import workoutDetails from "../api/workoutDetails.ts";
 import workoutHistory from "../api/workoutHistory.ts";
 import workoutComments from "../api/workoutComments.ts";
@@ -78,6 +80,7 @@ const handlers = {
   reviewWorkoutComment,
   saveWorkoutLog,
   submitContentResponse,
+  teams,
   testTemplates,
   updateAssignedProgramDate,
   updateContentAssignmentDate,
@@ -86,6 +89,7 @@ const handlers = {
   updateProgram,
   upsertCoach,
   upsertExercise,
+  upsertTeam,
   workoutDetails,
   workoutHistory,
   workoutComments,
