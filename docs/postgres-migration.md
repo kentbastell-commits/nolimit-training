@@ -89,11 +89,16 @@ deferral.
 1. ✅ Toolchain + local Postgres + Drizzle scaffolding.
 2. ✅ Core schema draft.
 3. ✅ All 25 tables, reconciled against live Feishu data; clean baseline migration.
-4. ⬜ Build the **repository layer** (`server/db/repositories/*`): typed
-   functions the 45 handlers call. Switchable backend via `DATA_BACKEND=feishu|postgres`
-   so Feishu keeps working while we build Postgres in parallel.
-5. ⬜ Refactor the 45 `api/*.ts` handlers to call repositories (no behavior
-   change while still on Feishu).
+4. 🟡 **Repository layer** — pattern established + first slice done (`exercises`).
+   Structure (per domain): `repositories/<d>.ts` (the only thing handlers import;
+   dispatches on `DATA_BACKEND`, lazy-loads the pg impl so Feishu never pulls in
+   pg/drizzle) → `feishu/<d>.ts` (logic moved verbatim from the handler) +
+   `pg/<d>.ts` (Drizzle, returns the same DTO from `dto.ts`). Switch via
+   `DATA_BACKEND=feishu|postgres` (default feishu). Shared cached-token Feishu
+   client in `feishu/client.ts`. Build typechecks the whole chain (handler import
+   pulls it into `tsc`). Remaining domains follow this template mechanically.
+5. 🟡 Refactor the 45 `api/*.ts` handlers to call repositories — `exercises.ts`
+   done as the reference (now a thin handler); rest pending.
 6. ✅ **ETL script** built + cleaned (`server/db/etl/`): extract → transform
    (link→FK resolution) → load. **Dry-run validated against live data
    2026-06-19**: all 25 tables + derived team_members, **0 unmapped fields**,
