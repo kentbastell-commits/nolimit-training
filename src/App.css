@@ -11705,6 +11705,27 @@ button.coachReviewGlobalItem,
   border-color: color-mix(in srgb, #5b6470 26%, #fff);
 }
 
+/* Client detail subtitle meta (type / intake / payment) — render as spaced
+   pills instead of run-together text. */
+.clientLayerBadges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+.clientLayerBadges span {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 11px;
+  border-radius: 999px;
+  background: #e8e6df;
+  color: #1a1a1a;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  border: 1px solid color-mix(in srgb, #1a1a1a 9%, #e8e6df);
+}
+
 /* Video-derived thumbnail in place of initials — a larger 16:9 frame so the
    image is actually legible (initials avatars stay small circles). */
 .exerciseThumbAvatar {
