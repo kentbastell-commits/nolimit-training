@@ -71,7 +71,16 @@ export default async function handler(_req: VercelRequest, res: VercelResponse) 
       tokenData.tenant_access_token
     );
 
-    const subscriptions = items.map((item: any) => {
+    const subscriptions = items
+      .filter((item: any) => {
+        // Drop empty/placeholder rows (Feishu seeds blank rows on table create).
+        const f = item.fields || {};
+        const hasClient = linkRecordIds(f["Client ID"]).length > 0;
+        const hasPlan = !!fieldToText(f["Plan"]);
+        const hasPrice = (Number(fieldToText(f["Price"])) || 0) > 0;
+        return hasClient || hasPlan || hasPrice;
+      })
+      .map((item: any) => {
       const f = item.fields || {};
       return {
         id: item.record_id,
