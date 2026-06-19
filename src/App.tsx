@@ -6338,6 +6338,46 @@ function App() {
     );
   };
 
+  // Rest input + s/min unit dropdown — shared by cardio and strength sets.
+  const renderRestControl = (
+    exerciseIndex: number,
+    setIndex: number,
+    set: ExerciseSetPrescription
+  ) => {
+    const raw = String(set.rest || "").trim();
+    const value = (raw.match(/[\d.]+/) || [""])[0];
+    const unitWord = (raw.match(/[a-z]+/i) || [""])[0].toLowerCase();
+    const unit = unitWord.startsWith("m") ? "min" : "s";
+    const write = (nextValue: string, nextUnit: string) =>
+      updateExerciseSetPrescription(
+        exerciseIndex,
+        setIndex,
+        "rest",
+        nextValue ? `${nextValue} ${nextUnit}` : ""
+      );
+    return (
+      <div className="builderRestControl">
+        <input
+          className="miniSearch builderRestValue"
+          inputMode="numeric"
+          value={value}
+          onChange={(event) =>
+            write(event.target.value.replace(/[^\d.]/g, ""), unit)
+          }
+          placeholder="Rest"
+        />
+        <select
+          className="miniSearch builderIntervalUnit"
+          value={unit}
+          onChange={(event) => write(value, event.target.value)}
+        >
+          <option value="s">s</option>
+          <option value="min">min</option>
+        </select>
+      </div>
+    );
+  };
+
   const renderSetPrescriptionTable = (
     exercise: ProgramExercise,
     exerciseIndex: number
@@ -6371,7 +6411,6 @@ function App() {
             {([
               { tt: "Distance" as TrackingType, label: "Distance" },
               { tt: "Time" as TrackingType, label: "Time" },
-              { tt: "Pace" as TrackingType, label: "Pace" },
             ]).map(({ tt, label }) => (
               <button
                 key={tt}
@@ -6695,6 +6734,65 @@ function App() {
                       );
                     }
 
+                    // Run: custom pace target (mm:ss / km), chosen from the zone
+                    // dropdown — the boxes turn into a pace entry.
+                    if (mode === "pace") {
+                      const raw = String(set.intensityValue || "").trim();
+                      const match = raw.match(/(\d+):(\d{1,2})/);
+                      const minutes = match ? match[1] : "";
+                      const seconds = match ? match[2] : "";
+                      const writePace = (m: string, s: string) =>
+                        setField(
+                          "intensityValue",
+                          m || s
+                            ? `${m || "0"}:${String(s || "0").padStart(2, "0")}/km`
+                            : ""
+                        );
+                      return (
+                        <div className="builderIntensityRow builderPaceRow">
+                          <input
+                            className="miniSearch builderTimeValue"
+                            inputMode="numeric"
+                            value={minutes}
+                            onChange={(event) =>
+                              writePace(
+                                event.target.value.replace(/\D/g, ""),
+                                seconds
+                              )
+                            }
+                            placeholder="min"
+                          />
+                          <span className="builderTimeColon">:</span>
+                          <input
+                            className="miniSearch builderTimeValue"
+                            inputMode="numeric"
+                            value={seconds}
+                            onChange={(event) =>
+                              writePace(
+                                minutes,
+                                event.target.value.replace(/\D/g, "").slice(0, 2)
+                              )
+                            }
+                            placeholder="sec"
+                          />
+                          <span className="builderIntervalUnit builderPaceUnit">
+                            /km
+                          </span>
+                          <button
+                            type="button"
+                            className="builderIntensityRevert"
+                            title="Back to zones"
+                            onClick={() => {
+                              setField("intensityMode", "");
+                              setField("intensityValue", "");
+                            }}
+                          >
+                            ↺
+                          </button>
+                        </div>
+                      );
+                    }
+
                     // Run: named zone dropdown (default).
                     const matched = RUNNING_ZONE_OPTIONS.find(
                       (zone) => String(zone.percent) === String(set.percentMas)
@@ -6705,6 +6803,10 @@ function App() {
                         value={matched ? matched.key : set.percentMas ? "custom" : ""}
                         onChange={(event) => {
                           const value = event.target.value;
+                          if (value === "pace") {
+                            setField("intensityMode", "pace");
+                            return;
+                          }
                           if (value === "custom") {
                             setField("intensityMode", "custom");
                             return;
@@ -6720,6 +6822,7 @@ function App() {
                         }}
                       >
                         <option value="">Zone…</option>
+                        <option value="pace">Custom Pace (min:sec/km)</option>
                         {RUNNING_ZONE_OPTIONS.map((zone) => (
                           <option key={zone.key} value={zone.key}>
                             {zone.label} ({zone.percent}%)
@@ -6733,40 +6836,9 @@ function App() {
                   })()}
                 </div>
                 )}
-                {(() => {
-                  const raw = String(set.rest || "").trim();
-                  const value = (raw.match(/[\d.]+/) || [""])[0];
-                  const unitWord = (raw.match(/[a-z]+/i) || [""])[0].toLowerCase();
-                  const unit = unitWord.startsWith("m") ? "min" : "s";
-                  const write = (nextValue: string, nextUnit: string) =>
-                    updateExerciseSetPrescription(
-                      exerciseIndex,
-                      setIndex,
-                      "rest",
-                      nextValue ? `${nextValue} ${nextUnit}` : ""
-                    );
-                  return (
-                    <div className="builderIntervalCell">
-                      <input
-                        className="miniSearch builderDistanceValue"
-                        inputMode="numeric"
-                        value={value}
-                        onChange={(event) =>
-                          write(event.target.value.replace(/[^\d.]/g, ""), unit)
-                        }
-                        placeholder="Rest"
-                      />
-                      <select
-                        className="miniSearch builderIntervalUnit"
-                        value={unit}
-                        onChange={(event) => write(value, event.target.value)}
-                      >
-                        <option value="s">s</option>
-                        <option value="min">min</option>
-                      </select>
-                    </div>
-                  );
-                })()}
+                <div className="builderIntervalCell">
+                  {renderRestControl(exerciseIndex, setIndex, set)}
+                </div>
               </>
             ) : (
               <>
@@ -6837,19 +6909,7 @@ function App() {
                 </label>
                 <label className="builderSetField">
                   <span className="builderSetFieldLabel">Rest</span>
-                  <input
-                    className="miniSearch"
-                    value={set.rest}
-                    onChange={(event) =>
-                      updateExerciseSetPrescription(
-                        exerciseIndex,
-                        setIndex,
-                        "rest",
-                        event.target.value
-                      )
-                    }
-                    placeholder="Rest"
-                  />
+                  {renderRestControl(exerciseIndex, setIndex, set)}
                 </label>
               </>
             )}

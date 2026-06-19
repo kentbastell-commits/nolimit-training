@@ -17697,3 +17697,10 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   padding: 6px 9px;
   font-size: 13px;
 }
+
+/* Shared rest control (value + s/min) used by cardio and strength sets */
+.builderRestControl { display: flex; align-items: center; gap: 6px; }
+.builderRestControl .builderRestValue { flex: 1; min-width: 0; }
+.builderRestControl .builderIntervalUnit { flex: 0 0 auto; width: 66px; }
+.builderPaceRow { display: flex; align-items: center; gap: 4px; }
+.builderPaceRow .builderTimeValue { width: 52px; flex: 0 0 auto; }
