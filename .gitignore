@@ -24,3 +24,12 @@ dist-ssr
 *.sw?
 
 .vercel
+
+# Secrets / local env
+.env
+.env.*
+!.env.example
+
+# Local data dumps (real client data — never commit)
+etl-data.json
+*.dump.json

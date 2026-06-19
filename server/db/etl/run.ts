@@ -1,18 +1,40 @@
 // ETL runner.
-//   Dry run (no DB needed):  npx tsx server/db/etl/run.ts --dry-run
-//   Load into Postgres:      npx tsx server/db/etl/run.ts        (needs DATABASE_URL)
+//   Dry run (no DB):        npx tsx server/db/etl/run.ts --dry-run
+//   Dump to JSON (no DB):   npx tsx server/db/etl/run.ts --dump=etl-data.json
+//   Load from JSON:         npx tsx server/db/etl/run.ts --from=etl-data.json   (needs DATABASE_URL)
+//   Extract + load direct:  npx tsx server/db/etl/run.ts                        (needs both)
+//
+// --dump/--from let extraction (Feishu creds) and loading (Postgres) run on
+// different machines — used for local verification and the real cutover.
 import "dotenv/config";
+import { readFile, writeFile } from "node:fs/promises";
 import { listAll, textOrNull, type FeishuRecord } from "./extract.ts";
 import { TABLES, deriveTeamMembers, code, type Ctx } from "./transform.ts";
 
 const dryRun = process.argv.includes("--dry-run") || process.env.ETL_DRY_RUN === "1";
 
-// Feishu link-mirror / bookkeeping columns we deliberately don't map.
+function argVal(name: string): string | null {
+  const p = process.argv.find((a) => a.startsWith(`--${name}=`));
+  return p ? p.slice(name.length + 3) : null;
+}
+
 const IGNORE_UNMAPPED =
   /^(UnknownName|SourceID|Workout Logs1?|Clients|Clients 2|Check-?ins?|Check-in|Assigned (Workouts|Forms|Tests)|Product Orders|Progress Metrics|Exercise Results|Workout Templates|Subscriptions|Body Metrics|Members|Groups|Positions|Photo Search Keywords|Thumbnail Search Keywords|Display Target|Set Prescriptions|Exercise Alternates|Duration\/Weeks)/i;
 
 async function main() {
-  // 1. Extract raw records per configured table.
+  const fromPath = argVal("from");
+
+  // Load-only path: read a previously dumped JSON, no Feishu needed.
+  if (fromPath) {
+    if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL not set.");
+    const data = JSON.parse(await readFile(fromPath, "utf8"));
+    const { load } = await import("./load.ts");
+    await load(data.rows, data.teamMembers);
+    console.log(`\nETL load complete (from ${fromPath}).`);
+    return;
+  }
+
+  // 1. Extract raw records per configured table (drop blank seed rows).
   const raw: Record<string, FeishuRecord[]> = {};
   for (const spec of TABLES) {
     const id = process.env[spec.envVar] || spec.fallbackId;
@@ -22,14 +44,12 @@ async function main() {
       continue;
     }
     const all = await listAll(id);
-    // Drop Feishu blank seed rows: a real row has a non-empty business-code PK.
-    // (Tables keyed by record_id, e.g. teams, have pkField "" and keep all rows.)
     raw[spec.table] = spec.pkField
       ? all.filter((rec) => textOrNull(rec.fields[spec.pkField]) !== null)
       : all;
   }
 
-  // 2. Build id maps (Feishu record_id -> business code) for FK resolution.
+  // 2. id maps (record_id -> business code) for FK resolution.
   const idMaps: Record<string, Map<string, string>> = {};
   for (const spec of TABLES) {
     const m = new Map<string, string>();
@@ -43,13 +63,21 @@ async function main() {
   for (const spec of TABLES) rows[spec.table] = (raw[spec.table] || []).map((r) => spec.map(r, ctx));
   const teamMembers = deriveTeamMembers(raw["teams"] || [], ctx);
 
+  const dumpPath = argVal("dump");
+  if (dumpPath) {
+    await writeFile(dumpPath, JSON.stringify({ rows, teamMembers }));
+    const total = Object.values(rows).reduce((n, a) => n + a.length, 0) + teamMembers.length;
+    console.log(`Wrote ${dumpPath} (${total} rows across ${TABLES.length} tables + team_members).`);
+    return;
+  }
+
   if (dryRun) {
     report(raw, rows, teamMembers);
     return;
   }
 
   if (!process.env.DATABASE_URL) {
-    throw new Error("DATABASE_URL not set — start Postgres and configure it, or use --dry-run.");
+    throw new Error("DATABASE_URL not set — use --dry-run or --dump, or configure it.");
   }
   const { load } = await import("./load.ts");
   await load(rows, teamMembers);

@@ -2,6 +2,14 @@
 
 Status: **Phase 1 (prep) in progress.** Last updated 2026-06-19.
 
+> **Milestone (2026-06-19): full pipeline verified end-to-end on a local
+> Postgres 16.** Migration creates all 25 tables → ETL loads a copy of real
+> Feishu data (756 rows; extract on the server via `--dump`, load locally via
+> `--from`, so no credentials are copied) → the app running with
+> `DATA_BACKEND=postgres` served the real `/api/exercises` endpoint with 452
+> exercises straight from Postgres. The repository pattern works against
+> Postgres with the frontend unchanged.
+
 The goal is to move the app's database off Feishu (Lark) Base onto PostgreSQL —
 once — in a way that scales to heavy traffic and leaves a clean, conventional,
 sellable codebase. This doc is the single source of truth for the migration.
@@ -115,9 +123,12 @@ deferral.
      dropped Feishu's empty placeholder rows across coaches, check_ins,
      exercise_results, notifications, assigned_forms, etc.
 
-   Remaining before a real load: validate FK values against loaded PKs (null any
-   orphaned reference so a constraint can't break the load); wire the actual
-   load against a Postgres (local install in progress).
+   ✅ Load implemented + **run against local Postgres** (`--from` a dump):
+   loaded exercises 452, workout_templates 103, workout_logs 110, athlete_metrics
+   13, test_results 19, etc. FK-orphan safety nulls references whose target isn't
+   present (8 nulled in the test data) so a constraint can't break the load.
+   `--dump`/`--from` split keeps extraction (Feishu creds) and loading (Postgres)
+   on separate machines — also how the real cutover runs.
 7. ⬜ **Translate-on-write**: on create/update of a record with CN/EN fields,
    call a translation API (Tencent MT or DeepL) to fill `*_cn` / `*_en`.
    Replaces the Feishu AI formula. Cache results; cost is per new record.
