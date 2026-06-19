@@ -5301,6 +5301,25 @@ function App() {
     return 1;
   };
 
+  // Derived status: an Active/Trial sub whose next billing date has passed is
+  // effectively Past Due, without the coach having to flip it manually.
+  const subEffectiveStatus = (s: Subscription): string => {
+    if (/cancel|paused/i.test(s.status)) return s.status;
+    if (s.nextBillingDate && s.nextBillingDate < todayValue) return "Past Due";
+    return s.status || "Active";
+  };
+
+  // "in 5d" / "overdue 3d" / "today" from a YYYY-MM-DD date.
+  const relativeDue = (dateStr: string): string => {
+    if (!dateStr) return "";
+    const days = Math.round(
+      (new Date(dateStr).getTime() - new Date(todayValue).getTime()) / 86400000
+    );
+    if (days === 0) return "today";
+    if (days > 0) return `in ${days}d`;
+    return `overdue ${Math.abs(days)}d`;
+  };
+
   const accountSubscription = accountClient
     ? subscriptions.find((s) => s.clientRecordIds.includes(accountClient.id)) ||
       null
@@ -5346,6 +5365,35 @@ function App() {
     } catch (error) {
       console.error(error);
       notify("Could not save subscription.");
+    } finally {
+      setSavingSub(false);
+    }
+  };
+
+  const deleteSubscription = async () => {
+    if (!accountSubscription) return;
+    if (!window.confirm("Remove this subscription? This cannot be undone."))
+      return;
+    setSavingSub(true);
+    try {
+      const res = await fetch("/api/deleteRecord", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          resource: "subscription",
+          recordId: accountSubscription.id,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        notify("Could not remove subscription.");
+        return;
+      }
+      await loadSubscriptions();
+      notify("Subscription removed.", "success");
+    } catch (error) {
+      console.error(error);
+      notify("Could not remove subscription.");
     } finally {
       setSavingSub(false);
     }
@@ -13368,8 +13416,9 @@ function App() {
                   : /3\s*month|quarter/i.test(label)
                   ? 3
                   : 1;
-              const activeSubs = scopedSubs.filter((s) =>
-                /active|trial|past due/i.test(s.status)
+              // "Active" = anything not cancelled/paused (revenue-bearing).
+              const activeSubs = scopedSubs.filter(
+                (s) => !/cancel|paused/i.test(s.status)
               );
               const mrrByCurrency: Record<string, number> = {};
               activeSubs.forEach((s) => {
@@ -13377,16 +13426,24 @@ function App() {
                 mrrByCurrency[s.currency || "CNY"] =
                   (mrrByCurrency[s.currency || "CNY"] || 0) + m;
               });
-              const dueCutoff = new Date();
-              dueCutoff.setDate(dueCutoff.getDate() + 14);
-              const renewalsDue = scopedSubs
-                .filter(
-                  (s) =>
-                    /active|trial|past due/i.test(s.status) &&
-                    s.nextBillingDate &&
-                    new Date(s.nextBillingDate) <= dueCutoff
+              const overdueSubs = activeSubs.filter(
+                (s) => subEffectiveStatus(s) === "Past Due"
+              );
+              const dueCutoff = dateToInputValue(
+                new Date(Date.now() + 14 * 86400000)
+              );
+              const dueSoonSubs = activeSubs.filter(
+                (s) =>
+                  s.nextBillingDate &&
+                  s.nextBillingDate >= todayValue &&
+                  s.nextBillingDate <= dueCutoff
+              );
+              // Full active list: overdue first, then soonest next-billing.
+              const sortedActiveSubs = [...activeSubs].sort((a, b) =>
+                (a.nextBillingDate || "9999").localeCompare(
+                  b.nextBillingDate || "9999"
                 )
-                .sort((a, b) => a.nextBillingDate.localeCompare(b.nextBillingDate));
+              );
               const curSymbol = (c: string) => (c === "USD" ? "$" : "¥");
 
               return (
@@ -13413,21 +13470,37 @@ function App() {
                             </div>
                           ))}
                           <div>
-                            <strong>{renewalsDue.length}</strong>
-                            <small>Renewals ≤14d</small>
+                            <strong
+                              className={overdueSubs.length ? "subsOverdueNum" : ""}
+                            >
+                              {overdueSubs.length}
+                            </strong>
+                            <small>Overdue</small>
+                          </div>
+                          <div>
+                            <strong>{dueSoonSubs.length}</strong>
+                            <small>Due ≤14d</small>
                           </div>
                         </div>
                       </div>
-                      {renewalsDue.length > 0 && (
+                      {sortedActiveSubs.length > 0 && (
                         <div className="subsRenewList">
-                          {renewalsDue.slice(0, 8).map((s) => {
+                          {sortedActiveSubs.map((s) => {
                             const c = clients.find(
                               (cl) =>
                                 cl.clientCode === s.clientId ||
                                 s.clientRecordIds.includes(cl.id)
                             );
+                            const eff = subEffectiveStatus(s);
+                            const rel = relativeDue(s.nextBillingDate);
                             return (
-                              <div key={s.id} className="subsRenewRow">
+                              <div
+                                key={s.id}
+                                className="subsRenewRow clickableRow"
+                                onClick={() => {
+                                  if (c) openAccountModal(c);
+                                }}
+                              >
                                 <strong>
                                   {c?.name || s.clientId || "Client"}
                                 </strong>
@@ -13437,14 +13510,23 @@ function App() {
                                   {s.price}/{s.billingCycle}
                                 </span>
                                 <span className="subsDue">
-                                  {s.nextBillingDate}
+                                  {s.nextBillingDate || "—"}
+                                  {rel && (
+                                    <em
+                                      className={`subsRel ${
+                                        eff === "Past Due" ? "isOverdue" : ""
+                                      }`}
+                                    >
+                                      {rel}
+                                    </em>
+                                  )}
                                 </span>
                                 <span
-                                  className={`attentionChip subStatusChip status-${s.status
+                                  className={`attentionChip subStatusChip status-${eff
                                     .toLowerCase()
                                     .replace(/\s+/g, "")}`}
                                 >
-                                  {s.status}
+                                  {eff}
                                 </span>
                               </div>
                             );
@@ -22852,7 +22934,12 @@ function App() {
                     Subscription{" "}
                     {accountSubscription && (
                       <em className="subStatusInline">
-                        · {accountSubscription.status}
+                        · {subEffectiveStatus(accountSubscription)}
+                        {accountSubscription.nextBillingDate
+                          ? ` · renews ${relativeDue(
+                              accountSubscription.nextBillingDate
+                            )}`
+                          : ""}
                       </em>
                     )}
                   </span>
@@ -22972,17 +23059,28 @@ function App() {
                       <span>Auto-renew</span>
                     </label>
                   </div>
-                  <button
-                    className="goldButton accountSaveBtn"
-                    onClick={saveSubscription}
-                    disabled={savingSub}
-                  >
-                    {savingSub
-                      ? "Saving…"
-                      : accountSubscription
-                      ? "Update Subscription"
-                      : "Create Subscription"}
-                  </button>
+                  <div className="subActions">
+                    <button
+                      className="goldButton accountSaveBtn"
+                      onClick={saveSubscription}
+                      disabled={savingSub}
+                    >
+                      {savingSub
+                        ? "Saving…"
+                        : accountSubscription
+                        ? "Update Subscription"
+                        : "Create Subscription"}
+                    </button>
+                    {accountSubscription && (
+                      <button
+                        className="outlineButton subRemoveBtn"
+                        onClick={deleteSubscription}
+                        disabled={savingSub}
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 <div className="accountSection">
