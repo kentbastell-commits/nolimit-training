@@ -2,7 +2,7 @@
 //   Dry run (no DB needed):  npx tsx server/db/etl/run.ts --dry-run
 //   Load into Postgres:      npx tsx server/db/etl/run.ts        (needs DATABASE_URL)
 import "dotenv/config";
-import { listAll, type FeishuRecord } from "./extract.ts";
+import { listAll, textOrNull, type FeishuRecord } from "./extract.ts";
 import { TABLES, deriveTeamMembers, code, type Ctx } from "./transform.ts";
 
 const dryRun = process.argv.includes("--dry-run") || process.env.ETL_DRY_RUN === "1";
@@ -21,7 +21,12 @@ async function main() {
       raw[spec.table] = [];
       continue;
     }
-    raw[spec.table] = await listAll(id);
+    const all = await listAll(id);
+    // Drop Feishu blank seed rows: a real row has a non-empty business-code PK.
+    // (Tables keyed by record_id, e.g. teams, have pkField "" and keep all rows.)
+    raw[spec.table] = spec.pkField
+      ? all.filter((rec) => textOrNull(rec.fields[spec.pkField]) !== null)
+      : all;
   }
 
   // 2. Build id maps (Feishu record_id -> business code) for FK resolution.

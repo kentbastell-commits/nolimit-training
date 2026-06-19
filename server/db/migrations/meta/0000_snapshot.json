@@ -1,5 +1,5 @@
 {
-  "id": "6c1fa6e0-8aea-408f-9bbc-647d6b15343c",
+  "id": "794ef91a-3872-4897-b14a-7f5f9281a04e",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -1030,32 +1030,6 @@
         }
       },
       "foreignKeys": {
-        "clients_primary_coach_id_coaches_coach_id_fk": {
-          "name": "clients_primary_coach_id_coaches_coach_id_fk",
-          "tableFrom": "clients",
-          "tableTo": "coaches",
-          "columnsFrom": [
-            "primary_coach_id"
-          ],
-          "columnsTo": [
-            "coach_id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "clients_secondary_coach_id_coaches_coach_id_fk": {
-          "name": "clients_secondary_coach_id_coaches_coach_id_fk",
-          "tableFrom": "clients",
-          "tableTo": "coaches",
-          "columnsFrom": [
-            "secondary_coach_id"
-          ],
-          "columnsTo": [
-            "coach_id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
         "clients_program_id_programs_program_id_fk": {
           "name": "clients_program_id_programs_program_id_fk",
           "tableFrom": "clients",
@@ -2398,21 +2372,7 @@
           "with": {}
         }
       },
-      "foreignKeys": {
-        "programs_coach_id_coaches_coach_id_fk": {
-          "name": "programs_coach_id_coaches_coach_id_fk",
-          "tableFrom": "programs",
-          "tableTo": "coaches",
-          "columnsFrom": [
-            "coach_id"
-          ],
-          "columnsTo": [
-            "coach_id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},

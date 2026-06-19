@@ -94,20 +94,25 @@ deferral.
    so Feishu keeps working while we build Postgres in parallel.
 5. ⬜ Refactor the 45 `api/*.ts` handlers to call repositories (no behavior
    change while still on Feishu).
-6. 🟡 **ETL script** built (`server/db/etl/`): extract → transform (link→FK
-   resolution) → load. **Dry-run validated against live data 2026-06-19**:
-   all 25 tables + derived team_members, **0 unmapped fields**, FKs resolve to
-   business codes. Load step pending a Postgres target. Cleanup TODOs found:
-   - **Coach references are stored as names** ("Kent Bastell"), not coach codes,
-     so the `coaches` FK on clients/programs/subscriptions/orders won't match.
-     Fix: either relax those to plain text, or resolve name→coach_id in ETL
-     (coaches table is currently thin/empty-named — confirm it first).
-   - **Translation-formula junk**: Feishu's AI CN/EN formulas emit placeholder
-     sentences ("请提供需要翻译的正文内容", "Please provide the text…") when the
-     source is empty. ETL must scrub these to NULL.
-   - **Blank seed rows**: exercise_results, check_ins, notifications,
-     exercise_alternates contain empty Feishu placeholder rows — ETL should skip
-     rows whose business-code PK field is empty.
+6. ✅ **ETL script** built + cleaned (`server/db/etl/`): extract → transform
+   (link→FK resolution) → load. **Dry-run validated against live data
+   2026-06-19**: all 25 tables + derived team_members, **0 unmapped fields**,
+   every client/program/exercise reference resolves to a business code. Load
+   step pending a Postgres target. Cleanup rules applied:
+   - **Reference resolution handles all three Feishu storage styles**: structured
+     link, record-id-as-plain-text (e.g. athlete_metrics/form/test "Client ID"),
+     and the business code already in text. (`resolveOne` in transform.ts.)
+   - **Coach references relaxed to plain text** (stored as names like "Kent
+     Bastell", not codes) — no FK to `coaches`.
+   - **Translation-formula junk scrubbed to NULL** (Feishu AI CN/EN placeholders
+     like "请提供需要翻译…" / "Please provide … translated"). (`TRANSLATION_JUNK`.)
+   - **Blank seed rows skipped** (rows whose business-code PK field is empty) —
+     dropped Feishu's empty placeholder rows across coaches, check_ins,
+     exercise_results, notifications, assigned_forms, etc.
+
+   Remaining before a real load: validate FK values against loaded PKs (null any
+   orphaned reference so a constraint can't break the load); wire the actual
+   load against a Postgres (local install in progress).
 7. ⬜ **Translate-on-write**: on create/update of a record with CN/EN fields,
    call a translation API (Tencent MT or DeepL) to fill `*_cn` / `*_en`.
    Replaces the Feishu AI formula. Cache results; cost is per new record.

@@ -74,9 +74,20 @@ export function fieldText(v: any): string {
   return itemText(v);
 }
 
+// Feishu's AI translation formulas emit these placeholder sentences when the
+// source field is empty — scrub them to null so they don't pollute Postgres.
+const TRANSLATION_JUNK: RegExp[] = [
+  /^请提供需要翻译/,
+  /^please provide .*(translat|text that needs|content)/i,
+  /text is already in english.*no translation/i,
+  /no translation (is )?needed/i,
+];
+
 export function textOrNull(v: any): string | null {
   const t = fieldText(v).trim();
-  return t === "" ? null : t;
+  if (t === "") return null;
+  if (TRANSLATION_JUNK.some((re) => re.test(t))) return null;
+  return t;
 }
 
 export function fieldNum(v: any): number | null {

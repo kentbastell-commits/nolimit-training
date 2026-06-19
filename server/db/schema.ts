@@ -99,7 +99,8 @@ export const programs = pgTable(
     phase: text("phase"),
     phaseCn: text("phase_cn"),
     sessionsPerWeek: integer("sessions_per_week"),
-    coachId: text("coach_id").references(() => coaches.coachId),
+    // Stored as a coach name in Feishu (not a code), so no FK to coaches.
+    coachId: text("coach_id"),
     description: text("description"),
     descriptionCn: text("description_cn"),
     status: text("status").default("Active"),
@@ -137,8 +138,9 @@ export const clients = pgTable(
     phone: text("phone"),
     languagePreference: text("language_preference").default("en"),
     clientType: text("client_type"),
-    primaryCoachId: text("primary_coach_id").references(() => coaches.coachId),
-    secondaryCoachId: text("secondary_coach_id").references(() => coaches.coachId),
+    // Coach fields hold names in Feishu (not codes), so no FK to coaches.
+    primaryCoachId: text("primary_coach_id"),
+    secondaryCoachId: text("secondary_coach_id"),
     coachAssigned: text("coach_assigned"),
     programId: text("program_id").references(() => programs.programId),
     purchasedProgramId: text("purchased_program_id"),

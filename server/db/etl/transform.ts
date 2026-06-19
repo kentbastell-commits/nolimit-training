@@ -22,24 +22,27 @@ export function code(rec: FeishuRecord, pkField: string): string {
   return t ?? rec.record_id;
 }
 
-// Resolve a (possibly link) field to a single referenced business code.
+// Resolve a field to a referenced business code. Handles all three ways Feishu
+// stores a reference: a structured link, a record-id stored as plain text, or
+// the business code itself already in text.
+function resolveOne(raw: string, m?: Map<string, string>): string {
+  return (m && m.get(raw)) ?? raw; // map record_id -> code; else pass through
+}
+
 function ref(v: any, key: string, ctx: Ctx): string | null {
+  const m = ctx.idMaps[key];
   const ids = linkRecordIds(v);
-  if (ids.length) {
-    const m = ctx.idMaps[key];
-    return (m && m.get(ids[0])) ?? ids[0];
-  }
-  return textOrNull(v);
+  if (ids.length) return resolveOne(ids[0], m);
+  const t = textOrNull(v);
+  return t == null ? null : resolveOne(t, m);
 }
 
 function refAll(v: any, key: string, ctx: Ctx): string[] {
+  const m = ctx.idMaps[key];
   const ids = linkRecordIds(v);
-  if (ids.length) {
-    const m = ctx.idMaps[key];
-    return ids.map((id) => (m && m.get(id)) ?? id);
-  }
+  if (ids.length) return ids.map((id) => resolveOne(id, m));
   const t = textOrNull(v);
-  return t ? [t] : [];
+  return t == null ? [] : [resolveOne(t, m)];
 }
 
 export type TableSpec = {
