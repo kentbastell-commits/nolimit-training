@@ -287,6 +287,19 @@ export type AnalyticsResult = {
   }[];
 };
 
+export type TeamDTO = {
+  id: string;
+  name: string;
+  coach: string;
+  notes: string;
+  focus: string;
+  memberIds: string[];
+  memberCount: number;
+  positions: Record<string, string>;
+  groups: string[];
+  createdTime: number;
+};
+
 export type MetricDTO = {
   recordId: string;
   metricId: string;

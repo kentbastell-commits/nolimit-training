@@ -671,12 +671,33 @@ export const TABLES: TableSpec[] = [
   },
 ];
 
-// team_members is derived from the teams "Members" link field.
+// team_members is derived from the teams "Members" link field. The team's
+// "Positions" map is keyed by member record_id; we resolve each member to its
+// client code and attach its position so Postgres can rebuild a code-keyed map.
 export function deriveTeamMembers(teamRecs: FeishuRecord[], ctx: Ctx) {
   const rows: Record<string, unknown>[] = [];
+  const clientMap = ctx.idMaps["clients"];
   for (const rec of teamRecs) {
-    for (const clientId of refAll(rec.fields["Members"], "clients", ctx)) {
-      rows.push({ teamId: rec.record_id, clientId, position: null });
+    let positions: Record<string, string> = {};
+    const rawPos = textOrNull(rec.fields["Positions"]);
+    if (rawPos) {
+      try {
+        positions = JSON.parse(rawPos) || {};
+      } catch {
+        positions = {};
+      }
+    }
+    const memberIds = linkRecordIds(rec.fields["Members"]);
+    if (memberIds.length) {
+      for (const recordId of memberIds) {
+        const clientId = (clientMap && clientMap.get(recordId)) || recordId;
+        rows.push({ teamId: rec.record_id, clientId, position: positions[recordId] ?? null });
+      }
+    } else {
+      // Members stored as text codes (no link) — fall back to code resolution.
+      for (const clientId of refAll(rec.fields["Members"], "clients", ctx)) {
+        rows.push({ teamId: rec.record_id, clientId, position: positions[clientId] ?? null });
+      }
     }
   }
   return rows;

@@ -105,18 +105,22 @@ deferral.
    `DATA_BACKEND=feishu|postgres` (default feishu). Shared cached-token Feishu
    client in `feishu/client.ts`. Build typechecks the whole chain (handler import
    pulls it into `tsc`). Remaining domains follow this template mechanically.
-5. 🟡 Refactor the 45 `api/*.ts` handlers to call repositories. **Read endpoints
-   converted + verified serving from Postgres (local): exercises, clients,
-   programs, coaches, subscriptions, athleteMetrics, productOrders, workouts,
-   workoutHistory, workoutDetails (10).** Backend-agnostic filtering/aggregation
-   (workoutHistory, athleteMetrics, workouts) lives in the repository. Remaining
-   reads: teams (needs ETL `positions` record_id→code remap), programTemplates,
-   analytics, contentResponses; and the GET+POST/CRUD handlers (testTemplates,
-   formTemplates, notifications, checkIns, exerciseResults) convert with their
-   write paths. Then all remaining write paths + translate-on-write + attachments.
+5. ✅ **READ SIDE COMPLETE — all 14 read endpoints converted + verified serving
+   from Postgres (local):** exercises, clients, programs, coaches, subscriptions,
+   athleteMetrics, productOrders, workouts, workoutHistory, workoutDetails,
+   programTemplates, contentResponses, analytics, teams. Backend-agnostic
+   filtering/aggregation/joins live in the repository (workoutHistory aggregation,
+   analytics over clients+workouts, contentResponses answersJson expansion,
+   programTemplates program match, teams). ETL now remaps team `positions` keys
+   record_id→code. Verified e.g. teams positions `{"CL-0001":"Forwards"}`,
+   analytics summary, workoutDetails join.
 
-   Note: live test data has workout_templates with empty Program ID links and a
-   few junk values (e.g. reps "46244") — not ETL bugs, just test data.
+   **Remaining: the write paths** — GET+POST/CRUD handlers (testTemplates,
+   formTemplates, notifications, checkIns, exerciseResults) + all create/update/
+   upsert/assign/save/delete endpoints, then translate-on-write + attachments→COS.
+
+   Note: live test data has many workout_templates with empty Program ID links and
+   a few junk values (e.g. reps "46244") — not ETL bugs, just test data.
    Convention: `id`/`recordId`/`clientRecordIds` return the business code on
    Postgres (no record_ids); consistent within a backend, flips together at cutover.
 6. ✅ **ETL script** built + cleaned (`server/db/etl/`): extract → transform
