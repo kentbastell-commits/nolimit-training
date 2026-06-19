@@ -121,6 +121,27 @@ export type ClientDTO = {
   lastLogin: number;
 };
 
+export type WorkoutDTO = {
+  id: string;
+  assignedWorkoutId: string;
+  clientId: string;
+  programId: string;
+  week: string;
+  day: string;
+  sessionName: string;
+  sessionNameCn: string;
+  sessionType: string;
+  sessionGoal: string;
+  estimatedDuration: string;
+  intensity: string;
+  scheduledDate: string;
+  completionStatus: string;
+  coachNotes: string;
+  coachNotesCn: string;
+  clientNotes: string;
+  workoutLogs: string;
+};
+
 export type MetricDTO = {
   recordId: string;
   metricId: string;
