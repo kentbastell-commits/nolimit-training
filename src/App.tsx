@@ -731,6 +731,26 @@ const MOVEMENT_PATTERN_OPTIONS = [
   "Mobility / Flexibility",
 ];
 
+// Canonical exercise-library categories offered in the editor (even before any
+// exercise uses them). Colors live in App.css as .cat-<slug> rules.
+const CATEGORY_OPTIONS = [
+  "Squat",
+  "Hinge",
+  "Horizontal Push",
+  "Vertical Push",
+  "Horizontal Pull",
+  "Vertical Pull",
+  "Core",
+  "Olympic/Power",
+  "Plyometric",
+  "Carry",
+  "Mobility",
+  "Cardio",
+  "Climbing Specific",
+  "Skills / Drills",
+  "Breathing",
+];
+
 function normalizeDate(value: string) {
   if (!value) return "";
 
@@ -3011,7 +3031,9 @@ function App() {
           .filter(Boolean)
       )
     ).sort((a, b) => a.localeCompare(b));
-  const categoryOptions = distinctLibraryValues("category");
+  const categoryOptions = Array.from(
+    new Set([...CATEGORY_OPTIONS, ...distinctLibraryValues("category")])
+  ).sort((a, b) => a.localeCompare(b));
   const equipmentOptions = distinctLibraryValues("equipment");
   const muscleGroupOptions = distinctLibraryValues("primaryMuscles");
   const movementPatternOptions = Array.from(

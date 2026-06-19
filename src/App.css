@@ -11684,6 +11684,16 @@ button.coachReviewGlobalItem,
   background: color-mix(in srgb, #8a5a2b 12%, #fff);
   border-color: color-mix(in srgb, #8a5a2b 26%, #fff);
 }
+.app:not(.clientPortalApp) .exerciseLibraryTable .exerciseCategoryCell.cat-skills-drills {
+  color: #5a6b3b !important;
+  background: color-mix(in srgb, #5a6b3b 14%, #fff);
+  border-color: color-mix(in srgb, #5a6b3b 30%, #fff);
+}
+.app:not(.clientPortalApp) .exerciseLibraryTable .exerciseCategoryCell.cat-breathing {
+  color: #0f9b8e !important;
+  background: color-mix(in srgb, #0f9b8e 14%, #fff);
+  border-color: color-mix(in srgb, #0f9b8e 30%, #fff);
+}
 
 /* Video-derived thumbnail in place of initials — a larger 16:9 frame so the
    image is actually legible (initials avatars stay small circles). */
