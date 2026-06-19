@@ -92,7 +92,8 @@ export default async function handler(_req: VercelRequest, res: VercelResponse) 
         memberCount: memberIds.length,
         positions,
         groups,
-        createdTime: item.created_time || 0,
+        createdTime:
+          Number(fieldToText(fields["Created Time"])) || item.created_time || 0,
       };
     });
 
