@@ -17630,3 +17630,70 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 .accountSaveBtn { align-self: flex-start; margin-top: 4px; }
 .teamInviteBody { display: flex; flex-direction: column; gap: 12px; }
 .teamInviteLink { margin-top: 6px; }
+
+/* Team detail: subgroup blocks + compact athlete rows */
+.teamSubgroupBlock { margin-bottom: 12px; }
+.teamSubgroupHeading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0 8px;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #66645e;
+}
+.teamSubgroupHeading span {
+  background: #f2f0ea;
+  border: 1px solid #e4e0d6;
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-size: 11px;
+  color: #66645e;
+}
+.teamDetail .teamMembersGrid {
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 8px;
+}
+.teamMemberRow { padding: 6px 9px; gap: 8px; }
+.teamMemberRow .clientAvatar {
+  width: 30px !important;
+  height: 30px !important;
+  font-size: 11px !important;
+  flex: 0 0 auto;
+}
+.teamMemberRow .teamMemberName { white-space: normal; font-size: 0.9rem; }
+
+/* Account modal additions */
+.accountHeaderActions { display: flex; align-items: center; gap: 10px; }
+.accountHeaderActions .outlineButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 12px;
+}
+.accountTeamRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: space-between;
+}
+.accountTeamToggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  flex: 1;
+  min-width: 0;
+}
+.accountTeamPosition {
+  flex: 0 0 auto;
+  width: 160px;
+  border: 1px solid #dcd8cd;
+  border-radius: 8px;
+  padding: 6px 9px;
+  font-size: 13px;
+}

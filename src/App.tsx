@@ -4944,12 +4944,11 @@ function App() {
     }
   };
 
-  const openClientFromTeam = (clientRecordId: string) => {
-    const client = clients.find((c) => c.id === clientRecordId);
-    if (!client) return;
+  const openAthleteCalendar = (client: Client) => {
     setSelectedClient(client);
     setActivePage("Clients");
-    setClientTab("Programs");
+    setClientTab("Training");
+    setAccountClientId("");
   };
 
   // ---- Roster helpers (Clients/Teams tables) ----
@@ -5132,6 +5131,33 @@ function App() {
       notify("Could not save athlete details.");
     } finally {
       setSavingAccount(false);
+    }
+  };
+  const updateAccountTeamPositionLocal = (teamId: string, value: string) => {
+    setTeams((cur) =>
+      cur.map((t) => {
+        if (t.id !== teamId) return t;
+        const positions = { ...t.positions };
+        if (value.trim()) positions[accountClientId] = value;
+        else delete positions[accountClientId];
+        return { ...t, positions };
+      })
+    );
+  };
+  const saveAccountTeamPosition = async (teamId: string, value: string) => {
+    const team = teams.find((t) => t.id === teamId);
+    if (!team) return;
+    const positions = { ...team.positions };
+    if (value.trim()) positions[accountClientId] = value.trim();
+    else delete positions[accountClientId];
+    try {
+      await fetch("/api/upsertTeam", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ recordId: teamId, positions }),
+      });
+    } catch (error) {
+      console.error(error);
     }
   };
   const toggleAccountTeam = async (team: Team) => {
@@ -13457,8 +13483,10 @@ function App() {
                         selectedTeamId === team.id && !editingTeam ? "active" : ""
                       }`}
                       onClick={() => {
-                        setSelectedTeamId(team.id);
                         setEditingTeam(false);
+                        setSelectedTeamId((id) =>
+                          id === team.id ? "" : team.id
+                        );
                       }}
                     >
                       <input
@@ -13683,6 +13711,18 @@ function App() {
                             >
                               <Trash2 size={17} aria-hidden="true" />
                             </button>
+                            <button
+                              className="iconActionButton"
+                              onClick={() => setSelectedTeamId("")}
+                              title="Collapse"
+                              aria-label="Collapse team"
+                            >
+                              <ChevronDown
+                                size={17}
+                                style={{ transform: "rotate(180deg)" }}
+                                aria-hidden="true"
+                              />
+                            </button>
                           </div>
                         </div>
 
@@ -13692,8 +13732,8 @@ function App() {
                           </div>
                           {selectedTeam.memberIds.length > 0 && (
                             <p className="teamMembersCaption">
-                              Tap a name to open the athlete · check the box to
-                              include them when assigning a program.
+                              Tap a name to open the athlete account · check the
+                              box to include them when assigning a program.
                             </p>
                           )}
                           {selectedTeam.memberIds.length === 0 ? (
@@ -13701,56 +13741,83 @@ function App() {
                               No athletes yet — use “Edit / Members” to add some.
                             </p>
                           ) : (
-                            <div className="teamMembersGrid">
-                              {selectedTeam.memberIds.map((mid) => {
-                                const c = clients.find((cl) => cl.id === mid);
-                                const checked =
-                                  teamAssignSelectedIds.includes(mid);
-                                return (
-                                  <div
-                                    key={mid}
-                                    className={`teamMemberRow ${
-                                      checked ? "checked" : ""
-                                    }`}
-                                    role="button"
-                                    tabIndex={0}
-                                    title="Open athlete"
-                                    onClick={() => openClientFromTeam(mid)}
-                                    onKeyDown={(e) => {
-                                      if (e.key === "Enter" || e.key === " ") {
-                                        e.preventDefault();
-                                        openClientFromTeam(mid);
-                                      }
-                                    }}
-                                  >
-                                    <input
-                                      type="checkbox"
-                                      className="teamMemberCheck"
-                                      checked={checked}
-                                      onClick={(e) => e.stopPropagation()}
-                                      onChange={(e) => {
-                                        e.stopPropagation();
-                                        toggleAssignAthlete(mid);
-                                      }}
-                                      aria-label={`Include ${
-                                        c?.name || "athlete"
-                                      } when assigning`}
-                                    />
-                                    <span className="clientAvatar">
-                                      {c?.initials || "?"}
-                                    </span>
-                                    <strong className="teamMemberName">
-                                      {c?.name || "Unknown athlete"}
-                                    </strong>
-                                    {selectedTeam.positions[mid] && (
-                                      <span className="teamPositionTag">
-                                        {selectedTeam.positions[mid]}
-                                      </span>
-                                    )}
+                            (() => {
+                              const groups = new Map<string, string[]>();
+                              selectedTeam.memberIds.forEach((mid) => {
+                                const pos =
+                                  (selectedTeam.positions[mid] || "").trim() ||
+                                  "No position";
+                                if (!groups.has(pos)) groups.set(pos, []);
+                                groups.get(pos)!.push(mid);
+                              });
+                              const ordered = Array.from(groups.entries()).sort(
+                                ([a], [b]) => {
+                                  if (a === "No position") return 1;
+                                  if (b === "No position") return -1;
+                                  return a.localeCompare(b);
+                                }
+                              );
+                              return ordered.map(([pos, ids]) => (
+                                <div className="teamSubgroupBlock" key={pos}>
+                                  <div className="teamSubgroupHeading">
+                                    {pos}
+                                    <span>{ids.length}</span>
                                   </div>
-                                );
-                              })}
-                            </div>
+                                  <div className="teamMembersGrid">
+                                    {ids.map((mid) => {
+                                      const c = clients.find(
+                                        (cl) => cl.id === mid
+                                      );
+                                      const checked =
+                                        teamAssignSelectedIds.includes(mid);
+                                      return (
+                                        <div
+                                          key={mid}
+                                          className={`teamMemberRow ${
+                                            checked ? "checked" : ""
+                                          }`}
+                                          role="button"
+                                          tabIndex={0}
+                                          title="Open athlete account"
+                                          onClick={() => {
+                                            if (c) openAccountModal(c);
+                                          }}
+                                          onKeyDown={(e) => {
+                                            if (
+                                              e.key === "Enter" ||
+                                              e.key === " "
+                                            ) {
+                                              e.preventDefault();
+                                              if (c) openAccountModal(c);
+                                            }
+                                          }}
+                                        >
+                                          <input
+                                            type="checkbox"
+                                            className="teamMemberCheck"
+                                            checked={checked}
+                                            onClick={(e) => e.stopPropagation()}
+                                            onChange={(e) => {
+                                              e.stopPropagation();
+                                              toggleAssignAthlete(mid);
+                                            }}
+                                            aria-label={`Include ${
+                                              c?.name || "athlete"
+                                            } when assigning`}
+                                          />
+                                          <span className="clientAvatar">
+                                            {c?.initials || "?"}
+                                          </span>
+                                          <strong className="teamMemberName">
+                                            {c?.name || "Unknown athlete"}
+                                          </strong>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              ));
+                            })()
                           )}
                         </div>
 
@@ -22090,12 +22157,20 @@ function App() {
                     <p>{accountClient.email || accountClient.phone || "—"}</p>
                   </div>
                 </div>
-                <button
-                  className="drawerClose"
-                  onClick={() => setAccountClientId("")}
-                >
-                  x
-                </button>
+                <div className="accountHeaderActions">
+                  <button
+                    className="outlineButton"
+                    onClick={() => openAthleteCalendar(accountClient)}
+                  >
+                    <CalendarDays size={16} aria-hidden="true" /> Calendar
+                  </button>
+                  <button
+                    className="drawerClose"
+                    onClick={() => setAccountClientId("")}
+                  >
+                    x
+                  </button>
+                </div>
               </div>
 
               <div className="accountModalBody">
@@ -22210,16 +22285,41 @@ function App() {
                     <p className="mutedText">No teams created yet.</p>
                   ) : (
                     <div className="accountTeamList">
-                      {teams.map((team) => (
-                        <label key={team.id} className="accountTeamRow">
-                          <input
-                            type="checkbox"
-                            checked={team.memberIds.includes(accountClientId)}
-                            onChange={() => void toggleAccountTeam(team)}
-                          />
-                          <span>{team.name}</span>
-                        </label>
-                      ))}
+                      {teams.map((team) => {
+                        const isMember =
+                          team.memberIds.includes(accountClientId);
+                        return (
+                          <div key={team.id} className="accountTeamRow">
+                            <label className="accountTeamToggle">
+                              <input
+                                type="checkbox"
+                                checked={isMember}
+                                onChange={() => void toggleAccountTeam(team)}
+                              />
+                              <span>{team.name}</span>
+                            </label>
+                            {isMember && (
+                              <input
+                                className="accountTeamPosition"
+                                placeholder="Subgroup / position"
+                                value={team.positions[accountClientId] || ""}
+                                onChange={(e) =>
+                                  updateAccountTeamPositionLocal(
+                                    team.id,
+                                    e.target.value
+                                  )
+                                }
+                                onBlur={(e) =>
+                                  void saveAccountTeamPosition(
+                                    team.id,
+                                    e.target.value
+                                  )
+                                }
+                              />
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
