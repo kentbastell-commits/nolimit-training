@@ -121,6 +121,58 @@ export type ClientDTO = {
   lastLogin: number;
 };
 
+export type MetricDTO = {
+  recordId: string;
+  metricId: string;
+  clientId: string;
+  clientName: string;
+  metricType: string;
+  metricName: string;
+  metricValue: string;
+  metricUnit: string;
+  sourceType: string;
+  sourceRecordId: string;
+  sourceTestId: string;
+  sourceTestName: string;
+  calculationMethod: string;
+  measuredAt: string;
+  status: string;
+  notes: string;
+};
+
+export type MetricFilter = {
+  clientId?: string;
+  clientRecordId?: string;
+  clientCode?: string;
+  clientName?: string;
+  metricType?: string;
+};
+
+export type OrderDTO = {
+  recordId: string;
+  orderId: string;
+  clientId: string;
+  clientName: string;
+  email: string;
+  phone: string;
+  productType: string;
+  programId: string;
+  productName: string;
+  amount: string;
+  currency: string;
+  paymentStatus: string;
+  paymentProvider: string;
+  purchasedAt: string;
+  accessStartDate: string;
+  accessEndDate: string;
+  intakeStatus: string;
+  assignedCoach: string;
+  intakeAssignmentId: string;
+  onboardingStatus: string;
+  fulfillmentStatus: string;
+  fulfilledAt: string;
+};
+
 export type SubscriptionDTO = {
   id: string;
   subscriptionId: string;

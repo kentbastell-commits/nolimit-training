@@ -107,7 +107,10 @@ deferral.
    pulls it into `tsc`). Remaining domains follow this template mechanically.
 5. 🟡 Refactor the 45 `api/*.ts` handlers to call repositories. **Read endpoints
    converted + verified serving from Postgres (local): exercises, clients,
-   programs, coaches, subscriptions.** Rest of the reads + all write paths pending.
+   programs, coaches, subscriptions, athleteMetrics, productOrders.** Rest of the
+   reads (workouts, teams, checkIns, forms/tests, notifications) + all write
+   paths pending. (teams needs an ETL tweak: remap `positions` keys record_id→code;
+   checkIns/exerciseResults are GET+POST — convert with their write paths.)
    Convention: `id`/`recordId`/`clientRecordIds` return the business code on
    Postgres (no record_ids); consistent within a backend, flips together at cutover.
 6. ✅ **ETL script** built + cleaned (`server/db/etl/`): extract → transform
