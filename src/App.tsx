@@ -726,6 +726,7 @@ const MOVEMENT_PATTERN_OPTIONS = [
   "Core / Anti-Rotation",
   "Carry / Loaded Carry",
   "Olympic / Power",
+  "Plyometric",
   "Locomotion / Cardio",
   "Mobility / Flexibility",
 ];
