@@ -12986,10 +12986,10 @@ function App() {
             {activePage === "Teams" && (
               <section className="teamsPage">
                 <div className="teamsHeader">
-                  <div>
-                    <span className="eyebrow">Squads</span>
-                    <h2>Teams</h2>
-                  </div>
+                  <p className="teamsIntro">
+                    Group athletes into squads and assign a program to everyone at
+                    once.
+                  </p>
                   <button className="goldButton" onClick={openNewTeam}>
                     + Create Team
                   </button>

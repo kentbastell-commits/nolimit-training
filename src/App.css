@@ -17338,3 +17338,5 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 @media (max-width: 900px) {
   .teamsLayout { grid-template-columns: 1fr; }
 }
+
+.teamsIntro { margin: 0; color: #66645e; font-weight: 600; max-width: 46rem; }
