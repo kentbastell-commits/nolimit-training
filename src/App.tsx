@@ -459,6 +459,7 @@ type Team = {
   memberIds: string[];
   memberCount: number;
   positions: Record<string, string>;
+  groups: string[];
   createdTime?: number;
 };
 
@@ -675,6 +676,25 @@ function categorySlug(category?: string): string {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
   return slug ? `cat-${slug}` : "";
+}
+
+// Deterministic chip colors for group/position/category labels so the same
+// label is always the same color across teams and profiles.
+const GROUP_LABEL_COLORS = [
+  { bg: "#e8f0ff", fg: "#1f5fd6", bd: "#bcd3ff" },
+  { bg: "#fdeaee", fg: "#a32f3e", bd: "#f3c5cd" },
+  { bg: "#e9f6ee", fg: "#237a30", bd: "#c2e6cd" },
+  { bg: "#f3ecfb", fg: "#6a2f9e", bd: "#dcc8f0" },
+  { bg: "#fdf0e1", fg: "#9a6a12", bd: "#f0d8b4" },
+  { bg: "#e6f6f7", fg: "#0c7382", bd: "#bfe6ea" },
+  { bg: "#ecedf6", fg: "#3a4a8a", bd: "#d0d4ea" },
+  { bg: "#fbe9f6", fg: "#97287f", bd: "#f1c6e4" },
+];
+function labelColor(label: string): { bg: string; fg: string; bd: string } {
+  let hash = 0;
+  const s = String(label || "");
+  for (let i = 0; i < s.length; i += 1) hash = (hash * 31 + s.charCodeAt(i)) | 0;
+  return GROUP_LABEL_COLORS[Math.abs(hash) % GROUP_LABEL_COLORS.length];
 }
 
 const MOVEMENT_PATTERN_OPTIONS = [
@@ -1650,7 +1670,16 @@ function App() {
     focus: string;
     memberIds: string[];
     positions: Record<string, string>;
-  }>({ name: "", notes: "", focus: "", memberIds: [], positions: {} });
+    groups: string[];
+  }>({
+    name: "",
+    notes: "",
+    focus: "",
+    memberIds: [],
+    positions: {},
+    groups: [],
+  });
+  const [teamGroupInput, setTeamGroupInput] = useState("");
   const [teamAssignSubgroup, setTeamAssignSubgroup] = useState("All");
   // Teams table UI
   const [teamRowMenuId, setTeamRowMenuId] = useState("");
@@ -4703,7 +4732,15 @@ function App() {
 
   const openNewTeam = () => {
     setSelectedTeamId("");
-    setTeamDraft({ name: "", notes: "", focus: "", memberIds: [], positions: {} });
+    setTeamDraft({
+      name: "",
+      notes: "",
+      focus: "",
+      memberIds: [],
+      positions: {},
+      groups: [],
+    });
+    setTeamGroupInput("");
     setEditingTeam(true);
   };
 
@@ -4715,8 +4752,33 @@ function App() {
       focus: team.focus || "",
       memberIds: [...team.memberIds],
       positions: { ...team.positions },
+      groups: [...(team.groups || [])],
     });
+    setTeamGroupInput("");
     setEditingTeam(true);
+  };
+
+  const addTeamGroup = () => {
+    const v = teamGroupInput.trim();
+    if (!v) return;
+    setTeamDraft((d) =>
+      d.groups.includes(v) ? d : { ...d, groups: [...d.groups, v] }
+    );
+    setTeamGroupInput("");
+  };
+  const removeTeamGroup = (label: string) => {
+    setTeamDraft((d) => {
+      const positions = { ...d.positions };
+      // clear any member assigned to the removed group
+      Object.keys(positions).forEach((mid) => {
+        if (positions[mid] === label) delete positions[mid];
+      });
+      return {
+        ...d,
+        groups: d.groups.filter((g) => g !== label),
+        positions,
+      };
+    });
   };
 
   const toggleTeamMember = (clientRecordId: string) => {
@@ -4762,6 +4824,7 @@ function App() {
           notes: teamDraft.notes.trim(),
           positions: teamDraft.positions,
           focus: teamDraft.focus.trim(),
+          groups: teamDraft.groups,
         }),
       });
       const data = await res.json();
@@ -4770,6 +4833,46 @@ function App() {
         notify("Could not save team.");
         return;
       }
+
+      // Two-way sync: each member's profile Categories reflect their team group.
+      const groupSet = new Set(teamDraft.groups);
+      const patches: { id: string; categories: string[] }[] = [];
+      teamDraft.memberIds.forEach((mid) => {
+        const client = clients.find((c) => c.id === mid);
+        if (!client) return;
+        const pos = teamDraft.positions[mid] || "";
+        const current = client.categories || [];
+        const next = current.filter((cat) => !groupSet.has(cat));
+        if (pos) next.push(pos);
+        const nextUniq = Array.from(new Set(next));
+        if (
+          nextUniq.length !== current.length ||
+          nextUniq.some((c, i) => c !== current[i])
+        ) {
+          patches.push({ id: mid, categories: nextUniq });
+        }
+      });
+      if (patches.length) {
+        await Promise.all(
+          patches.map((p) =>
+            fetch("/api/updateClient", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                clientRecordId: p.id,
+                categories: p.categories,
+              }),
+            })
+          )
+        );
+        setClients((cur) =>
+          cur.map((c) => {
+            const patch = patches.find((p) => p.id === c.id);
+            return patch ? { ...c, categories: patch.categories } : c;
+          })
+        );
+      }
+
       await loadTeams();
       setSelectedTeamId(data.recordId || selectedTeamId);
       setEditingTeam(false);
@@ -5125,6 +5228,34 @@ function App() {
             : c
         )
       );
+
+      // Two-way sync: a category matching a team's group sets that team position.
+      const catSet = new Set(accountDraft.categories);
+      const teamPatches = teams
+        .filter((t) => t.memberIds.includes(accountClient.id))
+        .map((t) => {
+          const matched = t.groups.find((g) => catSet.has(g)) || "";
+          const cur = t.positions[accountClient.id] || "";
+          if (matched === cur) return null;
+          const positions = { ...t.positions };
+          if (matched) positions[accountClient.id] = matched;
+          else delete positions[accountClient.id];
+          return { id: t.id, positions };
+        })
+        .filter(Boolean) as { id: string; positions: Record<string, string> }[];
+      if (teamPatches.length) {
+        await Promise.all(
+          teamPatches.map((p) =>
+            fetch("/api/upsertTeam", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ recordId: p.id, positions: p.positions }),
+            })
+          )
+        );
+        await loadTeams();
+      }
+
       notify("Athlete details saved.", "success");
     } catch (error) {
       console.error(error);
@@ -13670,22 +13801,62 @@ function App() {
                             placeholder="Optional"
                           />
                         </label>
+                        <div className="teamGroupsManager">
+                          <span className="teamPickerLabel">
+                            Groups / Positions
+                          </span>
+                          <div className="chipRow">
+                            {teamDraft.groups.length === 0 && (
+                              <span className="mutedText">No groups yet</span>
+                            )}
+                            {teamDraft.groups.map((g) => {
+                              const c = labelColor(g);
+                              return (
+                                <span
+                                  className="editChip groupChip"
+                                  key={g}
+                                  style={{
+                                    background: c.bg,
+                                    color: c.fg,
+                                    borderColor: c.bd,
+                                  }}
+                                >
+                                  {g}
+                                  <button
+                                    onClick={() => removeTeamGroup(g)}
+                                    aria-label={`Remove ${g}`}
+                                  >
+                                    ×
+                                  </button>
+                                </span>
+                              );
+                            })}
+                          </div>
+                          <div className="chipAddRow">
+                            <input
+                              value={teamGroupInput}
+                              placeholder="e.g. Forwards, Backs"
+                              onChange={(e) => setTeamGroupInput(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault();
+                                  addTeamGroup();
+                                }
+                              }}
+                            />
+                            <button
+                              className="outlineButton"
+                              onClick={addTeamGroup}
+                            >
+                              Add
+                            </button>
+                          </div>
+                        </div>
                         <div className="teamMemberPicker">
                           <span className="teamPickerLabel">
                             Athletes ({teamDraft.memberIds.length}) · check to
-                            add, set a position to make subgroups
+                            add, then choose a group
                           </span>
-                          <datalist id="teamPositionOptions">
-                            {Array.from(
-                              new Set(
-                                Object.values(teamDraft.positions)
-                                  .map((p) => p.trim())
-                                  .filter(Boolean)
-                              )
-                            ).map((p) => (
-                              <option key={p} value={p} />
-                            ))}
-                          </datalist>
                           <div className="teamMemberPickList">
                             {coachVisibleClients.map((client) => {
                               const selected = teamDraft.memberIds.includes(
@@ -13711,11 +13882,9 @@ function App() {
                                     </span>
                                     <span>{client.name}</span>
                                   </label>
-                                  {selected && (
-                                    <input
+                                  {selected && teamDraft.groups.length > 0 && (
+                                    <select
                                       className="teamPositionInput"
-                                      list="teamPositionOptions"
-                                      placeholder="Position"
                                       value={teamDraft.positions[client.id] || ""}
                                       onChange={(e) =>
                                         setMemberPosition(
@@ -13723,7 +13892,14 @@ function App() {
                                           e.target.value
                                         )
                                       }
-                                    />
+                                    >
+                                      <option value="">No group</option>
+                                      {teamDraft.groups.map((g) => (
+                                        <option key={g} value={g}>
+                                          {g}
+                                        </option>
+                                      ))}
+                                    </select>
                                   )}
                                 </div>
                               );
@@ -13817,10 +13993,28 @@ function App() {
                                   return a.localeCompare(b);
                                 }
                               );
-                              return ordered.map(([pos, ids]) => (
+                              return ordered.map(([pos, ids]) => {
+                                const pc =
+                                  pos === "No position"
+                                    ? null
+                                    : labelColor(pos);
+                                return (
                                 <div className="teamSubgroupBlock" key={pos}>
                                   <div className="teamSubgroupHeading">
-                                    {pos}
+                                    <span
+                                      className="teamSubgroupName"
+                                      style={
+                                        pc
+                                          ? {
+                                              background: pc.bg,
+                                              color: pc.fg,
+                                              borderColor: pc.bd,
+                                            }
+                                          : undefined
+                                      }
+                                    >
+                                      {pos}
+                                    </span>
                                     <span>{ids.length}</span>
                                   </div>
                                   <div className="teamMembersGrid">
@@ -13876,7 +14070,8 @@ function App() {
                                     })}
                                   </div>
                                 </div>
-                              ));
+                                );
+                              });
                             })()
                           )}
                         </div>
@@ -22239,17 +22434,28 @@ function App() {
                     Categories (Sports / Positions / Groups)
                   </span>
                   <div className="chipRow">
-                    {accountDraft.categories.map((c) => (
-                      <span className="editChip" key={c}>
-                        {c}
-                        <button
-                          onClick={() => removeAccountChip("categories", c)}
-                          aria-label={`Remove ${c}`}
+                    {accountDraft.categories.map((c) => {
+                      const cc = labelColor(c);
+                      return (
+                        <span
+                          className="editChip groupChip"
+                          key={c}
+                          style={{
+                            background: cc.bg,
+                            color: cc.fg,
+                            borderColor: cc.bd,
+                          }}
                         >
-                          ×
-                        </button>
-                      </span>
-                    ))}
+                          {c}
+                          <button
+                            onClick={() => removeAccountChip("categories", c)}
+                            aria-label={`Remove ${c}`}
+                          >
+                            ×
+                          </button>
+                        </span>
+                      );
+                    })}
                     {accountDraft.categories.length === 0 && (
                       <span className="mutedText">None yet</span>
                     )}

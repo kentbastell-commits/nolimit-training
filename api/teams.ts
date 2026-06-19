@@ -72,6 +72,16 @@ export default async function handler(_req: VercelRequest, res: VercelResponse) 
       } catch {
         positions = {};
       }
+      let groups: string[] = [];
+      try {
+        const raw = fieldToText(fields["Groups"]);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) groups = parsed.map((x) => String(x)).filter(Boolean);
+        }
+      } catch {
+        groups = [];
+      }
       return {
         id: item.record_id,
         name: fieldToText(fields["Team Name"]) || "Untitled Team",
@@ -81,6 +91,7 @@ export default async function handler(_req: VercelRequest, res: VercelResponse) 
         memberIds,
         memberCount: memberIds.length,
         positions,
+        groups,
         createdTime: item.created_time || 0,
       };
     });

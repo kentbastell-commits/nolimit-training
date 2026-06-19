@@ -18,8 +18,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { recordId, teamName, coach, memberRecordIds, notes, positions, focus } =
-      req.body;
+    const {
+      recordId,
+      teamName,
+      coach,
+      memberRecordIds,
+      notes,
+      positions,
+      focus,
+      groups,
+    } = req.body;
 
     if (!teamName && !recordId) {
       return res.status(400).json({ error: "Missing team name" });
@@ -59,6 +67,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (positions !== undefined) {
       // Per-member position/subgroup map, stored as JSON text.
       allFields["Positions"] = JSON.stringify(positions || {});
+    }
+    if (groups !== undefined) {
+      // Defined group/position labels for this team, stored as JSON array.
+      allFields["Groups"] = JSON.stringify(Array.isArray(groups) ? groups : []);
     }
 
     const fields: Record<string, any> = {};
