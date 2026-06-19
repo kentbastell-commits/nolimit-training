@@ -65,6 +65,13 @@ export default async function handler(_req: VercelRequest, res: VercelResponse) 
     const teams = items.map((item: any) => {
       const fields = item.fields || {};
       const memberIds = linkRecordIds(fields["Members"]);
+      let positions: Record<string, string> = {};
+      try {
+        const raw = fieldToText(fields["Positions"]);
+        if (raw) positions = JSON.parse(raw) || {};
+      } catch {
+        positions = {};
+      }
       return {
         id: item.record_id,
         name: fieldToText(fields["Team Name"]) || "Untitled Team",
@@ -72,6 +79,7 @@ export default async function handler(_req: VercelRequest, res: VercelResponse) 
         notes: fieldToText(fields["Notes"]),
         memberIds,
         memberCount: memberIds.length,
+        positions,
         createdTime: item.created_time || 0,
       };
     });

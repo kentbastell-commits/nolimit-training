@@ -17249,10 +17249,28 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   border: 1px solid #e4e0d6;
   border-radius: 10px;
   padding: 8px 10px;
+  cursor: pointer;
+  background: #fff;
+  transition: border-color 0.15s ease, background 0.15s ease;
 }
-.teamMemberMeta { flex: 1; min-width: 0; }
-.teamMemberMeta strong { display: block; color: #10100f; font-size: 0.95rem; }
-.teamMemberMeta small { color: #66645e; font-weight: 700; }
+.teamMemberRow:hover { border-color: #c3bca8; background: #faf9f5; }
+.teamMemberRow.checked { border-color: #1a1a1a; }
+.teamMemberCheck { width: 18px; height: 18px; flex: 0 0 auto; cursor: pointer; }
+.teamMemberName {
+  flex: 1;
+  min-width: 0;
+  color: #10100f;
+  font-size: 0.95rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.teamMembersCaption {
+  margin: 0 0 12px;
+  color: #66645e;
+  font-weight: 600;
+  font-size: 0.82rem;
+}
 
 .teamAssignRow {
   display: flex;
@@ -17340,3 +17358,53 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 }
 
 .teamsIntro { margin: 0; color: #66645e; font-weight: 600; max-width: 46rem; }
+
+/* Team positions / subgroups */
+.teamPositionTag {
+  flex: 0 0 auto;
+  border: 1px solid #cbd3da;
+  background: color-mix(in srgb, #5b6770 14%, #fff);
+  color: #44525c;
+  border-radius: 999px;
+  padding: 2px 9px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+.teamMemberPickItem { flex-direction: column; align-items: stretch; gap: 6px; }
+.teamPickToggle { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.teamPositionInput {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #dcd8cd;
+  border-radius: 8px;
+  background: #fff;
+  color: #1a1a1a;
+  font-size: 13px;
+  padding: 6px 9px;
+}
+.teamSubgroupRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.teamSubgroupLabel {
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #66645e;
+}
+.teamSubgroupRow select {
+  border: 1px solid #dcd8cd;
+  border-radius: 10px;
+  background: #fff;
+  color: #1a1a1a;
+  font-weight: 700;
+  font-size: 14px;
+  padding: 0 12px;
+  min-height: 40px;
+  min-width: 200px;
+}
+.teamSubgroupCount { color: #66645e; font-weight: 700; font-size: 0.85rem; }

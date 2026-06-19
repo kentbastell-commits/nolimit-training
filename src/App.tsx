@@ -453,6 +453,7 @@ type Team = {
   notes: string;
   memberIds: string[];
   memberCount: number;
+  positions: Record<string, string>;
   createdTime?: number;
 };
 
@@ -1641,12 +1642,16 @@ function App() {
     name: string;
     notes: string;
     memberIds: string[];
-  }>({ name: "", notes: "", memberIds: [] });
+    positions: Record<string, string>;
+  }>({ name: "", notes: "", memberIds: [], positions: {} });
+  const [teamAssignSubgroup, setTeamAssignSubgroup] = useState("All");
   const [teamAssignProgramId, setTeamAssignProgramId] = useState("");
   const [teamAssignStartDate, setTeamAssignStartDate] = useState(
     dateToInputValue(new Date())
   );
   const [teamAssigning, setTeamAssigning] = useState(false);
+  // Which athletes are checked to receive the program (defaults to all members).
+  const [teamAssignSelectedIds, setTeamAssignSelectedIds] = useState<string[]>([]);
 
   const [programName, setProgramName] = useState("Foundation Program");
   const [programGoal, setProgramGoal] = useState("General Strength");
@@ -4671,7 +4676,7 @@ function App() {
 
   const openNewTeam = () => {
     setSelectedTeamId("");
-    setTeamDraft({ name: "", notes: "", memberIds: [] });
+    setTeamDraft({ name: "", notes: "", memberIds: [], positions: {} });
     setEditingTeam(true);
   };
 
@@ -4681,17 +4686,34 @@ function App() {
       name: team.name,
       notes: team.notes,
       memberIds: [...team.memberIds],
+      positions: { ...team.positions },
     });
     setEditingTeam(true);
   };
 
   const toggleTeamMember = (clientRecordId: string) => {
-    setTeamDraft((draft) => ({
-      ...draft,
-      memberIds: draft.memberIds.includes(clientRecordId)
-        ? draft.memberIds.filter((id) => id !== clientRecordId)
-        : [...draft.memberIds, clientRecordId],
-    }));
+    setTeamDraft((draft) => {
+      const isMember = draft.memberIds.includes(clientRecordId);
+      const positions = { ...draft.positions };
+      if (isMember) delete positions[clientRecordId]; // drop position when removed
+      return {
+        ...draft,
+        memberIds: isMember
+          ? draft.memberIds.filter((id) => id !== clientRecordId)
+          : [...draft.memberIds, clientRecordId],
+        positions,
+      };
+    });
+  };
+
+  const setMemberPosition = (clientRecordId: string, position: string) => {
+    setTeamDraft((draft) => {
+      const positions = { ...draft.positions };
+      const clean = position.trim();
+      if (clean) positions[clientRecordId] = clean;
+      else delete positions[clientRecordId];
+      return { ...draft, positions };
+    });
   };
 
   const saveTeam = async () => {
@@ -4710,6 +4732,7 @@ function App() {
           coach: currentCoachName,
           memberRecordIds: teamDraft.memberIds,
           notes: teamDraft.notes.trim(),
+          positions: teamDraft.positions,
         }),
       });
       const data = await res.json();
@@ -4761,8 +4784,11 @@ function App() {
   const assignProgramToTeamNow = async () => {
     const team = teams.find((t) => t.id === selectedTeamId);
     if (!team) return;
-    if (team.memberIds.length === 0) {
-      notify("Add athletes to the team first.");
+    const targetIds = teamAssignSelectedIds.filter((id) =>
+      team.memberIds.includes(id)
+    );
+    if (targetIds.length === 0) {
+      notify("Select at least one athlete to assign.");
       return;
     }
     const program = programs.find((p) => p.programId === teamAssignProgramId);
@@ -4815,7 +4841,7 @@ function App() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          clientRecordIds: team.memberIds,
+          clientRecordIds: targetIds,
           programRecordId: program.recordId,
           scheduledWorkouts: scheduledWorkouts.map((w) => ({
             week: w.week,
@@ -4836,7 +4862,7 @@ function App() {
         return;
       }
       notify(
-        `Assigned ${program.programName} to ${team.memberIds.length} athlete(s) — ${assignData.recordsCreated} workouts created.`,
+        `Assigned ${program.programName} to ${targetIds.length} athlete(s) — ${assignData.recordsCreated} workouts created.`,
         "success"
       );
     } catch (error) {
@@ -4845,6 +4871,56 @@ function App() {
     } finally {
       setTeamAssigning(false);
     }
+  };
+
+  // Default the assign-selection to all members whenever the team changes.
+  useEffect(() => {
+    const team = teams.find((t) => t.id === selectedTeamId);
+    setTeamAssignSelectedIds(team ? team.memberIds : []);
+    setTeamAssignSubgroup("All");
+  }, [selectedTeamId, teams]);
+
+  const toggleAssignAthlete = (clientRecordId: string) => {
+    setTeamAssignSubgroup("All"); // manual edit no longer matches a subgroup
+    setTeamAssignSelectedIds((ids) =>
+      ids.includes(clientRecordId)
+        ? ids.filter((id) => id !== clientRecordId)
+        : [...ids, clientRecordId]
+    );
+  };
+
+  // Distinct positions/subgroups defined for the selected team.
+  const selectedTeamSubgroups = selectedTeam
+    ? Array.from(
+        new Set(
+          selectedTeam.memberIds
+            .map((id) => (selectedTeam.positions[id] || "").trim())
+            .filter(Boolean)
+        )
+      ).sort((a, b) => a.localeCompare(b))
+    : [];
+
+  const applyAssignSubgroup = (subgroup: string) => {
+    setTeamAssignSubgroup(subgroup);
+    const team = teams.find((t) => t.id === selectedTeamId);
+    if (!team) return;
+    if (subgroup === "All") {
+      setTeamAssignSelectedIds(team.memberIds);
+    } else {
+      setTeamAssignSelectedIds(
+        team.memberIds.filter(
+          (id) => (team.positions[id] || "").trim() === subgroup
+        )
+      );
+    }
+  };
+
+  const openClientFromTeam = (clientRecordId: string) => {
+    const client = clients.find((c) => c.id === clientRecordId);
+    if (!client) return;
+    setSelectedClient(client);
+    setActivePage("Clients");
+    setClientTab("Programs");
   };
 
   const updateAssignableWorkoutDate = (localId: string, scheduledDate: string) => {
@@ -13058,31 +13134,62 @@ function App() {
                         </label>
                         <div className="teamMemberPicker">
                           <span className="teamPickerLabel">
-                            Athletes ({teamDraft.memberIds.length})
+                            Athletes ({teamDraft.memberIds.length}) · check to
+                            add, set a position to make subgroups
                           </span>
-                          <div className="teamMemberPickList">
-                            {coachVisibleClients.map((client) => (
-                              <label
-                                key={client.id}
-                                className={`teamMemberPickItem ${
-                                  teamDraft.memberIds.includes(client.id)
-                                    ? "selected"
-                                    : ""
-                                }`}
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={teamDraft.memberIds.includes(
-                                    client.id
-                                  )}
-                                  onChange={() => toggleTeamMember(client.id)}
-                                />
-                                <span className="clientAvatar">
-                                  {client.initials}
-                                </span>
-                                <span>{client.name}</span>
-                              </label>
+                          <datalist id="teamPositionOptions">
+                            {Array.from(
+                              new Set(
+                                Object.values(teamDraft.positions)
+                                  .map((p) => p.trim())
+                                  .filter(Boolean)
+                              )
+                            ).map((p) => (
+                              <option key={p} value={p} />
                             ))}
+                          </datalist>
+                          <div className="teamMemberPickList">
+                            {coachVisibleClients.map((client) => {
+                              const selected = teamDraft.memberIds.includes(
+                                client.id
+                              );
+                              return (
+                                <div
+                                  key={client.id}
+                                  className={`teamMemberPickItem ${
+                                    selected ? "selected" : ""
+                                  }`}
+                                >
+                                  <label className="teamPickToggle">
+                                    <input
+                                      type="checkbox"
+                                      checked={selected}
+                                      onChange={() =>
+                                        toggleTeamMember(client.id)
+                                      }
+                                    />
+                                    <span className="clientAvatar">
+                                      {client.initials}
+                                    </span>
+                                    <span>{client.name}</span>
+                                  </label>
+                                  {selected && (
+                                    <input
+                                      className="teamPositionInput"
+                                      list="teamPositionOptions"
+                                      placeholder="Position"
+                                      value={teamDraft.positions[client.id] || ""}
+                                      onChange={(e) =>
+                                        setMemberPosition(
+                                          client.id,
+                                          e.target.value
+                                        )
+                                      }
+                                    />
+                                  )}
+                                </div>
+                              );
+                            })}
                           </div>
                         </div>
                         <div className="teamEditorActions">
@@ -13133,6 +13240,12 @@ function App() {
                           <div className="profileMetricsHeader">
                             <h3>Athletes ({selectedTeam.memberCount})</h3>
                           </div>
+                          {selectedTeam.memberIds.length > 0 && (
+                            <p className="teamMembersCaption">
+                              Tap a name to open the athlete · check the box to
+                              include them when assigning a program.
+                            </p>
+                          )}
                           {selectedTeam.memberIds.length === 0 ? (
                             <p className="mutedText">
                               No athletes yet — use “Edit / Members” to add some.
@@ -13141,29 +13254,49 @@ function App() {
                             <div className="teamMembersGrid">
                               {selectedTeam.memberIds.map((mid) => {
                                 const c = clients.find((cl) => cl.id === mid);
+                                const checked =
+                                  teamAssignSelectedIds.includes(mid);
                                 return (
-                                  <div key={mid} className="teamMemberRow">
+                                  <div
+                                    key={mid}
+                                    className={`teamMemberRow ${
+                                      checked ? "checked" : ""
+                                    }`}
+                                    role="button"
+                                    tabIndex={0}
+                                    title="Open athlete"
+                                    onClick={() => openClientFromTeam(mid)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter" || e.key === " ") {
+                                        e.preventDefault();
+                                        openClientFromTeam(mid);
+                                      }
+                                    }}
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      className="teamMemberCheck"
+                                      checked={checked}
+                                      onClick={(e) => e.stopPropagation()}
+                                      onChange={(e) => {
+                                        e.stopPropagation();
+                                        toggleAssignAthlete(mid);
+                                      }}
+                                      aria-label={`Include ${
+                                        c?.name || "athlete"
+                                      } when assigning`}
+                                    />
                                     <span className="clientAvatar">
                                       {c?.initials || "?"}
                                     </span>
-                                    <div className="teamMemberMeta">
-                                      <strong>
-                                        {c?.name || "Unknown athlete"}
-                                      </strong>
-                                      <small>{c?.clientType || ""}</small>
-                                    </div>
-                                    <button
-                                      className="outlineButton"
-                                      disabled={!c}
-                                      onClick={() => {
-                                        if (!c) return;
-                                        setSelectedClient(c);
-                                        setActivePage("Clients");
-                                        setClientTab("Programs");
-                                      }}
-                                    >
-                                      Open
-                                    </button>
+                                    <strong className="teamMemberName">
+                                      {c?.name || "Unknown athlete"}
+                                    </strong>
+                                    {selectedTeam.positions[mid] && (
+                                      <span className="teamPositionTag">
+                                        {selectedTeam.positions[mid]}
+                                      </span>
+                                    )}
                                   </div>
                                 );
                               })}
@@ -13175,6 +13308,29 @@ function App() {
                           <div className="profileMetricsHeader">
                             <h3>Assign program to team</h3>
                           </div>
+                          {selectedTeamSubgroups.length > 0 && (
+                            <div className="teamSubgroupRow">
+                              <span className="teamSubgroupLabel">
+                                Assign to
+                              </span>
+                              <select
+                                value={teamAssignSubgroup}
+                                onChange={(e) =>
+                                  applyAssignSubgroup(e.target.value)
+                                }
+                              >
+                                <option value="All">All athletes</option>
+                                {selectedTeamSubgroups.map((sg) => (
+                                  <option key={sg} value={sg}>
+                                    {sg}
+                                  </option>
+                                ))}
+                              </select>
+                              <span className="teamSubgroupCount">
+                                {teamAssignSelectedIds.length} selected
+                              </span>
+                            </div>
+                          )}
                           <div className="teamAssignRow">
                             <select
                               value={teamAssignProgramId}
@@ -13200,19 +13356,22 @@ function App() {
                               className="goldButton"
                               onClick={assignProgramToTeamNow}
                               disabled={
-                                teamAssigning || selectedTeam.memberCount === 0
+                                teamAssigning ||
+                                teamAssignSelectedIds.length === 0
                               }
                             >
                               {teamAssigning
                                 ? "Assigning…"
-                                : `Assign to ${selectedTeam.memberCount} athlete${
-                                    selectedTeam.memberCount === 1 ? "" : "s"
+                                : `Assign to ${
+                                    teamAssignSelectedIds.length
+                                  } athlete${
+                                    teamAssignSelectedIds.length === 1 ? "" : "s"
                                   }`}
                             </button>
                           </div>
                           <p className="teamAssignHint">
-                            Creates the program’s workouts for every current
-                            member, starting on the chosen date. To program one
+                            Creates the program’s workouts for the checked
+                            athletes, starting on the chosen date. To program one
                             athlete differently, open them and assign
                             individually.
                           </p>
