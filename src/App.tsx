@@ -1184,23 +1184,13 @@ function getSessionTypeClass(sessionType = "") {
 }
 
 // Color coding by TASK TYPE (not per session). Strength/power work shares one
-// light-gunmetal color; cardio = electric blue; tests = red; mobility/skill get
-// their own hues; questionnaires = purple.
+// light-gunmetal color; cardio = electric blue; mobility/skill get their own
+// hues. "test" in a workout NAME is NOT a category — only physical-test
+// assignments are red (see getAssignmentColorClass). The default "Strength"
+// sessionType is ignored as noise so a workout named "Cardio" stays cardio.
 function getWorkoutColorClass(workoutName = "", sessionType = "") {
-  const haystack = `${workoutName} ${sessionType}`.toLowerCase();
-  if (haystack.includes("test")) return "wcol-test";
-  if (
-    haystack.includes("cardio") ||
-    haystack.includes("conditioning") ||
-    haystack.includes("run") ||
-    haystack.includes("treadmill") ||
-    haystack.includes("erg") ||
-    haystack.includes("bike") ||
-    haystack.includes("row") ||
-    haystack.includes("interval")
-  ) {
-    return "wcol-cardio";
-  }
+  const type = sessionType.toLowerCase().trim();
+  const haystack = `${workoutName} ${type === "strength" ? "" : type}`.toLowerCase();
   if (
     haystack.includes("mobility") ||
     haystack.includes("recovery") ||
@@ -1217,7 +1207,29 @@ function getWorkoutColorClass(workoutName = "", sessionType = "") {
   ) {
     return "wcol-skill";
   }
-  // Push, Pull, Power + Core, Full Body, etc. — all strength/power.
+  // Explicit strength/power wins over any "run" in the same name
+  // (e.g. "Run Test + Strength" is a strength session).
+  if (
+    haystack.includes("strength") ||
+    haystack.includes("power") ||
+    haystack.includes("hypertrophy") ||
+    haystack.includes("lift")
+  ) {
+    return "wcol-strength";
+  }
+  if (
+    haystack.includes("cardio") ||
+    haystack.includes("conditioning") ||
+    haystack.includes("run") ||
+    haystack.includes("treadmill") ||
+    haystack.includes("erg") ||
+    haystack.includes("bike") ||
+    haystack.includes("row") ||
+    haystack.includes("interval")
+  ) {
+    return "wcol-cardio";
+  }
+  // Push, Pull, Full Body, etc. — default to strength/power.
   return "wcol-strength";
 }
 
