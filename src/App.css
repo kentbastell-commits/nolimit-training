@@ -17626,7 +17626,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   font-weight: 700;
   cursor: pointer;
 }
-.accountTeamRow input { width: 17px; height: 17px; }
+.accountTeamRow input[type="checkbox"] { width: 17px; height: 17px; }
 .accountSaveBtn { align-self: flex-start; margin-top: 4px; }
 .teamInviteBody { display: flex; flex-direction: column; gap: 12px; }
 .teamInviteLink { margin-top: 6px; }
