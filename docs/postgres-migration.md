@@ -105,8 +105,11 @@ deferral.
    `DATA_BACKEND=feishu|postgres` (default feishu). Shared cached-token Feishu
    client in `feishu/client.ts`. Build typechecks the whole chain (handler import
    pulls it into `tsc`). Remaining domains follow this template mechanically.
-5. 🟡 Refactor the 45 `api/*.ts` handlers to call repositories — `exercises.ts`
-   done as the reference (now a thin handler); rest pending.
+5. 🟡 Refactor the 45 `api/*.ts` handlers to call repositories. **Read endpoints
+   converted + verified serving from Postgres (local): exercises, clients,
+   programs, coaches, subscriptions.** Rest of the reads + all write paths pending.
+   Convention: `id`/`recordId`/`clientRecordIds` return the business code on
+   Postgres (no record_ids); consistent within a backend, flips together at cutover.
 6. ✅ **ETL script** built + cleaned (`server/db/etl/`): extract → transform
    (link→FK resolution) → load. **Dry-run validated against live data
    2026-06-19**: all 25 tables + derived team_members, **0 unmapped fields**,

@@ -64,3 +64,77 @@ export async function getFieldNames(tableId: string): Promise<string[]> {
     .map((f: any) => f.field_name || f.name)
     .filter(Boolean);
 }
+
+/* --------- shared field parsing (text-first; matches the old handlers) ----- */
+
+export function fieldText(value: any): string {
+  if (value == null) return "";
+  if (typeof value === "string") return value;
+  if (typeof value === "number") return String(value);
+  if (typeof value === "boolean") return value ? "true" : "false";
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => {
+        if (item == null) return "";
+        if (typeof item === "string") return item;
+        if (item.text) return item.text;
+        if (item.name) return item.name;
+        if (item.link) return item.link;
+        if (item.url) return item.url;
+        if (item.record_ids) return item.record_ids.join(", ");
+        if (item.link_record_ids) return item.link_record_ids.join(", ");
+        return "";
+      })
+      .filter(Boolean)
+      .join(", ");
+  }
+  if (value.text) return value.text;
+  if (value.name) return value.name;
+  if (value.link) return value.link;
+  if (value.url) return value.url;
+  if (value.record_ids) return value.record_ids.join(", ");
+  if (value.link_record_ids) return value.link_record_ids.join(", ");
+  return "";
+}
+
+export function formatDate(value: any, empty = ""): string {
+  const text = fieldText(value);
+  if (!text) return empty;
+  if (/^\d+$/.test(text)) return new Date(Number(text)).toISOString().split("T")[0];
+  return text.split("T")[0].split(" ")[0];
+}
+
+export function parseJsonList(raw: string): string[] {
+  const clean = String(raw || "").trim();
+  if (!clean) return [];
+  try {
+    const parsed = JSON.parse(clean);
+    if (Array.isArray(parsed)) return parsed.map((x) => String(x)).filter(Boolean);
+  } catch {
+    return clean.split(",").map((x) => x.trim()).filter(Boolean);
+  }
+  return [];
+}
+
+export function pickField(fields: Record<string, any>, candidates: string[]): string {
+  const norm = (s: string) => s.toLowerCase().replace(/\s+/g, "");
+  const byNorm = new Map(Object.keys(fields || {}).map((k) => [norm(k), k]));
+  for (const c of candidates) {
+    const hit = byNorm.get(norm(c));
+    if (hit) return fieldText(fields[hit]);
+  }
+  return "";
+}
+
+export function linkRecordIds(value: any): string[] {
+  if (!value) return [];
+  const ids: string[] = [];
+  const collect = (v: any) => {
+    if (!v) return;
+    if (Array.isArray(v.record_ids)) ids.push(...v.record_ids.filter(Boolean));
+    if (Array.isArray(v.link_record_ids)) ids.push(...v.link_record_ids.filter(Boolean));
+  };
+  if (Array.isArray(value)) value.forEach(collect);
+  else collect(value);
+  return Array.from(new Set(ids));
+}
