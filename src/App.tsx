@@ -1517,6 +1517,8 @@ function App() {
     "tasks" | "records" | "metrics"
   >("tasks");
   const homeTouchRef = useRef<{ x: number; y: number } | null>(null);
+  // All athletes' assigned workouts, for the coach roster load watch.
+  const [rosterLoadWorkouts, setRosterLoadWorkouts] = useState<Workout[]>([]);
   const [calendarView, setCalendarView] = useState<CalendarView>("Week");
   const [calendarAnchorDate, setCalendarAnchorDate] = useState(
     dateToInputValue(new Date())
@@ -9295,6 +9297,23 @@ function App() {
     };
   }, [activePage, teams, clients]);
 
+  // Load every athlete's assigned workouts for the coach Home load watch.
+  useEffect(() => {
+    if (isClientPortal || clientTab !== "Home") return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const list = await fetchAllAssignedWorkouts();
+        if (!cancelled) setRosterLoadWorkouts(list);
+      } catch {
+        /* non-fatal: the watch just stays empty */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isClientPortal, clientTab]);
+
   const clientStatusOptions = Array.from(
     new Set(coachVisibleClients.map((client) => client.status).filter(Boolean))
   );
@@ -12390,21 +12409,40 @@ function App() {
     </>
   );
 
-  // Coach-only training-load dashboard: internal load (sRPE = RPE x duration)
-  // and external load (tonnage) per day, plus the acute:chronic workload ratio
-  // (acute = last 7d load, chronic = last 28d weekly average). Drives load
-  // management decisions; deliberately hidden from athletes.
-  const renderLoadDashboard = () => {
-    const tonnageByDate = new Map<string, number>();
-    for (const log of workoutHistoryLogs) {
-      const w = Number(log.actualWeight);
-      const r = Number(log.actualReps);
-      if (!w || !r) continue;
-      const d = normalizeDate(log.date);
-      tonnageByDate.set(d, (tonnageByDate.get(d) || 0) + w * r);
+  // Foster's training monotony (weekly mean ÷ SD, rest days = 0) and strain
+  // (weekly load × monotony) for the 7-day window ending at `ref`.
+  const computeMonotonyStrain = (
+    loadByDate: Map<string, number>,
+    ref: Date
+  ) => {
+    const dayLoads: number[] = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(ref);
+      d.setDate(d.getDate() - i);
+      dayLoads.push(loadByDate.get(dateToInputValue(d)) || 0);
     }
-    const loadByDate = new Map<string, number>();
-    for (const w of workouts) {
+    const weeklyLoad = Math.round(dayLoads.reduce((a, b) => a + b, 0));
+    const mean = weeklyLoad / 7;
+    const sd = Math.sqrt(
+      dayLoads.reduce((a, b) => a + (b - mean) ** 2, 0) / 7
+    );
+    const monotony = sd > 0 ? mean / sd : 0;
+    return { weeklyLoad, monotony, strain: Math.round(weeklyLoad * monotony) };
+  };
+
+  const monotonyZoneOf = (monotony: number, weeklyLoad: number) =>
+    weeklyLoad === 0 || monotony === 0
+      ? { label: paceZh ? "无数据" : "n/a", cls: "loadZoneNeutral" }
+      : monotony < 1.5
+      ? { label: paceZh ? "理想" : "Varied", cls: "loadZoneGood" }
+      : monotony <= 2
+      ? { label: paceZh ? "注意" : "Caution", cls: "loadZoneWarn" }
+      : { label: paceZh ? "高风险" : "High risk", cls: "loadZoneRisk" };
+
+  // Build a date→internal-load map for one client's completed workouts.
+  const loadByDateForWorkouts = (list: Workout[]) => {
+    const map = new Map<string, number>();
+    for (const w of list) {
       if (!/complete/i.test(w.completionStatus || "")) continue;
       const d = normalizeDate(String(w.scheduledDate));
       if (!d) continue;
@@ -12414,8 +12452,24 @@ function App() {
         const dur = Number(w.sessionDuration);
         if (rpe && dur) load = rpe * dur;
       }
-      if (load) loadByDate.set(d, (loadByDate.get(d) || 0) + load);
+      if (load) map.set(d, (map.get(d) || 0) + load);
     }
+    return map;
+  };
+
+  // Coach-only training-load dashboard: internal load (sRPE = RPE x duration)
+  // and external load (tonnage), Foster monotony/strain, plus a weekly strain
+  // trend. Drives load-management decisions; deliberately hidden from athletes.
+  const renderLoadDashboard = () => {
+    const tonnageByDate = new Map<string, number>();
+    for (const log of workoutHistoryLogs) {
+      const w = Number(log.actualWeight);
+      const r = Number(log.actualReps);
+      if (!w || !r) continue;
+      const d = normalizeDate(log.date);
+      tonnageByDate.set(d, (tonnageByDate.get(d) || 0) + w * r);
+    }
+    const loadByDate = loadByDateForWorkouts(workouts);
 
     const dates = [
       ...new Set([...loadByDate.keys(), ...tonnageByDate.keys()]),
@@ -12436,37 +12490,38 @@ function App() {
       );
     }
 
-    // Last 7 calendar days of internal load (rest days count as 0) — the basis
-    // for Foster's training monotony (mean ÷ SD) and strain (weekly load ×
-    // monotony). High monotony with high strain flags overtraining risk.
+    // Current-week monotony/strain (rest days = 0) for the headline tiles.
     const ref = new Date(`${todayValue}T00:00:00`);
-    const dayLoads: number[] = [];
     let weekTonnage = 0;
     for (let i = 0; i < 7; i++) {
       const d = new Date(ref);
       d.setDate(d.getDate() - i);
-      const ds = dateToInputValue(d);
-      dayLoads.push(loadByDate.get(ds) || 0);
-      weekTonnage += tonnageByDate.get(ds) || 0;
+      weekTonnage += tonnageByDate.get(dateToInputValue(d)) || 0;
     }
-    const weeklyLoad = Math.round(dayLoads.reduce((a, b) => a + b, 0));
-    const meanLoad = weeklyLoad / 7;
-    const sd = Math.sqrt(
-      dayLoads.reduce((a, b) => a + (b - meanLoad) ** 2, 0) / 7
+    const { weeklyLoad, monotony, strain } = computeMonotonyStrain(
+      loadByDate,
+      ref
     );
-    const monotony = sd > 0 ? meanLoad / sd : 0;
-    const strain = Math.round(weeklyLoad * monotony);
+    const monotonyZone = monotonyZoneOf(monotony, weeklyLoad);
     const maxLoad = Math.max(1, ...series.map((s) => s.load));
     const recent = series.slice(-12);
 
-    const monotonyZone =
-      weeklyLoad === 0 || monotony === 0
-        ? { label: paceZh ? "无数据" : "n/a", cls: "loadZoneNeutral" }
-        : monotony < 1.5
-        ? { label: paceZh ? "理想" : "Varied", cls: "loadZoneGood" }
-        : monotony <= 2
-        ? { label: paceZh ? "注意" : "Caution", cls: "loadZoneWarn" }
-        : { label: paceZh ? "高风险" : "High risk", cls: "loadZoneRisk" };
+    // Weekly strain trend — 8 non-overlapping weeks ending today, to spot spikes.
+    const weeklyStrain: { label: string; strain: number }[] = [];
+    for (let w = 7; w >= 0; w--) {
+      const end = new Date(ref);
+      end.setDate(end.getDate() - w * 7);
+      const r = computeMonotonyStrain(loadByDate, end);
+      weeklyStrain.push({
+        label: end.toLocaleDateString(clientLocale, {
+          month: "numeric",
+          day: "numeric",
+        }),
+        strain: r.strain,
+      });
+    }
+    const maxStrain = Math.max(1, ...weeklyStrain.map((x) => x.strain));
+    const hasStrain = weeklyStrain.some((x) => x.strain > 0);
 
     return (
       <div className="loadDashboard">
@@ -12506,11 +12561,92 @@ function App() {
             </div>
           ))}
         </div>
+
+        {hasStrain && (
+          <>
+            <h4 className="loadSubHeading">
+              {paceZh ? "每周应激趋势" : "Weekly strain trend"}
+            </h4>
+            <div className="loadBars loadStrainBars">
+              {weeklyStrain.map((wk) => (
+                <div className="loadBarCol" key={wk.label} title={`${wk.label}: ${wk.strain}`}>
+                  <span className="loadBarValue">{wk.strain || ""}</span>
+                  <div
+                    className="loadBar loadStrainBar"
+                    style={{ height: `${Math.max(4, (wk.strain / maxStrain) * 100)}%` }}
+                  />
+                  <span className="loadBarLabel">{wk.label}</span>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
         <p className="loadDashboardNote">
           {paceZh
             ? "内部负荷 = RPE × 时长。单调性 = 周均负荷 ÷ 标准差（>2 偏高）；应激 = 周负荷 × 单调性。"
             : "Internal load = RPE × duration. Monotony = weekly mean ÷ SD (>2 is high); Strain = weekly load × monotony."}
         </p>
+      </div>
+    );
+  };
+
+  // Coach roster load watch: this week's monotony/strain for every athlete with
+  // load logged, riskiest first, so overtraining is visible at a glance.
+  const renderRosterLoadWatch = () => {
+    const ref = new Date(`${todayValue}T00:00:00`);
+    const rows = clients
+      .map((client) => {
+        const code = client.clientCode;
+        if (!code) return null;
+        const list = rosterLoadWorkouts.filter((w) =>
+          (w.clientId || "").includes(code)
+        );
+        const { weeklyLoad, monotony, strain } = computeMonotonyStrain(
+          loadByDateForWorkouts(list),
+          ref
+        );
+        if (weeklyLoad === 0) return null;
+        return {
+          name: client.name || code,
+          code,
+          weeklyLoad,
+          monotony,
+          strain,
+          zone: monotonyZoneOf(monotony, weeklyLoad),
+        };
+      })
+      .filter((r): r is NonNullable<typeof r> => r !== null)
+      .sort((a, b) => b.monotony - a.monotony);
+
+    if (rows.length === 0) {
+      return (
+        <p className="homeEmptyText">
+          {paceZh
+            ? "本周还没有带RPE的训练记录。"
+            : "No sessions logged with an RPE this week yet."}
+        </p>
+      );
+    }
+
+    return (
+      <div className="loadWatchList">
+        {rows.map((r) => (
+          <div className="loadWatchRow" key={r.code}>
+            <span className="loadWatchName">{r.name}</span>
+            <span className={`loadWatchMono ${r.zone.cls}`}>
+              {r.monotony ? r.monotony.toFixed(2) : "--"}
+              <em>{r.zone.label}</em>
+            </span>
+            <span className="loadWatchMetric">
+              {r.strain.toLocaleString()}
+              <em>{paceZh ? "应激" : "strain"}</em>
+            </span>
+            <span className="loadWatchMetric">
+              {r.weeklyLoad.toLocaleString()}
+              <em>{paceZh ? "周负荷" : "load"}</em>
+            </span>
+          </div>
+        ))}
       </div>
     );
   };
@@ -19990,6 +20126,18 @@ function App() {
                         </div>
                       </div>
                       {renderExerciseHistoryBody()}
+                    </section>
+                  )}
+
+                  {!isClientPortal && (
+                    <section className="clientHomePanel loadWatchPanel">
+                      <div className="clientHomePanelHeader">
+                        <div>
+                          <span>{paceZh ? "负荷监控" : "Load watch"}</span>
+                          <h2>{paceZh ? "本周训练负荷" : "Training Load This Week"}</h2>
+                        </div>
+                      </div>
+                      {renderRosterLoadWatch()}
                     </section>
                   )}
 

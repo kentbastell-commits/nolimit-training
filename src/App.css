@@ -6479,6 +6479,96 @@ button.coachReviewGlobalItem,
   color: var(--nl-muted, #68645d);
 }
 
+.loadSubHeading {
+  margin: 18px 0 8px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--nl-muted, #68645d);
+}
+
+.loadStrainBar {
+  background: linear-gradient(180deg, #5a4a8a 0%, #c0392b 100%);
+}
+
+/* Roster load watch (coach Home) */
+.loadWatchList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.loadWatchRow {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #f7f5ef;
+  border: 1px solid #e5dfd2;
+}
+
+.loadWatchName {
+  font-weight: 700;
+  color: var(--nl-ink, #1a1a1a);
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.loadWatchMono,
+.loadWatchMetric {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 56px;
+  font-size: 15px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--nl-ink, #1a1a1a);
+}
+
+.loadWatchMono em,
+.loadWatchMetric em {
+  font-style: normal;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--nl-muted, #68645d);
+  margin-top: 1px;
+}
+
+.loadWatchMono {
+  border-radius: 9px;
+  padding: 4px 10px;
+}
+
+.loadWatchMono.loadZoneGood {
+  background: rgba(111, 207, 127, 0.16);
+}
+.loadWatchMono.loadZoneGood,
+.loadWatchMono.loadZoneGood em {
+  color: #2f8a43;
+}
+.loadWatchMono.loadZoneWarn {
+  background: rgba(212, 175, 55, 0.18);
+}
+.loadWatchMono.loadZoneWarn,
+.loadWatchMono.loadZoneWarn em {
+  color: #9b7a21;
+}
+.loadWatchMono.loadZoneRisk {
+  background: rgba(214, 73, 51, 0.14);
+}
+.loadWatchMono.loadZoneRisk,
+.loadWatchMono.loadZoneRisk em {
+  color: #c0392b;
+}
+
 /* Completed set rows + tick */
 .setLogRowComplete {
   border-color: rgba(111, 207, 127, 0.55) !important;
