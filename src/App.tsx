@@ -1499,6 +1499,19 @@ function App() {
   const [storeLauncherClient, setStoreLauncherClient] = useState("");
   const [programsLoading, setProgramsLoading] = useState(false);
   const [storeSelectedProgram, setStoreSelectedProgram] = useState<Program | null>(null);
+  const [storeCategoryFilter, setStoreCategoryFilter] = useState("all");
+  const [storeSeasonFilter, setStoreSeasonFilter] = useState("all");
+  const [storeProgramSearch, setStoreProgramSearch] = useState("");
+  // TODO(store filters): wire these into the store program list. Referenced
+  // here so the in-progress state doesn't trip noUnusedLocals before then.
+  void [
+    storeCategoryFilter,
+    setStoreCategoryFilter,
+    storeSeasonFilter,
+    setStoreSeasonFilter,
+    storeProgramSearch,
+    setStoreProgramSearch,
+  ];
   const [storeRegName, setStoreRegName] = useState("");
   const [storeRegPhone, setStoreRegPhone] = useState("");
   const [storeRegistering, setStoreRegistering] = useState(false);
@@ -8615,8 +8628,10 @@ function App() {
           accessLengthDays: digitalProductProgram ? programAccessLengthDays : "",
           productStatus: digitalProductProgram ? programProductStatus : "Draft",
           salesDescription: digitalProductProgram ? programSalesDescription : "",
-          builtForClient: coachedProgramType ? programBuiltForClient : "",
-          builtForTeam: coachedProgramType ? programBuiltForTeam : "",
+          builtForClient:
+            coachedProgramType || singleWorkoutMode ? programBuiltForClient : "",
+          builtForTeam:
+            coachedProgramType || singleWorkoutMode ? programBuiltForTeam : "",
         }),
       });
 
@@ -17468,6 +17483,72 @@ function App() {
                       </label>
                     )}
                   </div>
+
+                  {isSingleWorkoutBuilder && (
+                    <div className="programProductGrid programTypeGrid">
+                      <label>
+                        <span>Assign to</span>
+                        <select
+                          value={programBuiltForMode}
+                          onChange={(e) => {
+                            const mode = e.target.value as
+                              | "internal"
+                              | "client"
+                              | "team";
+                            setProgramBuiltForMode(mode);
+                            if (mode !== "client") setProgramBuiltForClient("");
+                            if (mode !== "team") setProgramBuiltForTeam("");
+                          }}
+                          className="miniSearch"
+                        >
+                          <option value="internal">Internal (general)</option>
+                          <option value="client">Client</option>
+                          <option value="team">Team</option>
+                        </select>
+                      </label>
+
+                      {programBuiltForMode === "client" && (
+                        <label>
+                          <span>Client</span>
+                          <select
+                            value={programBuiltForClient}
+                            onChange={(e) =>
+                              setProgramBuiltForClient(e.target.value)
+                            }
+                            className="miniSearch"
+                          >
+                            <option value="">Select client…</option>
+                            {coachVisibleClients.map((c) => (
+                              <option key={c.id} value={c.clientCode || c.id}>
+                                {c.name}
+                                {c.clientCode ? ` (${c.clientCode})` : ""}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                      )}
+
+                      {programBuiltForMode === "team" && (
+                        <label>
+                          <span>Team</span>
+                          <select
+                            value={programBuiltForTeam}
+                            onChange={(e) =>
+                              setProgramBuiltForTeam(e.target.value)
+                            }
+                            className="miniSearch"
+                          >
+                            <option value="">Select team…</option>
+                            {teams.map((tm) => (
+                              <option key={tm.id} value={tm.name}>
+                                {tm.name}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                      )}
+                    </div>
+                  )}
 
 
                   {!isSingleWorkoutBuilder && (
