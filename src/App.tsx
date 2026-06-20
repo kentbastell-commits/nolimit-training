@@ -1370,15 +1370,12 @@ function App() {
   const inviteSearchParams = new URLSearchParams(window.location.search);
   const isClientInvite = inviteSearchParams.get("invite") === "client";
   const isClientPortal = inviteSearchParams.get("portal") === "client";
-  const isCoachView = inviteSearchParams.get("view") === "coach";
   const publicPath = window.location.pathname.replace(/\/+$/, "") || "/";
   // Root is the public brand landing page. Store remains available at /store
   // and ?page=store. Coach app is at ?view=coach, athlete portal at
   // ?portal=client, intake at ?invite=client.
   const isStorePage =
     inviteSearchParams.get("page") === "store" || publicPath === "/store";
-  const isPublicLandingPage =
-    !isStorePage && !isClientPortal && !isClientInvite && !isCoachView;
   const clientPortalCode = (
     inviteSearchParams.get("client") ||
     inviteSearchParams.get("clientCode") ||
