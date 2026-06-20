@@ -7799,6 +7799,66 @@ button.coachReviewGlobalItem,
   margin-top: 4px;
 }
 
+/* Store add-on cart + subtotal */
+.storeAddonsV2 {
+  margin: 14px 0;
+  padding: 14px;
+  border-radius: 14px;
+  background: rgba(13, 13, 13, 0.04);
+  border: 1px solid rgba(13, 13, 13, 0.1);
+}
+.storeAddonsTitle {
+  display: block;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #68645d;
+  margin-bottom: 8px;
+}
+.storeAddonRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  cursor: pointer;
+  font-size: 14px;
+}
+.storeAddonRow + .storeAddonRow {
+  border-top: 1px solid rgba(13, 13, 13, 0.06);
+}
+.storeAddonRow input {
+  width: 18px;
+  height: 18px;
+  accent-color: #d4af37;
+}
+.storeAddonName {
+  flex: 1 1 auto;
+  color: #1a1a1a;
+}
+.storeAddonPrice {
+  flex: 0 0 auto;
+  font-weight: 700;
+  color: #9b7a21;
+  font-variant-numeric: tabular-nums;
+}
+.storeSubtotalV2 {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(212, 175, 55, 0.4);
+  font-size: 14px;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+.storeSubtotalV2 strong {
+  font-size: 20px;
+  color: #9b7a21;
+  font-variant-numeric: tabular-nums;
+}
+
 /* "Built for" tag on saved programs */
 .programBuiltForChip {
   display: inline-block;

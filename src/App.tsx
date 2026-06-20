@@ -1502,6 +1502,7 @@ function App() {
   const [storeLauncherClient, setStoreLauncherClient] = useState("");
   const [programsLoading, setProgramsLoading] = useState(false);
   const [storeSelectedProgram, setStoreSelectedProgram] = useState<Program | null>(null);
+  const [storeSelectedAddonIds, setStoreSelectedAddonIds] = useState<string[]>([]);
   const [storeCategoryFilter, setStoreCategoryFilter] = useState("all");
   const [storeSeasonFilter, setStoreSeasonFilter] = useState("all");
   const [storeProgramSearch, setStoreProgramSearch] = useState("");
@@ -9458,6 +9459,11 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedClient?.clientCode]);
 
+  // Clear store add-on selections whenever the open store program changes.
+  useEffect(() => {
+    setStoreSelectedAddonIds([]);
+  }, [storeSelectedProgram?.recordId]);
+
   // When the selected workload day (or its saved log) changes, refill the draft.
   useEffect(() => {
     if (!workloadDay) return;
@@ -14110,6 +14116,66 @@ function App() {
                       <span>{sp.level || (sZh ? "多水平" : "All levels")}</span>
                       <span>{formatPrice(sp)}</span>
                     </div>
+
+                    {(() => {
+                      const priceNum = (p: Program) =>
+                        parseFloat(p.price || "0") || 0;
+                      const addonPrograms = storePrograms.filter(isAddonProgram);
+                      if (addonPrograms.length === 0) return null;
+                      const currency = sp.currency || "CNY";
+                      const selected = addonPrograms.filter((a) =>
+                        storeSelectedAddonIds.includes(a.recordId)
+                      );
+                      const subtotal =
+                        priceNum(sp) +
+                        selected.reduce((s, a) => s + priceNum(a), 0);
+                      return (
+                        <div className="storeAddonsV2">
+                          <strong className="storeAddonsTitle">
+                            {sZh ? "搭配加购模块" : "Add-ons"}
+                          </strong>
+                          {addonPrograms.map((a) => {
+                            const checked = storeSelectedAddonIds.includes(
+                              a.recordId
+                            );
+                            const aName =
+                              sZh && a.programNameCn
+                                ? a.programNameCn
+                                : a.programName;
+                            return (
+                              <label className="storeAddonRow" key={a.recordId}>
+                                <input
+                                  type="checkbox"
+                                  checked={checked}
+                                  onChange={() =>
+                                    setStoreSelectedAddonIds((prev) =>
+                                      checked
+                                        ? prev.filter((x) => x !== a.recordId)
+                                        : [...prev, a.recordId]
+                                    )
+                                  }
+                                />
+                                <span className="storeAddonName">{aName}</span>
+                                <span className="storeAddonPrice">
+                                  {priceNum(a)
+                                    ? `+ ${a.currency || "CNY"} ${a.price}`
+                                    : sZh
+                                    ? "免费"
+                                    : "Free"}
+                                </span>
+                              </label>
+                            );
+                          })}
+                          <div className="storeSubtotalV2">
+                            <span>{sZh ? "小计" : "Subtotal"}</span>
+                            <strong>
+                              {currency} {subtotal.toLocaleString()}
+                            </strong>
+                          </div>
+                        </div>
+                      );
+                    })()}
+
                     {storeRegisteredCode ? (
                       <div className="storeSuccessBoxV2">
                         <strong>{sZh ? "已创建客户端" : "Client portal created"}</strong>
