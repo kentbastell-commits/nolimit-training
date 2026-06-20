@@ -18793,6 +18793,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   width: clamp(170px, 18vw, 260px);
   height: auto;
   display: block;
+  object-fit: contain;
 }
 
 .landingBrand span {
@@ -18872,6 +18873,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 .landingHero h1,
 .landingSectionIntro h2,
 .landingSystem h2,
+.landingInPerson h2,
 .landingFinalCta h2 {
   margin: 0;
   color: #0b0b0a;
@@ -19116,6 +19118,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 .landingPillarCard,
 .landingProgramCard,
 .landingSystem,
+.landingInPerson,
 .landingFinalCta {
   border: 1px solid #d7d0c0;
   border-radius: 22px;
@@ -19149,6 +19152,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 .landingPillars,
 .landingPrograms,
 .landingSystem,
+.landingInPerson,
 .landingFinalCta {
   margin-bottom: 86px;
 }
@@ -19160,6 +19164,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 
 .landingSectionIntro h2,
 .landingSystem h2,
+.landingInPerson h2,
 .landingFinalCta h2 {
   font-size: clamp(48px, 6vw, 86px);
 }
@@ -19193,12 +19198,51 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 
 .landingPillarCard p,
 .landingProgramCard p,
-.landingSystem p {
+.landingSystem p,
+.landingInPerson p,
+.landingFinalCta p,
+.landingSectionLead {
   margin: 12px 0 0;
   color: #5d5f59;
   font-size: 15px;
   line-height: 1.5;
   font-weight: 650;
+}
+
+.landingSectionLead {
+  max-width: 680px;
+  font-size: 16px;
+  font-weight: 750;
+}
+
+.landingOfferList {
+  list-style: none;
+  margin: 22px 0 0;
+  padding: 18px 0 0;
+  border-top: 1px solid #e3ded3;
+  display: grid;
+  gap: 10px;
+}
+
+.landingOfferList li {
+  position: relative;
+  padding-left: 22px;
+  color: #242520;
+  font-size: 14px;
+  line-height: 1.35;
+  font-weight: 850;
+}
+
+.landingOfferList li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.55em;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #8a6a18;
+  box-shadow: 0 0 0 4px rgba(138, 106, 24, 0.12);
 }
 
 .landingProgramCard {
@@ -19260,20 +19304,86 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 }
 
 .landingSystem li {
-  min-height: 116px;
+  min-height: 148px;
   border-radius: 18px;
   background: #f2eee5;
   border: 1px solid #d7d0c0;
   padding: 18px;
-  display: flex;
-  align-items: flex-end;
 }
 
 .landingSystem li span {
+  display: block;
+  color: #8a6a18;
+  font-size: 13px;
+  font-weight: 950;
+  letter-spacing: 0.18em;
+  line-height: 1;
+}
+
+.landingSystem li strong {
+  display: block;
+  margin-top: 18px;
   color: #11110f;
-  font-size: 20px;
+  font-size: 22px;
   font-weight: 950;
   line-height: 1.05;
+}
+
+.landingSystem li small {
+  display: block;
+  margin-top: 10px;
+  color: #656760;
+  font-size: 14px;
+  line-height: 1.45;
+  font-weight: 750;
+}
+
+.landingInPerson {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+  gap: 30px;
+  align-items: stretch;
+  padding: 34px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.82) 0%, rgba(242, 238, 229, 0.92) 100%),
+    #fbfaf6;
+}
+
+.landingInPerson > div:first-child {
+  max-width: 820px;
+}
+
+.landingWechatCard {
+  min-height: 240px;
+  border-radius: 24px;
+  background:
+    linear-gradient(135deg, #11110f 0%, #26241d 100%),
+    #11110f;
+  color: #f4df8a;
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  box-shadow: 0 28px 60px rgba(15, 15, 13, 0.16);
+}
+
+.landingWechatCard span {
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.landingWechatCard strong {
+  margin-top: 12px;
+  color: #f4df8a;
+  font-size: 38px;
+  line-height: 1;
+}
+
+.landingWechatCard p {
+  color: rgba(255, 255, 255, 0.74);
 }
 
 .landingFinalCta {
@@ -19343,7 +19453,8 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   .landingMetrics,
   .landingPillarGrid,
   .landingProgramGrid,
-  .landingSystem {
+  .landingSystem,
+  .landingInPerson {
     grid-template-columns: 1fr;
   }
 
@@ -19457,14 +19568,24 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   .landingPillars,
   .landingPrograms,
   .landingSystem,
+  .landingInPerson,
   .landingFinalCta {
     margin-bottom: 58px;
   }
 
   .landingSectionIntro h2,
   .landingSystem h2,
+  .landingInPerson h2,
   .landingFinalCta h2 {
     font-size: 50px;
+  }
+
+  .landingInPerson {
+    padding: 24px;
+  }
+
+  .landingWechatCard {
+    min-height: 200px;
   }
 
   .landingSystem ol,
