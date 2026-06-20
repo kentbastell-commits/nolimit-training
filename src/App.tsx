@@ -1903,9 +1903,8 @@ function App() {
   // Store placement (set in the builder when "Show in digital store" is on).
   const [programStoreCategory, setProgramStoreCategory] = useState("");
   const [programStoreCategoryCn, setProgramStoreCategoryCn] = useState("");
-  const [programStoreListingType, setProgramStoreListingType] =
-    useState("Main");
   const [programBundleIds, setProgramBundleIds] = useState<string[]>([]);
+  const [programBundleSearch, setProgramBundleSearch] = useState("");
 
   const [programWeek, setProgramWeek] = useState("1");
   const [programDay, setProgramDay] = useState("1");
@@ -4890,9 +4889,6 @@ function App() {
       );
       setProgramStoreCategory(selectedSavedProgram.storeCategory || "");
       setProgramStoreCategoryCn(selectedSavedProgram.storeCategoryCn || "");
-      setProgramStoreListingType(
-        selectedSavedProgram.storeListingType || "Main"
-      );
       setProgramBundleIds(
         (selectedSavedProgram.bundleProgramIds || "")
           .split(",")
@@ -8573,7 +8569,10 @@ function App() {
   const saveFullProgram = async () => {
     const singleWorkoutMode = builderMode === "Single Workout";
     const digitalProductProgram =
-      !singleWorkoutMode && programProductType === "Digital Program";
+      !singleWorkoutMode &&
+      (programProductType === "Digital Program" ||
+        programProductType === "Digital Add-on" ||
+        programProductType === "Digital Bundle");
     // "Built for" client/team only applies to coached (Online / In-Person) programs.
     const coachedProgramType =
       programProductType === "Online Coaching" ||
@@ -8650,11 +8649,17 @@ function App() {
             coachedProgramType || singleWorkoutMode ? programBuiltForTeam : "",
           storeCategory: programPublicStoreVisible ? programStoreCategory : "",
           storeCategoryCn: programPublicStoreVisible ? programStoreCategoryCn : "",
-          storeListingType: programPublicStoreVisible
-            ? programStoreListingType
-            : "",
+          // Listing type is derived from the product type.
+          storeListingType: !programPublicStoreVisible
+            ? ""
+            : programProductType === "Digital Add-on"
+            ? "Add-on"
+            : programProductType === "Digital Bundle"
+            ? "Bundle"
+            : "Main",
           bundleProgramIds:
-            programPublicStoreVisible && programStoreListingType === "Bundle"
+            programPublicStoreVisible &&
+            programProductType === "Digital Bundle"
               ? programBundleIds.join(",")
               : "",
         }),
@@ -10694,7 +10699,10 @@ function App() {
     programProductReadyCount === programProductChecklist.length;
   const isSingleWorkoutBuilder = builderMode === "Single Workout";
   const showDigitalProductSettings =
-    !isSingleWorkoutBuilder && programProductType === "Digital Program";
+    !isSingleWorkoutBuilder &&
+    (programProductType === "Digital Program" ||
+      programProductType === "Digital Add-on" ||
+      programProductType === "Digital Bundle");
 
   const getClientProgramScheduledWorkouts = (
     sessions = clientProgramSessions
@@ -13753,10 +13761,12 @@ function App() {
     };
 
     const isAddonProgram = (program: Program) =>
-      (program.storeListingType || "").toLowerCase() === "add-on";
+      (program.storeListingType || "").toLowerCase() === "add-on" ||
+      program.productType === "Digital Add-on";
 
     const isBundleProgram = (program: Program) =>
-      (program.storeListingType || "").toLowerCase() === "bundle";
+      (program.storeListingType || "").toLowerCase() === "bundle" ||
+      program.productType === "Digital Bundle";
 
     const bundleIncludes = (program: Program) => {
       const ids = (program.bundleProgramIds || "")
@@ -18476,6 +18486,8 @@ function App() {
                             className="miniSearch"
                           >
                             <option>Digital Program</option>
+                            <option>Digital Add-on</option>
+                            <option>Digital Bundle</option>
                             <option>Online Coaching</option>
                             <option>In-Person Training</option>
                             <option>Internal Coaching Template</option>
@@ -18673,34 +18685,35 @@ function App() {
                           className="miniSearch"
                         />
                       </label>
-                      <label>
-                        <span>Listing type</span>
-                        <select
-                          value={programStoreListingType}
-                          onChange={(e) =>
-                            setProgramStoreListingType(e.target.value)
-                          }
-                          className="miniSearch"
-                        >
-                          <option value="Main">Main program</option>
-                          <option value="Add-on">Add-on</option>
-                          <option value="Bundle">Bundle (package)</option>
-                        </select>
-                      </label>
                     </div>
                   )}
 
                   {programPublicStoreVisible &&
-                    programStoreListingType === "Bundle" && (
+                    programProductType === "Digital Bundle" && (
                       <div className="programBundlePicker">
                         <span className="programBundleLabel">
-                          Programs in this package
+                          Programs in this bundle
                         </span>
+                        <input
+                          value={programBundleSearch}
+                          onChange={(e) =>
+                            setProgramBundleSearch(e.target.value)
+                          }
+                          placeholder="Search programs to add…"
+                          className="miniSearch programBundleSearch"
+                        />
                         {(() => {
+                          const q = programBundleSearch.trim().toLowerCase();
                           const candidates = programs.filter(
                             (p) =>
                               p.status !== "Archived" &&
-                              (p.storeListingType || "") !== "Bundle"
+                              p.productType !== "Digital Bundle" &&
+                              (programBundleIds.includes(p.programId) ||
+                                !q ||
+                                p.programName.toLowerCase().includes(q) ||
+                                (p.storeCategory || "")
+                                  .toLowerCase()
+                                  .includes(q))
                           );
                           const priceNum = (p: Program) =>
                             parseFloat(p.price || "0") || 0;
