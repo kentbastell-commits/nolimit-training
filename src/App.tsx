@@ -1509,6 +1509,11 @@ function App() {
   });
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [clientTab, setClientTab] = useState<ClientTab>("Home");
+  // Portal Home sub-pages (swipeable): Tasks / Records / Metrics.
+  const [portalHomeTab, setPortalHomeTab] = useState<
+    "tasks" | "records" | "metrics"
+  >("tasks");
+  const homeTouchRef = useRef<{ x: number; y: number } | null>(null);
   const [calendarView, setCalendarView] = useState<CalendarView>("Week");
   const [calendarAnchorDate, setCalendarAnchorDate] = useState(
     dateToInputValue(new Date())
@@ -12231,28 +12236,33 @@ function App() {
     return exercise ? localizedExerciseName(exercise) : name;
   };
 
-  const progressHistoryPoints = workoutHistoryLogs
-    .filter((log) =>
-      log.exerciseName
-        .toLowerCase()
-        .startsWith(selectedProgressName.toLowerCase())
-    )
-    .map((log) => {
+  // One point per DAY (best set that day), not per set — multiple same-day sets
+  // would collide on identical x-axis labels and desync the tooltip/active dot.
+  const progressHistoryPoints = (() => {
+    const byDate = new Map<string, { date: string; value: number; unit: string }>();
+    for (const log of workoutHistoryLogs) {
+      if (
+        !log.exerciseName
+          .toLowerCase()
+          .startsWith(selectedProgressName.toLowerCase())
+      )
+        continue;
       const weight = Number(log.actualWeight);
       const distance = Number(log.actualDistance);
       const time = Number(log.actualTime);
       const value = weight || distance || time || 0;
+      if (value <= 0) continue;
       const unit = weight ? "kg" : distance ? "m" : time ? "sec" : "";
-
-      return {
-        date: normalizeDate(log.date),
-        value,
-        unit,
-      };
-    })
-    .filter((point) => point.value > 0)
-    .sort((a, b) => a.date.localeCompare(b.date))
-    .slice(-8);
+      const date = normalizeDate(log.date);
+      const existing = byDate.get(date);
+      if (!existing || value > existing.value) {
+        byDate.set(date, { date, value, unit });
+      }
+    }
+    return [...byDate.values()]
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .slice(-8);
+  })();
 
   const progressMaxValue = Math.max(
     1,
@@ -12387,7 +12397,6 @@ function App() {
           {([
             ["e1rm", paceZh ? "预估1RM" : "Est 1RM"],
             ["weight", paceZh ? "最大重量" : "Best Weight"],
-            ["volume", paceZh ? "总容量" : "Volume"],
           ] as const).map(([key, label]) => (
             <button
               key={key}
@@ -12615,6 +12624,27 @@ function App() {
     if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
     if (dx < 0) goToFocusExercise(workoutFocusIndex + 1, total);
     else goToFocusExercise(workoutFocusIndex - 1, total);
+  };
+
+  // Swipe between the portal Home sub-pages (Tasks / Records / Metrics).
+  const portalHomeOrder = ["tasks", "records", "metrics"] as const;
+  const handleHomeTouchStart = (e: React.TouchEvent) => {
+    const t = e.touches[0];
+    homeTouchRef.current = { x: t.clientX, y: t.clientY };
+  };
+  const handleHomeTouchEnd = (e: React.TouchEvent) => {
+    const start = homeTouchRef.current;
+    homeTouchRef.current = null;
+    if (!start) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - start.x;
+    const dy = t.clientY - start.y;
+    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    const idx = portalHomeOrder.indexOf(portalHomeTab);
+    const next = dx < 0 ? idx + 1 : idx - 1;
+    if (next >= 0 && next < portalHomeOrder.length) {
+      setPortalHomeTab(portalHomeOrder[next]);
+    }
   };
 
   if (isPublicLandingPage) {
@@ -19646,7 +19676,39 @@ function App() {
               </div>
 
               {clientTab === "Home" && (
-                <div className="clientHomeGrid">
+                <div
+                  className="clientHomeGrid"
+                  onTouchStart={isClientPortal ? handleHomeTouchStart : undefined}
+                  onTouchEnd={isClientPortal ? handleHomeTouchEnd : undefined}
+                >
+                  {isClientPortal && (
+                    <div
+                      className="portalHomeTabs"
+                      role="tablist"
+                      aria-label={paceZh ? "主页分区" : "Home sections"}
+                    >
+                      {([
+                        ["tasks", paceZh ? "任务" : "Tasks"],
+                        ["records", paceZh ? "记录" : "Records"],
+                        ["metrics", paceZh ? "指标" : "Metrics"],
+                      ] as const).map(([key, label]) => (
+                        <button
+                          key={key}
+                          type="button"
+                          role="tab"
+                          aria-selected={portalHomeTab === key}
+                          className={`portalHomeTab${
+                            portalHomeTab === key ? " portalHomeTabActive" : ""
+                          }`}
+                          onClick={() => setPortalHomeTab(key)}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {(!isClientPortal || portalHomeTab === "tasks") && (
                   <section className="clientHomePanel upcomingHomePanel">
                     <div className="clientHomePanelHeader">
                       <div>
@@ -19702,8 +19764,9 @@ function App() {
                       )}
                     </div>
                   </section>
+                  )}
 
-                  {isClientPortal && (
+                  {isClientPortal && portalHomeTab === "metrics" && (
                     <section className="clientHomePanel focusHomePanel">
                       <div className="clientHomePanelHeader">
                         <div>
@@ -19715,7 +19778,7 @@ function App() {
                     </section>
                   )}
 
-                  {isClientPortal && (
+                  {isClientPortal && portalHomeTab === "records" && (
                     <section className="clientHomePanel prHomePanel">
                       <div className="clientHomePanelHeader">
                         <div>
@@ -19727,7 +19790,7 @@ function App() {
                     </section>
                   )}
 
-                  {isClientPortal && (
+                  {isClientPortal && portalHomeTab === "records" && (
                     <section className="clientHomePanel progressHomePanel">
                       <div className="clientHomePanelHeader">
                         <div>

@@ -6321,6 +6321,41 @@ button.coachReviewGlobalItem,
   cursor: pointer;
 }
 
+/* Portal Home sub-page segmented control (Tasks / Records / Metrics) */
+.portalHomeTabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  margin-bottom: 14px;
+  border-radius: 999px;
+  background: rgba(13, 13, 13, 0.06);
+  border: 1px solid rgba(13, 13, 13, 0.08);
+}
+
+.clientPortalApp .portalHomeTabs {
+  background: rgba(13, 13, 13, 0.05);
+}
+
+.portalHomeTab {
+  flex: 1 1 0;
+  padding: 10px 8px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--nl-muted, #68645d);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease;
+}
+
+.portalHomeTabActive {
+  background: #0d0d0d;
+  color: #d4af37;
+  box-shadow: 0 4px 12px rgba(13, 13, 13, 0.18);
+}
+
 /* Completed set rows + tick */
 .setLogRowComplete {
   border-color: rgba(111, 207, 127, 0.55) !important;
@@ -6713,7 +6748,7 @@ button.coachReviewGlobalItem,
   flex: 1 1 0;
 }
 
-.finishSetField input {
+.workoutFinishCard .finishSetField input {
   width: 100%;
   min-width: 0;
   padding: 9px 10px;
@@ -6723,6 +6758,10 @@ button.coachReviewGlobalItem,
   color: #fff;
   font-size: 15px;
   text-align: center;
+}
+
+.workoutFinishCard .finishSetField input::placeholder {
+  color: rgba(232, 230, 223, 0.35);
 }
 
 .finishSetField span {
@@ -6927,9 +6966,21 @@ button.coachReviewGlobalItem,
 
 .workoutCoachNotes {
   border-left: 3px solid rgba(212, 175, 55, 0.55);
-  padding-left: 12px;
+  padding: 12px 14px;
+  margin: 14px 0;
+  border-radius: 0 12px 12px 0;
+  background: rgba(212, 175, 55, 0.08);
   color: #ddd;
+  font-size: 14px;
+  line-height: 1.6;
   white-space: pre-wrap;
+}
+
+/* Portal cards are light, so coach notes need dark, readable ink + room. */
+.clientPortalApp .workoutCoachNotes {
+  color: #2b2823 !important;
+  background: rgba(212, 175, 55, 0.12);
+  border-left-color: #c39b2b;
 }
 
 .workoutPrescriptionGrid {
