@@ -1504,6 +1504,8 @@ function App() {
   const [programsLoading, setProgramsLoading] = useState(false);
   const [storeSelectedProgram, setStoreSelectedProgram] = useState<Program | null>(null);
   const [storeSelectedAddonIds, setStoreSelectedAddonIds] = useState<string[]>([]);
+  // Store checkout step: 1 = details, 2 = add-ons, 3 = cart + payment.
+  const [storeStep, setStoreStep] = useState(1);
   const [storeCategoryFilter, setStoreCategoryFilter] = useState("all");
   const [storeSeasonFilter, setStoreSeasonFilter] = useState("all");
   const [storeProgramSearch, setStoreProgramSearch] = useState("");
@@ -9476,9 +9478,10 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedClient?.clientCode]);
 
-  // Clear store add-on selections whenever the open store program changes.
+  // Reset the store cart/step whenever the open store program changes.
   useEffect(() => {
     setStoreSelectedAddonIds([]);
+    setStoreStep(1);
   }, [storeSelectedProgram?.recordId]);
 
   // When the selected workload day (or its saved log) changes, refill the draft.
@@ -14138,15 +14141,27 @@ function App() {
             sp.storeDescription ||
             sp.salesDescription ||
             "";
+          const priceNum = (p: Program) => parseFloat(p.price || "0") || 0;
+          const addonPrograms = isBundleProgram(sp)
+            ? []
+            : storePrograms.filter(isAddonProgram);
+          const hasAddons = addonPrograms.length > 0;
+          const selectedAddons = addonPrograms.filter((a) =>
+            storeSelectedAddonIds.includes(a.recordId)
+          );
+          const currency = sp.currency || "CNY";
+          const subtotal =
+            priceNum(sp) + selectedAddons.reduce((s, a) => s + priceNum(a), 0);
+          const closeModal = () => {
+            setStoreSelectedProgram(null);
+            setStoreRegisteredCode("");
+            setStoreRegName("");
+            setStoreRegPhone("");
+          };
           return (
             <div
               className="storeModalBackdropV2"
-              onClick={() => {
-                setStoreSelectedProgram(null);
-                setStoreRegisteredCode("");
-                setStoreRegName("");
-                setStoreRegPhone("");
-              }}
+              onClick={closeModal}
             >
               <div className="storeModalV2" onClick={(e) => e.stopPropagation()}>
                 <button
@@ -14173,80 +14188,86 @@ function App() {
                   </div>
                   <div className="storeModalInfoV2">
                     <span className="storeEyebrowV2">
-                      {getProgramSeason(sp).replace("-", " ")}
+                      {sZh
+                        ? `第 ${storeStep} 步 / 共 ${hasAddons ? 3 : 2} 步`
+                        : `Step ${storeStep} of ${hasAddons ? 3 : 2}`}
                     </span>
                     <h2>{spName}</h2>
-                    <p>{spDesc}</p>
-                    <div className="storeProductTagsV2">
-                      {isBundleProgram(sp) && (
-                        <span className="storeBundleBadge">
-                          {sZh ? "套餐" : "Package"}
-                        </span>
-                      )}
-                      <span>{formatDuration(sp)}</span>
-                      <span>{sp.level || (sZh ? "多水平" : "All levels")}</span>
-                      <span>{formatPrice(sp)}</span>
-                    </div>
 
-                    {isBundleProgram(sp) &&
-                      bundleIncludes(sp).length > 0 &&
-                      (() => {
-                        const total = bundleIndividualTotal(sp);
-                        const bp = parseFloat(sp.price || "0") || 0;
-                        return (
-                          <div className="storeBundleIncludesV2">
-                            <strong className="storeAddonsTitle">
-                              {sZh ? "套餐包含" : "What's included"}
-                            </strong>
-                            {bundleIncludes(sp).map((p) => (
-                              <div className="storeAddonRow" key={p.recordId}>
-                                <span className="storeAddonName">
-                                  {sZh && p.programNameCn
-                                    ? p.programNameCn
-                                    : p.programName}
-                                </span>
-                                <span className="storeAddonPrice">
-                                  {p.price ? `${p.currency || "CNY"} ${p.price}` : ""}
-                                </span>
-                              </div>
-                            ))}
-                            {total > bp && bp > 0 && (
-                              <div className="storeSubtotalV2">
-                                <span>
-                                  <s>
-                                    {(sp.currency || "CNY")} {total}
-                                  </s>{" "}
-                                  {sZh ? `省 ${total - bp}` : `Save ${total - bp}`}
-                                </span>
-                                <strong>
-                                  {sp.currency || "CNY"} {bp.toLocaleString()}
+                    {/* Step 1 — program / bundle details */}
+                    {storeStep === 1 && (
+                      <>
+                        <p>{spDesc}</p>
+                        <div className="storeProductTagsV2">
+                          {isBundleProgram(sp) && (
+                            <span className="storeBundleBadge">
+                              {sZh ? "套餐" : "Package"}
+                            </span>
+                          )}
+                          <span>{formatDuration(sp)}</span>
+                          <span>{sp.level || (sZh ? "多水平" : "All levels")}</span>
+                          <span>{formatPrice(sp)}</span>
+                        </div>
+
+                        {isBundleProgram(sp) &&
+                          bundleIncludes(sp).length > 0 &&
+                          (() => {
+                            const total = bundleIndividualTotal(sp);
+                            const bp = priceNum(sp);
+                            return (
+                              <div className="storeBundleIncludesV2">
+                                <strong className="storeAddonsTitle">
+                                  {sZh ? "套餐包含" : "What's included"}
                                 </strong>
+                                {bundleIncludes(sp).map((p) => (
+                                  <div className="storeAddonRow" key={p.recordId}>
+                                    <span className="storeAddonName">
+                                      {sZh && p.programNameCn
+                                        ? p.programNameCn
+                                        : p.programName}
+                                    </span>
+                                    <span className="storeAddonPrice">
+                                      {p.price ? `${p.currency || "CNY"} ${p.price}` : ""}
+                                    </span>
+                                  </div>
+                                ))}
+                                {total > bp && bp > 0 && (
+                                  <div className="storeSubtotalV2">
+                                    <span>
+                                      <s>
+                                        {currency} {total}
+                                      </s>{" "}
+                                      {sZh ? `省 ${total - bp}` : `Save ${total - bp}`}
+                                    </span>
+                                    <strong>
+                                      {currency} {bp.toLocaleString()}
+                                    </strong>
+                                  </div>
+                                )}
                               </div>
-                            )}
-                          </div>
-                        );
-                      })()}
+                            );
+                          })()}
 
-                    {(() => {
-                      const priceNum = (p: Program) =>
-                        parseFloat(p.price || "0") || 0;
-                      // Bundles don't offer additional add-ons in this modal.
-                      const addonPrograms = isBundleProgram(sp)
-                        ? []
-                        : storePrograms.filter(isAddonProgram);
-                      if (addonPrograms.length === 0) return null;
-                      const currency = sp.currency || "CNY";
-                      const selected = addonPrograms.filter((a) =>
-                        storeSelectedAddonIds.includes(a.recordId)
-                      );
-                      const subtotal =
-                        priceNum(sp) +
-                        selected.reduce((s, a) => s + priceNum(a), 0);
-                      return (
+                        <div className="storeStepActions">
+                          <button
+                            className="primaryButton"
+                            onClick={() => setStoreStep(hasAddons ? 2 : 3)}
+                          >
+                            {sZh ? "继续" : "Continue"}
+                          </button>
+                        </div>
+                      </>
+                    )}
+
+                    {/* Step 2 — optional add-ons */}
+                    {storeStep === 2 && (
+                      <>
+                        <p className="storeStepPrompt">
+                          {sZh
+                            ? "需要搭配关节专项训练吗？（可跳过）"
+                            : "Add joint-specific training? (optional)"}
+                        </p>
                         <div className="storeAddonsV2">
-                          <strong className="storeAddonsTitle">
-                            {sZh ? "搭配加购模块" : "Add-ons"}
-                          </strong>
                           {addonPrograms.map((a) => {
                             const checked = storeSelectedAddonIds.includes(
                               a.recordId
@@ -14286,69 +14307,143 @@ function App() {
                             </strong>
                           </div>
                         </div>
-                      );
-                    })()}
+                        <div className="storeStepActions">
+                          <button
+                            className="ghostButton"
+                            onClick={() => setStoreStep(1)}
+                          >
+                            {sZh ? "返回" : "Back"}
+                          </button>
+                          <button
+                            className="ghostButton"
+                            onClick={() => {
+                              setStoreSelectedAddonIds([]);
+                              setStoreStep(3);
+                            }}
+                          >
+                            {sZh ? "跳过" : "Skip"}
+                          </button>
+                          <button
+                            className="primaryButton"
+                            onClick={() => setStoreStep(3)}
+                          >
+                            {sZh ? "去结算" : "Continue"}
+                          </button>
+                        </div>
+                      </>
+                    )}
 
-                    {storeRegisteredCode ? (
-                      <div className="storeSuccessBoxV2">
-                        <strong>{sZh ? "已创建客户端" : "Client portal created"}</strong>
-                        <span>
-                          {sZh ? "客户代码：" : "Client code: "}
-                          {storeRegisteredCode}
-                        </span>
-                        <a
-                          className="primaryButton"
-                          href={`/?portal=client&client=${encodeURIComponent(storeRegisteredCode)}`}
-                        >
-                          {sZh ? "打开客户端" : "Open Client Portal"}
-                        </a>
-                      </div>
-                    ) : (
-                      <div className="storeRegisterV2">
-                        <label>
-                          {sZh ? "姓名" : "Name"}
-                          <input
-                            value={storeRegName}
-                            onChange={(e) => setStoreRegName(e.target.value)}
-                            placeholder={sZh ? "你的姓名" : "Your name"}
-                          />
-                        </label>
-                        <label>
-                          {sZh ? "微信 / 电话" : "WeChat / Phone"}
-                          <input
-                            value={storeRegPhone}
-                            onChange={(e) => setStoreRegPhone(e.target.value)}
-                            placeholder={sZh ? "微信号或手机号" : "WeChat ID or phone"}
-                          />
-                        </label>
-                        <button
-                          className="primaryButton"
-                          disabled={storeRegistering}
-                          onClick={() => void registerForProgram(sp)}
-                        >
-                          {storeRegistering
-                            ? sZh
-                              ? "提交中..."
-                              : "Submitting..."
-                            : sZh
-                              ? "我已付款，开始 Intake"
-                              : "I paid - start intake"}
-                        </button>
-                      </div>
+                    {/* Step 3 — cart + payment */}
+                    {storeStep === 3 && (
+                      <>
+                        <div className="storeAddonsV2">
+                          <strong className="storeAddonsTitle">
+                            {sZh ? "购物车" : "Your cart"}
+                          </strong>
+                          <div className="storeAddonRow">
+                            <span className="storeAddonName">{spName}</span>
+                            <span className="storeAddonPrice">
+                              {currency} {priceNum(sp)}
+                            </span>
+                          </div>
+                          {selectedAddons.map((a) => (
+                            <div className="storeAddonRow" key={a.recordId}>
+                              <span className="storeAddonName">
+                                {sZh && a.programNameCn
+                                  ? a.programNameCn
+                                  : a.programName}
+                              </span>
+                              <span className="storeAddonPrice">
+                                {currency} {priceNum(a)}
+                              </span>
+                            </div>
+                          ))}
+                          <div className="storeSubtotalV2">
+                            <span>{sZh ? "合计" : "Total"}</span>
+                            <strong>
+                              {currency} {subtotal.toLocaleString()}
+                            </strong>
+                          </div>
+                        </div>
+
+                        {storeRegisteredCode ? (
+                          <div className="storeSuccessBoxV2">
+                            <strong>
+                              {sZh ? "已创建客户端" : "Client portal created"}
+                            </strong>
+                            <span>
+                              {sZh ? "客户代码：" : "Client code: "}
+                              {storeRegisteredCode}
+                            </span>
+                            <a
+                              className="primaryButton"
+                              href={`/?portal=client&client=${encodeURIComponent(storeRegisteredCode)}`}
+                            >
+                              {sZh ? "打开客户端" : "Open Client Portal"}
+                            </a>
+                          </div>
+                        ) : (
+                          <div className="storeRegisterV2">
+                            <label>
+                              {sZh ? "姓名" : "Name"}
+                              <input
+                                value={storeRegName}
+                                onChange={(e) => setStoreRegName(e.target.value)}
+                                placeholder={sZh ? "你的姓名" : "Your name"}
+                              />
+                            </label>
+                            <label>
+                              {sZh ? "微信 / 电话" : "WeChat / Phone"}
+                              <input
+                                value={storeRegPhone}
+                                onChange={(e) => setStoreRegPhone(e.target.value)}
+                                placeholder={sZh ? "微信号或手机号" : "WeChat ID or phone"}
+                              />
+                            </label>
+                            <button
+                              className="primaryButton"
+                              disabled={storeRegistering}
+                              onClick={() => void registerForProgram(sp)}
+                            >
+                              {storeRegistering
+                                ? sZh
+                                  ? "提交中..."
+                                  : "Submitting..."
+                                : sZh
+                                  ? "我已付款，开始 Intake"
+                                  : "I paid - start intake"}
+                            </button>
+                          </div>
+                        )}
+
+                        {!storeRegisteredCode && (
+                          <div className="storeStepActions">
+                            <button
+                              className="ghostButton"
+                              onClick={() => setStoreStep(hasAddons ? 2 : 1)}
+                            >
+                              {sZh ? "返回" : "Back"}
+                            </button>
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
-                  <div className="storeModalPaymentV2">
-                    <strong>{sZh ? "微信支付" : "WeChat Pay"}</strong>
-                    <img
-                      src="https://i.ibb.co/Y4nXVG4g/Weixin-Image-20260611202846-56-2.jpg"
-                      alt="WeChat QR"
-                    />
-                    <span>
-                      {sZh
-                        ? "付款后填写姓名和微信号。"
-                        : "After payment, enter your name and WeChat ID."}
-                    </span>
-                  </div>
+
+                  {storeStep === 3 && (
+                    <div className="storeModalPaymentV2">
+                      <strong>{sZh ? "微信支付" : "WeChat Pay"}</strong>
+                      <img
+                        src="https://i.ibb.co/Y4nXVG4g/Weixin-Image-20260611202846-56-2.jpg"
+                        alt="WeChat QR"
+                      />
+                      <span>
+                        {sZh
+                          ? "付款后填写姓名和微信号。"
+                          : "After payment, enter your name and WeChat ID."}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
