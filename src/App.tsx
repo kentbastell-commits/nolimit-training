@@ -1366,7 +1366,12 @@ function App() {
   const inviteSearchParams = new URLSearchParams(window.location.search);
   const isClientInvite = inviteSearchParams.get("invite") === "client";
   const isClientPortal = inviteSearchParams.get("portal") === "client";
-  const isStorePage = inviteSearchParams.get("page") === "store";
+  const isCoachView = inviteSearchParams.get("view") === "coach";
+  // The store is the public landing page (default). Coach app is at ?view=coach,
+  // the athlete portal at ?portal=client, intake at ?invite=client.
+  const isStorePage =
+    inviteSearchParams.get("page") === "store" ||
+    (!isClientPortal && !isClientInvite && !isCoachView);
   const clientPortalCode = (
     inviteSearchParams.get("client") ||
     inviteSearchParams.get("clientCode") ||
@@ -1462,6 +1467,8 @@ function App() {
   const [inviteClientId, setInviteClientId] = useState("");
   const [inviteLang, setInviteLang] = useState<"en" | "zh">("en");
   const [storeLang, setStoreLang] = useState<"en" | "zh">("en");
+  const [storeLauncherOpen, setStoreLauncherOpen] = useState(false);
+  const [storeLauncherClient, setStoreLauncherClient] = useState("");
   const [programsLoading, setProgramsLoading] = useState(false);
   const [storeSelectedProgram, setStoreSelectedProgram] = useState<Program | null>(null);
   const [storeRegName, setStoreRegName] = useState("");
@@ -2512,6 +2519,7 @@ function App() {
   useEffect(() => {
     if (isStorePage) {
       void loadPrograms();
+      void loadClients(); // for the "Client View" launcher picker
       return;
     }
     loadClients();
@@ -12400,6 +12408,63 @@ function App() {
             {sZh ? "English" : "中文"}
           </button>
         </header>
+
+        {/* Discreet launcher to enter the Coach app or an athlete's portal. */}
+        <div className="storeLauncher">
+          {!storeLauncherOpen ? (
+            <button
+              className="storeLauncherToggle"
+              onClick={() => setStoreLauncherOpen(true)}
+            >
+              {sZh ? "进入应用" : "Enter app"}
+            </button>
+          ) : (
+            <div className="storeLauncherPanel">
+              <div className="storeLauncherHead">
+                <span>{sZh ? "进入应用" : "Enter app"}</span>
+                <button
+                  className="storeLauncherClose"
+                  aria-label="Close"
+                  onClick={() => setStoreLauncherOpen(false)}
+                >
+                  ×
+                </button>
+              </div>
+              <button
+                className="storeLauncherBtn"
+                onClick={() => {
+                  window.location.href = "/?view=coach";
+                }}
+              >
+                {sZh ? "教练端" : "Coach View"}
+              </button>
+              <div className="storeLauncherClientRow">
+                <select
+                  value={storeLauncherClient}
+                  onChange={(e) => setStoreLauncherClient(e.target.value)}
+                >
+                  <option value="">{sZh ? "选择客户…" : "Select client…"}</option>
+                  {clients.map((c) => (
+                    <option key={c.id} value={c.clientCode || c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  className="storeLauncherBtn"
+                  disabled={!storeLauncherClient}
+                  onClick={() => {
+                    window.location.href = `/?portal=client&client=${encodeURIComponent(
+                      storeLauncherClient
+                    )}`;
+                  }}
+                >
+                  {sZh ? "客户端" : "Client View"}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
 
         <main className="storeMain">
           <div className="storeIntro">
