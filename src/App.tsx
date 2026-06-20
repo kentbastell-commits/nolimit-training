@@ -1886,9 +1886,12 @@ function App() {
   const [programProductStatus, setProgramProductStatus] = useState("Draft");
   const [programSalesDescription, setProgramSalesDescription] = useState("");
   // Tag a saved program with the client / team it was built for (searchable,
-  // reusable). Empty = a generic template.
+  // reusable). Empty = a generic/internal template.
   const [programBuiltForClient, setProgramBuiltForClient] = useState("");
   const [programBuiltForTeam, setProgramBuiltForTeam] = useState("");
+  const [programBuiltForMode, setProgramBuiltForMode] = useState<
+    "internal" | "client" | "team"
+  >("internal");
 
   const [programWeek, setProgramWeek] = useState("1");
   const [programDay, setProgramDay] = useState("1");
@@ -4305,8 +4308,24 @@ function App() {
   const visibleSavedPrograms = programs
     .filter((program) => program.status !== "Archived")
     .filter((program) => {
-      if (savedProgramProductFilter === "All") return true;
-      return (program.productType || "Internal Coaching Template") === savedProgramProductFilter;
+      const f = savedProgramProductFilter;
+      if (f === "All") return true;
+      if (f === "internal") {
+        // General/internal: no client or team assignment.
+        return !program.builtForClient && !program.builtForTeam;
+      }
+      if (f.startsWith("type:")) {
+        return (
+          (program.productType || "Internal Coaching Template") ===
+          f.slice(5)
+        );
+      }
+      if (f.startsWith("team:")) return program.builtForTeam === f.slice(5);
+      if (f.startsWith("client:")) {
+        return program.builtForClient === f.slice(7);
+      }
+      // Back-compat with any plain product-type value.
+      return (program.productType || "Internal Coaching Template") === f;
     })
     .filter((program) => {
       const search = savedProgramSearch.toLowerCase();
@@ -4844,6 +4863,13 @@ function App() {
       // at a new client/team before saving.
       setProgramBuiltForClient(selectedSavedProgram.builtForClient || "");
       setProgramBuiltForTeam(selectedSavedProgram.builtForTeam || "");
+      setProgramBuiltForMode(
+        selectedSavedProgram.builtForClient
+          ? "client"
+          : selectedSavedProgram.builtForTeam
+          ? "team"
+          : "internal"
+      );
       setProgramSessions(sessions);
       setSelectedProgramExercises([]);
       setProgramWeek("1");
@@ -8519,6 +8545,10 @@ function App() {
     const singleWorkoutMode = builderMode === "Single Workout";
     const digitalProductProgram =
       !singleWorkoutMode && programProductType === "Digital Program";
+    // "Built for" client/team only applies to coached (Online / In-Person) programs.
+    const coachedProgramType =
+      programProductType === "Online Coaching" ||
+      programProductType === "In-Person Training";
 
     if (!programName.trim()) {
       notify(singleWorkoutMode ? "Please fill Workout Name." : "Please fill Program Name.");
@@ -8585,8 +8615,8 @@ function App() {
           accessLengthDays: digitalProductProgram ? programAccessLengthDays : "",
           productStatus: digitalProductProgram ? programProductStatus : "Draft",
           salesDescription: digitalProductProgram ? programSalesDescription : "",
-          builtForClient: programBuiltForClient,
-          builtForTeam: programBuiltForTeam,
+          builtForClient: coachedProgramType ? programBuiltForClient : "",
+          builtForTeam: coachedProgramType ? programBuiltForTeam : "",
         }),
       });
 
@@ -17051,13 +17081,38 @@ function App() {
                             setSavedProgramProductFilter(event.target.value)
                           }
                         >
-                          <option value="All">All program types</option>
-                          <option value="Digital Program">Digital programs</option>
-                          <option value="Online Coaching">Online coaching</option>
-                          <option value="In-Person Training">In-person training</option>
-                          <option value="Internal Coaching Template">
-                            Internal templates
-                          </option>
+                          <option value="All">All programs</option>
+                          <optgroup label="Program type">
+                            <option value="type:Digital Program">
+                              Digital programs
+                            </option>
+                            <option value="type:Online Coaching">
+                              Online coaching
+                            </option>
+                            <option value="type:In-Person Training">
+                              In-person training
+                            </option>
+                            <option value="internal">Internal / general</option>
+                          </optgroup>
+                          {teams.length > 0 && (
+                            <optgroup label="By team">
+                              {teams.map((tm) => (
+                                <option key={tm.id} value={`team:${tm.name}`}>
+                                  {tm.name}
+                                </option>
+                              ))}
+                            </optgroup>
+                          )}
+                          <optgroup label="By client">
+                            {coachVisibleClients.map((c) => (
+                              <option
+                                key={c.id}
+                                value={`client:${c.clientCode || c.id}`}
+                              >
+                                {c.name}
+                              </option>
+                            ))}
+                          </optgroup>
                         </select>
 
                         {programsLoading && programs.length === 0 && (
@@ -17414,39 +17469,6 @@ function App() {
                     )}
                   </div>
 
-                  <div className="programDetailsGrid programBuiltForGrid">
-                    <label>
-                      <span>Built for client</span>
-                      <select
-                        value={programBuiltForClient}
-                        onChange={(e) => setProgramBuiltForClient(e.target.value)}
-                        className="miniSearch"
-                      >
-                        <option value="">Template (no client)</option>
-                        {coachVisibleClients.map((c) => (
-                          <option key={c.id} value={c.clientCode || c.id}>
-                            {c.name}
-                            {c.clientCode ? ` (${c.clientCode})` : ""}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <label>
-                      <span>Built for team</span>
-                      <select
-                        value={programBuiltForTeam}
-                        onChange={(e) => setProgramBuiltForTeam(e.target.value)}
-                        className="miniSearch"
-                      >
-                        <option value="">No team</option>
-                        {teams.map((tm) => (
-                          <option key={tm.id} value={tm.name}>
-                            {tm.name}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                  </div>
 
                   {!isSingleWorkoutBuilder && (
                     <>
@@ -17496,6 +17518,75 @@ function App() {
                             <option>Internal Coaching Template</option>
                           </select>
                         </label>
+
+                        {(programProductType === "Online Coaching" ||
+                          programProductType === "In-Person Training") && (
+                          <label>
+                            <span>Assign to</span>
+                            <select
+                              value={programBuiltForMode}
+                              onChange={(e) => {
+                                const mode = e.target.value as
+                                  | "internal"
+                                  | "client"
+                                  | "team";
+                                setProgramBuiltForMode(mode);
+                                if (mode !== "client") setProgramBuiltForClient("");
+                                if (mode !== "team") setProgramBuiltForTeam("");
+                              }}
+                              className="miniSearch"
+                            >
+                              <option value="internal">Internal (general)</option>
+                              <option value="client">Client</option>
+                              <option value="team">Team</option>
+                            </select>
+                          </label>
+                        )}
+
+                        {(programProductType === "Online Coaching" ||
+                          programProductType === "In-Person Training") &&
+                          programBuiltForMode === "client" && (
+                            <label>
+                              <span>Client</span>
+                              <select
+                                value={programBuiltForClient}
+                                onChange={(e) =>
+                                  setProgramBuiltForClient(e.target.value)
+                                }
+                                className="miniSearch"
+                              >
+                                <option value="">Select client…</option>
+                                {coachVisibleClients.map((c) => (
+                                  <option key={c.id} value={c.clientCode || c.id}>
+                                    {c.name}
+                                    {c.clientCode ? ` (${c.clientCode})` : ""}
+                                  </option>
+                                ))}
+                              </select>
+                            </label>
+                          )}
+
+                        {(programProductType === "Online Coaching" ||
+                          programProductType === "In-Person Training") &&
+                          programBuiltForMode === "team" && (
+                            <label>
+                              <span>Team</span>
+                              <select
+                                value={programBuiltForTeam}
+                                onChange={(e) =>
+                                  setProgramBuiltForTeam(e.target.value)
+                                }
+                                className="miniSearch"
+                              >
+                                <option value="">Select team…</option>
+                                {teams.map((tm) => (
+                                  <option key={tm.id} value={tm.name}>
+                                    {tm.name}
+                                  </option>
+                                ))}
+                              </select>
+                            </label>
+                          )}
                       </div>
                     </>
                   )}
