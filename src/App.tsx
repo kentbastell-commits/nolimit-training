@@ -12436,38 +12436,35 @@ function App() {
       );
     }
 
-    const daysAgo = (d: string) =>
-      Math.floor(
-        (new Date(`${todayValue}T00:00:00`).getTime() -
-          new Date(`${d}T00:00:00`).getTime()) /
-          86400000
-      );
-    let acuteLoad = 0;
-    let chronicLoad = 0;
-    let acuteTonnage = 0;
-    for (const s of series) {
-      const ago = daysAgo(s.date);
-      if (ago < 0) continue;
-      if (ago < 7) {
-        acuteLoad += s.load;
-        acuteTonnage += s.tonnage;
-      }
-      if (ago < 28) chronicLoad += s.load;
+    // Last 7 calendar days of internal load (rest days count as 0) — the basis
+    // for Foster's training monotony (mean ÷ SD) and strain (weekly load ×
+    // monotony). High monotony with high strain flags overtraining risk.
+    const ref = new Date(`${todayValue}T00:00:00`);
+    const dayLoads: number[] = [];
+    let weekTonnage = 0;
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(ref);
+      d.setDate(d.getDate() - i);
+      const ds = dateToInputValue(d);
+      dayLoads.push(loadByDate.get(ds) || 0);
+      weekTonnage += tonnageByDate.get(ds) || 0;
     }
-    const chronicWeekly = chronicLoad / 4;
-    const acwr = chronicWeekly > 0 ? acuteLoad / chronicWeekly : 0;
-    const lastLoad = series[series.length - 1].load;
+    const weeklyLoad = Math.round(dayLoads.reduce((a, b) => a + b, 0));
+    const meanLoad = weeklyLoad / 7;
+    const sd = Math.sqrt(
+      dayLoads.reduce((a, b) => a + (b - meanLoad) ** 2, 0) / 7
+    );
+    const monotony = sd > 0 ? meanLoad / sd : 0;
+    const strain = Math.round(weeklyLoad * monotony);
     const maxLoad = Math.max(1, ...series.map((s) => s.load));
     const recent = series.slice(-12);
 
-    const acwrZone =
-      acwr === 0
+    const monotonyZone =
+      weeklyLoad === 0 || monotony === 0
         ? { label: paceZh ? "无数据" : "n/a", cls: "loadZoneNeutral" }
-        : acwr < 0.8
-        ? { label: paceZh ? "偏低" : "Detraining", cls: "loadZoneLow" }
-        : acwr <= 1.3
-        ? { label: paceZh ? "理想区间" : "Sweet spot", cls: "loadZoneGood" }
-        : acwr <= 1.5
+        : monotony < 1.5
+        ? { label: paceZh ? "理想" : "Varied", cls: "loadZoneGood" }
+        : monotony <= 2
         ? { label: paceZh ? "注意" : "Caution", cls: "loadZoneWarn" }
         : { label: paceZh ? "高风险" : "High risk", cls: "loadZoneRisk" };
 
@@ -12475,19 +12472,19 @@ function App() {
       <div className="loadDashboard">
         <div className="loadStatRow">
           <div className="loadStat">
-            <strong>{lastLoad.toLocaleString()}</strong>
-            <span>{paceZh ? "最近负荷" : "Last load"}</span>
+            <strong>{weeklyLoad.toLocaleString()}</strong>
+            <span>{paceZh ? "周负荷" : "Weekly load"}</span>
+          </div>
+          <div className={`loadStat ${monotonyZone.cls}`}>
+            <strong>{monotony ? monotony.toFixed(2) : "--"}</strong>
+            <span>{paceZh ? "单调性" : "Monotony"} · {monotonyZone.label}</span>
           </div>
           <div className="loadStat">
-            <strong>{acuteLoad.toLocaleString()}</strong>
-            <span>{paceZh ? "7天负荷" : "7-day load"}</span>
-          </div>
-          <div className={`loadStat ${acwrZone.cls}`}>
-            <strong>{acwr ? acwr.toFixed(2) : "--"}</strong>
-            <span>ACWR · {acwrZone.label}</span>
+            <strong>{strain ? strain.toLocaleString() : "--"}</strong>
+            <span>{paceZh ? "应激" : "Strain"}</span>
           </div>
           <div className="loadStat">
-            <strong>{acuteTonnage.toLocaleString()}</strong>
+            <strong>{weekTonnage.toLocaleString()}</strong>
             <span>{paceZh ? "7天容量(kg)" : "7-day volume (kg)"}</span>
           </div>
         </div>
@@ -12511,8 +12508,8 @@ function App() {
         </div>
         <p className="loadDashboardNote">
           {paceZh
-            ? "内部负荷 = RPE × 时长；外部负荷 = 容量(重量×次数)。"
-            : "Internal load = RPE × duration · External load = tonnage (weight × reps)."}
+            ? "内部负荷 = RPE × 时长。单调性 = 周均负荷 ÷ 标准差（>2 偏高）；应激 = 周负荷 × 单调性。"
+            : "Internal load = RPE × duration. Monotony = weekly mean ÷ SD (>2 is high); Strain = weekly load × monotony."}
         </p>
       </div>
     );
@@ -12789,32 +12786,60 @@ function App() {
       title: string;
       body: string;
       icon: LucideIcon;
+      highlights: string[];
     }> = [
       {
         title: "Digital Programs",
         body:
-          "Choose a proven training block, set your start date, and load the work into your calendar.",
+          "Professional, evidence-based training blocks for athletes and sport enthusiasts who want better performance without the full cost of private coaching.",
         icon: BookOpen,
+        highlights: [
+          "Progression programs for every skill level.",
+          "Optional injury-prevention add-ons.",
+          "Flexible scheduling in your calendar.",
+        ],
       },
       {
-        title: "Coached Progress",
+        title: "Online Coaching",
         body:
-          "For athletes who need review, testing, adjustments, and a coach who can keep the plan honest.",
+          "Personalized programming from Olympic and professional-level coaching, built around your sport, training history, travel, and actual needs.",
         icon: Users,
+        highlights: [
+          "30-minute consultation to start.",
+          "Weekly check-ins and plan adjustments.",
+          "Progressions based on your testing and feedback.",
+        ],
       },
       {
-        title: "Testing To Training",
+        title: "In-Person Training",
         body:
-          "Turn strength, aerobic, and return-to-sport numbers into practical targets inside the program.",
+          "Performance training for teams, clubs, and individuals who want direct coaching, testing, and technical feedback in person.",
         icon: TrendingUp,
+        highlights: [
+          "Team and club training blocks.",
+          "Individual performance sessions.",
+          "Contact us on WeChat for availability.",
+        ],
       },
     ];
 
     const landingSteps = [
-      "Pick the goal",
-      "Load the plan",
-      "Train and log",
-      "Review progress",
+      {
+        title: "Pay",
+        body: "Choose the program or add-on that fits your goal.",
+      },
+      {
+        title: "Intake",
+        body: "Answer a short form so the plan starts in the right place.",
+      },
+      {
+        title: "My Programs",
+        body: "Your purchase appears inside your client portal.",
+      },
+      {
+        title: "Customize Dates",
+        body: "Place sessions by month, week, or day by day.",
+      },
     ];
 
     return (
@@ -12829,13 +12854,13 @@ function App() {
 
         <header className="landingNav">
           <a className="landingBrand" href="/" aria-label="No Limit Training home">
-            <img src="/nl_wordmark_clean.png" alt="No Limit Training" />
+            <img src="/nl_wordmark_black.png" alt="No Limit Training" />
             <span>Built for training.</span>
           </a>
           <nav className="landingNavLinks" aria-label="Primary navigation">
             <a href="#programs">Programs</a>
             <a href="#coaching">Coaching</a>
-            <a href="#system">System</a>
+            <a href="#in-person">In-Person</a>
             <a className="landingNavButton" href="/store">
               View Programs
             </a>
@@ -12845,12 +12870,12 @@ function App() {
         <main>
           <section className="landingHero">
             <div className="landingHeroCopy">
-              <p className="landingEyebrow">Digital programs / coaching / testing</p>
-              <h1>Training with no wasted reps.</h1>
+              <p className="landingEyebrow">Digital programs / coaching / performance training</p>
+              <h1>Train with structure. Progress with intent.</h1>
               <p className="landingLead">
-                No Limit builds structured training systems for climbers, hybrid
-                athletes, and anyone who wants a smarter route from plan to
-                progress.
+                No Limit builds professional training systems for athletes and
+                sport enthusiasts who want evidence-based programs, practical
+                progressions, and coaching support when they need it.
               </p>
               <div className="landingHeroActions">
                 <a className="landingPrimaryCta" href="/store">
@@ -12903,22 +12928,22 @@ function App() {
           <section className="landingMetrics" aria-label="Platform summary">
             <div>
               <strong>{programCountLabel}</strong>
-              <span>Structured blocks for real training goals.</span>
+              <span>Evidence-based programs for sport and performance goals.</span>
             </div>
             <div>
               <strong>3 paths</strong>
-              <span>Digital, online coaching, and in-person training.</span>
+              <span>Digital programs, online coaching, and in-person training.</span>
             </div>
             <div>
-              <strong>1 system</strong>
-              <span>Calendar, logs, tests, and review in one place.</span>
+              <strong>Add-ons</strong>
+              <span>Joint-specific prevention blocks to personalize the plan.</span>
             </div>
           </section>
 
           <section className="landingPillars" id="coaching">
             <div className="landingSectionIntro">
               <p className="landingEyebrow">How we train</p>
-              <h2>Simple plans. Better decisions.</h2>
+              <h2>Choose the level of support that fits your season.</h2>
             </div>
             <div className="landingPillarGrid">
               {landingPillars.map((pillar) => {
@@ -12928,6 +12953,11 @@ function App() {
                     <Icon aria-hidden="true" />
                     <h3>{pillar.title}</h3>
                     <p>{pillar.body}</p>
+                    <ul className="landingOfferList">
+                      {pillar.highlights.map((highlight) => (
+                        <li key={highlight}>{highlight}</li>
+                      ))}
+                    </ul>
                   </article>
                 );
               })}
@@ -12937,7 +12967,12 @@ function App() {
           <section className="landingPrograms" id="programs">
             <div className="landingSectionIntro">
               <p className="landingEyebrow">Program store</p>
-              <h2>Start with a plan you can actually follow.</h2>
+              <h2>Performance programs without the private-coaching price.</h2>
+              <p className="landingSectionLead">
+                Buy a professional program, complete the intake, then choose
+                exactly where the sessions live in your calendar. Add progression
+                levels or injury-prevention blocks to customize the experience.
+              </p>
             </div>
             <div className="landingProgramGrid">
               {featuredPrograms.length > 0 ? (
@@ -12957,7 +12992,7 @@ function App() {
                 <article className="landingProgramCard landingProgramCardPlaceholder">
                   <span>Coming soon</span>
                   <h3>Sport-specific training blocks</h3>
-                  <p>Climbing, snow, hybrid conditioning, and joint-focused add-ons.</p>
+                  <p>Climbing, snow, Hyrox, field sport, running, and joint-focused add-ons.</p>
                 </article>
               )}
             </div>
@@ -12969,27 +13004,52 @@ function App() {
           <section className="landingSystem" id="system">
             <div>
               <p className="landingEyebrow">Inside the app</p>
-              <h2>From calendar to coach review.</h2>
+              <h2>From purchase to your training calendar.</h2>
               <p>
-                The app keeps the daily work clear for athletes and gives coaches
-                the logs, comments, and testing context they need to adjust the
-                next block.
+                Digital clients move from purchase to intake to My Programs,
+                then place sessions by month, by week, or day by day. Coaching
+                clients use the same system with weekly review, comments, and
+                testing context layered on top.
               </p>
             </div>
             <ol>
-              {landingSteps.map((step) => (
-                <li key={step}>
-                  <span>{step}</span>
+              {landingSteps.map((step, index) => (
+                <li key={step.title}>
+                  <span>{String(index + 1).padStart(2, "0")}</span>
+                  <strong>{step.title}</strong>
+                  <small>{step.body}</small>
                 </li>
               ))}
             </ol>
+          </section>
+
+          <section className="landingInPerson" id="in-person">
+            <div>
+              <p className="landingEyebrow">In-person training</p>
+              <h2>Direct coaching for teams, clubs, and individuals.</h2>
+              <p>
+                No Limit is available for in-person performance sessions,
+                technical training, team testing, and return-to-performance
+                support. Contact us on WeChat for scheduling, pricing, and
+                availability.
+              </p>
+            </div>
+            <div className="landingWechatCard">
+              <span>WeChat</span>
+              <strong>Scan or contact</strong>
+              <p>Ask about team sessions, club workshops, and individual coaching.</p>
+            </div>
           </section>
 
           <section className="landingFinalCta">
             <img src="/nl_seal_black.png" alt="" />
             <div>
               <p className="landingEyebrow">No limits. Just progress.</p>
-              <h2>Train with structure from day one.</h2>
+              <h2>Choose the path that fits your next block.</h2>
+              <p>
+                Start with a digital program, add injury-prevention work, or
+                apply for a personalized coaching plan.
+              </p>
             </div>
             <a className="landingPrimaryCta" href="/store">
               View Programs
