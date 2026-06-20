@@ -137,6 +137,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           sessionRpe: fieldToText(fields["Session RPE"]),
           sessionDuration: fieldToText(fields["Session Duration"]),
           sessionLoad: fieldToText(fields["Session Load"]),
+          coachReviewed: /^(true|reviewed|yes|1)$/i.test(
+            fieldToText(fields["Coach Reviewed"])
+          ),
         };
       })
       .filter((workout: any) => {

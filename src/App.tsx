@@ -249,6 +249,7 @@ type Workout = {
   sessionRpe?: string;
   sessionDuration?: string;
   sessionLoad?: string;
+  coachReviewed?: boolean;
 };
 
 type CopiedCalendarItem =
@@ -5837,7 +5838,35 @@ function App() {
         ? window.localStorage.getItem(draftKey)
         : null;
 
-      if (savedDraft) {
+      // Coach opening a completed workout = review mode: overlay the athlete's
+      // actual submitted values (from their logs on that date) onto the cards.
+      const coachReviewing =
+        !isClientPortal && /complete/i.test(workout.completionStatus || "");
+      if (coachReviewing) {
+        const wDate = normalizeDate(String(workout.scheduledDate));
+        const dayLogs = (historyData.logs || []).filter(
+          (l: WorkoutHistoryLog) => l.date === wDate
+        );
+        const reviewLogs = baseLogs.map((bl) => {
+          const base = bl.exerciseName.split(" - ")[0].toLowerCase();
+          const match = dayLogs.find(
+            (l: WorkoutHistoryLog) =>
+              l.exerciseName.toLowerCase().startsWith(base) &&
+              String(l.setNumber) === String(bl.setNumber)
+          );
+          return match
+            ? {
+                ...bl,
+                actualReps: match.actualReps || "",
+                actualWeight: match.actualWeight || "",
+                actualTime: match.actualTime || "",
+                actualDistance: match.actualDistance || "",
+              }
+            : bl;
+        });
+        setSetLogs(reviewLogs);
+        setSavedExerciseDraftIds([]);
+      } else if (savedDraft) {
         try {
           const parsedDraft = JSON.parse(savedDraft);
           setSetLogs(parsedDraft.logs || baseLogs);
@@ -5935,6 +5964,8 @@ function App() {
   }, [restTimer?.running]);
 
   const updateSetLog = (index: number, field: keyof SetLog, value: string) => {
+    // Coach is reviewing a completed workout — values are read-only.
+    if (coachReviewMode) return;
     const prev = setLogs[index];
     const updated = [...setLogs];
 
@@ -6035,6 +6066,29 @@ function App() {
       notify("Could not save workout.");
     } finally {
       setSavingWorkout(false);
+    }
+  };
+
+  const toggleWorkoutReviewed = async (next: boolean) => {
+    if (!selectedWorkout) return;
+    const id = selectedWorkout.id;
+    setSelectedWorkout((w) => (w ? { ...w, coachReviewed: next } : w));
+    setWorkouts((cur) =>
+      cur.map((w) => (w.id === id ? { ...w, coachReviewed: next } : w))
+    );
+    try {
+      const res = await fetch("/api/setWorkoutReviewed", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ assignedWorkoutRecordId: id, reviewed: next }),
+      });
+      if (!res.ok) throw new Error("failed");
+    } catch {
+      notify("Could not update review status.");
+      setSelectedWorkout((w) => (w ? { ...w, coachReviewed: !next } : w));
+      setWorkouts((cur) =>
+        cur.map((w) => (w.id === id ? { ...w, coachReviewed: !next } : w))
+      );
     }
   };
 
@@ -9420,6 +9474,11 @@ function App() {
   const isWorkloadMonitored = /online coaching|in[-\s]?person/i.test(
     selectedClient?.clientType || ""
   );
+
+  // Coach opening a completed workout reviews it (read-only) rather than logging.
+  const coachReviewMode =
+    !isClientPortal &&
+    /complete/i.test(selectedWorkout?.completionStatus || "");
 
   const renderWorkloadTab = () => {
     const today = new Date(`${todayValue}T00:00:00`);
@@ -25346,10 +25405,19 @@ function App() {
 
         {selectedWorkout && (
           <div className="workout-modal-overlay">
-            <div className="workout-modal">
+            <div
+              className={`workout-modal${
+                coachReviewMode ? " coachReviewModal" : ""
+              }`}
+            >
               <div className="modal-header">
                 <div>
                   <h2>{localizedWorkoutName(selectedWorkout)}</h2>
+                  {coachReviewMode && (
+                    <span className="coachReviewBadge">
+                      {paceZh ? "审阅模式" : "Review mode"}
+                    </span>
+                  )}
                   <div className="workoutHeaderMeta">
                     <span>
                       {t("week")} {selectedWorkout.week} • {t("day")} {selectedWorkout.day}
@@ -26171,39 +26239,57 @@ function App() {
                   </button>
                 )}
 
-                {(!isClientPortal ||
-                  (workoutLoggingStarted &&
-                    (!workoutFocusMode ||
-                      workoutFocusIndex >= workoutDetails.length - 1))) && (
-                  <label className="workoutSubmissionNoteField">
-                    <span>{t("workoutComment")}</span>
-                    <textarea
-                      value={workoutSubmissionNote}
-                      onChange={(event) =>
-                        setWorkoutSubmissionNote(event.target.value)
-                      }
-                      placeholder={t("workoutCommentPlaceholder")}
-                    />
-                  </label>
-                )}
+                {coachReviewMode
+                  ? selectedWorkout?.clientNotes && (
+                      <div className="workoutReviewComment">
+                        <span>{paceZh ? "运动员备注" : "Athlete comment"}</span>
+                        <p>{selectedWorkout.clientNotes}</p>
+                      </div>
+                    )
+                  : (!isClientPortal ||
+                      (workoutLoggingStarted &&
+                        (!workoutFocusMode ||
+                          workoutFocusIndex >= workoutDetails.length - 1))) && (
+                      <label className="workoutSubmissionNoteField">
+                        <span>{t("workoutComment")}</span>
+                        <textarea
+                          value={workoutSubmissionNote}
+                          onChange={(event) =>
+                            setWorkoutSubmissionNote(event.target.value)
+                          }
+                          placeholder={t("workoutCommentPlaceholder")}
+                        />
+                      </label>
+                    )}
 
-                {(!isClientPortal ||
-                  (workoutLoggingStarted &&
-                    (!workoutFocusMode ||
-                      workoutFocusIndex >= workoutDetails.length - 1))) && (
-                  <button
-                    className="goldButton saveWorkoutButton"
-                    onClick={isClientPortal ? openWorkoutFinish : saveWorkout}
-                    disabled={savingWorkout}
-                  >
-                    {savingWorkout
-                      ? t("submitting")
-                      : isClientPortal
-                      ? paceZh
-                        ? "完成训练"
-                        : "Finish Workout"
-                      : t("submitWorkout")}
-                  </button>
+                {coachReviewMode ? (
+                  <label className="coachReviewedToggle">
+                    <input
+                      type="checkbox"
+                      checked={!!selectedWorkout?.coachReviewed}
+                      onChange={(e) => void toggleWorkoutReviewed(e.target.checked)}
+                    />
+                    <span>{paceZh ? "已审阅" : "Coach reviewed"}</span>
+                  </label>
+                ) : (
+                  (!isClientPortal ||
+                    (workoutLoggingStarted &&
+                      (!workoutFocusMode ||
+                        workoutFocusIndex >= workoutDetails.length - 1))) && (
+                    <button
+                      className="goldButton saveWorkoutButton"
+                      onClick={isClientPortal ? openWorkoutFinish : saveWorkout}
+                      disabled={savingWorkout}
+                    >
+                      {savingWorkout
+                        ? t("submitting")
+                        : isClientPortal
+                        ? paceZh
+                          ? "完成训练"
+                          : "Finish Workout"
+                        : t("submitWorkout")}
+                    </button>
+                  )
                 )}
 
                 {isClientPortal &&
