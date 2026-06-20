@@ -246,6 +246,9 @@ type Workout = {
   coachNotesCn?: string;
   clientNotes: string;
   workoutLogs: string;
+  sessionRpe?: string;
+  sessionDuration?: string;
+  sessionLoad?: string;
 };
 
 type CopiedCalendarItem =
@@ -12387,6 +12390,134 @@ function App() {
     </>
   );
 
+  // Coach-only training-load dashboard: internal load (sRPE = RPE x duration)
+  // and external load (tonnage) per day, plus the acute:chronic workload ratio
+  // (acute = last 7d load, chronic = last 28d weekly average). Drives load
+  // management decisions; deliberately hidden from athletes.
+  const renderLoadDashboard = () => {
+    const tonnageByDate = new Map<string, number>();
+    for (const log of workoutHistoryLogs) {
+      const w = Number(log.actualWeight);
+      const r = Number(log.actualReps);
+      if (!w || !r) continue;
+      const d = normalizeDate(log.date);
+      tonnageByDate.set(d, (tonnageByDate.get(d) || 0) + w * r);
+    }
+    const loadByDate = new Map<string, number>();
+    for (const w of workouts) {
+      if (!/complete/i.test(w.completionStatus || "")) continue;
+      const d = normalizeDate(String(w.scheduledDate));
+      if (!d) continue;
+      let load = Number(w.sessionLoad);
+      if (!load) {
+        const rpe = Number(w.sessionRpe);
+        const dur = Number(w.sessionDuration);
+        if (rpe && dur) load = rpe * dur;
+      }
+      if (load) loadByDate.set(d, (loadByDate.get(d) || 0) + load);
+    }
+
+    const dates = [
+      ...new Set([...loadByDate.keys(), ...tonnageByDate.keys()]),
+    ].sort();
+    const series = dates.map((d) => ({
+      date: d,
+      load: Math.round(loadByDate.get(d) || 0),
+      tonnage: Math.round(tonnageByDate.get(d) || 0),
+    }));
+
+    if (series.length === 0) {
+      return (
+        <p className="homeEmptyText">
+          {paceZh
+            ? "完成训练并记录RPE后，这里会显示负荷趋势。"
+            : "Load trends appear once sessions are completed with an RPE."}
+        </p>
+      );
+    }
+
+    const daysAgo = (d: string) =>
+      Math.floor(
+        (new Date(`${todayValue}T00:00:00`).getTime() -
+          new Date(`${d}T00:00:00`).getTime()) /
+          86400000
+      );
+    let acuteLoad = 0;
+    let chronicLoad = 0;
+    let acuteTonnage = 0;
+    for (const s of series) {
+      const ago = daysAgo(s.date);
+      if (ago < 0) continue;
+      if (ago < 7) {
+        acuteLoad += s.load;
+        acuteTonnage += s.tonnage;
+      }
+      if (ago < 28) chronicLoad += s.load;
+    }
+    const chronicWeekly = chronicLoad / 4;
+    const acwr = chronicWeekly > 0 ? acuteLoad / chronicWeekly : 0;
+    const lastLoad = series[series.length - 1].load;
+    const maxLoad = Math.max(1, ...series.map((s) => s.load));
+    const recent = series.slice(-12);
+
+    const acwrZone =
+      acwr === 0
+        ? { label: paceZh ? "无数据" : "n/a", cls: "loadZoneNeutral" }
+        : acwr < 0.8
+        ? { label: paceZh ? "偏低" : "Detraining", cls: "loadZoneLow" }
+        : acwr <= 1.3
+        ? { label: paceZh ? "理想区间" : "Sweet spot", cls: "loadZoneGood" }
+        : acwr <= 1.5
+        ? { label: paceZh ? "注意" : "Caution", cls: "loadZoneWarn" }
+        : { label: paceZh ? "高风险" : "High risk", cls: "loadZoneRisk" };
+
+    return (
+      <div className="loadDashboard">
+        <div className="loadStatRow">
+          <div className="loadStat">
+            <strong>{lastLoad.toLocaleString()}</strong>
+            <span>{paceZh ? "最近负荷" : "Last load"}</span>
+          </div>
+          <div className="loadStat">
+            <strong>{acuteLoad.toLocaleString()}</strong>
+            <span>{paceZh ? "7天负荷" : "7-day load"}</span>
+          </div>
+          <div className={`loadStat ${acwrZone.cls}`}>
+            <strong>{acwr ? acwr.toFixed(2) : "--"}</strong>
+            <span>ACWR · {acwrZone.label}</span>
+          </div>
+          <div className="loadStat">
+            <strong>{acuteTonnage.toLocaleString()}</strong>
+            <span>{paceZh ? "7天容量(kg)" : "7-day volume (kg)"}</span>
+          </div>
+        </div>
+
+        <div className="loadBars">
+          {recent.map((s) => (
+            <div className="loadBarCol" key={s.date} title={`${s.date}: ${s.load}`}>
+              <span className="loadBarValue">{s.load}</span>
+              <div
+                className="loadBar"
+                style={{ height: `${Math.max(4, (s.load / maxLoad) * 100)}%` }}
+              />
+              <span className="loadBarLabel">
+                {new Date(`${s.date}T00:00:00`).toLocaleDateString(clientLocale, {
+                  month: "numeric",
+                  day: "numeric",
+                })}
+              </span>
+            </div>
+          ))}
+        </div>
+        <p className="loadDashboardNote">
+          {paceZh
+            ? "内部负荷 = RPE × 时长；外部负荷 = 容量(重量×次数)。"
+            : "Internal load = RPE × duration · External load = tonnage (weight × reps)."}
+        </p>
+      </div>
+    );
+  };
+
   // PR leaderboard + the progress chart, for the coach Overview's capacity view.
   // PR metric toggle + ranked leaderboard. Clicking a row selects that exercise
   // so any nearby progress chart follows. Shared by coach Overview + portal Home.
@@ -20275,6 +20406,16 @@ function App() {
                     {renderPersonalRecords()}
                   </div>
 
+                  <div className="profileCard loadDashboardCard">
+                    <div className="profileMetricsHeader">
+                      <h3>{paceZh ? "训练负荷" : "Training Load"}</h3>
+                      <span className="loadPremiumTag">
+                        {paceZh ? "教练视图" : "Coach view"}
+                      </span>
+                    </div>
+                    {renderLoadDashboard()}
+                  </div>
+
                   <div className="profileCard">
                     <div className="profileMetricsHeader">
                       <h3>{t("clientInformation")}</h3>
@@ -25563,10 +25704,6 @@ function App() {
           (() => {
             const stats = computeWorkoutStats();
             const prs = computeWorkoutPrs();
-            const sessionLoad =
-              workoutRpe && finishDurationMin
-                ? Math.round(workoutRpe * finishDurationMin)
-                : 0;
             return (
               <div className="workout-modal-overlay workoutSummaryOverlay">
                 <div className="workoutSummaryCard workoutFinishCard">
@@ -25594,15 +25731,7 @@ function App() {
                       <strong>{stats.sets}</strong>
                       <span>{paceZh ? "组数" : "Sets"}</span>
                     </div>
-                    {stats.volume > 0 && (
-                      <div>
-                        <strong>
-                          {stats.volume.toLocaleString()}
-                          <em>{weightUnit}</em>
-                        </strong>
-                        <span>{paceZh ? "总量" : "Volume"}</span>
-                      </div>
-                    )}
+                    {/* Volume/tonnage is a coach-only metric — see Training Load. */}
                     {finishDurationMin > 0 && (
                       <div>
                         <strong>
@@ -25657,16 +25786,8 @@ function App() {
                         );
                       })}
                     </div>
-                    {sessionLoad > 0 && (
-                      <p className="finishLoadNote">
-                        {paceZh ? "训练负荷" : "Session load"}{" "}
-                        <strong>{sessionLoad.toLocaleString()}</strong>{" "}
-                        <span>
-                          (RPE {workoutRpe} × {finishDurationMin}
-                          {paceZh ? "分" : "min"})
-                        </span>
-                      </p>
-                    )}
+                    {/* Session load (sRPE) is computed + saved, but shown only
+                        to the coach in the Training Load dashboard. */}
                   </div>
 
                   {/* Expandable, editable exercise list — fix any mis-entry */}

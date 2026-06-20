@@ -133,6 +133,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           coachNotesCn: readFirstField(fields, ["Coach Notes CN", "Notes CN"]),
           clientNotes: fieldToText(fields["Client Notes"]),
           workoutLogs: fieldToText(fields["Workout Logs"]),
+          // Internal-load metrics (coach-only) captured at workout finish.
+          sessionRpe: fieldToText(fields["Session RPE"]),
+          sessionDuration: fieldToText(fields["Session Duration"]),
+          sessionLoad: fieldToText(fields["Session Load"]),
         };
       })
       .filter((workout: any) => {

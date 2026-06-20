@@ -6356,6 +6356,129 @@ button.coachReviewGlobalItem,
   box-shadow: 0 4px 12px rgba(13, 13, 13, 0.18);
 }
 
+/* Coach-only Training Load dashboard */
+.loadPremiumTag {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #9b7a21;
+  background: rgba(212, 175, 55, 0.14);
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  padding: 3px 9px;
+  border-radius: 999px;
+}
+
+.loadStatRow {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.loadStat {
+  padding: 12px 8px;
+  border-radius: 12px;
+  background: #f7f5ef;
+  border: 1px solid #e5dfd2;
+  text-align: center;
+}
+
+.loadStat strong {
+  display: block;
+  font-size: 20px;
+  color: var(--nl-ink, #1a1a1a);
+  font-variant-numeric: tabular-nums;
+}
+
+.loadStat span {
+  display: block;
+  margin-top: 3px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--nl-muted, #68645d);
+}
+
+.loadStat.loadZoneGood {
+  background: rgba(111, 207, 127, 0.14);
+  border-color: rgba(111, 207, 127, 0.5);
+}
+.loadStat.loadZoneGood strong {
+  color: #2f8a43;
+}
+.loadStat.loadZoneWarn {
+  background: rgba(212, 175, 55, 0.16);
+  border-color: rgba(212, 175, 55, 0.55);
+}
+.loadStat.loadZoneWarn strong {
+  color: #9b7a21;
+}
+.loadStat.loadZoneRisk {
+  background: rgba(214, 73, 51, 0.12);
+  border-color: rgba(214, 73, 51, 0.5);
+}
+.loadStat.loadZoneRisk strong {
+  color: #c0392b;
+}
+.loadStat.loadZoneLow {
+  background: rgba(90, 140, 200, 0.12);
+  border-color: rgba(90, 140, 200, 0.45);
+}
+.loadStat.loadZoneLow strong {
+  color: #3d6aa3;
+}
+
+.loadBars {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 150px;
+  padding: 6px 2px 0;
+  border-bottom: 1px solid #e5dfd2;
+}
+
+.loadBarCol {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  height: 100%;
+  gap: 4px;
+}
+
+.loadBarValue {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--nl-muted, #68645d);
+  font-variant-numeric: tabular-nums;
+}
+
+.loadBar {
+  width: 100%;
+  max-width: 26px;
+  border-radius: 6px 6px 0 0;
+  background: linear-gradient(180deg, #d4af37 0%, #9f7a26 100%);
+  min-height: 4px;
+}
+
+.loadBarLabel {
+  font-size: 9.5px;
+  font-weight: 700;
+  color: var(--nl-muted, #68645d);
+  white-space: nowrap;
+}
+
+.loadDashboardNote {
+  margin: 12px 0 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--nl-muted, #68645d);
+}
+
 /* Completed set rows + tick */
 .setLogRowComplete {
   border-color: rgba(111, 207, 127, 0.55) !important;
