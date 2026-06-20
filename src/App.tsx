@@ -12618,36 +12618,35 @@ function App() {
       .filter((r): r is NonNullable<typeof r> => r !== null)
       .sort((a, b) => b.monotony - a.monotony);
 
-    if (rows.length === 0) {
-      return (
-        <p className="homeEmptyText">
-          {paceZh
-            ? "本周还没有带RPE的训练记录。"
-            : "No sessions logged with an RPE this week yet."}
-        </p>
-      );
-    }
+    // No athletes with in-week load yet — hide the card entirely.
+    if (rows.length === 0) return null;
 
     return (
-      <div className="loadWatchList">
-        {rows.map((r) => (
-          <div className="loadWatchRow" key={r.code}>
-            <span className="loadWatchName">{r.name}</span>
-            <span className={`loadWatchMono ${r.zone.cls}`}>
-              {r.monotony ? r.monotony.toFixed(2) : "--"}
-              <em>{r.zone.label}</em>
-            </span>
-            <span className="loadWatchMetric">
-              {r.strain.toLocaleString()}
-              <em>{paceZh ? "应激" : "strain"}</em>
-            </span>
-            <span className="loadWatchMetric">
-              {r.weeklyLoad.toLocaleString()}
-              <em>{paceZh ? "周负荷" : "load"}</em>
-            </span>
-          </div>
-        ))}
-      </div>
+      <section className="clientCard loadWatchPanel">
+        <div className="profileMetricsHeader">
+          <h3>{paceZh ? "本周训练负荷" : "Training Load This Week"}</h3>
+          <span className="loadPremiumTag">{paceZh ? "教练视图" : "Coach view"}</span>
+        </div>
+        <div className="loadWatchList">
+          {rows.map((r) => (
+            <div className="loadWatchRow" key={r.code}>
+              <span className="loadWatchName">{r.name}</span>
+              <span className={`loadWatchMono ${r.zone.cls}`}>
+                {r.monotony ? r.monotony.toFixed(2) : "--"}
+                <em>{r.zone.label}</em>
+              </span>
+              <span className="loadWatchMetric">
+                {r.strain.toLocaleString()}
+                <em>{paceZh ? "应激" : "strain"}</em>
+              </span>
+              <span className="loadWatchMetric">
+                {r.weeklyLoad.toLocaleString()}
+                <em>{paceZh ? "周负荷" : "load"}</em>
+              </span>
+            </div>
+          ))}
+        </div>
+      </section>
     );
   };
 
@@ -14084,6 +14083,7 @@ function App() {
 
             {activePage === "Clients" && (
               <>
+                {renderRosterLoadWatch()}
                 <section className="clientCommandCenter">
                   <section className="clientTableWorkspace">
                     <div className="clientToolbar">
@@ -20126,18 +20126,6 @@ function App() {
                         </div>
                       </div>
                       {renderExerciseHistoryBody()}
-                    </section>
-                  )}
-
-                  {!isClientPortal && (
-                    <section className="clientHomePanel loadWatchPanel">
-                      <div className="clientHomePanelHeader">
-                        <div>
-                          <span>{paceZh ? "负荷监控" : "Load watch"}</span>
-                          <h2>{paceZh ? "本周训练负荷" : "Training Load This Week"}</h2>
-                        </div>
-                      </div>
-                      {renderRosterLoadWatch()}
                     </section>
                   )}
 
