@@ -1502,16 +1502,6 @@ function App() {
   const [storeCategoryFilter, setStoreCategoryFilter] = useState("all");
   const [storeSeasonFilter, setStoreSeasonFilter] = useState("all");
   const [storeProgramSearch, setStoreProgramSearch] = useState("");
-  // TODO(store filters): wire these into the store program list. Referenced
-  // here so the in-progress state doesn't trip noUnusedLocals before then.
-  void [
-    storeCategoryFilter,
-    setStoreCategoryFilter,
-    storeSeasonFilter,
-    setStoreSeasonFilter,
-    storeProgramSearch,
-    setStoreProgramSearch,
-  ];
   const [storeRegName, setStoreRegName] = useState("");
   const [storeRegPhone, setStoreRegPhone] = useState("");
   const [storeRegistering, setStoreRegistering] = useState(false);
@@ -13405,6 +13395,737 @@ function App() {
   };
 
   if (isPublicLandingPage) {
+    const lZh = storeLang === "zh";
+    const landingPrograms = programs.filter((p) => p.publicStoreVisible);
+    const featuredPrograms = landingPrograms.slice(0, 3);
+    const programCountLabel =
+      landingPrograms.length > 0
+        ? lZh
+          ? `${landingPrograms.length} 个计划已上线`
+          : `${landingPrograms.length} programs live`
+        : lZh
+          ? "训练计划即将上线"
+          : "Programs launching soon";
+
+    const landingCopy = {
+      navPrograms: lZh ? "训练计划" : "Programs",
+      navCoaching: lZh ? "线上教练" : "Coaching",
+      navInPerson: lZh ? "线下训练" : "In-Person",
+      viewPrograms: lZh ? "查看训练计划" : "View Programs",
+      coachLogin: lZh ? "教练登录" : "Coach Login",
+      heroEyebrow: lZh ? "高水平训练，不只属于职业运动员" : "Training for athletes who want more",
+      heroTitle: lZh ? "系统训练，持续进步。" : "Train with structure. Progress with intent.",
+      heroLead: lZh
+        ? "No Limit 为运动员和运动爱好者提供专业、循证、可执行的训练计划。无论你想提升表现、准备赛季，还是降低伤病风险，都可以从清晰的进阶计划开始。"
+        : "No Limit gives athletes and sport enthusiasts professional, evidence-based training without the full cost of a private coach. Build performance, prepare for your season, and customize the work around your body.",
+      storeCta: lZh ? "进入商店" : "Explore Store",
+      onlineCta: lZh ? "了解线上教练" : "Online Coaching",
+      stepsTitle: lZh ? "购买后的流程" : "How It Works",
+      programsTitle: lZh ? "数字训练计划" : "Digital Programs",
+      programsBody: lZh
+        ? "适合想提升表现但不想承担长期私教成本的运动员。每个计划都有清晰进阶，支持不同水平，并可添加关节保护与伤病预防模块。"
+        : "For athletes who want better performance without paying for constant one-on-one coaching. Each plan is structured, progressive, and built for real training weeks.",
+      coachingTitle: lZh ? "线上一对一教练" : "Online Coaching",
+      coachingBody: lZh
+        ? "获得奥运及职业级训练经验支持的个性化计划，包括 30 分钟咨询、每周反馈、根据运动项目、旅行和恢复情况调整的训练进阶。"
+        : "Get a personalized plan from an Olympic and professional-level coach, including a 30-minute consultation, weekly check-ins, and adjustments around sport, travel, recovery, and what you actually need.",
+      inPersonTitle: lZh ? "线下训练" : "In-Person Training",
+      inPersonBody: lZh
+        ? "面向团队、俱乐部和个人提供线下训练服务。扫码添加微信，了解团队课程、私教和专项训练安排。"
+        : "Available for teams, clubs, and individuals. Scan WeChat to ask about in-person coaching, team sessions, and custom training blocks.",
+      footer: lZh ? "为训练而生。" : "Built for Training.",
+    };
+
+    const landingPillars: Array<{
+      title: string;
+      body: string;
+      icon: LucideIcon;
+      highlights: string[];
+    }> = [
+      {
+        title: landingCopy.programsTitle,
+        body: landingCopy.programsBody,
+        icon: BookOpen,
+        highlights: lZh
+          ? ["适合不同技能水平", "进阶训练周期", "可选伤病预防加购"]
+          : ["All skill levels", "Progressive seasons", "Injury-prevention add-ons"],
+      },
+      {
+        title: landingCopy.coachingTitle,
+        body: landingCopy.coachingBody,
+        icon: Users,
+        highlights: lZh
+          ? ["30 分钟咨询", "每周反馈", "围绕赛程和旅行调整"]
+          : ["30-minute consult", "Weekly check-ins", "Built around sport and travel"],
+      },
+      {
+        title: landingCopy.inPersonTitle,
+        body: landingCopy.inPersonBody,
+        icon: TrendingUp,
+        highlights: lZh
+          ? ["团队", "俱乐部", "个人训练"]
+          : ["Teams", "Clubs", "Individuals"],
+      },
+    ];
+
+    const landingSteps = lZh
+      ? [
+          ["支付", "通过外部付款方式购买训练计划。"],
+          ["填写问卷", "完成 intake，让我们了解你的背景和训练目标。"],
+          ["我的计划", "训练计划进入你的客户端 My Programs。"],
+          ["自定日期", "选择按月、按周或逐日安排到日历。"],
+        ]
+      : [
+          ["Pay", "Purchase a digital program through the external checkout."],
+          ["Intake", "Complete your intake so the plan fits your background."],
+          ["My Programs", "Your program appears inside your client portal."],
+          ["Customize Dates", "Schedule by month, by week, or day by day."],
+        ];
+
+    return (
+      <div className={`landingPage landingPageBilingual ${lZh ? "zh" : "en"}`}>
+        <div className="toastStack">
+          {toasts.map((toast) => (
+            <div className={`toast toast-${toast.type}`} key={toast.id}>
+              {toast.message}
+            </div>
+          ))}
+        </div>
+
+        <nav className="landingNav">
+          <a className="landingBrand" href="/">
+            <img src="/nl_wordmark_black.png" alt="No Limit" />
+          </a>
+          <div className="landingNavLinks">
+            <a href="/store">{landingCopy.navPrograms}</a>
+            <a href="#coaching">{landingCopy.navCoaching}</a>
+            <a href="#in-person">{landingCopy.navInPerson}</a>
+          </div>
+          <div className="landingNavActions">
+            <button
+              className="landingLangToggle"
+              onClick={() => setStoreLang(lZh ? "en" : "zh")}
+              aria-label="Change language"
+            >
+              <span className={!lZh ? "active" : ""}>EN</span>
+              <span className={lZh ? "active" : ""}>中文</span>
+            </button>
+            <a className="landingNavCta" href="/store">
+              {landingCopy.viewPrograms}
+            </a>
+          </div>
+        </nav>
+
+        <main>
+          <section className="landingHero landingHeroClean">
+            <div className="landingHeroCopy">
+              <span className="landingEyebrow">{landingCopy.heroEyebrow}</span>
+              <h1>{landingCopy.heroTitle}</h1>
+              <p>{landingCopy.heroLead}</p>
+              <div className="landingHeroActions">
+                <a className="primaryButton landingPrimary" href="/store">
+                  {landingCopy.storeCta}
+                </a>
+                <a className="outlineButton landingOutline" href="#coaching">
+                  {landingCopy.onlineCta}
+                </a>
+              </div>
+            </div>
+
+            <div className="landingHeroVisual landingHeroVisualClean" aria-hidden="true">
+              <div className="landingHeroMark">
+                <img src="/nl_monogram_clean.png" alt="" />
+              </div>
+              <div className="landingAppPreview">
+                <div className="landingPreviewTop">
+                  <span>{lZh ? "今日训练" : "Today"}</span>
+                  <strong>{lZh ? "下肢力量" : "Lower Strength"}</strong>
+                  <small>{lZh ? "第 1 周 - 第 2 天" : "Week 1 - Day 2"}</small>
+                </div>
+                <div className="landingPreviewWorkout">
+                  <span>A1</span>
+                  <div>
+                    <strong>{lZh ? "安全杠深蹲" : "Safety Bar Squat"}</strong>
+                    <small>{lZh ? "3 组 x 8 次 - 节奏 3-1-1" : "3 x 8 - Tempo 3-1-1"}</small>
+                  </div>
+                </div>
+                <div className="landingPreviewWorkout muted">
+                  <span>B1</span>
+                  <div>
+                    <strong>{lZh ? "单腿辅助训练" : "Single-Leg Accessory"}</strong>
+                    <small>{lZh ? "伤病预防加购模块" : "Injury-prevention add-on"}</small>
+                  </div>
+                </div>
+                <div className="landingPreviewMetrics">
+                  <span>{programCountLabel}</span>
+                  <span>{lZh ? "中英双语" : "Bilingual"}</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section className="landingPillars">
+            {landingPillars.map((pillar) => {
+              const Icon = pillar.icon;
+              return (
+                <article className="landingPillarCard" key={pillar.title}>
+                  <Icon size={28} strokeWidth={2.4} />
+                  <h2>{pillar.title}</h2>
+                  <p>{pillar.body}</p>
+                  <div className="landingPillarTags">
+                    {pillar.highlights.map((item) => (
+                      <span key={item}>{item}</span>
+                    ))}
+                  </div>
+                </article>
+              );
+            })}
+          </section>
+
+          <section className="landingSystem landingSystemClean">
+            <div>
+              <span className="landingEyebrow">{landingCopy.stepsTitle}</span>
+              <h2>{lZh ? "从购买到开练，只需要四步。" : "From purchase to training in four steps."}</h2>
+            </div>
+            <ol>
+              {landingSteps.map(([title, body], index) => (
+                <li key={title}>
+                  <span>{String(index + 1).padStart(2, "0")}</span>
+                  <strong>{title}</strong>
+                  <p>{body}</p>
+                </li>
+              ))}
+            </ol>
+          </section>
+
+          <section className="landingPrograms" id="programs">
+            <div className="landingSectionIntro">
+              <span className="landingEyebrow">{landingCopy.programsTitle}</span>
+              <h2>{lZh ? "按项目、赛季和身体需求选择。" : "Choose by sport, season, and body needs."}</h2>
+            </div>
+            <div className="landingProgramGrid">
+              {(featuredPrograms.length ? featuredPrograms : [
+                { programName: "Rock Climbing Season 1", sport: "Rock Climbing", durationWeeks: "4", sessionsPerWeek: "3", level: "Level 1-4" },
+                { programName: "Hyrox Foundation", sport: "Hyrox", durationWeeks: "6", sessionsPerWeek: "4", level: "Level 1-4" },
+                { programName: "Bulletproof Knees", sport: "Joint Add-On", durationWeeks: "4", sessionsPerWeek: "2", level: "Add-On" },
+              ] as Program[]).map((program) => (
+                <article className="landingProgramCard" key={program.recordId || program.programName}>
+                  <span>{program.sport || (lZh ? "专项训练" : "Performance")}</span>
+                  <h3>{lZh && program.programNameCn ? program.programNameCn : program.programName}</h3>
+                  <p>
+                    {program.durationWeeks || "4"} {lZh ? "周" : "weeks"} -{" "}
+                    {program.sessionsPerWeek || "3"} {lZh ? "次/周" : "sessions/week"}
+                  </p>
+                  <small>{program.level || (lZh ? "多水平" : "Multiple levels")}</small>
+                </article>
+              ))}
+            </div>
+          </section>
+
+          <section className="landingInPerson" id="in-person">
+            <div>
+              <span className="landingEyebrow">{landingCopy.navInPerson}</span>
+              <h2>{landingCopy.inPersonTitle}</h2>
+              <p>{landingCopy.inPersonBody}</p>
+            </div>
+            <div className="landingWechatCard">
+              <img
+                src="https://i.ibb.co/Y4nXVG4g/Weixin-Image-20260611202846-56-2.jpg"
+                alt="WeChat QR"
+              />
+              <strong>{lZh ? "扫码咨询" : "Scan for WeChat"}</strong>
+            </div>
+          </section>
+
+          <section className="landingFinalCta">
+            <img src="/nl_seal_black.png" alt="" />
+            <h2>{lZh ? "选择你的训练路径。" : "Choose your training path."}</h2>
+            <p>
+              {lZh
+                ? "从数字训练计划开始，或申请一对一线上教练服务。"
+                : "Start with a digital program or apply for personalized online coaching."}
+            </p>
+            <a className="primaryButton landingPrimary" href="/store">
+              {landingCopy.viewPrograms}
+            </a>
+          </section>
+        </main>
+
+        <footer className="landingFooter">
+          <span>{landingCopy.footer}</span>
+          <div>
+            <a href="/store">{landingCopy.navPrograms}</a>
+            <a href="/?portal=client">{lZh ? "客户端" : "Client Portal"}</a>
+            <a href="/?view=coach">{landingCopy.coachLogin}</a>
+          </div>
+        </footer>
+      </div>
+    );
+  }
+
+  if (isStorePage) {
+    const sZh = storeLang === "zh";
+    const storePrograms = programs.filter((p) => p.publicStoreVisible);
+    const searchText = storeProgramSearch.trim().toLowerCase();
+
+    const programSearchBlob = (program: Program) =>
+      [
+        program.programName,
+        program.programNameCn,
+        program.goal,
+        program.goalCn,
+        program.sport,
+        program.level,
+        program.phase,
+        program.phaseCn,
+        program.productType,
+        program.salesDescription,
+        program.salesDescriptionCn,
+        program.storeDescription,
+        program.storeDescriptionCn,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+    const getProgramCategory = (program: Program) => {
+      const blob = programSearchBlob(program);
+      if (/ankle|achilles|feet|foot|knee|shoulder|breath|breathing|joint|prehab|rehab|injury|踝|足|膝|肩|呼吸|损伤|康复/.test(blob)) {
+        return "joint-addons";
+      }
+      if (/climb|boulder|rock|攀岩|抱石/.test(blob)) return "rock-climbing";
+      if (/hyrox|海柔克斯/.test(blob)) return "hyrox";
+      if (/snow|ski|snowboard|滑雪|单板|双板/.test(blob)) return "snow-ski";
+      if (/run|running|marathon|5k|10k|跑步|马拉松/.test(blob)) return "running";
+      return "general-foundation";
+    };
+
+    const getProgramSeason = (program: Program) => {
+      const blob = programSearchBlob(program);
+      const match = blob.match(/season\s*(\d+)|s(\d+)|第\s*(\d+)\s*季/i);
+      const season = match?.[1] || match?.[2] || match?.[3];
+      return season ? `season-${season}` : "season-1";
+    };
+
+    const formatPrice = (program: Program) => {
+      const price = program.price;
+      const currency = program.currency || "CNY";
+      if (!price || price === "0") return sZh ? "联系获取价格" : "Contact for price";
+      return `${currency} ${price}`;
+    };
+
+    const formatDuration = (program: Program) => {
+      const weeks = program.durationWeeks;
+      const sessions = program.sessionsPerWeek;
+      if (weeks && sessions) {
+        return sZh ? `${weeks} 周 - 每周 ${sessions} 次` : `${weeks} weeks - ${sessions}x/week`;
+      }
+      if (weeks) return sZh ? `${weeks} 周` : `${weeks} weeks`;
+      return sZh ? "灵活安排" : "Flexible schedule";
+    };
+
+    const storeCategories = [
+      { id: "all", title: sZh ? "全部" : "All", body: sZh ? "查看所有训练计划" : "Browse every program" },
+      { id: "rock-climbing", title: sZh ? "攀岩" : "Rock Climbing", body: sZh ? "力量、核心、耐力和伤病预防" : "Strength, core, endurance, and durability" },
+      { id: "hyrox", title: "Hyrox", body: sZh ? "混合体能和跑步能力" : "Hybrid conditioning and running capacity" },
+      { id: "snow-ski", title: sZh ? "滑雪 / 单板" : "Snowboard / Ski", body: sZh ? "下肢力量、稳定性和赛季准备" : "Lower-body strength, control, and season prep" },
+      { id: "running", title: sZh ? "跑步" : "Running", body: sZh ? "速度、阈值和有氧能力" : "Speed, threshold, and aerobic development" },
+      { id: "general-foundation", title: sZh ? "通用基础" : "General Foundation", body: sZh ? "适合任何项目的基础体能" : "Base strength for any sport" },
+      { id: "joint-addons", title: sZh ? "关节加购" : "Joint Add-Ons", body: sZh ? "按身体部位补强和预防" : "Targeted prevention and support" },
+    ];
+
+    const addonCards = [
+      { title: sZh ? "足 / 踝 / 跟腱" : "Feet / Ankle / Achilles", body: sZh ? "跑跳、落地和下肢耐受" : "Landing, running, and lower-leg capacity" },
+      { title: sZh ? "强化膝盖" : "Bulletproof Knees", body: sZh ? "膝关节力量、控制和减负" : "Strength, control, and knee resilience" },
+      { title: sZh ? "肩部" : "Shoulders", body: sZh ? "攀爬、推拉和上肢稳定" : "Climbing, pressing, pulling, and stability" },
+      { title: sZh ? "呼吸" : "Breathing", body: sZh ? "恢复、耐力和躯干控制" : "Recovery, endurance, and trunk control" },
+    ];
+
+    const filteredStorePrograms = storePrograms.filter((program) => {
+      const matchesCategory =
+        storeCategoryFilter === "all" || getProgramCategory(program) === storeCategoryFilter;
+      const matchesSeason =
+        storeSeasonFilter === "all" || getProgramSeason(program) === storeSeasonFilter;
+      const matchesSearch =
+        !searchText || programSearchBlob(program).includes(searchText);
+      return matchesCategory && matchesSeason && matchesSearch;
+    });
+
+    const selectedCategoryLabel =
+      storeCategories.find((category) => category.id === storeCategoryFilter)?.title ||
+      (sZh ? "全部" : "All");
+
+    return (
+      <div className={`storePageV2 ${sZh ? "zh" : "en"}`}>
+        <div className="toastStack">
+          {toasts.map((toast) => (
+            <div className={`toast toast-${toast.type}`} key={toast.id}>
+              {toast.message}
+            </div>
+          ))}
+        </div>
+
+        <nav className="storeNavV2">
+          <a className="storeBrandV2" href="/">
+            <img src="/nl_wordmark_black.png" alt="No Limit" />
+          </a>
+          <div className="storeNavActionsV2">
+            <a href="/" className="storeNavLinkV2">{sZh ? "首页" : "Home"}</a>
+            <button
+              className="storeLangToggleV2"
+              onClick={() => setStoreLang(sZh ? "en" : "zh")}
+              aria-label="Change language"
+            >
+              <span className={!sZh ? "active" : ""}>EN</span>
+              <span className={sZh ? "active" : ""}>中文</span>
+            </button>
+          </div>
+        </nav>
+
+        <div className="storeLauncherV2">
+          {!storeLauncherOpen ? (
+            <button
+              className="storeLauncherToggleV2"
+              onClick={() => setStoreLauncherOpen(true)}
+            >
+              {sZh ? "进入应用" : "Enter app"}
+            </button>
+          ) : (
+            <div className="storeLauncherPanelV2">
+              <div className="storeLauncherHeadV2">
+                <span>{sZh ? "进入应用" : "Enter app"}</span>
+                <button
+                  className="storeLauncherCloseV2"
+                  aria-label="Close"
+                  onClick={() => setStoreLauncherOpen(false)}
+                >
+                  x
+                </button>
+              </div>
+              <button
+                className="storeLauncherBtnV2"
+                onClick={() => {
+                  window.location.href = "/?view=coach";
+                }}
+              >
+                {sZh ? "教练端" : "Coach View"}
+              </button>
+              <div className="storeLauncherClientRowV2">
+                <select
+                  value={storeLauncherClient}
+                  onChange={(e) => setStoreLauncherClient(e.target.value)}
+                >
+                  <option value="">{sZh ? "选择客户..." : "Select client..."}</option>
+                  {clients.map((c) => (
+                    <option key={c.id} value={c.clientCode || c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  className="storeLauncherBtnV2"
+                  disabled={!storeLauncherClient}
+                  onClick={() => {
+                    window.location.href = `/?portal=client&client=${encodeURIComponent(
+                      storeLauncherClient
+                    )}`;
+                  }}
+                >
+                  {sZh ? "客户端" : "Client View"}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <main className="storeMainV2">
+          <section className="storeHeroV2">
+            <div className="storeHeroCopyV2">
+              <span className="storeEyebrowV2">{sZh ? "数字训练商店" : "Digital Program Store"}</span>
+              <h1>{sZh ? "按项目、赛季和身体需求选择训练。" : "Programs organized by sport, season, and body needs."}</h1>
+              <p>
+                {sZh
+                  ? "选择专项训练计划，或添加关节保护模块。购买后完成 intake，计划会进入客户端，你可以按月、按周或逐日安排训练日期。"
+                  : "Choose a sport program, then add joint-specific support where you need it. After purchase, complete intake, open My Programs, and schedule by month, week, or day by day."}
+              </p>
+            </div>
+            <div className="storeHeroCardV2">
+              <img src="/nl_monogram_clean.png" alt="" />
+              <strong>{sZh ? "赛季制训练" : "Season-Based Training"}</strong>
+              <span>{sZh ? "Season 1 现已开放，未来继续扩展 Season 2。" : "Season 1 now, Season 2 as the catalog grows."}</span>
+              <div className="storeHeroFlowV2">
+                {(sZh ? ["支付", "Intake", "我的计划", "自定日期"] : ["Pay", "Intake", "My Programs", "Customize Dates"]).map((step) => (
+                  <span key={step}>{step}</span>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          <section>
+            <div className="storeSectionIntroV2">
+              <span className="storeEyebrowV2">{sZh ? "项目目录" : "Sports Catalog"}</span>
+              <h2>{sZh ? "先选择你的训练方向。" : "Start with your training direction."}</h2>
+            </div>
+            <div className="storeCatalogueGridV2">
+              {storeCategories.map((category) => (
+                <button
+                  className={`storeCategoryCardV2 ${storeCategoryFilter === category.id ? "active" : ""}`}
+                  key={category.id}
+                  onClick={() => setStoreCategoryFilter(category.id)}
+                >
+                  <strong>{category.title}</strong>
+                  <span>{category.body}</span>
+                </button>
+              ))}
+            </div>
+          </section>
+
+          <section>
+            <div className="storeSectionIntroV2 compact">
+              <span className="storeEyebrowV2">{sZh ? "专项加购" : "Joint Add-Ons"}</span>
+              <h2>{sZh ? "按身体部位定制你的计划。" : "Customize around the areas that need support."}</h2>
+            </div>
+            <div className="storeAddonGridV2">
+              {addonCards.map((addon) => (
+                <article className="storeAddonCardV2" key={addon.title}>
+                  <strong>{addon.title}</strong>
+                  <span>{addon.body}</span>
+                </article>
+              ))}
+            </div>
+          </section>
+
+          <section className="storeProgramShelfV2">
+            <div className="storeSectionIntroV2">
+              <span className="storeEyebrowV2">{selectedCategoryLabel}</span>
+              <h2>{sZh ? "可购买计划" : "Available Programs"}</h2>
+            </div>
+
+            <div className="storeToolbarV2">
+              <input
+                className="storeSearchV2"
+                value={storeProgramSearch}
+                onChange={(e) => setStoreProgramSearch(e.target.value)}
+                placeholder={sZh ? "搜索项目、级别或计划..." : "Search sport, level, or program..."}
+              />
+              <select
+                className="storeSelectV2"
+                value={storeSeasonFilter}
+                onChange={(e) => setStoreSeasonFilter(e.target.value)}
+              >
+                <option value="all">{sZh ? "全部赛季" : "All Seasons"}</option>
+                <option value="season-1">Season 1</option>
+                <option value="season-2">Season 2</option>
+                <option value="season-3">Season 3</option>
+              </select>
+            </div>
+
+            {programsLoading ? (
+              <div className="storeLoadingV2">
+                {sZh ? "正在加载训练计划..." : "Loading programs..."}
+              </div>
+            ) : filteredStorePrograms.length === 0 ? (
+              <div className="storeEmptyV2">
+                <strong>{sZh ? "暂无匹配计划" : "No matching programs yet"}</strong>
+                <span>
+                  {sZh
+                    ? "该分类会随着 Season 1 产品上线继续扩展。"
+                    : "This category will expand as Season 1 products go live."}
+                </span>
+              </div>
+            ) : (
+              <div className="storeGridV2">
+                {filteredStorePrograms.map((program) => {
+                  const name = sZh && program.programNameCn ? program.programNameCn : program.programName;
+                  const description =
+                    (sZh && (program.storeDescriptionCn || program.salesDescriptionCn)) ||
+                    program.storeDescription ||
+                    program.salesDescription ||
+                    (sZh
+                      ? "专业、循证、可执行的训练周期。"
+                      : "Professional, evidence-based training you can schedule around real life.");
+                  const category = storeCategories.find((item) => item.id === getProgramCategory(program));
+                  return (
+                    <article className="storeProductCardV2" key={program.recordId}>
+                      <button
+                        className="storeProductClickTarget"
+                        onClick={() => setStoreSelectedProgram(program)}
+                        aria-label={name}
+                      />
+                      <div className="storeProductVisualV2">
+                        {program.productImage ? (
+                          <img src={program.productImage} alt={name} loading="lazy" />
+                        ) : (
+                          <div className="storeProductFallbackV2">
+                            <img src="/nl_monogram_clean.png" alt="" />
+                          </div>
+                        )}
+                        <span>{category?.title || (sZh ? "训练计划" : "Program")}</span>
+                      </div>
+                      <div className="storeProductBodyV2">
+                        <div className="storeProductTagsV2">
+                          <span>{getProgramSeason(program).replace("-", " ")}</span>
+                          <span>{program.level || (sZh ? "多水平" : "All levels")}</span>
+                        </div>
+                        <h3>{name}</h3>
+                        <p>{description}</p>
+                      </div>
+                      <div className="storeProductFooterV2">
+                        <strong>{formatPrice(program)}</strong>
+                        <span>{formatDuration(program)}</span>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+
+          <section className="storeContactV2">
+            <div>
+              <span className="storeEyebrowV2">{sZh ? "需要帮助选择？" : "Need help choosing?"}</span>
+              <h2>{sZh ? "扫码咨询训练计划。" : "Scan WeChat and ask us."}</h2>
+              <p>
+                {sZh
+                  ? "我们可以根据你的项目、伤病史和训练时间推荐合适计划或加购模块。"
+                  : "We can help match a program or add-on to your sport, injury history, and available training time."}
+              </p>
+            </div>
+            <img
+              src="https://i.ibb.co/Y4nXVG4g/Weixin-Image-20260611202846-56-2.jpg"
+              alt="WeChat QR"
+              className="storeContactQrV2"
+            />
+          </section>
+        </main>
+
+        {storeSelectedProgram && (() => {
+          const sp = storeSelectedProgram;
+          const spName = sZh && sp.programNameCn ? sp.programNameCn : sp.programName;
+          const spDesc =
+            (sZh && (sp.storeDescriptionCn || sp.salesDescriptionCn)) ||
+            sp.storeDescription ||
+            sp.salesDescription ||
+            "";
+          return (
+            <div
+              className="storeModalBackdropV2"
+              onClick={() => {
+                setStoreSelectedProgram(null);
+                setStoreRegisteredCode("");
+                setStoreRegName("");
+                setStoreRegPhone("");
+              }}
+            >
+              <div className="storeModalV2" onClick={(e) => e.stopPropagation()}>
+                <button
+                  className="storeModalCloseV2"
+                  aria-label="Close"
+                  onClick={() => {
+                    setStoreSelectedProgram(null);
+                    setStoreRegisteredCode("");
+                    setStoreRegName("");
+                    setStoreRegPhone("");
+                  }}
+                >
+                  x
+                </button>
+                <div className="storeModalInnerV2">
+                  <div className="storeModalImageV2">
+                    {sp.productImage ? (
+                      <img src={sp.productImage} alt={spName} />
+                    ) : (
+                      <div className="storeModalFallbackV2">
+                        <img src="/nl_monogram_clean.png" alt="" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="storeModalInfoV2">
+                    <span className="storeEyebrowV2">
+                      {getProgramSeason(sp).replace("-", " ")}
+                    </span>
+                    <h2>{spName}</h2>
+                    <p>{spDesc}</p>
+                    <div className="storeProductTagsV2">
+                      <span>{formatDuration(sp)}</span>
+                      <span>{sp.level || (sZh ? "多水平" : "All levels")}</span>
+                      <span>{formatPrice(sp)}</span>
+                    </div>
+                    {storeRegisteredCode ? (
+                      <div className="storeSuccessBoxV2">
+                        <strong>{sZh ? "已创建客户端" : "Client portal created"}</strong>
+                        <span>
+                          {sZh ? "客户代码：" : "Client code: "}
+                          {storeRegisteredCode}
+                        </span>
+                        <a
+                          className="primaryButton"
+                          href={`/?portal=client&client=${encodeURIComponent(storeRegisteredCode)}`}
+                        >
+                          {sZh ? "打开客户端" : "Open Client Portal"}
+                        </a>
+                      </div>
+                    ) : (
+                      <div className="storeRegisterV2">
+                        <label>
+                          {sZh ? "姓名" : "Name"}
+                          <input
+                            value={storeRegName}
+                            onChange={(e) => setStoreRegName(e.target.value)}
+                            placeholder={sZh ? "你的姓名" : "Your name"}
+                          />
+                        </label>
+                        <label>
+                          {sZh ? "微信 / 电话" : "WeChat / Phone"}
+                          <input
+                            value={storeRegPhone}
+                            onChange={(e) => setStoreRegPhone(e.target.value)}
+                            placeholder={sZh ? "微信号或手机号" : "WeChat ID or phone"}
+                          />
+                        </label>
+                        <button
+                          className="primaryButton"
+                          disabled={storeRegistering}
+                          onClick={() => void registerForProgram(sp)}
+                        >
+                          {storeRegistering
+                            ? sZh
+                              ? "提交中..."
+                              : "Submitting..."
+                            : sZh
+                              ? "我已付款，开始 Intake"
+                              : "I paid - start intake"}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  <div className="storeModalPaymentV2">
+                    <strong>{sZh ? "微信支付" : "WeChat Pay"}</strong>
+                    <img
+                      src="https://i.ibb.co/Y4nXVG4g/Weixin-Image-20260611202846-56-2.jpg"
+                      alt="WeChat QR"
+                    />
+                    <span>
+                      {sZh
+                        ? "付款后填写姓名和微信号。"
+                        : "After payment, enter your name and WeChat ID."}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
+        <footer className="storeFooterV2">
+          <img src="/nl_wordmark_black.png" alt="No Limit" />
+          <span>{sZh ? "为训练而生。" : "Built for Training."}</span>
+        </footer>
+      </div>
+    );
+  }
+
+  if (isPublicLandingPage) {
     const landingPrograms = programs.filter((p) => p.publicStoreVisible);
     const featuredPrograms = landingPrograms.slice(0, 3);
     const programCountLabel =
@@ -17484,73 +18205,6 @@ function App() {
                     )}
                   </div>
 
-                  {isSingleWorkoutBuilder && (
-                    <div className="programProductGrid programTypeGrid">
-                      <label>
-                        <span>Assign to</span>
-                        <select
-                          value={programBuiltForMode}
-                          onChange={(e) => {
-                            const mode = e.target.value as
-                              | "internal"
-                              | "client"
-                              | "team";
-                            setProgramBuiltForMode(mode);
-                            if (mode !== "client") setProgramBuiltForClient("");
-                            if (mode !== "team") setProgramBuiltForTeam("");
-                          }}
-                          className="miniSearch"
-                        >
-                          <option value="internal">Internal (general)</option>
-                          <option value="client">Client</option>
-                          <option value="team">Team</option>
-                        </select>
-                      </label>
-
-                      {programBuiltForMode === "client" && (
-                        <label>
-                          <span>Client</span>
-                          <select
-                            value={programBuiltForClient}
-                            onChange={(e) =>
-                              setProgramBuiltForClient(e.target.value)
-                            }
-                            className="miniSearch"
-                          >
-                            <option value="">Select client…</option>
-                            {coachVisibleClients.map((c) => (
-                              <option key={c.id} value={c.clientCode || c.id}>
-                                {c.name}
-                                {c.clientCode ? ` (${c.clientCode})` : ""}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-                      )}
-
-                      {programBuiltForMode === "team" && (
-                        <label>
-                          <span>Team</span>
-                          <select
-                            value={programBuiltForTeam}
-                            onChange={(e) =>
-                              setProgramBuiltForTeam(e.target.value)
-                            }
-                            className="miniSearch"
-                          >
-                            <option value="">Select team…</option>
-                            {teams.map((tm) => (
-                              <option key={tm.id} value={tm.name}>
-                                {tm.name}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-                      )}
-                    </div>
-                  )}
-
-
                   {!isSingleWorkoutBuilder && (
                     <>
                       <div className="programDetailsGrid programDetailsSecondary">
@@ -17886,6 +18540,69 @@ function App() {
                       />
                     </label>
                   )}
+                  {isSingleWorkoutBuilder && (
+                    <label>
+                      <span>Assign to</span>
+                      <select
+                        value={programBuiltForMode}
+                        onChange={(e) => {
+                          const mode = e.target.value as
+                            | "internal"
+                            | "client"
+                            | "team";
+                          setProgramBuiltForMode(mode);
+                          if (mode !== "client") setProgramBuiltForClient("");
+                          if (mode !== "team") setProgramBuiltForTeam("");
+                        }}
+                        className="miniSearch"
+                      >
+                        <option value="internal">Internal (general)</option>
+                        <option value="client">Client</option>
+                        <option value="team">Team</option>
+                      </select>
+                    </label>
+                  )}
+                  {isSingleWorkoutBuilder &&
+                    programBuiltForMode === "client" && (
+                      <label>
+                        <span>Client</span>
+                        <select
+                          value={programBuiltForClient}
+                          onChange={(e) =>
+                            setProgramBuiltForClient(e.target.value)
+                          }
+                          className="miniSearch"
+                        >
+                          <option value="">Select client…</option>
+                          {coachVisibleClients.map((c) => (
+                            <option key={c.id} value={c.clientCode || c.id}>
+                              {c.name}
+                              {c.clientCode ? ` (${c.clientCode})` : ""}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    )}
+                  {isSingleWorkoutBuilder &&
+                    programBuiltForMode === "team" && (
+                      <label>
+                        <span>Team</span>
+                        <select
+                          value={programBuiltForTeam}
+                          onChange={(e) =>
+                            setProgramBuiltForTeam(e.target.value)
+                          }
+                          className="miniSearch"
+                        >
+                          <option value="">Select team…</option>
+                          {teams.map((tm) => (
+                            <option key={tm.id} value={tm.name}>
+                              {tm.name}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    )}
                   {!isSingleWorkoutBuilder && (
                     <>
                       <label className="sessionWeekField">
