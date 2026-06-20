@@ -214,6 +214,7 @@ type Program = {
   storeCategory?: string;
   storeCategoryCn?: string;
   storeListingType?: string;
+  bundleProgramIds?: string;
   productType?: string;
   price?: string;
   currency?: string;
@@ -1904,6 +1905,7 @@ function App() {
   const [programStoreCategoryCn, setProgramStoreCategoryCn] = useState("");
   const [programStoreListingType, setProgramStoreListingType] =
     useState("Main");
+  const [programBundleIds, setProgramBundleIds] = useState<string[]>([]);
 
   const [programWeek, setProgramWeek] = useState("1");
   const [programDay, setProgramDay] = useState("1");
@@ -4890,6 +4892,12 @@ function App() {
       setProgramStoreCategoryCn(selectedSavedProgram.storeCategoryCn || "");
       setProgramStoreListingType(
         selectedSavedProgram.storeListingType || "Main"
+      );
+      setProgramBundleIds(
+        (selectedSavedProgram.bundleProgramIds || "")
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean)
       );
       setProgramSessions(sessions);
       setSelectedProgramExercises([]);
@@ -8645,6 +8653,10 @@ function App() {
           storeListingType: programPublicStoreVisible
             ? programStoreListingType
             : "",
+          bundleProgramIds:
+            programPublicStoreVisible && programStoreListingType === "Bundle"
+              ? programBundleIds.join(",")
+              : "",
         }),
       });
 
@@ -13743,6 +13755,23 @@ function App() {
     const isAddonProgram = (program: Program) =>
       (program.storeListingType || "").toLowerCase() === "add-on";
 
+    const isBundleProgram = (program: Program) =>
+      (program.storeListingType || "").toLowerCase() === "bundle";
+
+    const bundleIncludes = (program: Program) => {
+      const ids = (program.bundleProgramIds || "")
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+      return programs.filter((p) => ids.includes(p.programId));
+    };
+
+    const bundleIndividualTotal = (program: Program) =>
+      bundleIncludes(program).reduce(
+        (sum, p) => sum + (parseFloat(p.price || "0") || 0),
+        0
+      );
+
     const getProgramSeason = (program: Program) => {
       const blob = programSearchBlob(program);
       const match = blob.match(/season\s*(\d+)|s(\d+)|第\s*(\d+)\s*季/i);
@@ -14029,6 +14058,11 @@ function App() {
                       </div>
                       <div className="storeProductBodyV2">
                         <div className="storeProductTagsV2">
+                          {isBundleProgram(program) && (
+                            <span className="storeBundleBadge">
+                              {sZh ? "套餐" : "Package"}
+                            </span>
+                          )}
                           <span>{getProgramSeason(program).replace("-", " ")}</span>
                           <span>{program.level || (sZh ? "多水平" : "All levels")}</span>
                         </div>
@@ -14037,7 +14071,29 @@ function App() {
                       </div>
                       <div className="storeProductFooterV2">
                         <strong>{formatPrice(program)}</strong>
-                        <span>{formatDuration(program)}</span>
+                        {(() => {
+                          if (!isBundleProgram(program)) {
+                            return <span>{formatDuration(program)}</span>;
+                          }
+                          const total = bundleIndividualTotal(program);
+                          const bp = parseFloat(program.price || "0") || 0;
+                          if (total > bp && bp > 0) {
+                            return (
+                              <span className="storeBundleSave">
+                                <s>
+                                  {(program.currency || "CNY")} {total}
+                                </s>{" "}
+                                {sZh ? `省 ${total - bp}` : `Save ${total - bp}`}
+                              </span>
+                            );
+                          }
+                          return (
+                            <span>
+                              {bundleIncludes(program).length}{" "}
+                              {sZh ? "个计划" : "programs"}
+                            </span>
+                          );
+                        })()}
                       </div>
                     </article>
                   );
@@ -14112,15 +14168,62 @@ function App() {
                     <h2>{spName}</h2>
                     <p>{spDesc}</p>
                     <div className="storeProductTagsV2">
+                      {isBundleProgram(sp) && (
+                        <span className="storeBundleBadge">
+                          {sZh ? "套餐" : "Package"}
+                        </span>
+                      )}
                       <span>{formatDuration(sp)}</span>
                       <span>{sp.level || (sZh ? "多水平" : "All levels")}</span>
                       <span>{formatPrice(sp)}</span>
                     </div>
 
+                    {isBundleProgram(sp) &&
+                      bundleIncludes(sp).length > 0 &&
+                      (() => {
+                        const total = bundleIndividualTotal(sp);
+                        const bp = parseFloat(sp.price || "0") || 0;
+                        return (
+                          <div className="storeBundleIncludesV2">
+                            <strong className="storeAddonsTitle">
+                              {sZh ? "套餐包含" : "What's included"}
+                            </strong>
+                            {bundleIncludes(sp).map((p) => (
+                              <div className="storeAddonRow" key={p.recordId}>
+                                <span className="storeAddonName">
+                                  {sZh && p.programNameCn
+                                    ? p.programNameCn
+                                    : p.programName}
+                                </span>
+                                <span className="storeAddonPrice">
+                                  {p.price ? `${p.currency || "CNY"} ${p.price}` : ""}
+                                </span>
+                              </div>
+                            ))}
+                            {total > bp && bp > 0 && (
+                              <div className="storeSubtotalV2">
+                                <span>
+                                  <s>
+                                    {(sp.currency || "CNY")} {total}
+                                  </s>{" "}
+                                  {sZh ? `省 ${total - bp}` : `Save ${total - bp}`}
+                                </span>
+                                <strong>
+                                  {sp.currency || "CNY"} {bp.toLocaleString()}
+                                </strong>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
+
                     {(() => {
                       const priceNum = (p: Program) =>
                         parseFloat(p.price || "0") || 0;
-                      const addonPrograms = storePrograms.filter(isAddonProgram);
+                      // Bundles don't offer additional add-ons in this modal.
+                      const addonPrograms = isBundleProgram(sp)
+                        ? []
+                        : storePrograms.filter(isAddonProgram);
                       if (addonPrograms.length === 0) return null;
                       const currency = sp.currency || "CNY";
                       const selected = addonPrograms.filter((a) =>
@@ -18581,10 +18684,78 @@ function App() {
                         >
                           <option value="Main">Main program</option>
                           <option value="Add-on">Add-on</option>
+                          <option value="Bundle">Bundle (package)</option>
                         </select>
                       </label>
                     </div>
                   )}
+
+                  {programPublicStoreVisible &&
+                    programStoreListingType === "Bundle" && (
+                      <div className="programBundlePicker">
+                        <span className="programBundleLabel">
+                          Programs in this package
+                        </span>
+                        {(() => {
+                          const candidates = programs.filter(
+                            (p) =>
+                              p.status !== "Archived" &&
+                              (p.storeListingType || "") !== "Bundle"
+                          );
+                          const priceNum = (p: Program) =>
+                            parseFloat(p.price || "0") || 0;
+                          const individualTotal = candidates
+                            .filter((p) => programBundleIds.includes(p.programId))
+                            .reduce((s, p) => s + priceNum(p), 0);
+                          const bundlePrice = parseFloat(programPrice || "0") || 0;
+                          const save = individualTotal - bundlePrice;
+                          return (
+                            <>
+                              <div className="programBundleList">
+                                {candidates.map((p) => {
+                                  const checked = programBundleIds.includes(
+                                    p.programId
+                                  );
+                                  return (
+                                    <label
+                                      className="programBundleRow"
+                                      key={p.recordId}
+                                    >
+                                      <input
+                                        type="checkbox"
+                                        checked={checked}
+                                        onChange={() =>
+                                          setProgramBundleIds((prev) =>
+                                            checked
+                                              ? prev.filter(
+                                                  (x) => x !== p.programId
+                                                )
+                                              : [...prev, p.programId]
+                                          )
+                                        }
+                                      />
+                                      <span>{p.programName}</span>
+                                      <span className="programBundleRowPrice">
+                                        {priceNum(p)
+                                          ? `${p.currency || "CNY"} ${p.price}`
+                                          : "--"}
+                                      </span>
+                                    </label>
+                                  );
+                                })}
+                              </div>
+                              {programBundleIds.length > 0 && (
+                                <p className="programBundleHint">
+                                  Individual total: {individualTotal} · Package
+                                  price: {bundlePrice || "set Price above"}
+                                  {save > 0 ? ` · Save ${save}` : ""}
+                                </p>
+                              )}
+                            </>
+                          );
+                        })()}
+                      </div>
+                    )}
 
                   <label>
                     <span>Purchase Link</span>

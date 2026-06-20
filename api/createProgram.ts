@@ -112,6 +112,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       storeCategory,
       storeCategoryCn,
       storeListingType,
+      bundleProgramIds,
     } = req.body;
 
     if (!programName) {
@@ -173,6 +174,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       "Store Category": storeCategory || "",
       "Store Category CN": storeCategoryCn || "",
       "Store Listing Type": storeListingType || "",
+      "Bundle Program IDs": bundleProgramIds || "",
     };
     const fallbackFields = {
       "Program ID": programId,

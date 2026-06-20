@@ -86,6 +86,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         storeCategory: fieldToText(fields["Store Category"]),
         storeCategoryCn: fieldToText(fields["Store Category CN"]),
         storeListingType: fieldToText(fields["Store Listing Type"]),
+        bundleProgramIds: fieldToText(fields["Bundle Program IDs"]),
         productType: fieldToText(fields["Product Type"]),
         price: fieldToText(fields["Price"]),
         currency: fieldToText(fields["Currency"]),

@@ -54,6 +54,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       storeCategory,
       storeCategoryCn,
       storeListingType,
+      bundleProgramIds,
     } = req.body;
 
     if (!programRecordId) {
@@ -106,6 +107,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
     if (storeListingType !== undefined) {
       fields["Store Listing Type"] = storeListingType;
+    }
+    if (bundleProgramIds !== undefined) {
+      fields["Bundle Program IDs"] = bundleProgramIds;
     }
 
     if (Object.keys(fields).length === 0) {

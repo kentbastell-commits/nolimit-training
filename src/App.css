@@ -7859,6 +7859,65 @@ button.coachReviewGlobalItem,
   font-variant-numeric: tabular-nums;
 }
 
+/* Store bundles / packages */
+.storeBundleBadge {
+  background: #0d0d0d !important;
+  color: #d4af37 !important;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+.storeBundleSave {
+  color: #2f8a43;
+  font-weight: 700;
+}
+.storeBundleSave s {
+  color: #9a958a;
+  font-weight: 500;
+}
+.storeBundleIncludesV2 {
+  margin: 14px 0;
+  padding: 14px;
+  border-radius: 14px;
+  background: rgba(212, 175, 55, 0.08);
+  border: 1px solid rgba(212, 175, 55, 0.35);
+}
+
+/* Builder bundle picker */
+.programBundlePicker {
+  margin-top: 10px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px dashed rgba(212, 175, 55, 0.45);
+  background: rgba(212, 175, 55, 0.06);
+}
+.programBundleLabel {
+  display: block;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #9b7a21;
+  margin-bottom: 8px;
+}
+.programBundleRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  font-size: 13px;
+}
+.programBundleRowPrice {
+  margin-left: auto;
+  font-weight: 700;
+  color: #68645d;
+}
+.programBundleHint {
+  margin: 8px 0 0;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #2f8a43;
+}
+
 /* "Built for" tag on saved programs */
 .programBuiltForChip {
   display: inline-block;
