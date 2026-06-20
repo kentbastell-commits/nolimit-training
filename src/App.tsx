@@ -1626,6 +1626,7 @@ function App() {
   const [workoutLoggingStarted, setWorkoutLoggingStarted] = useState(false);
   const [workoutFocusMode, setWorkoutFocusMode] = useState(true);
   const [workoutFocusIndex, setWorkoutFocusIndex] = useState(0);
+  const focusTouchRef = useRef<{ x: number; y: number } | null>(null);
   const [savedExerciseDraftIds, setSavedExerciseDraftIds] = useState<string[]>([]);
   const [historyExerciseName, setHistoryExerciseName] = useState("");
   const [loading, setLoading] = useState(true);
@@ -12451,6 +12452,37 @@ function App() {
         block: "start",
       });
     }, 0);
+  };
+
+  // An exercise counts as "logged" once every one of its set rows has its
+  // primary actual value entered (reps for lifts, time/distance for cardio).
+  const isExerciseFullyLogged = (exerciseId: string) => {
+    const sets = setLogs.filter((l) => l.exerciseId === exerciseId);
+    if (sets.length === 0) return false;
+    return sets.every((l) => {
+      if (l.trackingType === "Time") return !!String(l.actualTime || "").trim();
+      if (l.trackingType === "Distance")
+        return !!String(l.actualDistance || "").trim();
+      return !!String(l.actualReps || "").trim();
+    });
+  };
+
+  // Swipe left/right on the focus card to move between exercises. Ignore
+  // mostly-vertical drags so scrolling and input taps still work.
+  const handleFocusTouchStart = (e: React.TouchEvent) => {
+    const t = e.touches[0];
+    focusTouchRef.current = { x: t.clientX, y: t.clientY };
+  };
+  const handleFocusTouchEnd = (e: React.TouchEvent, total: number) => {
+    const start = focusTouchRef.current;
+    focusTouchRef.current = null;
+    if (!start) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - start.x;
+    const dy = t.clientY - start.y;
+    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    if (dx < 0) goToFocusExercise(workoutFocusIndex + 1, total);
+    else goToFocusExercise(workoutFocusIndex - 1, total);
   };
 
   if (isStorePage) {
@@ -24409,8 +24441,17 @@ function App() {
                       )
                       .slice(0, 12);
 
+                    const focusSwipe =
+                      isClientPortal && workoutFocusMode
+                        ? {
+                            onTouchStart: handleFocusTouchStart,
+                            onTouchEnd: (e: React.TouchEvent) =>
+                              handleFocusTouchEnd(e, workoutDetails.length),
+                          }
+                        : {};
+
                     return (
-                      <div key={exercise.id}>
+                      <div key={exercise.id} {...focusSwipe}>
                         {showSectionHeader && (
                           <h4 className="workoutSectionHeading">
                             {sectionNameDisplay}
@@ -24880,50 +24921,6 @@ function App() {
                     );
                   })}
 
-                {isClientPortal &&
-                  workoutLoggingStarted &&
-                  workoutFocusMode &&
-                  workoutDetails.length > 0 && (
-                    <div className="workoutFocusNav">
-                      <button
-                        type="button"
-                        className="workoutFocusNavBtn"
-                        disabled={workoutFocusIndex === 0}
-                        onClick={() =>
-                          goToFocusExercise(
-                            workoutFocusIndex - 1,
-                            workoutDetails.length
-                          )
-                        }
-                      >
-                        <ChevronLeft size={18} />
-                        {paceZh ? "上一个" : "Prev"}
-                      </button>
-                      <span className="workoutFocusProgress">
-                        {workoutFocusIndex + 1} / {workoutDetails.length}
-                      </span>
-                      {workoutFocusIndex < workoutDetails.length - 1 ? (
-                        <button
-                          type="button"
-                          className="workoutFocusNavBtn workoutFocusNavBtnPrimary"
-                          onClick={() =>
-                            goToFocusExercise(
-                              workoutFocusIndex + 1,
-                              workoutDetails.length
-                            )
-                          }
-                        >
-                          {paceZh ? "下一个" : "Next"}
-                          <ChevronRight size={18} />
-                        </button>
-                      ) : (
-                        <span className="workoutFocusLast">
-                          {paceZh ? "最后一个 ✓" : "Last ✓"}
-                        </span>
-                      )}
-                    </div>
-                  )}
-
                 {isClientPortal && workoutLoggingStarted && (
                   <button
                     type="button"
@@ -24968,6 +24965,92 @@ function App() {
                     {savingWorkout ? t("submitting") : t("submitWorkout")}
                   </button>
                 )}
+
+                {isClientPortal &&
+                  workoutLoggingStarted &&
+                  workoutFocusMode &&
+                  workoutDetails.length > 0 &&
+                  (() => {
+                    const isLast =
+                      workoutFocusIndex >= workoutDetails.length - 1;
+                    const focusEx = workoutDetails[workoutFocusIndex];
+                    const focusLogged = focusEx
+                      ? isExerciseFullyLogged(focusEx.exerciseId)
+                      : false;
+                    return (
+                      <div className="workoutFocusNav">
+                        <button
+                          type="button"
+                          className="workoutFocusNavBtn"
+                          disabled={workoutFocusIndex === 0}
+                          onClick={() =>
+                            goToFocusExercise(
+                              workoutFocusIndex - 1,
+                              workoutDetails.length
+                            )
+                          }
+                        >
+                          <ChevronLeft size={18} />
+                          {paceZh ? "上一个" : "Prev"}
+                        </button>
+                        <div
+                          className="workoutFocusDots"
+                          role="tablist"
+                          aria-label={paceZh ? "动作进度" : "Exercise progress"}
+                        >
+                          {workoutDetails.map((ex, i) => (
+                            <button
+                              key={ex.id}
+                              type="button"
+                              className={`workoutFocusDot${
+                                i === workoutFocusIndex
+                                  ? " workoutFocusDotActive"
+                                  : ""
+                              }${
+                                isExerciseFullyLogged(ex.exerciseId)
+                                  ? " workoutFocusDotDone"
+                                  : ""
+                              }`}
+                              onClick={() =>
+                                goToFocusExercise(i, workoutDetails.length)
+                              }
+                              aria-label={`${
+                                paceZh ? "动作" : "Exercise"
+                              } ${i + 1}`}
+                              aria-selected={i === workoutFocusIndex}
+                            />
+                          ))}
+                        </div>
+                        {!isLast ? (
+                          <button
+                            type="button"
+                            className={`workoutFocusNavBtn workoutFocusNavBtnPrimary${
+                              focusLogged ? " workoutFocusNavBtnReady" : ""
+                            }`}
+                            onClick={() =>
+                              goToFocusExercise(
+                                workoutFocusIndex + 1,
+                                workoutDetails.length
+                              )
+                            }
+                          >
+                            {paceZh ? "下一个" : "Next"}
+                            <ChevronRight size={18} />
+                          </button>
+                        ) : (
+                          <span className="workoutFocusLast">
+                            {focusLogged
+                              ? paceZh
+                                ? "已完成 ✓"
+                                : "Done ✓"
+                              : paceZh
+                              ? "最后一个"
+                              : "Last"}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })()}
               </div>
             </div>
           </div>
