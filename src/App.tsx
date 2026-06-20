@@ -12397,7 +12397,7 @@ function App() {
           </button>
           <img src="/nl_monogram_clean.png" alt="" className="storeHeroMonogram" />
           <img
-            src="/nl_wordmark_clean.png"
+            src="/nl_wordmark_black.png"
             alt="NøLimit"
             className="storeHeroWordmark"
           />

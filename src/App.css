@@ -11815,8 +11815,9 @@ button.coachReviewGlobalItem,
   align-items: center;
   text-align: center;
   gap: 14px;
-  padding: 46px 20px 30px;
-  border-bottom: 1px solid #2a2a2a;
+  padding: 46px 20px 34px;
+  background: #000;
+  border-bottom: 1px solid #d4af37;
 }
 .storeHeroLang {
   position: absolute;
