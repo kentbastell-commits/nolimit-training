@@ -357,6 +357,20 @@ type WorkoutHistoryLog = {
   actualDistance: string;
 };
 
+type WorkloadLog = {
+  recordId: string;
+  logId: string;
+  clientId: string;
+  date: number;
+  techAmRpe: number;
+  techAmMin: number;
+  techPmRpe: number;
+  techPmMin: number;
+  cardioRpe: number;
+  cardioMin: number;
+  notes: string;
+};
+
 type WorkoutComment = {
   key: string;
   recordIds: string[];
@@ -1514,9 +1528,30 @@ function App() {
   const [clientTab, setClientTab] = useState<ClientTab>("Home");
   // Portal Home sub-pages (swipeable): Tasks / Records / Metrics.
   const [portalHomeTab, setPortalHomeTab] = useState<
-    "tasks" | "records" | "metrics"
+    "tasks" | "records" | "metrics" | "workload"
   >("tasks");
   const homeTouchRef = useRef<{ x: number; y: number } | null>(null);
+  // Athlete weekly workload self-report (technical + extra cardio sessions).
+  const [workloadLogs, setWorkloadLogs] = useState<WorkloadLog[]>([]);
+  const [workloadDay, setWorkloadDay] = useState("");
+  const [workloadSaving, setWorkloadSaving] = useState(false);
+  const [workloadDraft, setWorkloadDraft] = useState<{
+    techAmRpe: string;
+    techAmMin: string;
+    techPmRpe: string;
+    techPmMin: string;
+    cardioRpe: string;
+    cardioMin: string;
+    notes: string;
+  }>({
+    techAmRpe: "",
+    techAmMin: "",
+    techPmRpe: "",
+    techPmMin: "",
+    cardioRpe: "",
+    cardioMin: "",
+    notes: "",
+  });
   // All athletes' assigned workouts, for the coach roster load watch.
   const [rosterLoadWorkouts, setRosterLoadWorkouts] = useState<Workout[]>([]);
   const [calendarView, setCalendarView] = useState<CalendarView>("Week");
@@ -9263,6 +9298,306 @@ function App() {
     }).catch(() => {});
   }, [isClientPortal, selectedClient]);
 
+  // Load the athlete's workload self-report logs (portal + coach viewing a client).
+  const loadWorkloadLogs = async (clientCode: string) => {
+    if (!clientCode) return;
+    try {
+      const res = await fetch(
+        `/api/workloadLogs?clientId=${encodeURIComponent(clientCode)}`
+      );
+      const data = await res.json();
+      setWorkloadLogs((data.logs || []) as WorkloadLog[]);
+    } catch {
+      setWorkloadLogs([]);
+    }
+  };
+
+  useEffect(() => {
+    const code = selectedClient?.clientCode;
+    if (!code) {
+      setWorkloadLogs([]);
+      return;
+    }
+    void loadWorkloadLogs(code);
+    if (!workloadDay) setWorkloadDay(dateToInputValue(new Date()));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedClient?.clientCode]);
+
+  // When the selected workload day (or its saved log) changes, refill the draft.
+  useEffect(() => {
+    if (!workloadDay) return;
+    const log = workloadLogs.find(
+      (l) => dateToInputValue(new Date(l.date)) === workloadDay
+    );
+    setWorkloadDraft({
+      techAmRpe: log?.techAmRpe ? String(log.techAmRpe) : "",
+      techAmMin: log?.techAmMin ? String(log.techAmMin) : "",
+      techPmRpe: log?.techPmRpe ? String(log.techPmRpe) : "",
+      techPmMin: log?.techPmMin ? String(log.techPmMin) : "",
+      cardioRpe: log?.cardioRpe ? String(log.cardioRpe) : "",
+      cardioMin: log?.cardioMin ? String(log.cardioMin) : "",
+      notes: log?.notes || "",
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workloadDay, workloadLogs]);
+
+  // sRPE load of an athlete-reported workload row (technical AM + PM + extra cardio).
+  const workloadLogLoad = (l: WorkloadLog) =>
+    l.techAmRpe * l.techAmMin +
+    l.techPmRpe * l.techPmMin +
+    l.cardioRpe * l.cardioMin;
+
+  // Map of athlete-reported (technical + extra cardio) load per day, to fold
+  // into the coach load dashboard alongside in-app physical/cardio load.
+  const workloadLoadByDate = () => {
+    const m = new Map<string, number>();
+    for (const l of workloadLogs) {
+      const load = workloadLogLoad(l);
+      if (!load) continue;
+      const d = dateToInputValue(new Date(l.date));
+      m.set(d, (m.get(d) || 0) + load);
+    }
+    return m;
+  };
+
+  // In-app physical (strength) and auto cardio load logged on a given day.
+  const dayPhysicalCardio = (dateStr: string) => {
+    let physical = 0;
+    let autoCardio = 0;
+    for (const w of workouts) {
+      if (!/complete/i.test(w.completionStatus || "")) continue;
+      if (normalizeDate(String(w.scheduledDate)) !== dateStr) continue;
+      const load =
+        Number(w.sessionLoad) ||
+        Number(w.sessionRpe) * Number(w.sessionDuration) ||
+        0;
+      if (!load) continue;
+      if (/cardio|conditioning/i.test(w.sessionType || "")) autoCardio += load;
+      else physical += load;
+    }
+    return { physical: Math.round(physical), autoCardio: Math.round(autoCardio) };
+  };
+
+  // Total load for a day = in-app physical + auto cardio + reported workload.
+  const workloadDayTotal = (dateStr: string) => {
+    const { physical, autoCardio } = dayPhysicalCardio(dateStr);
+    const log = workloadLogs.find(
+      (l) => dateToInputValue(new Date(l.date)) === dateStr
+    );
+    return physical + autoCardio + (log ? workloadLogLoad(log) : 0);
+  };
+
+  const saveWorkload = async () => {
+    if (!selectedClient?.clientCode || !workloadDay) return;
+    setWorkloadSaving(true);
+    try {
+      const res = await fetch("/api/saveWorkloadLog", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clientId: selectedClient.clientCode,
+          date: workloadDay,
+          techAmRpe: Number(workloadDraft.techAmRpe) || 0,
+          techAmMin: Number(workloadDraft.techAmMin) || 0,
+          techPmRpe: Number(workloadDraft.techPmRpe) || 0,
+          techPmMin: Number(workloadDraft.techPmMin) || 0,
+          cardioRpe: Number(workloadDraft.cardioRpe) || 0,
+          cardioMin: Number(workloadDraft.cardioMin) || 0,
+          notes: workloadDraft.notes,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        notify("Could not save workload.");
+        return;
+      }
+      notify(paceZh ? "已保存训练负荷" : "Workload saved");
+      await loadWorkloadLogs(selectedClient.clientCode);
+    } catch {
+      notify("Could not save workload.");
+    } finally {
+      setWorkloadSaving(false);
+    }
+  };
+
+  // Workload self-report is a premium feature for online / in-person athletes.
+  const isWorkloadMonitored = /online coaching|in[-\s]?person/i.test(
+    selectedClient?.clientType || ""
+  );
+
+  const renderWorkloadTab = () => {
+    const today = new Date(`${todayValue}T00:00:00`);
+    const days: string[] = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(d.getDate() - i);
+      days.push(dateToInputValue(d));
+    }
+    const weekTotal = days.reduce((a, d) => a + workloadDayTotal(d), 0);
+    const sel = workloadDay || todayValue;
+    const { physical, autoCardio } = dayPhysicalCardio(sel);
+    const dr = workloadDraft;
+    const ld = (rpe: string, min: string) =>
+      (Number(rpe) || 0) * (Number(min) || 0);
+    const techAmLoad = ld(dr.techAmRpe, dr.techAmMin);
+    const techPmLoad = ld(dr.techPmRpe, dr.techPmMin);
+    const manualCardioLoad = ld(dr.cardioRpe, dr.cardioMin);
+    const dayTotal =
+      physical + autoCardio + techAmLoad + techPmLoad + manualCardioLoad;
+
+    const rows: {
+      label: string;
+      rpeKey: keyof typeof dr;
+      minKey: keyof typeof dr;
+    }[] = [
+      {
+        label: paceZh ? "技术课 · 早上" : "Technical · Morning",
+        rpeKey: "techAmRpe",
+        minKey: "techAmMin",
+      },
+      {
+        label: paceZh ? "技术课 · 下午/晚上" : "Technical · Afternoon / Evening",
+        rpeKey: "techPmRpe",
+        minKey: "techPmMin",
+      },
+      {
+        label: paceZh ? "额外有氧" : "Extra cardio",
+        rpeKey: "cardioRpe",
+        minKey: "cardioMin",
+      },
+    ];
+
+    return (
+      <section className="clientHomePanel workloadPanel">
+        <div className="clientHomePanelHeader">
+          <div>
+            <span>{paceZh ? "每周监控" : "Weekly monitoring"}</span>
+            <h2>{paceZh ? "训练负荷" : "Workload"}</h2>
+          </div>
+        </div>
+        <p className="workloadIntro">
+          {paceZh
+            ? "记录线下技术课和额外有氧，结合 App 内训练，算出你一周的总负荷。"
+            : "Log your off-app technical sessions and any extra cardio — combined with your in-app training, this captures your full weekly load."}
+        </p>
+
+        <div className="workloadWeekStrip">
+          {days.map((d) => {
+            const total = workloadDayTotal(d);
+            const dd = new Date(`${d}T00:00:00`);
+            return (
+              <button
+                key={d}
+                type="button"
+                className={`workloadDayBtn${
+                  d === sel ? " workloadDayActive" : ""
+                }`}
+                onClick={() => setWorkloadDay(d)}
+              >
+                <span className="workloadDow">
+                  {dd.toLocaleDateString(clientLocale, { weekday: "short" })}
+                </span>
+                <span className="workloadDom">{dd.getDate()}</span>
+                <span className="workloadDayTotal">{total || ""}</span>
+              </button>
+            );
+          })}
+        </div>
+        <div className="workloadWeekSum">
+          {paceZh ? "本周总负荷" : "Week total load"}{" "}
+          <strong>{Math.round(weekTotal).toLocaleString()}</strong>
+        </div>
+
+        <div className="workloadEditor">
+          {rows.map((row) => {
+            const load = ld(dr[row.rpeKey], dr[row.minKey]);
+            return (
+              <div className="workloadRow" key={row.label}>
+                <span className="workloadRowLabel">{row.label}</span>
+                <label className="workloadField">
+                  <input
+                    inputMode="numeric"
+                    placeholder="RPE"
+                    value={dr[row.rpeKey]}
+                    onChange={(e) =>
+                      setWorkloadDraft((s) => ({
+                        ...s,
+                        [row.rpeKey]: e.target.value,
+                      }))
+                    }
+                  />
+                  <span>RPE</span>
+                </label>
+                <label className="workloadField">
+                  <input
+                    inputMode="numeric"
+                    placeholder={paceZh ? "分钟" : "min"}
+                    value={dr[row.minKey]}
+                    onChange={(e) =>
+                      setWorkloadDraft((s) => ({
+                        ...s,
+                        [row.minKey]: e.target.value,
+                      }))
+                    }
+                  />
+                  <span>{paceZh ? "分" : "min"}</span>
+                </label>
+                <span className="workloadRowLoad">{load || "--"}</span>
+              </div>
+            );
+          })}
+
+          <div className="workloadAutoRow">
+            <span className="workloadRowLabel">
+              {paceZh ? "力量训练 (App内)" : "Physical (from workouts)"}
+            </span>
+            <span className="workloadAutoVal">{physical || 0}</span>
+          </div>
+          {autoCardio > 0 && (
+            <div className="workloadAutoRow">
+              <span className="workloadRowLabel">
+                {paceZh ? "有氧 (App内)" : "Cardio (from workouts)"}
+              </span>
+              <span className="workloadAutoVal">{autoCardio}</span>
+            </div>
+          )}
+
+          <label className="workloadNotesField">
+            <span>{paceZh ? "备注" : "Notes"}</span>
+            <textarea
+              value={dr.notes}
+              placeholder={
+                paceZh ? "今天感觉如何？" : "How did the day feel?"
+              }
+              onChange={(e) =>
+                setWorkloadDraft((s) => ({ ...s, notes: e.target.value }))
+              }
+            />
+          </label>
+
+          <div className="workloadDayTotalRow">
+            <span>{paceZh ? "当天总负荷" : "Day total load"}</span>
+            <strong>{Math.round(dayTotal).toLocaleString()}</strong>
+          </div>
+
+          <button
+            className="goldButton workloadSaveButton"
+            onClick={saveWorkload}
+            disabled={workloadSaving}
+          >
+            {workloadSaving
+              ? paceZh
+                ? "保存中…"
+                : "Saving…"
+              : paceZh
+              ? "保存当天"
+              : "Save day"}
+          </button>
+        </div>
+      </section>
+    );
+  };
+
   // Compute each team's upcoming planned-session count from members' workouts.
   useEffect(() => {
     if (activePage !== "Teams" || teams.length === 0) return;
@@ -12487,6 +12822,10 @@ function App() {
       tonnageByDate.set(d, (tonnageByDate.get(d) || 0) + w * r);
     }
     const loadByDate = loadByDateForWorkouts(workouts);
+    // Fold in the athlete's self-reported technical + extra-cardio load.
+    for (const [d, v] of workloadLoadByDate()) {
+      loadByDate.set(d, (loadByDate.get(d) || 0) + v);
+    }
 
     const dates = [
       ...new Set([...loadByDate.keys(), ...tonnageByDate.keys()]),
@@ -12917,8 +13256,12 @@ function App() {
     else goToFocusExercise(workoutFocusIndex - 1, total);
   };
 
-  // Swipe between the portal Home sub-pages (Tasks / Records / Metrics).
-  const portalHomeOrder = ["tasks", "records", "metrics"] as const;
+  // Swipe between the portal Home sub-pages (Workload only for monitored athletes).
+  const portalHomeOrder = (
+    isWorkloadMonitored
+      ? ["tasks", "records", "metrics", "workload"]
+      : ["tasks", "records", "metrics"]
+  ) as Array<typeof portalHomeTab>;
   const handleHomeTouchStart = (e: React.TouchEvent) => {
     const t = e.touches[0];
     homeTouchRef.current = { x: t.clientX, y: t.clientY };
@@ -20065,11 +20408,16 @@ function App() {
                       role="tablist"
                       aria-label={paceZh ? "主页分区" : "Home sections"}
                     >
-                      {([
-                        ["tasks", paceZh ? "任务" : "Tasks"],
-                        ["records", paceZh ? "记录" : "Records"],
-                        ["metrics", paceZh ? "指标" : "Metrics"],
-                      ] as const).map(([key, label]) => (
+                      {(
+                        [
+                          ["tasks", paceZh ? "任务" : "Tasks"],
+                          ["records", paceZh ? "记录" : "Records"],
+                          ["metrics", paceZh ? "指标" : "Metrics"],
+                          ...(isWorkloadMonitored
+                            ? [["workload", paceZh ? "负荷" : "Workload"]]
+                            : []),
+                        ] as Array<[typeof portalHomeTab, string]>
+                      ).map(([key, label]) => (
                         <button
                           key={key}
                           type="button"
@@ -20179,6 +20527,11 @@ function App() {
                       {renderExerciseHistoryBody()}
                     </section>
                   )}
+
+                  {isClientPortal &&
+                    portalHomeTab === "workload" &&
+                    isWorkloadMonitored &&
+                    renderWorkloadTab()}
 
                   {!isClientPortal && (
                   <section className="clientHomePanel focusHomePanel">

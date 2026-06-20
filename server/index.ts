@@ -30,6 +30,8 @@ import recordLogin from "../api/recordLogin.ts";
 import programTemplates from "../api/programTemplates.ts";
 import reviewWorkoutComment from "../api/reviewWorkoutComment.ts";
 import saveWorkoutLog from "../api/saveWorkoutLog.ts";
+import workloadLogs from "../api/workloadLogs.ts";
+import saveWorkloadLog from "../api/saveWorkloadLog.ts";
 import submitContentResponse from "../api/submitContentResponse.ts";
 import subscriptions from "../api/subscriptions.ts";
 import upsertSubscription from "../api/upsertSubscription.ts";
@@ -83,6 +85,8 @@ const handlers = {
   programTemplates,
   reviewWorkoutComment,
   saveWorkoutLog,
+  workloadLogs,
+  saveWorkloadLog,
   submitContentResponse,
   subscriptions,
   upsertSubscription,
