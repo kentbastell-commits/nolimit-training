@@ -99,6 +99,8 @@ export default async function handler(
       workoutDate,
       logs,
       submissionNote,
+      sessionRpe,
+      sessionDurationMin,
     } = req.body;
 
     if (!clientId || !assignedWorkoutRecordId) {
@@ -208,12 +210,40 @@ export default async function handler(
         "Workout Comment",
         "Athlete Notes",
       ]);
+      const sessionRpeField = resolveFieldName(assignedWorkoutFields, [
+        "Session RPE",
+        "RPE",
+      ]);
+      const sessionDurationField = resolveFieldName(assignedWorkoutFields, [
+        "Session Duration",
+      ]);
+      const sessionLoadField = resolveFieldName(assignedWorkoutFields, [
+        "Session Load",
+      ]);
       const assignedFields: Record<string, any> = {
         "Completion Status": "Completed",
       };
 
       if (assignedClientNotesField && submissionNote) {
         assignedFields[assignedClientNotesField] = toText(submissionNote);
+      }
+
+      // Internal training load = session RPE × duration (sRPE method). External
+      // load (tonnage) is derived from the per-set logs above.
+      const rpeNum = toNum(sessionRpe);
+      const durNum = toNum(sessionDurationMin);
+      if (sessionRpeField && rpeNum !== undefined) {
+        assignedFields[sessionRpeField] = rpeNum;
+      }
+      if (sessionDurationField && durNum !== undefined) {
+        assignedFields[sessionDurationField] = durNum;
+      }
+      if (
+        sessionLoadField &&
+        rpeNum !== undefined &&
+        durNum !== undefined
+      ) {
+        assignedFields[sessionLoadField] = Math.round(rpeNum * durNum);
       }
 
       const updateResponse = await fetch(

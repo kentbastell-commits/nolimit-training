@@ -1632,13 +1632,13 @@ function App() {
   const [workoutFocusIndex, setWorkoutFocusIndex] = useState(0);
   const focusTouchRef = useRef<{ x: number; y: number } | null>(null);
   const workoutStartedAtRef = useRef<number | null>(null);
-  const [workoutSummary, setWorkoutSummary] = useState<{
-    exercises: number;
-    sets: number;
-    volume: number;
-    durationMin: number;
-    prs: { name: string; weight: number; reps: number }[];
-  } | null>(null);
+  // Pre-save finish/review screen (edit + session RPE + celebrate, then save).
+  const [workoutFinishOpen, setWorkoutFinishOpen] = useState(false);
+  const [workoutRpe, setWorkoutRpe] = useState<number | null>(null);
+  const [finishDurationMin, setFinishDurationMin] = useState(0);
+  const [finishExpanded, setFinishExpanded] = useState<Record<string, boolean>>(
+    {}
+  );
   const [savedExerciseDraftIds, setSavedExerciseDraftIds] = useState<string[]>([]);
   const [historyExerciseName, setHistoryExerciseName] = useState("");
   const [loading, setLoading] = useState(true);
@@ -5937,6 +5937,8 @@ function App() {
           workoutDate: normalizeDate(String(selectedWorkout.scheduledDate)),
           logs: setLogs,
           submissionNote: workoutSubmissionNote.trim(),
+          sessionRpe: workoutRpe ?? undefined,
+          sessionDurationMin: finishDurationMin || undefined,
         }),
       });
 
@@ -5954,63 +5956,6 @@ function App() {
         notify("Workout submitted.");
       }
 
-      // Build a completion summary (volume, sets, PRs) for the celebration
-      // screen — computed from setLogs before they're cleared below. PRs
-      // compare this session's best load against the athlete's prior history.
-      const completedSets = setLogs.filter(isSetComplete);
-      const exerciseIds = new Set(completedSets.map((l) => l.exerciseId));
-      let volume = 0;
-      for (const l of completedSets) {
-        const w = parseFloat(l.actualWeight);
-        const r = parseFloat(l.actualReps);
-        if (!Number.isNaN(w) && !Number.isNaN(r)) volume += w * r;
-      }
-      const prs: { name: string; weight: number; reps: number }[] = [];
-      for (const id of exerciseIds) {
-        const exSets = completedSets.filter(
-          (l) => l.exerciseId === id && l.trackingType === "Weight"
-        );
-        if (!exSets.length) continue;
-        const best = exSets.reduce(
-          (acc, l) => {
-            const w = parseFloat(l.actualWeight);
-            return !Number.isNaN(w) && w > acc.weight
-              ? { weight: w, reps: parseFloat(l.actualReps) || 0, name: l.exerciseName }
-              : acc;
-          },
-          { weight: 0, reps: 0, name: exSets[0].exerciseName }
-        );
-        if (best.weight <= 0) continue;
-        const base = best.name.split(" - ")[0].toLowerCase();
-        const history = workoutHistoryLogs.filter((h) =>
-          h.exerciseName.toLowerCase().startsWith(base)
-        );
-        if (!history.length) continue; // first time — a baseline, not a PR
-        const histBest = history.reduce((m, h) => {
-          const w = parseFloat(h.actualWeight);
-          return !Number.isNaN(w) && w > m ? w : m;
-        }, 0);
-        if (best.weight > histBest && histBest > 0) {
-          prs.push({
-            name: best.name.split(" - ")[0],
-            weight: best.weight,
-            reps: best.reps,
-          });
-        }
-      }
-      const durationMin = workoutStartedAtRef.current
-        ? Math.max(1, Math.round((Date.now() - workoutStartedAtRef.current) / 60000))
-        : 0;
-      if (isClientPortal) {
-        setWorkoutSummary({
-          exercises: exerciseIds.size,
-          sets: completedSets.length,
-          volume: Math.round(volume),
-          durationMin,
-          prs,
-        });
-        if (prs.length) vibrate(40);
-      }
       workoutStartedAtRef.current = null;
 
       const draftKey = getWorkoutDraftKey();
@@ -6035,6 +5980,10 @@ function App() {
       setWorkoutDetails([]);
       setSetLogs([]);
       setWorkoutSubmissionNote("");
+      setWorkoutFinishOpen(false);
+      setWorkoutRpe(null);
+      setFinishDurationMin(0);
+      setFinishExpanded({});
     } catch (error) {
       console.error(error);
       notify("Could not save workout.");
@@ -12569,6 +12518,71 @@ function App() {
     const sets = setLogs.filter((l) => l.exerciseId === exerciseId);
     if (sets.length === 0) return false;
     return sets.every(isSetComplete);
+  };
+
+  // Live session totals for the finish screen — external load (tonnage) plus
+  // completed-set and exercise counts, computed from the current setLogs.
+  const computeWorkoutStats = () => {
+    const completed = setLogs.filter(isSetComplete);
+    const exerciseIds = new Set(completed.map((l) => l.exerciseId));
+    let volume = 0;
+    for (const l of completed) {
+      const w = parseFloat(l.actualWeight);
+      const r = parseFloat(l.actualReps);
+      if (!Number.isNaN(w) && !Number.isNaN(r)) volume += w * r;
+    }
+    return {
+      exercises: exerciseIds.size,
+      sets: completed.length,
+      volume: Math.round(volume),
+    };
+  };
+
+  // Personal bests this session: best logged load per exercise vs the athlete's
+  // prior history (no history yet = a baseline, not a PR).
+  const computeWorkoutPrs = () => {
+    const completed = setLogs.filter(isSetComplete);
+    const exerciseIds = new Set(completed.map((l) => l.exerciseId));
+    const prs: { name: string; weight: number; reps: number }[] = [];
+    for (const id of exerciseIds) {
+      const exSets = completed.filter(
+        (l) => l.exerciseId === id && l.trackingType === "Weight"
+      );
+      if (!exSets.length) continue;
+      const best = exSets.reduce(
+        (acc, l) => {
+          const w = parseFloat(l.actualWeight);
+          return !Number.isNaN(w) && w > acc.weight
+            ? { weight: w, reps: parseFloat(l.actualReps) || 0, name: l.exerciseName }
+            : acc;
+        },
+        { weight: 0, reps: 0, name: exSets[0].exerciseName }
+      );
+      if (best.weight <= 0) continue;
+      const base = best.name.split(" - ")[0].toLowerCase();
+      const history = workoutHistoryLogs.filter((h) =>
+        h.exerciseName.toLowerCase().startsWith(base)
+      );
+      if (!history.length) continue;
+      const histBest = history.reduce((m, h) => {
+        const w = parseFloat(h.actualWeight);
+        return !Number.isNaN(w) && w > m ? w : m;
+      }, 0);
+      if (best.weight > histBest && histBest > 0) {
+        prs.push({ name: best.name.split(" - ")[0], weight: best.weight, reps: best.reps });
+      }
+    }
+    return prs;
+  };
+
+  // Open the finish/review screen: freeze the elapsed duration and celebrate.
+  const openWorkoutFinish = () => {
+    const dur = workoutStartedAtRef.current
+      ? Math.max(1, Math.round((Date.now() - workoutStartedAtRef.current) / 60000))
+      : 0;
+    setFinishDurationMin(dur);
+    setWorkoutFinishOpen(true);
+    if (computeWorkoutPrs().length) vibrate(40);
   };
 
   // Most recent prior performance for a given exercise + set number, used to
@@ -25379,10 +25393,16 @@ function App() {
                       workoutFocusIndex >= workoutDetails.length - 1))) && (
                   <button
                     className="goldButton saveWorkoutButton"
-                    onClick={saveWorkout}
+                    onClick={isClientPortal ? openWorkoutFinish : saveWorkout}
                     disabled={savingWorkout}
                   >
-                    {savingWorkout ? t("submitting") : t("submitWorkout")}
+                    {savingWorkout
+                      ? t("submitting")
+                      : isClientPortal
+                      ? paceZh
+                        ? "完成训练"
+                        : "Finish Workout"
+                      : t("submitWorkout")}
                   </button>
                 )}
 
@@ -25476,77 +25496,285 @@ function App() {
           </div>
         )}
 
-        {workoutSummary && (
-          <div className="workout-modal-overlay workoutSummaryOverlay">
-            <div className="workoutSummaryCard">
-              <div className="workoutSummaryConfetti" aria-hidden="true">
-                {Array.from({ length: 28 }).map((_, i) => (
-                  <span key={i} style={{ "--i": i } as React.CSSProperties} />
-                ))}
-              </div>
-              <div className="workoutSummaryCrest">
-                <img src="/nl_monogram_clean.png" alt="" />
-              </div>
-              <h2 className="workoutSummaryTitle">
-                {paceZh ? "训练完成" : "Workout Complete"}
-              </h2>
-              <p className="workoutSummarySub">
-                {paceZh ? "干得漂亮 💪" : "Great work 💪"}
-              </p>
-
-              <div className="workoutSummaryStats">
-                <div>
-                  <strong>{workoutSummary.exercises}</strong>
-                  <span>{paceZh ? "动作" : "Exercises"}</span>
-                </div>
-                <div>
-                  <strong>{workoutSummary.sets}</strong>
-                  <span>{paceZh ? "组数" : "Sets"}</span>
-                </div>
-                {workoutSummary.volume > 0 && (
-                  <div>
-                    <strong>
-                      {workoutSummary.volume.toLocaleString()}
-                      <em>{weightUnit}</em>
-                    </strong>
-                    <span>{paceZh ? "总量" : "Volume"}</span>
+        {workoutFinishOpen &&
+          (() => {
+            const stats = computeWorkoutStats();
+            const prs = computeWorkoutPrs();
+            const sessionLoad =
+              workoutRpe && finishDurationMin
+                ? Math.round(workoutRpe * finishDurationMin)
+                : 0;
+            return (
+              <div className="workout-modal-overlay workoutSummaryOverlay">
+                <div className="workoutSummaryCard workoutFinishCard">
+                  <div className="workoutSummaryConfetti" aria-hidden="true">
+                    {Array.from({ length: 28 }).map((_, i) => (
+                      <span key={i} style={{ "--i": i } as React.CSSProperties} />
+                    ))}
                   </div>
-                )}
-                {workoutSummary.durationMin > 0 && (
-                  <div>
-                    <strong>
-                      {workoutSummary.durationMin}
-                      <em>{paceZh ? "分" : "min"}</em>
-                    </strong>
-                    <span>{paceZh ? "时长" : "Time"}</span>
+                  <div className="workoutSummaryCrest">
+                    <img src="/nl_monogram_clean.png" alt="" />
                   </div>
-                )}
-              </div>
+                  <h2 className="workoutSummaryTitle">
+                    {paceZh ? "训练完成" : "Workout Complete"}
+                  </h2>
+                  <p className="workoutSummarySub">
+                    {paceZh ? "核对、评分，然后保存 💪" : "Review, rate, and save 💪"}
+                  </p>
 
-              {workoutSummary.prs.length > 0 && (
-                <div className="workoutSummaryPrs">
-                  <h3>🏆 {paceZh ? "新纪录" : "New Personal Bests"}</h3>
-                  {workoutSummary.prs.map((pr) => (
-                    <div className="workoutSummaryPrRow" key={pr.name}>
-                      <span>{pr.name}</span>
-                      <strong>
-                        {pr.weight} {weightUnit}
-                        {pr.reps ? ` × ${pr.reps}` : ""}
-                      </strong>
+                  <div className="workoutSummaryStats">
+                    <div>
+                      <strong>{stats.exercises}</strong>
+                      <span>{paceZh ? "动作" : "Exercises"}</span>
                     </div>
-                  ))}
-                </div>
-              )}
+                    <div>
+                      <strong>{stats.sets}</strong>
+                      <span>{paceZh ? "组数" : "Sets"}</span>
+                    </div>
+                    {stats.volume > 0 && (
+                      <div>
+                        <strong>
+                          {stats.volume.toLocaleString()}
+                          <em>{weightUnit}</em>
+                        </strong>
+                        <span>{paceZh ? "总量" : "Volume"}</span>
+                      </div>
+                    )}
+                    {finishDurationMin > 0 && (
+                      <div>
+                        <strong>
+                          {finishDurationMin}
+                          <em>{paceZh ? "分" : "min"}</em>
+                        </strong>
+                        <span>{paceZh ? "时长" : "Time"}</span>
+                      </div>
+                    )}
+                  </div>
 
-              <button
-                className="goldButton workoutSummaryDone"
-                onClick={() => setWorkoutSummary(null)}
-              >
-                {paceZh ? "完成" : "Done"}
-              </button>
-            </div>
-          </div>
-        )}
+                  {prs.length > 0 && (
+                    <div className="workoutSummaryPrs">
+                      <h3>🏆 {paceZh ? "新纪录" : "New Personal Bests"}</h3>
+                      {prs.map((pr) => (
+                        <div className="workoutSummaryPrRow" key={pr.name}>
+                          <span>{pr.name}</span>
+                          <strong>
+                            {pr.weight} {weightUnit}
+                            {pr.reps ? ` × ${pr.reps}` : ""}
+                          </strong>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Session RPE — internal load (sRPE) to pair with tonnage */}
+                  <div className="finishRpeBlock">
+                    <h3>{paceZh ? "整体强度 (RPE)" : "Session RPE"}</h3>
+                    <p className="finishRpeHint">
+                      {paceZh
+                        ? "整堂训练有多吃力？(1 轻松 – 10 力竭)"
+                        : "How hard was the whole session? (1 easy – 10 max)"}
+                    </p>
+                    <div className="finishRpeScale">
+                      {Array.from({ length: 10 }).map((_, i) => {
+                        const n = i + 1;
+                        return (
+                          <button
+                            key={n}
+                            type="button"
+                            className={`finishRpeBtn${
+                              workoutRpe === n ? " finishRpeBtnActive" : ""
+                            }`}
+                            onClick={() => {
+                              setWorkoutRpe(n);
+                              vibrate(8);
+                            }}
+                          >
+                            {n}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {sessionLoad > 0 && (
+                      <p className="finishLoadNote">
+                        {paceZh ? "训练负荷" : "Session load"}{" "}
+                        <strong>{sessionLoad.toLocaleString()}</strong>{" "}
+                        <span>
+                          (RPE {workoutRpe} × {finishDurationMin}
+                          {paceZh ? "分" : "min"})
+                        </span>
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Expandable, editable exercise list — fix any mis-entry */}
+                  <div className="finishExerciseList">
+                    <h3>{paceZh ? "动作明细" : "Your exercises"}</h3>
+                    {workoutDetails.map((ex, idx) => {
+                      const exLogs = setLogs.filter(
+                        (l) => l.exerciseId === ex.exerciseId
+                      );
+                      const label =
+                        parseExerciseNotes(ex.notes).exerciseLabel ||
+                        String(idx + 1);
+                      const open = !!finishExpanded[ex.id];
+                      const done =
+                        exLogs.length > 0 && exLogs.every(isSetComplete);
+                      return (
+                        <div className="finishExerciseItem" key={ex.id}>
+                          <button
+                            type="button"
+                            className="finishExerciseHeader"
+                            onClick={() =>
+                              setFinishExpanded((s) => ({
+                                ...s,
+                                [ex.id]: !s[ex.id],
+                              }))
+                            }
+                          >
+                            <span className="finishExBadge">{label}</span>
+                            <span className="finishExName">
+                              {localizedExerciseName(ex)}
+                            </span>
+                            <span className="finishExMeta">
+                              {done && (
+                                <Check
+                                  size={14}
+                                  className="finishExDone"
+                                  aria-hidden="true"
+                                />
+                              )}
+                              {exLogs.length} {paceZh ? "组" : "sets"}
+                            </span>
+                            <ChevronDown
+                              size={16}
+                              className={`finishExCaret${
+                                open ? " finishExCaretOpen" : ""
+                              }`}
+                            />
+                          </button>
+                          {open && (
+                            <div className="finishExSets">
+                              {exLogs.map((log) => {
+                                const gi = setLogs.findIndex(
+                                  (it) =>
+                                    it.exerciseId === log.exerciseId &&
+                                    it.setNumber === log.setNumber &&
+                                    it.side === log.side
+                                );
+                                const sideAbbr =
+                                  log.side === "Right"
+                                    ? "R"
+                                    : log.side === "Left"
+                                    ? "L"
+                                    : "";
+                                return (
+                                  <div
+                                    className="finishSetRow"
+                                    key={`${log.exerciseId}-${log.setNumber}-${
+                                      log.side || "both"
+                                    }`}
+                                  >
+                                    <span className="finishSetNo">
+                                      {log.setNumber}
+                                      {sideAbbr ? ` ${sideAbbr}` : ""}
+                                    </span>
+                                    {log.trackingType === "Time" ? (
+                                      <label className="finishSetField">
+                                        <input
+                                          inputMode="numeric"
+                                          value={log.actualTime}
+                                          onChange={(e) =>
+                                            updateSetLog(
+                                              gi,
+                                              "actualTime",
+                                              e.target.value
+                                            )
+                                          }
+                                        />
+                                        <span>s</span>
+                                      </label>
+                                    ) : log.trackingType === "Distance" ? (
+                                      <label className="finishSetField">
+                                        <input
+                                          inputMode="numeric"
+                                          value={log.actualDistance}
+                                          onChange={(e) =>
+                                            updateSetLog(
+                                              gi,
+                                              "actualDistance",
+                                              e.target.value
+                                            )
+                                          }
+                                        />
+                                        <span>m</span>
+                                      </label>
+                                    ) : (
+                                      <>
+                                        <label className="finishSetField">
+                                          <input
+                                            inputMode="numeric"
+                                            value={log.actualReps}
+                                            onChange={(e) =>
+                                              updateSetLog(
+                                                gi,
+                                                "actualReps",
+                                                e.target.value
+                                              )
+                                            }
+                                          />
+                                          <span>{paceZh ? "次" : "reps"}</span>
+                                        </label>
+                                        <label className="finishSetField">
+                                          <input
+                                            inputMode="decimal"
+                                            value={log.actualWeight}
+                                            placeholder="-"
+                                            onChange={(e) =>
+                                              updateSetLog(
+                                                gi,
+                                                "actualWeight",
+                                                e.target.value
+                                              )
+                                            }
+                                          />
+                                          <span>{weightUnit}</span>
+                                        </label>
+                                      </>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <button
+                    className="goldButton workoutSummaryDone"
+                    onClick={saveWorkout}
+                    disabled={savingWorkout}
+                  >
+                    {savingWorkout
+                      ? paceZh
+                        ? "保存中…"
+                        : "Saving…"
+                      : paceZh
+                      ? "保存并完成"
+                      : "Save & Finish"}
+                  </button>
+                  <button
+                    type="button"
+                    className="workoutFocusToggle"
+                    onClick={() => setWorkoutFinishOpen(false)}
+                  >
+                    {paceZh ? "返回继续编辑" : "Back to workout"}
+                  </button>
+                </div>
+              </div>
+            );
+          })()}
 
         {historyExerciseName && (
           <div className="workout-modal-overlay">
