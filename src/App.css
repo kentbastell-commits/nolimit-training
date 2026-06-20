@@ -6198,6 +6198,72 @@ button.coachReviewGlobalItem,
   margin-bottom: 14px;
 }
 
+/* One-at-a-time workout focus player navigation */
+.workoutFocusNav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 18px 0 6px;
+  padding: 10px 12px;
+  border-radius: 16px;
+  background: #0d0d0d;
+  border: 1px solid rgba(212, 175, 55, 0.3);
+}
+
+.workoutFocusNavBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 18px;
+  border-radius: 12px;
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  background: #1a1a1a;
+  color: #e8e6df;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.workoutFocusNavBtn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.workoutFocusNavBtnPrimary {
+  background: #d4af37;
+  border-color: #d4af37;
+  color: #0d0d0d;
+}
+
+.workoutFocusProgress {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #d4af37;
+  font-variant-numeric: tabular-nums;
+}
+
+.workoutFocusLast {
+  font-size: 15px;
+  font-weight: 700;
+  color: #6fcf7f;
+  padding: 0 6px;
+}
+
+.workoutFocusToggle {
+  display: block;
+  margin: 0 auto 14px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(212, 175, 55, 0.25);
+  background: transparent;
+  color: rgba(232, 230, 223, 0.7);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
 .workoutDateItem {
   display: flex;
   align-items: center;

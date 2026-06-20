@@ -2,6 +2,8 @@ import {
   BookOpen,
   CalendarDays,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   ClipboardList,
   Copy,
   Film,
@@ -1622,6 +1624,8 @@ function App() {
     []
   );
   const [workoutLoggingStarted, setWorkoutLoggingStarted] = useState(false);
+  const [workoutFocusMode, setWorkoutFocusMode] = useState(true);
+  const [workoutFocusIndex, setWorkoutFocusIndex] = useState(0);
   const [savedExerciseDraftIds, setSavedExerciseDraftIds] = useState<string[]>([]);
   const [historyExerciseName, setHistoryExerciseName] = useState("");
   const [loading, setLoading] = useState(true);
@@ -12424,11 +12428,25 @@ function App() {
 
   const openWorkoutExerciseFromGlance = (index: number) => {
     if (isClientPortal) {
+      setWorkoutFocusIndex(index);
       setWorkoutLoggingStarted(true);
     }
 
     window.setTimeout(() => {
       document.getElementById(`workout-exercise-${index}`)?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }, 0);
+  };
+
+  // Move to a different exercise in the one-at-a-time focus player and bring
+  // the new card into view from the top.
+  const goToFocusExercise = (index: number, total: number) => {
+    const next = Math.max(0, Math.min(total - 1, index));
+    setWorkoutFocusIndex(next);
+    window.setTimeout(() => {
+      document.getElementById(`workout-exercise-${next}`)?.scrollIntoView({
         behavior: "smooth",
         block: "start",
       });
@@ -24345,6 +24363,16 @@ function App() {
                 {!detailsLoading &&
                   (!isClientPortal || workoutLoggingStarted) &&
                   workoutDetails.map((exercise, index) => {
+                    // Focus player: in the client portal, render one exercise at
+                    // a time. The "View all" toggle (workoutFocusMode=false)
+                    // falls back to the full scrolling list.
+                    if (
+                      isClientPortal &&
+                      workoutFocusMode &&
+                      index !== workoutFocusIndex
+                    ) {
+                      return null;
+                    }
                     const exerciseLogs = setLogs.filter(
                       (log) => log.exerciseId === exercise.exerciseId
                     );
@@ -24358,8 +24386,10 @@ function App() {
                       ? localizeText(sectionName, exercise.sectionNameCn)
                       : localizeDefaultSection(sectionName);
                     const showSectionHeader =
-                      !previousMeta ||
-                      sectionName !== (previousMeta.sectionName || "Main");
+                      isClientPortal && workoutFocusMode
+                        ? false
+                        : !previousMeta ||
+                          sectionName !== (previousMeta.sectionName || "Main");
                     const coachingNotes = localizeText(
                       meta.coachingNotes,
                       exercise.notesCn || ""
@@ -24850,7 +24880,70 @@ function App() {
                     );
                   })}
 
-                {(!isClientPortal || workoutLoggingStarted) && (
+                {isClientPortal &&
+                  workoutLoggingStarted &&
+                  workoutFocusMode &&
+                  workoutDetails.length > 0 && (
+                    <div className="workoutFocusNav">
+                      <button
+                        type="button"
+                        className="workoutFocusNavBtn"
+                        disabled={workoutFocusIndex === 0}
+                        onClick={() =>
+                          goToFocusExercise(
+                            workoutFocusIndex - 1,
+                            workoutDetails.length
+                          )
+                        }
+                      >
+                        <ChevronLeft size={18} />
+                        {paceZh ? "上一个" : "Prev"}
+                      </button>
+                      <span className="workoutFocusProgress">
+                        {workoutFocusIndex + 1} / {workoutDetails.length}
+                      </span>
+                      {workoutFocusIndex < workoutDetails.length - 1 ? (
+                        <button
+                          type="button"
+                          className="workoutFocusNavBtn workoutFocusNavBtnPrimary"
+                          onClick={() =>
+                            goToFocusExercise(
+                              workoutFocusIndex + 1,
+                              workoutDetails.length
+                            )
+                          }
+                        >
+                          {paceZh ? "下一个" : "Next"}
+                          <ChevronRight size={18} />
+                        </button>
+                      ) : (
+                        <span className="workoutFocusLast">
+                          {paceZh ? "最后一个 ✓" : "Last ✓"}
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                {isClientPortal && workoutLoggingStarted && (
+                  <button
+                    type="button"
+                    className="workoutFocusToggle"
+                    onClick={() => setWorkoutFocusMode((v) => !v)}
+                  >
+                    {workoutFocusMode
+                      ? paceZh
+                        ? "查看全部动作"
+                        : "View all exercises"
+                      : paceZh
+                      ? "单个动作模式"
+                      : "Focus mode"}
+                  </button>
+                )}
+
+                {(!isClientPortal ||
+                  (workoutLoggingStarted &&
+                    (!workoutFocusMode ||
+                      workoutFocusIndex >= workoutDetails.length - 1))) && (
                   <label className="workoutSubmissionNoteField">
                     <span>{t("workoutComment")}</span>
                     <textarea
@@ -24863,7 +24956,10 @@ function App() {
                   </label>
                 )}
 
-                {(!isClientPortal || workoutLoggingStarted) && (
+                {(!isClientPortal ||
+                  (workoutLoggingStarted &&
+                    (!workoutFocusMode ||
+                      workoutFocusIndex >= workoutDetails.length - 1))) && (
                   <button
                     className="goldButton saveWorkoutButton"
                     onClick={saveWorkout}
