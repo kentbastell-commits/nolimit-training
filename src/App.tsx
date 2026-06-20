@@ -12388,25 +12388,22 @@ function App() {
           ))}
         </div>
 
-        <header className="storeHeader">
-          <div className="storeBrand">
-            <div className="brandWordmark brandLogoLockup">
-              <img
-                src="/nl_wordmark_clean.png"
-                alt="NO LIMIT"
-                className="brandWordmarkImage"
-              />
-            </div>
-            <div className="brandTagline">
-              {sZh ? "训练为本，运动为灵。" : "BUILT FOR TRAINING. INSPIRED BY MOVEMENT."}
-            </div>
-          </div>
+        <header className="storeHero">
           <button
-            className="outlineButton inviteLangToggle"
+            className="outlineButton storeHeroLang"
             onClick={() => setStoreLang(sZh ? "en" : "zh")}
           >
             {sZh ? "English" : "中文"}
           </button>
+          <img src="/nl_monogram_clean.png" alt="" className="storeHeroMonogram" />
+          <img
+            src="/nl_wordmark_clean.png"
+            alt="NøLimit"
+            className="storeHeroWordmark"
+          />
+          <div className="storeHeroTagline">
+            {sZh ? "为训练而生" : "Built for Training"}
+          </div>
         </header>
 
         {/* Discreet launcher to enter the Coach app or an athlete's portal. */}
