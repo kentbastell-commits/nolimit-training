@@ -1370,12 +1370,15 @@ function App() {
   const inviteSearchParams = new URLSearchParams(window.location.search);
   const isClientInvite = inviteSearchParams.get("invite") === "client";
   const isClientPortal = inviteSearchParams.get("portal") === "client";
+  const isCoachView = inviteSearchParams.get("view") === "coach";
   const publicPath = window.location.pathname.replace(/\/+$/, "") || "/";
   // Root is the public brand landing page. Store remains available at /store
   // and ?page=store. Coach app is at ?view=coach, athlete portal at
   // ?portal=client, intake at ?invite=client.
   const isStorePage =
     inviteSearchParams.get("page") === "store" || publicPath === "/store";
+  const isPublicLandingPage =
+    !isStorePage && !isClientPortal && !isClientInvite && !isCoachView;
   const clientPortalCode = (
     inviteSearchParams.get("client") ||
     inviteSearchParams.get("clientCode") ||
@@ -2539,7 +2542,7 @@ function App() {
   }, [isClientPortal, activePage, clients.length]);
 
   useEffect(() => {
-    if (isStorePage) {
+    if (isStorePage || isPublicLandingPage) {
       void loadPrograms();
       void loadClients(); // for the "Client View" launcher picker
       return;
@@ -12599,6 +12602,237 @@ function App() {
     if (dx < 0) goToFocusExercise(workoutFocusIndex + 1, total);
     else goToFocusExercise(workoutFocusIndex - 1, total);
   };
+
+  if (isPublicLandingPage) {
+    const landingPrograms = programs.filter((p) => p.publicStoreVisible);
+    const featuredPrograms = landingPrograms.slice(0, 3);
+    const programCountLabel =
+      landingPrograms.length > 0
+        ? `${landingPrograms.length} programs live`
+        : "Programs launching soon";
+    const landingPillars: Array<{
+      title: string;
+      body: string;
+      icon: LucideIcon;
+    }> = [
+      {
+        title: "Digital Programs",
+        body:
+          "Choose a proven training block, set your start date, and load the work into your calendar.",
+        icon: BookOpen,
+      },
+      {
+        title: "Coached Progress",
+        body:
+          "For athletes who need review, testing, adjustments, and a coach who can keep the plan honest.",
+        icon: Users,
+      },
+      {
+        title: "Testing To Training",
+        body:
+          "Turn strength, aerobic, and return-to-sport numbers into practical targets inside the program.",
+        icon: TrendingUp,
+      },
+    ];
+
+    const landingSteps = [
+      "Pick the goal",
+      "Load the plan",
+      "Train and log",
+      "Review progress",
+    ];
+
+    return (
+      <div className="landingPage">
+        <div className="toastStack">
+          {toasts.map((toast) => (
+            <div className={`toast toast-${toast.type}`} key={toast.id}>
+              {toast.message}
+            </div>
+          ))}
+        </div>
+
+        <header className="landingNav">
+          <a className="landingBrand" href="/" aria-label="No Limit Training home">
+            <img src="/nl_wordmark_clean.png" alt="No Limit Training" />
+            <span>Built for training.</span>
+          </a>
+          <nav className="landingNavLinks" aria-label="Primary navigation">
+            <a href="#programs">Programs</a>
+            <a href="#coaching">Coaching</a>
+            <a href="#system">System</a>
+            <a className="landingNavButton" href="/store">
+              View Programs
+            </a>
+          </nav>
+        </header>
+
+        <main>
+          <section className="landingHero">
+            <div className="landingHeroCopy">
+              <p className="landingEyebrow">Digital programs / coaching / testing</p>
+              <h1>Training with no wasted reps.</h1>
+              <p className="landingLead">
+                No Limit builds structured training systems for climbers, hybrid
+                athletes, and anyone who wants a smarter route from plan to
+                progress.
+              </p>
+              <div className="landingHeroActions">
+                <a className="landingPrimaryCta" href="/store">
+                  Explore Programs
+                </a>
+                <a className="landingSecondaryCta" href="#coaching">
+                  Work With A Coach
+                </a>
+              </div>
+            </div>
+
+            <div className="landingHeroVisual" aria-label="No Limit Training app preview">
+              <div className="landingHeroMark">
+                <img src="/nl_monogram_clean.png" alt="" />
+              </div>
+              <div className="landingAppPreview">
+                <div className="landingPreviewTop">
+                  <span>Week 1</span>
+                  <strong>Lower Strength</strong>
+                  <span>Scheduled</span>
+                </div>
+                <div className="landingPreviewWorkout">
+                  <span>A1</span>
+                  <div>
+                    <strong>Back Squat</strong>
+                    <small>3 sets x 8 reps</small>
+                  </div>
+                </div>
+                <div className="landingPreviewWorkout landingPreviewWorkoutMuted">
+                  <span>B1</span>
+                  <div>
+                    <strong>Power Pull</strong>
+                    <small>4 sets x 5 reps</small>
+                  </div>
+                </div>
+                <div className="landingPreviewMetrics">
+                  <div>
+                    <small>Completion</small>
+                    <strong>86%</strong>
+                  </div>
+                  <div>
+                    <small>Est. 1RM</small>
+                    <strong>142kg</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section className="landingMetrics" aria-label="Platform summary">
+            <div>
+              <strong>{programCountLabel}</strong>
+              <span>Structured blocks for real training goals.</span>
+            </div>
+            <div>
+              <strong>3 paths</strong>
+              <span>Digital, online coaching, and in-person training.</span>
+            </div>
+            <div>
+              <strong>1 system</strong>
+              <span>Calendar, logs, tests, and review in one place.</span>
+            </div>
+          </section>
+
+          <section className="landingPillars" id="coaching">
+            <div className="landingSectionIntro">
+              <p className="landingEyebrow">How we train</p>
+              <h2>Simple plans. Better decisions.</h2>
+            </div>
+            <div className="landingPillarGrid">
+              {landingPillars.map((pillar) => {
+                const Icon = pillar.icon;
+                return (
+                  <article className="landingPillarCard" key={pillar.title}>
+                    <Icon aria-hidden="true" />
+                    <h3>{pillar.title}</h3>
+                    <p>{pillar.body}</p>
+                  </article>
+                );
+              })}
+            </div>
+          </section>
+
+          <section className="landingPrograms" id="programs">
+            <div className="landingSectionIntro">
+              <p className="landingEyebrow">Program store</p>
+              <h2>Start with a plan you can actually follow.</h2>
+            </div>
+            <div className="landingProgramGrid">
+              {featuredPrograms.length > 0 ? (
+                featuredPrograms.map((program) => (
+                  <a className="landingProgramCard" href="/store" key={program.recordId}>
+                    <span>{program.productType || "Digital Program"}</span>
+                    <h3>{program.programName}</h3>
+                    <p>
+                      {program.durationWeeks || "4-8"} weeks
+                      {program.sessionsPerWeek
+                        ? ` / ${program.sessionsPerWeek} sessions per week`
+                        : ""}
+                    </p>
+                  </a>
+                ))
+              ) : (
+                <article className="landingProgramCard landingProgramCardPlaceholder">
+                  <span>Coming soon</span>
+                  <h3>Sport-specific training blocks</h3>
+                  <p>Climbing, snow, hybrid conditioning, and joint-focused add-ons.</p>
+                </article>
+              )}
+            </div>
+            <a className="landingTextLink" href="/store">
+              Browse the store
+            </a>
+          </section>
+
+          <section className="landingSystem" id="system">
+            <div>
+              <p className="landingEyebrow">Inside the app</p>
+              <h2>From calendar to coach review.</h2>
+              <p>
+                The app keeps the daily work clear for athletes and gives coaches
+                the logs, comments, and testing context they need to adjust the
+                next block.
+              </p>
+            </div>
+            <ol>
+              {landingSteps.map((step) => (
+                <li key={step}>
+                  <span>{step}</span>
+                </li>
+              ))}
+            </ol>
+          </section>
+
+          <section className="landingFinalCta">
+            <img src="/nl_seal_black.png" alt="" />
+            <div>
+              <p className="landingEyebrow">No limits. Just progress.</p>
+              <h2>Train with structure from day one.</h2>
+            </div>
+            <a className="landingPrimaryCta" href="/store">
+              View Programs
+            </a>
+          </section>
+        </main>
+
+        <footer className="landingFooter">
+          <span>No Limit Training</span>
+          <div>
+            <a href="/store">Store</a>
+            <a href="/?portal=client">Client Portal</a>
+            <a href="/?view=coach">Coach Login</a>
+          </div>
+        </footer>
+      </div>
+    );
+  }
 
   if (isStorePage) {
     const storePrograms = programs.filter((p) => p.publicStoreVisible);
@@ -25424,4 +25658,3 @@ function App() {
 }
 
 export default App;
-
