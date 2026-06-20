@@ -52,9 +52,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const logs = items
       .map((item: any) => {
         const f = item.fields || {};
+        const logId = fieldToText(f["Log ID"]);
         return {
           recordId: item.record_id,
-          logId: fieldToText(f["Log ID"]),
+          logId,
+          // Calendar day (YYYY-MM-DD) is the last 10 chars of the Log ID, which
+          // is timezone-stable (unlike re-deriving from the stored ms).
+          dateKey: logId.slice(-10),
           clientId: fieldToText(f["Client ID"]),
           date: num(f["Date"]),
           techAmRpe: num(f["Tech AM RPE"]),

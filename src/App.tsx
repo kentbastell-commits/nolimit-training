@@ -360,6 +360,7 @@ type WorkoutHistoryLog = {
 type WorkloadLog = {
   recordId: string;
   logId: string;
+  dateKey: string;
   clientId: string;
   date: number;
   techAmRpe: number;
@@ -9326,9 +9327,7 @@ function App() {
   // When the selected workload day (or its saved log) changes, refill the draft.
   useEffect(() => {
     if (!workloadDay) return;
-    const log = workloadLogs.find(
-      (l) => dateToInputValue(new Date(l.date)) === workloadDay
-    );
+    const log = workloadLogs.find((l) => l.dateKey === workloadDay);
     setWorkloadDraft({
       techAmRpe: log?.techAmRpe ? String(log.techAmRpe) : "",
       techAmMin: log?.techAmMin ? String(log.techAmMin) : "",
@@ -9354,8 +9353,7 @@ function App() {
     for (const l of workloadLogs) {
       const load = workloadLogLoad(l);
       if (!load) continue;
-      const d = dateToInputValue(new Date(l.date));
-      m.set(d, (m.get(d) || 0) + load);
+      m.set(l.dateKey, (m.get(l.dateKey) || 0) + load);
     }
     return m;
   };
@@ -9381,9 +9379,7 @@ function App() {
   // Total load for a day = in-app physical + auto cardio + reported workload.
   const workloadDayTotal = (dateStr: string) => {
     const { physical, autoCardio } = dayPhysicalCardio(dateStr);
-    const log = workloadLogs.find(
-      (l) => dateToInputValue(new Date(l.date)) === dateStr
-    );
+    const log = workloadLogs.find((l) => l.dateKey === dateStr);
     return physical + autoCardio + (log ? workloadLogLoad(log) : 0);
   };
 
