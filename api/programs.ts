@@ -81,6 +81,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         sessionsPerWeek: fieldToText(fields["Sessions / Week"]),
         coach: fieldToText(fields["Coach"]),
         status: fieldToText(fields["Status"]),
+        builtForClient: fieldToText(fields["Built For Client"]),
+        builtForTeam: fieldToText(fields["Built For Team"]),
         productType: fieldToText(fields["Product Type"]),
         price: fieldToText(fields["Price"]),
         currency: fieldToText(fields["Currency"]),

@@ -49,6 +49,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       productStatus,
       salesDescription,
       salesDescriptionCn,
+      builtForClient,
+      builtForTeam,
     } = req.body;
 
     if (!programRecordId) {
@@ -91,6 +93,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (salesDescriptionCn !== undefined) {
       fields["Sales Description CN"] = salesDescriptionCn;
     }
+    if (builtForClient !== undefined) {
+      fields["Built For Client"] = builtForClient;
+    }
+    if (builtForTeam !== undefined) fields["Built For Team"] = builtForTeam;
 
     if (Object.keys(fields).length === 0) {
       return res.status(400).json({ error: "No fields to update" });

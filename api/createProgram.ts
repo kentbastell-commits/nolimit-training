@@ -107,6 +107,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       productStatus,
       salesDescription,
       salesDescriptionCn,
+      builtForClient,
+      builtForTeam,
     } = req.body;
 
     if (!programName) {
@@ -163,6 +165,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       "Product Status": productStatus || "Draft",
       "Sales Description": salesDescription || "",
       "Sales Description CN": salesDescriptionCn || "",
+      "Built For Client": builtForClient || "",
+      "Built For Team": builtForTeam || "",
     };
     const fallbackFields = {
       "Program ID": programId,

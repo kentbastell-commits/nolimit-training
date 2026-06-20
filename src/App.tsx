@@ -209,6 +209,8 @@ type Program = {
   sessionsPerWeek: string;
   coach: string;
   status: string;
+  builtForClient?: string;
+  builtForTeam?: string;
   productType?: string;
   price?: string;
   currency?: string;
@@ -1883,6 +1885,10 @@ function App() {
   const [programAccessLengthDays, setProgramAccessLengthDays] = useState("42");
   const [programProductStatus, setProgramProductStatus] = useState("Draft");
   const [programSalesDescription, setProgramSalesDescription] = useState("");
+  // Tag a saved program with the client / team it was built for (searchable,
+  // reusable). Empty = a generic template.
+  const [programBuiltForClient, setProgramBuiltForClient] = useState("");
+  const [programBuiltForTeam, setProgramBuiltForTeam] = useState("");
 
   const [programWeek, setProgramWeek] = useState("1");
   const [programDay, setProgramDay] = useState("1");
@@ -4289,6 +4295,13 @@ function App() {
               form.questions.length === 1 ? "" : "s"
             }`,
           }));
+  const clientNameForCode = (code?: string) => {
+    if (!code) return "";
+    const match = clients.find(
+      (c) => c.clientCode === code || c.id === code || c.name === code
+    );
+    return match?.name || code;
+  };
   const visibleSavedPrograms = programs
     .filter((program) => program.status !== "Archived")
     .filter((program) => {
@@ -4297,12 +4310,16 @@ function App() {
     })
     .filter((program) => {
       const search = savedProgramSearch.toLowerCase();
+      const builtClient = clientNameForCode(program.builtForClient).toLowerCase();
 
       return (
         program.programName.toLowerCase().includes(search) ||
         program.goal.toLowerCase().includes(search) ||
         program.phase.toLowerCase().includes(search) ||
-        String(program.productType || "").toLowerCase().includes(search)
+        String(program.productType || "").toLowerCase().includes(search) ||
+        builtClient.includes(search) ||
+        (program.builtForClient || "").toLowerCase().includes(search) ||
+        (program.builtForTeam || "").toLowerCase().includes(search)
       );
     });
   const visibleSavedForms = savedFormTemplates.filter((form) => {
@@ -4823,6 +4840,10 @@ function App() {
       setProgramAccessLengthDays(selectedSavedProgram.accessLengthDays || "42");
       setProgramProductStatus(selectedSavedProgram.productStatus || "Draft");
       setProgramSalesDescription(selectedSavedProgram.salesDescription || "");
+      // Carry the original "built for" tag so the coach can re-point the copy
+      // at a new client/team before saving.
+      setProgramBuiltForClient(selectedSavedProgram.builtForClient || "");
+      setProgramBuiltForTeam(selectedSavedProgram.builtForTeam || "");
       setProgramSessions(sessions);
       setSelectedProgramExercises([]);
       setProgramWeek("1");
@@ -8564,6 +8585,8 @@ function App() {
           accessLengthDays: digitalProductProgram ? programAccessLengthDays : "",
           productStatus: digitalProductProgram ? programProductStatus : "Draft",
           salesDescription: digitalProductProgram ? programSalesDescription : "",
+          builtForClient: programBuiltForClient,
+          builtForTeam: programBuiltForTeam,
         }),
       });
 
@@ -17018,7 +17041,7 @@ function App() {
                           onChange={(event) =>
                             setSavedProgramSearch(event.target.value)
                           }
-                          placeholder="Search programs..."
+                          placeholder="Search by name, goal, or client..."
                         />
 
                         <select
@@ -17065,6 +17088,16 @@ function App() {
                               {program.productType || "Internal Template"} /{" "}
                               {program.goal || "--"}
                             </small>
+                            {(program.builtForClient || program.builtForTeam) && (
+                              <span className="programBuiltForChip">
+                                {[
+                                  clientNameForCode(program.builtForClient),
+                                  program.builtForTeam,
+                                ]
+                                  .filter(Boolean)
+                                  .join(" · ")}
+                              </span>
+                            )}
                           </button>
                         ))}
                       </aside>
@@ -17112,6 +17145,17 @@ function App() {
                             </div>
 
                             <div className="programMetaGrid">
+                              <span>
+                                <strong>Built For</strong>
+                                {[
+                                  clientNameForCode(
+                                    selectedSavedProgram.builtForClient
+                                  ),
+                                  selectedSavedProgram.builtForTeam,
+                                ]
+                                  .filter(Boolean)
+                                  .join(" · ") || "Template"}
+                              </span>
                               <span>
                                 <strong>Goal</strong>
                                 {selectedSavedProgram.goal || "--"}
@@ -17368,6 +17412,40 @@ function App() {
                         />
                       </label>
                     )}
+                  </div>
+
+                  <div className="programDetailsGrid programBuiltForGrid">
+                    <label>
+                      <span>Built for client</span>
+                      <select
+                        value={programBuiltForClient}
+                        onChange={(e) => setProgramBuiltForClient(e.target.value)}
+                        className="miniSearch"
+                      >
+                        <option value="">Template (no client)</option>
+                        {coachVisibleClients.map((c) => (
+                          <option key={c.id} value={c.clientCode || c.id}>
+                            {c.name}
+                            {c.clientCode ? ` (${c.clientCode})` : ""}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label>
+                      <span>Built for team</span>
+                      <select
+                        value={programBuiltForTeam}
+                        onChange={(e) => setProgramBuiltForTeam(e.target.value)}
+                        className="miniSearch"
+                      >
+                        <option value="">No team</option>
+                        {teams.map((tm) => (
+                          <option key={tm.id} value={tm.name}>
+                            {tm.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
                   </div>
 
                   {!isSingleWorkoutBuilder && (

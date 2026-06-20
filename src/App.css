@@ -6787,6 +6787,23 @@ button.coachReviewGlobalItem,
   margin-top: 4px;
 }
 
+/* "Built for" tag on saved programs */
+.programBuiltForChip {
+  display: inline-block;
+  margin-top: 5px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #9b7a21;
+  background: rgba(212, 175, 55, 0.14);
+  border: 1px solid rgba(212, 175, 55, 0.4);
+}
+
+.programBuiltForGrid select {
+  width: 100%;
+}
+
 /* Coach review mode (viewing a completed workout) */
 .coachReviewBadge {
   display: inline-block;
