@@ -7,6 +7,7 @@ import {
   Film,
   UserCog,
   Clock3,
+  Timer,
   Dumbbell,
   Eye,
   GripVertical,
@@ -1609,6 +1610,13 @@ function App() {
   const [selectedWorkout, setSelectedWorkout] = useState<Workout | null>(null);
   const [workoutDetails, setWorkoutDetails] = useState<ExerciseDetail[]>([]);
   const [setLogs, setSetLogs] = useState<SetLog[]>([]);
+  const [restTimer, setRestTimer] = useState<{
+    remaining: number;
+    total: number;
+    running: boolean;
+    label: string;
+  } | null>(null);
+  const restAudioRef = useRef<AudioContext | null>(null);
   const [workoutSubmissionNote, setWorkoutSubmissionNote] = useState("");
   const [workoutHistoryLogs, setWorkoutHistoryLogs] = useState<WorkoutHistoryLog[]>(
     []
@@ -5791,6 +5799,77 @@ function App() {
       setDetailsLoading(false);
     }
   };
+
+  const parseRestSeconds = (rest: string): number => {
+    const s = String(rest || "").toLowerCase();
+    const nums = s.match(/\d+/g)?.map(Number) || [];
+    if (!nums.length) return 60;
+    const base = nums[0];
+    return s.includes("min") ? base * 60 : base;
+  };
+
+  const restChime = () => {
+    const ctx = restAudioRef.current;
+    if (!ctx) return;
+    try {
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.connect(g);
+      g.connect(ctx.destination);
+      o.type = "sine";
+      o.frequency.value = 880;
+      const t0 = ctx.currentTime;
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(0.35, t0 + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.6);
+      o.start(t0);
+      o.stop(t0 + 0.62);
+    } catch {
+      /* audio not available */
+    }
+  };
+
+  const startRestTimer = (rest: string, label: string) => {
+    try {
+      if (!restAudioRef.current) {
+        const Ctx =
+          window.AudioContext ||
+          (window as unknown as { webkitAudioContext?: typeof AudioContext })
+            .webkitAudioContext;
+        if (Ctx) restAudioRef.current = new Ctx();
+      }
+      void restAudioRef.current?.resume?.();
+    } catch {
+      /* audio not available */
+    }
+    setRestTimer({
+      remaining: parseRestSeconds(rest),
+      total: parseRestSeconds(rest),
+      running: true,
+      label,
+    });
+  };
+
+  useEffect(() => {
+    if (!restTimer?.running) return;
+    const id = setInterval(() => {
+      setRestTimer((rt) => {
+        if (!rt || !rt.running) return rt;
+        if (rt.remaining <= 1) {
+          restChime();
+          try {
+            (navigator as unknown as { vibrate?: (ms: number) => void }).vibrate?.(400);
+          } catch {
+            /* vibrate not supported */
+          }
+          return { ...rt, remaining: 0, running: false };
+        }
+        return { ...rt, remaining: rt.remaining - 1 };
+      });
+    }, 1000);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [restTimer?.running]);
 
   const updateSetLog = (index: number, field: keyof SetLog, value: string) => {
     const updated = [...setLogs];
@@ -24209,6 +24288,60 @@ function App() {
                   </button>
                 )}
 
+                {restTimer && (
+                  <div
+                    className={`restTimerWidget ${
+                      restTimer.remaining === 0 ? "restTimerDone" : ""
+                    }`}
+                  >
+                    <div className="restTimerLabel">
+                      {restTimer.remaining === 0
+                        ? paceZh
+                          ? "继续训练！"
+                          : "GO!"
+                        : paceZh
+                        ? "休息"
+                        : "REST"}
+                      {restTimer.label ? ` · ${restTimer.label}` : ""}
+                    </div>
+                    <div className="restTimerTime">
+                      {Math.floor(restTimer.remaining / 60)}:
+                      {String(restTimer.remaining % 60).padStart(2, "0")}
+                    </div>
+                    <div className="restTimerControls">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setRestTimer((rt) =>
+                            rt ? { ...rt, remaining: rt.remaining + 15, running: true } : rt
+                          )
+                        }
+                      >
+                        +15s
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setRestTimer((rt) =>
+                            rt && rt.remaining > 0 ? { ...rt, running: !rt.running } : rt
+                          )
+                        }
+                      >
+                        {restTimer.running
+                          ? paceZh
+                            ? "暂停"
+                            : "Pause"
+                          : paceZh
+                          ? "继续"
+                          : "Resume"}
+                      </button>
+                      <button type="button" onClick={() => setRestTimer(null)}>
+                        {paceZh ? "关闭" : "Done"}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 {!detailsLoading &&
                   (!isClientPortal || workoutLoggingStarted) &&
                   workoutDetails.map((exercise, index) => {
@@ -24348,6 +24481,23 @@ function App() {
                                 <small>{exerciseHistoryLogs.length}</small>
                               )}
                             </button>
+
+                            {exercise.rest && (
+                              <button
+                                className="iconActionButton restTimerTrigger"
+                                type="button"
+                                title={t("rest")}
+                                aria-label={`Start rest timer for ${exercise.exerciseName}`}
+                                onClick={() =>
+                                  startRestTimer(
+                                    exercise.rest,
+                                    localizedExerciseName(exercise)
+                                  )
+                                }
+                              >
+                                <Timer size={18} aria-hidden="true" />
+                              </button>
+                            )}
                           </div>
                         </div>
 
