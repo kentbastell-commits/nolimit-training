@@ -2,6 +2,7 @@ import {
   BookOpen,
   CalendarDays,
   ChevronDown,
+  Check,
   ChevronLeft,
   ChevronRight,
   ClipboardList,
@@ -1370,11 +1371,14 @@ function App() {
   const isClientInvite = inviteSearchParams.get("invite") === "client";
   const isClientPortal = inviteSearchParams.get("portal") === "client";
   const isCoachView = inviteSearchParams.get("view") === "coach";
-  // The store is the public landing page (default). Coach app is at ?view=coach,
-  // the athlete portal at ?portal=client, intake at ?invite=client.
+  const publicPath = window.location.pathname.replace(/\/+$/, "") || "/";
+  // Root is the public brand landing page. Store remains available at /store
+  // and ?page=store. Coach app is at ?view=coach, athlete portal at
+  // ?portal=client, intake at ?invite=client.
   const isStorePage =
-    inviteSearchParams.get("page") === "store" ||
-    (!isClientPortal && !isClientInvite && !isCoachView);
+    inviteSearchParams.get("page") === "store" || publicPath === "/store";
+  const isPublicLandingPage =
+    !isStorePage && !isClientPortal && !isClientInvite && !isCoachView;
   const clientPortalCode = (
     inviteSearchParams.get("client") ||
     inviteSearchParams.get("clientCode") ||
@@ -1627,6 +1631,14 @@ function App() {
   const [workoutFocusMode, setWorkoutFocusMode] = useState(true);
   const [workoutFocusIndex, setWorkoutFocusIndex] = useState(0);
   const focusTouchRef = useRef<{ x: number; y: number } | null>(null);
+  const workoutStartedAtRef = useRef<number | null>(null);
+  const [workoutSummary, setWorkoutSummary] = useState<{
+    exercises: number;
+    sets: number;
+    volume: number;
+    durationMin: number;
+    prs: { name: string; weight: number; reps: number }[];
+  } | null>(null);
   const [savedExerciseDraftIds, setSavedExerciseDraftIds] = useState<string[]>([]);
   const [historyExerciseName, setHistoryExerciseName] = useState("");
   const [loading, setLoading] = useState(true);
@@ -5877,6 +5889,7 @@ function App() {
   }, [restTimer?.running]);
 
   const updateSetLog = (index: number, field: keyof SetLog, value: string) => {
+    const prev = setLogs[index];
     const updated = [...setLogs];
 
     updated[index] = {
@@ -5885,6 +5898,23 @@ function App() {
     };
 
     setSetLogs(updated);
+
+    // Light haptic the moment a set's primary value goes from empty to filled.
+    if (prev) {
+      const primary =
+        prev.trackingType === "Time"
+          ? "actualTime"
+          : prev.trackingType === "Distance"
+          ? "actualDistance"
+          : "actualReps";
+      if (
+        field === primary &&
+        !String(prev[primary] || "").trim() &&
+        String(value).trim()
+      ) {
+        vibrate(12);
+      }
+    }
   };
 
   const saveWorkout = async () => {
@@ -5923,6 +5953,66 @@ function App() {
       } else {
         notify("Workout submitted.");
       }
+
+      // Build a completion summary (volume, sets, PRs) for the celebration
+      // screen — computed from setLogs before they're cleared below. PRs
+      // compare this session's best load against the athlete's prior history.
+      const completedSets = setLogs.filter(isSetComplete);
+      const exerciseIds = new Set(completedSets.map((l) => l.exerciseId));
+      let volume = 0;
+      for (const l of completedSets) {
+        const w = parseFloat(l.actualWeight);
+        const r = parseFloat(l.actualReps);
+        if (!Number.isNaN(w) && !Number.isNaN(r)) volume += w * r;
+      }
+      const prs: { name: string; weight: number; reps: number }[] = [];
+      for (const id of exerciseIds) {
+        const exSets = completedSets.filter(
+          (l) => l.exerciseId === id && l.trackingType === "Weight"
+        );
+        if (!exSets.length) continue;
+        const best = exSets.reduce(
+          (acc, l) => {
+            const w = parseFloat(l.actualWeight);
+            return !Number.isNaN(w) && w > acc.weight
+              ? { weight: w, reps: parseFloat(l.actualReps) || 0, name: l.exerciseName }
+              : acc;
+          },
+          { weight: 0, reps: 0, name: exSets[0].exerciseName }
+        );
+        if (best.weight <= 0) continue;
+        const base = best.name.split(" - ")[0].toLowerCase();
+        const history = workoutHistoryLogs.filter((h) =>
+          h.exerciseName.toLowerCase().startsWith(base)
+        );
+        if (!history.length) continue; // first time — a baseline, not a PR
+        const histBest = history.reduce((m, h) => {
+          const w = parseFloat(h.actualWeight);
+          return !Number.isNaN(w) && w > m ? w : m;
+        }, 0);
+        if (best.weight > histBest && histBest > 0) {
+          prs.push({
+            name: best.name.split(" - ")[0],
+            weight: best.weight,
+            reps: best.reps,
+          });
+        }
+      }
+      const durationMin = workoutStartedAtRef.current
+        ? Math.max(1, Math.round((Date.now() - workoutStartedAtRef.current) / 60000))
+        : 0;
+      if (isClientPortal) {
+        setWorkoutSummary({
+          exercises: exerciseIds.size,
+          sets: completedSets.length,
+          volume: Math.round(volume),
+          durationMin,
+          prs,
+        });
+        if (prs.length) vibrate(40);
+      }
+      workoutStartedAtRef.current = null;
+
       const draftKey = getWorkoutDraftKey();
       if (draftKey) {
         window.localStorage.removeItem(draftKey);
@@ -12431,6 +12521,9 @@ function App() {
     if (isClientPortal) {
       setWorkoutFocusIndex(index);
       setWorkoutLoggingStarted(true);
+      if (!workoutStartedAtRef.current) {
+        workoutStartedAtRef.current = Date.now();
+      }
     }
 
     window.setTimeout(() => {
@@ -12454,17 +12547,42 @@ function App() {
     }, 0);
   };
 
-  // An exercise counts as "logged" once every one of its set rows has its
-  // primary actual value entered (reps for lifts, time/distance for cardio).
+  // Best-effort haptic feedback (no-op where unsupported, e.g. desktop/iOS Safari).
+  const vibrate = (ms: number) => {
+    try {
+      navigator.vibrate?.(ms);
+    } catch {
+      /* ignore */
+    }
+  };
+
+  // A single set is "complete" once its primary actual value is entered.
+  const isSetComplete = (log: SetLog) => {
+    if (log.trackingType === "Time") return !!String(log.actualTime || "").trim();
+    if (log.trackingType === "Distance")
+      return !!String(log.actualDistance || "").trim();
+    return !!String(log.actualReps || "").trim();
+  };
+
+  // An exercise counts as "logged" once every one of its set rows is complete.
   const isExerciseFullyLogged = (exerciseId: string) => {
     const sets = setLogs.filter((l) => l.exerciseId === exerciseId);
     if (sets.length === 0) return false;
-    return sets.every((l) => {
-      if (l.trackingType === "Time") return !!String(l.actualTime || "").trim();
-      if (l.trackingType === "Distance")
-        return !!String(l.actualDistance || "").trim();
-      return !!String(l.actualReps || "").trim();
-    });
+    return sets.every(isSetComplete);
+  };
+
+  // Most recent prior performance for a given exercise + set number, used to
+  // surface "last time" targets the athlete can tap to pre-fill.
+  const lastTimeForSet = (exerciseName: string, setNumber: number) => {
+    const base = exerciseName.split(" - ")[0].toLowerCase();
+    const matches = workoutHistoryLogs.filter(
+      (l) =>
+        l.exerciseName.toLowerCase().startsWith(base) &&
+        String(l.setNumber) === String(setNumber)
+    );
+    if (!matches.length) return null;
+    matches.sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+    return matches[0];
   };
 
   // Swipe left/right on the focus card to move between exercises. Ignore
@@ -24639,14 +24757,19 @@ function App() {
                               : log.side === "Left"
                               ? t("left")
                               : log.side;
+                          const setComplete = isSetComplete(log);
+                          const lastTime = lastTimeForSet(
+                            log.exerciseName,
+                            log.setNumber
+                          );
 
                           return (
                             <div
-                              className={
+                              className={`${
                                 useMobileWorkoutRows
                                   ? "setLogRow mobileSetLogRow"
                                   : "desktopWorkoutSetRow"
-                              }
+                              }${setComplete ? " setLogRowComplete" : ""}`}
                               key={`${log.exerciseId}-${log.setNumber}-${log.side || "both"}`}
                             >
                               <div
@@ -24660,7 +24783,73 @@ function App() {
                                   {t("set", { number: log.setNumber })}
                                   {sideLabel ? ` · ${sideLabel}` : ""}
                                 </strong>
+                                {setComplete && (
+                                  <Check
+                                    className="setCompleteCheck"
+                                    size={16}
+                                    aria-hidden="true"
+                                  />
+                                )}
                               </div>
+                              {lastTime &&
+                                (lastTime.actualReps ||
+                                  lastTime.actualWeight ||
+                                  lastTime.actualTime ||
+                                  lastTime.actualDistance) && (
+                                  <button
+                                    type="button"
+                                    className="setLastTimeChip"
+                                    onClick={() => {
+                                      if (lastTime.actualReps)
+                                        updateSetLog(
+                                          globalIndex,
+                                          "actualReps",
+                                          lastTime.actualReps
+                                        );
+                                      if (lastTime.actualWeight)
+                                        updateSetLog(
+                                          globalIndex,
+                                          "actualWeight",
+                                          lastTime.actualWeight
+                                        );
+                                      if (lastTime.actualTime)
+                                        updateSetLog(
+                                          globalIndex,
+                                          "actualTime",
+                                          lastTime.actualTime
+                                        );
+                                      if (lastTime.actualDistance)
+                                        updateSetLog(
+                                          globalIndex,
+                                          "actualDistance",
+                                          lastTime.actualDistance
+                                        );
+                                      vibrate(8);
+                                    }}
+                                    title={paceZh ? "填入上次数据" : "Tap to fill last time"}
+                                  >
+                                    <Clock3 size={13} aria-hidden="true" />
+                                    {paceZh ? "上次 " : "Last "}
+                                    {[
+                                      lastTime.actualReps
+                                        ? `${lastTime.actualReps}${
+                                            paceZh ? "次" : " reps"
+                                          }`
+                                        : "",
+                                      lastTime.actualWeight
+                                        ? `${lastTime.actualWeight} ${weightUnit}`
+                                        : "",
+                                      lastTime.actualTime
+                                        ? `${lastTime.actualTime}s`
+                                        : "",
+                                      lastTime.actualDistance
+                                        ? `${lastTime.actualDistance}m`
+                                        : "",
+                                    ]
+                                      .filter(Boolean)
+                                      .join(" · ")}
+                                  </button>
+                                )}
                               {log.side && (
                                 <div className="setLogStatic limbCell">
                                   <span>{t("limb")}</span>
@@ -25056,6 +25245,78 @@ function App() {
           </div>
         )}
 
+        {workoutSummary && (
+          <div className="workout-modal-overlay workoutSummaryOverlay">
+            <div className="workoutSummaryCard">
+              <div className="workoutSummaryConfetti" aria-hidden="true">
+                {Array.from({ length: 28 }).map((_, i) => (
+                  <span key={i} style={{ "--i": i } as React.CSSProperties} />
+                ))}
+              </div>
+              <div className="workoutSummaryCrest">
+                <img src="/nl_monogram_clean.png" alt="" />
+              </div>
+              <h2 className="workoutSummaryTitle">
+                {paceZh ? "训练完成" : "Workout Complete"}
+              </h2>
+              <p className="workoutSummarySub">
+                {paceZh ? "干得漂亮 💪" : "Great work 💪"}
+              </p>
+
+              <div className="workoutSummaryStats">
+                <div>
+                  <strong>{workoutSummary.exercises}</strong>
+                  <span>{paceZh ? "动作" : "Exercises"}</span>
+                </div>
+                <div>
+                  <strong>{workoutSummary.sets}</strong>
+                  <span>{paceZh ? "组数" : "Sets"}</span>
+                </div>
+                {workoutSummary.volume > 0 && (
+                  <div>
+                    <strong>
+                      {workoutSummary.volume.toLocaleString()}
+                      <em>{weightUnit}</em>
+                    </strong>
+                    <span>{paceZh ? "总量" : "Volume"}</span>
+                  </div>
+                )}
+                {workoutSummary.durationMin > 0 && (
+                  <div>
+                    <strong>
+                      {workoutSummary.durationMin}
+                      <em>{paceZh ? "分" : "min"}</em>
+                    </strong>
+                    <span>{paceZh ? "时长" : "Time"}</span>
+                  </div>
+                )}
+              </div>
+
+              {workoutSummary.prs.length > 0 && (
+                <div className="workoutSummaryPrs">
+                  <h3>🏆 {paceZh ? "新纪录" : "New Personal Bests"}</h3>
+                  {workoutSummary.prs.map((pr) => (
+                    <div className="workoutSummaryPrRow" key={pr.name}>
+                      <span>{pr.name}</span>
+                      <strong>
+                        {pr.weight} {weightUnit}
+                        {pr.reps ? ` × ${pr.reps}` : ""}
+                      </strong>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <button
+                className="goldButton workoutSummaryDone"
+                onClick={() => setWorkoutSummary(null)}
+              >
+                {paceZh ? "完成" : "Done"}
+              </button>
+            </div>
+          </div>
+        )}
+
         {historyExerciseName && (
           <div className="workout-modal-overlay">
             <div className="clientFormModal historyModal">
@@ -25166,5 +25427,4 @@ function App() {
 }
 
 export default App;
-
 

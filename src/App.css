@@ -6321,6 +6321,212 @@ button.coachReviewGlobalItem,
   cursor: pointer;
 }
 
+/* Completed set rows + tick */
+.setLogRowComplete {
+  border-color: rgba(111, 207, 127, 0.55) !important;
+  box-shadow: inset 3px 0 0 #6fcf7f;
+}
+
+.setCompleteCheck {
+  color: #6fcf7f;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+/* "Last time" tap-to-fill chip */
+.setLastTimeChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin: 2px 0 8px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  border: 1px dashed rgba(212, 175, 55, 0.5);
+  background: rgba(212, 175, 55, 0.08);
+  color: #d4af37;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.setLastTimeChip:active {
+  background: rgba(212, 175, 55, 0.2);
+}
+
+/* Workout completion celebration */
+.workoutSummaryOverlay {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.workoutSummaryCard {
+  position: relative;
+  overflow: hidden;
+  width: min(420px, 92vw);
+  padding: 30px 24px 26px;
+  border-radius: 24px;
+  background: linear-gradient(180deg, #161616 0%, #0b0b0b 100%);
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.6);
+  text-align: center;
+  animation: workoutSummaryPop 0.45s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+}
+
+@keyframes workoutSummaryPop {
+  from {
+    transform: scale(0.86) translateY(14px);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+}
+
+.workoutSummaryCrest img {
+  width: 66px;
+  height: auto;
+  filter: drop-shadow(0 4px 12px rgba(212, 175, 55, 0.4));
+}
+
+.workoutSummaryTitle {
+  margin: 12px 0 2px;
+  font-size: 26px;
+  letter-spacing: 0.02em;
+  color: #f5f3ec;
+}
+
+.workoutSummarySub {
+  margin: 0 0 18px;
+  color: rgba(232, 230, 223, 0.7);
+  font-size: 15px;
+}
+
+.workoutSummaryStats {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.workoutSummaryStats > div {
+  flex: 1 1 80px;
+  min-width: 78px;
+  padding: 14px 8px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(212, 175, 55, 0.18);
+}
+
+.workoutSummaryStats strong {
+  display: block;
+  font-size: 24px;
+  color: #d4af37;
+  font-variant-numeric: tabular-nums;
+}
+
+.workoutSummaryStats strong em {
+  font-size: 13px;
+  font-style: normal;
+  margin-left: 2px;
+  color: rgba(212, 175, 55, 0.8);
+}
+
+.workoutSummaryStats span {
+  display: block;
+  margin-top: 3px;
+  font-size: 11.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(232, 230, 223, 0.55);
+}
+
+.workoutSummaryPrs {
+  margin: 4px 0 18px;
+  padding: 14px;
+  border-radius: 16px;
+  background: rgba(212, 175, 55, 0.1);
+  border: 1px solid rgba(212, 175, 55, 0.45);
+}
+
+.workoutSummaryPrs h3 {
+  margin: 0 0 10px;
+  font-size: 15px;
+  color: #f5d77a;
+}
+
+.workoutSummaryPrRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 2px;
+  font-size: 14px;
+  color: #e8e6df;
+}
+
+.workoutSummaryPrRow + .workoutSummaryPrRow {
+  border-top: 1px solid rgba(212, 175, 55, 0.18);
+}
+
+.workoutSummaryPrRow strong {
+  color: #d4af37;
+  white-space: nowrap;
+}
+
+.workoutSummaryDone {
+  width: 100%;
+}
+
+/* Falling confetti behind the summary content */
+.workoutSummaryConfetti {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.workoutSummaryConfetti span {
+  position: absolute;
+  top: -12px;
+  left: calc(var(--i) * 3.6%);
+  width: 7px;
+  height: 11px;
+  background: #d4af37;
+  opacity: 0;
+  border-radius: 1px;
+  animation: workoutConfettiFall 2.4s linear forwards;
+  animation-delay: calc(var(--i) * 0.06s);
+}
+
+.workoutSummaryConfetti span:nth-child(3n) {
+  background: #f5d77a;
+  width: 6px;
+  height: 9px;
+}
+
+.workoutSummaryConfetti span:nth-child(4n) {
+  background: #e8e6df;
+}
+
+.workoutSummaryConfetti span:nth-child(2n) {
+  height: 7px;
+}
+
+@keyframes workoutConfettiFall {
+  0% {
+    transform: translateY(0) rotateZ(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(560px) rotateZ(540deg);
+    opacity: 0;
+  }
+}
+
 .workoutDateItem {
   display: flex;
   align-items: center;
