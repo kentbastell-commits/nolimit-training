@@ -51,6 +51,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       salesDescriptionCn,
       builtForClient,
       builtForTeam,
+      storeCategory,
+      storeCategoryCn,
+      storeListingType,
     } = req.body;
 
     if (!programRecordId) {
@@ -97,6 +100,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       fields["Built For Client"] = builtForClient;
     }
     if (builtForTeam !== undefined) fields["Built For Team"] = builtForTeam;
+    if (storeCategory !== undefined) fields["Store Category"] = storeCategory;
+    if (storeCategoryCn !== undefined) {
+      fields["Store Category CN"] = storeCategoryCn;
+    }
+    if (storeListingType !== undefined) {
+      fields["Store Listing Type"] = storeListingType;
+    }
 
     if (Object.keys(fields).length === 0) {
       return res.status(400).json({ error: "No fields to update" });

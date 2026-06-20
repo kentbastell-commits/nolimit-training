@@ -211,6 +211,9 @@ type Program = {
   status: string;
   builtForClient?: string;
   builtForTeam?: string;
+  storeCategory?: string;
+  storeCategoryCn?: string;
+  storeListingType?: string;
   productType?: string;
   price?: string;
   currency?: string;
@@ -1895,6 +1898,11 @@ function App() {
   const [programBuiltForMode, setProgramBuiltForMode] = useState<
     "internal" | "client" | "team"
   >("internal");
+  // Store placement (set in the builder when "Show in digital store" is on).
+  const [programStoreCategory, setProgramStoreCategory] = useState("");
+  const [programStoreCategoryCn, setProgramStoreCategoryCn] = useState("");
+  const [programStoreListingType, setProgramStoreListingType] =
+    useState("Main");
 
   const [programWeek, setProgramWeek] = useState("1");
   const [programDay, setProgramDay] = useState("1");
@@ -4308,6 +4316,10 @@ function App() {
     );
     return match?.name || code;
   };
+  // Distinct store categories already in use, for the builder's category picker.
+  const existingStoreCategories = Array.from(
+    new Set(programs.map((p) => (p.storeCategory || "").trim()).filter(Boolean))
+  ).sort();
   const visibleSavedPrograms = programs
     .filter((program) => program.status !== "Archived")
     .filter((program) => {
@@ -4872,6 +4884,11 @@ function App() {
           : selectedSavedProgram.builtForTeam
           ? "team"
           : "internal"
+      );
+      setProgramStoreCategory(selectedSavedProgram.storeCategory || "");
+      setProgramStoreCategoryCn(selectedSavedProgram.storeCategoryCn || "");
+      setProgramStoreListingType(
+        selectedSavedProgram.storeListingType || "Main"
       );
       setProgramSessions(sessions);
       setSelectedProgramExercises([]);
@@ -8622,6 +8639,11 @@ function App() {
             coachedProgramType || singleWorkoutMode ? programBuiltForClient : "",
           builtForTeam:
             coachedProgramType || singleWorkoutMode ? programBuiltForTeam : "",
+          storeCategory: programPublicStoreVisible ? programStoreCategory : "",
+          storeCategoryCn: programPublicStoreVisible ? programStoreCategoryCn : "",
+          storeListingType: programPublicStoreVisible
+            ? programStoreListingType
+            : "",
         }),
       });
 
@@ -13688,7 +13710,19 @@ function App() {
         .join(" ")
         .toLowerCase();
 
+    const slugify = (value: string) =>
+      (value || "")
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9一-鿿]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+
     const getProgramCategory = (program: Program) => {
+      // Explicit, coach-assigned category wins; fall back to keyword guessing
+      // for legacy programs with no Store Category set.
+      if (program.storeCategory && program.storeCategory.trim()) {
+        return slugify(program.storeCategory);
+      }
       const blob = programSearchBlob(program);
       if (/ankle|achilles|feet|foot|knee|shoulder|breath|breathing|joint|prehab|rehab|injury|踝|足|膝|肩|呼吸|损伤|康复/.test(blob)) {
         return "joint-addons";
@@ -13699,6 +13733,9 @@ function App() {
       if (/run|running|marathon|5k|10k|跑步|马拉松/.test(blob)) return "running";
       return "general-foundation";
     };
+
+    const isAddonProgram = (program: Program) =>
+      (program.storeListingType || "").toLowerCase() === "add-on";
 
     const getProgramSeason = (program: Program) => {
       const blob = programSearchBlob(program);
@@ -13724,14 +13761,35 @@ function App() {
       return sZh ? "灵活安排" : "Flexible schedule";
     };
 
+    // Known categories keep their curated bilingual labels; any new category a
+    // coach assigns in the builder is added automatically.
+    const baseCatLabels: Record<string, { en: string; zh: string; body: string }> = {
+      "rock-climbing": { en: "Rock Climbing", zh: "攀岩", body: sZh ? "力量、核心、耐力和伤病预防" : "Strength, core, endurance, and durability" },
+      hyrox: { en: "Hyrox", zh: "Hyrox", body: sZh ? "混合体能和跑步能力" : "Hybrid conditioning and running capacity" },
+      "snow-ski": { en: "Snowboard / Ski", zh: "滑雪 / 单板", body: sZh ? "下肢力量、稳定性和赛季准备" : "Lower-body strength, control, and season prep" },
+      running: { en: "Running", zh: "跑步", body: sZh ? "速度、阈值和有氧能力" : "Speed, threshold, and aerobic development" },
+      "general-foundation": { en: "General Foundation", zh: "通用基础", body: sZh ? "适合任何项目的基础体能" : "Base strength for any sport" },
+      "joint-addons": { en: "Joint Add-Ons", zh: "关节加购", body: sZh ? "按身体部位补强和预防" : "Targeted prevention and support" },
+    };
+    const titleize = (slug: string) =>
+      slug.replace(/-/g, " ").replace(/\b\w/g, (m) => m.toUpperCase());
+
+    // Build the catalog from the categories actually used by main (non-add-on)
+    // store programs, so adding a "Soccer" program creates a Soccer tile.
+    const catMap = new Map<string, { id: string; title: string; body: string }>();
+    for (const program of storePrograms) {
+      if (isAddonProgram(program)) continue;
+      const id = getProgramCategory(program);
+      if (catMap.has(id)) continue;
+      const base = baseCatLabels[id];
+      const title = sZh
+        ? program.storeCategoryCn || base?.zh || program.storeCategory || titleize(id)
+        : program.storeCategory || base?.en || titleize(id);
+      catMap.set(id, { id, title, body: base?.body || "" });
+    }
     const storeCategories = [
       { id: "all", title: sZh ? "全部" : "All", body: sZh ? "查看所有训练计划" : "Browse every program" },
-      { id: "rock-climbing", title: sZh ? "攀岩" : "Rock Climbing", body: sZh ? "力量、核心、耐力和伤病预防" : "Strength, core, endurance, and durability" },
-      { id: "hyrox", title: "Hyrox", body: sZh ? "混合体能和跑步能力" : "Hybrid conditioning and running capacity" },
-      { id: "snow-ski", title: sZh ? "滑雪 / 单板" : "Snowboard / Ski", body: sZh ? "下肢力量、稳定性和赛季准备" : "Lower-body strength, control, and season prep" },
-      { id: "running", title: sZh ? "跑步" : "Running", body: sZh ? "速度、阈值和有氧能力" : "Speed, threshold, and aerobic development" },
-      { id: "general-foundation", title: sZh ? "通用基础" : "General Foundation", body: sZh ? "适合任何项目的基础体能" : "Base strength for any sport" },
-      { id: "joint-addons", title: sZh ? "关节加购" : "Joint Add-Ons", body: sZh ? "按身体部位补强和预防" : "Targeted prevention and support" },
+      ...Array.from(catMap.values()),
     ];
 
     const addonCards = [
@@ -13742,6 +13800,7 @@ function App() {
     ];
 
     const filteredStorePrograms = storePrograms.filter((program) => {
+      if (isAddonProgram(program)) return false;
       const matchesCategory =
         storeCategoryFilter === "all" || getProgramCategory(program) === storeCategoryFilter;
       const matchesSeason =
@@ -18414,6 +18473,52 @@ function App() {
                     />
                     <span>Show in digital store</span>
                   </label>
+
+                  {programPublicStoreVisible && (
+                    <div className="programStorePlacement">
+                      <label>
+                        <span>Store category</span>
+                        <input
+                          list="storeCategoryOptions"
+                          value={programStoreCategory}
+                          onChange={(e) =>
+                            setProgramStoreCategory(e.target.value)
+                          }
+                          placeholder="e.g. Rock Climbing, Soccer…"
+                          className="miniSearch"
+                        />
+                        <datalist id="storeCategoryOptions">
+                          {existingStoreCategories.map((cat) => (
+                            <option key={cat} value={cat} />
+                          ))}
+                        </datalist>
+                      </label>
+                      <label>
+                        <span>Category name (中文)</span>
+                        <input
+                          value={programStoreCategoryCn}
+                          onChange={(e) =>
+                            setProgramStoreCategoryCn(e.target.value)
+                          }
+                          placeholder="可选 · 如 足球"
+                          className="miniSearch"
+                        />
+                      </label>
+                      <label>
+                        <span>Listing type</span>
+                        <select
+                          value={programStoreListingType}
+                          onChange={(e) =>
+                            setProgramStoreListingType(e.target.value)
+                          }
+                          className="miniSearch"
+                        >
+                          <option value="Main">Main program</option>
+                          <option value="Add-on">Add-on</option>
+                        </select>
+                      </label>
+                    </div>
+                  )}
 
                   <label>
                     <span>Purchase Link</span>
