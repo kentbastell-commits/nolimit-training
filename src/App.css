@@ -6510,13 +6510,38 @@ button.coachReviewGlobalItem,
 
 .loadWatchRow {
   display: grid;
-  grid-template-columns: 1fr auto auto auto;
+  grid-template-columns: 1fr auto auto auto auto;
   align-items: center;
   gap: 10px;
+  width: 100%;
   padding: 10px 12px;
   border-radius: 12px;
   background: #f7f5ef;
   border: 1px solid #e5dfd2;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.loadWatchRow:hover {
+  background: #f1eee5;
+  border-color: #d4af37;
+}
+
+.loadWatchCaret {
+  color: var(--nl-muted, #68645d);
+}
+
+.loadRiskChip.loadZoneWarn {
+  background: rgba(212, 175, 55, 0.18);
+  border-color: rgba(212, 175, 55, 0.55);
+  color: #9b7a21;
+}
+
+.loadRiskChip.loadZoneRisk {
+  background: rgba(214, 73, 51, 0.14);
+  border-color: rgba(214, 73, 51, 0.5);
+  color: #c0392b;
 }
 
 .loadWatchName {

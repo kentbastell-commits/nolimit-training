@@ -9297,9 +9297,10 @@ function App() {
     };
   }, [activePage, teams, clients]);
 
-  // Load every athlete's assigned workouts for the coach Home load watch.
+  // Load every athlete's assigned workouts for the coach Clients load watch +
+  // per-row risk badges.
   useEffect(() => {
-    if (isClientPortal || clientTab !== "Home") return;
+    if (isClientPortal || activePage !== "Clients") return;
     let cancelled = false;
     (async () => {
       try {
@@ -9312,7 +9313,7 @@ function App() {
     return () => {
       cancelled = true;
     };
-  }, [isClientPortal, clientTab]);
+  }, [isClientPortal, activePage]);
 
   const clientStatusOptions = Array.from(
     new Set(coachVisibleClients.map((client) => client.status).filter(Boolean))
@@ -12457,6 +12458,22 @@ function App() {
     return map;
   };
 
+  // This-week monotony zone for one athlete (null if no in-week load) — powers
+  // the Clients-table risk badge and the roster watch.
+  const clientWeekLoadZone = (client: Client) => {
+    const code = client.clientCode;
+    if (!code) return null;
+    const list = rosterLoadWorkouts.filter((w) =>
+      (w.clientId || "").includes(code)
+    );
+    const { weeklyLoad, monotony } = computeMonotonyStrain(
+      loadByDateForWorkouts(list),
+      new Date(`${todayValue}T00:00:00`)
+    );
+    if (weeklyLoad === 0) return null;
+    return monotonyZoneOf(monotony, weeklyLoad);
+  };
+
   // Coach-only training-load dashboard: internal load (sRPE = RPE x duration)
   // and external load (tonnage), Foster monotony/strain, plus a weekly strain
   // trend. Drives load-management decisions; deliberately hidden from athletes.
@@ -12607,6 +12624,7 @@ function App() {
         );
         if (weeklyLoad === 0) return null;
         return {
+          client,
           name: client.name || code,
           code,
           weeklyLoad,
@@ -12629,7 +12647,16 @@ function App() {
         </div>
         <div className="loadWatchList">
           {rows.map((r) => (
-            <div className="loadWatchRow" key={r.code}>
+            <button
+              type="button"
+              className="loadWatchRow"
+              key={r.code}
+              onClick={() => {
+                setSelectedClient(r.client);
+                setClientTab("Overview");
+              }}
+              title={paceZh ? "查看负荷详情" : "Open load dashboard"}
+            >
               <span className="loadWatchName">{r.name}</span>
               <span className={`loadWatchMono ${r.zone.cls}`}>
                 {r.monotony ? r.monotony.toFixed(2) : "--"}
@@ -12643,7 +12670,8 @@ function App() {
                 {r.weeklyLoad.toLocaleString()}
                 <em>{paceZh ? "周负荷" : "load"}</em>
               </span>
-            </div>
+              <ChevronRight size={16} className="loadWatchCaret" aria-hidden="true" />
+            </button>
           ))}
         </div>
       </section>
@@ -14269,13 +14297,36 @@ function App() {
                             </span>
 
                             <span className="attentionCell">
-                              {attentionItems.length === 0
-                                ? "--"
-                                : attentionItems.map((item) => (
-                                    <span className="attentionChip" key={item}>
-                                      {item}
-                                    </span>
-                                  ))}
+                              {(() => {
+                                const lz = clientWeekLoadZone(client);
+                                const showLoad =
+                                  lz &&
+                                  (lz.cls === "loadZoneWarn" ||
+                                    lz.cls === "loadZoneRisk");
+                                if (attentionItems.length === 0 && !showLoad)
+                                  return "--";
+                                return (
+                                  <>
+                                    {showLoad && (
+                                      <span
+                                        className={`attentionChip loadRiskChip ${lz!.cls}`}
+                                        title={
+                                          paceZh
+                                            ? "本周训练单调性偏高"
+                                            : "High training monotony this week"
+                                        }
+                                      >
+                                        {paceZh ? "负荷" : "Load"} · {lz!.label}
+                                      </span>
+                                    )}
+                                    {attentionItems.map((item) => (
+                                      <span className="attentionChip" key={item}>
+                                        {item}
+                                      </span>
+                                    ))}
+                                  </>
+                                );
+                              })()}
                             </span>
                           </div>
                         );
