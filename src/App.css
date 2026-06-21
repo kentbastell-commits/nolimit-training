@@ -12076,7 +12076,8 @@ button.coachReviewGlobalItem,
 .clientHomeGrid > .portalHomeTabs,
 .clientHomeGrid > .wellnessReply,
 .clientHomeGrid > .wellnessCard,
-.clientHomeGrid > .coachLogsPanel {
+.clientHomeGrid > .coachLogsPanel,
+.app:not(.clientPortalApp) .clientHomeGrid > .upcomingHomePanel {
   grid-column: 1 / -1;
 }
 

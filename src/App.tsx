@@ -1713,7 +1713,9 @@ function App() {
   const [contentAssignments, setContentAssignments] = useState<ContentAssignment[]>(
     []
   );
-  const [contentResponses, setContentResponses] = useState<ContentResponse[]>([]);
+  // Submissions are loaded for the calendar/task flows; the dashboard no longer
+  // lists them directly, so only the setter is bound here.
+  const [, setContentResponses] = useState<ContentResponse[]>([]);
   const [contentResponsesLoading, setContentResponsesLoading] = useState(false);
   const [athleteMetrics, setAthleteMetrics] = useState<AthleteMetric[]>([]);
   const [athleteMetricsLoading, setAthleteMetricsLoading] = useState(false);
@@ -1728,10 +1730,6 @@ function App() {
   const [savingCoachNotes, setSavingCoachNotes] = useState(false);
   // Coach Overview: which PR metric drives the leaderboard ordering.
   const [prMetric, setPrMetric] = useState<"weight" | "e1rm" | "volume">("e1rm");
-  // Coach Dashboard: filter for the Recent Submissions list.
-  const [submissionFilter, setSubmissionFilter] = useState<
-    "all" | "workouts" | "questionnaires" | "tests" | "reviewed"
-  >("all");
   // Coach Overview: collapse the long account/profile detail list by default.
   const [overviewDetailsOpen, setOverviewDetailsOpen] = useState(false);
   const [workoutComments, setWorkoutComments] = useState<WorkoutComment[]>([]);
@@ -13727,16 +13725,6 @@ function App() {
     if (status === "Missed") return "missed";
     return "scheduled";
   };
-  const groupedContentResponses = getResponseGroups(contentResponses);
-
-  const recentQuestionnaireResponses = groupedContentResponses
-    .filter((submission) =>
-      submission.responseType.toLowerCase().includes("question")
-    )
-    .slice(0, 4);
-  const recentTestResponses = groupedContentResponses
-    .filter((submission) => submission.responseType.toLowerCase().includes("test"))
-    .slice(0, 4);
   const recentWorkoutSubmissions = workouts
     .filter((workout) => {
       const status = normalizeTaskStatus(workout.completionStatus);
@@ -13751,12 +13739,37 @@ function App() {
       )
     )
     .slice(0, 4);
-  const unreviewedWorkoutComments = workoutComments
-    .filter((comment) => !comment.reviewed && comment.note.trim())
-    .slice(0, 8);
-  const recentReviewedWorkoutComments = workoutComments
-    .filter((comment) => comment.reviewed && comment.note.trim())
-    .slice(0, 4);
+  // Client comments left on workouts, and completed workouts awaiting review.
+  const clientComments = workoutComments
+    .filter((comment) => (comment.noteEn || comment.note || "").trim())
+    .slice()
+    .sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")))
+    .slice(0, 12)
+    .map((comment) => ({
+      key: comment.key,
+      workoutName: comment.workoutName || comment.exerciseNames[0] || "Workout",
+      note: comment.noteEn || comment.note,
+      date: comment.date || "",
+      open: () => {
+        const w = workouts.find(
+          (workout) =>
+            lookupTextMatches(comment.assignedWorkoutId, workout.id) ||
+            lookupTextMatches(
+              comment.assignedWorkoutId,
+              workout.assignedWorkoutId
+            )
+        );
+        if (w) openWorkout(w);
+      },
+    }));
+  const toReviewWorkouts = workouts
+    .filter((w) => /complete/i.test(w.completionStatus || "") && !w.coachReviewed)
+    .sort((a, b) =>
+      normalizeDate(String(b.scheduledDate)).localeCompare(
+        normalizeDate(String(a.scheduledDate))
+      )
+    )
+    .slice(0, 12);
 
   const getContentResponseLabel = (response: ContentResponse) => {
     if (response.label) return response.label;
@@ -14323,80 +14336,6 @@ function App() {
     .sort((a, b) => a.date.localeCompare(b.date))
     .slice(0, 6);
 
-  const coachReviewQueueItems = [
-    ...unreviewedWorkoutComments.map((comment) => ({
-      key: `comment-${comment.key}`,
-      type: "Workout Comment",
-      title:
-        comment.workoutName ||
-        comment.exerciseNames[0] ||
-        "Workout comment",
-      subtitle: comment.noteEn || comment.note,
-      detail: comment.noteEn && comment.noteEn !== comment.note ? comment.note : "",
-      date: comment.date || "",
-      priority: 1,
-      open: () => {
-        const matchingWorkout = workouts.find(
-          (workout) =>
-            lookupTextMatches(comment.assignedWorkoutId, workout.id) ||
-            lookupTextMatches(comment.assignedWorkoutId, workout.assignedWorkoutId)
-        );
-
-        if (matchingWorkout) {
-          openWorkout(matchingWorkout);
-        }
-      },
-      review: () => void markWorkoutCommentReviewed(comment),
-      actionLabel:
-        reviewingWorkoutCommentKey === comment.key ? "Saving" : "Reviewed",
-      disabled: reviewingWorkoutCommentKey === comment.key,
-    })),
-    ...needsAttentionItems.map((item) => ({
-      key: `missed-${item.key}`,
-      type: `${item.type} / ${t("missed")}`,
-      title: item.title,
-      subtitle: "Missed task needs follow-up",
-      detail: "",
-      date: item.date,
-      priority: 2,
-      open: item.open,
-      review: undefined,
-      actionLabel: "",
-      disabled: false,
-    })),
-    ...recentQuestionnaireResponses.map((submission) => ({
-      key: `questionnaire-${submission.key}`,
-      type: "Questionnaire",
-      title: submission.title,
-      subtitle: "Recent submission",
-      detail: "",
-      date: submission.submittedAt,
-      priority: 3,
-      open: () => setSelectedContentSubmission(submission),
-      review: undefined,
-      actionLabel: "",
-      disabled: false,
-    })),
-    ...recentTestResponses.map((submission) => ({
-      key: `test-${submission.key}`,
-      type: "Physical Test",
-      title: submission.title,
-      subtitle: "Recent result",
-      detail: "",
-      date: submission.submittedAt,
-      priority: 4,
-      open: () => setSelectedContentSubmission(submission),
-      review: undefined,
-      actionLabel: "",
-      disabled: false,
-    })),
-  ]
-    .sort(
-      (a, b) =>
-        a.priority - b.priority ||
-        String(b.date || "").localeCompare(String(a.date || ""))
-    )
-    .slice(0, 10);
 
   const stripSide = (name: string) =>
     name.replace(/\s*-\s*(left|right)\s*$/i, "");
@@ -23994,192 +23933,76 @@ function App() {
                   </section>
                   )}
 
-                  {!isClientPortal &&
-                    coachDashTab === "activity" &&
-                    coachReviewQueueItems.length > 0 && (
-                      <section className="clientHomePanel coachReviewQueuePanel">
-                        <div className="clientHomePanelHeader">
-                          <div>
-                            <span>Triage</span>
-                            <h2>Review Queue</h2>
-                          </div>
-                        </div>
-                        <div className="coachReviewQueueList">
-                          {coachReviewQueueItems.map((item) => (
-                            <article
-                              className={`coachReviewQueueItem priority${item.priority}`}
-                              key={item.key}
-                            >
-                              <button type="button" onClick={item.open}>
-                                <span>{item.type}</span>
-                                <strong>{item.title}</strong>
-                                <small>
-                                  {item.date || "--"} / {item.subtitle}
-                                </small>
-                                {item.detail ? <em>{item.detail}</em> : null}
-                              </button>
-                              {item.review ? (
-                                <button
-                                  type="button"
-                                  className="outlineButton compactReviewButton"
-                                  disabled={item.disabled}
-                                  onClick={item.review}
-                                >
-                                  {item.actionLabel}
-                                </button>
-                              ) : null}
-                            </article>
-                          ))}
-                        </div>
-                      </section>
-                    )}
-
                   {!isClientPortal && coachDashTab === "activity" && (
-                    <section className="clientHomePanel submissionsHomePanel">
+                    <section className="clientHomePanel coachLogsPanel">
                       <div className="clientHomePanelHeader">
                         <div>
-                          <span>Results</span>
-                          <h2>Recent Submissions</h2>
+                          <span>{paceZh ? "反馈" : "Results"}</span>
+                          <h2>{paceZh ? "评价与待办" : "Reviews"}</h2>
                         </div>
-                        <div className="submissionHeaderControls">
-                          <select
-                            className="submissionFilterSelect"
-                            value={submissionFilter}
-                            onChange={(e) =>
-                              setSubmissionFilter(e.target.value as typeof submissionFilter)
-                            }
-                          >
-                            <option value="all">All types</option>
-                            <option value="workouts">Workouts</option>
-                            <option value="reviewed">Reviewed comments</option>
-                            <option value="questionnaires">Questionnaires</option>
-                            <option value="tests">Tests</option>
-                          </select>
-                          <button
-                            className="outlineButton"
-                            onClick={() => loadContentResponses(selectedClient)}
-                            disabled={contentResponsesLoading}
-                          >
-                            {contentResponsesLoading ? "Loading" : "Reload"}
-                          </button>
-                        </div>
+                        <button
+                          className="outlineButton"
+                          onClick={() => loadContentResponses(selectedClient)}
+                          disabled={contentResponsesLoading}
+                        >
+                          {contentResponsesLoading ? "Loading" : "Reload"}
+                        </button>
                       </div>
-
-                      <div className="submissionList">
-                        {(submissionFilter === "all" ||
-                          submissionFilter === "workouts") && (
-                        <div className="submissionCategory">
-                          <h3>Workouts</h3>
-                          {recentWorkoutSubmissions.length > 0 ? (
-                            recentWorkoutSubmissions.map((workout) => (
+                      <div className="sessionLogsCols">
+                        <div className="sessionLogCol">
+                          <h4 className="sessionLogColTitle">
+                            {paceZh ? "客户留言" : "Client Comments"}
+                          </h4>
+                          {clientComments.length > 0 ? (
+                            clientComments.map((c) => (
                               <button
-                                className="submissionSummaryButton"
-                                key={workout.id}
-                                onClick={() => openWorkout(workout)}
+                                type="button"
+                                className="sessionLogItem"
+                                key={c.key}
+                                onClick={c.open}
                               >
-                                <span>{localizedWorkoutName(workout)}</span>
-                                <time>
-                                  {normalizeDate(String(workout.scheduledDate)) || "--"}
-                                </time>
-                                {workout.clientNotes ? (
-                                  <small>{workout.clientNotes}</small>
-                                ) : null}
-                              </button>
-                            ))
-                          ) : (
-                            <p className="homeEmptyText">No workout submissions yet.</p>
-                          )}
-                        </div>
-                        )}
-
-                        {(submissionFilter === "all" ||
-                          submissionFilter === "reviewed") && (
-                        <div className="submissionCategory">
-                          <h3>Reviewed Comments</h3>
-                          {recentReviewedWorkoutComments.length > 0 ? (
-                            recentReviewedWorkoutComments.map((comment) => (
-                              <button
-                                className="submissionSummaryButton"
-                                key={comment.key}
-                                onClick={() => {
-                                  const matchingWorkout = workouts.find(
-                                    (workout) =>
-                                      lookupTextMatches(
-                                        comment.assignedWorkoutId,
-                                        workout.id
-                                      ) ||
-                                      lookupTextMatches(
-                                        comment.assignedWorkoutId,
-                                        workout.assignedWorkoutId
-                                      )
-                                  );
-
-                                  if (matchingWorkout) openWorkout(matchingWorkout);
-                                }}
-                              >
-                                <span>
-                                  {comment.workoutName ||
-                                    comment.exerciseNames[0] ||
-                                    "Workout"}
+                                <span className="sessionLogDate">
+                                  {c.date || "--"} · {c.workoutName}
                                 </span>
-                                <time>{comment.date || "--"}</time>
-                                <small>{comment.noteEn || comment.note}</small>
+                                <strong>{c.note}</strong>
                               </button>
                             ))
                           ) : (
                             <p className="homeEmptyText">
-                              No reviewed workout comments yet.
+                              {paceZh ? "暂无留言。" : "No client comments yet."}
                             </p>
                           )}
                         </div>
-                        )}
-
-                        {(submissionFilter === "all" ||
-                          submissionFilter === "questionnaires") && (
-                        <div className="submissionCategory">
-                          <h3>Questionnaires</h3>
-                          {recentQuestionnaireResponses.length > 0 ? (
-                            recentQuestionnaireResponses.map((submission) => (
+                        <div className="sessionLogCol">
+                          <h4 className="sessionLogColTitle">
+                            {paceZh ? "待审核训练" : "To be Reviewed"}
+                          </h4>
+                          {toReviewWorkouts.length > 0 ? (
+                            toReviewWorkouts.map((w) => (
                               <button
-                                className="submissionSummaryButton"
-                                key={submission.key}
-                                onClick={() => setSelectedContentSubmission(submission)}
+                                type="button"
+                                className="sessionLogItem missed"
+                                key={w.id}
+                                onClick={() => openWorkout(w)}
                               >
-                                <span>{submission.title}</span>
-                                <time>{submission.submittedAt || "--"}</time>
+                                <span className="sessionLogDate">
+                                  {normalizeDate(String(w.scheduledDate)) || "--"}
+                                </span>
+                                <strong>{localizedWorkoutName(w)}</strong>
                               </button>
                             ))
                           ) : (
                             <p className="homeEmptyText">
-                              No questionnaire submissions yet.
+                              {paceZh
+                                ? "没有待审核的训练。"
+                                : "Nothing to review."}
                             </p>
                           )}
                         </div>
-                        )}
-
-                        {(submissionFilter === "all" ||
-                          submissionFilter === "tests") && (
-                        <div className="submissionCategory">
-                          <h3>Tests</h3>
-                          {recentTestResponses.length > 0 ? (
-                            recentTestResponses.map((submission) => (
-                              <button
-                                className="submissionSummaryButton"
-                                key={submission.key}
-                                onClick={() => setSelectedContentSubmission(submission)}
-                              >
-                                <span>{submission.title}</span>
-                                <time>{submission.submittedAt || "--"}</time>
-                              </button>
-                            ))
-                          ) : (
-                            <p className="homeEmptyText">No test submissions yet.</p>
-                          )}
-                        </div>
-                        )}
                       </div>
                     </section>
                   )}
+
                 </div>
               )}
 
