@@ -1623,6 +1623,15 @@ function App() {
   const [reviewSaving, setReviewSaving] = useState(false);
   const [coachReviews, setCoachReviews] = useState<ProgramReview[]>([]);
   const [reviewUpdatingId, setReviewUpdatingId] = useState("");
+  // "Start here" program intro — dismissed per program (persisted), reopenable.
+  const [startHereDismissed, setStartHereDismissed] = useState<string[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem("nl_starthere_dismissed") || "[]");
+    } catch {
+      return [];
+    }
+  });
+  const [startHereForcedPid, setStartHereForcedPid] = useState("");
   const homeTouchRef = useRef<{ x: number; y: number } | null>(null);
   // Athlete weekly workload self-report (technical + extra cardio sessions).
   const [workloadLogs, setWorkloadLogs] = useState<WorkloadLog[]>([]);
@@ -11855,6 +11864,19 @@ function App() {
     );
   };
 
+  const dismissStartHere = (pid: string) => {
+    setStartHereForcedPid("");
+    setStartHereDismissed((prev) => {
+      const next = prev.includes(pid) ? prev : [...prev, pid];
+      try {
+        localStorage.setItem("nl_starthere_dismissed", JSON.stringify(next));
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  };
+
   // "Program home" — progress, next workout, and the week-by-week syllabus for
   // the selected purchased program (shown once it's loaded onto the calendar).
   const renderProgramHome = () => {
@@ -12012,6 +12034,86 @@ function App() {
 
     return (
       <div className="programHome">
+        {(() => {
+          const pid = selectedClientProgram?.programId || "";
+          if (!pid) return null;
+          const show =
+            (completed === 0 && !startHereDismissed.includes(pid)) ||
+            startHereForcedPid === pid;
+          if (!show) return null;
+          const perWeek =
+            Number(selectedClientProgram?.sessionsPerWeek) ||
+            (maxWeek ? Math.round(total / maxWeek) : total);
+          const expect =
+            (paceZh &&
+              (selectedClientProgram?.goalCn ||
+                selectedClientProgram?.salesDescriptionCn ||
+                selectedClientProgram?.storeDescriptionCn)) ||
+            selectedClientProgram?.goal ||
+            selectedClientProgram?.salesDescription ||
+            selectedClientProgram?.storeDescription ||
+            "";
+          const metaParts = [
+            `${maxWeek} ${paceZh ? "周" : maxWeek === 1 ? "week" : "weeks"}`,
+            paceZh ? `每周 ${perWeek} 次` : `${perWeek}/week`,
+            selectedClientProgram?.level || "",
+          ].filter(Boolean);
+          const tips = paceZh
+            ? [
+                "点击下方训练，再点「开始」，逐组引导你完成。",
+                "训练时逐组记录，数据会自动保存。",
+                "在「编辑」标签里可自由调整每周训练安排。",
+                "完成打卡，连续天数和奖杯都会随之增长。",
+              ]
+            : [
+                "Tap a session below, then Start for guided, set-by-set training.",
+                "Log each set as you go — your numbers save automatically.",
+                "Use the Edit tab to rearrange sessions around your week.",
+                "Tick sessions off and watch your streak and trophies grow.",
+              ];
+          return (
+            <div className="programStartHere">
+              <span className="startHereEyebrow">
+                {paceZh ? "从这里开始" : "Start here"}
+              </span>
+              <strong className="startHereTitle">
+                {paceZh ? "欢迎来到 " : "Welcome to "}
+                {localizedProgramName(selectedClientProgram)}
+              </strong>
+              <div className="startHereMeta">{metaParts.join(" · ")}</div>
+              {expect && <p className="startHereExpect">{expect}</p>}
+              <ul className="startHereTips">
+                {tips.map((tip, i) => (
+                  <li key={i}>{tip}</li>
+                ))}
+              </ul>
+              <div className="startHereActions">
+                {next && (
+                  <button
+                    type="button"
+                    className="startHereStart"
+                    onClick={() => {
+                      dismissStartHere(pid);
+                      openWorkout(next);
+                    }}
+                  >
+                    {paceZh
+                      ? `开始第 ${next.week} 周 →`
+                      : `Start week ${next.week} →`}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="startHereDismiss"
+                  onClick={() => dismissStartHere(pid)}
+                >
+                  {paceZh ? "知道了" : "Got it"}
+                </button>
+              </div>
+            </div>
+          );
+        })()}
+
         <div className="programCoachCard">
           <span className="programCoachAvatar">{coachInitials}</span>
           <div className="programCoachBody">
@@ -12249,7 +12351,18 @@ function App() {
         )}
 
         <div className="programSyllabus">
-          <h4>{paceZh ? "训练安排" : "Your plan"}</h4>
+          <div className="programSyllabusHead">
+            <h4>{paceZh ? "训练安排" : "Your plan"}</h4>
+            <button
+              type="button"
+              className="programGuideLink"
+              onClick={() =>
+                setStartHereForcedPid(selectedClientProgram?.programId || "")
+              }
+            >
+              {paceZh ? "ⓘ 计划指南" : "ⓘ Program guide"}
+            </button>
+          </div>
           {weeks.map(([wk, items]) => {
             const wkDone = items.filter(isDone).length;
             return (

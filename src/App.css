@@ -8713,6 +8713,95 @@ button.coachReviewGlobalItem,
   box-shadow: 0 6px 18px rgba(212, 175, 55, 0.18);
 }
 
+/* "Start here" program intro */
+.programStartHere {
+  padding: 18px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #141414, #0d0d0d);
+  color: #fff;
+  border: 1px solid rgba(212, 175, 55, 0.4);
+}
+.startHereEyebrow {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #d4af37;
+}
+.startHereTitle {
+  display: block;
+  margin: 4px 0 2px;
+  font-size: 20px;
+  line-height: 1.25;
+}
+.startHereMeta {
+  font-size: 13px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.6);
+}
+.startHereExpect {
+  margin: 12px 0 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.85);
+}
+.startHereTips {
+  margin: 14px 0 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.startHereTips li {
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.8);
+}
+.startHereTips li::marker {
+  color: #d4af37;
+}
+.startHereActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+.startHereStart {
+  padding: 11px 20px;
+  border-radius: 999px;
+  border: none;
+  background: #d4af37;
+  color: #0d0d0d;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.startHereDismiss {
+  padding: 11px 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: transparent;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.programSyllabusHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.programGuideLink {
+  border: none;
+  background: transparent;
+  color: #9b7a21;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  padding: 0;
+}
+
 /* Coach presence */
 .programCoachCard {
   display: flex;
