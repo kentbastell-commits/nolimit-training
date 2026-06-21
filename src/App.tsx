@@ -13739,29 +13739,37 @@ function App() {
       )
     )
     .slice(0, 4);
-  // Client comments left on workouts, and completed workouts awaiting review.
-  const clientComments = workoutComments
-    .filter((comment) => (comment.noteEn || comment.note || "").trim())
-    .slice()
+  // Client comments left on workouts (the note submitted with a session), and
+  // completed workouts still awaiting coach review.
+  const clientComments = [
+    ...workouts
+      .filter((w) => String(w.clientNotes || "").trim())
+      .map((w) => ({
+        key: `wn-${w.id}`,
+        workoutName: localizedWorkoutName(w),
+        note: w.clientNotes,
+        date: normalizeDate(String(w.scheduledDate)),
+        open: () => openWorkout(w),
+      })),
+    ...workoutComments
+      .filter((c) => (c.noteEn || c.note || "").trim())
+      .map((c) => ({
+        key: `wc-${c.key}`,
+        workoutName: c.workoutName || c.exerciseNames[0] || "Workout",
+        note: c.noteEn || c.note,
+        date: c.date || "",
+        open: () => {
+          const w = workouts.find(
+            (workout) =>
+              lookupTextMatches(c.assignedWorkoutId, workout.id) ||
+              lookupTextMatches(c.assignedWorkoutId, workout.assignedWorkoutId)
+          );
+          if (w) openWorkout(w);
+        },
+      })),
+  ]
     .sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")))
-    .slice(0, 12)
-    .map((comment) => ({
-      key: comment.key,
-      workoutName: comment.workoutName || comment.exerciseNames[0] || "Workout",
-      note: comment.noteEn || comment.note,
-      date: comment.date || "",
-      open: () => {
-        const w = workouts.find(
-          (workout) =>
-            lookupTextMatches(comment.assignedWorkoutId, workout.id) ||
-            lookupTextMatches(
-              comment.assignedWorkoutId,
-              workout.assignedWorkoutId
-            )
-        );
-        if (w) openWorkout(w);
-      },
-    }));
+    .slice(0, 12);
   const toReviewWorkouts = workouts
     .filter((w) => /complete/i.test(w.completionStatus || "") && !w.coachReviewed)
     .sort((a, b) =>
