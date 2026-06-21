@@ -7496,7 +7496,7 @@ button.coachReviewGlobalItem,
 
 .loadStatRow {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(78px, 1fr));
   gap: 8px;
   margin-bottom: 16px;
 }
@@ -12075,8 +12075,7 @@ button.coachReviewGlobalItem,
    a tall neighbour, ballooning into a giant rounded blob. */
 .clientHomeGrid > .portalHomeTabs,
 .clientHomeGrid > .wellnessReply,
-.clientHomeGrid > .wellnessCard,
-.clientHomeGrid > .coachSciencePanel {
+.clientHomeGrid > .wellnessCard {
   grid-column: 1 / -1;
 }
 
