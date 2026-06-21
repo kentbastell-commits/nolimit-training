@@ -1788,6 +1788,9 @@ function App() {
   );
   const [savedExerciseDraftIds, setSavedExerciseDraftIds] = useState<string[]>([]);
   const [historyExerciseName, setHistoryExerciseName] = useState("");
+  const [expandedHistoryDates, setExpandedHistoryDates] = useState<Set<string>>(
+    new Set()
+  );
   const [loading, setLoading] = useState(true);
   const [workoutsLoading, setWorkoutsLoading] = useState(false);
   const [detailsLoading, setDetailsLoading] = useState(false);
@@ -5909,6 +5912,11 @@ function App() {
     }
   };
 
+  // Each time the exercise-history modal opens, start fully collapsed.
+  useEffect(() => {
+    if (historyExerciseName) setExpandedHistoryDates(new Set());
+  }, [historyExerciseName]);
+
   const buildSetLogs = (exercises: ExerciseDetail[]) => {
     const logs: SetLog[] = [];
 
@@ -5916,7 +5924,7 @@ function App() {
       const setCount = Number(exercise.sets) || 1;
       const meta = parseExerciseNotes(exercise.notes);
       const sides: Array<SetLog["side"]> = meta.isUnilateral
-        ? ["Right", "Left"]
+        ? ["Left", "Right"]
         : [undefined];
 
       for (let i = 1; i <= setCount; i++) {
@@ -14391,10 +14399,14 @@ function App() {
     )
     .slice(0, 10);
 
+  const stripSide = (name: string) =>
+    name.replace(/\s*-\s*(left|right)\s*$/i, "");
   const progressExerciseOptions = Array.from(
     new Set([
       ...libraryExercises.map((exercise) => exercise.exerciseName).filter(Boolean),
-      ...workoutHistoryLogs.map((log) => log.exerciseName).filter(Boolean),
+      ...workoutHistoryLogs
+        .map((log) => stripSide(log.exerciseName))
+        .filter(Boolean),
     ])
   )
     .filter((name) =>
@@ -14485,7 +14497,12 @@ function App() {
     >();
 
     for (const result of exerciseResults) {
-      const name = result.exerciseName;
+      // Unilateral results come in as "Name - Left" / "Name - Right"; merge them
+      // into one entry (best across sides) so a single lift = a single PR row.
+      const name = (result.exerciseName || "").replace(
+        /\s*-\s*(left|right)\s*$/i,
+        ""
+      );
       if (!name) continue;
 
       const weight = Number(result.bestWeight) || 0;
@@ -28900,13 +28917,6 @@ function App() {
                       : paceZh
                       ? "辅助动作"
                       : "Accessory";
-                    const exerciseHistoryLogs = workoutHistoryLogs
-                      .filter((log) =>
-                        log.exerciseName
-                          .toLowerCase()
-                          .startsWith(exercise.exerciseName.toLowerCase())
-                      )
-                      .slice(0, 12);
 
                     const focusSwipe =
                       isClientPortal && workoutFocusMode
@@ -29015,9 +29025,6 @@ function App() {
                               aria-label={`View history for ${exercise.exerciseName}`}
                             >
                               <Clock3 size={18} aria-hidden="true" />
-                              {exerciseHistoryLogs.length > 0 && (
-                                <small>{exerciseHistoryLogs.length}</small>
-                              )}
                             </button>
 
                             {exercise.rest && (
@@ -29833,35 +29840,102 @@ function App() {
               </div>
 
               <div className="historyLogList">
-                {workoutHistoryLogs
-                  .filter((log) =>
+                {(() => {
+                  const logs = workoutHistoryLogs.filter((log) =>
                     log.exerciseName
                       .toLowerCase()
                       .startsWith(historyExerciseName.toLowerCase())
-                  )
-                  .slice(0, 20)
-                  .map((log) => (
-                    <div className="historyLogRow" key={log.recordId}>
-                      <div>
-                        <strong>{log.date || "--"}</strong>
-                        <span>
-                          Set {log.setNumber || "--"} • {log.exerciseName}
-                        </span>
-                      </div>
-                      <span>{log.actualReps ? `${log.actualReps} reps` : "--"}</span>
-                      <span>{log.actualWeight ? `${log.actualWeight} kg` : "--"}</span>
-                      <span>{log.actualTime ? `${log.actualTime} sec` : "--"}</span>
-                      <span>
-                        {log.actualDistance ? `${log.actualDistance} m` : "--"}
-                      </span>
-                    </div>
-                  ))}
+                  );
+                  if (logs.length === 0) return <p>{t("noHistoryLogged")}</p>;
 
-                {workoutHistoryLogs.filter((log) =>
-                  log.exerciseName
-                    .toLowerCase()
-                    .startsWith(historyExerciseName.toLowerCase())
-                ).length === 0 && <p>{t("noHistoryLogged")}</p>}
+                  // Group by date; show newest first, collapsed by default.
+                  const byDate = new Map<string, typeof logs>();
+                  for (const log of logs) {
+                    const d = log.date || "--";
+                    if (!byDate.has(d)) byDate.set(d, []);
+                    byDate.get(d)!.push(log);
+                  }
+                  const sideOf = (name: string) => {
+                    const m = name.match(/\s*-\s*(left|right)\s*$/i);
+                    return m ? (m[1].toLowerCase() === "left" ? "L" : "R") : "";
+                  };
+                  const dates = [...byDate.keys()].sort((a, b) =>
+                    b.localeCompare(a)
+                  );
+
+                  return dates.map((date) => {
+                    const sets = byDate
+                      .get(date)!
+                      .slice()
+                      .sort(
+                        (a, b) =>
+                          (Number(a.setNumber) || 0) - (Number(b.setNumber) || 0)
+                      );
+                    const open = expandedHistoryDates.has(date);
+                    return (
+                      <div className="historyDateGroup" key={date}>
+                        <button
+                          type="button"
+                          className={`historyDateToggle${open ? " open" : ""}`}
+                          onClick={() =>
+                            setExpandedHistoryDates((prev) => {
+                              const next = new Set(prev);
+                              if (next.has(date)) next.delete(date);
+                              else next.add(date);
+                              return next;
+                            })
+                          }
+                        >
+                          <ChevronDown
+                            size={16}
+                            className="historyDateCaret"
+                            aria-hidden="true"
+                          />
+                          <span className="historyDate">{date}</span>
+                          <span className="historyDateMeta">
+                            {sets.length}{" "}
+                            {paceZh
+                              ? "组"
+                              : sets.length === 1
+                                ? "set"
+                                : "sets"}
+                          </span>
+                        </button>
+                        {open && (
+                          <div className="historySetLines">
+                            {sets.map((s, i) => {
+                              const side = sideOf(s.exerciseName);
+                              const metrics = [
+                                s.actualReps
+                                  ? `${s.actualReps} ${paceZh ? "次" : "reps"}`
+                                  : "",
+                                s.actualWeight ? `${s.actualWeight} kg` : "",
+                                s.actualTime ? `${s.actualTime}s` : "",
+                                s.actualDistance ? `${s.actualDistance} m` : "",
+                              ].filter(Boolean);
+                              return (
+                                <div
+                                  className="historySetLine"
+                                  key={s.recordId || i}
+                                >
+                                  <span className="hsSet">
+                                    {paceZh
+                                      ? `第 ${s.setNumber || i + 1} 组`
+                                      : `Set ${s.setNumber || i + 1}`}
+                                    {side ? ` · ${side}` : ""}
+                                  </span>
+                                  <span className="hsMetrics">
+                                    {metrics.join("   ") || "--"}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  });
+                })()}
               </div>
 
               <div className="modalActions">
