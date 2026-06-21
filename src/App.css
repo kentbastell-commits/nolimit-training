@@ -7948,6 +7948,13 @@ button.coachReviewGlobalItem,
   color: #2f8a43;
 }
 
+.programStoreImplied {
+  margin: 4px 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #9b7a21;
+}
+
 /* "Built for" tag on saved programs */
 .programBuiltForChip {
   display: inline-block;

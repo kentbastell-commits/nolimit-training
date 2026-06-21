@@ -8579,6 +8579,12 @@ function App() {
     const coachedProgramType =
       programProductType === "Online Coaching" ||
       programProductType === "In-Person Training";
+    // Add-ons and bundles are inherently store products — always store-visible.
+    const inherentStoreProduct =
+      programProductType === "Digital Add-on" ||
+      programProductType === "Digital Bundle";
+    const effectiveStoreVisible =
+      programPublicStoreVisible || inherentStoreProduct;
 
     if (!programName.trim()) {
       notify(singleWorkoutMode ? "Please fill Workout Name." : "Please fill Program Name.");
@@ -8639,7 +8645,7 @@ function App() {
           productType: singleWorkoutMode ? "Single Workout" : programProductType,
           price: digitalProductProgram ? programPrice : "",
           currency: digitalProductProgram ? programCurrency : "",
-          publicStoreVisible: digitalProductProgram ? programPublicStoreVisible : false,
+          publicStoreVisible: digitalProductProgram ? effectiveStoreVisible : false,
           purchaseLink: digitalProductProgram ? programPurchaseLink : "",
           defaultIntakeFormId: digitalProductProgram ? programDefaultIntakeFormId : "",
           accessLengthDays: digitalProductProgram ? programAccessLengthDays : "",
@@ -8649,10 +8655,10 @@ function App() {
             coachedProgramType || singleWorkoutMode ? programBuiltForClient : "",
           builtForTeam:
             coachedProgramType || singleWorkoutMode ? programBuiltForTeam : "",
-          storeCategory: programPublicStoreVisible ? programStoreCategory : "",
-          storeCategoryCn: programPublicStoreVisible ? programStoreCategoryCn : "",
+          storeCategory: effectiveStoreVisible ? programStoreCategory : "",
+          storeCategoryCn: effectiveStoreVisible ? programStoreCategoryCn : "",
           // Listing type is derived from the product type.
-          storeListingType: !programPublicStoreVisible
+          storeListingType: !effectiveStoreVisible
             ? ""
             : programProductType === "Digital Add-on"
             ? "Add-on"
@@ -8660,7 +8666,6 @@ function App() {
             ? "Bundle"
             : "Main",
           bundleProgramIds:
-            programPublicStoreVisible &&
             programProductType === "Digital Bundle"
               ? programBundleIds.join(",")
               : "",
@@ -10706,6 +10711,13 @@ function App() {
     (programProductType === "Digital Program" ||
       programProductType === "Digital Add-on" ||
       programProductType === "Digital Bundle");
+  // Add-ons / bundles are always store products, so their store fields show
+  // without needing the "Show in digital store" toggle.
+  const programInherentStoreProduct =
+    programProductType === "Digital Add-on" ||
+    programProductType === "Digital Bundle";
+  const programStoreFieldsVisible =
+    programPublicStoreVisible || programInherentStoreProduct;
 
   const getClientProgramScheduledWorkouts = (
     sessions = clientProgramSessions
@@ -18741,16 +18753,26 @@ function App() {
                     </select>
                   </label>
 
-                  <label className="programStoreToggle">
-                    <input
-                      type="checkbox"
-                      checked={programPublicStoreVisible}
-                      onChange={(e) => setProgramPublicStoreVisible(e.target.checked)}
-                    />
-                    <span>Show in digital store</span>
-                  </label>
+                  {programInherentStoreProduct ? (
+                    <p className="programStoreImplied">
+                      {programProductType === "Digital Bundle"
+                        ? "Bundles are always listed in the digital store."
+                        : "Add-ons are always listed in the digital store."}
+                    </p>
+                  ) : (
+                    <label className="programStoreToggle">
+                      <input
+                        type="checkbox"
+                        checked={programPublicStoreVisible}
+                        onChange={(e) =>
+                          setProgramPublicStoreVisible(e.target.checked)
+                        }
+                      />
+                      <span>Show in digital store</span>
+                    </label>
+                  )}
 
-                  {programPublicStoreVisible && (
+                  {programStoreFieldsVisible && (
                     <div className="programStorePlacement">
                       <label>
                         <span>Store category</span>
@@ -18783,8 +18805,7 @@ function App() {
                     </div>
                   )}
 
-                  {programPublicStoreVisible &&
-                    programProductType === "Digital Bundle" && (
+                  {programProductType === "Digital Bundle" && (
                       <div className="programBundlePicker">
                         <span className="programBundleLabel">
                           Programs in this bundle
