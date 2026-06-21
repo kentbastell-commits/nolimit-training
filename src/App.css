@@ -8262,6 +8262,72 @@ button.coachReviewGlobalItem,
   border-color: #d4af37;
   color: #0d0d0d;
 }
+
+/* 10-point scale row (label on its own line, 10 equal-width dots below) */
+.wellnessRow10 {
+  margin-bottom: 16px;
+}
+.wellnessRowLabel {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 7px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--nl-ink, #1a1a1a);
+}
+.wellnessRowValue {
+  font-style: normal;
+  font-size: 13px;
+  font-weight: 800;
+  color: #9b7a21;
+}
+.wellnessScale10 {
+  display: flex;
+  gap: 4px;
+}
+.wellnessDot10 {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  background: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--nl-muted, #68645d);
+  cursor: pointer;
+  padding: 0;
+}
+.wellnessDot10.on {
+  background: #d4af37;
+  border-color: #d4af37;
+  color: #0d0d0d;
+}
+
+/* Coach wellness-trend metric toggle */
+.wellnessMetricToggle {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.wellnessMetricToggle button {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid #e5dfd2;
+  background: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--nl-muted, #68645d);
+  cursor: pointer;
+}
+.wellnessMetricToggle button.active {
+  background: #0d0d0d;
+  border-color: #0d0d0d;
+  color: #d4af37;
+}
+
 .wellnessField {
   display: block;
   margin: 14px 0 0;

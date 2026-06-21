@@ -399,6 +399,7 @@ type PortalCheckIn = {
   clientId: string;
   submittedDate: string;
   bodyWeight: string;
+  sleepHours: string;
   sleepQuality: string;
   energy: string;
   mood: string;
@@ -1594,21 +1595,22 @@ function App() {
   // readiness + a fuller weekly form; feeds the coach load dashboard.
   const [clientCheckIns, setClientCheckIns] = useState<PortalCheckIn[]>([]);
   const [wellnessOpen, setWellnessOpen] = useState(false);
-  const [wellnessMode, setWellnessMode] = useState<"daily" | "weekly">("daily");
   const [wellnessSaving, setWellnessSaving] = useState(false);
   const [wellnessDismissedReply, setWellnessDismissedReply] = useState("");
   const [wellnessForm, setWellnessForm] = useState({
     sleep: 0,
+    sleepHours: "",
     energy: 0,
     soreness: 0,
     mood: 0,
-    bodyWeight: "",
     stress: 0,
-    nutritionNotes: "",
-    trainingNotes: "",
-    wins: "",
-    problemsPain: "",
+    bodyWeight: "",
+    notes: "",
   });
+  // Coach wellness-trend chart: which metric to plot for the selected client.
+  const [wellnessMetric, setWellnessMetric] = useState<
+    "readiness" | "sleep" | "sleepHours" | "energy" | "soreness" | "mood" | "stress" | "bodyWeight"
+  >("readiness");
   // Program rating / testimonial capture (on completion) + coach moderation.
   const [clientReviews, setClientReviews] = useState<ProgramReview[]>([]);
   const [storeReviews, setStoreReviews] = useState<ProgramReview[]>([]);
@@ -3108,13 +3110,15 @@ function App() {
       .then((data) => setExerciseResults(data.results || []))
       .catch(() => setExerciseResults([]));
 
+    // Load check-ins for the selected client (athlete portal: the logged-in
+    // client; coach: the client being viewed — powers the wellness trend chart).
+    fetch(
+      `/api/checkIns?clientId=${selectedClient.clientCode || selectedClient.id}`
+    )
+      .then((res) => res.json())
+      .then((data) => setClientCheckIns(data.checkIns || []))
+      .catch(() => setClientCheckIns([]));
     if (isClientPortal) {
-      fetch(
-        `/api/checkIns?clientId=${selectedClient.clientCode || selectedClient.id}`
-      )
-        .then((res) => res.json())
-        .then((data) => setClientCheckIns(data.checkIns || []))
-        .catch(() => setClientCheckIns([]));
       fetch(
         `/api/reviews?clientId=${selectedClient.clientCode || selectedClient.id}`
       )
@@ -11365,13 +11369,15 @@ function App() {
     );
   };
 
-  // Submit a daily / weekly wellness check-in (reuses the existing check-in
-  // table; readiness is derived from the daily 1–5 scales).
+  // Submit the daily wellness check-in. Readiness is derived from the five
+  // 1–10 scales (soreness and stress are inverted — higher = worse).
   const submitWellness = async () => {
     if (!selectedClient) return;
     const today = dateToInputValue(new Date());
-    const { sleep, energy, soreness, mood } = wellnessForm;
-    const readiness = Math.round(((sleep + energy + (6 - soreness) + mood) / 20) * 100);
+    const { sleep, energy, soreness, mood, stress } = wellnessForm;
+    const readiness = Math.round(
+      ((sleep + energy + (11 - soreness) + mood + (11 - stress)) / 50) * 100
+    );
     setWellnessSaving(true);
     try {
       const res = await fetch("/api/checkIns", {
@@ -11382,21 +11388,15 @@ function App() {
           clientRecordId: selectedClient.id,
           submittedDate: today,
           sleepQuality: sleep || undefined,
+          sleepHours: wellnessForm.sleepHours || undefined,
           energy: energy || undefined,
           soreness: soreness || undefined,
-          mood: mood ? String(mood) : undefined,
+          mood: mood || undefined,
+          stress: stress || undefined,
+          bodyWeight: wellnessForm.bodyWeight || undefined,
+          clientNotes: wellnessForm.notes,
           readinessScore: readiness || undefined,
-          ...(wellnessMode === "weekly"
-            ? {
-                bodyWeight: wellnessForm.bodyWeight || undefined,
-                stress: wellnessForm.stress || undefined,
-                nutritionNotes: wellnessForm.nutritionNotes,
-                trainingNotes: wellnessForm.trainingNotes,
-                wins: wellnessForm.wins,
-                problemsPain: wellnessForm.problemsPain,
-              }
-            : {}),
-          status: wellnessMode === "weekly" ? "Weekly" : "Daily",
+          status: "Daily",
         }),
       });
       const data = await res.json();
@@ -11425,21 +11425,22 @@ function App() {
         clientId: selectedClient.clientCode || selectedClient.id,
         submittedDate: today,
         bodyWeight: wellnessForm.bodyWeight,
+        sleepHours: wellnessForm.sleepHours,
         sleepQuality: String(sleep),
         energy: String(energy),
         mood: String(mood),
-        stress: String(wellnessForm.stress || ""),
+        stress: String(stress),
         soreness: String(soreness),
         readinessScore: String(readiness),
-        nutritionNotes: wellnessForm.nutritionNotes,
-        trainingNotes: wellnessForm.trainingNotes,
-        wins: wellnessForm.wins,
-        problemsPain: wellnessForm.problemsPain,
-        clientNotes: "",
+        nutritionNotes: "",
+        trainingNotes: "",
+        wins: "",
+        problemsPain: "",
+        clientNotes: wellnessForm.notes,
         coachResponse: "",
         coachReviewed: false,
         reviewedDate: "",
-        status: wellnessMode === "weekly" ? "Weekly" : "Daily",
+        status: "Daily",
       };
       setClientCheckIns((prev) => [
         optimistic,
@@ -11477,18 +11478,7 @@ function App() {
     if (!isCoached) return null;
 
     const today = dateToInputValue(new Date());
-    const daysBetween = (a: string, b: string) =>
-      Math.round(
-        (new Date(`${a}T00:00:00`).getTime() -
-          new Date(`${b}T00:00:00`).getTime()) /
-          86400000
-      );
     const todayCheckIn = clientCheckIns.find((c) => c.submittedDate === today);
-    const lastWeekly = clientCheckIns
-      .filter((c) => /weekly/i.test(c.status))
-      .sort((a, b) => b.submittedDate.localeCompare(a.submittedDate))[0];
-    const weeklyDue =
-      !lastWeekly || daysBetween(today, lastWeekly.submittedDate) >= 7;
 
     // Daily check-in streak (consecutive days ending today/yesterday).
     const dates = new Set(clientCheckIns.map((c) => c.submittedDate));
@@ -11506,24 +11496,28 @@ function App() {
       .sort((a, b) => b.submittedDate.localeCompare(a.submittedDate))[0];
     const showReply = reply && reply.recordId !== wellnessDismissedReply;
 
-    const openForm = (mode: "daily" | "weekly") => {
-      setWellnessMode(mode);
+    const openForm = () => {
       setWellnessForm({
         sleep: 0,
+        sleepHours: "",
         energy: 0,
         soreness: 0,
         mood: 0,
-        bodyWeight: "",
         stress: 0,
-        nutritionNotes: "",
-        trainingNotes: "",
-        wins: "",
-        problemsPain: "",
+        bodyWeight: "",
+        notes: "",
       });
       setWellnessOpen(true);
     };
 
-    const collapsed = todayCheckIn && !weeklyDue;
+    const collapsed = !!todayCheckIn;
+    const scaleRows: [keyof typeof wellnessForm, string][] = [
+      ["sleep", paceZh ? "睡眠质量" : "Sleep"],
+      ["energy", paceZh ? "精力" : "Energy"],
+      ["soreness", paceZh ? "酸痛" : "Soreness"],
+      ["mood", paceZh ? "心情" : "Mood"],
+      ["stress", paceZh ? "压力" : "Stress"],
+    ];
 
     return (
       <>
@@ -11562,36 +11556,16 @@ function App() {
             <>
               <div className="wellnessPrompt">
                 <strong>
-                  {weeklyDue
-                    ? paceZh
-                      ? "每周状态回顾"
-                      : "Weekly check-in"
-                    : paceZh
-                      ? "今天感觉如何？"
-                      : "How are you feeling today?"}
+                  {paceZh ? "今天感觉如何？" : "How are you feeling today?"}
                 </strong>
                 <span>
-                  {weeklyDue
-                    ? paceZh
-                      ? "花一分钟，让教练了解你的状态。"
-                      : "Takes a minute — keeps your coach in the loop."
-                    : paceZh
-                      ? "10 秒打卡，教练会看到你的状态。"
-                      : "10 seconds — your coach sees how you're recovering."}
+                  {paceZh
+                    ? "每日打卡，教练会看到你的状态趋势。"
+                    : "A quick daily check-in — your coach tracks your trends."}
                 </span>
               </div>
-              <button
-                type="button"
-                className="wellnessCta"
-                onClick={() => openForm(weeklyDue ? "weekly" : "daily")}
-              >
-                {todayCheckIn
-                  ? paceZh
-                    ? "完成每周回顾 →"
-                    : "Do weekly check-in →"
-                  : paceZh
-                    ? "开始打卡 →"
-                    : "Check in →"}
+              <button type="button" className="wellnessCta" onClick={openForm}>
+                {paceZh ? "开始打卡 →" : "Check in →"}
               </button>
               {streak > 1 && (
                 <span className="wellnessStreakInline">
@@ -11608,31 +11582,23 @@ function App() {
               className="wellnessModal"
               onClick={(e) => e.stopPropagation()}
             >
-              <h3>
-                {wellnessMode === "weekly"
-                  ? paceZh
-                    ? "每周状态回顾"
-                    : "Weekly check-in"
-                  : paceZh
-                    ? "今日状态"
-                    : "Daily check-in"}
-              </h3>
-              {(
-                [
-                  ["sleep", paceZh ? "睡眠" : "Sleep"],
-                  ["energy", paceZh ? "精力" : "Energy"],
-                  ["soreness", paceZh ? "酸痛" : "Soreness"],
-                  ["mood", paceZh ? "心情" : "Mood"],
-                ] as [keyof typeof wellnessForm, string][]
-              ).map(([key, label]) => (
-                <div className="wellnessRow" key={key}>
-                  <span>{label}</span>
-                  <div className="wellnessScale">
-                    {[1, 2, 3, 4, 5].map((n) => (
+              <h3>{paceZh ? "今日状态" : "Daily check-in"}</h3>
+              {scaleRows.map(([key, label]) => (
+                <div className="wellnessRow10" key={key}>
+                  <span className="wellnessRowLabel">
+                    {label}
+                    {Number(wellnessForm[key]) > 0 && (
+                      <em className="wellnessRowValue">
+                        {Number(wellnessForm[key])}/10
+                      </em>
+                    )}
+                  </span>
+                  <div className="wellnessScale10">
+                    {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
                       <button
                         type="button"
                         key={n}
-                        className={`wellnessDot ${
+                        className={`wellnessDot10 ${
                           Number(wellnessForm[key]) >= n ? "on" : ""
                         }`}
                         onClick={() =>
@@ -11645,79 +11611,40 @@ function App() {
                   </div>
                 </div>
               ))}
-              {wellnessMode === "weekly" && (
-                <>
-                  <div className="wellnessRow">
-                    <span>{paceZh ? "压力" : "Stress"}</span>
-                    <div className="wellnessScale">
-                      {[1, 2, 3, 4, 5].map((n) => (
-                        <button
-                          type="button"
-                          key={n}
-                          className={`wellnessDot ${
-                            wellnessForm.stress >= n ? "on" : ""
-                          }`}
-                          onClick={() =>
-                            setWellnessForm((f) => ({ ...f, stress: n }))
-                          }
-                        >
-                          {n}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <label className="wellnessField">
-                    <span>{paceZh ? "体重 (kg)" : "Body weight (kg)"}</span>
-                    <input
-                      type="number"
-                      inputMode="decimal"
-                      value={wellnessForm.bodyWeight}
-                      onChange={(e) =>
-                        setWellnessForm((f) => ({
-                          ...f,
-                          bodyWeight: e.target.value,
-                        }))
-                      }
-                    />
-                  </label>
-                  <label className="wellnessField">
-                    <span>{paceZh ? "饮食备注" : "Nutrition notes"}</span>
-                    <textarea
-                      rows={2}
-                      value={wellnessForm.nutritionNotes}
-                      onChange={(e) =>
-                        setWellnessForm((f) => ({
-                          ...f,
-                          nutritionNotes: e.target.value,
-                        }))
-                      }
-                    />
-                  </label>
-                  <label className="wellnessField">
-                    <span>{paceZh ? "本周亮点" : "Wins this week"}</span>
-                    <textarea
-                      rows={2}
-                      value={wellnessForm.wins}
-                      onChange={(e) =>
-                        setWellnessForm((f) => ({ ...f, wins: e.target.value }))
-                      }
-                    />
-                  </label>
-                  <label className="wellnessField">
-                    <span>{paceZh ? "疼痛 / 问题" : "Pain / problems"}</span>
-                    <textarea
-                      rows={2}
-                      value={wellnessForm.problemsPain}
-                      onChange={(e) =>
-                        setWellnessForm((f) => ({
-                          ...f,
-                          problemsPain: e.target.value,
-                        }))
-                      }
-                    />
-                  </label>
-                </>
-              )}
+              <label className="wellnessField">
+                <span>{paceZh ? "睡眠时长（小时）" : "Sleep time (hours)"}</span>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  step="0.5"
+                  value={wellnessForm.sleepHours}
+                  onChange={(e) =>
+                    setWellnessForm((f) => ({ ...f, sleepHours: e.target.value }))
+                  }
+                />
+              </label>
+              <label className="wellnessField">
+                <span>{paceZh ? "体重 (kg)" : "Body weight (kg)"}</span>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  value={wellnessForm.bodyWeight}
+                  onChange={(e) =>
+                    setWellnessForm((f) => ({ ...f, bodyWeight: e.target.value }))
+                  }
+                />
+              </label>
+              <label className="wellnessField">
+                <span>{paceZh ? "备注" : "Notes"}</span>
+                <textarea
+                  rows={2}
+                  value={wellnessForm.notes}
+                  placeholder={paceZh ? "今天感觉怎么样？" : "How did today feel?"}
+                  onChange={(e) =>
+                    setWellnessForm((f) => ({ ...f, notes: e.target.value }))
+                  }
+                />
+              </label>
               <div className="wellnessActions">
                 <button
                   type="button"
@@ -11727,7 +11654,8 @@ function App() {
                     !wellnessForm.sleep ||
                     !wellnessForm.energy ||
                     !wellnessForm.soreness ||
-                    !wellnessForm.mood
+                    !wellnessForm.mood ||
+                    !wellnessForm.stress
                   }
                   onClick={submitWellness}
                 >
@@ -11751,6 +11679,86 @@ function App() {
           </div>
         )}
       </>
+    );
+  };
+
+  // Coach: trend chart of a selected daily-wellness metric for the viewed client.
+  const renderWellnessTrends = () => {
+    if (clientCheckIns.length === 0) {
+      return (
+        <p className="homeEmptyText">
+          {paceZh ? "暂无每日打卡数据。" : "No daily check-ins logged yet."}
+        </p>
+      );
+    }
+    const metrics: {
+      key: typeof wellnessMetric;
+      label: string;
+      unit: string;
+      get: (c: PortalCheckIn) => number;
+    }[] = [
+      { key: "readiness", label: paceZh ? "状态" : "Readiness", unit: "", get: (c) => Number(c.readinessScore) || 0 },
+      { key: "sleep", label: paceZh ? "睡眠" : "Sleep", unit: "", get: (c) => Number(c.sleepQuality) || 0 },
+      { key: "sleepHours", label: paceZh ? "睡眠时长" : "Sleep hrs", unit: "h", get: (c) => Number(c.sleepHours) || 0 },
+      { key: "energy", label: paceZh ? "精力" : "Energy", unit: "", get: (c) => Number(c.energy) || 0 },
+      { key: "soreness", label: paceZh ? "酸痛" : "Soreness", unit: "", get: (c) => Number(c.soreness) || 0 },
+      { key: "mood", label: paceZh ? "心情" : "Mood", unit: "", get: (c) => Number(c.mood) || 0 },
+      { key: "stress", label: paceZh ? "压力" : "Stress", unit: "", get: (c) => Number(c.stress) || 0 },
+      { key: "bodyWeight", label: paceZh ? "体重" : "Weight", unit: "kg", get: (c) => Number(c.bodyWeight) || 0 },
+    ];
+    const cfg = metrics.find((m) => m.key === wellnessMetric) || metrics[0];
+    const points = clientCheckIns
+      .slice()
+      .sort((a, b) => a.submittedDate.localeCompare(b.submittedDate))
+      .map((c) => ({ date: c.submittedDate, value: cfg.get(c), unit: cfg.unit }))
+      .filter((p) => p.value > 0)
+      .slice(-30);
+    const latest = points[points.length - 1];
+    const avg = points.length
+      ? Math.round((points.reduce((a, p) => a + p.value, 0) / points.length) * 10) / 10
+      : 0;
+    return (
+      <div className="wellnessTrends">
+        <div className="wellnessMetricToggle">
+          {metrics.map((m) => (
+            <button
+              key={m.key}
+              type="button"
+              className={wellnessMetric === m.key ? "active" : ""}
+              onClick={() => setWellnessMetric(m.key)}
+            >
+              {m.label}
+            </button>
+          ))}
+        </div>
+        {points.length > 0 ? (
+          <>
+            <div className="progressChartSummary">
+              <div>
+                <span>{paceZh ? "最新" : "Latest"}</span>
+                <strong>
+                  {latest.value}
+                  {cfg.unit}
+                </strong>
+              </div>
+              <div>
+                <span>{paceZh ? "平均" : "Average"}</span>
+                <strong>
+                  {avg}
+                  {cfg.unit}
+                </strong>
+              </div>
+            </div>
+            <Suspense fallback={<div className="chartLoading">{t("loading")}</div>}>
+              <ProgressChart points={points} locale={clientLocale} unit={cfg.unit} />
+            </Suspense>
+          </>
+        ) : (
+          <p className="homeEmptyText">
+            {paceZh ? "该指标暂无数据。" : "No data for this metric yet."}
+          </p>
+        )}
+      </div>
     );
   };
 
@@ -24271,6 +24279,16 @@ function App() {
                       </span>
                     </div>
                     {renderLoadDashboard()}
+                  </div>
+
+                  <div className="profileCard">
+                    <div className="profileMetricsHeader">
+                      <h3>{paceZh ? "每日状态趋势" : "Wellness Trends"}</h3>
+                      <span className="loadPremiumTag">
+                        {paceZh ? "教练视图" : "Coach view"}
+                      </span>
+                    </div>
+                    {renderWellnessTrends()}
                   </div>
 
                   <div className="profileCard">
