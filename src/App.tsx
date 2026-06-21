@@ -14199,11 +14199,19 @@ function App() {
                     )}
                   </div>
                   <div className="storeModalInfoV2">
-                    <span className="storeEyebrowV2">
-                      {sZh
-                        ? `第 ${storeStep} 步 / 共 ${hasAddons ? 3 : 2} 步`
-                        : `Step ${storeStep} of ${hasAddons ? 3 : 2}`}
-                    </span>
+                    {(() => {
+                      const totalSteps = hasAddons ? 3 : 2;
+                      // Step 3 (cart) is shown as step 2 when the add-on step is skipped.
+                      const displayStep =
+                        !hasAddons && storeStep === 3 ? 2 : storeStep;
+                      return (
+                        <span className="storeEyebrowV2">
+                          {sZh
+                            ? `第 ${displayStep} 步 / 共 ${totalSteps} 步`
+                            : `Step ${displayStep} of ${totalSteps}`}
+                        </span>
+                      );
+                    })()}
                     <h2>{spName}</h2>
 
                     {/* Step 1 — program / bundle details */}
@@ -14265,7 +14273,13 @@ function App() {
                             className="primaryButton"
                             onClick={() => setStoreStep(hasAddons ? 2 : 3)}
                           >
-                            {sZh ? "继续" : "Continue"}
+                            {hasAddons
+                              ? sZh
+                                ? "继续"
+                                : "Continue"
+                              : sZh
+                              ? "加入购物车"
+                              : "Add to cart"}
                           </button>
                         </div>
                       </>
