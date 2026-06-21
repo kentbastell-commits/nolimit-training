@@ -13852,13 +13852,6 @@ function App() {
       ...Array.from(catMap.values()),
     ];
 
-    const addonCards = [
-      { title: sZh ? "足 / 踝 / 跟腱" : "Feet / Ankle / Achilles", body: sZh ? "跑跳、落地和下肢耐受" : "Landing, running, and lower-leg capacity" },
-      { title: sZh ? "强化膝盖" : "Bulletproof Knees", body: sZh ? "膝关节力量、控制和减负" : "Strength, control, and knee resilience" },
-      { title: sZh ? "肩部" : "Shoulders", body: sZh ? "攀爬、推拉和上肢稳定" : "Climbing, pressing, pulling, and stability" },
-      { title: sZh ? "呼吸" : "Breathing", body: sZh ? "恢复、耐力和躯干控制" : "Recovery, endurance, and trunk control" },
-    ];
-
     const filteredStorePrograms = storePrograms.filter((program) => {
       if (isAddonProgram(program)) return false;
       const matchesCategory =
@@ -13961,22 +13954,49 @@ function App() {
           <section className="storeHeroV2">
             <div className="storeHeroCopyV2">
               <span className="storeEyebrowV2">{sZh ? "数字训练商店" : "Digital Program Store"}</span>
-              <h1>{sZh ? "按项目、赛季和身体需求选择训练。" : "Programs organized by sport, season, and body needs."}</h1>
+              <h1>
+                {sZh
+                  ? "专业训练计划，直接送到你的手机。"
+                  : "A professional training program, delivered to your phone."}
+              </h1>
               <p>
                 {sZh
-                  ? "选择专项训练计划，或添加关节保护模块。购买后完成 intake，计划会进入客户端，你可以按月、按周或逐日安排训练日期。"
-                  : "Choose a sport program, then add joint-specific support where you need it. After purchase, complete intake, open My Programs, and schedule by month, week, or day by day."}
+                  ? "即时获得专业编排的训练计划，价格远低于一对一私教。购买后完成简短 intake，计划即进入你的 App，可按月、按周或逐日安排。"
+                  : "Get an expertly programmed plan instantly — for a fraction of the cost of one-on-one coaching. After purchase you complete a short intake and the plan loads into your app to schedule by month, week, or day."}
               </p>
             </div>
-            <div className="storeHeroCardV2">
-              <img src="/nl_monogram_clean.png" alt="" />
-              <strong>{sZh ? "赛季制训练" : "Season-Based Training"}</strong>
-              <span>{sZh ? "Season 1 现已开放，未来继续扩展 Season 2。" : "Season 1 now, Season 2 as the catalog grows."}</span>
-              <div className="storeHeroFlowV2">
-                {(sZh ? ["支付", "Intake", "我的计划", "自定日期"] : ["Pay", "Intake", "My Programs", "Customize Dates"]).map((step) => (
-                  <span key={step}>{step}</span>
-                ))}
-              </div>
+            <div className="storeHeroCardV2 storeHeroShotV2">
+              <img
+                src="/showcase-calendar.png"
+                alt={sZh ? "训练日历" : "Training calendar"}
+              />
+            </div>
+          </section>
+
+          <section className="storeHowV2">
+            <div className="storeSectionIntroV2">
+              <span className="storeEyebrowV2">{sZh ? "如何使用" : "How it works"}</span>
+              <h2>{sZh ? "三步开始训练" : "Three steps to start training"}</h2>
+            </div>
+            <div className="storeHowGridV2">
+              {(sZh
+                ? [
+                    ["1", "选择你的项目", "从下面的目录里选择你的训练方向。"],
+                    ["2", "选择单个计划或套餐", "购买单个计划，或以优惠价购买整套。"],
+                    ["3", "加购关节 / 灵活性模块", "为关节健康和伤病预防加上专项模块。"],
+                  ]
+                : [
+                    ["1", "Choose your sport", "Pick your training direction from the catalog below."],
+                    ["2", "Pick a program or bundle", "Buy an individual program, or a discounted bundle."],
+                    ["3", "Add joint & mobility work", "Add joint/mobility programs for joint health and injury prevention."],
+                  ]
+              ).map(([n, t, d]) => (
+                <div className="storeHowStepV2" key={n}>
+                  <span className="storeHowNumV2">{n}</span>
+                  <strong>{t}</strong>
+                  <span>{d}</span>
+                </div>
+              ))}
             </div>
           </section>
 
@@ -13995,21 +14015,6 @@ function App() {
                   <strong>{category.title}</strong>
                   <span>{category.body}</span>
                 </button>
-              ))}
-            </div>
-          </section>
-
-          <section>
-            <div className="storeSectionIntroV2 compact">
-              <span className="storeEyebrowV2">{sZh ? "专项加购" : "Joint Add-Ons"}</span>
-              <h2>{sZh ? "按身体部位定制你的计划。" : "Customize around the areas that need support."}</h2>
-            </div>
-            <div className="storeAddonGridV2">
-              {addonCards.map((addon) => (
-                <article className="storeAddonCardV2" key={addon.title}>
-                  <strong>{addon.title}</strong>
-                  <span>{addon.body}</span>
-                </article>
               ))}
             </div>
           </section>
@@ -14125,6 +14130,41 @@ function App() {
                 })}
               </div>
             )}
+          </section>
+
+          <section className="storeShowcaseV2">
+            <div className="storeSectionIntroV2">
+              <span className="storeEyebrowV2">{sZh ? "应用内体验" : "Inside the app"}</span>
+              <h2>{sZh ? "购买后你会得到的" : "What you get after you buy"}</h2>
+            </div>
+            <div className="storeShowcaseGridV2">
+              <figure className="storeShowcaseItemV2">
+                <div className="storeShowcaseShot">
+                  <img src="/showcase-calendar.png" alt="" />
+                </div>
+                <figcaption>
+                  <strong>{sZh ? "每月训练日历" : "Your month, planned"}</strong>
+                  <span>
+                    {sZh
+                      ? "绿点标记已完成的训练日，进度一目了然。可按月、周或逐日安排。"
+                      : "Green dots mark completed sessions, so you always know where you stand — schedule by month, week, or day."}
+                  </span>
+                </figcaption>
+              </figure>
+              <figure className="storeShowcaseItemV2">
+                <div className="storeShowcaseShot">
+                  <img src="/showcase-player.png" alt="" />
+                </div>
+                <figcaption>
+                  <strong>{sZh ? "逐个动作的训练播放器" : "A guided workout player"}</strong>
+                  <span>
+                    {sZh
+                      ? "每个动作都有组数、次数、节奏和休息，训练时直接记录你的成绩。"
+                      : "Every exercise shows sets, reps, tempo and rest — log your numbers set by set as you train."}
+                  </span>
+                </figcaption>
+              </figure>
+            </div>
           </section>
 
           <section className="storeContactV2">
