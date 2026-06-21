@@ -379,6 +379,20 @@ type WorkloadLog = {
   notes: string;
 };
 
+type ProgramReview = {
+  recordId: string;
+  reviewId: string;
+  clientId: string;
+  clientName: string;
+  programId: string;
+  programName: string;
+  rating: number;
+  quote: string;
+  showOnStore: boolean;
+  approved: boolean;
+  submittedDate: string;
+};
+
 type PortalCheckIn = {
   recordId: string;
   checkInId: string;
@@ -1595,6 +1609,20 @@ function App() {
     wins: "",
     problemsPain: "",
   });
+  // Program rating / testimonial capture (on completion) + coach moderation.
+  const [clientReviews, setClientReviews] = useState<ProgramReview[]>([]);
+  const [storeReviews, setStoreReviews] = useState<ProgramReview[]>([]);
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [reviewProgram, setReviewProgram] = useState<{
+    programId: string;
+    programName: string;
+  } | null>(null);
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewQuote, setReviewQuote] = useState("");
+  const [reviewShowStore, setReviewShowStore] = useState(true);
+  const [reviewSaving, setReviewSaving] = useState(false);
+  const [coachReviews, setCoachReviews] = useState<ProgramReview[]>([]);
+  const [reviewUpdatingId, setReviewUpdatingId] = useState("");
   const homeTouchRef = useRef<{ x: number; y: number } | null>(null);
   // Athlete weekly workload self-report (technical + extra cardio sessions).
   const [workloadLogs, setWorkloadLogs] = useState<WorkloadLog[]>([]);
@@ -2667,6 +2695,10 @@ function App() {
     if (isStorePage || isPublicLandingPage) {
       void loadPrograms();
       void loadClients(); // for the "Client View" launcher picker
+      fetch("/api/reviews?storeOnly=1")
+        .then((res) => res.json())
+        .then((data) => setStoreReviews(data.reviews || []))
+        .catch(() => setStoreReviews([]));
       return;
     }
     loadClients();
@@ -2674,6 +2706,7 @@ function App() {
     void loadTeams();
     void loadSubscriptions();
     void loadNotifications();
+    void loadCoachReviews();
   }, []);
 
   useEffect(() => {
@@ -3070,6 +3103,12 @@ function App() {
         .then((res) => res.json())
         .then((data) => setClientCheckIns(data.checkIns || []))
         .catch(() => setClientCheckIns([]));
+      fetch(
+        `/api/reviews?clientId=${selectedClient.clientCode || selectedClient.id}`
+      )
+        .then((res) => res.json())
+        .then((data) => setClientReviews(data.reviews || []))
+        .catch(() => setClientReviews([]));
     }
 
     setCoachNotesDraft(selectedClient.notes || "");
@@ -11155,6 +11194,160 @@ function App() {
     a.click();
   };
 
+  const openProgramReview = (programId: string, programName: string) => {
+    setReviewProgram({ programId, programName });
+    setReviewRating(0);
+    setReviewQuote("");
+    setReviewShowStore(true);
+    setReviewOpen(true);
+  };
+
+  const submitProgramReview = async () => {
+    if (!selectedClient || !reviewProgram || !reviewRating) return;
+    setReviewSaving(true);
+    try {
+      const res = await fetch("/api/reviews", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clientId: selectedClient.clientCode || selectedClient.id,
+          clientName: selectedClient.name,
+          programId: reviewProgram.programId,
+          programName: reviewProgram.programName,
+          rating: reviewRating,
+          quote: reviewQuote.trim(),
+          showOnStore: reviewShowStore,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        console.error(data);
+        notify(
+          paceZh ? "提交失败，请重试。" : "Could not submit your rating.",
+          "error"
+        );
+        return;
+      }
+      // Optimistically record it so the prompt flips to "rated" immediately.
+      setClientReviews((prev) => [
+        {
+          recordId: data.recordId || `local-${Date.now()}`,
+          reviewId: "",
+          clientId: selectedClient.clientCode || selectedClient.id,
+          clientName: selectedClient.name,
+          programId: reviewProgram.programId,
+          programName: reviewProgram.programName,
+          rating: reviewRating,
+          quote: reviewQuote.trim(),
+          showOnStore: reviewShowStore,
+          approved: false,
+          submittedDate: dateToInputValue(new Date()),
+        },
+        ...prev,
+      ]);
+      setReviewOpen(false);
+      vibrate(40);
+      notify(paceZh ? "谢谢你的反馈！" : "Thanks for the feedback!", "success");
+    } finally {
+      setReviewSaving(false);
+    }
+  };
+
+  const loadCoachReviews = async () => {
+    try {
+      const data = await (await fetch("/api/reviews")).json();
+      setCoachReviews(data.reviews || []);
+    } catch {
+      setCoachReviews([]);
+    }
+  };
+
+  const toggleReviewApproved = async (review: ProgramReview) => {
+    setReviewUpdatingId(review.recordId);
+    try {
+      const res = await fetch("/api/reviews", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          recordId: review.recordId,
+          approved: !review.approved,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        notify("Could not update review.", "error");
+        return;
+      }
+      setCoachReviews((prev) =>
+        prev.map((r) =>
+          r.recordId === review.recordId ? { ...r, approved: !r.approved } : r
+        )
+      );
+    } finally {
+      setReviewUpdatingId("");
+    }
+  };
+
+  // Coach moderation + at-a-glance ratings per program.
+  const renderCoachReviews = () => {
+    if (coachReviews.length === 0) return null;
+    const byProgram = new Map<string, { sum: number; n: number }>();
+    for (const r of coachReviews) {
+      const key = r.programName || r.programId || "—";
+      const agg = byProgram.get(key) || { sum: 0, n: 0 };
+      agg.sum += r.rating;
+      agg.n += 1;
+      byProgram.set(key, agg);
+    }
+    return (
+      <div className="coachReviewsPanel">
+        <div className="loadWatchHeader" style={{ marginBottom: 10 }}>
+          <strong>Program Reviews</strong>
+          <span className="loadPremiumTag">
+            {coachReviews.filter((r) => r.showOnStore && r.approved).length} live
+          </span>
+        </div>
+        <div className="loadStatRow" style={{ marginBottom: 12 }}>
+          {[...byProgram.entries()].slice(0, 4).map(([name, agg]) => (
+            <div className="loadStat" key={name}>
+              <span>{name}</span>
+              <strong>
+                {(agg.sum / agg.n).toFixed(1)}★
+              </strong>
+              <small>{agg.n} rating{agg.n === 1 ? "" : "s"}</small>
+            </div>
+          ))}
+        </div>
+        {coachReviews.map((r) => (
+          <div className="coachReviewRow" key={r.recordId}>
+            <div className="coachReviewBody">
+              <span className="stars">
+                {"★".repeat(r.rating)}
+                {"☆".repeat(Math.max(0, 5 - r.rating))}
+              </span>
+              {r.quote && <p className="quote">“{r.quote}”</p>}
+              <span className="meta">
+                {r.clientName || "Client"} · {r.programName || r.programId}
+                {r.showOnStore ? " · opted in" : " · private"}
+                {r.submittedDate ? ` · ${r.submittedDate}` : ""}
+              </span>
+            </div>
+            {r.showOnStore && (
+              <button
+                type="button"
+                className={`coachReviewApprove ${r.approved ? "on" : ""}`}
+                disabled={reviewUpdatingId === r.recordId}
+                onClick={() => toggleReviewApproved(r)}
+              >
+                {r.approved ? "On store ✓" : "Approve"}
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   // Submit a daily / weekly wellness check-in (reuses the existing check-in
   // table; readiness is derived from the daily 1–5 scales).
   const submitWellness = async () => {
@@ -11933,6 +12126,35 @@ function App() {
                     : "Share my finish 📤"}
               </button>
               {(() => {
+                const pid = selectedClientProgram?.programId || "";
+                const mine = clientReviews.find((r) => r.programId === pid);
+                if (mine) {
+                  return (
+                    <div className="programRatedRow">
+                      {paceZh ? "你的评分" : "Your rating"}{" "}
+                      <span className="programRatedStars">
+                        {"★".repeat(mine.rating)}
+                        {"☆".repeat(Math.max(0, 5 - mine.rating))}
+                      </span>
+                    </div>
+                  );
+                }
+                return (
+                  <button
+                    type="button"
+                    className="programRateBtn"
+                    onClick={() =>
+                      openProgramReview(
+                        pid,
+                        localizedProgramName(selectedClientProgram)
+                      )
+                    }
+                  >
+                    {paceZh ? "★ 评价这个计划" : "★ Rate this program"}
+                  </button>
+                );
+              })()}
+              {(() => {
                 const owned = new Set(
                   uniqueClientPurchasedPrograms.map((p) => p.programId)
                 );
@@ -12097,6 +12319,80 @@ function App() {
                   onClick={() => setFinisherOpen(false)}
                 >
                   {paceZh ? "关闭" : "Close"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {reviewOpen && reviewProgram && (
+          <div className="wellnessOverlay" onClick={() => setReviewOpen(false)}>
+            <div className="wellnessModal" onClick={(e) => e.stopPropagation()}>
+              <h3>{paceZh ? "评价这个计划" : "Rate this program"}</h3>
+              <p className="reviewProgLabel">{reviewProgram.programName}</p>
+              <div className="reviewStars">
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <button
+                    type="button"
+                    key={n}
+                    className={`reviewStar ${reviewRating >= n ? "on" : ""}`}
+                    onClick={() => setReviewRating(n)}
+                    aria-label={`${n} star`}
+                  >
+                    ★
+                  </button>
+                ))}
+              </div>
+              <label className="wellnessField">
+                <span>
+                  {paceZh
+                    ? "想说点什么吗？（可选）"
+                    : "Anything you'd like to add? (optional)"}
+                </span>
+                <textarea
+                  rows={3}
+                  value={reviewQuote}
+                  placeholder={
+                    paceZh
+                      ? "这个计划对你有什么帮助？"
+                      : "What did this program do for you?"
+                  }
+                  onChange={(e) => setReviewQuote(e.target.value)}
+                />
+              </label>
+              <label className="reviewConsent">
+                <input
+                  type="checkbox"
+                  checked={reviewShowStore}
+                  onChange={(e) => setReviewShowStore(e.target.checked)}
+                />
+                <span>
+                  {paceZh
+                    ? "可以在商店展示我的评价（仅名字首字）"
+                    : "Let my review appear on the store (first name only)"}
+                </span>
+              </label>
+              <div className="wellnessActions">
+                <button
+                  type="button"
+                  className="wellnessSubmit"
+                  disabled={reviewSaving || !reviewRating}
+                  onClick={submitProgramReview}
+                >
+                  {reviewSaving
+                    ? paceZh
+                      ? "提交中…"
+                      : "Submitting…"
+                    : paceZh
+                      ? "提交评价"
+                      : "Submit rating"}
+                </button>
+                <button
+                  type="button"
+                  className="wellnessCancel"
+                  onClick={() => setReviewOpen(false)}
+                >
+                  {paceZh ? "取消" : "Cancel"}
                 </button>
               </div>
             </div>
@@ -15422,6 +15718,34 @@ function App() {
             </div>
           </section>
 
+          {storeReviews.length > 0 && (
+            <section className="storeTestimonials">
+              <div className="storeSectionIntroV2">
+                <span className="storeEyebrowV2">
+                  {sZh ? "学员反馈" : "What athletes say"}
+                </span>
+                <h2>{sZh ? "真实评价" : "Real results, real words"}</h2>
+              </div>
+              <div className="storeTestimonialsGrid">
+                {storeReviews.slice(0, 6).map((r) => (
+                  <div className="storeTestimonial" key={r.recordId}>
+                    <div className="storeTestimonialStars">
+                      {"★".repeat(r.rating)}
+                      {"☆".repeat(Math.max(0, 5 - r.rating))}
+                    </div>
+                    {r.quote && (
+                      <p className="storeTestimonialQuote">“{r.quote}”</p>
+                    )}
+                    <div className="storeTestimonialMeta">
+                      {(r.clientName || "").split(" ")[0] || (sZh ? "学员" : "Athlete")}
+                      {r.programName ? ` · ${r.programName}` : ""}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
           <section className="storeContactV2">
             <div>
               <span className="storeEyebrowV2">{sZh ? "需要帮助选择？" : "Need help choosing?"}</span>
@@ -16953,6 +17277,7 @@ function App() {
             {activePage === "Clients" && (
               <>
                 {renderRosterLoadWatch()}
+                {renderCoachReviews()}
                 <section className="clientCommandCenter">
                   <section className="clientTableWorkspace">
                     <div className="clientToolbar">

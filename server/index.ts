@@ -28,6 +28,7 @@ import productOrders from "../api/productOrders.ts";
 import programs from "../api/programs.ts";
 import recordLogin from "../api/recordLogin.ts";
 import programTemplates from "../api/programTemplates.ts";
+import reviews from "../api/reviews.ts";
 import reviewWorkoutComment from "../api/reviewWorkoutComment.ts";
 import saveWorkoutLog from "../api/saveWorkoutLog.ts";
 import setWorkoutReviewed from "../api/setWorkoutReviewed.ts";
@@ -84,6 +85,7 @@ const handlers = {
   programs,
   recordLogin,
   programTemplates,
+  reviews,
   reviewWorkoutComment,
   saveWorkoutLog,
   setWorkoutReviewed,
