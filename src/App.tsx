@@ -11207,15 +11207,53 @@ function App() {
           lastCheckInDate: today,
         }),
       }).catch(() => {});
-      const refreshed = await fetch(
-        `/api/checkIns?clientId=${selectedClient.clientCode || selectedClient.id}`
-      )
-        .then((r) => r.json())
-        .catch(() => ({ checkIns: [] }));
-      setClientCheckIns(refreshed.checkIns || []);
+      // Optimistically show the submission immediately — Bitable reads are
+      // eventually consistent, so a refetch right now may not include it yet.
+      const optimistic: PortalCheckIn = {
+        recordId: data.recordId || `local-${Date.now()}`,
+        checkInId: "",
+        clientId: selectedClient.clientCode || selectedClient.id,
+        submittedDate: today,
+        bodyWeight: wellnessForm.bodyWeight,
+        sleepQuality: String(sleep),
+        energy: String(energy),
+        mood: String(mood),
+        stress: String(wellnessForm.stress || ""),
+        soreness: String(soreness),
+        readinessScore: String(readiness),
+        nutritionNotes: wellnessForm.nutritionNotes,
+        trainingNotes: wellnessForm.trainingNotes,
+        wins: wellnessForm.wins,
+        problemsPain: wellnessForm.problemsPain,
+        clientNotes: "",
+        coachResponse: "",
+        coachReviewed: false,
+        reviewedDate: "",
+        status: wellnessMode === "weekly" ? "Weekly" : "Daily",
+      };
+      setClientCheckIns((prev) => [
+        optimistic,
+        ...prev.filter((c) => c.recordId !== optimistic.recordId),
+      ]);
       setWellnessOpen(false);
       vibrate(40);
       notify(paceZh ? "已记录，谢谢！" : "Logged — thank you!", "success");
+      // Reconcile with the server shortly after (keeps optimistic if not indexed yet).
+      setTimeout(() => {
+        fetch(
+          `/api/checkIns?clientId=${selectedClient.clientCode || selectedClient.id}`
+        )
+          .then((r) => r.json())
+          .then((refreshed) => {
+            const server: PortalCheckIn[] = refreshed.checkIns || [];
+            setClientCheckIns(
+              server.some((c) => c.recordId === optimistic.recordId)
+                ? server
+                : [optimistic, ...server]
+            );
+          })
+          .catch(() => {});
+      }, 1500);
     } finally {
       setWellnessSaving(false);
     }
