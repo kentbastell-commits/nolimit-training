@@ -10996,6 +10996,27 @@ function App() {
                   ? "你已完成本计划的所有训练。"
                   : "You've finished every session in this program."}
               </span>
+              {(() => {
+                const owned = new Set(
+                  uniqueClientPurchasedPrograms.map((p) => p.programId)
+                );
+                const moreToBuy = programs.some(
+                  (p) =>
+                    p.publicStoreVisible &&
+                    p.status !== "Archived" &&
+                    !owned.has(p.programId)
+                );
+                if (!moreToBuy) return null;
+                return (
+                  <button
+                    type="button"
+                    className="programDoneCta"
+                    onClick={() => setProgramsTab("store")}
+                  >
+                    {paceZh ? "看看下一步 →" : "See what's next →"}
+                  </button>
+                );
+              })()}
             </div>
           )
         )}

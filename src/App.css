@@ -8209,6 +8209,18 @@ button.coachReviewGlobalItem,
   font-size: 13px;
   color: var(--nl-muted, #68645d);
 }
+.programDoneCta {
+  display: inline-block;
+  margin-top: 12px;
+  padding: 10px 18px;
+  border-radius: 999px;
+  border: none;
+  background: #0d0d0d;
+  color: #d4af37;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+}
 
 .programSyllabus h4 {
   margin: 6px 0 8px;
