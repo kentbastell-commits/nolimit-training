@@ -11104,6 +11104,124 @@ function App() {
     a.click();
   };
 
+  // Lifetime "trophy case" — badges that accumulate across all of the athlete's
+  // training history (independent of any single program). Pure client-side.
+  const renderTrophyCase = () => {
+    const trainedDates = new Set(
+      workoutHistoryLogs.map((l) => (l.date || "").slice(0, 10)).filter(Boolean)
+    );
+    const totalDays = trainedDates.size;
+    const maxWeight = workoutHistoryLogs.reduce((m, l) => {
+      const w = parseFloat(l.actualWeight);
+      return !Number.isNaN(w) && w > m ? w : m;
+    }, 0);
+    const distinctExercises = new Set(
+      workoutHistoryLogs
+        .map((l) => (l.exerciseName || "").split(" - ")[0])
+        .filter(Boolean)
+    ).size;
+    // Lifetime PR count (exercises where a later session beat an earlier best).
+    const prByEx = new Map<string, { w: number; date: string }[]>();
+    for (const l of workoutHistoryLogs) {
+      const w = parseFloat(l.actualWeight);
+      if (Number.isNaN(w) || w <= 0) continue;
+      const base = (l.exerciseName || "").split(" - ")[0];
+      if (!base) continue;
+      if (!prByEx.has(base)) prByEx.set(base, []);
+      prByEx.get(base)!.push({ w, date: (l.date || "").slice(0, 10) });
+    }
+    let prCount = 0;
+    for (const [, logs] of prByEx) {
+      let best = 0;
+      let bestDate = "";
+      for (const e of logs)
+        if (e.w > best) {
+          best = e.w;
+          bestDate = e.date;
+        }
+      const prior = logs
+        .filter((e) => e.date < bestDate)
+        .reduce((m, e) => (e.w > m ? e.w : m), 0);
+      if (best > prior && prior > 0) prCount++;
+    }
+    // Longest run of consecutive Mon–Sun weeks with a training day.
+    const mondayOf = (d: Date) => {
+      const dt = new Date(d);
+      dt.setDate(dt.getDate() - ((dt.getDay() + 6) % 7));
+      return dateToInputValue(dt);
+    };
+    const weekStarts = [
+      ...new Set([...trainedDates].map((d) => mondayOf(new Date(`${d}T00:00:00`)))),
+    ].sort();
+    let bestStreak = 0;
+    let run = 0;
+    let prev: string | null = null;
+    for (const wk of weekStarts) {
+      if (prev === null) run = 1;
+      else {
+        const diff = Math.round(
+          (new Date(wk).getTime() - new Date(prev).getTime()) / (7 * 86400000)
+        );
+        run = diff === 1 ? run + 1 : 1;
+      }
+      bestStreak = Math.max(bestStreak, run);
+      prev = wk;
+    }
+
+    type Badge = {
+      icon: string;
+      en: string;
+      zh: string;
+      earned: boolean;
+      remain?: string;
+    };
+    const sessionRemain = (n: number) =>
+      totalDays < n
+        ? paceZh
+          ? `还差 ${n - totalDays} 节`
+          : `${n - totalDays} to go`
+        : undefined;
+    const badges: Badge[] = [
+      { icon: "🎯", en: "First session", zh: "首次训练", earned: totalDays >= 1 },
+      { icon: "🥉", en: "10 sessions", zh: "10 节训练", earned: totalDays >= 10, remain: sessionRemain(10) },
+      { icon: "🥈", en: "25 sessions", zh: "25 节训练", earned: totalDays >= 25, remain: sessionRemain(25) },
+      { icon: "🥇", en: "50 sessions", zh: "50 节训练", earned: totalDays >= 50, remain: sessionRemain(50) },
+      { icon: "🏆", en: "100 sessions", zh: "100 节训练", earned: totalDays >= 100, remain: sessionRemain(100) },
+      { icon: "💪", en: "First 50kg", zh: "首次 50 公斤", earned: maxWeight >= 50 },
+      { icon: "🦾", en: "100kg club", zh: "100 公斤俱乐部", earned: maxWeight >= 100 },
+      { icon: "⭐", en: "5 PRs", zh: "5 个纪录", earned: prCount >= 5, remain: prCount < 5 ? (paceZh ? `还差 ${5 - prCount}` : `${5 - prCount} to go`) : undefined },
+      { icon: "🌟", en: "10 PRs", zh: "10 个纪录", earned: prCount >= 10, remain: prCount < 10 ? (paceZh ? `还差 ${10 - prCount}` : `${10 - prCount} to go`) : undefined },
+      { icon: "🔥", en: "4-week streak", zh: "连续 4 周", earned: bestStreak >= 4, remain: bestStreak < 4 ? (paceZh ? `最佳 ${bestStreak} 周` : `best ${bestStreak} wk`) : undefined },
+      { icon: "🧭", en: "15 exercises", zh: "15 个动作", earned: distinctExercises >= 15, remain: distinctExercises < 15 ? (paceZh ? `还差 ${15 - distinctExercises}` : `${15 - distinctExercises} to go`) : undefined },
+    ];
+    const earnedCount = badges.filter((b) => b.earned).length;
+
+    return (
+      <div className="trophyCase">
+        <div className="trophyCaseHead">
+          <h4>{paceZh ? "🏆 你的奖杯" : "🏆 Your trophies"}</h4>
+          <span>
+            {earnedCount}/{badges.length} {paceZh ? "已解锁" : "unlocked"}
+          </span>
+        </div>
+        <div className="trophyGrid">
+          {badges.map((b, i) => (
+            <div
+              className={`trophyBadge ${b.earned ? "earned" : "locked"}`}
+              key={i}
+            >
+              <span className="trophyIcon">{b.earned ? b.icon : "🔒"}</span>
+              <span className="trophyLabel">{paceZh ? b.zh : b.en}</span>
+              {!b.earned && b.remain && (
+                <span className="trophyRemain">{b.remain}</span>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   // "Program home" — progress, next workout, and the week-by-week syllabus for
   // the selected purchased program (shown once it's loaded onto the calendar).
   const renderProgramHome = () => {
@@ -22757,6 +22875,18 @@ function App() {
                         </div>
                       </div>
                       {renderPrLeaderboard()}
+                    </section>
+                  )}
+
+                  {isClientPortal && portalHomeTab === "records" && (
+                    <section className="clientHomePanel trophyHomePanel">
+                      <div className="clientHomePanelHeader">
+                        <div>
+                          <span>{paceZh ? "成就" : "Achievements"}</span>
+                          <h2>{paceZh ? "奖杯陈列" : "Trophy Case"}</h2>
+                        </div>
+                      </div>
+                      {renderTrophyCase()}
                     </section>
                   )}
 

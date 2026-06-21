@@ -8113,6 +8113,71 @@ button.coachReviewGlobalItem,
   gap: 14px;
   margin: 16px 0;
 }
+.trophyCase {
+  margin-top: 4px;
+}
+.trophyCaseHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.trophyCaseHead h4 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--nl-ink, #1a1a1a);
+}
+.trophyCaseHead span {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--nl-muted, #68645d);
+}
+.trophyGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.trophyBadge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 4px;
+  padding: 14px 8px;
+  border-radius: 14px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: #fff;
+}
+.trophyBadge.earned {
+  border-color: rgba(212, 175, 55, 0.55);
+  background: rgba(212, 175, 55, 0.1);
+}
+.trophyBadge.locked {
+  opacity: 0.7;
+}
+.trophyIcon {
+  font-size: 26px;
+  line-height: 1;
+}
+.trophyBadge.locked .trophyIcon {
+  filter: grayscale(1);
+  opacity: 0.6;
+}
+.trophyLabel {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--nl-ink, #1a1a1a);
+}
+.trophyBadge.locked .trophyLabel {
+  color: var(--nl-muted, #68645d);
+}
+.trophyRemain {
+  font-size: 10px;
+  font-weight: 700;
+  color: #9b7a21;
+}
+
 .programProgressCard {
   display: flex;
   align-items: center;
