@@ -1597,6 +1597,7 @@ function App() {
   const [clientCheckIns, setClientCheckIns] = useState<PortalCheckIn[]>([]);
   const [wellnessOpen, setWellnessOpen] = useState(false);
   const [wellnessSaving, setWellnessSaving] = useState(false);
+  const [wellnessThanks, setWellnessThanks] = useState(false);
   const [wellnessDismissedReply, setWellnessDismissedReply] = useState("");
   const [wellnessForm, setWellnessForm] = useState({
     sleep: 0,
@@ -6865,6 +6866,29 @@ function App() {
     return "labelDefault";
   }
 
+  // Hex accent per section (matches the label-badge hues) for the workout
+  // session's card/heading accents.
+  function sectionAccentColor(sectionName?: string) {
+    switch (getLabelColorClass(undefined, sectionName)) {
+      case "labelWarmup":
+        return "#c2671c";
+      case "labelCardio":
+        return "#3a86ff";
+      case "labelMobility":
+        return "#2e8b3d";
+      case "labelSkill":
+        return "#6a4bc9";
+      case "labelPower":
+        return "#b5731a";
+      case "labelAccessory":
+        return "#15897a";
+      case "labelStrength":
+        return "#5b6770";
+      default:
+        return "#4f5258";
+    }
+  }
+
   function renderExerciseLabelBadge(exercise: ProgramExercise, index: number) {
     if (isWarmupSection(exercise.sectionName)) {
       return (
@@ -11442,7 +11466,8 @@ function App() {
       ]);
       setWellnessOpen(false);
       vibrate(40);
-      notify(paceZh ? "已记录，谢谢！" : "Logged — thank you!", "success");
+      setWellnessThanks(true);
+      window.setTimeout(() => setWellnessThanks(false), 2600);
       // Reconcile with the server shortly after (keeps optimistic if not indexed yet).
       setTimeout(() => {
         fetch(
@@ -11714,6 +11739,17 @@ function App() {
                   {paceZh ? "取消" : "Cancel"}
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {wellnessThanks && (
+          <div className="wellnessThanksOverlay">
+            <div className="wellnessThanksCard">
+              <span className="wellnessThanksEmoji">🎉</span>
+              <strong className="wellnessThanksText">
+                {paceZh ? "感谢打卡！" : "Thanks for submitting!"}
+              </strong>
             </div>
           </div>
         )}
@@ -28666,7 +28702,13 @@ function App() {
                       return (
                         <div key={`${exercise.id}-glance`}>
                           {showSectionHeader && (
-                            <h4 className="workoutGlanceSection">
+                            <h4
+                              className="workoutGlanceSection"
+                              style={{
+                                ["--sectionAccent" as string]:
+                                  sectionAccentColor(sectionName),
+                              } as React.CSSProperties}
+                            >
                               {sectionNameDisplay}
                             </h4>
                           )}
@@ -28678,8 +28720,19 @@ function App() {
                             type="button"
                             onClick={() => openWorkoutExerciseFromGlance(index)}
                           >
-                            <span className="exerciseLabelBadge">
-                              {meta.exerciseLabel || makeExerciseLabel(index)}
+                            <span
+                              className={`exerciseLabelBadge ${
+                                isWarmupSection(sectionName)
+                                  ? "exerciseLabelBadgeWarmup"
+                                  : getLabelColorClass(
+                                      meta.exerciseLabel,
+                                      sectionName
+                                    )
+                              }`}
+                            >
+                              {isWarmupSection(sectionName)
+                                ? index + 1
+                                : meta.exerciseLabel || makeExerciseLabel(index)}
                             </span>
                             <span>
                               <strong>{localizedExerciseName(exercise)}</strong>
@@ -28814,7 +28867,13 @@ function App() {
                     return (
                       <div key={exercise.id} {...focusSwipe}>
                         {showSectionHeader && (
-                          <h4 className="workoutSectionHeading">
+                          <h4
+                            className="workoutSectionHeading"
+                            style={{
+                              ["--sectionAccent" as string]:
+                                sectionAccentColor(sectionName),
+                            } as React.CSSProperties}
+                          >
                             {sectionNameDisplay}
                           </h4>
                         )}
@@ -28823,12 +28882,27 @@ function App() {
                           className={`exercise-card workoutLogExerciseCard ${
                             meta.isAccessory ? "accessoryWorkoutLogExerciseCard" : ""
                           }`}
+                          style={{
+                            ["--sectionAccent" as string]:
+                              sectionAccentColor(sectionName),
+                          } as React.CSSProperties}
                           id={`workout-exercise-${index}`}
                         >
                         <div className="exerciseTitleRow workoutExerciseHeader">
                           <div className="workoutExerciseTitle">
-                            <span className="exerciseLabelBadge">
-                              {meta.exerciseLabel || makeExerciseLabel(index)}
+                            <span
+                              className={`exerciseLabelBadge ${
+                                isWarmupSection(sectionName)
+                                  ? "exerciseLabelBadgeWarmup"
+                                  : getLabelColorClass(
+                                      meta.exerciseLabel,
+                                      sectionName
+                                    )
+                              }`}
+                            >
+                              {isWarmupSection(sectionName)
+                                ? index + 1
+                                : meta.exerciseLabel || makeExerciseLabel(index)}
                             </span>
                             <div>
                               <h3>{localizedExerciseName(exercise)}</h3>
@@ -29027,13 +29101,6 @@ function App() {
                                   />
                                 )}
                               </div>
-                              {log.side && (
-                                <div className="setLogStatic limbCell">
-                                  <span>{t("limb")}</span>
-                                  <strong>{sideLabel}</strong>
-                                </div>
-                              )}
-
                               {showWeightInputs && (
                                 <>
                                   {(() => {

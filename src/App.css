@@ -2907,16 +2907,21 @@ body {
 
 .clientPortalApp .workoutSectionHeading {
   background: #050505;
-  color: #d4af37;
+  color: #fff;
   border: 0;
+  border-left: 6px solid var(--sectionAccent, #d4af37);
   border-radius: 8px;
   padding: 10px 14px;
   margin: 26px 0 14px;
 }
+.clientPortalApp .workoutGlanceSection {
+  border-left: 4px solid var(--sectionAccent, #d4af37);
+  padding-left: 10px;
+}
 
 .clientPortalApp .workoutLogExerciseCard {
   border: 1px solid rgba(22, 22, 22, 0.18);
-  border-left: 6px solid #8f6b12;
+  border-left: 6px solid var(--sectionAccent, #8f6b12);
   background: #ffffff;
   box-shadow: 0 20px 54px rgba(0, 0, 0, 0.11);
   margin-bottom: 18px;
@@ -8300,9 +8305,9 @@ button.coachReviewGlobalItem,
   padding: 0;
 }
 .wellnessDot10.on {
-  background: #d4af37;
-  border-color: #d4af37;
-  color: #0d0d0d;
+  background: #0d0d0d;
+  border-color: #0d0d0d;
+  color: #d4af37;
 }
 .wellnessAnchors {
   display: flex;
@@ -8322,6 +8327,72 @@ button.coachReviewGlobalItem,
   accent-color: #d4af37;
   height: 28px;
   cursor: pointer;
+}
+
+/* Check-in submit celebration: emoji floats down and parks beside the text */
+.wellnessThanksOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1400;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(13, 13, 13, 0.5);
+  animation: wellnessThanksFade 0.25s ease;
+}
+.wellnessThanksCard {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 20px 28px;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+  animation: wellnessThanksPop 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.4);
+}
+.wellnessThanksEmoji {
+  font-size: 44px;
+  line-height: 1;
+  animation: wellnessEmojiDrop 0.9s cubic-bezier(0.2, 1.1, 0.3, 1) both;
+}
+.wellnessThanksText {
+  font-size: 19px;
+  font-weight: 900;
+  color: var(--nl-ink, #1a1a1a);
+}
+@keyframes wellnessThanksFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes wellnessThanksPop {
+  from {
+    transform: scale(0.85);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+@keyframes wellnessEmojiDrop {
+  0% {
+    transform: translateY(-90px) scale(0.4) rotate(-15deg);
+    opacity: 0;
+  }
+  55% {
+    transform: translateY(8px) scale(1.2) rotate(6deg);
+    opacity: 1;
+  }
+  75% {
+    transform: translateY(-3px) scale(0.95) rotate(-3deg);
+  }
+  100% {
+    transform: translateY(0) scale(1) rotate(0deg);
+  }
 }
 
 /* Coach wellness-trend metric toggle */
@@ -9673,6 +9744,7 @@ button.coachReviewGlobalItem,
 .workoutLogExerciseCard {
   padding: 16px;
   border-radius: 8px;
+  border-left: 5px solid var(--sectionAccent, #d4af37);
 }
 
 .exercise-card h3 {
@@ -9814,9 +9886,10 @@ button.coachReviewGlobalItem,
 
 .workoutSectionHeading {
   margin: 28px 0 10px;
-  padding-top: 12px;
-  border-top: 1px solid rgba(212, 175, 55, 0.2);
-  color: #d4af37;
+  padding: 8px 0 8px 12px;
+  border-top: 0;
+  border-left: 5px solid var(--sectionAccent, #d4af37);
+  color: var(--sectionAccent, #d4af37);
   font-size: 17px;
   letter-spacing: 0;
   text-transform: uppercase;
