@@ -1608,6 +1608,10 @@ function App() {
     bodyWeight: "",
     notes: "",
   });
+  // Coach client "Dashboard" sub-tabs: Sport Science (load + wellness) vs Activity.
+  const [coachDashTab, setCoachDashTab] = useState<"science" | "activity">(
+    "science"
+  );
   // Coach wellness-trend chart: which metric to plot for the selected client.
   const [wellnessMetric, setWellnessMetric] = useState<
     "readiness" | "sleep" | "sleepHours" | "energy" | "soreness" | "mood" | "stress" | "bodyWeight"
@@ -13708,35 +13712,6 @@ function App() {
   ]
     .sort((a, b) => a.date.localeCompare(b.date))
     .slice(0, 5);
-  const allSelectedClientTasks = [
-    ...workouts.map((workout) => ({
-      type: "workout" as const,
-      id: workout.id,
-      date: normalizeDate(String(workout.scheduledDate)),
-      title: localizedWorkoutName(workout),
-      meta: `${t("week")} ${workout.week} - ${t("day")} ${workout.day}`,
-      status: getDisplayTaskStatus(workout.completionStatus, workout.scheduledDate),
-      open: () => openWorkout(workout),
-    })),
-    ...contentAssignments.map((assignment) => ({
-      type: "assignment" as const,
-      id: assignment.recordId,
-      date: normalizeDate(String(assignment.dueDate || assignment.assignedDate)),
-      title: getAssignmentDisplayName(assignment),
-      meta: assignment.assignmentType || "Questionnaire",
-      status: getDisplayTaskStatus(
-        assignment.status,
-        assignment.dueDate || assignment.assignedDate
-      ),
-      open: () => handleOpenContentAssignment(assignment),
-    })),
-  ].sort((a, b) => a.date.localeCompare(b.date));
-  const dueTodayTasks = allSelectedClientTasks.filter(
-    (task) => task.date === todayValue && task.status === "Scheduled"
-  );
-  const completedTodayTasks = allSelectedClientTasks.filter(
-    (task) => task.date === todayValue && task.status === "Completed"
-  );
   const localizeTaskStatus = (status: SimpleTaskStatus) => {
     if (status === "Completed") return t("completed");
     if (status === "Missed") return t("missed");
@@ -13816,31 +13791,6 @@ function App() {
     return response.responseType === "Physical Test" ? t("testResult") : t("answer");
   };
 
-  const questionnaireScaleAnswers = contentResponses
-    .filter((response) =>
-      response.responseType.toLowerCase().includes("question")
-    )
-    .map((response) => ({
-      ...response,
-      numericAnswer: Number(response.answer),
-    }))
-    .filter((response) => Number.isFinite(response.numericAnswer))
-    .sort((a, b) => a.submittedAt.localeCompare(b.submittedAt));
-
-  const readinessTrendPoints = questionnaireScaleAnswers.slice(-8);
-  const latestReadinessScore =
-    readinessTrendPoints[readinessTrendPoints.length - 1]?.numericAnswer || 0;
-  const averageReadinessScore =
-    readinessTrendPoints.length > 0
-      ? Math.round(
-          (readinessTrendPoints.reduce(
-            (sum, point) => sum + point.numericAnswer,
-            0
-          ) /
-            readinessTrendPoints.length) *
-            10
-        ) / 10
-      : 0;
   const getAthleteMetricTimestamp = (metric: AthleteMetric) => {
     const raw = String(metric.measuredAt || "").trim();
     // Feishu date fields return epoch milliseconds; parse those directly so the
@@ -23744,7 +23694,59 @@ function App() {
                     </div>
                   )}
 
-                  {(!isClientPortal || portalHomeTab === "tasks") && (
+                  {!isClientPortal && (
+                    <div
+                      className="portalHomeTabs coachDashTabs"
+                      role="tablist"
+                      aria-label="Client dashboard sections"
+                    >
+                      {(
+                        [
+                          ["science", paceZh ? "运动科学" : "Sport Science"],
+                          ["activity", paceZh ? "活动" : "Activity"],
+                        ] as Array<[typeof coachDashTab, string]>
+                      ).map(([key, label]) => (
+                        <button
+                          key={key}
+                          type="button"
+                          role="tab"
+                          aria-selected={coachDashTab === key}
+                          className={`portalHomeTab${
+                            coachDashTab === key ? " portalHomeTabActive" : ""
+                          }`}
+                          onClick={() => setCoachDashTab(key)}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {!isClientPortal && coachDashTab === "science" && (
+                    <>
+                      <section className="clientHomePanel coachSciencePanel">
+                        <div className="clientHomePanelHeader">
+                          <div>
+                            <span>{paceZh ? "运动科学" : "Sport Science"}</span>
+                            <h2>{paceZh ? "训练负荷" : "Training Load"}</h2>
+                          </div>
+                        </div>
+                        {renderLoadDashboard()}
+                      </section>
+                      <section className="clientHomePanel coachSciencePanel">
+                        <div className="clientHomePanelHeader">
+                          <div>
+                            <span>{paceZh ? "每日状态" : "Daily wellness"}</span>
+                            <h2>{paceZh ? "状态趋势" : "Wellness Trends"}</h2>
+                          </div>
+                        </div>
+                        {renderWellnessTrends()}
+                      </section>
+                    </>
+                  )}
+
+                  {((isClientPortal && portalHomeTab === "tasks") ||
+                    (!isClientPortal && coachDashTab === "activity")) && (
                   <section className="clientHomePanel upcomingHomePanel">
                     <div className="clientHomePanelHeader">
                       <div>
@@ -23855,7 +23857,7 @@ function App() {
                     isWorkloadMonitored &&
                     renderWorkloadTab()}
 
-                  {!isClientPortal && (
+                  {!isClientPortal && coachDashTab === "activity" && (
                   <section className="clientHomePanel focusHomePanel">
                     <div className="clientHomePanelHeader">
                       <div>
@@ -23949,11 +23951,23 @@ function App() {
                         <button
                           className="coachAlertCard"
                           type="button"
-                          onClick={() => jumpToTaskDate(todayValue)}
+                          onClick={() => {
+                            const next = clientPortalUpcomingTasks[0];
+                            if (next?.date) jumpToTaskDate(next.date);
+                          }}
                         >
-                          <span>Completed Today</span>
-                          <strong>{completedTodayTasks.length}</strong>
-                          <small>{dueTodayTasks.length} still scheduled</small>
+                          <span>Next Session</span>
+                          <strong>
+                            {clientPortalUpcomingTasks[0]
+                              ? localizedCalendarLabel(
+                                  clientPortalUpcomingTasks[0].date
+                                )
+                              : "—"}
+                          </strong>
+                          <small>
+                            {clientPortalUpcomingTasks[0]?.title ||
+                              "Nothing scheduled"}
+                          </small>
                         </button>
 
                         <button
@@ -23972,43 +23986,6 @@ function App() {
                           <small>
                             {completedTaskCount}/{totalTaskCount || 0} assigned tasks
                           </small>
-                        </div>
-
-                        <div className="snapshotMetricCard">
-                          <span>Readiness</span>
-                          <strong>
-                            {latestReadinessScore ? latestReadinessScore : "--"}
-                          </strong>
-                          <small>
-                            {averageReadinessScore
-                              ? `${averageReadinessScore} avg`
-                              : "No scale answers yet"}
-                          </small>
-                        </div>
-
-                        <div className="snapshotTrendCard">
-                          <span>Questionnaire Trend</span>
-                          <div className="readinessSparkline">
-                            {readinessTrendPoints.length > 0 ? (
-                              readinessTrendPoints.map((point) => (
-                                <div
-                                  className="readinessSparkBar"
-                                  key={`${point.recordId}-${point.itemId}`}
-                                  style={{
-                                    height: `${Math.max(
-                                      14,
-                                      Math.min(100, point.numericAnswer * 20)
-                                    )}%`,
-                                  }}
-                                  title={`${getContentResponseLabel(point)}: ${
-                                    point.numericAnswer
-                                  }`}
-                                />
-                              ))
-                            ) : (
-                              <p className="homeEmptyText">No questionnaire data yet.</p>
-                            )}
-                          </div>
                         </div>
 
                         <div className="snapshotAttentionCard coachReviewQueuePanel">
@@ -24056,7 +24033,7 @@ function App() {
                   </section>
                   )}
 
-                  {!isClientPortal && (
+                  {!isClientPortal && coachDashTab === "activity" && (
                     <section className="clientHomePanel submissionsHomePanel">
                       <div className="clientHomePanelHeader">
                         <div>

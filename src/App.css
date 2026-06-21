@@ -12075,7 +12075,8 @@ button.coachReviewGlobalItem,
    a tall neighbour, ballooning into a giant rounded blob. */
 .clientHomeGrid > .portalHomeTabs,
 .clientHomeGrid > .wellnessReply,
-.clientHomeGrid > .wellnessCard {
+.clientHomeGrid > .wellnessCard,
+.clientHomeGrid > .coachSciencePanel {
   grid-column: 1 / -1;
 }
 
