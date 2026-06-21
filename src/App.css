@@ -8304,6 +8304,25 @@ button.coachReviewGlobalItem,
   border-color: #d4af37;
   color: #0d0d0d;
 }
+.wellnessAnchors {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--nl-muted, #68645d);
+}
+
+/* Sleep-duration slider */
+.wellnessSliderField {
+  margin-top: 4px;
+}
+.wellnessSlider {
+  width: 100%;
+  accent-color: #d4af37;
+  height: 28px;
+  cursor: pointer;
+}
 
 /* Coach wellness-trend metric toggle */
 .wellnessMetricToggle {

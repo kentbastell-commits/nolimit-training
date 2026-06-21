@@ -47,6 +47,7 @@ import "./App.css";
 // Charts are lazy-loaded so recharts stays out of the main bundle.
 const RevenueChart = lazy(() => import("./RevenueChart"));
 const ProgressChart = lazy(() => import("./ProgressChart"));
+const WellnessChart = lazy(() => import("./WellnessChart"));
 
 type AppMode = "Coach" | "Client";
 type Page =
@@ -11499,7 +11500,7 @@ function App() {
     const openForm = () => {
       setWellnessForm({
         sleep: 0,
-        sleepHours: "",
+        sleepHours: "8",
         energy: 0,
         soreness: 0,
         mood: 0,
@@ -11511,12 +11512,42 @@ function App() {
     };
 
     const collapsed = !!todayCheckIn;
-    const scaleRows: [keyof typeof wellnessForm, string][] = [
-      ["sleep", paceZh ? "睡眠质量" : "Sleep"],
-      ["energy", paceZh ? "精力" : "Energy"],
-      ["soreness", paceZh ? "酸痛" : "Soreness"],
-      ["mood", paceZh ? "心情" : "Mood"],
-      ["stress", paceZh ? "压力" : "Stress"],
+    const scaleRows: {
+      key: keyof typeof wellnessForm;
+      label: string;
+      low: string;
+      high: string;
+    }[] = [
+      {
+        key: "sleep",
+        label: paceZh ? "睡眠质量" : "Sleep Quality",
+        low: paceZh ? "差" : "Poor",
+        high: paceZh ? "极好" : "Excellent",
+      },
+      {
+        key: "energy",
+        label: paceZh ? "精力" : "Energy",
+        low: paceZh ? "差" : "Poor",
+        high: paceZh ? "极好" : "Excellent",
+      },
+      {
+        key: "soreness",
+        label: paceZh ? "酸痛" : "Soreness",
+        low: paceZh ? "无" : "None",
+        high: paceZh ? "很多" : "A lot",
+      },
+      {
+        key: "mood",
+        label: paceZh ? "心情" : "Mood",
+        low: paceZh ? "低落" : "Low",
+        high: paceZh ? "极好" : "Excellent",
+      },
+      {
+        key: "stress",
+        label: paceZh ? "压力" : "Stress",
+        low: paceZh ? "低" : "Low",
+        high: paceZh ? "高" : "High",
+      },
     ];
 
     return (
@@ -11583,7 +11614,7 @@ function App() {
               onClick={(e) => e.stopPropagation()}
             >
               <h3>{paceZh ? "今日状态" : "Daily check-in"}</h3>
-              {scaleRows.map(([key, label]) => (
+              {scaleRows.map(({ key, label, low, high }) => (
                 <div className="wellnessRow10" key={key}>
                   <span className="wellnessRowLabel">
                     {label}
@@ -11609,19 +11640,34 @@ function App() {
                       </button>
                     ))}
                   </div>
+                  <div className="wellnessAnchors">
+                    <span>{low}</span>
+                    <span>{high}</span>
+                  </div>
                 </div>
               ))}
-              <label className="wellnessField">
-                <span>{paceZh ? "睡眠时长（小时）" : "Sleep time (hours)"}</span>
+              <label className="wellnessField wellnessSliderField">
+                <span>
+                  {paceZh ? "睡眠时长" : "Sleep duration"}
+                  <em className="wellnessRowValue">
+                    {wellnessForm.sleepHours || 0} {paceZh ? "小时" : "h"}
+                  </em>
+                </span>
                 <input
-                  type="number"
-                  inputMode="decimal"
+                  type="range"
+                  className="wellnessSlider"
+                  min="0"
+                  max="16"
                   step="0.5"
-                  value={wellnessForm.sleepHours}
+                  value={wellnessForm.sleepHours || "0"}
                   onChange={(e) =>
                     setWellnessForm((f) => ({ ...f, sleepHours: e.target.value }))
                   }
                 />
+                <div className="wellnessAnchors">
+                  <span>0h</span>
+                  <span>16h</span>
+                </div>
               </label>
               <label className="wellnessField">
                 <span>{paceZh ? "体重 (kg)" : "Body weight (kg)"}</span>
@@ -11698,8 +11744,8 @@ function App() {
       get: (c: PortalCheckIn) => number;
     }[] = [
       { key: "readiness", label: paceZh ? "状态" : "Readiness", unit: "", get: (c) => Number(c.readinessScore) || 0 },
-      { key: "sleep", label: paceZh ? "睡眠" : "Sleep", unit: "", get: (c) => Number(c.sleepQuality) || 0 },
-      { key: "sleepHours", label: paceZh ? "睡眠时长" : "Sleep hrs", unit: "h", get: (c) => Number(c.sleepHours) || 0 },
+      { key: "sleep", label: paceZh ? "睡眠质量" : "Sleep Quality", unit: "", get: (c) => Number(c.sleepQuality) || 0 },
+      { key: "sleepHours", label: paceZh ? "睡眠时长" : "Sleep Duration", unit: "h", get: (c) => Number(c.sleepHours) || 0 },
       { key: "energy", label: paceZh ? "精力" : "Energy", unit: "", get: (c) => Number(c.energy) || 0 },
       { key: "soreness", label: paceZh ? "酸痛" : "Soreness", unit: "", get: (c) => Number(c.soreness) || 0 },
       { key: "mood", label: paceZh ? "心情" : "Mood", unit: "", get: (c) => Number(c.mood) || 0 },
@@ -11707,16 +11753,21 @@ function App() {
       { key: "bodyWeight", label: paceZh ? "体重" : "Weight", unit: "kg", get: (c) => Number(c.bodyWeight) || 0 },
     ];
     const cfg = metrics.find((m) => m.key === wellnessMetric) || metrics[0];
-    const points = clientCheckIns
+    const raw = clientCheckIns
       .slice()
       .sort((a, b) => a.submittedDate.localeCompare(b.submittedDate))
-      .map((c) => ({ date: c.submittedDate, value: cfg.get(c), unit: cfg.unit }))
+      .map((c) => ({ date: c.submittedDate, value: cfg.get(c) }))
       .filter((p) => p.value > 0)
       .slice(-30);
+    // Daily values + a trailing 7-day ("weekly") moving average overlay.
+    const points = raw.map((p, i) => {
+      const win = raw.slice(Math.max(0, i - 6), i + 1);
+      const avg =
+        Math.round((win.reduce((a, x) => a + x.value, 0) / win.length) * 10) / 10;
+      return { date: p.date, value: p.value, avg };
+    });
     const latest = points[points.length - 1];
-    const avg = points.length
-      ? Math.round((points.reduce((a, p) => a + p.value, 0) / points.length) * 10) / 10
-      : 0;
+    const weeklyAvg = latest ? latest.avg : 0;
     return (
       <div className="wellnessTrends">
         <div className="wellnessMetricToggle">
@@ -11742,15 +11793,21 @@ function App() {
                 </strong>
               </div>
               <div>
-                <span>{paceZh ? "平均" : "Average"}</span>
+                <span>{paceZh ? "周均" : "Weekly avg"}</span>
                 <strong>
-                  {avg}
+                  {weeklyAvg}
                   {cfg.unit}
                 </strong>
               </div>
             </div>
             <Suspense fallback={<div className="chartLoading">{t("loading")}</div>}>
-              <ProgressChart points={points} locale={clientLocale} unit={cfg.unit} />
+              <WellnessChart
+                points={points}
+                locale={clientLocale}
+                unit={cfg.unit}
+                dailyLabel={paceZh ? "当日" : "Daily"}
+                avgLabel={paceZh ? "周均" : "Weekly avg"}
+              />
             </Suspense>
           </>
         ) : (
