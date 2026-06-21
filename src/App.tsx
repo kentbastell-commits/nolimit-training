@@ -15065,20 +15065,6 @@ function App() {
     if (computeWorkoutPrs().length) vibrate(40);
   };
 
-  // Most recent prior performance for a given exercise + set number, used to
-  // surface "last time" targets the athlete can tap to pre-fill.
-  const lastTimeForSet = (exerciseName: string, setNumber: number) => {
-    const base = exerciseName.split(" - ")[0].toLowerCase();
-    const matches = workoutHistoryLogs.filter(
-      (l) =>
-        l.exerciseName.toLowerCase().startsWith(base) &&
-        String(l.setNumber) === String(setNumber)
-    );
-    if (!matches.length) return null;
-    matches.sort((a, b) => (b.date || "").localeCompare(a.date || ""));
-    return matches[0];
-  };
-
   // Swipe left/right on the focus card to move between exercises. Ignore
   // mostly-vertical drags so scrolling and input taps still work.
   const handleFocusTouchStart = (e: React.TouchEvent) => {
@@ -29121,10 +29107,6 @@ function App() {
                               ? t("left")
                               : log.side;
                           const setComplete = isSetComplete(log);
-                          const lastTime = lastTimeForSet(
-                            log.exerciseName,
-                            log.setNumber
-                          );
 
                           return (
                             <div
@@ -29143,7 +29125,7 @@ function App() {
                                 }
                               >
                                 <strong>
-                                  {t("set", { number: log.setNumber })}
+                                  {t("setNo", { number: log.setNumber })}
                                   {sideLabel ? ` · ${sideLabel}` : ""}
                                 </strong>
                                 {setComplete && (
@@ -29154,65 +29136,6 @@ function App() {
                                   />
                                 )}
                               </div>
-                              {lastTime &&
-                                (lastTime.actualReps ||
-                                  lastTime.actualWeight ||
-                                  lastTime.actualTime ||
-                                  lastTime.actualDistance) && (
-                                  <button
-                                    type="button"
-                                    className="setLastTimeChip"
-                                    onClick={() => {
-                                      if (lastTime.actualReps)
-                                        updateSetLog(
-                                          globalIndex,
-                                          "actualReps",
-                                          lastTime.actualReps
-                                        );
-                                      if (lastTime.actualWeight)
-                                        updateSetLog(
-                                          globalIndex,
-                                          "actualWeight",
-                                          lastTime.actualWeight
-                                        );
-                                      if (lastTime.actualTime)
-                                        updateSetLog(
-                                          globalIndex,
-                                          "actualTime",
-                                          lastTime.actualTime
-                                        );
-                                      if (lastTime.actualDistance)
-                                        updateSetLog(
-                                          globalIndex,
-                                          "actualDistance",
-                                          lastTime.actualDistance
-                                        );
-                                      vibrate(8);
-                                    }}
-                                    title={paceZh ? "填入上次数据" : "Tap to fill last time"}
-                                  >
-                                    <Clock3 size={13} aria-hidden="true" />
-                                    {paceZh ? "上次 " : "Last "}
-                                    {[
-                                      lastTime.actualReps
-                                        ? `${lastTime.actualReps}${
-                                            paceZh ? "次" : " reps"
-                                          }`
-                                        : "",
-                                      lastTime.actualWeight
-                                        ? `${lastTime.actualWeight} ${weightUnit}`
-                                        : "",
-                                      lastTime.actualTime
-                                        ? `${lastTime.actualTime}s`
-                                        : "",
-                                      lastTime.actualDistance
-                                        ? `${lastTime.actualDistance}m`
-                                        : "",
-                                    ]
-                                      .filter(Boolean)
-                                      .join(" · ")}
-                                  </button>
-                                )}
                               {log.side && (
                                 <div className="setLogStatic limbCell">
                                   <span>{t("limb")}</span>

@@ -22263,3 +22263,22 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
     flex-direction: column;
   }
 }
+
+/* Workout player: per-set header reads as a black bar with gold "Set N" text
+   (easier to scan than the previous grey). Last in source + !important so it
+   beats the earlier grey .clientPortalApp .setBanner override. */
+.clientPortalApp .workoutLogExerciseCard .setBanner,
+.clientPortalApp .setBanner {
+  background: #0d0d0d !important;
+  border-color: #0d0d0d !important;
+}
+.clientPortalApp .workoutLogExerciseCard .setBanner strong,
+.clientPortalApp .desktopWorkoutSetLabel strong,
+.clientPortalApp .setBanner strong {
+  color: #d4af37 !important;
+}
+.clientPortalApp .workoutLogExerciseCard .desktopWorkoutSetLabel,
+.clientPortalApp .desktopWorkoutSetLabel {
+  background: #0d0d0d !important;
+  border-color: #0d0d0d !important;
+}
