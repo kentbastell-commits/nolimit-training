@@ -8221,6 +8221,80 @@ button.coachReviewGlobalItem,
   font-weight: 800;
   cursor: pointer;
 }
+.programShareBtn {
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+  padding: 12px 18px;
+  border-radius: 999px;
+  border: none;
+  background: #d4af37;
+  color: #0d0d0d;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.programShareBtn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* Shareable finisher card modal */
+.finisherOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(13, 13, 13, 0.78);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.finisherModal {
+  width: 100%;
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.finisherImg {
+  width: 100%;
+  border-radius: 16px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+}
+.finisherHint {
+  margin: 12px 0 8px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.85);
+  text-align: center;
+}
+.finisherActions {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+}
+.finisherShare {
+  flex: 1;
+  padding: 12px;
+  border-radius: 999px;
+  border: none;
+  background: #d4af37;
+  color: #0d0d0d;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.finisherClose {
+  flex: 0 0 auto;
+  padding: 12px 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  background: transparent;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
 
 .programNextCard.today {
   border-color: #d4af37;

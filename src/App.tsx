@@ -1548,6 +1548,11 @@ function App() {
   const [programsTab, setProgramsTab] = useState<"progress" | "edit" | "store">(
     "progress"
   );
+  // Shareable "program complete" finisher card (rendered to a PNG the athlete
+  // can long-press to save / share to WeChat moments).
+  const [finisherOpen, setFinisherOpen] = useState(false);
+  const [finisherUrl, setFinisherUrl] = useState("");
+  const [finisherBusy, setFinisherBusy] = useState(false);
   const homeTouchRef = useRef<{ x: number; y: number } | null>(null);
   // Athlete weekly workload self-report (technical + extra cardio sessions).
   const [workloadLogs, setWorkloadLogs] = useState<WorkloadLog[]>([]);
@@ -10909,6 +10914,193 @@ function App() {
   const selectedClientProgramLastDate =
     selectedClientProgramSortedDates[selectedClientProgramSortedDates.length - 1] || "";
 
+  // Draw the shareable finisher card to a canvas and return a PNG data URL.
+  // Pure Canvas (no html2canvas dependency); the monogram is same-origin so the
+  // canvas stays untainted and exports cleanly.
+  const buildFinisherCard = (payload: {
+    programName: string;
+    weeks: number;
+    sessions: number;
+    prs: { name: string; weight: number }[];
+    coachName: string;
+  }): Promise<string> =>
+    new Promise((resolve) => {
+      const W = 1080;
+      const H = 1350;
+      const canvas = document.createElement("canvas");
+      canvas.width = W;
+      canvas.height = H;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        resolve("");
+        return;
+      }
+      const gold = "#d4af37";
+      const ink = "#0d0d0d";
+      ctx.fillStyle = ink;
+      ctx.fillRect(0, 0, W, H);
+      // Gold border frame
+      ctx.strokeStyle = gold;
+      ctx.lineWidth = 4;
+      ctx.strokeRect(48, 48, W - 96, H - 96);
+
+      const center = W / 2;
+      const draw = () => {
+        ctx.textAlign = "center";
+        // Eyebrow
+        ctx.fillStyle = gold;
+        ctx.font = "700 34px Georgia, serif";
+        ctx.fillText(
+          paceZh ? "计 划 完 成" : "P R O G R A M   C O M P L E T E",
+          center,
+          560
+        );
+        // Program name (wrap to 2 lines if long)
+        ctx.fillStyle = "#ffffff";
+        const name = payload.programName || "Program";
+        const fitName = (size: number) => {
+          ctx.font = `800 ${size}px Georgia, serif`;
+          return ctx.measureText(name).width;
+        };
+        let size = 84;
+        while (size > 48 && fitName(size) > W - 200) size -= 4;
+        ctx.font = `800 ${size}px Georgia, serif`;
+        if (fitName(size) > W - 160) {
+          const words = name.split(" ");
+          const mid = Math.ceil(words.length / 2);
+          ctx.fillText(words.slice(0, mid).join(" "), center, 660);
+          ctx.fillText(words.slice(mid).join(" "), center, 660 + size + 8);
+        } else {
+          ctx.fillText(name, center, 670);
+        }
+        // Checkmark seal
+        ctx.beginPath();
+        ctx.arc(center, 800, 46, 0, Math.PI * 2);
+        ctx.fillStyle = gold;
+        ctx.fill();
+        ctx.strokeStyle = ink;
+        ctx.lineWidth = 10;
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        ctx.moveTo(center - 20, 800);
+        ctx.lineTo(center - 6, 816);
+        ctx.lineTo(center + 22, 784);
+        ctx.stroke();
+
+        // Stats row
+        const stats: [string, string][] = [
+          [String(payload.weeks), paceZh ? "周" : "WEEKS"],
+          [String(payload.sessions), paceZh ? "节训练" : "SESSIONS"],
+          [String(payload.prs.length), paceZh ? "个纪录" : "PRs"],
+        ];
+        const colW = (W - 200) / 3;
+        stats.forEach(([big, small], i) => {
+          const cx = 100 + colW * i + colW / 2;
+          ctx.fillStyle = gold;
+          ctx.font = "800 76px Georgia, serif";
+          ctx.fillText(big, cx, 960);
+          ctx.fillStyle = "rgba(255,255,255,0.7)";
+          ctx.font = "700 26px Georgia, serif";
+          ctx.fillText(small, cx, 1000);
+        });
+
+        // PR lines
+        let y = 1080;
+        if (payload.prs.length) {
+          ctx.fillStyle = "rgba(255,255,255,0.55)";
+          ctx.font = "700 26px Georgia, serif";
+          ctx.fillText(paceZh ? "个人纪录" : "PERSONAL RECORDS", center, y);
+          y += 46;
+          ctx.fillStyle = "#ffffff";
+          ctx.font = "600 32px Georgia, serif";
+          payload.prs.slice(0, 3).forEach((pr) => {
+            ctx.fillText(
+              `🏆 ${pr.name} — ${pr.weight}${paceZh ? "公斤" : "kg"}`,
+              center,
+              y
+            );
+            y += 44;
+          });
+        }
+
+        // Footer
+        ctx.fillStyle = gold;
+        ctx.font = "700 32px Georgia, serif";
+        ctx.fillText("NoLimit Training", center, H - 110);
+        ctx.fillStyle = "rgba(255,255,255,0.5)";
+        ctx.font = "500 24px Georgia, serif";
+        ctx.fillText(
+          `${payload.coachName} · ${new Date().toLocaleDateString(
+            paceZh ? "zh-CN" : "en-US",
+            { year: "numeric", month: "short", day: "numeric" }
+          )}`,
+          center,
+          H - 70
+        );
+        resolve(canvas.toDataURL("image/png"));
+      };
+
+      // Monogram at the top, then draw the rest.
+      const logo = new Image();
+      logo.onload = () => {
+        const lw = 200;
+        const lh = (logo.height / logo.width) * lw || 200;
+        ctx.drawImage(logo, center - lw / 2, 180, lw, lh);
+        draw();
+      };
+      logo.onerror = () => draw();
+      logo.src = "/nl_monogram_clean.png";
+    });
+
+  const openFinisherCard = async (payload: {
+    programName: string;
+    weeks: number;
+    sessions: number;
+    prs: { name: string; weight: number }[];
+    coachName: string;
+  }) => {
+    setFinisherBusy(true);
+    try {
+      const url = await buildFinisherCard(payload);
+      if (!url) {
+        notify(
+          paceZh ? "无法生成图片。" : "Could not generate the image.",
+          "error"
+        );
+        return;
+      }
+      setFinisherUrl(url);
+      setFinisherOpen(true);
+      vibrate(40);
+    } finally {
+      setFinisherBusy(false);
+    }
+  };
+
+  const shareFinisherCard = async () => {
+    if (!finisherUrl) return;
+    try {
+      const blob = await (await fetch(finisherUrl)).blob();
+      const file = new File([blob], "nolimit-finish.png", { type: "image/png" });
+      const nav = navigator as Navigator & {
+        canShare?: (data: { files: File[] }) => boolean;
+      };
+      if (nav.canShare && nav.canShare({ files: [file] })) {
+        await nav.share({
+          files: [file],
+          title: "NoLimit Training",
+        } as ShareData);
+        return;
+      }
+    } catch {
+      /* fall back to download */
+    }
+    const a = document.createElement("a");
+    a.href = finisherUrl;
+    a.download = "nolimit-finish.png";
+    a.click();
+  };
+
   // "Program home" — progress, next workout, and the week-by-week syllabus for
   // the selected purchased program (shown once it's loaded onto the calendar).
   const renderProgramHome = () => {
@@ -11157,6 +11349,28 @@ function App() {
                   ? "你已完成本计划的所有训练。"
                   : "You've finished every session in this program."}
               </span>
+              <button
+                type="button"
+                className="programShareBtn"
+                disabled={finisherBusy}
+                onClick={() =>
+                  openFinisherCard({
+                    programName: localizedProgramName(selectedClientProgram),
+                    weeks: maxWeek,
+                    sessions: total,
+                    prs: prMoments,
+                    coachName: coachName,
+                  })
+                }
+              >
+                {finisherBusy
+                  ? paceZh
+                    ? "生成中…"
+                    : "Creating…"
+                  : paceZh
+                    ? "分享我的成绩 📤"
+                    : "Share my finish 📤"}
+              </button>
               {(() => {
                 const owned = new Set(
                   uniqueClientPurchasedPrograms.map((p) => p.programId)
@@ -11288,6 +11502,45 @@ function App() {
             );
           })}
         </div>
+
+        {finisherOpen && (
+          <div
+            className="finisherOverlay"
+            onClick={() => setFinisherOpen(false)}
+          >
+            <div
+              className="finisherModal"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <img
+                className="finisherImg"
+                src={finisherUrl}
+                alt={paceZh ? "完成证书" : "Finisher card"}
+              />
+              <p className="finisherHint">
+                {paceZh
+                  ? "长按图片即可保存，分享到朋友圈 🎉"
+                  : "Long-press the image to save, then share it 🎉"}
+              </p>
+              <div className="finisherActions">
+                <button
+                  type="button"
+                  className="finisherShare"
+                  onClick={shareFinisherCard}
+                >
+                  {paceZh ? "保存 / 分享" : "Save / Share"}
+                </button>
+                <button
+                  type="button"
+                  className="finisherClose"
+                  onClick={() => setFinisherOpen(false)}
+                >
+                  {paceZh ? "关闭" : "Close"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   };
