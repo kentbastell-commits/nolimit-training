@@ -2704,6 +2704,15 @@ body {
 
 .clientPortalApp .clientWorkspace {
   width: 100%;
+  max-width: 960px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* The client portal is mobile-first; on desktop keep Home as one stacked
+   column (like the app) so single-section tabs don't leave an empty column. */
+.clientPortalApp .clientHomeGrid {
+  grid-template-columns: 1fr;
 }
 
 .clientPortalApp .mobileClientBottomNav {
