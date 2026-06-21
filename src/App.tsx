@@ -10941,8 +10941,163 @@ function App() {
     const currentWeek = next ? Number(next.week) || 1 : maxWeek;
     const allDone = completed === total;
 
+    // ----- Momentum: streak + consistency calendar (real training days) -----
+    const pad2 = (n: number) => String(n).padStart(2, "0");
+    const trainedDates = new Set(
+      workoutHistoryLogs.map((l) => (l.date || "").slice(0, 10)).filter(Boolean)
+    );
+    const todayKey = dateToInputValue(new Date());
+    const trainedToday = trainedDates.has(todayKey);
+    const todaySession = sessions.find(
+      (s) => normalizeDate(String(s.scheduledDate)) === todayKey
+    );
+    // Week streak: consecutive Mon–Sun weeks with at least one trained day,
+    // counting back from this week (this week is forgiven if not started yet).
+    const mondayOf = (d: Date) => {
+      const dt = new Date(d);
+      dt.setDate(dt.getDate() - ((dt.getDay() + 6) % 7));
+      return dateToInputValue(dt);
+    };
+    const trainedWeeks = new Set(
+      [...trainedDates].map((d) => mondayOf(new Date(`${d}T00:00:00`)))
+    );
+    let streakWeeks = 0;
+    const probe = new Date();
+    if (!trainedWeeks.has(mondayOf(probe))) probe.setDate(probe.getDate() - 7);
+    while (trainedWeeks.has(mondayOf(probe))) {
+      streakWeeks++;
+      probe.setDate(probe.getDate() - 7);
+    }
+    // Current-month calendar grid (Mon-first), dots on trained days.
+    const calNow = new Date();
+    const calYear = calNow.getFullYear();
+    const calMonth = calNow.getMonth();
+    const calLead = (new Date(calYear, calMonth, 1).getDay() + 6) % 7;
+    const calDays = new Date(calYear, calMonth + 1, 0).getDate();
+    const calCells: (string | null)[] = [];
+    for (let i = 0; i < calLead; i++) calCells.push(null);
+    for (let d = 1; d <= calDays; d++)
+      calCells.push(`${calYear}-${pad2(calMonth + 1)}-${pad2(d)}`);
+    const trainedThisMonth = calCells.filter(
+      (k) => k && trainedDates.has(k)
+    ).length;
+    const monthLabel = paceZh
+      ? `${calMonth + 1}月`
+      : calNow.toLocaleString("en-US", { month: "long" });
+    const dayHeads = paceZh
+      ? ["一", "二", "三", "四", "五", "六", "日"]
+      : ["M", "T", "W", "T", "F", "S", "S"];
+
+    // ----- PR moments earned during this program's date window -----
+    const programFirst = selectedClientProgramFirstDate;
+    const prByExercise = new Map<string, { w: number; date: string }[]>();
+    for (const l of workoutHistoryLogs) {
+      const w = parseFloat(l.actualWeight);
+      if (Number.isNaN(w) || w <= 0) continue;
+      const base = (l.exerciseName || "").split(" - ")[0];
+      if (!base) continue;
+      if (!prByExercise.has(base)) prByExercise.set(base, []);
+      prByExercise.get(base)!.push({ w, date: (l.date || "").slice(0, 10) });
+    }
+    const prMoments: { name: string; weight: number }[] = [];
+    for (const [name, logs] of prByExercise) {
+      let best = 0;
+      let bestDate = "";
+      for (const e of logs)
+        if (e.w > best) {
+          best = e.w;
+          bestDate = e.date;
+        }
+      const priorMax = logs
+        .filter((e) => e.date < bestDate)
+        .reduce((m, e) => (e.w > m ? e.w : m), 0);
+      if (best > priorMax && priorMax > 0 && (!programFirst || bestDate >= programFirst))
+        prMoments.push({ name, weight: best });
+    }
+    prMoments.sort((a, b) => b.weight - a.weight);
+
+    // ----- Milestone badges from program progress -----
+    const completedWeekNums = weeks
+      .filter(([, items]) => items.every(isDone))
+      .map(([wk]) => wk);
+    const lastCompletedWeek = completedWeekNums.length
+      ? Math.max(...completedWeekNums)
+      : 0;
+    const milestones: string[] = [];
+    if (completed === 1)
+      milestones.push(paceZh ? "首次训练完成 🎉" : "First session done 🎉");
+    if (lastCompletedWeek > 0)
+      milestones.push(
+        paceZh ? `第 ${lastCompletedWeek} 周完成 ✅` : `Week ${lastCompletedWeek} complete ✅`
+      );
+    if (pct >= 50 && pct < 80)
+      milestones.push(paceZh ? "已过半 🎯" : "Halfway there 🎯");
+    if (pct >= 80 && pct < 100)
+      milestones.push(paceZh ? "就快完成 🔥" : "Almost there 🔥");
+
+    // ----- Coach presence -----
+    const coachName = (selectedClientProgram?.coach || "Kent Bastell").trim();
+    const coachInitials =
+      coachName
+        .split(/\s+/)
+        .map((s) => s[0])
+        .filter(Boolean)
+        .slice(0, 2)
+        .join("")
+        .toUpperCase() || "NL";
+    const coachMsg = allDone
+      ? paceZh
+        ? "干得漂亮，全部完成了！"
+        : "Incredible work finishing this block."
+      : pct >= 50
+        ? paceZh
+          ? "已经过半，保持节奏！"
+          : "You're past halfway — keep the rhythm going."
+        : completed > 0
+          ? paceZh
+            ? "开局不错，保持稳定。"
+            : "Strong start — consistency is everything."
+          : paceZh
+            ? "我们开始吧，第一节训练在等你。"
+            : "Let's get to work — your first session awaits.";
+
+    const nextIsToday =
+      !!next && normalizeDate(String(next.scheduledDate)) === todayKey;
+
     return (
       <div className="programHome">
+        <div className="programCoachCard">
+          <span className="programCoachAvatar">{coachInitials}</span>
+          <div className="programCoachBody">
+            <span className="programCoachName">
+              {coachName} · {paceZh ? "你的教练" : "your coach"}
+            </span>
+            <strong className="programCoachMsg">{coachMsg}</strong>
+          </div>
+        </div>
+
+        <div
+          className={`programStatusPill ${
+            trainedToday
+              ? "trained"
+              : todaySession && !isDone(todaySession)
+                ? "training"
+                : "rest"
+          }`}
+        >
+          {trainedToday
+            ? paceZh
+              ? "✓ 今天已训练"
+              : "✓ Trained today"
+            : todaySession && !isDone(todaySession)
+              ? paceZh
+                ? "今天 · 训练日"
+                : "Today · training day"
+              : paceZh
+                ? "休息日 · 好好恢复"
+                : "Rest day · recover well"}
+        </div>
+
         <div className="programProgressCard">
           <div
             className="programProgressRing"
@@ -10968,11 +11123,17 @@ function App() {
         {next ? (
           <button
             type="button"
-            className="programNextCard"
+            className={`programNextCard ${nextIsToday ? "today" : ""}`}
             onClick={() => openWorkout(next)}
           >
             <span className="programNextLabel">
-              {paceZh ? "下一节训练" : "Up next"}
+              {nextIsToday
+                ? paceZh
+                  ? "今天的训练"
+                  : "Today's session"
+                : paceZh
+                  ? "下一节训练"
+                  : "Up next"}
             </span>
             <strong>{localizedWorkoutName(next)}</strong>
             <small>
@@ -11019,6 +11180,75 @@ function App() {
               })()}
             </div>
           )
+        )}
+
+        <div className="programStreakCard">
+          <div className="programStreakHead">
+            <div className="programStreak">
+              <span className="programStreakFlame">🔥</span>
+              <strong>{streakWeeks}</strong>
+              <span className="programStreakUnit">
+                {paceZh
+                  ? "周连续"
+                  : streakWeeks === 1
+                    ? "week streak"
+                    : "week streak"}
+              </span>
+            </div>
+            <span className="programStreakMonth">
+              {monthLabel} · {trainedThisMonth}{" "}
+              {paceZh ? "天训练" : trainedThisMonth === 1 ? "day" : "days"}
+            </span>
+          </div>
+          <div className="programCalHeads">
+            {dayHeads.map((d, i) => (
+              <span key={i}>{d}</span>
+            ))}
+          </div>
+          <div className="programCalGrid">
+            {calCells.map((k, i) =>
+              k === null ? (
+                <span key={i} className="programCalCell empty" />
+              ) : (
+                <span
+                  key={i}
+                  className={`programCalCell ${
+                    trainedDates.has(k) ? "trained" : ""
+                  } ${k === todayKey ? "today" : ""}`}
+                >
+                  {Number(k.slice(-2))}
+                </span>
+              )
+            )}
+          </div>
+        </div>
+
+        {(milestones.length > 0 || prMoments.length > 0) && (
+          <div className="programMomentCard">
+            <h4>{paceZh ? "你的高光时刻" : "Your wins"}</h4>
+            <div className="programMomentChips">
+              {milestones.map((m, i) => (
+                <span className="programMomentChip" key={`m${i}`}>
+                  {m}
+                </span>
+              ))}
+              {prMoments.slice(0, 4).map((pr, i) => (
+                <span className="programMomentChip pr" key={`p${i}`}>
+                  🏆 {pr.name} {pr.weight}
+                  {paceZh ? "公斤" : "kg"}
+                </span>
+              ))}
+            </div>
+            {prMoments.length > 0 && (
+              <span className="programMomentSub">
+                {paceZh
+                  ? `本计划期间打破了 ${prMoments.length} 项个人纪录`
+                  : `${prMoments.length} personal record${
+                      prMoments.length === 1 ? "" : "s"
+                    } set during this program`}
+              </span>
+            )}
+          </div>
         )}
 
         <div className="programSyllabus">

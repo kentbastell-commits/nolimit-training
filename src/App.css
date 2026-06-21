@@ -8222,6 +8222,191 @@ button.coachReviewGlobalItem,
   cursor: pointer;
 }
 
+.programNextCard.today {
+  border-color: #d4af37;
+  background: rgba(212, 175, 55, 0.18);
+  box-shadow: 0 6px 18px rgba(212, 175, 55, 0.18);
+}
+
+/* Coach presence */
+.programCoachCard {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 16px;
+  background: #0d0d0d;
+  color: #fff;
+}
+.programCoachAvatar {
+  flex: 0 0 auto;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 800;
+  color: #0d0d0d;
+  background: #d4af37;
+}
+.programCoachBody {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.programCoachName {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(212, 175, 55, 0.9);
+}
+.programCoachMsg {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: #fff;
+}
+
+/* Today / rest status pill */
+.programStatusPill {
+  align-self: flex-start;
+  display: inline-block;
+  padding: 7px 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+}
+.programStatusPill.trained {
+  background: rgba(111, 207, 127, 0.16);
+  color: #2f8a43;
+}
+.programStatusPill.training {
+  background: rgba(212, 175, 55, 0.16);
+  color: #9b7a21;
+}
+.programStatusPill.rest {
+  background: rgba(104, 100, 93, 0.12);
+  color: var(--nl-muted, #68645d);
+}
+
+/* Streak + consistency calendar */
+.programStreakCard {
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: #fff;
+}
+.programStreakHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.programStreak {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.programStreakFlame {
+  font-size: 20px;
+}
+.programStreak strong {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--nl-ink, #1a1a1a);
+}
+.programStreakUnit {
+  font-size: 13px;
+  color: var(--nl-muted, #68645d);
+}
+.programStreakMonth {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--nl-muted, #68645d);
+}
+.programCalHeads,
+.programCalGrid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+.programCalHeads {
+  margin-bottom: 4px;
+}
+.programCalHeads span {
+  text-align: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--nl-muted, #68645d);
+}
+.programCalCell {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  font-size: 12px;
+  color: var(--nl-muted, #68645d);
+  background: rgba(0, 0, 0, 0.03);
+}
+.programCalCell.empty {
+  background: transparent;
+}
+.programCalCell.trained {
+  background: #d4af37;
+  color: #0d0d0d;
+  font-weight: 800;
+}
+.programCalCell.today {
+  outline: 2px solid #0d0d0d;
+  outline-offset: -2px;
+}
+
+/* Wins: milestones + PR moments */
+.programMomentCard {
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  background: rgba(212, 175, 55, 0.07);
+}
+.programMomentCard h4 {
+  margin: 0 0 10px;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #9b7a21;
+}
+.programMomentChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.programMomentChip {
+  display: inline-block;
+  padding: 7px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--nl-ink, #1a1a1a);
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+.programMomentChip.pr {
+  background: #0d0d0d;
+  color: #d4af37;
+  border-color: #0d0d0d;
+}
+.programMomentSub {
+  display: block;
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--nl-muted, #68645d);
+}
+
 .programSyllabus h4 {
   margin: 6px 0 8px;
   font-size: 13px;
