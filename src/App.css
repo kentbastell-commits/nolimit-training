@@ -8059,6 +8059,53 @@ button.coachReviewGlobalItem,
   color: #9b7a21;
 }
 
+/* My Programs sub-tabs + store cross-sell */
+.programSubTabs {
+  margin: 16px 0 4px;
+}
+.programStoreList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 14px 0;
+}
+.programStoreHint {
+  margin: 0 0 4px;
+  font-size: 13px;
+  color: var(--nl-muted, #68645d);
+}
+.programStoreItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid #e5dfd2;
+  background: #fff;
+  text-decoration: none;
+}
+.programStoreItem strong {
+  display: block;
+  font-size: 16px;
+  color: var(--nl-ink, #1a1a1a);
+}
+.programStoreItem span {
+  font-size: 12px;
+  color: var(--nl-muted, #68645d);
+}
+.programStorePrice {
+  flex: 0 0 auto;
+  font-weight: 800;
+  color: #9b7a21 !important;
+  font-size: 15px !important;
+}
+.programStoreBrowse {
+  text-align: center;
+  margin-top: 6px;
+  text-decoration: none;
+}
+
 /* Client "My Programs" program home */
 .programHome {
   display: flex;

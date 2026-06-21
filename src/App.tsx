@@ -1544,6 +1544,10 @@ function App() {
   const [portalHomeTab, setPortalHomeTab] = useState<
     "tasks" | "records" | "metrics" | "workload"
   >("tasks");
+  // My Programs sub-tabs: progress / edit (scheduling) / store (cross-sell).
+  const [programsTab, setProgramsTab] = useState<"progress" | "edit" | "store">(
+    "progress"
+  );
   const homeTouchRef = useRef<{ x: number; y: number } | null>(null);
   // Athlete weekly workload self-report (technical + extra cardio sessions).
   const [workloadLogs, setWorkloadLogs] = useState<WorkloadLog[]>([]);
@@ -11033,6 +11037,60 @@ function App() {
             );
           })}
         </div>
+      </div>
+    );
+  };
+
+  // Cross-sell: store programs/add-ons/bundles the athlete doesn't already own.
+  const renderProgramStore = () => {
+    const owned = new Set(
+      uniqueClientPurchasedPrograms.map((p) => p.programId)
+    );
+    const forSale = programs.filter(
+      (p) =>
+        p.publicStoreVisible &&
+        p.status !== "Archived" &&
+        !owned.has(p.programId)
+    );
+    if (forSale.length === 0) {
+      return (
+        <div className="clientProgramEmpty">
+          <p>
+            {paceZh
+              ? "暂时没有更多可购买的计划。"
+              : "No other programs available right now."}
+          </p>
+        </div>
+      );
+    }
+    return (
+      <div className="programStoreList">
+        <p className="programStoreHint">
+          {paceZh
+            ? "探索更多训练计划、套餐和加购模块。"
+            : "Explore more programs, bundles, and add-ons."}
+        </p>
+        {forSale.map((p) => (
+          <a
+            className="programStoreItem"
+            key={p.recordId}
+            href="/?page=store"
+          >
+            <div>
+              <strong>{localizedProgramName(p)}</strong>
+              <span>
+                {localizedProductType(p.productType)}
+                {p.storeCategory ? ` · ${p.storeCategory}` : ""}
+              </span>
+            </div>
+            <span className="programStorePrice">
+              {p.price ? `${p.currency || "CNY"} ${p.price}` : ""}
+            </span>
+          </a>
+        ))}
+        <a className="outlineButton programStoreBrowse" href="/?page=store">
+          {paceZh ? "打开商店" : "Open store"}
+        </a>
       </div>
     );
   };
@@ -23150,10 +23208,55 @@ function App() {
                           )}
                         </div>
 
-                        {selectedClientProgram &&
-                          selectedClientProgramAlreadyLoaded &&
-                          renderProgramHome()}
+                        {selectedClientProgram && (
+                          <div
+                            className="portalHomeTabs programSubTabs"
+                            role="tablist"
+                            aria-label={paceZh ? "计划分区" : "Program sections"}
+                          >
+                            {([
+                              ["progress", paceZh ? "进度" : "Progress"],
+                              ["edit", paceZh ? "编辑" : "Edit"],
+                              ["store", paceZh ? "商店" : "Store"],
+                            ] as Array<[typeof programsTab, string]>).map(
+                              ([key, label]) => (
+                                <button
+                                  key={key}
+                                  type="button"
+                                  role="tab"
+                                  aria-selected={programsTab === key}
+                                  className={`portalHomeTab${
+                                    programsTab === key ? " portalHomeTabActive" : ""
+                                  }`}
+                                  onClick={() => setProgramsTab(key)}
+                                >
+                                  {label}
+                                </button>
+                              )
+                            )}
+                          </div>
+                        )}
 
+                        {programsTab === "progress" &&
+                          selectedClientProgram &&
+                          (selectedClientProgramAlreadyLoaded ? (
+                            renderProgramHome()
+                          ) : (
+                            <div className="clientProgramEmpty">
+                              <BookOpen size={30} strokeWidth={1.8} />
+                              <p>
+                                {paceZh
+                                  ? "先在“编辑”标签把计划加入日历，这里会显示你的进度。"
+                                  : "Add this program to your calendar in the Edit tab to see your progress here."}
+                              </p>
+                            </div>
+                          ))}
+
+                        {programsTab === "store" && selectedClientProgram &&
+                          renderProgramStore()}
+
+                        {programsTab === "edit" && (
+                          <>
                         {selectedClientProgram && (
                           <div
                             className={`clientProgramDeliveryStatus ${
@@ -23365,6 +23468,8 @@ function App() {
                               ))}
                             </div>
                           </div>
+                        )}
+                          </>
                         )}
                       </>
                     ) : (
