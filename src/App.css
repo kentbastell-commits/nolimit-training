@@ -8201,7 +8201,7 @@ button.coachReviewGlobalItem,
 .wellnessOverlay {
   position: fixed;
   inset: 0;
-  z-index: 1000;
+  z-index: 1300;
   background: rgba(13, 13, 13, 0.7);
   display: flex;
   align-items: flex-end;
@@ -8501,7 +8501,7 @@ button.coachReviewGlobalItem,
 .finisherOverlay {
   position: fixed;
   inset: 0;
-  z-index: 1000;
+  z-index: 1300;
   background: rgba(13, 13, 13, 0.78);
   display: flex;
   align-items: center;
