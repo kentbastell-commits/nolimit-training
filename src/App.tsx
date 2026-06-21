@@ -12053,8 +12053,9 @@ function App() {
             selectedClientProgram?.salesDescription ||
             selectedClientProgram?.storeDescription ||
             "";
+          const weeksCount = Number(selectedClientProgram?.durationWeeks) || maxWeek;
           const metaParts = [
-            `${maxWeek} ${paceZh ? "周" : maxWeek === 1 ? "week" : "weeks"}`,
+            `${weeksCount} ${paceZh ? "周" : weeksCount === 1 ? "week" : "weeks"}`,
             paceZh ? `每周 ${perWeek} 次` : `${perWeek}/week`,
             selectedClientProgram?.level || "",
           ].filter(Boolean);
