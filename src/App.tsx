@@ -10991,7 +10991,10 @@ function App() {
         const stats: [string, string][] = [
           [String(payload.weeks), paceZh ? "周" : "WEEKS"],
           [String(payload.sessions), paceZh ? "节训练" : "SESSIONS"],
-          [String(payload.prs.length), paceZh ? "个纪录" : "PRs"],
+          [
+            String(payload.prs.length),
+            paceZh ? "个纪录" : payload.prs.length === 1 ? "PR" : "PRs",
+          ],
         ];
         const colW = (W - 200) / 3;
         stats.forEach(([big, small], i) => {
