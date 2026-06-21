@@ -10045,15 +10045,6 @@ function App() {
     }
   };
 
-  const selectedClientCheckInAge = selectedClient
-    ? getCheckInAgeDays(selectedClient)
-    : null;
-  const selectedClientCheckInLabel =
-    selectedClientCheckInAge === null
-      ? "No check-in"
-      : selectedClientCheckInAge === 0
-        ? "Today"
-        : `${selectedClientCheckInAge}d ago`;
   const selectedClientOrders = selectedClient
     ? productOrders.filter(
         (order) =>
@@ -13736,13 +13727,6 @@ function App() {
     if (status === "Missed") return "missed";
     return "scheduled";
   };
-  const jumpToTaskDate = (date: string) => {
-    if (!date) return;
-
-    setCalendarAnchorDate(date);
-    setClientTab("Training");
-  };
-
   const groupedContentResponses = getResponseGroups(contentResponses);
 
   const recentQuestionnaireResponses = groupedContentResponses
@@ -23858,11 +23842,11 @@ function App() {
                     renderWorkloadTab()}
 
                   {!isClientPortal && coachDashTab === "activity" && (
-                  <section className="clientHomePanel focusHomePanel">
+                  <section className="clientHomePanel focusHomePanel coachLogsPanel">
                     <div className="clientHomePanelHeader">
                       <div>
-                        <span>Triage</span>
-                        <h2>Needs Attention &amp; Status</h2>
+                        <span>{paceZh ? "训练记录" : "Sessions"}</span>
+                        <h2>{paceZh ? "近期训练记录" : "Recent Session Logs"}</h2>
                       </div>
                     </div>
 
@@ -23933,105 +23917,122 @@ function App() {
                         )}
                       </>
                     ) : (
-                      <div className="coachSnapshotGrid">
-                        <button
-                          className="coachAlertCard missedAlertCard"
-                          type="button"
-                          onClick={() => {
-                            if (needsAttentionItems[0]?.date) {
-                              jumpToTaskDate(needsAttentionItems[0].date);
-                            }
-                          }}
-                        >
-                          <span>{t("missed")}</span>
-                          <strong>{needsAttentionItems.length}</strong>
-                          <small>Tasks needing follow-up</small>
-                        </button>
-
-                        <button
-                          className="coachAlertCard"
-                          type="button"
-                          onClick={() => {
-                            const next = clientPortalUpcomingTasks[0];
-                            if (next?.date) jumpToTaskDate(next.date);
-                          }}
-                        >
-                          <span>Next Session</span>
-                          <strong>
-                            {clientPortalUpcomingTasks[0]
-                              ? localizedCalendarLabel(
-                                  clientPortalUpcomingTasks[0].date
-                                )
-                              : "—"}
-                          </strong>
-                          <small>
-                            {clientPortalUpcomingTasks[0]?.title ||
-                              "Nothing scheduled"}
-                          </small>
-                        </button>
-
-                        <button
-                          className="coachAlertCard"
-                          type="button"
-                          onClick={() => setClientTab("Overview")}
-                        >
-                          <span>Check-in</span>
-                          <strong>{clientNeedsCheckIn(selectedClient) ? "Due" : "OK"}</strong>
-                          <small>{selectedClientCheckInLabel}</small>
-                        </button>
-
-                        <div className="snapshotMetricCard">
-                          <span>Completion</span>
-                          <strong>{completionRate}%</strong>
-                          <small>
-                            {completedTaskCount}/{totalTaskCount || 0} assigned tasks
-                          </small>
-                        </div>
-
-                        <div className="snapshotAttentionCard coachReviewQueuePanel">
-                          <div className="snapshotAttentionHeader">
-                            <span>Review Queue</span>
-                            <strong>{coachReviewQueueItems.length}</strong>
+                      <div className="sessionLogs">
+                        <div className="sessionLogsCols">
+                          <div className="sessionLogCol">
+                            <h4 className="sessionLogColTitle">
+                              {paceZh ? "已记录训练" : "Logged Workouts"}
+                            </h4>
+                            {recentWorkoutSubmissions.length > 0 ? (
+                              recentWorkoutSubmissions.map((w) => (
+                                <button
+                                  type="button"
+                                  className="sessionLogItem logged"
+                                  key={w.id}
+                                  onClick={() => openWorkout(w)}
+                                >
+                                  <span className="sessionLogDate">
+                                    {localizedCalendarLabel(
+                                      normalizeDate(String(w.scheduledDate))
+                                    )}
+                                  </span>
+                                  <strong>{localizedWorkoutName(w)}</strong>
+                                </button>
+                              ))
+                            ) : (
+                              <p className="homeEmptyText">
+                                {paceZh ? "暂无已记录训练。" : "No logged workouts yet."}
+                              </p>
+                            )}
                           </div>
 
-                          {coachReviewQueueItems.length > 0 ? (
-                            <div className="coachReviewQueueList">
-                              {coachReviewQueueItems.map((item) => (
-                                <article
-                                  className={`coachReviewQueueItem priority${item.priority}`}
-                                  key={item.key}
-                                >
-                                  <button type="button" onClick={item.open}>
-                                    <span>{item.type}</span>
+                          <div className="sessionLogCol">
+                            <h4 className="sessionLogColTitle">
+                              {paceZh ? "缺席训练" : "Missed Workouts"}
+                            </h4>
+                            {(() => {
+                              const missed = needsAttentionItems.filter(
+                                (i) => i.type === "Workout"
+                              );
+                              return missed.length > 0 ? (
+                                missed.map((item) => (
+                                  <button
+                                    type="button"
+                                    className="sessionLogItem missed"
+                                    key={item.key}
+                                    onClick={item.open}
+                                  >
+                                    <span className="sessionLogDate">
+                                      {localizedCalendarLabel(item.date)}
+                                    </span>
                                     <strong>{item.title}</strong>
-                                    <small>
-                                      {item.date || "--"} / {item.subtitle}
-                                    </small>
-                                    {item.detail ? <em>{item.detail}</em> : null}
                                   </button>
-                                  {item.review ? (
-                                    <button
-                                      type="button"
-                                      className="outlineButton compactReviewButton"
-                                      disabled={item.disabled}
-                                      onClick={item.review}
-                                    >
-                                      {item.actionLabel}
-                                    </button>
-                                  ) : null}
-                                </article>
-                              ))}
-                            </div>
-                          ) : (
-                            <p className="homeEmptyText">
-                              Nothing needs review right now.
-                            </p>
-                          )}
+                                ))
+                              ) : (
+                                <p className="homeEmptyText">
+                                  {paceZh ? "没有缺席训练。" : "No missed workouts."}
+                                </p>
+                              );
+                            })()}
+                          </div>
                         </div>
+
+                        <button
+                          type="button"
+                          className="sessionLogsCompletion"
+                          onClick={() => setClientTab("Training")}
+                        >
+                          <span>{paceZh ? "完成率" : "Completion"}</span>
+                          <strong>{completionRate}%</strong>
+                          <small>
+                            {completedTaskCount}/{totalTaskCount || 0}{" "}
+                            {paceZh ? "已分配任务" : "assigned tasks"}
+                          </small>
+                        </button>
                       </div>
                     )}
                   </section>
                   )}
+
+                  {!isClientPortal &&
+                    coachDashTab === "activity" &&
+                    coachReviewQueueItems.length > 0 && (
+                      <section className="clientHomePanel coachReviewQueuePanel">
+                        <div className="clientHomePanelHeader">
+                          <div>
+                            <span>Triage</span>
+                            <h2>Review Queue</h2>
+                          </div>
+                        </div>
+                        <div className="coachReviewQueueList">
+                          {coachReviewQueueItems.map((item) => (
+                            <article
+                              className={`coachReviewQueueItem priority${item.priority}`}
+                              key={item.key}
+                            >
+                              <button type="button" onClick={item.open}>
+                                <span>{item.type}</span>
+                                <strong>{item.title}</strong>
+                                <small>
+                                  {item.date || "--"} / {item.subtitle}
+                                </small>
+                                {item.detail ? <em>{item.detail}</em> : null}
+                              </button>
+                              {item.review ? (
+                                <button
+                                  type="button"
+                                  className="outlineButton compactReviewButton"
+                                  disabled={item.disabled}
+                                  onClick={item.review}
+                                >
+                                  {item.actionLabel}
+                                </button>
+                              ) : null}
+                            </article>
+                          ))}
+                        </div>
+                      </section>
+                    )}
 
                   {!isClientPortal && coachDashTab === "activity" && (
                     <section className="clientHomePanel submissionsHomePanel">
