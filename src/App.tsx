@@ -29101,16 +29101,31 @@ function App() {
                                   />
                                 )}
                               </div>
-                              {showWeightInputs && (
-                                <>
-                                  {(() => {
-                                    const target = resolvePrescribedLoad(
+                              {showWeightInputs && (() => {
+                                // Bodyweight movement: coach programmed "BW" as
+                                // the load → show BW, leave reps as an open field.
+                                const isBW = /^(bw|body\s*weight|bodyweight)$/i.test(
+                                  String(log.prescribedLoad || "").trim()
+                                );
+                                const target = isBW
+                                  ? null
+                                  : resolvePrescribedLoad(
                                       log.prescribedPercent,
                                       log.prescribedLoad,
                                       log.exerciseName.split(" - ")[0]
                                     );
-                                    if (!target.display) return null;
-                                    return (
+                                return (
+                                  <>
+                                    {isBW ? (
+                                      <div className="setLogStatic setLogTarget setLogTargetResolved">
+                                        <span>
+                                          {i18n.language === "zh" ? "负荷" : "Load"}
+                                        </span>
+                                        <strong>
+                                          {i18n.language === "zh" ? "自重" : "BW"}
+                                        </strong>
+                                      </div>
+                                    ) : target && target.display ? (
                                       <div
                                         className={`setLogStatic setLogTarget${
                                           target.resolved
@@ -29125,42 +29140,51 @@ function App() {
                                         </span>
                                         <strong>{target.display}</strong>
                                       </div>
-                                    );
-                                  })()}
-                                  <label className="setLogField">
-                                    <span>{t("actualReps")}</span>
-                                    <input
-                                      inputMode="numeric"
-                                      value={log.actualReps}
-                                      onChange={(e) =>
-                                        updateSetLog(
-                                          globalIndex,
-                                          "actualReps",
-                                          e.target.value
-                                        )
-                                      }
-                                    />
-                                  </label>
+                                    ) : null}
+                                    <label className="setLogField">
+                                      <span>{t("actualReps")}</span>
+                                      <input
+                                        inputMode="numeric"
+                                        value={log.actualReps}
+                                        onChange={(e) =>
+                                          updateSetLog(
+                                            globalIndex,
+                                            "actualReps",
+                                            e.target.value
+                                          )
+                                        }
+                                      />
+                                    </label>
 
-                                  <label className="setLogField">
-                                    <span>
-                                      {t("weight")} ({weightUnit})
-                                    </span>
-                                    <input
-                                      inputMode="decimal"
-                                      value={log.actualWeight}
-                                      placeholder={weightUnit}
-                                      onChange={(e) =>
-                                        updateSetLog(
-                                          globalIndex,
-                                          "actualWeight",
-                                          e.target.value
-                                        )
-                                      }
-                                    />
-                                  </label>
-                                </>
-                              )}
+                                    {isBW ? (
+                                      <div className="setLogStatic">
+                                        <span>{t("weight")}</span>
+                                        <strong>
+                                          {i18n.language === "zh" ? "自重" : "BW"}
+                                        </strong>
+                                      </div>
+                                    ) : (
+                                      <label className="setLogField">
+                                        <span>
+                                          {t("weight")} ({weightUnit})
+                                        </span>
+                                        <input
+                                          inputMode="decimal"
+                                          value={log.actualWeight}
+                                          placeholder={weightUnit}
+                                          onChange={(e) =>
+                                            updateSetLog(
+                                              globalIndex,
+                                              "actualWeight",
+                                              e.target.value
+                                            )
+                                          }
+                                        />
+                                      </label>
+                                    )}
+                                  </>
+                                );
+                              })()}
 
                               {/* Cardio targets, by prescription method. */}
                               {(showTimeInput || showDistanceInput || showPaceInput) &&
