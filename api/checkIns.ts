@@ -56,7 +56,9 @@ function normalizeDate(value: any) {
 function toLarkDate(value: string) {
   if (!value) return Date.now();
   if (/^\d+$/.test(value)) return Number(value);
-  return new Date(`${value}T00:00:00`).getTime();
+  // Anchor on noon UTC so the calendar date survives a round-trip regardless of
+  // the server's timezone (normalizeDate reads it back in UTC).
+  return new Date(`${value}T12:00:00Z`).getTime();
 }
 
 function toNumberOrUndefined(value: any) {
