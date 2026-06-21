@@ -10905,6 +10905,138 @@ function App() {
   const selectedClientProgramLastDate =
     selectedClientProgramSortedDates[selectedClientProgramSortedDates.length - 1] || "";
 
+  // "Program home" — progress, next workout, and the week-by-week syllabus for
+  // the selected purchased program (shown once it's loaded onto the calendar).
+  const renderProgramHome = () => {
+    const isDone = (w: Workout) => /complete/i.test(w.completionStatus || "");
+    const sessions = [...selectedClientProgramCalendarWorkouts].sort((a, b) => {
+      const wa = Number(a.week) || 0;
+      const wb = Number(b.week) || 0;
+      if (wa !== wb) return wa - wb;
+      return (Number(a.day) || 0) - (Number(b.day) || 0);
+    });
+    if (sessions.length === 0) return null;
+    const total = sessions.length;
+    const completed = sessions.filter(isDone).length;
+    const pct = Math.round((completed / total) * 100);
+    const incomplete = sessions.filter((w) => !isDone(w));
+    const next =
+      [...incomplete].sort((a, b) =>
+        (normalizeDate(String(a.scheduledDate)) || "9999-99-99").localeCompare(
+          normalizeDate(String(b.scheduledDate)) || "9999-99-99"
+        )
+      )[0] || null;
+    const weekMap = new Map<number, Workout[]>();
+    for (const w of sessions) {
+      const wk = Number(w.week) || 1;
+      if (!weekMap.has(wk)) weekMap.set(wk, []);
+      weekMap.get(wk)!.push(w);
+    }
+    const weeks = [...weekMap.entries()].sort((a, b) => a[0] - b[0]);
+    const maxWeek = weeks[weeks.length - 1]?.[0] || 1;
+    const currentWeek = next ? Number(next.week) || 1 : maxWeek;
+    const allDone = completed === total;
+
+    return (
+      <div className="programHome">
+        <div className="programProgressCard">
+          <div
+            className="programProgressRing"
+            style={{
+              background: `conic-gradient(#d4af37 ${pct * 3.6}deg, rgba(212,175,55,0.18) 0deg)`,
+            }}
+          >
+            <span>{pct}%</span>
+          </div>
+          <div className="programProgressMeta">
+            <strong>
+              {completed}/{total}{" "}
+              {paceZh ? "节训练完成" : completed === 1 ? "session done" : "sessions done"}
+            </strong>
+            <span>
+              {paceZh
+                ? `第 ${currentWeek} 周 / 共 ${maxWeek} 周`
+                : `Week ${currentWeek} of ${maxWeek}`}
+            </span>
+          </div>
+        </div>
+
+        {next ? (
+          <button
+            type="button"
+            className="programNextCard"
+            onClick={() => openWorkout(next)}
+          >
+            <span className="programNextLabel">
+              {paceZh ? "下一节训练" : "Up next"}
+            </span>
+            <strong>{localizedWorkoutName(next)}</strong>
+            <small>
+              {paceZh
+                ? `第 ${next.week} 周 · 第 ${next.day} 天`
+                : `Week ${next.week} · Day ${next.day}`}
+              {next.scheduledDate
+                ? ` · ${localizedCalendarLabel(
+                    normalizeDate(String(next.scheduledDate))
+                  )}`
+                : ""}
+            </small>
+            <em className="programNextStart">{paceZh ? "开始 →" : "Start →"}</em>
+          </button>
+        ) : (
+          allDone && (
+            <div className="programDoneCard">
+              <strong>{paceZh ? "全部完成 🎉" : "Program complete 🎉"}</strong>
+              <span>
+                {paceZh
+                  ? "你已完成本计划的所有训练。"
+                  : "You've finished every session in this program."}
+              </span>
+            </div>
+          )
+        )}
+
+        <div className="programSyllabus">
+          <h4>{paceZh ? "训练安排" : "Your plan"}</h4>
+          {weeks.map(([wk, items]) => {
+            const wkDone = items.filter(isDone).length;
+            return (
+              <div className="programWeek" key={wk}>
+                <div className="programWeekHead">
+                  <strong>{paceZh ? `第 ${wk} 周` : `Week ${wk}`}</strong>
+                  <span>
+                    {wkDone}/{items.length}
+                  </span>
+                </div>
+                {items
+                  .slice()
+                  .sort((a, b) => (Number(a.day) || 0) - (Number(b.day) || 0))
+                  .map((w) => (
+                    <button
+                      type="button"
+                      className={`programSession ${isDone(w) ? "done" : ""}`}
+                      key={w.id}
+                      onClick={() => openWorkout(w)}
+                    >
+                      <span className="programSessionTick">
+                        {isDone(w) ? "✓" : ""}
+                      </span>
+                      <span className="programSessionName">
+                        {localizedWorkoutName(w)}
+                      </span>
+                      <span className="programSessionMeta">
+                        {paceZh ? `第 ${w.day} 天` : `Day ${w.day}`}
+                      </span>
+                    </button>
+                  ))}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
   const assignOrderProgram = async (order: ProductOrder) => {
     const availablePrograms = programs.length > 0 ? programs : await loadPrograms();
 
@@ -23017,6 +23149,10 @@ function App() {
                             </div>
                           )}
                         </div>
+
+                        {selectedClientProgram &&
+                          selectedClientProgramAlreadyLoaded &&
+                          renderProgramHome()}
 
                         {selectedClientProgram && (
                           <div

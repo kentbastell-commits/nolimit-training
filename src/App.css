@@ -8059,6 +8059,180 @@ button.coachReviewGlobalItem,
   color: #9b7a21;
 }
 
+/* Client "My Programs" program home */
+.programHome {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin: 16px 0;
+}
+.programProgressCard {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  border-radius: 16px;
+  background: #0d0d0d;
+  color: #fff;
+}
+.programProgressRing {
+  position: relative;
+  flex: 0 0 auto;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.programProgressRing::before {
+  content: "";
+  position: absolute;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: #0d0d0d;
+}
+.programProgressRing span {
+  position: relative;
+  font-size: 17px;
+  font-weight: 800;
+  color: #d4af37;
+}
+.programProgressMeta strong {
+  display: block;
+  font-size: 17px;
+}
+.programProgressMeta span {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.programNextCard {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(212, 175, 55, 0.5);
+  background: rgba(212, 175, 55, 0.1);
+  cursor: pointer;
+}
+.programNextLabel {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #9b7a21;
+}
+.programNextCard strong {
+  display: block;
+  font-size: 20px;
+  color: var(--nl-ink, #1a1a1a);
+  margin: 2px 0;
+}
+.programNextCard small {
+  display: block;
+  font-size: 13px;
+  color: var(--nl-muted, #68645d);
+}
+.programNextStart {
+  display: inline-block;
+  margin-top: 10px;
+  font-style: normal;
+  font-weight: 800;
+  color: #0d0d0d;
+  background: #d4af37;
+  padding: 8px 16px;
+  border-radius: 999px;
+}
+
+.programDoneCard {
+  padding: 16px;
+  border-radius: 16px;
+  background: rgba(111, 207, 127, 0.14);
+  border: 1px solid rgba(111, 207, 127, 0.5);
+}
+.programDoneCard strong {
+  display: block;
+  font-size: 18px;
+  color: #2f8a43;
+}
+.programDoneCard span {
+  font-size: 13px;
+  color: var(--nl-muted, #68645d);
+}
+
+.programSyllabus h4 {
+  margin: 6px 0 8px;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--nl-muted, #68645d);
+}
+.programWeek {
+  margin-bottom: 12px;
+}
+.programWeekHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 2px;
+  font-size: 14px;
+  color: var(--nl-ink, #1a1a1a);
+}
+.programWeekHead span {
+  font-size: 12px;
+  font-weight: 700;
+  color: #9b7a21;
+  font-variant-numeric: tabular-nums;
+}
+.programSession {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  padding: 12px;
+  margin-bottom: 6px;
+  border-radius: 12px;
+  border: 1px solid #e5dfd2;
+  background: #fff;
+  cursor: pointer;
+}
+.programSession.done {
+  background: #f7f5ef;
+}
+.programSessionTick {
+  flex: 0 0 22px;
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1.5px solid #cfc9bb;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+}
+.programSession.done .programSessionTick {
+  background: #6fcf7f;
+  border-color: #6fcf7f;
+}
+.programSessionName {
+  flex: 1 1 auto;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--nl-ink, #1a1a1a);
+}
+.programSessionMeta {
+  flex: 0 0 auto;
+  font-size: 12px;
+  color: var(--nl-muted, #68645d);
+}
+
 /* "Built for" tag on saved programs */
 .programBuiltForChip {
   display: inline-block;
