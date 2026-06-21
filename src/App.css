@@ -11695,6 +11695,15 @@ button.coachReviewGlobalItem,
   margin-top: 18px;
 }
 
+/* Full-width header rows — without this the pill-shaped tab bar (and the
+   wellness banner) get trapped in one grid column and stretch to the height of
+   a tall neighbour, ballooning into a giant rounded blob. */
+.clientHomeGrid > .portalHomeTabs,
+.clientHomeGrid > .wellnessReply,
+.clientHomeGrid > .wellnessCard {
+  grid-column: 1 / -1;
+}
+
 .clientHomePanel {
   border: 1px solid #deded8;
   border-radius: 8px;
