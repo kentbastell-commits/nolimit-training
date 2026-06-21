@@ -8113,6 +8113,199 @@ button.coachReviewGlobalItem,
   gap: 14px;
   margin: 16px 0;
 }
+/* Daily wellness check-in (coached clients) */
+.wellnessCard {
+  padding: 16px;
+  border-radius: 16px;
+  background: #0d0d0d;
+  color: #fff;
+  margin-bottom: 14px;
+}
+.wellnessCard.done {
+  background: rgba(111, 207, 127, 0.14);
+  color: #2f8a43;
+}
+.wellnessPrompt strong {
+  display: block;
+  font-size: 17px;
+  font-weight: 800;
+}
+.wellnessPrompt span {
+  display: block;
+  margin-top: 2px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.65);
+}
+.wellnessCta {
+  margin-top: 12px;
+  padding: 11px 18px;
+  border-radius: 999px;
+  border: none;
+  background: #d4af37;
+  color: #0d0d0d;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.wellnessStreakInline {
+  display: inline-block;
+  margin-left: 12px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #d4af37;
+}
+.wellnessDoneRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.wellnessDoneRow strong {
+  font-size: 16px;
+}
+.wellnessStreak {
+  font-size: 15px;
+  font-weight: 800;
+  color: #2f8a43;
+}
+.wellnessReply {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 14px;
+  border-radius: 16px;
+  background: rgba(212, 175, 55, 0.12);
+  border: 1px solid rgba(212, 175, 55, 0.5);
+  margin-bottom: 12px;
+}
+.wellnessReplyIcon {
+  font-size: 20px;
+}
+.wellnessReply strong {
+  display: block;
+  font-size: 14px;
+  color: #9b7a21;
+}
+.wellnessReply p {
+  margin: 2px 0 0;
+  font-size: 14px;
+  color: var(--nl-ink, #1a1a1a);
+}
+.wellnessReplyClose {
+  margin-left: auto;
+  border: none;
+  background: transparent;
+  font-size: 15px;
+  color: var(--nl-muted, #68645d);
+  cursor: pointer;
+}
+.wellnessOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(13, 13, 13, 0.7);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.wellnessModal {
+  width: 100%;
+  max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: #fff;
+  border-radius: 20px 20px 0 0;
+  padding: 22px 20px calc(20px + env(safe-area-inset-bottom));
+}
+.wellnessModal h3 {
+  margin: 0 0 16px;
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--nl-ink, #1a1a1a);
+}
+.wellnessRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.wellnessRow > span {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--nl-ink, #1a1a1a);
+}
+.wellnessScale {
+  display: flex;
+  gap: 6px;
+}
+.wellnessDot {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  background: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--nl-muted, #68645d);
+  cursor: pointer;
+}
+.wellnessDot.on {
+  background: #d4af37;
+  border-color: #d4af37;
+  color: #0d0d0d;
+}
+.wellnessField {
+  display: block;
+  margin: 14px 0 0;
+}
+.wellnessField span {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--nl-ink, #1a1a1a);
+}
+.wellnessField input,
+.wellnessField textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  font-size: 15px;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+.wellnessActions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+.wellnessSubmit {
+  flex: 1;
+  padding: 13px;
+  border-radius: 999px;
+  border: none;
+  background: #0d0d0d;
+  color: #d4af37;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.wellnessSubmit:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.wellnessCancel {
+  flex: 0 0 auto;
+  padding: 13px 20px;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  background: transparent;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--nl-ink, #1a1a1a);
+  cursor: pointer;
+}
+
 .trophyCase {
   margin-top: 4px;
 }

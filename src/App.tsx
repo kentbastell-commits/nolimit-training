@@ -379,6 +379,29 @@ type WorkloadLog = {
   notes: string;
 };
 
+type PortalCheckIn = {
+  recordId: string;
+  checkInId: string;
+  clientId: string;
+  submittedDate: string;
+  bodyWeight: string;
+  sleepQuality: string;
+  energy: string;
+  mood: string;
+  stress: string;
+  soreness: string;
+  readinessScore: string;
+  nutritionNotes: string;
+  trainingNotes: string;
+  wins: string;
+  problemsPain: string;
+  clientNotes: string;
+  coachResponse: string;
+  coachReviewed: boolean;
+  reviewedDate: string;
+  status: string;
+};
+
 type WorkoutComment = {
   key: string;
   recordIds: string[];
@@ -1553,6 +1576,25 @@ function App() {
   const [finisherOpen, setFinisherOpen] = useState(false);
   const [finisherUrl, setFinisherUrl] = useState("");
   const [finisherBusy, setFinisherBusy] = useState(false);
+  // Client-facing daily wellness check-in (coached clients only). Short daily
+  // readiness + a fuller weekly form; feeds the coach load dashboard.
+  const [clientCheckIns, setClientCheckIns] = useState<PortalCheckIn[]>([]);
+  const [wellnessOpen, setWellnessOpen] = useState(false);
+  const [wellnessMode, setWellnessMode] = useState<"daily" | "weekly">("daily");
+  const [wellnessSaving, setWellnessSaving] = useState(false);
+  const [wellnessDismissedReply, setWellnessDismissedReply] = useState("");
+  const [wellnessForm, setWellnessForm] = useState({
+    sleep: 0,
+    energy: 0,
+    soreness: 0,
+    mood: 0,
+    bodyWeight: "",
+    stress: 0,
+    nutritionNotes: "",
+    trainingNotes: "",
+    wins: "",
+    problemsPain: "",
+  });
   const homeTouchRef = useRef<{ x: number; y: number } | null>(null);
   // Athlete weekly workload self-report (technical + extra cardio sessions).
   const [workloadLogs, setWorkloadLogs] = useState<WorkloadLog[]>([]);
@@ -3020,6 +3062,15 @@ function App() {
       .then((res) => res.json())
       .then((data) => setExerciseResults(data.results || []))
       .catch(() => setExerciseResults([]));
+
+    if (isClientPortal) {
+      fetch(
+        `/api/checkIns?clientId=${selectedClient.clientCode || selectedClient.id}`
+      )
+        .then((res) => res.json())
+        .then((data) => setClientCheckIns(data.checkIns || []))
+        .catch(() => setClientCheckIns([]));
+    }
 
     setCoachNotesDraft(selectedClient.notes || "");
 
@@ -11102,6 +11153,357 @@ function App() {
     a.href = finisherUrl;
     a.download = "nolimit-finish.png";
     a.click();
+  };
+
+  // Submit a daily / weekly wellness check-in (reuses the existing check-in
+  // table; readiness is derived from the daily 1–5 scales).
+  const submitWellness = async () => {
+    if (!selectedClient) return;
+    const today = dateToInputValue(new Date());
+    const { sleep, energy, soreness, mood } = wellnessForm;
+    const readiness = Math.round(((sleep + energy + (6 - soreness) + mood) / 20) * 100);
+    setWellnessSaving(true);
+    try {
+      const res = await fetch("/api/checkIns", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clientId: selectedClient.clientCode || selectedClient.id,
+          clientRecordId: selectedClient.id,
+          submittedDate: today,
+          sleepQuality: sleep || undefined,
+          energy: energy || undefined,
+          soreness: soreness || undefined,
+          mood: mood ? String(mood) : undefined,
+          readinessScore: readiness || undefined,
+          ...(wellnessMode === "weekly"
+            ? {
+                bodyWeight: wellnessForm.bodyWeight || undefined,
+                stress: wellnessForm.stress || undefined,
+                nutritionNotes: wellnessForm.nutritionNotes,
+                trainingNotes: wellnessForm.trainingNotes,
+                wins: wellnessForm.wins,
+                problemsPain: wellnessForm.problemsPain,
+              }
+            : {}),
+          status: wellnessMode === "weekly" ? "Weekly" : "Daily",
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        console.error(data);
+        notify(
+          paceZh ? "提交失败，请重试。" : "Could not submit your check-in.",
+          "error"
+        );
+        return;
+      }
+      // Keep the coach's "due" status fresh.
+      fetch("/api/updateClient", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clientRecordId: selectedClient.id,
+          lastCheckInDate: today,
+        }),
+      }).catch(() => {});
+      const refreshed = await fetch(
+        `/api/checkIns?clientId=${selectedClient.clientCode || selectedClient.id}`
+      )
+        .then((r) => r.json())
+        .catch(() => ({ checkIns: [] }));
+      setClientCheckIns(refreshed.checkIns || []);
+      setWellnessOpen(false);
+      vibrate(40);
+      notify(paceZh ? "已记录，谢谢！" : "Logged — thank you!", "success");
+    } finally {
+      setWellnessSaving(false);
+    }
+  };
+
+  // Daily wellness card on the portal Home (coached clients only).
+  const renderDailyCheckIn = () => {
+    if (!isClientPortal || !selectedClient) return null;
+    const type = selectedClient.clientType || "";
+    const isCoached = /online|in-?person|coaching/i.test(type);
+    if (!isCoached) return null;
+
+    const today = dateToInputValue(new Date());
+    const daysBetween = (a: string, b: string) =>
+      Math.round(
+        (new Date(`${a}T00:00:00`).getTime() -
+          new Date(`${b}T00:00:00`).getTime()) /
+          86400000
+      );
+    const todayCheckIn = clientCheckIns.find((c) => c.submittedDate === today);
+    const lastWeekly = clientCheckIns
+      .filter((c) => /weekly/i.test(c.status))
+      .sort((a, b) => b.submittedDate.localeCompare(a.submittedDate))[0];
+    const weeklyDue =
+      !lastWeekly || daysBetween(today, lastWeekly.submittedDate) >= 7;
+
+    // Daily check-in streak (consecutive days ending today/yesterday).
+    const dates = new Set(clientCheckIns.map((c) => c.submittedDate));
+    let streak = 0;
+    const cur = new Date();
+    if (!dates.has(dateToInputValue(cur))) cur.setDate(cur.getDate() - 1);
+    while (dates.has(dateToInputValue(cur))) {
+      streak++;
+      cur.setDate(cur.getDate() - 1);
+    }
+
+    // Most recent coach reply the athlete hasn't dismissed yet.
+    const reply = clientCheckIns
+      .filter((c) => c.coachResponse && c.coachResponse.trim())
+      .sort((a, b) => b.submittedDate.localeCompare(a.submittedDate))[0];
+    const showReply = reply && reply.recordId !== wellnessDismissedReply;
+
+    const openForm = (mode: "daily" | "weekly") => {
+      setWellnessMode(mode);
+      setWellnessForm({
+        sleep: 0,
+        energy: 0,
+        soreness: 0,
+        mood: 0,
+        bodyWeight: "",
+        stress: 0,
+        nutritionNotes: "",
+        trainingNotes: "",
+        wins: "",
+        problemsPain: "",
+      });
+      setWellnessOpen(true);
+    };
+
+    const collapsed = todayCheckIn && !weeklyDue;
+
+    return (
+      <>
+        {showReply && (
+          <div className="wellnessReply">
+            <span className="wellnessReplyIcon">💬</span>
+            <div>
+              <strong>
+                {paceZh
+                  ? `${selectedClient.coach || "教练"} 回复了你`
+                  : `${selectedClient.coach || "Your coach"} replied`}
+              </strong>
+              <p>{reply!.coachResponse}</p>
+            </div>
+            <button
+              type="button"
+              className="wellnessReplyClose"
+              onClick={() => setWellnessDismissedReply(reply!.recordId)}
+              aria-label="dismiss"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+        <div className={`wellnessCard ${collapsed ? "done" : ""}`}>
+          {collapsed ? (
+            <div className="wellnessDoneRow">
+              <strong>
+                {paceZh ? "✓ 今天已打卡" : "✓ Checked in today"}
+              </strong>
+              {streak > 1 && (
+                <span className="wellnessStreak">🔥 {streak}</span>
+              )}
+            </div>
+          ) : (
+            <>
+              <div className="wellnessPrompt">
+                <strong>
+                  {weeklyDue
+                    ? paceZh
+                      ? "每周状态回顾"
+                      : "Weekly check-in"
+                    : paceZh
+                      ? "今天感觉如何？"
+                      : "How are you feeling today?"}
+                </strong>
+                <span>
+                  {weeklyDue
+                    ? paceZh
+                      ? "花一分钟，让教练了解你的状态。"
+                      : "Takes a minute — keeps your coach in the loop."
+                    : paceZh
+                      ? "10 秒打卡，教练会看到你的状态。"
+                      : "10 seconds — your coach sees how you're recovering."}
+                </span>
+              </div>
+              <button
+                type="button"
+                className="wellnessCta"
+                onClick={() => openForm(weeklyDue ? "weekly" : "daily")}
+              >
+                {todayCheckIn
+                  ? paceZh
+                    ? "完成每周回顾 →"
+                    : "Do weekly check-in →"
+                  : paceZh
+                    ? "开始打卡 →"
+                    : "Check in →"}
+              </button>
+              {streak > 1 && (
+                <span className="wellnessStreakInline">
+                  🔥 {paceZh ? `连续 ${streak} 天` : `${streak}-day streak`}
+                </span>
+              )}
+            </>
+          )}
+        </div>
+
+        {wellnessOpen && (
+          <div className="wellnessOverlay" onClick={() => setWellnessOpen(false)}>
+            <div
+              className="wellnessModal"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3>
+                {wellnessMode === "weekly"
+                  ? paceZh
+                    ? "每周状态回顾"
+                    : "Weekly check-in"
+                  : paceZh
+                    ? "今日状态"
+                    : "Daily check-in"}
+              </h3>
+              {(
+                [
+                  ["sleep", paceZh ? "睡眠" : "Sleep"],
+                  ["energy", paceZh ? "精力" : "Energy"],
+                  ["soreness", paceZh ? "酸痛" : "Soreness"],
+                  ["mood", paceZh ? "心情" : "Mood"],
+                ] as [keyof typeof wellnessForm, string][]
+              ).map(([key, label]) => (
+                <div className="wellnessRow" key={key}>
+                  <span>{label}</span>
+                  <div className="wellnessScale">
+                    {[1, 2, 3, 4, 5].map((n) => (
+                      <button
+                        type="button"
+                        key={n}
+                        className={`wellnessDot ${
+                          Number(wellnessForm[key]) >= n ? "on" : ""
+                        }`}
+                        onClick={() =>
+                          setWellnessForm((f) => ({ ...f, [key]: n }))
+                        }
+                      >
+                        {n}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+              {wellnessMode === "weekly" && (
+                <>
+                  <div className="wellnessRow">
+                    <span>{paceZh ? "压力" : "Stress"}</span>
+                    <div className="wellnessScale">
+                      {[1, 2, 3, 4, 5].map((n) => (
+                        <button
+                          type="button"
+                          key={n}
+                          className={`wellnessDot ${
+                            wellnessForm.stress >= n ? "on" : ""
+                          }`}
+                          onClick={() =>
+                            setWellnessForm((f) => ({ ...f, stress: n }))
+                          }
+                        >
+                          {n}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <label className="wellnessField">
+                    <span>{paceZh ? "体重 (kg)" : "Body weight (kg)"}</span>
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      value={wellnessForm.bodyWeight}
+                      onChange={(e) =>
+                        setWellnessForm((f) => ({
+                          ...f,
+                          bodyWeight: e.target.value,
+                        }))
+                      }
+                    />
+                  </label>
+                  <label className="wellnessField">
+                    <span>{paceZh ? "饮食备注" : "Nutrition notes"}</span>
+                    <textarea
+                      rows={2}
+                      value={wellnessForm.nutritionNotes}
+                      onChange={(e) =>
+                        setWellnessForm((f) => ({
+                          ...f,
+                          nutritionNotes: e.target.value,
+                        }))
+                      }
+                    />
+                  </label>
+                  <label className="wellnessField">
+                    <span>{paceZh ? "本周亮点" : "Wins this week"}</span>
+                    <textarea
+                      rows={2}
+                      value={wellnessForm.wins}
+                      onChange={(e) =>
+                        setWellnessForm((f) => ({ ...f, wins: e.target.value }))
+                      }
+                    />
+                  </label>
+                  <label className="wellnessField">
+                    <span>{paceZh ? "疼痛 / 问题" : "Pain / problems"}</span>
+                    <textarea
+                      rows={2}
+                      value={wellnessForm.problemsPain}
+                      onChange={(e) =>
+                        setWellnessForm((f) => ({
+                          ...f,
+                          problemsPain: e.target.value,
+                        }))
+                      }
+                    />
+                  </label>
+                </>
+              )}
+              <div className="wellnessActions">
+                <button
+                  type="button"
+                  className="wellnessSubmit"
+                  disabled={
+                    wellnessSaving ||
+                    !wellnessForm.sleep ||
+                    !wellnessForm.energy ||
+                    !wellnessForm.soreness ||
+                    !wellnessForm.mood
+                  }
+                  onClick={submitWellness}
+                >
+                  {wellnessSaving
+                    ? paceZh
+                      ? "提交中…"
+                      : "Submitting…"
+                    : paceZh
+                      ? "提交"
+                      : "Submit"}
+                </button>
+                <button
+                  type="button"
+                  className="wellnessCancel"
+                  onClick={() => setWellnessOpen(false)}
+                >
+                  {paceZh ? "取消" : "Cancel"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </>
+    );
   };
 
   // Lifetime "trophy case" — badges that accumulate across all of the athlete's
@@ -22764,6 +23166,7 @@ function App() {
                   onTouchStart={isClientPortal ? handleHomeTouchStart : undefined}
                   onTouchEnd={isClientPortal ? handleHomeTouchEnd : undefined}
                 >
+                  {isClientPortal && renderDailyCheckIn()}
                   {isClientPortal && (
                     <div
                       className="portalHomeTabs"
