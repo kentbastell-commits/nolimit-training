@@ -29,6 +29,21 @@ function fieldToText(value: any): string {
   return "";
 }
 
+// Linked record ids out of a Bitable duplex-link field.
+function extractRecordIds(value: any): string[] {
+  if (!value) return [];
+  const out: string[] = [];
+  const pushFrom = (o: any) => {
+    if (!o || typeof o !== "object") return;
+    if (Array.isArray(o.record_ids)) out.push(...o.record_ids);
+    if (Array.isArray(o.link_record_ids)) out.push(...o.link_record_ids);
+    if (typeof o.record_id === "string") out.push(o.record_id);
+  };
+  if (Array.isArray(value)) value.forEach(pushFrom);
+  else pushFrom(value);
+  return out;
+}
+
 function normalizeDate(value: any) {
   const text = fieldToText(value);
 
@@ -45,6 +60,7 @@ function toLarkDate(value: string) {
 }
 
 function toNumberOrUndefined(value: any) {
+  if (value === "" || value === undefined || value === null) return undefined;
   const number = Number(value);
   return Number.isFinite(number) ? number : undefined;
 }
@@ -68,6 +84,22 @@ async function getTenantToken() {
   }
 
   return data.tenant_access_token;
+}
+
+// Only send fields that actually exist on the table, so a schema that's missing
+// (or renamed) a column never fails the whole write.
+async function getTableFieldNames(token: string): Promise<Set<string> | null> {
+  const response = await fetch(
+    `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${process.env.FEISHU_CHECKINS_TABLE_ID}/fields?page_size=200`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  const data = await response.json();
+  if (!response.ok || data.code !== 0) return null;
+  return new Set(
+    (data?.data?.items || [])
+      .map((field: any) => field.field_name || field.name)
+      .filter(Boolean)
+  );
 }
 
 async function createRecord(token: string, fields: Record<string, any>) {
@@ -105,11 +137,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const checkIns = checkInItems
         .map((item: any) => {
           const fields = item.fields || {};
+          // "Client" is the plain-text client code; "Client ID" is the duplex
+          // link to the Clients table.
+          const clientCode =
+            fieldToText(fields["Client"]) || fieldToText(fields["Client ID"]);
 
           return {
             recordId: item.record_id,
             checkInId: fieldToText(fields["Check-in ID"]),
-            clientId: fieldToText(fields["Client ID"] || fields.Client),
+            clientId: clientCode,
+            clientRecordIds: extractRecordIds(fields["Client ID"]),
             submittedDate: normalizeDate(fields["Submitted Date"]),
             bodyWeight: fieldToText(fields["Body Weight"]),
             sleepQuality: fieldToText(fields["Sleep Quality"]),
@@ -123,17 +160,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             wins: fieldToText(fields.Wins),
             problemsPain: fieldToText(fields["Problems / Pain"]),
             clientNotes: fieldToText(fields["Client Notes"]),
-            coachResponse: fieldToText(fields["Coach Response"]),
+            coachResponse: fieldToText(fields["Coaches Notes"]),
             coachReviewed:
-              fields["Coach Reviewed"] === true ||
-              fieldToText(fields["Coach Reviewed"]).toLowerCase() === "true",
+              Boolean(fieldToText(fields["Coaches Notes"]).trim()) ||
+              fields["Coach Reviewed"] === true,
             reviewedDate: normalizeDate(fields["Reviewed Date"]),
             status: fieldToText(fields.Status),
           };
         })
         .filter((checkIn: any) => {
           if (!clientId) return true;
-          return checkIn.clientId.includes(clientId);
+          return (
+            checkIn.clientId.includes(clientId) ||
+            checkIn.clientRecordIds.includes(clientId)
+          );
         })
         .sort((a: any, b: any) => b.submittedDate.localeCompare(a.submittedDate));
 
@@ -161,7 +201,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       problemsPain,
       clientNotes,
       coachResponse,
-      coachReviewed,
       reviewedDate,
       status,
     } = req.body;
@@ -170,44 +209,45 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: "Missing clientId or clientRecordId" });
     }
 
-    const fields: Record<string, any> = {
+    // Candidate fields with their correct Bitable types (numbers as numbers,
+    // "Client ID" as a duplex-link array, "Client" as the plain-text code).
+    const candidate: Record<string, any> = {
       "Check-in ID": `CHK-${Date.now()}`,
-      "Client ID": String(clientId || clientRecordId),
+      Client: String(clientId || clientRecordId),
       "Submitted Date": toLarkDate(submittedDate),
       Status: status || "Submitted",
+      "Body Weight": toNumberOrUndefined(bodyWeight),
+      "Sleep Quality": toNumberOrUndefined(sleepQuality),
+      Energy: toNumberOrUndefined(energy),
+      Mood: toNumberOrUndefined(mood),
+      Stress: toNumberOrUndefined(stress),
+      Soreness: toNumberOrUndefined(soreness),
+      "Readiness Score": toNumberOrUndefined(readinessScore),
+      "Nutrition Notes": nutritionNotes,
+      "Training Notes": trainingNotes,
+      Wins: wins,
+      "Problems / Pain": problemsPain,
+      "Client Notes": clientNotes,
+      "Coaches Notes": coachResponse,
+      "Reviewed Date": reviewedDate ? toLarkDate(reviewedDate) : undefined,
     };
+    if (clientRecordId) candidate["Client ID"] = [String(clientRecordId)];
 
-    if (clientRecordId) fields.Client = [String(clientRecordId)];
-    if (toNumberOrUndefined(bodyWeight) !== undefined) {
-      fields["Body Weight"] = toNumberOrUndefined(bodyWeight);
+    const available = await getTableFieldNames(token);
+    const fields: Record<string, any> = {};
+    for (const [name, value] of Object.entries(candidate)) {
+      if (value === undefined || value === null) continue;
+      if (available && !available.has(name)) continue;
+      fields[name] = value;
     }
-    if (toNumberOrUndefined(sleepQuality) !== undefined) {
-      fields["Sleep Quality"] = toNumberOrUndefined(sleepQuality);
-    }
-    if (toNumberOrUndefined(energy) !== undefined) fields.Energy = toNumberOrUndefined(energy);
-    if (mood !== undefined) fields.Mood = String(mood);
-    if (toNumberOrUndefined(stress) !== undefined) fields.Stress = toNumberOrUndefined(stress);
-    if (toNumberOrUndefined(soreness) !== undefined) {
-      fields.Soreness = toNumberOrUndefined(soreness);
-    }
-    if (toNumberOrUndefined(readinessScore) !== undefined) {
-      fields["Readiness Score"] = toNumberOrUndefined(readinessScore);
-    }
-    if (nutritionNotes !== undefined) fields["Nutrition Notes"] = String(nutritionNotes);
-    if (trainingNotes !== undefined) fields["Training Notes"] = String(trainingNotes);
-    if (wins !== undefined) fields.Wins = String(wins);
-    if (problemsPain !== undefined) fields["Problems / Pain"] = String(problemsPain);
-    if (clientNotes !== undefined) fields["Client Notes"] = String(clientNotes);
-    if (coachResponse !== undefined) fields["Coach Response"] = String(coachResponse);
-    if (coachReviewed !== undefined) fields["Coach Reviewed"] = Boolean(coachReviewed);
-    if (reviewedDate) fields["Reviewed Date"] = toLarkDate(reviewedDate);
 
     let createData = await createRecord(token, fields);
 
-    if (createData.code !== 0 && fields.Client) {
-      const fallbackFields = { ...fields };
-      delete fallbackFields.Client;
-      createData = await createRecord(token, fallbackFields);
+    // If the duplex link rejects the value, retry without it rather than fail.
+    if (createData.code !== 0 && fields["Client ID"]) {
+      const fallback = { ...fields };
+      delete fallback["Client ID"];
+      createData = await createRecord(token, fallback);
     }
 
     if (createData.code !== 0) {
