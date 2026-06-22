@@ -6114,6 +6114,95 @@ button.coachReviewGlobalItem,
   color: #6a665d;
 }
 
+/* ---- Program row right-click context menu ---- */
+.programCtxBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 4200;
+}
+
+.programCtxMenu {
+  position: fixed;
+  z-index: 4201;
+  width: 180px;
+  background: #fff;
+  border: 1px solid #e2ddd1;
+  border-radius: 10px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.28);
+  padding: 6px;
+}
+
+.programCtxMenu button {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: transparent;
+  color: #1c1c19;
+  border-radius: 7px;
+  padding: 9px 10px;
+  font-size: 14px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.programCtxMenu button:hover {
+  background: #f3ecd6;
+}
+
+.programCtxMenu button.dangerMenuItem {
+  color: #b3261e;
+}
+
+.programCtxMenu button.dangerMenuItem:hover {
+  background: #fbe9e7;
+}
+
+/* ---- Program preview window ---- */
+.previewModal {
+  width: 100%;
+  max-width: 560px;
+  max-height: 86vh;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  color: #1c1c19;
+  border: 1px solid #e2ddd1;
+  border-radius: 14px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+}
+
+.previewBody {
+  overflow-y: auto;
+  padding: 6px 20px 16px;
+}
+
+.previewWeek {
+  margin-top: 14px;
+}
+
+.previewWeekLabel {
+  font-size: 13px;
+  font-weight: 950;
+  color: #111;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.previewDays {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.previewDays .programGridCard {
+  cursor: default;
+}
+
 /* ---- Create Program details modal ---- */
 .createProgramOverlay {
   position: fixed;

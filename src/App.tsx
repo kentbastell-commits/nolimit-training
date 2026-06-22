@@ -2235,6 +2235,22 @@ function App() {
   // Programs landing: the detail/assign panel shows only when explicitly
   // opened via the gear (clicking a row opens the builder calendar instead).
   const [showProgramDetail, setShowProgramDetail] = useState(false);
+  // Right-click context menu on a program row.
+  const [programMenu, setProgramMenu] = useState<{
+    program: Program;
+    x: number;
+    y: number;
+  } | null>(null);
+  // In-place edit: when set, "Save Full Program" updates this record instead
+  // of creating a new one.
+  const [editProgramId, setEditProgramId] = useState("");
+  const [editProgramRecordId, setEditProgramRecordId] = useState("");
+  // Read-only preview window (at-a-glance snapshot of a saved program).
+  const [previewProgram, setPreviewProgram] = useState<{
+    program: Program;
+    sessions: ProgramSession[];
+  } | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
   // Session Library: reuse days from any saved program by dragging onto a cell.
   const [sessionLibOpen, setSessionLibOpen] = useState(false);
   const [sessionLibProgramId, setSessionLibProgramId] = useState("");
@@ -5072,6 +5088,26 @@ function App() {
     );
   };
 
+  // Read-only at-a-glance preview of a saved program (right-click → Preview).
+  const openProgramPreview = async (program: Program) => {
+    setProgramMenu(null);
+    setPreviewLoading(true);
+    setPreviewProgram({ program, sessions: [] });
+    try {
+      const sessions = await fetchProgramSessions(
+        program.programId,
+        program.recordId || ""
+      );
+      setPreviewProgram({ program, sessions });
+    } catch (error) {
+      console.error(error);
+      notify("Could not load program preview.");
+      setPreviewProgram(null);
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
   const loadSessionLibrary = async (program: Program) => {
     setSessionLibProgramId(program.programId);
     setSessionLibLoading(true);
@@ -5111,11 +5147,22 @@ function App() {
     notify(`Inserted "${session.sessionName}" into Week ${week}, Day ${day}.`);
   };
 
-  const loadSavedProgramIntoBuilder = async (programArg?: Program) => {
+  const loadSavedProgramIntoBuilder = async (
+    programArg?: Program,
+    opts?: { edit?: boolean; asCopy?: boolean }
+  ) => {
     const sourceProgram = programArg || selectedSavedProgram;
     if (!sourceProgram) {
       notify("Please select a program.");
       return;
+    }
+    // Edit = update this record on save; Duplicate/open = create a new one.
+    if (opts?.edit) {
+      setEditProgramId(sourceProgram.programId);
+      setEditProgramRecordId(sourceProgram.recordId || "");
+    } else {
+      setEditProgramId("");
+      setEditProgramRecordId("");
     }
 
     setSavedTemplatesLoading(true);
@@ -5214,7 +5261,11 @@ function App() {
         })
       );
 
-      setProgramName(sourceProgram.programName);
+      setProgramName(
+        opts?.asCopy
+          ? `${sourceProgram.programName} Copy`
+          : sourceProgram.programName
+      );
       setProgramGoal(sourceProgram.goal);
       setProgramSport(sourceProgram.sport);
       setProgramLevel(sourceProgram.level);
@@ -5257,7 +5308,13 @@ function App() {
       setSessionName("");
       setWorkoutPageTab("Program Builder");
 
-      notify("Opened in builder. Saving creates a new program version.");
+      notify(
+        opts?.edit
+          ? "Editing in builder. Saving updates this program."
+          : opts?.asCopy
+          ? "Duplicated into builder. Saving creates a new program."
+          : "Opened in builder. Saving creates a new program version."
+      );
     } catch (error) {
       console.error(error);
       notify("Could not load program into builder.");
@@ -9321,58 +9378,101 @@ function App() {
 
     setSavingTemplate(true);
 
+    const inPlaceEdit = Boolean(editProgramRecordId) && !singleWorkoutMode;
+
     try {
-      const programResponse = await fetch("/api/createProgram", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          programName,
-          goal: singleWorkoutMode ? "Single Workout" : programGoal,
-          sport: programSport,
-          level: programLevel,
-          durationWeeks: singleWorkoutMode ? 1 : Number(programDurationWeeks),
-          phase: singleWorkoutMode ? "Single Day" : programPhase,
-          sessionsPerWeek: singleWorkoutMode ? 1 : Number(programSessionsPerWeek),
-          coach: programCoach,
-          status: "Active",
-          productType: singleWorkoutMode ? "Single Workout" : programProductType,
-          price: digitalProductProgram ? programPrice : "",
-          currency: digitalProductProgram ? programCurrency : "",
-          publicStoreVisible: digitalProductProgram ? effectiveStoreVisible : false,
-          purchaseLink: digitalProductProgram ? programPurchaseLink : "",
-          defaultIntakeFormId: digitalProductProgram ? programDefaultIntakeFormId : "",
-          accessLengthDays: digitalProductProgram ? programAccessLengthDays : "",
-          productStatus: digitalProductProgram ? programProductStatus : "Draft",
-          salesDescription: digitalProductProgram ? programSalesDescription : "",
-          builtForClient:
-            coachedProgramType || singleWorkoutMode ? programBuiltForClient : "",
-          builtForTeam:
-            coachedProgramType || singleWorkoutMode ? programBuiltForTeam : "",
-          storeCategory: effectiveStoreVisible ? programStoreCategory : "",
-          storeCategoryCn: effectiveStoreVisible ? programStoreCategoryCn : "",
-          // Listing type is derived from the product type.
-          storeListingType: !effectiveStoreVisible
-            ? ""
-            : programProductType === "Digital Add-on"
-            ? "Add-on"
-            : programProductType === "Digital Bundle"
-            ? "Bundle"
-            : "Main",
-          bundleProgramIds:
-            programProductType === "Digital Bundle"
-              ? programBundleIds.join(",")
-              : "",
-        }),
-      });
+      const programPayload = {
+        programName,
+        goal: singleWorkoutMode ? "Single Workout" : programGoal,
+        sport: programSport,
+        level: programLevel,
+        durationWeeks: singleWorkoutMode ? 1 : Number(programDurationWeeks),
+        phase: singleWorkoutMode ? "Single Day" : programPhase,
+        sessionsPerWeek: singleWorkoutMode ? 1 : Number(programSessionsPerWeek),
+        coach: programCoach,
+        status: "Active",
+        productType: singleWorkoutMode ? "Single Workout" : programProductType,
+        price: digitalProductProgram ? programPrice : "",
+        currency: digitalProductProgram ? programCurrency : "",
+        publicStoreVisible: digitalProductProgram ? effectiveStoreVisible : false,
+        purchaseLink: digitalProductProgram ? programPurchaseLink : "",
+        defaultIntakeFormId: digitalProductProgram ? programDefaultIntakeFormId : "",
+        accessLengthDays: digitalProductProgram ? programAccessLengthDays : "",
+        productStatus: digitalProductProgram ? programProductStatus : "Draft",
+        salesDescription: digitalProductProgram ? programSalesDescription : "",
+        builtForClient:
+          coachedProgramType || singleWorkoutMode ? programBuiltForClient : "",
+        builtForTeam:
+          coachedProgramType || singleWorkoutMode ? programBuiltForTeam : "",
+        storeCategory: effectiveStoreVisible ? programStoreCategory : "",
+        storeCategoryCn: effectiveStoreVisible ? programStoreCategoryCn : "",
+        // Listing type is derived from the product type.
+        storeListingType: !effectiveStoreVisible
+          ? ""
+          : programProductType === "Digital Add-on"
+          ? "Add-on"
+          : programProductType === "Digital Bundle"
+          ? "Bundle"
+          : "Main",
+        bundleProgramIds:
+          programProductType === "Digital Bundle"
+            ? programBundleIds.join(",")
+            : "",
+      };
 
-      const programData = await programResponse.json();
+      let programData: any;
+      let oldTemplateRecordIds: string[] = [];
 
-      if (!programResponse.ok || !programData.success) {
-        console.error(programData);
-        notify("Could not create program. Check API response.");
-        return;
+      if (inPlaceEdit) {
+        // Capture the existing session/template records so they can be
+        // removed after the new ones are written (no data loss on failure).
+        try {
+          const tRes = await fetch(
+            `/api/programTemplates?programId=${encodeURIComponent(
+              editProgramId
+            )}&programRecordId=${encodeURIComponent(editProgramRecordId)}`
+          );
+          const tData = await tRes.json();
+          if (tRes.ok) {
+            oldTemplateRecordIds = (tData.templates || [])
+              .map((t: any) => t.recordId)
+              .filter(Boolean);
+          }
+        } catch (templateError) {
+          console.warn("Could not list existing templates", templateError);
+        }
+
+        const updRes = await fetch("/api/updateProgram", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            programRecordId: editProgramRecordId,
+            ...programPayload,
+          }),
+        });
+        const updData = await updRes.json();
+        if (!updRes.ok || !updData.success) {
+          console.error(updData);
+          notify("Could not update program. Check API response.");
+          return;
+        }
+        programData = {
+          success: true,
+          programId: editProgramId,
+          programRecordId: editProgramRecordId,
+        };
+      } else {
+        const programResponse = await fetch("/api/createProgram", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(programPayload),
+        });
+        programData = await programResponse.json();
+        if (!programResponse.ok || !programData.success) {
+          console.error(programData);
+          notify("Could not create program. Check API response.");
+          return;
+        }
       }
 
       let totalRecordsCreated = 0;
@@ -9418,10 +9518,30 @@ function App() {
         totalRecordsCreated += Number(templateData.recordsCreated || 0);
       }
 
+      // In-place edit: the new sessions are written, so remove the old ones.
+      if (inPlaceEdit && oldTemplateRecordIds.length > 0) {
+        for (const recordId of oldTemplateRecordIds) {
+          await fetch("/api/deleteRecord", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              resource: "workoutTemplate",
+              recordId,
+            }),
+          });
+        }
+      }
+
       notify(
-        `Program saved. Sessions: ${sessionsToSave.length}. Template records created: ${totalRecordsCreated}`
+        inPlaceEdit
+          ? `Program updated. ${sessionsToSave.length} session${
+              sessionsToSave.length === 1 ? "" : "s"
+            } saved.`
+          : `Program saved. Sessions: ${sessionsToSave.length}. Template records created: ${totalRecordsCreated}`
       );
 
+      setEditProgramId("");
+      setEditProgramRecordId("");
       setProgramSessions([]);
       setSelectedProgramExercises([]);
       setProgramName("");
@@ -17726,6 +17846,211 @@ function App() {
         useChineseClientText ? "chineseLocaleApp" : ""
       }`}
     >
+      {programMenu && (
+        <>
+          <div
+            className="programCtxBackdrop"
+            onClick={() => setProgramMenu(null)}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              setProgramMenu(null);
+            }}
+          />
+          <div
+            className="programCtxMenu"
+            style={{
+              top: Math.min(programMenu.y, window.innerHeight - 230),
+              left: Math.min(programMenu.x, window.innerWidth - 190),
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => {
+                const pr = programMenu.program;
+                setProgramMenu(null);
+                setSelectedSavedProgramId(pr.programId);
+                setSavedAssignableWorkouts([]);
+                setShowProgramDetail(true);
+              }}
+            >
+              <UserCircle size={15} /> Assign
+            </button>
+            <button
+              type="button"
+              onClick={() => openProgramPreview(programMenu.program)}
+            >
+              <Eye size={15} /> Preview
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const pr = programMenu.program;
+                setProgramMenu(null);
+                setSelectedSavedProgramId(pr.programId);
+                void loadSavedProgramIntoBuilder(pr, { edit: true });
+              }}
+            >
+              <Pencil size={15} /> Edit
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const pr = programMenu.program;
+                setProgramMenu(null);
+                setSelectedSavedProgramId(pr.programId);
+                void loadSavedProgramIntoBuilder(pr, { asCopy: true });
+              }}
+            >
+              <Copy size={15} /> Duplicate
+            </button>
+            <button
+              type="button"
+              className="dangerMenuItem"
+              onClick={() => {
+                const pr = programMenu.program;
+                setProgramMenu(null);
+                deleteSavedProgram(pr);
+              }}
+            >
+              <Trash2 size={15} /> Delete
+            </button>
+          </div>
+        </>
+      )}
+
+      {previewProgram && (
+        <div
+          className="createProgramOverlay"
+          onClick={() => setPreviewProgram(null)}
+        >
+          <div
+            className="previewModal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="createProgramHeader">
+              <div>
+                <span className="eyebrow">Preview</span>
+                <h3>{previewProgram.program.programName}</h3>
+              </div>
+              <button
+                type="button"
+                className="iconActionButton"
+                title="Close"
+                onClick={() => setPreviewProgram(null)}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="previewBody">
+              {previewLoading ? (
+                <p className="programTableEmpty">Loading…</p>
+              ) : previewProgram.sessions.length === 0 ? (
+                <p className="programTableEmpty">No sessions in this program.</p>
+              ) : (
+                (() => {
+                  const maxWeek = previewProgram.sessions.reduce(
+                    (m, s) => Math.max(m, Number(s.week) || 1),
+                    1
+                  );
+                  const weeks = Array.from(
+                    { length: maxWeek },
+                    (_, i) => i + 1
+                  );
+                  return weeks.map((w) => {
+                    const days = previewProgram.sessions
+                      .filter((s) => s.week === String(w))
+                      .sort((a, b) => Number(a.day) - Number(b.day));
+                    if (days.length === 0) return null;
+                    return (
+                      <div className="previewWeek" key={w}>
+                        <div className="previewWeekLabel">Week {w}</div>
+                        <div className="previewDays">
+                          {days.map((s) => (
+                            <div
+                              key={s.localId}
+                              className={`programGridCard ${getWorkoutColorClass(
+                                s.sessionName,
+                                s.sessionType
+                              )}`}
+                            >
+                              <div className="programGridCardHead">
+                                <strong className="programGridCardName">
+                                  Day {s.day} ·{" "}
+                                  {s.sessionName || `Week ${w} Day ${s.day}`}
+                                </strong>
+                              </div>
+                              <div className="glanceChain">
+                                {buildGlanceChain(s.exercises).map((it, gi) => (
+                                  <div
+                                    className="glanceRow"
+                                    key={`${it.ex.exerciseRecordId}-${gi}`}
+                                  >
+                                    <div className="glanceBadgeWrap">
+                                      {it.linked && !it.isFirst && (
+                                        <span
+                                          className={`glanceLineUp line-${it.lineUpColor}`}
+                                        />
+                                      )}
+                                      {it.linked && !it.isLast && (
+                                        <span
+                                          className={`glanceLineDown line-${it.lineDownColor}`}
+                                        />
+                                      )}
+                                      <span
+                                        className={`exerciseLabelBadge glanceBadge ${it.colorClass}`}
+                                      >
+                                        {it.display}
+                                      </span>
+                                    </div>
+                                    <div className="glanceText">
+                                      <strong>{it.ex.exerciseName}</strong>
+                                      {(it.ex.sets || it.ex.reps) && (
+                                        <span>
+                                          {it.ex.sets && it.ex.reps
+                                            ? `${it.ex.sets} x ${it.ex.reps}`
+                                            : it.ex.sets || it.ex.reps}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  });
+                })()
+              )}
+            </div>
+
+            <div className="createProgramFooter">
+              <button
+                type="button"
+                className="outlineButton"
+                onClick={() => setPreviewProgram(null)}
+              >
+                Close
+              </button>
+              <button
+                type="button"
+                className="goldButton"
+                onClick={() => {
+                  const pr = previewProgram.program;
+                  setPreviewProgram(null);
+                  setSelectedSavedProgramId(pr.programId);
+                  void loadSavedProgramIntoBuilder(pr, { edit: true });
+                }}
+              >
+                Edit in Builder
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {createProgramOpen && (
         <div
           className="createProgramOverlay"
@@ -18167,7 +18492,11 @@ function App() {
                     {builderSaveStatus === "dirty" ? "Unsaved changes" : "Saved"}
                   </span>
                   <button className="goldButton" onClick={saveFullProgram}>
-                    {savingTemplate ? "Saving..." : "Save Full Program"}
+                    {savingTemplate
+                      ? "Saving..."
+                      : editProgramRecordId
+                      ? "Update Program"
+                      : "Save Full Program"}
                   </button>
                 </div>
               )}
@@ -20791,6 +21120,14 @@ function App() {
                                 setSavedAssignableWorkouts([]);
                                 void loadSavedProgramIntoBuilder(program);
                               }}
+                              onContextMenu={(e) => {
+                                e.preventDefault();
+                                setProgramMenu({
+                                  program,
+                                  x: e.clientX,
+                                  y: e.clientY,
+                                });
+                              }}
                             >
                               <span className="programTableTitle">
                                 <span className="programTableBadge">
@@ -23394,6 +23731,8 @@ function App() {
                     ? "Saving..."
                     : isSingleWorkoutBuilder
                     ? "Save Workout"
+                    : editProgramRecordId
+                    ? "Update Program"
                     : "Save Full Program"}
                 </button>
               </section>
