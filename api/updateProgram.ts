@@ -78,18 +78,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (coach !== undefined) fields.Coach = coach;
     if (status !== undefined) fields.Status = status;
     if (productType !== undefined) fields["Product Type"] = productType;
-    if (price !== undefined) fields.Price = price === "" ? "" : Number(price) || 0;
+    // Price / Access Length Days are Number columns and Purchase Link is a URL
+    // column: Feishu rejects an empty string on those (NumberFieldConvFail /
+    // URLFieldConvFail) and that fails the whole update. The store form sends
+    // "" for these on every non-digital program, so omit empties instead.
+    if (price !== undefined && price !== "") fields.Price = Number(price) || 0;
     if (currency !== undefined) fields.Currency = currency;
     if (publicStoreVisible !== undefined) {
       fields["Public Store Visible"] = Boolean(publicStoreVisible) as any;
     }
-    if (purchaseLink !== undefined) fields["Purchase Link"] = purchaseLink;
+    if (purchaseLink !== undefined && purchaseLink !== "") {
+      fields["Purchase Link"] = purchaseLink;
+    }
     if (defaultIntakeFormId !== undefined) {
       fields["Default Intake Form ID"] = defaultIntakeFormId;
     }
-    if (accessLengthDays !== undefined) {
-      fields["Access Length Days"] =
-        accessLengthDays === "" ? "" : Number(accessLengthDays) || 0;
+    if (accessLengthDays !== undefined && accessLengthDays !== "") {
+      fields["Access Length Days"] = Number(accessLengthDays) || 0;
     }
     if (productStatus !== undefined) fields["Product Status"] = productStatus;
     if (salesDescription !== undefined) {
