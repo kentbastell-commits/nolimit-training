@@ -2296,6 +2296,11 @@ function App() {
     d: number;
   } | null>(null);
   const [libPickLoadingId, setLibPickLoadingId] = useState("");
+  // Cut/Copy clipboard for builder sessions; Paste drops it on another day.
+  const [copiedSession, setCopiedSession] = useState<{
+    session: ProgramSession;
+    mode: "copy" | "cut";
+  } | null>(null);
   // Client calendar "+" menu: add a full program or a single session.
   const [calAddMenu, setCalAddMenu] = useState<{
     date: string;
@@ -5363,6 +5368,33 @@ function App() {
     ]);
     setBuilderSaveStatus("dirty");
     notify(`Inserted "${session.sessionName}" into Week ${week}, Day ${day}.`);
+  };
+
+  // Paste a cut/copied session onto a day. A cut removes the original.
+  const pasteSessionAtCell = (week: number, day: number) => {
+    if (!copiedSession) return;
+    const { session, mode } = copiedSession;
+    setProgramSessions((current) => {
+      const base =
+        mode === "cut"
+          ? current.filter((s) => s.localId !== session.localId)
+          : current;
+      return [
+        ...base,
+        {
+          ...session,
+          localId: `${Date.now()}-${Math.random()}`,
+          week: String(week),
+          day: String(day),
+          exercises: session.exercises.map((ex) => ({ ...ex })),
+        },
+      ];
+    });
+    setBuilderSaveStatus("dirty");
+    if (mode === "cut") setCopiedSession(null);
+    notify(
+      `Pasted "${session.sessionName}" into Week ${week}, Day ${day}.`
+    );
   };
 
   // "Add from Library": one click on a saved session → fetch + insert into the
@@ -18152,16 +18184,59 @@ function App() {
             }}
           >
             {cellMenu.sessionLocalId && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const id = cellMenu.sessionLocalId;
+                    setCellMenu(null);
+                    const s = programSessions.find((x) => x.localId === id);
+                    if (s) loadSessionForEditing(s);
+                  }}
+                >
+                  <Pencil size={15} /> Edit
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const id = cellMenu.sessionLocalId;
+                    setCellMenu(null);
+                    const s = programSessions.find((x) => x.localId === id);
+                    if (s) {
+                      setCopiedSession({ session: s, mode: "copy" });
+                      notify(`Copied "${s.sessionName}".`);
+                    }
+                  }}
+                >
+                  <Copy size={15} /> Copy
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const id = cellMenu.sessionLocalId;
+                    setCellMenu(null);
+                    const s = programSessions.find((x) => x.localId === id);
+                    if (s) {
+                      setCopiedSession({ session: s, mode: "cut" });
+                      notify(`Cut "${s.sessionName}" — paste it on another day.`);
+                    }
+                  }}
+                >
+                  <Scissors size={15} /> Cut
+                </button>
+              </>
+            )}
+            {copiedSession && (
               <button
                 type="button"
                 onClick={() => {
-                  const id = cellMenu.sessionLocalId;
+                  const { w, d } = cellMenu;
                   setCellMenu(null);
-                  const s = programSessions.find((x) => x.localId === id);
-                  if (s) loadSessionForEditing(s);
+                  pasteSessionAtCell(w, d);
                 }}
               >
-                <Pencil size={15} /> Edit
+                <ClipboardList size={15} /> Paste “
+                {copiedSession.session.sessionName}”
               </button>
             )}
             <button
@@ -22734,7 +22809,13 @@ function App() {
                                           !s.__draft
                                             ? " calCardEditing"
                                             : ""
-                                        }${s.__draft ? " gridCardDraft" : ""}`}
+                                        }${s.__draft ? " gridCardDraft" : ""}${
+                                          copiedSession?.mode === "cut" &&
+                                          copiedSession.session.localId ===
+                                            s.localId
+                                            ? " gridCardCut"
+                                            : ""
+                                        }`}
                                         draggable={!s.__draft}
                                         onContextMenu={(e) => {
                                           e.preventDefault();

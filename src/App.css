@@ -5899,6 +5899,11 @@ button.coachReviewGlobalItem,
   border-color: rgba(0, 0, 0, 0.28);
 }
 
+.programGridCard.gridCardCut {
+  opacity: 0.5;
+  border-style: dashed;
+}
+
 .gridDraftTag {
   font-size: 10px;
   font-weight: 900;
