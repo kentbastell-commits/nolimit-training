@@ -18552,6 +18552,30 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   gap: 6px !important;
 }
 
+.builderUsePercentToggle {
+  flex: 0 0 auto;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid #d8d1c4;
+  background: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  color: #68645d;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.builderUsePercentToggle.active {
+  background: #0d0d0d;
+  border-color: #0d0d0d;
+  color: #d4af37;
+}
+
+/* %1RM column hidden ("Use %" off) — drop to 5 columns so cells stay aligned. */
+.builderSetTableHeader.builderSetTableNoPercent,
+.builderSetTableRow.builderSetTableNoPercent {
+  grid-template-columns: 56px minmax(100px, 1fr) minmax(82px, 0.72fr) minmax(96px, 0.82fr) minmax(96px, 0.82fr) !important;
+}
+
 .builderSetTableHeader {
   color: #676761 !important;
   font-size: 11px !important;

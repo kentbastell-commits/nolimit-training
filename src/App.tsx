@@ -2067,6 +2067,11 @@ function App() {
     useState<number | null>(null);
   const [expandedBuilderExerciseIndexes, setExpandedBuilderExerciseIndexes] =
     useState<Set<number>>(new Set());
+  // Builder: which exercises have the %1RM field revealed (off by default; the
+  // "Use %" button beside the exercise name toggles it on).
+  const [usePercentExerciseIndexes, setUsePercentExerciseIndexes] = useState<
+    Set<number>
+  >(new Set());
   const [builderExerciseOptionsIndex, setBuilderExerciseOptionsIndex] =
     useState<number | null>(null);
   const [alternateEditorExerciseIndex, setAlternateEditorExerciseIndex] =
@@ -7028,6 +7033,15 @@ function App() {
     });
   };
 
+  const toggleUsePercent = (index: number) => {
+    setUsePercentExerciseIndexes((current) => {
+      const next = new Set(current);
+      if (next.has(index)) next.delete(index);
+      else next.add(index);
+      return next;
+    });
+  };
+
   const expandAllBuilderExercises = () => {
     setExpandedBuilderExerciseIndexes(
       new Set(selectedProgramExercises.map((_, index) => index))
@@ -7197,6 +7211,11 @@ function App() {
     exerciseIndex: number
   ) => {
     const setPrescriptions = normalizeExerciseSetPrescriptions(exercise);
+    // %1RM is hidden unless the coach turned on "Use %" for this exercise, or it
+    // already has percent values (so existing %-based programs still show it).
+    const showPercent =
+      usePercentExerciseIndexes.has(exerciseIndex) ||
+      setPrescriptions.some((s) => String(s.percent || "").trim() !== "");
     const isRunning =
       exercise.trackingType === "Time" ||
       exercise.trackingType === "Distance" ||
@@ -7237,7 +7256,11 @@ function App() {
             ))}
           </div>
         )}
-        <div className="builderSetTableHeader">
+        <div
+          className={`builderSetTableHeader${
+            !isRunning && !showPercent ? " builderSetTableNoPercent" : ""
+          }`}
+        >
           <span>Set</span>
           {isRunning ? (
             <>
@@ -7262,10 +7285,12 @@ function App() {
                 Load
                 <button className="fillColumnButton" type="button" title="Fill all sets with set 1 value" onClick={() => fillSetColumn(exerciseIndex, "load")}>↓</button>
               </span>
-              <span>
-                %1RM
-                <button className="fillColumnButton" type="button" title="Fill all sets with set 1 value" onClick={() => fillSetColumn(exerciseIndex, "percent")}>↓</button>
-              </span>
+              {showPercent && (
+                <span>
+                  %1RM
+                  <button className="fillColumnButton" type="button" title="Fill all sets with set 1 value" onClick={() => fillSetColumn(exerciseIndex, "percent")}>↓</button>
+                </span>
+              )}
               <span>
                 Reps
                 <button className="fillColumnButton" type="button" title="Fill all sets with set 1 value" onClick={() => fillSetColumn(exerciseIndex, "reps")}>↓</button>
@@ -7282,7 +7307,12 @@ function App() {
           )}
         </div>
         {setPrescriptions.map((set, setIndex) => (
-          <div className="builderSetTableRow" key={`${exerciseIndex}-set-${setIndex}`}>
+          <div
+            className={`builderSetTableRow${
+              !isRunning && !showPercent ? " builderSetTableNoPercent" : ""
+            }`}
+            key={`${exerciseIndex}-set-${setIndex}`}
+          >
             <div className="builderSetNumberCell">
               <strong>{set.setNumber}</strong>
               {setPrescriptions.length > 1 && (
@@ -7672,23 +7702,25 @@ function App() {
                     placeholder="kg / RPE"
                   />
                 </label>
-                <label className="builderSetField">
-                  <span className="builderSetFieldLabel">%1RM</span>
-                  <input
-                    className="miniSearch"
-                    inputMode="decimal"
-                    value={set.percent}
-                    onChange={(event) =>
-                      updateExerciseSetPrescription(
-                        exerciseIndex,
-                        setIndex,
-                        "percent",
-                        event.target.value.replace(/[^\d.]/g, "")
-                      )
-                    }
-                    placeholder="% 1RM"
-                  />
-                </label>
+                {showPercent && (
+                  <label className="builderSetField">
+                    <span className="builderSetFieldLabel">%1RM</span>
+                    <input
+                      className="miniSearch"
+                      inputMode="decimal"
+                      value={set.percent}
+                      onChange={(event) =>
+                        updateExerciseSetPrescription(
+                          exerciseIndex,
+                          setIndex,
+                          "percent",
+                          event.target.value.replace(/[^\d.]/g, "")
+                        )
+                      }
+                      placeholder="% 1RM"
+                    />
+                  </label>
+                )}
                 <label className="builderSetField">
                   <span className="builderSetFieldLabel">Reps</span>
                   <input
@@ -21524,6 +21556,16 @@ function App() {
                             <span className="builderExerciseExpandIndicator">
                               {isExpanded ? "Collapse" : "Edit"}
                             </span>
+                          </button>
+                          <button
+                            type="button"
+                            className={`builderUsePercentToggle${
+                              usePercentExerciseIndexes.has(index) ? " active" : ""
+                            }`}
+                            onClick={() => toggleUsePercent(index)}
+                            title="Show the %1RM field for this exercise"
+                          >
+                            Use %
                           </button>
                           {renderBuilderExerciseOptionsMenu(exercise, index)}
                         </div>
