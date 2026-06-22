@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { fetchAllBitableRecords } from "./_pagination.ts";
+import { getCached, setCached } from "./_cache.ts";
 
 function fieldToText(value: any): string {
   if (!value) return "";
@@ -294,11 +295,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const token = await getTenantToken();
     const { clientId = "", clientCode = "", clientName = "" } = req.query;
     const requestedClientId = String(clientId).toLowerCase();
     const requestedClientCode = String(clientCode).toLowerCase();
     const requestedClientName = String(clientName).toLowerCase();
+
+    let allAssignments = getCached<any[]>("contentAssignments");
+
+    if (!allAssignments) {
+    const token = await getTenantToken();
     const [formTemplateRecords, testTemplateRecords] = await Promise.all([
       formTemplatesTableId ? getRecords(formTemplatesTableId, token) : Promise.resolve([]),
       testTemplatesTableId ? getRecords(testTemplatesTableId, token) : Promise.resolve([]),
@@ -336,19 +341,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         : Promise.resolve([]),
     ]);
 
-    const assignments = records
-      .flat()
-      .filter((assignment) => {
-        return Boolean(
-          assignment.templateId ||
-            assignment.templateName ||
-            assignment.clientId ||
-            assignment.clientCode ||
-            assignment.clientName ||
-            assignment.assignedDate ||
-            assignment.dueDate
-        );
-      })
+      allAssignments = records
+        .flat()
+        .filter((assignment) => {
+          return Boolean(
+            assignment.templateId ||
+              assignment.templateName ||
+              assignment.clientId ||
+              assignment.clientCode ||
+              assignment.clientName ||
+              assignment.assignedDate ||
+              assignment.dueDate
+          );
+        });
+
+      setCached("contentAssignments", allAssignments, 5 * 60 * 1000);
+    }
+
+    const assignments = allAssignments
       .filter((assignment) => {
         if (!requestedClientId && !requestedClientCode && !requestedClientName) {
           return true;

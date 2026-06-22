@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { invalidateCache } from "./_cache.ts";
 import { fetchAllBitableRecords } from "./_pagination.ts";
 
 function toMs(value: any): number {
@@ -98,6 +99,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .status(500)
         .json({ error: "Could not save workload log", details: result });
     }
+
+    invalidateCache("workloadLogs");
 
     return res
       .status(200)

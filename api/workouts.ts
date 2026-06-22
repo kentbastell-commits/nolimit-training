@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { getCached, setCached } from "./_cache.ts";
 
 // Extract a single Bitable cell item to text. Handles link/lookup objects
 // (which carry text/text_arr) and returns "" for empty links so an unresolved
@@ -59,6 +60,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const clientCode = String(req.query.clientCode || "");
 
+    let allWorkouts = getCached<any[]>("workouts");
+    if (allWorkouts) {
+      const filtered = clientCode
+        ? allWorkouts.filter((w: any) => w.clientId.includes(clientCode))
+        : allWorkouts;
+      return res.status(200).json({ workouts: filtered });
+    }
+
     const tokenResponse = await fetch(
       "https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal",
       {
@@ -110,7 +119,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       pageToken = recordsData.data?.has_more ? recordsData.data.page_token : "";
     } while (pageToken);
 
-    const workouts = allItems
+    allWorkouts = allItems
       .map((item: any) => {
         const fields = item.fields || {};
 
@@ -141,11 +150,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             fieldToText(fields["Coach Reviewed"])
           ),
         };
-      })
-      .filter((workout: any) => {
-        if (!clientCode) return true;
-        return workout.clientId.includes(clientCode);
       });
+
+    setCached("workouts", allWorkouts, 2 * 60 * 1000);
+
+    const workouts = clientCode
+      ? allWorkouts.filter((w: any) => w.clientId.includes(clientCode))
+      : allWorkouts;
 
     return res.status(200).json({ workouts });
   } catch (error: any) {

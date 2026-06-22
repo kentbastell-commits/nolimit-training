@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { getCached, setCached } from "./_cache.ts";
 
 function fieldToText(value: any): string {
   if (!value) return "";
@@ -144,11 +145,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const clientTokens = [clientId, clientRecordId, clientCode]
       .map(normalize)
       .filter(Boolean);
-    const token = await getTenantToken();
-    const records = await getRecords(tableId, token);
+    let allMetrics = getCached<any[]>("athleteMetrics");
 
-    const metrics = records
-      .map((item: any) => {
+    if (!allMetrics) {
+      const token = await getTenantToken();
+      const records = await getRecords(tableId, token);
+
+      allMetrics = records.map((item: any) => {
         const fields = item.fields || {};
 
         return {
@@ -169,7 +172,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           status: readField(fields, ["Status"]),
           notes: readField(fields, ["Notes"]),
         };
-      })
+      });
+
+      setCached("athleteMetrics", allMetrics, 5 * 60 * 1000);
+    }
+
+    const metrics = allMetrics
       .filter((metric) => {
         if (clientTokens.length || clientName) {
           const metricClientId = normalize(metric.clientId);

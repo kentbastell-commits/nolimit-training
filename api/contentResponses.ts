@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { fetchAllBitableRecords } from "./_pagination.ts";
+import { getCached, setCached } from "./_cache.ts";
 
 function fieldToText(value: any): string {
   if (!value) return "";
@@ -184,26 +185,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const token = await getTenantToken();
     const { clientId = "", clientName = "" } = req.query;
     const requestedClientId = String(clientId).toLowerCase();
     const requestedClientName = String(clientName).toLowerCase();
-    const records = await Promise.all([
-      formResponsesTableId
-        ? getRecords(formResponsesTableId, token).then((items) =>
-            items.map((item: any) => mapResponse(item, "Questionnaire"))
-          )
-        : Promise.resolve([]),
-      testResultsTableId
-        ? getRecords(testResultsTableId, token).then((items) =>
-            items.map((item: any) => mapResponse(item, "Physical Test"))
-          )
-        : Promise.resolve([]),
-    ]);
 
-    const responses = records
-      .flat()
-      .flatMap((item) => {
+    let allResponses = getCached<any[]>("contentResponses");
+
+    if (!allResponses) {
+      const token = await getTenantToken();
+      const records = await Promise.all([
+        formResponsesTableId
+          ? getRecords(formResponsesTableId, token).then((items) =>
+              items.map((item: any) => mapResponse(item, "Questionnaire"))
+            )
+          : Promise.resolve([]),
+        testResultsTableId
+          ? getRecords(testResultsTableId, token).then((items) =>
+              items.map((item: any) => mapResponse(item, "Physical Test"))
+            )
+          : Promise.resolve([]),
+      ]);
+
+      allResponses = records
+        .flat()
+        .flatMap((item) => {
         if (item.responseType !== "Questionnaire" || !item.answersJson) {
           return [item];
         }
@@ -221,10 +226,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             answer: String(answer.value || answer.answer || ""),
             unit: String(answer.unit || item.unit || ""),
           }));
-        } catch {
-          return [item];
-        }
-      })
+          } catch {
+            return [item];
+          }
+        });
+
+      setCached("contentResponses", allResponses, 5 * 60 * 1000);
+    }
+
+    const responses = allResponses
       .filter((item) => {
         if (!requestedClientId && !requestedClientName) return true;
         return (

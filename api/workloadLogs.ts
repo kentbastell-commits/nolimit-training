@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { fetchAllBitableRecords } from "./_pagination.ts";
+import { getCached, setCached } from "./_cache.ts";
 
 function fieldToText(value: any): string {
   if (value === null || value === undefined) return "";
@@ -43,14 +44,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(200).json({ logs: [] });
     }
 
-    const items = await fetchAllBitableRecords(
-      process.env.FEISHU_BASE_APP_TOKEN as string,
-      process.env.FEISHU_WORKLOAD_LOGS_TABLE_ID as string,
-      tokenData.tenant_access_token
-    );
+    let allLogs = getCached<any[]>("workloadLogs");
 
-    const logs = items
-      .map((item: any) => {
+    if (!allLogs) {
+      const items = await fetchAllBitableRecords(
+        process.env.FEISHU_BASE_APP_TOKEN as string,
+        process.env.FEISHU_WORKLOAD_LOGS_TABLE_ID as string,
+        tokenData.tenant_access_token
+      );
+
+      allLogs = items.map((item: any) => {
         const f = item.fields || {};
         const logId = fieldToText(f["Log ID"]);
         return {
@@ -69,8 +72,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           cardioMin: num(f["Cardio Min"]),
           notes: fieldToText(f["Notes"]),
         };
-      })
-      .filter((log: any) => !clientId || log.clientId.includes(clientId));
+      });
+
+      setCached("workloadLogs", allLogs, 5 * 60 * 1000);
+    }
+
+    const logs = allLogs.filter(
+      (log: any) => !clientId || log.clientId.includes(clientId)
+    );
 
     return res.status(200).json({ logs });
   } catch (error: any) {

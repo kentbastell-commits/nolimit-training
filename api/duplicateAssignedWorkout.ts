@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { invalidateCache } from "./_cache.ts";
 
 function makeAssignedWorkoutId() {
   const random = Math.floor(100000 + Math.random() * 900000);
@@ -108,6 +109,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
+    invalidateCache("workouts");
+    invalidateCache("analytics");
     return res.status(200).json({
       success: true,
       recordId: createData.data.record.record_id,

@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { fetchAllBitableRecords } from "./_pagination.ts";
+import { getCached, setCached, invalidateCache } from "./_cache.ts";
 
 function fieldToText(value: any): string {
   if (!value) return "";
@@ -130,14 +131,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (req.method === "GET") {
       const clientId = String(req.query.clientId || "");
-      const checkInItems = await fetchAllBitableRecords(
-        process.env.FEISHU_BASE_APP_TOKEN as string,
-        process.env.FEISHU_CHECKINS_TABLE_ID as string,
-        token
-      );
 
-      const checkIns = checkInItems
-        .map((item: any) => {
+      let allCheckIns = getCached<any[]>("checkIns");
+
+      if (!allCheckIns) {
+        const checkInItems = await fetchAllBitableRecords(
+          process.env.FEISHU_BASE_APP_TOKEN as string,
+          process.env.FEISHU_CHECKINS_TABLE_ID as string,
+          token
+        );
+
+        allCheckIns = checkInItems.map((item: any) => {
           const fields = item.fields || {};
           // "Client" is the plain-text client code; "Client ID" is the duplex
           // link to the Clients table.
@@ -170,7 +174,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             reviewedDate: normalizeDate(fields["Reviewed Date"]),
             status: fieldToText(fields.Status),
           };
-        })
+        });
+
+        setCached("checkIns", allCheckIns, 5 * 60 * 1000);
+      }
+
+      const checkIns = allCheckIns
         .filter((checkIn: any) => {
           if (!clientId) return true;
           return (
@@ -262,6 +271,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         fieldsSent: fields,
       });
     }
+
+    invalidateCache("checkIns");
 
     return res.status(200).json({
       success: true,

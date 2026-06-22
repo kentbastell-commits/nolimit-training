@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { fetchAllBitableRecords } from "./_pagination.ts";
+import { getCached, setCached } from "./_cache.ts";
 
 function fieldToText(value: any): string {
   if (!value) return "";
@@ -109,15 +110,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const token = await getTenantToken();
     const { clientId = "", clientName = "" } = req.query;
     const requestedClientId = String(clientId).toLowerCase();
     const requestedClientName = String(clientName).toLowerCase();
-    const commentItems = await fetchAllBitableRecords(
-      process.env.FEISHU_BASE_APP_TOKEN as string,
-      workoutLogsTableId as string,
-      token
-    );
+
+    // Cache the raw workout-logs scan (the slow part); the comment aggregation
+    // below is cheap and runs per-request. Shares writers with workoutHistory.
+    let commentItems = getCached<any[]>("workoutComments");
+    if (!commentItems) {
+      const token = await getTenantToken();
+      commentItems = await fetchAllBitableRecords(
+        process.env.FEISHU_BASE_APP_TOKEN as string,
+        workoutLogsTableId as string,
+        token
+      );
+      setCached("workoutComments", commentItems, 5 * 60 * 1000);
+    }
 
     const commentMap = new Map<string, any>();
 

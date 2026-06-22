@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { invalidateCache } from "./_cache.ts";
 import { fetchAllBitableRecords } from "./_pagination.ts";
 
 function fieldToText(value: any): string {
@@ -107,6 +108,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
+    invalidateCache("workouts");
+    invalidateCache("analytics");
     return res.status(200).json({
       success: true,
       assignedWorkoutRecordId: recordId,

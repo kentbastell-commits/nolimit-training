@@ -267,6 +267,9 @@ export default async function handler(
     // New logs change every client's history view; drop the cached scan.
     invalidateCache("workoutLogs");
     invalidateCache("exerciseResults");
+    invalidateCache("workouts");
+    invalidateCache("workoutComments");
+    invalidateCache("analytics");
 
     return res.status(200).json({
       success: true,

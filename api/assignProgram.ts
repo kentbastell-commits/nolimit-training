@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { invalidateCache } from "./_cache.ts";
 
 type ScheduledWorkout = {
   templateRecordId?: string;
@@ -138,6 +139,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
+    invalidateCache("workouts");
+    invalidateCache("analytics");
     return res.status(200).json({
       success: true,
       recordsCreated: createData?.data?.records?.length || records.length,

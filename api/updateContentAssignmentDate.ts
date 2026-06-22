@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { invalidateCache } from "./_cache.ts";
 
 type TableField = {
   field_name?: string;
@@ -226,6 +227,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
+    invalidateCache("contentAssignments");
     return res.status(200).json({
       success: true,
       recordId,
