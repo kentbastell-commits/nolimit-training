@@ -2229,6 +2229,9 @@ function App() {
   // "Duplicate week" dropdown: which week's menu is open + the load progression.
   const [weekDupMenu, setWeekDupMenu] = useState<number | null>(null);
   const [weekDupPct, setWeekDupPct] = useState(0);
+  // Multi-day builder: the session editor opens as a right-side drawer so the
+  // calendar stays in view.
+  const [sessionEditorOpen, setSessionEditorOpen] = useState(false);
   // Session Library: reuse days from any saved program by dragging onto a cell.
   const [sessionLibOpen, setSessionLibOpen] = useState(false);
   const [sessionLibProgramId, setSessionLibProgramId] = useState("");
@@ -9059,6 +9062,11 @@ function App() {
 
     if (closeAfterSave) {
       clearCurrentProgramSession(advanceAfterClose);
+      // "Save Day" (no advance) returns to the calendar; "Save & Next" keeps
+      // the drawer open for the next day.
+      if (!advanceAfterClose && !singleWorkoutMode) {
+        setSessionEditorOpen(false);
+      }
     }
 
     notify(
@@ -9193,18 +9201,11 @@ function App() {
     setProgramWeek(String(week));
     setProgramDay(String(day));
     setBuilderMode("Program");
-    setIsBuilderLibraryOpen(true);
+    setSessionEditorOpen(true);
     setBuilderLibraryMode("Exercises");
     if (libraryExercises.length === 0 && !libraryLoading) {
       void loadExerciseLibrary();
     }
-    window.setTimeout(
-      () =>
-        document
-          .getElementById("builder-session")
-          ?.scrollIntoView({ behavior: "smooth", block: "start" }),
-      0
-    );
   };
 
   const loadSessionForEditing = (session: ProgramSession) => {
@@ -9221,18 +9222,12 @@ function App() {
     setSelectedProgramExercises(session.exercises);
     setExpandedBuilderExerciseIndexes(new Set());
     setEditingProgramSessionId(session.localId);
-    setIsBuilderLibraryOpen(true);
+    if (!session.isSingleWorkout) setSessionEditorOpen(true);
+    else setIsBuilderLibraryOpen(true);
     setBuilderLibraryMode("Exercises");
     if (libraryExercises.length === 0 && !libraryLoading) {
       void loadExerciseLibrary();
     }
-    window.setTimeout(
-      () =>
-        document
-          .getElementById("builder-session")
-          ?.scrollIntoView({ behavior: "smooth", block: "start" }),
-      0
-    );
   };
 
   const saveFullProgram = async () => {
@@ -21868,12 +21863,7 @@ function App() {
                                         }}
                                         onClick={() => {
                                           if (s.__draft) {
-                                            document
-                                              .getElementById("builder-session")
-                                              ?.scrollIntoView({
-                                                behavior: "smooth",
-                                                block: "start",
-                                              });
+                                            setSessionEditorOpen(true);
                                           } else {
                                             loadSessionForEditing(s);
                                           }
@@ -21998,6 +21988,34 @@ function App() {
                     </>
                   );
                 })()}
+
+                {!isSingleWorkoutBuilder && sessionEditorOpen && (
+                  <div
+                    className="builderEditorBackdrop"
+                    onClick={() => setSessionEditorOpen(false)}
+                  />
+                )}
+
+                <div
+                  className={`builderEditorWrap${
+                    isSingleWorkoutBuilder ? "" : " asDrawer"
+                  }${sessionEditorOpen ? " open" : ""}`}
+                >
+                  {!isSingleWorkoutBuilder && (
+                    <div className="builderEditorDrawerHead">
+                      <strong>
+                        Week {programWeek || "--"} · Day {programDay || "--"}
+                      </strong>
+                      <button
+                        type="button"
+                        className="iconActionButton"
+                        title="Close editor"
+                        onClick={() => setSessionEditorOpen(false)}
+                      >
+                        <X size={18} />
+                      </button>
+                    </div>
+                  )}
 
                 <div className="builderSectionHeader" id="builder-session">
                   <div>
@@ -23150,6 +23168,7 @@ function App() {
                     </div>
                   </div>
                 )}
+                </div>
 
                 {isSingleWorkoutBuilder && (
                   <>
