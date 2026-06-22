@@ -17,6 +17,7 @@ import {
   Home,
   Link2,
   MoreVertical,
+  Pencil,
   Play,
   Plus,
   Shuffle,
@@ -2212,6 +2213,9 @@ function App() {
   const [programSessions, setProgramSessions] = useState<ProgramSession[]>([]);
   const [editingProgramSessionId, setEditingProgramSessionId] = useState("");
   const [draggedProgramSessionId, setDraggedProgramSessionId] = useState("");
+  const [programCalDropWeek, setProgramCalDropWeek] = useState<number | null>(
+    null
+  );
   const [savingTemplate, setSavingTemplate] = useState(false);
   const [builderSaveStatus, setBuilderSaveStatus] = useState<"saved" | "dirty">(
     "saved"
@@ -8885,6 +8889,54 @@ function App() {
     setProgramSessions([...programSessions, newSession]);
   };
 
+  // Calendar: move a day card to another week (appended as that week's last day).
+  const moveSessionToWeek = (localId: string, week: number) => {
+    setProgramSessions((current) => {
+      const next = current.map((session) =>
+        session.localId === localId
+          ? { ...session, week: String(week), day: "999" }
+          : session
+      );
+      next.sort(
+        (a, b) =>
+          Number(a.week) - Number(b.week) || Number(a.day) - Number(b.day)
+      );
+      return renumberProgramSessionsByWeek(next);
+    });
+  };
+
+  // Calendar: start building a brand-new session on a specific week.
+  const startSessionForWeek = (week: number) => {
+    const daysInWeek = programSessions.filter(
+      (session) => session.week === String(week)
+    ).length;
+    setSelectedProgramExercises([]);
+    setEditingProgramSessionId("");
+    setSessionName("");
+    setSessionNameCn("");
+    setSessionNotes("");
+    setSessionGoal("");
+    setSessionEstimatedDuration("");
+    setSessionType("Strength");
+    setSessionIntensity("Moderate");
+    setAccessoryTargetIndex(null);
+    setProgramWeek(String(week));
+    setProgramDay(String(daysInWeek + 1));
+    setBuilderMode("Program");
+    setIsBuilderLibraryOpen(true);
+    setBuilderLibraryMode("Exercises");
+    if (libraryExercises.length === 0 && !libraryLoading) {
+      void loadExerciseLibrary();
+    }
+    window.setTimeout(
+      () =>
+        document
+          .getElementById("builder-session")
+          ?.scrollIntoView({ behavior: "smooth", block: "start" }),
+      0
+    );
+  };
+
   const loadSessionForEditing = (session: ProgramSession) => {
     setProgramWeek(session.week);
     setProgramDay(session.day);
@@ -8904,6 +8956,13 @@ function App() {
     if (libraryExercises.length === 0 && !libraryLoading) {
       void loadExerciseLibrary();
     }
+    window.setTimeout(
+      () =>
+        document
+          .getElementById("builder-session")
+          ?.scrollIntoView({ behavior: "smooth", block: "start" }),
+      0
+    );
   };
 
   const saveFullProgram = async () => {
@@ -22282,52 +22341,145 @@ function App() {
                   {isSingleWorkoutBuilder ? "Saved Workout" : "Program Sessions"}
                 </h3>
 
-                {programSessions.length === 0 && (
-                  <p>
-                    {isSingleWorkoutBuilder
-                      ? "No workout saved yet."
-                      : "No sessions added yet."}
-                  </p>
+                {isSingleWorkoutBuilder && programSessions.length === 0 && (
+                  <p>No workout saved yet.</p>
                 )}
 
-                {!isSingleWorkoutBuilder && programSessions.length > 0 && (() => {
-                  const maxWeek = Math.max(...programSessions.map((s) => Number(s.week)));
-                  const maxDay = Math.max(...programSessions.map((s) => Number(s.day)));
-                  const weeks = Array.from({ length: maxWeek }, (_, i) => i + 1);
-                  const days = Array.from({ length: maxDay }, (_, i) => i + 1);
+                {!isSingleWorkoutBuilder && (() => {
+                  const maxWeek = programSessions.reduce(
+                    (m, s) => Math.max(m, Number(s.week) || 1),
+                    1
+                  );
+                  const weekCount = Math.max(
+                    Number(programDurationWeeks) || 1,
+                    maxWeek
+                  );
+                  const weeks = Array.from({ length: weekCount }, (_, i) => i + 1);
                   return (
-                    <div className="programWeekGrid">
-                      <div className="programWeekGridHeader">
-                        <div className="programWeekGridLabel"></div>
-                        {days.map((d) => (
-                          <div key={d} className="programWeekGridDayLabel">Day {d}</div>
-                        ))}
-                      </div>
-                      {weeks.map((w) => (
-                        <div key={w} className="programWeekGridRow">
-                          <div className="programWeekGridLabel">Wk {w}</div>
-                          {days.map((d) => {
-                            const s = programSessions.find((x) => x.week === String(w) && x.day === String(d));
-                            return (
-                              <div key={d} className={`programWeekGridCell${s ? " hasSess" : " emptySess"}`}>
-                                {s ? (
-                                  <>
-                                    <span className="gridCellName">{s.sessionName}</span>
-                                    <span className="gridCellMeta">{s.sessionType || "Strength"} · {s.exercises.length}ex</span>
-                                  </>
-                                ) : (
-                                  <span className="gridCellEmpty">—</span>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      ))}
+                    <div className="programCalendar">
+                      {weeks.map((w) => {
+                        const daySessions = programSessions
+                          .filter((s) => s.week === String(w))
+                          .sort((a, b) => Number(a.day) - Number(b.day));
+                        return (
+                          <div
+                            key={w}
+                            className={`programCalWeek${
+                              programCalDropWeek === w ? " calDropActive" : ""
+                            }`}
+                            onDragOver={(e) => {
+                              if (!draggedProgramSessionId) return;
+                              e.preventDefault();
+                              setProgramCalDropWeek(w);
+                            }}
+                            onDragLeave={() =>
+                              setProgramCalDropWeek((cur) =>
+                                cur === w ? null : cur
+                              )
+                            }
+                            onDrop={() => {
+                              if (draggedProgramSessionId) {
+                                moveSessionToWeek(draggedProgramSessionId, w);
+                              }
+                              setDraggedProgramSessionId("");
+                              setProgramCalDropWeek(null);
+                            }}
+                          >
+                            <div className="programCalWeekHead">
+                              <strong>Week {w}</strong>
+                              <span>
+                                {daySessions.length} day
+                                {daySessions.length === 1 ? "" : "s"}
+                              </span>
+                            </div>
+
+                            <div className="programCalWeekBody">
+                              {daySessions.map((s) => (
+                                <div
+                                  key={s.localId}
+                                  className={`programCalCard ${getWorkoutColorClass(
+                                    s.sessionName,
+                                    s.sessionType
+                                  )}${
+                                    editingProgramSessionId === s.localId
+                                      ? " calCardEditing"
+                                      : ""
+                                  }`}
+                                  draggable
+                                  onDragStart={(e) => {
+                                    e.dataTransfer.effectAllowed = "move";
+                                    setDraggedProgramSessionId(s.localId);
+                                  }}
+                                  onDragEnd={() => {
+                                    setDraggedProgramSessionId("");
+                                    setProgramCalDropWeek(null);
+                                  }}
+                                >
+                                  <div className="programCalCardTop">
+                                    <span className="programCalDay">
+                                      <GripVertical size={13} /> Day {s.day}
+                                    </span>
+                                    <span className="programCalExCount">
+                                      {s.exercises.length} ex
+                                    </span>
+                                  </div>
+                                  <strong className="programCalName">
+                                    {s.sessionName}
+                                  </strong>
+                                  <div className="programCalMeta">
+                                    <span>{s.sessionType || "Strength"}</span>
+                                    <span>{s.intensity || "Moderate"}</span>
+                                    {s.estimatedDuration && (
+                                      <span>{s.estimatedDuration}m</span>
+                                    )}
+                                  </div>
+                                  <div className="programCalActions">
+                                    <button
+                                      type="button"
+                                      className="iconActionButton"
+                                      title="Edit session"
+                                      onClick={() => loadSessionForEditing(s)}
+                                    >
+                                      <Pencil size={14} />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="iconActionButton"
+                                      title="Duplicate to next week"
+                                      onClick={() => duplicateProgramSession(s)}
+                                    >
+                                      <Copy size={14} />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="iconActionButton dangerMenuItem"
+                                      title="Remove session"
+                                      onClick={() =>
+                                        removeProgramSession(s.localId)
+                                      }
+                                    >
+                                      <Trash2 size={14} />
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+
+                              <button
+                                type="button"
+                                className="programCalAdd"
+                                onClick={() => startSessionForWeek(w)}
+                              >
+                                <Plus size={15} /> Add session
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   );
                 })()}
 
-                {programSessions.map((session) => (
+                {isSingleWorkoutBuilder && programSessions.map((session) => (
                   <div
                     className={`exercise-card programSessionCard ${
                       editingProgramSessionId === session.localId

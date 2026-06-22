@@ -5246,6 +5246,199 @@ button.coachReviewGlobalItem,
   color: #aaa;
 }
 
+/* ---- Program calendar (week-column slider builder) ---- */
+.programCalendar {
+  display: flex;
+  gap: 14px;
+  overflow-x: auto;
+  padding: 4px 2px 14px;
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+}
+
+.programCalWeek {
+  flex: 0 0 240px;
+  min-width: 240px;
+  scroll-snap-align: start;
+  border: 1px solid rgba(212, 175, 55, 0.22);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  display: flex;
+  flex-direction: column;
+}
+
+.programCalWeek.calDropActive {
+  border-color: #d4af37;
+  background: rgba(212, 175, 55, 0.12);
+}
+
+.programCalWeekHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.18);
+}
+
+.programCalWeekHead strong {
+  font-weight: 950;
+  color: #d4af37;
+}
+
+.programCalWeekHead span {
+  font-size: 11px;
+  font-weight: 800;
+  color: #9a958a;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.programCalWeekBody {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  min-height: 90px;
+}
+
+.programCalCard {
+  border: 1px solid rgba(212, 175, 55, 0.24);
+  border-left: 4px solid var(--sectionAccent, #d4af37);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.28);
+  padding: 10px;
+  cursor: grab;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.programCalCard:active {
+  cursor: grabbing;
+}
+
+.programCalCard.calCardEditing {
+  outline: 2px solid #d4af37;
+  outline-offset: 1px;
+}
+
+.programCalCard.wcol-strength { border-left-color: #5b6770; }
+.programCalCard.wcol-cardio { border-left-color: #3a86ff; }
+.programCalCard.wcol-mobility { border-left-color: #15897a; }
+.programCalCard.wcol-skill { border-left-color: #6a4bc9; }
+.programCalCard.wcol-test { border-left-color: #d64545; }
+.programCalCard.wcol-purple { border-left-color: #7b3fbf; }
+
+.programCalCardTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.programCalDay {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #9a958a;
+}
+
+.programCalExCount {
+  font-size: 11px;
+  font-weight: 800;
+  color: #d4af37;
+}
+
+.programCalName {
+  font-weight: 900;
+  font-size: 14px;
+  color: #fff;
+  line-height: 1.2;
+}
+
+.programCalMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.programCalMeta span {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(212, 175, 55, 0.14);
+  color: #d4af37;
+}
+
+.programCalActions {
+  display: flex;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.programCalActions .iconActionButton {
+  padding: 5px 7px;
+}
+
+.programCalAdd {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 9px;
+  border: 1px dashed rgba(212, 175, 55, 0.45);
+  border-radius: 10px;
+  background: transparent;
+  color: #d4af37;
+  font-weight: 850;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.programCalAdd:hover {
+  background: rgba(212, 175, 55, 0.1);
+}
+
+/* Coach (light) theme overrides for the calendar */
+.app:not(.clientPortalApp) .programCalWeek {
+  border-color: #e2ddd1;
+  background: #faf8f2;
+}
+
+.app:not(.clientPortalApp) .programCalWeek.calDropActive {
+  border-color: #b08a1e;
+  background: #f3ecd6;
+}
+
+.app:not(.clientPortalApp) .programCalWeekHead {
+  border-bottom-color: #ece9e1;
+}
+
+.app:not(.clientPortalApp) .programCalWeekHead strong {
+  color: #111;
+}
+
+.app:not(.clientPortalApp) .programCalCard {
+  background: #ffffff;
+  border-color: #e2ddd1;
+}
+
+.app:not(.clientPortalApp) .programCalName {
+  color: #1c1c19;
+}
+
+.app:not(.clientPortalApp) .programCalMeta span {
+  background: #f1ead8;
+  color: #8b650e;
+}
+
 /* ---- Create Program details modal ---- */
 .createProgramOverlay {
   position: fixed;
