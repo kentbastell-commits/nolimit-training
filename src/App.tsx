@@ -2265,6 +2265,15 @@ function App() {
     w: number;
     d: number;
   } | null>(null);
+  // Client calendar "+" menu: add a full program or a single session.
+  const [calAddMenu, setCalAddMenu] = useState<{
+    date: string;
+    x: number;
+    y: number;
+  } | null>(null);
+  const [assignProgramKind, setAssignProgramKind] = useState<
+    "program" | "session"
+  >("program");
   const [sessionLibProgramId, setSessionLibProgramId] = useState("");
   const [sessionLibSessions, setSessionLibSessions] = useState<ProgramSession[]>(
     []
@@ -13898,6 +13907,20 @@ function App() {
     selectClientCalendarDate(today);
   };
 
+  // Client calendar "+" → add a full program or a single session to a day.
+  const openAddAssign = (kind: "program" | "session", date: string) => {
+    setCalAddMenu(null);
+    setAssignProgramKind(kind);
+    const first = programs.find((p) =>
+      kind === "session"
+        ? p.productType === "Single Workout"
+        : p.productType !== "Single Workout"
+    );
+    setSelectedAssignProgramId(first ? first.programId : "");
+    setAssignableWorkouts([]);
+    openAssignmentHubFromCalendar("Program", date);
+  };
+
   const openAssignmentHubFromCalendar = (
     type: "Program" | "Check-in" | "Questionnaire" | "Physical Test" = "Program",
     date: string = calendarAnchorDate
@@ -17889,6 +17912,35 @@ function App() {
         useChineseClientText ? "chineseLocaleApp" : ""
       }`}
     >
+      {calAddMenu && (
+        <>
+          <div
+            className="programCtxBackdrop"
+            onClick={() => setCalAddMenu(null)}
+          />
+          <div
+            className="programCtxMenu"
+            style={{
+              top: Math.min(calAddMenu.y, window.innerHeight - 130),
+              left: Math.min(calAddMenu.x, window.innerWidth - 200),
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => openAddAssign("program", calAddMenu.date)}
+            >
+              <CalendarDays size={15} /> Add program
+            </button>
+            <button
+              type="button"
+              onClick={() => openAddAssign("session", calAddMenu.date)}
+            >
+              <BookOpen size={15} /> Add session
+            </button>
+          </div>
+        </>
+      )}
+
       {cellMenu && (
         <>
           <div
@@ -27650,10 +27702,14 @@ function App() {
                                   className="calendarDayActionButton"
                                   type="button"
                                   aria-label={`Add item on ${localizedCalendarLabel(date)}`}
-                                  title="Add item"
+                                  title="Add program or session"
                                   onClick={(event) => {
                                     event.stopPropagation();
-                                    openAssignmentHubFromCalendar("Program", date);
+                                    setCalAddMenu({
+                                      date,
+                                      x: event.clientX,
+                                      y: event.clientY,
+                                    });
                                   }}
                                 >
                                   <Plus size={16} aria-hidden="true" />
@@ -28974,24 +29030,44 @@ function App() {
 
                 {assignmentType === "Program" ? (
                   <label className="assignmentDrawerWide">
-                    <span>Saved Program</span>
-                    <select
-                      value={selectedAssignProgramId}
-                      onChange={(event) => {
-                        setSelectedAssignProgramId(event.target.value);
-                        setAssignableWorkouts([]);
-                      }}
-                    >
-                      {programs.length > 0 ? (
-                        programs.map((program) => (
-                          <option key={program.recordId} value={program.programId}>
-                            {program.programName}
-                          </option>
-                        ))
-                      ) : (
-                        <option value="">No saved programs</option>
-                      )}
-                    </select>
+                    <span>
+                      {assignProgramKind === "session"
+                        ? "Saved Session"
+                        : "Saved Program"}
+                    </span>
+                    {(() => {
+                      const assignList = programs.filter((p) =>
+                        assignProgramKind === "session"
+                          ? p.productType === "Single Workout"
+                          : p.productType !== "Single Workout"
+                      );
+                      return (
+                        <select
+                          value={selectedAssignProgramId}
+                          onChange={(event) => {
+                            setSelectedAssignProgramId(event.target.value);
+                            setAssignableWorkouts([]);
+                          }}
+                        >
+                          {assignList.length > 0 ? (
+                            assignList.map((program) => (
+                              <option
+                                key={program.recordId}
+                                value={program.programId}
+                              >
+                                {program.programName}
+                              </option>
+                            ))
+                          ) : (
+                            <option value="">
+                              {assignProgramKind === "session"
+                                ? "No saved sessions"
+                                : "No saved programs"}
+                            </option>
+                          )}
+                        </select>
+                      );
+                    })()}
                   </label>
                 ) : (
                   <label className="assignmentDrawerWide">
@@ -29099,6 +29175,8 @@ function App() {
                   {assignmentType === "Program"
                     ? assigningProgram
                       ? "Assigning..."
+                      : assignProgramKind === "session"
+                      ? "Assign Session"
                       : "Assign Program"
                     : creatingAssignment
                     ? "Assigning..."
