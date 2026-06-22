@@ -2412,15 +2412,20 @@ body {
   /* Collapsed rail: drop the caret + count badge from the flow so every nav
      icon centers identically (single- and multi-item groups alike). They
      return when the rail expands on hover/focus. The attention dot is absolute,
-     so it stays. */
-  .app:not(.clientPortalApp) .navItem .badge,
+     so it stays. The .sidebar-scoped selector + !important beat a later
+     `.navItem .badge { display: inline-flex !important }` rule that otherwise
+     keeps an invisible badge taking flex space (shoving the icon off-centre). */
+  .app:not(.clientPortalApp) .sidebar .navItem .badge {
+    display: none !important;
+  }
+
   .app:not(.clientPortalApp) .navGroupCaret {
     display: none;
   }
 
   .app:not(.clientPortalApp) .sidebar:hover .navItem .badge,
   .app:not(.clientPortalApp) .sidebar:focus-within .navItem .badge {
-    display: inline-flex;
+    display: inline-flex !important;
     opacity: 1;
   }
 
