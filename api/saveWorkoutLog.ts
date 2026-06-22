@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { createExerciseResultRecords } from "./exerciseResults";
+import { invalidateCache } from "./_cache.ts";
 
 function toText(value: any): string {
   if (value === undefined || value === null) return "";
@@ -262,6 +263,10 @@ export default async function handler(
 
       assignedWorkoutUpdate = await updateResponse.json();
     }
+
+    // New logs change every client's history view; drop the cached scan.
+    invalidateCache("workoutLogs");
+    invalidateCache("exerciseResults");
 
     return res.status(200).json({
       success: true,

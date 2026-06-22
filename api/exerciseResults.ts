@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { fetchAllBitableRecords } from "./_pagination.ts";
+import { getCached, setCached, invalidateCache } from "./_cache.ts";
 
 function fieldToText(value: any): string {
   if (!value) return "";
@@ -283,26 +284,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method === "GET") {
       const clientId = String(req.query.clientId || "");
       const exerciseNameFilter = String(req.query.exerciseName || "").toLowerCase();
-      const resultItems = await fetchAllBitableRecords(
-        process.env.FEISHU_BASE_APP_TOKEN as string,
-        process.env.FEISHU_EXERCISE_RESULTS_TABLE_ID as string,
-        token
-      );
 
-      const tableFields = await getResultsTableFields(token);
-      const field = makeFieldResolver(tableFields);
-      const fId = field(["Result ID"]);
-      const fClient = field(["Client ID", "Client"]);
-      const fExercise = field(["Excercise ID", "Exercise ID"]);
-      const fName = field(["Exercise Name"]);
-      const fWorkout = field(["Source Workout ID", "Workout ID"]);
-      const fWeight = field(["Best Weight", "Weight"]);
-      const fReps = field(["Best Reps", "Actual Reps", "Reps"]);
-      const f1rm = field(["Estimated 1 RM", "Estimated 1RM", "Est 1RM"]);
-      const fVolume = field(["Volume"]);
+      // Full-table scan cached and filtered per-request in memory; the scan is
+      // the slow part. saveWorkoutLog/POST here invalidates "exerciseResults".
+      let allResults = getCached<any[]>("exerciseResults");
 
-      const results = resultItems
-        .map((item: any) => {
+      if (!allResults) {
+        const resultItems = await fetchAllBitableRecords(
+          process.env.FEISHU_BASE_APP_TOKEN as string,
+          process.env.FEISHU_EXERCISE_RESULTS_TABLE_ID as string,
+          token
+        );
+
+        const tableFields = await getResultsTableFields(token);
+        const field = makeFieldResolver(tableFields);
+        const fId = field(["Result ID"]);
+        const fClient = field(["Client ID", "Client"]);
+        const fExercise = field(["Excercise ID", "Exercise ID"]);
+        const fName = field(["Exercise Name"]);
+        const fWorkout = field(["Source Workout ID", "Workout ID"]);
+        const fWeight = field(["Best Weight", "Weight"]);
+        const fReps = field(["Best Reps", "Actual Reps", "Reps"]);
+        const f1rm = field(["Estimated 1 RM", "Estimated 1RM", "Est 1RM"]);
+        const fVolume = field(["Volume"]);
+
+        allResults = resultItems.map((item: any) => {
           const fields = item.fields || {};
 
           const clientField = fields[fClient];
@@ -326,7 +332,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             estimatedOneRepMax: fieldToText(fields[f1rm]),
             volume: fieldToText(fields[fVolume]),
           };
-        })
+        });
+
+        setCached("exerciseResults", allResults, 5 * 60 * 1000);
+      }
+
+      const results = allResults
         .filter((result: any) => {
           const matchesClient =
             !clientId ||
@@ -362,6 +373,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         ...result,
       });
     }
+
+    invalidateCache("exerciseResults");
 
     return res.status(200).json({
       success: true,

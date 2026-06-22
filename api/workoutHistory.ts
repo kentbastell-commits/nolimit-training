@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { getCached, setCached } from "./_cache.ts";
 
 function fieldToText(value: any): string {
   if (!value) return "";
@@ -81,40 +82,46 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const clientId = String(req.query.clientId || "");
     const exerciseNameFilter = String(req.query.exerciseName || "").toLowerCase();
-    const token = await getTenantToken();
 
-    // Paginate — the workout-logs table grows fast; a single 500-row page would
-    // drop the most recent logs (and whole clients' histories) once it's full.
-    const allItems: any[] = [];
-    let pageToken = "";
-    do {
-      const url = new URL(
-        `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${process.env.FEISHU_WORKOUT_LOGS_TABLE_ID}/records`
-      );
-      url.searchParams.set("page_size", "500");
-      if (pageToken) url.searchParams.set("page_token", pageToken);
+    // The whole workout-logs table is scanned and mapped once, then cached and
+    // filtered per-request in memory. The scan is the slow part (the table grows
+    // fast and is read on every client open); saveWorkoutLog invalidates this.
+    let allLogs = getCached<any[]>("workoutLogs");
 
-      const recordsResponse = await fetch(url.toString(), {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const recordsData = await recordsResponse.json();
+    if (!allLogs) {
+      const token = await getTenantToken();
 
-      if (!recordsData?.data?.items) {
-        if (allItems.length === 0) {
-          return res.status(500).json({
-            error: "Could not fetch workout logs",
-            larkResponse: recordsData,
-          });
+      // Paginate — a single 500-row page would drop the most recent logs (and
+      // whole clients' histories) once the table is full.
+      const allItems: any[] = [];
+      let pageToken = "";
+      do {
+        const url = new URL(
+          `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${process.env.FEISHU_WORKOUT_LOGS_TABLE_ID}/records`
+        );
+        url.searchParams.set("page_size", "500");
+        if (pageToken) url.searchParams.set("page_token", pageToken);
+
+        const recordsResponse = await fetch(url.toString(), {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const recordsData = await recordsResponse.json();
+
+        if (!recordsData?.data?.items) {
+          if (allItems.length === 0) {
+            return res.status(500).json({
+              error: "Could not fetch workout logs",
+              larkResponse: recordsData,
+            });
+          }
+          break;
         }
-        break;
-      }
 
-      allItems.push(...recordsData.data.items);
-      pageToken = recordsData.data.has_more ? recordsData.data.page_token : "";
-    } while (pageToken);
+        allItems.push(...recordsData.data.items);
+        pageToken = recordsData.data.has_more ? recordsData.data.page_token : "";
+      } while (pageToken);
 
-    const logs = allItems
-      .map((item: any) => {
+      allLogs = allItems.map((item: any) => {
         const fields = item.fields || {};
 
         return {
@@ -130,7 +137,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           actualTime: fieldToText(fields["Actual Time"]),
           actualDistance: fieldToText(fields["Actual Distance"]),
         };
-      })
+      });
+
+      setCached("workoutLogs", allLogs, 5 * 60 * 1000);
+    }
+
+    const logs = allLogs
       .filter((log: any) => {
         const matchesClient =
           !clientId ||
