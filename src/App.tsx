@@ -68,6 +68,7 @@ type ClientProgramScheduleMode = "Month" | "Week" | "Day";
 type WorkoutPageTab =
   | "Saved Programs"
   | "Program Builder"
+  | "Sessions"
   | "Forms"
   | "Tests"
   | "Assignments";
@@ -2218,9 +2219,10 @@ function App() {
   const [programSessions, setProgramSessions] = useState<ProgramSession[]>([]);
   const [editingProgramSessionId, setEditingProgramSessionId] = useState("");
   const [draggedProgramSessionId, setDraggedProgramSessionId] = useState("");
-  const [programCalDropWeek, setProgramCalDropWeek] = useState<number | null>(
-    null
-  );
+  const [programGridDrop, setProgramGridDrop] = useState<{
+    w: number;
+    d: number;
+  } | null>(null);
   const [savingTemplate, setSavingTemplate] = useState(false);
   const [builderSaveStatus, setBuilderSaveStatus] = useState<"saved" | "dirty">(
     "saved"
@@ -8833,7 +8835,11 @@ function App() {
           )
         : [...current, savedSession];
 
-      return renumberProgramSessionsByWeek(nextSessions);
+      // Multi-day uses fixed Week × Day-1-7 slots, so keep the explicit day.
+      // Single-workout still collapses to a clean sequence.
+      return singleWorkoutMode
+        ? renumberProgramSessionsByWeek(nextSessions)
+        : nextSessions;
     });
 
     setEditingProgramSessionId(closeAfterSave ? "" : localId);
@@ -8895,27 +8901,19 @@ function App() {
     setProgramSessions([...programSessions, newSession]);
   };
 
-  // Calendar: move a day card to another week (appended as that week's last day).
-  const moveSessionToWeek = (localId: string, week: number) => {
-    setProgramSessions((current) => {
-      const next = current.map((session) =>
+  // Calendar: move a day card to another cell (fixed week + Day 1-7 slot).
+  const moveSessionToCell = (localId: string, week: number, day: number) => {
+    setProgramSessions((current) =>
+      current.map((session) =>
         session.localId === localId
-          ? { ...session, week: String(week), day: "999" }
+          ? { ...session, week: String(week), day: String(day) }
           : session
-      );
-      next.sort(
-        (a, b) =>
-          Number(a.week) - Number(b.week) || Number(a.day) - Number(b.day)
-      );
-      return renumberProgramSessionsByWeek(next);
-    });
+      )
+    );
   };
 
-  // Calendar: start building a brand-new session on a specific week.
-  const startSessionForWeek = (week: number) => {
-    const daysInWeek = programSessions.filter(
-      (session) => session.week === String(week)
-    ).length;
+  // Calendar: start building a brand-new session in a specific week/day cell.
+  const startSessionForCell = (week: number, day: number) => {
     setSelectedProgramExercises([]);
     setEditingProgramSessionId("");
     setSessionName("");
@@ -8927,7 +8925,7 @@ function App() {
     setSessionIntensity("Moderate");
     setAccessoryTargetIndex(null);
     setProgramWeek(String(week));
-    setProgramDay(String(daysInWeek + 1));
+    setProgramDay(String(day));
     setBuilderMode("Program");
     setIsBuilderLibraryOpen(true);
     setBuilderLibraryMode("Exercises");
@@ -9355,17 +9353,27 @@ function App() {
     setMobileAlternateIndex(index);
   };
 
-  const workoutTabList: WorkoutPageTab[] = [
-    "Saved Programs",
-    "Program Builder",
-    "Forms",
-    "Tests",
-    "Assignments",
+  // Top nav for the programming area: Programs | Sessions | Tests | Forms.
+  // The multi-day builder ("Program Builder") is reached from Programs, not a
+  // tab. Assignments now happens from the Programs table, so it's off the bar.
+  const workoutTabList: { value: WorkoutPageTab; label: string }[] = [
+    { value: "Saved Programs", label: "Programs" },
+    { value: "Sessions", label: "Sessions" },
+    { value: "Tests", label: "Tests" },
+    { value: "Forms", label: "Forms" },
   ];
+
+  // The builder lives under the Programs tab, so highlight Programs while building.
+  const activeWorkoutTabValue: WorkoutPageTab =
+    workoutPageTab === "Program Builder" ? "Saved Programs" : workoutPageTab;
 
   const selectWorkoutTab = (tab: WorkoutPageTab) => {
     setWorkoutPageTab(tab);
     if (tab === "Saved Programs") loadPrograms(true);
+    if (tab === "Sessions") {
+      setBuilderMode("Single Workout");
+      setBuilderSubTab("build");
+    }
     if (tab === "Forms") loadFormTemplates(true);
     if (tab === "Tests") loadTestTemplates(true);
     if (tab === "Assignments") {
@@ -17803,7 +17811,9 @@ function App() {
                 </div>
               )}
 
-              {activePage === "Workouts" && workoutPageTab === "Program Builder" && (
+              {activePage === "Workouts" &&
+                (workoutPageTab === "Program Builder" ||
+                  workoutPageTab === "Sessions") && (
                 <div className="topbarActions builderTopbarActions">
                   <span
                     className={`builderSaveStatusPill ${
@@ -20274,21 +20284,27 @@ function App() {
                       aria-expanded={workoutTabsMenuOpen}
                       onClick={() => setWorkoutTabsMenuOpen((open) => !open)}
                     >
-                      <span>{workoutPageTab}</span>
+                      <span>
+                        {workoutTabList.find(
+                          (t) => t.value === activeWorkoutTabValue
+                        )?.label || "Programs"}
+                      </span>
                       <ChevronDown size={18} className="workoutTabMenuCaret" />
                     </button>
                     {workoutTabsMenuOpen && (
                       <div className="workoutTabMenuList">
                         {workoutTabList.map((tab) => (
                           <button
-                            key={tab}
-                            className={workoutPageTab === tab ? "active" : ""}
+                            key={tab.value}
+                            className={
+                              activeWorkoutTabValue === tab.value ? "active" : ""
+                            }
                             onClick={() => {
-                              selectWorkoutTab(tab);
+                              selectWorkoutTab(tab.value);
                               setWorkoutTabsMenuOpen(false);
                             }}
                           >
-                            {tab}
+                            {tab.label}
                           </button>
                         ))}
                       </div>
@@ -20298,13 +20314,15 @@ function App() {
                   <div className="workoutPageTabs">
                     {workoutTabList.map((tab) => (
                       <button
-                        key={tab}
+                        key={tab.value}
                         className={
-                          workoutPageTab === tab ? "goldButton" : "outlineButton"
+                          activeWorkoutTabValue === tab.value
+                            ? "goldButton"
+                            : "outlineButton"
                         }
-                        onClick={() => selectWorkoutTab(tab)}
+                        onClick={() => selectWorkoutTab(tab.value)}
                       >
-                        {tab}
+                        {tab.label}
                       </button>
                     ))}
                   </div>
@@ -20708,28 +20726,26 @@ function App() {
                   </section>
                 )}
 
-                {workoutPageTab === "Program Builder" && !useMobileWorkoutRows && (
+                {(workoutPageTab === "Program Builder" ||
+                  workoutPageTab === "Sessions") &&
+                  !useMobileWorkoutRows && (
               <section className="tableCard programBuilderPanel">
-                <div className="builderModeSelectRow">
-                  <label>
-                    <span>Builder Type</span>
-                    <select
-                      value={builderMode}
-                      onChange={(e) =>
-                        setBuilderMode(e.target.value as "Program" | "Single Workout")
-                      }
-                      className="miniSearch"
-                    >
-                      <option value="Program">Multi-Day Builder</option>
-                      <option value="Single Workout">Single Day Builder</option>
-                    </select>
-                  </label>
-                </div>
+                {workoutPageTab === "Program Builder" && (
+                  <button
+                    type="button"
+                    className="builderBackLink"
+                    onClick={() => selectWorkoutTab("Saved Programs")}
+                  >
+                    <ChevronLeft size={16} /> Programs
+                  </button>
+                )}
 
                 <h2 className="builderPageTitle">
                   {isSingleWorkoutBuilder
-                    ? "Single Day Workout Builder"
-                    : "Multi-Day Program Builder"}
+                    ? "Session Builder"
+                    : programName.trim()
+                    ? programName.trim()
+                    : "Program Builder"}
                 </h2>
 
                 {showDigitalProductSettings && (
@@ -21208,6 +21224,155 @@ function App() {
 
                 {(builderSubTab === "build" || !showDigitalProductSettings) && (
                 <>
+                {!isSingleWorkoutBuilder && (() => {
+                  const maxWeek = programSessions.reduce(
+                    (m, s) => Math.max(m, Number(s.week) || 1),
+                    1
+                  );
+                  const weekCount = Math.max(
+                    Number(programDurationWeeks) || 1,
+                    maxWeek
+                  );
+                  const weeks = Array.from({ length: weekCount }, (_, i) => i + 1);
+                  const days = [1, 2, 3, 4, 5, 6, 7];
+                  return (
+                    <div className="programGridWrap" id="builder-review">
+                      <div className="programGrid">
+                        <div className="programGridHead">
+                          <div className="programGridCorner" />
+                          {days.map((d) => (
+                            <div key={d} className="programGridDayLabel">
+                              Day {d}
+                            </div>
+                          ))}
+                        </div>
+
+                        {weeks.map((w) => (
+                          <div key={w} className="programGridWeek">
+                            <div className="programGridWeekLabel">Week {w}</div>
+                            <div className="programGridRow">
+                              {days.map((d) => {
+                                const cellSessions = programSessions.filter(
+                                  (s) =>
+                                    s.week === String(w) && s.day === String(d)
+                                );
+                                const isDrop =
+                                  programGridDrop?.w === w &&
+                                  programGridDrop?.d === d;
+                                return (
+                                  <div
+                                    key={d}
+                                    className={`programGridCell${
+                                      cellSessions.length ? " hasSess" : ""
+                                    }${isDrop ? " gridDropActive" : ""}`}
+                                    onDragOver={(e) => {
+                                      if (!draggedProgramSessionId) return;
+                                      e.preventDefault();
+                                      setProgramGridDrop({ w, d });
+                                    }}
+                                    onDragLeave={() =>
+                                      setProgramGridDrop((cur) =>
+                                        cur?.w === w && cur?.d === d ? null : cur
+                                      )
+                                    }
+                                    onDrop={() => {
+                                      if (draggedProgramSessionId) {
+                                        moveSessionToCell(
+                                          draggedProgramSessionId,
+                                          w,
+                                          d
+                                        );
+                                      }
+                                      setDraggedProgramSessionId("");
+                                      setProgramGridDrop(null);
+                                    }}
+                                  >
+                                    {cellSessions.map((s) => (
+                                      <div
+                                        key={s.localId}
+                                        className={`programGridCard ${getWorkoutColorClass(
+                                          s.sessionName,
+                                          s.sessionType
+                                        )}${
+                                          editingProgramSessionId === s.localId
+                                            ? " calCardEditing"
+                                            : ""
+                                        }`}
+                                        draggable
+                                        onDragStart={(e) => {
+                                          e.dataTransfer.effectAllowed = "move";
+                                          setDraggedProgramSessionId(s.localId);
+                                        }}
+                                        onDragEnd={() => {
+                                          setDraggedProgramSessionId("");
+                                          setProgramGridDrop(null);
+                                        }}
+                                        onClick={() => loadSessionForEditing(s)}
+                                      >
+                                        <strong className="programGridCardName">
+                                          {s.sessionName}
+                                        </strong>
+                                        <span className="programGridCardMeta">
+                                          {s.sessionType || "Strength"} ·{" "}
+                                          {s.exercises.length} ex
+                                        </span>
+                                        <div className="programGridCardActions">
+                                          <button
+                                            type="button"
+                                            className="iconActionButton"
+                                            title="Edit session"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              loadSessionForEditing(s);
+                                            }}
+                                          >
+                                            <Pencil size={13} />
+                                          </button>
+                                          <button
+                                            type="button"
+                                            className="iconActionButton"
+                                            title="Duplicate to next week"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              duplicateProgramSession(s);
+                                            }}
+                                          >
+                                            <Copy size={13} />
+                                          </button>
+                                          <button
+                                            type="button"
+                                            className="iconActionButton dangerMenuItem"
+                                            title="Remove session"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              removeProgramSession(s.localId);
+                                            }}
+                                          >
+                                            <Trash2 size={13} />
+                                          </button>
+                                        </div>
+                                      </div>
+                                    ))}
+
+                                    <button
+                                      type="button"
+                                      className="programGridAdd"
+                                      title={`Add a session to Week ${w}, Day ${d}`}
+                                      onClick={() => startSessionForCell(w, d)}
+                                    >
+                                      <Plus size={16} />
+                                    </button>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
+
                 <div className="builderSectionHeader" id="builder-session">
                   <div>
                     <h3 className="builderSectionTitle">
@@ -22360,150 +22525,19 @@ function App() {
                   </div>
                 )}
 
-                <h3
-                  className="builderSectionTitle builderSectionTitleSpaced"
-                  id="builder-review"
-                >
-                  {isSingleWorkoutBuilder ? "Saved Workout" : "Program Sessions"}
-                </h3>
-
-                {isSingleWorkoutBuilder && programSessions.length === 0 && (
-                  <p>No workout saved yet.</p>
+                {isSingleWorkoutBuilder && (
+                  <>
+                    <h3
+                      className="builderSectionTitle builderSectionTitleSpaced"
+                      id="builder-review"
+                    >
+                      Saved Workout
+                    </h3>
+                    {programSessions.length === 0 && (
+                      <p>No workout saved yet.</p>
+                    )}
+                  </>
                 )}
-
-                {!isSingleWorkoutBuilder && (() => {
-                  const maxWeek = programSessions.reduce(
-                    (m, s) => Math.max(m, Number(s.week) || 1),
-                    1
-                  );
-                  const weekCount = Math.max(
-                    Number(programDurationWeeks) || 1,
-                    maxWeek
-                  );
-                  const weeks = Array.from({ length: weekCount }, (_, i) => i + 1);
-                  return (
-                    <div className="programCalendar">
-                      {weeks.map((w) => {
-                        const daySessions = programSessions
-                          .filter((s) => s.week === String(w))
-                          .sort((a, b) => Number(a.day) - Number(b.day));
-                        return (
-                          <div
-                            key={w}
-                            className={`programCalWeek${
-                              programCalDropWeek === w ? " calDropActive" : ""
-                            }`}
-                            onDragOver={(e) => {
-                              if (!draggedProgramSessionId) return;
-                              e.preventDefault();
-                              setProgramCalDropWeek(w);
-                            }}
-                            onDragLeave={() =>
-                              setProgramCalDropWeek((cur) =>
-                                cur === w ? null : cur
-                              )
-                            }
-                            onDrop={() => {
-                              if (draggedProgramSessionId) {
-                                moveSessionToWeek(draggedProgramSessionId, w);
-                              }
-                              setDraggedProgramSessionId("");
-                              setProgramCalDropWeek(null);
-                            }}
-                          >
-                            <div className="programCalWeekHead">
-                              <strong>Week {w}</strong>
-                              <span>
-                                {daySessions.length} day
-                                {daySessions.length === 1 ? "" : "s"}
-                              </span>
-                            </div>
-
-                            <div className="programCalWeekBody">
-                              {daySessions.map((s) => (
-                                <div
-                                  key={s.localId}
-                                  className={`programCalCard ${getWorkoutColorClass(
-                                    s.sessionName,
-                                    s.sessionType
-                                  )}${
-                                    editingProgramSessionId === s.localId
-                                      ? " calCardEditing"
-                                      : ""
-                                  }`}
-                                  draggable
-                                  onDragStart={(e) => {
-                                    e.dataTransfer.effectAllowed = "move";
-                                    setDraggedProgramSessionId(s.localId);
-                                  }}
-                                  onDragEnd={() => {
-                                    setDraggedProgramSessionId("");
-                                    setProgramCalDropWeek(null);
-                                  }}
-                                >
-                                  <div className="programCalCardTop">
-                                    <span className="programCalDay">
-                                      <GripVertical size={13} /> Day {s.day}
-                                    </span>
-                                    <span className="programCalExCount">
-                                      {s.exercises.length} ex
-                                    </span>
-                                  </div>
-                                  <strong className="programCalName">
-                                    {s.sessionName}
-                                  </strong>
-                                  <div className="programCalMeta">
-                                    <span>{s.sessionType || "Strength"}</span>
-                                    <span>{s.intensity || "Moderate"}</span>
-                                    {s.estimatedDuration && (
-                                      <span>{s.estimatedDuration}m</span>
-                                    )}
-                                  </div>
-                                  <div className="programCalActions">
-                                    <button
-                                      type="button"
-                                      className="iconActionButton"
-                                      title="Edit session"
-                                      onClick={() => loadSessionForEditing(s)}
-                                    >
-                                      <Pencil size={14} />
-                                    </button>
-                                    <button
-                                      type="button"
-                                      className="iconActionButton"
-                                      title="Duplicate to next week"
-                                      onClick={() => duplicateProgramSession(s)}
-                                    >
-                                      <Copy size={14} />
-                                    </button>
-                                    <button
-                                      type="button"
-                                      className="iconActionButton dangerMenuItem"
-                                      title="Remove session"
-                                      onClick={() =>
-                                        removeProgramSession(s.localId)
-                                      }
-                                    >
-                                      <Trash2 size={14} />
-                                    </button>
-                                  </div>
-                                </div>
-                              ))}
-
-                              <button
-                                type="button"
-                                className="programCalAdd"
-                                onClick={() => startSessionForWeek(w)}
-                              >
-                                <Plus size={15} /> Add session
-                              </button>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  );
-                })()}
 
                 {isSingleWorkoutBuilder && programSessions.map((session) => (
                   <div
@@ -22620,7 +22654,9 @@ function App() {
               </section>
                 )}
 
-                {workoutPageTab === "Program Builder" && useMobileWorkoutRows && (
+                {(workoutPageTab === "Program Builder" ||
+                  workoutPageTab === "Sessions") &&
+                  useMobileWorkoutRows && (
                   <>
                     <section className="mobileBuilder">
                       {mobileBuilderStep === "details" ? (

@@ -5337,197 +5337,187 @@ button.coachReviewGlobalItem,
   color: #111;
 }
 
-/* ---- Program calendar (week-column slider builder) ---- */
-.programCalendar {
-  display: flex;
-  gap: 14px;
+/* ---- Program calendar grid (Week × Day 1-7 builder landing) ---- */
+.programGridWrap {
   overflow-x: auto;
-  padding: 4px 2px 14px;
-  scroll-snap-type: x proximity;
+  border: 1px solid rgba(212, 175, 55, 0.22);
+  border-radius: 12px;
+  margin-bottom: 22px;
   -webkit-overflow-scrolling: touch;
 }
 
-.programCalWeek {
-  flex: 0 0 240px;
-  min-width: 240px;
-  scroll-snap-align: start;
-  border: 1px solid rgba(212, 175, 55, 0.22);
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.03);
-  display: flex;
-  flex-direction: column;
+.programGrid {
+  min-width: 820px;
 }
 
-.programCalWeek.calDropActive {
-  border-color: #d4af37;
-  background: rgba(212, 175, 55, 0.12);
+.programGridCorner {
+  display: none;
 }
 
-.programCalWeekHead {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 10px 12px;
-  border-bottom: 1px solid rgba(212, 175, 55, 0.18);
+.programGridHead {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  background: #111;
 }
 
-.programCalWeekHead strong {
+.programGridDayLabel {
+  padding: 11px 14px;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: #e7d8a8;
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.programGridDayLabel:first-child {
+  border-left: none;
+}
+
+.programGridWeek {
+  border-top: 1px solid rgba(212, 175, 55, 0.16);
+}
+
+.programGridWeekLabel {
+  padding: 9px 14px 5px;
+  font-size: 13px;
   font-weight: 950;
   color: #d4af37;
-}
-
-.programCalWeekHead span {
-  font-size: 11px;
-  font-weight: 800;
-  color: #9a958a;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
-.programCalWeekBody {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 12px;
-  min-height: 90px;
+.programGridRow {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
 }
 
-.programCalCard {
-  border: 1px solid rgba(212, 175, 55, 0.24);
-  border-left: 4px solid var(--sectionAccent, #d4af37);
-  border-radius: 10px;
-  background: rgba(0, 0, 0, 0.28);
-  padding: 10px;
-  cursor: grab;
+.programGridCell {
+  min-height: 118px;
+  padding: 8px;
+  border-left: 1px solid rgba(212, 175, 55, 0.12);
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-.programCalCard:active {
+.programGridCell:first-child {
+  border-left: none;
+}
+
+.programGridCell.gridDropActive {
+  background: rgba(212, 175, 55, 0.14);
+  outline: 2px dashed rgba(212, 175, 55, 0.5);
+  outline-offset: -3px;
+}
+
+.programGridCard {
+  border: 1px solid rgba(212, 175, 55, 0.24);
+  border-left: 4px solid var(--sectionAccent, #d4af37);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.28);
+  padding: 8px;
+  cursor: grab;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.programGridCard:active {
   cursor: grabbing;
 }
 
-.programCalCard.calCardEditing {
+.programGridCard.calCardEditing {
   outline: 2px solid #d4af37;
   outline-offset: 1px;
 }
 
-.programCalCard.wcol-strength { border-left-color: #5b6770; }
-.programCalCard.wcol-cardio { border-left-color: #3a86ff; }
-.programCalCard.wcol-mobility { border-left-color: #15897a; }
-.programCalCard.wcol-skill { border-left-color: #6a4bc9; }
-.programCalCard.wcol-test { border-left-color: #d64545; }
-.programCalCard.wcol-purple { border-left-color: #7b3fbf; }
+.programGridCard.wcol-strength { border-left-color: #5b6770; }
+.programGridCard.wcol-cardio { border-left-color: #3a86ff; }
+.programGridCard.wcol-mobility { border-left-color: #15897a; }
+.programGridCard.wcol-skill { border-left-color: #6a4bc9; }
+.programGridCard.wcol-test { border-left-color: #d64545; }
+.programGridCard.wcol-purple { border-left-color: #7b3fbf; }
 
-.programCalCardTop {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 6px;
-}
-
-.programCalDay {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  font-size: 11px;
+.programGridCardName {
   font-weight: 900;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: #9a958a;
-}
-
-.programCalExCount {
-  font-size: 11px;
-  font-weight: 800;
-  color: #d4af37;
-}
-
-.programCalName {
-  font-weight: 900;
-  font-size: 14px;
+  font-size: 13px;
   color: #fff;
   line-height: 1.2;
 }
 
-.programCalMeta {
+.programGridCardMeta {
+  font-size: 11px;
+  font-weight: 700;
+  color: #cfcabb;
+}
+
+.programGridCardActions {
   display: flex;
-  flex-wrap: wrap;
   gap: 4px;
-}
-
-.programCalMeta span {
-  font-size: 10px;
-  font-weight: 800;
-  padding: 2px 7px;
-  border-radius: 999px;
-  background: rgba(212, 175, 55, 0.14);
-  color: #d4af37;
-}
-
-.programCalActions {
-  display: flex;
-  gap: 6px;
   margin-top: 2px;
 }
 
-.programCalActions .iconActionButton {
-  padding: 5px 7px;
+.programGridCardActions .iconActionButton {
+  padding: 4px 5px;
 }
 
-.programCalAdd {
+.programGridAdd {
+  margin-top: auto;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  width: 100%;
-  padding: 9px;
-  border: 1px dashed rgba(212, 175, 55, 0.45);
-  border-radius: 10px;
+  padding: 7px;
+  border: 1px dashed rgba(212, 175, 55, 0.4);
+  border-radius: 8px;
   background: transparent;
   color: #d4af37;
-  font-weight: 850;
-  font-size: 13px;
   cursor: pointer;
+  opacity: 0.45;
+  transition: opacity 0.12s ease;
 }
 
-.programCalAdd:hover {
-  background: rgba(212, 175, 55, 0.1);
+.programGridCell:hover .programGridAdd,
+.programGridCell.hasSess .programGridAdd {
+  opacity: 1;
 }
 
-/* Coach (light) theme overrides for the calendar */
-.app:not(.clientPortalApp) .programCalWeek {
+.programGridAdd:hover {
+  background: rgba(212, 175, 55, 0.12);
+}
+
+/* Coach (light) theme */
+.app:not(.clientPortalApp) .programGridWrap {
   border-color: #e2ddd1;
-  background: #faf8f2;
 }
 
-.app:not(.clientPortalApp) .programCalWeek.calDropActive {
-  border-color: #b08a1e;
-  background: #f3ecd6;
+.app:not(.clientPortalApp) .programGridWeek {
+  border-top-color: #ece9e1;
 }
 
-.app:not(.clientPortalApp) .programCalWeekHead {
-  border-bottom-color: #ece9e1;
-}
-
-.app:not(.clientPortalApp) .programCalWeekHead strong {
+.app:not(.clientPortalApp) .programGridWeekLabel {
   color: #111;
 }
 
-.app:not(.clientPortalApp) .programCalCard {
+.app:not(.clientPortalApp) .programGridCell {
+  border-left-color: #efe9da;
+}
+
+.app:not(.clientPortalApp) .programGridCell.gridDropActive {
+  background: #f3ecd6;
+}
+
+.app:not(.clientPortalApp) .programGridCard {
   background: #ffffff;
   border-color: #e2ddd1;
 }
 
-.app:not(.clientPortalApp) .programCalName {
+.app:not(.clientPortalApp) .programGridCardName {
   color: #1c1c19;
 }
 
-.app:not(.clientPortalApp) .programCalMeta span {
-  background: #f1ead8;
-  color: #8b650e;
+.app:not(.clientPortalApp) .programGridCardMeta {
+  color: #6a665d;
 }
 
 /* ---- Create Program details modal ---- */
