@@ -2274,6 +2274,15 @@ function App() {
   const [assignProgramKind, setAssignProgramKind] = useState<
     "program" | "session"
   >("program");
+  // Forms / Tests: list table (default) vs the builder for the selected item.
+  const [formView, setFormView] = useState<"list" | "builder">("list");
+  const [testView, setTestView] = useState<"list" | "builder">("list");
+  const [templateMenu, setTemplateMenu] = useState<{
+    kind: "form" | "test";
+    recordId: string;
+    x: number;
+    y: number;
+  } | null>(null);
   const [sessionLibProgramId, setSessionLibProgramId] = useState("");
   const [sessionLibSessions, setSessionLibSessions] = useState<ProgramSession[]>(
     []
@@ -4656,6 +4665,153 @@ function App() {
     );
   });
 
+  // Forms / Tests landing table (mirrors the Sessions/Programs table style).
+  const renderTemplateLibrary = (kind: "form" | "test") => {
+    const isForm = kind === "form";
+    const items: any[] = isForm ? visibleSavedForms : visibleSavedTests;
+    const loading = isForm ? formTemplatesLoading : testTemplatesLoading;
+    const search = isForm ? savedFormSearch : savedTestSearch;
+    const setSearch = isForm ? setSavedFormSearch : setSavedTestSearch;
+    const openItem = (t: any) => {
+      if (isForm) {
+        setSelectedSavedFormId(t.formId);
+        loadSavedFormIntoBuilder(t);
+        setFormView("builder");
+      } else {
+        setSelectedSavedTestId(t.testTemplateId);
+        loadSavedTestIntoBuilder(t);
+        setTestView("builder");
+      }
+    };
+    return (
+      <section className="programLibraryPanel">
+        <div className="programLibraryHeader programLandingHeader">
+          <div className="programLandingControls">
+            <span className="programViewSelect programViewStatic">
+              {isForm ? "Forms" : "Tests"}
+            </span>
+            <input
+              className="templateSearchInput programLandingSearch"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={isForm ? "Search forms..." : "Search tests..."}
+            />
+          </div>
+          <div className="programLandingActions">
+            <button
+              className="outlineButton"
+              onClick={() =>
+                isForm ? loadFormTemplates(true) : loadTestTemplates(true)
+              }
+            >
+              Refresh
+            </button>
+            <button
+              className="goldButton"
+              onClick={() => (isForm ? startNewForm() : startNewTest())}
+            >
+              {isForm ? "Create Form" : "Create Test"}
+            </button>
+          </div>
+        </div>
+
+        <div className="programLibraryStack">
+          <div className="programTable templateTable">
+            <div className="programTableHead">
+              <span>Title</span>
+              <span>Type</span>
+              <span>Items</span>
+              <span>Created By</span>
+              <span className="programTableActionsHead">Actions</span>
+            </div>
+
+            {loading && items.length === 0 && (
+              <p className="programTableEmpty">Loading…</p>
+            )}
+            {!loading && items.length === 0 && (
+              <p className="programTableEmpty">
+                {isForm
+                  ? "No saved forms yet. Create one to assign to clients."
+                  : "No saved tests yet. Create one to track performance."}
+              </p>
+            )}
+
+            {items.map((t) => {
+              const name = isForm
+                ? t.name || t.formId || "Untitled Form"
+                : t.name || t.testTemplateId || "Untitled Test";
+              const initials =
+                String(name)
+                  .split(/\s+/)
+                  .map((w: string) => w[0])
+                  .filter(Boolean)
+                  .join("")
+                  .slice(0, 3)
+                  .toUpperCase() || (isForm ? "FM" : "TS");
+              const type = isForm ? t.type || "Form" : t.status || "Active";
+              const count = isForm
+                ? `${t.questions.length} questions`
+                : `${t.items.length} items`;
+              return (
+                <div
+                  key={t.recordId}
+                  className="programTableRow"
+                  onClick={() => openItem(t)}
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    setTemplateMenu({
+                      kind,
+                      recordId: t.recordId,
+                      x: e.clientX,
+                      y: e.clientY,
+                    });
+                  }}
+                >
+                  <span className="programTableTitle">
+                    <span className="programTableBadge">{initials}</span>
+                    <span className="programTableName">
+                      <strong>{name}</strong>
+                    </span>
+                  </span>
+                  <span className="programTableCell">{type}</span>
+                  <span className="programTableCell">{count}</span>
+                  <span className="programTableCell">
+                    {t.coach || t.createdBy || "—"}
+                  </span>
+                  <span
+                    className="programTableActions"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <button
+                      type="button"
+                      className="iconActionButton"
+                      title="Edit"
+                      onClick={() => openItem(t)}
+                    >
+                      <Pencil size={16} />
+                    </button>
+                    <button
+                      type="button"
+                      className="iconActionButton dangerMenuItem"
+                      title="Delete"
+                      onClick={() =>
+                        isForm
+                          ? deleteSavedFormTemplate(t)
+                          : deleteSavedTestTemplate(t)
+                      }
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+    );
+  };
+
   const createContentAssignment = async (
     overrides: Partial<{
       assignmentType: string;
@@ -5399,6 +5555,36 @@ function App() {
     setBuilderSubTab("build");
     setMobileBuilderStep("editor");
     setWorkoutPageTab("Program Builder");
+  };
+
+  // Forms/Tests "Create" → reset the builder and switch to builder view.
+  const startNewForm = () => {
+    setFormTemplateName("");
+    setFormTemplateType("Questionnaire");
+    setEditingFormTemplate(null);
+    setFormQuestions([
+      { id: "Q1", label: "New question", questionType: "Text", required: false },
+    ]);
+    setFormView("builder");
+  };
+
+  const startNewTest = () => {
+    setTestTemplateName("");
+    setEditingTestTemplate(null);
+    setTestItems([
+      {
+        id: "T1",
+        testName: "New Test",
+        metricType: "Weight",
+        unit: "kg",
+        createsMetric: false,
+        metricName: "",
+        metricUnit: "",
+        calculationMethod: "Direct Value",
+        inputUnit: "",
+      },
+    ]);
+    setTestView("builder");
   };
 
   const loadProgramSessionsForAssignment = async () => {
@@ -9888,8 +10074,14 @@ function App() {
     if (tab !== workoutPageTab && !confirmLeaveBuilder()) return;
     setWorkoutPageTab(tab);
     if (tab === "Saved Programs" || tab === "Sessions") loadPrograms(true);
-    if (tab === "Forms") loadFormTemplates(true);
-    if (tab === "Tests") loadTestTemplates(true);
+    if (tab === "Forms") {
+      loadFormTemplates(true);
+      setFormView("list");
+    }
+    if (tab === "Tests") {
+      loadTestTemplates(true);
+      setTestView("list");
+    }
     if (tab === "Assignments") {
       loadPrograms();
       loadFormTemplates();
@@ -17912,6 +18104,81 @@ function App() {
         useChineseClientText ? "chineseLocaleApp" : ""
       }`}
     >
+      {templateMenu && (
+        <>
+          <div
+            className="programCtxBackdrop"
+            onClick={() => setTemplateMenu(null)}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              setTemplateMenu(null);
+            }}
+          />
+          <div
+            className="programCtxMenu"
+            style={{
+              top: Math.min(templateMenu.y, window.innerHeight - 170),
+              left: Math.min(templateMenu.x, window.innerWidth - 200),
+            }}
+          >
+            {(() => {
+              const isForm = templateMenu.kind === "form";
+              const item: any = (
+                isForm ? savedFormTemplates : savedTestTemplates
+              ).find((t: any) => t.recordId === templateMenu.recordId);
+              if (!item) return null;
+              return (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTemplateMenu(null);
+                      if (isForm) {
+                        setSelectedSavedFormId(item.formId);
+                        loadSavedFormIntoBuilder(item);
+                        setFormView("builder");
+                      } else {
+                        setSelectedSavedTestId(item.testTemplateId);
+                        loadSavedTestIntoBuilder(item);
+                        setTestView("builder");
+                      }
+                    }}
+                  >
+                    <Pencil size={15} /> Edit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTemplateMenu(null);
+                      if (isForm) {
+                        duplicateSavedFormIntoBuilder(item);
+                        setFormView("builder");
+                      } else {
+                        duplicateSavedTestIntoBuilder(item);
+                        setTestView("builder");
+                      }
+                    }}
+                  >
+                    <Copy size={15} /> Duplicate
+                  </button>
+                  <button
+                    type="button"
+                    className="dangerMenuItem"
+                    onClick={() => {
+                      setTemplateMenu(null);
+                      if (isForm) deleteSavedFormTemplate(item);
+                      else deleteSavedTestTemplate(item);
+                    }}
+                  >
+                    <Trash2 size={15} /> Delete
+                  </button>
+                </>
+              );
+            })()}
+          </div>
+        </>
+      )}
+
       {calAddMenu && (
         <>
           <div
@@ -24886,8 +25153,19 @@ function App() {
                   </>
                 )}
 
-                {workoutPageTab === "Forms" && (
+                {workoutPageTab === "Forms" &&
+                  formView === "list" &&
+                  renderTemplateLibrary("form")}
+
+                {workoutPageTab === "Forms" && formView === "builder" && (
                   <section className="tableCard builderHubPanel">
+                    <button
+                      type="button"
+                      className="builderBackLink"
+                      onClick={() => setFormView("list")}
+                    >
+                      <ChevronLeft size={16} /> Forms
+                    </button>
                     <div className="builderHubHeader">
                       <div>
                         <h2>Form & Questionnaire Builder</h2>
@@ -25105,8 +25383,19 @@ function App() {
                   </section>
                 )}
 
-                {workoutPageTab === "Tests" && (
+                {workoutPageTab === "Tests" &&
+                  testView === "list" &&
+                  renderTemplateLibrary("test")}
+
+                {workoutPageTab === "Tests" && testView === "builder" && (
                   <section className="tableCard builderHubPanel">
+                    <button
+                      type="button"
+                      className="builderBackLink"
+                      onClick={() => setTestView("list")}
+                    >
+                      <ChevronLeft size={16} /> Tests
+                    </button>
                     <div className="builderHubHeader">
                       <div>
                         <h2>Physical Test Builder</h2>

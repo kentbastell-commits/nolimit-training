@@ -5253,6 +5253,21 @@ button.coachReviewGlobalItem,
   color: #aaa;
 }
 
+/* Forms / Tests library: 5-column table (Title · Type · Items · By · Actions) */
+@media (min-width: 701px) {
+  .templateTable .programTableHead,
+  .templateTable .programTableRow {
+    grid-template-columns: minmax(0, 2.4fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.2fr) 92px;
+  }
+}
+
+@media (max-width: 700px) {
+  .templateTable .programTableHead > :nth-child(5),
+  .templateTable .programTableRow > :nth-child(5) {
+    display: flex;
+  }
+}
+
 /* On phones, collapse the program table to Title + Actions (the middle
    columns collide otherwise). */
 @media (max-width: 700px) {
@@ -6310,11 +6325,11 @@ button.coachReviewGlobalItem,
 }
 
 .app:not(.clientPortalApp) .programTableRow:hover {
-  background: #f6f2e6;
+  background: #f1f1f0;
 }
 
 .app:not(.clientPortalApp) .programTableRow.active {
-  background: #f3ecd6;
+  background: #ececeb;
 }
 
 .app:not(.clientPortalApp) .programTableCell {
