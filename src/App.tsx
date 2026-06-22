@@ -569,6 +569,13 @@ type SavedProgramTemplate = {
   exerciseName: string;
   exerciseId: string;
   order: number;
+  // Per-exercise prescription (lets the builder load a whole program from the
+  // single /api/programTemplates call instead of one /api/workoutDetails per day).
+  sets?: string;
+  reps?: string;
+  tempo?: string;
+  rest?: string;
+  notes?: string;
 };
 
 type SavedFormQuestion = {
@@ -3297,10 +3304,13 @@ function App() {
   }, [selectedClient, isClientPortal]);
 
   useEffect(() => {
-    if (activePage !== "Workouts" || !selectedSavedProgramId) return;
+    // Only the detail/assign panel (opened via the gear) needs this; skip the
+    // fetch on a plain row click that opens the builder.
+    if (activePage !== "Workouts" || !selectedSavedProgramId || !showProgramDetail)
+      return;
 
     loadSavedProgramTemplates(selectedSavedProgramId);
-  }, [activePage, selectedSavedProgramId]);
+  }, [activePage, selectedSavedProgramId, showProgramDetail]);
 
   const loadExerciseLibrary = async (force = false) => {
     const shouldForce = force === true;
@@ -5193,6 +5203,69 @@ function App() {
 
   // Fetch a saved program's sessions (with exercises) without touching the
   // builder — used by the Session Library so coaches can reuse any day.
+  // Group the flat per-exercise template rows into builder sessions. The rows
+  // already carry the full prescription (sets/reps/tempo/rest/notes), so this
+  // needs no extra round-trips.
+  const buildSessionsFromTemplates = (
+    templates: SavedProgramTemplate[]
+  ): ProgramSession[] => {
+    const map = new Map<string, ProgramSession>();
+    [...templates]
+      .sort(
+        (a, b) =>
+          (Number(a.week) || 0) - (Number(b.week) || 0) ||
+          (Number(a.day) || 0) - (Number(b.day) || 0) ||
+          (Number(a.order) || 0) - (Number(b.order) || 0)
+      )
+      .forEach((t) => {
+        const key = `${t.week}-${t.day}-${t.sessionName}`;
+        if (!map.has(key)) {
+          map.set(key, {
+            localId: key,
+            week: String(t.week),
+            day: String(t.day),
+            sessionName: t.sessionName,
+            sessionType: t.sessionType || "Strength",
+            sessionGoal: t.sessionGoal || "",
+            estimatedDuration: t.estimatedDuration || "",
+            intensity: t.intensity || "Moderate",
+            isSingleWorkout: Boolean(t.isSingleWorkout),
+            exercises: [],
+          });
+        }
+        if (!t.exerciseName && !t.exerciseId) return;
+        const session = map.get(key)!;
+        const index = session.exercises.length;
+        const meta = parseExerciseNotes(t.notes || "");
+        const baseExercise: ProgramExercise = {
+          exerciseRecordId: t.recordId || "",
+          exerciseId: t.exerciseId,
+          exerciseName: t.exerciseName,
+          order: Number(t.order) || index + 1,
+          sectionName: meta.sectionName || "Main",
+          exerciseLabel: meta.exerciseLabel || makeExerciseLabel(index),
+          sets: t.sets || "",
+          reps: t.reps || "",
+          load: "",
+          tempo: t.tempo || "",
+          rest: t.rest || "",
+          coachingNotes: meta.coachingNotes,
+          trackingType: meta.trackingType,
+          trackingFields: meta.trackingFields,
+          isUnilateral: meta.isUnilateral,
+          groupType: meta.groupType || "Straight",
+          groupName: meta.groupName,
+          isAccessory: meta.isAccessory,
+          accessoryParentLabel: meta.accessoryParentLabel,
+          accessoryColor: meta.accessoryColor,
+          setPrescriptions: meta.setPrescriptions,
+          alternateExercises: meta.alternateExercises,
+        };
+        session.exercises.push(withNormalizedSetFields(baseExercise));
+      });
+    return [...map.values()];
+  };
+
   const fetchProgramSessions = async (
     programId: string,
     programRecordId: string
@@ -5204,71 +5277,7 @@ function App() {
     );
     const templateData = await templateResponse.json();
     if (!templateResponse.ok) return [];
-
-    const templates: SavedProgramTemplate[] = templateData.templates || [];
-    const uniqueSessions = Array.from(
-      templates
-        .reduce((sessions, template) => {
-          const key = `${template.week}-${template.day}-${template.sessionName}`;
-          if (!sessions.has(key)) {
-            sessions.set(key, {
-              localId: key,
-              week: String(template.week),
-              day: String(template.day),
-              sessionName: template.sessionName,
-              sessionType: template.sessionType || "Strength",
-              sessionGoal: template.sessionGoal || "",
-              estimatedDuration: template.estimatedDuration || "",
-              intensity: template.intensity || "Moderate",
-              isSingleWorkout: Boolean(template.isSingleWorkout),
-              exercises: [],
-            });
-          }
-          return sessions;
-        }, new Map<string, ProgramSession>())
-        .values()
-    );
-
-    return Promise.all(
-      uniqueSessions.map(async (session) => {
-        const detailsResponse = await fetch(
-          `/api/workoutDetails?programId=${programId}&week=${session.week}&day=${session.day}`
-        );
-        const detailsData = await detailsResponse.json();
-        const exercises: ExerciseDetail[] = detailsData.exercises || [];
-        return {
-          ...session,
-          exercises: exercises.map((exercise, index) => {
-            const meta = parseExerciseNotes(exercise.notes);
-            const baseExercise: ProgramExercise = {
-              exerciseRecordId: "",
-              exerciseId: exercise.exerciseId,
-              exerciseName: exercise.exerciseName,
-              order: Number(exercise.order) || index + 1,
-              sectionName: meta.sectionName || "Main",
-              exerciseLabel: meta.exerciseLabel || makeExerciseLabel(index),
-              sets: exercise.sets,
-              reps: exercise.reps,
-              load: "",
-              tempo: exercise.tempo,
-              rest: exercise.rest,
-              coachingNotes: meta.coachingNotes,
-              trackingType: meta.trackingType,
-              trackingFields: meta.trackingFields,
-              isUnilateral: meta.isUnilateral,
-              groupType: meta.groupType || "Straight",
-              groupName: meta.groupName,
-              isAccessory: meta.isAccessory,
-              accessoryParentLabel: meta.accessoryParentLabel,
-              accessoryColor: meta.accessoryColor,
-              setPrescriptions: meta.setPrescriptions,
-              alternateExercises: meta.alternateExercises,
-            };
-            return withNormalizedSetFields(baseExercise);
-          }),
-        };
-      })
-    );
+    return buildSessionsFromTemplates(templateData.templates || []);
   };
 
   // Read-only at-a-glance preview of a saved program (right-click → Preview).
@@ -5366,82 +5375,10 @@ function App() {
         return;
       }
 
-      const templates: SavedProgramTemplate[] = templateData.templates || [];
-      const uniqueSessions = Array.from(
-        templates
-          .reduce((sessions, template) => {
-            const key = `${template.week}-${template.day}-${template.sessionName}`;
-
-            if (!sessions.has(key)) {
-              sessions.set(key, {
-                localId: key,
-                week: String(template.week),
-                day: String(template.day),
-                sessionName: template.sessionName,
-                sessionType: template.sessionType || "Strength",
-                sessionGoal: template.sessionGoal || "",
-                estimatedDuration: template.estimatedDuration || "",
-                intensity: template.intensity || "Moderate",
-                isSingleWorkout: Boolean(template.isSingleWorkout),
-                exercises: [],
-              });
-            }
-
-            return sessions;
-          }, new Map<string, ProgramSession>())
-          .values()
-      );
-
-      const sessions: ProgramSession[] = await Promise.all(
-        uniqueSessions.map(async (session) => {
-          const detailsResponse = await fetch(
-            `/api/workoutDetails?programId=${sourceProgram.programId}&week=${session.week}&day=${session.day}`
-          );
-          const detailsData = await detailsResponse.json();
-          const exercises: ExerciseDetail[] = detailsData.exercises || [];
-
-          return {
-            localId: `${sourceProgram.programId}-${session.week}-${session.day}`,
-            week: String(session.week),
-            day: String(session.day),
-            sessionName: session.sessionName,
-            sessionType: session.sessionType,
-            sessionGoal: session.sessionGoal,
-            estimatedDuration: session.estimatedDuration,
-            intensity: session.intensity,
-            isSingleWorkout: session.isSingleWorkout,
-            exercises: exercises.map((exercise, index) => {
-              const meta = parseExerciseNotes(exercise.notes);
-
-              const baseExercise: ProgramExercise = {
-                exerciseRecordId: "",
-                exerciseId: exercise.exerciseId,
-                exerciseName: exercise.exerciseName,
-                order: Number(exercise.order) || index + 1,
-                sectionName: meta.sectionName || "Main",
-                exerciseLabel: meta.exerciseLabel || makeExerciseLabel(index),
-                sets: exercise.sets,
-                reps: exercise.reps,
-                load: "",
-                tempo: exercise.tempo,
-                rest: exercise.rest,
-                coachingNotes: meta.coachingNotes,
-                trackingType: meta.trackingType,
-                trackingFields: meta.trackingFields,
-                isUnilateral: meta.isUnilateral,
-                groupType: meta.groupType || "Straight",
-                groupName: meta.groupName,
-                isAccessory: meta.isAccessory,
-                accessoryParentLabel: meta.accessoryParentLabel,
-                accessoryColor: meta.accessoryColor,
-                setPrescriptions: meta.setPrescriptions,
-                alternateExercises: meta.alternateExercises,
-              };
-
-              return withNormalizedSetFields(baseExercise);
-            }),
-          };
-        })
+      // Single call: the template rows already carry the full prescription, so
+      // the whole program is built without per-day /api/workoutDetails fetches.
+      const sessions = buildSessionsFromTemplates(
+        templateData.templates || []
       );
 
       setBuilderMode(

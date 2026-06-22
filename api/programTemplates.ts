@@ -161,6 +161,13 @@ export default async function handler(
           exerciseName: fieldToText(fields["Exercise Name"]),
           exerciseId: fieldToText(fields["Exercise ID"]),
           order: Number(fieldToText(fields["Order"])) || 0,
+          // Full prescription so the builder can load a program in one call
+          // (no per-day /api/workoutDetails round-trips).
+          sets: fieldToText(fields["Sets"]),
+          reps: fieldToText(fields["Reps"]),
+          tempo: fieldToText(fields["Tempo"]),
+          rest: fieldToText(fields["Rest"]),
+          notes: fieldToText(fields["Coaching Notes"]),
         };
       })
       .sort((a: any, b: any) => {
