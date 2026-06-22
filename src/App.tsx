@@ -7086,7 +7086,10 @@ function App() {
           warmIndex += 1;
           display = String(warmIndex);
         } else {
-          display = n > 1 ? `${letter}${pos + 1}` : letter;
+          // Mirror the builder's own label (accessories carry their parent's
+          // label, e.g. A1/A1); fall back to a computed letter.
+          display =
+            ex.exerciseLabel || (n > 1 ? `${letter}${pos + 1}` : letter);
         }
         items.push({
           ex,
@@ -21492,8 +21495,8 @@ function App() {
                                           s.sessionName,
                                           s.sessionType
                                         )}${
-                                          editingProgramSessionId === s.localId ||
-                                          s.__draft
+                                          editingProgramSessionId === s.localId &&
+                                          !s.__draft
                                             ? " calCardEditing"
                                             : ""
                                         }${s.__draft ? " gridCardDraft" : ""}`}

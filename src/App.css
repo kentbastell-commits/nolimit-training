@@ -5489,13 +5489,14 @@ button.coachReviewGlobalItem,
 }
 
 .programGridCard.calCardEditing {
-  outline: 2px solid #d4af37;
+  outline: 2px solid rgba(17, 17, 17, 0.45);
   outline-offset: 1px;
 }
 
 .programGridCard.gridCardDraft {
   cursor: pointer;
   border-style: dashed;
+  border-color: rgba(0, 0, 0, 0.28);
 }
 
 .gridDraftTag {
@@ -5507,7 +5508,7 @@ button.coachReviewGlobalItem,
 }
 
 .app:not(.clientPortalApp) .programGridCard.gridCardDraft {
-  border-color: #c9b78a;
+  border-color: #b5afa1;
 }
 
 .app:not(.clientPortalApp) .gridDraftTag {
@@ -5610,7 +5611,7 @@ button.coachReviewGlobalItem,
   left: 50%;
   transform: translateX(-50%);
   width: 2px;
-  background: rgba(212, 175, 55, 0.5);
+  background: #1f1f1f;
 }
 
 .glanceLineUp {
@@ -5657,7 +5658,17 @@ button.coachReviewGlobalItem,
 
 .app:not(.clientPortalApp) .glanceLineUp,
 .app:not(.clientPortalApp) .glanceLineDown {
-  background: #cbbd97;
+  background: #1f1f1f;
+}
+
+.app:not(.clientPortalApp) .glanceLineUp.line-superset,
+.app:not(.clientPortalApp) .glanceLineDown.line-superset {
+  background: #3a86ff;
+}
+
+.app:not(.clientPortalApp) .glanceLineUp.line-accessory,
+.app:not(.clientPortalApp) .glanceLineDown.line-accessory {
+  background: #15897a;
 }
 
 .app:not(.clientPortalApp) .glanceText strong {
