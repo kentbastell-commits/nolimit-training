@@ -2229,6 +2229,14 @@ function App() {
   // "Duplicate week" dropdown: which week's menu is open + the load progression.
   const [weekDupMenu, setWeekDupMenu] = useState<number | null>(null);
   const [weekDupPct, setWeekDupPct] = useState(0);
+  // Session Library: reuse days from any saved program by dragging onto a cell.
+  const [sessionLibOpen, setSessionLibOpen] = useState(false);
+  const [sessionLibProgramId, setSessionLibProgramId] = useState("");
+  const [sessionLibSessions, setSessionLibSessions] = useState<ProgramSession[]>(
+    []
+  );
+  const [sessionLibLoading, setSessionLibLoading] = useState(false);
+  const [draggedLibSessionId, setDraggedLibSessionId] = useState("");
   const [savingTemplate, setSavingTemplate] = useState(false);
   const [builderSaveStatus, setBuilderSaveStatus] = useState<"saved" | "dirty">(
     "saved"
@@ -4961,6 +4969,125 @@ function App() {
     } finally {
       setSavedAssigningProgram(false);
     }
+  };
+
+  // Fetch a saved program's sessions (with exercises) without touching the
+  // builder — used by the Session Library so coaches can reuse any day.
+  const fetchProgramSessions = async (
+    programId: string,
+    programRecordId: string
+  ): Promise<ProgramSession[]> => {
+    const templateResponse = await fetch(
+      `/api/programTemplates?programId=${encodeURIComponent(
+        programId
+      )}&programRecordId=${encodeURIComponent(programRecordId || "")}`
+    );
+    const templateData = await templateResponse.json();
+    if (!templateResponse.ok) return [];
+
+    const templates: SavedProgramTemplate[] = templateData.templates || [];
+    const uniqueSessions = Array.from(
+      templates
+        .reduce((sessions, template) => {
+          const key = `${template.week}-${template.day}-${template.sessionName}`;
+          if (!sessions.has(key)) {
+            sessions.set(key, {
+              localId: key,
+              week: String(template.week),
+              day: String(template.day),
+              sessionName: template.sessionName,
+              sessionType: template.sessionType || "Strength",
+              sessionGoal: template.sessionGoal || "",
+              estimatedDuration: template.estimatedDuration || "",
+              intensity: template.intensity || "Moderate",
+              isSingleWorkout: Boolean(template.isSingleWorkout),
+              exercises: [],
+            });
+          }
+          return sessions;
+        }, new Map<string, ProgramSession>())
+        .values()
+    );
+
+    return Promise.all(
+      uniqueSessions.map(async (session) => {
+        const detailsResponse = await fetch(
+          `/api/workoutDetails?programId=${programId}&week=${session.week}&day=${session.day}`
+        );
+        const detailsData = await detailsResponse.json();
+        const exercises: ExerciseDetail[] = detailsData.exercises || [];
+        return {
+          ...session,
+          exercises: exercises.map((exercise, index) => {
+            const meta = parseExerciseNotes(exercise.notes);
+            const baseExercise: ProgramExercise = {
+              exerciseRecordId: "",
+              exerciseId: exercise.exerciseId,
+              exerciseName: exercise.exerciseName,
+              order: Number(exercise.order) || index + 1,
+              sectionName: meta.sectionName || "Main",
+              exerciseLabel: meta.exerciseLabel || makeExerciseLabel(index),
+              sets: exercise.sets,
+              reps: exercise.reps,
+              load: "",
+              tempo: exercise.tempo,
+              rest: exercise.rest,
+              coachingNotes: meta.coachingNotes,
+              trackingType: meta.trackingType,
+              trackingFields: meta.trackingFields,
+              isUnilateral: meta.isUnilateral,
+              groupType: meta.groupType || "Straight",
+              groupName: meta.groupName,
+              isAccessory: meta.isAccessory,
+              accessoryParentLabel: meta.accessoryParentLabel,
+              accessoryColor: meta.accessoryColor,
+              setPrescriptions: meta.setPrescriptions,
+              alternateExercises: meta.alternateExercises,
+            };
+            return withNormalizedSetFields(baseExercise);
+          }),
+        };
+      })
+    );
+  };
+
+  const loadSessionLibrary = async (program: Program) => {
+    setSessionLibProgramId(program.programId);
+    setSessionLibLoading(true);
+    try {
+      const sessions = await fetchProgramSessions(
+        program.programId,
+        program.recordId || ""
+      );
+      setSessionLibSessions(sessions);
+    } catch (error) {
+      console.error(error);
+      notify("Could not load sessions for that program.");
+      setSessionLibSessions([]);
+    } finally {
+      setSessionLibLoading(false);
+    }
+  };
+
+  // Drop a library session onto a calendar cell (copy into that week/day).
+  const insertLibrarySessionAtCell = (
+    session: ProgramSession,
+    week: number,
+    day: number
+  ) => {
+    setProgramSessions((current) => [
+      ...current,
+      {
+        ...session,
+        localId: `${Date.now()}-${Math.random()}`,
+        week: String(week),
+        day: String(day),
+        isSingleWorkout: false,
+        exercises: session.exercises.map((ex) => ({ ...ex })),
+      },
+    ]);
+    setBuilderSaveStatus("dirty");
+    notify(`Inserted "${session.sessionName}" into Week ${week}, Day ${day}.`);
   };
 
   const loadSavedProgramIntoBuilder = async () => {
@@ -21429,6 +21556,87 @@ function App() {
                   } as React.CSSProperties;
 
                   return (
+                    <>
+                    <div className="sessionLibBar">
+                      <button
+                        type="button"
+                        className="sessionLibToggle"
+                        onClick={() => setSessionLibOpen((o) => !o)}
+                      >
+                        <BookOpen size={15} /> Session Library
+                        <ChevronDown
+                          size={13}
+                          style={{
+                            transform: sessionLibOpen
+                              ? "rotate(180deg)"
+                              : "none",
+                          }}
+                        />
+                      </button>
+                      {sessionLibOpen && (
+                        <div className="sessionLibPanel">
+                          <select
+                            className="miniSearch sessionLibSelect"
+                            value={sessionLibProgramId}
+                            onChange={(e) => {
+                              const prog = programs.find(
+                                (pp) => pp.programId === e.target.value
+                              );
+                              if (prog) loadSessionLibrary(prog);
+                              else {
+                                setSessionLibProgramId("");
+                                setSessionLibSessions([]);
+                              }
+                            }}
+                          >
+                            <option value="">Choose a program…</option>
+                            {programs.map((pp) => (
+                              <option key={pp.recordId} value={pp.programId}>
+                                {pp.programName}
+                              </option>
+                            ))}
+                          </select>
+
+                          {sessionLibLoading ? (
+                            <span className="sessionLibEmpty">Loading…</span>
+                          ) : (
+                            <div className="sessionLibChips">
+                              {sessionLibProgramId &&
+                                sessionLibSessions.length === 0 && (
+                                  <span className="sessionLibEmpty">
+                                    No sessions in this program.
+                                  </span>
+                                )}
+                              {sessionLibSessions.map((s) => (
+                                <div
+                                  key={s.localId}
+                                  className="sessionLibChip"
+                                  draggable
+                                  onDragStart={() =>
+                                    setDraggedLibSessionId(s.localId)
+                                  }
+                                  onDragEnd={() => {
+                                    setDraggedLibSessionId("");
+                                    setProgramGridDrop(null);
+                                  }}
+                                  title="Drag onto a day to insert a copy"
+                                >
+                                  <strong>
+                                    {s.sessionName ||
+                                      `W${s.week} D${s.day}`}
+                                  </strong>
+                                  <span>{s.exercises.length} ex</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          <p className="sessionLibHint">
+                            Drag a session onto any day to drop in a copy.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
                     <div className="programGridWrap" id="builder-review">
                       <div className="programGrid">
                         <div className="programGridHead" style={gridStyle}>
@@ -21603,7 +21811,11 @@ function App() {
                                       cellSessions.length ? " hasSess" : ""
                                     }${isDrop ? " gridDropActive" : ""}`}
                                     onDragOver={(e) => {
-                                      if (!draggedProgramSessionId) return;
+                                      if (
+                                        !draggedProgramSessionId &&
+                                        !draggedLibSessionId
+                                      )
+                                        return;
                                       e.preventDefault();
                                       setProgramGridDrop({ w, d });
                                     }}
@@ -21613,7 +21825,14 @@ function App() {
                                       )
                                     }
                                     onDrop={() => {
-                                      if (draggedProgramSessionId) {
+                                      if (draggedLibSessionId) {
+                                        const lib = sessionLibSessions.find(
+                                          (s) =>
+                                            s.localId === draggedLibSessionId
+                                        );
+                                        if (lib)
+                                          insertLibrarySessionAtCell(lib, w, d);
+                                      } else if (draggedProgramSessionId) {
                                         moveSessionToCell(
                                           draggedProgramSessionId,
                                           w,
@@ -21621,6 +21840,7 @@ function App() {
                                         );
                                       }
                                       setDraggedProgramSessionId("");
+                                      setDraggedLibSessionId("");
                                       setProgramGridDrop(null);
                                     }}
                                   >
@@ -21775,6 +21995,7 @@ function App() {
                         ))}
                       </div>
                     </div>
+                    </>
                   );
                 })()}
 
