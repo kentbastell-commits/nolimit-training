@@ -204,7 +204,10 @@ export async function createExerciseResultRecords(
     groups.get(key)!.push(log);
   }
 
-  for (const [, sets] of groups) {
+  const fieldsToCreate: Array<Record<string, any>> = [];
+  const groupList = Array.from(groups.values());
+
+  groupList.forEach((sets, groupIndex) => {
     let bestWeight: number | undefined;
     let bestReps: number | undefined;
     let maxReps: number | undefined;
@@ -238,7 +241,7 @@ export async function createExerciseResultRecords(
 
     const fields: Record<string, any> = {};
     if (F.resultId)
-      fields[F.resultId] = `RES-${Date.now()}-${createdRecords.length + errors.length + 1}`;
+      fields[F.resultId] = `RES-${Date.now()}-${groupIndex + 1}`;
     if (F.exerciseName && exerciseName) fields[F.exerciseName] = exerciseName;
     if (F.date) fields[F.date] = toLarkDate(workoutDate);
     if (F.sourceWorkoutId && assignedWorkoutId)
@@ -253,16 +256,28 @@ export async function createExerciseResultRecords(
       if (recId) fields[F.exerciseLink] = [recId];
     }
 
-    let result = await createRecord(token, fields);
+    fieldsToCreate.push(fields);
+  });
 
-    // If a link field is rejected, retry without links rather than lose the row.
-    if (result.code !== 0 && (fields[F.clientLink] || fields[F.exerciseLink])) {
-      const fallback = { ...fields };
-      delete fallback[F.clientLink];
-      delete fallback[F.exerciseLink];
-      result = await createRecord(token, fallback);
-    }
+  // Create the per-exercise result rows in parallel (one per exercise, so the
+  // count is small) instead of sequentially, keeping the per-row link fallback.
+  const settled = await Promise.all(
+    fieldsToCreate.map(async (fields) => {
+      let result = await createRecord(token, fields);
 
+      // If a link field is rejected, retry without links rather than lose the row.
+      if (result.code !== 0 && (fields[F.clientLink] || fields[F.exerciseLink])) {
+        const fallback = { ...fields };
+        delete fallback[F.clientLink];
+        delete fallback[F.exerciseLink];
+        result = await createRecord(token, fallback);
+      }
+
+      return { result, fields };
+    })
+  );
+
+  for (const { result, fields } of settled) {
     if (result.code !== 0) {
       errors.push({ result, fields });
     } else {

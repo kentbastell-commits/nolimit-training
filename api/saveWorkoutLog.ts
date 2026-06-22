@@ -132,9 +132,12 @@ export default async function handler(
       "Session Notes",
     ]);
 
-    for (const log of logs) {
+    // Build every set's record first, then create them in one batch call.
+    // (Previously this POSTed one record per set sequentially — a 20-set
+    // workout meant ~20 round-trips on the client's "Finish Workout" tap.)
+    const recordsToCreate = logs.map((log: any, index: number) => {
       const fields: Record<string, any> = {
-        "Log ID": `LOG-${Date.now()}-${createdRecords.length + 1}`,
+        "Log ID": `LOG-${Date.now()}-${index + 1}`,
 
         "Client ID": [clientId],
         "Assigned Workout ID": [assignedWorkoutRecordId],
@@ -174,15 +177,22 @@ export default async function handler(
         fields[notesFieldName] = toText(submissionNote);
       }
 
+      return { fields };
+    });
+
+    // Feishu batch_create caps each request; chunk to stay well under the limit.
+    for (let i = 0; i < recordsToCreate.length; i += 200) {
+      const chunk = recordsToCreate.slice(i, i + 200);
+
       const response = await fetch(
-        `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${workoutLogsTableId}/records`,
+        `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${workoutLogsTableId}/records/batch_create`,
         {
           method: "POST",
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ fields }),
+          body: JSON.stringify({ records: chunk }),
         }
       );
 
@@ -192,12 +202,14 @@ export default async function handler(
         return res.status(500).json({
           error: "Could not create workout logs",
           details: result,
-          failedRecord: fields,
+          failedRecords: chunk,
           sentRecords: createdRecords,
         });
       }
 
-      createdRecords.push(result.data.record.record_id);
+      for (const record of result.data?.records || []) {
+        createdRecords.push(record.record_id);
+      }
     }
 
     let assignedWorkoutUpdate: any = null;
