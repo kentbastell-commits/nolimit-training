@@ -214,9 +214,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       })
     );
 
+    // Drop empty/undefined optional values from the create: on a brand-new
+    // record they are no-ops, and empty strings on typed columns (e.g. a URL
+    // field like "Purchase Link") make Feishu reject the whole write
+    // (URLFieldConvFail), which previously forced the slow per-field fallback.
+    const isEmptyValue = (value: any) =>
+      value === "" || value === undefined || value === null;
+    const combinableOptionalFields = Object.fromEntries(
+      Object.entries(optionalFields).filter(([, value]) => !isEmptyValue(value))
+    );
+
     // Fast path: create the record with all fields at once (one write) instead
     // of a create + a sequential PUT per optional field (~16 round-trips).
-    const combinedFields = { ...fields, ...optionalFields };
+    const combinedFields = { ...fields, ...combinableOptionalFields };
     let createResult = await createProgramRecord(
       tableId,
       tokenData.tenant_access_token,
@@ -263,7 +273,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }> = [];
 
     if (programRecordId && runOptionalLoop) {
-      for (const [fieldName, value] of Object.entries(optionalFields)) {
+      for (const [fieldName, value] of Object.entries(combinableOptionalFields)) {
         const updateResult = await updateProgramField(
           tableId,
           programRecordId,
