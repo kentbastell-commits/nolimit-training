@@ -6600,6 +6600,57 @@ button.coachReviewGlobalItem,
   gap: 14px;
 }
 
+/* Program Details: tidy equal-width fields + a gold accent. */
+.programDetailsGrid {
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 14px 18px;
+  padding: 4px 2px 2px;
+}
+
+.programDetailsGrid label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.programDetailsGrid label span {
+  font-size: 12px;
+  font-weight: 850;
+  letter-spacing: 0.3px;
+  color: #6a665d;
+  text-transform: uppercase;
+}
+
+.app:not(.clientPortalApp) .programDetailsPanel {
+  border-top: 3px solid #d4af37 !important;
+}
+
+.builderCollapsiblePanel summary .eyebrow {
+  color: #b08a1e !important;
+  font-weight: 900 !important;
+}
+
+/* Back-to-Programs: plain black text, no pill. */
+.builderBackLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: none;
+  background: transparent;
+  color: #111;
+  font-weight: 850;
+  font-size: 14px;
+  padding: 2px 0;
+  margin-bottom: 6px;
+  cursor: pointer;
+}
+
+.builderBackLink:hover {
+  color: #000;
+  text-decoration: underline;
+}
+
 .programBuilderPanel {
   padding: 22px;
 }
@@ -20174,14 +20225,6 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 
 .builderCollapsiblePanel[open] summary {
   border-bottom: 1px solid rgba(17, 17, 17, 0.1) !important;
-}
-
-.builderCollapsiblePanel[open] summary > span::before {
-  content: "Close" !important;
-}
-
-.builderCollapsiblePanel[open] summary > span {
-  font-size: 0 !important;
 }
 
 .builderCollapsiblePanel .programDetailsGrid,

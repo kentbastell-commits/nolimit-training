@@ -2099,6 +2099,7 @@ function App() {
   const [builderSubTab, setBuilderSubTab] = useState<"build" | "product">(
     "build"
   );
+  const [programDetailsOpen, setProgramDetailsOpen] = useState(true);
   // "Create Program" details modal (Programming landing → blank builder).
   const [createProgramOpen, setCreateProgramOpen] = useState(false);
   const [createDraft, setCreateDraft] = useState({
@@ -2281,7 +2282,6 @@ function App() {
   } | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   // Session Library: reuse days from any saved program by dragging onto a cell.
-  const [sessionLibOpen, setSessionLibOpen] = useState(false);
   // Program-builder cell "+"/right-click menu (sessionLocalId set => "Edit"
   // targets that session) and the "Add from Library" picker target.
   const [cellMenu, setCellMenu] = useState<{
@@ -10096,11 +10096,43 @@ function App() {
     workoutPageTab === "Program Builder" &&
     (selectedProgramExercises.length > 0 || programSessions.length > 0);
 
-  const confirmLeaveBuilder = () =>
-    !hasUnsavedBuilderWork() ||
-    window.confirm(
-      "You have unsaved changes in the builder. Leave without saving? Use “Save Full Program” first to keep them."
-    );
+  // Clear the builder back to a blank state (used after a discard, so a
+  // re-opened builder doesn't show the abandoned program).
+  const resetBuilder = () => {
+    setProgramSessions([]);
+    setSelectedProgramExercises([]);
+    setProgramName("");
+    setProgramGoal("");
+    setProgramPhase("");
+    setProgramDurationWeeks("4");
+    setProgramSessionsPerWeek("3");
+    setProgramProductType("Digital Program");
+    setProgramBuiltForMode("internal");
+    setProgramBuiltForClient("");
+    setProgramBuiltForTeam("");
+    setEditProgramId("");
+    setEditProgramRecordId("");
+    setEditingProgramSessionId("");
+    setSessionName("");
+    setSessionEditorOpen(false);
+    setBuilderSubTab("build");
+    setProgramDetailsOpen(true);
+    setBuilderSaveStatus("saved");
+    setCopiedSession(null);
+  };
+
+  const confirmLeaveBuilder = () => {
+    if (!hasUnsavedBuilderWork()) return true;
+    if (
+      window.confirm(
+        "You have unsaved changes in the builder. Leave without saving? Use “Save Full Program” first to keep them."
+      )
+    ) {
+      resetBuilder();
+      return true;
+    }
+    return false;
+  };
 
   const selectWorkoutTab = (tab: WorkoutPageTab) => {
     if (tab !== workoutPageTab && !confirmLeaveBuilder()) return;
@@ -21994,7 +22026,16 @@ function App() {
                 )}
 
                 {!isSingleWorkoutBuilder && builderSubTab === "build" && (
-                <details className="builderCollapsiblePanel" id="builder-details">
+                <details
+                  className="builderCollapsiblePanel programDetailsPanel"
+                  id="builder-details"
+                  open={programDetailsOpen}
+                  onToggle={(e) =>
+                    setProgramDetailsOpen(
+                      (e.currentTarget as HTMLDetailsElement).open
+                    )
+                  }
+                >
                   <summary>
                     <div>
                       <span className="eyebrow">
@@ -22011,10 +22052,12 @@ function App() {
                           } weeks`}
                       </small>
                     </div>
-                    <span>Open</span>
+                    <span className="builderPanelToggle">
+                      {programDetailsOpen ? "Close" : "Open"}
+                    </span>
                   </summary>
 
-                  <div className="programDetailsGrid programDetailsPrimary">
+                  <div className="programDetailsGrid">
                     <label>
                       <span>{isSingleWorkoutBuilder ? "Workout Name" : "Program Name"}</span>
                       <input
@@ -22026,29 +22069,34 @@ function App() {
                     </label>
 
                     {!isSingleWorkoutBuilder && (
-                      <label>
-                        <span>Goal</span>
-                        <input
-                          value={programGoal}
-                          onChange={(e) => setProgramGoal(e.target.value)}
-                          placeholder="Goal"
-                          className="miniSearch"
-                        />
-                      </label>
-                    )}
-                  </div>
-
-                  {!isSingleWorkoutBuilder && (
-                    <>
-                      <div className="programDetailsGrid programDetailsSecondary">
+                      <>
                         <label>
-                          <span>Duration Weeks</span>
+                          <span>Goal</span>
                           <input
-                            value={programDurationWeeks}
-                            onChange={(e) => setProgramDurationWeeks(e.target.value)}
-                            placeholder="Duration Weeks"
+                            value={programGoal}
+                            onChange={(e) => setProgramGoal(e.target.value)}
+                            placeholder="e.g. Build muscle"
                             className="miniSearch"
                           />
+                        </label>
+
+                        <label>
+                          <span>Duration</span>
+                          <select
+                            value={programDurationWeeks}
+                            onChange={(e) =>
+                              setProgramDurationWeeks(e.target.value)
+                            }
+                            className="miniSearch"
+                          >
+                            {Array.from({ length: 8 }, (_, i) => i + 1).map(
+                              (n) => (
+                                <option key={n} value={String(n)}>
+                                  {n} week{n === 1 ? "" : "s"}
+                                </option>
+                              )
+                            )}
+                          </select>
                         </label>
 
                         <label>
@@ -22056,23 +22104,11 @@ function App() {
                           <input
                             value={programPhase}
                             onChange={(e) => setProgramPhase(e.target.value)}
-                            placeholder="Phase"
+                            placeholder="e.g. Foundation"
                             className="miniSearch"
                           />
                         </label>
 
-                        <label>
-                          <span>Sessions / Week</span>
-                          <input
-                            value={programSessionsPerWeek}
-                            onChange={(e) => setProgramSessionsPerWeek(e.target.value)}
-                            placeholder="Sessions / Week"
-                            className="miniSearch"
-                          />
-                        </label>
-                      </div>
-
-                      <div className="programProductGrid programTypeGrid">
                         <label>
                           <span>Program Type</span>
                           <select
@@ -22157,9 +22193,9 @@ function App() {
                               </select>
                             </label>
                           )}
-                      </div>
-                    </>
-                  )}
+                      </>
+                    )}
+                  </div>
                 </details>
                 )}
 
@@ -22494,86 +22530,6 @@ function App() {
 
                   return (
                     <>
-                    <div className="sessionLibBar">
-                      <button
-                        type="button"
-                        className="sessionLibToggle"
-                        onClick={() => setSessionLibOpen((o) => !o)}
-                      >
-                        <BookOpen size={15} /> Session Library
-                        <ChevronDown
-                          size={13}
-                          style={{
-                            transform: sessionLibOpen
-                              ? "rotate(180deg)"
-                              : "none",
-                          }}
-                        />
-                      </button>
-                      {sessionLibOpen && (
-                        <div className="sessionLibPanel">
-                          <select
-                            className="miniSearch sessionLibSelect"
-                            value={sessionLibProgramId}
-                            onChange={(e) => {
-                              const prog = programs.find(
-                                (pp) => pp.programId === e.target.value
-                              );
-                              if (prog) loadSessionLibrary(prog);
-                              else {
-                                setSessionLibProgramId("");
-                                setSessionLibSessions([]);
-                              }
-                            }}
-                          >
-                            <option value="">Choose a program…</option>
-                            {programs.map((pp) => (
-                              <option key={pp.recordId} value={pp.programId}>
-                                {pp.programName}
-                              </option>
-                            ))}
-                          </select>
-
-                          {sessionLibLoading ? (
-                            <span className="sessionLibEmpty">Loading…</span>
-                          ) : (
-                            <div className="sessionLibChips">
-                              {sessionLibProgramId &&
-                                sessionLibSessions.length === 0 && (
-                                  <span className="sessionLibEmpty">
-                                    No sessions in this program.
-                                  </span>
-                                )}
-                              {sessionLibSessions.map((s) => (
-                                <div
-                                  key={s.localId}
-                                  className="sessionLibChip"
-                                  draggable
-                                  onDragStart={() =>
-                                    setDraggedLibSessionId(s.localId)
-                                  }
-                                  onDragEnd={() => {
-                                    setDraggedLibSessionId("");
-                                    setProgramGridDrop(null);
-                                  }}
-                                  title="Drag onto a day to insert a copy"
-                                >
-                                  <strong>
-                                    {s.sessionName ||
-                                      `W${s.week} D${s.day}`}
-                                  </strong>
-                                  <span>{s.exercises.length} ex</span>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                          <p className="sessionLibHint">
-                            Drag a session onto any day to drop in a copy.
-                          </p>
-                        </div>
-                      )}
-                    </div>
-
                     <div className="programGridWrap" id="builder-review">
                       <div className="programGrid">
                         <div className="programGridHead" style={gridStyle}>
