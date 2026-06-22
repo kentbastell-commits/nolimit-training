@@ -17274,6 +17274,60 @@ function App() {
         useChineseClientText ? "chineseLocaleApp" : ""
       }`}
     >
+      {customizeFieldsIndex !== null &&
+        selectedProgramExercises[customizeFieldsIndex] &&
+        (() => {
+          const ex = selectedProgramExercises[customizeFieldsIndex];
+          const active = effectiveTrackingFields(
+            ex.trackingType,
+            ex.trackingFields
+          );
+          return (
+            <div
+              className="customizeFieldsOverlay"
+              onClick={() => setCustomizeFieldsIndex(null)}
+            >
+              <div
+                className="customizeFieldsModal"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <h3>Customize fields</h3>
+                <p className="customizeFieldsHint">
+                  Choose up to 3 fields to track for{" "}
+                  <strong>{ex.exerciseName}</strong>.
+                </p>
+                <div className="customizeFieldChips">
+                  {STRENGTH_TRACKING_FIELDS.map((f) => {
+                    const on = active.includes(f);
+                    const disabled = !on && active.length >= 3;
+                    return (
+                      <button
+                        key={f}
+                        type="button"
+                        className={`customizeFieldChip${on ? " on" : ""}`}
+                        disabled={disabled}
+                        onClick={() => toggleTrackingField(customizeFieldsIndex, f)}
+                      >
+                        {on ? `${active.indexOf(f) + 1}. ` : ""}
+                        {f === "Weight" ? "Weight (kg)" : f}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="wellnessActions">
+                  <button
+                    type="button"
+                    className="wellnessSubmit"
+                    onClick={() => setCustomizeFieldsIndex(null)}
+                  >
+                    Done
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
       <aside className="sidebar">
         <div className="brand">
           <div className="brandPlate">
@@ -30049,62 +30103,6 @@ function App() {
                   >
                     {paceZh ? "返回继续编辑" : "Back to workout"}
                   </button>
-                </div>
-              </div>
-            );
-          })()}
-
-        {customizeFieldsIndex !== null &&
-          selectedProgramExercises[customizeFieldsIndex] &&
-          (() => {
-            const ex = selectedProgramExercises[customizeFieldsIndex];
-            const active = effectiveTrackingFields(
-              ex.trackingType,
-              ex.trackingFields
-            );
-            return (
-              <div
-                className="wellnessOverlay"
-                onClick={() => setCustomizeFieldsIndex(null)}
-              >
-                <div
-                  className="customizeFieldsModal"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <h3>Customize fields</h3>
-                  <p className="customizeFieldsHint">
-                    Choose up to 3 fields to track for{" "}
-                    <strong>{ex.exerciseName}</strong>.
-                  </p>
-                  <div className="customizeFieldChips">
-                    {STRENGTH_TRACKING_FIELDS.map((f) => {
-                      const on = active.includes(f);
-                      const disabled = !on && active.length >= 3;
-                      return (
-                        <button
-                          key={f}
-                          type="button"
-                          className={`customizeFieldChip${on ? " on" : ""}`}
-                          disabled={disabled}
-                          onClick={() =>
-                            toggleTrackingField(customizeFieldsIndex, f)
-                          }
-                        >
-                          {on ? `${active.indexOf(f) + 1}. ` : ""}
-                          {f === "Weight" ? "Weight (kg)" : f}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <div className="wellnessActions">
-                    <button
-                      type="button"
-                      className="wellnessSubmit"
-                      onClick={() => setCustomizeFieldsIndex(null)}
-                    >
-                      Done
-                    </button>
-                  </div>
                 </div>
               </div>
             );

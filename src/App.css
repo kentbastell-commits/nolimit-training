@@ -18570,7 +18570,18 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   color: #d4af37;
 }
 
-/* Customize-fields picker modal */
+/* Customize-fields picker modal — rendered at the app root with a very high
+   z-index so it sits above the builder regardless of stacking context. */
+.customizeFieldsOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 4000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(13, 13, 13, 0.55);
+}
 .customizeFieldsModal {
   align-self: center;
   width: 100%;
