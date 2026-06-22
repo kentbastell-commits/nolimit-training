@@ -7030,6 +7030,52 @@ function App() {
     );
   }
 
+  // Build the "at a glance" chain for a program-grid card: consecutive
+  // same-section exercises become a lettered block (A, B, C…); blocks with more
+  // than one exercise get numbered (C1, C2…) and a connecting line.
+  const buildGlanceChain = (exercises: ProgramExercise[]) => {
+    const runs: ProgramExercise[][] = [];
+    let cur: ProgramExercise[] = [];
+    let curSection: string | null = null;
+    exercises.forEach((ex) => {
+      const sec =
+        normalizeBuilderSection(ex.sectionName).toLowerCase() || "main";
+      if (sec === curSection) {
+        cur.push(ex);
+      } else {
+        if (cur.length) runs.push(cur);
+        cur = [ex];
+        curSection = sec;
+      }
+    });
+    if (cur.length) runs.push(cur);
+
+    const items: {
+      ex: ProgramExercise;
+      display: string;
+      colorClass: string;
+      linked: boolean;
+      isFirst: boolean;
+      isLast: boolean;
+    }[] = [];
+    runs.forEach((run, runIdx) => {
+      const letter = String.fromCharCode(65 + Math.min(runIdx, 25));
+      run.forEach((ex, pos) => {
+        items.push({
+          ex,
+          display: run.length > 1 ? `${letter}${pos + 1}` : letter,
+          colorClass: isWarmupSection(ex.sectionName)
+            ? "exerciseLabelBadgeWarmup"
+            : getLabelColorClass(undefined, ex.sectionName),
+          linked: run.length > 1,
+          isFirst: pos === 0,
+          isLast: pos === run.length - 1,
+        });
+      });
+    });
+    return items;
+  };
+
   function relabelProgramExercises(exercises: ProgramExercise[]) {
     const sectionLetters = new Map<string, string>();
     const sectionCounts = new Map<string, number>();
@@ -21271,7 +21317,9 @@ function App() {
                       localId: "__draft__",
                       week: programWeek,
                       day: programDay,
-                      sessionName: sessionName.trim() || "Untitled session",
+                      sessionName:
+                        sessionName.trim() ||
+                        `Week ${programWeek} Day ${programDay}`,
                       sessionType,
                       intensity: sessionIntensity,
                       estimatedDuration: sessionEstimatedDuration,
@@ -21283,7 +21331,7 @@ function App() {
 
                   const dayColTemplate = days
                     .map((d) =>
-                      collapsedDays.has(d) ? "38px" : "minmax(118px, 1fr)"
+                      collapsedDays.has(d) ? "38px" : "minmax(150px, 1fr)"
                     )
                     .join(" ");
                   const gridStyle = {
@@ -21441,52 +21489,97 @@ function App() {
                                           }
                                         }}
                                       >
-                                        <strong className="programGridCardName">
-                                          {s.sessionName}
-                                        </strong>
-                                        <span className="programGridCardMeta">
-                                          {s.sessionType || "Strength"} ·{" "}
-                                          {s.exercises.length} ex
-                                        </span>
-                                        {s.__draft ? (
-                                          <span className="gridDraftTag">
-                                            Unsaved · editing
+                                        <div className="programGridCardHead">
+                                          <strong className="programGridCardName">
+                                            {s.sessionName?.trim()
+                                              ? s.sessionName
+                                              : `Week ${w} Day ${d}`}
+                                          </strong>
+                                          {s.__draft ? (
+                                            <span className="gridDraftTag">
+                                              Unsaved
+                                            </span>
+                                          ) : (
+                                            <div className="programGridCardActions">
+                                              <button
+                                                type="button"
+                                                className="iconActionButton"
+                                                title="Edit session"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  loadSessionForEditing(s);
+                                                }}
+                                              >
+                                                <Pencil size={13} />
+                                              </button>
+                                              <button
+                                                type="button"
+                                                className="iconActionButton"
+                                                title="Duplicate to next week"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  duplicateProgramSession(s);
+                                                }}
+                                              >
+                                                <Copy size={13} />
+                                              </button>
+                                              <button
+                                                type="button"
+                                                className="iconActionButton dangerMenuItem"
+                                                title="Remove session"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  removeProgramSession(s.localId);
+                                                }}
+                                              >
+                                                <Trash2 size={13} />
+                                              </button>
+                                            </div>
+                                          )}
+                                        </div>
+
+                                        {s.exercises.length === 0 ? (
+                                          <span className="programGridCardMeta">
+                                            No exercises yet
                                           </span>
                                         ) : (
-                                          <div className="programGridCardActions">
-                                            <button
-                                              type="button"
-                                              className="iconActionButton"
-                                              title="Edit session"
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                loadSessionForEditing(s);
-                                              }}
-                                            >
-                                              <Pencil size={13} />
-                                            </button>
-                                            <button
-                                              type="button"
-                                              className="iconActionButton"
-                                              title="Duplicate to next week"
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                duplicateProgramSession(s);
-                                              }}
-                                            >
-                                              <Copy size={13} />
-                                            </button>
-                                            <button
-                                              type="button"
-                                              className="iconActionButton dangerMenuItem"
-                                              title="Remove session"
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                removeProgramSession(s.localId);
-                                              }}
-                                            >
-                                              <Trash2 size={13} />
-                                            </button>
+                                          <div className="glanceChain">
+                                            {buildGlanceChain(s.exercises).map(
+                                              (it, gi) => (
+                                                <div
+                                                  className="glanceRow"
+                                                  key={`${it.ex.exerciseRecordId}-${gi}`}
+                                                >
+                                                  <div className="glanceBadgeWrap">
+                                                    {it.linked && !it.isFirst && (
+                                                      <span className="glanceLineUp" />
+                                                    )}
+                                                    {it.linked && !it.isLast && (
+                                                      <span className="glanceLineDown" />
+                                                    )}
+                                                    <span
+                                                      className={`exerciseLabelBadge glanceBadge ${it.colorClass}`}
+                                                    >
+                                                      {it.display}
+                                                    </span>
+                                                  </div>
+                                                  <div className="glanceText">
+                                                    <strong>
+                                                      {it.ex.exerciseName}
+                                                    </strong>
+                                                    {(it.ex.sets || it.ex.reps) && (
+                                                      <span>
+                                                        {it.ex.sets &&
+                                                        it.ex.reps
+                                                          ? `${it.ex.sets} x ${it.ex.reps}`
+                                                          : it.ex.sets ||
+                                                            it.ex.reps}
+                                                      </span>
+                                                    )}
+                                                  </div>
+                                                </div>
+                                              )
+                                            )}
                                           </div>
                                         )}
                                       </div>

@@ -5347,7 +5347,7 @@ button.coachReviewGlobalItem,
 }
 
 .programGrid {
-  min-width: 820px;
+  min-width: 1040px;
 }
 
 .programGridCorner {
@@ -5523,11 +5523,19 @@ button.coachReviewGlobalItem,
 .programGridCard.wcol-test { border-left-color: #d64545; }
 .programGridCard.wcol-purple { border-left-color: #7b3fbf; }
 
+.programGridCardHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 6px;
+}
+
 .programGridCardName {
   font-weight: 900;
   font-size: 13px;
   color: #fff;
   line-height: 1.2;
+  min-width: 0;
 }
 
 .programGridCardMeta {
@@ -5538,8 +5546,96 @@ button.coachReviewGlobalItem,
 
 .programGridCardActions {
   display: flex;
-  gap: 4px;
-  margin-top: 2px;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+.programGridCardActions .iconActionButton {
+  padding: 3px 4px;
+}
+
+/* At-a-glance exercise chain inside a grid card */
+.glanceChain {
+  display: flex;
+  flex-direction: column;
+  margin-top: 6px;
+}
+
+.glanceRow {
+  display: flex;
+  gap: 9px;
+  align-items: stretch;
+}
+
+.glanceBadgeWrap {
+  position: relative;
+  width: 24px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 0;
+}
+
+.glanceBadge.exerciseLabelBadge {
+  width: 23px;
+  height: 23px;
+  min-width: 23px;
+  font-size: 10px;
+  font-weight: 900;
+  z-index: 1;
+}
+
+.glanceLineUp,
+.glanceLineDown {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 2px;
+  background: rgba(212, 175, 55, 0.5);
+}
+
+.glanceLineUp {
+  top: 0;
+  height: 50%;
+}
+
+.glanceLineDown {
+  bottom: 0;
+  height: 50%;
+}
+
+.glanceText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 3px 0;
+}
+
+.glanceText strong {
+  font-size: 12px;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1.2;
+}
+
+.glanceText span {
+  font-size: 11px;
+  font-weight: 650;
+  color: #cfcabb;
+}
+
+.app:not(.clientPortalApp) .glanceLineUp,
+.app:not(.clientPortalApp) .glanceLineDown {
+  background: #cbbd97;
+}
+
+.app:not(.clientPortalApp) .glanceText strong {
+  color: #1c1c19;
+}
+
+.app:not(.clientPortalApp) .glanceText span {
+  color: #6a665d;
 }
 
 .programGridCardActions .iconActionButton {
