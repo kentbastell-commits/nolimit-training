@@ -29446,9 +29446,12 @@ function App() {
 
         {showExerciseModal && (
           <div className="workout-modal-overlay">
-            <div className="clientFormModal">
+            <div className="clientFormModal exerciseFormModal">
               <div className="modal-header">
                 <div>
+                  <span className="exerciseModalEyebrow">
+                    {editingExercise ? "Edit" : "New"} · Exercise Library
+                  </span>
                   <h2>{editingExercise ? "Edit Exercise" : "Add Exercise"}</h2>
                   <p>
                     {editingExercise
@@ -29457,8 +29460,12 @@ function App() {
                   </p>
                 </div>
 
-                <button className="drawerClose" onClick={closeExerciseForm}>
-                  x
+                <button
+                  className="iconActionButton exerciseModalClose"
+                  onClick={closeExerciseForm}
+                  aria-label="Close"
+                >
+                  <X size={18} />
                 </button>
               </div>
 
@@ -29477,85 +29484,55 @@ function App() {
                   />
                 </label>
 
-                <label>
-                  <span>Category</span>
-                  <input
-                    list="exCategoryOptions"
-                    value={exerciseForm.category}
-                    onChange={(e) =>
-                      setExerciseForm({
-                        ...exerciseForm,
-                        category: e.target.value,
-                      })
-                    }
-                    placeholder="Squat"
-                  />
-                  <datalist id="exCategoryOptions">
-                    {categoryOptions.map((opt) => (
-                      <option key={opt} value={opt} />
-                    ))}
-                  </datalist>
-                </label>
-
-                <label>
-                  <span>Muscle group</span>
-                  <input
-                    list="exMuscleOptions"
-                    value={exerciseForm.muscleGroup}
-                    onChange={(e) =>
-                      setExerciseForm({
-                        ...exerciseForm,
-                        muscleGroup: e.target.value,
-                      })
-                    }
-                    placeholder="Shoulders"
-                  />
-                  <datalist id="exMuscleOptions">
-                    {muscleGroupOptions.map((opt) => (
-                      <option key={opt} value={opt} />
-                    ))}
-                  </datalist>
-                </label>
-
-                <label>
-                  <span>Movement pattern</span>
-                  <input
-                    list="exMovementOptions"
-                    value={exerciseForm.movementPattern}
-                    onChange={(e) =>
-                      setExerciseForm({
-                        ...exerciseForm,
-                        movementPattern: e.target.value,
-                      })
-                    }
-                    placeholder="Upper Body Vertical Push"
-                  />
-                  <datalist id="exMovementOptions">
-                    {movementPatternOptions.map((opt) => (
-                      <option key={opt} value={opt} />
-                    ))}
-                  </datalist>
-                </label>
-
-                <label>
-                  <span>Equipment</span>
-                  <input
-                    list="exEquipmentOptions"
-                    value={exerciseForm.equipment}
-                    onChange={(e) =>
-                      setExerciseForm({
-                        ...exerciseForm,
-                        equipment: e.target.value,
-                      })
-                    }
-                    placeholder="Dumbbell"
-                  />
-                  <datalist id="exEquipmentOptions">
-                    {equipmentOptions.map((opt) => (
-                      <option key={opt} value={opt} />
-                    ))}
-                  </datalist>
-                </label>
+                {(() => {
+                  const taxonomyField = (
+                    label: string,
+                    key: "category" | "muscleGroup" | "movementPattern" | "equipment",
+                    options: string[]
+                  ) => {
+                    const value = exerciseForm[key];
+                    return (
+                      <label>
+                        <span>{label}</span>
+                        <select
+                          value={value}
+                          onChange={(e) =>
+                            setExerciseForm({
+                              ...exerciseForm,
+                              [key]: e.target.value,
+                            })
+                          }
+                        >
+                          <option value="">Select…</option>
+                          {value && !options.includes(value) && (
+                            <option value={value}>{value}</option>
+                          )}
+                          {options.map((opt) => (
+                            <option key={opt} value={opt}>
+                              {opt}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    );
+                  };
+                  return (
+                    <>
+                      {taxonomyField("Category", "category", categoryOptions)}
+                      {taxonomyField(
+                        "Muscle group",
+                        "muscleGroup",
+                        muscleGroupOptions
+                      )}
+                      {taxonomyField(
+                        "Movement pattern",
+                        "movementPattern",
+                        movementPatternOptions
+                      )}
+                      {taxonomyField("Equipment", "equipment", equipmentOptions)}
+                    </>
+                  );
+                })()}
 
                 <label>
                   <span>Record</span>
@@ -29574,8 +29551,7 @@ function App() {
                   </select>
                 </label>
 
-                <label className="toggleField">
-                  <span>Unilateral</span>
+                <label className="exerciseUnilateralField">
                   <input
                     type="checkbox"
                     checked={exerciseForm.isUnilateral}
@@ -29586,36 +29562,39 @@ function App() {
                       })
                     }
                   />
+                  <span>Unilateral (trains one side at a time)</span>
                 </label>
 
-                <label>
-                  <span>Short Video URL (quick demo)</span>
-                  <input
-                    value={exerciseForm.videoUrl}
-                    onChange={(e) =>
-                      setExerciseForm({
-                        ...exerciseForm,
-                        videoUrl: e.target.value,
-                      })
-                    }
-                    placeholder="https://..."
-                  />
-                  {renderVideoPreview(exerciseForm.videoUrl)}
-                </label>
+                <div className="exerciseUrlRow">
+                  <label>
+                    <span>Short Video URL (quick demo)</span>
+                    <input
+                      value={exerciseForm.videoUrl}
+                      onChange={(e) =>
+                        setExerciseForm({
+                          ...exerciseForm,
+                          videoUrl: e.target.value,
+                        })
+                      }
+                      placeholder="https://..."
+                    />
+                  </label>
 
-                <label>
-                  <span>Long Video URL (in-depth, optional)</span>
-                  <input
-                    value={exerciseForm.longVideoUrl}
-                    onChange={(e) =>
-                      setExerciseForm({
-                        ...exerciseForm,
-                        longVideoUrl: e.target.value,
-                      })
-                    }
-                    placeholder="https://..."
-                  />
-                </label>
+                  <label>
+                    <span>Long Video URL (in-depth, optional)</span>
+                    <input
+                      value={exerciseForm.longVideoUrl}
+                      onChange={(e) =>
+                        setExerciseForm({
+                          ...exerciseForm,
+                          longVideoUrl: e.target.value,
+                        })
+                      }
+                      placeholder="https://..."
+                    />
+                  </label>
+                </div>
+                {renderVideoPreview(exerciseForm.videoUrl)}
 
                 <label className="clientNotesField">
                   <span>Form Instructions / Library Notes</span>
