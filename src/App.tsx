@@ -3132,8 +3132,7 @@ function App() {
   // Guard against losing an in-progress program build on tab close / refresh.
   useEffect(() => {
     const unsaved =
-      (workoutPageTab === "Program Builder" ||
-        workoutPageTab === "Sessions") &&
+      workoutPageTab === "Program Builder" &&
       (selectedProgramExercises.length > 0 || programSessions.length > 0);
     if (!unsaved) return;
     const handler = (event: BeforeUnloadEvent) => {
@@ -4608,6 +4607,13 @@ function App() {
         (program.builtForTeam || "").toLowerCase().includes(search)
       );
     });
+  // Split the library: the Programs tab holds multi-week programs; the Sessions
+  // tab holds reusable single workouts (saved with productType "Single Workout").
+  const isSessionProgram = (p: Program) => p.productType === "Single Workout";
+  const visibleProgramsOnly = visibleSavedPrograms.filter(
+    (p) => !isSessionProgram(p)
+  );
+  const visibleSessionsOnly = visibleSavedPrograms.filter(isSessionProgram);
   const visibleSavedForms = savedFormTemplates.filter((form) => {
     const search = savedFormSearch.toLowerCase();
 
@@ -5261,6 +5267,11 @@ function App() {
         })
       );
 
+      setBuilderMode(
+        sourceProgram.productType === "Single Workout"
+          ? "Single Workout"
+          : "Program"
+      );
       setProgramName(
         opts?.asCopy
           ? `${sourceProgram.programName} Copy`
@@ -5347,6 +5358,25 @@ function App() {
     setBuilderMode("Program");
     setBuilderSubTab("build");
     setCreateProgramOpen(false);
+    setWorkoutPageTab("Program Builder");
+  };
+
+  // Sessions tab "Create Session" → a fresh single-workout builder.
+  const startNewSession = () => {
+    setEditProgramId("");
+    setEditProgramRecordId("");
+    setProgramName("");
+    setProgramGoal("");
+    setProgramProductType("Single Workout");
+    setProgramSessions([]);
+    setSelectedProgramExercises([]);
+    setProgramWeek("1");
+    setProgramDay("1");
+    setSessionName("");
+    setEditingProgramSessionId("");
+    setBuilderMode("Single Workout");
+    setBuilderSubTab("build");
+    setMobileBuilderStep("editor");
     setWorkoutPageTab("Program Builder");
   };
 
@@ -9812,14 +9842,19 @@ function App() {
     { value: "Forms", label: "Forms" },
   ];
 
-  // The builder lives under the Programs tab, so highlight Programs while building.
+  // The builder is entered from Programs (calendar) or Sessions (single
+  // workout), so highlight the tab it came from while building.
   const activeWorkoutTabValue: WorkoutPageTab =
-    workoutPageTab === "Program Builder" ? "Saved Programs" : workoutPageTab;
+    workoutPageTab === "Program Builder"
+      ? builderMode === "Single Workout"
+        ? "Sessions"
+        : "Saved Programs"
+      : workoutPageTab;
 
   // Unsaved work = builder open with content not yet persisted (a successful
   // "Save Full Program" clears these). Used to guard against losing a build.
   const hasUnsavedBuilderWork = () =>
-    (workoutPageTab === "Program Builder" || workoutPageTab === "Sessions") &&
+    workoutPageTab === "Program Builder" &&
     (selectedProgramExercises.length > 0 || programSessions.length > 0);
 
   const confirmLeaveBuilder = () =>
@@ -9831,11 +9866,7 @@ function App() {
   const selectWorkoutTab = (tab: WorkoutPageTab) => {
     if (tab !== workoutPageTab && !confirmLeaveBuilder()) return;
     setWorkoutPageTab(tab);
-    if (tab === "Saved Programs") loadPrograms(true);
-    if (tab === "Sessions") {
-      setBuilderMode("Single Workout");
-      setBuilderSubTab("build");
-    }
+    if (tab === "Saved Programs" || tab === "Sessions") loadPrograms(true);
     if (tab === "Forms") loadFormTemplates(true);
     if (tab === "Tests") loadTestTemplates(true);
     if (tab === "Assignments") {
@@ -18481,8 +18512,7 @@ function App() {
               )}
 
               {activePage === "Workouts" &&
-                (workoutPageTab === "Program Builder" ||
-                  workoutPageTab === "Sessions") && (
+                workoutPageTab === "Program Builder" && (
                 <div className="topbarActions builderTopbarActions">
                   <span
                     className={`builderSaveStatusPill ${
@@ -21001,57 +21031,76 @@ function App() {
                   </div>
                 )}
 
-                {workoutPageTab === "Saved Programs" && (
+                {(workoutPageTab === "Saved Programs" ||
+                  workoutPageTab === "Sessions") &&
+                  (() => {
+                  const sessionsTab = workoutPageTab === "Sessions";
+                  const libraryList = sessionsTab
+                    ? visibleSessionsOnly
+                    : visibleProgramsOnly;
+                  return (
                   <section className="programLibraryPanel">
                     <div className="programLibraryHeader programLandingHeader">
                       <div className="programLandingControls">
-                        <select
-                          className="programViewSelect"
-                          value={savedProgramProductFilter}
-                          onChange={(event) =>
-                            setSavedProgramProductFilter(event.target.value)
-                          }
-                        >
-                          <option value="All">My Programs</option>
-                          <optgroup label="Program type">
-                            <option value="type:Digital Program">
-                              Digital programs
-                            </option>
-                            <option value="type:Online Coaching">
-                              Online coaching
-                            </option>
-                            <option value="type:In-Person Training">
-                              In-person training
-                            </option>
-                            <option value="internal">Internal / general</option>
-                          </optgroup>
-                          {teams.length > 0 && (
-                            <optgroup label="By team">
-                              {teams.map((tm) => (
-                                <option key={tm.id} value={`team:${tm.name}`}>
-                                  {tm.name}
+                        {sessionsTab ? (
+                          <span className="programViewSelect programViewStatic">
+                            Sessions
+                          </span>
+                        ) : (
+                          <select
+                            className="programViewSelect"
+                            value={savedProgramProductFilter}
+                            onChange={(event) =>
+                              setSavedProgramProductFilter(event.target.value)
+                            }
+                          >
+                            <option value="All">My Programs</option>
+                            <optgroup label="Program type">
+                              <option value="type:Digital Program">
+                                Digital programs
+                              </option>
+                              <option value="type:Online Coaching">
+                                Online coaching
+                              </option>
+                              <option value="type:In-Person Training">
+                                In-person training
+                              </option>
+                              <option value="internal">
+                                Internal / general
+                              </option>
+                            </optgroup>
+                            {teams.length > 0 && (
+                              <optgroup label="By team">
+                                {teams.map((tm) => (
+                                  <option key={tm.id} value={`team:${tm.name}`}>
+                                    {tm.name}
+                                  </option>
+                                ))}
+                              </optgroup>
+                            )}
+                            <optgroup label="By client">
+                              {coachVisibleClients.map((c) => (
+                                <option
+                                  key={c.id}
+                                  value={`client:${c.clientCode || c.id}`}
+                                >
+                                  {c.name}
                                 </option>
                               ))}
                             </optgroup>
-                          )}
-                          <optgroup label="By client">
-                            {coachVisibleClients.map((c) => (
-                              <option
-                                key={c.id}
-                                value={`client:${c.clientCode || c.id}`}
-                              >
-                                {c.name}
-                              </option>
-                            ))}
-                          </optgroup>
-                        </select>
+                          </select>
+                        )}
                         <input
                           className="templateSearchInput programLandingSearch"
                           value={savedProgramSearch}
                           onChange={(event) =>
                             setSavedProgramSearch(event.target.value)
                           }
-                          placeholder="Search programs..."
+                          placeholder={
+                            sessionsTab
+                              ? "Search sessions..."
+                              : "Search programs..."
+                          }
                         />
                       </div>
                       <div className="programLandingActions">
@@ -21060,9 +21109,13 @@ function App() {
                         </button>
                         <button
                           className="goldButton"
-                          onClick={() => setCreateProgramOpen(true)}
+                          onClick={() =>
+                            sessionsTab
+                              ? startNewSession()
+                              : setCreateProgramOpen(true)
+                          }
                         >
-                          Create Program
+                          {sessionsTab ? "Create Session" : "Create Program"}
                         </button>
                       </div>
                     </div>
@@ -21079,20 +21132,17 @@ function App() {
                         </div>
 
                         {programsLoading && programs.length === 0 && (
-                          <p className="programTableEmpty">Loading saved programs…</p>
+                          <p className="programTableEmpty">Loading…</p>
                         )}
-                        {!programsLoading && programs.length === 0 && (
-                          <p className="programTableEmpty">No saved programs yet.</p>
+                        {!programsLoading && libraryList.length === 0 && (
+                          <p className="programTableEmpty">
+                            {sessionsTab
+                              ? "No saved sessions yet. Create one to reuse across programs."
+                              : "No programs match your filter."}
+                          </p>
                         )}
-                        {!programsLoading &&
-                          programs.length > 0 &&
-                          visibleSavedPrograms.length === 0 && (
-                            <p className="programTableEmpty">
-                              No programs match your filter.
-                            </p>
-                          )}
 
-                        {visibleSavedPrograms.map((program) => {
+                        {libraryList.map((program) => {
                           const initials =
                             (program.programName || "")
                               .split(/\s+/)
@@ -21414,25 +21464,30 @@ function App() {
                       )}
                     </div>
                   </section>
-                )}
+                  );
+                })()}
 
-                {(workoutPageTab === "Program Builder" ||
-                  workoutPageTab === "Sessions") &&
+                {workoutPageTab === "Program Builder" &&
                   !useMobileWorkoutRows && (
               <section className="tableCard programBuilderPanel">
                 {workoutPageTab === "Program Builder" && (
                   <button
                     type="button"
                     className="builderBackLink"
-                    onClick={() => selectWorkoutTab("Saved Programs")}
+                    onClick={() =>
+                      selectWorkoutTab(
+                        isSingleWorkoutBuilder ? "Sessions" : "Saved Programs"
+                      )
+                    }
                   >
-                    <ChevronLeft size={16} /> Programs
+                    <ChevronLeft size={16} />{" "}
+                    {isSingleWorkoutBuilder ? "Sessions" : "Programs"}
                   </button>
                 )}
 
                 <h2 className="builderPageTitle">
                   {isSingleWorkoutBuilder
-                    ? "Session Builder"
+                    ? programName.trim() || "Session Builder"
                     : programName.trim()
                     ? programName.trim()
                     : "Program Builder"}
@@ -23738,8 +23793,7 @@ function App() {
               </section>
                 )}
 
-                {(workoutPageTab === "Program Builder" ||
-                  workoutPageTab === "Sessions") &&
+                {workoutPageTab === "Program Builder" &&
                   useMobileWorkoutRows && (
                   <>
                     {mobileBuilderStep !== "overview" && (

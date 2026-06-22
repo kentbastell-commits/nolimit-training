@@ -5122,6 +5122,13 @@ button.coachReviewGlobalItem,
   min-width: 200px;
 }
 
+.programViewStatic {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid transparent;
+  background: transparent;
+}
+
 .programLandingSearch {
   max-width: 260px;
 }
