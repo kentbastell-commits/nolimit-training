@@ -2226,6 +2226,9 @@ function App() {
   } | null>(null);
   // Collapsible Day-1-7 columns in the program grid (rest/finished days fold up).
   const [collapsedDays, setCollapsedDays] = useState<Set<number>>(new Set());
+  // "Duplicate week" dropdown: which week's menu is open + the load progression.
+  const [weekDupMenu, setWeekDupMenu] = useState<number | null>(null);
+  const [weekDupPct, setWeekDupPct] = useState(0);
   const [savingTemplate, setSavingTemplate] = useState(false);
   const [builderSaveStatus, setBuilderSaveStatus] = useState<"saved" | "dirty">(
     "saved"
@@ -8992,6 +8995,59 @@ function App() {
           ? { ...session, week: String(week), day: String(day) }
           : session
       )
+    );
+  };
+
+  // Bump a numeric load by a percent (leaves BW / % / blanks untouched).
+  const progressLoad = (value: string, pct: number) => {
+    if (!pct) return value;
+    const n = parseFloat(value);
+    if (!Number.isFinite(n)) return value;
+    return String(Math.round(n * (1 + pct / 100) * 100) / 100);
+  };
+
+  const progressExercise = (ex: ProgramExercise, pct: number): ProgramExercise => {
+    if (!pct) return { ...ex };
+    return {
+      ...ex,
+      load: progressLoad(ex.load, pct),
+      setPrescriptions: ex.setPrescriptions?.map((sp) => ({
+        ...sp,
+        load: progressLoad(sp.load, pct),
+      })),
+    };
+  };
+
+  // Calendar: overwrite a target week with copies of a source week's sessions
+  // (optionally progressing loads by a percent).
+  const duplicateWeek = (fromWeek: number, toWeeks: number[], pct: number) => {
+    setProgramSessions((current) => {
+      const source = current.filter((s) => s.week === String(fromWeek));
+      const targetSet = new Set(toWeeks.map(String));
+      const kept = current.filter((s) => !targetSet.has(s.week));
+      const copies: ProgramSession[] = [];
+      toWeeks.forEach((toWeek) => {
+        source.forEach((s) => {
+          copies.push({
+            ...s,
+            localId: `${Date.now()}-${Math.random()}`,
+            week: String(toWeek),
+            exercises: s.exercises.map((ex) => progressExercise(ex, pct)),
+          });
+        });
+      });
+      return [...kept, ...copies];
+    });
+    setWeekDupMenu(null);
+    setBuilderSaveStatus("dirty");
+    notify(
+      toWeeks.length > 1
+        ? `Week ${fromWeek} copied to ${toWeeks.length} weeks${
+            pct ? ` (+${pct}% load)` : ""
+          }.`
+        : `Week ${fromWeek} copied to Week ${toWeeks[0]}${
+            pct ? ` (+${pct}% load)` : ""
+          }.`
     );
   };
 
@@ -21425,7 +21481,87 @@ function App() {
 
                         {weeks.map((w) => (
                           <div key={w} className="programGridWeek">
-                            <div className="programGridWeekLabel">Week {w}</div>
+                            <div className="programGridWeekLabel">
+                              <span>Week {w}</span>
+                              {programSessions.some(
+                                (s) => s.week === String(w)
+                              ) && (
+                                <div className="weekDupWrap">
+                                  <button
+                                    type="button"
+                                    className="weekDupTrigger"
+                                    onClick={() =>
+                                      setWeekDupMenu((cur) =>
+                                        cur === w ? null : w
+                                      )
+                                    }
+                                  >
+                                    <Copy size={13} /> Duplicate
+                                    <ChevronDown size={12} />
+                                  </button>
+                                  {weekDupMenu === w && (
+                                    <>
+                                      <div
+                                        className="weekDupBackdrop"
+                                        onClick={() => setWeekDupMenu(null)}
+                                      />
+                                      <div className="weekDupMenu">
+                                        <div className="weekDupSection">
+                                          Progress load
+                                        </div>
+                                        <div className="weekDupPctRow">
+                                          {[0, 2.5, 5, 10].map((pct) => (
+                                            <button
+                                              key={pct}
+                                              type="button"
+                                              className={
+                                                weekDupPct === pct ? "active" : ""
+                                              }
+                                              onClick={() => setWeekDupPct(pct)}
+                                            >
+                                              {pct === 0 ? "None" : `+${pct}%`}
+                                            </button>
+                                          ))}
+                                        </div>
+                                        <div className="weekDupSection">
+                                          Copy Week {w} to
+                                        </div>
+                                        {weeks
+                                          .filter((t) => t !== w)
+                                          .map((t) => (
+                                            <button
+                                              key={t}
+                                              type="button"
+                                              className="weekDupTarget"
+                                              onClick={() =>
+                                                duplicateWeek(w, [t], weekDupPct)
+                                              }
+                                            >
+                                              Week {t}
+                                            </button>
+                                          ))}
+                                        {weeks.filter((t) => t > w).length >
+                                          1 && (
+                                          <button
+                                            type="button"
+                                            className="weekDupTarget weekDupAll"
+                                            onClick={() =>
+                                              duplicateWeek(
+                                                w,
+                                                weeks.filter((t) => t > w),
+                                                weekDupPct
+                                              )
+                                            }
+                                          >
+                                            All later weeks
+                                          </button>
+                                        )}
+                                      </div>
+                                    </>
+                                  )}
+                                </div>
+                              )}
+                            </div>
                             <div className="programGridRow" style={gridStyle}>
                               {days.map((d) => {
                                 const collapsed = collapsedDays.has(d);
