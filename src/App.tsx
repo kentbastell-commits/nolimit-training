@@ -568,6 +568,7 @@ type SavedProgramTemplate = {
   isSingleWorkout?: boolean;
   exerciseName: string;
   exerciseId: string;
+  exerciseRecordId?: string;
   order: number;
   // Per-exercise prescription (lets the builder load a whole program from the
   // single /api/programTemplates call instead of one /api/workoutDetails per day).
@@ -5259,9 +5260,9 @@ function App() {
         const index = session.exercises.length;
         const meta = parseExerciseNotes(t.notes || "");
         const baseExercise: ProgramExercise = {
-          // Resolved against the library by exerciseId on save (matches the
-          // original load path); the template recordId is NOT the library id.
-          exerciseRecordId: "",
+          // The linked library record id (when known) lets saves skip the
+          // exercise-library lookup; falls back to exerciseId resolution.
+          exerciseRecordId: t.exerciseRecordId || "",
           exerciseId: t.exerciseId,
           exerciseName: t.exerciseName,
           order: Number(t.order) || index + 1,

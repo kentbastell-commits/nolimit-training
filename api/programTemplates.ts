@@ -160,6 +160,9 @@ export default async function handler(
           ),
           exerciseName: fieldToText(fields["Exercise Name"]),
           exerciseId: fieldToText(fields["Exercise ID"]),
+          // The linked library record id, so the builder can re-save without a
+          // per-session exercise-library lookup (avoids slow, burst-y saves).
+          exerciseRecordId: extractRecordIds(fields["Exercise ID"])[0] || "",
           order: Number(fieldToText(fields["Order"])) || 0,
           // Full prescription so the builder can load a program in one call
           // (no per-day /api/workoutDetails round-trips).
