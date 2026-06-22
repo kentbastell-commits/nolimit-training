@@ -15772,76 +15772,6 @@ function App() {
     );
   };
 
-  // Coach roster load watch: this week's monotony/strain for every athlete with
-  // load logged, riskiest first, so overtraining is visible at a glance.
-  const renderRosterLoadWatch = () => {
-    const ref = new Date(`${todayValue}T00:00:00`);
-    const rows = clients
-      .map((client) => {
-        const code = client.clientCode;
-        if (!code) return null;
-        const list = rosterLoadWorkouts.filter((w) =>
-          (w.clientId || "").includes(code)
-        );
-        const { weeklyLoad, monotony, strain } = computeMonotonyStrain(
-          loadByDateForWorkouts(list),
-          ref
-        );
-        if (weeklyLoad === 0) return null;
-        return {
-          client,
-          name: client.name || code,
-          code,
-          weeklyLoad,
-          monotony,
-          strain,
-          zone: monotonyZoneOf(monotony, weeklyLoad),
-        };
-      })
-      .filter((r): r is NonNullable<typeof r> => r !== null)
-      .sort((a, b) => b.monotony - a.monotony);
-
-    // No athletes with in-week load yet — hide the card entirely.
-    if (rows.length === 0) return null;
-
-    return (
-      <section className="clientCard loadWatchPanel">
-        <div className="profileMetricsHeader">
-          <h3>{paceZh ? "本周训练负荷" : "Training Load This Week"}</h3>
-          <span className="loadPremiumTag">{paceZh ? "教练视图" : "Coach view"}</span>
-        </div>
-        <div className="loadWatchList">
-          {rows.map((r) => (
-            <button
-              type="button"
-              className="loadWatchRow"
-              key={r.code}
-              onClick={() => {
-                setSelectedClient(r.client);
-                setClientTab("Overview");
-              }}
-              title={paceZh ? "查看负荷详情" : "Open load dashboard"}
-            >
-              <span className="loadWatchName">{r.name}</span>
-              <span className={`loadWatchMono ${r.zone.cls}`}>
-                {r.monotony ? r.monotony.toFixed(2) : "--"}
-                <em>{r.zone.label}</em>
-              </span>
-              <span className="loadWatchMetric">
-                {r.strain.toLocaleString()}
-                <em>{paceZh ? "应激" : "strain"}</em>
-              </span>
-              <span className="loadWatchMetric">
-                {r.weeklyLoad.toLocaleString()}
-                <em>{paceZh ? "周负荷" : "load"}</em>
-              </span>
-              <ChevronRight size={16} className="loadWatchCaret" aria-hidden="true" />
-            </button>
-          ))}
-        </div>
-      </section>
-    );
-  };
 
   // PR leaderboard + the progress chart, for the coach Overview's capacity view.
   // PR metric toggle + ranked leaderboard. Clicking a row selects that exercise
@@ -19011,7 +18941,6 @@ function App() {
 
             {activePage === "Clients" && (
               <>
-                {renderRosterLoadWatch()}
                 {renderCoachReviews()}
                 <section className="clientCommandCenter">
                   <section className="clientTableWorkspace">
@@ -26688,26 +26617,6 @@ function App() {
                       <h3>{paceZh ? "个人记录" : "Personal Records"}</h3>
                     </div>
                     {renderPersonalRecords()}
-                  </div>
-
-                  <div className="profileCard loadDashboardCard">
-                    <div className="profileMetricsHeader">
-                      <h3>{paceZh ? "训练负荷" : "Training Load"}</h3>
-                      <span className="loadPremiumTag">
-                        {paceZh ? "教练视图" : "Coach view"}
-                      </span>
-                    </div>
-                    {renderLoadDashboard()}
-                  </div>
-
-                  <div className="profileCard">
-                    <div className="profileMetricsHeader">
-                      <h3>{paceZh ? "每日状态趋势" : "Wellness Trends"}</h3>
-                      <span className="loadPremiumTag">
-                        {paceZh ? "教练视图" : "Coach view"}
-                      </span>
-                    </div>
-                    {renderWellnessTrends()}
                   </div>
 
                   <div className="profileCard">
