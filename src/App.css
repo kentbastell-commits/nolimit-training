@@ -6622,13 +6622,53 @@ button.coachReviewGlobalItem,
   text-transform: uppercase;
 }
 
-.app:not(.clientPortalApp) .programDetailsPanel {
+/* Premium gold accent across every builder setup panel. */
+.app:not(.clientPortalApp) .builderCollapsiblePanel {
   border-top: 3px solid #d4af37 !important;
 }
 
 .builderCollapsiblePanel summary .eyebrow {
   color: #b08a1e !important;
   font-weight: 900 !important;
+  letter-spacing: 0.6px !important;
+  text-transform: uppercase !important;
+}
+
+/* Tests / Forms hub header → charcoal banner with a gold accent bar. */
+.app:not(.clientPortalApp) .builderHubPanel {
+  border-top: 3px solid #d4af37;
+  overflow: hidden;
+}
+
+.app:not(.clientPortalApp) .builderHubHeader {
+  background: #1c1c1c;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 18px;
+  align-items: center;
+}
+
+.app:not(.clientPortalApp) .builderTabPanel {
+  border-top: 3px solid #d4af37;
+}
+
+.app:not(.clientPortalApp) .builderHubHeader h2 {
+  color: #f1e6c4 !important;
+}
+
+.app:not(.clientPortalApp) .builderHubHeader p {
+  color: #b9b2a0 !important;
+}
+
+/* Section title banners inside the Tests/Forms builders ("Test Items" etc.). */
+.app:not(.clientPortalApp) .builderHubList .exerciseTitleRow h3 {
+  background: #ececeb;
+  border-left: 4px solid #d4af37;
+  border-radius: 8px;
+  padding: 8px 14px;
+  margin: 0;
+  font-size: 16px;
+  color: #1c1c19;
 }
 
 /* Back-to-Programs: plain black text, no pill. */

@@ -2100,6 +2100,7 @@ function App() {
     "build"
   );
   const [programDetailsOpen, setProgramDetailsOpen] = useState(true);
+  const [sessionSetupOpen, setSessionSetupOpen] = useState(true);
   // "Create Program" details modal (Programming landing → blank builder).
   const [createProgramOpen, setCreateProgramOpen] = useState(false);
   const [createDraft, setCreateDraft] = useState({
@@ -18558,6 +18559,18 @@ function App() {
               </button>
               <button
                 type="button"
+                className="outlineButton"
+                onClick={() => {
+                  const pr = previewProgram.program;
+                  setPreviewProgram(null);
+                  setSelectedSavedProgramId(pr.programId);
+                  void loadSavedProgramIntoBuilder(pr, { asCopy: true });
+                }}
+              >
+                <Copy size={15} /> Duplicate
+              </button>
+              <button
+                type="button"
                 className="goldButton"
                 onClick={() => {
                   const pr = previewProgram.program;
@@ -18566,7 +18579,7 @@ function App() {
                   void loadSavedProgramIntoBuilder(pr, { edit: true });
                 }}
               >
-                Edit in Builder
+                <Pencil size={15} /> Edit
               </button>
             </div>
           </div>
@@ -21658,7 +21671,7 @@ function App() {
                               onClick={() => {
                                 setSelectedSavedProgramId(program.programId);
                                 setSavedAssignableWorkouts([]);
-                                void loadSavedProgramIntoBuilder(program);
+                                void openProgramPreview(program);
                               }}
                               onContextMenu={(e) => {
                                 e.preventDefault();
@@ -23002,7 +23015,12 @@ function App() {
 
                 <details
                   className="builderCollapsiblePanel builderSessionDetails"
-                  open
+                  open={sessionSetupOpen}
+                  onToggle={(e) =>
+                    setSessionSetupOpen(
+                      (e.currentTarget as HTMLDetailsElement).open
+                    )
+                  }
                 >
                   <summary>
                     <div>
@@ -23015,7 +23033,9 @@ function App() {
                           : "Session Settings"}
                       </strong>
                     </div>
-                    <span>Open</span>
+                    <span className="builderPanelToggle">
+                      {sessionSetupOpen ? "Close" : "Open"}
+                    </span>
                   </summary>
                 <div
                   className={`currentSessionGrid ${
