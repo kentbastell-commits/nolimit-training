@@ -5246,6 +5246,30 @@ button.coachReviewGlobalItem,
   color: #aaa;
 }
 
+/* On phones, collapse the program table to Title + Actions (the middle
+   columns collide otherwise). */
+@media (max-width: 700px) {
+  .programTableHead,
+  .programTableRow {
+    grid-template-columns: minmax(0, 1fr) 84px;
+  }
+
+  .programTableHead > :nth-child(2),
+  .programTableHead > :nth-child(3),
+  .programTableHead > :nth-child(4),
+  .programTableHead > :nth-child(5),
+  .programTableRow > :nth-child(2),
+  .programTableRow > :nth-child(3),
+  .programTableRow > :nth-child(4),
+  .programTableRow > :nth-child(5) {
+    display: none;
+  }
+
+  .programLandingControls {
+    flex-wrap: wrap;
+  }
+}
+
 /* ---- Builder sub-tabs (Build / Product Settings) ---- */
 .builderSubTabBar {
   display: inline-flex;
