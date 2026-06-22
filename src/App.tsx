@@ -1449,7 +1449,24 @@ function App() {
     ""
   ).trim();
   const publicInvitePackage = inviteSearchParams.get("package") || "Pending";
-  const [activePage, setActivePage] = useState<Page>("Clients");
+  // Deep-link a coach page via ?page=… (e.g. ?view=coach&page=Workouts opens
+  // the program builder directly). Falls back to Clients.
+  const [activePage, setActivePage] = useState<Page>(() => {
+    const requested = inviteSearchParams.get("page");
+    const coachPages: Page[] = [
+      "Clients",
+      "Teams",
+      "Library",
+      "Workouts",
+      "Review",
+      "Coaches",
+      "Orders",
+      "Revenue",
+    ];
+    return requested && coachPages.includes(requested as Page)
+      ? (requested as Page)
+      : "Clients";
+  });
   const [openNavGroup, setOpenNavGroup] = useState<string | null>(null);
   const [clients, setClients] = useState<Client[]>([]);
   const [coaches, setCoaches] = useState<Coach[]>([]);
