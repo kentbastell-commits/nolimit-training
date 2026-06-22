@@ -1535,7 +1535,7 @@
 
 .builderModalExerciseHeader {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto 1fr auto auto;
   align-items: center;
   gap: 12px;
 }
@@ -19055,8 +19055,14 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 
 .app:not(.clientPortalApp) .builderSetTableHeader,
 .app:not(.clientPortalApp) .builderSetTableRow {
-  grid-template-columns: 42px minmax(78px, 1fr) minmax(56px, 0.56fr) minmax(66px, 0.68fr) minmax(72px, 0.78fr) minmax(74px, 0.78fr) !important;
+  grid-template-columns: 42px minmax(78px, 1fr) minmax(52px, 0.5fr) minmax(60px, 0.62fr) minmax(64px, 0.66fr) minmax(112px, 1.05fr) !important;
   gap: 4px !important;
+}
+
+/* %1RM hidden ("Use %" off): coach-desktop 5-column layout. */
+.app:not(.clientPortalApp) .builderSetTableHeader.builderSetTableNoPercent,
+.app:not(.clientPortalApp) .builderSetTableRow.builderSetTableNoPercent {
+  grid-template-columns: 42px minmax(78px, 1fr) minmax(60px, 0.62fr) minmax(64px, 0.66fr) minmax(112px, 1.05fr) !important;
 }
 
 /* Running exercises (Time/Distance): Set | Distance/Time | Zone | Rest */
