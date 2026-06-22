@@ -5524,6 +5524,7 @@ button.coachReviewGlobalItem,
 .programGridCard.wcol-purple { border-left-color: #7b3fbf; }
 
 .programGridCardHead {
+  position: relative;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -5536,6 +5537,7 @@ button.coachReviewGlobalItem,
   color: #fff;
   line-height: 1.2;
   min-width: 0;
+  padding-right: 2px;
 }
 
 .programGridCardMeta {
@@ -5545,13 +5547,31 @@ button.coachReviewGlobalItem,
 }
 
 .programGridCardActions {
+  position: absolute;
+  top: -3px;
+  right: -3px;
   display: flex;
   gap: 3px;
-  flex-shrink: 0;
+  padding: 2px;
+  border-radius: 7px;
+  background: rgba(20, 20, 20, 0.92);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s ease;
+}
+
+.programGridCard:hover .programGridCardActions {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .programGridCardActions .iconActionButton {
   padding: 3px 4px;
+}
+
+.app:not(.clientPortalApp) .programGridCardActions {
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
 }
 
 /* At-a-glance exercise chain inside a grid card */
