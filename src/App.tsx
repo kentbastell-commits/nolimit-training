@@ -2282,18 +2282,20 @@ function App() {
   const [previewLoading, setPreviewLoading] = useState(false);
   // Session Library: reuse days from any saved program by dragging onto a cell.
   const [sessionLibOpen, setSessionLibOpen] = useState(false);
-  // Program-builder cell "+" menu and the "Add from Library" picker target.
+  // Program-builder cell "+"/right-click menu (sessionLocalId set => "Edit"
+  // targets that session) and the "Add from Library" picker target.
   const [cellMenu, setCellMenu] = useState<{
     w: number;
     d: number;
     x: number;
     y: number;
-    hasSession: boolean;
+    sessionLocalId?: string;
   } | null>(null);
   const [libPickTarget, setLibPickTarget] = useState<{
     w: number;
     d: number;
   } | null>(null);
+  const [libPickLoadingId, setLibPickLoadingId] = useState("");
   // Client calendar "+" menu: add a full program or a single session.
   const [calAddMenu, setCalAddMenu] = useState<{
     date: string;
@@ -5361,6 +5363,32 @@ function App() {
     ]);
     setBuilderSaveStatus("dirty");
     notify(`Inserted "${session.sessionName}" into Week ${week}, Day ${day}.`);
+  };
+
+  // "Add from Library": one click on a saved session → fetch + insert into the
+  // target cell (sessions are single-workout programs, usually one session).
+  const insertSessionFromLibrary = async (program: Program) => {
+    if (!libPickTarget) return;
+    const { w, d } = libPickTarget;
+    setLibPickLoadingId(program.programId);
+    try {
+      const sessions = await fetchProgramSessions(
+        program.programId,
+        program.recordId || ""
+      );
+      const session = sessions[0];
+      if (!session) {
+        notify("That session has no exercises yet.");
+        return;
+      }
+      insertLibrarySessionAtCell(session, w, d);
+      setLibPickTarget(null);
+    } catch (error) {
+      console.error(error);
+      notify("Could not load that session.");
+    } finally {
+      setLibPickLoadingId("");
+    }
   };
 
   const loadSavedProgramIntoBuilder = async (
@@ -18119,36 +18147,33 @@ function App() {
           <div
             className="programCtxMenu"
             style={{
-              top: Math.min(cellMenu.y, window.innerHeight - 150),
+              top: Math.min(cellMenu.y, window.innerHeight - 170),
               left: Math.min(cellMenu.x, window.innerWidth - 200),
             }}
           >
-            {cellMenu.hasSession ? (
+            {cellMenu.sessionLocalId && (
               <button
                 type="button"
                 onClick={() => {
-                  const { w, d } = cellMenu;
+                  const id = cellMenu.sessionLocalId;
                   setCellMenu(null);
-                  const s = programSessions.find(
-                    (x) => x.week === String(w) && x.day === String(d)
-                  );
+                  const s = programSessions.find((x) => x.localId === id);
                   if (s) loadSessionForEditing(s);
                 }}
               >
-                <Pencil size={15} /> Edit session
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => {
-                  const { w, d } = cellMenu;
-                  setCellMenu(null);
-                  startSessionForCell(w, d);
-                }}
-              >
-                <Plus size={15} /> New session
+                <Pencil size={15} /> Edit
               </button>
             )}
+            <button
+              type="button"
+              onClick={() => {
+                const { w, d } = cellMenu;
+                setCellMenu(null);
+                startSessionForCell(w, d);
+              }}
+            >
+              <Plus size={15} /> New session
+            </button>
             <button
               type="button"
               onClick={() => {
@@ -18190,58 +18215,38 @@ function App() {
               </button>
             </div>
             <div className="createProgramBody">
-              <label className="createProgramField">
-                <span>From program</span>
-                <select
-                  className="miniSearch"
-                  value={sessionLibProgramId}
-                  onChange={(e) => {
-                    const prog = programs.find(
-                      (pp) => pp.programId === e.target.value
-                    );
-                    if (prog) loadSessionLibrary(prog);
-                    else {
-                      setSessionLibProgramId("");
-                      setSessionLibSessions([]);
-                    }
-                  }}
-                >
-                  <option value="">Choose a program…</option>
-                  {programs.map((pp) => (
-                    <option key={pp.recordId} value={pp.programId}>
-                      {pp.programName}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              {sessionLibLoading && <p className="mbHint">Loading sessions…</p>}
-              {!sessionLibLoading &&
-                sessionLibProgramId &&
-                sessionLibSessions.length === 0 && (
-                  <p className="mbHint">No sessions in this program.</p>
-                )}
-              {sessionLibSessions.map((s) => (
-                <button
-                  key={s.localId}
-                  type="button"
-                  className="mobilePickerRow"
-                  onClick={() => {
-                    insertLibrarySessionAtCell(
-                      s,
-                      libPickTarget.w,
-                      libPickTarget.d
-                    );
-                    setLibPickTarget(null);
-                  }}
-                >
-                  <span className="mobilePickerInfo">
-                    <strong>
-                      {s.sessionName || `W${s.week} D${s.day}`}
-                    </strong>
-                    <small>{s.exercises.length} exercises</small>
-                  </span>
-                </button>
-              ))}
+              {(() => {
+                const sessionPrograms = programs.filter(
+                  (pp) =>
+                    pp.productType === "Single Workout" &&
+                    pp.status !== "Archived"
+                );
+                if (sessionPrograms.length === 0) {
+                  return (
+                    <p className="mbHint">
+                      No saved sessions yet. Create one in the Sessions tab.
+                    </p>
+                  );
+                }
+                return sessionPrograms.map((pp) => (
+                  <button
+                    key={pp.recordId}
+                    type="button"
+                    className="mobilePickerRow"
+                    disabled={Boolean(libPickLoadingId)}
+                    onClick={() => insertSessionFromLibrary(pp)}
+                  >
+                    <span className="mobilePickerInfo">
+                      <strong>{pp.programName}</strong>
+                      <small>
+                        {libPickLoadingId === pp.programId
+                          ? "Adding…"
+                          : pp.goal || "Session"}
+                      </small>
+                    </span>
+                  </button>
+                ));
+              })()}
             </div>
             <div className="createProgramFooter">
               <button
@@ -22708,6 +22713,15 @@ function App() {
                                       setDraggedLibSessionId("");
                                       setProgramGridDrop(null);
                                     }}
+                                    onContextMenu={(e) => {
+                                      e.preventDefault();
+                                      setCellMenu({
+                                        w,
+                                        d,
+                                        x: e.clientX,
+                                        y: e.clientY,
+                                      });
+                                    }}
                                   >
                                     {cellSessions.map((s) => (
                                       <div
@@ -22722,6 +22736,19 @@ function App() {
                                             : ""
                                         }${s.__draft ? " gridCardDraft" : ""}`}
                                         draggable={!s.__draft}
+                                        onContextMenu={(e) => {
+                                          e.preventDefault();
+                                          e.stopPropagation();
+                                          setCellMenu({
+                                            w,
+                                            d,
+                                            x: e.clientX,
+                                            y: e.clientY,
+                                            sessionLocalId: s.__draft
+                                              ? undefined
+                                              : s.localId,
+                                          });
+                                        }}
                                         onDragStart={(e) => {
                                           if (s.__draft) return;
                                           e.dataTransfer.effectAllowed = "move";
@@ -22843,15 +22870,18 @@ function App() {
                                       type="button"
                                       className="programGridAdd"
                                       title={`Week ${w}, Day ${d}`}
-                                      onClick={(e) =>
+                                      onClick={(e) => {
+                                        const firstSaved = cellSessions.find(
+                                          (s) => !s.__draft
+                                        );
                                         setCellMenu({
                                           w,
                                           d,
                                           x: e.clientX,
                                           y: e.clientY,
-                                          hasSession: cellSessions.length > 0,
-                                        })
-                                      }
+                                          sessionLocalId: firstSaved?.localId,
+                                        });
+                                      }}
                                     >
                                       <Plus size={16} />
                                     </button>
