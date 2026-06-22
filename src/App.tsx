@@ -21240,6 +21240,18 @@ function App() {
                                       <strong>{exercise.exerciseName}</strong>
                                       <small>{exercise.sectionName || "Main"}</small>
                                     </div>
+                                    <button
+                                      type="button"
+                                      className={`builderUsePercentToggle${
+                                        usePercentExerciseIndexes.has(index)
+                                          ? " active"
+                                          : ""
+                                      }`}
+                                      onClick={() => toggleUsePercent(index)}
+                                      title="Show the %1RM field for this exercise"
+                                    >
+                                      Use %
+                                    </button>
                                     {renderBuilderExerciseOptionsMenu(exercise, index)}
                                   </div>
 
