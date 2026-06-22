@@ -304,6 +304,7 @@ type ExerciseNoteMeta = {
   groupType?: ProgramExercise["groupType"];
   groupName: string;
   trackingType: TrackingType;
+  trackingFields?: string[];
   isUnilateral: boolean;
   isAccessory: boolean;
   accessoryParentLabel: string;
@@ -324,6 +325,8 @@ type ExerciseSetPrescription = {
   // the bpm (hr) or 1-10 (rpe).
   intensityMode: string;
   intensityValue: string;
+  rpe: string;
+  rir: string;
   tempo: string;
   rest: string;
 };
@@ -473,6 +476,7 @@ type ProgramExercise = {
   rest: string;
   coachingNotes: string;
   trackingType: TrackingType;
+  trackingFields?: string[];
   isUnilateral: boolean;
   groupType: "Straight" | "Superset" | "Circuit";
   groupName: string;
@@ -731,10 +735,15 @@ type SetLog = {
   prescribedPercentMas: string;
   prescribedIntensityMode: string;
   prescribedIntensityValue: string;
+  prescribedRpe: string;
+  prescribedRir: string;
+  trackingFields: string[];
   actualReps: string;
   actualWeight: string;
   actualTime: string;
   actualDistance: string;
+  actualRpe: string;
+  actualRir: string;
 };
 
 // Convert a YouTube watch/short/embed/youtu.be link to an embeddable URL.
@@ -884,7 +893,7 @@ function parseExerciseNotes(notes = ""): ExerciseNoteMeta {
   lines.forEach((line) => {
     const trimmed = line.trim();
     const match = trimmed.match(
-      /^(Section|Label|Superset|Circuit|Tracking|Unilateral|Accessory|Accessory Parent|Accessory Color|Set Prescriptions|Alternate Exercises):\s*(.+)$/i
+      /^(Section|Label|Superset|Circuit|Tracking|Fields|Unilateral|Accessory|Accessory Parent|Accessory Color|Set Prescriptions|Alternate Exercises):\s*(.+)$/i
     );
 
     if (!match) {
@@ -902,6 +911,12 @@ function parseExerciseNotes(notes = ""): ExerciseNoteMeta {
       if (clean.includes("time")) meta.trackingType = "Time";
       else if (clean.includes("distance")) meta.trackingType = "Distance";
       else meta.trackingType = "Weight";
+    }
+    if (key === "fields") {
+      meta.trackingFields = value
+        .split(",")
+        .map((field) => field.trim())
+        .filter(Boolean);
     }
     if (key === "unilateral") {
       meta.isUnilateral = /^(yes|true|1|y)$/i.test(value);
@@ -924,6 +939,8 @@ function parseExerciseNotes(notes = ""): ExerciseNoteMeta {
               percentMas: String(set?.percentMas || ""),
               intensityMode: String(set?.intensityMode || ""),
               intensityValue: String(set?.intensityValue || ""),
+              rpe: String(set?.rpe || ""),
+              rir: String(set?.rir || ""),
               tempo: String(set?.tempo || ""),
               rest: String(set?.rest || ""),
             }))
@@ -977,6 +994,21 @@ function composeExerciseNotes(
   ]
     .filter(Boolean)
     .join("\n");
+}
+
+// Strength tracking fields the coach can customize (max 3). Cardio keeps its
+// own Time/Distance/Pace layout and is unaffected by this.
+const STRENGTH_TRACKING_FIELDS = ["Weight", "Reps", "RPE", "RIR"] as const;
+
+function effectiveTrackingFields(
+  trackingType: TrackingType,
+  trackingFields?: string[]
+): string[] {
+  if (trackingType !== "Weight") return [];
+  const picked = (trackingFields || []).filter((f) =>
+    (STRENGTH_TRACKING_FIELDS as readonly string[]).includes(f)
+  );
+  return picked.length ? picked.slice(0, 3) : ["Weight", "Reps"];
 }
 
 type ExerciseCueSection = {
@@ -2089,6 +2121,10 @@ function App() {
   const [usePercentExerciseIndexes, setUsePercentExerciseIndexes] = useState<
     Set<number>
   >(new Set());
+  // Builder: exercise index whose "Customize fields" picker is open (or null).
+  const [customizeFieldsIndex, setCustomizeFieldsIndex] = useState<
+    number | null
+  >(null);
   const [builderExerciseOptionsIndex, setBuilderExerciseOptionsIndex] =
     useState<number | null>(null);
   const [alternateEditorExerciseIndex, setAlternateEditorExerciseIndex] =
@@ -4986,6 +5022,7 @@ function App() {
                 rest: exercise.rest,
                 coachingNotes: meta.coachingNotes,
                 trackingType: meta.trackingType,
+                trackingFields: meta.trackingFields,
                 isUnilateral: meta.isUnilateral,
                 groupType: meta.groupType || "Straight",
                 groupName: meta.groupName,
@@ -5972,6 +6009,12 @@ function App() {
           const prescribedIntensityValue = String(
             setPrescription?.intensityValue ?? ""
           ).trim();
+          const prescribedRpe = String(setPrescription?.rpe ?? "").trim();
+          const prescribedRir = String(setPrescription?.rir ?? "").trim();
+          const trackingFields = effectiveTrackingFields(
+            meta.trackingType,
+            meta.trackingFields
+          );
 
           logs.push({
             exerciseId: exercise.exerciseId,
@@ -5987,10 +6030,15 @@ function App() {
             prescribedPercentMas,
             prescribedIntensityMode,
             prescribedIntensityValue,
+            prescribedRpe,
+            prescribedRir,
+            trackingFields,
             actualReps: meta.trackingType === "Weight" ? exercise.reps : "",
             actualWeight: "",
             actualTime: "",
             actualDistance: "",
+            actualRpe: "",
+            actualRir: "",
           });
         });
       }
@@ -7004,6 +7052,8 @@ function App() {
       percentMas: String(source?.percentMas ?? ""),
       intensityMode: String(source?.intensityMode ?? ""),
       intensityValue: String(source?.intensityValue ?? ""),
+      rpe: String(source?.rpe ?? ""),
+      rir: String(source?.rir ?? ""),
       tempo: String(source?.tempo ?? exercise.tempo ?? ""),
       rest: String(source?.rest ?? exercise.rest ?? ""),
     };
@@ -7057,6 +7107,24 @@ function App() {
       else next.add(index);
       return next;
     });
+  };
+
+  const toggleTrackingField = (index: number, field: string) => {
+    setSelectedProgramExercises((current) =>
+      current.map((ex, i) => {
+        if (i !== index) return ex;
+        const active = effectiveTrackingFields(ex.trackingType, ex.trackingFields);
+        let next: string[];
+        if (active.includes(field)) {
+          next = active.filter((f) => f !== field);
+          if (next.length === 0) next = ["Weight"];
+        } else {
+          if (active.length >= 3) return ex;
+          next = [...active, field];
+        }
+        return { ...ex, trackingFields: next };
+      })
+    );
   };
 
   const expandAllBuilderExercises = () => {
@@ -7250,6 +7318,41 @@ function App() {
       exercise.exerciseName || ""
     );
 
+    // Customizable strength tracking fields (Weight/Reps/RPE/RIR), default
+    // Weight+Reps. Each maps to a set-prescription value + a column.
+    const fieldKeyOf: Record<
+      string,
+      keyof Omit<ExerciseSetPrescription, "setNumber">
+    > = {
+      Weight: "load",
+      Reps: "reps",
+      RPE: "rpe",
+      RIR: "rir",
+    };
+    const fieldPlaceholderOf: Record<string, string> = {
+      Weight: "kg",
+      Reps: "Reps",
+      RPE: "1-10",
+      RIR: "0-5",
+    };
+    const trackFields = effectiveTrackingFields(
+      exercise.trackingType,
+      exercise.trackingFields
+    );
+    // Dynamic grid template so any field count stays aligned (Set · fields ·
+    // %1RM? · Tempo · Rest). Set via a CSS var the .builderSetTableDynamic
+    // rule reads with !important.
+    const setColsTemplate = [
+      "44px",
+      ...trackFields.map(() => "minmax(72px, 1fr)"),
+      ...(showPercent ? ["minmax(60px, 0.62fr)"] : []),
+      "minmax(72px, 0.74fr)",
+      "minmax(116px, 0.9fr)",
+    ].join(" ");
+    const dynStyle = !isRunning
+      ? ({ ["--setCols" as string]: setColsTemplate } as React.CSSProperties)
+      : undefined;
+
     return (
       <div
         className={`builderSetPrescriptionBlock${
@@ -7275,8 +7378,9 @@ function App() {
         )}
         <div
           className={`builderSetTableHeader${
-            !isRunning && !showPercent ? " builderSetTableNoPercent" : ""
+            !isRunning ? " builderSetTableDynamic" : ""
           }`}
+          style={dynStyle}
         >
           <span>Set</span>
           {isRunning ? (
@@ -7298,20 +7402,18 @@ function App() {
             </>
           ) : (
             <>
-              <span>
-                Load
-                <button className="fillColumnButton" type="button" title="Fill all sets with set 1 value" onClick={() => fillSetColumn(exerciseIndex, "load")}>↓</button>
-              </span>
+              {trackFields.map((f) => (
+                <span key={f}>
+                  {f === "Weight" ? "Weight (kg)" : f}
+                  <button className="fillColumnButton" type="button" title="Fill all sets with set 1 value" onClick={() => fillSetColumn(exerciseIndex, fieldKeyOf[f])}>↓</button>
+                </span>
+              ))}
               {showPercent && (
                 <span>
                   %1RM
                   <button className="fillColumnButton" type="button" title="Fill all sets with set 1 value" onClick={() => fillSetColumn(exerciseIndex, "percent")}>↓</button>
                 </span>
               )}
-              <span>
-                Reps
-                <button className="fillColumnButton" type="button" title="Fill all sets with set 1 value" onClick={() => fillSetColumn(exerciseIndex, "reps")}>↓</button>
-              </span>
               <span>
                 Tempo
                 <button className="fillColumnButton" type="button" title="Fill all sets with set 1 value" onClick={() => fillSetColumn(exerciseIndex, "tempo")}>↓</button>
@@ -7326,8 +7428,9 @@ function App() {
         {setPrescriptions.map((set, setIndex) => (
           <div
             className={`builderSetTableRow${
-              !isRunning && !showPercent ? " builderSetTableNoPercent" : ""
+              !isRunning ? " builderSetTableDynamic" : ""
             }`}
+            style={dynStyle}
             key={`${exerciseIndex}-set-${setIndex}`}
           >
             <div className="builderSetNumberCell">
@@ -7703,22 +7806,26 @@ function App() {
               </>
             ) : (
               <>
-                <label className="builderSetField">
-                  <span className="builderSetFieldLabel">Load</span>
-                  <input
-                    className="miniSearch"
-                    value={set.load}
-                    onChange={(event) =>
-                      updateExerciseSetPrescription(
-                        exerciseIndex,
-                        setIndex,
-                        "load",
-                        event.target.value
-                      )
-                    }
-                    placeholder="kg / RPE"
-                  />
-                </label>
+                {trackFields.map((f) => (
+                  <label className="builderSetField" key={f}>
+                    <span className="builderSetFieldLabel">
+                      {f === "Weight" ? "Weight (kg)" : f}
+                    </span>
+                    <input
+                      className="miniSearch"
+                      value={String(set[fieldKeyOf[f]] || "")}
+                      onChange={(event) =>
+                        updateExerciseSetPrescription(
+                          exerciseIndex,
+                          setIndex,
+                          fieldKeyOf[f],
+                          event.target.value
+                        )
+                      }
+                      placeholder={fieldPlaceholderOf[f]}
+                    />
+                  </label>
+                ))}
                 {showPercent && (
                   <label className="builderSetField">
                     <span className="builderSetFieldLabel">%1RM</span>
@@ -7738,22 +7845,6 @@ function App() {
                     />
                   </label>
                 )}
-                <label className="builderSetField">
-                  <span className="builderSetFieldLabel">Reps</span>
-                  <input
-                    className="miniSearch"
-                    value={set.reps}
-                    onChange={(event) =>
-                      updateExerciseSetPrescription(
-                        exerciseIndex,
-                        setIndex,
-                        "reps",
-                        event.target.value
-                      )
-                    }
-                    placeholder="Reps"
-                  />
-                </label>
                 <label className="builderSetField">
                   <span className="builderSetFieldLabel">Tempo</span>
                   <input
@@ -8478,6 +8569,9 @@ function App() {
       exercise.sectionName ? `Section: ${exercise.sectionName}` : "",
       exercise.exerciseLabel ? `Label: ${exercise.exerciseLabel}` : "",
       `Tracking: ${exercise.trackingType || "Weight"}`,
+      exercise.trackingFields && exercise.trackingFields.length > 0
+        ? `Fields: ${exercise.trackingFields.join(", ")}`
+        : "",
       `Unilateral: ${exercise.isUnilateral ? "Yes" : "No"}`,
       exercise.groupType !== "Straight" && exercise.groupName
         ? `${exercise.groupType}: ${exercise.groupName}`
@@ -8544,6 +8638,19 @@ function App() {
             <Eye size={16} />
             View exercise
           </button>
+          {exercise.trackingType === "Weight" && (
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                setBuilderExerciseOptionsIndex(null);
+                setCustomizeFieldsIndex(index);
+              }}
+            >
+              <Settings size={16} />
+              Customize fields
+            </button>
+          )}
           <button
             type="button"
             onClick={(event) => {
@@ -15038,7 +15145,22 @@ function App() {
     if (log.trackingType === "Time") return !!String(log.actualTime || "").trim();
     if (log.trackingType === "Distance")
       return !!String(log.actualDistance || "").trim();
-    return !!String(log.actualReps || "").trim();
+    // Strength: complete once any of the tracked fields has a value.
+    const fields =
+      log.trackingFields && log.trackingFields.length
+        ? log.trackingFields
+        : ["Weight", "Reps"];
+    const valueOf = (f: string) =>
+      f === "Weight"
+        ? log.actualWeight
+        : f === "Reps"
+          ? log.actualReps
+          : f === "RPE"
+            ? log.actualRpe
+            : f === "RIR"
+              ? log.actualRir
+              : "";
+    return fields.some((f) => !!String(valueOf(f) || "").trim());
   };
 
   // An exercise counts as "logged" once every one of its set rows is complete.
@@ -29185,57 +29307,21 @@ function App() {
                                       log.prescribedLoad,
                                       log.exerciseName.split(" - ")[0]
                                     );
-                                return (
-                                  <>
-                                    {isBW ? (
-                                      <div className="setLogStatic setLogTarget setLogTargetResolved">
-                                        <span>
-                                          {i18n.language === "zh" ? "负荷" : "Load"}
-                                        </span>
-                                        <strong>
-                                          {i18n.language === "zh" ? "自重" : "BW"}
-                                        </strong>
-                                      </div>
-                                    ) : target && target.display ? (
-                                      <div
-                                        className={`setLogStatic setLogTarget${
-                                          target.resolved
-                                            ? " setLogTargetResolved"
-                                            : ""
-                                        }`}
-                                      >
-                                        <span>
-                                          {i18n.language === "zh"
-                                            ? "目标"
-                                            : "Target"}
-                                        </span>
-                                        <strong>{target.display}</strong>
-                                      </div>
-                                    ) : null}
-                                    <label className="setLogField">
-                                      <span>{t("actualReps")}</span>
-                                      <input
-                                        inputMode="numeric"
-                                        value={log.actualReps}
-                                        onChange={(e) =>
-                                          updateSetLog(
-                                            globalIndex,
-                                            "actualReps",
-                                            e.target.value
-                                          )
-                                        }
-                                      />
-                                    </label>
-
-                                    {isBW ? (
-                                      <div className="setLogStatic">
+                                const fields =
+                                  log.trackingFields && log.trackingFields.length
+                                    ? log.trackingFields
+                                    : ["Weight", "Reps"];
+                                const renderField = (f: string) => {
+                                  if (f === "Weight") {
+                                    return isBW ? (
+                                      <div className="setLogStatic" key="w">
                                         <span>{t("weight")}</span>
                                         <strong>
                                           {i18n.language === "zh" ? "自重" : "BW"}
                                         </strong>
                                       </div>
                                     ) : (
-                                      <label className="setLogField">
+                                      <label className="setLogField" key="w">
                                         <span>
                                           {t("weight")} ({weightUnit})
                                         </span>
@@ -29252,7 +29338,107 @@ function App() {
                                           }
                                         />
                                       </label>
-                                    )}
+                                    );
+                                  }
+                                  if (f === "Reps") {
+                                    return (
+                                      <label className="setLogField" key="r">
+                                        <span>{t("actualReps")}</span>
+                                        <input
+                                          inputMode="numeric"
+                                          value={log.actualReps}
+                                          onChange={(e) =>
+                                            updateSetLog(
+                                              globalIndex,
+                                              "actualReps",
+                                              e.target.value
+                                            )
+                                          }
+                                        />
+                                      </label>
+                                    );
+                                  }
+                                  if (f === "RPE") {
+                                    return (
+                                      <label className="setLogField" key="rpe">
+                                        <span>
+                                          RPE
+                                          {log.prescribedRpe
+                                            ? ` (${log.prescribedRpe})`
+                                            : ""}
+                                        </span>
+                                        <input
+                                          inputMode="decimal"
+                                          value={log.actualRpe}
+                                          placeholder="1-10"
+                                          onChange={(e) =>
+                                            updateSetLog(
+                                              globalIndex,
+                                              "actualRpe",
+                                              e.target.value
+                                            )
+                                          }
+                                        />
+                                      </label>
+                                    );
+                                  }
+                                  if (f === "RIR") {
+                                    return (
+                                      <label className="setLogField" key="rir">
+                                        <span>
+                                          RIR
+                                          {log.prescribedRir
+                                            ? ` (${log.prescribedRir})`
+                                            : ""}
+                                        </span>
+                                        <input
+                                          inputMode="decimal"
+                                          value={log.actualRir}
+                                          placeholder="0-5"
+                                          onChange={(e) =>
+                                            updateSetLog(
+                                              globalIndex,
+                                              "actualRir",
+                                              e.target.value
+                                            )
+                                          }
+                                        />
+                                      </label>
+                                    );
+                                  }
+                                  return null;
+                                };
+                                return (
+                                  <>
+                                    {fields.includes("Weight") &&
+                                      (isBW ? (
+                                        <div className="setLogStatic setLogTarget setLogTargetResolved">
+                                          <span>
+                                            {i18n.language === "zh"
+                                              ? "负荷"
+                                              : "Load"}
+                                          </span>
+                                          <strong>
+                                            {i18n.language === "zh" ? "自重" : "BW"}
+                                          </strong>
+                                        </div>
+                                      ) : target && target.display ? (
+                                        <div
+                                          className={`setLogStatic setLogTarget${
+                                            target.resolved
+                                              ? " setLogTargetResolved"
+                                              : ""
+                                          }`}
+                                        >
+                                          <span>
+                                            {i18n.language === "zh"
+                                              ? "目标"
+                                              : "Target"}
+                                          </span>
+                                          <strong>{target.display}</strong>
+                                        </div>
+                                      ) : null)}
+                                    {fields.map(renderField)}
                                   </>
                                 );
                               })()}
@@ -29863,6 +30049,62 @@ function App() {
                   >
                     {paceZh ? "返回继续编辑" : "Back to workout"}
                   </button>
+                </div>
+              </div>
+            );
+          })()}
+
+        {customizeFieldsIndex !== null &&
+          selectedProgramExercises[customizeFieldsIndex] &&
+          (() => {
+            const ex = selectedProgramExercises[customizeFieldsIndex];
+            const active = effectiveTrackingFields(
+              ex.trackingType,
+              ex.trackingFields
+            );
+            return (
+              <div
+                className="wellnessOverlay"
+                onClick={() => setCustomizeFieldsIndex(null)}
+              >
+                <div
+                  className="customizeFieldsModal"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <h3>Customize fields</h3>
+                  <p className="customizeFieldsHint">
+                    Choose up to 3 fields to track for{" "}
+                    <strong>{ex.exerciseName}</strong>.
+                  </p>
+                  <div className="customizeFieldChips">
+                    {STRENGTH_TRACKING_FIELDS.map((f) => {
+                      const on = active.includes(f);
+                      const disabled = !on && active.length >= 3;
+                      return (
+                        <button
+                          key={f}
+                          type="button"
+                          className={`customizeFieldChip${on ? " on" : ""}`}
+                          disabled={disabled}
+                          onClick={() =>
+                            toggleTrackingField(customizeFieldsIndex, f)
+                          }
+                        >
+                          {on ? `${active.indexOf(f) + 1}. ` : ""}
+                          {f === "Weight" ? "Weight (kg)" : f}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="wellnessActions">
+                    <button
+                      type="button"
+                      className="wellnessSubmit"
+                      onClick={() => setCustomizeFieldsIndex(null)}
+                    >
+                      Done
+                    </button>
+                  </div>
                 </div>
               </div>
             );

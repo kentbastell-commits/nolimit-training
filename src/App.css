@@ -18570,6 +18570,53 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   color: #d4af37;
 }
 
+/* Customize-fields picker modal */
+.customizeFieldsModal {
+  align-self: center;
+  width: 100%;
+  max-width: 440px;
+  margin: 0 16px;
+  background: #fff;
+  border-radius: 18px;
+  padding: 22px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.4);
+}
+.customizeFieldsModal h3 {
+  margin: 0 0 6px;
+  font-size: 19px;
+  font-weight: 900;
+  color: var(--nl-ink, #1a1a1a);
+}
+.customizeFieldsHint {
+  margin: 0 0 16px;
+  font-size: 14px;
+  color: var(--nl-muted, #68645d);
+}
+.customizeFieldChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.customizeFieldChip {
+  padding: 10px 16px;
+  border-radius: 999px;
+  border: 1px solid #d8d1c4;
+  background: #fff;
+  font-size: 14px;
+  font-weight: 800;
+  color: #68645d;
+  cursor: pointer;
+}
+.customizeFieldChip.on {
+  background: #0d0d0d;
+  border-color: #0d0d0d;
+  color: #d4af37;
+}
+.customizeFieldChip:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
 /* %1RM column hidden ("Use %" off) — drop to 5 columns so cells stay aligned. */
 .builderSetTableHeader.builderSetTableNoPercent,
 .builderSetTableRow.builderSetTableNoPercent {
@@ -19063,6 +19110,18 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 .app:not(.clientPortalApp) .builderSetTableHeader.builderSetTableNoPercent,
 .app:not(.clientPortalApp) .builderSetTableRow.builderSetTableNoPercent {
   grid-template-columns: 42px minmax(78px, 1fr) minmax(60px, 0.62fr) minmax(64px, 0.66fr) minmax(116px, 0.85fr) !important;
+}
+
+/* Customizable strength fields: the column count varies, so the grid template
+   is supplied inline via --setCols. Desktop only — portrait keeps its 2-up
+   layout. Highest specificity + !important so it wins over the fixed grids. */
+@media (min-width: 981px) {
+  .builderSetTableHeader.builderSetTableDynamic,
+  .builderSetTableRow.builderSetTableDynamic,
+  .app:not(.clientPortalApp) .builderSetTableHeader.builderSetTableDynamic,
+  .app:not(.clientPortalApp) .builderSetTableRow.builderSetTableDynamic {
+    grid-template-columns: var(--setCols) !important;
+  }
 }
 
 /* Running exercises (Time/Distance): Set | Distance/Time | Zone | Rest */

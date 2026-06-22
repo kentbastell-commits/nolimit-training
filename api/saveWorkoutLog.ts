@@ -160,6 +160,8 @@ export default async function handler(
         ["Actual Weight", log.actualWeight],
         ["Actual Time", log.actualTime],
         ["Actual Distance", log.actualDistance],
+        ["Actual RPE", log.actualRpe],
+        ["Actual RIR", log.actualRir],
         ["Exercise Order", log.exerciseOrder],
       ];
       for (const [name, raw] of numberFields) {
