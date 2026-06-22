@@ -2232,6 +2232,9 @@ function App() {
   // Multi-day builder: the session editor opens as a right-side drawer so the
   // calendar stays in view.
   const [sessionEditorOpen, setSessionEditorOpen] = useState(false);
+  // Programs landing: the detail/assign panel shows only when explicitly
+  // opened via the gear (clicking a row opens the builder calendar instead).
+  const [showProgramDetail, setShowProgramDetail] = useState(false);
   // Session Library: reuse days from any saved program by dragging onto a cell.
   const [sessionLibOpen, setSessionLibOpen] = useState(false);
   const [sessionLibProgramId, setSessionLibProgramId] = useState("");
@@ -5108,8 +5111,9 @@ function App() {
     notify(`Inserted "${session.sessionName}" into Week ${week}, Day ${day}.`);
   };
 
-  const loadSavedProgramIntoBuilder = async () => {
-    if (!selectedSavedProgram) {
+  const loadSavedProgramIntoBuilder = async (programArg?: Program) => {
+    const sourceProgram = programArg || selectedSavedProgram;
+    if (!sourceProgram) {
       notify("Please select a program.");
       return;
     }
@@ -5119,9 +5123,9 @@ function App() {
     try {
       const templateResponse = await fetch(
         `/api/programTemplates?programId=${encodeURIComponent(
-          selectedSavedProgram.programId
+          sourceProgram.programId
         )}&programRecordId=${encodeURIComponent(
-          selectedSavedProgram.recordId || ""
+          sourceProgram.recordId || ""
         )}`
       );
       const templateData = await templateResponse.json();
@@ -5161,13 +5165,13 @@ function App() {
       const sessions: ProgramSession[] = await Promise.all(
         uniqueSessions.map(async (session) => {
           const detailsResponse = await fetch(
-            `/api/workoutDetails?programId=${selectedSavedProgram.programId}&week=${session.week}&day=${session.day}`
+            `/api/workoutDetails?programId=${sourceProgram.programId}&week=${session.week}&day=${session.day}`
           );
           const detailsData = await detailsResponse.json();
           const exercises: ExerciseDetail[] = detailsData.exercises || [];
 
           return {
-            localId: `${selectedSavedProgram.programId}-${session.week}-${session.day}`,
+            localId: `${sourceProgram.programId}-${session.week}-${session.day}`,
             week: String(session.week),
             day: String(session.day),
             sessionName: session.sessionName,
@@ -5210,38 +5214,38 @@ function App() {
         })
       );
 
-      setProgramName(`${selectedSavedProgram.programName} Copy`);
-      setProgramGoal(selectedSavedProgram.goal);
-      setProgramSport(selectedSavedProgram.sport);
-      setProgramLevel(selectedSavedProgram.level);
-      setProgramDurationWeeks(selectedSavedProgram.durationWeeks || "4");
-      setProgramPhase(selectedSavedProgram.phase);
-      setProgramSessionsPerWeek(selectedSavedProgram.sessionsPerWeek || "3");
-      setProgramCoach(selectedSavedProgram.coach || "Kent Bastell");
-      setProgramProductType(selectedSavedProgram.productType || "Digital Program");
-      setProgramPrice(selectedSavedProgram.price || "");
-      setProgramCurrency(selectedSavedProgram.currency || "CNY");
-      setProgramPublicStoreVisible(Boolean(selectedSavedProgram.publicStoreVisible));
-      setProgramPurchaseLink(selectedSavedProgram.purchaseLink || "");
-      setProgramDefaultIntakeFormId(selectedSavedProgram.defaultIntakeFormId || "");
-      setProgramAccessLengthDays(selectedSavedProgram.accessLengthDays || "42");
-      setProgramProductStatus(selectedSavedProgram.productStatus || "Draft");
-      setProgramSalesDescription(selectedSavedProgram.salesDescription || "");
+      setProgramName(sourceProgram.programName);
+      setProgramGoal(sourceProgram.goal);
+      setProgramSport(sourceProgram.sport);
+      setProgramLevel(sourceProgram.level);
+      setProgramDurationWeeks(sourceProgram.durationWeeks || "4");
+      setProgramPhase(sourceProgram.phase);
+      setProgramSessionsPerWeek(sourceProgram.sessionsPerWeek || "3");
+      setProgramCoach(sourceProgram.coach || "Kent Bastell");
+      setProgramProductType(sourceProgram.productType || "Digital Program");
+      setProgramPrice(sourceProgram.price || "");
+      setProgramCurrency(sourceProgram.currency || "CNY");
+      setProgramPublicStoreVisible(Boolean(sourceProgram.publicStoreVisible));
+      setProgramPurchaseLink(sourceProgram.purchaseLink || "");
+      setProgramDefaultIntakeFormId(sourceProgram.defaultIntakeFormId || "");
+      setProgramAccessLengthDays(sourceProgram.accessLengthDays || "42");
+      setProgramProductStatus(sourceProgram.productStatus || "Draft");
+      setProgramSalesDescription(sourceProgram.salesDescription || "");
       // Carry the original "built for" tag so the coach can re-point the copy
       // at a new client/team before saving.
-      setProgramBuiltForClient(selectedSavedProgram.builtForClient || "");
-      setProgramBuiltForTeam(selectedSavedProgram.builtForTeam || "");
+      setProgramBuiltForClient(sourceProgram.builtForClient || "");
+      setProgramBuiltForTeam(sourceProgram.builtForTeam || "");
       setProgramBuiltForMode(
-        selectedSavedProgram.builtForClient
+        sourceProgram.builtForClient
           ? "client"
-          : selectedSavedProgram.builtForTeam
+          : sourceProgram.builtForTeam
           ? "team"
           : "internal"
       );
-      setProgramStoreCategory(selectedSavedProgram.storeCategory || "");
-      setProgramStoreCategoryCn(selectedSavedProgram.storeCategoryCn || "");
+      setProgramStoreCategory(sourceProgram.storeCategory || "");
+      setProgramStoreCategoryCn(sourceProgram.storeCategoryCn || "");
       setProgramBundleIds(
-        (selectedSavedProgram.bundleProgramIds || "")
+        (sourceProgram.bundleProgramIds || "")
           .split(",")
           .map((s) => s.trim())
           .filter(Boolean)
@@ -5253,7 +5257,7 @@ function App() {
       setSessionName("");
       setWorkoutPageTab("Program Builder");
 
-      notify("Program loaded into builder. Saving will create a new program version.");
+      notify("Opened in builder. Saving creates a new program version.");
     } catch (error) {
       console.error(error);
       notify("Could not load program into builder.");
@@ -20785,6 +20789,7 @@ function App() {
                               onClick={() => {
                                 setSelectedSavedProgramId(program.programId);
                                 setSavedAssignableWorkouts([]);
+                                void loadSavedProgramIntoBuilder(program);
                               }}
                             >
                               <span className="programTableTitle">
@@ -20819,10 +20824,11 @@ function App() {
                                 <button
                                   type="button"
                                   className="iconActionButton"
-                                  title="View / assign / settings"
+                                  title="Assign / details"
                                   onClick={() => {
                                     setSelectedSavedProgramId(program.programId);
                                     setSavedAssignableWorkouts([]);
+                                    setShowProgramDetail(true);
                                   }}
                                 >
                                   <Settings size={16} />
@@ -20844,9 +20850,8 @@ function App() {
                         })}
                       </div>
 
+                      {showProgramDetail && selectedSavedProgram && (
                       <section className="programDetailPanel">
-                        {!selectedSavedProgram && <p>Select a program to view details.</p>}
-
                         {selectedSavedProgram && (
                           <>
                             <div className="programDetailTop">
@@ -20862,10 +20867,17 @@ function App() {
                               <div className="rowActions">
                                 <button
                                   className="goldButton"
-                                  onClick={loadSavedProgramIntoBuilder}
+                                  onClick={() => loadSavedProgramIntoBuilder()}
                                   disabled={savedTemplatesLoading}
                                 >
-                                  Duplicate in Builder
+                                  Open in Builder
+                                </button>
+
+                                <button
+                                  className="outlineButton"
+                                  onClick={() => setShowProgramDetail(false)}
+                                >
+                                  Close
                                 </button>
 
                                 <button
@@ -21062,6 +21074,7 @@ function App() {
                           </>
                         )}
                       </section>
+                      )}
                     </div>
                   </section>
                 )}
