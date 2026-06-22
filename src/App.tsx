@@ -2090,7 +2090,7 @@ function App() {
   // Mobile-native builder (Everfit-style portrait flow). These only drive the
   // mobile render branch; the desktop builder ignores them entirely.
   const [mobileBuilderStep, setMobileBuilderStep] = useState<
-    "details" | "editor" | "picker" | "arrange"
+    "details" | "editor" | "picker" | "arrange" | "overview" | "libpick"
   >("details");
   const [mobilePickerSelected, setMobilePickerSelected] = useState<Set<string>>(
     new Set()
@@ -9587,7 +9587,42 @@ function App() {
 
   const saveMobileProgramDay = () => {
     saveCurrentSessionToProgram(true, true);
+    setMobileBuilderStep("overview");
+  };
+
+  // Mobile: start a fresh day in a given week (next open Day slot), then go to
+  // the details screen to name it.
+  const addMobileDayToWeek = (week: number) => {
+    const daysInWeek = programSessions
+      .filter((s) => s.week === String(week))
+      .map((s) => Number(s.day));
+    const nextDay = (daysInWeek.length ? Math.max(...daysInWeek) : 0) + 1;
+    setSelectedProgramExercises([]);
+    setEditingProgramSessionId("");
+    setSessionName("");
+    setSessionNameCn("");
+    setSessionGoal("");
+    setSessionType("Strength");
+    setSessionIntensity("Moderate");
+    setProgramWeek(String(week));
+    setProgramDay(String(nextDay));
     setMobileBuilderStep("details");
+  };
+
+  // Mobile: open the saved-session library picker for the current day.
+  const openMobileLibPick = () => {
+    if (programs.length === 0) void loadPrograms();
+    setMobileBuilderStep("libpick");
+  };
+
+  // Mobile: fill the day being edited with a saved session's exercises.
+  const insertLibSessionIntoCurrentDay = (session: ProgramSession) => {
+    setSelectedProgramExercises(session.exercises.map((ex) => ({ ...ex })));
+    setSessionName((prev) => prev || session.sessionName);
+    setSessionType(session.sessionType || "Strength");
+    setSessionIntensity(session.intensity || "Moderate");
+    setMobileBuilderStep("editor");
+    notify(`Loaded "${session.sessionName}" into this day.`);
   };
 
   const finishMobileProgram = async () => {
@@ -23303,6 +23338,7 @@ function App() {
                   workoutPageTab === "Sessions") &&
                   useMobileWorkoutRows && (
                   <>
+                    {mobileBuilderStep !== "overview" && (
                     <section className="mobileBuilder">
                       {mobileBuilderStep === "details" ? (
                         <div className="mobileBuilderBody">
@@ -23400,6 +23436,15 @@ function App() {
                           >
                             Next
                           </button>
+                          {!isSingleWorkoutBuilder &&
+                            programSessions.length > 0 && (
+                              <button
+                                className="outlineButton mbFullButton"
+                                onClick={() => setMobileBuilderStep("overview")}
+                              >
+                                View program ›
+                              </button>
+                            )}
                         </div>
                       ) : (
                         <>
@@ -23427,6 +23472,14 @@ function App() {
                                 >
                                   Add Exercise
                                 </button>
+                                {!isSingleWorkoutBuilder && (
+                                  <button
+                                    className="outlineButton mbFullButton"
+                                    onClick={openMobileLibPick}
+                                  >
+                                    Insert saved session
+                                  </button>
+                                )}
                               </div>
                             ) : (
                               selectedProgramExercises.map((exercise, index) => {
@@ -23565,6 +23618,7 @@ function App() {
                         </>
                       )}
                     </section>
+                    )}
 
                     {mobileBuilderStep === "picker" && (
                       <div className="mobileSheet">
@@ -23729,6 +23783,166 @@ function App() {
                               ));
                             })()}
                           </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {mobileBuilderStep === "overview" && (
+                      <section className="mobileBuilder mbOverview">
+                        <div className="mobileBuilderBody">
+                          <h2 className="mbScreenTitle">
+                            {programName || "Program"}
+                          </h2>
+                          <p className="mbHint">
+                            {programSessions.length} day
+                            {programSessions.length === 1 ? "" : "s"} ·{" "}
+                            tap a day to edit
+                          </p>
+
+                          {(() => {
+                            const maxWeek = programSessions.reduce(
+                              (m, s) => Math.max(m, Number(s.week) || 1),
+                              1
+                            );
+                            const weekCount = Math.max(
+                              Number(programDurationWeeks) || 1,
+                              maxWeek
+                            );
+                            const weeks = Array.from(
+                              { length: weekCount },
+                              (_, i) => i + 1
+                            );
+                            return weeks.map((w) => {
+                              const days = programSessions
+                                .filter((s) => s.week === String(w))
+                                .sort((a, b) => Number(a.day) - Number(b.day));
+                              return (
+                                <div className="mbOvWeek" key={w}>
+                                  <div className="mbOvWeekHead">
+                                    <strong>Week {w}</strong>
+                                    {days.length > 0 && (
+                                      <button
+                                        type="button"
+                                        className="mbOvDup"
+                                        onClick={() =>
+                                          duplicateWeek(w, [w + 1], 0)
+                                        }
+                                      >
+                                        <Copy size={13} /> Duplicate →
+                                      </button>
+                                    )}
+                                  </div>
+                                  {days.map((s) => (
+                                    <button
+                                      key={s.localId}
+                                      type="button"
+                                      className="mbOvDay"
+                                      onClick={() => {
+                                        loadSessionForEditing(s);
+                                        setMobileBuilderStep("editor");
+                                      }}
+                                    >
+                                      <span className="mbOvDayMain">
+                                        <strong>
+                                          Day {s.day} ·{" "}
+                                          {s.sessionName ||
+                                            `Week ${w} Day ${s.day}`}
+                                        </strong>
+                                        <small>
+                                          {s.exercises.length} exercise
+                                          {s.exercises.length === 1 ? "" : "s"}
+                                        </small>
+                                      </span>
+                                      <span className="mbOvChevron">›</span>
+                                    </button>
+                                  ))}
+                                  <button
+                                    type="button"
+                                    className="mbOvAdd"
+                                    onClick={() => addMobileDayToWeek(w)}
+                                  >
+                                    <Plus size={15} /> Add day
+                                  </button>
+                                </div>
+                              );
+                            });
+                          })()}
+
+                          <button
+                            type="button"
+                            className="goldButton mbFullButton"
+                            disabled={savingTemplate}
+                            onClick={finishMobileProgram}
+                          >
+                            {savingTemplate ? "Saving…" : "Finish & Save"}
+                          </button>
+                        </div>
+                      </section>
+                    )}
+
+                    {mobileBuilderStep === "libpick" && (
+                      <div className="mobileSheet">
+                        <header className="mobileBuilderHeader">
+                          <button
+                            className="mbHeaderBack"
+                            onClick={() => setMobileBuilderStep("editor")}
+                            aria-label="Back"
+                          >
+                            ‹
+                          </button>
+                          <h2>Insert session</h2>
+                          <span style={{ width: 40 }} />
+                        </header>
+                        <div className="mobileBuilderBody">
+                          <div className="mbField">
+                            <span className="mbFieldLabel">From program</span>
+                            <select
+                              className="miniSearch"
+                              value={sessionLibProgramId}
+                              onChange={(e) => {
+                                const prog = programs.find(
+                                  (pp) => pp.programId === e.target.value
+                                );
+                                if (prog) loadSessionLibrary(prog);
+                                else {
+                                  setSessionLibProgramId("");
+                                  setSessionLibSessions([]);
+                                }
+                              }}
+                            >
+                              <option value="">Choose a program…</option>
+                              {programs.map((pp) => (
+                                <option key={pp.recordId} value={pp.programId}>
+                                  {pp.programName}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          {sessionLibLoading && (
+                            <p className="mbHint">Loading sessions…</p>
+                          )}
+                          {!sessionLibLoading &&
+                            sessionLibProgramId &&
+                            sessionLibSessions.length === 0 && (
+                              <p className="mbHint">
+                                No sessions in this program.
+                              </p>
+                            )}
+                          {sessionLibSessions.map((s) => (
+                            <button
+                              key={s.localId}
+                              type="button"
+                              className="mobilePickerRow"
+                              onClick={() => insertLibSessionIntoCurrentDay(s)}
+                            >
+                              <span className="mobilePickerInfo">
+                                <strong>
+                                  {s.sessionName || `W${s.week} D${s.day}`}
+                                </strong>
+                                <small>{s.exercises.length} exercises</small>
+                              </span>
+                            </button>
+                          ))}
                         </div>
                       </div>
                     )}

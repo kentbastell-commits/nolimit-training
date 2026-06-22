@@ -5361,6 +5361,98 @@ button.coachReviewGlobalItem,
   color: #111;
 }
 
+/* ---- Mobile builder: program overview hub ---- */
+.mbOvWeek {
+  border: 1px solid #e2ddd1;
+  border-radius: 12px;
+  background: #faf8f2;
+  padding: 10px;
+  margin-bottom: 12px;
+}
+
+.mbOvWeekHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.mbOvWeekHead strong {
+  font-size: 14px;
+  font-weight: 950;
+  color: #111;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.mbOvDup {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid #ddd7ca;
+  background: #fff;
+  color: #4b4b45;
+  border-radius: 7px;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.mbOvDay {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  text-align: left;
+  border: 1px solid #e2ddd1;
+  border-left: 4px solid #111;
+  border-radius: 10px;
+  background: #fff;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+}
+
+.mbOvDayMain {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.mbOvDayMain strong {
+  font-size: 14px;
+  font-weight: 850;
+  color: #1c1c19;
+}
+
+.mbOvDayMain small {
+  font-size: 12px;
+  color: #8b8579;
+  font-weight: 700;
+}
+
+.mbOvChevron {
+  font-size: 22px;
+  color: #b5afa1;
+  flex-shrink: 0;
+}
+
+.mbOvAdd {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 9px;
+  border: 1px dashed rgba(0, 0, 0, 0.3);
+  border-radius: 10px;
+  background: transparent;
+  color: #111;
+  font-weight: 800;
+  font-size: 13px;
+}
+
 /* ---- Session editor drawer (multi-day builder) ---- */
 .builderEditorBackdrop {
   position: fixed;
