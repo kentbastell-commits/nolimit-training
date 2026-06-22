@@ -3,6 +3,70 @@ import express from "express";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+// ---------------------------------------------------------------------------
+// Process-wide Feishu tenant-token cache.
+//
+// Every API handler fetches a fresh tenant_access_token before doing its real
+// work — an extra ~700-900ms Feishu round-trip on EVERY request. Since this is
+// a single long-lived process, we cache the token (valid ~2h) by wrapping the
+// global fetch, so the handlers keep their existing code but only actually hit
+// the auth endpoint once every couple of hours. A shared in-flight promise
+// stops a burst of concurrent requests from each fetching their own token.
+// ---------------------------------------------------------------------------
+const TOKEN_URL =
+  "https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal";
+const realFetch = globalThis.fetch.bind(globalThis);
+let tokenCache: { token: string; expiry: number } = { token: "", expiry: 0 };
+let tokenInflight: Promise<string> | null = null;
+
+const tokenResponse = (token: string, ttlMs: number) =>
+  new Response(
+    JSON.stringify({
+      code: 0,
+      msg: "ok",
+      tenant_access_token: token,
+      expire: Math.max(60, Math.round(ttlMs / 1000)),
+    }),
+    { status: 200, headers: { "Content-Type": "application/json" } }
+  );
+
+globalThis.fetch = (async (input: any, init?: any) => {
+  const url =
+    typeof input === "string" ? input : input?.url || String(input || "");
+  if (url !== TOKEN_URL) return realFetch(input, init);
+
+  const now = Date.now();
+  if (tokenCache.token && now < tokenCache.expiry) {
+    return tokenResponse(tokenCache.token, tokenCache.expiry - now);
+  }
+  if (!tokenInflight) {
+    tokenInflight = (async () => {
+      try {
+        const res = await realFetch(input, init);
+        const data = await res.clone().json();
+        if (data?.tenant_access_token) {
+          tokenCache = {
+            token: data.tenant_access_token,
+            // refresh 5 min before the stated expiry (default 2h).
+            expiry: Date.now() + ((Number(data.expire) || 7200) - 300) * 1000,
+          };
+          return data.tenant_access_token as string;
+        }
+        throw new Error("no tenant_access_token in response");
+      } finally {
+        tokenInflight = null;
+      }
+    })();
+  }
+  try {
+    const token = await tokenInflight;
+    return tokenResponse(token, tokenCache.expiry - Date.now());
+  } catch {
+    // Fall back to a real (uncached) fetch so the caller sees the real error.
+    return realFetch(input, init);
+  }
+}) as typeof fetch;
+
 import activateDigitalOrder from "../api/activateDigitalOrder.ts";
 import analytics from "../api/analytics.ts";
 import autoLoadProgram from "../api/autoLoadProgram.ts";
