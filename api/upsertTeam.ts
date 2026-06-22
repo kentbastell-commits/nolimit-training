@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { invalidateCache } from "./_cache.ts";
 
 async function getTableFieldNames(token: string): Promise<Set<string>> {
   const response = await fetch(
@@ -98,6 +99,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
+    invalidateCache("teams");
     return res.status(200).json({
       success: true,
       recordId: data?.data?.record?.record_id || recordId,

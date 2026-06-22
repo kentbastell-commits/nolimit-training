@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { invalidateCache } from "./_cache.ts";
 import { fetchAllBitableRecords } from "./_pagination.ts";
 
 function fieldToText(value: any): string {
@@ -77,6 +78,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // Soft-fail: a missing column or transient error shouldn't break the portal.
       return res.status(200).json({ success: false, larkResponse: data });
     }
+    invalidateCache("clients");
     return res.status(200).json({ success: true, recordId });
   } catch (error: any) {
     return res.status(200).json({ success: false, message: error.message });

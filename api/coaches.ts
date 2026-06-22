@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { getCached, setCached } from "./_cache.ts";
 
 const COACHES_TABLE_ID =
   process.env.FEISHU_COACHES_TABLE_ID || "tblzFeZwc4Zby2cr";
@@ -69,6 +70,9 @@ async function getTenantToken() {
 
 export default async function handler(_req: VercelRequest, res: VercelResponse) {
   try {
+    const cachedCoaches = getCached("coaches");
+    if (cachedCoaches) return res.status(200).json({ coaches: cachedCoaches });
+
     const token = await getTenantToken();
     const response = await fetch(
       `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${COACHES_TABLE_ID}/records?page_size=100`,
@@ -114,6 +118,8 @@ export default async function handler(_req: VercelRequest, res: VercelResponse) 
     }).filter((coach: any) => {
       return coach.hasRealData;
     }).map(({ hasRealData, ...coach }: any) => coach);
+
+    setCached("coaches", coaches, 10 * 60 * 1000);
 
     return res.status(200).json({ coaches });
   } catch (error: any) {

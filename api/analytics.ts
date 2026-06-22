@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { fetchAllBitableRecords } from "./_pagination.ts";
+import { getCached, setCached } from "./_cache.ts";
 
 function fieldToText(value: any): string {
   if (!value) return "";
@@ -92,6 +93,11 @@ function addDays(date: Date, days: number) {
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
+    // Derived dashboard over two large table scans; a short TTL keeps the
+    // Dashboard snappy without needing to invalidate on every workout write.
+    const cachedAnalytics = getCached("analytics");
+    if (cachedAnalytics) return res.status(200).json(cachedAnalytics);
+
     const token = await getTenantToken();
     const [clientRecords, workoutRecords] = await Promise.all([
       getRecords(process.env.FEISHU_CLIENTS_TABLE_ID as string, token),
@@ -221,7 +227,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       };
     });
 
-    return res.status(200).json({
+    const payload = {
       clientActivity,
       summary: {
         totalClients: clients.length,
@@ -246,7 +252,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             : 0,
       },
       attentionClients,
-    });
+    };
+
+    setCached("analytics", payload, 3 * 60 * 1000);
+
+    return res.status(200).json(payload);
   } catch (error: any) {
     return res.status(500).json({
       error: "Could not build analytics",

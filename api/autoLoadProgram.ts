@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { invalidateCache } from "./_cache.ts";
 
 function makeId(prefix: string) {
   return `${prefix}-${Math.floor(100000 + Math.random() * 900000)}`;
@@ -268,6 +269,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         },
       }),
     });
+
+    invalidateCache("workouts");
+    invalidateCache("productOrders");
+    invalidateCache("clients");
+    invalidateCache("contentAssignments");
 
     return res.status(200).json({
       success: true,

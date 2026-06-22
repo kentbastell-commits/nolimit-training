@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { fetchAllBitableRecords } from "./_pagination.ts";
+import { getCached, setCached } from "./_cache.ts";
 
 function itemToText(item: any): string {
   if (item === null || item === undefined) return "";
@@ -48,6 +49,10 @@ function dateText(value: any): string {
 
 export default async function handler(_req: VercelRequest, res: VercelResponse) {
   try {
+    const cachedSubscriptions = getCached("subscriptions");
+    if (cachedSubscriptions)
+      return res.status(200).json({ subscriptions: cachedSubscriptions });
+
     const tokenResponse = await fetch(
       "https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal",
       {
@@ -102,6 +107,8 @@ export default async function handler(_req: VercelRequest, res: VercelResponse) 
         notes: fieldToText(f["Notes"]),
       };
     });
+
+    setCached("subscriptions", subscriptions, 10 * 60 * 1000);
 
     return res.status(200).json({ subscriptions });
   } catch (error: any) {

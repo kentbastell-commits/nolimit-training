@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { fetchAllBitableRecords } from "./_pagination.ts";
+import { getCached, setCached } from "./_cache.ts";
 
 function fieldToText(value: any): string {
   if (!value) return "";
@@ -73,6 +74,9 @@ function formatDate(value: any): string {
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
+    const cachedClients = getCached("clients");
+    if (cachedClients) return res.status(200).json({ clients: cachedClients });
+
     const tokenResponse = await fetch(
       "https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal",
       {
@@ -150,6 +154,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         lastLogin: Number(pickField(fields, ["Last Login"])) || 0,
       };
     });
+
+    setCached("clients", clients, 10 * 60 * 1000);
 
     return res.status(200).json({ clients });
   } catch (error: any) {

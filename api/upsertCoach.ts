@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { invalidateCache } from "./_cache.ts";
 
 const COACHES_TABLE_ID =
   process.env.FEISHU_COACHES_TABLE_ID || "tblzFeZwc4Zby2cr";
@@ -152,6 +153,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
+    invalidateCache("coaches");
     return res.status(200).json({
       success: true,
       coachId: fields["Coach ID"],

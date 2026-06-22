@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { invalidateCache } from "./_cache.ts";
 
 function makeClientId() {
   const random = Math.floor(1000 + Math.random() * 9000);
@@ -123,6 +124,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
+    invalidateCache("clients");
+    invalidateCache("analytics");
     return res.status(200).json({
       success: true,
       clientId: fields["Client ID"],

@@ -101,9 +101,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // Keep cached lists fresh after a delete.
-    if (resource === "exercise") invalidateCache("exercises");
-    else if (resource === "program" || resource === "workoutTemplate")
-      invalidateCache("programs");
+    const cacheKeyByResource: Partial<Record<DeleteResource, string>> = {
+      exercise: "exercises",
+      program: "programs",
+      workoutTemplate: "programs",
+      client: "clients",
+      team: "teams",
+      productOrder: "productOrders",
+      subscription: "subscriptions",
+      workout: "workouts",
+      assignedForm: "contentAssignments",
+      assignedTest: "contentAssignments",
+    };
+    const cacheKey = cacheKeyByResource[resource as DeleteResource];
+    if (cacheKey) invalidateCache(cacheKey);
 
     return res.status(200).json({
       success: true,

@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { fetchAllBitableRecords } from "./_pagination.ts";
+import { getCached, setCached } from "./_cache.ts";
 
 const PRODUCT_ORDERS_TABLE_ID =
   process.env.FEISHU_PRODUCT_ORDERS_TABLE_ID || "tbllinXYFDiUboKX";
@@ -63,6 +64,9 @@ async function getTenantToken() {
 
 export default async function handler(_req: VercelRequest, res: VercelResponse) {
   try {
+    const cachedOrders = getCached("productOrders");
+    if (cachedOrders) return res.status(200).json({ orders: cachedOrders });
+
     const token = await getTenantToken();
     const orderItems = await fetchAllBitableRecords(
       process.env.FEISHU_BASE_APP_TOKEN as string,
@@ -113,6 +117,8 @@ export default async function handler(_req: VercelRequest, res: VercelResponse) 
           formatDate(fields["Completed At"]),
       };
     });
+
+    setCached("productOrders", orders, 10 * 60 * 1000);
 
     return res.status(200).json({ orders });
   } catch (error: any) {

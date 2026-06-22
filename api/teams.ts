@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { fetchAllBitableRecords } from "./_pagination.ts";
+import { getCached, setCached } from "./_cache.ts";
 
 function itemToText(item: any): string {
   if (item === null || item === undefined) return "";
@@ -38,6 +39,9 @@ function linkRecordIds(value: any): string[] {
 
 export default async function handler(_req: VercelRequest, res: VercelResponse) {
   try {
+    const cachedTeams = getCached("teams");
+    if (cachedTeams) return res.status(200).json({ teams: cachedTeams });
+
     const tokenResponse = await fetch(
       "https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal",
       {
@@ -98,6 +102,8 @@ export default async function handler(_req: VercelRequest, res: VercelResponse) 
     });
 
     teams.sort((a: any, b: any) => a.name.localeCompare(b.name));
+
+    setCached("teams", teams, 10 * 60 * 1000);
 
     return res.status(200).json({ teams });
   } catch (error: any) {
