@@ -5,6 +5,7 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
+  ChevronsLeftRight,
   ClipboardList,
   Copy,
   Film,
@@ -2223,6 +2224,8 @@ function App() {
     w: number;
     d: number;
   } | null>(null);
+  // Collapsible Day-1-7 columns in the program grid (rest/finished days fold up).
+  const [collapsedDays, setCollapsedDays] = useState<Set<number>>(new Set());
   const [savingTemplate, setSavingTemplate] = useState(false);
   const [builderSaveStatus, setBuilderSaveStatus] = useState<"saved" | "dirty">(
     "saved"
@@ -21235,30 +21238,146 @@ function App() {
                   );
                   const weeks = Array.from({ length: weekCount }, (_, i) => i + 1);
                   const days = [1, 2, 3, 4, 5, 6, 7];
+
+                  // Live overlay: reflect the in-progress session on the grid
+                  // before it is saved (new draft) or while it is being edited.
+                  type GridSession = ProgramSession & {
+                    __draft?: boolean;
+                    __live?: boolean;
+                  };
+                  const editingExisting =
+                    !!editingProgramSessionId &&
+                    programSessions.some(
+                      (s) => s.localId === editingProgramSessionId
+                    );
+                  const gridSessions: GridSession[] = programSessions.map((s) =>
+                    s.localId === editingProgramSessionId &&
+                    selectedProgramExercises.length > 0
+                      ? {
+                          ...s,
+                          week: programWeek,
+                          day: programDay,
+                          sessionName: sessionName.trim() || s.sessionName,
+                          sessionType,
+                          intensity: sessionIntensity,
+                          estimatedDuration: sessionEstimatedDuration,
+                          exercises: selectedProgramExercises,
+                          __live: true,
+                        }
+                      : s
+                  );
+                  if (!editingExisting && selectedProgramExercises.length > 0) {
+                    gridSessions.push({
+                      localId: "__draft__",
+                      week: programWeek,
+                      day: programDay,
+                      sessionName: sessionName.trim() || "Untitled session",
+                      sessionType,
+                      intensity: sessionIntensity,
+                      estimatedDuration: sessionEstimatedDuration,
+                      exercises: selectedProgramExercises,
+                      __draft: true,
+                      __live: true,
+                    });
+                  }
+
+                  const dayColTemplate = days
+                    .map((d) =>
+                      collapsedDays.has(d) ? "38px" : "minmax(118px, 1fr)"
+                    )
+                    .join(" ");
+                  const gridStyle = {
+                    ["--dayCols" as string]: dayColTemplate,
+                  } as React.CSSProperties;
+
                   return (
                     <div className="programGridWrap" id="builder-review">
                       <div className="programGrid">
-                        <div className="programGridHead">
-                          <div className="programGridCorner" />
-                          {days.map((d) => (
-                            <div key={d} className="programGridDayLabel">
-                              Day {d}
-                            </div>
-                          ))}
+                        <div className="programGridHead" style={gridStyle}>
+                          {days.map((d) => {
+                            const collapsed = collapsedDays.has(d);
+                            return (
+                              <div
+                                key={d}
+                                className={`programGridDayLabel${
+                                  collapsed ? " dayCollapsed" : ""
+                                }`}
+                                onClick={
+                                  collapsed
+                                    ? () =>
+                                        setCollapsedDays((cur) => {
+                                          const next = new Set(cur);
+                                          next.delete(d);
+                                          return next;
+                                        })
+                                    : undefined
+                                }
+                                title={collapsed ? `Expand Day ${d}` : undefined}
+                              >
+                                {collapsed ? (
+                                  <span className="collapsedDayText">D{d}</span>
+                                ) : (
+                                  <>
+                                    <span>Day {d}</span>
+                                    <button
+                                      type="button"
+                                      className="dayCollapseBtn"
+                                      title={`Collapse Day ${d}`}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setCollapsedDays((cur) => {
+                                          const next = new Set(cur);
+                                          next.add(d);
+                                          return next;
+                                        });
+                                      }}
+                                    >
+                                      <ChevronsLeftRight size={13} />
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
 
                         {weeks.map((w) => (
                           <div key={w} className="programGridWeek">
                             <div className="programGridWeekLabel">Week {w}</div>
-                            <div className="programGridRow">
+                            <div className="programGridRow" style={gridStyle}>
                               {days.map((d) => {
-                                const cellSessions = programSessions.filter(
+                                const collapsed = collapsedDays.has(d);
+                                const cellSessions = gridSessions.filter(
                                   (s) =>
                                     s.week === String(w) && s.day === String(d)
                                 );
                                 const isDrop =
                                   programGridDrop?.w === w &&
                                   programGridDrop?.d === d;
+
+                                if (collapsed) {
+                                  return (
+                                    <div
+                                      key={d}
+                                      className="programGridCell dayCollapsed"
+                                      title={`Expand Day ${d}`}
+                                      onClick={() =>
+                                        setCollapsedDays((cur) => {
+                                          const next = new Set(cur);
+                                          next.delete(d);
+                                          return next;
+                                        })
+                                      }
+                                    >
+                                      {cellSessions.length > 0 && (
+                                        <span className="collapsedCellDot">
+                                          {cellSessions.length}
+                                        </span>
+                                      )}
+                                    </div>
+                                  );
+                                }
+
                                 return (
                                   <div
                                     key={d}
@@ -21294,12 +21413,14 @@ function App() {
                                           s.sessionName,
                                           s.sessionType
                                         )}${
-                                          editingProgramSessionId === s.localId
+                                          editingProgramSessionId === s.localId ||
+                                          s.__draft
                                             ? " calCardEditing"
                                             : ""
-                                        }`}
-                                        draggable
+                                        }${s.__draft ? " gridCardDraft" : ""}`}
+                                        draggable={!s.__draft}
                                         onDragStart={(e) => {
+                                          if (s.__draft) return;
                                           e.dataTransfer.effectAllowed = "move";
                                           setDraggedProgramSessionId(s.localId);
                                         }}
@@ -21307,7 +21428,18 @@ function App() {
                                           setDraggedProgramSessionId("");
                                           setProgramGridDrop(null);
                                         }}
-                                        onClick={() => loadSessionForEditing(s)}
+                                        onClick={() => {
+                                          if (s.__draft) {
+                                            document
+                                              .getElementById("builder-session")
+                                              ?.scrollIntoView({
+                                                behavior: "smooth",
+                                                block: "start",
+                                              });
+                                          } else {
+                                            loadSessionForEditing(s);
+                                          }
+                                        }}
                                       >
                                         <strong className="programGridCardName">
                                           {s.sessionName}
@@ -21316,41 +21448,47 @@ function App() {
                                           {s.sessionType || "Strength"} ·{" "}
                                           {s.exercises.length} ex
                                         </span>
-                                        <div className="programGridCardActions">
-                                          <button
-                                            type="button"
-                                            className="iconActionButton"
-                                            title="Edit session"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              loadSessionForEditing(s);
-                                            }}
-                                          >
-                                            <Pencil size={13} />
-                                          </button>
-                                          <button
-                                            type="button"
-                                            className="iconActionButton"
-                                            title="Duplicate to next week"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              duplicateProgramSession(s);
-                                            }}
-                                          >
-                                            <Copy size={13} />
-                                          </button>
-                                          <button
-                                            type="button"
-                                            className="iconActionButton dangerMenuItem"
-                                            title="Remove session"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              removeProgramSession(s.localId);
-                                            }}
-                                          >
-                                            <Trash2 size={13} />
-                                          </button>
-                                        </div>
+                                        {s.__draft ? (
+                                          <span className="gridDraftTag">
+                                            Unsaved · editing
+                                          </span>
+                                        ) : (
+                                          <div className="programGridCardActions">
+                                            <button
+                                              type="button"
+                                              className="iconActionButton"
+                                              title="Edit session"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                loadSessionForEditing(s);
+                                              }}
+                                            >
+                                              <Pencil size={13} />
+                                            </button>
+                                            <button
+                                              type="button"
+                                              className="iconActionButton"
+                                              title="Duplicate to next week"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                duplicateProgramSession(s);
+                                              }}
+                                            >
+                                              <Copy size={13} />
+                                            </button>
+                                            <button
+                                              type="button"
+                                              className="iconActionButton dangerMenuItem"
+                                              title="Remove session"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                removeProgramSession(s.localId);
+                                              }}
+                                            >
+                                              <Trash2 size={13} />
+                                            </button>
+                                          </div>
+                                        )}
                                       </div>
                                     ))}
 

@@ -5356,7 +5356,7 @@ button.coachReviewGlobalItem,
 
 .programGridHead {
   display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-template-columns: var(--dayCols, repeat(7, minmax(0, 1fr)));
   background: #111;
 }
 
@@ -5368,10 +5368,71 @@ button.coachReviewGlobalItem,
   text-transform: uppercase;
   color: #e7d8a8;
   border-left: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  min-width: 0;
 }
 
 .programGridDayLabel:first-child {
   border-left: none;
+}
+
+.dayCollapseBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: rgba(255, 255, 255, 0.08);
+  color: #e7d8a8;
+  border-radius: 5px;
+  padding: 3px;
+  cursor: pointer;
+  opacity: 0.55;
+}
+
+.programGridDayLabel:hover .dayCollapseBtn {
+  opacity: 1;
+}
+
+.programGridDayLabel.dayCollapsed {
+  cursor: pointer;
+  padding: 11px 4px;
+  justify-content: center;
+}
+
+.collapsedDayText {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: #cdb976;
+}
+
+.programGridCell.dayCollapsed {
+  align-items: center;
+  justify-content: center;
+  padding: 6px 2px;
+  cursor: pointer;
+  min-height: 0;
+}
+
+.programGridCell.dayCollapsed:hover {
+  background: rgba(212, 175, 55, 0.08);
+}
+
+.collapsedCellDot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: #d4af37;
+  color: #111;
+  font-size: 11px;
+  font-weight: 900;
 }
 
 .programGridWeek {
@@ -5389,7 +5450,7 @@ button.coachReviewGlobalItem,
 
 .programGridRow {
   display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-template-columns: var(--dayCols, repeat(7, minmax(0, 1fr)));
 }
 
 .programGridCell {
@@ -5430,6 +5491,29 @@ button.coachReviewGlobalItem,
 .programGridCard.calCardEditing {
   outline: 2px solid #d4af37;
   outline-offset: 1px;
+}
+
+.programGridCard.gridCardDraft {
+  cursor: pointer;
+  border-style: dashed;
+  background: rgba(212, 175, 55, 0.1);
+}
+
+.gridDraftTag {
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: #d4af37;
+}
+
+.app:not(.clientPortalApp) .programGridCard.gridCardDraft {
+  background: #fbf4de;
+  border-color: #d8c79a;
+}
+
+.app:not(.clientPortalApp) .gridDraftTag {
+  color: #8b650e;
 }
 
 .programGridCard.wcol-strength { border-left-color: #5b6770; }
