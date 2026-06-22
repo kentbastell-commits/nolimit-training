@@ -334,27 +334,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const token = await getTenantToken();
 
-    const exerciseRecords = await getRecords(
-      process.env.FEISHU_EXERCISE_LIBRARY_TABLE_ID as string,
-      token
+    // Only read the (large) exercise library when at least one exercise lacks a
+    // resolved library record id. Programs built from the library already carry
+    // it, so a typical save skips this fetch entirely.
+    const needsLibraryLookup = exercises.some(
+      (e: ProgramExercise) => !e.exerciseRecordId
     );
+    const exerciseRecords = needsLibraryLookup
+      ? await getRecords(
+          process.env.FEISHU_EXERCISE_LIBRARY_TABLE_ID as string,
+          token
+        )
+      : [];
 
     const metas: ParsedMeta[] = [];
 
     const records = exercises.map((exercise: ProgramExercise, index: number) => {
-      const matchingExercise = exercise.exerciseRecordId
-        ? exerciseRecords.find(
-            (item: any) => item.record_id === exercise.exerciseRecordId
-          )
-        : exerciseRecords.find((item: any) => {
-            const fields = item.fields || {};
-            return fieldToText(fields["Exercise ID"]) === exercise.exerciseId;
-          });
-
-      if (!matchingExercise) {
-        throw new Error(
-          `Exercise not found in Exercise Library: ${exercise.exerciseId}`
-        );
+      let exerciseLinkId = exercise.exerciseRecordId;
+      if (!exerciseLinkId) {
+        const matchingExercise = exerciseRecords.find((item: any) => {
+          const fields = item.fields || {};
+          return fieldToText(fields["Exercise ID"]) === exercise.exerciseId;
+        });
+        if (!matchingExercise) {
+          throw new Error(
+            `Exercise not found in Exercise Library: ${exercise.exerciseId}`
+          );
+        }
+        exerciseLinkId = matchingExercise.record_id;
       }
 
       const meta = parseTemplateMeta(exercise.coachingNotes || "");
@@ -365,7 +372,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         // Duplex link fields must be arrays of record IDs
         "Program ID": [programRecordId],
-        "Exercise ID": [matchingExercise.record_id],
+        "Exercise ID": [exerciseLinkId],
 
         Week: Number(week),
         Day: Number(day),

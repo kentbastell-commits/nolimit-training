@@ -875,6 +875,27 @@ function lookupTextMatches(source?: string, target?: string) {
   );
 }
 
+// Run async work over a list with a concurrency cap (parallel but bounded, so
+// big saves don't fire dozens of Feishu requests at once).
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  limit: number,
+  fn: (item: T, index: number) => Promise<R>
+): Promise<R[]> {
+  const results: R[] = new Array(items.length);
+  let cursor = 0;
+  const worker = async () => {
+    while (cursor < items.length) {
+      const index = cursor++;
+      results[index] = await fn(items[index], index);
+    }
+  };
+  await Promise.all(
+    Array.from({ length: Math.min(limit, items.length) }, worker)
+  );
+  return results;
+}
+
 function makeExerciseLabel(index: number) {
   const groupIndex = Math.floor(index / 4);
   const letter = String.fromCharCode(65 + Math.min(groupIndex, 25));
@@ -5238,7 +5259,9 @@ function App() {
         const index = session.exercises.length;
         const meta = parseExerciseNotes(t.notes || "");
         const baseExercise: ProgramExercise = {
-          exerciseRecordId: t.recordId || "",
+          // Resolved against the library by exerciseId on save (matches the
+          // original load path); the template recordId is NOT the library id.
+          exerciseRecordId: "",
           exerciseId: t.exerciseId,
           exerciseName: t.exerciseName,
           order: Number(t.order) || index + 1,
@@ -9651,59 +9674,70 @@ function App() {
 
       let totalRecordsCreated = 0;
 
-      for (const session of sessionsToSave) {
-        const templateResponse = await fetch("/api/createWorkoutTemplate", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            programId: programData.programId,
-            programRecordId: programData.programRecordId,
-            week: Number(session.week),
-            day: Number(session.day),
-            sessionName: session.sessionName,
-            sessionNameCn: session.sessionNameCn || "",
-            sessionType: session.sessionType,
-            sessionGoal: session.sessionGoal,
-            estimatedDuration: session.estimatedDuration,
-            intensity: session.intensity,
-            isSingleWorkout: session.isSingleWorkout,
-            exercises: session.exercises.map((exercise, index) => ({
-              ...exercise,
-              order: Number(exercise.order) || index + 1,
-              sets: Number(exercise.sets) || 1,
-              coachingNotes: buildExerciseCoachingNotes(exercise),
-              status: "Active",
-            })),
-          }),
-        });
-
-        const templateData = await templateResponse.json();
-
-        if (!templateResponse.ok || !templateData.success) {
-          console.error(templateData);
-          notify(
-            `Program was created, but session "${session.sessionName}" failed. Check API response.`
-          );
-          return;
+      // Save sessions in parallel (bounded) instead of one-at-a-time.
+      const saveResults = await mapWithConcurrency(
+        sessionsToSave,
+        6,
+        async (session) => {
+          const templateResponse = await fetch("/api/createWorkoutTemplate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              programId: programData.programId,
+              programRecordId: programData.programRecordId,
+              week: Number(session.week),
+              day: Number(session.day),
+              sessionName: session.sessionName,
+              sessionNameCn: session.sessionNameCn || "",
+              sessionType: session.sessionType,
+              sessionGoal: session.sessionGoal,
+              estimatedDuration: session.estimatedDuration,
+              intensity: session.intensity,
+              isSingleWorkout: session.isSingleWorkout,
+              exercises: session.exercises.map((exercise, index) => ({
+                ...exercise,
+                order: Number(exercise.order) || index + 1,
+                sets: Number(exercise.sets) || 1,
+                coachingNotes: buildExerciseCoachingNotes(exercise),
+                status: "Active",
+              })),
+            }),
+          });
+          const templateData = await templateResponse.json();
+          return {
+            ok: templateResponse.ok && templateData.success,
+            session,
+            templateData,
+            recordsCreated: Number(templateData.recordsCreated || 0),
+          };
         }
+      );
 
-        totalRecordsCreated += Number(templateData.recordsCreated || 0);
+      const failed = saveResults.find((r) => !r.ok);
+      if (failed) {
+        console.error(failed.templateData);
+        notify(
+          `Program was saved, but session "${failed.session.sessionName}" failed. Check API response.`
+        );
+        return;
       }
+      totalRecordsCreated = saveResults.reduce(
+        (sum, r) => sum + r.recordsCreated,
+        0
+      );
 
       // In-place edit: the new sessions are written, so remove the old ones.
       if (inPlaceEdit && oldTemplateRecordIds.length > 0) {
-        for (const recordId of oldTemplateRecordIds) {
-          await fetch("/api/deleteRecord", {
+        await mapWithConcurrency(oldTemplateRecordIds, 8, (recordId) =>
+          fetch("/api/deleteRecord", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               resource: "workoutTemplate",
               recordId,
             }),
-          });
-        }
+          }).then(() => undefined)
+        );
       }
 
       notify(
