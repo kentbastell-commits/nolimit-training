@@ -7030,25 +7030,36 @@ function App() {
     );
   }
 
-  // Build the "at a glance" chain for a program-grid card: consecutive
-  // same-section exercises become a lettered block (A, B, C…); blocks with more
-  // than one exercise get numbered (C1, C2…) and a connecting line.
+  // Build the "at a glance" chain for a program-grid card. Consecutive
+  // same-section exercises form a lettered block (A, B, C…) with numbered
+  // members (C1, C2…) joined by a line. Warmup exercises are numbered (1, 2…)
+  // with no letter and no line. Line segments are tinted blue between a
+  // superset/circuit pair and green into an accessory.
   const buildGlanceChain = (exercises: ProgramExercise[]) => {
-    const runs: ProgramExercise[][] = [];
-    let cur: ProgramExercise[] = [];
-    let curSection: string | null = null;
+    const runs: { isWarmup: boolean; exs: ProgramExercise[] }[] = [];
+    let cur: { isWarmup: boolean; exs: ProgramExercise[] } | null = null;
+    let curKey: string | null = null;
     exercises.forEach((ex) => {
       const sec =
         normalizeBuilderSection(ex.sectionName).toLowerCase() || "main";
-      if (sec === curSection) {
-        cur.push(ex);
+      if (cur && curKey === sec) {
+        cur.exs.push(ex);
       } else {
-        if (cur.length) runs.push(cur);
-        cur = [ex];
-        curSection = sec;
+        cur = { isWarmup: isWarmupSection(ex.sectionName), exs: [ex] };
+        curKey = sec;
+        runs.push(cur);
       }
     });
-    if (cur.length) runs.push(cur);
+
+    const relColor = (a: ProgramExercise, b: ProgramExercise) => {
+      const aGrouped = a.groupType && a.groupType !== "Straight" && a.groupName;
+      const bGrouped = b.groupType && b.groupType !== "Straight" && b.groupName;
+      if (aGrouped && bGrouped && a.groupName === b.groupName) return "superset";
+      // Green only for the segment leading INTO an accessory (from its parent
+      // or a preceding accessory in the same chain), not the one after it.
+      if (b.isAccessory) return "accessory";
+      return "neutral";
+    };
 
     const items: {
       ex: ProgramExercise;
@@ -7057,19 +7068,39 @@ function App() {
       linked: boolean;
       isFirst: boolean;
       isLast: boolean;
+      lineUpColor: string;
+      lineDownColor: string;
     }[] = [];
-    runs.forEach((run, runIdx) => {
-      const letter = String.fromCharCode(65 + Math.min(runIdx, 25));
-      run.forEach((ex, pos) => {
+    let letterIndex = 0;
+    let warmIndex = 0;
+    runs.forEach((run) => {
+      const n = run.exs.length;
+      let letter = "";
+      if (!run.isWarmup) {
+        letter = String.fromCharCode(65 + Math.min(letterIndex, 25));
+        letterIndex++;
+      }
+      run.exs.forEach((ex, pos) => {
+        let display: string;
+        if (run.isWarmup) {
+          warmIndex += 1;
+          display = String(warmIndex);
+        } else {
+          display = n > 1 ? `${letter}${pos + 1}` : letter;
+        }
         items.push({
           ex,
-          display: run.length > 1 ? `${letter}${pos + 1}` : letter,
-          colorClass: isWarmupSection(ex.sectionName)
+          display,
+          colorClass: run.isWarmup
             ? "exerciseLabelBadgeWarmup"
             : getLabelColorClass(undefined, ex.sectionName),
-          linked: run.length > 1,
+          linked: !run.isWarmup && n > 1,
           isFirst: pos === 0,
-          isLast: pos === run.length - 1,
+          isLast: pos === n - 1,
+          lineUpColor:
+            !run.isWarmup && pos > 0 ? relColor(run.exs[pos - 1], ex) : "",
+          lineDownColor:
+            !run.isWarmup && pos < n - 1 ? relColor(ex, run.exs[pos + 1]) : "",
         });
       });
     });
@@ -21552,10 +21583,14 @@ function App() {
                                                 >
                                                   <div className="glanceBadgeWrap">
                                                     {it.linked && !it.isFirst && (
-                                                      <span className="glanceLineUp" />
+                                                      <span
+                                                        className={`glanceLineUp line-${it.lineUpColor}`}
+                                                      />
                                                     )}
                                                     {it.linked && !it.isLast && (
-                                                      <span className="glanceLineDown" />
+                                                      <span
+                                                        className={`glanceLineDown line-${it.lineDownColor}`}
+                                                      />
                                                     )}
                                                     <span
                                                       className={`exerciseLabelBadge glanceBadge ${it.colorClass}`}

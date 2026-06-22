@@ -5496,7 +5496,6 @@ button.coachReviewGlobalItem,
 .programGridCard.gridCardDraft {
   cursor: pointer;
   border-style: dashed;
-  background: rgba(212, 175, 55, 0.1);
 }
 
 .gridDraftTag {
@@ -5508,8 +5507,7 @@ button.coachReviewGlobalItem,
 }
 
 .app:not(.clientPortalApp) .programGridCard.gridCardDraft {
-  background: #fbf4de;
-  border-color: #d8c79a;
+  border-color: #c9b78a;
 }
 
 .app:not(.clientPortalApp) .gridDraftTag {
@@ -5625,6 +5623,18 @@ button.coachReviewGlobalItem,
   height: 50%;
 }
 
+/* Tint the connector: blue between a superset/circuit pair, green into an
+   accessory; neutral otherwise. */
+.glanceLineUp.line-superset,
+.glanceLineDown.line-superset {
+  background: #3a86ff;
+}
+
+.glanceLineUp.line-accessory,
+.glanceLineDown.line-accessory {
+  background: #15897a;
+}
+
 .glanceText {
   display: flex;
   flex-direction: column;
@@ -5668,12 +5678,12 @@ button.coachReviewGlobalItem,
   align-items: center;
   justify-content: center;
   padding: 7px;
-  border: 1px dashed rgba(212, 175, 55, 0.4);
+  border: 1px dashed rgba(0, 0, 0, 0.3);
   border-radius: 8px;
   background: transparent;
-  color: #d4af37;
+  color: #111;
   cursor: pointer;
-  opacity: 0.45;
+  opacity: 0.4;
   transition: opacity 0.12s ease;
 }
 
@@ -5683,7 +5693,7 @@ button.coachReviewGlobalItem,
 }
 
 .programGridAdd:hover {
-  background: rgba(212, 175, 55, 0.12);
+  background: rgba(0, 0, 0, 0.07);
 }
 
 /* Coach (light) theme */
