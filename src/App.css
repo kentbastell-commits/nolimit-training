@@ -5246,6 +5246,89 @@ button.coachReviewGlobalItem,
   color: #aaa;
 }
 
+/* ---- Create Program details modal ---- */
+.createProgramOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 4000;
+  background: rgba(10, 10, 10, 0.55);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.createProgramModal {
+  width: 100%;
+  max-width: 460px;
+  background: #ffffff;
+  color: #1c1c19;
+  border: 1px solid #e2ddd1;
+  border-radius: 14px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+}
+
+.createProgramHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 20px 12px;
+}
+
+.createProgramHeader .eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  font-size: 11px;
+  font-weight: 900;
+  color: #b08a1e;
+}
+
+.createProgramHeader h3 {
+  margin: 4px 0 0;
+  font-size: 20px;
+  font-weight: 950;
+  color: #111;
+}
+
+.createProgramBody {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 6px 20px 18px;
+}
+
+.createProgramField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.createProgramField > span {
+  font-size: 12px;
+  font-weight: 850;
+  color: #4b4b45;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.createProgramRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.createProgramFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 20px 18px;
+  border-top: 1px solid #ece9e1;
+  background: #faf8f2;
+}
+
 /* Coach (light) theme overrides */
 .app:not(.clientPortalApp) .programTable {
   border-color: #dcd8cd;
