@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { invalidateCache } from "./_cache.ts";
 
 function makeProgramId() {
   const random = Math.floor(1000 + Math.random() * 9000);
@@ -213,28 +214,44 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       })
     );
 
+    // Fast path: create the record with all fields at once (one write) instead
+    // of a create + a sequential PUT per optional field (~16 round-trips).
+    const combinedFields = { ...fields, ...optionalFields };
     let createResult = await createProgramRecord(
       tableId,
       tokenData.tenant_access_token,
-      fields
+      combinedFields
     );
     let createData = createResult.data;
+    let runOptionalLoop = false;
 
     if (!createResult.ok || createData.code !== 0) {
+      // The combined write was rejected (a bad optional value). Fall back to a
+      // stable-fields create, then patch optional fields individually.
       createResult = await createProgramRecord(
         tableId,
         tokenData.tenant_access_token,
-        fallbackCreateFields
+        fields
       );
       createData = createResult.data;
+      runOptionalLoop = true;
 
       if (!createResult.ok || createData.code !== 0) {
-        return res.status(500).json({
-          error: "Failed to create program record",
-          larkResponse: createData,
-          fieldsSent: fields,
-          fallbackFieldsSent: fallbackCreateFields,
-        });
+        createResult = await createProgramRecord(
+          tableId,
+          tokenData.tenant_access_token,
+          fallbackCreateFields
+        );
+        createData = createResult.data;
+
+        if (!createResult.ok || createData.code !== 0) {
+          return res.status(500).json({
+            error: "Failed to create program record",
+            larkResponse: createData,
+            fieldsSent: combinedFields,
+            fallbackFieldsSent: fallbackCreateFields,
+          });
+        }
       }
     }
 
@@ -245,7 +262,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       larkResponse: any;
     }> = [];
 
-    if (programRecordId) {
+    if (programRecordId && runOptionalLoop) {
       for (const [fieldName, value] of Object.entries(optionalFields)) {
         const updateResult = await updateProgramField(
           tableId,
@@ -264,6 +281,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
       }
     }
+
+    invalidateCache("programs");
 
     return res.status(200).json({
       success: true,

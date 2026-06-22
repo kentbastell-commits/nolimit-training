@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { invalidateCache } from "./_cache.ts";
 
 async function getTenantToken() {
   const tokenResponse = await fetch(
@@ -138,6 +139,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         fieldsSent: fields,
       });
     }
+
+    invalidateCache("programs");
 
     return res.status(200).json({
       success: true,

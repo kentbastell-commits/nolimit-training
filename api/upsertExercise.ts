@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { invalidateCache } from "./_cache.ts";
 
 function makeExerciseId(name: string) {
   const prefix = name
@@ -268,6 +269,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         availableFields,
       });
     }
+
+    invalidateCache("exercises");
 
     return res.status(200).json({
       success: true,

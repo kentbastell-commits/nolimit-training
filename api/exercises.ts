@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { getCached, setCached } from "./_cache.ts";
 
 function fieldToText(value: any): string {
   if (!value) return "";
@@ -150,6 +151,11 @@ async function getExerciseRecords(token: string) {
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
+    if (req.query.debug !== "1") {
+      const cached = getCached("exercises");
+      if (cached) return res.status(200).json({ exercises: cached });
+    }
+
     const tokenResponse = await fetch(
       "https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal",
       {
@@ -224,6 +230,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           : "Active",
       };
     });
+
+    if (req.query.debug !== "1") {
+      // Library is read constantly and written rarely; cache for 10 min and
+      // invalidate on exercise writes (upsertExercise / deleteRecord).
+      setCached("exercises", exercises, 10 * 60 * 1000);
+    }
 
     const debugPayload =
       req.query.debug === "1"
