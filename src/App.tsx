@@ -20091,36 +20091,16 @@ function App() {
 
                 {workoutPageTab === "Saved Programs" && (
                   <section className="programLibraryPanel">
-                    <div className="programLibraryHeader">
-                      <div>
-                        <h2>Saved Programs</h2>
-                        <p>View saved program templates, load them into the builder, or assign them to a client.</p>
-                      </div>
-
-                      <button className="outlineButton" onClick={loadPrograms}>
-                        Refresh Programs
-                      </button>
-                    </div>
-
-                    <div className="programLibraryLayout">
-                      <aside className="programListPanel">
-                        <input
-                          className="templateSearchInput"
-                          value={savedProgramSearch}
-                          onChange={(event) =>
-                            setSavedProgramSearch(event.target.value)
-                          }
-                          placeholder="Search by name, goal, or client..."
-                        />
-
+                    <div className="programLibraryHeader programLandingHeader">
+                      <div className="programLandingControls">
                         <select
-                          className="templateSearchInput"
+                          className="programViewSelect"
                           value={savedProgramProductFilter}
                           onChange={(event) =>
                             setSavedProgramProductFilter(event.target.value)
                           }
                         >
-                          <option value="All">All programs</option>
+                          <option value="All">My Programs</option>
                           <optgroup label="Program type">
                             <option value="type:Digital Program">
                               Digital programs
@@ -20153,48 +20133,137 @@ function App() {
                             ))}
                           </optgroup>
                         </select>
+                        <input
+                          className="templateSearchInput programLandingSearch"
+                          value={savedProgramSearch}
+                          onChange={(event) =>
+                            setSavedProgramSearch(event.target.value)
+                          }
+                          placeholder="Search programs..."
+                        />
+                      </div>
+                      <div className="programLandingActions">
+                        <button className="outlineButton" onClick={loadPrograms}>
+                          Refresh
+                        </button>
+                        <button
+                          className="goldButton"
+                          onClick={() => setWorkoutPageTab("Program Builder")}
+                        >
+                          Create Program
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="programLibraryStack">
+                      <div className="programTable">
+                        <div className="programTableHead">
+                          <span>Title</span>
+                          <span>Level</span>
+                          <span>Focus</span>
+                          <span>Type</span>
+                          <span>Created By</span>
+                          <span className="programTableActionsHead">Actions</span>
+                        </div>
 
                         {programsLoading && programs.length === 0 && (
-                          <p>Loading saved programs...</p>
+                          <p className="programTableEmpty">Loading saved programs…</p>
                         )}
                         {!programsLoading && programs.length === 0 && (
-                          <p>No saved programs found.</p>
+                          <p className="programTableEmpty">No saved programs yet.</p>
                         )}
-                        {!programsLoading && programs.length > 0 && visibleSavedPrograms.length === 0 && (
-                          <p>No programs match your search.</p>
-                        )}
+                        {!programsLoading &&
+                          programs.length > 0 &&
+                          visibleSavedPrograms.length === 0 && (
+                            <p className="programTableEmpty">
+                              No programs match your filter.
+                            </p>
+                          )}
 
-                        {visibleSavedPrograms.map((program) => (
-                          <button
-                            key={program.recordId}
-                            className={
-                              selectedSavedProgramId === program.programId
-                                ? "programListItem selectedProgramListItem"
-                                : "programListItem"
-                            }
-                            onClick={() => {
-                              setSelectedSavedProgramId(program.programId);
-                              setSavedAssignableWorkouts([]);
-                            }}
-                          >
-                            <strong>{program.programName}</strong>
-                            <small>
-                              {program.productType || "Internal Template"} /{" "}
-                              {program.goal || "--"}
-                            </small>
-                            {(program.builtForClient || program.builtForTeam) && (
-                              <span className="programBuiltForChip">
-                                {[
-                                  clientNameForCode(program.builtForClient),
-                                  program.builtForTeam,
-                                ]
-                                  .filter(Boolean)
-                                  .join(" · ")}
+                        {visibleSavedPrograms.map((program) => {
+                          const initials =
+                            (program.programName || "")
+                              .split(/\s+/)
+                              .map((w) => w[0])
+                              .filter(Boolean)
+                              .join("")
+                              .slice(0, 3)
+                              .toUpperCase() || "PR";
+                          const builtFor = [
+                            clientNameForCode(program.builtForClient),
+                            program.builtForTeam,
+                          ]
+                            .filter(Boolean)
+                            .join(" · ");
+                          return (
+                            <div
+                              key={program.recordId}
+                              className={`programTableRow${
+                                selectedSavedProgramId === program.programId
+                                  ? " active"
+                                  : ""
+                              }`}
+                              onClick={() => {
+                                setSelectedSavedProgramId(program.programId);
+                                setSavedAssignableWorkouts([]);
+                              }}
+                            >
+                              <span className="programTableTitle">
+                                <span className="programTableBadge">
+                                  {initials}
+                                </span>
+                                <span className="programTableName">
+                                  <strong>{program.programName}</strong>
+                                  {builtFor && (
+                                    <em className="programBuiltForChip">
+                                      {builtFor}
+                                    </em>
+                                  )}
+                                </span>
                               </span>
-                            )}
-                          </button>
-                        ))}
-                      </aside>
+                              <span className="programTableCell">
+                                {program.level || "—"}
+                              </span>
+                              <span className="programTableCell">
+                                {program.goal || "—"}
+                              </span>
+                              <span className="programTableCell">
+                                {program.productType || "Template"}
+                              </span>
+                              <span className="programTableCell">
+                                {program.coach || "—"}
+                              </span>
+                              <span
+                                className="programTableActions"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <button
+                                  type="button"
+                                  className="iconActionButton"
+                                  title="View / assign / settings"
+                                  onClick={() => {
+                                    setSelectedSavedProgramId(program.programId);
+                                    setSavedAssignableWorkouts([]);
+                                  }}
+                                >
+                                  <Settings size={16} />
+                                </button>
+                                <button
+                                  type="button"
+                                  className="iconActionButton dangerMenuItem"
+                                  title="Delete program"
+                                  disabled={
+                                    deletingSavedProgramId === program.recordId
+                                  }
+                                  onClick={() => deleteSavedProgram(program)}
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
 
                       <section className="programDetailPanel">
                         {!selectedSavedProgram && <p>Select a program to view details.</p>}
