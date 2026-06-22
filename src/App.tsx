@@ -3110,6 +3110,21 @@ function App() {
     return () => window.removeEventListener("resize", updateWorkoutRowMode);
   }, []);
 
+  // Guard against losing an in-progress program build on tab close / refresh.
+  useEffect(() => {
+    const unsaved =
+      (workoutPageTab === "Program Builder" ||
+        workoutPageTab === "Sessions") &&
+      (selectedProgramExercises.length > 0 || programSessions.length > 0);
+    if (!unsaved) return;
+    const handler = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [workoutPageTab, selectedProgramExercises.length, programSessions.length]);
+
   const cacheClientWorkouts = (clientCode: string, nextWorkouts: Workout[]) => {
     if (!clientCode) return;
 
@@ -9186,6 +9201,20 @@ function App() {
     );
   };
 
+  // At-a-glance training volume for a week (days, total sets, total exercises).
+  const weekVolume = (week: number) => {
+    const sessions = programSessions.filter((s) => s.week === String(week));
+    let sets = 0;
+    let exercises = 0;
+    sessions.forEach((s) =>
+      s.exercises.forEach((ex) => {
+        exercises += 1;
+        sets += Number(ex.sets) || 0;
+      })
+    );
+    return { days: sessions.length, sets, exercises };
+  };
+
   // Calendar: start building a brand-new session in a specific week/day cell.
   const startSessionForCell = (week: number, day: number) => {
     setSelectedProgramExercises([]);
@@ -9663,7 +9692,20 @@ function App() {
   const activeWorkoutTabValue: WorkoutPageTab =
     workoutPageTab === "Program Builder" ? "Saved Programs" : workoutPageTab;
 
+  // Unsaved work = builder open with content not yet persisted (a successful
+  // "Save Full Program" clears these). Used to guard against losing a build.
+  const hasUnsavedBuilderWork = () =>
+    (workoutPageTab === "Program Builder" || workoutPageTab === "Sessions") &&
+    (selectedProgramExercises.length > 0 || programSessions.length > 0);
+
+  const confirmLeaveBuilder = () =>
+    !hasUnsavedBuilderWork() ||
+    window.confirm(
+      "You have unsaved changes in the builder. Leave without saving? Use “Save Full Program” first to keep them."
+    );
+
   const selectWorkoutTab = (tab: WorkoutPageTab) => {
+    if (tab !== workoutPageTab && !confirmLeaveBuilder()) return;
     setWorkoutPageTab(tab);
     if (tab === "Saved Programs") loadPrograms(true);
     if (tab === "Sessions") {
@@ -9969,6 +10011,8 @@ function App() {
   // Navigate to a top-level page and trigger any data the page needs. Shared by
   // the grouped sidebar menu and any other in-app navigation.
   const goToPage = (page: Page) => {
+    if (page !== activePage && activePage === "Workouts" && !confirmLeaveBuilder())
+      return;
     setSelectedClient(null);
     setSelectedWorkout(null);
     setWorkoutDetails([]);
@@ -21721,6 +21765,14 @@ function App() {
                           <div key={w} className="programGridWeek">
                             <div className="programGridWeekLabel">
                               <span>Week {w}</span>
+                              {(() => {
+                                const v = weekVolume(w);
+                                return v.days > 0 ? (
+                                  <span className="weekVolChip">
+                                    {v.days}d · {v.sets} sets · {v.exercises} ex
+                                  </span>
+                                ) : null;
+                              })()}
                               {programSessions.some(
                                 (s) => s.week === String(w)
                               ) && (
@@ -23820,6 +23872,11 @@ function App() {
                                 <div className="mbOvWeek" key={w}>
                                   <div className="mbOvWeekHead">
                                     <strong>Week {w}</strong>
+                                    {days.length > 0 && (
+                                      <span className="weekVolChip">
+                                        {weekVolume(w).sets} sets
+                                      </span>
+                                    )}
                                     {days.length > 0 && (
                                       <button
                                         type="button"
