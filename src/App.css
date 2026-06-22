@@ -18547,7 +18547,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 .builderSetTableHeader,
 .builderSetTableRow {
   display: grid !important;
-  grid-template-columns: 56px minmax(100px, 1fr) minmax(72px, 0.62fr) minmax(82px, 0.72fr) minmax(90px, 0.78fr) minmax(118px, 1fr) !important;
+  grid-template-columns: 56px minmax(100px, 1fr) minmax(72px, 0.62fr) minmax(82px, 0.72fr) minmax(90px, 0.78fr) minmax(116px, 0.85fr) !important;
   align-items: center !important;
   gap: 6px !important;
 }
@@ -18573,7 +18573,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 /* %1RM column hidden ("Use %" off) — drop to 5 columns so cells stay aligned. */
 .builderSetTableHeader.builderSetTableNoPercent,
 .builderSetTableRow.builderSetTableNoPercent {
-  grid-template-columns: 56px minmax(100px, 1fr) minmax(82px, 0.72fr) minmax(90px, 0.78fr) minmax(118px, 1fr) !important;
+  grid-template-columns: 56px minmax(100px, 1fr) minmax(82px, 0.72fr) minmax(90px, 0.78fr) minmax(116px, 0.85fr) !important;
 }
 
 .builderSetTableHeader {
@@ -19055,14 +19055,14 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 
 .app:not(.clientPortalApp) .builderSetTableHeader,
 .app:not(.clientPortalApp) .builderSetTableRow {
-  grid-template-columns: 42px minmax(78px, 1fr) minmax(52px, 0.5fr) minmax(60px, 0.62fr) minmax(64px, 0.66fr) minmax(112px, 1.05fr) !important;
+  grid-template-columns: 42px minmax(78px, 1fr) minmax(52px, 0.5fr) minmax(60px, 0.62fr) minmax(64px, 0.66fr) minmax(116px, 0.85fr) !important;
   gap: 4px !important;
 }
 
 /* %1RM hidden ("Use %" off): coach-desktop 5-column layout. */
 .app:not(.clientPortalApp) .builderSetTableHeader.builderSetTableNoPercent,
 .app:not(.clientPortalApp) .builderSetTableRow.builderSetTableNoPercent {
-  grid-template-columns: 42px minmax(78px, 1fr) minmax(60px, 0.62fr) minmax(64px, 0.66fr) minmax(112px, 1.05fr) !important;
+  grid-template-columns: 42px minmax(78px, 1fr) minmax(60px, 0.62fr) minmax(64px, 0.66fr) minmax(116px, 0.85fr) !important;
 }
 
 /* Running exercises (Time/Distance): Set | Distance/Time | Zone | Rest */
@@ -21618,9 +21618,23 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 }
 
 /* Shared rest control (value + s/min) used by cardio and strength sets */
-.builderRestControl { display: flex; align-items: center; gap: 6px; }
-.builderRestControl .builderRestValue { flex: 1; min-width: 0; }
-.builderRestControl .builderIntervalUnit { flex: 0 0 auto; width: 66px; }
+/* Explicit grid so the duration input gets the space and the s/min dropdown
+   stays small, regardless of any flex overrides elsewhere. */
+.builderRestControl {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) 52px !important;
+  align-items: center !important;
+  gap: 6px !important;
+}
+.builderRestControl .builderRestValue {
+  width: 100% !important;
+  min-width: 0 !important;
+}
+.builderRestControl .builderIntervalUnit {
+  width: 52px !important;
+  min-width: 0 !important;
+  padding-inline: 4px !important;
+}
 .builderPaceRow { display: flex; align-items: center; gap: 4px; }
 .builderPaceRow .builderTimeValue { width: 52px; flex: 0 0 auto; }
 
