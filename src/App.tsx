@@ -2063,6 +2063,11 @@ function App() {
   const [builderMode, setBuilderMode] = useState<"Program" | "Single Workout">(
     "Program"
   );
+  // Desktop builder sub-tabs: the day-by-day "Build" canvas vs. the digital
+  // "Product Settings" panel.
+  const [builderSubTab, setBuilderSubTab] = useState<"build" | "product">(
+    "build"
+  );
   // "Create Program" details modal (Programming landing → blank builder).
   const [createProgramOpen, setCreateProgramOpen] = useState(false);
   const [createDraft, setCreateDraft] = useState({
@@ -5126,6 +5131,7 @@ function App() {
     setProgramDay("1");
     setSessionName("");
     setBuilderMode("Program");
+    setBuilderSubTab("build");
     setCreateProgramOpen(false);
     setWorkoutPageTab("Program Builder");
   };
@@ -20726,6 +20732,26 @@ function App() {
                     : "Multi-Day Program Builder"}
                 </h2>
 
+                {showDigitalProductSettings && (
+                  <div className="builderSubTabBar" role="tablist">
+                    <button
+                      type="button"
+                      className={builderSubTab === "build" ? "active" : ""}
+                      onClick={() => setBuilderSubTab("build")}
+                    >
+                      Build
+                    </button>
+                    <button
+                      type="button"
+                      className={builderSubTab === "product" ? "active" : ""}
+                      onClick={() => setBuilderSubTab("product")}
+                    >
+                      Product Settings
+                    </button>
+                  </div>
+                )}
+
+                {(builderSubTab === "build" || !showDigitalProductSettings) && (
                 <div className="mobileBuilderQuickNav" aria-label="Builder quick navigation">
                   {[
                     ["Details", "builder-details"],
@@ -20746,8 +20772,9 @@ function App() {
                     </button>
                   ))}
                 </div>
+                )}
 
-                {!isSingleWorkoutBuilder && (
+                {!isSingleWorkoutBuilder && builderSubTab === "build" && (
                 <details className="builderCollapsiblePanel" id="builder-details">
                   <summary>
                     <div>
@@ -20917,19 +20944,16 @@ function App() {
                 </details>
                 )}
 
-                {showDigitalProductSettings && (
-                  <details className="builderCollapsiblePanel builderProductPanel">
-                    <summary>
-                      <div>
-                        <span className="eyebrow">Digital Product</span>
-                        <strong>Product Settings</strong>
-                        <small>
-                          {programPrice || "--"} {programCurrency || "CNY"} /{" "}
-                          {programProductStatus || "Draft"}
-                        </small>
-                      </div>
-                      <span>Open</span>
-                    </summary>
+                {showDigitalProductSettings && builderSubTab === "product" && (
+                  <div className="builderProductPanel builderTabPanel">
+                    <div className="builderTabPanelHead">
+                      <span className="eyebrow">Digital Product</span>
+                      <strong>Product Settings</strong>
+                      <small>
+                        {programPrice || "--"} {programCurrency || "CNY"} /{" "}
+                        {programProductStatus || "Draft"}
+                      </small>
+                    </div>
 
                     <div className="programProductGrid">
                   <label>
@@ -21179,9 +21203,11 @@ function App() {
                     ))}
                   </div>
                     </div>
-                  </details>
+                  </div>
                 )}
 
+                {(builderSubTab === "build" || !showDigitalProductSettings) && (
+                <>
                 <div className="builderSectionHeader" id="builder-session">
                   <div>
                     <h3 className="builderSectionTitle">
@@ -22577,6 +22603,8 @@ function App() {
                     ))}
                   </div>
                 ))}
+                </>
+                )}
 
                 <button
                   className="goldButton saveWorkoutButton"

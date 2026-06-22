@@ -5246,6 +5246,97 @@ button.coachReviewGlobalItem,
   color: #aaa;
 }
 
+/* ---- Builder sub-tabs (Build / Product Settings) ---- */
+.builderSubTabBar {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  margin: 0 0 16px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(212, 175, 55, 0.2);
+}
+
+.builderSubTabBar button {
+  border: none;
+  background: transparent;
+  color: #cfcabb;
+  font-weight: 850;
+  font-size: 14px;
+  padding: 8px 18px;
+  border-radius: 9px;
+  cursor: pointer;
+}
+
+.builderSubTabBar button.active {
+  background: #111;
+  color: #d4af37;
+}
+
+.builderTabPanel {
+  border: 1px solid rgba(212, 175, 55, 0.22);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 16px;
+  margin-bottom: 18px;
+}
+
+.builderTabPanelHead {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.18);
+}
+
+.builderTabPanelHead .eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  font-size: 11px;
+  font-weight: 900;
+  color: #b08a1e;
+}
+
+.builderTabPanelHead strong {
+  font-size: 18px;
+  font-weight: 950;
+  color: #d4af37;
+}
+
+.builderTabPanelHead small {
+  color: #9a958a;
+  font-weight: 700;
+}
+
+/* Coach (light) theme */
+.app:not(.clientPortalApp) .builderSubTabBar {
+  background: #ece9e1;
+  border-color: #ddd7ca;
+}
+
+.app:not(.clientPortalApp) .builderSubTabBar button {
+  color: #4b4b45;
+}
+
+.app:not(.clientPortalApp) .builderSubTabBar button.active {
+  background: #111;
+  color: #d4af37;
+}
+
+.app:not(.clientPortalApp) .builderTabPanel {
+  border-color: #e2ddd1;
+  background: #ffffff;
+}
+
+.app:not(.clientPortalApp) .builderTabPanelHead {
+  border-bottom-color: #ece9e1;
+}
+
+.app:not(.clientPortalApp) .builderTabPanelHead strong {
+  color: #111;
+}
+
 /* ---- Program calendar (week-column slider builder) ---- */
 .programCalendar {
   display: flex;
