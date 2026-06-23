@@ -16591,8 +16591,8 @@ function App() {
       navInPerson: lZh ? "线下训练" : "In-Person",
       viewPrograms: lZh ? "查看训练计划" : "View Programs",
       coachLogin: lZh ? "教练登录" : "Coach Login",
-      heroEyebrow: lZh ? "奥运与职业级教练" : "Olympic & professional-level coaching",
-      heroTitle: lZh ? "顶级教练，尽在掌中。" : "Elite coaching, in your pocket.",
+      heroEyebrow: lZh ? "为训练而生" : "Built for Training",
+      heroTitle: lZh ? "像职业选手一样训练，就用手机。" : "Train like a professional, from your phone.",
       heroLead: lZh
         ? "奥运与职业级的训练计划与一对一教练——围绕你的项目、赛季和时间安排，提供循证、可执行的训练。一切尽在手机。"
         : "Olympic and professional-level programming and 1:1 coaching — evidence-based training built around your sport, your season, and your schedule. All from your phone.",
@@ -16833,11 +16833,7 @@ function App() {
           {/* Final CTA */}
           <section className="lv3FinalCta">
             <div className="lv3HeroGlow" aria-hidden="true" />
-            <h2>
-              {lZh
-                ? "为力量而生。为运动员而生。为训练而生。"
-                : "Built for power. Built for athletes. Built for Training."}
-            </h2>
+            <h2>{lZh ? "为训练而生。" : "Built for Training."}</h2>
             <p>
               {lZh
                 ? "从数字训练计划开始，或申请一对一线上 / 线下教练服务。"
