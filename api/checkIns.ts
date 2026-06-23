@@ -121,6 +121,25 @@ async function createRecord(token: string, fields: Record<string, any>) {
   return response.json();
 }
 
+async function updateRecord(
+  token: string,
+  recordId: string,
+  fields: Record<string, any>
+) {
+  const response = await fetch(
+    `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${process.env.FEISHU_CHECKINS_TABLE_ID}/records/${recordId}`,
+    {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ fields }),
+    }
+  );
+  return response.json();
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!process.env.FEISHU_CHECKINS_TABLE_ID) {
     return res.status(500).json({ error: "Missing FEISHU_CHECKINS_TABLE_ID" });
@@ -197,6 +216,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const {
+      recordId,
       clientId,
       clientRecordId,
       submittedDate,
@@ -214,9 +234,40 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       problemsPain,
       clientNotes,
       coachResponse,
+      coachReviewed,
       reviewedDate,
       status,
     } = req.body;
+
+    // Coach responding to / reviewing an existing check-in (update, not create).
+    if (recordId) {
+      const available = await getTableFieldNames(token);
+      const updateCandidate: Record<string, any> = {
+        "Coaches Notes": coachResponse,
+        "Coach Reviewed": coachReviewed === undefined ? true : Boolean(coachReviewed),
+        "Reviewed Date": toLarkDate(
+          reviewedDate || new Date().toISOString().split("T")[0]
+        ),
+      };
+      const updateFields: Record<string, any> = {};
+      for (const [name, value] of Object.entries(updateCandidate)) {
+        if (value === undefined || value === null) continue;
+        if (available && !available.has(name)) continue;
+        updateFields[name] = value;
+      }
+
+      const updateData = await updateRecord(token, recordId, updateFields);
+      if (updateData.code !== 0) {
+        return res.status(500).json({
+          error: "Could not update check-in",
+          larkResponse: updateData,
+          fieldsSent: updateFields,
+        });
+      }
+
+      invalidateCache("checkIns");
+      return res.status(200).json({ success: true, recordId, larkResponse: updateData });
+    }
 
     if (!clientId && !clientRecordId) {
       return res.status(400).json({ error: "Missing clientId or clientRecordId" });

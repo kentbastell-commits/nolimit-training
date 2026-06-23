@@ -1906,11 +1906,19 @@ function App() {
     WorkoutComment[]
   >([]);
   const [coachReviewWorkouts, setCoachReviewWorkouts] = useState<Workout[]>([]);
+  // Unreviewed check-ins across all clients + the coach's in-progress replies.
+  const [coachReviewCheckIns, setCoachReviewCheckIns] = useState<
+    (PortalCheckIn & { clientName?: string })[]
+  >([]);
+  const [checkInReplyDrafts, setCheckInReplyDrafts] = useState<
+    Record<string, string>
+  >({});
+  const [checkInReplySaving, setCheckInReplySaving] = useState("");
   const [coachReviewLoading, setCoachReviewLoading] = useState(false);
   const [coachReviewError, setCoachReviewError] = useState("");
   const [openReviewSections, setOpenReviewSections] = useState<
     Record<string, boolean>
-  >({ comments: true, missed: true, submissions: true });
+  >({ comments: true, missed: true, submissions: true, checkins: true });
   const toggleReviewSection = (key: string) =>
     setOpenReviewSections((prev) => ({ ...prev, [key]: !prev[key] }));
   const [activeContentAssignment, setActiveContentAssignment] =
@@ -4325,21 +4333,89 @@ function App() {
     return (data.workouts || []) as Workout[];
   };
 
+  // Unreviewed check-ins across every client, tagged with the client's name.
+  const fetchUnreviewedCheckIns = async () => {
+    const response = await fetch("/api/checkIns");
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data?.error || "Could not load check-ins.");
+    }
+    const all = (data.checkIns || []) as PortalCheckIn[];
+    return all
+      .filter((c) => !c.coachReviewed)
+      .map((c) => {
+        const match = clients.find(
+          (cl) =>
+            cl.clientCode === c.clientId ||
+            cl.id === c.clientId ||
+            cl.name === c.clientId
+        );
+        return { ...c, clientName: match?.name || c.clientId };
+      })
+      .sort((a, b) => b.submittedDate.localeCompare(a.submittedDate));
+  };
+
+  // Coach replies to a check-in: saves the note, marks it reviewed, and the
+  // athlete sees the reply in their portal.
+  const respondToCheckIn = async (checkIn: PortalCheckIn) => {
+    const text = (checkInReplyDrafts[checkIn.recordId] || "").trim();
+    if (!text) {
+      notify("Write a reply first.", "error");
+      return;
+    }
+    setCheckInReplySaving(checkIn.recordId);
+    try {
+      const response = await fetch("/api/checkIns", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          recordId: checkIn.recordId,
+          coachResponse: text,
+          coachReviewed: true,
+          reviewedDate: dateToInputValue(new Date()),
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        console.error(data);
+        notify("Could not send reply.", "error");
+        return;
+      }
+      setCoachReviewCheckIns((cur) =>
+        cur.filter((c) => c.recordId !== checkIn.recordId)
+      );
+      setCheckInReplyDrafts((cur) => {
+        const next = { ...cur };
+        delete next[checkIn.recordId];
+        return next;
+      });
+      notify("Reply sent.", "success");
+    } catch (error) {
+      console.error(error);
+      notify("Could not send reply.", "error");
+    } finally {
+      setCheckInReplySaving("");
+    }
+  };
+
   const loadCoachReviewQueue = async (force = false) => {
     setCoachReviewLoading(true);
     setCoachReviewError("");
 
     try {
-      const [, responses, comments, assignedWorkouts] = await Promise.all([
-        loadProductOrders(force),
-        fetchAllContentResponses(),
-        fetchAllWorkoutComments(),
-        fetchAllAssignedWorkouts(),
-      ]);
+      const [, responses, comments, assignedWorkouts, checkIns] =
+        await Promise.all([
+          loadProductOrders(force),
+          fetchAllContentResponses(),
+          fetchAllWorkoutComments(),
+          fetchAllAssignedWorkouts(),
+          fetchUnreviewedCheckIns(),
+        ]);
 
       setCoachReviewResponses(responses);
       setCoachReviewComments(comments);
       setCoachReviewWorkouts(assignedWorkouts);
+      setCoachReviewCheckIns(checkIns);
     } catch (error) {
       console.error(error);
       const message =
@@ -10734,6 +10810,7 @@ function App() {
   const reviewQueueCount =
     coachReviewComments.filter((comment) => !comment.reviewed).length +
     coachReviewResponses.length +
+    coachReviewCheckIns.length +
     productOrders.length;
 
   type NavLeaf = {
@@ -20243,9 +20320,133 @@ function App() {
                     <span>Order reviews</span>
                     <strong>{globalReviewOrders.length}</strong>
                   </button>
+                  <button
+                    type="button"
+                    className="coachReviewSummaryCard"
+                    onClick={() => focusReviewColumn("reviewColCheckins")}
+                  >
+                    <span>Check-ins</span>
+                    <strong>{coachReviewCheckIns.length}</strong>
+                  </button>
                 </div>
 
                 <div className="coachReviewBoard">
+                  <article
+                    id="reviewColCheckins"
+                    className={`coachReviewColumn ${
+                      reviewFlashColumn === "reviewColCheckins"
+                        ? "coachReviewColumnFlash"
+                        : ""
+                    }`}
+                  >
+                    <button
+                      type="button"
+                      className="coachReviewColumnHeader"
+                      aria-expanded={openReviewSections.checkins}
+                      onClick={() => toggleReviewSection("checkins")}
+                    >
+                      <div>
+                        <span>Needs review</span>
+                        <strong>Daily Check-ins</strong>
+                      </div>
+                      <div className="coachReviewHeaderRight">
+                        <em>{coachReviewCheckIns.length}</em>
+                        <ChevronDown
+                          size={18}
+                          className={`coachReviewChevron ${
+                            openReviewSections.checkins ? "open" : ""
+                          }`}
+                        />
+                      </div>
+                    </button>
+
+                    {openReviewSections.checkins && (
+                      <div className="coachReviewGlobalList">
+                        {coachReviewCheckIns.length === 0 && (
+                          <p className="coachReviewEmpty">
+                            No check-ins waiting for a reply.
+                          </p>
+                        )}
+                        {coachReviewCheckIns.map((checkIn) => {
+                          const metric = (label: string, value: string) =>
+                            value && String(value).trim()
+                              ? `${label} ${value}`
+                              : "";
+                          const stats = [
+                            metric("Energy", checkIn.energy),
+                            metric("Sleep", checkIn.sleepQuality),
+                            metric("Soreness", checkIn.soreness),
+                            metric("Mood", checkIn.mood),
+                            metric("Stress", checkIn.stress),
+                            metric("Readiness", checkIn.readinessScore),
+                            checkIn.bodyWeight
+                              ? `BW ${checkIn.bodyWeight}`
+                              : "",
+                          ].filter(Boolean);
+                          const notes = [
+                            checkIn.trainingNotes,
+                            checkIn.wins && `Wins: ${checkIn.wins}`,
+                            checkIn.problemsPain &&
+                              `Pain: ${checkIn.problemsPain}`,
+                            checkIn.clientNotes,
+                            checkIn.nutritionNotes &&
+                              `Nutrition: ${checkIn.nutritionNotes}`,
+                          ]
+                            .filter(Boolean)
+                            .join(" · ");
+                          return (
+                            <div
+                              key={checkIn.recordId}
+                              className="coachCheckInReviewCard"
+                            >
+                              <div className="coachCheckInReviewHead">
+                                <strong>
+                                  {clientLabel(checkIn.clientName || checkIn.clientId)}
+                                </strong>
+                                <small>{checkIn.submittedDate || "--"}</small>
+                              </div>
+                              {stats.length > 0 && (
+                                <div className="coachCheckInStats">
+                                  {stats.map((s) => (
+                                    <span key={s}>{s}</span>
+                                  ))}
+                                </div>
+                              )}
+                              {notes && (
+                                <p className="coachCheckInNotes">{notes}</p>
+                              )}
+                              <textarea
+                                className="coachCheckInReplyInput"
+                                placeholder="Write a reply to your athlete…"
+                                value={checkInReplyDrafts[checkIn.recordId] || ""}
+                                onChange={(e) =>
+                                  setCheckInReplyDrafts((cur) => ({
+                                    ...cur,
+                                    [checkIn.recordId]: e.target.value,
+                                  }))
+                                }
+                              />
+                              <div className="coachCheckInReplyActions">
+                                <button
+                                  type="button"
+                                  className="goldButton"
+                                  disabled={
+                                    checkInReplySaving === checkIn.recordId
+                                  }
+                                  onClick={() => void respondToCheckIn(checkIn)}
+                                >
+                                  {checkInReplySaving === checkIn.recordId
+                                    ? "Sending…"
+                                    : "Send reply"}
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </article>
+
                   <article
                     id="reviewColComments"
                     className={`coachReviewColumn ${
