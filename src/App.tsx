@@ -1670,6 +1670,21 @@ function App() {
     name: "",
     email: "",
     phone: "",
+    trainingFormat: "Online Coaching",
+    // Body basics
+    dob: "",
+    gender: "",
+    height: "",
+    weight: "",
+    // Training background
+    experience: "",
+    sport: "",
+    currentTraining: "",
+    // Availability & equipment
+    daysPerWeek: "",
+    sessionLength: "",
+    equipment: "",
+    // Goals / free text
     goals: "",
     notes: "",
   });
@@ -2529,13 +2544,41 @@ function App() {
     setSubmittingInvite(true);
 
     try {
+      // Format every intake answer into a clean labeled block in the client's
+      // notes (no schema change), so the coach reads the full intake in-profile.
+      const line = (label: string, value: string) =>
+        value && value.trim() ? `${label}: ${value.trim()}` : "";
       const inviteNotes = [
-        "Created from invite intake.",
-        inviteForm.goals ? `Goal: ${inviteForm.goals}` : "",
-        inviteForm.notes ? `Notes: ${inviteForm.notes}` : "",
+        "— CLIENT INTAKE —",
+        line("Training format", inviteForm.trainingFormat),
+        line("Main goal", inviteForm.goals),
+        "",
+        "Body",
+        line("Date of birth", inviteForm.dob),
+        line("Gender", inviteForm.gender),
+        line("Height", inviteForm.height),
+        line("Current weight", inviteForm.weight),
+        "",
+        "Training background",
+        line("Experience", inviteForm.experience),
+        line("Sport / focus", inviteForm.sport),
+        line("Current training", inviteForm.currentTraining),
+        "",
+        "Availability & equipment",
+        line("Days per week", inviteForm.daysPerWeek),
+        line("Session length", inviteForm.sessionLength),
+        line("Equipment", inviteForm.equipment),
+        "",
+        line("Anything else", inviteForm.notes),
       ]
-        .filter(Boolean)
-        .join("\n");
+        // Drop empty value-lines but keep section headers that have content.
+        .filter((l, i, arr) => {
+          if (l !== "") return true;
+          // keep a blank separator only if the previous kept line wasn't blank
+          return i > 0 && arr[i - 1] !== "";
+        })
+        .join("\n")
+        .trim();
 
       const response = await fetch("/api/createClient", {
         method: "POST",
@@ -2547,6 +2590,7 @@ function App() {
           email: inviteForm.email,
           phone: inviteForm.phone,
           coach: "Kent Bastell",
+          clientType: inviteForm.trainingFormat,
           packageType: publicInvitePackage,
           startDate: dateToInputValue(new Date()),
           notes: inviteNotes,
@@ -18190,7 +18234,7 @@ function App() {
               <div className="brandTagline">INSPIRED BY MOVEMENT.</div>
             </div>
             <div className="inviteBrandRight">
-              <span>{publicInvitePackage}</span>
+              <span>{iZh ? "客户信息表" : "Coaching Intake"}</span>
               <button
                 className="outlineButton inviteLangToggle"
                 onClick={() => setInviteLang(iZh ? "en" : "zh")}
@@ -18244,11 +18288,12 @@ function App() {
                 <h1>{iZh ? "客户信息表" : "Client Intake"}</h1>
                 <p>
                   {iZh
-                    ? "请填写基本信息，以便在分配训练计划之前建立您的训练档案。"
-                    : "Share the basics so your training profile can be set up before your first program is assigned."}
+                    ? "请填写以下信息，以便教练在您第一次训练前为您制定合适的计划。"
+                    : "Share a few details so your coach can build the right program before your first session."}
                 </p>
               </div>
 
+              {/* Contact + training format */}
               <div className="inviteFormGrid">
                 <label>
                   <span>{iZh ? "姓名" : "Full Name"}</span>
@@ -18259,6 +18304,26 @@ function App() {
                     }
                     placeholder={iZh ? "您的姓名" : "Your name"}
                   />
+                </label>
+
+                <label>
+                  <span>{iZh ? "训练方式" : "Training Format"}</span>
+                  <select
+                    value={inviteForm.trainingFormat}
+                    onChange={(e) =>
+                      setInviteForm({
+                        ...inviteForm,
+                        trainingFormat: e.target.value,
+                      })
+                    }
+                  >
+                    <option value="Online Coaching">
+                      {iZh ? "线上指导" : "Online Coaching"}
+                    </option>
+                    <option value="In-Person Training">
+                      {iZh ? "线下私教" : "In-Person Training"}
+                    </option>
+                  </select>
                 </label>
 
                 <label>
@@ -18283,8 +18348,193 @@ function App() {
                     placeholder={iZh ? "最佳联系方式" : "Best contact"}
                   />
                 </label>
+              </div>
+
+              {/* About you */}
+              <h2 className="inviteSectionTitle">
+                {iZh ? "身体信息" : "About You"}
+              </h2>
+              <div className="inviteFormGrid">
+                <label>
+                  <span>{iZh ? "出生日期" : "Date of Birth"}</span>
+                  <input
+                    type="date"
+                    value={inviteForm.dob}
+                    onChange={(e) =>
+                      setInviteForm({ ...inviteForm, dob: e.target.value })
+                    }
+                  />
+                </label>
 
                 <label>
+                  <span>{iZh ? "性别" : "Gender"}</span>
+                  <select
+                    value={inviteForm.gender}
+                    onChange={(e) =>
+                      setInviteForm({ ...inviteForm, gender: e.target.value })
+                    }
+                  >
+                    <option value="">{iZh ? "请选择" : "Select"}</option>
+                    <option value="Male">{iZh ? "男" : "Male"}</option>
+                    <option value="Female">{iZh ? "女" : "Female"}</option>
+                    <option value="Other">
+                      {iZh ? "其他 / 不愿透露" : "Other / Prefer not to say"}
+                    </option>
+                  </select>
+                </label>
+
+                <label>
+                  <span>{iZh ? "身高" : "Height"}</span>
+                  <input
+                    value={inviteForm.height}
+                    onChange={(e) =>
+                      setInviteForm({ ...inviteForm, height: e.target.value })
+                    }
+                    placeholder={iZh ? "例如 175 cm" : "e.g. 175 cm"}
+                  />
+                </label>
+
+                <label>
+                  <span>{iZh ? "当前体重" : "Current Weight"}</span>
+                  <input
+                    value={inviteForm.weight}
+                    onChange={(e) =>
+                      setInviteForm({ ...inviteForm, weight: e.target.value })
+                    }
+                    placeholder={iZh ? "例如 70 kg" : "e.g. 70 kg"}
+                  />
+                </label>
+              </div>
+
+              {/* Training background */}
+              <h2 className="inviteSectionTitle">
+                {iZh ? "训练背景" : "Training Background"}
+              </h2>
+              <div className="inviteFormGrid">
+                <label>
+                  <span>{iZh ? "训练经验" : "Experience Level"}</span>
+                  <select
+                    value={inviteForm.experience}
+                    onChange={(e) =>
+                      setInviteForm({
+                        ...inviteForm,
+                        experience: e.target.value,
+                      })
+                    }
+                  >
+                    <option value="">{iZh ? "请选择" : "Select"}</option>
+                    <option value="Beginner">
+                      {iZh ? "初级（不足 1 年）" : "Beginner (under 1 yr)"}
+                    </option>
+                    <option value="Intermediate">
+                      {iZh ? "中级（1–3 年）" : "Intermediate (1–3 yrs)"}
+                    </option>
+                    <option value="Advanced">
+                      {iZh ? "高级（3 年以上）" : "Advanced (3+ yrs)"}
+                    </option>
+                  </select>
+                </label>
+
+                <label>
+                  <span>{iZh ? "运动 / 专项" : "Sport / Focus"}</span>
+                  <input
+                    value={inviteForm.sport}
+                    onChange={(e) =>
+                      setInviteForm({ ...inviteForm, sport: e.target.value })
+                    }
+                    placeholder={
+                      iZh ? "攀岩、力量、HYROX..." : "Climbing, strength, HYROX..."
+                    }
+                  />
+                </label>
+
+                <label className="inviteWideField">
+                  <span>{iZh ? "目前的训练" : "Current Training"}</span>
+                  <textarea
+                    value={inviteForm.currentTraining}
+                    onChange={(e) =>
+                      setInviteForm({
+                        ...inviteForm,
+                        currentTraining: e.target.value,
+                      })
+                    }
+                    placeholder={
+                      iZh
+                        ? "您目前的训练内容和频率..."
+                        : "What you currently do and how often..."
+                    }
+                  />
+                </label>
+              </div>
+
+              {/* Availability & equipment */}
+              <h2 className="inviteSectionTitle">
+                {iZh ? "时间与器械" : "Availability & Equipment"}
+              </h2>
+              <div className="inviteFormGrid">
+                <label>
+                  <span>{iZh ? "每周训练天数" : "Days per Week"}</span>
+                  <select
+                    value={inviteForm.daysPerWeek}
+                    onChange={(e) =>
+                      setInviteForm({
+                        ...inviteForm,
+                        daysPerWeek: e.target.value,
+                      })
+                    }
+                  >
+                    <option value="">{iZh ? "请选择" : "Select"}</option>
+                    {["1", "2", "3", "4", "5", "6", "7"].map((d) => (
+                      <option key={d} value={d}>
+                        {d}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label>
+                  <span>{iZh ? "每次时长" : "Session Length"}</span>
+                  <input
+                    value={inviteForm.sessionLength}
+                    onChange={(e) =>
+                      setInviteForm({
+                        ...inviteForm,
+                        sessionLength: e.target.value,
+                      })
+                    }
+                    placeholder={iZh ? "例如 60 分钟" : "e.g. 60 min"}
+                  />
+                </label>
+
+                <label>
+                  <span>{iZh ? "器械条件" : "Equipment Access"}</span>
+                  <select
+                    value={inviteForm.equipment}
+                    onChange={(e) =>
+                      setInviteForm({ ...inviteForm, equipment: e.target.value })
+                    }
+                  >
+                    <option value="">{iZh ? "请选择" : "Select"}</option>
+                    <option value="Full gym">
+                      {iZh ? "全套健身房" : "Full gym"}
+                    </option>
+                    <option value="Home gym">
+                      {iZh ? "家庭健身房" : "Home gym"}
+                    </option>
+                    <option value="Minimal equipment">
+                      {iZh ? "少量器械" : "Minimal equipment"}
+                    </option>
+                    <option value="Bodyweight only">
+                      {iZh ? "仅自重" : "Bodyweight only"}
+                    </option>
+                  </select>
+                </label>
+              </div>
+
+              {/* Goals */}
+              <h2 className="inviteSectionTitle">{iZh ? "目标" : "Goals"}</h2>
+              <div className="inviteFormGrid">
+                <label className="inviteWideField">
                   <span>{iZh ? "主要目标" : "Main Goal"}</span>
                   <input
                     value={inviteForm.goals}
@@ -18292,14 +18542,16 @@ function App() {
                       setInviteForm({ ...inviteForm, goals: e.target.value })
                     }
                     placeholder={
-                      iZh ? "增肌、减脂、耐力..." : "Strength, climbing, fat loss..."
+                      iZh ? "增肌、减脂、耐力..." : "Strength, fat loss, endurance..."
                     }
                   />
                 </label>
 
                 <label className="inviteWideField">
                   <span>
-                    {iZh ? "Kent 需要了解的其他信息" : "Anything Kent should know?"}
+                    {iZh
+                      ? "其他信息（伤病、时间安排等）"
+                      : "Anything else? (injuries, schedule, etc.)"}
                   </span>
                   <textarea
                     value={inviteForm.notes}
@@ -18308,8 +18560,8 @@ function App() {
                     }
                     placeholder={
                       iZh
-                        ? "训练经历、伤病、时间安排、器械条件..."
-                        : "Training history, injuries, schedule, equipment..."
+                        ? "伤病史、时间限制、其他需要教练了解的信息..."
+                        : "Injuries, time constraints, anything your coach should know..."
                     }
                   />
                 </label>
