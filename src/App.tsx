@@ -7137,6 +7137,25 @@ function App() {
     setAlternatePickerExercise(null);
   };
 
+  // The athlete's most-recent logged weight for this exercise + set, shown as a
+  // greyed placeholder in the player so they know what to beat. Read-only — it
+  // never fills the field, only hints.
+  const lastLoggedWeight = (log: SetLog): string => {
+    const base = log.exerciseName.split(" - ")[0].trim().toLowerCase();
+    if (!base) return "";
+    const matches = workoutHistoryLogs.filter(
+      (h) =>
+        h.exerciseName.split(" - ")[0].trim().toLowerCase() === base &&
+        String(h.setNumber) === String(log.setNumber) &&
+        String(h.actualWeight || "").trim()
+    );
+    if (!matches.length) return "";
+    matches.sort((a, b) =>
+      String(b.date || "").localeCompare(String(a.date || ""))
+    );
+    return String(matches[0].actualWeight).trim();
+  };
+
   const updateSetLog = (index: number, field: keyof SetLog, value: string) => {
     // Coach is reviewing a completed workout — values are read-only.
     if (coachReviewMode) return;
@@ -32495,7 +32514,9 @@ function App() {
                                         <input
                                           inputMode="decimal"
                                           value={log.actualWeight}
-                                          placeholder={weightUnit}
+                                          placeholder={
+                                            lastLoggedWeight(log) || weightUnit
+                                          }
                                           onChange={(e) =>
                                             updateSetLog(
                                               globalIndex,
