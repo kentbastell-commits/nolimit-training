@@ -25593,3 +25593,73 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   .lv3PathCard { padding: 28px 22px; }
   .lv3InPerson { padding: 32px 24px; }
 }
+/* =========================================================================
+   Store: align with the landing (lv3) light + accent system
+   ========================================================================= */
+/* Catalog front-and-center: hero -> catalog -> programs -> how -> rest */
+.storeMainV2 { display: flex; flex-direction: column; }
+.storeMainV2 > *:nth-child(1) { order: 1; } /* hero */
+.storeMainV2 > *:nth-child(2) { order: 4; } /* how it works */
+.storeMainV2 > *:nth-child(3) { order: 2; } /* sports catalog tiles */
+.storeMainV2 > *:nth-child(4) { order: 3; } /* available programs */
+.storeMainV2 > *:nth-child(5) { order: 5; } /* what you get */
+.storeMainV2 > *:nth-child(6) { order: 6; } /* contact */
+
+/* Ox-blood eyebrows + electric-blue step numbers (matches landing) */
+.storeEyebrowV2 { color: #8b1e2d; }
+.storeHowNumV2 { color: #3a86ff; }
+
+/* Bigger, bolder hero headline to match the landing */
+.storeHeroCopyV2 h1 {
+  font-size: clamp(2.2rem, 5.5vw, 3.6rem);
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  line-height: 1.04;
+}
+
+/* Category tiles: electric-blue active state */
+.storeCategoryCardV2 { transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease; }
+.storeCategoryCardV2:hover { transform: translateY(-2px); }
+.storeCategoryCardV2.active {
+  border-color: #3a86ff;
+  box-shadow: 0 12px 30px rgba(58, 134, 255, 0.16);
+}
+.storeCategoryCardV2.active strong { color: #1f5fd0; }
+
+/* Program cards: lift + gold price, matching lv3ProgramCard */
+.storeProductCardV2 { transition: transform 0.15s ease, box-shadow 0.15s ease; }
+.storeProductCardV2:hover { transform: translateY(-4px); box-shadow: 0 18px 44px rgba(14, 14, 13, 0.1); }
+
+/* Nav "enter app" / primary store buttons -> bright gold like the landing */
+.storeNavActionsV2 a:last-child,
+.storeBuyBtnV2,
+.storeRegisterBtnV2 {
+  background: #d4af37;
+  color: #0e0e0d;
+  border: none;
+  font-weight: 800;
+}
+.storeNavActionsV2 a:last-child:hover,
+.storeBuyBtnV2:hover,
+.storeRegisterBtnV2:hover {
+  background: #c5a02f;
+  color: #0e0e0d;
+}
+
+/* Section intros: bolder headings, matching landing rhythm */
+.storeSectionIntroV2 h2 {
+  font-size: clamp(1.7rem, 4vw, 2.5rem);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+/* "What you get" / contact: a single charcoal contrast band like the landing's in-person */
+.storeContactV2 {
+  background: #161514;
+  border-radius: 26px;
+  padding: clamp(32px, 6vw, 56px) clamp(24px, 5vw, 48px);
+  margin: clamp(16px, 4vw, 40px) clamp(16px, 5vw, 56px);
+}
+.storeContactV2 .storeEyebrowV2 { color: #d4af37; }
+.storeContactV2 h2 { color: #f4f1ea; }
+.storeContactV2 p { color: #c9c6bc; }
