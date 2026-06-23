@@ -1557,6 +1557,7 @@ function App() {
   }, [i18n.language]);
   const inviteSearchParams = new URLSearchParams(window.location.search);
   const isClientInvite = inviteSearchParams.get("invite") === "client";
+  const isInPersonEnquiry = inviteSearchParams.get("enquiry") === "inperson";
   const isClientPortal = inviteSearchParams.get("portal") === "client";
   const isCoachView = inviteSearchParams.get("view") === "coach";
   const publicPath = window.location.pathname.replace(/\/+$/, "") || "/";
@@ -1566,7 +1567,11 @@ function App() {
   const isStorePage =
     inviteSearchParams.get("page") === "store" || publicPath === "/store";
   const isPublicLandingPage =
-    !isStorePage && !isClientPortal && !isClientInvite && !isCoachView;
+    !isStorePage &&
+    !isClientPortal &&
+    !isClientInvite &&
+    !isInPersonEnquiry &&
+    !isCoachView;
   const clientPortalCode = (
     inviteSearchParams.get("client") ||
     inviteSearchParams.get("clientCode") ||
@@ -1693,6 +1698,17 @@ function App() {
   const [inviteSubmitted, setInviteSubmitted] = useState(false);
   const [inviteClientId, setInviteClientId] = useState("");
   const [inviteLang, setInviteLang] = useState<"en" | "zh">("en");
+  // In-person training & consulting enquiry form.
+  const [enquiryForm, setEnquiryForm] = useState({
+    contactPerson: "",
+    contact: "",
+    organization: "",
+    athletes: "",
+    duration: "",
+    notes: "",
+  });
+  const [submittingEnquiry, setSubmittingEnquiry] = useState(false);
+  const [enquirySubmitted, setEnquirySubmitted] = useState(false);
   const [storeLang, setStoreLang] = useState<"en" | "zh">("en");
   const [storeLauncherOpen, setStoreLauncherOpen] = useState(false);
   const [storeLauncherClient, setStoreLauncherClient] = useState("");
@@ -1915,11 +1931,13 @@ function App() {
     Record<string, string>
   >({});
   const [checkInReplySaving, setCheckInReplySaving] = useState("");
+  // In-person enquiries waiting for the coach to action.
+  const [coachReviewEnquiries, setCoachReviewEnquiries] = useState<any[]>([]);
   const [coachReviewLoading, setCoachReviewLoading] = useState(false);
   const [coachReviewError, setCoachReviewError] = useState("");
   const [openReviewSections, setOpenReviewSections] = useState<
     Record<string, boolean>
-  >({ comments: true, missed: true, submissions: true, checkins: true });
+  >({ comments: true, missed: true, submissions: true, checkins: true, enquiries: true });
   const toggleReviewSection = (key: string) =>
     setOpenReviewSections((prev) => ({ ...prev, [key]: !prev[key] }));
   const [activeContentAssignment, setActiveContentAssignment] =
@@ -2621,6 +2639,38 @@ function App() {
       notify("Could not submit invite form.", "error");
     } finally {
       setSubmittingInvite(false);
+    }
+  };
+
+  const submitEnquiry = async () => {
+    if (!enquiryForm.contactPerson.trim()) {
+      notify("Please enter a contact person.", "error");
+      return;
+    }
+    if (!enquiryForm.contact.trim()) {
+      notify("Please add a WeChat or email so we can reach you.", "error");
+      return;
+    }
+    setSubmittingEnquiry(true);
+    try {
+      const response = await fetch("/api/inPersonEnquiry", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(enquiryForm),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        console.error(data);
+        notify("Could not send your enquiry. Please try again.", "error");
+        return;
+      }
+      setEnquirySubmitted(true);
+      notify("Enquiry sent.", "success");
+    } catch (error) {
+      console.error(error);
+      notify("Could not send your enquiry.", "error");
+    } finally {
+      setSubmittingEnquiry(false);
     }
   };
 
@@ -4356,6 +4406,14 @@ function App() {
       .sort((a, b) => b.submittedDate.localeCompare(a.submittedDate));
   };
 
+  // In-person training / consulting enquiries (newest first).
+  const fetchEnquiries = async () => {
+    const response = await fetch("/api/enquiries");
+    const data = await response.json();
+    if (!response.ok) return [];
+    return (data.enquiries || []) as any[];
+  };
+
   // Coach replies to a check-in: saves the note, marks it reviewed, and the
   // athlete sees the reply in their portal.
   const respondToCheckIn = async (checkIn: PortalCheckIn) => {
@@ -4404,19 +4462,21 @@ function App() {
     setCoachReviewError("");
 
     try {
-      const [, responses, comments, assignedWorkouts, checkIns] =
+      const [, responses, comments, assignedWorkouts, checkIns, enquiryList] =
         await Promise.all([
           loadProductOrders(force),
           fetchAllContentResponses(),
           fetchAllWorkoutComments(),
           fetchAllAssignedWorkouts(),
           fetchUnreviewedCheckIns(),
+          fetchEnquiries(),
         ]);
 
       setCoachReviewResponses(responses);
       setCoachReviewComments(comments);
       setCoachReviewWorkouts(assignedWorkouts);
       setCoachReviewCheckIns(checkIns);
+      setCoachReviewEnquiries(enquiryList);
     } catch (error) {
       console.error(error);
       const message =
@@ -10808,10 +10868,14 @@ function App() {
     }
   };
 
+  const newEnquiries = coachReviewEnquiries.filter(
+    (e) => (e.status || "New").toLowerCase() === "new"
+  );
   const reviewQueueCount =
     coachReviewComments.filter((comment) => !comment.reviewed).length +
     coachReviewResponses.length +
     coachReviewCheckIns.length +
+    newEnquiries.length +
     productOrders.length;
 
   type NavLeaf = {
@@ -16696,13 +16760,13 @@ function App() {
             </div>
           </section>
 
-          {/* Two ways to train — the core dual path */}
+          {/* Three ways to train */}
           <section className="lv3Paths" id="paths">
             <div className="lv3SectionHead">
               <span className="lv3Eyebrow">{lZh ? "选择你的路径" : "Choose your path"}</span>
-              <h2>{lZh ? "两种方式，开始训练。" : "Two ways to train."}</h2>
+              <h2>{lZh ? "三种方式，开始训练。" : "Three ways to train."}</h2>
             </div>
-            <div className="lv3PathGrid">
+            <div className="lv3PathGrid lv3PathGrid3">
               <article className="lv3PathCard">
                 <div className="lv3PathIcon">
                   <BookOpen size={26} strokeWidth={2.4} />
@@ -16729,12 +16793,12 @@ function App() {
                 <div className="lv3PathIcon">
                   <Users size={26} strokeWidth={2.4} />
                 </div>
-                <h3>{lZh ? "一对一教练" : "1:1 Coaching"}</h3>
+                <h3>{lZh ? "线上一对一训练" : "Online 1:1 Training"}</h3>
                 <p>{landingCopy.coachingBody}</p>
                 <ul>
                   {(lZh
-                    ? ["30 分钟咨询", "每周反馈", "线上或线下"]
-                    : ["30-min consult", "Weekly check-ins", "Online or in-person"]
+                    ? ["30 分钟咨询", "每周反馈", "完全线上，灵活安排"]
+                    : ["30-min consult", "Weekly check-ins", "Fully online, on your schedule"]
                   ).map((h) => (
                     <li key={h}>
                       <Check size={15} /> {h}
@@ -16745,6 +16809,41 @@ function App() {
                   {lZh ? "一对一训练" : "Train with us 1:1"}
                   <ArrowRight size={17} />
                 </a>
+              </article>
+
+              <article className="lv3PathCard lv3PathCardOx">
+                <div className="lv3PathIcon">
+                  <Shield size={26} strokeWidth={2.4} />
+                </div>
+                <h3>
+                  {lZh ? "线下训练与咨询" : "In-Person Training & Consulting"}
+                </h3>
+                <p>
+                  {lZh
+                    ? "我们的教练可受聘于国家队、省队、俱乐部、学校或个人，提供线下训练，或提供咨询服务，如讲座、表现规划路线图与康复指导。"
+                    : "Our coaches can be contracted by national and provincial programs, clubs, schools, or individuals — to train athletes in person, or for consulting such as presentations, performance roadmapping, and rehabilitation."}
+                </p>
+                <ul>
+                  {(lZh
+                    ? ["国家队 / 省队 / 俱乐部 / 学校", "线下训练运动员", "讲座 · 规划 · 康复"]
+                    : [
+                        "National · provincial · club · school",
+                        "In-person athlete training",
+                        "Presentations · roadmapping · rehab",
+                      ]
+                  ).map((h) => (
+                    <li key={h}>
+                      <Check size={15} /> {h}
+                    </li>
+                  ))}
+                </ul>
+                <a className="lv3BtnOx lv3PathBtn" href="/?enquiry=inperson">
+                  {lZh ? "线下合作咨询" : "Train with us In-Person"}
+                  <ArrowRight size={17} />
+                </a>
+                <small className="lv3PathFootnote">
+                  {lZh ? "视档期而定。" : "Subject to availability."}
+                </small>
               </article>
             </div>
           </section>
@@ -17686,6 +17785,157 @@ function App() {
           <img src="/nl_wordmark_black.png" alt="No Limit" />
           <span>{sZh ? "为训练而生。" : "Built for Training."}</span>
         </footer>
+      </div>
+    );
+  }
+
+  if (isInPersonEnquiry) {
+    const iZh = inviteLang === "zh";
+    return (
+      <div className="invitePage">
+        <div className="toastStack">
+          {toasts.map((toast) => (
+            <div className={`toast toast-${toast.type}`} key={toast.id}>
+              {toast.message}
+            </div>
+          ))}
+        </div>
+
+        <main className="inviteShell">
+          <div className="inviteBrand">
+            <div>
+              <div className="brandWordmark brandLogoLockup">
+                <img
+                  src="/nl_wordmark_clean.png"
+                  alt="NO LIMIT"
+                  className="brandWordmarkImage"
+                />
+              </div>
+              <div className="brandTagline">BUILT FOR TRAINING.</div>
+            </div>
+            <div className="inviteBrandRight">
+              <span>{iZh ? "线下合作咨询" : "In-Person Enquiry"}</span>
+              <button
+                className="outlineButton inviteLangToggle"
+                onClick={() => setInviteLang(iZh ? "en" : "zh")}
+              >
+                {iZh ? "English" : "中文"}
+              </button>
+            </div>
+          </div>
+
+          {enquirySubmitted ? (
+            <section className="inviteSuccess">
+              <h1>{iZh ? "已收到" : "Enquiry sent"}</h1>
+              <p>
+                {iZh
+                  ? "感谢你的咨询。我们会尽快与你联系，讨论线下训练或咨询合作。视档期而定。"
+                  : "Thanks for reaching out. We'll be in touch to discuss in-person training or consulting. Subject to availability."}
+              </p>
+            </section>
+          ) : (
+            <section className="inviteCard">
+              <div className="inviteIntro">
+                <h1>{iZh ? "线下训练与咨询" : "In-Person Training & Consulting"}</h1>
+                <p>
+                  {iZh
+                    ? "面向国家队、省队、俱乐部、学校或个人——线下训练运动员，或提供讲座、表现规划与康复等咨询服务。填写下方表单，或扫码加微信。"
+                    : "For national and provincial programs, clubs, schools, or individuals — in-person athlete training, or consulting like presentations, performance roadmapping and rehabilitation. Send the form below, or scan to reach us on WeChat."}
+                </p>
+              </div>
+
+              <div className="inviteFormGrid">
+                <label>
+                  <span>{iZh ? "联系人" : "Contact Person"}</span>
+                  <input
+                    value={enquiryForm.contactPerson}
+                    onChange={(e) =>
+                      setEnquiryForm({ ...enquiryForm, contactPerson: e.target.value })
+                    }
+                    placeholder={iZh ? "你的姓名" : "Your name"}
+                  />
+                </label>
+                <label>
+                  <span>{iZh ? "微信 / 邮箱" : "WeChat / Email"}</span>
+                  <input
+                    value={enquiryForm.contact}
+                    onChange={(e) =>
+                      setEnquiryForm({ ...enquiryForm, contact: e.target.value })
+                    }
+                    placeholder={iZh ? "最佳联系方式" : "Best way to reach you"}
+                  />
+                </label>
+                <label>
+                  <span>{iZh ? "团队 / 机构" : "Team / Organization"}</span>
+                  <input
+                    value={enquiryForm.organization}
+                    onChange={(e) =>
+                      setEnquiryForm({ ...enquiryForm, organization: e.target.value })
+                    }
+                    placeholder={iZh ? "国家队、俱乐部、学校..." : "National team, club, school..."}
+                  />
+                </label>
+                <label>
+                  <span>{iZh ? "训练人数" : "How many athletes"}</span>
+                  <input
+                    value={enquiryForm.athletes}
+                    onChange={(e) =>
+                      setEnquiryForm({ ...enquiryForm, athletes: e.target.value })
+                    }
+                    placeholder={iZh ? "例如 12" : "e.g. 12"}
+                  />
+                </label>
+                <label>
+                  <span>{iZh ? "合作时长" : "Contract duration"}</span>
+                  <input
+                    value={enquiryForm.duration}
+                    onChange={(e) =>
+                      setEnquiryForm({ ...enquiryForm, duration: e.target.value })
+                    }
+                    placeholder={iZh ? "例如 8 周 / 一个赛季" : "e.g. 8 weeks / one season"}
+                  />
+                </label>
+                <label className="inviteWideField">
+                  <span>{iZh ? "特别说明" : "Special notes"}</span>
+                  <textarea
+                    value={enquiryForm.notes}
+                    onChange={(e) =>
+                      setEnquiryForm({ ...enquiryForm, notes: e.target.value })
+                    }
+                    placeholder={
+                      iZh
+                        ? "运动项目、目标、地点、是否需要咨询（讲座 / 规划 / 康复）..."
+                        : "Sport, goals, location, or consulting needs (presentations / roadmapping / rehab)..."
+                    }
+                  />
+                </label>
+              </div>
+
+              <div className="enquiryQrRow">
+                <img
+                  src="https://i.ibb.co/Y4nXVG4g/Weixin-Image-20260611202846-56-2.jpg"
+                  alt="WeChat QR"
+                />
+                <span>{iZh ? "或扫码加微信咨询" : "Or scan to ask on WeChat"}</span>
+              </div>
+
+              <div className="inviteActions">
+                <button
+                  className="goldButton"
+                  onClick={() => void submitEnquiry()}
+                  disabled={submittingEnquiry}
+                >
+                  {submittingEnquiry
+                    ? iZh ? "提交中..." : "Sending..."
+                    : iZh ? "提交咨询" : "Send Enquiry"}
+                </button>
+              </div>
+              <p className="enquiryFootnote">
+                {iZh ? "线下合作视档期而定。" : "In-person work is subject to availability."}
+              </p>
+            </section>
+          )}
+        </main>
       </div>
     );
   }
@@ -19736,9 +19986,83 @@ function App() {
                     <span>Check-ins</span>
                     <strong>{coachReviewCheckIns.length}</strong>
                   </button>
+                  <button
+                    type="button"
+                    className="coachReviewSummaryCard"
+                    onClick={() => focusReviewColumn("reviewColEnquiries")}
+                  >
+                    <span>In-person enquiries</span>
+                    <strong>{newEnquiries.length}</strong>
+                  </button>
                 </div>
 
                 <div className="coachReviewBoard">
+                  <article
+                    id="reviewColEnquiries"
+                    className={`coachReviewColumn ${
+                      reviewFlashColumn === "reviewColEnquiries"
+                        ? "coachReviewColumnFlash"
+                        : ""
+                    }`}
+                  >
+                    <button
+                      type="button"
+                      className="coachReviewColumnHeader"
+                      aria-expanded={openReviewSections.enquiries}
+                      onClick={() => toggleReviewSection("enquiries")}
+                    >
+                      <div>
+                        <span>Needs follow-up</span>
+                        <strong>In-Person Enquiries</strong>
+                      </div>
+                      <div className="coachReviewHeaderRight">
+                        <em>{newEnquiries.length}</em>
+                        <ChevronDown
+                          size={18}
+                          className={`coachReviewChevron ${
+                            openReviewSections.enquiries ? "open" : ""
+                          }`}
+                        />
+                      </div>
+                    </button>
+
+                    {openReviewSections.enquiries && (
+                      <div className="coachReviewGlobalList">
+                        {coachReviewEnquiries.length === 0 && (
+                          <p className="coachReviewEmpty">
+                            No in-person enquiries yet.
+                          </p>
+                        )}
+                        {coachReviewEnquiries.map((enq) => (
+                          <div
+                            key={enq.recordId}
+                            className="coachCheckInReviewCard"
+                          >
+                            <div className="coachCheckInReviewHead">
+                              <strong>
+                                {enq.organization || enq.contactPerson || "Enquiry"}
+                              </strong>
+                              <small>{enq.submittedDate || "--"}</small>
+                            </div>
+                            <div className="coachCheckInStats">
+                              {enq.contactPerson && (
+                                <span>{enq.contactPerson}</span>
+                              )}
+                              {enq.contact && <span>{enq.contact}</span>}
+                              {enq.athletes && (
+                                <span>{enq.athletes} athletes</span>
+                              )}
+                              {enq.duration && <span>{enq.duration}</span>}
+                            </div>
+                            {enq.notes && (
+                              <p className="coachCheckInNotes">{enq.notes}</p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </article>
+
                   <article
                     id="reviewColCheckins"
                     className={`coachReviewColumn ${

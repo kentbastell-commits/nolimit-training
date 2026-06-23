@@ -84,6 +84,8 @@ import createProgram from "../api/createProgram.ts";
 import createWorkoutTemplate from "../api/createWorkoutTemplate.ts";
 import deleteRecord from "../api/deleteRecord.ts";
 import duplicateAssignedWorkout from "../api/duplicateAssignedWorkout.ts";
+import enquiries from "../api/enquiries.ts";
+import inPersonEnquiry from "../api/inPersonEnquiry.ts";
 import exerciseResults from "../api/exerciseResults.ts";
 import exercises from "../api/exercises.ts";
 import formTemplates from "../api/formTemplates.ts";
@@ -141,6 +143,8 @@ const handlers = {
   createWorkoutTemplate,
   deleteRecord,
   duplicateAssignedWorkout,
+  enquiries,
+  inPersonEnquiry,
   exerciseResults,
   exercises,
   formTemplates,
