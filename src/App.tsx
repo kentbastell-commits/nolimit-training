@@ -1918,6 +1918,12 @@ function App() {
   // The exercise whose alternate-picker sheet is open in the player (or null).
   const [alternatePickerExercise, setAlternatePickerExercise] =
     useState<ExerciseDetail | null>(null);
+  // Never let the alternate picker linger once the workout player is closed.
+  useEffect(() => {
+    if (workoutDetails.length === 0 && alternatePickerExercise) {
+      setAlternatePickerExercise(null);
+    }
+  }, [workoutDetails.length, alternatePickerExercise]);
   const [setLogs, setSetLogs] = useState<SetLog[]>([]);
   const [restTimer, setRestTimer] = useState<{
     remaining: number;
