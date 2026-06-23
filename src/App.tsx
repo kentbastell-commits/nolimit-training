@@ -16640,7 +16640,7 @@ function App() {
 
         <header className="lv3Nav">
           <a className="lv3Brand" href="/">
-            <img src="/nl_wordmark_clean.png" alt="No Limit" />
+            <img src="/nl_wordmark_black.png" alt="No Limit" />
           </a>
           <nav className="lv3NavLinks">
             <a href="/store">{landingCopy.navPrograms}</a>
@@ -16675,8 +16675,8 @@ function App() {
                   {lZh ? "浏览训练计划" : "Browse Programs"}
                   <ArrowRight size={18} />
                 </a>
-                <a className="lv3BtnGhost" href="/?invite=client">
-                  {lZh ? "申请一对一教练" : "Work With Me 1:1"}
+                <a className="lv3BtnBlue" href="/?invite=client">
+                  {lZh ? "一对一训练" : "Train with us 1:1"}
                 </a>
               </div>
               <div className="lv3HeroStats">
@@ -16725,7 +16725,7 @@ function App() {
                 </a>
               </article>
 
-              <article className="lv3PathCard lv3PathCardGold">
+              <article className="lv3PathCard lv3PathCardBlue">
                 <div className="lv3PathIcon">
                   <Users size={26} strokeWidth={2.4} />
                 </div>
@@ -16741,8 +16741,8 @@ function App() {
                     </li>
                   ))}
                 </ul>
-                <a className="lv3BtnGold lv3PathBtn" href="/?invite=client">
-                  {lZh ? "申请教练服务" : "Apply for Coaching"}
+                <a className="lv3BtnBlue lv3PathBtn" href="/?invite=client">
+                  {lZh ? "一对一训练" : "Train with us 1:1"}
                   <ArrowRight size={17} />
                 </a>
               </article>
@@ -16844,8 +16844,8 @@ function App() {
                 {lZh ? "浏览训练计划" : "Browse Programs"}
                 <ArrowRight size={18} />
               </a>
-              <a className="lv3BtnGhost" href="/?invite=client">
-                {lZh ? "申请一对一教练" : "Work With Me 1:1"}
+              <a className="lv3BtnBlue" href="/?invite=client">
+                {lZh ? "一对一训练" : "Train with us 1:1"}
               </a>
             </div>
           </section>
