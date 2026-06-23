@@ -16591,18 +16591,18 @@ function App() {
       navInPerson: lZh ? "线下训练" : "In-Person",
       viewPrograms: lZh ? "查看训练计划" : "View Programs",
       coachLogin: lZh ? "教练登录" : "Coach Login",
-      heroEyebrow: lZh ? "高水平训练，不只属于职业运动员" : "Training for athletes who want more",
-      heroTitle: lZh ? "系统训练，持续进步。" : "Train with structure. Progress with intent.",
+      heroEyebrow: lZh ? "奥运与职业级教练" : "Olympic & professional-level coaching",
+      heroTitle: lZh ? "顶级教练，尽在掌中。" : "Elite coaching, in your pocket.",
       heroLead: lZh
-        ? "No Limit 为运动员和运动爱好者提供专业、循证、可执行的训练计划。无论你想提升表现、准备赛季，还是降低伤病风险，都可以从清晰的进阶计划开始。"
-        : "No Limit gives athletes and sport enthusiasts professional, evidence-based training without the full cost of a private coach. Build performance, prepare for your season, and customize the work around your body.",
+        ? "奥运与职业级的训练计划与一对一教练——围绕你的项目、赛季和时间安排，提供循证、可执行的训练。一切尽在手机。"
+        : "Olympic and professional-level programming and 1:1 coaching — evidence-based training built around your sport, your season, and your schedule. All from your phone.",
       storeCta: lZh ? "进入商店" : "Explore Store",
       onlineCta: lZh ? "了解线上教练" : "Online Coaching",
       stepsTitle: lZh ? "购买后的流程" : "How It Works",
       programsTitle: lZh ? "数字训练计划" : "Digital Programs",
       programsBody: lZh
-        ? "适合想提升表现但不想承担长期私教成本的运动员。每个计划都有清晰进阶，支持不同水平，并可添加关节保护与伤病预防模块。"
-        : "For athletes who want better performance without paying for constant one-on-one coaching. Each plan is structured, progressive, and built for real training weeks.",
+        ? "可立即开始的专业训练计划——顶级编排，价格远低于一对一私教。进阶式、支持多水平，并可加购关节与伤病预防模块。"
+        : "Expertly programmed plans you can start today — elite structure at a fraction of one-on-one pricing. Progressive, multi-level, with optional injury-prevention add-ons.",
       coachingTitle: lZh ? "线上一对一教练" : "Online Coaching",
       coachingBody: lZh
         ? "获得奥运及职业级训练经验支持的个性化计划，包括 30 分钟咨询、每周反馈、根据运动项目、旅行和恢复情况调整的训练进阶。"
@@ -16833,11 +16833,15 @@ function App() {
           {/* Final CTA */}
           <section className="lv3FinalCta">
             <div className="lv3HeroGlow" aria-hidden="true" />
-            <h2>{lZh ? "选择你的训练路径。" : "Choose your training path."}</h2>
+            <h2>
+              {lZh
+                ? "为力量而生。为运动员而生。为训练而生。"
+                : "Built for power. Built for athletes. Built for Training."}
+            </h2>
             <p>
               {lZh
                 ? "从数字训练计划开始，或申请一对一线上 / 线下教练服务。"
-                : "Start with a digital program, or apply for personalized 1:1 coaching."}
+                : "Start with a digital program, or train with us 1:1 — online or in person."}
             </p>
             <div className="lv3HeroActions lv3FinalActions">
               <a className="lv3BtnPrimary" href="/store">
@@ -17094,13 +17098,13 @@ function App() {
               <span className="storeEyebrowV2">{sZh ? "数字训练商店" : "Digital Program Store"}</span>
               <h1>
                 {sZh
-                  ? "专业训练计划，直接送到你的手机。"
-                  : "A professional training program, delivered to your phone."}
+                  ? "顶级训练计划，直接送到你的手机。"
+                  : "Olympic-level programming, delivered to your phone."}
               </h1>
               <p>
                 {sZh
-                  ? "即时获得专业编排的训练计划，价格远低于一对一私教。购买后完成简短 intake，计划即进入你的 App，可按月、按周或逐日安排。"
-                  : "Get an expertly programmed plan instantly — for a fraction of the cost of one-on-one coaching. After purchase you complete a short intake and the plan loads into your app to schedule by month, week, or day."}
+                  ? "由奥运与职业级教练编排的训练计划，即时获取，价格远低于一对一私教。购买后完成简短问卷，计划即进入你的 App，可按月、按周或逐日安排。"
+                  : "Programmed by an Olympic and professional-level coach — yours instantly, at a fraction of one-on-one pricing. Complete a short intake and the plan loads into your app to schedule by month, week, or day."}
               </p>
             </div>
             <div className="storeHeroCardV2 storeHeroShotV2">
