@@ -115,6 +115,52 @@ const CUE_CN_FIELD_CANDIDATES = [
   "Notes CN",
 ];
 
+// The coach stores alternate exercises as a JSON line in the Coaching Notes
+// ("Alternate Exercises: [{exerciseRecordId, exerciseId, exerciseName}, …]").
+function parseAlternateList(notes: string) {
+  const match = String(notes || "").match(/Alternate Exercises:\s*(\[.*\])/);
+  if (!match) return [];
+  try {
+    const arr = JSON.parse(match[1]);
+    if (!Array.isArray(arr)) return [];
+    return arr
+      .map((a: any) => ({
+        exerciseRecordId: String(a?.exerciseRecordId || ""),
+        exerciseId: String(a?.exerciseId || ""),
+        exerciseName: String(a?.exerciseName || ""),
+      }))
+      .filter((a) => a.exerciseName || a.exerciseId);
+  } catch {
+    return [];
+  }
+}
+
+// Pull the display/cue fields for an exercise out of its Exercise Library row,
+// so an alternate can fully replace the programmed exercise in the player.
+function buildLibraryDetail(libraryFields: Record<string, any>) {
+  return {
+    exerciseNameCn: readFirstField(libraryFields, ["Exercise Name CN", "Name CN"]),
+    videoUrl: readFirstUrl(libraryFields, ["Short Video URL", "Video URL"]),
+    videoUrlCn: readFirstUrl(libraryFields, ["Video URL CN"]),
+    longVideoUrl: readFirstUrl(libraryFields, ["Long Video URL"]),
+    category: fieldToText(libraryFields["Category"]),
+    categoryCn: readFirstField(libraryFields, ["Category CN"]),
+    equipment: fieldToText(libraryFields["Equipment"]),
+    equipmentCn: readFirstField(libraryFields, ["Equipment CN"]),
+    movementPattern: fieldToText(libraryFields["Movement Pattern"]),
+    movementPatternCn: readFirstField(libraryFields, ["Movement Pattern CN"]),
+    technicalInstructionsCn: readFirstField(libraryFields, [
+      "Technical Instructions CN",
+      "Form Instructions CN",
+      "Instructions CN",
+    ]),
+    coachingCuesCn: readFirstField(libraryFields, ["Coaching Cues CN"]),
+    commonMistakesCn: readFirstField(libraryFields, ["Common Mistakes CN"]),
+    cueNotes: readFirstField(libraryFields, CUE_FIELD_CANDIDATES),
+    cueNotesCn: readFirstField(libraryFields, CUE_CN_FIELD_CANDIDATES),
+  };
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const { programId, week, day } = req.query;
@@ -264,6 +310,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           targetAdjustment: readFirstField(fields, ["Target Adjustment"]),
           autoTarget: readBooleanField(fields, ["Auto Target"]),
           displayTarget: readFirstField(fields, ["Display Target"]),
+          // Resolve each alternate against the library so the player can fully
+          // swap to it (video, cues, etc.) when the athlete lacks equipment.
+          alternateExercises: parseAlternateList(
+            fieldToText(fields["Coaching Notes"])
+          ).map((alt) => {
+            const altLib =
+              exerciseLibrary.get(`id:${alt.exerciseId}`) ||
+              exerciseLibrary.get(
+                `name:${alt.exerciseName.trim().toLowerCase()}`
+              ) ||
+              {};
+            return {
+              exerciseRecordId: alt.exerciseRecordId,
+              exerciseId: alt.exerciseId,
+              exerciseName: alt.exerciseName,
+              ...buildLibraryDetail(altLib),
+            };
+          }),
         };
       })
       .sort((a: any, b: any) => a.order - b.order);
