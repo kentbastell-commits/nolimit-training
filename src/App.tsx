@@ -30,6 +30,7 @@ import {
   UserCircle,
   Users,
   Shield,
+  ArrowRight,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -16583,14 +16584,6 @@ function App() {
     const lZh = storeLang === "zh";
     const landingPrograms = programs.filter((p) => p.publicStoreVisible);
     const featuredPrograms = landingPrograms.slice(0, 3);
-    const programCountLabel =
-      landingPrograms.length > 0
-        ? lZh
-          ? `${landingPrograms.length} 个计划已上线`
-          : `${landingPrograms.length} programs live`
-        : lZh
-          ? "训练计划即将上线"
-          : "Programs launching soon";
 
     const landingCopy = {
       navPrograms: lZh ? "训练计划" : "Programs",
@@ -16621,38 +16614,6 @@ function App() {
       footer: lZh ? "为训练而生。" : "Built for Training.",
     };
 
-    const landingPillars: Array<{
-      title: string;
-      body: string;
-      icon: LucideIcon;
-      highlights: string[];
-    }> = [
-      {
-        title: landingCopy.programsTitle,
-        body: landingCopy.programsBody,
-        icon: BookOpen,
-        highlights: lZh
-          ? ["适合不同技能水平", "进阶训练周期", "可选伤病预防加购"]
-          : ["All skill levels", "Progressive seasons", "Injury-prevention add-ons"],
-      },
-      {
-        title: landingCopy.coachingTitle,
-        body: landingCopy.coachingBody,
-        icon: Users,
-        highlights: lZh
-          ? ["30 分钟咨询", "每周反馈", "围绕赛程和旅行调整"]
-          : ["30-minute consult", "Weekly check-ins", "Built around sport and travel"],
-      },
-      {
-        title: landingCopy.inPersonTitle,
-        body: landingCopy.inPersonBody,
-        icon: TrendingUp,
-        highlights: lZh
-          ? ["团队", "俱乐部", "个人训练"]
-          : ["Teams", "Clubs", "Individuals"],
-      },
-    ];
-
     const landingSteps = lZh
       ? [
           ["支付", "通过外部付款方式购买训练计划。"],
@@ -16668,7 +16629,7 @@ function App() {
         ];
 
     return (
-      <div className={`landingPage landingPageBilingual ${lZh ? "zh" : "en"}`}>
+      <div className={`lv3 ${lZh ? "zh" : "en"}`}>
         <div className="toastStack">
           {toasts.map((toast) => (
             <div className={`toast toast-${toast.type}`} key={toast.id}>
@@ -16677,169 +16638,224 @@ function App() {
           ))}
         </div>
 
-        <nav className="landingNav">
-          <a className="landingBrand" href="/">
-            <img src="/nl_wordmark_black.png" alt="No Limit" />
+        <header className="lv3Nav">
+          <a className="lv3Brand" href="/">
+            <img src="/nl_wordmark_clean.png" alt="No Limit" />
           </a>
-          <div className="landingNavLinks">
+          <nav className="lv3NavLinks">
             <a href="/store">{landingCopy.navPrograms}</a>
-            <a href="#coaching">{landingCopy.navCoaching}</a>
-            <a href="#in-person">{landingCopy.navInPerson}</a>
-          </div>
-          <div className="landingNavActions">
+            <a href="#paths">{landingCopy.navCoaching}</a>
+            <a href="#inperson">{landingCopy.navInPerson}</a>
+          </nav>
+          <div className="lv3NavActions">
             <button
-              className="landingLangToggle"
+              className="lv3Lang"
               onClick={() => setStoreLang(lZh ? "en" : "zh")}
               aria-label="Change language"
             >
               <span className={!lZh ? "active" : ""}>EN</span>
               <span className={lZh ? "active" : ""}>中文</span>
             </button>
-            <a className="landingNavCta" href="/store">
+            <a className="lv3NavCta" href="/store">
               {landingCopy.viewPrograms}
             </a>
           </div>
-        </nav>
+        </header>
 
-        <main>
-          <section className="landingHero landingHeroClean">
-            <div className="landingHeroCopy">
-              <span className="landingEyebrow">{landingCopy.heroEyebrow}</span>
-              <h1>{landingCopy.heroTitle}</h1>
-              <p>{landingCopy.heroLead}</p>
-              <div className="landingHeroActions">
-                <a className="primaryButton landingPrimary" href="/store">
-                  {landingCopy.storeCta}
+        <main className="lv3Main">
+          {/* Hero */}
+          <section className="lv3Hero">
+            <div className="lv3HeroGlow" aria-hidden="true" />
+            <div className="lv3HeroInner">
+              <span className="lv3Eyebrow">{landingCopy.heroEyebrow}</span>
+              <h1 className="lv3HeroTitle">{landingCopy.heroTitle}</h1>
+              <p className="lv3HeroLead">{landingCopy.heroLead}</p>
+              <div className="lv3HeroActions">
+                <a className="lv3BtnPrimary" href="/store">
+                  {lZh ? "浏览训练计划" : "Browse Programs"}
+                  <ArrowRight size={18} />
                 </a>
-                <a className="outlineButton landingOutline" href="#coaching">
-                  {landingCopy.onlineCta}
+                <a className="lv3BtnGhost" href="/?invite=client">
+                  {lZh ? "申请一对一教练" : "Work With Me 1:1"}
                 </a>
               </div>
-            </div>
-
-            <div className="landingHeroVisual landingHeroVisualClean" aria-hidden="true">
-              <div className="landingHeroMark">
-                <img src="/nl_monogram_clean.png" alt="" />
-              </div>
-              <div className="landingAppPreview">
-                <div className="landingPreviewTop">
-                  <span>{lZh ? "今日训练" : "Today"}</span>
-                  <strong>{lZh ? "下肢力量" : "Lower Strength"}</strong>
-                  <small>{lZh ? "第 1 周 - 第 2 天" : "Week 1 - Day 2"}</small>
+              <div className="lv3HeroStats">
+                <div>
+                  <strong>{landingPrograms.length || "—"}</strong>
+                  <span>{lZh ? "训练计划" : "Programs"}</span>
                 </div>
-                <div className="landingPreviewWorkout">
-                  <span>A1</span>
-                  <div>
-                    <strong>{lZh ? "安全杠深蹲" : "Safety Bar Squat"}</strong>
-                    <small>{lZh ? "3 组 x 8 次 - 节奏 3-1-1" : "3 x 8 - Tempo 3-1-1"}</small>
-                  </div>
+                <div>
+                  <strong>{lZh ? "循证" : "Evidence"}</strong>
+                  <span>{lZh ? "科学编排" : "Based"}</span>
                 </div>
-                <div className="landingPreviewWorkout muted">
-                  <span>B1</span>
-                  <div>
-                    <strong>{lZh ? "单腿辅助训练" : "Single-Leg Accessory"}</strong>
-                    <small>{lZh ? "伤病预防加购模块" : "Injury-prevention add-on"}</small>
-                  </div>
-                </div>
-                <div className="landingPreviewMetrics">
-                  <span>{programCountLabel}</span>
-                  <span>{lZh ? "中英双语" : "Bilingual"}</span>
+                <div>
+                  <strong>EN / 中文</strong>
+                  <span>{lZh ? "双语" : "Bilingual"}</span>
                 </div>
               </div>
             </div>
           </section>
 
-          <section className="landingPillars">
-            {landingPillars.map((pillar) => {
-              const Icon = pillar.icon;
-              return (
-                <article className="landingPillarCard" key={pillar.title}>
-                  <Icon size={28} strokeWidth={2.4} />
-                  <h2>{pillar.title}</h2>
-                  <p>{pillar.body}</p>
-                  <div className="landingPillarTags">
-                    {pillar.highlights.map((item) => (
-                      <span key={item}>{item}</span>
-                    ))}
-                  </div>
-                </article>
-              );
-            })}
+          {/* Two ways to train — the core dual path */}
+          <section className="lv3Paths" id="paths">
+            <div className="lv3SectionHead">
+              <span className="lv3Eyebrow">{lZh ? "选择你的路径" : "Choose your path"}</span>
+              <h2>{lZh ? "两种方式，开始训练。" : "Two ways to train."}</h2>
+            </div>
+            <div className="lv3PathGrid">
+              <article className="lv3PathCard">
+                <div className="lv3PathIcon">
+                  <BookOpen size={26} strokeWidth={2.4} />
+                </div>
+                <h3>{lZh ? "数字训练计划" : "Digital Programs"}</h3>
+                <p>{landingCopy.programsBody}</p>
+                <ul>
+                  {(lZh
+                    ? ["即时获取", "进阶训练周期", "可选伤病预防加购"]
+                    : ["Instant access", "Progressive seasons", "Injury-prevention add-ons"]
+                  ).map((h) => (
+                    <li key={h}>
+                      <Check size={15} /> {h}
+                    </li>
+                  ))}
+                </ul>
+                <a className="lv3BtnPrimary lv3PathBtn" href="/store">
+                  {lZh ? "浏览训练计划" : "Browse Programs"}
+                  <ArrowRight size={17} />
+                </a>
+              </article>
+
+              <article className="lv3PathCard lv3PathCardGold">
+                <div className="lv3PathIcon">
+                  <Users size={26} strokeWidth={2.4} />
+                </div>
+                <h3>{lZh ? "一对一教练" : "1:1 Coaching"}</h3>
+                <p>{landingCopy.coachingBody}</p>
+                <ul>
+                  {(lZh
+                    ? ["30 分钟咨询", "每周反馈", "线上或线下"]
+                    : ["30-min consult", "Weekly check-ins", "Online or in-person"]
+                  ).map((h) => (
+                    <li key={h}>
+                      <Check size={15} /> {h}
+                    </li>
+                  ))}
+                </ul>
+                <a className="lv3BtnGold lv3PathBtn" href="/?invite=client">
+                  {lZh ? "申请教练服务" : "Apply for Coaching"}
+                  <ArrowRight size={17} />
+                </a>
+              </article>
+            </div>
           </section>
 
-          <section className="landingSystem landingSystemClean">
-            <div>
-              <span className="landingEyebrow">{landingCopy.stepsTitle}</span>
-              <h2>{lZh ? "从购买到开练，只需要四步。" : "From purchase to training in four steps."}</h2>
+          {/* Featured programs */}
+          {featuredPrograms.length > 0 && (
+            <section className="lv3Featured">
+              <div className="lv3SectionHead">
+                <span className="lv3Eyebrow">{landingCopy.programsTitle}</span>
+                <h2>{lZh ? "按项目、赛季和身体需求选择。" : "Built by sport, season, and body."}</h2>
+              </div>
+              <div className="lv3FeaturedGrid">
+                {featuredPrograms.map((program) => (
+                  <a
+                    className="lv3ProgramCard"
+                    href="/store"
+                    key={program.recordId || program.programName}
+                  >
+                    {program.productImage ? (
+                      <div className="lv3ProgramImg">
+                        <img src={program.productImage} alt="" loading="lazy" />
+                      </div>
+                    ) : (
+                      <div className="lv3ProgramImg lv3ProgramImgEmpty">
+                        <span>{(program.sport || "NL").slice(0, 2).toUpperCase()}</span>
+                      </div>
+                    )}
+                    <div className="lv3ProgramBody">
+                      <span className="lv3ProgramTag">
+                        {program.sport || (lZh ? "专项训练" : "Performance")}
+                      </span>
+                      <h3>
+                        {lZh && program.programNameCn
+                          ? program.programNameCn
+                          : program.programName}
+                      </h3>
+                      <p>
+                        {program.durationWeeks || "4"} {lZh ? "周" : "wks"} ·{" "}
+                        {program.sessionsPerWeek || "3"}
+                        {lZh ? " 次/周" : "/wk"} ·{" "}
+                        {program.level || (lZh ? "多水平" : "All levels")}
+                      </p>
+                    </div>
+                  </a>
+                ))}
+              </div>
+              <a className="lv3SeeAll" href="/store">
+                {landingCopy.viewPrograms} <ArrowRight size={16} />
+              </a>
+            </section>
+          )}
+
+          {/* How it works */}
+          <section className="lv3Steps">
+            <div className="lv3SectionHead">
+              <span className="lv3Eyebrow">{landingCopy.stepsTitle}</span>
+              <h2>{lZh ? "从购买到开练，只需四步。" : "From purchase to training in four steps."}</h2>
             </div>
-            <ol>
+            <div className="lv3StepGrid">
               {landingSteps.map(([title, body], index) => (
-                <li key={title}>
-                  <span>{String(index + 1).padStart(2, "0")}</span>
+                <div className="lv3StepCard" key={title}>
+                  <span className="lv3StepNum">{String(index + 1).padStart(2, "0")}</span>
                   <strong>{title}</strong>
                   <p>{body}</p>
-                </li>
-              ))}
-            </ol>
-          </section>
-
-          <section className="landingPrograms" id="programs">
-            <div className="landingSectionIntro">
-              <span className="landingEyebrow">{landingCopy.programsTitle}</span>
-              <h2>{lZh ? "按项目、赛季和身体需求选择。" : "Choose by sport, season, and body needs."}</h2>
-            </div>
-            <div className="landingProgramGrid">
-              {(featuredPrograms.length ? featuredPrograms : [
-                { programName: "Rock Climbing Season 1", sport: "Rock Climbing", durationWeeks: "4", sessionsPerWeek: "3", level: "Level 1-4" },
-                { programName: "Hyrox Foundation", sport: "Hyrox", durationWeeks: "6", sessionsPerWeek: "4", level: "Level 1-4" },
-                { programName: "Bulletproof Knees", sport: "Joint Add-On", durationWeeks: "4", sessionsPerWeek: "2", level: "Add-On" },
-              ] as Program[]).map((program) => (
-                <article className="landingProgramCard" key={program.recordId || program.programName}>
-                  <span>{program.sport || (lZh ? "专项训练" : "Performance")}</span>
-                  <h3>{lZh && program.programNameCn ? program.programNameCn : program.programName}</h3>
-                  <p>
-                    {program.durationWeeks || "4"} {lZh ? "周" : "weeks"} -{" "}
-                    {program.sessionsPerWeek || "3"} {lZh ? "次/周" : "sessions/week"}
-                  </p>
-                  <small>{program.level || (lZh ? "多水平" : "Multiple levels")}</small>
-                </article>
+                </div>
               ))}
             </div>
           </section>
 
-          <section className="landingInPerson" id="in-person">
-            <div>
-              <span className="landingEyebrow">{landingCopy.navInPerson}</span>
+          {/* In-person */}
+          <section className="lv3InPerson" id="inperson">
+            <div className="lv3InPersonCopy">
+              <span className="lv3Eyebrow">{landingCopy.navInPerson}</span>
               <h2>{landingCopy.inPersonTitle}</h2>
               <p>{landingCopy.inPersonBody}</p>
             </div>
-            <div className="landingWechatCard">
+            <div className="lv3Wechat">
               <img
                 src="https://i.ibb.co/Y4nXVG4g/Weixin-Image-20260611202846-56-2.jpg"
                 alt="WeChat QR"
               />
-              <strong>{lZh ? "扫码咨询" : "Scan for WeChat"}</strong>
+              <strong>{lZh ? "扫码加微信咨询" : "Scan for WeChat"}</strong>
             </div>
           </section>
 
-          <section className="landingFinalCta">
-            <img src="/nl_seal_black.png" alt="" />
+          {/* Final CTA */}
+          <section className="lv3FinalCta">
+            <div className="lv3HeroGlow" aria-hidden="true" />
             <h2>{lZh ? "选择你的训练路径。" : "Choose your training path."}</h2>
             <p>
               {lZh
-                ? "从数字训练计划开始，或申请一对一线上教练服务。"
-                : "Start with a digital program or apply for personalized online coaching."}
+                ? "从数字训练计划开始，或申请一对一线上 / 线下教练服务。"
+                : "Start with a digital program, or apply for personalized 1:1 coaching."}
             </p>
-            <a className="primaryButton landingPrimary" href="/store">
-              {landingCopy.viewPrograms}
-            </a>
+            <div className="lv3HeroActions lv3FinalActions">
+              <a className="lv3BtnPrimary" href="/store">
+                {lZh ? "浏览训练计划" : "Browse Programs"}
+                <ArrowRight size={18} />
+              </a>
+              <a className="lv3BtnGhost" href="/?invite=client">
+                {lZh ? "申请一对一教练" : "Work With Me 1:1"}
+              </a>
+            </div>
           </section>
         </main>
 
-        <footer className="landingFooter">
+        <footer className="lv3Footer">
           <span>{landingCopy.footer}</span>
-          <div>
+          <div className="lv3FooterLinks">
             <a href="/store">{landingCopy.navPrograms}</a>
+            <a href="/?invite=client">{landingCopy.navCoaching}</a>
             <a href="/?portal=client">{lZh ? "客户端" : "Client Portal"}</a>
             <a href="/?view=coach">{landingCopy.coachLogin}</a>
           </div>
