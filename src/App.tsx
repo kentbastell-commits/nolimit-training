@@ -2985,14 +2985,20 @@ function App() {
       return;
     }
     loadClients();
-    loadCoaches();
-    void loadTeams();
-    void loadSubscriptions();
     void loadNotifications();
-    void loadCoachReviews();
+    // Coaches / teams / subscriptions / coach reviews are coach-only — don't
+    // make the client portal wait on (or fetch) them.
+    if (!isClientPortal) {
+      loadCoaches();
+      void loadTeams();
+      void loadSubscriptions();
+      void loadCoachReviews();
+    }
   }, []);
 
   useEffect(() => {
+    // The portal needs orders (purchased programs); the coach only on
+    // Orders/Revenue.
     if (activePage !== "Orders" && activePage !== "Revenue" && !isClientPortal)
       return;
 
@@ -31773,7 +31779,7 @@ function App() {
                       exercise.videoUrlCn || ""
                     );
                     const exerciseThumb = videoThumbnail(exerciseVideoUrl);
-                    const focusGroupTitle =
+                    const rawFocusGroupTitle =
                       isClientPortal &&
                       workoutFocusMode &&
                       focusGroupIndexes.length > 1 &&
@@ -31784,6 +31790,14 @@ function App() {
                             makeExerciseLabel(focusGroupIndexes[0])
                           }`
                         : "";
+                    // Translate the "Superset"/"Circuit" word in the group title
+                    // when the portal is in Chinese (the label letter stays).
+                    const focusGroupTitle =
+                      paceZh && rawFocusGroupTitle
+                        ? rawFocusGroupTitle
+                            .replace(/superset/gi, "超级组")
+                            .replace(/circuit/gi, "循环")
+                        : rawFocusGroupTitle;
                     const accessoryLabel = meta.accessoryParentLabel
                       ? paceZh
                         ? `${meta.accessoryParentLabel} 的辅助动作`
