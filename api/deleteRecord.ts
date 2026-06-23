@@ -268,26 +268,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    const response = await fetch(
-      `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${tableId}/records/${recordId}`,
-      {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
-    const data = await readResponseJson(response);
-
-    if (!response.ok || data.code !== 0) {
-      return res.status(500).json({
-        error: "Failed to delete record",
-        larkResponse: data,
-      });
-    }
-
-    // Deleting a client cascades to their training/wellness rows so the
-    // database doesn't keep orphaned logs/results/check-ins.
+    // Deleting a client cascades to their training/wellness rows so the database
+    // doesn't keep orphaned logs/results/check-ins. This MUST run before the
+    // client record is deleted — otherwise Feishu clears the rows' "Client ID"
+    // link and they can no longer be matched back to the client.
     let cascade: Record<string, number> | undefined;
     if (resource === "client") {
       cascade = await cascadeDeleteClientData(
@@ -307,6 +291,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         "workloadLogs",
         "analytics",
       ].forEach((key) => invalidateCache(key));
+    }
+
+    const response = await fetch(
+      `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${tableId}/records/${recordId}`,
+      {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    const data = await readResponseJson(response);
+
+    if (!response.ok || data.code !== 0) {
+      return res.status(500).json({
+        error: "Failed to delete record",
+        larkResponse: data,
+      });
     }
 
     // Keep cached lists fresh after a delete.
