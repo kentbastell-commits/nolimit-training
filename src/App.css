@@ -14399,7 +14399,7 @@ button.coachReviewGlobalItem,
 
 .progressChartSummary {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
   gap: 10px;
 }
 
@@ -22148,6 +22148,42 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 .prMetricToggle button.active {
   background: #1a1a1a;
   color: #d4af37;
+}
+
+/* Per-lift trend metric toggle sits above the chart and stretches full width
+   on the narrow portal so the three options share the row evenly. */
+.progressMetricToggle {
+  display: flex;
+  width: 100%;
+  margin: 10px 0 4px;
+}
+
+.progressMetricToggle button {
+  flex: 1;
+  text-align: center;
+}
+
+/* Fresh-PR flag next to the "Best" figure, and the change-since-first delta. */
+.progressPrBadge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: #d4af37;
+  color: #1a1a1a;
+  font-size: 10px;
+  font-weight: 950;
+  font-style: normal;
+  letter-spacing: 0.06em;
+  vertical-align: middle;
+}
+
+.progressDeltaUp {
+  color: #1f7a43 !important;
+}
+
+.progressDeltaDown {
+  color: #8b1e2d !important;
 }
 
 .prLeaderboard {

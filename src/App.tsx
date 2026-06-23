@@ -2041,6 +2041,12 @@ function App() {
   const [libraryCategoryFilter, setLibraryCategoryFilter] = useState("All");
   const [progressSearch, setProgressSearch] = useState("");
   const [selectedProgressExercise, setSelectedProgressExercise] = useState("");
+  // Which number the per-lift trend chart plots: "e1rm" (rep-normalised
+  // estimated 1RM — the fairest progression line), "top" (heaviest set that
+  // day) or "volume" (Σ weight×reps that day).
+  const [progressTrendMetric, setProgressTrendMetric] = useState<
+    "e1rm" | "top" | "volume"
+  >("e1rm");
   const clientsCacheRef = useRef<{ data: Client[]; timestamp: number } | null>(
     null
   );
@@ -15894,8 +15900,27 @@ function App() {
     return exercise ? localizedExerciseName(exercise) : name;
   };
 
-  // One point per DAY (best set that day), not per set — multiple same-day sets
-  // would collide on identical x-axis labels and desync the tooltip/active dot.
+  // Does the selected lift have weight×reps history? Only then do the Est 1RM /
+  // Top Set / Volume metrics make sense; pure distance/time work falls back to a
+  // single raw line and the metric toggle is hidden.
+  const selectedProgressIsWeighted = workoutHistoryLogs.some(
+    (log) =>
+      log.exerciseName
+        .toLowerCase()
+        .startsWith(selectedProgressName.toLowerCase()) &&
+      Number(log.actualWeight) > 0
+  );
+  const effectiveTrendMetric = selectedProgressIsWeighted
+    ? progressTrendMetric
+    : "top";
+
+  // Epley estimated 1RM, capped at 12 reps where the formula loses accuracy.
+  const epley1rm = (weight: number, reps: number) =>
+    weight * (1 + Math.min(reps, 12) / 30);
+
+  // One point per DAY, not per set — multiple same-day sets would collide on
+  // identical x-axis labels and desync the tooltip/active dot. The day's value
+  // is the best (or summed, for volume) according to the chosen metric.
   const progressHistoryPoints = (() => {
     const byDate = new Map<string, { date: string; value: number; unit: string }>();
     for (const log of workoutHistoryLogs) {
@@ -15906,14 +15931,39 @@ function App() {
       )
         continue;
       const weight = Number(log.actualWeight);
+      const reps = Number(log.actualReps);
       const distance = Number(log.actualDistance);
       const time = Number(log.actualTime);
-      const value = weight || distance || time || 0;
+
+      let value = 0;
+      let unit = "";
+      if (selectedProgressIsWeighted && weight > 0) {
+        if (effectiveTrendMetric === "e1rm") {
+          value = Math.round(epley1rm(weight, reps || 1));
+          unit = "kg";
+        } else if (effectiveTrendMetric === "volume") {
+          value = Math.round(weight * (reps || 1));
+          unit = "kg";
+        } else {
+          value = weight;
+          unit = "kg";
+        }
+      } else {
+        value = weight || distance || time || 0;
+        unit = weight ? "kg" : distance ? "m" : time ? "sec" : "";
+      }
       if (value <= 0) continue;
-      const unit = weight ? "kg" : distance ? "m" : time ? "sec" : "";
+
       const date = normalizeDate(log.date);
       const existing = byDate.get(date);
-      if (!existing || value > existing.value) {
+      if (effectiveTrendMetric === "volume" && selectedProgressIsWeighted) {
+        // Volume accumulates across the day's sets rather than taking the best.
+        byDate.set(date, {
+          date,
+          value: (existing?.value || 0) + value,
+          unit,
+        });
+      } else if (!existing || value > existing.value) {
         byDate.set(date, { date, value, unit });
       }
     }
@@ -15927,6 +15977,18 @@ function App() {
     ...progressHistoryPoints.map((point) => point.value)
   );
   const progressUnit = progressHistoryPoints.find((point) => point.unit)?.unit || "";
+  const progressLatestValue =
+    progressHistoryPoints[progressHistoryPoints.length - 1]?.value || 0;
+  const progressFirstValue = progressHistoryPoints[0]?.value || 0;
+  // Change across the visible window, and whether the most recent session is a
+  // window best (a fresh PR worth flagging to the athlete).
+  const progressDelta =
+    progressHistoryPoints.length > 1
+      ? progressLatestValue - progressFirstValue
+      : 0;
+  const progressIsNewBest =
+    progressHistoryPoints.length > 1 &&
+    progressLatestValue >= progressMaxValue;
 
   // Personal-records leaderboard for the coach Overview: best lift per exercise,
   // ranked by the selected metric (heaviest weight / estimated 1RM / volume).
@@ -16014,6 +16076,29 @@ function App() {
         </select>
       </div>
 
+      {selectedProgressIsWeighted && (
+        <div
+          className="prMetricToggle progressMetricToggle"
+          role="group"
+          aria-label={paceZh ? "趋势指标" : "Trend metric"}
+        >
+          {([
+            ["e1rm", paceZh ? "预估1RM" : "Est 1RM"],
+            ["top", paceZh ? "最大单组" : "Top Set"],
+            ["volume", paceZh ? "容量" : "Volume"],
+          ] as const).map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              className={progressTrendMetric === key ? "active" : ""}
+              onClick={() => setProgressTrendMetric(key)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className="progressChartCard" aria-label="Exercise progress chart">
         {progressHistoryPoints.length > 0 ? (
           <>
@@ -16023,16 +16108,32 @@ function App() {
                 <strong>
                   {progressMaxValue}
                   {progressUnit && ` ${progressUnit}`}
+                  {progressIsNewBest && (
+                    <em className="progressPrBadge">{paceZh ? "新纪录" : "PR"}</em>
+                  )}
                 </strong>
               </div>
               <div>
                 <span>{t("latest")}</span>
                 <strong>
-                  {progressHistoryPoints[progressHistoryPoints.length - 1]?.value ||
-                    "--"}
+                  {progressLatestValue || "--"}
                   {progressUnit && ` ${progressUnit}`}
                 </strong>
               </div>
+              {progressDelta !== 0 && (
+                <div>
+                  <span>{paceZh ? "变化" : "Change"}</span>
+                  <strong
+                    className={
+                      progressDelta > 0 ? "progressDeltaUp" : "progressDeltaDown"
+                    }
+                  >
+                    {progressDelta > 0 ? "+" : ""}
+                    {progressDelta}
+                    {progressUnit && ` ${progressUnit}`}
+                  </strong>
+                </div>
+              )}
             </div>
 
             <Suspense fallback={<div className="chartLoading">{t("loading")}</div>}>
