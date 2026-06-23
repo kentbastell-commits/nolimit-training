@@ -25663,3 +25663,21 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 .storeContactV2 .storeEyebrowV2 { color: #d4af37; }
 .storeContactV2 h2 { color: #f4f1ea; }
 .storeContactV2 p { color: #c9c6bc; }
+/* Store showcase: uniform screenshot height + bolder captions */
+.storeShowcaseShot img {
+  height: 460px;
+  width: auto;
+  max-height: 460px;
+  object-fit: contain;
+}
+.storeShowcaseItemV2 figcaption strong {
+  font-size: 1.3rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+.storeShowcaseItemV2 figcaption span {
+  font-size: 0.96rem;
+  line-height: 1.55;
+}
+/* Hero phone shot: cap to match the showcase scale */
+.storeHeroShotV2 img { max-height: 460px; }

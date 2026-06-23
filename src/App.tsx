@@ -17278,14 +17278,14 @@ function App() {
             <div className="storeShowcaseGridV2">
               <figure className="storeShowcaseItemV2">
                 <div className="storeShowcaseShot">
-                  <img src="/showcase-calendar.png" alt="" />
+                  <img src="/showcase-glance.png" alt="" />
                 </div>
                 <figcaption>
-                  <strong>{sZh ? "每月训练日历" : "Your month, planned"}</strong>
+                  <strong>{sZh ? "整节训练，一目了然" : "Your whole session at a glance"}</strong>
                   <span>
                     {sZh
-                      ? "绿点标记已完成的训练日，进度一目了然。可按月、周或逐日安排。"
-                      : "Green dots mark completed sessions, so you always know where you stand — schedule by month, week, or day."}
+                      ? "开始前就能看到每个动作的组数、次数、节奏和休息。"
+                      : "See every exercise — sets, reps, tempo and rest — before you start."}
                   </span>
                 </figcaption>
               </figure>
