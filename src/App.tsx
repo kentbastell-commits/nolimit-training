@@ -1466,6 +1466,11 @@ function readPersistentCache<T>(key: string): CachedData<T> | null {
 function writePersistentCache<T>(key: string, data: T) {
   if (typeof window === "undefined") return;
 
+  // Never persist an empty list: a transient empty API response would otherwise
+  // be cached in the browser and keep showing "no data" across reloads (looks
+  // like data loss). Skipping it just makes the next load re-fetch.
+  if (Array.isArray(data) && data.length === 0) return;
+
   try {
     window.localStorage.setItem(
       `${PERSISTENT_CACHE_PREFIX}${key}`,
@@ -1864,6 +1869,7 @@ function App() {
   const [workoutLoggingStarted, setWorkoutLoggingStarted] = useState(false);
   const [workoutFocusMode, setWorkoutFocusMode] = useState(true);
   const [workoutFocusIndex, setWorkoutFocusIndex] = useState(0);
+  const [workoutFocusSetRound, setWorkoutFocusSetRound] = useState(1);
   const focusTouchRef = useRef<{ x: number; y: number } | null>(null);
   const workoutStartedAtRef = useRef<number | null>(null);
   // Pre-save finish/review screen (edit + session RPE + celebrate, then save).
@@ -1874,6 +1880,13 @@ function App() {
     {}
   );
   const [savedExerciseDraftIds, setSavedExerciseDraftIds] = useState<string[]>([]);
+  const [checkedWorkoutPageItems, setCheckedWorkoutPageItems] = useState<string[]>(
+    []
+  );
+  const [workoutVideoOverlay, setWorkoutVideoOverlay] = useState<{
+    url: string;
+    title: string;
+  } | null>(null);
   const [historyExerciseName, setHistoryExerciseName] = useState("");
   const [expandedHistoryDates, setExpandedHistoryDates] = useState<Set<string>>(
     new Set()
@@ -3261,6 +3274,7 @@ function App() {
     setWorkoutDetails([]);
     setSetLogs([]);
     setSavedExerciseDraftIds([]);
+    setCheckedWorkoutPageItems([]);
     setContentAssignments([]);
     setContentResponses([]);
     setAthleteMetrics([]);
@@ -6572,10 +6586,13 @@ function App() {
     return `nolimit-workout-draft:${client.id}:${workout.id}`;
   };
 
-  const saveExerciseDraft = (exerciseId: string) => {
+  const saveExerciseDraft = (
+    exerciseId: string,
+    options: { showToast?: boolean } = {}
+  ) => {
     const draftKey = getWorkoutDraftKey();
 
-    if (!draftKey) return;
+    if (!draftKey) return savedExerciseDraftIds;
 
     const nextSavedExerciseIds = Array.from(
       new Set([...savedExerciseDraftIds, exerciseId])
@@ -6591,7 +6608,10 @@ function App() {
     );
 
     setSavedExerciseDraftIds(nextSavedExerciseIds);
-    notify("Exercise saved. You can come back and keep editing.", "success");
+    if (options.showToast !== false) {
+      notify("Exercise saved. You can come back and keep editing.", "success");
+    }
+    return nextSavedExerciseIds;
   };
 
   const openWorkout = async (workout: Workout) => {
@@ -6603,6 +6623,7 @@ function App() {
     setSetLogs([]);
     setWorkoutHistoryLogs([]);
     setSavedExerciseDraftIds([]);
+    setCheckedWorkoutPageItems([]);
     setWorkoutSubmissionNote("");
 
     try {
@@ -6650,18 +6671,22 @@ function App() {
         });
         setSetLogs(reviewLogs);
         setSavedExerciseDraftIds([]);
+        setCheckedWorkoutPageItems([]);
       } else if (savedDraft) {
         try {
           const parsedDraft = JSON.parse(savedDraft);
           setSetLogs(parsedDraft.logs || baseLogs);
           setSavedExerciseDraftIds(parsedDraft.savedExerciseIds || []);
+          setCheckedWorkoutPageItems([]);
         } catch {
           setSetLogs(baseLogs);
           setSavedExerciseDraftIds([]);
+          setCheckedWorkoutPageItems([]);
         }
       } else {
         setSetLogs(baseLogs);
         setSavedExerciseDraftIds([]);
+        setCheckedWorkoutPageItems([]);
       }
 
       setWorkoutDetails(exercises);
@@ -6670,6 +6695,7 @@ function App() {
       setWorkoutDetails([]);
       setSetLogs([]);
       setSavedExerciseDraftIds([]);
+      setCheckedWorkoutPageItems([]);
       setWorkoutHistoryLogs([]);
     } finally {
       setDetailsLoading(false);
@@ -6838,6 +6864,7 @@ function App() {
       setSelectedWorkout(null);
       setWorkoutLoggingStarted(false);
       setSavedExerciseDraftIds([]);
+      setCheckedWorkoutPageItems([]);
       setWorkoutDetails([]);
       setSetLogs([]);
       setWorkoutSubmissionNote("");
@@ -15927,6 +15954,7 @@ function App() {
   const openWorkoutExerciseFromGlance = (index: number) => {
     if (isClientPortal) {
       setWorkoutFocusIndex(index);
+      setWorkoutFocusSetRound(1);
       setWorkoutLoggingStarted(true);
       if (!workoutStartedAtRef.current) {
         workoutStartedAtRef.current = Date.now();
@@ -15949,11 +15977,78 @@ function App() {
     }, 0);
   };
 
+  const getWorkoutGroupIndexes = (index: number) => {
+    const focusExercise = workoutDetails[index];
+    if (!focusExercise) return [];
+
+    const focusMeta = parseExerciseNotes(focusExercise.notes);
+    if (!focusMeta.groupType || !focusMeta.groupName) {
+      const sectionKey = (focusMeta.sectionName || "Main").toLowerCase();
+      const labelKey = focusMeta.exerciseLabel.trim().toLowerCase();
+      if (!labelKey) return [index];
+
+      const linkedByLabel = workoutDetails
+        .map((exercise, exerciseIndex) => {
+          const meta = parseExerciseNotes(exercise.notes);
+          const itemSection = (meta.sectionName || "Main").toLowerCase();
+          const itemLabel = meta.exerciseLabel.trim().toLowerCase();
+          return itemSection === sectionKey && itemLabel === labelKey
+            ? exerciseIndex
+            : -1;
+        })
+        .filter((exerciseIndex) => exerciseIndex >= 0);
+
+      return linkedByLabel.length > 1 ? linkedByLabel : [index];
+    }
+
+    const groupKey = `${focusMeta.groupType}:${focusMeta.groupName}`.toLowerCase();
+    return workoutDetails
+      .map((exercise, exerciseIndex) => {
+        const meta = parseExerciseNotes(exercise.notes);
+        const itemKey = `${meta.groupType || ""}:${meta.groupName || ""}`.toLowerCase();
+        return itemKey === groupKey ? exerciseIndex : -1;
+      })
+      .filter((exerciseIndex) => exerciseIndex >= 0);
+  };
+
+  const getWorkoutGroupBounds = (index: number) => {
+    const indexes = getWorkoutGroupIndexes(index);
+    if (!indexes.length) return { start: index, end: index, indexes: [index] };
+
+    return {
+      start: Math.min(...indexes),
+      end: Math.max(...indexes),
+      indexes,
+    };
+  };
+
+  const getWorkoutGroupRoundCount = (indexes: number[]) => {
+    const ids = new Set(
+      indexes
+        .map((index) => workoutDetails[index]?.exerciseId)
+        .filter(Boolean)
+    );
+    const maxSet = setLogs.reduce((max, log) => {
+      if (!ids.has(log.exerciseId)) return max;
+      return Math.max(max, Number(log.setNumber) || 0);
+    }, 0);
+
+    return Math.max(1, maxSet);
+  };
+
+  const workoutGroupTitle = (meta: ExerciseNoteMeta) => {
+    if (!meta.groupType || !meta.groupName) return "";
+    return /superset|circuit/i.test(meta.groupName)
+      ? meta.groupName
+      : `${meta.groupType} ${meta.groupName}`;
+  };
+
   // Move to a different exercise in the one-at-a-time focus player and bring
   // the new card into view from the top.
   const goToFocusExercise = (index: number, total: number) => {
     const next = Math.max(0, Math.min(total - 1, index));
     setWorkoutFocusIndex(next);
+    setWorkoutFocusSetRound(1);
     if (isClientPortal) {
       window.setTimeout(() => {
         document
@@ -16076,6 +16171,59 @@ function App() {
     if (computeWorkoutPrs().length) vibrate(40);
   };
 
+  const scrollWorkoutPlayerTop = () => {
+    window.setTimeout(() => {
+      document
+        .querySelector<HTMLElement>(".clientWorkoutPlayerModal > .modal-body")
+        ?.scrollTo({ top: 0, behavior: "smooth" });
+    }, 0);
+  };
+
+  const advanceWorkoutPlayerPage = () => {
+    const bounds = getWorkoutGroupBounds(workoutFocusIndex);
+    const isGrouped = bounds.indexes.length > 1;
+    const roundCount = getWorkoutGroupRoundCount(bounds.indexes);
+
+    if (isGrouped && workoutFocusSetRound < roundCount) {
+      setWorkoutFocusSetRound((round) => Math.min(roundCount, round + 1));
+      scrollWorkoutPlayerTop();
+      return;
+    }
+
+    if (bounds.end < workoutDetails.length - 1) {
+      goToFocusExercise(bounds.end + 1, workoutDetails.length);
+      return;
+    }
+
+    openWorkoutFinish();
+  };
+
+  const workoutPageCheckKey = (exerciseId: string) => {
+    const bounds = getWorkoutGroupBounds(workoutFocusIndex);
+    return bounds.indexes.length > 1
+      ? `${exerciseId}:round:${workoutFocusSetRound}`
+      : exerciseId;
+  };
+
+  const checkAndSaveWorkoutExercise = (
+    exerciseId: string,
+    visibleExerciseIds: string[]
+  ) => {
+    const key = workoutPageCheckKey(exerciseId);
+    const nextChecked = Array.from(new Set([...checkedWorkoutPageItems, key]));
+    setCheckedWorkoutPageItems(nextChecked);
+    saveExerciseDraft(exerciseId, { showToast: false });
+    vibrate(18);
+
+    const allVisibleChecked = visibleExerciseIds
+      .filter(Boolean)
+      .every((id) => nextChecked.includes(workoutPageCheckKey(id)));
+
+    if (allVisibleChecked) {
+      window.setTimeout(advanceWorkoutPlayerPage, 220);
+    }
+  };
+
   // Swipe left/right on the focus card to move between exercises. Ignore
   // mostly-vertical drags so scrolling and input taps still work.
   const handleFocusTouchStart = (e: React.TouchEvent) => {
@@ -16090,8 +16238,21 @@ function App() {
     const dx = t.clientX - start.x;
     const dy = t.clientY - start.y;
     if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
-    if (dx < 0) goToFocusExercise(workoutFocusIndex + 1, total);
-    else goToFocusExercise(workoutFocusIndex - 1, total);
+    const bounds = getWorkoutGroupBounds(workoutFocusIndex);
+    const roundCount = getWorkoutGroupRoundCount(bounds.indexes);
+    const grouped = bounds.indexes.length > 1;
+
+    if (dx < 0) {
+      if (grouped && workoutFocusSetRound < roundCount) {
+        setWorkoutFocusSetRound((round) => round + 1);
+      } else {
+        goToFocusExercise(bounds.end + 1, total);
+      }
+    } else if (grouped && workoutFocusSetRound > 1) {
+      setWorkoutFocusSetRound((round) => round - 1);
+    } else {
+      goToFocusExercise(bounds.start - 1, total);
+    }
   };
 
   // Swipe between the portal Home sub-pages (Workload only for monitored athletes).
@@ -31260,47 +31421,75 @@ function App() {
                   workoutLoggingStarted &&
                   workoutDetails.length > 0 &&
                   (() => {
+                    const focusBounds = getWorkoutGroupBounds(workoutFocusIndex);
+                    const focusGroupIndexes = focusBounds.indexes;
+                    const isGroupedFocus = focusGroupIndexes.length > 1;
+                    const roundCount = getWorkoutGroupRoundCount(focusGroupIndexes);
                     const focusEx = workoutDetails[workoutFocusIndex];
-                    const focusLogs = focusEx
-                      ? setLogs.filter(
-                          (log) => log.exerciseId === focusEx.exerciseId
-                        )
-                      : [];
+                    const focusIds = new Set(
+                      focusGroupIndexes
+                        .map((index) => workoutDetails[index]?.exerciseId)
+                        .filter(Boolean)
+                    );
+                    const focusLogs =
+                      isGroupedFocus && focusIds.size
+                        ? setLogs.filter((log) => focusIds.has(log.exerciseId))
+                        : focusEx
+                        ? setLogs.filter(
+                            (log) => log.exerciseId === focusEx.exerciseId
+                          )
+                        : [];
                     const completedSets = focusLogs.filter(isSetComplete).length;
                     const totalSets = Math.max(focusLogs.length, completedSets);
                     const completedExercises = workoutDetails.filter((ex) =>
                       isExerciseFullyLogged(ex.exerciseId)
                     ).length;
                     const exerciseProgress =
-                      ((workoutFocusIndex + 1) / workoutDetails.length) * 100;
+                      ((focusBounds.end + 1) / workoutDetails.length) * 100;
                     return (
                       <section className="workoutPlayerProgress">
-                        <div className="workoutPlayerProgressTop">
-                          <span>
-                            {paceZh ? "动作" : "Exercise"}{" "}
-                            {workoutFocusIndex + 1}/{workoutDetails.length}
-                          </span>
-                          <strong>{localizedWorkoutName(selectedWorkout)}</strong>
-                        </div>
-                        <div
-                          className="workoutPlayerProgressTrack"
-                          aria-hidden="true"
+                        <button
+                          type="button"
+                          className="workoutPlayerBannerBack"
+                          onClick={() => setWorkoutLoggingStarted(false)}
+                          aria-label={t("backToAtAGlance")}
                         >
-                          <span style={{ width: `${exerciseProgress}%` }} />
-                        </div>
-                        <div className="workoutPlayerProgressMeta">
-                          <span>
-                            {paceZh ? "当前动作" : "Current"}:{" "}
-                            {focusEx ? localizedExerciseName(focusEx) : "--"}
-                          </span>
-                          <span>
-                            {completedSets}/{totalSets || "--"}{" "}
-                            {paceZh ? "组" : "sets"}
-                          </span>
-                          <span>
-                            {completedExercises}/{workoutDetails.length}{" "}
-                            {paceZh ? "完成" : "done"}
-                          </span>
+                          <ChevronLeft size={24} />
+                        </button>
+                        <div className="workoutPlayerProgressContent">
+                          <div className="workoutPlayerProgressTop">
+                            <span>
+                              {paceZh ? "动作" : "Exercise"}{" "}
+                              {isGroupedFocus
+                                ? `${focusBounds.start + 1}-${focusBounds.end + 1}`
+                                : workoutFocusIndex + 1}
+                              /{workoutDetails.length}
+                            </span>
+                            <strong>{localizedWorkoutName(selectedWorkout)}</strong>
+                          </div>
+                          <div
+                            className="workoutPlayerProgressTrack"
+                            aria-hidden="true"
+                          >
+                            <span style={{ width: `${exerciseProgress}%` }} />
+                          </div>
+                          <div className="workoutPlayerProgressMeta">
+                            <span>
+                              {paceZh ? "当前动作" : "Current"}:{" "}
+                              {focusEx ? localizedExerciseName(focusEx) : "--"}
+                            </span>
+                            <span>
+                              {isGroupedFocus
+                                ? `${paceZh ? "第" : "Set "} ${workoutFocusSetRound}/${roundCount}`
+                                : `${completedSets}/${totalSets || "--"} ${
+                                    paceZh ? "组" : "sets"
+                                  }`}
+                            </span>
+                            <span>
+                              {completedExercises}/{workoutDetails.length}{" "}
+                              {paceZh ? "完成" : "done"}
+                            </span>
+                          </div>
                         </div>
                       </section>
                     );
@@ -31363,19 +31552,36 @@ function App() {
                 {!detailsLoading &&
                   (!isClientPortal || workoutLoggingStarted) &&
                   workoutDetails.map((exercise, index) => {
+                    const focusGroupIndexes =
+                      isClientPortal && workoutFocusMode
+                        ? getWorkoutGroupIndexes(workoutFocusIndex)
+                        : [];
                     // Focus player: in the client portal, render one exercise at
-                    // a time. The "View all" toggle (workoutFocusMode=false)
-                    // falls back to the full scrolling list.
+                    // a time, or the whole superset/circuit when the active
+                    // exercise is grouped. The "View all" toggle falls back to
+                    // the full scrolling list.
                     if (
                       isClientPortal &&
                       workoutFocusMode &&
-                      index !== workoutFocusIndex
+                      !focusGroupIndexes.includes(index)
                     ) {
                       return null;
                     }
                     const exerciseLogs = setLogs.filter(
                       (log) => log.exerciseId === exercise.exerciseId
                     );
+                    const isGroupedFocus =
+                      isClientPortal &&
+                      workoutFocusMode &&
+                      focusGroupIndexes.length > 1;
+                    const groupRoundCount = isGroupedFocus
+                      ? getWorkoutGroupRoundCount(focusGroupIndexes)
+                      : 1;
+                    const visibleExerciseLogs = isGroupedFocus
+                      ? exerciseLogs.filter(
+                          (log) => Number(log.setNumber) === workoutFocusSetRound
+                        )
+                      : exerciseLogs;
                     const meta = parseExerciseNotes(exercise.notes);
                     const previousMeta =
                       index > 0
@@ -31394,6 +31600,22 @@ function App() {
                       meta.coachingNotes,
                       exercise.notesCn || ""
                     );
+                    const exerciseVideoUrl = localizeText(
+                      exercise.videoUrl || "",
+                      exercise.videoUrlCn || ""
+                    );
+                    const exerciseThumb = videoThumbnail(exerciseVideoUrl);
+                    const focusGroupTitle =
+                      isClientPortal &&
+                      workoutFocusMode &&
+                      focusGroupIndexes.length > 1 &&
+                      focusGroupIndexes[0] === index
+                        ? workoutGroupTitle(meta) ||
+                          `Superset ${
+                            meta.exerciseLabel ||
+                            makeExerciseLabel(focusGroupIndexes[0])
+                          }`
+                        : "";
                     const accessoryLabel = meta.accessoryParentLabel
                       ? paceZh
                         ? `${meta.accessoryParentLabel} 的辅助动作`
@@ -31410,9 +31632,35 @@ function App() {
                               handleFocusTouchEnd(e, workoutDetails.length),
                           }
                         : {};
+                    const visiblePageExerciseIds =
+                      isClientPortal && workoutFocusMode
+                        ? focusGroupIndexes
+                            .map((exerciseIndex) => workoutDetails[exerciseIndex]?.exerciseId)
+                            .filter(Boolean)
+                        : [exercise.exerciseId];
+                    const exercisePageChecked =
+                      checkedWorkoutPageItems.includes(
+                        workoutPageCheckKey(exercise.exerciseId)
+                      ) ||
+                      (!isGroupedFocus &&
+                        savedExerciseDraftIds.includes(exercise.exerciseId));
 
                     return (
                       <div key={exercise.id} {...focusSwipe}>
+                        {focusGroupTitle && (
+                          <div className="workoutPlayerGroupHeader">
+                            <span>
+                              {paceZh
+                                ? meta.groupType === "Circuit"
+                                  ? "循环"
+                                  : "超级组"
+                                : meta.groupType || "Superset"}
+                              {" "}
+                              {workoutFocusSetRound}/{groupRoundCount}
+                            </span>
+                            <strong>{focusGroupTitle}</strong>
+                          </div>
+                        )}
                         {showSectionHeader && (
                           <h4
                             className="workoutSectionHeading"
@@ -31428,6 +31676,12 @@ function App() {
                         <div
                           className={`exercise-card workoutLogExerciseCard ${
                             meta.isAccessory ? "accessoryWorkoutLogExerciseCard" : ""
+                          }${
+                            isClientPortal &&
+                            workoutFocusMode &&
+                            focusGroupIndexes.length > 1
+                              ? " workoutFocusGroupExercise"
+                              : ""
                           }`}
                           style={{
                             ["--sectionAccent" as string]:
@@ -31435,6 +31689,35 @@ function App() {
                           } as React.CSSProperties}
                           id={`workout-exercise-${index}`}
                         >
+                        {isClientPortal && workoutFocusMode && exerciseVideoUrl && (
+                          <button
+                            type="button"
+                            className={`workoutExerciseMedia${
+                              exerciseThumb ? "" : " workoutExerciseMediaEmpty"
+                            }`}
+                            onClick={() =>
+                              setWorkoutVideoOverlay({
+                                url: exerciseVideoUrl,
+                                title: localizedExerciseName(exercise),
+                              })
+                            }
+                            style={
+                              exerciseThumb
+                                ? ({
+                                    "--mediaThumb": `url("${exerciseThumb}")`,
+                                  } as React.CSSProperties)
+                                : undefined
+                            }
+                            aria-label={`Open video for ${exercise.exerciseName}`}
+                          >
+                            <span className="workoutExerciseMediaPlay">
+                              <Play size={28} fill="currentColor" aria-hidden="true" />
+                            </span>
+                            <span className="workoutExerciseMediaLabel">
+                              {paceZh ? "播放视频" : "Watch video"}
+                            </span>
+                          </button>
+                        )}
                         <div className="exerciseTitleRow workoutExerciseHeader">
                           <div className="workoutExerciseTitle">
                             <span
@@ -31463,29 +31746,40 @@ function App() {
 
                           <div className="workoutExerciseActions">
                             {localizeText(exercise.videoUrl || "", exercise.videoUrlCn || "") && (
-                              <a
+                              <button
                                 className="iconActionButton"
-                                href={localizeText(exercise.videoUrl || "", exercise.videoUrlCn || "")}
-                                target="_blank"
-                                rel="noopener noreferrer"
+                                type="button"
+                                onClick={() =>
+                                  setWorkoutVideoOverlay({
+                                    url: localizeText(
+                                      exercise.videoUrl || "",
+                                      exercise.videoUrlCn || ""
+                                    ),
+                                    title: localizedExerciseName(exercise),
+                                  })
+                                }
                                 title={t("video")}
                                 aria-label={`Open video for ${exercise.exerciseName}`}
                               >
                                 <Play size={18} fill="currentColor" aria-hidden="true" />
-                              </a>
+                              </button>
                             )}
 
                             {exercise.longVideoUrl && (
-                              <a
+                              <button
                                 className="iconActionButton"
-                                href={exercise.longVideoUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
+                                type="button"
+                                onClick={() =>
+                                  setWorkoutVideoOverlay({
+                                    url: exercise.longVideoUrl || "",
+                                    title: localizedExerciseName(exercise),
+                                  })
+                                }
                                 title={paceZh ? "详细讲解" : "In-depth video"}
                                 aria-label={`Open in-depth video for ${exercise.exerciseName}`}
                               >
                                 <Film size={18} aria-hidden="true" />
-                              </a>
+                              </button>
                             )}
 
                             <button
@@ -31601,7 +31895,9 @@ function App() {
                           <span>{t("distance")}</span>
                         </div>
 
-                        {exerciseLogs.map((log) => {
+                        <div className="exerciseLoggingArea">
+                          <div className="exerciseSetRows">
+                        {visibleExerciseLogs.map((log) => {
                           const globalIndex = setLogs.findIndex(
                             (item) =>
                               item.exerciseId === log.exerciseId &&
@@ -31619,22 +31915,6 @@ function App() {
                               ? t("left")
                               : log.side;
                           const setComplete = isSetComplete(log);
-                          const targetReps =
-                            log.prescribedReps || exercise.reps || "";
-                          const setTargetPieces = [
-                            targetReps
-                              ? showWeightInputs
-                                ? `${targetReps} ${paceZh ? "次" : "reps"}`
-                                : targetReps
-                              : "",
-                            log.prescribedLoad
-                              ? `${paceZh ? "目标" : "Load"} ${
-                                  log.prescribedLoad
-                                }`
-                              : "",
-                            log.prescribedRpe ? `RPE ${log.prescribedRpe}` : "",
-                            log.prescribedRir ? `RIR ${log.prescribedRir}` : "",
-                          ].filter(Boolean);
 
                           return (
                             <div
@@ -31653,7 +31933,9 @@ function App() {
                                 }
                               >
                                 <strong>
-                                  {t("setNo", { number: log.setNumber })}
+                                  {useMobileWorkoutRows
+                                    ? log.setNumber
+                                    : t("setNo", { number: log.setNumber })}
                                   {sideLabel ? ` · ${sideLabel}` : ""}
                                 </strong>
                                 {setComplete && (
@@ -31664,13 +31946,6 @@ function App() {
                                   />
                                 )}
                               </div>
-                              {useMobileWorkoutRows &&
-                                setTargetPieces.length > 0 && (
-                                  <div className="setTargetSummary">
-                                    <span>{paceZh ? "目标" : "Target"}</span>
-                                    <strong>{setTargetPieces.join(" / ")}</strong>
-                                  </div>
-                                )}
                               {showWeightInputs && (() => {
                                 // Bodyweight movement: coach programmed "BW" as
                                 // the load → show BW, leave reps as an open field.
@@ -31991,22 +32266,26 @@ function App() {
                             </div>
                           );
                         })}
+                          </div>
 
-                        {isClientPortal && (
+                        {isClientPortal && !coachReviewMode && (
                           <button
-                            className={
-                              savedExerciseDraftIds.includes(exercise.exerciseId)
-                                ? "outlineButton saveExerciseButton savedExerciseButton"
-                                : "outlineButton saveExerciseButton"
+                            className={`exerciseSaveCheckButton${
+                              exercisePageChecked ? " exerciseSaveCheckButtonDone" : ""
+                            }`}
+                            onClick={() =>
+                              checkAndSaveWorkoutExercise(
+                                exercise.exerciseId,
+                                visiblePageExerciseIds
+                              )
                             }
-                            onClick={() => saveExerciseDraft(exercise.exerciseId)}
                             type="button"
+                            aria-label={`Save ${exercise.exerciseName}`}
                           >
-                            {savedExerciseDraftIds.includes(exercise.exerciseId)
-                              ? t("exerciseSaved")
-                              : t("saveExercise")}
+                            <Check size={22} aria-hidden="true" />
                           </button>
                         )}
+                        </div>
                         </div>
                       </div>
                     );
@@ -32084,24 +32363,64 @@ function App() {
                   workoutFocusMode &&
                   workoutDetails.length > 0 &&
                   (() => {
-                    const isLast =
-                      workoutFocusIndex >= workoutDetails.length - 1;
+                    const focusBounds = getWorkoutGroupBounds(workoutFocusIndex);
+                    const isGroupedFocus = focusBounds.indexes.length > 1;
+                    const roundCount = getWorkoutGroupRoundCount(focusBounds.indexes);
+                    const isLastExercise =
+                      focusBounds.end >= workoutDetails.length - 1;
+                    const isLastRound =
+                      !isGroupedFocus || workoutFocusSetRound >= roundCount;
+                    const isLast = isLastExercise && isLastRound;
+                    const previousIndex = Math.max(0, focusBounds.start - 1);
+                    const nextIndex = Math.min(
+                      workoutDetails.length - 1,
+                      focusBounds.end + 1
+                    );
                     const focusEx = workoutDetails[workoutFocusIndex];
-                    const focusLogged = focusEx
+                    const focusIds = new Set(
+                      focusBounds.indexes
+                        .map((index) => workoutDetails[index]?.exerciseId)
+                        .filter(Boolean)
+                    );
+                    const roundLogs = isGroupedFocus
+                      ? setLogs.filter(
+                          (log) =>
+                            focusIds.has(log.exerciseId) &&
+                            Number(log.setNumber) === workoutFocusSetRound
+                        )
+                      : [];
+                    const focusLogged = isGroupedFocus
+                      ? roundLogs.length > 0 && roundLogs.every(isSetComplete)
+                      : focusEx
                       ? isExerciseFullyLogged(focusEx.exerciseId)
                       : false;
+                    const scrollPlayerTop = () => {
+                      window.setTimeout(() => {
+                        document
+                          .querySelector<HTMLElement>(
+                            ".clientWorkoutPlayerModal > .modal-body"
+                          )
+                          ?.scrollTo({ top: 0, behavior: "smooth" });
+                      }, 0);
+                    };
                     return (
                       <div className="workoutFocusNav">
                         <button
                           type="button"
                           className="workoutFocusNavBtn"
-                          disabled={workoutFocusIndex === 0}
-                          onClick={() =>
-                            goToFocusExercise(
-                              workoutFocusIndex - 1,
-                              workoutDetails.length
-                            )
+                          disabled={
+                            focusBounds.start === 0 && workoutFocusSetRound === 1
                           }
+                          onClick={() => {
+                            if (isGroupedFocus && workoutFocusSetRound > 1) {
+                              setWorkoutFocusSetRound((round) =>
+                                Math.max(1, round - 1)
+                              );
+                              scrollPlayerTop();
+                              return;
+                            }
+                            goToFocusExercise(previousIndex, workoutDetails.length);
+                          }}
                         >
                           <ChevronLeft size={18} />
                           {paceZh ? "上一个" : "Prev"}
@@ -32140,14 +32459,24 @@ function App() {
                             className={`workoutFocusNavBtn workoutFocusNavBtnPrimary${
                               focusLogged ? " workoutFocusNavBtnReady" : ""
                             }`}
-                            onClick={() =>
-                              goToFocusExercise(
-                                workoutFocusIndex + 1,
-                                workoutDetails.length
-                              )
-                            }
+                            onClick={() => {
+                              if (isGroupedFocus && workoutFocusSetRound < roundCount) {
+                                setWorkoutFocusSetRound((round) =>
+                                  Math.min(roundCount, round + 1)
+                                );
+                                scrollPlayerTop();
+                                return;
+                              }
+                              goToFocusExercise(nextIndex, workoutDetails.length);
+                            }}
                           >
-                            {paceZh ? "下一个动作" : "Next exercise"}
+                            {isGroupedFocus && workoutFocusSetRound < roundCount
+                              ? paceZh
+                                ? "下一组"
+                                : "Next set"
+                              : paceZh
+                              ? "下一个动作"
+                              : "Next exercise"}
                             <ChevronRight size={18} />
                           </button>
                         ) : (
@@ -32170,6 +32499,44 @@ function App() {
             </div>
           </div>
         )}
+
+        {workoutVideoOverlay &&
+          (() => {
+            const embedUrl = toYoutubeEmbed(workoutVideoOverlay.url);
+            return (
+              <div className="workoutVideoModalOverlay">
+                <div className="workoutVideoModal">
+                  <div className="workoutVideoModalHeader">
+                    <h2>{workoutVideoOverlay.title}</h2>
+                    <button
+                      type="button"
+                      className="drawerClose"
+                      onClick={() => setWorkoutVideoOverlay(null)}
+                      aria-label={t("close")}
+                    >
+                      <X size={22} />
+                    </button>
+                  </div>
+                  <div className="workoutVideoFrame">
+                    <iframe
+                      src={embedUrl || workoutVideoOverlay.url}
+                      title={workoutVideoOverlay.title}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  </div>
+                  <a
+                    className="workoutVideoExternalLink"
+                    href={workoutVideoOverlay.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {paceZh ? "在新标签页打开" : "Open video in new tab"}
+                  </a>
+                </div>
+              </div>
+            );
+          })()}
 
         {workoutFinishOpen &&
           (() => {
