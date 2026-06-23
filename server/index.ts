@@ -197,4 +197,20 @@ app.get(/.*/, (_req, res) => {
 
 app.listen(port, "127.0.0.1", () => {
   console.log(`NoLimit Training server listening on http://127.0.0.1:${port}`);
+
+  // Warm the heavy read caches in the background right after boot, so the first
+  // real user request (especially opening a workout, which scans the whole
+  // workout-templates table + exercise library) hits a warm cache instead of
+  // paying the full multi-second Feishu scan. Failures are ignored.
+  const warm = (pathname: string) =>
+    realFetch(`http://127.0.0.1:${port}${pathname}`).catch(() => {});
+  setTimeout(() => {
+    // dummy params still trigger (and cache) the full templates + library scans
+    void warm("/api/workoutDetails?programId=__warm__&week=1&day=1");
+    void warm("/api/exercises");
+    void warm("/api/programs");
+    void warm("/api/clients");
+    void warm("/api/teams");
+    void warm("/api/coaches");
+  }, 1500);
 });
