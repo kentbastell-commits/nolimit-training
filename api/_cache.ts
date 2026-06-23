@@ -13,6 +13,12 @@ export function getCached<T = any>(key: string): T | null {
 }
 
 export function setCached(key: string, data: any, ttlMs: number) {
+  // Never cache an empty list. The Feishu fetch helpers return [] on a
+  // transient failure (token blip, rate limit, a dropped page) just as they do
+  // for a genuinely empty table, and caching that [] would serve "no data" to
+  // every reader for the whole TTL — which looks exactly like total data loss.
+  // Skipping the write just means the next request re-fetches (cheap, safe).
+  if (Array.isArray(data) && data.length === 0) return;
   store.set(key, { data, expiry: Date.now() + ttlMs });
 }
 
