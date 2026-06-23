@@ -299,6 +299,30 @@ type ExerciseDetail = {
   targetAdjustment?: string;
   autoTarget?: boolean;
   displayTarget?: string;
+  alternateExercises?: AlternateExerciseDetail[];
+};
+
+// A coach-defined swap option for an exercise, enriched (server-side) with the
+// alternate's library details so the player can fully switch to it.
+type AlternateExerciseDetail = {
+  exerciseRecordId: string;
+  exerciseId: string;
+  exerciseName: string;
+  exerciseNameCn?: string;
+  videoUrl?: string;
+  videoUrlCn?: string;
+  longVideoUrl?: string;
+  category?: string;
+  categoryCn?: string;
+  equipment?: string;
+  equipmentCn?: string;
+  movementPattern?: string;
+  movementPatternCn?: string;
+  technicalInstructionsCn?: string;
+  coachingCuesCn?: string;
+  commonMistakesCn?: string;
+  cueNotes?: string;
+  cueNotesCn?: string;
 };
 
 type ExerciseNoteMeta = {
@@ -1888,6 +1912,12 @@ function App() {
     useState(false);
   const [selectedWorkout, setSelectedWorkout] = useState<Workout | null>(null);
   const [workoutDetails, setWorkoutDetails] = useState<ExerciseDetail[]>([]);
+  // The programmed exercises as loaded, so an alternate swap can revert to the
+  // original. Captured on load; never mutated (swaps replace workoutDetails).
+  const originalExercisesRef = useRef<ExerciseDetail[]>([]);
+  // The exercise whose alternate-picker sheet is open in the player (or null).
+  const [alternatePickerExercise, setAlternatePickerExercise] =
+    useState<ExerciseDetail | null>(null);
   const [setLogs, setSetLogs] = useState<SetLog[]>([]);
   const [restTimer, setRestTimer] = useState<{
     remaining: number;
@@ -6724,6 +6754,7 @@ function App() {
         setCheckedWorkoutPageItems([]);
       }
 
+      originalExercisesRef.current = exercises;
       setWorkoutDetails(exercises);
       setWorkoutHistoryLogs(historyData.logs || []);
     } catch {
@@ -6807,6 +6838,94 @@ function App() {
     return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [restTimer?.running]);
+
+  // The full set of swap choices for an exercise in the player: the originally
+  // programmed exercise first, then the coach's alternates.
+  const exerciseSwapOptions = (
+    target: ExerciseDetail
+  ): AlternateExerciseDetail[] => {
+    const original = originalExercisesRef.current.find(
+      (o) => o.id === target.id
+    );
+    const originalOption: AlternateExerciseDetail | null = original
+      ? {
+          exerciseRecordId: "",
+          exerciseId: original.exerciseId,
+          exerciseName: original.exerciseName,
+          exerciseNameCn: original.exerciseNameCn,
+          videoUrl: original.videoUrl,
+          videoUrlCn: original.videoUrlCn,
+          longVideoUrl: original.longVideoUrl,
+          category: original.category,
+          categoryCn: original.categoryCn,
+          equipment: original.equipment,
+          equipmentCn: original.equipmentCn,
+          movementPattern: original.movementPattern,
+          movementPatternCn: original.movementPatternCn,
+          technicalInstructionsCn: original.technicalInstructionsCn,
+          coachingCuesCn: original.coachingCuesCn,
+          commonMistakesCn: original.commonMistakesCn,
+          cueNotes: original.cueNotes,
+          cueNotesCn: original.cueNotesCn,
+        }
+      : null;
+    const alternates =
+      original?.alternateExercises || target.alternateExercises || [];
+    return originalOption ? [originalOption, ...alternates] : [...alternates];
+  };
+
+  // Swap a programmed exercise for one of its alternates (or back to the
+  // original) in the player: replace its display/identity + library cues, keep
+  // the prescription, and re-point this exercise's set logs so the saved
+  // records (and history) reflect the chosen exercise.
+  const swapExerciseOption = (
+    target: ExerciseDetail,
+    option: AlternateExerciseDetail
+  ) => {
+    setWorkoutDetails((prev) =>
+      prev.map((ex) =>
+        ex.id === target.id
+          ? {
+              ...ex,
+              exerciseId: option.exerciseId,
+              exerciseName: option.exerciseName,
+              exerciseNameCn: option.exerciseNameCn,
+              videoUrl: option.videoUrl,
+              videoUrlCn: option.videoUrlCn,
+              longVideoUrl: option.longVideoUrl,
+              category: option.category,
+              categoryCn: option.categoryCn,
+              equipment: option.equipment,
+              equipmentCn: option.equipmentCn,
+              movementPattern: option.movementPattern,
+              movementPatternCn: option.movementPatternCn,
+              technicalInstructionsCn: option.technicalInstructionsCn,
+              coachingCuesCn: option.coachingCuesCn,
+              commonMistakesCn: option.commonMistakesCn,
+              cueNotes: option.cueNotes,
+              cueNotesCn: option.cueNotesCn,
+            }
+          : ex
+      )
+    );
+    // Re-point this exercise's logs (matched by its current id + order) so the
+    // saved records and history reflect the chosen exercise name.
+    setSetLogs((prev) =>
+      prev.map((log) =>
+        log.exerciseId === target.exerciseId &&
+        log.exerciseOrder === target.order
+          ? {
+              ...log,
+              exerciseId: option.exerciseId,
+              exerciseName: log.side
+                ? `${option.exerciseName} - ${log.side}`
+                : option.exerciseName,
+            }
+          : log
+      )
+    );
+    setAlternatePickerExercise(null);
+  };
 
   const updateSetLog = (index: number, field: keyof SetLog, value: string) => {
     // Coach is reviewing a completed workout — values are read-only.
@@ -31889,6 +32008,24 @@ function App() {
 
                             {openWorkoutActionMenuId === exercise.id && (
                               <div className="workoutActionMenu">
+                                {(exercise.alternateExercises || []).length >
+                                  0 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setOpenWorkoutActionMenuId("");
+                                      setAlternatePickerExercise(exercise);
+                                    }}
+                                  >
+                                    <Shuffle size={16} aria-hidden="true" />
+                                    <span>
+                                      {paceZh
+                                        ? "替代动作"
+                                        : "Alternate Exercises"}
+                                    </span>
+                                  </button>
+                                )}
+
                                 {exerciseVideoUrl && (
                                   <button
                                     type="button"
@@ -32935,6 +33072,85 @@ function App() {
               </div>
             );
           })()}
+
+        {alternatePickerExercise && (
+          <div
+            className="workout-modal-overlay"
+            onClick={() => setAlternatePickerExercise(null)}
+          >
+            <div
+              className="clientFormModal alternatePickerModal"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="modal-header">
+                <div>
+                  <h2>{paceZh ? "替代动作" : "Alternate Exercises"}</h2>
+                  <p>
+                    {paceZh
+                      ? "选择一个动作进行替换"
+                      : "Pick an exercise to swap in"}
+                  </p>
+                </div>
+
+                <button
+                  className="drawerClose"
+                  onClick={() => setAlternatePickerExercise(null)}
+                >
+                  x
+                </button>
+              </div>
+
+              <div className="alternatePickerList">
+                {exerciseSwapOptions(alternatePickerExercise).map(
+                  (option, optionIndex) => {
+                    const isActive =
+                      option.exerciseId ===
+                      alternatePickerExercise.exerciseId;
+                    const name =
+                      paceZh && option.exerciseNameCn
+                        ? option.exerciseNameCn
+                        : option.exerciseName;
+                    const meta = [option.category, option.equipment]
+                      .filter(Boolean)
+                      .join(" • ");
+                    return (
+                      <button
+                        key={`${option.exerciseId}-${optionIndex}`}
+                        type="button"
+                        className={`alternateOptionBtn${
+                          isActive ? " alternateOptionBtnActive" : ""
+                        }`}
+                        onClick={() =>
+                          swapExerciseOption(alternatePickerExercise, option)
+                        }
+                      >
+                        <span className="alternateOptionInfo">
+                          <span className="alternateOptionName">{name}</span>
+                          {(optionIndex === 0 || meta) && (
+                            <span className="alternateOptionMeta">
+                              {optionIndex === 0
+                                ? paceZh
+                                  ? meta
+                                    ? `原方案 • ${meta}`
+                                    : "原方案"
+                                  : meta
+                                    ? `Programmed • ${meta}`
+                                    : "Programmed"
+                                : meta}
+                            </span>
+                          )}
+                        </span>
+                        {isActive && (
+                          <Check size={18} aria-hidden="true" />
+                        )}
+                      </button>
+                    );
+                  }
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {historyExerciseName && (
           <div className="workout-modal-overlay">

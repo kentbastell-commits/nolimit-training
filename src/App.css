@@ -11617,6 +11617,67 @@ button.coachReviewGlobalItem,
   width: 820px;
 }
 
+/* Player: alternate-exercise picker */
+.alternatePickerModal {
+  width: 440px;
+  max-width: 92vw;
+}
+
+.alternatePickerList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px 0 6px;
+}
+
+.alternateOptionBtn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid #e2dfd5;
+  border-radius: 14px;
+  background: #fff;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.alternateOptionBtn:hover {
+  border-color: #c7c2b4;
+  background: #fbfaf6;
+}
+
+.alternateOptionBtnActive,
+.alternateOptionBtnActive:hover {
+  border-color: #d4af37;
+  background: #fbf7ea;
+}
+
+.alternateOptionInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.alternateOptionName {
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.alternateOptionMeta {
+  font-size: 12px;
+  color: #6b6b6b;
+}
+
+.alternateOptionBtn svg {
+  color: #d4af37;
+  flex-shrink: 0;
+}
+
 .historyLogList {
   display: flex;
   flex-direction: column;
