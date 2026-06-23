@@ -17091,7 +17091,7 @@ function App() {
         <main className="storeMainV2">
           <section className="storeHeroV2">
             <div className="storeHeroCopyV2">
-              <span className="storeEyebrowV2">{sZh ? "数字训练商店" : "Digital Program Store"}</span>
+              <span className="storeEyebrowV2">{sZh ? "为训练而生" : "Built for Training"}</span>
               <h1>
                 {sZh
                   ? "顶级训练计划，直接送到你的手机。"
