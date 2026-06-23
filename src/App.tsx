@@ -1036,22 +1036,17 @@ function parseExerciseNotes(notes = ""): ExerciseNoteMeta {
 }
 
 // The English note is parsed cleanly by parseExerciseNotes, but a localized
-// note (notesCn) often has the same "Section: …" metadata block baked in as a
-// translation (e.g. "部分：主要", "组数说明：[{…}]"). parseExerciseNotes only
-// recognizes the English labels, so for display we strip the translated meta
-// lines (and any set-prescription JSON) here, leaving just the coaching cue.
-const LOCALIZED_META_LABELS = [
-  "Section", "Label", "Superset", "Circuit", "Tracking", "Fields",
-  "Unilateral", "Accessory", "Accessory Parent", "Accessory Color",
-  "Set Prescriptions", "Alternate Exercises",
-  // Chinese labels incl. translation variants seen in real data.
-  "部分", "标签", "超级组", "循环", "环节", "追踪", "跟踪", "字段", "单侧",
-  "辅助", "辅助动作", "辅助父级", "辅助父项", "辅助父", "辅助色", "辅助颜色",
-  "组数说明", "组数处方", "组数", "备选动作", "替代动作", "备选练习", "备用动作",
-];
-const LOCALIZED_META_LINE = new RegExp(
-  `^\\s*(?:${LOCALIZED_META_LABELS.join("|")})\\s*[:：]`
-);
+// note (notesCn) often has the same metadata block baked in as a translation
+// ("跟踪指标：重量", "辅助主动作：B1", "组数说明：[{…}]"). The Chinese labels vary
+// between translations, so instead of matching exact labels we drop any line
+// that looks like a "field：value" metadata line — leaving just the coaching
+// description.
+const EN_META_LINE =
+  /^\s*(?:Section|Label|Superset|Circuit|Tracking|Fields|Unilateral|Accessory|Accessory Parent|Accessory Color|Set Prescriptions|Alternate Exercises)\s*[:：]/i;
+// A short CJK field label (1-12 ideographs/digits) immediately followed by a
+// colon. Real descriptions have punctuation (，。) before any colon, so they
+// stay intact.
+const CN_META_LINE = /^\s*[一-鿿][一-鿿0-9]{0,11}[:：]/;
 const META_JSON_FRAGMENT =
   /^\s*[[\]{}]|"(?:setNumber|reps|load|percent|percentMas|intensityMode|intensityValue|rpe|rir|tempo|rest|exerciseRecordId|exerciseId|exerciseName)"\s*:/;
 
@@ -1061,7 +1056,8 @@ function stripLocalizedExerciseMeta(note = ""): string {
     .filter((line) => {
       const trimmed = line.trim();
       if (!trimmed) return true;
-      if (LOCALIZED_META_LINE.test(trimmed)) return false;
+      if (EN_META_LINE.test(trimmed)) return false;
+      if (CN_META_LINE.test(trimmed)) return false;
       if (META_JSON_FRAGMENT.test(trimmed)) return false;
       return true;
     })
