@@ -1914,6 +1914,10 @@ function App() {
   // The exercise whose alternate-picker sheet is open in the player (or null).
   const [alternatePickerExercise, setAlternatePickerExercise] =
     useState<ExerciseDetail | null>(null);
+  // Retry bookkeeping for resolving the portal's client (handles a transient
+  // empty /api/clients response so a valid link doesn't show "could not find").
+  const portalResolveAttempts = useRef(0);
+  const [portalResolveExhausted, setPortalResolveExhausted] = useState(false);
   // Never let the alternate picker linger once the workout player is closed.
   useEffect(() => {
     if (workoutDetails.length === 0 && alternatePickerExercise) {
@@ -3002,7 +3006,7 @@ function App() {
   }, [activePage, isClientPortal]);
 
   useEffect(() => {
-    if (!isClientPortal || !clientPortalCode || clients.length === 0) return;
+    if (!isClientPortal || !clientPortalCode) return;
 
     const normalizedPortalCode = clientPortalCode.toLowerCase();
     const portalClient = clients.find(
@@ -3012,10 +3016,27 @@ function App() {
     );
 
     if (portalClient) {
+      portalResolveAttempts.current = 0;
+      setPortalResolveExhausted(false);
       setSelectedClient(portalClient);
       setClientTab("Home");
       setActivePage("Clients");
+      return;
     }
+
+    // The clients fetch can come back transiently empty/stale (a token blip or
+    // rate limit), which would otherwise show "could not find" on a valid
+    // portal link. Retry a fresh fetch a few times before giving up; the UI
+    // keeps showing "Loading…" until then.
+    if (portalResolveAttempts.current < 5) {
+      const timer = window.setTimeout(() => {
+        portalResolveAttempts.current += 1;
+        void loadClients(true);
+      }, 800);
+      return () => window.clearTimeout(timer);
+    }
+
+    setPortalResolveExhausted(true);
   }, [clients, clientPortalCode, isClientPortal]);
 
   useEffect(() => {
@@ -18395,9 +18416,9 @@ function App() {
   if (isClientPortal && !selectedClient) {
     const portalMessage = !clientPortalCode
       ? "This client portal link is missing a client code."
-      : loading
-      ? "Loading your training portal..."
-      : "We could not find this client portal.";
+      : portalResolveExhausted
+      ? "We could not find this client portal."
+      : "Loading your training portal...";
 
     return (
       <div className="clientPortalShell">
