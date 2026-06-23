@@ -24986,3 +24986,119 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   text-align: center;
   text-decoration: none;
 }
+
+@media (max-width: 720px) {
+  .clientPortalApp .workoutPlayerProgress {
+    background: #3a86ff !important;
+    box-shadow: 0 14px 32px rgba(58, 134, 255, 0.28) !important;
+  }
+
+  .clientPortalApp .workoutPlayerBannerBack {
+    background: rgba(255, 255, 255, 0.16) !important;
+  }
+
+  .clientPortalApp .clientWorkoutPlayerActive .workoutExerciseMedia,
+  .clientPortalApp .clientWorkoutPlayerActive .workoutFocusGroupExercise .workoutExerciseMedia {
+    width: 100% !important;
+    min-height: clamp(205px, 52vw, 265px) !important;
+    aspect-ratio: 16 / 9;
+    margin: 0 0 16px !important;
+    color: #3a86ff !important;
+  }
+
+  .clientPortalApp .clientWorkoutPlayerActive .workoutExerciseHeader {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) 42px !important;
+    align-items: start !important;
+    gap: 10px !important;
+  }
+
+  .clientPortalApp .clientWorkoutPlayerActive .workoutExerciseTitle {
+    min-width: 0;
+  }
+
+  .clientPortalApp .clientWorkoutPlayerActive .workoutExerciseTitle h3 {
+    overflow-wrap: anywhere;
+    word-break: normal;
+  }
+
+  .clientPortalApp .clientWorkoutPlayerActive .workoutExerciseActionsMenu {
+    position: relative;
+    justify-self: end;
+    z-index: 8;
+  }
+
+  .clientPortalApp .clientWorkoutPlayerActive .workoutExerciseActionsMenu > .iconActionButton:not(.workoutActionMenuTrigger) {
+    display: none !important;
+  }
+
+  .clientPortalApp .clientWorkoutPlayerActive .workoutActionMenuTrigger {
+    display: inline-grid !important;
+  }
+
+  .clientPortalApp .clientWorkoutPlayerActive .workoutActionMenu {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    z-index: 30;
+    display: grid;
+    gap: 2px;
+    min-width: 178px;
+    padding: 8px;
+    border: 1px solid #e2dfd5;
+    border-radius: 12px;
+    background: #ffffff;
+    box-shadow: 0 18px 48px rgba(17, 17, 17, 0.18);
+  }
+
+  .clientPortalApp .clientWorkoutPlayerActive .workoutActionMenu button {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    width: 100%;
+    padding: 10px 9px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: #171717;
+    font-size: 13px;
+    font-weight: 850;
+    text-align: left;
+  }
+
+  .clientPortalApp .clientWorkoutPlayerActive .workoutActionMenu button:active {
+    background: #f3f4f8;
+  }
+
+  .clientPortalApp .exerciseLoggingArea {
+    display: block !important;
+  }
+
+  .clientPortalApp .clientWorkoutPlayerActive .mobileSetLogRow,
+  .clientPortalApp .clientWorkoutPlayerActive .workoutLogExerciseCard .mobileSetLogRow {
+    position: relative;
+    padding-right: 48px !important;
+  }
+
+  .clientPortalApp .setSaveCheckButton {
+    position: absolute;
+    top: 50%;
+    right: 8px;
+    display: inline-grid;
+    place-items: center;
+    width: 34px;
+    height: 44px;
+    border: 1px solid #dcdde4;
+    border-radius: 11px;
+    background: #ffffff;
+    color: #8b8d96;
+    transform: translateY(-50%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+  }
+
+  .clientPortalApp .setSaveCheckButtonDone {
+    border-color: #58cf7a;
+    background: #58cf7a;
+    color: #ffffff;
+  }
+}
