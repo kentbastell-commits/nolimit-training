@@ -3185,9 +3185,7 @@ function App() {
   useEffect(() => {
     const updateWorkoutRowMode = () => {
       const narrowViewport = window.innerWidth <= 700;
-      const isTouchPhone =
-        window.navigator.maxTouchPoints > 0 && narrowViewport;
-      setUseMobileWorkoutRows(isTouchPhone);
+      setUseMobileWorkoutRows(narrowViewport);
     };
 
     updateWorkoutRowMode();
@@ -15933,6 +15931,14 @@ function App() {
       if (!workoutStartedAtRef.current) {
         workoutStartedAtRef.current = Date.now();
       }
+      window.setTimeout(() => {
+        document
+          .querySelector<HTMLElement>(
+            ".clientWorkoutPlayerModal > .modal-body"
+          )
+          ?.scrollTo({ top: 0, behavior: "smooth" });
+      }, 0);
+      return;
     }
 
     window.setTimeout(() => {
@@ -15948,6 +15954,16 @@ function App() {
   const goToFocusExercise = (index: number, total: number) => {
     const next = Math.max(0, Math.min(total - 1, index));
     setWorkoutFocusIndex(next);
+    if (isClientPortal) {
+      window.setTimeout(() => {
+        document
+          .querySelector<HTMLElement>(
+            ".clientWorkoutPlayerModal > .modal-body"
+          )
+          ?.scrollTo({ top: 0, behavior: "smooth" });
+      }, 0);
+      return;
+    }
     window.setTimeout(() => {
       document.getElementById(`workout-exercise-${next}`)?.scrollIntoView({
         behavior: "smooth",
@@ -18952,24 +18968,6 @@ function App() {
                 <h1>{activePage}</h1>
                 <p>NoLimit Training System</p>
               </div>
-              <div className="topbarRight">
-                <button
-                  className="notificationsBell"
-                  onClick={() => {
-                    setShowNotificationsPanel((v) => !v);
-                    void loadNotifications();
-                  }}
-                  title="Notifications"
-                >
-                  <Bell size={20} />
-                  {notifications.filter((n) => !n.read).length > 0 && (
-                    <span className="notificationsBadge">
-                      {notifications.filter((n) => !n.read).length}
-                    </span>
-                  )}
-                </button>
-              </div>
-
               {activePage === "Clients" && (
                 <div className="topbarActions">
                   <button
@@ -25154,7 +25152,7 @@ function App() {
                     >
                       <ChevronLeft size={16} /> Forms
                     </button>
-                    <div className="builderHubHeader">
+                    <div className="builderHubHeader builderToneHeader">
                       <div>
                         <h2>Form & Questionnaire Builder</h2>
                         <p>
@@ -25384,7 +25382,7 @@ function App() {
                     >
                       <ChevronLeft size={16} /> Tests
                     </button>
-                    <div className="builderHubHeader">
+                    <div className="builderHubHeader builderToneHeader">
                       <div>
                         <h2>Physical Test Builder</h2>
                         <p>
@@ -29447,7 +29445,7 @@ function App() {
         {showExerciseModal && (
           <div className="workout-modal-overlay">
             <div className="clientFormModal exerciseFormModal">
-              <div className="modal-header">
+              <div className="modal-header exerciseToneHeader">
                 <div>
                   <span className="exerciseModalEyebrow">
                     {editingExercise ? "Edit" : "New"} · Exercise Library
@@ -31067,10 +31065,18 @@ function App() {
         )}
 
         {selectedWorkout && (
-          <div className="workout-modal-overlay">
+          <div
+            className={`workout-modal-overlay${
+              isClientPortal ? " clientWorkoutPlayerOverlay" : ""
+            }`}
+          >
             <div
               className={`workout-modal${
                 coachReviewMode ? " coachReviewModal" : ""
+              }${isClientPortal ? " clientWorkoutPlayerModal" : ""}${
+                isClientPortal && workoutLoggingStarted
+                  ? " clientWorkoutPlayerActive"
+                  : ""
               }`}
             >
               <div className="modal-header">
@@ -31248,6 +31254,57 @@ function App() {
                     {t("backToAtAGlance")}
                   </button>
                 )}
+
+                {!detailsLoading &&
+                  isClientPortal &&
+                  workoutLoggingStarted &&
+                  workoutDetails.length > 0 &&
+                  (() => {
+                    const focusEx = workoutDetails[workoutFocusIndex];
+                    const focusLogs = focusEx
+                      ? setLogs.filter(
+                          (log) => log.exerciseId === focusEx.exerciseId
+                        )
+                      : [];
+                    const completedSets = focusLogs.filter(isSetComplete).length;
+                    const totalSets = Math.max(focusLogs.length, completedSets);
+                    const completedExercises = workoutDetails.filter((ex) =>
+                      isExerciseFullyLogged(ex.exerciseId)
+                    ).length;
+                    const exerciseProgress =
+                      ((workoutFocusIndex + 1) / workoutDetails.length) * 100;
+                    return (
+                      <section className="workoutPlayerProgress">
+                        <div className="workoutPlayerProgressTop">
+                          <span>
+                            {paceZh ? "动作" : "Exercise"}{" "}
+                            {workoutFocusIndex + 1}/{workoutDetails.length}
+                          </span>
+                          <strong>{localizedWorkoutName(selectedWorkout)}</strong>
+                        </div>
+                        <div
+                          className="workoutPlayerProgressTrack"
+                          aria-hidden="true"
+                        >
+                          <span style={{ width: `${exerciseProgress}%` }} />
+                        </div>
+                        <div className="workoutPlayerProgressMeta">
+                          <span>
+                            {paceZh ? "当前动作" : "Current"}:{" "}
+                            {focusEx ? localizedExerciseName(focusEx) : "--"}
+                          </span>
+                          <span>
+                            {completedSets}/{totalSets || "--"}{" "}
+                            {paceZh ? "组" : "sets"}
+                          </span>
+                          <span>
+                            {completedExercises}/{workoutDetails.length}{" "}
+                            {paceZh ? "完成" : "done"}
+                          </span>
+                        </div>
+                      </section>
+                    );
+                  })()}
 
                 {restTimer && (
                   <div
@@ -31562,6 +31619,22 @@ function App() {
                               ? t("left")
                               : log.side;
                           const setComplete = isSetComplete(log);
+                          const targetReps =
+                            log.prescribedReps || exercise.reps || "";
+                          const setTargetPieces = [
+                            targetReps
+                              ? showWeightInputs
+                                ? `${targetReps} ${paceZh ? "次" : "reps"}`
+                                : targetReps
+                              : "",
+                            log.prescribedLoad
+                              ? `${paceZh ? "目标" : "Load"} ${
+                                  log.prescribedLoad
+                                }`
+                              : "",
+                            log.prescribedRpe ? `RPE ${log.prescribedRpe}` : "",
+                            log.prescribedRir ? `RIR ${log.prescribedRir}` : "",
+                          ].filter(Boolean);
 
                           return (
                             <div
@@ -31591,6 +31664,13 @@ function App() {
                                   />
                                 )}
                               </div>
+                              {useMobileWorkoutRows &&
+                                setTargetPieces.length > 0 && (
+                                  <div className="setTargetSummary">
+                                    <span>{paceZh ? "目标" : "Target"}</span>
+                                    <strong>{setTargetPieces.join(" / ")}</strong>
+                                  </div>
+                                )}
                               {showWeightInputs && (() => {
                                 // Bodyweight movement: coach programmed "BW" as
                                 // the load → show BW, leave reps as an open field.
@@ -31982,9 +32062,7 @@ function App() {
                   </label>
                 ) : (
                   (!isClientPortal ||
-                    (workoutLoggingStarted &&
-                      (!workoutFocusMode ||
-                        workoutFocusIndex >= workoutDetails.length - 1))) && (
+                    (workoutLoggingStarted && !workoutFocusMode)) && (
                     <button
                       className="goldButton saveWorkoutButton"
                       onClick={isClientPortal ? openWorkoutFinish : saveWorkout}
@@ -32069,19 +32147,21 @@ function App() {
                               )
                             }
                           >
-                            {paceZh ? "下一个" : "Next"}
+                            {paceZh ? "下一个动作" : "Next exercise"}
                             <ChevronRight size={18} />
                           </button>
                         ) : (
-                          <span className="workoutFocusLast">
-                            {focusLogged
-                              ? paceZh
-                                ? "已完成 ✓"
-                                : "Done ✓"
-                              : paceZh
-                              ? "最后一个"
-                              : "Last"}
-                          </span>
+                          <button
+                            type="button"
+                            className={`workoutFocusNavBtn workoutFocusNavBtnPrimary workoutFocusFinishBtn${
+                              focusLogged ? " workoutFocusNavBtnReady" : ""
+                            }`}
+                            onClick={openWorkoutFinish}
+                            disabled={savingWorkout}
+                          >
+                            {paceZh ? "完成训练" : "Finish Workout"}
+                            <Check size={18} />
+                          </button>
                         )}
                       </div>
                     );
