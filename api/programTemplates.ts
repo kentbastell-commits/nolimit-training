@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { getCached, setCached } from "./_cache.ts";
 
 function fieldToText(value: any): string {
   if (!value) return "";
@@ -94,34 +95,40 @@ export default async function handler(
     const tokenData = await tokenResponse.json();
 
     // Paginate the whole templates table — once it grows past one page,
-    // newly-created templates land on later pages and would be missed.
-    const allItems: any[] = [];
-    let pageToken = "";
-    do {
-      const url = new URL(
-        `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${process.env.FEISHU_WORKOUT_TEMPLATES_TABLE_ID}/records`
-      );
-      url.searchParams.set("page_size", "500");
-      if (pageToken) url.searchParams.set("page_token", pageToken);
+    // newly-created templates land on later pages and would be missed. The scan
+    // is shared (and slow), so cache it; writers invalidate "workoutTemplatesRaw".
+    let allItems = getCached<any[]>("workoutTemplatesRaw");
+    if (!allItems) {
+      allItems = [];
+      let pageToken = "";
+      do {
+        const url = new URL(
+          `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${process.env.FEISHU_WORKOUT_TEMPLATES_TABLE_ID}/records`
+        );
+        url.searchParams.set("page_size", "500");
+        if (pageToken) url.searchParams.set("page_token", pageToken);
 
-      const recordsResponse = await fetch(url.toString(), {
-        headers: { Authorization: `Bearer ${tokenData.tenant_access_token}` },
-      });
-      const pageData = await recordsResponse.json();
+        const recordsResponse = await fetch(url.toString(), {
+          headers: { Authorization: `Bearer ${tokenData.tenant_access_token}` },
+        });
+        const pageData = await recordsResponse.json();
 
-      if (!pageData?.data?.items) {
-        if (allItems.length === 0) {
-          return res.status(500).json({
-            error: "No workout template records returned",
-            larkResponse: pageData,
-          });
+        if (!pageData?.data?.items) {
+          if (allItems.length === 0) {
+            return res.status(500).json({
+              error: "No workout template records returned",
+              larkResponse: pageData,
+            });
+          }
+          break;
         }
-        break;
-      }
 
-      allItems.push(...pageData.data.items);
-      pageToken = pageData.data.has_more ? pageData.data.page_token : "";
-    } while (pageToken);
+        allItems.push(...pageData.data.items);
+        pageToken = pageData.data.has_more ? pageData.data.page_token : "";
+      } while (pageToken);
+
+      setCached("workoutTemplatesRaw", allItems, 10 * 60 * 1000);
+    }
 
     const programSearch = String(programId || "");
     const recordIdTarget = String(programRecordId || "");

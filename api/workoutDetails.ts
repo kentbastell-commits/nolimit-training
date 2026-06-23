@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { fetchAllBitableRecords } from "./_pagination.ts";
+import { getCached, setCached } from "./_cache.ts";
 
 function fieldToText(value: any): string {
   if (!value) return "";
@@ -147,18 +148,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
-    const [templateItems, libraryItems] = await Promise.all([
-      fetchAllBitableRecords(
-        process.env.FEISHU_BASE_APP_TOKEN as string,
-        process.env.FEISHU_WORKOUT_TEMPLATES_TABLE_ID as string,
-        tokenData.tenant_access_token
-      ),
-      fetchAllBitableRecords(
-        process.env.FEISHU_BASE_APP_TOKEN as string,
-        process.env.FEISHU_EXERCISE_LIBRARY_TABLE_ID as string,
-        tokenData.tenant_access_token
-      ),
-    ]);
+    // Both tables are scanned in full and joined in memory. They rarely change
+    // and are shared across every program/week/day, so cache the raw scans and
+    // serve repeat workout opens from memory (writers invalidate these keys).
+    let templateItems = getCached<any[]>("workoutTemplatesRaw");
+    let libraryItems = getCached<any[]>("exerciseLibraryRaw");
+
+    if (!templateItems || !libraryItems) {
+      const [templates, library] = await Promise.all([
+        templateItems
+          ? Promise.resolve(templateItems)
+          : fetchAllBitableRecords(
+              process.env.FEISHU_BASE_APP_TOKEN as string,
+              process.env.FEISHU_WORKOUT_TEMPLATES_TABLE_ID as string,
+              tokenData.tenant_access_token
+            ),
+        libraryItems
+          ? Promise.resolve(libraryItems)
+          : fetchAllBitableRecords(
+              process.env.FEISHU_BASE_APP_TOKEN as string,
+              process.env.FEISHU_EXERCISE_LIBRARY_TABLE_ID as string,
+              tokenData.tenant_access_token
+            ),
+      ]);
+      templateItems = templates;
+      libraryItems = library;
+      setCached("workoutTemplatesRaw", templateItems, 10 * 60 * 1000);
+      setCached("exerciseLibraryRaw", libraryItems, 10 * 60 * 1000);
+    }
 
     const exerciseLibrary = new Map<string, Record<string, any>>();
     libraryItems.forEach((item: any) => {

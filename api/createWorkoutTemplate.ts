@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { invalidateCache } from "./_cache.ts";
 
 type ProgramExercise = {
   exerciseRecordId?: string;
@@ -519,6 +520,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         skipped: "Missing FEISHU_EXERCISE_ALTERNATES_TABLE_ID",
       };
     }
+
+    invalidateCache("workoutTemplatesRaw");
+    invalidateCache("programs");
 
     return res.status(200).json({
       success: true,

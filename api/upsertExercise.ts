@@ -271,6 +271,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     invalidateCache("exercises");
+    invalidateCache("exerciseLibraryRaw");
 
     return res.status(200).json({
       success: true,
