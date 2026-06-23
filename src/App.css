@@ -25270,6 +25270,10 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   -webkit-font-smoothing: antialiased;
 }
 .lv3 a { text-decoration: none; }
+.lv3 h1,
+.lv3 h2,
+.lv3 h3,
+.lv3 h4 { color: #f4f1ea; }
 
 .lv3Nav {
   display: flex;
