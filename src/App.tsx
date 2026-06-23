@@ -17218,12 +17218,12 @@ function App() {
             <div className="storeHowGridV2">
               {(sZh
                 ? [
-                    ["1", "选择你的项目", "从下面的目录里选择你的训练方向。"],
+                    ["1", "选择你的项目", "从上方目录中选择你的训练方向。"],
                     ["2", "选择单个计划或套餐", "购买单个计划，或以优惠价购买整套。"],
                     ["3", "加购关节 / 灵活性模块", "为关节健康和伤病预防加上专项模块。"],
                   ]
                 : [
-                    ["1", "Choose your sport", "Pick your training direction from the catalog below."],
+                    ["1", "Choose your sport", "Pick your training direction from the catalog above."],
                     ["2", "Pick a program or bundle", "Buy an individual program, or a discounted bundle."],
                     ["3", "Add joint & mobility work", "Add joint/mobility programs for joint health and injury prevention."],
                   ]
