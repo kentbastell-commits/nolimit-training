@@ -1011,6 +1011,40 @@ function parseExerciseNotes(notes = ""): ExerciseNoteMeta {
   return meta;
 }
 
+// The English note is parsed cleanly by parseExerciseNotes, but a localized
+// note (notesCn) often has the same "Section: …" metadata block baked in as a
+// translation (e.g. "部分：主要", "组数说明：[{…}]"). parseExerciseNotes only
+// recognizes the English labels, so for display we strip the translated meta
+// lines (and any set-prescription JSON) here, leaving just the coaching cue.
+const LOCALIZED_META_LABELS = [
+  "Section", "Label", "Superset", "Circuit", "Tracking", "Fields",
+  "Unilateral", "Accessory", "Accessory Parent", "Accessory Color",
+  "Set Prescriptions", "Alternate Exercises",
+  // Chinese labels incl. translation variants seen in real data.
+  "部分", "标签", "超级组", "循环", "环节", "追踪", "跟踪", "字段", "单侧",
+  "辅助", "辅助动作", "辅助父级", "辅助父项", "辅助父", "辅助色", "辅助颜色",
+  "组数说明", "组数处方", "组数", "备选动作", "替代动作", "备选练习", "备用动作",
+];
+const LOCALIZED_META_LINE = new RegExp(
+  `^\\s*(?:${LOCALIZED_META_LABELS.join("|")})\\s*[:：]`
+);
+const META_JSON_FRAGMENT =
+  /^\s*[[\]{}]|"(?:setNumber|reps|load|percent|percentMas|intensityMode|intensityValue|rpe|rir|tempo|rest|exerciseRecordId|exerciseId|exerciseName)"\s*:/;
+
+function stripLocalizedExerciseMeta(note = ""): string {
+  return note
+    .split(/\r?\n/)
+    .filter((line) => {
+      const trimmed = line.trim();
+      if (!trimmed) return true;
+      if (LOCALIZED_META_LINE.test(trimmed)) return false;
+      if (META_JSON_FRAGMENT.test(trimmed)) return false;
+      return true;
+    })
+    .join("\n")
+    .trim();
+}
+
 function composeExerciseNotes(
   notes: string,
   trackingType: TrackingType,
@@ -1887,6 +1921,7 @@ function App() {
     url: string;
     title: string;
   } | null>(null);
+  const [openWorkoutActionMenuId, setOpenWorkoutActionMenuId] = useState("");
   const [historyExerciseName, setHistoryExerciseName] = useState("");
   const [expandedHistoryDates, setExpandedHistoryDates] = useState<Set<string>>(
     new Set()
@@ -16198,28 +16233,22 @@ function App() {
     openWorkoutFinish();
   };
 
-  const workoutPageCheckKey = (exerciseId: string) => {
-    const bounds = getWorkoutGroupBounds(workoutFocusIndex);
-    return bounds.indexes.length > 1
-      ? `${exerciseId}:round:${workoutFocusSetRound}`
-      : exerciseId;
-  };
+  const workoutSetCheckKey = (
+    log: Pick<SetLog, "exerciseId" | "setNumber" | "side">
+  ) => `${log.exerciseId}:set:${log.setNumber}:${log.side || "both"}`;
 
-  const checkAndSaveWorkoutExercise = (
-    exerciseId: string,
-    visibleExerciseIds: string[]
-  ) => {
-    const key = workoutPageCheckKey(exerciseId);
+  const checkAndSaveWorkoutSet = (log: SetLog, visibleLogs: SetLog[]) => {
+    const key = workoutSetCheckKey(log);
     const nextChecked = Array.from(new Set([...checkedWorkoutPageItems, key]));
     setCheckedWorkoutPageItems(nextChecked);
-    saveExerciseDraft(exerciseId, { showToast: false });
-    vibrate(18);
+    saveExerciseDraft(log.exerciseId, { showToast: false });
+    vibrate(14);
 
-    const allVisibleChecked = visibleExerciseIds
+    const allVisibleChecked = visibleLogs
       .filter(Boolean)
-      .every((id) => nextChecked.includes(workoutPageCheckKey(id)));
+      .every((item) => nextChecked.includes(workoutSetCheckKey(item)));
 
-    if (allVisibleChecked) {
+    if (workoutFocusMode && allVisibleChecked) {
       window.setTimeout(advanceWorkoutPlayerPage, 220);
     }
   };
@@ -31598,7 +31627,7 @@ function App() {
                           sectionName !== (previousMeta.sectionName || "Main");
                     const coachingNotes = localizeText(
                       meta.coachingNotes,
-                      exercise.notesCn || ""
+                      stripLocalizedExerciseMeta(exercise.notesCn || "")
                     );
                     const exerciseVideoUrl = localizeText(
                       exercise.videoUrl || "",
@@ -31632,18 +31661,19 @@ function App() {
                               handleFocusTouchEnd(e, workoutDetails.length),
                           }
                         : {};
-                    const visiblePageExerciseIds =
+                    const visiblePageLogs =
                       isClientPortal && workoutFocusMode
-                        ? focusGroupIndexes
-                            .map((exerciseIndex) => workoutDetails[exerciseIndex]?.exerciseId)
-                            .filter(Boolean)
-                        : [exercise.exerciseId];
-                    const exercisePageChecked =
-                      checkedWorkoutPageItems.includes(
-                        workoutPageCheckKey(exercise.exerciseId)
-                      ) ||
-                      (!isGroupedFocus &&
-                        savedExerciseDraftIds.includes(exercise.exerciseId));
+                        ? focusGroupIndexes.flatMap((exerciseIndex) => {
+                            const focusExercise = workoutDetails[exerciseIndex];
+                            if (!focusExercise) return [];
+                            return setLogs.filter(
+                              (log) =>
+                                log.exerciseId === focusExercise.exerciseId &&
+                                (!isGroupedFocus ||
+                                  Number(log.setNumber) === workoutFocusSetRound)
+                            );
+                          })
+                        : visibleExerciseLogs;
 
                     return (
                       <div key={exercise.id} {...focusSwipe}>
@@ -31744,7 +31774,21 @@ function App() {
                             </div>
                           </div>
 
-                          <div className="workoutExerciseActions">
+                          <div className="workoutExerciseActions workoutExerciseActionsMenu">
+                            <button
+                              className="iconActionButton workoutActionMenuTrigger"
+                              type="button"
+                              onClick={() =>
+                                setOpenWorkoutActionMenuId((current) =>
+                                  current === exercise.id ? "" : exercise.id
+                                )
+                              }
+                              title={paceZh ? "More" : "More actions"}
+                              aria-label={`Open actions for ${exercise.exerciseName}`}
+                            >
+                              <MoreVertical size={20} aria-hidden="true" />
+                            </button>
+
                             {localizeText(exercise.videoUrl || "", exercise.videoUrlCn || "") && (
                               <button
                                 className="iconActionButton"
@@ -31842,6 +31886,100 @@ function App() {
                                 <Timer size={18} aria-hidden="true" />
                               </button>
                             )}
+
+                            {openWorkoutActionMenuId === exercise.id && (
+                              <div className="workoutActionMenu">
+                                {exerciseVideoUrl && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setOpenWorkoutActionMenuId("");
+                                      setWorkoutVideoOverlay({
+                                        url: exerciseVideoUrl,
+                                        title: localizedExerciseName(exercise),
+                                      });
+                                    }}
+                                  >
+                                    <Play size={16} fill="currentColor" aria-hidden="true" />
+                                    <span>{t("video")}</span>
+                                  </button>
+                                )}
+
+                                {exercise.longVideoUrl && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setOpenWorkoutActionMenuId("");
+                                      setWorkoutVideoOverlay({
+                                        url: exercise.longVideoUrl || "",
+                                        title: localizedExerciseName(exercise),
+                                      });
+                                    }}
+                                  >
+                                    <Film size={16} aria-hidden="true" />
+                                    <span>{paceZh ? "In-depth" : "In-depth video"}</span>
+                                  </button>
+                                )}
+
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setOpenWorkoutActionMenuId("");
+                                    setTechnicalCueExercise({
+                                      recordId: exercise.id,
+                                      exerciseId: exercise.exerciseId,
+                                      exerciseName: exercise.exerciseName,
+                                      exerciseNameCn: exercise.exerciseNameCn,
+                                      videoUrl: exercise.videoUrl || "",
+                                      videoUrlCn: exercise.videoUrlCn,
+                                      category: exercise.category || "",
+                                      categoryCn: exercise.categoryCn,
+                                      equipment: exercise.equipment || "",
+                                      equipmentCn: exercise.equipmentCn,
+                                      movementPattern: exercise.movementPattern || "",
+                                      movementPatternCn: exercise.movementPatternCn,
+                                      technicalInstructionsCn:
+                                        exercise.technicalInstructionsCn,
+                                      coachingCuesCn: exercise.coachingCuesCn,
+                                      commonMistakesCn: exercise.commonMistakesCn,
+                                      notes: exercise.cueNotes || "",
+                                      notesCn: exercise.cueNotesCn,
+                                      status: "Active",
+                                    });
+                                  }}
+                                >
+                                  <ClipboardList size={16} aria-hidden="true" />
+                                  <span>{t("technicalForm")}</span>
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setOpenWorkoutActionMenuId("");
+                                    setHistoryExerciseName(exercise.exerciseName);
+                                  }}
+                                >
+                                  <Clock3 size={16} aria-hidden="true" />
+                                  <span>{t("history")}</span>
+                                </button>
+
+                                {exercise.rest && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setOpenWorkoutActionMenuId("");
+                                      startRestTimer(
+                                        exercise.rest,
+                                        localizedExerciseName(exercise)
+                                      );
+                                    }}
+                                  >
+                                    <Timer size={16} aria-hidden="true" />
+                                    <span>{t("rest")}</span>
+                                  </button>
+                                )}
+                              </div>
+                            )}
                           </div>
                         </div>
 
@@ -31915,6 +32053,9 @@ function App() {
                               ? t("left")
                               : log.side;
                           const setComplete = isSetComplete(log);
+                          const setChecked = checkedWorkoutPageItems.includes(
+                            workoutSetCheckKey(log)
+                          );
 
                           return (
                             <div
@@ -32263,28 +32404,25 @@ function App() {
                                   })()}
                                 </>
                               )}
+
+                              {isClientPortal && !coachReviewMode && (
+                                <button
+                                  className={`setSaveCheckButton${
+                                    setChecked ? " setSaveCheckButtonDone" : ""
+                                  }`}
+                                  onClick={() =>
+                                    checkAndSaveWorkoutSet(log, visiblePageLogs)
+                                  }
+                                  type="button"
+                                  aria-label={`Save set ${log.setNumber}`}
+                                >
+                                  <Check size={18} aria-hidden="true" />
+                                </button>
+                              )}
                             </div>
                           );
                         })}
                           </div>
-
-                        {isClientPortal && !coachReviewMode && (
-                          <button
-                            className={`exerciseSaveCheckButton${
-                              exercisePageChecked ? " exerciseSaveCheckButtonDone" : ""
-                            }`}
-                            onClick={() =>
-                              checkAndSaveWorkoutExercise(
-                                exercise.exerciseId,
-                                visiblePageExerciseIds
-                              )
-                            }
-                            type="button"
-                            aria-label={`Save ${exercise.exerciseName}`}
-                          >
-                            <Check size={22} aria-hidden="true" />
-                          </button>
-                        )}
                         </div>
                         </div>
                       </div>
