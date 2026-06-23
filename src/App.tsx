@@ -17806,7 +17806,7 @@ function App() {
             <div>
               <div className="brandWordmark brandLogoLockup">
                 <img
-                  src="/nl_wordmark_clean.png"
+                  src="/nl_wordmark_black.png"
                   alt="NO LIMIT"
                   className="brandWordmarkImage"
                 />
@@ -17961,12 +17961,12 @@ function App() {
             <div>
               <div className="brandWordmark brandLogoLockup">
                 <img
-                  src="/nl_wordmark_clean.png"
+                  src="/nl_wordmark_black.png"
                   alt="NO LIMIT"
                   className="brandWordmarkImage"
                 />
               </div>
-              <div className="brandTagline">INSPIRED BY MOVEMENT.</div>
+              <div className="brandTagline">BUILT FOR TRAINING.</div>
             </div>
             <div className="inviteBrandRight">
               <span>{iZh ? "客户信息表" : "Coaching Intake"}</span>
