@@ -31744,10 +31744,24 @@ function App() {
                         ? false
                         : !previousMeta ||
                           sectionName !== (previousMeta.sectionName || "Main");
-                    const coachingNotes = localizeText(
-                      meta.coachingNotes,
-                      stripLocalizedExerciseMeta(exercise.notesCn || "")
+                    // When the athlete has swapped in an alternate, the coach's
+                    // slot note was written for the original exercise, so show
+                    // the alternate's own library cue instead.
+                    const swappedOriginal = originalExercisesRef.current.find(
+                      (o) => o.id === exercise.id
                     );
+                    const isSwappedAlternate =
+                      !!swappedOriginal &&
+                      swappedOriginal.exerciseId !== exercise.exerciseId;
+                    const coachingNotes = isSwappedAlternate
+                      ? localizeText(
+                          exercise.cueNotes || "",
+                          stripLocalizedExerciseMeta(exercise.cueNotesCn || "")
+                        )
+                      : localizeText(
+                          meta.coachingNotes,
+                          stripLocalizedExerciseMeta(exercise.notesCn || "")
+                        );
                     const exerciseVideoUrl = localizeText(
                       exercise.videoUrl || "",
                       exercise.videoUrlCn || ""
