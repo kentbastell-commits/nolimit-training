@@ -17,6 +17,7 @@ import {
   GripVertical,
   Home,
   Link2,
+  Lock,
   MoreVertical,
   Pencil,
   Play,
@@ -17694,6 +17695,15 @@ function App() {
                           })()}
 
                         <div className="storeStepActions">
+                          {!isBundleProgram(sp) && (
+                            <button
+                              className="ghostButton storePreviewBtnV2"
+                              onClick={() => openProgramPreview(sp)}
+                            >
+                              <Eye size={15} />{" "}
+                              {sZh ? "预览样板周" : "Preview sample week"}
+                            </button>
+                          )}
                           <button
                             className="primaryButton"
                             onClick={() => setStoreStep(hasAddons ? 2 : 3)}
@@ -17895,6 +17905,155 @@ function App() {
                       </span>
                     </div>
                   )}
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
+        {previewProgram && (() => {
+          const pp = previewProgram.program;
+          const ppName = (sZh && pp.programNameCn) || pp.programName;
+          const weekNums = Array.from(
+            new Set(previewProgram.sessions.map((s) => Number(s.week) || 1))
+          ).sort((a, b) => a - b);
+          const firstWeek = weekNums[0] || 1;
+          const sampleDays = previewProgram.sessions
+            .filter((s) => (Number(s.week) || 1) === firstWeek)
+            .sort((a, b) => Number(a.day) - Number(b.day));
+          const lockedWeeks = Math.max(0, weekNums.length - 1);
+          const ppAddons = isBundleProgram(pp)
+            ? []
+            : storePrograms.filter(isAddonProgram);
+          return (
+            <div
+              className="storeModalBackdropV2 storePreviewBackdropV2"
+              onClick={() => setPreviewProgram(null)}
+            >
+              <div
+                className="storePreviewModalV2"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <button
+                  className="storeModalCloseV2"
+                  aria-label="Close"
+                  onClick={() => setPreviewProgram(null)}
+                >
+                  x
+                </button>
+                <div className="storePreviewHeadV2">
+                  <span className="storeEyebrowV2">
+                    {sZh ? "样板周预览" : "Sample week preview"}
+                  </span>
+                  <h2>{ppName}</h2>
+                  <p className="storePreviewSubV2">
+                    {sZh
+                      ? `这是第 ${firstWeek} 周的真实安排。购买后解锁完整计划。`
+                      : `A real look at Week ${firstWeek}. The full program unlocks after purchase.`}
+                  </p>
+                </div>
+
+                <div className="storePreviewBodyV2">
+                  {previewLoading ? (
+                    <p className="storePreviewMsgV2">
+                      {sZh ? "正在加载样板周..." : "Loading sample week..."}
+                    </p>
+                  ) : sampleDays.length === 0 ? (
+                    <p className="storePreviewMsgV2">
+                      {sZh
+                        ? "该计划暂无可预览的训练日。"
+                        : "No preview sessions available for this program yet."}
+                    </p>
+                  ) : (
+                    <>
+                      <div className="storePreviewDaysV2">
+                        {sampleDays.map((s) => (
+                          <div className="storePreviewDayCardV2" key={s.localId}>
+                            <div className="storePreviewDayHeadV2">
+                              <strong>
+                                {sZh ? `第 ${s.day} 天` : `Day ${s.day}`}
+                              </strong>
+                              <span>
+                                {(sZh && s.sessionNameCn) ||
+                                  s.sessionName ||
+                                  (sZh
+                                    ? `第 ${firstWeek} 周第 ${s.day} 天`
+                                    : `Week ${firstWeek} Day ${s.day}`)}
+                              </span>
+                            </div>
+                            <div className="glanceChain">
+                              {buildGlanceChain(s.exercises).map((it, gi) => (
+                                <div
+                                  className="glanceRow"
+                                  key={`${it.ex.exerciseRecordId}-${gi}`}
+                                >
+                                  <div className="glanceBadgeWrap">
+                                    {it.linked && !it.isFirst && (
+                                      <span
+                                        className={`glanceLineUp line-${it.lineUpColor}`}
+                                      />
+                                    )}
+                                    {it.linked && !it.isLast && (
+                                      <span
+                                        className={`glanceLineDown line-${it.lineDownColor}`}
+                                      />
+                                    )}
+                                    <span
+                                      className={`exerciseLabelBadge glanceBadge ${it.colorClass}`}
+                                    >
+                                      {it.display}
+                                    </span>
+                                  </div>
+                                  <div className="glanceText">
+                                    <strong>{it.ex.exerciseName}</strong>
+                                    {(it.ex.sets || it.ex.reps) && (
+                                      <span>
+                                        {it.ex.sets && it.ex.reps
+                                          ? `${it.ex.sets} x ${it.ex.reps}`
+                                          : it.ex.sets || it.ex.reps}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {lockedWeeks > 0 && (
+                        <div className="storePreviewLockV2">
+                          <Lock size={15} />
+                          <span>
+                            {sZh
+                              ? `还有 ${lockedWeeks} 周在购买后解锁`
+                              : `${lockedWeeks} more week${
+                                  lockedWeeks > 1 ? "s" : ""
+                                } unlock after purchase`}
+                          </span>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+
+                <div className="storePreviewFootV2">
+                  <button
+                    className="ghostButton"
+                    onClick={() => setPreviewProgram(null)}
+                  >
+                    {sZh ? "返回" : "Back"}
+                  </button>
+                  <button
+                    className="primaryButton"
+                    onClick={() => {
+                      setPreviewProgram(null);
+                      setStoreSelectedProgram(pp);
+                      setStoreStep(ppAddons.length > 0 ? 2 : 3);
+                    }}
+                  >
+                    {sZh ? "获取此计划" : "Get this program"}
+                  </button>
                 </div>
               </div>
             </div>
