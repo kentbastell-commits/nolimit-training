@@ -733,6 +733,34 @@
   cursor: pointer;
 }
 
+/* Quick "peek" button on each catalog card. Sits above the full-card click
+   target (z-index 3) so it opens the sample-week preview without first opening
+   the product modal. */
+.storeProductPreviewBtn {
+  position: relative;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: calc(100% - 44px);
+  margin: 14px 22px 20px;
+  padding: 11px;
+  border: 1px solid var(--public-border);
+  border-radius: 12px;
+  background: #fff;
+  color: #1c1c19;
+  font-size: 14px;
+  font-weight: 900;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.storeProductPreviewBtn:hover {
+  background: #f4f1ea;
+  border-color: var(--public-gold-bright);
+}
+
 .storeLoadingV2,
 .storeEmptyV2 {
   padding: 36px;

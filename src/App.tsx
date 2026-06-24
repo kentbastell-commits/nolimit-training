@@ -17483,6 +17483,19 @@ function App() {
                           );
                         })()}
                       </div>
+                      {!isBundleProgram(program) && (
+                        <button
+                          type="button"
+                          className="storeProductPreviewBtn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openProgramPreview(program);
+                          }}
+                        >
+                          <Eye size={14} />{" "}
+                          {sZh ? "预览样板周" : "Preview sample week"}
+                        </button>
+                      )}
                     </article>
                   );
                 })}
