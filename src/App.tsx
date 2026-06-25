@@ -3090,6 +3090,7 @@ function App() {
     if (isStorePage || isPublicLandingPage) {
       void loadPrograms();
       void loadClients(); // for the "Client View" launcher picker
+      void loadCoaches(); // powers the store "Meet your coach" section
       fetch("/api/reviews?storeOnly=1")
         .then((res) => res.json())
         .then((data) => setStoreReviews(data.reviews || []))
@@ -17091,6 +17092,40 @@ function App() {
     const storePrograms = programs.filter((p) => p.publicStoreVisible);
     const searchText = storeProgramSearch.trim().toLowerCase();
 
+    // The coach to feature in "Meet your coach": prefer a Head/Admin coach,
+    // else the first active one. Bio is editable in the coach record; until
+    // it's filled we show a strong default consistent with the store copy.
+    const activeCoaches = coaches.filter(
+      (c) => !/inactive/i.test(c.status || "")
+    );
+    const featuredCoach =
+      activeCoaches.find((c) => /head|admin|founder|lead/i.test(c.role || "")) ||
+      activeCoaches[0] ||
+      null;
+    const coachInitials = (featuredCoach?.name || "NoLimit")
+      .split(/\s+/)
+      .map((part) => part[0])
+      .filter(Boolean)
+      .slice(0, 2)
+      .join("")
+      .toUpperCase();
+    const coachBio =
+      (featuredCoach?.bio || "").trim() ||
+      (sZh
+        ? "我们的训练计划由奥运及职业级别教练编排——把为顶尖运动员设计的同款周期化训练，原汁原味地带到你的手机上。每一个动作、每一组、每一次的安排，都来自真实的高水平训练实践，而非套用模板。"
+        : "Our programs are built by an Olympic and professional-level coach — the same periodised training designed for elite athletes, brought straight to your phone. Every exercise, set and rep is drawn from real high-performance coaching, not a template.");
+    const coachPillars = sZh
+      ? [
+          ["奥运 / 职业级编排", "为国家队与职业运动员设计的训练逻辑。"],
+          ["循证周期化", "围绕力量、能量系统与伤病预防科学排布。"],
+          ["双语指导", "App、训练播放器与动作讲解全程中英文。"],
+        ]
+      : [
+          ["Olympic / pro-level programming", "The training logic used with national-team and professional athletes."],
+          ["Evidence-based periodisation", "Built around strength, energy systems and injury prevention."],
+          ["Bilingual coaching", "App, workout player and exercise cues in English and 中文."],
+        ];
+
     const programSearchBlob = (program: Program) =>
       [
         program.programName,
@@ -17540,6 +17575,45 @@ function App() {
             </div>
           </section>
 
+          <section className="storeCoachV2">
+            <div className="storeSectionIntroV2">
+              <span className="storeEyebrowV2">{sZh ? "认识你的教练" : "Meet your coach"}</span>
+              <h2>{sZh ? "为你编排训练的人" : "The coach behind your training"}</h2>
+            </div>
+            <div className="storeCoachCardV2">
+              <div className="storeCoachAsideV2">
+                <div className="storeCoachAvatarV2" aria-hidden="true">
+                  {coachInitials}
+                </div>
+                <strong className="storeCoachNameV2">
+                  {featuredCoach?.name || "NoLimit Coaching"}
+                </strong>
+                <span className="storeCoachRoleV2">
+                  {featuredCoach?.role ||
+                    (sZh ? "主教练" : "Head Coach")}
+                </span>
+              </div>
+              <div className="storeCoachBodyV2">
+                <p className="storeCoachBioV2">{coachBio}</p>
+                <div className="storeCoachPillarsV2">
+                  {coachPillars.map(([title, body]) => (
+                    <div className="storeCoachPillarV2" key={title}>
+                      <Shield size={16} className="storeCoachPillarIconV2" />
+                      <div>
+                        <strong>{title}</strong>
+                        <span>{body}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <a className="storeCoachCtaV2" href="#storeContactAnchor">
+                  {sZh ? "与教练取得联系" : "Get in touch with the coach"}
+                  <ArrowRight size={16} />
+                </a>
+              </div>
+            </div>
+          </section>
+
           {storeReviews.length > 0 && (
             <section className="storeTestimonials">
               <div className="storeSectionIntroV2">
@@ -17650,7 +17724,7 @@ function App() {
             </div>
           </section>
 
-          <section className="storeContactV2">
+          <section className="storeContactV2" id="storeContactAnchor">
             <div>
               <span className="storeEyebrowV2">{sZh ? "需要帮助选择？" : "Need help choosing?"}</span>
               <h2>{sZh ? "扫码咨询训练计划。" : "Scan WeChat and ask us."}</h2>
