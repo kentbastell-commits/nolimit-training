@@ -240,10 +240,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       body: JSON.stringify({ records }),
     });
     const batchData = await batchRes.json();
+    // The whole point of this handler is to create the athlete's workouts — if
+    // that write fails we must NOT report success (the old code ignored the
+    // result and returned success with workoutsCreated:0, so a failed load
+    // looked identical to a good one).
+    if (!batchRes.ok || batchData.code !== 0) {
+      console.error(
+        "autoLoadProgram: assigned-workouts batch_create failed",
+        JSON.stringify({ larkResponse: batchData })
+      );
+      return res.status(500).json({
+        error: "Could not load program workouts",
+        larkResponse: batchData,
+      });
+    }
     const workoutsCreated = batchData?.data?.records?.length || 0;
 
-    // 8. Update order status
-    await fetch(`${base}/${ordersTableId}/records/${orderRecordId}`, {
+    // 8. Update order status (best-effort — the workouts already exist, so a
+    // failure here shouldn't fail the athlete's load, but it must be surfaced
+    // rather than swallowed).
+    const orderUpdateRes = await fetch(`${base}/${ordersTableId}/records/${orderRecordId}`, {
       method: "PUT",
       headers,
       body: JSON.stringify({
@@ -255,9 +271,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         },
       }),
     });
+    const orderUpdateData = await orderUpdateRes.json();
+    const orderStatusUpdated = orderUpdateRes.ok && orderUpdateData.code === 0;
+    if (!orderStatusUpdated) {
+      console.error(
+        "autoLoadProgram: order status update failed (non-fatal)",
+        JSON.stringify({ larkResponse: orderUpdateData })
+      );
+    }
 
-    // 9. Update client with program
-    await fetch(`${base}/${clientsTableId}/records/${clientRecordId}`, {
+    // 9. Update client with program (also best-effort + surfaced).
+    const clientUpdateRes = await fetch(`${base}/${clientsTableId}/records/${clientRecordId}`, {
       method: "PUT",
       headers,
       body: JSON.stringify({
@@ -269,6 +293,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         },
       }),
     });
+    const clientUpdateData = await clientUpdateRes.json();
+    if (!clientUpdateRes.ok || clientUpdateData.code !== 0) {
+      console.error(
+        "autoLoadProgram: client program update failed (non-fatal)",
+        JSON.stringify({ larkResponse: clientUpdateData })
+      );
+    }
 
     invalidateCache("workouts");
     invalidateCache("productOrders");
@@ -279,6 +310,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       success: true,
       programName,
       workoutsCreated,
+      orderStatusUpdated,
       startDate: today,
     });
   } catch (err: unknown) {
