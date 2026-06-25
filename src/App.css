@@ -1169,6 +1169,133 @@
   color: var(--public-ink);
 }
 
+/* ---- Checkout: how-it-works steps + payment hint ---- */
+.storeCheckoutStepsV2 {
+  display: grid;
+  gap: 10px;
+  margin: 20px 0 4px;
+  padding: 0;
+  list-style: none;
+}
+
+.storeCheckoutStepsV2 li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--public-ink);
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.storeCheckoutStepsV2 li span {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  background: #0e0e0d;
+  color: var(--public-gold-bright, #e7c878);
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.storeRegisterHintV2 {
+  color: var(--public-muted);
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+}
+
+/* ---- Checkout: post-payment confirmation ---- */
+.storeConfirmV2 {
+  margin-top: 22px;
+  padding: 26px 22px;
+  border: 1px solid #d4af37;
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at 50% -10%, rgba(212, 175, 55, 0.14), transparent 60%),
+    #fffefa;
+  text-align: center;
+}
+
+.storeConfirmCheckV2 {
+  display: grid;
+  place-items: center;
+  width: 60px;
+  height: 60px;
+  margin: 0 auto 14px;
+  border-radius: 999px;
+  background: #1f7a43;
+  color: #fff;
+}
+
+.storeConfirmTitleV2 {
+  display: block;
+  color: var(--public-ink);
+  font-size: 26px;
+  font-weight: 950;
+}
+
+.storeConfirmSubV2 {
+  margin: 8px auto 18px;
+  max-width: 420px;
+  color: #2a2823;
+  font-size: 16px;
+  font-weight: 720;
+  line-height: 1.5;
+}
+
+.storeConfirmMetaV2 {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.storeConfirmMetaV2 > div {
+  flex: 1 1 140px;
+  max-width: 220px;
+  padding: 12px 14px;
+  border: 1px solid var(--public-border);
+  border-radius: 12px;
+  background: #fff;
+}
+
+.storeConfirmMetaV2 span {
+  display: block;
+  color: var(--public-muted);
+  font-size: 10px;
+  font-weight: 950;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.storeConfirmMetaV2 strong {
+  display: block;
+  margin-top: 4px;
+  color: var(--public-ink);
+  font-size: 18px;
+  font-weight: 950;
+  letter-spacing: 0.02em;
+}
+
+.storeConfirmNoteV2 {
+  margin: 0 auto 18px;
+  max-width: 440px;
+  color: var(--public-muted);
+  font-size: 13px;
+  font-weight: 750;
+  line-height: 1.5;
+}
+
+.storeConfirmCtaV2 {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .storeFooterV2 {
   display: flex;
   width: min(1480px, calc(100vw - 48px));

@@ -1727,6 +1727,7 @@ function App() {
   const [storeRegPhone, setStoreRegPhone] = useState("");
   const [storeRegistering, setStoreRegistering] = useState(false);
   const [storeRegisteredCode, setStoreRegisteredCode] = useState("");
+  const [storeRegisteredOrderId, setStoreRegisteredOrderId] = useState("");
   const [portalPostIntake, setPortalPostIntake] = useState(false);
   const [portalAutoLoading, setPortalAutoLoading] = useState(false);
   const [portalLoadedProgram, setPortalLoadedProgram] = useState("");
@@ -10713,6 +10714,7 @@ function App() {
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || "Registration failed");
       setStoreRegisteredCode(data.clientCode);
+      setStoreRegisteredOrderId(data.orderId || "");
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Registration failed";
       notify(msg, "error");
@@ -17764,6 +17766,7 @@ function App() {
           const closeModal = () => {
             setStoreSelectedProgram(null);
             setStoreRegisteredCode("");
+            setStoreRegisteredOrderId("");
             setStoreRegName("");
             setStoreRegPhone("");
           };
@@ -17779,6 +17782,7 @@ function App() {
                   onClick={() => {
                     setStoreSelectedProgram(null);
                     setStoreRegisteredCode("");
+                    setStoreRegisteredOrderId("");
                     setStoreRegName("");
                     setStoreRegPhone("");
                   }}
@@ -17999,64 +18003,111 @@ function App() {
                         </div>
 
                         {storeRegisteredCode ? (
-                          <div className="storeSuccessBoxV2">
-                            <strong>
-                              {sZh ? "已创建客户端" : "Client portal created"}
+                          <div className="storeConfirmV2">
+                            <div
+                              className="storeConfirmCheckV2"
+                              aria-hidden="true"
+                            >
+                              <Check size={28} />
+                            </div>
+                            <strong className="storeConfirmTitleV2">
+                              {sZh ? "你已成功加入！" : "You're in!"}
                             </strong>
-                            <span>
-                              {sZh ? "客户代码：" : "Client code: "}
-                              {storeRegisteredCode}
-                            </span>
+                            <p className="storeConfirmSubV2">
+                              {sZh
+                                ? `${spName} 已准备就绪。完成一份简短问卷后，整套计划会加载进你的 App。`
+                                : `${spName} is ready. Complete a short intake and the full plan loads into your app.`}
+                            </p>
+                            <div className="storeConfirmMetaV2">
+                              {storeRegisteredOrderId && (
+                                <div>
+                                  <span>{sZh ? "订单号" : "Order"}</span>
+                                  <strong>{storeRegisteredOrderId}</strong>
+                                </div>
+                              )}
+                              <div>
+                                <span>{sZh ? "登录代码" : "Login code"}</span>
+                                <strong>{storeRegisteredCode}</strong>
+                              </div>
+                            </div>
+                            <p className="storeConfirmNoteV2">
+                              {sZh
+                                ? "请保存好登录代码——以后用它进入客户端。我们会核对你的微信付款。"
+                                : "Save your login code — you'll use it to open your portal. We'll confirm your WeChat payment."}
+                            </p>
                             <a
-                              className="primaryButton"
+                              className="primaryButton storeConfirmCtaV2"
                               href={`/?portal=client&client=${encodeURIComponent(storeRegisteredCode)}`}
                             >
-                              {sZh ? "打开客户端" : "Open Client Portal"}
+                              {sZh ? "打开客户端并填写问卷" : "Open my portal & start intake"}
+                              <ArrowRight size={16} />
                             </a>
                           </div>
                         ) : (
-                          <div className="storeRegisterV2">
-                            <label>
-                              {sZh ? "姓名" : "Name"}
-                              <input
-                                value={storeRegName}
-                                onChange={(e) => setStoreRegName(e.target.value)}
-                                placeholder={sZh ? "你的姓名" : "Your name"}
-                              />
-                            </label>
-                            <label>
-                              {sZh ? "微信 / 电话" : "WeChat / Phone"}
-                              <input
-                                value={storeRegPhone}
-                                onChange={(e) => setStoreRegPhone(e.target.value)}
-                                placeholder={sZh ? "微信号或手机号" : "WeChat ID or phone"}
-                              />
-                            </label>
-                            <button
-                              className="primaryButton"
-                              disabled={storeRegistering}
-                              onClick={() => void registerForProgram(sp)}
-                            >
-                              {storeRegistering
-                                ? sZh
-                                  ? "提交中..."
-                                  : "Submitting..."
-                                : sZh
-                                  ? "我已付款，开始 Intake"
-                                  : "I paid - start intake"}
-                            </button>
-                          </div>
-                        )}
-
-                        {!storeRegisteredCode && (
-                          <div className="storeStepActions">
-                            <button
-                              className="ghostButton"
-                              onClick={() => setStoreStep(hasAddons ? 2 : 1)}
-                            >
-                              {sZh ? "返回" : "Back"}
-                            </button>
-                          </div>
+                          <>
+                            <ol className="storeCheckoutStepsV2">
+                              <li>
+                                <span>1</span>
+                                {sZh ? "用微信扫码付款" : "Scan & pay with WeChat"}
+                              </li>
+                              <li>
+                                <span>2</span>
+                                {sZh ? "填写姓名和微信号" : "Enter your name + WeChat"}
+                              </li>
+                              <li>
+                                <span>3</span>
+                                {sZh ? "我们为你创建客户端" : "We open your private portal"}
+                              </li>
+                              <li>
+                                <span>4</span>
+                                {sZh ? "完成问卷，计划自动加载" : "Finish intake → plan loads"}
+                              </li>
+                            </ol>
+                            <div className="storeRegisterV2">
+                              <label>
+                                {sZh ? "姓名" : "Name"}
+                                <input
+                                  value={storeRegName}
+                                  onChange={(e) => setStoreRegName(e.target.value)}
+                                  placeholder={sZh ? "你的姓名" : "Your name"}
+                                />
+                              </label>
+                              <label>
+                                {sZh ? "微信 / 电话" : "WeChat / Phone"}
+                                <input
+                                  value={storeRegPhone}
+                                  onChange={(e) => setStoreRegPhone(e.target.value)}
+                                  placeholder={sZh ? "微信号或手机号" : "WeChat ID or phone"}
+                                />
+                              </label>
+                              <button
+                                className="primaryButton"
+                                disabled={storeRegistering}
+                                onClick={() => void registerForProgram(sp)}
+                              >
+                                {storeRegistering
+                                  ? sZh
+                                    ? "提交中..."
+                                    : "Submitting..."
+                                  : sZh
+                                    ? "我已付款，创建客户端"
+                                    : "I've paid — create my portal"}
+                              </button>
+                              <span className="storeRegisterHintV2">
+                                {sZh
+                                  ? "点击即表示你已完成微信付款。"
+                                  : "Tapping this confirms you've paid via WeChat."}
+                              </span>
+                            </div>
+                            <div className="storeStepActions">
+                              <button
+                                className="ghostButton"
+                                onClick={() => setStoreStep(hasAddons ? 2 : 1)}
+                              >
+                                {sZh ? "返回" : "Back"}
+                              </button>
+                            </div>
+                          </>
                         )}
                       </>
                     )}
