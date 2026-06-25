@@ -10707,6 +10707,7 @@ function App() {
           clientName: storeRegName.trim(),
           phone: storeRegPhone.trim(),
           programId: program.programId,
+          programRecordId: program.recordId,
           programName: program.programName,
           amount: Number(program.price) || undefined,
           currency: program.currency || "CNY",

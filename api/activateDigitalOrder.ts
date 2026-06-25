@@ -89,6 +89,20 @@ function applyField(
   if (name) fields[name] = value;
 }
 
+// Two-way ("Duplex") link columns (e.g. Client ID, Program ID) reject plain
+// strings — Feishu requires an array of the *linked* record_ids. Resolve the
+// column and write `[recordId]`, skipping when we don't have a record id.
+function applyLink(
+  tableFields: TableField[],
+  fields: Record<string, any>,
+  aliases: string[],
+  recordId: any
+) {
+  if (!recordId) return;
+  const name = resolveFieldName(tableFields, aliases);
+  if (name) fields[name] = [String(recordId)];
+}
+
 async function getTableFields(
   token: string,
   tableId: string
@@ -113,6 +127,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     phone,
     email,
     programId,
+    programRecordId,
     programName,
     amount,
     currency,
@@ -199,7 +214,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const orderFieldsSchema = await getTableFields(token, ordersTableId);
       const fields: Record<string, any> = {};
       applyField(orderFieldsSchema, fields, ["Order ID", "Order Id"], orderId);
-      applyField(orderFieldsSchema, fields, ["Client ID", "Client Id"], clientCode);
+      // Client ID / Program ID are two-way link columns — write linked record
+      // ids as arrays, not the human-readable codes.
+      applyLink(orderFieldsSchema, fields, ["Client ID", "Client Id"], clientRecordId);
+      applyLink(
+        orderFieldsSchema,
+        fields,
+        ["Program ID", "Purchased Program ID", "Purchased Program Id"],
+        programRecordId
+      );
       applyField(
         orderFieldsSchema,
         fields,
@@ -218,14 +241,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         ["Product Type", "Order Type", "Type"],
         "Digital Program"
       );
-      applyField(
-        orderFieldsSchema,
-        fields,
-        ["Program ID", "Purchased Program ID", "Purchased Program Id"],
-        programId
-      );
       // Amount is numeric — only include a real value. An empty string here was
-      // the bug that silently dropped every store order.
+      // a second bug that would also drop the write on this Number column.
       const amountNum = Number(amount);
       if (
         amount !== undefined &&
@@ -251,20 +268,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       applyField(
         orderFieldsSchema,
         fields,
-        ["Onboarding Status", "Pipeline Status", "Order Status", "Status"],
-        "New Order"
-      );
-      applyField(
-        orderFieldsSchema,
-        fields,
         ["Intake Status", "Intake", "Questionnaire Status"],
         "Not Sent"
-      );
-      applyField(
-        orderFieldsSchema,
-        fields,
-        ["Fulfillment Status", "Fulfilment Status"],
-        "Pending"
       );
       applyField(
         orderFieldsSchema,
