@@ -44,12 +44,80 @@ function fieldToText(value: any): string {
   return "";
 }
 
+type TableField = { field_name?: string; name?: string };
+
+async function readResponseJson(response: Response) {
+  const text = await response.text();
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { code: -1, error: "Non-JSON response", status: response.status, body: text };
+  }
+}
+
+function normalizeFieldName(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+// Resolve a column by any of its aliases (exact match first, then a
+// punctuation/case-insensitive match) so a renamed column never silently drops.
+function resolveFieldName(fields: TableField[], aliases: string[]): string | "" {
+  const names = fields
+    .map((field) => field.field_name || field.name)
+    .filter(Boolean) as string[];
+  const exact = aliases.find((alias) => names.includes(alias));
+  if (exact) return exact;
+  const normalizedAliases = aliases.map(normalizeFieldName);
+  const match = fields.find((field) => {
+    const name = field.field_name || field.name || "";
+    return normalizedAliases.includes(normalizeFieldName(name));
+  });
+  return (match?.field_name || match?.name || "") as string;
+}
+
+// Write `value` under whichever real column matches `aliases` — but only when
+// it both exists and is non-empty. An empty string on a Number/typed column
+// (e.g. Amount) makes Feishu reject the WHOLE record, so empties are dropped.
+function applyField(
+  tableFields: TableField[],
+  fields: Record<string, any>,
+  aliases: string[],
+  value: any
+) {
+  if (value === undefined || value === null || value === "") return;
+  const name = resolveFieldName(tableFields, aliases);
+  if (name) fields[name] = value;
+}
+
+async function getTableFields(
+  token: string,
+  tableId: string
+): Promise<TableField[]> {
+  const response = await fetch(
+    `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${tableId}/fields?page_size=100`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  const data = await readResponseJson(response);
+  if (!response.ok || data.code !== 0) {
+    throw new Error(`Could not load fields for ${tableId}: ${JSON.stringify(data)}`);
+  }
+  return (data?.data?.items || []) as TableField[];
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST")
     return res.status(405).json({ error: "Method not allowed" });
 
-  const { clientName, phone, email, programId, programName, amount, defaultIntakeFormId } =
-    req.body;
+  const {
+    clientName,
+    phone,
+    email,
+    programId,
+    programName,
+    amount,
+    currency,
+    defaultIntakeFormId,
+  } = req.body;
 
   if (!clientName || !phone || !programId)
     return res.status(400).json({ error: "clientName, phone, and programId required" });
@@ -120,27 +188,115 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!clientRecordId)
       return res.status(500).json({ error: "Could not create or find client" });
 
-    // 3. Create product order
+    // 3. Create product order — schema-aware so a missing column or an empty
+    // value never silently fails the whole write (the old version sent
+    // `Amount: ""`, which Feishu rejects on a Number column, and then ignored
+    // the error — so digital orders were never actually recorded).
     const orderId = makeId("ORD");
-    await fetch(`${base}/${ordersTableId}/records`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({
-        fields: {
-          "Order ID": orderId,
-          "Client ID": clientCode,
-          "Client Name": clientName,
-          "Product Name": programName,
-          "Program ID": programId,
-          Amount: amount || "",
-          "Payment Status": "Pending Payment",
-          "Onboarding Status": "New Order",
-          "Intake Status": "Not Sent",
-          "Purchased At": toLarkDate(today),
-          "Access Start Date": toLarkDate(today),
-        },
-      }),
-    });
+    let orderPersisted = false;
+    let orderError: any = null;
+    try {
+      const orderFieldsSchema = await getTableFields(token, ordersTableId);
+      const fields: Record<string, any> = {};
+      applyField(orderFieldsSchema, fields, ["Order ID", "Order Id"], orderId);
+      applyField(orderFieldsSchema, fields, ["Client ID", "Client Id"], clientCode);
+      applyField(
+        orderFieldsSchema,
+        fields,
+        ["Client Name", "Athlete Name", "Member Name"],
+        clientName
+      );
+      applyField(
+        orderFieldsSchema,
+        fields,
+        ["Product Name", "Program Name", "Purchased Program"],
+        programName
+      );
+      applyField(
+        orderFieldsSchema,
+        fields,
+        ["Product Type", "Order Type", "Type"],
+        "Digital Program"
+      );
+      applyField(
+        orderFieldsSchema,
+        fields,
+        ["Program ID", "Purchased Program ID", "Purchased Program Id"],
+        programId
+      );
+      // Amount is numeric — only include a real value. An empty string here was
+      // the bug that silently dropped every store order.
+      const amountNum = Number(amount);
+      if (
+        amount !== undefined &&
+        amount !== null &&
+        String(amount).trim() !== "" &&
+        Number.isFinite(amountNum)
+      ) {
+        applyField(orderFieldsSchema, fields, ["Amount", "Price"], amountNum);
+      }
+      applyField(orderFieldsSchema, fields, ["Currency"], currency || "CNY");
+      applyField(
+        orderFieldsSchema,
+        fields,
+        ["Payment Status", "Payment"],
+        "Paid"
+      );
+      applyField(
+        orderFieldsSchema,
+        fields,
+        ["Payment Provider", "Payment Method", "Provider"],
+        "WeChat QR"
+      );
+      applyField(
+        orderFieldsSchema,
+        fields,
+        ["Onboarding Status", "Pipeline Status", "Order Status", "Status"],
+        "New Order"
+      );
+      applyField(
+        orderFieldsSchema,
+        fields,
+        ["Intake Status", "Intake", "Questionnaire Status"],
+        "Not Sent"
+      );
+      applyField(
+        orderFieldsSchema,
+        fields,
+        ["Fulfillment Status", "Fulfilment Status"],
+        "Pending"
+      );
+      applyField(
+        orderFieldsSchema,
+        fields,
+        ["Purchased At", "Purchase Date", "Order Date"],
+        toLarkDate(today) || Date.now()
+      );
+      applyField(
+        orderFieldsSchema,
+        fields,
+        ["Access Start Date", "Start Date", "Program Start Date"],
+        toLarkDate(today)
+      );
+
+      const orderRes = await fetch(`${base}/${ordersTableId}/records`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ fields }),
+      });
+      const orderData = await readResponseJson(orderRes);
+      orderPersisted = orderRes.ok && orderData?.code === 0;
+      if (!orderPersisted) {
+        orderError = orderData;
+        console.error(
+          "activateDigitalOrder: order write failed",
+          JSON.stringify({ larkResponse: orderData, fieldsSent: fields })
+        );
+      }
+    } catch (orderErr: unknown) {
+      orderError = orderErr instanceof Error ? orderErr.message : String(orderErr);
+      console.error("activateDigitalOrder: order write threw", orderError);
+    }
 
     // 4. Find intake form template
     let assignmentId = "";
@@ -211,6 +367,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       clientCode,
       clientRecordId,
       orderId,
+      orderPersisted,
+      ...(orderError ? { orderError } : {}),
       assignmentId,
     });
   } catch (err: unknown) {

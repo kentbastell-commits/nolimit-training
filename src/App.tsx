@@ -10708,6 +10708,8 @@ function App() {
           phone: storeRegPhone.trim(),
           programId: program.programId,
           programName: program.programName,
+          amount: Number(program.price) || undefined,
+          currency: program.currency || "CNY",
           defaultIntakeFormId: program.defaultIntakeFormId || "",
         }),
       });
