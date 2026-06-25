@@ -230,7 +230,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         "Estimated Duration": Number(estimatedDuration) || undefined,
         Intensity: intensity || "Moderate",
         "Scheduled Date": new Date(`${scheduledDate}T00:00:00`).getTime(),
-        Status: "Scheduled",
+        // Field is "Completion Status" (the assigned-workouts table has no
+        // "Status" column — the old name failed the whole write silently).
+        "Completion Status": "Scheduled",
       },
     }));
 
