@@ -10287,6 +10287,65 @@ button.coachReviewGlobalItem,
   color: var(--nl-muted, #68645d);
 }
 
+/* ---- Store FAQ accordion ---- */
+.storeFaqV2 {
+  margin: 28px 0;
+}
+
+.storeFaqListV2 {
+  display: grid;
+  gap: 12px;
+  max-width: 860px;
+}
+
+.storeFaqItemV2 {
+  border: 1px solid #e5dfd2;
+  border-radius: 16px;
+  background: #fff;
+  overflow: hidden;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.storeFaqItemOpenV2 {
+  border-color: #d4af37;
+  box-shadow: 0 10px 28px rgba(20, 18, 14, 0.07);
+}
+
+.storeFaqQV2 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  padding: 18px 20px;
+  border: 0;
+  background: transparent;
+  color: #1a1a1a;
+  font-size: 17px;
+  font-weight: 900;
+  text-align: left;
+  cursor: pointer;
+}
+
+.storeFaqIconV2 {
+  flex: 0 0 auto;
+  color: #9f7a26;
+  transition: transform 0.18s ease;
+}
+
+.storeFaqItemOpenV2 .storeFaqIconV2 {
+  transform: rotate(45deg);
+}
+
+.storeFaqAV2 {
+  margin: 0;
+  padding: 0 20px 20px;
+  color: var(--nl-muted, #68645d);
+  font-size: 15px;
+  font-weight: 650;
+  line-height: 1.55;
+}
+
 /* Coach reviews moderation */
 .coachReviewsPanel {
   margin-bottom: 16px;

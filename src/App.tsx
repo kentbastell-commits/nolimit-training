@@ -1721,6 +1721,8 @@ function App() {
   const [storeCategoryFilter, setStoreCategoryFilter] = useState("all");
   const [storeSeasonFilter, setStoreSeasonFilter] = useState("all");
   const [storeProgramSearch, setStoreProgramSearch] = useState("");
+  // Which store FAQ row is expanded (accordion; null = all collapsed).
+  const [storeFaqOpen, setStoreFaqOpen] = useState<number | null>(0);
   const [storeRegName, setStoreRegName] = useState("");
   const [storeRegPhone, setStoreRegPhone] = useState("");
   const [storeRegistering, setStoreRegistering] = useState(false);
@@ -17565,6 +17567,88 @@ function App() {
               </div>
             </section>
           )}
+
+          <section className="storeFaqV2">
+            <div className="storeSectionIntroV2">
+              <span className="storeEyebrowV2">{sZh ? "常见问题" : "Common questions"}</span>
+              <h2>{sZh ? "购买前你想知道的" : "What to know before you buy"}</h2>
+            </div>
+            <div className="storeFaqListV2">
+              {(sZh
+                ? [
+                    [
+                      "付款后如何拿到训练计划？",
+                      "用微信扫码付款后，在结算页填写姓名和微信号，我们会立即为你创建专属客户端。完成一份简短的问卷后，整套计划就会加载进你的 App，可按月、按周或逐日安排。",
+                    ],
+                    [
+                      "我需要健身房或很多器械吗？",
+                      "大多数计划以常见的健身房器械为基础，但每个动作都配有视频和替代动作选项，可根据你现有的器械灵活调整。点击任意计划的“预览样板周”即可提前看到第一周的安排。",
+                    ],
+                    [
+                      "每周需要训练多少时间？",
+                      "每个计划都会标注时长（周数）和每周训练次数，你可以在卡片和详情页看到。计划按天编排，单次训练通常 45–75 分钟。",
+                    ],
+                    [
+                      "适合我的水平吗？",
+                      "计划标有适用水平，动作的组数次数与负荷可按个人能力调整。不确定的话，扫描下方微信，我们帮你匹配合适的计划或加购模块。",
+                    ],
+                    [
+                      "有中文版吗？",
+                      "有。整个 App、训练播放器和动作讲解都支持中英文，可在客户端内随时切换。",
+                    ],
+                    [
+                      "购买后能联系教练吗？",
+                      "数字计划为自助式训练。如需一对一指导、答疑或计划调整，可了解我们的线上一对一教练服务。",
+                    ],
+                  ]
+                : [
+                    [
+                      "How do I get my program after paying?",
+                      "Scan the WeChat QR to pay, then enter your name and WeChat ID on the checkout step. We create your private client portal right away. After a short intake form, the full plan loads into your app to schedule by month, week, or day.",
+                    ],
+                    [
+                      "Do I need a gym or lots of equipment?",
+                      "Most programs assume common gym equipment, but every exercise has video and alternate-exercise options so you can adapt to what you have. Tap “Preview sample week” on any program to see Week 1 before you buy.",
+                    ],
+                    [
+                      "How much time per week does it take?",
+                      "Every program lists its length (weeks) and sessions per week on the card and detail page. Plans are scheduled day by day, and a typical session runs 45–75 minutes.",
+                    ],
+                    [
+                      "Is it right for my level?",
+                      "Programs are labelled by level, and sets, reps and loads scale to you. Not sure? Scan our WeChat below and we'll match you to the right program or add-on.",
+                    ],
+                    [
+                      "Is it available in Chinese?",
+                      "Yes. The whole app, workout player and exercise coaching are bilingual (English / 中文) and you can switch any time inside the portal.",
+                    ],
+                    [
+                      "Can I message a coach after buying?",
+                      "Digital programs are self-guided training. If you want 1:1 guidance, feedback or plan adjustments, ask us about our online 1:1 coaching.",
+                    ],
+                  ]
+              ).map(([q, a], i) => {
+                const open = storeFaqOpen === i;
+                return (
+                  <div
+                    className={`storeFaqItemV2${open ? " storeFaqItemOpenV2" : ""}`}
+                    key={i}
+                  >
+                    <button
+                      type="button"
+                      className="storeFaqQV2"
+                      aria-expanded={open}
+                      onClick={() => setStoreFaqOpen(open ? null : i)}
+                    >
+                      <span>{q}</span>
+                      <Plus size={18} className="storeFaqIconV2" />
+                    </button>
+                    {open && <p className="storeFaqAV2">{a}</p>}
+                  </div>
+                );
+              })}
+            </div>
+          </section>
 
           <section className="storeContactV2">
             <div>
