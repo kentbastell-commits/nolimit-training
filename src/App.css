@@ -4928,6 +4928,72 @@ button.coachReviewGlobalItem,
   font-size: 11px;
 }
 
+.rosterTriageBar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 12px;
+}
+
+.rosterTriageLabel {
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #8b1e2d;
+  margin-right: 2px;
+}
+
+.rosterTriageChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 12px;
+  border: 1px solid #dcd8cd;
+  border-radius: 999px;
+  background: #fff;
+  color: #2f2f2b;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.rosterTriageChip:hover {
+  border-color: #b9b2a3;
+}
+
+.rosterTriageChip em {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 19px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: rgba(20, 18, 14, 0.08);
+  color: #54524b;
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 950;
+}
+
+.rosterTriageChip.active {
+  border-color: #8b1e2d;
+  background: rgba(139, 30, 45, 0.08);
+  color: #8b1e2d;
+}
+
+.rosterTriageChip.active em {
+  background: #8b1e2d;
+  color: #fff;
+}
+
+.rosterTriageClear {
+  color: #54524b;
+  font-weight: 800;
+}
+
 .rosterBulkBar {
   display: flex;
   flex-direction: column;

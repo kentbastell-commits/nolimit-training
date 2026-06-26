@@ -2188,6 +2188,9 @@ function App() {
   const [rosterGroupBy, setRosterGroupBy] = useState<
     "none" | "team" | "type" | "tag" | "category"
   >("none");
+  const [rosterTriage, setRosterTriage] = useState<
+    "" | "needsProgram" | "needsContact" | "needsCheckIn" | "inactive"
+  >("");
   const [bulkPanel, setBulkPanel] = useState<"" | "program" | "team" | "tag">("");
   const [bulkProgramId, setBulkProgramId] = useState("");
   const [bulkStartDate, setBulkStartDate] = useState("");
@@ -11518,6 +11521,35 @@ function App() {
     return matchesSearch && matchesStatus && matchesBucket;
   });
 
+  // ---- Roster triage (attention filters) ----
+  const matchesTriage = (
+    client: Client,
+    key: Exclude<typeof rosterTriage, "">
+  ): boolean => {
+    if (key === "needsProgram") return clientNeedsProgramming(client);
+    if (key === "needsContact") return clientNeedsContact(client);
+    if (key === "needsCheckIn") return clientNeedsCheckIn(client);
+    const d = daysSinceLogin(client.lastLogin); // inactive = 7d+ or never
+    return d === null || d >= 7;
+  };
+  const triageDefs: { key: Exclude<typeof rosterTriage, "">; label: string }[] =
+    [
+      { key: "needsProgram", label: "Needs program" },
+      { key: "needsContact", label: "No contact" },
+      { key: "needsCheckIn", label: "Needs check-in" },
+      { key: "inactive", label: "Inactive 7d+" },
+    ];
+  const triageCounts = Object.fromEntries(
+    triageDefs.map((d) => [
+      d.key,
+      filteredClients.filter((c) => matchesTriage(c, d.key)).length,
+    ])
+  ) as Record<Exclude<typeof rosterTriage, "">, number>;
+  // The displayed roster = base filters, then the active triage chip (if any).
+  const rosterClients = rosterTriage
+    ? filteredClients.filter((c) => matchesTriage(c, rosterTriage))
+    : filteredClients;
+
   // ---- Roster sort + group-by ----
   const rosterSortValue = (client: Client): string | number => {
     switch (rosterSort.key) {
@@ -11531,7 +11563,7 @@ function App() {
         return client.name.toLowerCase();
     }
   };
-  const sortedRoster = [...filteredClients].sort((a, b) => {
+  const sortedRoster = [...rosterClients].sort((a, b) => {
     const av = rosterSortValue(a);
     const bv = rosterSortValue(b);
     const cmp =
@@ -11591,7 +11623,7 @@ function App() {
     })();
 
   // ---- Roster multi-select + bulk actions ----
-  const rosterVisibleIds = filteredClients.map((c) => c.id);
+  const rosterVisibleIds = rosterClients.map((c) => c.id);
   const rosterAllSelected =
     rosterVisibleIds.length > 0 &&
     rosterVisibleIds.every((id) => rosterSelectedIds.includes(id));
@@ -20154,6 +20186,38 @@ function App() {
                       </button>
                     </div>
 
+                    {triageDefs.some((d) => triageCounts[d.key] > 0) && (
+                      <div className="rosterTriageBar">
+                        <span className="rosterTriageLabel">Needs attention</span>
+                        {triageDefs
+                          .filter((d) => triageCounts[d.key] > 0)
+                          .map((d) => (
+                            <button
+                              key={d.key}
+                              className={`rosterTriageChip${
+                                rosterTriage === d.key ? " active" : ""
+                              }`}
+                              onClick={() =>
+                                setRosterTriage((cur) =>
+                                  cur === d.key ? "" : d.key
+                                )
+                              }
+                            >
+                              {d.label}
+                              <em>{triageCounts[d.key]}</em>
+                            </button>
+                          ))}
+                        {rosterTriage && (
+                          <button
+                            className="textButton rosterTriageClear"
+                            onClick={() => setRosterTriage("")}
+                          >
+                            Show all
+                          </button>
+                        )}
+                      </div>
+                    )}
+
                     {rosterSelectedIds.length > 0 && (
                       <div className="rosterBulkBar">
                         <div className="rosterBulkBarMain">
@@ -20315,7 +20379,7 @@ function App() {
                         <span>Attention</span>
                       </div>
 
-                      {!loading && filteredClients.length === 0 && (
+                      {!loading && rosterClients.length === 0 && (
                         <p className="emptyTableMessage">
                           No clients match your filters.
                         </p>
