@@ -26113,6 +26113,9 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 .clientPortalApp .progressChartSummary strong {
   font-family: "Manrope", "Noto Sans SC", "PingFang SC", "Microsoft YaHei",
     sans-serif !important;
+  /* Heavier + tighter so the portal headings pop. */
+  font-weight: 800 !important;
+  letter-spacing: -0.015em;
 }
 
 .lv3Nav {
