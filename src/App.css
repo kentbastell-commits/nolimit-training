@@ -3,10 +3,10 @@
 @import "@fontsource/inter/latin-700.css";
 @import "@fontsource/inter/latin-800.css";
 @import "@fontsource/inter/latin-900.css";
-/* Sora — sleek geometric display, used for the public landing-page headlines. */
-@import "@fontsource/sora/latin-600.css";
-@import "@fontsource/sora/latin-700.css";
-@import "@fontsource/sora/latin-800.css";
+/* Manrope — soft-geometric display, used for the public landing-page headlines. */
+@import "@fontsource/manrope/latin-600.css";
+@import "@fontsource/manrope/latin-700.css";
+@import "@fontsource/manrope/latin-800.css";
 /* Noto Sans SC (Chinese, ~2MB) is loaded on demand only when the language is
    Chinese — see loadChineseFonts() in App.tsx. */
 @import "@fontsource/bebas-neue/latin-400.css";
@@ -26084,15 +26084,15 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 .lv3 h3,
 .lv3 h4 { color: #0e0e0d; }
 
-/* Option 1 type system on the public landing: Sora for headlines + eyebrows,
-   Inter for body and buttons (matching the approved comparison). Scoped to .lv3
-   so the rest of the app is untouched. CJK falls back to the Chinese stack. */
+/* Landing-page type system: Manrope for headlines + eyebrows, Inter for body
+   and buttons. Scoped to .lv3 so the rest of the app is untouched. CJK falls
+   back to the Chinese stack. */
 .lv3 h1,
 .lv3 h2,
 .lv3 h3,
 .lv3 h4,
 .lv3Eyebrow {
-  font-family: "Sora", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-family: "Manrope", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
 }
 
 .lv3Nav {
