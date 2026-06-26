@@ -26118,6 +26118,16 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   letter-spacing: -0.015em;
 }
 
+/* The panel/section headers are explicitly forced to weight 400 elsewhere (it
+   used to be single-weight Bebas) — override at matching specificity so the
+   Manrope titles read ExtraBold. */
+.clientPortalApp .clientHomePanelHeader h2,
+.clientPortalApp .workoutSectionHeading,
+.clientPortalApp .profileMetricsHeader h3 {
+  font-weight: 800 !important;
+  letter-spacing: -0.01em !important;
+}
+
 .lv3Nav {
   display: flex;
   align-items: center;
