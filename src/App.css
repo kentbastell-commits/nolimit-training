@@ -18437,6 +18437,28 @@ textarea {
   color: #6d6b64;
 }
 
+/* Fulfillment chip tones on the (light) coach Orders page. The generic
+   ".orderCardHeader span" rule above forces every chip grey, so these need the
+   extra class specificity to win: blue = New Order, slate = in progress,
+   green = Program Loaded — fulfillment readable at a glance. */
+.app:not(.clientPortalApp) .orderCardHeader span.onboardingStatusChip {
+  color: #5f5d55;
+  background: rgba(20, 18, 14, 0.06);
+  border: 1px solid rgba(20, 18, 14, 0.14);
+}
+
+.app:not(.clientPortalApp) .orderCardHeader span.onboardingStatusChip.newOrderStatus {
+  color: #2f6bd6;
+  background: rgba(58, 134, 255, 0.12);
+  border: 1px solid rgba(58, 134, 255, 0.4);
+}
+
+.app:not(.clientPortalApp) .orderCardHeader span.onboardingStatusChip.activeStatus {
+  color: #1f7a43;
+  background: rgba(31, 122, 67, 0.12);
+  border: 1px solid rgba(31, 122, 67, 0.4);
+}
+
 .app:not(.clientPortalApp) .coachManagementSummary strong,
 .app:not(.clientPortalApp) .ordersSummary strong,
 .app:not(.clientPortalApp) .orderCardHeader h3,
