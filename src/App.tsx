@@ -11678,7 +11678,9 @@ function App() {
     if (intakeStatus.includes("submitted")) return "Intake Submitted";
     if (
       statusText.includes("intake sent") ||
-      intakeStatus.includes("sent") ||
+      // guard against "Not Sent" — `includes("sent")` matches it otherwise,
+      // mislabelling a brand-new order as already sent.
+      (intakeStatus.includes("sent") && !intakeStatus.includes("not sent")) ||
       intakeStatus.includes("assigned")
     ) {
       return "Intake Sent";
@@ -22176,11 +22178,13 @@ function App() {
                             </p>
                           </div>
                           <span
-                            className={
+                            className={`status onboardingStatusChip ${
                               pipelineStatus === "Program Loaded"
-                                ? "status activeStatus onboardingStatusChip"
-                                : "status holdStatus onboardingStatusChip"
-                            }
+                                ? "activeStatus"
+                                : pipelineStatus === "New Order"
+                                ? "newOrderStatus"
+                                : "holdStatus"
+                            }`}
                           >
                             {pipelineStatus}
                           </span>

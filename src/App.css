@@ -5070,6 +5070,14 @@ button.coachReviewGlobalItem,
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
+/* Fresh, unfulfilled order — electric-blue tone so "New Order" reads distinct
+   from in-progress (grey) and Program Loaded (gold). */
+.newOrderStatus {
+  background: rgba(58, 134, 255, 0.16);
+  color: #6ea8ff;
+  border: 1px solid rgba(58, 134, 255, 0.45);
+}
+
 .placeholder {
   margin-top: 40px;
   padding: 40px;
