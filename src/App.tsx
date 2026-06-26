@@ -2209,6 +2209,17 @@ function App() {
   const [teamAssigning, setTeamAssigning] = useState(false);
   // Which athletes are checked to receive the program (defaults to all members).
   const [teamAssignSelectedIds, setTeamAssignSelectedIds] = useState<string[]>([]);
+  // Teams table: sort + quick "assign program to the whole squad"
+  const [teamSort, setTeamSort] = useState<{
+    key: "name" | "planned" | "athletes" | "focus" | "created";
+    dir: "asc" | "desc";
+  }>({ key: "name", dir: "asc" });
+  const [teamQuickAssignId, setTeamQuickAssignId] = useState("");
+  const [teamQuickProgramId, setTeamQuickProgramId] = useState("");
+  const [teamQuickStartDate, setTeamQuickStartDate] = useState(
+    dateToInputValue(new Date())
+  );
+  const [teamQuickBusy, setTeamQuickBusy] = useState(false);
 
   const [programName, setProgramName] = useState("Foundation Program");
   const [programGoal, setProgramGoal] = useState("General Strength");
@@ -5994,6 +6005,41 @@ function App() {
     coachScope === "All Coaches"
       ? teams
       : teams.filter((team) => !team.coach || team.coach === coachScope);
+  const teamSortValue = (t: Team): string | number => {
+    switch (teamSort.key) {
+      case "planned":
+        return teamPlannedCounts[t.id] ?? 0;
+      case "athletes":
+        return t.memberCount;
+      case "focus":
+        return (t.focus || "").toLowerCase();
+      case "created":
+        return t.createdTime || 0;
+      default:
+        return t.name.toLowerCase();
+    }
+  };
+  const sortedTeams = [...visibleTeams].sort((a, b) => {
+    const av = teamSortValue(a);
+    const bv = teamSortValue(b);
+    const cmp =
+      typeof av === "number" && typeof bv === "number"
+        ? av - bv
+        : String(av).localeCompare(String(bv));
+    return teamSort.dir === "asc" ? cmp : -cmp;
+  });
+  const toggleTeamSort = (key: typeof teamSort.key) =>
+    setTeamSort((s) =>
+      s.key === key
+        ? { key, dir: s.dir === "asc" ? "desc" : "asc" }
+        : {
+            key,
+            dir:
+              key === "name" || key === "focus" ? "asc" : "desc",
+          }
+    );
+  const teamSortArrow = (key: typeof teamSort.key) =>
+    teamSort.key === key ? (teamSort.dir === "asc" ? " ▲" : " ▼") : "";
   const selectedTeam = teams.find((team) => team.id === selectedTeamId) || null;
 
   const openNewTeam = () => {
@@ -6402,6 +6448,33 @@ function App() {
       return 0;
     }
     return assignData.recordsCreated || 0;
+  };
+
+  // Quick "assign a program to the whole squad" from the Teams table.
+  const quickAssignTeamProgram = async () => {
+    const team = teams.find((t) => t.id === teamQuickAssignId);
+    if (!team) return;
+    if (!teamQuickProgramId) return notify("Select a program to assign.");
+    if (team.memberIds.length === 0)
+      return notify("This team has no athletes yet.");
+    setTeamQuickBusy(true);
+    try {
+      const created = await assignProgramByIds(
+        team.memberIds,
+        teamQuickProgramId,
+        teamQuickStartDate || dateToInputValue(new Date())
+      );
+      if (created > 0) {
+        notify(
+          `Program assigned to ${team.memberIds.length} athlete(s) in ${team.name}.`,
+          "success"
+        );
+        setTeamQuickAssignId("");
+        setTeamQuickProgramId("");
+      }
+    } finally {
+      setTeamQuickBusy(false);
+    }
   };
 
   // ---- Invite Athletes (team) ----
@@ -21444,11 +21517,36 @@ function App() {
                 <section className="tableCard teamsTableCard">
                   <div className="tableHeader teamsTableHeader">
                     <span></span>
-                    <span>Title</span>
-                    <span>Planned Sessions</span>
-                    <span>Athletes</span>
-                    <span>Focus</span>
-                    <span>Created</span>
+                    <span
+                      className="rosterSortable"
+                      onClick={() => toggleTeamSort("name")}
+                    >
+                      Title{teamSortArrow("name")}
+                    </span>
+                    <span
+                      className="rosterSortable"
+                      onClick={() => toggleTeamSort("planned")}
+                    >
+                      Planned Sessions{teamSortArrow("planned")}
+                    </span>
+                    <span
+                      className="rosterSortable"
+                      onClick={() => toggleTeamSort("athletes")}
+                    >
+                      Athletes{teamSortArrow("athletes")}
+                    </span>
+                    <span
+                      className="rosterSortable"
+                      onClick={() => toggleTeamSort("focus")}
+                    >
+                      Focus{teamSortArrow("focus")}
+                    </span>
+                    <span
+                      className="rosterSortable"
+                      onClick={() => toggleTeamSort("created")}
+                    >
+                      Created{teamSortArrow("created")}
+                    </span>
                     <span>Actions</span>
                   </div>
 
@@ -21462,7 +21560,7 @@ function App() {
                     </p>
                   )}
 
-                  {visibleTeams.map((team) => (
+                  {sortedTeams.map((team) => (
                     <div
                       key={team.id}
                       className={`clientRow clickableRow teamsTableRow ${
@@ -21526,6 +21624,15 @@ function App() {
                           </button>
                           {teamRowMenuId === team.id && (
                             <div className="teamRowMenu" role="menu">
+                              <button
+                                onClick={() => {
+                                  setTeamQuickAssignId(team.id);
+                                  setTeamQuickProgramId("");
+                                  setTeamRowMenuId("");
+                                }}
+                              >
+                                Assign Program
+                              </button>
                               <button onClick={() => openTeamInvite(team)}>
                                 Invite Athletes
                               </button>
@@ -21554,6 +21661,93 @@ function App() {
                     </div>
                   ))}
                 </section>
+
+                {teamQuickAssignId && (() => {
+                  const team = teams.find((t) => t.id === teamQuickAssignId);
+                  if (!team) return null;
+                  return (
+                    <div
+                      className="createProgramOverlay"
+                      onClick={() => setTeamQuickAssignId("")}
+                    >
+                      <div
+                        className="teamQuickAssignModal"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <div className="createProgramHeader">
+                          <div>
+                            <span className="eyebrow">Assign Program</span>
+                            <h3>{team.name}</h3>
+                          </div>
+                          <button
+                            type="button"
+                            className="iconActionButton"
+                            title="Close"
+                            onClick={() => setTeamQuickAssignId("")}
+                          >
+                            <X size={18} />
+                          </button>
+                        </div>
+                        <p className="teamQuickAssignSub">
+                          Schedules the program for all{" "}
+                          <strong>{team.memberCount}</strong> athlete
+                          {team.memberCount === 1 ? "" : "s"} in this squad.
+                        </p>
+                        <div className="teamQuickAssignFields">
+                          <label>
+                            <span>Program</span>
+                            <select
+                              value={teamQuickProgramId}
+                              onChange={(e) =>
+                                setTeamQuickProgramId(e.target.value)
+                              }
+                            >
+                              <option value="">Select program…</option>
+                              {programs.map((p) => (
+                                <option key={p.recordId} value={p.programId}>
+                                  {p.programName}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                          <label>
+                            <span>Start date</span>
+                            <input
+                              type="date"
+                              value={teamQuickStartDate}
+                              onChange={(e) =>
+                                setTeamQuickStartDate(e.target.value)
+                              }
+                            />
+                          </label>
+                        </div>
+                        <div className="teamQuickAssignActions">
+                          <button
+                            className="outlineButton"
+                            onClick={() => setTeamQuickAssignId("")}
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            className="goldButton"
+                            disabled={
+                              teamQuickBusy ||
+                              !teamQuickProgramId ||
+                              team.memberCount === 0
+                            }
+                            onClick={() => void quickAssignTeamProgram()}
+                          >
+                            {teamQuickBusy
+                              ? "Assigning…"
+                              : `Assign to ${team.memberCount} athlete${
+                                  team.memberCount === 1 ? "" : "s"
+                                }`}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {(editingTeam || selectedTeam) && (
                   <div className="teamDetail">

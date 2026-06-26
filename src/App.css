@@ -23826,6 +23826,54 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 }
 .teamsTableHeader { padding: 14px 16px; }
 .teamsTableRow { padding: 13px 16px; }
+
+/* Quick "assign program to whole squad" modal */
+.teamQuickAssignModal {
+  width: min(440px, 92vw);
+  border: 1px solid var(--public-border, #dcd8cd);
+  border-radius: 18px;
+  background: #fffefa;
+  padding: 22px 24px 20px;
+  box-shadow: 0 30px 70px rgba(14, 14, 13, 0.32);
+}
+
+.teamQuickAssignSub {
+  margin: 4px 0 16px;
+  color: #54524b;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.teamQuickAssignFields {
+  display: grid;
+  gap: 12px;
+}
+
+.teamQuickAssignFields label {
+  display: grid;
+  gap: 5px;
+}
+
+.teamQuickAssignFields label span {
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #6d6b64;
+}
+
+.teamQuickAssignFields select,
+.teamQuickAssignFields input {
+  min-height: 42px;
+  padding: 9px 12px;
+}
+
+.teamQuickAssignActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 18px;
+}
 .teamsTableRow.active { box-shadow: inset 4px 0 0 #1a1a1a; }
 .teamAvatarSquare { border-radius: 12px !important; background: #0d0d0d; color: #f0d987; }
 .teamRowActions { display: inline-flex; align-items: center; gap: 6px; }
