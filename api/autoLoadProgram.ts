@@ -100,7 +100,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const f = item.fields || {};
       const oClientId = fieldToText(f["Client ID"]);
       const oClientName = fieldToText(f["Client Name"]);
-      const status = fieldToText(f["Onboarding Status"] || f["Pipeline Status"] || f["Order Status"]);
+      // "Fulfillment Status" is the real column (the old Onboarding/Pipeline
+      // names never existed, so every order looked unloaded — letting a repeat
+      // intake submission double the calendar).
+      const status = fieldToText(f["Fulfillment Status"]);
       const isThisClient = textMatches(oClientId, clientCode) || textMatches(oClientName, clientName);
       const isNotLoaded = !status.toLowerCase().includes("loaded");
       const hasProgramId = Boolean(fieldToText(f["Program ID"]));
@@ -266,9 +269,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       headers,
       body: JSON.stringify({
         fields: {
-          "Onboarding Status": "Program Loaded",
-          "Fulfillment Status": "Fulfilled",
-          "Fulfilled At": new Date().getTime(),
+          "Fulfillment Status": "Program Loaded",
           "Access Start Date": new Date(`${today}T00:00:00`).getTime(),
         },
       }),

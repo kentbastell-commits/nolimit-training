@@ -271,6 +271,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         ["Intake Status", "Intake", "Questionnaire Status"],
         "Not Sent"
       );
+      // Marks the order pending until autoLoadProgram flips it to "Program
+      // Loaded" (which is also the dedup guard against double-loading).
+      applyField(
+        orderFieldsSchema,
+        fields,
+        ["Fulfillment Status", "Onboarding Status"],
+        "New Order"
+      );
       applyField(
         orderFieldsSchema,
         fields,
