@@ -3,10 +3,6 @@
 @import "@fontsource/inter/latin-700.css";
 @import "@fontsource/inter/latin-800.css";
 @import "@fontsource/inter/latin-900.css";
-/* Manrope — soft-geometric display, used for the public landing-page headlines. */
-@import "@fontsource/manrope/latin-600.css";
-@import "@fontsource/manrope/latin-700.css";
-@import "@fontsource/manrope/latin-800.css";
 /* Noto Sans SC (Chinese, ~2MB) is loaded on demand only when the language is
    Chinese — see loadChineseFonts() in App.tsx. */
 @import "@fontsource/bebas-neue/latin-400.css";
@@ -26083,50 +26079,6 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 .lv3 h2,
 .lv3 h3,
 .lv3 h4 { color: #0e0e0d; }
-
-/* Landing-page type system: Manrope for headlines + eyebrows, Inter for body
-   and buttons. Scoped to .lv3 so the rest of the app is untouched. CJK falls
-   back to the Chinese stack. */
-.lv3 h1,
-.lv3 h2,
-.lv3 h3,
-.lv3 h4,
-.lv3Eyebrow {
-  font-family: "Manrope", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
-}
-
-/* Trial: Manrope on the athlete portal — headings + the big stat/PR numbers.
-   Body stays Inter. Scoped to .clientPortalApp so the coach app is untouched.
-   Re-points the display vars (so Bebas headers become Manrope) and forces the
-   headings/numbers past the existing per-element rules. */
-.clientPortalApp {
-  --brand-display: "Manrope", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
-  --font-display: "Manrope", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
-}
-
-.clientPortalApp h1,
-.clientPortalApp h2,
-.clientPortalApp h3,
-.clientPortalApp h4,
-.clientPortalApp .prValue strong,
-.clientPortalApp .performanceMetricCard strong,
-.clientPortalApp .progressChartSummary strong {
-  font-family: "Manrope", "Noto Sans SC", "PingFang SC", "Microsoft YaHei",
-    sans-serif !important;
-  /* Heavier + tighter so the portal headings pop. */
-  font-weight: 800 !important;
-  letter-spacing: -0.015em;
-}
-
-/* The panel/section headers are explicitly forced to weight 400 elsewhere (it
-   used to be single-weight Bebas) — override at matching specificity so the
-   Manrope titles read ExtraBold. */
-.clientPortalApp .clientHomePanelHeader h2,
-.clientPortalApp .workoutSectionHeading,
-.clientPortalApp .profileMetricsHeader h3 {
-  font-weight: 800 !important;
-  letter-spacing: -0.01em !important;
-}
 
 .lv3Nav {
   display: flex;

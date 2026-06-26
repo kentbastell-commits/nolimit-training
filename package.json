@@ -13,7 +13,6 @@
   "dependencies": {
     "@fontsource/bebas-neue": "^5.2.7",
     "@fontsource/inter": "^5.2.8",
-    "@fontsource/manrope": "^5.2.8",
     "@fontsource/noto-sans-sc": "^5.2.9",
     "@fontsource/rock-salt": "^5.2.8",
     "@vercel/node": "^5.8.9",
