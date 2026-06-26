@@ -29,3 +29,14 @@ dist-ssr
 .env
 .env.*
 !.env.example
+
+# Scratch verification artifacts (screenshots, throwaway scripts) at repo root —
+# never commit these. Real assets live in public/ or src/.
+/_*.png
+/_*.mjs
+/*verify*.png
+/debug_*.png
+/coach_mobile_*.png
+/nl_live_*.png
+/nl_verify_*.png
+/builder_density_*.png
