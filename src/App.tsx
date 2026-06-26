@@ -16461,6 +16461,34 @@ function App() {
     return monotonyZoneOf(monotony, weeklyLoad);
   };
 
+  // Per-athlete engagement for the roster: most-recent completed session +
+  // this-week adherence (completed ÷ sessions that were due Mon..today).
+  const clientEngagement = (client: Client) => {
+    const code = client.clientCode;
+    if (!code) return { lastCompleted: null as string | null, compliance: null as number | null };
+    const mine = rosterLoadWorkouts.filter((w) =>
+      (w.clientId || "").includes(code)
+    );
+    const isDone = (w: Workout) =>
+      normalizeTaskStatus(w.completionStatus) === "Completed";
+
+    let lastCompleted: string | null = null;
+    const weekStart = dateToInputValue(startOfThisWeek);
+    let due = 0;
+    let done = 0;
+    for (const w of mine) {
+      const d = normalizeDate(String(w.scheduledDate));
+      if (!d) continue;
+      if (isDone(w) && (!lastCompleted || d > lastCompleted)) lastCompleted = d;
+      if (d >= weekStart && d <= todayValue) {
+        due += 1;
+        if (isDone(w)) done += 1;
+      }
+    }
+    const compliance = due > 0 ? Math.round((done / due) * 100) : null;
+    return { lastCompleted, compliance };
+  };
+
   // Coach-only training-load dashboard: internal load (sRPE = RPE x duration)
   // and external load (tonnage), Foster monotony/strain, plus a weekly strain
   // trend. Drives load-management decisions; deliberately hidden from athletes.
@@ -20376,6 +20404,7 @@ function App() {
                         >
                           Last Login{rosterSortArrow("lastLogin")}
                         </span>
+                        <span>Engagement</span>
                         <span>Attention</span>
                       </div>
 
@@ -20488,6 +20517,47 @@ function App() {
                                 if (d === null) return "—";
                                 if (d === 0) return "Today";
                                 return `${d}d`;
+                              })()}
+                            </span>
+
+                            <span className="engagementCell">
+                              {(() => {
+                                const e = clientEngagement(client);
+                                if (e.compliance === null && !e.lastCompleted)
+                                  return "—";
+                                const tone =
+                                  e.compliance === null
+                                    ? "engNeutral"
+                                    : e.compliance >= 80
+                                    ? "engGood"
+                                    : e.compliance >= 50
+                                    ? "engOk"
+                                    : "engLow";
+                                const lcDays = e.lastCompleted
+                                  ? Math.round(
+                                      (Date.parse(`${todayValue}T00:00:00`) -
+                                        Date.parse(`${e.lastCompleted}T00:00:00`)) /
+                                        86400000
+                                    )
+                                  : null;
+                                const lcLabel =
+                                  lcDays === null
+                                    ? "no sessions yet"
+                                    : lcDays <= 0
+                                    ? "trained today"
+                                    : lcDays === 1
+                                    ? "1d ago"
+                                    : `${lcDays}d ago`;
+                                return (
+                                  <>
+                                    <strong className={`engPct ${tone}`}>
+                                      {e.compliance === null
+                                        ? "—"
+                                        : `${e.compliance}%`}
+                                    </strong>
+                                    <small>{lcLabel}</small>
+                                  </>
+                                );
                               })()}
                             </span>
 
