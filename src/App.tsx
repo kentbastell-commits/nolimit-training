@@ -2182,7 +2182,7 @@ function App() {
   // Roster: multi-select bulk actions + sort + group-by
   const [rosterSelectedIds, setRosterSelectedIds] = useState<string[]>([]);
   const [rosterSort, setRosterSort] = useState<{
-    key: "name" | "type" | "lastLogin" | "teams";
+    key: "name" | "type" | "lastLogin" | "teams" | "engagement";
     dir: "asc" | "desc";
   }>({ key: "name", dir: "asc" });
   const [rosterGroupBy, setRosterGroupBy] = useState<
@@ -2220,6 +2220,14 @@ function App() {
     dateToInputValue(new Date())
   );
   const [teamQuickBusy, setTeamQuickBusy] = useState(false);
+  // Teams table: multi-select bulk (assign a program across several squads)
+  const [teamSelectedIds, setTeamSelectedIds] = useState<string[]>([]);
+  const [teamBulkPanel, setTeamBulkPanel] = useState<"" | "program">("");
+  const [teamBulkProgramId, setTeamBulkProgramId] = useState("");
+  const [teamBulkStartDate, setTeamBulkStartDate] = useState(
+    dateToInputValue(new Date())
+  );
+  const [teamBulkBusy, setTeamBulkBusy] = useState(false);
 
   const [programName, setProgramName] = useState("Foundation Program");
   const [programGoal, setProgramGoal] = useState("General Strength");
@@ -6040,6 +6048,29 @@ function App() {
     );
   const teamSortArrow = (key: typeof teamSort.key) =>
     teamSort.key === key ? (teamSort.dir === "asc" ? " ▲" : " ▼") : "";
+  const teamVisibleIds = sortedTeams.map((t) => t.id);
+  const teamAllSelected =
+    teamVisibleIds.length > 0 &&
+    teamVisibleIds.every((id) => teamSelectedIds.includes(id));
+  const toggleTeamSelectAll = () =>
+    setTeamSelectedIds(teamAllSelected ? [] : teamVisibleIds);
+  const toggleTeamSelect = (id: string) =>
+    setTeamSelectedIds((ids) =>
+      ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]
+    );
+  const clearTeamSelection = () => {
+    setTeamSelectedIds([]);
+    setTeamBulkPanel("");
+  };
+  // Unique athletes across all selected squads (an athlete in two picked squads
+  // is only scheduled once).
+  const teamBulkMemberIds = Array.from(
+    new Set(
+      teams
+        .filter((t) => teamSelectedIds.includes(t.id))
+        .flatMap((t) => t.memberIds)
+    )
+  );
   const selectedTeam = teams.find((team) => team.id === selectedTeamId) || null;
 
   const openNewTeam = () => {
@@ -6474,6 +6505,31 @@ function App() {
       }
     } finally {
       setTeamQuickBusy(false);
+    }
+  };
+
+  // Assign one program across every athlete in the selected squads at once.
+  const bulkAssignTeamsProgram = async () => {
+    if (!teamBulkProgramId) return notify("Select a program to assign.");
+    if (teamBulkMemberIds.length === 0)
+      return notify("The selected squads have no athletes yet.");
+    setTeamBulkBusy(true);
+    try {
+      const created = await assignProgramByIds(
+        teamBulkMemberIds,
+        teamBulkProgramId,
+        teamBulkStartDate || dateToInputValue(new Date())
+      );
+      if (created > 0) {
+        notify(
+          `Program assigned to ${teamBulkMemberIds.length} athlete(s) across ${teamSelectedIds.length} squad(s).`,
+          "success"
+        );
+        clearTeamSelection();
+        setTeamBulkProgramId("");
+      }
+    } finally {
+      setTeamBulkBusy(false);
     }
   };
 
@@ -11623,6 +11679,39 @@ function App() {
     ? filteredClients.filter((c) => matchesTriage(c, rosterTriage))
     : filteredClients;
 
+  // Per-athlete engagement for the roster: most-recent completed session +
+  // this-week adherence (completed ÷ sessions that were due Mon..today). Kept
+  // self-contained (own week window) so it can run during the roster sort, which
+  // is computed before the render-scope date consts exist.
+  const clientEngagement = (client: Client) => {
+    const code = client.clientCode;
+    if (!code)
+      return { lastCompleted: null as string | null, compliance: null as number | null };
+    const today = dateToInputValue(new Date());
+    const ws = new Date();
+    ws.setHours(0, 0, 0, 0);
+    ws.setDate(ws.getDate() - ((ws.getDay() + 6) % 7)); // back to Monday
+    const weekStart = dateToInputValue(ws);
+    const isDone = (w: Workout) =>
+      normalizeTaskStatus(w.completionStatus) === "Completed";
+
+    let lastCompleted: string | null = null;
+    let due = 0;
+    let done = 0;
+    for (const w of rosterLoadWorkouts) {
+      if (!(w.clientId || "").includes(code)) continue;
+      const d = normalizeDate(String(w.scheduledDate));
+      if (!d) continue;
+      if (isDone(w) && (!lastCompleted || d > lastCompleted)) lastCompleted = d;
+      if (d >= weekStart && d <= today) {
+        due += 1;
+        if (isDone(w)) done += 1;
+      }
+    }
+    const compliance = due > 0 ? Math.round((done / due) * 100) : null;
+    return { lastCompleted, compliance };
+  };
+
   // ---- Roster sort + group-by ----
   const rosterSortValue = (client: Client): string | number => {
     switch (rosterSort.key) {
@@ -11632,6 +11721,9 @@ function App() {
         return client.lastLogin || 0;
       case "teams":
         return clientTeams(client.id).length;
+      case "engagement":
+        // No sessions due this week → sort last (ascending) / treat as -1.
+        return clientEngagement(client).compliance ?? -1;
       default:
         return client.name.toLowerCase();
     }
@@ -11649,7 +11741,10 @@ function App() {
     setRosterSort((s) =>
       s.key === key
         ? { key, dir: s.dir === "asc" ? "desc" : "asc" }
-        : { key, dir: key === "lastLogin" ? "desc" : "asc" }
+        : {
+            key,
+            dir: key === "lastLogin" || key === "engagement" ? "desc" : "asc",
+          }
     );
   const rosterSortArrow = (key: typeof rosterSort.key) =>
     rosterSort.key === key ? (rosterSort.dir === "asc" ? " ▲" : " ▼") : "";
@@ -16534,34 +16629,6 @@ function App() {
     return monotonyZoneOf(monotony, weeklyLoad);
   };
 
-  // Per-athlete engagement for the roster: most-recent completed session +
-  // this-week adherence (completed ÷ sessions that were due Mon..today).
-  const clientEngagement = (client: Client) => {
-    const code = client.clientCode;
-    if (!code) return { lastCompleted: null as string | null, compliance: null as number | null };
-    const mine = rosterLoadWorkouts.filter((w) =>
-      (w.clientId || "").includes(code)
-    );
-    const isDone = (w: Workout) =>
-      normalizeTaskStatus(w.completionStatus) === "Completed";
-
-    let lastCompleted: string | null = null;
-    const weekStart = dateToInputValue(startOfThisWeek);
-    let due = 0;
-    let done = 0;
-    for (const w of mine) {
-      const d = normalizeDate(String(w.scheduledDate));
-      if (!d) continue;
-      if (isDone(w) && (!lastCompleted || d > lastCompleted)) lastCompleted = d;
-      if (d >= weekStart && d <= todayValue) {
-        due += 1;
-        if (isDone(w)) done += 1;
-      }
-    }
-    const compliance = due > 0 ? Math.round((done / due) * 100) : null;
-    return { lastCompleted, compliance };
-  };
-
   // Coach-only training-load dashboard: internal load (sRPE = RPE x duration)
   // and external load (tonnage), Foster monotony/strain, plus a weekly strain
   // trend. Drives load-management decisions; deliberately hidden from athletes.
@@ -20477,7 +20544,12 @@ function App() {
                         >
                           Last Login{rosterSortArrow("lastLogin")}
                         </span>
-                        <span>Engagement</span>
+                        <span
+                          className="rosterSortable"
+                          onClick={() => toggleRosterSort("engagement")}
+                        >
+                          Engagement{rosterSortArrow("engagement")}
+                        </span>
                         <span>Attention</span>
                       </div>
 
@@ -21514,9 +21586,80 @@ function App() {
                   </button>
                 </div>
 
+                {teamSelectedIds.length > 0 && (
+                  <div className="rosterBulkBar">
+                    <div className="rosterBulkBarMain">
+                      <strong>
+                        {teamSelectedIds.length} squad
+                        {teamSelectedIds.length === 1 ? "" : "s"} ·{" "}
+                        {teamBulkMemberIds.length} athlete
+                        {teamBulkMemberIds.length === 1 ? "" : "s"}
+                      </strong>
+                      <button
+                        className="outlineButton"
+                        onClick={() =>
+                          setTeamBulkPanel((p) =>
+                            p === "program" ? "" : "program"
+                          )
+                        }
+                      >
+                        Assign Program
+                      </button>
+                      <button
+                        className="textButton rosterBulkClear"
+                        onClick={clearTeamSelection}
+                      >
+                        Clear
+                      </button>
+                    </div>
+                    {teamBulkPanel === "program" && (
+                      <div className="rosterBulkPanel">
+                        <select
+                          value={teamBulkProgramId}
+                          onChange={(e) => setTeamBulkProgramId(e.target.value)}
+                        >
+                          <option value="">Select program…</option>
+                          {programs.map((p) => (
+                            <option key={p.recordId} value={p.programId}>
+                              {p.programName}
+                            </option>
+                          ))}
+                        </select>
+                        <input
+                          type="date"
+                          value={teamBulkStartDate}
+                          onChange={(e) => setTeamBulkStartDate(e.target.value)}
+                        />
+                        <button
+                          className="goldButton"
+                          disabled={
+                            teamBulkBusy ||
+                            !teamBulkProgramId ||
+                            teamBulkMemberIds.length === 0
+                          }
+                          onClick={() => void bulkAssignTeamsProgram()}
+                        >
+                          {teamBulkBusy
+                            ? "Assigning…"
+                            : `Assign to ${teamBulkMemberIds.length} athlete${
+                                teamBulkMemberIds.length === 1 ? "" : "s"
+                              }`}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <section className="tableCard teamsTableCard">
                   <div className="tableHeader teamsTableHeader">
-                    <span></span>
+                    <span>
+                      <input
+                        type="checkbox"
+                        checked={teamAllSelected}
+                        onChange={toggleTeamSelectAll}
+                        title="Select all squads"
+                      />
+                    </span>
                     <span
                       className="rosterSortable"
                       onClick={() => toggleTeamSort("name")}
@@ -21575,6 +21718,8 @@ function App() {
                     >
                       <input
                         type="checkbox"
+                        checked={teamSelectedIds.includes(team.id)}
+                        onChange={() => toggleTeamSelect(team.id)}
                         onClick={(event) => event.stopPropagation()}
                       />
                       <div className="clientName">
