@@ -26096,7 +26096,14 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 }
 
 /* Trial: Manrope on the athlete portal — headings + the big stat/PR numbers.
-   Body stays Inter. Scoped to .clientPortalApp so the coach app is untouched. */
+   Body stays Inter. Scoped to .clientPortalApp so the coach app is untouched.
+   Re-points the display vars (so Bebas headers become Manrope) and forces the
+   headings/numbers past the existing per-element rules. */
+.clientPortalApp {
+  --brand-display: "Manrope", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-display: "Manrope", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
 .clientPortalApp h1,
 .clientPortalApp h2,
 .clientPortalApp h3,
@@ -26104,7 +26111,8 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 .clientPortalApp .prValue strong,
 .clientPortalApp .performanceMetricCard strong,
 .clientPortalApp .progressChartSummary strong {
-  font-family: "Manrope", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-family: "Manrope", "Noto Sans SC", "PingFang SC", "Microsoft YaHei",
+    sans-serif !important;
 }
 
 .lv3Nav {
