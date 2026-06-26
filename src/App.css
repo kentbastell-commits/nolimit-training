@@ -26095,6 +26095,18 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   font-family: "Manrope", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
 }
 
+/* Trial: Manrope on the athlete portal — headings + the big stat/PR numbers.
+   Body stays Inter. Scoped to .clientPortalApp so the coach app is untouched. */
+.clientPortalApp h1,
+.clientPortalApp h2,
+.clientPortalApp h3,
+.clientPortalApp h4,
+.clientPortalApp .prValue strong,
+.clientPortalApp .performanceMetricCard strong,
+.clientPortalApp .progressChartSummary strong {
+  font-family: "Manrope", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
 .lv3Nav {
   display: flex;
   align-items: center;
