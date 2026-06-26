@@ -2179,6 +2179,21 @@ function App() {
   }>({ tags: [], categories: [] });
   const [accountTagInput, setAccountTagInput] = useState("");
   const [accountCategoryInput, setAccountCategoryInput] = useState("");
+  // Roster: multi-select bulk actions + sort + group-by
+  const [rosterSelectedIds, setRosterSelectedIds] = useState<string[]>([]);
+  const [rosterSort, setRosterSort] = useState<{
+    key: "name" | "type" | "lastLogin" | "teams";
+    dir: "asc" | "desc";
+  }>({ key: "name", dir: "asc" });
+  const [rosterGroupBy, setRosterGroupBy] = useState<
+    "none" | "team" | "type" | "tag" | "category"
+  >("none");
+  const [bulkPanel, setBulkPanel] = useState<"" | "program" | "team" | "tag">("");
+  const [bulkProgramId, setBulkProgramId] = useState("");
+  const [bulkStartDate, setBulkStartDate] = useState("");
+  const [bulkTeamId, setBulkTeamId] = useState("");
+  const [bulkTag, setBulkTag] = useState("");
+  const [bulkBusy, setBulkBusy] = useState(false);
   const [accountProgramId, setAccountProgramId] = useState("");
   const [accountStartDate, setAccountStartDate] = useState(
     dateToInputValue(new Date())
@@ -11503,6 +11518,194 @@ function App() {
     return matchesSearch && matchesStatus && matchesBucket;
   });
 
+  // ---- Roster sort + group-by ----
+  const rosterSortValue = (client: Client): string | number => {
+    switch (rosterSort.key) {
+      case "type":
+        return (client.clientType || "").toLowerCase();
+      case "lastLogin":
+        return client.lastLogin || 0;
+      case "teams":
+        return clientTeams(client.id).length;
+      default:
+        return client.name.toLowerCase();
+    }
+  };
+  const sortedRoster = [...filteredClients].sort((a, b) => {
+    const av = rosterSortValue(a);
+    const bv = rosterSortValue(b);
+    const cmp =
+      typeof av === "number" && typeof bv === "number"
+        ? av - bv
+        : String(av).localeCompare(String(bv));
+    return rosterSort.dir === "asc" ? cmp : -cmp;
+  });
+  const toggleRosterSort = (key: typeof rosterSort.key) =>
+    setRosterSort((s) =>
+      s.key === key
+        ? { key, dir: s.dir === "asc" ? "desc" : "asc" }
+        : { key, dir: key === "lastLogin" ? "desc" : "asc" }
+    );
+  const rosterSortArrow = (key: typeof rosterSort.key) =>
+    rosterSort.key === key ? (rosterSort.dir === "asc" ? " ▲" : " ▼") : "";
+
+  // Group the sorted roster. A client with several teams/tags/categories shows
+  // under each matching group; an empty value lands in a "No …" bucket.
+  const rosterGroups: { key: string; label: string; clients: Client[] }[] =
+    (() => {
+      if (rosterGroupBy === "none") {
+        return [{ key: "all", label: "", clients: sortedRoster }];
+      }
+      const groups = new Map<string, Client[]>();
+      const push = (key: string, client: Client) => {
+        const list = groups.get(key);
+        if (list) list.push(client);
+        else groups.set(key, [client]);
+      };
+      for (const client of sortedRoster) {
+        if (rosterGroupBy === "type") {
+          push(client.clientType || "No type", client);
+        } else if (rosterGroupBy === "team") {
+          const ts = clientTeams(client.id);
+          if (ts.length === 0) push("No team", client);
+          else ts.forEach((t) => push(t.name, client));
+        } else if (rosterGroupBy === "tag") {
+          const tags = client.tags || [];
+          if (tags.length === 0) push("No tags", client);
+          else tags.forEach((t) => push(t, client));
+        } else {
+          const cats = client.categories || [];
+          if (cats.length === 0) push("No category", client);
+          else cats.forEach((c) => push(c, client));
+        }
+      }
+      return [...groups.entries()]
+        .sort((a, b) => {
+          // Keep the "No …" bucket last; everything else alphabetical.
+          const aEmpty = /^No /.test(a[0]);
+          const bEmpty = /^No /.test(b[0]);
+          if (aEmpty !== bEmpty) return aEmpty ? 1 : -1;
+          return a[0].localeCompare(b[0]);
+        })
+        .map(([label, clients]) => ({ key: label, label, clients }));
+    })();
+
+  // ---- Roster multi-select + bulk actions ----
+  const rosterVisibleIds = filteredClients.map((c) => c.id);
+  const rosterAllSelected =
+    rosterVisibleIds.length > 0 &&
+    rosterVisibleIds.every((id) => rosterSelectedIds.includes(id));
+  const toggleRosterSelectAll = () =>
+    setRosterSelectedIds(rosterAllSelected ? [] : rosterVisibleIds);
+  const toggleRosterSelect = (id: string) =>
+    setRosterSelectedIds((ids) =>
+      ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]
+    );
+  const clearRosterSelection = () => {
+    setRosterSelectedIds([]);
+    setBulkPanel("");
+  };
+
+  const bulkAssignProgram = async () => {
+    if (!bulkProgramId) return notify("Select a program to assign.");
+    setBulkBusy(true);
+    try {
+      const start = bulkStartDate || new Date().toISOString().split("T")[0];
+      const created = await assignProgramByIds(
+        rosterSelectedIds,
+        bulkProgramId,
+        start
+      );
+      if (created > 0) {
+        notify(
+          `Program assigned to ${rosterSelectedIds.length} athlete(s).`,
+          "success"
+        );
+        clearRosterSelection();
+        setBulkProgramId("");
+      }
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+
+  const bulkAddToTeam = async () => {
+    const team = teams.find((t) => t.id === bulkTeamId);
+    if (!team) return notify("Select a team.");
+    setBulkBusy(true);
+    try {
+      const merged = Array.from(
+        new Set([...team.memberIds, ...rosterSelectedIds])
+      );
+      const res = await fetch("/api/upsertTeam", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ recordId: team.id, memberRecordIds: merged }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        notify("Could not update the team roster.");
+        return;
+      }
+      await loadTeams();
+      notify(
+        `Added ${rosterSelectedIds.length} athlete(s) to ${team.name}.`,
+        "success"
+      );
+      clearRosterSelection();
+      setBulkTeamId("");
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+
+  const bulkAddTag = async () => {
+    const tag = bulkTag.trim();
+    if (!tag) return notify("Enter a tag.");
+    setBulkBusy(true);
+    try {
+      const targets = clients.filter((c) => rosterSelectedIds.includes(c.id));
+      const results = await Promise.all(
+        targets.map((c) => {
+          const nextTags = Array.from(new Set([...(c.tags || []), tag]));
+          return fetch("/api/updateClient", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              clientRecordId: c.id,
+              tags: nextTags,
+              categories: c.categories || [],
+            }),
+          })
+            .then((r) => r.json())
+            .then((d) => Boolean(d?.success))
+            .catch(() => false);
+        })
+      );
+      const ok = results.filter(Boolean).length;
+      setClients((cur) =>
+        cur.map((c) =>
+          rosterSelectedIds.includes(c.id)
+            ? { ...c, tags: Array.from(new Set([...(c.tags || []), tag])) }
+            : c
+        )
+      );
+      notify(`Tagged ${ok} athlete(s) "${tag}".`, "success");
+      clearRosterSelection();
+      setBulkTag("");
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+
+  const bulkCopyLinks = () => {
+    const links = clients
+      .filter((c) => rosterSelectedIds.includes(c.id))
+      .map((c) => `${c.name}: ${buildClientPortalLink(c)}`)
+      .join("\n");
+    void copyToClipboard(links, `${rosterSelectedIds.length} portal links`);
+  };
+
   const filteredCheckInClients = coachVisibleClients.filter((client) => {
     const search = checkInSearch.toLowerCase();
     const ageDays = getCheckInAgeDays(client);
@@ -19920,6 +20123,20 @@ function App() {
                         ))}
                       </select>
 
+                      <select
+                        value={rosterGroupBy}
+                        onChange={(e) =>
+                          setRosterGroupBy(e.target.value as typeof rosterGroupBy)
+                        }
+                        title="Group the roster"
+                      >
+                        <option value="none">No grouping</option>
+                        <option value="team">Group by Team</option>
+                        <option value="type">Group by Type</option>
+                        <option value="tag">Group by Tag</option>
+                        <option value="category">Group by Category</option>
+                      </select>
+
                       <button
                         className="outlineButton"
                         onClick={() => void loadClients(true)}
@@ -19937,17 +20154,164 @@ function App() {
                       </button>
                     </div>
 
+                    {rosterSelectedIds.length > 0 && (
+                      <div className="rosterBulkBar">
+                        <div className="rosterBulkBarMain">
+                          <strong>{rosterSelectedIds.length} selected</strong>
+                          <button
+                            className="outlineButton"
+                            onClick={() =>
+                              setBulkPanel((p) =>
+                                p === "program" ? "" : "program"
+                              )
+                            }
+                          >
+                            Assign Program
+                          </button>
+                          <button
+                            className="outlineButton"
+                            onClick={() =>
+                              setBulkPanel((p) => (p === "team" ? "" : "team"))
+                            }
+                          >
+                            Add to Team
+                          </button>
+                          <button
+                            className="outlineButton"
+                            onClick={() =>
+                              setBulkPanel((p) => (p === "tag" ? "" : "tag"))
+                            }
+                          >
+                            Add Tag
+                          </button>
+                          <button
+                            className="outlineButton"
+                            onClick={bulkCopyLinks}
+                          >
+                            Copy Links
+                          </button>
+                          <button
+                            className="textButton rosterBulkClear"
+                            onClick={clearRosterSelection}
+                          >
+                            Clear
+                          </button>
+                        </div>
+
+                        {bulkPanel === "program" && (
+                          <div className="rosterBulkPanel">
+                            <select
+                              value={bulkProgramId}
+                              onChange={(e) => setBulkProgramId(e.target.value)}
+                            >
+                              <option value="">Select program…</option>
+                              {programs.map((p) => (
+                                <option key={p.recordId} value={p.programId}>
+                                  {p.programName}
+                                </option>
+                              ))}
+                            </select>
+                            <input
+                              type="date"
+                              value={
+                                bulkStartDate ||
+                                new Date().toISOString().split("T")[0]
+                              }
+                              onChange={(e) => setBulkStartDate(e.target.value)}
+                            />
+                            <button
+                              className="goldButton"
+                              disabled={bulkBusy || !bulkProgramId}
+                              onClick={() => void bulkAssignProgram()}
+                            >
+                              {bulkBusy ? "Assigning…" : "Assign to selected"}
+                            </button>
+                          </div>
+                        )}
+
+                        {bulkPanel === "team" && (
+                          <div className="rosterBulkPanel">
+                            <select
+                              value={bulkTeamId}
+                              onChange={(e) => setBulkTeamId(e.target.value)}
+                            >
+                              <option value="">Select team…</option>
+                              {teams.map((t) => (
+                                <option key={t.id} value={t.id}>
+                                  {t.name}
+                                </option>
+                              ))}
+                            </select>
+                            <button
+                              className="goldButton"
+                              disabled={bulkBusy || !bulkTeamId}
+                              onClick={() => void bulkAddToTeam()}
+                            >
+                              {bulkBusy ? "Adding…" : "Add to team"}
+                            </button>
+                          </div>
+                        )}
+
+                        {bulkPanel === "tag" && (
+                          <div className="rosterBulkPanel">
+                            <input
+                              placeholder="Tag name"
+                              value={bulkTag}
+                              onChange={(e) => setBulkTag(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") void bulkAddTag();
+                              }}
+                            />
+                            <button
+                              className="goldButton"
+                              disabled={bulkBusy || !bulkTag.trim()}
+                              onClick={() => void bulkAddTag()}
+                            >
+                              {bulkBusy ? "Tagging…" : "Add tag"}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
                     {loading && <p>Loading clients...</p>}
 
                     <section className="tableCard clientTableCard">
                       <div className="tableHeader clientTableHeader">
-                        <span></span>
-                        <span>Athlete</span>
+                        <span>
+                          <input
+                            type="checkbox"
+                            checked={rosterAllSelected}
+                            onChange={toggleRosterSelectAll}
+                            title="Select all"
+                          />
+                        </span>
+                        <span
+                          className="rosterSortable"
+                          onClick={() => toggleRosterSort("name")}
+                        >
+                          Athlete{rosterSortArrow("name")}
+                        </span>
                         <span>Actions</span>
-                        <span>Athlete Type</span>
-                        <span>Teams</span>
+                        <span
+                          className="rosterSortable"
+                          onClick={() => toggleRosterSort("type")}
+                        >
+                          Athlete Type{rosterSortArrow("type")}
+                        </span>
+                        <span
+                          className="rosterSortable"
+                          onClick={() => toggleRosterSort("teams")}
+                        >
+                          Teams{rosterSortArrow("teams")}
+                        </span>
                         <span>Tags</span>
-                        <span>Last Login</span>
+                        <span
+                          className="rosterSortable"
+                          onClick={() => toggleRosterSort("lastLogin")}
+                        >
+                          Last Login{rosterSortArrow("lastLogin")}
+                        </span>
                         <span>Attention</span>
                       </div>
 
@@ -19957,7 +20321,15 @@ function App() {
                         </p>
                       )}
 
-                      {filteredClients.map((client) => {
+                      {rosterGroups.map((group) => (
+                        <Fragment key={group.key}>
+                          {rosterGroupBy !== "none" && (
+                            <div className="rosterGroupRow">
+                              <span>{group.label}</span>
+                              <small>{group.clients.length}</small>
+                            </div>
+                          )}
+                          {group.clients.map((client) => {
                         const attentionItems = [
                           clientNeedsProgramming(client) ? "Needs program" : "",
                           clientNeedsContact(client) ? "Needs contact" : "",
@@ -19974,6 +20346,8 @@ function App() {
                           >
                             <input
                               type="checkbox"
+                              checked={rosterSelectedIds.includes(client.id)}
+                              onChange={() => toggleRosterSelect(client.id)}
                               onClick={(event) => event.stopPropagation()}
                             />
 
@@ -20087,7 +20461,9 @@ function App() {
                             </span>
                           </div>
                         );
-                      })}
+                          })}
+                        </Fragment>
+                      ))}
                     </section>
                   </section>
                 </section>
