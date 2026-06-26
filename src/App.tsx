@@ -27521,11 +27521,18 @@ function App() {
                                       <option>Direct Value</option>
                                       <option>Epley 1RM</option>
                                       <option>Brzycki 1RM</option>
+                                      <option>Relative Strength (x BW)</option>
                                       <option>2km Time Trial Speed</option>
                                       <option>Max Aerobic Speed</option>
                                       <option>Max Aerobic Speed (m/s)</option>
+                                      <option>30-15 IFT (VIFT)</option>
                                       <option>Run Pace (min/km)</option>
                                       <option>Lactate Threshold</option>
+                                      <option>VO2max (Cooper 12-min)</option>
+                                      <option>VO2max (Yo-Yo IR1)</option>
+                                      <option>Peak Power (CMJ, Sayers)</option>
+                                      <option>Reactive Strength Index (RSI)</option>
+                                      <option>Sprint Velocity (m/s)</option>
                                     </select>
                                   </label>
                                   <label>

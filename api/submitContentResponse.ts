@@ -389,6 +389,78 @@ function calculateMetric(params: {
     return Number.isFinite(directSpeed) ? directSpeed : null;
   }
 
+  // VO2max — Cooper 12-min run (distance m) or Yo-Yo IR1 (distance m).
+  if (
+    method.includes("vo2") ||
+    method.includes("cooper") ||
+    method.includes("yo-yo") ||
+    method.includes("yoyo")
+  ) {
+    const dist = numbers[0]; // metres covered
+    if (!dist) return null;
+    const vo2 =
+      method.includes("yo") || method.includes("yoyo")
+        ? dist * 0.0084 + 36.4 // Bangsbo Yo-Yo IR1
+        : (dist - 504.9) / 44.73; // Cooper 12-min
+    return Math.round(vo2 * 10) / 10;
+  }
+
+  // Peak power from a countermovement jump (Sayers): jump height (cm) + body
+  // mass (kg). Enter as "<height> <mass>" (value + notes).
+  if (
+    method.includes("peak power") ||
+    method.includes("sayers") ||
+    method.includes("cmj")
+  ) {
+    const heightCm = numbers[0];
+    const massKg = numbers[1];
+    if (!heightCm || !massKg) return null;
+    return Math.round(60.7 * heightCm + 45.3 * massKg - 2055);
+  }
+
+  // Reactive Strength Index = jump height (m) ÷ ground-contact time (s). Enter
+  // "<jump cm> <contact s|ms>"; contact >10 is treated as milliseconds.
+  if (method.includes("reactive strength") || method.includes("rsi")) {
+    const heightCm = numbers[0];
+    let contact = numbers[1];
+    if (!heightCm || !contact) return null;
+    if (contact > 10) contact = contact / 1000;
+    return Math.round((heightCm / 100 / contact) * 100) / 100;
+  }
+
+  // Relative strength = load ÷ body mass (× bodyweight). Enter "<load> <mass>".
+  if (
+    method.includes("relative strength") ||
+    method.includes("per bodyweight") ||
+    method.includes("/bw")
+  ) {
+    const load = numbers[0];
+    const mass = numbers[1];
+    if (!load || !mass) return null;
+    return Math.round((load / mass) * 100) / 100;
+  }
+
+  // Sprint velocity = distance (m) ÷ time (s) → m/s. Distance comes from the
+  // test label (e.g. "40m Sprint"); time is the entered value.
+  if (method.includes("sprint") || method.includes("velocity")) {
+    const seconds = Number(params.value) || parseDurationSeconds(sourceText);
+    const mMatch = sourceText.match(/(\d+(?:\.\d+)?)\s*m(?![a-z/])/i);
+    const distance = mMatch ? Number(mMatch[1]) : numbers.find((n) => n >= 5);
+    if (!seconds || !distance) return null;
+    return Math.round((distance / seconds) * 100) / 100;
+  }
+
+  // VIFT — final velocity of the 30-15 IFT, entered directly (km/h). Drives
+  // interval-speed prescription, like MAS.
+  if (
+    method.includes("vift") ||
+    method.includes("30-15") ||
+    method.includes("ift")
+  ) {
+    const v = numbers[0];
+    return Number.isFinite(v) ? v : null;
+  }
+
   const direct = numbers[0];
   return Number.isFinite(direct) ? direct : null;
 }
@@ -734,7 +806,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     : methodLower.includes("lactate") ||
                         methodLower.includes("threshold")
                       ? "LT Pace"
-                      : "";
+                      : methodLower.includes("vo2") ||
+                          methodLower.includes("cooper") ||
+                          methodLower.includes("yo")
+                        ? "VO2max"
+                        : methodLower.includes("power") ||
+                            methodLower.includes("sayers") ||
+                            methodLower.includes("cmj")
+                          ? "Peak Power"
+                          : methodLower.includes("rsi") ||
+                              methodLower.includes("reactive")
+                            ? "RSI"
+                            : methodLower.includes("relative") ||
+                                methodLower.includes("bodyweight") ||
+                                methodLower.includes("/bw")
+                              ? "Relative Strength"
+                              : methodLower.includes("vift") ||
+                                  methodLower.includes("30-15") ||
+                                  methodLower.includes("ift")
+                                ? "VIFT"
+                                : methodLower.includes("sprint") ||
+                                    methodLower.includes("velocity")
+                                  ? "Velocity"
+                                  : "";
             const metricBaseName =
               metricConfig.testName || responseItem.label || "Test";
             const metricName =
@@ -755,13 +849,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 .toLowerCase()
                 .includes("m/s");
             const metricUnit =
-              metricKind === "MAS" || metricKind === "LT Pace"
+              metricKind === "MAS" ||
+              metricKind === "LT Pace" ||
+              metricKind === "VIFT"
                 ? wantsMetersPerSecond
                   ? "m/s"
                   : "km/h"
                 : metricKind === "Pace"
                   ? "min/km"
-                  : metricConfig.metricUnit || responseItem.unit || "";
+                  : metricKind === "VO2max"
+                    ? "ml/kg/min"
+                    : metricKind === "Peak Power"
+                      ? "W"
+                      : metricKind === "Velocity"
+                        ? "m/s"
+                        : metricKind === "Relative Strength"
+                          ? "x BW"
+                          : metricKind === "RSI"
+                            ? ""
+                            : metricConfig.metricUnit ||
+                              responseItem.unit ||
+                              "";
             const calculatedValue = calculateMetric({
               value: String(responseItem.value || ""),
               notes: String(responseItem.notes || ""),
