@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { createExerciseResultRecords } from "./exerciseResults";
 import { invalidateCache } from "./_cache.ts";
+import { getTenantToken } from "./_token.ts";
 
 function toText(value: any): string {
   if (value === undefined || value === null) return "";
@@ -40,27 +41,7 @@ function resolveFieldName(fields: any[], aliases: string[]) {
   return match?.field_name || match?.name || "";
 }
 
-async function getTenantToken() {
-  const response = await fetch(
-    "https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal",
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        app_id: process.env.FEISHU_APP_ID,
-        app_secret: process.env.FEISHU_APP_SECRET,
-      }),
-    }
-  );
-
-  const data = await response.json();
-
-  if (!data.tenant_access_token) {
-    throw new Error(JSON.stringify(data));
-  }
-
-  return data.tenant_access_token;
-}
+// Feishu tenant token now comes from the shared in-memory cache (./_token.ts).
 
 async function getTableFields(tableId: string, token: string) {
   const response = await fetch(

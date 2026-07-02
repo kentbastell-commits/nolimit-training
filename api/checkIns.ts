@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { fetchAllBitableRecords } from "./_pagination.ts";
 import { getCached, setCached, invalidateCache } from "./_cache.ts";
+import { getTenantToken } from "./_token.ts";
 
 function fieldToText(value: any): string {
   if (!value) return "";
@@ -68,26 +69,7 @@ function toNumberOrUndefined(value: any) {
   return Number.isFinite(number) ? number : undefined;
 }
 
-async function getTenantToken() {
-  const response = await fetch(
-    "https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal",
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        app_id: process.env.FEISHU_APP_ID,
-        app_secret: process.env.FEISHU_APP_SECRET,
-      }),
-    }
-  );
-  const data = await response.json();
-
-  if (!data.tenant_access_token) {
-    throw new Error(`Could not get tenant token: ${JSON.stringify(data)}`);
-  }
-
-  return data.tenant_access_token;
-}
+// Feishu tenant token now comes from the shared in-memory cache (./_token.ts).
 
 // Only send fields that actually exist on the table, so a schema that's missing
 // (or renamed) a column never fails the whole write.
