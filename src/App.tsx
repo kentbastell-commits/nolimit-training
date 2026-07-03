@@ -371,12 +371,56 @@ const RUNNING_ZONE_OPTIONS = [
 ];
 
 // A cardio exercise is detected by its Category (set to "Cardio" in the library),
-// so it gets the running/Distance layout and only shows in cardio sections.
+// so it gets the running/Distance layout. Conditioning (wall balls, burpees…) is
+// deliberately NOT cardio: those are rep/load-based and shouldn't default to
+// Distance tracking — they get their own defaults row instead.
 function isCardioCategory(category?: string) {
-  return /cardio|conditioning|aerobic/i.test(String(category || ""));
+  return /cardio|aerobic/i.test(String(category || ""));
+}
+function isConditioningCategory(category?: string) {
+  return /conditioning/i.test(String(category || ""));
 }
 function isCardioSectionName(name?: string) {
   return /cardio|conditioning|aerobic/i.test(String(name || ""));
+}
+
+// Category-aware builder defaults. Seeds sets/reps/tempo/rest when a coach adds
+// a library exercise, so explosive work starts at low reps / long rest / no
+// tempo, mobility starts light, etc., instead of one generic 3×8 @ 3-1-1 for
+// everything. First matching row wins; coaches can always edit per exercise.
+// (Cardio/Conditioning never reach this — they take the cardio branch.)
+const CATEGORY_PRESCRIPTION_DEFAULTS: Array<{
+  match: RegExp;
+  sets: string;
+  reps: string;
+  tempo: string;
+  rest: string;
+}> = [
+  { match: /plyometric|plyo/i, sets: "3", reps: "5", tempo: "", rest: "90 sec" },
+  { match: /conditioning/i, sets: "3", reps: "12", tempo: "", rest: "60 sec" },
+  { match: /olympic|power/i, sets: "4", reps: "3", tempo: "", rest: "120 sec" },
+  { match: /carry/i, sets: "3", reps: "40 m", tempo: "", rest: "90 sec" },
+  { match: /mobility|warm/i, sets: "2", reps: "8", tempo: "", rest: "30 sec" },
+  { match: /climbing/i, sets: "4", reps: "6", tempo: "", rest: "120 sec" },
+  { match: /skill|drill/i, sets: "3", reps: "20 m", tempo: "", rest: "45 sec" },
+  { match: /breathing/i, sets: "1", reps: "5 min", tempo: "", rest: "30 sec" },
+  { match: /core/i, sets: "3", reps: "10", tempo: "", rest: "45 sec" },
+  { match: /accessory/i, sets: "3", reps: "10", tempo: "3-1-1", rest: "60 sec" },
+  {
+    match: /squat|hinge|push|pull|press/i,
+    sets: "3",
+    reps: "8",
+    tempo: "3-1-1",
+    rest: "90 sec",
+  },
+];
+
+function categoryPrescriptionDefaults(category?: string) {
+  const value = String(category || "");
+  if (!value) return null;
+  return (
+    CATEGORY_PRESCRIPTION_DEFAULTS.find((d) => d.match.test(value)) || null
+  );
 }
 
 type ExerciseAlternate = {
@@ -9071,6 +9115,9 @@ function App() {
     parent: ProgramExercise | null
   ): ProgramExercise => {
     const meta = parseExerciseNotes(exercise.notes || "");
+    const categoryDefaults = isCardioCategory(exercise.category)
+      ? null
+      : categoryPrescriptionDefaults(exercise.category);
     const exerciseSection =
       pendingSectionName ||
       parent?.sectionName ||
@@ -9085,12 +9132,17 @@ function App() {
       exerciseLabel: isWarmupSection(exerciseSection)
         ? ""
         : parent?.exerciseLabel || makeExerciseLabel(baseList.length),
-      sets: parent ? "2" : "3",
-      reps: parent ? "10" : "8",
+      sets: parent ? "2" : categoryDefaults?.sets || "3",
+      reps: parent ? "10" : categoryDefaults?.reps || "8",
       load: "",
-      // Cardio has no lifting tempo.
-      tempo: isCardioCategory(exercise.category) ? "" : parent?.tempo || "3-1-1",
-      rest: parent ? "45 sec" : "60 sec",
+      // Cardio has no lifting tempo; categories with an explicitly empty tempo
+      // (plyo, Olympic, carries, mobility…) stay tempo-free even in supersets.
+      tempo: isCardioCategory(exercise.category)
+        ? ""
+        : categoryDefaults && categoryDefaults.tempo === ""
+          ? ""
+          : parent?.tempo || categoryDefaults?.tempo || "3-1-1",
+      rest: parent ? "45 sec" : categoryDefaults?.rest || "60 sec",
       coachingNotes: "",
       // Cardio exercises default to Distance tracking so the run/Zone layout
       // shows immediately (coach can still toggle to Time/Weight).
@@ -10470,9 +10522,12 @@ function App() {
 
     if (!matchesSearch) return false;
 
-    // Cardio section shows only cardio exercises; other sections hide them.
+    // Cardio/conditioning sections show cardio + conditioning exercises. Other
+    // sections hide pure cardio but keep conditioning available (burpees or
+    // wall balls as a strength-session finisher is normal programming).
     return cardioSectionActive
-      ? isCardioCategory(exercise.category)
+      ? isCardioCategory(exercise.category) ||
+          isConditioningCategory(exercise.category)
       : !isCardioCategory(exercise.category);
   });
 
