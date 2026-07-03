@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { invalidateCache } from "./_cache.ts";
+import { notifyCoach } from "./_notify.ts";
 
 type TableField = {
   field_name?: string;
@@ -1012,6 +1013,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     invalidateCache("contentResponses");
     invalidateCache("athleteMetrics");
     invalidateCache("contentAssignments");
+
+    if (String(assignmentType).toLowerCase().includes("questionnaire")) {
+      void notifyCoach(
+        `📋 Intake completed by ${clientName || clientId}\n` +
+          `Their program will auto-load now — check the Review queue for their answers.`
+      );
+    }
+
     return res.status(200).json({
       success: true,
       recordsCreated: createdRecords.length,

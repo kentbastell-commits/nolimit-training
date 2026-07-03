@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { invalidateCache } from "./_cache.ts";
+import { notifyCoach } from "./_notify.ts";
 
 function makeId(prefix: string) {
   return `${prefix}-${Math.floor(1000 + Math.random() * 9000)}`;
@@ -132,10 +133,36 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     amount,
     currency,
     defaultIntakeFormId,
+    paymentCode,
+    addons,
   } = req.body;
 
   if (!clientName || !phone || !programId)
     return res.status(400).json({ error: "clientName, phone, and programId required" });
+
+  // Full cart: the main program plus any joint/mobility add-ons bought with it.
+  // Each item becomes its own order so autoLoadProgram fulfils every purchase
+  // (previously add-ons were charged for but never registered or loaded).
+  const cartItems: Array<{
+    programId: string;
+    programRecordId?: string;
+    programName?: string;
+    amount?: unknown;
+  }> = [
+    { programId, programRecordId, programName, amount },
+    ...(Array.isArray(addons)
+      ? addons
+          .filter((item: any) => item && item.programId)
+          .map((item: any) => ({
+            programId: String(item.programId),
+            programRecordId: item.programRecordId
+              ? String(item.programRecordId)
+              : undefined,
+            programName: item.programName ? String(item.programName) : undefined,
+            amount: item.amount,
+          }))
+      : []),
+  ];
 
   const appToken = process.env.FEISHU_BASE_APP_TOKEN;
   const clientsTableId = process.env.FEISHU_CLIENTS_TABLE_ID;
@@ -203,17 +230,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!clientRecordId)
       return res.status(500).json({ error: "Could not create or find client" });
 
-    // 3. Create product order — schema-aware so a missing column or an empty
-    // value never silently fails the whole write (the old version sent
-    // `Amount: ""`, which Feishu rejects on a Number column, and then ignored
-    // the error — so digital orders were never actually recorded).
-    const orderId = makeId("ORD");
+    // 3. Create one product order per cart item — schema-aware so a missing
+    // column or an empty value never silently fails the whole write (the old
+    // version sent `Amount: ""`, which Feishu rejects on a Number column, and
+    // then ignored the error — so digital orders were never actually recorded).
+    //
+    // Payment Status starts at "Pending": the buyer confirms they paid, and the
+    // coach one-tap-verifies against the payment code they put in the WeChat
+    // transfer note. Access (intake + program load) is NOT gated on
+    // verification, so the client never waits on the coach.
+    const orderIds: string[] = [];
+    let orderId = "";
     let orderPersisted = false;
     let orderError: any = null;
+    const orderFieldsSchema = await getTableFields(token, ordersTableId);
+
+    for (const item of cartItems) {
     try {
-      const orderFieldsSchema = await getTableFields(token, ordersTableId);
+      const itemOrderId = makeId("ORD");
       const fields: Record<string, any> = {};
-      applyField(orderFieldsSchema, fields, ["Order ID", "Order Id"], orderId);
+      applyField(orderFieldsSchema, fields, ["Order ID", "Order Id"], itemOrderId);
       // Client ID / Program ID are two-way link columns — write linked record
       // ids as arrays, not the human-readable codes.
       applyLink(orderFieldsSchema, fields, ["Client ID", "Client Id"], clientRecordId);
@@ -221,7 +257,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         orderFieldsSchema,
         fields,
         ["Program ID", "Purchased Program ID", "Purchased Program Id"],
-        programRecordId
+        item.programRecordId
       );
       applyField(
         orderFieldsSchema,
@@ -233,7 +269,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         orderFieldsSchema,
         fields,
         ["Product Name", "Program Name", "Purchased Program"],
-        programName
+        item.programName
       );
       applyField(
         orderFieldsSchema,
@@ -243,11 +279,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       );
       // Amount is numeric — only include a real value. An empty string here was
       // a second bug that would also drop the write on this Number column.
-      const amountNum = Number(amount);
+      const amountNum = Number(item.amount);
       if (
-        amount !== undefined &&
-        amount !== null &&
-        String(amount).trim() !== "" &&
+        item.amount !== undefined &&
+        item.amount !== null &&
+        String(item.amount).trim() !== "" &&
         Number.isFinite(amountNum)
       ) {
         applyField(orderFieldsSchema, fields, ["Amount", "Price"], amountNum);
@@ -257,7 +293,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         orderFieldsSchema,
         fields,
         ["Payment Status", "Payment"],
-        "Paid"
+        "Pending"
+      );
+      applyField(
+        orderFieldsSchema,
+        fields,
+        ["Payment Reference", "Payment Ref", "Reference"],
+        paymentCode ? String(paymentCode) : ""
       );
       applyField(
         orderFieldsSchema,
@@ -298,8 +340,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         body: JSON.stringify({ fields }),
       });
       const orderData = await readResponseJson(orderRes);
-      orderPersisted = orderRes.ok && orderData?.code === 0;
-      if (!orderPersisted) {
+      const itemPersisted = orderRes.ok && orderData?.code === 0;
+      if (itemPersisted) {
+        orderIds.push(itemOrderId);
+        if (!orderId) orderId = itemOrderId; // main order = first cart item
+        orderPersisted = true;
+      } else {
         orderError = orderData;
         console.error(
           "activateDigitalOrder: order write failed",
@@ -310,6 +356,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       orderError = orderErr instanceof Error ? orderErr.message : String(orderErr);
       console.error("activateDigitalOrder: order write threw", orderError);
     }
+    } // end cart loop
 
     // 4. Find intake form template
     let assignmentId = "";
@@ -375,11 +422,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     invalidateCache("productOrders");
     invalidateCache("contentAssignments");
     invalidateCache("workouts");
+
+    const itemsSummary = cartItems
+      .map((item) => item.programName || item.programId)
+      .join(" + ");
+    void notifyCoach(
+      `🛒 New store order\n` +
+        `Client: ${clientName} (${clientCode})\n` +
+        `Items: ${itemsSummary}\n` +
+        `Payment: PENDING — verify code ${paymentCode || "(none)"} in WeChat` +
+        (orderPersisted ? "" : `\n⚠️ ORDER WRITE FAILED — check Feishu!`)
+    );
+
     return res.status(200).json({
       success: true,
       clientCode,
       clientRecordId,
       orderId,
+      orderIds,
       orderPersisted,
       ...(orderError ? { orderError } : {}),
       assignmentId,

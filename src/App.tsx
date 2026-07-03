@@ -189,6 +189,7 @@ type ProductOrder = {
   amount: string;
   currency: string;
   paymentStatus: string;
+  paymentReference?: string;
   paymentProvider: string;
   purchasedAt: string;
   accessStartDate: string;
@@ -1773,9 +1774,44 @@ function App() {
   const [storeRegistering, setStoreRegistering] = useState(false);
   const [storeRegisteredCode, setStoreRegisteredCode] = useState("");
   const [storeRegisteredOrderId, setStoreRegisteredOrderId] = useState("");
+  // Payment note code: the buyer writes it in their WeChat transfer note so the
+  // coach can one-tap match payments to orders. Generated once per checkout.
+  const [storePaymentCode, setStorePaymentCode] = useState("");
+  // "Find my portal" recovery modal (store page).
+  const [findPortalOpen, setFindPortalOpen] = useState(false);
+  const [findPortalName, setFindPortalName] = useState("");
+  const [findPortalPhone, setFindPortalPhone] = useState("");
+  const [findPortalBusy, setFindPortalBusy] = useState(false);
+  const [findPortalError, setFindPortalError] = useState("");
   const [portalPostIntake, setPortalPostIntake] = useState(false);
   const [portalAutoLoading, setPortalAutoLoading] = useState(false);
   const [portalLoadedProgram, setPortalLoadedProgram] = useState("");
+  // Remember the athlete's portal in this browser so returning visitors can
+  // reopen it from the store without re-entering anything.
+  const [rememberedPortalCode] = useState(() => {
+    try {
+      return window.localStorage.getItem("nl_portal_code") || "";
+    } catch {
+      return "";
+    }
+  });
+  useEffect(() => {
+    if (isClientPortal && clientPortalCode) {
+      try {
+        window.localStorage.setItem("nl_portal_code", clientPortalCode);
+      } catch {
+        // Storage unavailable (private mode) — portal still works via URL.
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  // Mint a fresh payment note code whenever the buyer reaches the pay step.
+  useEffect(() => {
+    if (storeStep === 3 && !storePaymentCode) {
+      setStorePaymentCode(makePaymentCode());
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storeStep, storePaymentCode]);
   const [newClient, setNewClient] = useState({
     name: "",
     email: "",
@@ -10939,7 +10975,18 @@ function App() {
     programSessions,
   ]);
 
-  const registerForProgram = async (program: Program) => {
+  // Unambiguous-alphabet payment note code (no 0/O/1/I) — buyer writes it in
+  // the WeChat transfer note; coach one-tap verifies the order against it.
+  const makePaymentCode = () => {
+    const alphabet = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
+    let code = "";
+    for (let i = 0; i < 4; i += 1) {
+      code += alphabet[Math.floor(Math.random() * alphabet.length)];
+    }
+    return `NL-${code}`;
+  };
+
+  const registerForProgram = async (program: Program, addonList: Program[] = []) => {
     if (!storeRegName.trim() || !storeRegPhone.trim()) {
       notify("Please enter your name and WeChat ID.", "error");
       return;
@@ -10958,6 +11005,13 @@ function App() {
           amount: Number(program.price) || undefined,
           currency: program.currency || "CNY",
           defaultIntakeFormId: program.defaultIntakeFormId || "",
+          paymentCode: storePaymentCode,
+          addons: addonList.map((addon) => ({
+            programId: addon.programId,
+            programRecordId: addon.recordId,
+            programName: addon.programName,
+            amount: Number(addon.price) || undefined,
+          })),
         }),
       });
       const data = await res.json();
@@ -10969,6 +11023,42 @@ function App() {
       notify(msg, "error");
     } finally {
       setStoreRegistering(false);
+    }
+  };
+
+  const findMyPortal = async () => {
+    const zh = i18n.language === "zh";
+    if (!findPortalName.trim() || !findPortalPhone.trim()) {
+      setFindPortalError(
+        zh ? "请输入姓名和微信号/手机号。" : "Please enter your name and WeChat/phone."
+      );
+      return;
+    }
+    setFindPortalBusy(true);
+    setFindPortalError("");
+    try {
+      const res = await fetch("/api/findMyPortal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: findPortalName.trim(),
+          phone: findPortalPhone.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.clientCode) {
+        setFindPortalError(
+          zh
+            ? "未找到匹配的客户端，请核对信息或联系教练。"
+            : "No portal found — check your details or contact your coach."
+        );
+        return;
+      }
+      window.location.href = `/?portal=client&client=${encodeURIComponent(data.clientCode)}`;
+    } catch {
+      setFindPortalError(zh ? "查询失败，请稍后再试。" : "Lookup failed — try again.");
+    } finally {
+      setFindPortalBusy(false);
     }
   };
 
@@ -17793,6 +17883,25 @@ function App() {
           </a>
           <div className="storeNavActionsV2">
             <a href="/" className="storeNavLinkV2">{sZh ? "首页" : "Home"}</a>
+            {rememberedPortalCode ? (
+              <a
+                href={`/?portal=client&client=${encodeURIComponent(rememberedPortalCode)}`}
+                className="storeNavLinkV2 storeNavPortalV2"
+              >
+                {sZh ? "打开我的客户端" : "Open my portal"}
+              </a>
+            ) : (
+              <button
+                type="button"
+                className="storeNavLinkV2 storeNavPortalV2"
+                onClick={() => {
+                  setFindPortalError("");
+                  setFindPortalOpen(true);
+                }}
+              >
+                {sZh ? "找回我的客户端" : "Find my portal"}
+              </button>
+            )}
             <button
               className="storeLangToggleV2"
               onClick={() => setStoreLang(sZh ? "en" : "zh")}
@@ -17803,6 +17912,67 @@ function App() {
             </button>
           </div>
         </nav>
+
+        {findPortalOpen && (
+          <div
+            className="findPortalOverlay"
+            onClick={() => setFindPortalOpen(false)}
+          >
+            <div
+              className="findPortalModal"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <h3>{sZh ? "找回我的客户端" : "Find my portal"}</h3>
+              <p>
+                {sZh
+                  ? "输入购买时使用的姓名和微信号/手机号。"
+                  : "Enter the name and WeChat/phone you used when you bought your program."}
+              </p>
+              <label>
+                {sZh ? "姓名" : "Name"}
+                <input
+                  value={findPortalName}
+                  onChange={(e) => setFindPortalName(e.target.value)}
+                  placeholder={sZh ? "你的姓名" : "Your name"}
+                />
+              </label>
+              <label>
+                {sZh ? "微信 / 电话" : "WeChat / Phone"}
+                <input
+                  value={findPortalPhone}
+                  onChange={(e) => setFindPortalPhone(e.target.value)}
+                  placeholder={sZh ? "微信号或手机号" : "WeChat ID or phone"}
+                />
+              </label>
+              {findPortalError && (
+                <p className="findPortalError">{findPortalError}</p>
+              )}
+              <div className="findPortalActions">
+                <button
+                  type="button"
+                  className="ghostButton"
+                  onClick={() => setFindPortalOpen(false)}
+                >
+                  {sZh ? "取消" : "Cancel"}
+                </button>
+                <button
+                  type="button"
+                  className="primaryButton"
+                  disabled={findPortalBusy}
+                  onClick={() => void findMyPortal()}
+                >
+                  {findPortalBusy
+                    ? sZh
+                      ? "查询中..."
+                      : "Searching..."
+                    : sZh
+                      ? "打开我的客户端"
+                      : "Open my portal"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="storeLauncherV2">
           {!storeLauncherOpen ? (
@@ -18545,8 +18715,8 @@ function App() {
                             </div>
                             <p className="storeConfirmNoteV2">
                               {sZh
-                                ? "请保存好登录代码——以后用它进入客户端。我们会核对你的微信付款。"
-                                : "Save your login code — you'll use it to open your portal. We'll confirm your WeChat payment."}
+                                ? `请保存好登录代码——以后用它进入客户端。我们会用付款备注代码 ${storePaymentCode || ""} 核对你的微信付款，你可以立即开始。`
+                                : `Save your login code — you'll use it to open your portal. We'll match your WeChat payment via note code ${storePaymentCode || ""}; you can start right away.`}
                             </p>
                             <a
                               className="primaryButton storeConfirmCtaV2"
@@ -18576,6 +18746,21 @@ function App() {
                                 {sZh ? "完成问卷，计划自动加载" : "Finish intake → plan loads"}
                               </li>
                             </ol>
+                            {storePaymentCode && (
+                              <div className="storePaymentCodeV2">
+                                <span>
+                                  {sZh
+                                    ? "转账时请在备注中填写此代码："
+                                    : "Add this code to your WeChat payment note:"}
+                                </span>
+                                <strong>{storePaymentCode}</strong>
+                                <small>
+                                  {sZh
+                                    ? "它能让我们立刻核对你的付款，无需等待。"
+                                    : "It lets us match your payment instantly — no waiting."}
+                                </small>
+                              </div>
+                            )}
                             <div className="storeRegisterV2">
                               <label>
                                 {sZh ? "姓名" : "Name"}
@@ -18596,7 +18781,9 @@ function App() {
                               <button
                                 className="primaryButton"
                                 disabled={storeRegistering}
-                                onClick={() => void registerForProgram(sp)}
+                                onClick={() =>
+                                  void registerForProgram(sp, selectedAddons)
+                                }
                               >
                                 {storeRegistering
                                   ? sZh
@@ -23199,7 +23386,34 @@ function App() {
                           </div>
                           <div>
                             <span>Payment</span>
-                            <strong>{order.paymentStatus || "Unknown"}</strong>
+                            {/^pending$/i.test(order.paymentStatus || "") ? (
+                              <span className="orderPaymentPending">
+                                <strong>
+                                  Pending
+                                  {order.paymentReference
+                                    ? ` · ${order.paymentReference}`
+                                    : ""}
+                                </strong>
+                                <button
+                                  type="button"
+                                  className="orderVerifyButton"
+                                  title={
+                                    order.paymentReference
+                                      ? `Confirm you found a WeChat payment with note ${order.paymentReference}`
+                                      : "Mark this payment as verified"
+                                  }
+                                  onClick={() =>
+                                    void updateProductOrder(order, {
+                                      paymentStatus: "Paid",
+                                    })
+                                  }
+                                >
+                                  <Check size={13} /> Verify
+                                </button>
+                              </span>
+                            ) : (
+                              <strong>{order.paymentStatus || "Unknown"}</strong>
+                            )}
                           </div>
                           <label>
                             <span>Program Start</span>
@@ -28030,6 +28244,36 @@ function App() {
                 </button>
               </nav>
 
+              {isClientPortal &&
+                (() => {
+                  // Access-expiry banner: appears in the last 14 days of a
+                  // digital program's access window (and after it ends).
+                  const end = normalizeDate(selectedClient.accessEndDate || "");
+                  if (!end || end === "--") return null;
+                  const endTime = new Date(`${end}T23:59:59`).getTime();
+                  if (Number.isNaN(endTime)) return null;
+                  const daysLeft = Math.ceil((endTime - Date.now()) / 86400000);
+                  if (daysLeft > 14) return null;
+                  const expired = daysLeft <= 0;
+                  return (
+                    <div
+                      className={`portalAccessBanner${expired ? " expired" : ""}`}
+                    >
+                      <span>
+                        {expired
+                          ? paceZh
+                            ? "你的计划访问已到期。"
+                            : "Your program access has ended."
+                          : paceZh
+                            ? `计划访问还剩 ${daysLeft} 天。`
+                            : `${daysLeft} day${daysLeft === 1 ? "" : "s"} of program access left.`}
+                      </span>
+                      <a href="/store">
+                        {paceZh ? "续订 / 浏览计划" : "Renew / browse programs"}
+                      </a>
+                    </div>
+                  );
+                })()}
               <div className="clientTop">
                 {isClientPortal ? (
                   <div className="clientPortalMonogram" aria-hidden="true">

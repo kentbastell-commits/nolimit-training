@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { invalidateCache } from "./_cache.ts";
+import { notifyCoach } from "./_notify.ts";
 
 function makeId(prefix: string) {
   return `${prefix}-${Math.floor(100000 + Math.random() * 900000)}`;
@@ -96,7 +97,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const ordersData = await ordersRes.json();
     const allOrders = (ordersData?.data?.items || []) as any[];
 
-    const pendingOrder = allOrders.find((item) => {
+    // ALL unloaded orders for this client — a purchase with add-ons creates
+    // one order per program, and every one of them must be fulfilled here
+    // (previously only the first pending order was loaded).
+    const pendingOrders = allOrders.filter((item) => {
       const f = item.fields || {};
       const oClientId = fieldToText(f["Client ID"]);
       const oClientName = fieldToText(f["Client Name"]);
@@ -110,29 +114,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return isThisClient && isNotLoaded && hasProgramId;
     });
 
-    if (!pendingOrder) {
+    if (pendingOrders.length === 0) {
       return res.status(200).json({ success: true, alreadyLoaded: true, message: "No pending program orders found" });
     }
 
-    const orderRecordId = pendingOrder.record_id;
-    const programIdText = fieldToText(pendingOrder.fields["Program ID"]);
-    const programNameText = fieldToText(pendingOrder.fields["Product Name"]);
-
-    // 3. Find program record ID from programs table
+    // 3. Load lookup tables once for all pending orders
     if (!programsTableId) return res.status(500).json({ error: "FEISHU_PROGRAMS_TABLE_ID not set" });
     const progsRes = await fetch(`${base}/${programsTableId}/records?page_size=200`, { headers });
     const progsData = await progsRes.json();
-    const programRecord = (progsData?.data?.items || []).find((item: any) => {
-      const pid = fieldToText(item.fields?.["Program ID"]);
-      const pname = fieldToText(item.fields?.["Program Name"]);
-      return textMatches(pid, programIdText) || textMatches(pname, programNameText);
-    });
-
-    if (!programRecord) {
-      return res.status(404).json({ error: `Program not found for ID: ${programIdText}` });
-    }
-    const programRecordId = programRecord.record_id;
-    const programName = fieldToText(programRecord.fields?.["Program Name"]) || programNameText;
+    const allPrograms = (progsData?.data?.items || []) as any[];
 
     // 4. Fetch program workout templates
     if (!templatesTableId) return res.status(500).json({ error: "FEISHU_WORKOUT_TEMPLATES_TABLE_ID not set" });
@@ -149,6 +139,37 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       tmplItems.push(...tmplData.data.items);
       tmplToken = tmplData.data.has_more ? tmplData.data.page_token : "";
     } while (tmplToken);
+
+    // 5+. Fulfil every pending order: resolve its program, filter its
+    // templates, schedule and batch-create its workouts, then mark it loaded.
+    const loadedPrograms: string[] = [];
+    const failedPrograms: string[] = [];
+    let totalWorkoutsCreated = 0;
+    let anyOrderStatusUpdateFailed = false;
+    let maxAccessLengthDays = 0;
+
+    for (const pendingOrder of pendingOrders) {
+    const orderRecordId = pendingOrder.record_id;
+    const programIdText = fieldToText(pendingOrder.fields["Program ID"]);
+    const programNameText = fieldToText(pendingOrder.fields["Product Name"]);
+
+    const programRecord = allPrograms.find((item: any) => {
+      const pid = fieldToText(item.fields?.["Program ID"]);
+      const pname = fieldToText(item.fields?.["Program Name"]);
+      return textMatches(pid, programIdText) || textMatches(pname, programNameText);
+    });
+
+    if (!programRecord) {
+      failedPrograms.push(`${programIdText || programNameText}: program not found`);
+      continue;
+    }
+    const programRecordId = programRecord.record_id;
+    const programName = fieldToText(programRecord.fields?.["Program Name"]) || programNameText;
+    const accessLengthDays =
+      Number(fieldToText(programRecord.fields?.["Access Length Days"])) || 0;
+    if (accessLengthDays > maxAccessLengthDays) {
+      maxAccessLengthDays = accessLengthDays;
+    }
 
     const allTemplates = tmplItems.filter((item: any) => {
       const pidField = item.fields?.["Program ID"];
@@ -167,7 +188,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
 
     if (allTemplates.length === 0) {
-      return res.status(404).json({ error: "No workout sessions found for this program" });
+      failedPrograms.push(`${programName}: no workout sessions found`);
+      continue;
     }
 
     // 5. Build unique sessions (deduplicate by week-day-sessionName)
@@ -246,24 +268,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
     const batchData = await batchRes.json();
     // The whole point of this handler is to create the athlete's workouts — if
-    // that write fails we must NOT report success (the old code ignored the
-    // result and returned success with workoutsCreated:0, so a failed load
-    // looked identical to a good one).
+    // that write fails it must be reported, not swallowed (a failed load used
+    // to look identical to a good one).
     if (!batchRes.ok || batchData.code !== 0) {
       console.error(
         "autoLoadProgram: assigned-workouts batch_create failed",
         JSON.stringify({ larkResponse: batchData })
       );
-      return res.status(500).json({
-        error: "Could not load program workouts",
-        larkResponse: batchData,
-      });
+      failedPrograms.push(`${programName}: workout creation failed`);
+      continue;
     }
-    const workoutsCreated = batchData?.data?.records?.length || 0;
+    totalWorkoutsCreated += batchData?.data?.records?.length || 0;
+    loadedPrograms.push(programName);
 
-    // 8. Update order status (best-effort — the workouts already exist, so a
+    // Mark this order loaded (best-effort — the workouts already exist, so a
     // failure here shouldn't fail the athlete's load, but it must be surfaced
-    // rather than swallowed).
+    // rather than swallowed). This is also the dedup guard for repeat intakes.
     const orderUpdateRes = await fetch(`${base}/${ordersTableId}/records/${orderRecordId}`, {
       method: "PUT",
       headers,
@@ -275,26 +295,42 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }),
     });
     const orderUpdateData = await orderUpdateRes.json();
-    const orderStatusUpdated = orderUpdateRes.ok && orderUpdateData.code === 0;
-    if (!orderStatusUpdated) {
+    if (!orderUpdateRes.ok || orderUpdateData.code !== 0) {
+      anyOrderStatusUpdateFailed = true;
       console.error(
         "autoLoadProgram: order status update failed (non-fatal)",
         JSON.stringify({ larkResponse: orderUpdateData })
       );
     }
+    } // end pending-orders loop
 
-    // 9. Update client with program (also best-effort + surfaced).
+    if (loadedPrograms.length === 0) {
+      void notifyCoach(
+        `⚠️ Program load FAILED for ${clientName || clientCode}\n${failedPrograms.join("\n")}`
+      );
+      return res.status(500).json({
+        error: "Could not load program workouts",
+        failures: failedPrograms,
+      });
+    }
+
+    // Update client once with everything that loaded. Access End Date comes
+    // from the longest purchased program's "Access Length Days" (0 = no expiry).
+    const clientFieldsUpdate: Record<string, any> = {
+      Program: loadedPrograms.join(" + "),
+      "Intake Status": "Reviewed",
+      "Access Start Date": new Date(`${today}T00:00:00`).getTime(),
+    };
+    if (maxAccessLengthDays > 0) {
+      const endDate = addDays(today, Math.max(0, maxAccessLengthDays - 1));
+      clientFieldsUpdate["Access End Date"] = new Date(
+        `${endDate}T00:00:00`
+      ).getTime();
+    }
     const clientUpdateRes = await fetch(`${base}/${clientsTableId}/records/${clientRecordId}`, {
       method: "PUT",
       headers,
-      body: JSON.stringify({
-        fields: {
-          Program: programName,
-          "Purchased Program ID": programIdText,
-          "Intake Status": "Reviewed",
-          "Access Start Date": new Date(`${today}T00:00:00`).getTime(),
-        },
-      }),
+      body: JSON.stringify({ fields: clientFieldsUpdate }),
     });
     const clientUpdateData = await clientUpdateRes.json();
     if (!clientUpdateRes.ok || clientUpdateData.code !== 0) {
@@ -309,15 +345,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     invalidateCache("clients");
     invalidateCache("contentAssignments");
 
+    void notifyCoach(
+      `📦 Program loaded for ${clientName || clientCode}\n` +
+        `Programs: ${loadedPrograms.join(" + ")}\n` +
+        `Workouts created: ${totalWorkoutsCreated}` +
+        (failedPrograms.length
+          ? `\n⚠️ Failed: ${failedPrograms.join("; ")}`
+          : "")
+    );
+
     return res.status(200).json({
       success: true,
-      programName,
-      workoutsCreated,
-      orderStatusUpdated,
+      programName: loadedPrograms.join(" + "),
+      programsLoaded: loadedPrograms,
+      ...(failedPrograms.length ? { failures: failedPrograms } : {}),
+      workoutsCreated: totalWorkoutsCreated,
+      orderStatusUpdated: !anyOrderStatusUpdateFailed,
       startDate: today,
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
+    void notifyCoach(`⚠️ Program auto-load crashed: ${message}`);
     return res.status(500).json({ error: "Auto-load failed", message });
   }
 }

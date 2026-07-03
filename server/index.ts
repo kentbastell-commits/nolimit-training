@@ -88,6 +88,7 @@ import enquiries from "../api/enquiries.ts";
 import inPersonEnquiry from "../api/inPersonEnquiry.ts";
 import exerciseResults from "../api/exerciseResults.ts";
 import exercises from "../api/exercises.ts";
+import findMyPortal from "../api/findMyPortal.ts";
 import formTemplates from "../api/formTemplates.ts";
 import notifications from "../api/notifications.ts";
 import productOrders from "../api/productOrders.ts";
@@ -147,6 +148,7 @@ const handlers = {
   inPersonEnquiry,
   exerciseResults,
   exercises,
+  findMyPortal,
   formTemplates,
   notifications,
   productOrders,

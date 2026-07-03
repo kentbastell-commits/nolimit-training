@@ -90,6 +90,7 @@ export default async function handler(_req: VercelRequest, res: VercelResponse) 
         amount: fieldToText(fields["Amount"]),
         currency: fieldToText(fields["Currency"]),
         paymentStatus: fieldToText(fields["Payment Status"]),
+        paymentReference: fieldToText(fields["Payment Reference"]),
         paymentProvider: fieldToText(fields["Payment Provider"]),
         purchasedAt: formatDate(fields["Purchased At"]),
         accessStartDate: formatDate(fields["Access Start Date"]),
