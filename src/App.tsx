@@ -1812,6 +1812,25 @@ function App() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storeStep, storePaymentCode]);
+  // Post-submit celebration card (optimistic — shows instantly, syncs behind).
+  const [workoutCelebration, setWorkoutCelebration] = useState<{
+    sessionName: string;
+    dateLabel: string;
+    exercises: number;
+    sets: number;
+    volumeKg: number;
+    rpe: number | null;
+    durationMin: number;
+    payload: Record<string, unknown>;
+    draftKey: string;
+  } | null>(null);
+  const [celebrationSync, setCelebrationSync] = useState<
+    "syncing" | "done" | "failed"
+  >("syncing");
+  // Store checkout staged progress (the activation call takes several seconds).
+  const [storeRegStage, setStoreRegStage] = useState(0);
+  // One-time first-workout coach marks (per browser).
+  const [playerTutorialOpen, setPlayerTutorialOpen] = useState(false);
   const [newClient, setNewClient] = useState({
     name: "",
     email: "",
@@ -2064,6 +2083,26 @@ function App() {
     []
   );
   const [workoutLoggingStarted, setWorkoutLoggingStarted] = useState(false);
+  // First-workout tutorial: show once per browser, the first time logging opens.
+  useEffect(() => {
+    if (!isClientPortal || !workoutLoggingStarted) return;
+    try {
+      if (!window.localStorage.getItem("nl_player_tutorial_seen")) {
+        setPlayerTutorialOpen(true);
+      }
+    } catch {
+      // storage unavailable — skip the tutorial rather than nag every time
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workoutLoggingStarted]);
+  const dismissPlayerTutorial = () => {
+    setPlayerTutorialOpen(false);
+    try {
+      window.localStorage.setItem("nl_player_tutorial_seen", "1");
+    } catch {
+      // ignore
+    }
+  };
   const [workoutFocusMode, setWorkoutFocusMode] = useState(true);
   const [workoutFocusIndex, setWorkoutFocusIndex] = useState(0);
   const [workoutFocusSetRound, setWorkoutFocusSetRound] = useState(1);
@@ -7426,80 +7465,112 @@ function App() {
     }
   };
 
-  const saveWorkout = async () => {
+  // Background sync for an optimistically-submitted workout. The athlete sees
+  // the celebration card instantly; this races the actual save behind it and
+  // flips the card's sync status. On failure the local draft is kept so
+  // nothing is ever lost — Retry re-fires the same payload.
+  const syncWorkoutSubmission = (
+    payload: Record<string, unknown>,
+    draftKey: string
+  ) => {
+    setCelebrationSync("syncing");
+    void (async () => {
+      try {
+        const response = await fetch("/api/saveWorkoutLog", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          console.error(data);
+          setCelebrationSync("failed");
+          return;
+        }
+        if (draftKey) {
+          try {
+            window.localStorage.removeItem(draftKey);
+          } catch {
+            // storage unavailable — draft simply lingers, harmless
+          }
+        }
+        setCelebrationSync("done");
+        if (selectedClient) void loadWorkoutComments(selectedClient);
+      } catch (error) {
+        console.error(error);
+        setCelebrationSync("failed");
+      }
+    })();
+  };
+
+  const saveWorkout = () => {
     if (!selectedWorkout || !selectedClient) return;
 
-    setSavingWorkout(true);
+    const payload = {
+      clientId: selectedClient.id,
+      clientCode: selectedClient.clientCode,
+      assignedWorkoutId: selectedWorkout.assignedWorkoutId,
+      assignedWorkoutRecordId: selectedWorkout.id,
+      programId: selectedWorkout.programId,
+      workoutDate: normalizeDate(String(selectedWorkout.scheduledDate)),
+      logs: setLogs,
+      submissionNote: workoutSubmissionNote.trim(),
+      sessionRpe: workoutRpe ?? undefined,
+      sessionDurationMin: finishDurationMin || undefined,
+    };
 
-    try {
-      const response = await fetch("/api/saveWorkoutLog", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          clientId: selectedClient.id,
-          clientCode: selectedClient.clientCode,
-          assignedWorkoutId: selectedWorkout.assignedWorkoutId,
-          assignedWorkoutRecordId: selectedWorkout.id,
-          programId: selectedWorkout.programId,
-          workoutDate: normalizeDate(String(selectedWorkout.scheduledDate)),
-          logs: setLogs,
-          submissionNote: workoutSubmissionNote.trim(),
-          sessionRpe: workoutRpe ?? undefined,
-          sessionDurationMin: finishDurationMin || undefined,
-        }),
-      });
+    // Celebration stats from what was actually logged.
+    const completedLogs = setLogs.filter(isSetComplete);
+    const volumeKg = completedLogs.reduce((sum, log) => {
+      const w = Number(log.actualWeight);
+      const r = Number(log.actualReps);
+      return Number.isFinite(w) && Number.isFinite(r) ? sum + w * r : sum;
+    }, 0);
+    const exerciseNames = new Set(
+      completedLogs.map((log) => log.exerciseName.split(" - ")[0])
+    );
+    const draftKey = getWorkoutDraftKey() || "";
 
-      const data = await response.json();
+    // Optimistic UI: celebrate instantly, close the player, mark it done
+    // locally, then sync in the background.
+    vibrate(24);
+    setWorkoutCelebration({
+      sessionName: localizedWorkoutName(selectedWorkout),
+      dateLabel: normalizeDate(String(selectedWorkout.scheduledDate)),
+      exercises: exerciseNames.size,
+      sets: completedLogs.length,
+      volumeKg: Math.round(volumeKg),
+      rpe: workoutRpe,
+      durationMin: finishDurationMin || 0,
+      payload,
+      draftKey,
+    });
+    syncWorkoutSubmission(payload, draftKey);
 
-      if (!response.ok) {
-        console.error(data);
-        notify("Could not save workout. Check API response.");
-        return;
-      }
-
-      if (data.exerciseResults?.errors?.length > 0) {
-        notify("Workout saved, but exercise results need table field review.", "error");
-      } else {
-        notify("Workout submitted.");
-      }
-
-      workoutStartedAtRef.current = null;
-
-      const draftKey = getWorkoutDraftKey();
-      if (draftKey) {
-        window.localStorage.removeItem(draftKey);
-      }
-      setWorkouts((current) =>
-        current.map((workout) =>
-          workout.id === selectedWorkout.id
-            ? {
-                ...workout,
-                completionStatus: "Completed",
-                clientNotes: workoutSubmissionNote.trim() || workout.clientNotes,
-              }
-            : workout
-        )
-      );
-      void loadWorkoutComments(selectedClient);
-      setSelectedWorkout(null);
-      setWorkoutLoggingStarted(false);
-      setSavedExerciseDraftIds([]);
-      setCheckedWorkoutPageItems([]);
-      setWorkoutDetails([]);
-      setSetLogs([]);
-      setWorkoutSubmissionNote("");
-      setWorkoutFinishOpen(false);
-      setWorkoutRpe(null);
-      setFinishDurationMin(0);
-      setFinishExpanded({});
-    } catch (error) {
-      console.error(error);
-      notify("Could not save workout.");
-    } finally {
-      setSavingWorkout(false);
-    }
+    workoutStartedAtRef.current = null;
+    setWorkouts((current) =>
+      current.map((workout) =>
+        workout.id === selectedWorkout.id
+          ? {
+              ...workout,
+              completionStatus: "Completed",
+              clientNotes: workoutSubmissionNote.trim() || workout.clientNotes,
+            }
+          : workout
+      )
+    );
+    setSelectedWorkout(null);
+    setWorkoutLoggingStarted(false);
+    setSavedExerciseDraftIds([]);
+    setCheckedWorkoutPageItems([]);
+    setWorkoutDetails([]);
+    setSetLogs([]);
+    setWorkoutSubmissionNote("");
+    setWorkoutFinishOpen(false);
+    setWorkoutRpe(null);
+    setFinishDurationMin(0);
+    setFinishExpanded({});
+    setSavingWorkout(false);
   };
 
   const toggleWorkoutReviewed = async (next: boolean) => {
@@ -10992,6 +11063,13 @@ function App() {
       return;
     }
     setStoreRegistering(true);
+    // Staged progress mirroring the real server steps (client → order →
+    // intake) so the several-second activation reads as motion, not a hang.
+    setStoreRegStage(1);
+    const stageTimers = [
+      window.setTimeout(() => setStoreRegStage(2), 2800),
+      window.setTimeout(() => setStoreRegStage(3), 5600),
+    ];
     try {
       const res = await fetch("/api/activateDigitalOrder", {
         method: "POST",
@@ -11023,6 +11101,8 @@ function App() {
       const msg = err instanceof Error ? err.message : "Registration failed";
       notify(msg, "error");
     } finally {
+      stageTimers.forEach((timer) => window.clearTimeout(timer));
+      setStoreRegStage(0);
       setStoreRegistering(false);
     }
   };
@@ -15733,6 +15813,9 @@ function App() {
           const loadData = await loadRes.json();
           if (loadData.success && loadData.programName && !loadData.alreadyLoaded) {
             setPortalLoadedProgram(loadData.programName);
+            // Land on the calendar so the "Next Workout — Start" card is the
+            // first thing the new client sees after their plan loads.
+            setClientTab("Training");
           }
           void loadContentAssignments(selectedClient);
         } catch {
@@ -18787,9 +18870,17 @@ function App() {
                                 }
                               >
                                 {storeRegistering
-                                  ? sZh
-                                    ? "提交中..."
-                                    : "Submitting..."
+                                  ? storeRegStage >= 3
+                                    ? sZh
+                                      ? "即将完成…"
+                                      : "Almost done…"
+                                    : storeRegStage === 2
+                                      ? sZh
+                                        ? "正在分配你的问卷…"
+                                        : "Assigning your intake…"
+                                      : sZh
+                                        ? "正在创建你的客户端…"
+                                        : "Creating your portal…"
                                   : sZh
                                     ? "我已付款，创建客户端"
                                     : "I've paid — create my portal"}
@@ -33392,6 +33483,122 @@ function App() {
                   {submittingContentAssignment ? "Submitting..." : "Submit"}
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {workoutCelebration && (
+          <div className="celebrationOverlay">
+            <div className="celebrationCard">
+              <img src="/nl_seal_black.png" alt="NoLimit" className="celebrationSeal" />
+              <h2>{paceZh ? "训练完成 💪" : "Session Complete 💪"}</h2>
+              <p className="celebrationSession">
+                {workoutCelebration.sessionName} · {workoutCelebration.dateLabel}
+              </p>
+              <div className="celebrationStats">
+                <div>
+                  <strong>{workoutCelebration.exercises}</strong>
+                  <span>{paceZh ? "动作" : "Exercises"}</span>
+                </div>
+                <div>
+                  <strong>{workoutCelebration.sets}</strong>
+                  <span>{paceZh ? "组数" : "Sets"}</span>
+                </div>
+                <div>
+                  <strong>
+                    {workoutCelebration.volumeKg > 0
+                      ? workoutCelebration.volumeKg.toLocaleString()
+                      : "—"}
+                  </strong>
+                  <span>{paceZh ? "总容量 (kg)" : "Volume (kg)"}</span>
+                </div>
+              </div>
+              {(workoutCelebration.rpe || workoutCelebration.durationMin > 0) && (
+                <p className="celebrationMeta">
+                  {workoutCelebration.rpe
+                    ? `RPE ${workoutCelebration.rpe}/10`
+                    : ""}
+                  {workoutCelebration.rpe && workoutCelebration.durationMin > 0
+                    ? " · "
+                    : ""}
+                  {workoutCelebration.durationMin > 0
+                    ? `${workoutCelebration.durationMin} min`
+                    : ""}
+                </p>
+              )}
+              <p className="celebrationShareHint">
+                {paceZh
+                  ? "📸 截图分享到朋友圈，让朋友看到你的坚持"
+                  : "📸 Screenshot & share your session"}
+              </p>
+              <div className={`celebrationSync ${celebrationSync}`}>
+                {celebrationSync === "syncing"
+                  ? paceZh
+                    ? "正在同步给教练…"
+                    : "Syncing to your coach…"
+                  : celebrationSync === "done"
+                    ? paceZh
+                      ? "✓ 已同步"
+                      : "✓ Synced"
+                    : paceZh
+                      ? "⚠️ 同步失败 — 数据已保存在本机"
+                      : "⚠️ Sync failed — your data is saved on this device"}
+                {celebrationSync === "failed" && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      syncWorkoutSubmission(
+                        workoutCelebration.payload,
+                        workoutCelebration.draftKey
+                      )
+                    }
+                  >
+                    {paceZh ? "重试" : "Retry"}
+                  </button>
+                )}
+              </div>
+              <button
+                type="button"
+                className="primaryButton celebrationDone"
+                onClick={() => setWorkoutCelebration(null)}
+              >
+                {paceZh ? "完成" : "Done"}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {playerTutorialOpen && isClientPortal && selectedWorkout && (
+          <div className="playerTutorialOverlay" onClick={dismissPlayerTutorial}>
+            <div
+              className="playerTutorialCard"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <h3>{paceZh ? "怎么记录训练" : "How to log your workout"}</h3>
+              <ol>
+                <li>
+                  {paceZh
+                    ? "每组填写重量和次数（次数已按计划预填）"
+                    : "Enter your weight for each set — reps are pre-filled from the plan"}
+                </li>
+                <li>
+                  {paceZh
+                    ? "完成一组后勾选 ✓"
+                    : "Tick ✓ when you finish a set"}
+                </li>
+                <li>
+                  {paceZh
+                    ? "全部完成后点「Finish Workout」提交给教练"
+                    : "Tap “Finish Workout” at the end to send it to your coach"}
+                </li>
+              </ol>
+              <button
+                type="button"
+                className="primaryButton"
+                onClick={dismissPlayerTutorial}
+              >
+                {paceZh ? "明白了" : "Got it"}
+              </button>
             </div>
           </div>
         )}

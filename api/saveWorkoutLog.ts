@@ -43,7 +43,16 @@ function resolveFieldName(fields: any[], aliases: string[]) {
 
 // Feishu tenant token now comes from the shared in-memory cache (./_token.ts).
 
+// Table layouts change ~never; cache them in-process so each submit skips two
+// Feishu round-trips (they were fetched fresh on every single workout save).
+const tableFieldsCache = new Map<string, { fields: any[]; at: number }>();
+const TABLE_FIELDS_TTL_MS = 10 * 60 * 1000;
+
 async function getTableFields(tableId: string, token: string) {
+  const cached = tableFieldsCache.get(tableId);
+  if (cached && Date.now() - cached.at < TABLE_FIELDS_TTL_MS) {
+    return cached.fields;
+  }
   const response = await fetch(
     `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${tableId}/fields?page_size=100`,
     {
@@ -58,7 +67,9 @@ async function getTableFields(tableId: string, token: string) {
     return [];
   }
 
-  return data.data?.items || [];
+  const fields = data.data?.items || [];
+  tableFieldsCache.set(tableId, { fields, at: Date.now() });
+  return fields;
 }
 
 export default async function handler(
@@ -100,9 +111,16 @@ export default async function handler(
     const larkDate = toLarkDate(workoutDate);
     const createdRecords: string[] = [];
     const workoutLogsTableId = process.env.FEISHU_WORKOUT_LOGS_TABLE_ID;
-    const tableFields = workoutLogsTableId
-      ? await getTableFields(workoutLogsTableId, token)
-      : [];
+    const assignedWorkoutsTableId = process.env.FEISHU_ASSIGNED_WORKOUTS_TABLE_ID;
+    // Both table layouts in one parallel round-trip (cached after first call).
+    const [tableFields, assignedWorkoutFields] = await Promise.all([
+      workoutLogsTableId
+        ? getTableFields(workoutLogsTableId, token)
+        : Promise.resolve([]),
+      assignedWorkoutsTableId
+        ? getTableFields(assignedWorkoutsTableId, token)
+        : Promise.resolve([]),
+    ]);
     const notesFieldName = resolveFieldName(tableFields, [
       "Notes",
       "Note",
@@ -194,12 +212,9 @@ export default async function handler(
     }
 
     let assignedWorkoutUpdate: any = null;
+    let assignedWorkoutUpdatePromise: Promise<any> | null = null;
 
-    if (process.env.FEISHU_ASSIGNED_WORKOUTS_TABLE_ID) {
-      const assignedWorkoutFields = await getTableFields(
-        process.env.FEISHU_ASSIGNED_WORKOUTS_TABLE_ID,
-        token
-      );
+    if (assignedWorkoutsTableId) {
       const assignedClientNotesField = resolveFieldName(assignedWorkoutFields, [
         "Client Notes",
         "Client Comment",
@@ -242,8 +257,10 @@ export default async function handler(
         assignedFields[sessionLoadField] = Math.round(rpeNum * durNum);
       }
 
-      const updateResponse = await fetch(
-        `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${process.env.FEISHU_ASSIGNED_WORKOUTS_TABLE_ID}/records/${assignedWorkoutRecordId}`,
+      // Fire the status update but don't await yet — it runs concurrently
+      // with the exercise-results write below (they're independent).
+      assignedWorkoutUpdatePromise = fetch(
+        `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${assignedWorkoutsTableId}/records/${assignedWorkoutRecordId}`,
         {
           method: "PUT",
           headers: {
@@ -252,10 +269,23 @@ export default async function handler(
           },
           body: JSON.stringify({ fields: assignedFields }),
         }
-      );
-
-      assignedWorkoutUpdate = await updateResponse.json();
+      ).then((r) => r.json());
     }
+
+    // Run the two remaining writes in parallel — previously sequential, which
+    // was a big part of the athlete's post-submit wait.
+    const [assignedWorkoutResult, exerciseResults] = await Promise.all([
+      assignedWorkoutUpdatePromise ?? Promise.resolve(null),
+      createExerciseResultRecords(token, {
+        clientId: clientCode || clientId,
+        clientRecordId: clientId,
+        assignedWorkoutId,
+        programId,
+        workoutDate,
+        logs,
+      }),
+    ]);
+    assignedWorkoutUpdate = assignedWorkoutResult;
 
     // New logs change every client's history view; drop the cached scan.
     invalidateCache("workoutLogs");
@@ -269,14 +299,7 @@ export default async function handler(
       recordsCreated: createdRecords.length,
       createdRecords,
       assignedWorkoutUpdate,
-      exerciseResults: await createExerciseResultRecords(token, {
-        clientId: clientCode || clientId,
-        clientRecordId: clientId,
-        assignedWorkoutId,
-        programId,
-        workoutDate,
-        logs,
-      }),
+      exerciseResults,
     });
   } catch (error: any) {
     return res.status(500).json({
