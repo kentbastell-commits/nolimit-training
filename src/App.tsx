@@ -22,6 +22,7 @@ import {
   Pencil,
   Play,
   Plus,
+  RefreshCw,
   Shuffle,
   Scissors,
   Settings,
@@ -9778,6 +9779,49 @@ function App() {
     }
 
     linkExerciseWithPrevious(index, "Superset");
+  };
+
+  const toggleBuilderCircuitLink = (index: number) => {
+    if (isExerciseLinkedWithPrevious(index)) {
+      unlinkExerciseGroup(index);
+      return;
+    }
+
+    linkExerciseWithPrevious(index, "Circuit");
+  };
+
+  // Circuit rounds are simply each member's set count kept in sync — one round
+  // = one set of every exercise in the circuit. The focus player already
+  // cycles grouped exercises per set, so no separate rounds field is needed.
+  const setCircuitGroupRounds = (index: number, roundsRaw: string) => {
+    const exercise = selectedProgramExercises[index];
+    if (!exercise || exercise.groupType !== "Circuit" || !exercise.groupName) {
+      return;
+    }
+    const rounds = Math.max(1, Math.min(20, Number(roundsRaw) || 1));
+    const groupKey = `${exercise.groupType}:${exercise.groupName}`.toLowerCase();
+
+    setSelectedProgramExercises((current) =>
+      current.map((item) => {
+        const itemKey = `${item.groupType}:${item.groupName}`.toLowerCase();
+        if (item.groupType !== "Circuit" || itemKey !== groupKey) return item;
+        return withNormalizedSetFields({ ...item, sets: String(rounds) });
+      })
+    );
+  };
+
+  // First member of a circuit group (where the rounds control renders).
+  const isCircuitGroupStart = (index: number) => {
+    const exercise = selectedProgramExercises[index];
+    if (!exercise || exercise.groupType !== "Circuit" || !exercise.groupName) {
+      return false;
+    }
+    const previous = selectedProgramExercises[index - 1];
+    return (
+      !previous ||
+      previous.groupType !== "Circuit" ||
+      previous.groupName !== exercise.groupName
+    );
   };
 
   const buildExerciseCoachingNotes = (exercise: ProgramExercise) => {
@@ -25420,25 +25464,47 @@ function App() {
                                     )}
                                     {canLinkWithPrevious && (
                                       <div className="builderSupersetLinkRow">
-                                        <button
-                                          type="button"
-                                          className={`builderSupersetLinkButton ${
-                                            isLinkedToPrevious ? "isLinked" : ""
-                                          }`}
-                                          onClick={() => toggleBuilderSupersetLink(index)}
-                                          title={
-                                            isLinkedToPrevious
-                                              ? "Unlink this superset"
-                                              : "Link these exercises as a superset"
-                                          }
-                                        >
-                                          <Link2 size={15} />
-                                          <span>
-                                            {isLinkedToPrevious
-                                              ? "Linked superset"
-                                              : "Link superset"}
-                                          </span>
-                                        </button>
+                                        {isLinkedToPrevious ? (
+                                          <button
+                                            type="button"
+                                            className="builderSupersetLinkButton isLinked"
+                                            onClick={() => unlinkExerciseGroup(index)}
+                                            title={`Unlink this ${(
+                                              exercise.groupType || "Superset"
+                                            ).toLowerCase()}`}
+                                          >
+                                            <Link2 size={15} />
+                                            <span>
+                                              Linked{" "}
+                                              {(exercise.groupType || "Superset").toLowerCase()}
+                                            </span>
+                                          </button>
+                                        ) : (
+                                          <>
+                                            <button
+                                              type="button"
+                                              className="builderSupersetLinkButton"
+                                              onClick={() =>
+                                                toggleBuilderSupersetLink(index)
+                                              }
+                                              title="Link these exercises as a superset (alternate sets)"
+                                            >
+                                              <Link2 size={15} />
+                                              <span>Link superset</span>
+                                            </button>
+                                            <button
+                                              type="button"
+                                              className="builderSupersetLinkButton"
+                                              onClick={() =>
+                                                toggleBuilderCircuitLink(index)
+                                              }
+                                              title="Link these exercises as a circuit (rounds of every exercise back-to-back)"
+                                            >
+                                              <RefreshCw size={15} />
+                                              <span>Link circuit</span>
+                                            </button>
+                                          </>
+                                        )}
                                       </div>
                                     )}
                                     <div
@@ -25812,6 +25878,23 @@ function App() {
                               >
                                 {exercise.groupType}: {exercise.groupName}
                               </span>
+                            )}
+                            {isCircuitGroupStart(index) && (
+                              <label
+                                className="circuitRoundsControl"
+                                title="Rounds of this circuit — sets every member's set count"
+                              >
+                                <span>Rounds</span>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  max={20}
+                                  value={exercise.sets || "3"}
+                                  onChange={(e) =>
+                                    setCircuitGroupRounds(index, e.target.value)
+                                  }
+                                />
+                              </label>
                             )}
                             {exercise.isAccessory && (
                               <span className="exerciseAccessoryPill">
@@ -26370,16 +26453,35 @@ function App() {
                                       </div>
                                     )}
                                     {index > 0 && !showSectionHeading && (
-                                      <button
-                                        className={`mobileSupersetLinkButton ${
-                                          linked ? "linked" : ""
-                                        }`}
-                                        onClick={() => toggleBuilderSupersetLink(index)}
-                                      >
-                                        {linked
-                                          ? "🔗 Superset with above"
-                                          : "+ Link as superset"}
-                                      </button>
+                                      linked ? (
+                                        <button
+                                          className="mobileSupersetLinkButton linked"
+                                          onClick={() => unlinkExerciseGroup(index)}
+                                        >
+                                          {exercise.groupType === "Circuit"
+                                            ? "🔁 Circuit with above"
+                                            : "🔗 Superset with above"}
+                                        </button>
+                                      ) : (
+                                        <div className="mobileGroupLinkRow">
+                                          <button
+                                            className="mobileSupersetLinkButton"
+                                            onClick={() =>
+                                              toggleBuilderSupersetLink(index)
+                                            }
+                                          >
+                                            + Link as superset
+                                          </button>
+                                          <button
+                                            className="mobileSupersetLinkButton"
+                                            onClick={() =>
+                                              toggleBuilderCircuitLink(index)
+                                            }
+                                          >
+                                            + Link as circuit
+                                          </button>
+                                        </div>
+                                      )
                                     )}
                                     <div className="mobileExerciseCard">
                                       <div className="mobileExerciseCardHeader">
@@ -33128,8 +33230,20 @@ function App() {
                       const showSectionHeader =
                         !previousMeta ||
                         sectionName !== (previousMeta.sectionName || "Main");
-                      const prescription =
-                        exercise.sets && exercise.reps
+                      const inCircuit =
+                        meta.groupType === "Circuit" && Boolean(meta.groupName);
+                      const isCircuitStart =
+                        inCircuit &&
+                        (!previousMeta ||
+                          previousMeta.groupType !== "Circuit" ||
+                          previousMeta.groupName !== meta.groupName);
+                      const prescription = inCircuit
+                        ? exercise.reps
+                          ? paceZh
+                            ? `每轮 ${exercise.reps}`
+                            : `${exercise.reps} / round`
+                          : t("forCompletion")
+                        : exercise.sets && exercise.reps
                           ? `${exercise.sets} x ${exercise.reps}`
                           : t("forCompletion");
                       const accessoryLabel = meta.accessoryParentLabel
@@ -33161,10 +33275,21 @@ function App() {
                             </h4>
                           )}
 
+                          {isCircuitStart && (
+                            <div className="workoutGlanceCircuitHeader">
+                              <RefreshCw size={13} aria-hidden="true" />
+                              <span>
+                                {paceZh
+                                  ? `循环 · ${exercise.sets || "3"} 轮`
+                                  : `Circuit · ${exercise.sets || "3"} rounds`}
+                              </span>
+                            </div>
+                          )}
+
                           <button
                             className={`workoutGlanceRow ${
                               meta.isAccessory ? "accessoryGlanceRow" : ""
-                            }`}
+                            }${inCircuit ? " circuitGlanceRow" : ""}`}
                             type="button"
                             onClick={() => openWorkoutExerciseFromGlance(index)}
                           >
@@ -33217,6 +33342,11 @@ function App() {
                     const isGroupedFocus = focusGroupIndexes.length > 1;
                     const roundCount = getWorkoutGroupRoundCount(focusGroupIndexes);
                     const focusEx = workoutDetails[workoutFocusIndex];
+                    // Circuits count grouped passes as "rounds"; supersets keep "sets".
+                    const focusIsCircuit =
+                      isGroupedFocus &&
+                      focusEx &&
+                      parseExerciseNotes(focusEx.notes).groupType === "Circuit";
                     const focusIds = new Set(
                       focusGroupIndexes
                         .map((index) => workoutDetails[index]?.exerciseId)
@@ -33271,7 +33401,11 @@ function App() {
                             </span>
                             <span>
                               {isGroupedFocus
-                                ? `${paceZh ? "第" : "Set "} ${workoutFocusSetRound}/${roundCount}`
+                                ? focusIsCircuit
+                                  ? paceZh
+                                    ? `第 ${workoutFocusSetRound}/${roundCount} 轮`
+                                    : `Round ${workoutFocusSetRound}/${roundCount}`
+                                  : `${paceZh ? "第" : "Set "} ${workoutFocusSetRound}/${roundCount}`
                                 : `${completedSets}/${totalSets || "--"} ${
                                     paceZh ? "组" : "sets"
                                   }`}
