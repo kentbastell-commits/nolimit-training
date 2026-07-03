@@ -26738,3 +26738,28 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   text-decoration: underline;
   white-space: nowrap;
 }
+
+/* Pending-intake hero card on the portal home — the buyer's unmissable next step. */
+.portalIntakeHeroCard {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  text-align: left;
+  margin: 0 0 16px;
+  padding: 18px 20px;
+  border: 1px solid rgba(212, 175, 55, 0.55);
+  border-left: 5px solid #d4af37;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #fdf6e0, #fbefcf);
+  cursor: pointer;
+  box-shadow: 0 10px 26px rgba(140, 110, 20, 0.12);
+}
+.portalIntakeHeroCard strong { font-size: 17px; color: #111; }
+.portalIntakeHeroCard span { font-size: 13.5px; color: #6a6249; }
+.portalIntakeHeroCard em {
+  font-style: normal;
+  font-weight: 800;
+  color: #8a6d1a;
+  margin-top: 2px;
+}

@@ -11006,6 +11006,7 @@ function App() {
           currency: program.currency || "CNY",
           defaultIntakeFormId: program.defaultIntakeFormId || "",
           paymentCode: storePaymentCode,
+          languagePreference: storeLang === "zh" ? "Chinese" : "English",
           addons: addonList.map((addon) => ({
             programId: addon.programId,
             programRecordId: addon.recordId,
@@ -28509,6 +28510,42 @@ function App() {
                       </section>
                     </>
                   )}
+
+                  {isClientPortal &&
+                    portalHomeTab === "tasks" &&
+                    (() => {
+                      // Unmissable next step for fresh buyers: a pending intake
+                      // is the one thing between them and their program.
+                      const pendingIntake = contentAssignments.find(
+                        (assignment) =>
+                          /questionnaire/i.test(assignment.assignmentType || "") &&
+                          !/completed|submitted|reviewed/i.test(
+                            assignment.status || ""
+                          )
+                      );
+                      if (!pendingIntake) return null;
+                      return (
+                        <button
+                          type="button"
+                          className="portalIntakeHeroCard"
+                          onClick={() =>
+                            void handleOpenContentAssignment(pendingIntake)
+                          }
+                        >
+                          <strong>
+                            {paceZh
+                              ? "📝 你的训练计划在等你"
+                              : "📝 Your program is waiting"}
+                          </strong>
+                          <span>
+                            {paceZh
+                              ? "完成一份简短问卷（约2分钟），计划会立即加载到你的日历。"
+                              : "Complete a short intake (~2 min) and your plan loads instantly."}
+                          </span>
+                          <em>{paceZh ? "开始问卷 →" : "Start intake →"}</em>
+                        </button>
+                      );
+                    })()}
 
                   {((isClientPortal && portalHomeTab === "tasks") ||
                     (!isClientPortal && coachDashTab === "activity")) && (

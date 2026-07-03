@@ -135,6 +135,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     defaultIntakeFormId,
     paymentCode,
     addons,
+    languagePreference,
   } = req.body;
 
   if (!clientName || !phone || !programId)
@@ -219,7 +220,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             "Client Type": "Digital Program",
             "Coach Assigned": "Kent Bastell",
             "Package Type": "Active",
-            "Language Preference": "Chinese",
+            // Portal opens in the language the buyer shopped in.
+            "Language Preference":
+              String(languagePreference || "").toLowerCase() === "english"
+                ? "English"
+                : "Chinese",
           },
         }),
       });
@@ -360,6 +365,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // 4. Find intake form template
     let assignmentId = "";
+    let intakeAssigned = false;
     if (assignedFormsTableId && formsTableId) {
       let intakeTemplateId = defaultIntakeFormId || "";
       let intakeTemplateName = "";
@@ -383,25 +389,68 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
       }
 
-      // 5. Create intake assignment
+      // 5. Create intake assignment — schema-aware against the REAL Assigned
+      // Forms columns (Assigned Forms ID / Form ID / Client ID+Code as text /
+      // Status "Assigned"), and the response is CHECKED: the old version wrote
+      // non-existent columns (Assignment ID, Template ID, Due Date) and never
+      // read the result, so every self-serve intake silently failed and the
+      // buyer landed in an empty portal with nothing to tap.
       if (intakeTemplateId) {
         assignmentId = makeId("FA");
-        await fetch(`${base}/${assignedFormsTableId}/records`, {
+        const assignedFormsSchema = await getTableFields(
+          token,
+          assignedFormsTableId
+        );
+        const assignmentFields: Record<string, any> = {};
+        applyField(
+          assignedFormsSchema,
+          assignmentFields,
+          ["Assigned Forms ID", "Assigned Form ID", "Assignment ID"],
+          assignmentId
+        );
+        applyField(
+          assignedFormsSchema,
+          assignmentFields,
+          ["Form ID", "Template ID"],
+          String(intakeTemplateId)
+        );
+        applyField(
+          assignedFormsSchema,
+          assignmentFields,
+          ["Client ID", "Client Id"],
+          clientCode
+        );
+        applyField(
+          assignedFormsSchema,
+          assignmentFields,
+          ["Client Code", "Athlete Code"],
+          clientCode
+        );
+        applyField(
+          assignedFormsSchema,
+          assignmentFields,
+          ["Assigned Date", "Created At"],
+          toLarkDate(today)
+        );
+        applyField(assignedFormsSchema, assignmentFields, ["Status"], "Assigned");
+
+        const assignRes = await fetch(`${base}/${assignedFormsTableId}/records`, {
           method: "POST",
           headers,
-          body: JSON.stringify({
-            fields: {
-              "Assignment ID": assignmentId,
-              "Client ID": [clientRecordId],
-              "Template ID": intakeTemplateId,
-              "Template Name": intakeTemplateName || "Intake Form",
-              "Assignment Type": "Questionnaire",
-              Status: "Pending",
-              "Assigned Date": toLarkDate(today),
-              "Due Date": toLarkDate(today),
-            },
-          }),
+          body: JSON.stringify({ fields: assignmentFields }),
         });
+        const assignData = await readResponseJson(assignRes);
+        intakeAssigned = assignRes.ok && assignData?.code === 0;
+        if (!intakeAssigned) {
+          assignmentId = "";
+          console.error(
+            "activateDigitalOrder: intake assignment failed",
+            JSON.stringify({ larkResponse: assignData, fieldsSent: assignmentFields })
+          );
+          void notifyCoach(
+            `⚠️ Intake assignment FAILED for ${clientName} (${clientCode}) — assign it manually from the coach app.`
+          );
+        }
 
         // Update client intake status
         await fetch(`${base}/${clientsTableId}/records/${clientRecordId}`, {
@@ -409,7 +458,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           headers,
           body: JSON.stringify({
             fields: {
-              "Intake Status": "Sent",
+              "Intake Status": intakeAssigned ? "Sent" : "Not Sent",
               "Purchased Program ID": programId,
               Program: programName,
             },
@@ -443,6 +492,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       orderPersisted,
       ...(orderError ? { orderError } : {}),
       assignmentId,
+      intakeAssigned,
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
