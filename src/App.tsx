@@ -17335,7 +17335,13 @@ function App() {
               <div className="lv3HeroStats">
                 <div>
                   <strong>{landingPrograms.length || "—"}</strong>
-                  <span>{lZh ? "训练计划" : "Programs"}</span>
+                  <span>
+                    {lZh
+                      ? "训练计划"
+                      : landingPrograms.length === 1
+                        ? "Program"
+                        : "Programs"}
+                  </span>
                 </div>
                 <div>
                   <strong>{lZh ? "循证" : "Evidence"}</strong>
@@ -17833,33 +17839,6 @@ function App() {
             </div>
           </section>
 
-          <section className="storeHowV2">
-            <div className="storeSectionIntroV2">
-              <span className="storeEyebrowV2">{sZh ? "如何使用" : "How it works"}</span>
-              <h2>{sZh ? "三步开始训练" : "Three steps to start training"}</h2>
-            </div>
-            <div className="storeHowGridV2">
-              {(sZh
-                ? [
-                    ["1", "选择你的项目", "从上方目录中选择你的训练方向。"],
-                    ["2", "选择单个计划或套餐", "购买单个计划，或以优惠价购买整套。"],
-                    ["3", "加购关节 / 灵活性模块", "为关节健康和伤病预防加上专项模块。"],
-                  ]
-                : [
-                    ["1", "Choose your sport", "Pick your training direction from the catalog above."],
-                    ["2", "Pick a program or bundle", "Buy an individual program, or a discounted bundle."],
-                    ["3", "Add joint & mobility work", "Add joint/mobility programs for joint health and injury prevention."],
-                  ]
-              ).map(([n, t, d]) => (
-                <div className="storeHowStepV2" key={n}>
-                  <span className="storeHowNumV2">{n}</span>
-                  <strong>{t}</strong>
-                  <span>{d}</span>
-                </div>
-              ))}
-            </div>
-          </section>
-
           <section>
             <div className="storeSectionIntroV2">
               <span className="storeEyebrowV2">{sZh ? "项目目录" : "Sports Catalog"}</span>
@@ -18003,6 +17982,33 @@ function App() {
                 })}
               </div>
             )}
+          </section>
+
+          <section className="storeHowV2">
+            <div className="storeSectionIntroV2">
+              <span className="storeEyebrowV2">{sZh ? "如何使用" : "How it works"}</span>
+              <h2>{sZh ? "三步开始训练" : "Three steps to start training"}</h2>
+            </div>
+            <div className="storeHowGridV2">
+              {(sZh
+                ? [
+                    ["1", "选择你的项目", "从上方目录中选择你的训练方向。"],
+                    ["2", "选择单个计划或套餐", "购买单个计划，或以优惠价购买整套。"],
+                    ["3", "加购关节 / 灵活性模块", "为关节健康和伤病预防加上专项模块。"],
+                  ]
+                : [
+                    ["1", "Choose your sport", "Pick your training direction from the catalog above."],
+                    ["2", "Pick a program or bundle", "Buy an individual program, or a discounted bundle."],
+                    ["3", "Add joint & mobility work", "Add joint/mobility programs for joint health and injury prevention."],
+                  ]
+              ).map(([n, t, d]) => (
+                <div className="storeHowStepV2" key={n}>
+                  <span className="storeHowNumV2">{n}</span>
+                  <strong>{t}</strong>
+                  <span>{d}</span>
+                </div>
+              ))}
+            </div>
           </section>
 
           <section className="storeShowcaseV2">
@@ -30195,7 +30201,7 @@ function App() {
                             ? t("itemCount", {
                                 count: selectedCalendarDateItemCount,
                               })
-                            : t("nothingScheduled")}
+                            : t("nothingScheduledShort")}
                         </strong>
                       </div>
 
@@ -30452,7 +30458,7 @@ function App() {
                               ? t("taskCount", {
                                   count: selectedCalendarDateItemCount,
                                 })
-                              : t("nothingScheduled")}
+                              : t("nothingScheduledShort")}
                           </strong>
                         </div>
 
@@ -33010,7 +33016,10 @@ function App() {
         {selectedWorkout && (
           <div
             className={`workout-modal-overlay${
-              isClientPortal ? " clientWorkoutPlayerOverlay" : ""
+              // Coach view: scope the portal's light player theme onto this
+              // overlay so coaches see the workout exactly as athletes do
+              // (the ~100 .clientPortalApp player rules apply via descent).
+              isClientPortal ? " clientWorkoutPlayerOverlay" : " clientPortalApp"
             }`}
           >
             <div

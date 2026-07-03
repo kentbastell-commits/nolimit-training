@@ -611,7 +611,10 @@
 
 .storeGridV2 {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  /* auto-fit + capped track width: one product renders as a single tidy card
+     instead of floating in two empty columns; more products flow to 3-up. */
+  grid-template-columns: repeat(auto-fit, minmax(300px, 420px));
+  justify-content: start;
   gap: 18px;
 }
 
@@ -2707,23 +2710,28 @@ body {
 
   .app:not(.clientPortalApp) .brandTagline,
   .app:not(.clientPortalApp) .coachBox,
-  .app:not(.clientPortalApp) .navItem .desktopNavLabel,
   .app:not(.clientPortalApp) .navItem .badge {
     opacity: 0;
     pointer-events: none;
     transition: opacity 140ms ease;
   }
 
-  /* Collapsed rail: keep the icon visible, only collapse the text label.
-     (Previously `.navItem span` matched `.navItemLabel`, hiding the icon too.) */
+  /* Collapsed rail: icon with a micro-label underneath, so the nav is
+     learnable at a glance; hovering the rail still expands to full labels. */
   .app:not(.clientPortalApp) .navItemLabel {
-    gap: 0;
+    gap: 2px;
+    flex-direction: column;
   }
 
   .app:not(.clientPortalApp) .navItem .desktopNavLabel {
-    max-width: 0;
+    font-size: 9.5px;
+    line-height: 1;
+    letter-spacing: 0.05em;
+    opacity: 0.8;
+    max-width: 100%;
     overflow: hidden;
     white-space: nowrap;
+    text-overflow: ellipsis;
     transition: opacity 140ms ease, max-width 160ms ease;
   }
 
@@ -2742,11 +2750,15 @@ body {
   .app:not(.clientPortalApp) .sidebar:hover .navItemLabel,
   .app:not(.clientPortalApp) .sidebar:focus-within .navItemLabel {
     gap: 10px;
+    flex-direction: row;
   }
 
   .app:not(.clientPortalApp) .sidebar:hover .navItem .desktopNavLabel,
   .app:not(.clientPortalApp) .sidebar:focus-within .navItem .desktopNavLabel {
     max-width: 160px;
+    font-size: 15px;
+    letter-spacing: normal;
+    opacity: 1;
   }
 
   .app:not(.clientPortalApp) .navItem {
@@ -26400,14 +26412,11 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 /* =========================================================================
    Store: align with the landing (lv3) light + accent system
    ========================================================================= */
-/* Catalog front-and-center: hero -> catalog -> programs -> how -> rest */
+/* Store sections render in JSX order (hero → catalog → programs → how →
+   showcase → coach → testimonials → FAQ → contact). The old nth-child order
+   hack broke whenever a section was added or removed — unmapped sections
+   defaulted to order:0 and jumped to the top of the page. */
 .storeMainV2 { display: flex; flex-direction: column; }
-.storeMainV2 > *:nth-child(1) { order: 1; } /* hero */
-.storeMainV2 > *:nth-child(2) { order: 4; } /* how it works */
-.storeMainV2 > *:nth-child(3) { order: 2; } /* sports catalog tiles */
-.storeMainV2 > *:nth-child(4) { order: 3; } /* available programs */
-.storeMainV2 > *:nth-child(5) { order: 5; } /* what you get */
-.storeMainV2 > *:nth-child(6) { order: 6; } /* contact */
 
 /* Ox-blood eyebrows + electric-blue step numbers (matches landing) */
 .storeEyebrowV2 { color: #8b1e2d; }
@@ -26541,3 +26550,10 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 }
 .enquiryQrRow span { color: #5f625e; font-weight: 600; font-size: 0.92rem; }
 .enquiryFootnote { margin-top: 12px; text-align: center; font-size: 0.8rem; color: #8a877d; }
+
+/* Coach workout player: the overlay carries .clientPortalApp purely to scope
+   the portal's light player theme (see the JSX comment). Undo the class's own
+   page-background so the overlay keeps its dim modal backdrop. */
+.workout-modal-overlay.clientPortalApp {
+  background: rgba(0, 0, 0, 0.88);
+}
