@@ -1964,7 +1964,15 @@ function App() {
     }
   };
   useEffect(() => {
-    if (!isClientPortal && activePage === "Review") void loadFormVideos();
+    if (isClientPortal) return;
+    if (activePage === "Review" || activePage === "Clients") {
+      void loadFormVideos();
+    }
+    // The Clients-page "Today" strip needs the review queue + subscriptions.
+    if (activePage === "Clients") {
+      void loadCoachReviewQueue();
+      void loadSubscriptions();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activePage]);
   const reviewFormVideo = async (recordId: string) => {
@@ -2119,6 +2127,105 @@ function App() {
   // Client-facing daily wellness check-in (coached clients only). Short daily
   // readiness + a fuller weekly form; feeds the coach load dashboard.
   const [clientCheckIns, setClientCheckIns] = useState<PortalCheckIn[]>([]);
+  // Athlete inbox: coach replies (check-ins + form videos) surfaced on Home.
+  const [portalVideoReplies, setPortalVideoReplies] = useState<
+    Array<{ id: string; exerciseName: string; coachReply: string; at: number }>
+  >([]);
+  const [inboxSeenAt, setInboxSeenAt] = useState(() => {
+    try {
+      return Number(window.localStorage.getItem("nl_inbox_seen") || 0);
+    } catch {
+      return 0;
+    }
+  });
+  const markInboxSeen = (latest: number) => {
+    if (latest <= inboxSeenAt) return;
+    setInboxSeenAt(latest);
+    try {
+      window.localStorage.setItem("nl_inbox_seen", String(latest));
+    } catch {
+      // ignore
+    }
+  };
+  // Aggregated feed, newest first. Check-in reply timestamps come from the
+  // reviewed/submitted date; video replies use their submit time.
+  const coachInboxItems = () => {
+    const items: Array<{
+      id: string;
+      kind: "checkin" | "video";
+      title: string;
+      body: string;
+      at: number;
+    }> = [];
+    for (const c of clientCheckIns) {
+      if (!c.coachResponse?.trim()) continue;
+      const at = new Date(
+        `${c.reviewedDate || c.submittedDate}T12:00:00`
+      ).getTime();
+      if (!Number.isFinite(at)) continue;
+      items.push({
+        id: `ci-${c.recordId}`,
+        kind: "checkin",
+        title: paceZh ? "打卡回复" : "Check-in reply",
+        body: c.coachResponse,
+        at,
+      });
+    }
+    for (const v of portalVideoReplies) {
+      items.push({
+        id: `fv-${v.id}`,
+        kind: "video",
+        title: paceZh
+          ? `动作视频反馈 · ${v.exerciseName}`
+          : `Form feedback · ${v.exerciseName}`,
+        body: v.coachReply,
+        at: v.at,
+      });
+    }
+    return items.sort((a, b) => b.at - a.at).slice(0, 12);
+  };
+  useEffect(() => {
+    if (!isClientPortal || !selectedClient) return;
+    void (async () => {
+      try {
+        const res = await fetch("/api/formVideos");
+        const data = await res.json();
+        if (!Array.isArray(data.videos)) return;
+        const mine = data.videos
+          .filter(
+            (v: any) =>
+              v.coachReply &&
+              (v.clientId === selectedClient.clientCode ||
+                v.clientId === selectedClient.id)
+          )
+          .map((v: any) => ({
+            id: v.recordId,
+            exerciseName: v.exerciseName || "Exercise",
+            coachReply: v.coachReply,
+            at: Number(v.submittedAt) || 0,
+          }));
+        setPortalVideoReplies(mine);
+      } catch {
+        // feed stays check-in-only
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isClientPortal, selectedClient?.id]);
+
+  // Today's readiness (from the daily check-in) for adaptive load hints.
+  const latestReadiness = () => {
+    const today = dateToInputValue(new Date());
+    const yesterday = dateToInputValue(new Date(Date.now() - 86400000));
+    const recent = clientCheckIns.find(
+      (c) =>
+        (c.submittedDate === today || c.submittedDate === yesterday) &&
+        String(c.readinessScore || "").trim()
+    );
+    if (!recent) return null;
+    const score = Number(recent.readinessScore);
+    return Number.isFinite(score) ? score : null;
+  };
+
   const [wellnessOpen, setWellnessOpen] = useState(false);
   const [wellnessSaving, setWellnessSaving] = useState(false);
   const [wellnessThanks, setWellnessThanks] = useState(false);
@@ -21130,6 +21237,126 @@ function App() {
                       </button>
                     </div>
 
+                    {(() => {
+                      // Morning triage: everything that changed since yesterday
+                      // in one strip — trained, missed, readiness drops,
+                      // renewals due, videos to review.
+                      const todayStr = dateToInputValue(new Date());
+                      const yestStr = dateToInputValue(
+                        new Date(Date.now() - 86400000)
+                      );
+                      const trained = workouts.filter(
+                        (w) =>
+                          /complete/i.test(w.completionStatus || "") &&
+                          [todayStr, yestStr].includes(
+                            normalizeDate(String(w.scheduledDate))
+                          )
+                      );
+                      const missedCount = workouts.filter((w) => {
+                        const d = normalizeDate(String(w.scheduledDate));
+                        return (
+                          d &&
+                          d < todayStr &&
+                          !/complete/i.test(w.completionStatus || "")
+                        );
+                      }).length;
+                      const lowReadiness = coachReviewCheckIns.filter((ci) => {
+                        const score = Number((ci as any).readinessScore);
+                        return Number.isFinite(score) && score > 0 && score <= 55;
+                      });
+                      const dueSoon = dateToInputValue(
+                        new Date(Date.now() + 14 * 86400000)
+                      );
+                      const renewals = subscriptions.filter((s) => {
+                        const d = normalizeDate(String((s as any).renewalDate || ""));
+                        return d && d <= dueSoon && !/cancel/i.test(String((s as any).status || ""));
+                      });
+                      const newVideos = reviewFormVideos.filter(
+                        (v) => v.status !== "Reviewed"
+                      ).length;
+                      const rows: Array<{
+                        key: string;
+                        icon: string;
+                        label: string;
+                        detail: string;
+                        onClick: () => void;
+                        tone?: string;
+                      }> = [];
+                      if (trained.length)
+                        rows.push({
+                          key: "trained",
+                          icon: "✅",
+                          label: `${trained.length} session${trained.length === 1 ? "" : "s"} completed (today + yesterday)`,
+                          detail: Array.from(
+                            new Set(trained.map((w) => w.clientId))
+                          )
+                            .slice(0, 4)
+                            .join(", "),
+                          onClick: () => goToPage("Review"),
+                        });
+                      if (missedCount)
+                        rows.push({
+                          key: "missed",
+                          icon: "⚠️",
+                          label: `${missedCount} missed workout${missedCount === 1 ? "" : "s"}`,
+                          detail: "Open the review queue",
+                          onClick: () => goToPage("Review"),
+                          tone: "warn",
+                        });
+                      if (lowReadiness.length)
+                        rows.push({
+                          key: "readiness",
+                          icon: "🔋",
+                          label: `${lowReadiness.length} low readiness check-in${lowReadiness.length === 1 ? "" : "s"} (≤55)`,
+                          detail: lowReadiness
+                            .map((ci) => (ci as any).clientName || "")
+                            .filter(Boolean)
+                            .slice(0, 4)
+                            .join(", "),
+                          onClick: () => goToPage("Review"),
+                          tone: "warn",
+                        });
+                      if (renewals.length)
+                        rows.push({
+                          key: "renewals",
+                          icon: "💰",
+                          label: `${renewals.length} renewal${renewals.length === 1 ? "" : "s"} due ≤14d`,
+                          detail: renewals
+                            .map((s) => (s as any).clientName || "")
+                            .filter(Boolean)
+                            .slice(0, 4)
+                            .join(", "),
+                          onClick: () => goToPage("Revenue"),
+                          tone: "warn",
+                        });
+                      if (newVideos)
+                        rows.push({
+                          key: "videos",
+                          icon: "📹",
+                          label: `${newVideos} form video${newVideos === 1 ? "" : "s"} to review`,
+                          detail: "Athletes are waiting on feedback",
+                          onClick: () => goToPage("Review"),
+                        });
+                      if (rows.length === 0) return null;
+                      return (
+                        <div className="coachTodayPanel">
+                          <span className="rosterTriageLabel">Today</span>
+                          {rows.map((row) => (
+                            <button
+                              key={row.key}
+                              type="button"
+                              className={`coachTodayRow${row.tone ? ` ${row.tone}` : ""}`}
+                              onClick={row.onClick}
+                            >
+                              <span>{row.icon}</span>
+                              <strong>{row.label}</strong>
+                              {row.detail && <em>{row.detail}</em>}
+                            </button>
+                          ))}
+                        </div>
+                      );
+                    })()}
+
                     {triageDefs.some((d) => triageCounts[d.key] > 0) && (
                       <div className="rosterTriageBar">
                         <span className="rosterTriageLabel">Needs attention</span>
@@ -28972,6 +29199,10 @@ function App() {
                 >
                   <Home size={21} strokeWidth={2.2} />
                   <span>{t("home")}</span>
+                  {isClientPortal &&
+                    coachInboxItems().some((i) => i.at > inboxSeenAt) && (
+                      <em className="navUnreadDot" aria-label="New coach messages" />
+                    )}
                 </button>
                 <button
                   className={clientTab === "Training" ? "active" : ""}
@@ -29295,6 +29526,53 @@ function App() {
                           </span>
                           <em>{paceZh ? "开始问卷 →" : "Start intake →"}</em>
                         </button>
+                      );
+                    })()}
+
+                  {isClientPortal &&
+                    portalHomeTab === "tasks" &&
+                    (() => {
+                      const items = coachInboxItems();
+                      if (items.length === 0) return null;
+                      const latest = items[0].at;
+                      return (
+                        <section className="clientHomePanel coachInboxPanel">
+                          <div className="clientHomePanelHeader">
+                            <div>
+                              <span>{paceZh ? "教练" : "Coach"}</span>
+                              <h2>{paceZh ? "教练留言" : "From your coach"}</h2>
+                            </div>
+                            {latest > inboxSeenAt && (
+                              <button
+                                className="outlineButton"
+                                onClick={() => markInboxSeen(latest)}
+                              >
+                                {paceZh ? "全部已读" : "Mark all read"}
+                              </button>
+                            )}
+                          </div>
+                          <div className="coachInboxList">
+                            {items.map((item) => (
+                              <div
+                                key={item.id}
+                                className={`coachInboxItem${
+                                  item.at > inboxSeenAt ? " unread" : ""
+                                }`}
+                              >
+                                <div className="coachInboxItemHead">
+                                  <strong>
+                                    {item.kind === "video" ? "📹 " : "💬 "}
+                                    {item.title}
+                                  </strong>
+                                  {item.at > inboxSeenAt && (
+                                    <em>{paceZh ? "新" : "NEW"}</em>
+                                  )}
+                                </div>
+                                <p>{item.body}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </section>
                       );
                     })()}
 
@@ -34448,6 +34726,19 @@ function App() {
                   (!isClientPortal || !workoutLoggingStarted) && (
                   <section className="workoutGlancePanel">
                     <h3>{t("atAGlance")}</h3>
+                    {isClientPortal &&
+                      (() => {
+                        const score = latestReadiness();
+                        if (score === null || score > 55) return null;
+                        const pct = score < 40 ? 10 : 5;
+                        return (
+                          <div className="readinessAdviceBanner">
+                            {paceZh
+                              ? `今日恢复度 ${score} — 建议负荷降低约 ${pct}%，重质量不硬撑。`
+                              : `Readiness ${score} today — consider dropping loads ~${pct}%. Quality over grinding.`}
+                          </div>
+                        );
+                      })()}
                     {isClientPortal && !workoutLoggingStarted && (
                       <p className="workoutGlanceIntro">
                         {t("selectFirstExercise")}
