@@ -17,12 +17,13 @@ function fieldToText(value: any): string {
     const item = value[0];
     if (!item) return "";
     if (typeof item === "string") return item;
-    if (item?.text) return item.text;
+    // URL fields: the link is the value; text is just the display label.
     if (item?.link) return item.link;
+    if (item?.text) return item.text;
     return "";
   }
-  if (value?.text) return value.text;
   if (value?.link) return value.link;
+  if (value?.text) return value.text;
   return "";
 }
 
