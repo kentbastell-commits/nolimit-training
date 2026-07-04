@@ -85,6 +85,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         req.body || {};
       if (!clientId || !videoUrl)
         return res.status(400).json({ error: "clientId and videoUrl required" });
+      // Feishu URL columns mangle relative paths ("http:///uploads/…") — store
+      // an absolute URL built from the requesting host.
+      const host = String(req.headers["x-forwarded-host"] || req.headers.host || "");
+      const absoluteUrl = String(videoUrl).startsWith("/")
+        ? `https://${host}${videoUrl}`
+        : String(videoUrl);
       const videoId = `FV-${Math.floor(100000 + Math.random() * 900000)}`;
       const r = await fetch(`${base()}/records`, {
         method: "POST",
@@ -96,7 +102,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             "Client Name": String(clientName || ""),
             "Exercise Name": String(exerciseName || ""),
             "Workout Name": String(workoutName || ""),
-            "Video URL": { link: String(videoUrl), text: "Form video" },
+            "Video URL": { link: absoluteUrl, text: "Form video" },
             "Client Note": String(note || ""),
             "Submitted At": Date.now(),
             Status: "New",
