@@ -21245,6 +21245,17 @@ function App() {
                       const yestStr = dateToInputValue(
                         new Date(Date.now() - 86400000)
                       );
+                      // Show human names, not CL-XXXX codes, in the details.
+                      const nameFromCode = (raw: string) => {
+                        const key = String(raw || "").trim();
+                        const match = clients.find(
+                          (c) =>
+                            c.clientCode === key ||
+                            c.id === key ||
+                            String(raw || "").includes(c.clientCode)
+                        );
+                        return match?.name || key;
+                      };
                       const trained = workouts.filter(
                         (w) =>
                           /complete/i.test(w.completionStatus || "") &&
@@ -21288,7 +21299,7 @@ function App() {
                           icon: "✅",
                           label: `${trained.length} session${trained.length === 1 ? "" : "s"} completed (today + yesterday)`,
                           detail: Array.from(
-                            new Set(trained.map((w) => w.clientId))
+                            new Set(trained.map((w) => nameFromCode(w.clientId)))
                           )
                             .slice(0, 4)
                             .join(", "),
@@ -21308,8 +21319,17 @@ function App() {
                           key: "readiness",
                           icon: "🔋",
                           label: `${lowReadiness.length} low readiness check-in${lowReadiness.length === 1 ? "" : "s"} (≤55)`,
-                          detail: lowReadiness
-                            .map((ci) => (ci as any).clientName || "")
+                          detail: Array.from(
+                            new Set(
+                              lowReadiness.map((ci) =>
+                                nameFromCode(
+                                  (ci as any).clientName ||
+                                    (ci as any).clientId ||
+                                    ""
+                                )
+                              )
+                            )
+                          )
                             .filter(Boolean)
                             .slice(0, 4)
                             .join(", "),

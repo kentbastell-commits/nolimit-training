@@ -158,15 +158,20 @@ export default async function handler(
         "Completed": log.completed === false ? false : true,
       };
 
+      // A skipped set (completed === false) keeps its prescription but must
+      // not store "actuals" — the player prefills reps from the plan, and
+      // recording those on a set the athlete never did would fake adherence
+      // data (8 reps "done" on a Completed:false row).
+      const skipped = log.completed === false;
       const numberFields: Array<[string, any]> = [
         ["Prescribed Sets", log.prescribedSets],
         ["Prescribed Reps", log.prescribedReps],
-        ["Actual Reps", log.actualReps],
-        ["Actual Weight", log.actualWeight],
-        ["Actual Time", log.actualTime],
-        ["Actual Distance", log.actualDistance],
-        ["Actual RPE", log.actualRpe],
-        ["Actual RIR", log.actualRir],
+        ["Actual Reps", skipped ? undefined : log.actualReps],
+        ["Actual Weight", skipped ? undefined : log.actualWeight],
+        ["Actual Time", skipped ? undefined : log.actualTime],
+        ["Actual Distance", skipped ? undefined : log.actualDistance],
+        ["Actual RPE", skipped ? undefined : log.actualRpe],
+        ["Actual RIR", skipped ? undefined : log.actualRir],
         ["Exercise Order", log.exerciseOrder],
       ];
       for (const [name, raw] of numberFields) {
@@ -284,7 +289,8 @@ export default async function handler(
         assignedWorkoutId,
         programId,
         workoutDate,
-        logs,
+        // Skipped sets must not mint PRs/volume from prefilled plan values.
+        logs: (logs as any[]).filter((l) => l?.completed !== false),
       }),
     ]);
     assignedWorkoutUpdate = assignedWorkoutResult;
