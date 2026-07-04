@@ -27082,3 +27082,49 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   min-height: 64px;
   resize: vertical;
 }
+
+/* Builder: bulk edit, equipment filter, insert-saved-session, duration hint */
+.bulkEditBar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 10px 0;
+  padding: 10px 12px;
+  border: 1px dashed rgba(212, 175, 55, 0.45);
+  border-radius: 12px;
+  background: rgba(212, 175, 55, 0.06);
+}
+.bulkEditInput { width: 76px; }
+.bulkEditRest { width: 130px; }
+.bulkEditCheck { width: 20px; height: 20px; accent-color: #d4af37; cursor: pointer; }
+.builderEquipSelect {
+  border: 1px solid rgba(13, 13, 13, 0.15);
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-size: 13px;
+  background: #fff;
+}
+.builderInsertSavedRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 12px 0 4px;
+  font-size: 13px;
+  font-weight: 700;
+}
+.builderInsertSavedRow select { max-width: 260px; }
+.builderInsertSavedRow em { color: #8a8471; font-weight: 400; }
+.durationEstimateBtn {
+  margin-top: 5px;
+  border: 1px dashed rgba(13, 13, 13, 0.25);
+  border-radius: 999px;
+  background: transparent;
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #6b6455;
+  cursor: pointer;
+  width: fit-content;
+}

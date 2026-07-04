@@ -2659,6 +2659,12 @@ function App() {
     null
   );
   const [builderSearch, setBuilderSearch] = useState("");
+  const [builderEquipFilter, setBuilderEquipFilter] = useState("");
+  const [bulkEditMode, setBulkEditMode] = useState(false);
+  const [bulkSelectedIdx, setBulkSelectedIdx] = useState<Set<number>>(new Set());
+  const [bulkSets, setBulkSets] = useState("");
+  const [bulkReps, setBulkReps] = useState("");
+  const [bulkRest, setBulkRest] = useState("");
   // Mobile-native builder (Everfit-style portrait flow). These only drive the
   // mobile render branch; the desktop builder ignores them entirely.
   const [mobileBuilderStep, setMobileBuilderStep] = useState<
@@ -10631,6 +10637,54 @@ function App() {
     return { days: sessions.length, sets, exercises };
   };
 
+  // Rough session length from the prescription: ~40s work per strength set
+  // plus its rest; timed sets use their mm:ss. Rounded to 5 minutes.
+  const estimateSessionMinutes = (exercises: ProgramExercise[]) => {
+    let seconds = 0;
+    for (const ex of exercises) {
+      const sets = Math.max(1, Number(ex.sets) || 1);
+      const restMatch = String(ex.rest || "").match(/(\d+)/);
+      const restRaw = restMatch ? Number(restMatch[1]) : 60;
+      const restSec = /min/i.test(String(ex.rest || "")) ? restRaw * 60 : restRaw;
+      if (ex.trackingType === "Time") {
+        const t = String(ex.reps || "").match(/(\d+):(\d+)/);
+        const workSec = t ? Number(t[1]) * 60 + Number(t[2]) : 600;
+        seconds += sets * (workSec + restSec);
+      } else {
+        seconds += sets * (40 + restSec);
+      }
+    }
+    return Math.max(5, Math.round(seconds / 60 / 5) * 5);
+  };
+
+  // Desktop: drop a saved session's exercises into the session being built.
+  const insertSavedSessionExercises = (session: ProgramSession) => {
+    setSelectedProgramExercises(session.exercises.map((ex) => ({ ...ex })));
+    setSessionName((prev) => prev || session.sessionName);
+    setSessionType(session.sessionType || "Strength");
+    setSessionIntensity(session.intensity || "Moderate");
+    notify(`Loaded "${session.sessionName}" into this session.`);
+  };
+
+  // Bulk prescription editing: tick exercises, apply sets/reps/rest at once.
+  const applyBulkPrescription = () => {
+    if (bulkSelectedIdx.size === 0) return;
+    setSelectedProgramExercises((current) =>
+      current.map((ex, i) => {
+        if (!bulkSelectedIdx.has(i)) return ex;
+        return withNormalizedSetFields({
+          ...ex,
+          sets: bulkSets.trim() || ex.sets,
+          reps: bulkReps.trim() || ex.reps,
+          rest: bulkRest.trim() || ex.rest,
+        });
+      })
+    );
+    notify(`Updated ${bulkSelectedIdx.size} exercise(s).`, "success");
+    setBulkSelectedIdx(new Set());
+    setBulkEditMode(false);
+  };
+
   // Calendar: start building a brand-new session in a specific week/day cell.
   const startSessionForCell = (week: number, day: number) => {
     setSelectedProgramExercises([]);
@@ -10999,6 +11053,15 @@ function App() {
       exercise.movementPattern?.toLowerCase().includes(search);
 
     if (!matchesSearch) return false;
+
+    if (
+      builderEquipFilter &&
+      !String(exercise.equipment || "")
+        .toLowerCase()
+        .includes(builderEquipFilter.toLowerCase())
+    ) {
+      return false;
+    }
 
     // Cardio/conditioning sections show cardio + conditioning exercises. Other
     // sections hide pure cardio but keep conditioning available (burpees or
@@ -25901,6 +25964,20 @@ function App() {
                       placeholder="45"
                       className="miniSearch"
                     />
+                    {selectedProgramExercises.length > 0 && (
+                      <button
+                        type="button"
+                        className="durationEstimateBtn"
+                        title="Estimate from the prescription (sets, work, rest)"
+                        onClick={() =>
+                          setSessionEstimatedDuration(
+                            String(estimateSessionMinutes(selectedProgramExercises))
+                          )
+                        }
+                      >
+                        ≈ {estimateSessionMinutes(selectedProgramExercises)} min
+                      </button>
+                    )}
                   </label>
 
                   <label className="sessionGoalField">
@@ -25924,7 +26001,110 @@ function App() {
                     rows={3}
                   />
                 </label>
+
+                <div className="builderInsertSavedRow">
+                  <span>Insert saved session</span>
+                  <select
+                    className="miniSearch"
+                    value={sessionLibProgramId}
+                    onChange={(e) => {
+                      const prog = programs.find(
+                        (pp) => pp.programId === e.target.value
+                      );
+                      if (prog) loadSessionLibrary(prog);
+                      else {
+                        setSessionLibProgramId("");
+                        setSessionLibSessions([]);
+                      }
+                    }}
+                  >
+                    <option value="">From program…</option>
+                    {programs.map((pp) => (
+                      <option key={pp.recordId} value={pp.programId}>
+                        {pp.programName}
+                      </option>
+                    ))}
+                  </select>
+                  {sessionLibLoading && <em>Loading…</em>}
+                  {sessionLibSessions.length > 0 && (
+                    <select
+                      className="miniSearch"
+                      value=""
+                      onChange={(e) => {
+                        const s = sessionLibSessions.find(
+                          (x) => x.localId === e.target.value
+                        );
+                        if (s) insertSavedSessionExercises(s);
+                      }}
+                    >
+                      <option value="">Pick a session…</option>
+                      {sessionLibSessions.map((s) => (
+                        <option key={s.localId} value={s.localId}>
+                          W{s.week} D{s.day} · {s.sessionName}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
                 </details>
+
+                {selectedProgramExercises.length > 1 && (
+                  <div className="bulkEditBar">
+                    <button
+                      type="button"
+                      className={`outlineButton compactBuilderButton${
+                        bulkEditMode ? " active" : ""
+                      }`}
+                      onClick={() => {
+                        setBulkEditMode((cur) => !cur);
+                        setBulkSelectedIdx(new Set());
+                      }}
+                    >
+                      {bulkEditMode ? "Done selecting" : "Bulk edit"}
+                    </button>
+                    {bulkEditMode && (
+                      <>
+                        <button
+                          type="button"
+                          className="outlineButton compactBuilderButton"
+                          onClick={() =>
+                            setBulkSelectedIdx(
+                              new Set(selectedProgramExercises.map((_, i) => i))
+                            )
+                          }
+                        >
+                          All
+                        </button>
+                        <input
+                          className="miniSearch bulkEditInput"
+                          placeholder="Sets"
+                          value={bulkSets}
+                          onChange={(e) => setBulkSets(e.target.value)}
+                        />
+                        <input
+                          className="miniSearch bulkEditInput"
+                          placeholder="Reps"
+                          value={bulkReps}
+                          onChange={(e) => setBulkReps(e.target.value)}
+                        />
+                        <input
+                          className="miniSearch bulkEditInput bulkEditRest"
+                          placeholder="Rest e.g. 90 sec"
+                          value={bulkRest}
+                          onChange={(e) => setBulkRest(e.target.value)}
+                        />
+                        <button
+                          type="button"
+                          className="primaryButton compactBuilderButton"
+                          disabled={bulkSelectedIdx.size === 0}
+                          onClick={applyBulkPrescription}
+                        >
+                          Apply to {bulkSelectedIdx.size}
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )}
 
                 <div className="builderSectionPresetBar" id="builder-exercises">
                   <div>
@@ -26020,6 +26200,21 @@ function App() {
                             value={builderSearch}
                             onChange={(e) => setBuilderSearch(e.target.value)}
                           />
+                          <select
+                            className="builderEquipSelect"
+                            value={builderEquipFilter}
+                            onChange={(e) => setBuilderEquipFilter(e.target.value)}
+                            title="Filter by equipment"
+                          >
+                            <option value="">All equipment</option>
+                            {["Barbell", "Dumbbell", "Kettlebell", "Bodyweight", "Bands", "Cable", "Machine", "Sled", "Medicine Ball", "Hangboard"].map(
+                              (eq) => (
+                                <option key={eq} value={eq}>
+                                  {eq}
+                                </option>
+                              )
+                            )}
+                          </select>
                           <button
                             className="outlineButton"
                             onClick={() => void loadExerciseLibrary(true)}
@@ -26576,6 +26771,21 @@ function App() {
                           >
                             Use %
                           </button>
+                          {bulkEditMode && (
+                            <input
+                              type="checkbox"
+                              className="bulkEditCheck"
+                              checked={bulkSelectedIdx.has(index)}
+                              onChange={() =>
+                                setBulkSelectedIdx((cur) => {
+                                  const next = new Set(cur);
+                                  if (next.has(index)) next.delete(index);
+                                  else next.add(index);
+                                  return next;
+                                })
+                              }
+                            />
+                          )}
                           {renderBuilderExerciseOptionsMenu(exercise, index)}
                         </div>
 
@@ -35095,10 +35305,10 @@ function App() {
                                 </strong>
                                 {exercise.reps || "--"}
                               </span>
-                              {!isCardioEx && (
+                              {!isCardioEx && exercise.tempo && (
                                 <span>
                                   <strong>{t("tempo")}</strong>
-                                  {exercise.tempo || "--"}
+                                  {exercise.tempo}
                                 </span>
                               )}
                               <span>
