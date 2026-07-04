@@ -71,6 +71,38 @@ function copyableTemplateFields(
   return out;
 }
 
+// Coerce copied values against the destination table's schema — old rows can
+// hold numbers-as-text, which Feishu rejects on Number columns at create time.
+async function numberFieldNames(
+  token: string,
+  appToken: string,
+  tableId: string
+) {
+  const r = await fetch(
+    `https://open.feishu.cn/open-apis/bitable/v1/apps/${appToken}/tables/${tableId}/fields?page_size=100`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  const d = await r.json();
+  return new Set(
+    ((d?.data?.items || []) as any[])
+      .filter((f) => f.type === 2)
+      .map((f) => f.field_name)
+  );
+}
+
+function coerceNumbers(
+  fields: Record<string, any>,
+  numberNames: Set<string>
+) {
+  for (const name of Object.keys(fields)) {
+    if (!numberNames.has(name)) continue;
+    const n = Number(fields[name]);
+    if (Number.isFinite(n)) fields[name] = n;
+    else delete fields[name];
+  }
+  return fields;
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST")
     return res.status(405).json({ error: "Method not allowed" });
@@ -123,8 +155,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       );
       if (!weekRows.length)
         return res.status(404).json({ error: `No sessions in week ${from}` });
+      const tmplNumbers = await numberFieldNames(token, appToken!, templatesTableId);
       const records = weekRows.map((item) => {
-        const fields = copyableTemplateFields(item.fields, programRecordId);
+        const fields = coerceNumbers(
+          copyableTemplateFields(item.fields, programRecordId),
+          tmplNumbers
+        );
         fields["Template ID"] = makeId("WT");
         fields["Week"] = to;
         return { fields };
@@ -168,6 +204,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         continue; // linked clients/orders/templates don't copy
       progFields[name] = value;
     }
+    coerceNumbers(progFields, await numberFieldNames(token, appToken!, programsTableId));
     progFields["Program ID"] = newProgramId;
     progFields["Program Name"] = `${fieldToText(src["Program Name"]) || "Program"} (Copy)`;
     if (src["Program Name CN"])
@@ -188,8 +225,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .json({ error: "Program copy failed", larkResponse: createData });
     const newRecordId = createData.data.record.record_id;
 
+    const tmplNumbers = await numberFieldNames(token, appToken!, templatesTableId);
     const records = sourceTemplates.map((item) => {
-      const fields = copyableTemplateFields(item.fields, newRecordId);
+      const fields = coerceNumbers(
+        copyableTemplateFields(item.fields, newRecordId),
+        tmplNumbers
+      );
       fields["Template ID"] = makeId("WT");
       return { fields };
     });
