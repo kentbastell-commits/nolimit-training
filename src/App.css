@@ -27176,7 +27176,11 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   display: inline-flex; align-items: center; gap: 7px;
   border: 1px solid rgba(13, 13, 13, 0.12); border-radius: 999px;
   background: #faf9f4; padding: 7px 13px; cursor: pointer; font-size: 13px;
+  color: #2c2a24;
+  text-shadow: none;
 }
-.coachTodayRow.warn { border-color: rgba(160, 37, 51, 0.35); background: #fdf3f0; }
-.coachTodayRow strong { font-weight: 800; }
+.coachTodayRow.warn { border-color: rgba(160, 37, 51, 0.4); background: #fdf3f0; }
+.coachTodayRow strong { font-weight: 800; color: #2c2a24; }
+.coachTodayRow.warn strong { color: #7c2230; }
 .coachTodayRow em { font-style: normal; color: #77746a; font-size: 12px; }
+.coachTodayRow span { font-size: 14px; line-height: 1; }
