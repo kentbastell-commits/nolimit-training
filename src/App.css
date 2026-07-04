@@ -26865,3 +26865,60 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   color: #3c3a33;
   line-height: 1.45;
 }
+
+/* Pay-first checkout panel: QR + amount above the register form. */
+.storePayNowV2 {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 14px 0 4px;
+  padding: 16px;
+  border: 1px solid rgba(13, 13, 13, 0.12);
+  border-radius: 14px;
+  background: #fff;
+}
+.storePayNowHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.storePayNowHead strong { font-size: 16px; color: #111; }
+.storePayNowAmount { font-size: 24px; font-weight: 900; color: #111; }
+.storePayNowV2 img {
+  width: min(230px, 70%);
+  margin: 0 auto;
+  border-radius: 10px;
+}
+
+/* Post-intake start-date chooser. */
+.startPickerOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 4350;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.startPickerCard {
+  width: min(380px, 100%);
+  background: #fff;
+  border-radius: 18px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.4);
+}
+.startPickerCard h3 { font-size: 20px; color: #111; }
+.startPickerCard p { font-size: 13.5px; color: #6b6b64; margin-bottom: 4px; }
+.startPickerCustom { display: flex; gap: 8px; }
+.startPickerCustom input {
+  flex: 1;
+  border: 1px solid #d9d7cd;
+  border-radius: 10px;
+  padding: 9px 10px;
+  font-size: 14px;
+}
+.startPickerCustom button { white-space: nowrap; }

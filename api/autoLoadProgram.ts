@@ -61,7 +61,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST")
     return res.status(405).json({ error: "Method not allowed" });
 
-  const { clientRecordId } = req.body;
+  const { clientRecordId, startDate } = req.body;
   if (!clientRecordId)
     return res.status(400).json({ error: "clientRecordId required" });
 
@@ -72,7 +72,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const templatesTableId = process.env.FEISHU_WORKOUT_TEMPLATES_TABLE_ID;
   const assignedWorkoutsTableId = process.env.FEISHU_ASSIGNED_WORKOUTS_TABLE_ID;
 
-  const today = new Date().toISOString().split("T")[0];
+  // Schedule from the client's chosen start date when given; otherwise from
+  // "today" in China time (UTC date lags Asia/Shanghai by 8h — a 6am CST
+  // purchase used to date workouts on yesterday).
+  const chinaToday = new Date(Date.now() + 8 * 3600 * 1000)
+    .toISOString()
+    .split("T")[0];
+  const today =
+    typeof startDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(startDate)
+      ? startDate
+      : chinaToday;
 
   try {
     const token = await getToken();
@@ -144,6 +153,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // templates, schedule and batch-create its workouts, then mark it loaded.
     const loadedPrograms: string[] = [];
     const failedPrograms: string[] = [];
+    // Same program bought twice (or duplicate pending orders) must not double
+    // the calendar: load once per program record, mark every order fulfilled.
+    const loadedProgramRecordIds = new Set<string>();
     let totalWorkoutsCreated = 0;
     let anyOrderStatusUpdateFailed = false;
     let maxAccessLengthDays = 0;
@@ -169,6 +181,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       Number(fieldToText(programRecord.fields?.["Access Length Days"])) || 0;
     if (accessLengthDays > maxAccessLengthDays) {
       maxAccessLengthDays = accessLengthDays;
+    }
+
+    // Already loaded this program in this run — just mark the duplicate order
+    // fulfilled so it can't re-fire, without doubling the calendar.
+    if (loadedProgramRecordIds.has(programRecordId)) {
+      const dupUpdateRes = await fetch(`${base}/${ordersTableId}/records/${orderRecordId}`, {
+        method: "PUT",
+        headers,
+        body: JSON.stringify({
+          fields: { "Fulfillment Status": "Program Loaded" },
+        }),
+      });
+      const dupUpdateData = await dupUpdateRes.json();
+      if (!dupUpdateRes.ok || dupUpdateData.code !== 0) {
+        anyOrderStatusUpdateFailed = true;
+      }
+      continue;
     }
 
     const allTemplates = tmplItems.filter((item: any) => {
@@ -280,6 +309,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
     totalWorkoutsCreated += batchData?.data?.records?.length || 0;
     loadedPrograms.push(programName);
+    loadedProgramRecordIds.add(programRecordId);
 
     // Mark this order loaded (best-effort — the workouts already exist, so a
     // failure here shouldn't fail the athlete's load, but it must be surfaced

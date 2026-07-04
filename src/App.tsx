@@ -1786,6 +1786,9 @@ function App() {
   const [portalPostIntake, setPortalPostIntake] = useState(false);
   const [portalAutoLoading, setPortalAutoLoading] = useState(false);
   const [portalLoadedProgram, setPortalLoadedProgram] = useState("");
+  // Post-intake start-date chooser (today / Monday / custom) before auto-load.
+  const [portalStartPicker, setPortalStartPicker] = useState(false);
+  const [portalStartCustom, setPortalStartCustom] = useState("");
   // Remember the athlete's portal in this browser so returning visitors can
   // reopen it from the store without re-entering anything.
   const [rememberedPortalCode] = useState(() => {
@@ -7519,8 +7522,18 @@ function App() {
       sessionDurationMin: finishDurationMin || undefined,
     };
 
-    // Celebration stats from what was actually logged.
-    const completedLogs = setLogs.filter(isSetComplete);
+    // Celebration stats from what was ACTUALLY logged: a set counts only if
+    // the athlete ticked it done, or typed a real value (weight/time/distance).
+    // Prefilled plan reps alone don't count — shared cards must be honest.
+    const completedLogs = setLogs.filter(
+      (log) =>
+        checkedWorkoutPageItems.includes(workoutSetCheckKey(log)) ||
+        (log.trackingType === "Time"
+          ? !!String(log.actualTime || "").trim()
+          : log.trackingType === "Distance"
+            ? !!String(log.actualDistance || "").trim()
+            : !!String(log.actualWeight || "").trim())
+    );
     const volumeKg = completedLogs.reduce((sum, log) => {
       const w = Number(log.actualWeight);
       const r = Number(log.actualReps);
@@ -15566,6 +15579,36 @@ function App() {
     setContentAssignmentComment("");
   };
 
+  // Load the purchased program(s) starting on the chosen date. Called from the
+  // post-intake start-date chooser.
+  const loadProgramFromDate = async (startDate: string) => {
+    if (!selectedClient) return;
+    setPortalStartPicker(false);
+    setPortalAutoLoading(true);
+    try {
+      const loadRes = await fetch("/api/autoLoadProgram", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clientRecordId: selectedClient.id,
+          startDate: startDate || undefined,
+        }),
+      });
+      const loadData = await loadRes.json();
+      if (loadData.success && loadData.programName && !loadData.alreadyLoaded) {
+        setPortalLoadedProgram(loadData.programName);
+        // Land on the calendar so the "Next Workout — Start" card is the
+        // first thing the new client sees after their plan loads.
+        setClientTab("Training");
+      }
+      void loadContentAssignments(selectedClient);
+    } catch {
+      // Silent — program loading can be retried by coach
+    } finally {
+      setPortalAutoLoading(false);
+    }
+  };
+
   const activeAssignmentIsTest =
     !!activeContentAssignment &&
     activeContentAssignment.assignmentType.toLowerCase().includes("test");
@@ -15799,30 +15842,12 @@ function App() {
       setContentAssignmentAnswers({});
       setContentAssignmentComment("");
 
-      // Auto-load program if client just submitted an intake in the portal
+      // Intake submitted in the portal: let the client choose their program
+      // start date, then load. (Previously loading always started "today".)
       const isIntake = activeContentAssignment.assignmentType === "Questionnaire";
       if (isClientPortal && isIntake && selectedClient) {
         setPortalPostIntake(true);
-        setPortalAutoLoading(true);
-        try {
-          const loadRes = await fetch("/api/autoLoadProgram", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ clientRecordId: selectedClient.id }),
-          });
-          const loadData = await loadRes.json();
-          if (loadData.success && loadData.programName && !loadData.alreadyLoaded) {
-            setPortalLoadedProgram(loadData.programName);
-            // Land on the calendar so the "Next Workout — Start" card is the
-            // first thing the new client sees after their plan loads.
-            setClientTab("Training");
-          }
-          void loadContentAssignments(selectedClient);
-        } catch {
-          // Silent — program loading can be retried by coach
-        } finally {
-          setPortalAutoLoading(false);
-        }
+        setPortalStartPicker(true);
       } else {
         notify("Assignment submitted.", "success");
       }
@@ -18830,6 +18855,16 @@ function App() {
                                 {sZh ? "完成问卷，计划自动加载" : "Finish intake → plan loads"}
                               </li>
                             </ol>
+                            <div className="storePayNowV2">
+                              <div className="storePayNowHead">
+                                <strong>{sZh ? "微信支付" : "WeChat Pay"}</strong>
+                                <span className="storePayNowAmount">
+                                  {currency === "USD" ? "$" : "¥"}
+                                  {subtotal}
+                                </span>
+                              </div>
+                              <img src="/wechat-pay-qr.jpg" alt="WeChat QR" />
+                            </div>
                             {storePaymentCode && (
                               <div className="storePaymentCodeV2">
                                 <span>
@@ -18905,20 +18940,6 @@ function App() {
                     )}
                   </div>
 
-                  {storeStep === 3 && (
-                    <div className="storeModalPaymentV2">
-                      <strong>{sZh ? "微信支付" : "WeChat Pay"}</strong>
-                      <img
-                        src="https://i.ibb.co/Y4nXVG4g/Weixin-Image-20260611202846-56-2.jpg"
-                        alt="WeChat QR"
-                      />
-                      <span>
-                        {sZh
-                          ? "付款后填写姓名和微信号。"
-                          : "After payment, enter your name and WeChat ID."}
-                      </span>
-                    </div>
-                  )}
                 </div>
               </div>
             </div>
@@ -33481,6 +33502,54 @@ function App() {
                   disabled={submittingContentAssignment}
                 >
                   {submittingContentAssignment ? "Submitting..." : "Submit"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {portalStartPicker && isClientPortal && (
+          <div className="startPickerOverlay">
+            <div className="startPickerCard">
+              <h3>{paceZh ? "🎯 什么时候开始？" : "🎯 When do you want to start?"}</h3>
+              <p>
+                {paceZh
+                  ? "你的训练计划会从所选日期开始排入日历。"
+                  : "Your program will be scheduled into your calendar from this date."}
+              </p>
+              <button
+                type="button"
+                className="primaryButton"
+                onClick={() => void loadProgramFromDate(todayValue)}
+              >
+                {paceZh ? "今天开始" : "Start today"}
+              </button>
+              <button
+                type="button"
+                className="outlineButton"
+                onClick={() => {
+                  const d = new Date();
+                  const add = ((8 - d.getDay()) % 7) || 7;
+                  d.setDate(d.getDate() + add);
+                  void loadProgramFromDate(dateToInputValue(d));
+                }}
+              >
+                {paceZh ? "下周一开始" : "Start next Monday"}
+              </button>
+              <div className="startPickerCustom">
+                <input
+                  type="date"
+                  min={todayValue}
+                  value={portalStartCustom}
+                  onChange={(e) => setPortalStartCustom(e.target.value)}
+                />
+                <button
+                  type="button"
+                  className="outlineButton"
+                  disabled={!portalStartCustom}
+                  onClick={() => void loadProgramFromDate(portalStartCustom)}
+                >
+                  {paceZh ? "从这天开始" : "Start on this date"}
                 </button>
               </div>
             </div>

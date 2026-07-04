@@ -171,7 +171,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const formsTableId = process.env.FEISHU_FORM_TEMPLATES_TABLE_ID;
   const assignedFormsTableId = process.env.FEISHU_ASSIGNED_FORMS_TABLE_ID;
 
-  const today = new Date().toISOString().split("T")[0];
+  // "Today" in China time — the UTC date lags Asia/Shanghai by 8h, so early-
+  // morning CST purchases used to stamp yesterday's date on orders/access.
+  const today = new Date(Date.now() + 8 * 3600 * 1000)
+    .toISOString()
+    .split("T")[0];
 
   try {
     const token = await getToken();
