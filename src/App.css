@@ -26922,3 +26922,33 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   font-size: 14px;
 }
 .startPickerCustom button { white-space: nowrap; }
+
+/* Finish-screen catch for sets with nothing logged. */
+.finishUnloggedCatch {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 4px 0 14px;
+  padding: 14px 16px;
+  border: 1px solid rgba(212, 175, 55, 0.5);
+  border-radius: 12px;
+  background: rgba(212, 175, 55, 0.1);
+  text-align: left;
+}
+.finishUnloggedCatch > span { font-size: 14px; font-weight: 800; color: #f7e4a3; }
+.finishUnloggedCatch button {
+  border: 1px solid rgba(212, 175, 55, 0.6);
+  background: rgba(212, 175, 55, 0.18);
+  color: #f7e4a3;
+  border-radius: 999px;
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.finishUnloggedHint {
+  display: block;
+  margin-top: 7px;
+  font-size: 12px;
+  color: #b9b39f;
+}

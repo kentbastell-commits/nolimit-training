@@ -7516,36 +7516,17 @@ function App() {
       assignedWorkoutRecordId: selectedWorkout.id,
       programId: selectedWorkout.programId,
       workoutDate: normalizeDate(String(selectedWorkout.scheduledDate)),
-      logs: setLogs,
+      // Per-set truth: the server persists Completed from this flag instead of
+      // stamping every prescribed set as done.
+      logs: setLogs.map((log) => ({ ...log, completed: isSetComplete(log) })),
       submissionNote: workoutSubmissionNote.trim(),
       sessionRpe: workoutRpe ?? undefined,
       sessionDurationMin: finishDurationMin || undefined,
     };
 
-    // Celebration stats: a set counts if the athlete ticked it done, typed a
-    // real value (weight/time/distance), or it's a reps-based set outside the
-    // warmup — bodyweight work (push-ups, jumps) counts without needing a
-    // weight entry, but untouched warmup rows never pad the shared card.
-    const warmupExerciseIds = new Set(
-      workoutDetails
-        .filter((exercise) =>
-          isWarmupSection(
-            parseExerciseNotes(exercise.notes).sectionName || ""
-          )
-        )
-        .map((exercise) => exercise.exerciseId)
-    );
-    const completedLogs = setLogs.filter(
-      (log) =>
-        checkedWorkoutPageItems.includes(workoutSetCheckKey(log)) ||
-        (log.trackingType === "Time"
-          ? !!String(log.actualTime || "").trim()
-          : log.trackingType === "Distance"
-            ? !!String(log.actualDistance || "").trim()
-            : !!String(log.actualWeight || "").trim() ||
-              (!!String(log.actualReps || "").trim() &&
-                !warmupExerciseIds.has(log.exerciseId)))
-    );
+    // Celebration stats share the app-wide completion rule (✓ or typed value);
+    // the finish-screen catch has already resolved untouched sets by now.
+    const completedLogs = setLogs.filter(isSetComplete);
     const volumeKg = completedLogs.reduce((sum, log) => {
       const w = Number(log.actualWeight);
       const r = Number(log.actualReps);
@@ -17291,26 +17272,20 @@ function App() {
   };
 
   // A single set is "complete" once its primary actual value is entered.
+  // A set is DONE only when the athlete ticked it ✓ or typed a real value
+  // (weight/time/distance/RPE/RIR — reps alone don't count because the plan
+  // prefills them). Unchecked and untouched honestly means "skipped"; the
+  // finish screen catches forgetful tickers before submit.
   const isSetComplete = (log: SetLog) => {
+    if (checkedWorkoutPageItems.includes(workoutSetCheckKey(log))) return true;
     if (log.trackingType === "Time") return !!String(log.actualTime || "").trim();
     if (log.trackingType === "Distance")
       return !!String(log.actualDistance || "").trim();
-    // Strength: complete once any of the tracked fields has a value.
-    const fields =
-      log.trackingFields && log.trackingFields.length
-        ? log.trackingFields
-        : ["Weight", "Reps"];
-    const valueOf = (f: string) =>
-      f === "Weight"
-        ? log.actualWeight
-        : f === "Reps"
-          ? log.actualReps
-          : f === "RPE"
-            ? log.actualRpe
-            : f === "RIR"
-              ? log.actualRir
-              : "";
-    return fields.some((f) => !!String(valueOf(f) || "").trim());
+    return Boolean(
+      String(log.actualWeight || "").trim() ||
+        String(log.actualRpe || "").trim() ||
+        String(log.actualRir || "").trim()
+    );
   };
 
   // An exercise counts as "logged" once every one of its set rows is complete.
@@ -35418,6 +35393,45 @@ function App() {
                     })}
                   </div>
 
+                  {(() => {
+                    // Catch untouched sets at the moment of review: one tap to
+                    // claim them done, or leave them recorded as skipped.
+                    const unlogged = setLogs.filter((log) => !isSetComplete(log));
+                    if (unlogged.length === 0) return null;
+                    return (
+                      <div className="finishUnloggedCatch">
+                        <span>
+                          {paceZh
+                            ? `${unlogged.length} 组没有记录 — 你做了吗？`
+                            : `${unlogged.length} set${
+                                unlogged.length === 1 ? " has" : "s have"
+                              } nothing logged — did you do them?`}
+                        </span>
+                        <div>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setCheckedWorkoutPageItems((current) =>
+                                Array.from(
+                                  new Set([
+                                    ...current,
+                                    ...unlogged.map(workoutSetCheckKey),
+                                  ])
+                                )
+                              )
+                            }
+                          >
+                            {paceZh ? "都做了，标记完成" : "Yes — mark them done"}
+                          </button>
+                          <span className="finishUnloggedHint">
+                            {paceZh
+                              ? "没做的话直接保存，会记录为跳过。"
+                              : "If not, just save — they'll be recorded as skipped."}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })()}
                   <button
                     className="goldButton workoutSummaryDone"
                     onClick={saveWorkout}

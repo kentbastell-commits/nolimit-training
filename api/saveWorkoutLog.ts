@@ -153,7 +153,9 @@ export default async function handler(
         "Time Unit": "s",
         "Distance Unit": "m",
 
-        "Completed": true,
+        // Per-set truth from the player (✓ or typed value). Older clients that
+        // don't send the flag keep the historical "all done" behavior.
+        "Completed": log.completed === false ? false : true,
       };
 
       const numberFields: Array<[string, any]> = [
