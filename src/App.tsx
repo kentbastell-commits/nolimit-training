@@ -9232,11 +9232,19 @@ function App() {
     const categoryDefaults = isCardioCategory(exercise.category)
       ? null
       : categoryPrescriptionDefaults(exercise.category);
+    // Category-aware fallback: a conditioning/cardio exercise added first into
+    // an empty session starts a Conditioning/Cardio section instead of landing
+    // in "Warmup" (which made whole WODs render under a WARMUP header).
+    const fallbackSection = isCardioCategory(exercise.category)
+      ? "Cardio"
+      : isConditioningCategory(exercise.category)
+        ? "Conditioning"
+        : builderSectionOptions[0];
     const exerciseSection =
       pendingSectionName ||
       parent?.sectionName ||
       baseList[baseList.length - 1]?.sectionName ||
-      builderSectionOptions[0];
+      fallbackSection;
     const initialExercise: ProgramExercise = {
       exerciseRecordId: exercise.recordId,
       exerciseId: exercise.exerciseId,
@@ -34142,13 +34150,13 @@ function App() {
                         {focusGroupTitle && (
                           <div className="workoutPlayerGroupHeader">
                             <span>
-                              {paceZh
-                                ? meta.groupType === "Circuit"
-                                  ? "循环"
-                                  : "超级组"
-                                : meta.groupType || "Superset"}
-                              {" "}
-                              {workoutFocusSetRound}/{groupRoundCount}
+                              {meta.groupType === "Circuit"
+                                ? paceZh
+                                  ? `第 ${workoutFocusSetRound}/${groupRoundCount} 轮`
+                                  : `Round ${workoutFocusSetRound}/${groupRoundCount}`
+                                : paceZh
+                                  ? `第 ${workoutFocusSetRound}/${groupRoundCount} 组`
+                                  : `Set ${workoutFocusSetRound}/${groupRoundCount}`}
                             </span>
                             <strong>{focusGroupTitle}</strong>
                           </div>
@@ -34997,6 +35005,10 @@ function App() {
                       focusBounds.end + 1
                     );
                     const focusEx = workoutDetails[workoutFocusIndex];
+                    const navIsCircuit =
+                      isGroupedFocus &&
+                      focusEx &&
+                      parseExerciseNotes(focusEx.notes).groupType === "Circuit";
                     const focusIds = new Set(
                       focusBounds.indexes
                         .map((index) => workoutDetails[index]?.exerciseId)
@@ -35091,9 +35103,13 @@ function App() {
                             }}
                           >
                             {isGroupedFocus && workoutFocusSetRound < roundCount
-                              ? paceZh
-                                ? "下一组"
-                                : "Next set"
+                              ? navIsCircuit
+                                ? paceZh
+                                  ? "下一轮"
+                                  : "Next round"
+                                : paceZh
+                                  ? "下一组"
+                                  : "Next set"
                               : paceZh
                               ? "下一个动作"
                               : "Next exercise"}
