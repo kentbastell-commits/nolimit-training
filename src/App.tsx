@@ -7522,9 +7522,19 @@ function App() {
       sessionDurationMin: finishDurationMin || undefined,
     };
 
-    // Celebration stats from what was ACTUALLY logged: a set counts only if
-    // the athlete ticked it done, or typed a real value (weight/time/distance).
-    // Prefilled plan reps alone don't count — shared cards must be honest.
+    // Celebration stats: a set counts if the athlete ticked it done, typed a
+    // real value (weight/time/distance), or it's a reps-based set outside the
+    // warmup — bodyweight work (push-ups, jumps) counts without needing a
+    // weight entry, but untouched warmup rows never pad the shared card.
+    const warmupExerciseIds = new Set(
+      workoutDetails
+        .filter((exercise) =>
+          isWarmupSection(
+            parseExerciseNotes(exercise.notes).sectionName || ""
+          )
+        )
+        .map((exercise) => exercise.exerciseId)
+    );
     const completedLogs = setLogs.filter(
       (log) =>
         checkedWorkoutPageItems.includes(workoutSetCheckKey(log)) ||
@@ -7532,7 +7542,9 @@ function App() {
           ? !!String(log.actualTime || "").trim()
           : log.trackingType === "Distance"
             ? !!String(log.actualDistance || "").trim()
-            : !!String(log.actualWeight || "").trim())
+            : !!String(log.actualWeight || "").trim() ||
+              (!!String(log.actualReps || "").trim() &&
+                !warmupExerciseIds.has(log.exerciseId)))
     );
     const volumeKg = completedLogs.reduce((sum, log) => {
       const w = Number(log.actualWeight);
