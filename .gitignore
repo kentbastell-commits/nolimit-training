@@ -40,3 +40,4 @@ dist-ssr
 /nl_live_*.png
 /nl_verify_*.png
 /builder_density_*.png
+test-results/
