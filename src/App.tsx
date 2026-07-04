@@ -1872,13 +1872,24 @@ function App() {
   const [storeRegStage, setStoreRegStage] = useState(0);
   // Coach access lock: the dashboard stays covered until the access key is
   // entered once on this device (verified against the server).
-  const [coachUnlocked] = useState(() => {
+  const [coachUnlocked, setCoachUnlocked] = useState(() => {
     try {
       return Boolean(window.localStorage.getItem("nl_coach_key"));
     } catch {
       return true;
     }
   });
+  // If the server isn't enforcing a key (COACH_ACCESS_KEY unset), skip the
+  // lock screen entirely instead of asking for a key nothing checks.
+  useEffect(() => {
+    if (!isCoachView || coachUnlocked) return;
+    void nativeFetch("/api/analytics")
+      .then((res) => {
+        if (res.status !== 401) setCoachUnlocked(true);
+      })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [coachKeyInput, setCoachKeyInput] = useState("");
   const [coachKeyError, setCoachKeyError] = useState("");
   const [coachKeyBusy, setCoachKeyBusy] = useState(false);
