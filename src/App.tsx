@@ -1903,6 +1903,31 @@ function App() {
       setCoachKeyBusy(false);
     }
   };
+  // Duplicate a whole program (record + all sessions) server-side.
+  const [duplicatingProgramId, setDuplicatingProgramId] = useState("");
+  const duplicateSavedProgram = async (program: { recordId: string; programName: string }) => {
+    setDuplicatingProgramId(program.recordId);
+    try {
+      const res = await fetch("/api/duplicateProgram", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ programRecordId: program.recordId, mode: "program" }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "failed");
+      notify(
+        `Duplicated "${program.programName}" — ${data.sessionsCopied} sessions copied.`,
+        "success"
+      );
+      await loadPrograms(true);
+    } catch (error) {
+      console.error(error);
+      notify("Could not duplicate the program.", "error");
+    } finally {
+      setDuplicatingProgramId("");
+    }
+  };
+
   // Coach review queue for athlete form videos.
   const [reviewFormVideos, setReviewFormVideos] = useState<
     Array<{
@@ -24371,6 +24396,19 @@ function App() {
                                   }}
                                 >
                                   <Settings size={16} />
+                                </button>
+                                <button
+                                  type="button"
+                                  className="iconActionButton"
+                                  title="Duplicate program (copies every session)"
+                                  disabled={
+                                    duplicatingProgramId === program.recordId
+                                  }
+                                  onClick={() =>
+                                    void duplicateSavedProgram(program)
+                                  }
+                                >
+                                  <Copy size={16} />
                                 </button>
                                 <button
                                   type="button"
