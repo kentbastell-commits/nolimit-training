@@ -154,6 +154,13 @@ import AddClientModal from "./AddClientModal";
 import AccountModal from "./AccountModal";
 import ExerciseModal from "./ExerciseModal";
 import ClientWorkspace from "./ClientWorkspace";
+import ExerciseHistoryModal from "./ExerciseHistoryModal";
+import CoachEditModal from "./CoachEditModal";
+import CalendarActionMenu from "./CalendarActionMenu";
+import AssignmentDrawer from "./AssignmentDrawer";
+import CheckInsPage from "./CheckInsPage";
+import CreateProgramModal from "./CreateProgramModal";
+import ProgramPreviewModal from "./ProgramPreviewModal";
 
 function App() {
   const { t, i18n } = useTranslation();
@@ -16980,269 +16987,23 @@ function App() {
       )}
 
       {previewProgram && (
-        <div
-          className="createProgramOverlay"
-          onClick={() => setPreviewProgram(null)}
-        >
-          <div
-            className="previewModal"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="createProgramHeader">
-              <div>
-                <span className="eyebrow">Preview</span>
-                <h3>{previewProgram.program.programName}</h3>
-              </div>
-              <button
-                type="button"
-                className="iconActionButton"
-                title="Close"
-                onClick={() => setPreviewProgram(null)}
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <div className="previewBody">
-              {previewLoading ? (
-                <p className="programTableEmpty">Loading…</p>
-              ) : previewProgram.sessions.length === 0 ? (
-                <p className="programTableEmpty">No sessions in this program.</p>
-              ) : (
-                (() => {
-                  const maxWeek = previewProgram.sessions.reduce(
-                    (m, s) => Math.max(m, Number(s.week) || 1),
-                    1
-                  );
-                  const weeks = Array.from(
-                    { length: maxWeek },
-                    (_, i) => i + 1
-                  );
-                  return weeks.map((w) => {
-                    const days = previewProgram.sessions
-                      .filter((s) => s.week === String(w))
-                      .sort((a, b) => Number(a.day) - Number(b.day));
-                    if (days.length === 0) return null;
-                    return (
-                      <div className="previewWeek" key={w}>
-                        <div className="previewWeekLabel">Week {w}</div>
-                        <div className="previewDays">
-                          {days.map((s) => (
-                            <div
-                              key={s.localId}
-                              className={`programGridCard ${getWorkoutColorClass(
-                                s.sessionName,
-                                s.sessionType
-                              )}`}
-                            >
-                              <div className="programGridCardHead">
-                                <strong className="programGridCardName">
-                                  Day {s.day} ·{" "}
-                                  {s.sessionName || `Week ${w} Day ${s.day}`}
-                                </strong>
-                              </div>
-                              <div className="glanceChain">
-                                {buildGlanceChain(s.exercises).map((it, gi) => (
-                                  <div
-                                    className="glanceRow"
-                                    key={`${it.ex.exerciseRecordId}-${gi}`}
-                                  >
-                                    <div className="glanceBadgeWrap">
-                                      {it.linked && !it.isFirst && (
-                                        <span
-                                          className={`glanceLineUp line-${it.lineUpColor}`}
-                                        />
-                                      )}
-                                      {it.linked && !it.isLast && (
-                                        <span
-                                          className={`glanceLineDown line-${it.lineDownColor}`}
-                                        />
-                                      )}
-                                      <span
-                                        className={`exerciseLabelBadge glanceBadge ${it.colorClass}`}
-                                      >
-                                        {it.display}
-                                      </span>
-                                    </div>
-                                    <div className="glanceText">
-                                      <strong>{it.ex.exerciseName}</strong>
-                                      {(it.ex.sets || it.ex.reps) && (
-                                        <span>
-                                          {it.ex.sets && it.ex.reps
-                                            ? `${it.ex.sets} x ${it.ex.reps}`
-                                            : it.ex.sets || it.ex.reps}
-                                        </span>
-                                      )}
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  });
-                })()
-              )}
-            </div>
-
-            <div className="createProgramFooter">
-              <button
-                type="button"
-                className="outlineButton"
-                onClick={() => setPreviewProgram(null)}
-              >
-                Close
-              </button>
-              <button
-                type="button"
-                className="outlineButton"
-                onClick={() => {
-                  const pr = previewProgram.program;
-                  setPreviewProgram(null);
-                  setSelectedSavedProgramId(pr.programId);
-                  void loadSavedProgramIntoBuilder(pr, { asCopy: true });
-                }}
-              >
-                <Copy size={15} /> Duplicate
-              </button>
-              <button
-                type="button"
-                className="goldButton"
-                onClick={() => {
-                  const pr = previewProgram.program;
-                  setPreviewProgram(null);
-                  setSelectedSavedProgramId(pr.programId);
-                  void loadSavedProgramIntoBuilder(pr, { edit: true });
-                }}
-              >
-                <Pencil size={15} /> Edit
-              </button>
-            </div>
-          </div>
-        </div>
+        <ProgramPreviewModal
+          buildGlanceChain={buildGlanceChain}
+          loadSavedProgramIntoBuilder={loadSavedProgramIntoBuilder}
+          previewLoading={previewLoading}
+          previewProgram={previewProgram}
+          setPreviewProgram={setPreviewProgram}
+          setSelectedSavedProgramId={setSelectedSavedProgramId}
+        />
       )}
 
       {createProgramOpen && (
-        <div
-          className="createProgramOverlay"
-          onClick={() => setCreateProgramOpen(false)}
-        >
-          <div
-            className="createProgramModal"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="createProgramHeader">
-              <div>
-                <span className="eyebrow">New Program</span>
-                <h3>Program Details</h3>
-              </div>
-              <button
-                type="button"
-                className="iconActionButton"
-                title="Close"
-                onClick={() => setCreateProgramOpen(false)}
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <div className="createProgramBody">
-              <label className="createProgramField">
-                <span>Program Type</span>
-                <select
-                  value={createDraft.productType}
-                  onChange={(e) =>
-                    setCreateDraft((d) => ({ ...d, productType: e.target.value }))
-                  }
-                  className="miniSearch"
-                >
-                  <option>Digital Program</option>
-                  <option>Digital Add-on</option>
-                  <option>Digital Bundle</option>
-                  <option>Online Coaching</option>
-                  <option>In-Person Training</option>
-                  <option>Internal Coaching Template</option>
-                </select>
-              </label>
-
-              <label className="createProgramField">
-                <span>Program Name</span>
-                <input
-                  autoFocus
-                  value={createDraft.name}
-                  onChange={(e) =>
-                    setCreateDraft((d) => ({ ...d, name: e.target.value }))
-                  }
-                  placeholder="e.g. 8-Week Hypertrophy"
-                  className="miniSearch"
-                />
-              </label>
-
-              <label className="createProgramField">
-                <span>Goal</span>
-                <input
-                  value={createDraft.goal}
-                  onChange={(e) =>
-                    setCreateDraft((d) => ({ ...d, goal: e.target.value }))
-                  }
-                  placeholder="e.g. Build muscle"
-                  className="miniSearch"
-                />
-              </label>
-
-              <div className="createProgramRow">
-                <label className="createProgramField">
-                  <span>Phase</span>
-                  <input
-                    value={createDraft.phase}
-                    onChange={(e) =>
-                      setCreateDraft((d) => ({ ...d, phase: e.target.value }))
-                    }
-                    placeholder="e.g. Foundation"
-                    className="miniSearch"
-                  />
-                </label>
-
-                <label className="createProgramField">
-                  <span>Duration (Weeks)</span>
-                  <input
-                    type="number"
-                    min={1}
-                    max={52}
-                    value={createDraft.durationWeeks}
-                    onChange={(e) =>
-                      setCreateDraft((d) => ({
-                        ...d,
-                        durationWeeks: e.target.value,
-                      }))
-                    }
-                    className="miniSearch"
-                  />
-                </label>
-              </div>
-            </div>
-
-            <div className="createProgramFooter">
-              <button
-                type="button"
-                className="outlineButton"
-                onClick={() => setCreateProgramOpen(false)}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="goldButton"
-                disabled={!createDraft.name.trim()}
-                onClick={startProgramFromDraft}
-              >
-                Create &amp; Build
-              </button>
-            </div>
-          </div>
-        </div>
+        <CreateProgramModal
+          createDraft={createDraft}
+          setCreateDraft={setCreateDraft}
+          setCreateProgramOpen={setCreateProgramOpen}
+          startProgramFromDraft={startProgramFromDraft}
+        />
       )}
 
       {customizeFieldsIndex !== null &&
@@ -18167,122 +17928,23 @@ function App() {
             )}
 
             {activePage === "Check-ins" && (
-              <section className="checkInsPage">
-                <div className="checkInStatsGrid">
-                  <div className="clientStat">
-                    <span>Due Now</span>
-                    <strong>{checkInStats.due}</strong>
-                  </div>
-                  <div className="clientStat">
-                    <span>Recent</span>
-                    <strong>{checkInStats.recent}</strong>
-                  </div>
-                  <div className="clientStat">
-                    <span>No Check-in</span>
-                    <strong>{checkInStats.missing}</strong>
-                  </div>
-                </div>
-
-                <div className="clientToolbar checkInToolbar">
-                  <input
-                    placeholder="Search check-ins"
-                    value={checkInSearch}
-                    onChange={(e) => setCheckInSearch(e.target.value)}
-                  />
-
-                  <select
-                    value={checkInFilter}
-                    onChange={(e) =>
-                      setCheckInFilter(e.target.value as CheckInFilter)
-                    }
-                  >
-                    <option value="Due">Due</option>
-                    <option value="Recent">Recent</option>
-                    <option value="No Check-in">No Check-in</option>
-                    <option value="All">All</option>
-                  </select>
-
-                  <button
-                    className="outlineButton"
-                    onClick={() => void loadClients(true)}
-                  >
-                    Refresh
-                  </button>
-                </div>
-
-                <section className="checkInList">
-                  {!loading && filteredCheckInClients.length === 0 && (
-                    <p className="emptyTableMessage">
-                      No clients match this check-in view.
-                    </p>
-                  )}
-
-                  {filteredCheckInClients.map((client) => {
-                    const ageDays = getCheckInAgeDays(client);
-                    const isDue = clientNeedsCheckIn(client);
-                    const lastCheckIn =
-                      ageDays === null
-                        ? "No check-in recorded"
-                        : ageDays === 0
-                        ? "Checked in today"
-                        : `${ageDays} days since check-in`;
-
-                    return (
-                      <article
-                        className={`checkInCard ${isDue ? "checkInDueCard" : ""}`}
-                        key={client.id}
-                      >
-                        <div className="clientName">
-                          <div className="clientAvatar">{client.initials}</div>
-                          <div>
-                            <strong>{client.name}</strong>
-                            <p>{client.status || "Active"}</p>
-                          </div>
-                        </div>
-
-                        <div className="checkInMeta">
-                          <span>Last Check-in</span>
-                          <strong>{client.activity || "--"}</strong>
-                          <p>{lastCheckIn}</p>
-                        </div>
-
-                        <div className="checkInMeta">
-                          <span>Program</span>
-                          <strong>{client.program || "--"}</strong>
-                          <p>{client.email || client.phone || "No contact saved"}</p>
-                        </div>
-
-                        <div className="checkInActions">
-                          <button
-                            className={isDue ? "goldButton" : "outlineButton"}
-                            onClick={() => markClientCheckedInToday(client)}
-                            disabled={savingCheckInClientId === client.id}
-                          >
-                            {savingCheckInClientId === client.id
-                              ? "Saving..."
-                              : "Mark Today"}
-                          </button>
-                          <button
-                            className="outlineButton"
-                            onClick={() => openCheckInQuestionnaire(client)}
-                          >
-                            Questionnaire
-                          </button>
-                          <button
-                            className="outlineButton"
-                            onClick={() => {
-                              setSelectedClient(client);
-                              setClientTab("Overview");
-                            }}
-                          >
-                            Open Client
-                          </button>
-                        </div>
-                      </article>
-                    );
-                  })}
-                </section>
-              </section>
+              <CheckInsPage
+                checkInFilter={checkInFilter}
+                checkInSearch={checkInSearch}
+                checkInStats={checkInStats}
+                clientNeedsCheckIn={clientNeedsCheckIn}
+                filteredCheckInClients={filteredCheckInClients}
+                getCheckInAgeDays={getCheckInAgeDays}
+                loadClients={loadClients}
+                loading={loading}
+                markClientCheckedInToday={markClientCheckedInToday}
+                openCheckInQuestionnaire={openCheckInQuestionnaire}
+                savingCheckInClientId={savingCheckInClientId}
+                setCheckInFilter={setCheckInFilter}
+                setCheckInSearch={setCheckInSearch}
+                setClientTab={setClientTab}
+                setSelectedClient={setSelectedClient}
+              />
             )}
           </>
         )}
@@ -18768,267 +18430,39 @@ function App() {
         )}
 
         {showAssignmentDrawer && !isClientPortal && selectedClient && (
-          <div
-            className="assignmentDrawerOverlay"
-            onMouseDown={(event) => {
-              if (event.target === event.currentTarget) {
-                closeAssignmentDrawer();
-              }
-            }}
-          >
-            <aside className="assignmentDrawer">
-              <div className="assignmentDrawerHeader">
-                <div>
-                  <span>Assign</span>
-                  <h2>New Task</h2>
-                  <p>
-                    {selectedClient.name} / {formatCalendarLabel(assignmentDueDate)}
-                  </p>
-                </div>
-                <button
-                  className="drawerClose"
-                  onClick={closeAssignmentDrawer}
-                  type="button"
-                >
-                  x
-                </button>
-              </div>
-
-              <div className="assignmentDrawerTypes">
-                {(["Program", "Questionnaire", "Physical Test", "Check-in"] as const).map(
-                  (type) => (
-                    <button
-                      key={type}
-                      className={assignmentType === type ? "active" : ""}
-                      type="button"
-                      onClick={() => {
-                        setAssignmentType(type);
-                        if (type === "Program") {
-                          setAssignmentTemplateId("");
-                        } else if (type === "Physical Test") {
-                          const activeTests = savedTestTemplates.filter(
-                            (test) => test.status !== "Archived"
-                          );
-
-                          setAssignmentTemplateId(
-                            activeTests.length === 1
-                              ? activeTests[0].testTemplateId
-                              : ""
-                          );
-                        } else {
-                          const formsForType = savedFormTemplates.filter((form) => {
-                            const formType = form.type.toLowerCase();
-                            return (
-                              form.status !== "Archived" &&
-                              (type === "Check-in"
-                                ? formType.includes("check") ||
-                                    formType.includes("readiness")
-                                : true)
-                            );
-                          });
-
-                          setAssignmentTemplateId(
-                            formsForType.length === 1 ? formsForType[0].formId : ""
-                          );
-                        }
-                        setAssignableWorkouts([]);
-                        setAssignmentClientId(selectedClient.id);
-                        setAssignmentDueDate(calendarAnchorDate);
-                        setAssignStartDate(calendarAnchorDate);
-                      }}
-                    >
-                      {type}
-                    </button>
-                  )
-                )}
-              </div>
-
-              <div className="assignmentDrawerForm">
-                <label>
-                  <span>Client</span>
-                  <input value={selectedClient.name} readOnly />
-                </label>
-
-                <label>
-                  <span>Start Date</span>
-                  <input
-                    ref={calendarAssignmentDateInputRef}
-                    type="date"
-                    value={
-                      assignmentType === "Program"
-                        ? assignStartDate
-                        : assignmentDueDate
-                    }
-                    onChange={(event) => {
-                      const nextDate = normalizeDate(event.target.value);
-
-                      setCalendarAnchorDate(nextDate);
-                      setAssignmentDueDate(nextDate);
-
-                      if (assignmentType === "Program") {
-                        shiftAssignableWorkoutsToStartDate(nextDate);
-                      }
-                    }}
-                  />
-                </label>
-
-                {assignmentType === "Program" ? (
-                  <label className="assignmentDrawerWide">
-                    <span>
-                      {assignProgramKind === "session"
-                        ? "Saved Session"
-                        : "Saved Program"}
-                    </span>
-                    {(() => {
-                      const assignList = programs.filter((p) =>
-                        assignProgramKind === "session"
-                          ? p.productType === "Single Workout"
-                          : p.productType !== "Single Workout"
-                      );
-                      return (
-                        <select
-                          value={selectedAssignProgramId}
-                          onChange={(event) => {
-                            setSelectedAssignProgramId(event.target.value);
-                            setAssignableWorkouts([]);
-                          }}
-                        >
-                          {assignList.length > 0 ? (
-                            assignList.map((program) => (
-                              <option
-                                key={program.recordId}
-                                value={program.programId}
-                              >
-                                {program.programName}
-                              </option>
-                            ))
-                          ) : (
-                            <option value="">
-                              {assignProgramKind === "session"
-                                ? "No saved sessions"
-                                : "No saved programs"}
-                            </option>
-                          )}
-                        </select>
-                      );
-                    })()}
-                  </label>
-                ) : (
-                  <label className="assignmentDrawerWide">
-                    <span>
-                      {assignmentType === "Physical Test"
-                        ? "Saved Test"
-                        : "Saved Form"}
-                    </span>
-                    <select
-                      key={assignmentType}
-                      value={assignmentTemplateId}
-                      onChange={(event) =>
-                        setAssignmentTemplateId(event.target.value)
-                      }
-                    >
-                      <option value="">
-                        {assignmentTemplateOptions.length === 0
-                          ? assignmentType === "Physical Test"
-                            ? "No saved tests"
-                            : "No saved forms"
-                          : "Select saved item"}
-                      </option>
-                      {assignmentTemplateOptions.map((option) => (
-                        <option key={option.id} value={option.id}>
-                          {option.label} ({option.meta})
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                )}
-              </div>
-
-              {assignmentType === "Program" && assignableWorkouts.length > 0 && (
-                <div className="assignmentDrawerSessions">
-                  <div>
-                    <span>Program Preview</span>
-                    <strong>{assignableWorkouts.length} sessions</strong>
-                  </div>
-                  {assignableWorkouts.map((workout) => (
-                    <label key={workout.localId} className="drawerSessionRow">
-                      <span>
-                        Week {workout.week}, Day {workout.day}
-                        <strong>{workout.sessionName}</strong>
-                      </span>
-                      <input
-                        type="date"
-                        value={workout.scheduledDate}
-                        onChange={(event) =>
-                          updateAssignableWorkoutDate(
-                            workout.localId,
-                            event.target.value
-                          )
-                        }
-                      />
-                    </label>
-                  ))}
-                </div>
-              )}
-
-              <div className="assignmentDrawerActions">
-                <button
-                  className="outlineButton"
-                  onClick={closeAssignmentDrawer}
-                  type="button"
-                >
-                  Cancel
-                </button>
-
-                {assignmentType === "Program" && (
-                  <button
-                    className="outlineButton"
-                    onClick={loadProgramSessionsForAssignment}
-                    disabled={assignLoading}
-                    type="button"
-                  >
-                    {assignLoading ? "Loading..." : "Load Sessions"}
-                  </button>
-                )}
-
-                <button
-                  className="goldButton"
-                  disabled={
-                    assignmentType === "Program"
-                      ? assigningProgram
-                      : creatingAssignment
-                  }
-                  onClick={() => {
-                    if (assignmentType === "Program") {
-                      void assignProgramToClient();
-                      return;
-                    }
-
-                    void createContentAssignment({
-                      assignmentType,
-                      assignmentTemplateId,
-                      assignmentClientId: selectedClient.id,
-                      assignmentDueDate: normalizeDate(
-                        calendarAssignmentDateInputRef.current?.value ||
-                          assignmentDueDate
-                      ),
-                    });
-                  }}
-                  type="button"
-                >
-                  {assignmentType === "Program"
-                    ? assigningProgram
-                      ? "Assigning..."
-                      : assignProgramKind === "session"
-                      ? "Assign Session"
-                      : "Assign Program"
-                    : creatingAssignment
-                    ? "Assigning..."
-                    : "Assign Task"}
-                </button>
-              </div>
-            </aside>
-          </div>
+          <AssignmentDrawer
+            assignLoading={assignLoading}
+            assignProgramKind={assignProgramKind}
+            assignProgramToClient={assignProgramToClient}
+            assignStartDate={assignStartDate}
+            assignableWorkouts={assignableWorkouts}
+            assigningProgram={assigningProgram}
+            assignmentDueDate={assignmentDueDate}
+            assignmentTemplateId={assignmentTemplateId}
+            assignmentTemplateOptions={assignmentTemplateOptions}
+            assignmentType={assignmentType}
+            calendarAnchorDate={calendarAnchorDate}
+            calendarAssignmentDateInputRef={calendarAssignmentDateInputRef}
+            closeAssignmentDrawer={closeAssignmentDrawer}
+            createContentAssignment={createContentAssignment}
+            creatingAssignment={creatingAssignment}
+            loadProgramSessionsForAssignment={loadProgramSessionsForAssignment}
+            programs={programs}
+            savedFormTemplates={savedFormTemplates}
+            savedTestTemplates={savedTestTemplates}
+            selectedAssignProgramId={selectedAssignProgramId}
+            selectedClient={selectedClient}
+            setAssignStartDate={setAssignStartDate}
+            setAssignableWorkouts={setAssignableWorkouts}
+            setAssignmentClientId={setAssignmentClientId}
+            setAssignmentDueDate={setAssignmentDueDate}
+            setAssignmentTemplateId={setAssignmentTemplateId}
+            setAssignmentType={setAssignmentType}
+            setCalendarAnchorDate={setCalendarAnchorDate}
+            setSelectedAssignProgramId={setSelectedAssignProgramId}
+            shiftAssignableWorkoutsToStartDate={shiftAssignableWorkoutsToStartDate}
+            updateAssignableWorkoutDate={updateAssignableWorkoutDate}
+          />
         )}
 
         {showExerciseModal && (
@@ -19050,113 +18484,19 @@ function App() {
         )}
 
         {calendarActionMenu && (
-          <div
-            className="calendarContextMenu"
-            style={{
-              left: calendarActionMenu.x,
-              top: calendarActionMenu.y,
-            }}
-            onClick={(event) => event.stopPropagation()}
-            role="menu"
-          >
-            {calendarActionMenu.kind === "item" ? (
-              <>
-                <strong>
-                  {calendarActionMenu.item.type === "workout"
-                    ? localizedWorkoutName(calendarActionMenu.item.workout)
-                    : getAssignmentDisplayName(calendarActionMenu.item.assignment)}
-                </strong>
-                <button
-                  type="button"
-                  role="menuitem"
-                  onClick={() => {
-                    if (calendarActionMenu.item.type === "workout") {
-                      copyCalendarWorkout(calendarActionMenu.item.workout, "copy");
-                    } else {
-                      copyCalendarAssignment(
-                        calendarActionMenu.item.assignment,
-                        "copy"
-                      );
-                    }
-                    closeCalendarActionMenu();
-                  }}
-                >
-                  <Copy size={15} aria-hidden="true" />
-                  Copy
-                </button>
-                <button
-                  type="button"
-                  role="menuitem"
-                  onClick={() => {
-                    if (calendarActionMenu.item.type === "workout") {
-                      copyCalendarWorkout(calendarActionMenu.item.workout, "cut");
-                    } else {
-                      copyCalendarAssignment(
-                        calendarActionMenu.item.assignment,
-                        "cut"
-                      );
-                    }
-                    closeCalendarActionMenu();
-                  }}
-                >
-                  <Scissors size={15} aria-hidden="true" />
-                  Cut
-                </button>
-                <button
-                  type="button"
-                  role="menuitem"
-                  className="dangerContextAction"
-                  onClick={() => {
-                    if (calendarActionMenu.item.type === "workout") {
-                      void deleteWorkout(calendarActionMenu.item.workout);
-                    } else {
-                      void deleteContentAssignment(
-                        calendarActionMenu.item.assignment
-                      );
-                    }
-                    closeCalendarActionMenu();
-                  }}
-                >
-                  <Trash2 size={15} aria-hidden="true" />
-                  Delete
-                </button>
-              </>
-            ) : (
-              <>
-                <strong>{formatCalendarLabel(calendarActionMenu.date)}</strong>
-                {copiedCalendarItem && (
-                  <button
-                    type="button"
-                    role="menuitem"
-                    onClick={() => {
-                      void pasteCalendarItemToDate(calendarActionMenu.date);
-                      closeCalendarActionMenu();
-                    }}
-                  >
-                    {copiedCalendarItem.action === "copy" ? (
-                      <Copy size={15} aria-hidden="true" />
-                    ) : (
-                      <Scissors size={15} aria-hidden="true" />
-                    )}
-                    {copiedCalendarItem.action === "copy"
-                      ? "Paste copy"
-                      : "Paste cut"}
-                  </button>
-                )}
-                <button
-                  type="button"
-                  role="menuitem"
-                  onClick={() => {
-                    setCopiedCalendarItem(null);
-                    closeCalendarActionMenu();
-                  }}
-                >
-                  <X size={15} aria-hidden="true" />
-                  Cancel
-                </button>
-              </>
-            )}
-          </div>
+          <CalendarActionMenu
+            calendarActionMenu={calendarActionMenu}
+            closeCalendarActionMenu={closeCalendarActionMenu}
+            copiedCalendarItem={copiedCalendarItem}
+            copyCalendarAssignment={copyCalendarAssignment}
+            copyCalendarWorkout={copyCalendarWorkout}
+            deleteContentAssignment={deleteContentAssignment}
+            deleteWorkout={deleteWorkout}
+            getAssignmentDisplayName={getAssignmentDisplayName}
+            localizedWorkoutName={localizedWorkoutName}
+            pasteCalendarItemToDate={pasteCalendarItemToDate}
+            setCopiedCalendarItem={setCopiedCalendarItem}
+          />
         )}
 
         {teamInviteId &&
@@ -19373,117 +18713,14 @@ function App() {
         )}
 
         {showCoachModal && (
-          <div className="workout-modal-overlay">
-            <div className="clientFormModal">
-              <div className="modal-header">
-                <div>
-                  <h2>{editingCoach ? "Edit Coach" : "Add Coach"}</h2>
-                  <p>
-                    {editingCoach
-                      ? "Update coach access and assignment details."
-                      : "Create a coach record for client ownership."}
-                  </p>
-                </div>
-
-                <button className="drawerClose" onClick={closeCoachForm}>
-                  x
-                </button>
-              </div>
-
-              <div className="clientFormGrid">
-                <label>
-                  <span>Name</span>
-                  <input
-                    value={coachForm.name}
-                    onChange={(e) =>
-                      setCoachForm({ ...coachForm, name: e.target.value })
-                    }
-                    placeholder="Coach name"
-                  />
-                </label>
-
-                <label>
-                  <span>Role</span>
-                  <select
-                    value={coachForm.role}
-                    onChange={(e) =>
-                      setCoachForm({ ...coachForm, role: e.target.value })
-                    }
-                  >
-                    <option>Coach</option>
-                    <option>Admin</option>
-                  </select>
-                </label>
-
-                <label>
-                  <span>Status</span>
-                  <select
-                    value={coachForm.status}
-                    onChange={(e) =>
-                      setCoachForm({ ...coachForm, status: e.target.value })
-                    }
-                  >
-                    <option>Active</option>
-                    <option>Inactive</option>
-                  </select>
-                </label>
-
-                <label>
-                  <span>Email</span>
-                  <input
-                    value={coachForm.email}
-                    onChange={(e) =>
-                      setCoachForm({ ...coachForm, email: e.target.value })
-                    }
-                    placeholder="coach@example.com"
-                  />
-                </label>
-
-                <label>
-                  <span>Phone/WeChat</span>
-                  <input
-                    value={coachForm.phoneWechat}
-                    onChange={(e) =>
-                      setCoachForm({
-                        ...coachForm,
-                        phoneWechat: e.target.value,
-                      })
-                    }
-                    placeholder="Phone or WeChat"
-                  />
-                </label>
-
-                <label className="clientNotesField">
-                  <span>Bio / Notes</span>
-                  <textarea
-                    value={coachForm.bio}
-                    onChange={(e) =>
-                      setCoachForm({ ...coachForm, bio: e.target.value })
-                    }
-                    placeholder="Specialty, schedule, internal notes..."
-                  />
-                </label>
-              </div>
-
-              <div className="modalActions">
-                <button className="outlineButton" onClick={closeCoachForm}>
-                  Cancel
-                </button>
-
-                <button
-                  className="goldButton"
-                  onClick={saveCoachForm}
-                  disabled={savingCoach}
-                >
-                  {savingCoach
-                    ? "Saving..."
-                    : editingCoach
-                    ? "Save Coach"
-                    : "Create Coach"}
-                </button>
-              </div>
-            </div>
-          </div>
+          <CoachEditModal
+            closeCoachForm={closeCoachForm}
+            coachForm={coachForm}
+            editingCoach={editingCoach}
+            saveCoachForm={saveCoachForm}
+            savingCoach={savingCoach}
+            setCoachForm={setCoachForm}
+          />
         )}
 
         {selectedContentSubmission && (
@@ -20263,131 +19500,15 @@ function App() {
         )}
 
         {historyExerciseName && (
-          <div className="workout-modal-overlay">
-            <div className="clientFormModal historyModal">
-              <div className="modal-header">
-                <div>
-                  <h2>{historyExerciseName}</h2>
-                  <p>{t("recentLoggedSets")}</p>
-                </div>
-
-                <button
-                  className="drawerClose"
-                  onClick={() => setHistoryExerciseName("")}
-                >
-                  x
-                </button>
-              </div>
-
-              <div className="historyLogList">
-                {(() => {
-                  const logs = workoutHistoryLogs.filter((log) =>
-                    log.exerciseName
-                      .toLowerCase()
-                      .startsWith(historyExerciseName.toLowerCase())
-                  );
-                  if (logs.length === 0) return <p>{t("noHistoryLogged")}</p>;
-
-                  // Group by date; show newest first, collapsed by default.
-                  const byDate = new Map<string, typeof logs>();
-                  for (const log of logs) {
-                    const d = log.date || "--";
-                    if (!byDate.has(d)) byDate.set(d, []);
-                    byDate.get(d)!.push(log);
-                  }
-                  const sideOf = (name: string) => {
-                    const m = name.match(/\s*-\s*(left|right)\s*$/i);
-                    return m ? (m[1].toLowerCase() === "left" ? "L" : "R") : "";
-                  };
-                  const dates = [...byDate.keys()].sort((a, b) =>
-                    b.localeCompare(a)
-                  );
-
-                  return dates.map((date) => {
-                    const sets = byDate
-                      .get(date)!
-                      .slice()
-                      .sort(
-                        (a, b) =>
-                          (Number(a.setNumber) || 0) - (Number(b.setNumber) || 0)
-                      );
-                    const open = expandedHistoryDates.has(date);
-                    return (
-                      <div className="historyDateGroup" key={date}>
-                        <button
-                          type="button"
-                          className={`historyDateToggle${open ? " open" : ""}`}
-                          onClick={() =>
-                            setExpandedHistoryDates((prev) => {
-                              const next = new Set(prev);
-                              if (next.has(date)) next.delete(date);
-                              else next.add(date);
-                              return next;
-                            })
-                          }
-                        >
-                          <ChevronDown
-                            size={16}
-                            className="historyDateCaret"
-                            aria-hidden="true"
-                          />
-                          <span className="historyDate">{date}</span>
-                          <span className="historyDateMeta">
-                            {sets.length}{" "}
-                            {paceZh
-                              ? "组"
-                              : sets.length === 1
-                                ? "set"
-                                : "sets"}
-                          </span>
-                        </button>
-                        {open && (
-                          <div className="historySetLines">
-                            {sets.map((s, i) => {
-                              const side = sideOf(s.exerciseName);
-                              const metrics = [
-                                s.actualReps
-                                  ? `${s.actualReps} ${paceZh ? "次" : "reps"}`
-                                  : "",
-                                s.actualWeight ? `${s.actualWeight} kg` : "",
-                                s.actualTime ? `${s.actualTime}s` : "",
-                                s.actualDistance ? `${s.actualDistance} m` : "",
-                              ].filter(Boolean);
-                              return (
-                                <div
-                                  className="historySetLine"
-                                  key={s.recordId || i}
-                                >
-                                  <span className="hsSet">
-                                    {paceZh
-                                      ? `第 ${s.setNumber || i + 1} 组`
-                                      : `Set ${s.setNumber || i + 1}`}
-                                    {side ? ` · ${side}` : ""}
-                                  </span>
-                                  <span className="hsMetrics">
-                                    {metrics.join("   ") || "--"}
-                                  </span>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  });
-                })()}
-              </div>
-
-              <div className="modalActions">
-                <button
-                  className="goldButton"
-                  onClick={() => setHistoryExerciseName("")}
-                >
-                  {t("done")}
-                </button>
-              </div>
-            </div>
-          </div>
+          <ExerciseHistoryModal
+            t={t}
+            expandedHistoryDates={expandedHistoryDates}
+            historyExerciseName={historyExerciseName}
+            paceZh={paceZh}
+            setExpandedHistoryDates={setExpandedHistoryDates}
+            setHistoryExerciseName={setHistoryExerciseName}
+            workoutHistoryLogs={workoutHistoryLogs}
+          />
         )}
 
         {showNotificationsPanel && (
