@@ -9,7 +9,6 @@ import {
   Dumbbell,
   Eye,
   GripVertical,
-  Home,
   MoreVertical,
   Pencil,
   Plus,
@@ -142,11 +141,7 @@ import ClientInvitePage from "./ClientInvitePage";
 import InPersonEnquiryPage from "./InPersonEnquiryPage";
 import PortalWelcome from "./PortalWelcome";
 import ReviewPage from "./ReviewPage";
-import PortalHome from "./PortalHome";
 import CoachClientsPage from "./CoachClientsPage";
-import PortalTraining from "./PortalTraining";
-import PortalPrograms from "./PortalPrograms";
-import ClientOverview from "./ClientOverview";
 import CoachOrdersPage from "./CoachOrdersPage";
 import CoachTeamsPage from "./CoachTeamsPage";
 import CoachRevenuePage from "./CoachRevenuePage";
@@ -158,6 +153,7 @@ import ContentAssignmentModal from "./ContentAssignmentModal";
 import AddClientModal from "./AddClientModal";
 import AccountModal from "./AccountModal";
 import ExerciseModal from "./ExerciseModal";
+import ClientWorkspace from "./ClientWorkspace";
 
 function App() {
   const { t, i18n } = useTranslation();
@@ -18292,470 +18288,209 @@ function App() {
         )}
 
         {selectedClient && (
-          <div
-            className={
-              clientTab === "Training" ? "clientPage trainingFocus" : "clientPage"
-            }
-          >
-
-            <section className="clientWorkspace">
-              {!isClientPortal && (
-              <button
-                className="outlineButton"
-                onClick={() => {
-                  setSelectedClient(null);
-                  setSelectedWorkout(null);
-                  setWorkoutDetails([]);
-                  setSetLogs([]);
-                  setSavedExerciseDraftIds([]);
-                }}
-              >
-                ← Back
-              </button>
-
-              )}
-
-              <nav className="mobileClientBottomNav" aria-label="Client navigation">
-                <button
-                  className={clientTab === "Home" ? "active" : ""}
-                  onClick={() => setClientTab("Home")}
-                >
-                  <Home size={21} strokeWidth={2.2} />
-                  <span>{t("home")}</span>
-                  {isClientPortal &&
-                    coachInboxItems().some((i) => i.at > inboxSeenAt) && (
-                      <em className="navUnreadDot" aria-label="New coach messages" />
-                    )}
-                </button>
-                <button
-                  className={clientTab === "Training" ? "active" : ""}
-                  onClick={() => setClientTab("Training")}
-                >
-                  <CalendarDays size={21} strokeWidth={2.2} />
-                  <span>{t("calendar")}</span>
-                </button>
-                <button
-                  className={clientTab === "Programs" ? "active" : ""}
-                  onClick={() => setClientTab("Programs")}
-                >
-                  <BookOpen size={21} strokeWidth={2.2} />
-                  <span>{t("myPrograms")}</span>
-                </button>
-                <button
-                  className={clientTab === "Overview" ? "active" : ""}
-                  onClick={() => setClientTab("Overview")}
-                >
-                  <UserCircle size={21} strokeWidth={2.2} />
-                  <span>{t("profile")}</span>
-                </button>
-              </nav>
-
-              {isClientPortal &&
-                (() => {
-                  // Access-expiry banner: appears in the last 14 days of a
-                  // digital program's access window (and after it ends).
-                  const end = normalizeDate(selectedClient.accessEndDate || "");
-                  if (!end || end === "--") return null;
-                  const endTime = new Date(`${end}T23:59:59`).getTime();
-                  if (Number.isNaN(endTime)) return null;
-                  const daysLeft = Math.ceil((endTime - Date.now()) / 86400000);
-                  if (daysLeft > 14) return null;
-                  const expired = daysLeft <= 0;
-                  return (
-                    <div
-                      className={`portalAccessBanner${expired ? " expired" : ""}`}
-                    >
-                      <span>
-                        {expired
-                          ? paceZh
-                            ? "你的计划访问已到期。"
-                            : "Your program access has ended."
-                          : paceZh
-                            ? `计划访问还剩 ${daysLeft} 天。`
-                            : `${daysLeft} day${daysLeft === 1 ? "" : "s"} of program access left.`}
-                      </span>
-                      <a href="/store">
-                        {paceZh ? "续订 / 浏览计划" : "Renew / browse programs"}
-                      </a>
-                    </div>
-                  );
-                })()}
-              <div className="clientTop">
-                {isClientPortal ? (
-                  <div className="clientPortalMonogram" aria-hidden="true">
-                    <img src="/nl_monogram_clean.png" alt="" aria-hidden="true" />
-                  </div>
-                ) : (
-                  <div className="clientAvatar largeAvatar">
-                    {selectedClient.initials}
-                  </div>
-                )}
-                <div>
-                  <h1>
-                    {isClientPortal
-                      ? clientTab === "Home"
-                        ? t("hi", {
-                            name: selectedClient.name.split(" ")[0] || "there",
-                          })
-                        : clientTab === "Overview"
-                        ? t("profile")
-                        : clientTab === "Programs"
-                        ? t("myPrograms")
-                        : t("calendar")
-                      : selectedClient.name}
-                  </h1>
-                  <p>
-                    {isClientPortal
-                      ? `${selectedClient.status} - ${selectedClient.program}`
-                      : `${selectedClient.clientCode || "Client"} - ${
-                          getCoachDisplayName(
-                            selectedClient.coach || selectedClient.primaryCoach || "Coach view"
-                          )
-                        }`}
-                  </p>
-                  {!isClientPortal && (
-                    <div className="clientLayerBadges">
-                      <span>{selectedClient.clientType || "Client"}</span>
-                      <span>
-                        Intake: {selectedClient.intakeStatus || "Not Sent"}
-                      </span>
-                      <span>
-                        Payment: {selectedClient.paymentStatus || "Unpaid"}
-                      </span>
-                    </div>
-                  )}
-                  <div
-                    className="clientPortalLanguageSwitch"
-                    aria-label={t("languagePreference")}
-                  >
-                    <button
-                      type="button"
-                      className={
-                        languagePreferenceToCode(
-                          selectedClient.languagePreference
-                        ) === "en"
-                          ? "active"
-                          : ""
-                      }
-                      onClick={() => updateClientLanguagePreference("English")}
-                    >
-                      EN
-                    </button>
-                    <button
-                      type="button"
-                      className={
-                        languagePreferenceToCode(
-                          selectedClient.languagePreference
-                        ) === "zh"
-                          ? "active"
-                          : ""
-                      }
-                      onClick={() => updateClientLanguagePreference("Mandarin")}
-                    >
-                      中文
-                    </button>
-                  </div>
-                </div>
-                {!isClientPortal && (
-                <div className="clientProfileActions">
-                  <details className="clientActionMenu">
-                    <summary
-                      className="iconActionButton profileIconButton"
-                      aria-label="Client actions"
-                    >
-                      <MoreVertical size={18} aria-hidden="true" />
-                    </summary>
-                    <div className="clientActionDropdown">
-                      <button
-                        onClick={() =>
-                          copyToClipboard(
-                            buildClientPortalLink(selectedClient),
-                            "Client portal link"
-                          )
-                        }
-                      >
-                        Copy portal link
-                      </button>
-                      <button onClick={() => openEditClientForm(selectedClient)}>
-                        Edit / assign coach
-                      </button>
-                      <button
-                        onClick={() => updateClientPackage(selectedClient, "Archived")}
-                        disabled={updatingClientStatus}
-                      >
-                        Archive client
-                      </button>
-                      <button
-                        className="dangerMenuItem"
-                        onClick={() => deleteClient(selectedClient)}
-                      >
-                        Delete client
-                      </button>
-                    </div>
-                  </details>
-                </div>
-                )}
-              </div>
-
-              <div
-                className={
-                  isClientPortal
-                    ? "clientTabs portalHidden"
-                    : "clientTabs"
-                }
-              >
-                <button
-                  className={clientTab === "Home" ? "tab activeTab" : "tab"}
-                  onClick={() => setClientTab("Home")}
-                >
-                  {t("dashboard")}
-                </button>
-
-                <button
-                  className={clientTab === "Training" ? "tab activeTab" : "tab"}
-                  onClick={() => setClientTab("Training")}
-                >
-                  {t("calendar")}
-                </button>
-
-                <button
-                  className={clientTab === "Overview" ? "tab activeTab" : "tab"}
-                  onClick={() => setClientTab("Overview")}
-                >
-                  {t("clientOverview")}
-                </button>
-              </div>
-
-              {clientTab === "Home" && (
-                <PortalHome
-                  t={t}
-                  getTaskTone={getTaskTone}
-                  athleteMetricsLoading={athleteMetricsLoading}
-                  clientComments={clientComments}
-                  clientPerformanceMetrics={clientPerformanceMetrics}
-                  clientPortalUpcomingTasks={clientPortalUpcomingTasks}
-                  coachDashTab={coachDashTab}
-                  coachInboxItems={coachInboxItems}
-                  completedTaskCount={completedTaskCount}
-                  completionRate={completionRate}
-                  contentAssignments={contentAssignments}
-                  contentResponsesLoading={contentResponsesLoading}
-                  getTaskActionLabel={getTaskActionLabel}
-                  handleHomeTouchEnd={handleHomeTouchEnd}
-                  handleHomeTouchStart={handleHomeTouchStart}
-                  handleOpenContentAssignment={handleOpenContentAssignment}
-                  hasKarvonenHr={hasKarvonenHr}
-                  hasMasForZones={hasMasForZones}
-                  hrMaxValue={hrMaxValue}
-                  inboxSeenAt={inboxSeenAt}
-                  isClientPortal={isClientPortal}
-                  isWorkloadMonitored={isWorkloadMonitored}
-                  loadContentResponses={loadContentResponses}
-                  localizeAssignmentKind={localizeAssignmentKind}
-                  localizeTaskStatus={localizeTaskStatus}
-                  localizedCalendarLabel={localizedCalendarLabel}
-                  localizedWorkoutName={localizedWorkoutName}
-                  markInboxSeen={markInboxSeen}
-                  needsAttentionItems={needsAttentionItems}
-                  openWorkout={openWorkout}
-                  paceZh={paceZh}
-                  paceZones={paceZones}
-                  portalHomeTab={portalHomeTab}
-                  recentWorkoutSubmissions={recentWorkoutSubmissions}
-                  renderDailyCheckIn={renderDailyCheckIn}
-                  renderExerciseHistoryBody={renderExerciseHistoryBody}
-                  renderLoadDashboard={renderLoadDashboard}
-                  renderPerformanceMetrics={renderPerformanceMetrics}
-                  renderPrLeaderboard={renderPrLeaderboard}
-                  renderTrophyCase={renderTrophyCase}
-                  renderWellnessTrends={renderWellnessTrends}
-                  renderWorkloadTab={renderWorkloadTab}
-                  restingHrValue={restingHrValue}
-                  selectedClient={selectedClient}
-                  setClientTab={setClientTab}
-                  setCoachDashTab={setCoachDashTab}
-                  setPortalHomeTab={setPortalHomeTab}
-                  toReviewWorkouts={toReviewWorkouts}
-                  todayValue={todayValue}
-                  totalTaskCount={totalTaskCount}
-                />
-              )}
-
-              {clientTab === "Overview" && (
-                <ClientOverview
-                  t={t}
-                  coachNotesDraft={coachNotesDraft}
-                  editingMetrics={editingMetrics}
-                  formatPace={formatPace}
-                  getCoachDisplayName={getCoachDisplayName}
-                  getMasKmh={getMasKmh}
-                  hrMaxMetric={hrMaxMetric}
-                  i18n={i18n}
-                  isClientPortal={isClientPortal}
-                  latestMasMetric={latestMasMetric}
-                  metricsDraft={metricsDraft}
-                  openMetricsEditor={openMetricsEditor}
-                  overviewDetailsOpen={overviewDetailsOpen}
-                  paceZh={paceZh}
-                  parseBpm={parseBpm}
-                  parseOverride={parseOverride}
-                  renderPerformanceMetrics={renderPerformanceMetrics}
-                  renderPersonalRecords={renderPersonalRecords}
-                  restingHrMetric={restingHrMetric}
-                  saveCoachNotes={saveCoachNotes}
-                  saveMetricsOverrides={saveMetricsOverrides}
-                  savingCoachNotes={savingCoachNotes}
-                  savingMetrics={savingMetrics}
-                  selectedClient={selectedClient}
-                  selectedClientLatestOrder={selectedClientLatestOrder}
-                  setCoachNotesDraft={setCoachNotesDraft}
-                  setEditingMetrics={setEditingMetrics}
-                  setMetricsDraft={setMetricsDraft}
-                  setOverviewDetailsOpen={setOverviewDetailsOpen}
-                  setWeightUnitPref={setWeightUnitPref}
-                  updateClientLanguagePreference={updateClientLanguagePreference}
-                  weightUnit={weightUnit}
-                />
-              )}
-
-              {clientTab === "Programs" && (
-                <PortalPrograms
-                  selectedClientProgramCalendarWorkouts={selectedClientProgramCalendarWorkouts}
-                  t={t}
-                  clientProgramScheduleMode={clientProgramScheduleMode}
-                  clientProgramScheduledWorkouts={clientProgramScheduledWorkouts}
-                  clientProgramSessions={clientProgramSessions}
-                  clientProgramStartDate={clientProgramStartDate}
-                  clientProgramWeekNumbers={clientProgramWeekNumbers}
-                  clientProgramWeekStarts={clientProgramWeekStarts}
-                  loadClientProgramSessions={loadClientProgramSessions}
-                  loadingClientProgramSessions={loadingClientProgramSessions}
-                  localizedAssignableWorkoutName={localizedAssignableWorkoutName}
-                  localizedCalendarLabel={localizedCalendarLabel}
-                  localizedProductType={localizedProductType}
-                  localizedProgramName={localizedProgramName}
-                  paceZh={paceZh}
-                  populateClientProgramCalendar={populateClientProgramCalendar}
-                  populatingClientProgram={populatingClientProgram}
-                  programs={programs}
-                  programsTab={programsTab}
-                  renderProgramHome={renderProgramHome}
-                  renderProgramStore={renderProgramStore}
-                  selectedClientProgram={selectedClientProgram}
-                  selectedClientProgramAlreadyLoaded={selectedClientProgramAlreadyLoaded}
-                  selectedClientProgramFirstDate={selectedClientProgramFirstDate}
-                  selectedClientProgramId={selectedClientProgramId}
-                  selectedClientProgramLastDate={selectedClientProgramLastDate}
-                  setClientProgramDayDates={setClientProgramDayDates}
-                  setClientProgramScheduleMode={setClientProgramScheduleMode}
-                  setClientProgramSessions={setClientProgramSessions}
-                  setClientProgramStartDate={setClientProgramStartDate}
-                  setClientProgramWeekStarts={setClientProgramWeekStarts}
-                  setClientTab={setClientTab}
-                  setProgramsTab={setProgramsTab}
-                  setSelectedClientProgramId={setSelectedClientProgramId}
-                  uniqueClientPurchasedPrograms={uniqueClientPurchasedPrograms}
-                />
-              )}
-
-              {clientTab === "Training" && (
-                <PortalTraining
-                  calendarDropWorkoutId={calendarDropWorkoutId}
-                  t={t}
-                  todayValue={todayValue}
-                  assignLoading={assignLoading}
-                  assignProgramToClient={assignProgramToClient}
-                  assignStartDate={assignStartDate}
-                  assignableWorkouts={assignableWorkouts}
-                  assigningProgram={assigningProgram}
-                  assignmentClientId={assignmentClientId}
-                  assignmentDueDate={assignmentDueDate}
-                  assignmentTemplateId={assignmentTemplateId}
-                  assignmentTemplateOptions={assignmentTemplateOptions}
-                  assignmentType={assignmentType}
-                  calendarAnchorDate={calendarAnchorDate}
-                  calendarAssignmentDateInputRef={calendarAssignmentDateInputRef}
-                  calendarDates={calendarDates}
-                  calendarRangeLabel={calendarRangeLabel}
-                  calendarView={calendarView}
-                  clearCalendarLongPress={clearCalendarLongPress}
-                  clientCalendarStyle={clientCalendarStyle}
-                  clientCalendarTouchDrag={clientCalendarTouchDrag}
-                  clientMonthAnchorDate={clientMonthAnchorDate}
-                  clientMonthCalendarDates={clientMonthCalendarDates}
-                  clientPortalUpcomingWorkouts={clientPortalUpcomingWorkouts}
-                  clientWeekRangeLabel={clientWeekRangeLabel}
-                  clientWeekStripDates={clientWeekStripDates}
-                  coachMonthCalendarDates={coachMonthCalendarDates}
-                  consumeCalendarLongPressClick={consumeCalendarLongPressClick}
-                  contentAssignments={contentAssignments}
-                  copiedCalendarItem={copiedCalendarItem}
-                  createContentAssignment={createContentAssignment}
-                  creatingAssignment={creatingAssignment}
-                  deleteContentAssignment={deleteContentAssignment}
-                  draggingAssignmentId={draggingAssignmentId}
-                  draggingWorkoutId={draggingWorkoutId}
-                  endClientCalendarWorkoutTouch={endClientCalendarWorkoutTouch}
-                  getAssignmentDisplayName={getAssignmentDisplayName}
-                  getAssignmentsForDate={getAssignmentsForDate}
-                  getCalendarItemCountForDate={getCalendarItemCountForDate}
-                  getWorkoutsForDate={getWorkoutsForDate}
-                  handleClientCalendarWorkoutDrop={handleClientCalendarWorkoutDrop}
-                  handleOpenContentAssignment={handleOpenContentAssignment}
-                  isClientPortal={isClientPortal}
-                  jumpClientCalendarToToday={jumpClientCalendarToToday}
-                  loadProgramSessionsForAssignment={loadProgramSessionsForAssignment}
-                  localizeTaskStatus={localizeTaskStatus}
-                  localizedCalendarLabel={localizedCalendarLabel}
-                  localizedMonthTitle={localizedMonthTitle}
-                  localizedWeekStripLabel={localizedWeekStripLabel}
-                  localizedWorkoutName={localizedWorkoutName}
-                  moveCalendarRange={moveCalendarRange}
-                  moveClientCalendarWorkoutTouch={moveClientCalendarWorkoutTouch}
-                  moveClientMonth={moveClientMonth}
-                  moveContentAssignmentToDate={moveContentAssignmentToDate}
-                  moveWorkoutToDate={moveWorkoutToDate}
-                  movingAssignmentId={movingAssignmentId}
-                  movingWorkoutId={movingWorkoutId}
-                  openAssignmentHubFromCalendar={openAssignmentHubFromCalendar}
-                  openCalendarActionMenu={openCalendarActionMenu}
-                  openWorkout={openWorkout}
-                  pasteCalendarItemToDate={pasteCalendarItemToDate}
-                  programs={programs}
-                  selectClientCalendarDate={selectClientCalendarDate}
-                  selectedAssignProgramId={selectedAssignProgramId}
-                  selectedCalendarDateAssignments={selectedCalendarDateAssignments}
-                  selectedCalendarDateItemCount={selectedCalendarDateItemCount}
-                  selectedCalendarDateWorkouts={selectedCalendarDateWorkouts}
-                  selectedClient={selectedClient}
-                  setAssignStartDate={setAssignStartDate}
-                  setAssignableWorkouts={setAssignableWorkouts}
-                  setAssignmentClientId={setAssignmentClientId}
-                  setAssignmentDueDate={setAssignmentDueDate}
-                  setAssignmentTemplateId={setAssignmentTemplateId}
-                  setAssignmentType={setAssignmentType}
-                  setCalAddMenu={setCalAddMenu}
-                  setCalendarAnchorDate={setCalendarAnchorDate}
-                  setCalendarDropWorkoutId={setCalendarDropWorkoutId}
-                  setCalendarView={setCalendarView}
-                  setClientCalendarStyle={setClientCalendarStyle}
-                  setDraggingAssignmentId={setDraggingAssignmentId}
-                  setDraggingWorkoutId={setDraggingWorkoutId}
-                  setSelectedAssignProgramId={setSelectedAssignProgramId}
-                  setShowCalendarActionMenu={setShowCalendarActionMenu}
-                  shiftAssignableWorkoutsToStartDate={shiftAssignableWorkoutsToStartDate}
-                  showCalendarActionMenu={showCalendarActionMenu}
-                  startCalendarLongPress={startCalendarLongPress}
-                  startClientCalendarWorkoutTouch={startClientCalendarWorkoutTouch}
-                  suppressClientCalendarTouchClick={suppressClientCalendarTouchClick}
-                  updateAssignableWorkoutDate={updateAssignableWorkoutDate}
-                  useChineseClientText={useChineseClientText}
-                  workouts={workouts}
-                  workoutsLoading={workoutsLoading}
-                />
-              )}
-            </section>
-          </div>
+          <ClientWorkspace
+            t={t}
+            assignLoading={assignLoading}
+            assignProgramToClient={assignProgramToClient}
+            assignStartDate={assignStartDate}
+            assignableWorkouts={assignableWorkouts}
+            assigningProgram={assigningProgram}
+            assignmentClientId={assignmentClientId}
+            assignmentDueDate={assignmentDueDate}
+            assignmentTemplateId={assignmentTemplateId}
+            assignmentTemplateOptions={assignmentTemplateOptions}
+            assignmentType={assignmentType}
+            athleteMetricsLoading={athleteMetricsLoading}
+            buildClientPortalLink={buildClientPortalLink}
+            calendarAnchorDate={calendarAnchorDate}
+            calendarAssignmentDateInputRef={calendarAssignmentDateInputRef}
+            calendarDates={calendarDates}
+            calendarDropWorkoutId={calendarDropWorkoutId}
+            calendarRangeLabel={calendarRangeLabel}
+            calendarView={calendarView}
+            clearCalendarLongPress={clearCalendarLongPress}
+            clientCalendarStyle={clientCalendarStyle}
+            clientCalendarTouchDrag={clientCalendarTouchDrag}
+            clientComments={clientComments}
+            clientMonthAnchorDate={clientMonthAnchorDate}
+            clientMonthCalendarDates={clientMonthCalendarDates}
+            clientPerformanceMetrics={clientPerformanceMetrics}
+            clientPortalUpcomingTasks={clientPortalUpcomingTasks}
+            clientPortalUpcomingWorkouts={clientPortalUpcomingWorkouts}
+            clientProgramScheduleMode={clientProgramScheduleMode}
+            clientProgramScheduledWorkouts={clientProgramScheduledWorkouts}
+            clientProgramSessions={clientProgramSessions}
+            clientProgramStartDate={clientProgramStartDate}
+            clientProgramWeekNumbers={clientProgramWeekNumbers}
+            clientProgramWeekStarts={clientProgramWeekStarts}
+            clientTab={clientTab}
+            clientWeekRangeLabel={clientWeekRangeLabel}
+            clientWeekStripDates={clientWeekStripDates}
+            coachDashTab={coachDashTab}
+            coachInboxItems={coachInboxItems}
+            coachMonthCalendarDates={coachMonthCalendarDates}
+            coachNotesDraft={coachNotesDraft}
+            completedTaskCount={completedTaskCount}
+            completionRate={completionRate}
+            consumeCalendarLongPressClick={consumeCalendarLongPressClick}
+            contentAssignments={contentAssignments}
+            contentResponsesLoading={contentResponsesLoading}
+            copiedCalendarItem={copiedCalendarItem}
+            copyToClipboard={copyToClipboard}
+            createContentAssignment={createContentAssignment}
+            creatingAssignment={creatingAssignment}
+            deleteClient={deleteClient}
+            deleteContentAssignment={deleteContentAssignment}
+            draggingAssignmentId={draggingAssignmentId}
+            draggingWorkoutId={draggingWorkoutId}
+            editingMetrics={editingMetrics}
+            endClientCalendarWorkoutTouch={endClientCalendarWorkoutTouch}
+            formatPace={formatPace}
+            getAssignmentDisplayName={getAssignmentDisplayName}
+            getAssignmentsForDate={getAssignmentsForDate}
+            getCalendarItemCountForDate={getCalendarItemCountForDate}
+            getCoachDisplayName={getCoachDisplayName}
+            getMasKmh={getMasKmh}
+            getTaskActionLabel={getTaskActionLabel}
+            getTaskTone={getTaskTone}
+            getWorkoutsForDate={getWorkoutsForDate}
+            handleClientCalendarWorkoutDrop={handleClientCalendarWorkoutDrop}
+            handleHomeTouchEnd={handleHomeTouchEnd}
+            handleHomeTouchStart={handleHomeTouchStart}
+            handleOpenContentAssignment={handleOpenContentAssignment}
+            hasKarvonenHr={hasKarvonenHr}
+            hasMasForZones={hasMasForZones}
+            hrMaxMetric={hrMaxMetric}
+            hrMaxValue={hrMaxValue}
+            i18n={i18n}
+            inboxSeenAt={inboxSeenAt}
+            isClientPortal={isClientPortal}
+            isWorkloadMonitored={isWorkloadMonitored}
+            jumpClientCalendarToToday={jumpClientCalendarToToday}
+            latestMasMetric={latestMasMetric}
+            loadClientProgramSessions={loadClientProgramSessions}
+            loadContentResponses={loadContentResponses}
+            loadProgramSessionsForAssignment={loadProgramSessionsForAssignment}
+            loadingClientProgramSessions={loadingClientProgramSessions}
+            localizeAssignmentKind={localizeAssignmentKind}
+            localizeTaskStatus={localizeTaskStatus}
+            localizedAssignableWorkoutName={localizedAssignableWorkoutName}
+            localizedCalendarLabel={localizedCalendarLabel}
+            localizedMonthTitle={localizedMonthTitle}
+            localizedProductType={localizedProductType}
+            localizedProgramName={localizedProgramName}
+            localizedWeekStripLabel={localizedWeekStripLabel}
+            localizedWorkoutName={localizedWorkoutName}
+            markInboxSeen={markInboxSeen}
+            metricsDraft={metricsDraft}
+            moveCalendarRange={moveCalendarRange}
+            moveClientCalendarWorkoutTouch={moveClientCalendarWorkoutTouch}
+            moveClientMonth={moveClientMonth}
+            moveContentAssignmentToDate={moveContentAssignmentToDate}
+            moveWorkoutToDate={moveWorkoutToDate}
+            movingAssignmentId={movingAssignmentId}
+            movingWorkoutId={movingWorkoutId}
+            needsAttentionItems={needsAttentionItems}
+            openAssignmentHubFromCalendar={openAssignmentHubFromCalendar}
+            openCalendarActionMenu={openCalendarActionMenu}
+            openEditClientForm={openEditClientForm}
+            openMetricsEditor={openMetricsEditor}
+            openWorkout={openWorkout}
+            overviewDetailsOpen={overviewDetailsOpen}
+            paceZh={paceZh}
+            paceZones={paceZones}
+            parseBpm={parseBpm}
+            parseOverride={parseOverride}
+            pasteCalendarItemToDate={pasteCalendarItemToDate}
+            populateClientProgramCalendar={populateClientProgramCalendar}
+            populatingClientProgram={populatingClientProgram}
+            portalHomeTab={portalHomeTab}
+            programs={programs}
+            programsTab={programsTab}
+            recentWorkoutSubmissions={recentWorkoutSubmissions}
+            renderDailyCheckIn={renderDailyCheckIn}
+            renderExerciseHistoryBody={renderExerciseHistoryBody}
+            renderLoadDashboard={renderLoadDashboard}
+            renderPerformanceMetrics={renderPerformanceMetrics}
+            renderPersonalRecords={renderPersonalRecords}
+            renderPrLeaderboard={renderPrLeaderboard}
+            renderProgramHome={renderProgramHome}
+            renderProgramStore={renderProgramStore}
+            renderTrophyCase={renderTrophyCase}
+            renderWellnessTrends={renderWellnessTrends}
+            renderWorkloadTab={renderWorkloadTab}
+            restingHrMetric={restingHrMetric}
+            restingHrValue={restingHrValue}
+            saveCoachNotes={saveCoachNotes}
+            saveMetricsOverrides={saveMetricsOverrides}
+            savingCoachNotes={savingCoachNotes}
+            savingMetrics={savingMetrics}
+            selectClientCalendarDate={selectClientCalendarDate}
+            selectedAssignProgramId={selectedAssignProgramId}
+            selectedCalendarDateAssignments={selectedCalendarDateAssignments}
+            selectedCalendarDateItemCount={selectedCalendarDateItemCount}
+            selectedCalendarDateWorkouts={selectedCalendarDateWorkouts}
+            selectedClient={selectedClient}
+            selectedClientLatestOrder={selectedClientLatestOrder}
+            selectedClientProgram={selectedClientProgram}
+            selectedClientProgramAlreadyLoaded={selectedClientProgramAlreadyLoaded}
+            selectedClientProgramCalendarWorkouts={selectedClientProgramCalendarWorkouts}
+            selectedClientProgramFirstDate={selectedClientProgramFirstDate}
+            selectedClientProgramId={selectedClientProgramId}
+            selectedClientProgramLastDate={selectedClientProgramLastDate}
+            setAssignStartDate={setAssignStartDate}
+            setAssignableWorkouts={setAssignableWorkouts}
+            setAssignmentClientId={setAssignmentClientId}
+            setAssignmentDueDate={setAssignmentDueDate}
+            setAssignmentTemplateId={setAssignmentTemplateId}
+            setAssignmentType={setAssignmentType}
+            setCalAddMenu={setCalAddMenu}
+            setCalendarAnchorDate={setCalendarAnchorDate}
+            setCalendarDropWorkoutId={setCalendarDropWorkoutId}
+            setCalendarView={setCalendarView}
+            setClientCalendarStyle={setClientCalendarStyle}
+            setClientProgramDayDates={setClientProgramDayDates}
+            setClientProgramScheduleMode={setClientProgramScheduleMode}
+            setClientProgramSessions={setClientProgramSessions}
+            setClientProgramStartDate={setClientProgramStartDate}
+            setClientProgramWeekStarts={setClientProgramWeekStarts}
+            setClientTab={setClientTab}
+            setCoachDashTab={setCoachDashTab}
+            setCoachNotesDraft={setCoachNotesDraft}
+            setDraggingAssignmentId={setDraggingAssignmentId}
+            setDraggingWorkoutId={setDraggingWorkoutId}
+            setEditingMetrics={setEditingMetrics}
+            setMetricsDraft={setMetricsDraft}
+            setOverviewDetailsOpen={setOverviewDetailsOpen}
+            setPortalHomeTab={setPortalHomeTab}
+            setProgramsTab={setProgramsTab}
+            setSavedExerciseDraftIds={setSavedExerciseDraftIds}
+            setSelectedAssignProgramId={setSelectedAssignProgramId}
+            setSelectedClient={setSelectedClient}
+            setSelectedClientProgramId={setSelectedClientProgramId}
+            setSelectedWorkout={setSelectedWorkout}
+            setSetLogs={setSetLogs}
+            setShowCalendarActionMenu={setShowCalendarActionMenu}
+            setWeightUnitPref={setWeightUnitPref}
+            setWorkoutDetails={setWorkoutDetails}
+            shiftAssignableWorkoutsToStartDate={shiftAssignableWorkoutsToStartDate}
+            showCalendarActionMenu={showCalendarActionMenu}
+            startCalendarLongPress={startCalendarLongPress}
+            startClientCalendarWorkoutTouch={startClientCalendarWorkoutTouch}
+            suppressClientCalendarTouchClick={suppressClientCalendarTouchClick}
+            toReviewWorkouts={toReviewWorkouts}
+            todayValue={todayValue}
+            totalTaskCount={totalTaskCount}
+            uniqueClientPurchasedPrograms={uniqueClientPurchasedPrograms}
+            updateAssignableWorkoutDate={updateAssignableWorkoutDate}
+            updateClientLanguagePreference={updateClientLanguagePreference}
+            updateClientPackage={updateClientPackage}
+            updatingClientStatus={updatingClientStatus}
+            useChineseClientText={useChineseClientText}
+            weightUnit={weightUnit}
+            workouts={workouts}
+            workoutsLoading={workoutsLoading}
+          />
         )}
 
         {showAnalyticsModal && (
