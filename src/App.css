@@ -26952,3 +26952,63 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   font-size: 12px;
   color: #b9b39f;
 }
+
+/* Circuit mode picker + timed-WOD player */
+.circuitControlsRow { display: inline-flex; gap: 6px; align-items: center; }
+.circuitRoundsControl select {
+  border: 1px solid rgba(116, 82, 158, 0.35);
+  border-radius: 8px;
+  padding: 2px 4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #452971;
+  background: #fff;
+}
+.wodTimerCard {
+  margin: 0 0 14px;
+  padding: 16px;
+  border: 1px solid rgba(116, 82, 158, 0.4);
+  border-left: 5px solid #74529e;
+  border-radius: 14px;
+  background: #f7f2fd;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+  text-align: center;
+}
+.wodTimerCard.timeUp { border-color: #a02533; border-left-color: #a02533; background: #fbeeee; }
+.wodTimerClock {
+  font-size: 44px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  color: #2c1b45;
+  font-variant-numeric: tabular-nums;
+}
+.wodTimerCard.timeUp .wodTimerClock { color: #a02533; }
+.wodTimerMinute { font-size: 13px; font-weight: 800; color: #74529e; }
+.wodTimerActions { display: flex; gap: 10px; }
+.wodTimerActions button {
+  border: 1px solid rgba(116, 82, 158, 0.45);
+  background: #fff;
+  color: #452971;
+  border-radius: 999px;
+  padding: 8px 22px;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.wodRoundsCounter { display: flex; flex-direction: column; gap: 6px; align-items: center; }
+.wodRoundsCounter > span { font-size: 11.5px; letter-spacing: 0.08em; text-transform: uppercase; color: #74529e; font-weight: 800; }
+.wodRoundsCounter > div { display: flex; align-items: center; gap: 14px; }
+.wodRoundsCounter button {
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  border: 1px solid rgba(116, 82, 158, 0.45);
+  background: #fff;
+  color: #452971;
+  font-size: 22px;
+  font-weight: 900;
+  cursor: pointer;
+}
+.wodRoundsCounter strong { font-size: 30px; min-width: 44px; color: #2c1b45; }

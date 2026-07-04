@@ -334,6 +334,8 @@ type ExerciseNoteMeta = {
   exerciseLabel: string;
   groupType?: ProgramExercise["groupType"];
   groupName: string;
+  groupMode?: "" | "AMRAP" | "EMOM";
+  groupMinutes?: string;
   trackingType: TrackingType;
   trackingFields?: string[];
   isUnilateral: boolean;
@@ -555,6 +557,9 @@ type ProgramExercise = {
   isUnilateral: boolean;
   groupType: "Straight" | "Superset" | "Circuit";
   groupName: string;
+  // Timed circuit schemes: "" = plain rounds, or AMRAP / EMOM with minutes.
+  groupMode?: "" | "AMRAP" | "EMOM";
+  groupMinutes?: string;
   isAccessory?: boolean;
   accessoryParentLabel?: string;
   accessoryColor?: string;
@@ -997,7 +1002,7 @@ function parseExerciseNotes(notes = ""): ExerciseNoteMeta {
   lines.forEach((line) => {
     const trimmed = line.trim();
     const match = trimmed.match(
-      /^(Section|Label|Superset|Circuit|Tracking|Fields|Unilateral|Accessory|Accessory Parent|Accessory Color|Set Prescriptions|Alternate Exercises):\s*(.+)$/i
+      /^(Section|Label|Superset|Circuit|Circuit Mode|Circuit Minutes|Tracking|Fields|Unilateral|Accessory|Accessory Parent|Accessory Color|Set Prescriptions|Alternate Exercises):\s*(.+)$/i
     );
 
     if (!match) {
@@ -1076,6 +1081,11 @@ function parseExerciseNotes(notes = ""): ExerciseNoteMeta {
       meta.groupType = key === "superset" ? "Superset" : "Circuit";
       meta.groupName = value;
     }
+    if (key === "circuit mode") {
+      const mode = value.trim().toUpperCase();
+      if (mode === "AMRAP" || mode === "EMOM") meta.groupMode = mode;
+    }
+    if (key === "circuit minutes") meta.groupMinutes = value.trim();
   });
 
   meta.coachingNotes = remainingLines.join("\n").trim();
@@ -1090,7 +1100,7 @@ function parseExerciseNotes(notes = ""): ExerciseNoteMeta {
 // that looks like a "field：value" metadata line — leaving just the coaching
 // description.
 const EN_META_LINE =
-  /^\s*(?:Section|Label|Superset|Circuit|Tracking|Fields|Unilateral|Accessory|Accessory Parent|Accessory Color|Set Prescriptions|Alternate Exercises)\s*[:：]/i;
+  /^\s*(?:Section|Label|Superset|Circuit|Circuit Mode|Circuit Minutes|Tracking|Fields|Unilateral|Accessory|Accessory Parent|Accessory Color|Set Prescriptions|Alternate Exercises)\s*[:：]/i;
 // A short CJK field label (1-12 ideographs/digits) immediately followed by a
 // colon. Real descriptions have punctuation (，。) before any colon, so they
 // stay intact.
@@ -1834,6 +1844,26 @@ function App() {
   const [storeRegStage, setStoreRegStage] = useState(0);
   // One-time first-workout coach marks (per browser).
   const [playerTutorialOpen, setPlayerTutorialOpen] = useState(false);
+  // Timed-circuit (AMRAP/EMOM) stopwatch + rounds score for the focus player.
+  const [wodTimer, setWodTimer] = useState({
+    running: false,
+    startedAt: 0,
+    accumulatedMs: 0,
+  });
+  const [wodRounds, setWodRounds] = useState(0);
+  const [, setWodTick] = useState(0);
+  useEffect(() => {
+    if (!wodTimer.running) return;
+    const id = window.setInterval(() => setWodTick((t) => t + 1), 500);
+    return () => window.clearInterval(id);
+  }, [wodTimer.running]);
+  const wodElapsedMs =
+    wodTimer.accumulatedMs +
+    (wodTimer.running ? Date.now() - wodTimer.startedAt : 0);
+  const resetWodState = () => {
+    setWodTimer({ running: false, startedAt: 0, accumulatedMs: 0 });
+    setWodRounds(0);
+  };
   const [newClient, setNewClient] = useState({
     name: "",
     email: "",
@@ -5745,6 +5775,8 @@ function App() {
           isUnilateral: meta.isUnilateral,
           groupType: meta.groupType || "Straight",
           groupName: meta.groupName,
+          groupMode: meta.groupMode || "",
+          groupMinutes: meta.groupMinutes || "",
           isAccessory: meta.isAccessory,
           accessoryParentLabel: meta.accessoryParentLabel,
           accessoryColor: meta.accessoryColor,
@@ -7173,6 +7205,7 @@ function App() {
   const openWorkout = async (workout: Workout) => {
     setSelectedWorkout(workout);
     setWorkoutLoggingStarted(false);
+    resetWodState();
     setEditingWorkoutDate(normalizeDate(String(workout.scheduledDate)));
     setDetailsLoading(true);
     setWorkoutDetails([]);
@@ -7509,6 +7542,26 @@ function App() {
   const saveWorkout = () => {
     if (!selectedWorkout || !selectedClient) return;
 
+    // Timed-circuit score (AMRAP rounds / EMOM minutes) rides on the note so
+    // the coach sees it with the submission.
+    const timedMeta = workoutDetails
+      .map((exercise) => parseExerciseNotes(exercise.notes))
+      .find((m) => m.groupType === "Circuit" && m.groupMode);
+    const wodScoreLine =
+      timedMeta && (wodRounds > 0 || wodElapsedMs > 1000)
+        ? timedMeta.groupMode === "AMRAP"
+          ? `AMRAP ${timedMeta.groupMinutes || "12"}min — ${wodRounds} round${
+              wodRounds === 1 ? "" : "s"
+            }`
+          : `EMOM ${timedMeta.groupMinutes || "12"}min — ${Math.min(
+              Number(timedMeta.groupMinutes) || 12,
+              Math.floor(wodElapsedMs / 60000)
+            )} min completed`
+        : "";
+    const combinedNote = [workoutSubmissionNote.trim(), wodScoreLine]
+      .filter(Boolean)
+      .join("\n");
+
     const payload = {
       clientId: selectedClient.id,
       clientCode: selectedClient.clientCode,
@@ -7519,7 +7572,7 @@ function App() {
       // Per-set truth: the server persists Completed from this flag instead of
       // stamping every prescribed set as done.
       logs: setLogs.map((log) => ({ ...log, completed: isSetComplete(log) })),
-      submissionNote: workoutSubmissionNote.trim(),
+      submissionNote: combinedNote,
       sessionRpe: workoutRpe ?? undefined,
       sessionDurationMin: finishDurationMin || undefined,
     };
@@ -7560,7 +7613,7 @@ function App() {
           ? {
               ...workout,
               completionStatus: "Completed",
-              clientNotes: workoutSubmissionNote.trim() || workout.clientNotes,
+              clientNotes: combinedNote || workout.clientNotes,
             }
           : workout
       )
@@ -7576,6 +7629,7 @@ function App() {
     setWorkoutRpe(null);
     setFinishDurationMin(0);
     setFinishExpanded({});
+    resetWodState();
     setSavingWorkout(false);
   };
 
@@ -9271,6 +9325,11 @@ function App() {
       trackingType: isCardioCategory(exercise.category)
         ? "Distance"
         : meta.trackingType,
+      // Pure-bodyweight movements (burpees, push-ups) log reps only — no
+      // orphan Weight (kg) field. Coach can re-add fields via the toggles.
+      trackingFields: /^\s*bodyweight\s*$/i.test(exercise.equipment || "")
+        ? ["Reps"]
+        : meta.trackingFields,
       isUnilateral: meta.isUnilateral,
       groupType: "Straight",
       groupName: "",
@@ -9931,6 +9990,37 @@ function App() {
     );
   };
 
+  // Switch a circuit group between plain rounds and timed schemes. Timed
+  // modes force one set row per member (the clock, not sets, drives volume).
+  const setCircuitGroupMode = (
+    index: number,
+    mode: "" | "AMRAP" | "EMOM",
+    minutes?: string
+  ) => {
+    const exercise = selectedProgramExercises[index];
+    if (!exercise || exercise.groupType !== "Circuit" || !exercise.groupName) {
+      return;
+    }
+    const groupKey = `${exercise.groupType}:${exercise.groupName}`.toLowerCase();
+    setSelectedProgramExercises((current) =>
+      current.map((item) => {
+        const itemKey = `${item.groupType}:${item.groupName}`.toLowerCase();
+        if (item.groupType !== "Circuit" || itemKey !== groupKey) return item;
+        return withNormalizedSetFields({
+          ...item,
+          groupMode: mode,
+          groupMinutes:
+            minutes !== undefined
+              ? minutes
+              : mode
+                ? item.groupMinutes || "12"
+                : "",
+          sets: mode ? "1" : item.sets,
+        });
+      })
+    );
+  };
+
   // First member of a circuit group (where the rounds control renders).
   const isCircuitGroupStart = (index: number) => {
     const exercise = selectedProgramExercises[index];
@@ -9956,6 +10046,14 @@ function App() {
       `Unilateral: ${exercise.isUnilateral ? "Yes" : "No"}`,
       exercise.groupType !== "Straight" && exercise.groupName
         ? `${exercise.groupType}: ${exercise.groupName}`
+        : "",
+      exercise.groupType === "Circuit" && exercise.groupMode
+        ? `Circuit Mode: ${exercise.groupMode}`
+        : "",
+      exercise.groupType === "Circuit" &&
+      exercise.groupMode &&
+      exercise.groupMinutes
+        ? `Circuit Minutes: ${exercise.groupMinutes}`
         : "",
       exercise.isAccessory ? "Accessory: Yes" : "",
       exercise.accessoryParentLabel
@@ -26202,21 +26300,63 @@ function App() {
                               </span>
                             )}
                             {isCircuitGroupStart(index) && (
-                              <label
-                                className="circuitRoundsControl"
-                                title="Rounds of this circuit — sets every member's set count"
-                              >
-                                <span>Rounds</span>
-                                <input
-                                  type="number"
-                                  min={1}
-                                  max={20}
-                                  value={exercise.sets || "3"}
-                                  onChange={(e) =>
-                                    setCircuitGroupRounds(index, e.target.value)
-                                  }
-                                />
-                              </label>
+                              <span className="circuitControlsRow">
+                                <label
+                                  className="circuitRoundsControl"
+                                  title="Rounds / AMRAP (max rounds in the time cap) / EMOM (every minute on the minute)"
+                                >
+                                  <select
+                                    value={exercise.groupMode || ""}
+                                    onChange={(e) =>
+                                      setCircuitGroupMode(
+                                        index,
+                                        e.target.value as "" | "AMRAP" | "EMOM"
+                                      )
+                                    }
+                                  >
+                                    <option value="">Rounds</option>
+                                    <option value="AMRAP">AMRAP</option>
+                                    <option value="EMOM">EMOM</option>
+                                  </select>
+                                </label>
+                                {!exercise.groupMode ? (
+                                  <label
+                                    className="circuitRoundsControl"
+                                    title="Rounds of this circuit — sets every member's set count"
+                                  >
+                                    <span>Rounds</span>
+                                    <input
+                                      type="number"
+                                      min={1}
+                                      max={20}
+                                      value={exercise.sets || "3"}
+                                      onChange={(e) =>
+                                        setCircuitGroupRounds(index, e.target.value)
+                                      }
+                                    />
+                                  </label>
+                                ) : (
+                                  <label
+                                    className="circuitRoundsControl"
+                                    title="Time cap in minutes"
+                                  >
+                                    <span>Min</span>
+                                    <input
+                                      type="number"
+                                      min={1}
+                                      max={90}
+                                      value={exercise.groupMinutes || "12"}
+                                      onChange={(e) =>
+                                        setCircuitGroupMode(
+                                          index,
+                                          exercise.groupMode || "AMRAP",
+                                          e.target.value
+                                        )
+                                      }
+                                    />
+                                  </label>
+                                )}
+                              </span>
                             )}
                             {exercise.isAccessory && (
                               <span className="exerciseAccessoryPill">
@@ -33831,9 +33971,13 @@ function App() {
                             <div className="workoutGlanceCircuitHeader">
                               <RefreshCw size={13} aria-hidden="true" />
                               <span>
-                                {paceZh
-                                  ? `循环 · ${exercise.sets || "3"} 轮`
-                                  : `Circuit · ${exercise.sets || "3"} rounds`}
+                                {meta.groupMode
+                                  ? paceZh
+                                    ? `${meta.groupMode} · ${meta.groupMinutes || "12"} 分钟`
+                                    : `${meta.groupMode} · ${meta.groupMinutes || "12"} min`
+                                  : paceZh
+                                    ? `循环 · ${exercise.sets || "3"} 轮`
+                                    : `Circuit · ${exercise.sets || "3"} rounds`}
                               </span>
                             </div>
                           )}
@@ -34150,17 +34294,112 @@ function App() {
                         {focusGroupTitle && (
                           <div className="workoutPlayerGroupHeader">
                             <span>
-                              {meta.groupType === "Circuit"
-                                ? paceZh
-                                  ? `第 ${workoutFocusSetRound}/${groupRoundCount} 轮`
-                                  : `Round ${workoutFocusSetRound}/${groupRoundCount}`
-                                : paceZh
-                                  ? `第 ${workoutFocusSetRound}/${groupRoundCount} 组`
-                                  : `Set ${workoutFocusSetRound}/${groupRoundCount}`}
+                              {meta.groupType === "Circuit" && meta.groupMode
+                                ? `${meta.groupMode} · ${meta.groupMinutes || "12"} min`
+                                : meta.groupType === "Circuit"
+                                  ? paceZh
+                                    ? `第 ${workoutFocusSetRound}/${groupRoundCount} 轮`
+                                    : `Round ${workoutFocusSetRound}/${groupRoundCount}`
+                                  : paceZh
+                                    ? `第 ${workoutFocusSetRound}/${groupRoundCount} 组`
+                                    : `Set ${workoutFocusSetRound}/${groupRoundCount}`}
                             </span>
                             <strong>{focusGroupTitle}</strong>
                           </div>
                         )}
+                        {focusGroupTitle &&
+                          meta.groupType === "Circuit" &&
+                          meta.groupMode &&
+                          (() => {
+                            const capMs =
+                              (Number(meta.groupMinutes) || 12) * 60000;
+                            const remainMs = Math.max(0, capMs - wodElapsedMs);
+                            const mm = Math.floor(remainMs / 60000);
+                            const ss = Math.floor((remainMs % 60000) / 1000);
+                            const minuteNow = Math.min(
+                              Number(meta.groupMinutes) || 12,
+                              Math.floor(wodElapsedMs / 60000) + 1
+                            );
+                            const timeUp = remainMs <= 0;
+                            return (
+                              <div
+                                className={`wodTimerCard${timeUp ? " timeUp" : ""}`}
+                              >
+                                <div className="wodTimerClock">
+                                  {timeUp
+                                    ? paceZh
+                                      ? "时间到！"
+                                      : "TIME!"
+                                    : `${mm}:${String(ss).padStart(2, "0")}`}
+                                </div>
+                                {meta.groupMode === "EMOM" && !timeUp && (
+                                  <div className="wodTimerMinute">
+                                    {paceZh
+                                      ? `第 ${minuteNow}/${meta.groupMinutes || "12"} 分钟`
+                                      : `Minute ${minuteNow}/${meta.groupMinutes || "12"}`}
+                                  </div>
+                                )}
+                                <div className="wodTimerActions">
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setWodTimer((t) =>
+                                        t.running
+                                          ? {
+                                              running: false,
+                                              startedAt: 0,
+                                              accumulatedMs:
+                                                t.accumulatedMs +
+                                                (Date.now() - t.startedAt),
+                                            }
+                                          : {
+                                              ...t,
+                                              running: true,
+                                              startedAt: Date.now(),
+                                            }
+                                      )
+                                    }
+                                  >
+                                    {wodTimer.running
+                                      ? paceZh
+                                        ? "暂停"
+                                        : "Pause"
+                                      : paceZh
+                                        ? "开始"
+                                        : "Start"}
+                                  </button>
+                                  <button type="button" onClick={resetWodState}>
+                                    {paceZh ? "重置" : "Reset"}
+                                  </button>
+                                </div>
+                                {meta.groupMode === "AMRAP" && (
+                                  <div className="wodRoundsCounter">
+                                    <span>{paceZh ? "完成轮数" : "Rounds done"}</span>
+                                    <div>
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          setWodRounds((r) => Math.max(0, r - 1))
+                                        }
+                                      >
+                                        −
+                                      </button>
+                                      <strong>{wodRounds}</strong>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setWodRounds((r) => r + 1);
+                                          vibrate(16);
+                                        }}
+                                      >
+                                        +
+                                      </button>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })()}
                         {showSectionHeader && (
                           <h4
                             className="workoutSectionHeading"
