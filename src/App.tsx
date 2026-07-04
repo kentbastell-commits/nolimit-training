@@ -374,6 +374,34 @@ const RUNNING_ZONE_OPTIONS = [
   { key: "easy", label: "Easy", percent: 70 },
 ];
 
+// Attach the coach access key (if unlocked on this device) to every API call.
+// The server rejects coach/admin endpoints without it once COACH_ACCESS_KEY
+// is set; athlete/public endpoints ignore the header entirely.
+const nativeFetch = window.fetch.bind(window);
+window.fetch = ((input: RequestInfo | URL, init?: RequestInit) => {
+  try {
+    const url =
+      typeof input === "string"
+        ? input
+        : input instanceof URL
+          ? input.href
+          : input.url;
+    if (url.startsWith("/api/")) {
+      const key = window.localStorage.getItem("nl_coach_key");
+      if (key) {
+        const headers = new Headers(
+          init?.headers || (input instanceof Request ? input.headers : undefined)
+        );
+        headers.set("x-coach-key", key);
+        return nativeFetch(input, { ...init, headers });
+      }
+    }
+  } catch {
+    // fall through to the untouched request
+  }
+  return nativeFetch(input, init);
+}) as typeof fetch;
+
 // A cardio exercise is detected by its Category (set to "Cardio" in the library),
 // so it gets the running/Distance layout. Conditioning (wall balls, burpees…) is
 // deliberately NOT cardio: those are rep/load-based and shouldn't default to
@@ -1842,6 +1870,39 @@ function App() {
   >("syncing");
   // Store checkout staged progress (the activation call takes several seconds).
   const [storeRegStage, setStoreRegStage] = useState(0);
+  // Coach access lock: the dashboard stays covered until the access key is
+  // entered once on this device (verified against the server).
+  const [coachUnlocked] = useState(() => {
+    try {
+      return Boolean(window.localStorage.getItem("nl_coach_key"));
+    } catch {
+      return true;
+    }
+  });
+  const [coachKeyInput, setCoachKeyInput] = useState("");
+  const [coachKeyError, setCoachKeyError] = useState("");
+  const [coachKeyBusy, setCoachKeyBusy] = useState(false);
+  const tryUnlockCoach = async () => {
+    const key = coachKeyInput.trim();
+    if (!key) return;
+    setCoachKeyBusy(true);
+    setCoachKeyError("");
+    try {
+      const res = await nativeFetch("/api/analytics", {
+        headers: { "x-coach-key": key },
+      });
+      if (res.status === 401) {
+        setCoachKeyError("Wrong access key.");
+        return;
+      }
+      window.localStorage.setItem("nl_coach_key", key);
+      window.location.reload();
+    } catch {
+      setCoachKeyError("Could not verify — check your connection and retry.");
+    } finally {
+      setCoachKeyBusy(false);
+    }
+  };
   // One-time first-workout coach marks (per browser).
   const [playerTutorialOpen, setPlayerTutorialOpen] = useState(false);
   // Timed-circuit (AMRAP/EMOM) stopwatch + rounds score for the focus player.
@@ -33639,6 +33700,35 @@ function App() {
                   {submittingContentAssignment ? "Submitting..." : "Submit"}
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {isCoachView && !coachUnlocked && (
+          <div className="coachLockOverlay">
+            <div className="coachLockCard">
+              <img src="/nl_seal_black.png" alt="NoLimit" />
+              <h2>Coach Access</h2>
+              <p>Enter your access key to open the coaching dashboard.</p>
+              <input
+                type="password"
+                value={coachKeyInput}
+                onChange={(e) => setCoachKeyInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") void tryUnlockCoach();
+                }}
+                placeholder="Access key"
+                autoFocus
+              />
+              {coachKeyError && <span>{coachKeyError}</span>}
+              <button
+                type="button"
+                className="primaryButton"
+                disabled={coachKeyBusy}
+                onClick={() => void tryUnlockCoach()}
+              >
+                {coachKeyBusy ? "Checking…" : "Unlock"}
+              </button>
             </div>
           </div>
         )}

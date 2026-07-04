@@ -67,6 +67,7 @@ globalThis.fetch = (async (input: any, init?: any) => {
   }
 }) as typeof fetch;
 
+import { COACH_ONLY_HANDLERS, coachKeyOk } from "../api/_coachAuth.ts";
 import activateDigitalOrder from "../api/activateDigitalOrder.ts";
 import analytics from "../api/analytics.ts";
 import autoLoadProgram from "../api/autoLoadProgram.ts";
@@ -182,6 +183,12 @@ const handlers = {
 
 Object.entries(handlers).forEach(([name, handler]) => {
   app.all(`/api/${name}`, (req, res) => {
+    // Coach/admin endpoints require the access key once COACH_ACCESS_KEY is
+    // set (athlete + public endpoints are never gated).
+    if (COACH_ONLY_HANDLERS.has(name) && !coachKeyOk(req as never)) {
+      res.status(401).json({ error: "Coach access key required" });
+      return;
+    }
     void Promise.resolve(handler(req as never, res as never)).catch((error) => {
       console.error(`API handler failed: ${name}`, error);
       if (!res.headersSent) {
