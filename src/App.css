@@ -27053,3 +27053,32 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 }
 .coachLockCard span { color: #f2a3a3; font-size: 13px; font-weight: 700; }
 .coachLockCard .primaryButton { width: 100%; }
+
+/* Coach form-video review */
+.formVideoReviewList { display: flex; flex-direction: column; gap: 14px; padding: 14px; }
+.formVideoReviewCard {
+  border: 1px solid rgba(13, 13, 13, 0.1);
+  border-radius: 14px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: #fff;
+}
+.formVideoReviewMeta { display: flex; flex-direction: column; gap: 2px; }
+.formVideoReviewMeta strong { font-size: 15px; }
+.formVideoReviewMeta span { font-size: 12.5px; color: #77746a; }
+.formVideoReviewCard video {
+  width: 100%;
+  max-height: 420px;
+  border-radius: 10px;
+  background: #000;
+}
+.formVideoReviewCard textarea {
+  border: 1px solid #d9d7cd;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 14px;
+  min-height: 64px;
+  resize: vertical;
+}

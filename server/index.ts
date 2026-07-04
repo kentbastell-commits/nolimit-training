@@ -1,5 +1,7 @@
 import "dotenv/config";
 import express from "express";
+import crypto from "node:crypto";
+import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -90,6 +92,7 @@ import inPersonEnquiry from "../api/inPersonEnquiry.ts";
 import exerciseResults from "../api/exerciseResults.ts";
 import exercises from "../api/exercises.ts";
 import findMyPortal from "../api/findMyPortal.ts";
+import formVideos from "../api/formVideos.ts";
 import formTemplates from "../api/formTemplates.ts";
 import notifications from "../api/notifications.ts";
 import productOrders from "../api/productOrders.ts";
@@ -125,6 +128,38 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const port = Number(process.env.PORT || 3001);
 
+// Form-video uploads: raw video body -> random filename on disk, served from
+// /uploads. Registered BEFORE express.json so large videos skip the 2mb cap.
+const uploadsDir = path.resolve(__dirname, "../uploads");
+fs.mkdirSync(uploadsDir, { recursive: true });
+app.post(
+  "/api/uploadFormVideoFile",
+  express.raw({ type: () => true, limit: "80mb" }),
+  (req, res) => {
+    try {
+      const body = req.body as Buffer;
+      if (!body || !body.length) {
+        res.status(400).json({ error: "Empty upload" });
+        return;
+      }
+      const extMatch = String(req.query.name || "").match(/\.(mp4|mov|webm|m4v)$/i);
+      const ext = extMatch ? extMatch[0].toLowerCase() : ".mp4";
+      const name = `fv-${crypto.randomBytes(12).toString("hex")}${ext}`;
+      fs.writeFileSync(path.join(uploadsDir, name), body);
+      res.status(200).json({ success: true, url: `/uploads/${name}` });
+    } catch (error) {
+      res.status(500).json({
+        error: "Upload failed",
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+);
+app.use(
+  "/uploads",
+  express.static(uploadsDir, { maxAge: "365d", immutable: true })
+);
+
 app.use(express.json({ limit: "2mb" }));
 
 const handlers = {
@@ -150,6 +185,7 @@ const handlers = {
   exerciseResults,
   exercises,
   findMyPortal,
+  formVideos,
   formTemplates,
   notifications,
   productOrders,

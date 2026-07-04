@@ -1903,6 +1903,124 @@ function App() {
       setCoachKeyBusy(false);
     }
   };
+  // Coach review queue for athlete form videos.
+  const [reviewFormVideos, setReviewFormVideos] = useState<
+    Array<{
+      recordId: string;
+      clientId: string;
+      clientName: string;
+      exerciseName: string;
+      workoutName: string;
+      videoUrl: string;
+      status: string;
+    }>
+  >([]);
+  const [formVideoReplies, setFormVideoReplies] = useState<
+    Record<string, string>
+  >({});
+  const loadFormVideos = async () => {
+    try {
+      const res = await fetch("/api/formVideos");
+      const data = await res.json();
+      if (Array.isArray(data.videos)) setReviewFormVideos(data.videos);
+    } catch {
+      // review panel simply stays empty
+    }
+  };
+  useEffect(() => {
+    if (!isClientPortal && activePage === "Review") void loadFormVideos();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activePage]);
+  const reviewFormVideo = async (recordId: string) => {
+    try {
+      const res = await fetch("/api/formVideos", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          recordId,
+          coachReply: formVideoReplies[recordId] || "",
+          status: "Reviewed",
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "failed");
+      setReviewFormVideos((cur) =>
+        cur.map((v) =>
+          v.recordId === recordId ? { ...v, status: "Reviewed" } : v
+        )
+      );
+      notify("Video reviewed.", "success");
+    } catch {
+      notify("Could not save the review.", "error");
+    }
+  };
+
+  // Form-video review (premium: online / in-person clients only).
+  const formVideoInputRef = useRef<HTMLInputElement | null>(null);
+  const [formVideoExercise, setFormVideoExercise] = useState<{
+    exerciseId: string;
+    exerciseName: string;
+  } | null>(null);
+  const [formVideoBusy, setFormVideoBusy] = useState(false);
+  const [formVideoSentIds, setFormVideoSentIds] = useState<string[]>([]);
+  // Deferred (arrow) — selectedClient is declared further down the component.
+  const isPremiumClient = () =>
+    isClientPortal &&
+    /online|in-person/i.test(String(selectedClient?.clientType || ""));
+  const submitFormVideo = async (file: File) => {
+    if (!formVideoExercise || !selectedClient) return;
+    setFormVideoBusy(true);
+    try {
+      const uploadRes = await fetch(
+        `/api/uploadFormVideoFile?name=${encodeURIComponent(file.name)}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": file.type || "application/octet-stream" },
+          body: file,
+        }
+      );
+      const uploadData = await uploadRes.json();
+      if (!uploadRes.ok || !uploadData.url) {
+        throw new Error(uploadData.error || "Upload failed");
+      }
+      const metaRes = await fetch("/api/formVideos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clientId: selectedClient.clientCode || selectedClient.id,
+          clientName: selectedClient.name,
+          exerciseName: formVideoExercise.exerciseName,
+          workoutName: selectedWorkout
+            ? localizedWorkoutName(selectedWorkout)
+            : "",
+          videoUrl: uploadData.url,
+        }),
+      });
+      const metaData = await metaRes.json();
+      if (!metaRes.ok || !metaData.success) {
+        throw new Error(metaData.error || "Could not send video");
+      }
+      setFormVideoSentIds((cur) => [...cur, formVideoExercise.exerciseId]);
+      notify(
+        paceZh
+          ? "视频已发送给教练 ✓"
+          : "Form video sent to your coach ✓",
+        "success"
+      );
+    } catch (error) {
+      console.error(error);
+      notify(
+        paceZh
+          ? "视频发送失败，请重试。"
+          : "Video failed to send — try again.",
+        "error"
+      );
+    } finally {
+      setFormVideoBusy(false);
+      setFormVideoExercise(null);
+      if (formVideoInputRef.current) formVideoInputRef.current.value = "";
+    }
+  };
   // One-time first-workout coach marks (per browser).
   const [playerTutorialOpen, setPlayerTutorialOpen] = useState(false);
   // Timed-circuit (AMRAP/EMOM) stopwatch + rounds score for the focus player.
@@ -21783,6 +21901,72 @@ function App() {
                     )}
                   </article>
 
+                  {reviewFormVideos.filter((v) => v.status !== "Reviewed")
+                    .length > 0 && (
+                    <article className="coachReviewColumn">
+                      <div className="coachReviewColumnHeader">
+                        <div>
+                          <span>Needs review</span>
+                          <strong>Form Videos</strong>
+                        </div>
+                        <div className="coachReviewHeaderRight">
+                          <em>
+                            {
+                              reviewFormVideos.filter(
+                                (v) => v.status !== "Reviewed"
+                              ).length
+                            }
+                          </em>
+                        </div>
+                      </div>
+                      <div className="formVideoReviewList">
+                        {reviewFormVideos
+                          .filter((v) => v.status !== "Reviewed")
+                          .map((video) => (
+                            <div
+                              className="formVideoReviewCard"
+                              key={video.recordId}
+                            >
+                              <div className="formVideoReviewMeta">
+                                <strong>{video.clientName || video.clientId}</strong>
+                                <span>
+                                  {video.exerciseName}
+                                  {video.workoutName
+                                    ? ` · ${video.workoutName}`
+                                    : ""}
+                                </span>
+                              </div>
+                              <video
+                                src={video.videoUrl}
+                                controls
+                                playsInline
+                                preload="metadata"
+                              />
+                              <textarea
+                                placeholder="Reply to your athlete…"
+                                value={formVideoReplies[video.recordId] || ""}
+                                onChange={(e) =>
+                                  setFormVideoReplies((cur) => ({
+                                    ...cur,
+                                    [video.recordId]: e.target.value,
+                                  }))
+                                }
+                              />
+                              <button
+                                type="button"
+                                className="primaryButton"
+                                onClick={() =>
+                                  void reviewFormVideo(video.recordId)
+                                }
+                              >
+                                Send reply & mark reviewed
+                              </button>
+                            </div>
+                          ))}
+                      </div>
+                    </article>
+                  )}
+
                   <article
                     id="reviewColCheckins"
                     className={`coachReviewColumn ${
@@ -33704,6 +33888,18 @@ function App() {
           </div>
         )}
 
+        <input
+          ref={formVideoInputRef}
+          type="file"
+          accept="video/*"
+          capture="environment"
+          style={{ display: "none" }}
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) void submitFormVideo(file);
+          }}
+        />
+
         {isCoachView && !coachUnlocked && (
           <div className="coachLockOverlay">
             <div className="coachLockCard">
@@ -34793,6 +34989,34 @@ function App() {
                                   >
                                     <Timer size={16} aria-hidden="true" />
                                     <span>{t("rest")}</span>
+                                  </button>
+                                )}
+
+                                {isPremiumClient() && (
+                                  <button
+                                    type="button"
+                                    disabled={formVideoBusy}
+                                    onClick={() => {
+                                      setOpenWorkoutActionMenuId("");
+                                      setFormVideoExercise({
+                                        exerciseId: exercise.exerciseId,
+                                        exerciseName: exercise.exerciseName,
+                                      });
+                                      formVideoInputRef.current?.click();
+                                    }}
+                                  >
+                                    <Film size={16} aria-hidden="true" />
+                                    <span>
+                                      {formVideoSentIds.includes(
+                                        exercise.exerciseId
+                                      )
+                                        ? paceZh
+                                          ? "已发送 ✓"
+                                          : "Sent ✓"
+                                        : paceZh
+                                          ? "动作视频"
+                                          : "Form check"}
+                                    </span>
                                   </button>
                                 )}
                               </div>
