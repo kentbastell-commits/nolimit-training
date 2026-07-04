@@ -25074,7 +25074,7 @@ function App() {
                       </small>
                     </div>
                     <span className="builderPanelToggle">
-                      {programDetailsOpen ? "Close" : "Open"}
+                      {programDetailsOpen ? "Hide ▴" : "Show ▾"}
                     </span>
                   </summary>
 
@@ -25991,8 +25991,8 @@ function App() {
                     {editingProgramSessionId && (
                       <p className="builderSessionHint">
                         {isSingleWorkoutBuilder
-                          ? "Editing this workout. Save it here when it is ready."
-                          : "Editing an existing day. Save it here, then choose another session below."}
+                          ? "Editing this workout — save when ready."
+                          : "Save this day, then pick the next session."}
                       </p>
                     )}
                   </div>
@@ -26004,7 +26004,7 @@ function App() {
                     >
                       {builderSaveStatus === "dirty" ? "Unsaved" : "Saved"}
                     </span>
-                    {editingProgramSessionId && (
+                    {editingProgramSessionId && isSingleWorkoutBuilder && (
                       <button
                         className="outlineButton"
                         onClick={() => clearCurrentProgramSession(false)}
@@ -26042,7 +26042,7 @@ function App() {
                       </strong>
                     </div>
                     <span className="builderPanelToggle">
-                      {sessionSetupOpen ? "Close" : "Open"}
+                      {sessionSetupOpen ? "Hide ▴" : "Show ▾"}
                     </span>
                   </summary>
                 <div
@@ -26204,27 +26204,33 @@ function App() {
 
                   <label className="sessionDurationField">
                     <span>Duration</span>
-                    <input
-                      value={sessionEstimatedDuration}
-                      onChange={(e) => setSessionEstimatedDuration(e.target.value)}
-                      inputMode="numeric"
-                      placeholder="45"
-                      className="miniSearch"
-                    />
-                    {selectedProgramExercises.length > 0 && (
-                      <button
-                        type="button"
-                        className="durationEstimateBtn"
-                        title="Estimate from the prescription (sets, work, rest)"
-                        onClick={() =>
-                          setSessionEstimatedDuration(
-                            String(estimateSessionMinutes(selectedProgramExercises))
-                          )
+                    <span className="durationInputRow">
+                      <input
+                        value={sessionEstimatedDuration}
+                        onChange={(e) =>
+                          setSessionEstimatedDuration(e.target.value)
                         }
-                      >
-                        ≈ {estimateSessionMinutes(selectedProgramExercises)} min
-                      </button>
-                    )}
+                        inputMode="numeric"
+                        placeholder="45"
+                        className="miniSearch"
+                      />
+                      {selectedProgramExercises.length > 0 && (
+                        <button
+                          type="button"
+                          className="durationEstimateBtn"
+                          title="Estimate from the prescription (sets, work, rest)"
+                          onClick={() =>
+                            setSessionEstimatedDuration(
+                              String(
+                                estimateSessionMinutes(selectedProgramExercises)
+                              )
+                            )
+                          }
+                        >
+                          ≈{estimateSessionMinutes(selectedProgramExercises)}m
+                        </button>
+                      )}
+                    </span>
                   </label>
 
                   <label className="sessionGoalField">
@@ -26296,7 +26302,7 @@ function App() {
                 </details>
 
                 {selectedProgramExercises.length > 1 && (
-                  <div className="bulkEditBar">
+                  <div className={`bulkEditBar${bulkEditMode ? " active" : ""}`}>
                     <button
                       type="button"
                       className={`outlineButton compactBuilderButton${

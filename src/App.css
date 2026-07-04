@@ -27184,3 +27184,71 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 .coachTodayRow.warn strong { color: #7c2230; }
 .coachTodayRow em { font-style: normal; color: #77746a; font-size: 12px; }
 .coachTodayRow span { font-size: 14px; line-height: 1; }
+
+/* ==== Builder UI cleanup (all stages) ==== */
+/* Session editor header: keep status + save on one tidy row. */
+.builderSessionHeaderActions { flex-wrap: nowrap; align-items: center; }
+.builderSessionHint { font-size: 12.5px; color: #8a8471; }
+
+/* Collapsible panel toggles read as subtle controls, not buttons. */
+.builderPanelToggle {
+  background: transparent !important;
+  border: 1px solid rgba(13, 13, 13, 0.15);
+  color: #6b6455 !important;
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* Duration estimate chip sits beside the input, not dangling below. */
+.durationInputRow { display: flex; align-items: center; gap: 6px; }
+.durationInputRow input { flex: 1; min-width: 0; }
+.durationInputRow .durationEstimateBtn { margin-top: 0; white-space: nowrap; }
+
+/* Bulk edit: plain inline button until activated, band only when active. */
+.bulkEditBar { border: none; background: transparent; padding: 0; margin: 10px 0 2px; }
+.bulkEditBar.active {
+  border: 1px dashed rgba(212, 175, 55, 0.45);
+  border-radius: 12px;
+  background: rgba(212, 175, 55, 0.06);
+  padding: 10px 12px;
+}
+
+/* Program detail: meta facts as a compact grid, not ten big boxes. */
+.programMetaGrid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 8px !important;
+}
+.programMetaGrid > span {
+  padding: 8px 12px !important;
+  border-radius: 10px !important;
+}
+.programMetaGrid > span strong {
+  font-size: 10px !important;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #8a8471 !important;
+}
+
+/* Program detail: sessions as a compact two-up grid instead of a long stack. */
+.savedProgramSessions {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 10px;
+}
+.savedProgramSessions .exerciseTitleRow,
+.savedProgramSessions > p { grid-column: 1 / -1; }
+.savedProgramSessions .exercise-card { margin: 0; padding: 12px 16px; }
+.savedProgramSessions .exercise-card h3 { font-size: 14.5px; margin-bottom: 6px; }
+.savedProgramSessions .exercise-card p { font-size: 13px; margin: 2px 0; color: #55524a; }
+
+/* Danger button: legible outline-danger instead of washed-out pink. */
+.dangerButton {
+  background: #fff;
+  color: #a02533;
+  border: 1px solid rgba(160, 37, 51, 0.55);
+}
+.dangerButton:hover:not(:disabled) { background: #fbeeee; }
+.dangerButton:disabled { opacity: 0.45; }
