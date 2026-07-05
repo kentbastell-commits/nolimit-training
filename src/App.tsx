@@ -32,6 +32,7 @@ import {
   useState,
   type ComponentType,
   type DragEvent,
+  type ReactNode,
   type TouchEvent,
 } from "react";
 import { useTranslation } from "react-i18next";
@@ -137,35 +138,26 @@ import type {
   WorkoutPageTab,
 } from "./appCore";
 import LandingPage from "./LandingPage";
-import WorkoutPlayerModal from "./WorkoutPlayerModal";
-import ContentAssignmentModal from "./ContentAssignmentModal";
-import AddClientModal from "./AddClientModal";
-import AccountModal from "./AccountModal";
-import ExerciseModal from "./ExerciseModal";
-import ExerciseHistoryModal from "./ExerciseHistoryModal";
-import CoachEditModal from "./CoachEditModal";
-import CalendarActionMenu from "./CalendarActionMenu";
-import AssignmentDrawer from "./AssignmentDrawer";
-import CreateProgramModal from "./CreateProgramModal";
-import ProgramPreviewModal from "./ProgramPreviewModal";
 
 // A shared loading placeholder for code-split routes.
 function PageFallback() {
   return <div className="lazyFallback" aria-busy="true" aria-live="polite" />;
 }
 
-// Wrap a dynamically-imported page in its own Suspense boundary. Each
-// route becomes a separate chunk, so the initial load (and the public
-// landing path) no longer pulls every coach/portal page into the main
-// bundle. The per-route boundary keeps a page swap from flashing the
-// surrounding chrome.
+// Wrap a dynamically-imported component in its own Suspense boundary. Each
+// becomes a separate chunk, so the initial load (and the public landing
+// path) no longer pulls every coach/portal page or modal into the main
+// bundle. The per-component boundary keeps a swap from flashing the
+// surrounding chrome; modals pass fallback={null} so opening one loads its
+// chunk silently instead of showing a spinner.
 function withSuspense<P extends object>(
   factory: () => Promise<{ default: ComponentType<P> }>,
+  fallback: ReactNode = <PageFallback />,
 ) {
   const Lazy = lazy(factory);
   return function LazyRoute(props: P) {
     return (
-      <Suspense fallback={<PageFallback />}>
+      <Suspense fallback={fallback}>
         <Lazy {...props} />
       </Suspense>
     );
@@ -186,6 +178,20 @@ const CoachLibraryPage = withSuspense(() => import("./CoachLibraryPage"));
 const CoachesAdminPage = withSuspense(() => import("./CoachesAdminPage"));
 const ClientWorkspace = withSuspense(() => import("./ClientWorkspace"));
 const CheckInsPage = withSuspense(() => import("./CheckInsPage"));
+
+// Modals/menus are only needed on interaction, never at first paint — split
+// them out with a null fallback so opening one loads its chunk silently.
+const WorkoutPlayerModal = withSuspense(() => import("./WorkoutPlayerModal"), null);
+const ContentAssignmentModal = withSuspense(() => import("./ContentAssignmentModal"), null);
+const AddClientModal = withSuspense(() => import("./AddClientModal"), null);
+const AccountModal = withSuspense(() => import("./AccountModal"), null);
+const ExerciseModal = withSuspense(() => import("./ExerciseModal"), null);
+const ExerciseHistoryModal = withSuspense(() => import("./ExerciseHistoryModal"), null);
+const CoachEditModal = withSuspense(() => import("./CoachEditModal"), null);
+const CalendarActionMenu = withSuspense(() => import("./CalendarActionMenu"), null);
+const AssignmentDrawer = withSuspense(() => import("./AssignmentDrawer"), null);
+const CreateProgramModal = withSuspense(() => import("./CreateProgramModal"), null);
+const ProgramPreviewModal = withSuspense(() => import("./ProgramPreviewModal"), null);
 
 function App() {
   const { t, i18n } = useTranslation();
