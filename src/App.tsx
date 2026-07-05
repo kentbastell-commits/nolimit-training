@@ -313,7 +313,12 @@ function App() {
   const [submittingInvite, setSubmittingInvite] = useState(false);
   const [inviteSubmitted, setInviteSubmitted] = useState(false);
   const [inviteClientId, setInviteClientId] = useState("");
-  const [inviteLang, setInviteLang] = useState<"en" | "zh">("en");
+  const [inviteLang, setInviteLang] = useState<"en" | "zh">(() =>
+    localStorage.getItem("nl_public_lang") === "zh" ? "zh" : "en"
+  );
+  useEffect(() => {
+    localStorage.setItem("nl_public_lang", inviteLang);
+  }, [inviteLang]);
   // In-person training & consulting enquiry form.
   const [enquiryForm, setEnquiryForm] = useState({
     contactPerson: "",
@@ -325,11 +330,18 @@ function App() {
   });
   const [submittingEnquiry, setSubmittingEnquiry] = useState(false);
   const [enquirySubmitted, setEnquirySubmitted] = useState(false);
-  const [storeLang, setStoreLang] = useState<"en" | "zh">("en");
+  // Language survives full-page navigation between landing/store/invite.
+  const [storeLang, setStoreLang] = useState<"en" | "zh">(() =>
+    localStorage.getItem("nl_public_lang") === "zh" ? "zh" : "en"
+  );
+  useEffect(() => {
+    localStorage.setItem("nl_public_lang", storeLang);
+  }, [storeLang]);
   const [storeLauncherOpen, setStoreLauncherOpen] = useState(false);
   const [storeLauncherClient, setStoreLauncherClient] = useState("");
   const [programsLoading, setProgramsLoading] = useState(false);
   const [storeSelectedProgram, setStoreSelectedProgram] = useState<Program | null>(null);
+  const storeStepIntentRef = useRef<number | null>(null);
   const [storeSelectedAddonIds, setStoreSelectedAddonIds] = useState<string[]>([]);
   // Store checkout step: 1 = details, 2 = add-ons, 3 = cart + payment.
   const [storeStep, setStoreStep] = useState(1);
@@ -603,6 +615,10 @@ function App() {
     running: false,
     startedAt: 0,
     accumulatedMs: 0,
+    // The exercise id of the circuit this clock belongs to. A second timed
+    // block in the same workout gets a fresh card instead of inheriting
+    // this one's elapsed time and rounds.
+    groupId: "",
   });
   const [wodRounds, setWodRounds] = useState(0);
   const [, setWodTick] = useState(0);
@@ -615,7 +631,7 @@ function App() {
     wodTimer.accumulatedMs +
     (wodTimer.running ? Date.now() - wodTimer.startedAt : 0);
   const resetWodState = () => {
-    setWodTimer({ running: false, startedAt: 0, accumulatedMs: 0 });
+    setWodTimer({ running: false, startedAt: 0, accumulatedMs: 0, groupId: "" });
     setWodRounds(0);
   };
   const [newClient, setNewClient] = useState({
@@ -6409,9 +6425,18 @@ function App() {
 
     // Timed-circuit score (AMRAP rounds / EMOM minutes) rides on the note so
     // the coach sees it with the submission.
-    const timedMeta = workoutDetails
-      .map((exercise) => parseExerciseNotes(exercise.notes))
-      .find((m) => m.groupType === "Circuit" && m.groupMode);
+    // Prefer the circuit the athlete actually ran the clock on; fall back to
+    // the first timed circuit for older submissions without a stamped group.
+    const timedExercise =
+      (wodTimer.groupId &&
+        workoutDetails.find((exercise) => exercise.id === wodTimer.groupId)) ||
+      workoutDetails.find((exercise) => {
+        const m = parseExerciseNotes(exercise.notes);
+        return m.groupType === "Circuit" && m.groupMode;
+      });
+    const timedMeta = timedExercise
+      ? parseExerciseNotes(timedExercise.notes)
+      : undefined;
     const wodScoreLine =
       timedMeta && (wodRounds > 0 || wodElapsedMs > 1000)
         ? timedMeta.groupMode === "AMRAP"
@@ -10093,7 +10118,12 @@ function App() {
 
   const registerForProgram = async (program: Program, addonList: Program[] = []) => {
     if (!storeRegName.trim() || !storeRegPhone.trim()) {
-      notify("Please enter your name and WeChat ID.", "error");
+      notify(
+        storeLang === "zh"
+          ? "请输入姓名和微信号。"
+          : "Please enter your name and WeChat ID.",
+        "error"
+      );
       return;
     }
     setStoreRegistering(true);
@@ -10144,7 +10174,8 @@ function App() {
   };
 
   const findMyPortal = async () => {
-    const zh = i18n.language === "zh";
+    // The store modal is localized by storeLang, not the portal i18n instance.
+    const zh = storeLang === "zh";
     if (!findPortalName.trim() || !findPortalPhone.trim()) {
       setFindPortalError(
         zh ? "请输入姓名和微信号/手机号。" : "Please enter your name and WeChat/phone."
@@ -10549,9 +10580,13 @@ function App() {
   }, [selectedClient?.clientCode]);
 
   // Reset the store cart/step whenever the open store program changes.
+  // A handler (e.g. preview's "Get this program") can request a specific
+  // landing step via storeStepIntentRef — otherwise this effect would
+  // clobber its step-jump back to 1 on the same render.
   useEffect(() => {
     setStoreSelectedAddonIds([]);
-    setStoreStep(1);
+    setStoreStep(storeStepIntentRef.current ?? 1);
+    storeStepIntentRef.current = null;
     setStorePaymentCode("");
   }, [storeSelectedProgram?.recordId]);
 
@@ -16533,6 +16568,9 @@ function App() {
         setStoreFaqOpen={setStoreFaqOpen}
         storeSelectedProgram={storeSelectedProgram}
         setStoreSelectedProgram={setStoreSelectedProgram}
+        requestStoreStep={(step: number) => {
+          storeStepIntentRef.current = step;
+        }}
         storeSelectedAddonIds={storeSelectedAddonIds}
         setStoreSelectedAddonIds={setStoreSelectedAddonIds}
         storeLauncherOpen={storeLauncherOpen}
@@ -17523,7 +17561,6 @@ function App() {
                 toggleTeamSelectAll={toggleTeamSelectAll}
                 toggleTeamSort={toggleTeamSort}
                 visibleTeams={visibleTeams}
-                workouts={workouts}
               />
             )}
 
@@ -17976,7 +18013,6 @@ function App() {
             assignmentTemplateId={assignmentTemplateId}
             assignmentTemplateOptions={assignmentTemplateOptions}
             assignmentType={assignmentType}
-            athleteMetricsLoading={athleteMetricsLoading}
             buildClientPortalLink={buildClientPortalLink}
             calendarAnchorDate={calendarAnchorDate}
             calendarAssignmentDateInputRef={calendarAssignmentDateInputRef}
@@ -17990,7 +18026,6 @@ function App() {
             clientComments={clientComments}
             clientMonthAnchorDate={clientMonthAnchorDate}
             clientMonthCalendarDates={clientMonthCalendarDates}
-            clientPerformanceMetrics={clientPerformanceMetrics}
             clientPortalUpcomingTasks={clientPortalUpcomingTasks}
             clientPortalUpcomingWorkouts={clientPortalUpcomingWorkouts}
             clientProgramScheduleMode={clientProgramScheduleMode}
@@ -18034,10 +18069,7 @@ function App() {
             handleHomeTouchEnd={handleHomeTouchEnd}
             handleHomeTouchStart={handleHomeTouchStart}
             handleOpenContentAssignment={handleOpenContentAssignment}
-            hasKarvonenHr={hasKarvonenHr}
-            hasMasForZones={hasMasForZones}
             hrMaxMetric={hrMaxMetric}
-            hrMaxValue={hrMaxValue}
             i18n={i18n}
             inboxSeenAt={inboxSeenAt}
             isClientPortal={isClientPortal}
@@ -18074,7 +18106,6 @@ function App() {
             openWorkout={openWorkout}
             overviewDetailsOpen={overviewDetailsOpen}
             paceZh={paceZh}
-            paceZones={paceZones}
             parseBpm={parseBpm}
             parseOverride={parseOverride}
             pasteCalendarItemToDate={pasteCalendarItemToDate}
@@ -18096,7 +18127,6 @@ function App() {
             renderWellnessTrends={renderWellnessTrends}
             renderWorkloadTab={renderWorkloadTab}
             restingHrMetric={restingHrMetric}
-            restingHrValue={restingHrValue}
             saveCoachNotes={saveCoachNotes}
             saveMetricsOverrides={saveMetricsOverrides}
             savingCoachNotes={savingCoachNotes}

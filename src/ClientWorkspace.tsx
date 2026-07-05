@@ -19,7 +19,6 @@ export default function ClientWorkspace({
   assignmentTemplateId,
   assignmentTemplateOptions,
   assignmentType,
-  athleteMetricsLoading,
   buildClientPortalLink,
   calendarAnchorDate,
   calendarAssignmentDateInputRef,
@@ -33,7 +32,6 @@ export default function ClientWorkspace({
   clientComments,
   clientMonthAnchorDate,
   clientMonthCalendarDates,
-  clientPerformanceMetrics,
   clientPortalUpcomingTasks,
   clientPortalUpcomingWorkouts,
   clientProgramScheduleMode,
@@ -77,10 +75,7 @@ export default function ClientWorkspace({
   handleHomeTouchEnd,
   handleHomeTouchStart,
   handleOpenContentAssignment,
-  hasKarvonenHr,
-  hasMasForZones,
   hrMaxMetric,
-  hrMaxValue,
   i18n,
   inboxSeenAt,
   isClientPortal,
@@ -117,7 +112,6 @@ export default function ClientWorkspace({
   openWorkout,
   overviewDetailsOpen,
   paceZh,
-  paceZones,
   parseBpm,
   parseOverride,
   pasteCalendarItemToDate,
@@ -139,7 +133,6 @@ export default function ClientWorkspace({
   renderWellnessTrends,
   renderWorkloadTab,
   restingHrMetric,
-  restingHrValue,
   saveCoachNotes,
   saveMetricsOverrides,
   savingCoachNotes,
@@ -450,9 +443,7 @@ export default function ClientWorkspace({
                 <PortalHome
                   t={t}
                   getTaskTone={getTaskTone}
-                  athleteMetricsLoading={athleteMetricsLoading}
                   clientComments={clientComments}
-                  clientPerformanceMetrics={clientPerformanceMetrics}
                   clientPortalUpcomingTasks={clientPortalUpcomingTasks}
                   coachDashTab={coachDashTab}
                   coachInboxItems={coachInboxItems}
@@ -464,9 +455,6 @@ export default function ClientWorkspace({
                   handleHomeTouchEnd={handleHomeTouchEnd}
                   handleHomeTouchStart={handleHomeTouchStart}
                   handleOpenContentAssignment={handleOpenContentAssignment}
-                  hasKarvonenHr={hasKarvonenHr}
-                  hasMasForZones={hasMasForZones}
-                  hrMaxValue={hrMaxValue}
                   inboxSeenAt={inboxSeenAt}
                   isClientPortal={isClientPortal}
                   isWorkloadMonitored={isWorkloadMonitored}
@@ -479,7 +467,6 @@ export default function ClientWorkspace({
                   needsAttentionItems={needsAttentionItems}
                   openWorkout={openWorkout}
                   paceZh={paceZh}
-                  paceZones={paceZones}
                   portalHomeTab={portalHomeTab}
                   recentWorkoutSubmissions={recentWorkoutSubmissions}
                   renderDailyCheckIn={renderDailyCheckIn}
@@ -490,7 +477,6 @@ export default function ClientWorkspace({
                   renderTrophyCase={renderTrophyCase}
                   renderWellnessTrends={renderWellnessTrends}
                   renderWorkloadTab={renderWorkloadTab}
-                  restingHrValue={restingHrValue}
                   selectedClient={selectedClient}
                   setClientTab={setClientTab}
                   setCoachDashTab={setCoachDashTab}
@@ -557,7 +543,6 @@ export default function ClientWorkspace({
                   paceZh={paceZh}
                   populateClientProgramCalendar={populateClientProgramCalendar}
                   populatingClientProgram={populatingClientProgram}
-                  programs={programs}
                   programsTab={programsTab}
                   renderProgramHome={renderProgramHome}
                   renderProgramStore={renderProgramStore}

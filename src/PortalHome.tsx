@@ -6,9 +6,7 @@ import { normalizeDate } from "./appCore";
 export default function PortalHome({
   t,
   getTaskTone,
-  athleteMetricsLoading,
   clientComments,
-  clientPerformanceMetrics,
   clientPortalUpcomingTasks,
   coachDashTab,
   coachInboxItems,
@@ -20,9 +18,6 @@ export default function PortalHome({
   handleHomeTouchEnd,
   handleHomeTouchStart,
   handleOpenContentAssignment,
-  hasKarvonenHr,
-  hasMasForZones,
-  hrMaxValue,
   inboxSeenAt,
   isClientPortal,
   isWorkloadMonitored,
@@ -35,7 +30,6 @@ export default function PortalHome({
   needsAttentionItems,
   openWorkout,
   paceZh,
-  paceZones,
   portalHomeTab,
   recentWorkoutSubmissions,
   renderDailyCheckIn,
@@ -46,7 +40,6 @@ export default function PortalHome({
   renderTrophyCase,
   renderWellnessTrends,
   renderWorkloadTab,
-  restingHrValue,
   selectedClient,
   setClientTab,
   setCoachDashTab,
@@ -349,73 +342,7 @@ export default function PortalHome({
                       </div>
                     </div>
 
-                    {isClientPortal ? (
-                      <>
-                        <div className="homeFocusGrid performanceMetricGrid">
-                          {clientPerformanceMetrics.map((metric: any) => (
-                            <div className="performanceMetricCard" key={metric.key}>
-                              <span>{metric.label}</span>
-                              <strong>{athleteMetricsLoading ? "..." : metric.value}</strong>
-                              <small>
-                                {athleteMetricsLoading ? t("loadingMetrics") : metric.meta}
-                              </small>
-                            </div>
-                          ))}
-                        </div>
-                        {(hasMasForZones || hasKarvonenHr) && (
-                          <div className="runningPacesCard">
-                            <div className="runningPacesHeader">
-                              <span className="eyebrow">
-                                {paceZh ? "训练区间" : "Training Zones"}
-                              </span>
-                              <small>
-                                {`${paceZh ? "来源" : "From"} ${[
-                                  "MAS",
-                                  hasKarvonenHr ? "HR" : "",
-                                ]
-                                  .filter(Boolean)
-                                  .join(" + ")}`}
-                              </small>
-                            </div>
-                            <table className="runningPacesTable">
-                              <thead>
-                                <tr>
-                                  <th>{paceZh ? "区间" : "Zone"}</th>
-                                  <th>%MAS</th>
-                                  <th>{paceZh ? "配速" : "Pace"}</th>
-                                  {hasKarvonenHr && <th>%HRR</th>}
-                                  {hasKarvonenHr && <th>{paceZh ? "心率" : "HR"}</th>}
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {paceZones.map((zone: any) => (
-                                  <tr key={zone.key}>
-                                    <td>{zone.label}</td>
-                                    <td>{zone.percent}%</td>
-                                    <td>
-                                      <strong>{zone.pace}</strong>
-                                    </td>
-                                    {hasKarvonenHr && <td>{zone.hrr}</td>}
-                                    {hasKarvonenHr && (
-                                      <td>
-                                        <strong>{zone.hr}</strong>
-                                      </td>
-                                    )}
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                            {hasKarvonenHr && (
-                              <small className="runningPacesFootnote">
-                                {paceZh ? "卡尔沃宁公式" : "Karvonen"}: HRmax{" "}
-                                {Math.round(hrMaxValue)} · {paceZh ? "静息" : "Rest"}{" "}
-                                {Math.round(restingHrValue)} bpm
-                              </small>
-                            )}
-                          </div>
-                        )}
-                      </>
-                    ) : (
+                    {(
                       <div className="sessionLogs">
                         <div className="sessionLogsCols">
                           <div className="sessionLogCol">

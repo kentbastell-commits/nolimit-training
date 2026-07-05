@@ -16,6 +16,7 @@ export default function StorePage({
   setStoreLang,
   storeStep,
   setStoreStep,
+  requestStoreStep,
   storeCategoryFilter,
   setStoreCategoryFilter,
   storeSeasonFilter,
@@ -1355,8 +1356,10 @@ export default function StorePage({
                   className="primaryButton"
                   onClick={() => {
                     setPreviewProgram(null);
+                    const target = ppAddons.length > 0 ? 2 : 3;
+                    requestStoreStep(target);
                     setStoreSelectedProgram(pp);
-                    setStoreStep(ppAddons.length > 0 ? 2 : 3);
+                    setStoreStep(target);
                   }}
                 >
                   {sZh ? "获取此计划" : "Get this program"}

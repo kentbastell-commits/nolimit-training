@@ -607,14 +607,30 @@ export default function WorkoutPlayerModal({
                           meta.groupType === "Circuit" &&
                           meta.groupMode &&
                           (() => {
+                            // The shared clock belongs to one circuit; any
+                            // other timed block renders a fresh zeroed card.
+                            const ownsTimer =
+                              !wodTimer.groupId ||
+                              wodTimer.groupId === exercise.id;
+                            const groupElapsedMs = ownsTimer ? wodElapsedMs : 0;
+                            const groupRounds = ownsTimer ? wodRounds : 0;
+                            const claimTimer = () => {
+                              setWodTimer({
+                                running: true,
+                                startedAt: Date.now(),
+                                accumulatedMs: 0,
+                                groupId: exercise.id,
+                              });
+                              setWodRounds(0);
+                            };
                             const capMs =
                               (Number(meta.groupMinutes) || 12) * 60000;
-                            const remainMs = Math.max(0, capMs - wodElapsedMs);
+                            const remainMs = Math.max(0, capMs - groupElapsedMs);
                             const mm = Math.floor(remainMs / 60000);
                             const ss = Math.floor((remainMs % 60000) / 1000);
                             const minuteNow = Math.min(
                               Number(meta.groupMinutes) || 12,
-                              Math.floor(wodElapsedMs / 60000) + 1
+                              Math.floor(groupElapsedMs / 60000) + 1
                             );
                             const timeUp = remainMs <= 0;
                             return (
@@ -638,10 +654,15 @@ export default function WorkoutPlayerModal({
                                 <div className="wodTimerActions">
                                   <button
                                     type="button"
-                                    onClick={() =>
+                                    onClick={() => {
+                                      if (!ownsTimer) {
+                                        claimTimer();
+                                        return;
+                                      }
                                       setWodTimer((t: any) =>
                                         t.running
                                           ? {
+                                              ...t,
                                               running: false,
                                               startedAt: 0,
                                               accumulatedMs:
@@ -652,11 +673,12 @@ export default function WorkoutPlayerModal({
                                               ...t,
                                               running: true,
                                               startedAt: Date.now(),
+                                              groupId: exercise.id,
                                             }
-                                      )
-                                    }
+                                      );
+                                    }}
                                   >
-                                    {wodTimer.running
+                                    {ownsTimer && wodTimer.running
                                       ? paceZh
                                         ? "暂停"
                                         : "Pause"
@@ -674,16 +696,27 @@ export default function WorkoutPlayerModal({
                                     <div>
                                       <button
                                         type="button"
-                                        onClick={() =>
-                                          setWodRounds((r: any) => Math.max(0, r - 1))
-                                        }
+                                        onClick={() => {
+                                          if (!ownsTimer) return;
+                                          setWodRounds((r: any) => Math.max(0, r - 1));
+                                        }}
                                       >
                                         −
                                       </button>
-                                      <strong>{wodRounds}</strong>
+                                      <strong>{groupRounds}</strong>
                                       <button
                                         type="button"
                                         onClick={() => {
+                                          if (!ownsTimer) {
+                                            claimTimer();
+                                            setWodTimer((t: any) => ({
+                                              ...t,
+                                              running: false,
+                                            }));
+                                            setWodRounds(1);
+                                            vibrate(16);
+                                            return;
+                                          }
                                           setWodRounds((r: any) => r + 1);
                                           vibrate(16);
                                         }}
