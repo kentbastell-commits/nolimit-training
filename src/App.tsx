@@ -4897,7 +4897,10 @@ function App() {
     setProgramBuiltForMode("internal");
     setProgramBuiltForClient("");
     setProgramBuiltForTeam("");
-    // Fresh canvas.
+    // Fresh canvas. Clearing the edit target is critical: leftover ids from a
+    // previously edited program would make saveProgram overwrite that program.
+    setEditProgramId("");
+    setEditProgramRecordId("");
     setProgramSessions([]);
     setSelectedProgramExercises([]);
     setProgramWeek("1");
@@ -6064,6 +6067,9 @@ function App() {
   const openWorkout = async (workout: Workout) => {
     setSelectedWorkout(workout);
     setWorkoutLoggingStarted(false);
+    // A leftover start time from an abandoned session would inflate this
+    // workout's saved duration — always start the clock fresh.
+    workoutStartedAtRef.current = null;
     resetWodState();
     setEditingWorkoutDate(normalizeDate(String(workout.scheduledDate)));
     setDetailsLoading(true);
@@ -10125,6 +10131,8 @@ function App() {
       if (!res.ok || !data.success) throw new Error(data.error || "Registration failed");
       setStoreRegisteredCode(data.clientCode);
       setStoreRegisteredOrderId(data.orderId || "");
+      // This code is now attached to a submitted order — never reuse it.
+      setStorePaymentCode("");
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Registration failed";
       notify(msg, "error");
@@ -10544,6 +10552,7 @@ function App() {
   useEffect(() => {
     setStoreSelectedAddonIds([]);
     setStoreStep(1);
+    setStorePaymentCode("");
   }, [storeSelectedProgram?.recordId]);
 
   // When the selected workload day (or its saved log) changes, refill the draft.
@@ -16303,6 +16312,11 @@ function App() {
     if (log.trackingType === "Time") return !!String(log.actualTime || "").trim();
     if (log.trackingType === "Distance")
       return !!String(log.actualDistance || "").trim();
+    if (log.trackingType === "Pace")
+      return Boolean(
+        String(log.actualDistance || "").trim() ||
+          String(log.actualTime || "").trim()
+      );
     return Boolean(
       String(log.actualWeight || "").trim() ||
         String(log.actualRpe || "").trim() ||
