@@ -1,7 +1,7 @@
 // Extracted from App.tsx (monolith split) — JSX verbatim; props threaded.
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { ChevronDown, MoreVertical, Settings, Trash2, X } from "lucide-react";
-import { labelColor } from "./appCore";
+import { dateToInputValue, labelColor } from "./appCore";
 
 export default function CoachTeamsPage({
   addTeamGroup,
@@ -271,6 +271,11 @@ export default function CoachTeamsPage({
                                 onClick={() => {
                                   setTeamQuickAssignId(team.id);
                                   setTeamQuickProgramId("");
+                                  // Re-stamp: the mount-time default goes
+                                  // stale if the tab lives past midnight.
+                                  setTeamQuickStartDate(
+                                    dateToInputValue(new Date())
+                                  );
                                   setTeamRowMenuId("");
                                 }}
                               >

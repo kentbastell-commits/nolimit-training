@@ -787,6 +787,9 @@ export type CalendarActionMenuPayload =
 
 export type SetLog = {
   exerciseId: string;
+  // Unique id of the workout-details ROW this log belongs to. Distinguishes
+  // two occurrences of the same library exercise within one workout.
+  occurrenceId?: string;
   exerciseName: string;
   exerciseOrder: number;
   setNumber: number;

@@ -10,7 +10,6 @@ export default function ReviewPage({
   checkInReplySaving,
   clientLabel,
   coachReviewCheckIns,
-  coachReviewEnquiries,
   coachReviewError,
   focusReviewColumn,
   formVideoReplies,
@@ -129,12 +128,12 @@ export default function ReviewPage({
 
                     {openReviewSections.enquiries && (
                       <div className="coachReviewGlobalList">
-                        {coachReviewEnquiries.length === 0 && (
+                        {newEnquiries.length === 0 && (
                           <p className="coachReviewEmpty">
-                            No in-person enquiries yet.
+                            No new in-person enquiries.
                           </p>
                         )}
-                        {coachReviewEnquiries.map((enq: any) => (
+                        {newEnquiries.map((enq: any) => (
                           <div
                             key={enq.recordId}
                             className="coachCheckInReviewCard"

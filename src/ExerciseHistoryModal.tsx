@@ -31,11 +31,16 @@ export default function ExerciseHistoryModal({
 
               <div className="historyLogList">
                 {(() => {
-                  const logs = workoutHistoryLogs.filter((log: any) =>
-                    log.exerciseName
-                      .toLowerCase()
-                      .startsWith(historyExerciseName.toLowerCase())
-                  );
+                  const wanted = historyExerciseName.toLowerCase();
+                  const logs = workoutHistoryLogs.filter((log: any) => {
+                    const name = log.exerciseName.toLowerCase();
+                    // Exact name, or the unilateral " - Left"/" - Right"
+                    // variants — NOT unrelated names sharing the prefix
+                    // (e.g. "Squat" must not pull in "Squat Jump").
+                    return (
+                      name === wanted || name.startsWith(wanted + " - ")
+                    );
+                  });
                   if (logs.length === 0) return <p>{t("noHistoryLogged")}</p>;
 
                   // Group by date; show newest first, collapsed by default.

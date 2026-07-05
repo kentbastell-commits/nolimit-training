@@ -2030,6 +2030,11 @@ function App() {
       notify("Please enter a coach name.", "error");
       return;
     }
+    // Editing a fallback row (no Feishu record) would CREATE a duplicate.
+    if (editingCoach && !editingCoach.recordId) {
+      notify("This coach needs to exist in Feishu before editing.", "error");
+      return;
+    }
 
     setSavingCoach(true);
 
@@ -4913,6 +4918,19 @@ function App() {
     setProgramBuiltForMode("internal");
     setProgramBuiltForClient("");
     setProgramBuiltForTeam("");
+    // Commerce/store fields must not leak from a previously loaded product
+    // into a fresh program (it could publish with the old price/copy).
+    setProgramPrice("");
+    setProgramCurrency("CNY");
+    setProgramPublicStoreVisible(false);
+    setProgramPurchaseLink("");
+    setProgramDefaultIntakeFormId("");
+    setProgramAccessLengthDays("42");
+    setProgramProductStatus("Draft");
+    setProgramSalesDescription("");
+    setProgramStoreCategory("");
+    setProgramStoreCategoryCn("");
+    setProgramBundleIds([]);
     // Fresh canvas. Clearing the edit target is critical: leftover ids from a
     // previously edited program would make saveProgram overwrite that program.
     setEditProgramId("");
@@ -4926,6 +4944,14 @@ function App() {
     setBuilderSubTab("build");
     setCreateProgramOpen(false);
     setWorkoutPageTab("Program Builder");
+    // Fresh defaults next time the Create Program modal opens.
+    setCreateDraft({
+      productType: "Digital Program",
+      name: "",
+      goal: "",
+      phase: "Foundation",
+      durationWeeks: "4",
+    });
   };
 
   // Sessions tab "Create Session" → a fresh single-workout builder.
@@ -5211,12 +5237,22 @@ function App() {
       }
 
       // Two-way sync: each member's profile Categories reflect their team group.
-      const groupSet = new Set(teamDraft.groups);
+      // Strip the OLD team's group labels too, and visit members who were just
+      // removed — otherwise obsolete squad-group categories stick to profiles.
+      const originalTeam = teams.find((t) => t.id === selectedTeamId);
+      const groupSet = new Set([
+        ...teamDraft.groups,
+        ...(originalTeam?.groups || []),
+      ]);
+      const memberIdsToSync = Array.from(
+        new Set([...teamDraft.memberIds, ...(originalTeam?.memberIds || [])])
+      );
       const patches: { id: string; categories: string[] }[] = [];
-      teamDraft.memberIds.forEach((mid) => {
+      memberIdsToSync.forEach((mid) => {
         const client = clients.find((c) => c.id === mid);
         if (!client) return;
-        const pos = teamDraft.positions[mid] || "";
+        const stillMember = teamDraft.memberIds.includes(mid);
+        const pos = stillMember ? teamDraft.positions[mid] || "" : "";
         const current = client.categories || [];
         const next = current.filter((cat) => !groupSet.has(cat));
         if (pos) next.push(pos);
@@ -5281,6 +5317,7 @@ function App() {
         return;
       }
       if (selectedTeamId === team.id) setSelectedTeamId("");
+      setTeamSelectedIds((ids) => ids.filter((id) => id !== team.id));
       await loadTeams();
       notify("Team deleted.", "success");
     } catch (error) {
@@ -5536,6 +5573,9 @@ function App() {
         setTeamQuickAssignId("");
         setTeamQuickProgramId("");
       }
+    } catch (error) {
+      console.error(error);
+      notify("Could not assign the program — please try again.", "error");
     } finally {
       setTeamQuickBusy(false);
     }
@@ -5561,6 +5601,9 @@ function App() {
         clearTeamSelection();
         setTeamBulkProgramId("");
       }
+    } catch (error) {
+      console.error(error);
+      notify("Could not assign the program — please try again.", "error");
     } finally {
       setTeamBulkBusy(false);
     }
@@ -6014,6 +6057,7 @@ function App() {
 
           logs.push({
             exerciseId: exercise.exerciseId,
+            occurrenceId: exercise.id,
             exerciseName: side ? `${exerciseName} - ${side}` : exerciseName,
             exerciseOrder: exercise.order,
             setNumber: i,
@@ -6497,6 +6541,8 @@ function App() {
     syncWorkoutSubmission(payload, draftKey);
 
     workoutStartedAtRef.current = null;
+    // A running rest timer would chime out of context after the player closes.
+    setRestTimer(null);
     setWorkouts((current) =>
       current.map((workout) =>
         workout.id === selectedWorkout.id
@@ -9942,6 +9988,19 @@ function App() {
     setProgramBuiltForMode("internal");
     setProgramBuiltForClient("");
     setProgramBuiltForTeam("");
+    // Commerce/store fields must not leak from a previously loaded product
+    // into a fresh program (it could publish with the old price/copy).
+    setProgramPrice("");
+    setProgramCurrency("CNY");
+    setProgramPublicStoreVisible(false);
+    setProgramPurchaseLink("");
+    setProgramDefaultIntakeFormId("");
+    setProgramAccessLengthDays("42");
+    setProgramProductStatus("Draft");
+    setProgramSalesDescription("");
+    setProgramStoreCategory("");
+    setProgramStoreCategoryCn("");
+    setProgramBundleIds([]);
     setEditProgramId("");
     setEditProgramRecordId("");
     setEditingProgramSessionId("");
@@ -11592,6 +11651,15 @@ function App() {
     const matchedClient = findClientForReviewItem(clientId, clientName);
     return matchedClient ? clientBelongsToCoachScope(matchedClient) : true;
   };
+
+  // The Review board's check-in and form-video queues honor coach scope like
+  // their sibling queues (comments/submissions/missed).
+  const scopedReviewCheckIns = coachReviewCheckIns.filter((checkIn) =>
+    reviewItemBelongsToCoachScope(checkIn.clientId, checkIn.clientName)
+  );
+  const scopedReviewFormVideos = reviewFormVideos.filter((video) =>
+    reviewItemBelongsToCoachScope(video.clientId, video.clientName)
+  );
 
   const globalReviewResponseGroups = getResponseGroups(
     coachReviewResponses,
@@ -16459,8 +16527,11 @@ function App() {
   };
 
   const workoutSetCheckKey = (
-    log: Pick<SetLog, "exerciseId" | "setNumber" | "side">
-  ) => `${log.exerciseId}:set:${log.setNumber}:${log.side || "both"}`;
+    log: Pick<SetLog, "exerciseId" | "occurrenceId" | "setNumber" | "side">
+  ) =>
+    `${log.occurrenceId || log.exerciseId}:set:${log.setNumber}:${
+      log.side || "both"
+    }`;
 
   const checkAndSaveWorkoutSet = (log: SetLog, visibleLogs: SetLog[]) => {
     const key = workoutSetCheckKey(log);
@@ -17398,7 +17469,7 @@ function App() {
                 clientWeekLoadZone={clientWeekLoadZone}
                 clients={clients}
                 coachInviteLink={coachInviteLink}
-                coachReviewCheckIns={coachReviewCheckIns}
+                coachReviewCheckIns={scopedReviewCheckIns}
                 coachScope={coachScope}
                 copyToClipboard={copyToClipboard}
                 daysSinceLogin={daysSinceLogin}
@@ -17408,7 +17479,7 @@ function App() {
                 paceZh={paceZh}
                 programs={programs}
                 renderCoachReviews={renderCoachReviews}
-                reviewFormVideos={reviewFormVideos}
+                reviewFormVideos={scopedReviewFormVideos}
                 rosterAllSelected={rosterAllSelected}
                 rosterClients={rosterClients}
                 rosterGroupBy={rosterGroupBy}
@@ -17465,8 +17536,7 @@ function App() {
                 checkInReplyDrafts={checkInReplyDrafts}
                 checkInReplySaving={checkInReplySaving}
                 clientLabel={clientLabel}
-                coachReviewCheckIns={coachReviewCheckIns}
-                coachReviewEnquiries={coachReviewEnquiries}
+                coachReviewCheckIns={scopedReviewCheckIns}
                 coachReviewError={coachReviewError}
                 focusReviewColumn={focusReviewColumn}
                 formVideoReplies={formVideoReplies}
@@ -17483,7 +17553,7 @@ function App() {
                 openReviewWorkout={openReviewWorkout}
                 respondToCheckIn={respondToCheckIn}
                 reviewFormVideo={reviewFormVideo}
-                reviewFormVideos={reviewFormVideos}
+                reviewFormVideos={scopedReviewFormVideos}
                 reviewingWorkoutCommentKey={reviewingWorkoutCommentKey}
                 setActivePage={setActivePage}
                 setCheckInReplyDrafts={setCheckInReplyDrafts}
@@ -19307,6 +19377,8 @@ function App() {
                                 const gi = setLogs.findIndex(
                                   (it) =>
                                     it.exerciseId === log.exerciseId &&
+                                    (it.occurrenceId || "") ===
+                                      (log.occurrenceId || "") &&
                                     it.setNumber === log.setNumber &&
                                     it.side === log.side
                                 );

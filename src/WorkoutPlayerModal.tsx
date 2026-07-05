@@ -171,6 +171,7 @@ export default function WorkoutPlayerModal({
                       setSavedExerciseDraftIds([]);
                       setWorkoutHistoryLogs([]);
                       setHistoryExerciseName("");
+                      setRestTimer(null);
                     }}
                   >
                     <X size={28} strokeWidth={3} aria-hidden="true" />
@@ -484,8 +485,10 @@ export default function WorkoutPlayerModal({
                     ) {
                       return null;
                     }
-                    const exerciseLogs = setLogs.filter(
-                      (log: any) => log.exerciseId === exercise.exerciseId
+                    const exerciseLogs = setLogs.filter((log: any) =>
+                      log.occurrenceId
+                        ? log.occurrenceId === exercise.id
+                        : log.exerciseId === exercise.exerciseId
                     );
                     const isGroupedFocus =
                       isClientPortal &&
@@ -536,10 +539,13 @@ export default function WorkoutPlayerModal({
                       exercise.videoUrlCn || ""
                     );
                     const exerciseThumb = videoThumbnail(exerciseVideoUrl);
+                    const isTimedCircuit =
+                      meta.groupType === "Circuit" && !!meta.groupMode;
                     const rawFocusGroupTitle =
                       isClientPortal &&
                       workoutFocusMode &&
-                      focusGroupIndexes.length > 1 &&
+                      (focusGroupIndexes.length > 1 ||
+                        (isTimedCircuit && focusGroupIndexes.length === 1)) &&
                       focusGroupIndexes[0] === index
                         ? workoutGroupTitle(meta) ||
                           `Superset ${
@@ -603,7 +609,10 @@ export default function WorkoutPlayerModal({
                             <strong>{focusGroupTitle}</strong>
                           </div>
                         )}
-                        {focusGroupTitle &&
+                        {(focusGroupTitle ||
+                          (isClientPortal &&
+                            !workoutFocusMode &&
+                            getWorkoutGroupIndexes(index)[0] === index)) &&
                           meta.groupType === "Circuit" &&
                           meta.groupMode &&
                           (() => {
@@ -1123,6 +1132,8 @@ export default function WorkoutPlayerModal({
                           const globalIndex = setLogs.findIndex(
                             (item: any) =>
                               item.exerciseId === log.exerciseId &&
+                              (item.occurrenceId || "") ===
+                                (log.occurrenceId || "") &&
                               item.setNumber === log.setNumber &&
                               item.side === log.side
                           );
@@ -1148,7 +1159,7 @@ export default function WorkoutPlayerModal({
                                   ? "setLogRow mobileSetLogRow"
                                   : "desktopWorkoutSetRow"
                               }${setComplete ? " setLogRowComplete" : ""}`}
-                              key={`${log.exerciseId}-${log.setNumber}-${log.side || "both"}`}
+                              key={`${log.occurrenceId || log.exerciseId}-${log.setNumber}-${log.side || "both"}`}
                             >
                               <div
                                 className={

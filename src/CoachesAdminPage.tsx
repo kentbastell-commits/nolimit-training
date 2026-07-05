@@ -31,7 +31,9 @@ export default function CoachesAdminPage({
                     <strong>
                       {
                         allCoaches.filter(
-                          (coach: any) => coach.role?.toLowerCase() === "admin"
+                          (coach: any) =>
+                            coach.role === "Admin" &&
+                            coach.status !== "Inactive"
                         ).length
                       }
                     </strong>
