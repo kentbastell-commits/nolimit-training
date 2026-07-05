@@ -1,8 +1,42 @@
 // Public landing page (lv3 design system). Extracted from App.tsx as
-// phase B of the monolith split — JSX and copy moved verbatim; the only
-// state it needs arrives via props.
+// phase B of the monolith split. Motion layer added with Framer Motion:
+// a staggered hero entrance, scroll-triggered section reveals, and a
+// parallax hero glow. All animation is opacity/transform only (GPU,
+// no external calls — China-safe) and collapses to fades under
+// prefers-reduced-motion.
 import { ArrowRight, BookOpen, Check, Shield, Users } from "lucide-react";
+import {
+  motion,
+  useReducedMotion,
+  useScroll,
+  useTransform,
+  type Variants,
+} from "framer-motion";
 import type { Program, Toast } from "./appCore";
+
+// Confident, weighty easing (ease-out-expo) — reads as strong, not bouncy.
+const EASE: [number, number, number, number] = [0.16, 1, 0.3, 1];
+
+const staggerParent: Variants = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.1, delayChildren: 0.08 } },
+};
+const rise: Variants = {
+  hidden: { opacity: 0, y: 30 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.8, ease: EASE } },
+};
+const fade: Variants = {
+  hidden: { opacity: 0 },
+  show: { opacity: 1, transition: { duration: 0.5, ease: EASE } },
+};
+
+// Reveal a section on scroll, staggering its direct children.
+const reveal = {
+  variants: staggerParent,
+  initial: "hidden" as const,
+  whileInView: "show" as const,
+  viewport: { once: true, amount: 0.2 },
+};
 
 export default function LandingPage({
   storeLang,
@@ -18,6 +52,23 @@ export default function LandingPage({
   const lZh = storeLang === "zh";
   const landingPrograms = programs.filter((p) => p.publicStoreVisible);
   const featuredPrograms = landingPrograms.slice(0, 3);
+
+  const reduce = useReducedMotion();
+  const item: Variants = reduce ? fade : rise;
+  const line: Variants = reduce
+    ? fade
+    : {
+        hidden: { opacity: 0, scaleX: 0 },
+        show: {
+          opacity: 1,
+          scaleX: 1,
+          transition: { duration: 0.9, ease: EASE },
+        },
+      };
+
+  // Parallax drift on the hero glow as the page scrolls.
+  const { scrollY } = useScroll();
+  const glowY = useTransform(scrollY, [0, 600], [0, 140]);
 
   const landingCopy = {
     navPrograms: lZh ? "训练计划" : "Programs",
@@ -72,7 +123,12 @@ export default function LandingPage({
         ))}
       </div>
 
-      <header className="lv3Nav">
+      <motion.header
+        className="lv3Nav"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.6, ease: EASE }}
+      >
         <a className="lv3Brand" href="/">
           <img src="/nl_wordmark_black.png" alt="No Limit" />
         </a>
@@ -94,17 +150,40 @@ export default function LandingPage({
             {landingCopy.viewPrograms}
           </a>
         </div>
-      </header>
+      </motion.header>
 
       <main className="lv3Main">
         {/* Hero */}
         <section className="lv3Hero">
-          <div className="lv3HeroGlow" aria-hidden="true" />
-          <div className="lv3HeroInner">
-            <span className="lv3Eyebrow">{landingCopy.heroEyebrow}</span>
-            <h1 className="lv3HeroTitle">{landingCopy.heroTitle}</h1>
-            <p className="lv3HeroLead">{landingCopy.heroLead}</p>
-            <div className="lv3HeroActions">
+          <motion.div
+            className="lv3HeroGlow"
+            aria-hidden="true"
+            initial={false}
+            style={{ y: reduce ? 0 : glowY }}
+            animate={reduce ? undefined : { opacity: [0.75, 1, 0.75] }}
+            transition={
+              reduce
+                ? undefined
+                : { duration: 9, repeat: Infinity, ease: "easeInOut" }
+            }
+          />
+          <motion.div
+            className="lv3HeroInner"
+            variants={staggerParent}
+            initial="hidden"
+            animate="show"
+          >
+            <motion.span className="lv3Eyebrow" variants={item}>
+              {landingCopy.heroEyebrow}
+            </motion.span>
+            <motion.div className="lv3AccentLine" variants={line} />
+            <motion.h1 className="lv3HeroTitle" variants={item}>
+              {landingCopy.heroTitle}
+            </motion.h1>
+            <motion.p className="lv3HeroLead" variants={item}>
+              {landingCopy.heroLead}
+            </motion.p>
+            <motion.div className="lv3HeroActions" variants={item}>
               <a className="lv3BtnPrimary" href="/store">
                 {lZh ? "浏览训练计划" : "Browse Programs"}
                 <ArrowRight size={18} />
@@ -112,8 +191,8 @@ export default function LandingPage({
               <a className="lv3BtnBlue" href="/?invite=client">
                 {lZh ? "一对一训练" : "Train with us 1:1"}
               </a>
-            </div>
-            <div className="lv3HeroStats">
+            </motion.div>
+            <motion.div className="lv3HeroStats" variants={item}>
               <div>
                 <strong>{landingPrograms.length || "—"}</strong>
                 <span>
@@ -132,18 +211,18 @@ export default function LandingPage({
                 <strong>EN / 中文</strong>
                 <span>{lZh ? "双语" : "Bilingual"}</span>
               </div>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
         </section>
 
         {/* Three ways to train */}
-        <section className="lv3Paths" id="paths">
-          <div className="lv3SectionHead">
+        <motion.section className="lv3Paths" id="paths" {...reveal}>
+          <motion.div className="lv3SectionHead" variants={item}>
             <span className="lv3Eyebrow">{lZh ? "选择你的路径" : "Choose your path"}</span>
             <h2>{lZh ? "三种方式，开始训练。" : "Three ways to train."}</h2>
-          </div>
-          <div className="lv3PathGrid lv3PathGrid3">
-            <article className="lv3PathCard">
+          </motion.div>
+          <motion.div className="lv3PathGrid lv3PathGrid3" variants={staggerParent}>
+            <motion.article className="lv3PathCard" variants={item}>
               <div className="lv3PathIcon">
                 <BookOpen size={26} strokeWidth={2.4} />
               </div>
@@ -163,9 +242,9 @@ export default function LandingPage({
                 {lZh ? "浏览训练计划" : "Browse Programs"}
                 <ArrowRight size={17} />
               </a>
-            </article>
+            </motion.article>
 
-            <article className="lv3PathCard lv3PathCardBlue">
+            <motion.article className="lv3PathCard lv3PathCardBlue" variants={item}>
               <div className="lv3PathIcon">
                 <Users size={26} strokeWidth={2.4} />
               </div>
@@ -185,9 +264,9 @@ export default function LandingPage({
                 {lZh ? "一对一训练" : "Train with us 1:1"}
                 <ArrowRight size={17} />
               </a>
-            </article>
+            </motion.article>
 
-            <article className="lv3PathCard lv3PathCardOx">
+            <motion.article className="lv3PathCard lv3PathCardOx" variants={item}>
               <div className="lv3PathIcon">
                 <Shield size={26} strokeWidth={2.4} />
               </div>
@@ -220,101 +299,102 @@ export default function LandingPage({
               <small className="lv3PathFootnote">
                 {lZh ? "视档期而定。" : "Subject to availability."}
               </small>
-            </article>
-          </div>
-        </section>
+            </motion.article>
+          </motion.div>
+        </motion.section>
 
         {/* Featured programs */}
         {featuredPrograms.length > 0 && (
-          <section className="lv3Featured">
-            <div className="lv3SectionHead">
+          <motion.section className="lv3Featured" {...reveal}>
+            <motion.div className="lv3SectionHead" variants={item}>
               <span className="lv3Eyebrow">{landingCopy.programsTitle}</span>
               <h2>{lZh ? "按项目、赛季和身体需求选择。" : "Built by sport, season, and body."}</h2>
-            </div>
-            <div className="lv3FeaturedGrid">
+            </motion.div>
+            <motion.div className="lv3FeaturedGrid" variants={staggerParent}>
               {featuredPrograms.map((program) => (
-                <a
-                  className="lv3ProgramCard"
-                  href="/store"
+                <motion.div
+                  variants={item}
                   key={program.recordId || program.programName}
                 >
-                  {program.productImage ? (
-                    <div className="lv3ProgramImg">
-                      <img src={program.productImage} alt="" loading="lazy" />
+                  <a className="lv3ProgramCard" href="/store">
+                    {program.productImage ? (
+                      <div className="lv3ProgramImg">
+                        <img src={program.productImage} alt="" loading="lazy" />
+                      </div>
+                    ) : (
+                      <div className="lv3ProgramImg lv3ProgramImgEmpty">
+                        <span>{(program.sport || "NL").slice(0, 2).toUpperCase()}</span>
+                      </div>
+                    )}
+                    <div className="lv3ProgramBody">
+                      <span className="lv3ProgramTag">
+                        {program.sport || (lZh ? "专项训练" : "Performance")}
+                      </span>
+                      <h3>
+                        {lZh && program.programNameCn
+                          ? program.programNameCn
+                          : program.programName}
+                      </h3>
+                      <p>
+                        {program.durationWeeks || "4"} {lZh ? "周" : "wks"} ·{" "}
+                        {program.sessionsPerWeek || "3"}
+                        {lZh ? " 次/周" : "/wk"} ·{" "}
+                        {program.level || (lZh ? "多水平" : "All levels")}
+                      </p>
                     </div>
-                  ) : (
-                    <div className="lv3ProgramImg lv3ProgramImgEmpty">
-                      <span>{(program.sport || "NL").slice(0, 2).toUpperCase()}</span>
-                    </div>
-                  )}
-                  <div className="lv3ProgramBody">
-                    <span className="lv3ProgramTag">
-                      {program.sport || (lZh ? "专项训练" : "Performance")}
-                    </span>
-                    <h3>
-                      {lZh && program.programNameCn
-                        ? program.programNameCn
-                        : program.programName}
-                    </h3>
-                    <p>
-                      {program.durationWeeks || "4"} {lZh ? "周" : "wks"} ·{" "}
-                      {program.sessionsPerWeek || "3"}
-                      {lZh ? " 次/周" : "/wk"} ·{" "}
-                      {program.level || (lZh ? "多水平" : "All levels")}
-                    </p>
-                  </div>
-                </a>
+                  </a>
+                </motion.div>
               ))}
-            </div>
+            </motion.div>
             <a className="lv3SeeAll" href="/store">
               {landingCopy.viewPrograms} <ArrowRight size={16} />
             </a>
-          </section>
+          </motion.section>
         )}
 
         {/* How it works */}
-        <section className="lv3Steps">
-          <div className="lv3SectionHead">
+        <motion.section className="lv3Steps" {...reveal}>
+          <motion.div className="lv3SectionHead" variants={item}>
             <span className="lv3Eyebrow">{landingCopy.stepsTitle}</span>
             <h2>{lZh ? "从购买到开练，只需四步。" : "From purchase to training in four steps."}</h2>
-          </div>
-          <div className="lv3StepGrid">
+          </motion.div>
+          <motion.div className="lv3StepGrid" variants={staggerParent}>
             {landingSteps.map(([title, body], index) => (
-              <div className="lv3StepCard" key={title}>
+              <motion.div className="lv3StepCard" variants={item} key={title}>
                 <span className="lv3StepNum">{String(index + 1).padStart(2, "0")}</span>
                 <strong>{title}</strong>
                 <p>{body}</p>
-              </div>
+              </motion.div>
             ))}
-          </div>
-        </section>
+          </motion.div>
+        </motion.section>
 
         {/* In-person */}
-        <section className="lv3InPerson" id="inperson">
-          <div className="lv3InPersonCopy">
+        <motion.section className="lv3InPerson" id="inperson" {...reveal}>
+          <motion.div className="lv3InPersonCopy" variants={item}>
             <span className="lv3Eyebrow">{landingCopy.navInPerson}</span>
             <h2>{landingCopy.inPersonTitle}</h2>
             <p>{landingCopy.inPersonBody}</p>
-          </div>
-          <div className="lv3Wechat">
+          </motion.div>
+          <motion.div className="lv3Wechat" variants={item}>
             <img
               src="https://i.ibb.co/Y4nXVG4g/Weixin-Image-20260611202846-56-2.jpg"
               alt="WeChat QR"
             />
             <strong>{lZh ? "扫码加微信咨询" : "Scan for WeChat"}</strong>
-          </div>
-        </section>
+          </motion.div>
+        </motion.section>
 
         {/* Final CTA */}
-        <section className="lv3FinalCta">
+        <motion.section className="lv3FinalCta" {...reveal}>
           <div className="lv3HeroGlow" aria-hidden="true" />
-          <h2>{lZh ? "为训练而生。" : "Built for Training."}</h2>
-          <p>
+          <motion.h2 variants={item}>{lZh ? "为训练而生。" : "Built for Training."}</motion.h2>
+          <motion.p variants={item}>
             {lZh
               ? "从数字训练计划开始，或申请一对一线上 / 线下教练服务。"
               : "Start with a digital program, or train with us 1:1 — online or in person."}
-          </p>
-          <div className="lv3HeroActions lv3FinalActions">
+          </motion.p>
+          <motion.div className="lv3HeroActions lv3FinalActions" variants={item}>
             <a className="lv3BtnPrimary" href="/store">
               {lZh ? "浏览训练计划" : "Browse Programs"}
               <ArrowRight size={18} />
@@ -322,8 +402,8 @@ export default function LandingPage({
             <a className="lv3BtnBlue" href="/?invite=client">
               {lZh ? "一对一训练" : "Train with us 1:1"}
             </a>
-          </div>
-        </section>
+          </motion.div>
+        </motion.section>
       </main>
 
       <footer className="lv3Footer">

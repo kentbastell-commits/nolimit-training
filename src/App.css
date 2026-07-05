@@ -26168,6 +26168,14 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   pointer-events: none;
 }
 .lv3HeroInner { position: relative; max-width: 900px; margin: 0 auto; }
+.lv3AccentLine {
+  height: 3px;
+  width: 60px;
+  margin: 18px auto 0;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #d4af37, #8b1e2d);
+  box-shadow: 0 2px 10px rgba(212, 175, 55, 0.35);
+}
 .lv3HeroTitle {
   font-size: clamp(2.5rem, 7vw, 5rem);
   line-height: 1.03;
