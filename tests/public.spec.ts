@@ -41,6 +41,25 @@ test("store renders products before FAQ and opens checkout to the pay step", asy
   errs.assertNoCrashes();
 });
 
+// Guards the route-level code-splitting: these pages are now lazy-loaded
+// (React.lazy + Suspense), so a broken chunk config would surface here as a
+// blank page or a ChunkLoadError (caught as a page crash).
+test("client invite route lazy-loads and renders", async ({ page }) => {
+  const errs = trackErrors(page);
+  await page.goto("/?invite=client");
+  await settle(page);
+  await expect(page.locator(".inviteShell")).toBeVisible();
+  errs.assertNoCrashes();
+});
+
+test("in-person enquiry route lazy-loads and renders", async ({ page }) => {
+  const errs = trackErrors(page);
+  await page.goto("/?enquiry=inperson");
+  await settle(page);
+  await expect(page.locator(".inviteShell")).toBeVisible();
+  errs.assertNoCrashes();
+});
+
 test("find-my-portal modal opens and validates", async ({ page }) => {
   const errs = trackErrors(page);
   await page.goto("/store");
