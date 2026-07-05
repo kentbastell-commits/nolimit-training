@@ -26176,6 +26176,105 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   background: linear-gradient(90deg, #d4af37, #8b1e2d);
   box-shadow: 0 2px 10px rgba(212, 175, 55, 0.35);
 }
+
+/* --- Landing motion extras: scroll bar, aurora, marquee, headline mask, CTA sheen --- */
+.lv3ScrollBar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  transform-origin: 0 50%;
+  background: linear-gradient(90deg, #d4af37, #8b1e2d);
+  z-index: 50;
+}
+
+.lv3Hero { z-index: 0; }
+.lv3HeroInner { z-index: 1; }
+
+.lv3Aurora {
+  position: absolute;
+  inset: -25% 0 auto 0;
+  height: 150%;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+.lv3Blob {
+  position: absolute;
+  width: min(46vw, 640px);
+  height: min(46vw, 640px);
+  border-radius: 50%;
+  filter: blur(90px);
+  opacity: 0.5;
+  will-change: transform;
+}
+.lv3BlobGold { background: radial-gradient(circle, rgba(212, 175, 55, 0.6), transparent 68%); top: -12%; left: 4%; }
+.lv3BlobOx { background: radial-gradient(circle, rgba(139, 30, 45, 0.45), transparent 68%); top: -4%; right: 2%; }
+.lv3BlobBlue { background: radial-gradient(circle, rgba(58, 134, 255, 0.4), transparent 68%); top: 18%; left: 38%; }
+
+.lv3WordMask {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: top;
+  padding-bottom: 0.14em;
+  margin-bottom: -0.14em;
+}
+.lv3Word { display: inline-block; will-change: transform; }
+
+.lv3Marquee {
+  overflow: hidden;
+  background: #0e0e0d;
+  border-top: 1px solid rgba(212, 175, 55, 0.25);
+  border-bottom: 1px solid rgba(212, 175, 55, 0.25);
+  padding: 14px 0;
+}
+.lv3MarqueeTrack {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  animation: lv3MarqueeScroll 32s linear infinite;
+}
+.lv3MarqueeTrack span {
+  display: inline-flex;
+  align-items: center;
+  font-family: 'Bebas Neue', system-ui, sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-size: 1.35rem;
+  color: #f4f1ea;
+}
+.lv3MarqueeTrack i {
+  color: #d4af37;
+  font-style: normal;
+  font-size: 0.55rem;
+  margin: 0 26px;
+  transform: translateY(-2px);
+}
+@keyframes lv3MarqueeScroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+.lv3BtnPrimary { position: relative; overflow: hidden; }
+.lv3BtnPrimary::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -80%;
+  width: 45%;
+  height: 100%;
+  background: linear-gradient(120deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+  transform: skewX(-20deg);
+  pointer-events: none;
+}
+.lv3BtnPrimary:hover::after { animation: lv3Sheen 0.9s ease; }
+@keyframes lv3Sheen { to { left: 130%; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .lv3MarqueeTrack { animation: none; }
+  .lv3BtnPrimary:hover::after { animation: none; }
+}
 .lv3HeroTitle {
   font-size: clamp(2.5rem, 7vw, 5rem);
   line-height: 1.03;

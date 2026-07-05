@@ -1,14 +1,18 @@
 // Public landing page (lv3 design system). Extracted from App.tsx as
 // phase B of the monolith split. Motion layer added with Framer Motion:
-// a staggered hero entrance, scroll-triggered section reveals, and a
-// parallax hero glow. All animation is opacity/transform only (GPU,
-// no external calls — China-safe) and collapses to fades under
-// prefers-reduced-motion.
+// staggered hero entrance, a word-by-word masked headline reveal, a
+// living aurora background, a credibility marquee, count-up stats, a
+// scroll-progress bar, and scroll-triggered section reveals. All
+// animation is opacity/transform only (GPU, no external calls —
+// China-safe) and collapses to fades under prefers-reduced-motion.
+import { Fragment, useEffect, useState } from "react";
 import { ArrowRight, BookOpen, Check, Shield, Users } from "lucide-react";
 import {
+  animate,
   motion,
   useReducedMotion,
   useScroll,
+  useSpring,
   useTransform,
   type Variants,
 } from "framer-motion";
@@ -30,6 +34,16 @@ const fade: Variants = {
   show: { opacity: 1, transition: { duration: 0.5, ease: EASE } },
 };
 
+// Headline: each word/char rises out of an overflow-hidden mask.
+const headlineContainer: Variants = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.09, delayChildren: 0.04 } },
+};
+const wordRise: Variants = {
+  hidden: { y: "115%" },
+  show: { y: 0, transition: { duration: 0.9, ease: EASE } },
+};
+
 // Reveal a section on scroll, staggering its direct children.
 const reveal = {
   variants: staggerParent,
@@ -37,6 +51,46 @@ const reveal = {
   whileInView: "show" as const,
   viewport: { once: true, amount: 0.2 },
 };
+
+// Split on spaces for space-delimited languages, else per character (CJK).
+function AnimatedHeadline({ text }: { text: string }) {
+  const hasSpaces = text.includes(" ");
+  const tokens = hasSpaces ? text.split(" ") : Array.from(text);
+  return (
+    <motion.h1 className="lv3HeroTitle" variants={headlineContainer} aria-label={text}>
+      {tokens.map((tok, i) => (
+        <Fragment key={i}>
+          <span className="lv3WordMask" aria-hidden="true">
+            <motion.span className="lv3Word" variants={wordRise}>
+              {tok}
+            </motion.span>
+          </span>
+          {hasSpaces && i < tokens.length - 1 ? " " : ""}
+        </Fragment>
+      ))}
+    </motion.h1>
+  );
+}
+
+// Count up from 0 to `to` once, on mount.
+function Counter({ to, reduce }: { to: number; reduce: boolean | null }) {
+  const [display, setDisplay] = useState(0);
+  useEffect(() => {
+    if (reduce || to <= 0) {
+      setDisplay(to);
+      return;
+    }
+    const controls = animate(0, to, {
+      duration: 1.2,
+      delay: 0.6,
+      ease: EASE,
+      onUpdate: (v) => setDisplay(Math.round(v)),
+    });
+    return () => controls.stop();
+  }, [to, reduce]);
+  if (to <= 0) return <>—</>;
+  return <>{display}</>;
+}
 
 export default function LandingPage({
   storeLang,
@@ -66,9 +120,26 @@ export default function LandingPage({
         },
       };
 
-  // Parallax drift on the hero glow as the page scrolls.
-  const { scrollY } = useScroll();
+  // Parallax drift on the hero aurora + a scroll-progress bar.
+  const { scrollY, scrollYProgress } = useScroll();
   const glowY = useTransform(scrollY, [0, 600], [0, 140]);
+  const progressX = useSpring(scrollYProgress, {
+    stiffness: 120,
+    damping: 30,
+    restDelta: 0.001,
+  });
+
+  const marqueeItems = lZh
+    ? ["奥运级", "职业体能", "循证训练", "周期化", "康复", "表现提升", "双语 EN / 中文"]
+    : [
+        "Olympic-Level",
+        "Professional S&C",
+        "Evidence-Based",
+        "Periodization",
+        "Rehabilitation",
+        "Performance",
+        "Bilingual EN / 中文",
+      ];
 
   const landingCopy = {
     navPrograms: lZh ? "训练计划" : "Programs",
@@ -115,6 +186,12 @@ export default function LandingPage({
 
   return (
     <div className={`lv3 ${lZh ? "zh" : "en"}`}>
+      <motion.div
+        className="lv3ScrollBar"
+        style={{ scaleX: progressX }}
+        aria-hidden="true"
+      />
+
       <div className="toastStack">
         {toasts.map((toast) => (
           <div className={`toast toast-${toast.type}`} key={toast.id}>
@@ -155,18 +232,27 @@ export default function LandingPage({
       <main className="lv3Main">
         {/* Hero */}
         <section className="lv3Hero">
-          <motion.div
-            className="lv3HeroGlow"
-            aria-hidden="true"
-            initial={false}
-            style={{ y: reduce ? 0 : glowY }}
-            animate={reduce ? undefined : { opacity: [0.75, 1, 0.75] }}
-            transition={
-              reduce
-                ? undefined
-                : { duration: 9, repeat: Infinity, ease: "easeInOut" }
-            }
-          />
+          {reduce ? (
+            <div className="lv3HeroGlow" aria-hidden="true" />
+          ) : (
+            <motion.div className="lv3Aurora" aria-hidden="true" style={{ y: glowY }}>
+              <motion.span
+                className="lv3Blob lv3BlobGold"
+                animate={{ x: [0, 40, -25, 0], y: [0, -30, 20, 0] }}
+                transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
+              />
+              <motion.span
+                className="lv3Blob lv3BlobOx"
+                animate={{ x: [0, -30, 25, 0], y: [0, 25, -18, 0] }}
+                transition={{ duration: 22, repeat: Infinity, ease: "easeInOut" }}
+              />
+              <motion.span
+                className="lv3Blob lv3BlobBlue"
+                animate={{ x: [0, 25, -35, 0], y: [0, -22, 30, 0] }}
+                transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
+              />
+            </motion.div>
+          )}
           <motion.div
             className="lv3HeroInner"
             variants={staggerParent}
@@ -177,9 +263,13 @@ export default function LandingPage({
               {landingCopy.heroEyebrow}
             </motion.span>
             <motion.div className="lv3AccentLine" variants={line} />
-            <motion.h1 className="lv3HeroTitle" variants={item}>
-              {landingCopy.heroTitle}
-            </motion.h1>
+            {reduce ? (
+              <motion.h1 className="lv3HeroTitle" variants={item}>
+                {landingCopy.heroTitle}
+              </motion.h1>
+            ) : (
+              <AnimatedHeadline text={landingCopy.heroTitle} />
+            )}
             <motion.p className="lv3HeroLead" variants={item}>
               {landingCopy.heroLead}
             </motion.p>
@@ -194,7 +284,9 @@ export default function LandingPage({
             </motion.div>
             <motion.div className="lv3HeroStats" variants={item}>
               <div>
-                <strong>{landingPrograms.length || "—"}</strong>
+                <strong>
+                  <Counter to={landingPrograms.length} reduce={reduce} />
+                </strong>
                 <span>
                   {lZh
                     ? "训练计划"
@@ -214,6 +306,18 @@ export default function LandingPage({
             </motion.div>
           </motion.div>
         </section>
+
+        {/* Credibility marquee */}
+        <div className="lv3Marquee" aria-hidden="true">
+          <div className="lv3MarqueeTrack">
+            {[...marqueeItems, ...marqueeItems].map((w, i) => (
+              <span key={i}>
+                {w}
+                <i>◆</i>
+              </span>
+            ))}
+          </div>
+        </div>
 
         {/* Three ways to train */}
         <motion.section className="lv3Paths" id="paths" {...reveal}>
