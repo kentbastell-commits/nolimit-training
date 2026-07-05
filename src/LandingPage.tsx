@@ -1,15 +1,17 @@
 // Public landing page (lv3 design system). Extracted from App.tsx as
-// phase B of the monolith split. Motion layer added with Framer Motion:
-// staggered hero entrance, a word-by-word masked headline reveal, a
-// living aurora background, a credibility marquee, count-up stats, a
-// scroll-progress bar, and scroll-triggered section reveals. All
+// phase B of the monolith split. Motion layer (Framer Motion):
+// dark cinematic hero with an optional background video (drop a file at
+// /public/hero.mp4; the aurora shows as fallback), a word-by-word masked
+// headline reveal, a count-up "by the numbers" band, 3D-tilt path cards,
+// a scroll-progress bar, and scroll-triggered section reveals. All
 // animation is opacity/transform only (GPU, no external calls —
 // China-safe) and collapses to fades under prefers-reduced-motion.
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useRef, useState, type ReactNode } from "react";
 import { ArrowRight, BookOpen, Check, Shield, Users } from "lucide-react";
 import {
   animate,
   motion,
+  useInView,
   useReducedMotion,
   useScroll,
   useSpring,
@@ -72,24 +74,65 @@ function AnimatedHeadline({ text }: { text: string }) {
   );
 }
 
-// Count up from 0 to `to` once, on mount.
+// Count up from 0 to `to` once, when scrolled into view.
 function Counter({ to, reduce }: { to: number; reduce: boolean | null }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const inView = useInView(ref, { once: true, amount: 0.4 });
   const [display, setDisplay] = useState(0);
   useEffect(() => {
+    if (!inView) return;
     if (reduce || to <= 0) {
       setDisplay(to);
       return;
     }
     const controls = animate(0, to, {
-      duration: 1.2,
-      delay: 0.6,
+      duration: 1.4,
       ease: EASE,
       onUpdate: (v) => setDisplay(Math.round(v)),
     });
     return () => controls.stop();
-  }, [to, reduce]);
-  if (to <= 0) return <>—</>;
-  return <>{display}</>;
+  }, [inView, to, reduce]);
+  return <span ref={ref}>{to <= 0 ? "—" : display}</span>;
+}
+
+// Path card that tilts in 3D toward the cursor.
+function TiltCard({
+  className,
+  variants,
+  children,
+}: {
+  className: string;
+  variants: Variants;
+  children: ReactNode;
+}) {
+  const reduce = useReducedMotion();
+  const rx = useSpring(0, { stiffness: 150, damping: 18 });
+  const ry = useSpring(0, { stiffness: 150, damping: 18 });
+  return (
+    <motion.article
+      className={className}
+      variants={variants}
+      style={
+        reduce
+          ? undefined
+          : { rotateX: rx, rotateY: ry, transformPerspective: 900 }
+      }
+      onMouseMove={(e) => {
+        if (reduce) return;
+        const r = e.currentTarget.getBoundingClientRect();
+        const px = (e.clientX - r.left) / r.width - 0.5;
+        const py = (e.clientY - r.top) / r.height - 0.5;
+        ry.set(px * 9);
+        rx.set(-py * 9);
+      }}
+      onMouseLeave={() => {
+        rx.set(0);
+        ry.set(0);
+      }}
+    >
+      {children}
+    </motion.article>
+  );
 }
 
 export default function LandingPage({
@@ -106,6 +149,9 @@ export default function LandingPage({
   const lZh = storeLang === "zh";
   const landingPrograms = programs.filter((p) => p.publicStoreVisible);
   const featuredPrograms = landingPrograms.slice(0, 3);
+  const uniqueSports = new Set(
+    landingPrograms.map((p) => p.sport).filter(Boolean),
+  ).size;
 
   const reduce = useReducedMotion();
   const item: Variants = reduce ? fade : rise;
@@ -128,18 +174,6 @@ export default function LandingPage({
     damping: 30,
     restDelta: 0.001,
   });
-
-  const marqueeItems = lZh
-    ? ["奥运级", "职业体能", "循证训练", "周期化", "康复", "表现提升", "双语 EN / 中文"]
-    : [
-        "Olympic-Level",
-        "Professional S&C",
-        "Evidence-Based",
-        "Periodization",
-        "Rehabilitation",
-        "Performance",
-        "Bilingual EN / 中文",
-      ];
 
   const landingCopy = {
     navPrograms: lZh ? "训练计划" : "Programs",
@@ -169,6 +203,12 @@ export default function LandingPage({
       : "Available for teams, clubs, and individuals. Scan WeChat to ask about in-person coaching, team sessions, and custom training blocks.",
     footer: lZh ? "为训练而生。" : "Built for Training.",
   };
+
+  const landingStats: [number, string][] = [
+    [landingPrograms.length, lZh ? "训练计划" : "Programs"],
+    [uniqueSports, lZh ? "运动项目" : "Sports"],
+    [2, lZh ? "语言" : "Languages"],
+  ];
 
   const landingSteps = lZh
     ? [
@@ -230,8 +270,21 @@ export default function LandingPage({
       </motion.header>
 
       <main className="lv3Main">
-        {/* Hero */}
-        <section className="lv3Hero">
+        {/* Hero — dark cinematic, optional /public/hero.mp4 background */}
+        <section className="lv3Hero lv3HeroDark">
+          {!reduce && (
+            <video
+              className="lv3HeroVideo"
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="auto"
+              aria-hidden="true"
+            >
+              <source src="/hero.mp4" type="video/mp4" />
+            </video>
+          )}
           {reduce ? (
             <div className="lv3HeroGlow" aria-hidden="true" />
           ) : (
@@ -253,6 +306,7 @@ export default function LandingPage({
               />
             </motion.div>
           )}
+          <div className="lv3HeroScrim" aria-hidden="true" />
           <motion.div
             className="lv3HeroInner"
             variants={staggerParent}
@@ -282,42 +336,22 @@ export default function LandingPage({
                 {lZh ? "一对一训练" : "Train with us 1:1"}
               </a>
             </motion.div>
-            <motion.div className="lv3HeroStats" variants={item}>
-              <div>
-                <strong>
-                  <Counter to={landingPrograms.length} reduce={reduce} />
-                </strong>
-                <span>
-                  {lZh
-                    ? "训练计划"
-                    : landingPrograms.length === 1
-                      ? "Program"
-                      : "Programs"}
-                </span>
-              </div>
-              <div>
-                <strong>{lZh ? "循证" : "Evidence"}</strong>
-                <span>{lZh ? "科学编排" : "Based"}</span>
-              </div>
-              <div>
-                <strong>EN / 中文</strong>
-                <span>{lZh ? "双语" : "Bilingual"}</span>
-              </div>
-            </motion.div>
           </motion.div>
         </section>
 
-        {/* Credibility marquee */}
-        <div className="lv3Marquee" aria-hidden="true">
-          <div className="lv3MarqueeTrack">
-            {[...marqueeItems, ...marqueeItems].map((w, i) => (
-              <span key={i}>
-                {w}
-                <i>◆</i>
-              </span>
+        {/* By the numbers */}
+        {landingPrograms.length > 0 && (
+          <motion.section className="lv3Stats" {...reveal}>
+            {landingStats.map(([value, label]) => (
+              <motion.div className="lv3StatItem" variants={item} key={label}>
+                <strong>
+                  <Counter to={value} reduce={reduce} />
+                </strong>
+                <span>{label}</span>
+              </motion.div>
             ))}
-          </div>
-        </div>
+          </motion.section>
+        )}
 
         {/* Three ways to train */}
         <motion.section className="lv3Paths" id="paths" {...reveal}>
@@ -326,7 +360,7 @@ export default function LandingPage({
             <h2>{lZh ? "三种方式，开始训练。" : "Three ways to train."}</h2>
           </motion.div>
           <motion.div className="lv3PathGrid lv3PathGrid3" variants={staggerParent}>
-            <motion.article className="lv3PathCard" variants={item}>
+            <TiltCard className="lv3PathCard" variants={item}>
               <div className="lv3PathIcon">
                 <BookOpen size={26} strokeWidth={2.4} />
               </div>
@@ -346,9 +380,9 @@ export default function LandingPage({
                 {lZh ? "浏览训练计划" : "Browse Programs"}
                 <ArrowRight size={17} />
               </a>
-            </motion.article>
+            </TiltCard>
 
-            <motion.article className="lv3PathCard lv3PathCardBlue" variants={item}>
+            <TiltCard className="lv3PathCard lv3PathCardBlue" variants={item}>
               <div className="lv3PathIcon">
                 <Users size={26} strokeWidth={2.4} />
               </div>
@@ -368,9 +402,9 @@ export default function LandingPage({
                 {lZh ? "一对一训练" : "Train with us 1:1"}
                 <ArrowRight size={17} />
               </a>
-            </motion.article>
+            </TiltCard>
 
-            <motion.article className="lv3PathCard lv3PathCardOx" variants={item}>
+            <TiltCard className="lv3PathCard lv3PathCardOx" variants={item}>
               <div className="lv3PathIcon">
                 <Shield size={26} strokeWidth={2.4} />
               </div>
@@ -403,7 +437,7 @@ export default function LandingPage({
               <small className="lv3PathFootnote">
                 {lZh ? "视档期而定。" : "Subject to availability."}
               </small>
-            </motion.article>
+            </TiltCard>
           </motion.div>
         </motion.section>
 

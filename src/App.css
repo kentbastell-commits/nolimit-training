@@ -26222,39 +26222,63 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 }
 .lv3Word { display: inline-block; will-change: transform; }
 
-.lv3Marquee {
-  overflow: hidden;
-  background: #0e0e0d;
-  border-top: 1px solid rgba(212, 175, 55, 0.25);
-  border-bottom: 1px solid rgba(212, 175, 55, 0.25);
-  padding: 14px 0;
+/* Dark cinematic hero with optional background video (/public/hero.mp4) */
+.lv3HeroDark { background: #0b0b0a; }
+.lv3HeroVideo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
 }
-.lv3MarqueeTrack {
-  display: inline-flex;
-  align-items: center;
-  white-space: nowrap;
-  animation: lv3MarqueeScroll 32s linear infinite;
+.lv3HeroScrim {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 70% 60% at 50% 40%, transparent, rgba(11, 11, 10, 0.35)),
+    linear-gradient(180deg, rgba(11, 11, 10, 0.5), rgba(11, 11, 10, 0.72));
 }
-.lv3MarqueeTrack span {
-  display: inline-flex;
-  align-items: center;
+.lv3HeroDark .lv3Aurora { z-index: 1; opacity: 0.75; }
+.lv3HeroDark .lv3HeroInner { z-index: 3; }
+.lv3HeroDark .lv3HeroTitle { color: #f6f3ec; }
+.lv3HeroDark .lv3HeroLead { color: #cfccc3; }
+.lv3HeroDark .lv3Eyebrow { color: #d4af37; }
+
+/* By-the-numbers stats band (count-up) */
+.lv3Stats {
+  display: flex;
+  justify-content: center;
+  gap: clamp(32px, 8vw, 100px);
+  flex-wrap: wrap;
+  text-align: center;
+  padding: clamp(40px, 6vw, 72px) clamp(16px, 5vw, 56px);
+  border-top: 1px solid rgba(14, 14, 13, 0.08);
+  border-bottom: 1px solid rgba(14, 14, 13, 0.08);
+}
+.lv3StatItem strong {
+  display: block;
   font-family: 'Bebas Neue', system-ui, sans-serif;
+  font-size: clamp(2.8rem, 7vw, 4.6rem);
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  color: #0e0e0d;
+}
+.lv3StatItem span {
+  display: block;
+  margin-top: 10px;
   text-transform: uppercase;
-  letter-spacing: 0.16em;
-  font-size: 1.35rem;
-  color: #f4f1ea;
+  letter-spacing: 0.14em;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #8a877d;
 }
-.lv3MarqueeTrack i {
-  color: #d4af37;
-  font-style: normal;
-  font-size: 0.55rem;
-  margin: 0 26px;
-  transform: translateY(-2px);
-}
-@keyframes lv3MarqueeScroll {
-  from { transform: translateX(0); }
-  to { transform: translateX(-50%); }
-}
+
+/* 3D tilt on path cards */
+.lv3PathCard { will-change: transform; }
 
 .lv3BtnPrimary { position: relative; overflow: hidden; }
 .lv3BtnPrimary::after {
@@ -26272,7 +26296,6 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 @keyframes lv3Sheen { to { left: 130%; } }
 
 @media (prefers-reduced-motion: reduce) {
-  .lv3MarqueeTrack { animation: none; }
   .lv3BtnPrimary:hover::after { animation: none; }
 }
 .lv3HeroTitle {
