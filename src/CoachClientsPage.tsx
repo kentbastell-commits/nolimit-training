@@ -3,7 +3,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Fragment } from "react";
 import { CalendarDays, Link2, UserCircle } from "lucide-react";
-import { dateToInputValue, normalizeDate } from "./appCore";
 import type { ClientBucket } from "./appCore";
 
 export default function CoachClientsPage({
@@ -32,19 +31,15 @@ export default function CoachClientsPage({
   clientStatusOptions,
   clientTeams,
   clientWeekLoadZone,
-  clients,
   coachInviteLink,
-  coachReviewCheckIns,
   coachScope,
   copyToClipboard,
   daysSinceLogin,
-  goToPage,
   loadClients,
   openAccountModal,
   paceZh,
   programs,
   renderCoachReviews,
-  reviewFormVideos,
   rosterAllSelected,
   rosterClients,
   rosterGroupBy,
@@ -65,14 +60,12 @@ export default function CoachClientsPage({
   setRosterGroupBy,
   setRosterTriage,
   setSelectedClient,
-  subscriptions,
   teams,
   toggleRosterSelect,
   toggleRosterSelectAll,
   toggleRosterSort,
   triageCounts,
   triageDefs,
-  workouts,
 }: { [key: string]: any }) {
   return (
     <>
@@ -160,145 +153,6 @@ export default function CoachClientsPage({
                       </button>
                     </div>
 
-                    {(() => {
-                      // Morning triage: everything that changed since yesterday
-                      // in one strip — trained, missed, readiness drops,
-                      // renewals due, videos to review.
-                      const todayStr = dateToInputValue(new Date());
-                      const yestStr = dateToInputValue(
-                        new Date(Date.now() - 86400000)
-                      );
-                      // Show human names, not CL-XXXX codes, in the details.
-                      const nameFromCode = (raw: string) => {
-                        const key = String(raw || "").trim();
-                        const match = clients.find(
-                          (c: any) =>
-                            c.clientCode === key ||
-                            c.id === key ||
-                            String(raw || "").includes(c.clientCode)
-                        );
-                        return match?.name || key;
-                      };
-                      const trained = workouts.filter(
-                        (w: any) =>
-                          /complete/i.test(w.completionStatus || "") &&
-                          [todayStr, yestStr].includes(
-                            normalizeDate(String(w.scheduledDate))
-                          )
-                      );
-                      const missedCount = workouts.filter((w: any) => {
-                        const d = normalizeDate(String(w.scheduledDate));
-                        return (
-                          d &&
-                          d < todayStr &&
-                          !/complete/i.test(w.completionStatus || "")
-                        );
-                      }).length;
-                      const lowReadiness = coachReviewCheckIns.filter((ci: any) => {
-                        const score = Number((ci as any).readinessScore);
-                        return Number.isFinite(score) && score > 0 && score <= 55;
-                      });
-                      const dueSoon = dateToInputValue(
-                        new Date(Date.now() + 14 * 86400000)
-                      );
-                      const renewals = subscriptions.filter((s: any) => {
-                        const d = normalizeDate(String((s as any).renewalDate || ""));
-                        return d && d <= dueSoon && !/cancel/i.test(String((s as any).status || ""));
-                      });
-                      const newVideos = reviewFormVideos.filter(
-                        (v: any) => v.status !== "Reviewed"
-                      ).length;
-                      const rows: Array<{
-                        key: string;
-                        icon: string;
-                        label: string;
-                        detail: string;
-                        onClick: () => void;
-                        tone?: string;
-                      }> = [];
-                      if (trained.length)
-                        rows.push({
-                          key: "trained",
-                          icon: "✅",
-                          label: `${trained.length} session${trained.length === 1 ? "" : "s"} completed (today + yesterday)`,
-                          detail: Array.from(
-                            new Set(trained.map((w: any) => nameFromCode(w.clientId)))
-                          )
-                            .slice(0, 4)
-                            .join(", "),
-                          onClick: () => goToPage("Review"),
-                        });
-                      if (missedCount)
-                        rows.push({
-                          key: "missed",
-                          icon: "⚠️",
-                          label: `${missedCount} missed workout${missedCount === 1 ? "" : "s"}`,
-                          detail: "Open the review queue",
-                          onClick: () => goToPage("Review"),
-                          tone: "warn",
-                        });
-                      if (lowReadiness.length)
-                        rows.push({
-                          key: "readiness",
-                          icon: "🔋",
-                          label: `${lowReadiness.length} low readiness check-in${lowReadiness.length === 1 ? "" : "s"} (≤55)`,
-                          detail: Array.from(
-                            new Set(
-                              lowReadiness.map((ci: any) =>
-                                nameFromCode(
-                                  (ci as any).clientName ||
-                                    (ci as any).clientId ||
-                                    ""
-                                )
-                              )
-                            )
-                          )
-                            .filter(Boolean)
-                            .slice(0, 4)
-                            .join(", "),
-                          onClick: () => goToPage("Review"),
-                          tone: "warn",
-                        });
-                      if (renewals.length)
-                        rows.push({
-                          key: "renewals",
-                          icon: "💰",
-                          label: `${renewals.length} renewal${renewals.length === 1 ? "" : "s"} due ≤14d`,
-                          detail: renewals
-                            .map((s: any) => (s as any).clientName || "")
-                            .filter(Boolean)
-                            .slice(0, 4)
-                            .join(", "),
-                          onClick: () => goToPage("Revenue"),
-                          tone: "warn",
-                        });
-                      if (newVideos)
-                        rows.push({
-                          key: "videos",
-                          icon: "📹",
-                          label: `${newVideos} form video${newVideos === 1 ? "" : "s"} to review`,
-                          detail: "Athletes are waiting on feedback",
-                          onClick: () => goToPage("Review"),
-                        });
-                      if (rows.length === 0) return null;
-                      return (
-                        <div className="coachTodayPanel">
-                          <span className="rosterTriageLabel">Today</span>
-                          {rows.map((row) => (
-                            <button
-                              key={row.key}
-                              type="button"
-                              className={`coachTodayRow${row.tone ? ` ${row.tone}` : ""}`}
-                              onClick={row.onClick}
-                            >
-                              <span>{row.icon}</span>
-                              <strong>{row.label}</strong>
-                              {row.detail && <em>{row.detail}</em>}
-                            </button>
-                          ))}
-                        </div>
-                      );
-                    })()}
 
                     {triageDefs.some((d: any) => triageCounts[d.key] > 0) && (
                       <div className="rosterTriageBar">

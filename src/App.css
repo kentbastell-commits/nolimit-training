@@ -10228,37 +10228,6 @@ button.coachReviewGlobalItem,
   font-weight: 800;
   color: #2f8a43;
 }
-.wellnessReply {
-  display: flex;
-  gap: 10px;
-  align-items: flex-start;
-  padding: 14px;
-  border-radius: 16px;
-  background: rgba(212, 175, 55, 0.12);
-  border: 1px solid rgba(212, 175, 55, 0.5);
-  margin-bottom: 12px;
-}
-.wellnessReplyIcon {
-  font-size: 20px;
-}
-.wellnessReply strong {
-  display: block;
-  font-size: 14px;
-  color: #9b7a21;
-}
-.wellnessReply p {
-  margin: 2px 0 0;
-  font-size: 14px;
-  color: var(--nl-ink, #1a1a1a);
-}
-.wellnessReplyClose {
-  margin-left: auto;
-  border: none;
-  background: transparent;
-  font-size: 15px;
-  color: var(--nl-muted, #68645d);
-  cursor: pointer;
-}
 .wellnessOverlay {
   position: fixed;
   inset: 0;
@@ -14437,7 +14406,6 @@ button.coachReviewGlobalItem,
    wellness banner) get trapped in one grid column and stretch to the height of
    a tall neighbour, ballooning into a giant rounded blob. */
 .clientHomeGrid > .portalHomeTabs,
-.clientHomeGrid > .wellnessReply,
 .clientHomeGrid > .wellnessCard,
 .clientHomeGrid > .coachLogsPanel,
 .app:not(.clientPortalApp) .clientHomeGrid > .upcomingHomePanel {
@@ -26740,29 +26708,6 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 }
 
 /* Pending-intake hero card on the portal home — the buyer's unmissable next step. */
-.portalIntakeHeroCard {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  width: 100%;
-  text-align: left;
-  margin: 0 0 16px;
-  padding: 18px 20px;
-  border: 1px solid rgba(212, 175, 55, 0.55);
-  border-left: 5px solid #d4af37;
-  border-radius: 14px;
-  background: linear-gradient(135deg, #fdf6e0, #fbefcf);
-  cursor: pointer;
-  box-shadow: 0 10px 26px rgba(140, 110, 20, 0.12);
-}
-.portalIntakeHeroCard strong { font-size: 17px; color: #111; }
-.portalIntakeHeroCard span { font-size: 13.5px; color: #6a6249; }
-.portalIntakeHeroCard em {
-  font-style: normal;
-  font-weight: 800;
-  color: #8a6d1a;
-  margin-top: 2px;
-}
 
 /* ==== Post-submit celebration card (screenshot-worthy) ==== */
 .celebrationOverlay {
@@ -27137,12 +27082,12 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   padding: 12px 14px;
   background: #fff;
 }
-.coachInboxItem.unread { border-color: rgba(212, 175, 55, 0.65); background: #fdf9ec; }
+.coachInboxItem.unread { border-color: rgba(111, 207, 127, 0.65); background: rgba(111, 207, 127, 0.1); }
 .coachInboxItemHead { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .coachInboxItemHead strong { font-size: 13.5px; }
 .coachInboxItemHead em {
   font-style: normal; font-size: 10px; font-weight: 900; letter-spacing: 0.08em;
-  color: #8a6d1a; background: rgba(212, 175, 55, 0.25); border-radius: 999px; padding: 2px 8px;
+  color: #2f8a43; background: rgba(111, 207, 127, 0.22); border-radius: 999px; padding: 2px 8px;
 }
 .coachInboxItem p { margin-top: 6px; font-size: 14px; color: #3c3a33; line-height: 1.45; }
 .navUnreadDot {

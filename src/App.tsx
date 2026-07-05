@@ -776,7 +776,6 @@ function App() {
   const [wellnessOpen, setWellnessOpen] = useState(false);
   const [wellnessSaving, setWellnessSaving] = useState(false);
   const [wellnessThanks, setWellnessThanks] = useState(false);
-  const [wellnessDismissedReply, setWellnessDismissedReply] = useState("");
   const [wellnessForm, setWellnessForm] = useState({
     sleep: 0,
     sleepHours: "",
@@ -12789,12 +12788,6 @@ function App() {
       cur.setDate(cur.getDate() - 1);
     }
 
-    // Most recent coach reply the athlete hasn't dismissed yet.
-    const reply = clientCheckIns
-      .filter((c) => c.coachResponse && c.coachResponse.trim())
-      .sort((a, b) => b.submittedDate.localeCompare(a.submittedDate))[0];
-    const showReply = reply && reply.recordId !== wellnessDismissedReply;
-
     const openForm = () => {
       setWellnessForm({
         sleep: 0,
@@ -12850,27 +12843,6 @@ function App() {
 
     return (
       <>
-        {showReply && (
-          <div className="wellnessReply">
-            <span className="wellnessReplyIcon">💬</span>
-            <div>
-              <strong>
-                {paceZh
-                  ? `${selectedClient.coach || "教练"} 回复了你`
-                  : `${selectedClient.coach || "Your coach"} replied`}
-              </strong>
-              <p>{reply!.coachResponse}</p>
-            </div>
-            <button
-              type="button"
-              className="wellnessReplyClose"
-              onClick={() => setWellnessDismissedReply(reply!.recordId)}
-              aria-label="dismiss"
-            >
-              ✕
-            </button>
-          </div>
-        )}
         <div className={`wellnessCard ${collapsed ? "done" : ""}`}>
           {collapsed ? (
             <div className="wellnessDoneRow">
@@ -17467,19 +17439,15 @@ function App() {
                 clientStatusOptions={clientStatusOptions}
                 clientTeams={clientTeams}
                 clientWeekLoadZone={clientWeekLoadZone}
-                clients={clients}
                 coachInviteLink={coachInviteLink}
-                coachReviewCheckIns={scopedReviewCheckIns}
                 coachScope={coachScope}
                 copyToClipboard={copyToClipboard}
                 daysSinceLogin={daysSinceLogin}
-                goToPage={goToPage}
                 loadClients={loadClients}
                 openAccountModal={openAccountModal}
                 paceZh={paceZh}
                 programs={programs}
                 renderCoachReviews={renderCoachReviews}
-                reviewFormVideos={scopedReviewFormVideos}
                 rosterAllSelected={rosterAllSelected}
                 rosterClients={rosterClients}
                 rosterGroupBy={rosterGroupBy}
@@ -17500,14 +17468,12 @@ function App() {
                 setRosterGroupBy={setRosterGroupBy}
                 setRosterTriage={setRosterTriage}
                 setSelectedClient={setSelectedClient}
-                subscriptions={subscriptions}
                 teams={teams}
                 toggleRosterSelect={toggleRosterSelect}
                 toggleRosterSelectAll={toggleRosterSelectAll}
                 toggleRosterSort={toggleRosterSort}
                 triageCounts={triageCounts}
                 triageDefs={triageDefs}
-                workouts={workouts}
               />
             )}
 

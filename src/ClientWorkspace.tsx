@@ -449,12 +449,10 @@ export default function ClientWorkspace({
                   coachInboxItems={coachInboxItems}
                   completedTaskCount={completedTaskCount}
                   completionRate={completionRate}
-                  contentAssignments={contentAssignments}
                   contentResponsesLoading={contentResponsesLoading}
                   getTaskActionLabel={getTaskActionLabel}
                   handleHomeTouchEnd={handleHomeTouchEnd}
                   handleHomeTouchStart={handleHomeTouchStart}
-                  handleOpenContentAssignment={handleOpenContentAssignment}
                   inboxSeenAt={inboxSeenAt}
                   isClientPortal={isClientPortal}
                   isWorkloadMonitored={isWorkloadMonitored}
