@@ -30,6 +30,7 @@ import {
   useEffect,
   useRef,
   useState,
+  type ComponentType,
   type DragEvent,
   type TouchEvent,
 } from "react";
@@ -136,31 +137,55 @@ import type {
   WorkoutPageTab,
 } from "./appCore";
 import LandingPage from "./LandingPage";
-import StorePage from "./StorePage";
-import ClientInvitePage from "./ClientInvitePage";
-import InPersonEnquiryPage from "./InPersonEnquiryPage";
-import PortalWelcome from "./PortalWelcome";
-import ReviewPage from "./ReviewPage";
-import CoachClientsPage from "./CoachClientsPage";
-import CoachOrdersPage from "./CoachOrdersPage";
-import CoachTeamsPage from "./CoachTeamsPage";
-import CoachRevenuePage from "./CoachRevenuePage";
-import CoachBuilderPage from "./CoachBuilderPage";
-import CoachLibraryPage from "./CoachLibraryPage";
-import CoachesAdminPage from "./CoachesAdminPage";
 import WorkoutPlayerModal from "./WorkoutPlayerModal";
 import ContentAssignmentModal from "./ContentAssignmentModal";
 import AddClientModal from "./AddClientModal";
 import AccountModal from "./AccountModal";
 import ExerciseModal from "./ExerciseModal";
-import ClientWorkspace from "./ClientWorkspace";
 import ExerciseHistoryModal from "./ExerciseHistoryModal";
 import CoachEditModal from "./CoachEditModal";
 import CalendarActionMenu from "./CalendarActionMenu";
 import AssignmentDrawer from "./AssignmentDrawer";
-import CheckInsPage from "./CheckInsPage";
 import CreateProgramModal from "./CreateProgramModal";
 import ProgramPreviewModal from "./ProgramPreviewModal";
+
+// A shared loading placeholder for code-split routes.
+function PageFallback() {
+  return <div className="lazyFallback" aria-busy="true" aria-live="polite" />;
+}
+
+// Wrap a dynamically-imported page in its own Suspense boundary. Each
+// route becomes a separate chunk, so the initial load (and the public
+// landing path) no longer pulls every coach/portal page into the main
+// bundle. The per-route boundary keeps a page swap from flashing the
+// surrounding chrome.
+function withSuspense<P extends object>(
+  factory: () => Promise<{ default: ComponentType<P> }>,
+) {
+  const Lazy = lazy(factory);
+  return function LazyRoute(props: P) {
+    return (
+      <Suspense fallback={<PageFallback />}>
+        <Lazy {...props} />
+      </Suspense>
+    );
+  };
+}
+
+const StorePage = withSuspense(() => import("./StorePage"));
+const ClientInvitePage = withSuspense(() => import("./ClientInvitePage"));
+const InPersonEnquiryPage = withSuspense(() => import("./InPersonEnquiryPage"));
+const PortalWelcome = withSuspense(() => import("./PortalWelcome"));
+const ReviewPage = withSuspense(() => import("./ReviewPage"));
+const CoachClientsPage = withSuspense(() => import("./CoachClientsPage"));
+const CoachOrdersPage = withSuspense(() => import("./CoachOrdersPage"));
+const CoachTeamsPage = withSuspense(() => import("./CoachTeamsPage"));
+const CoachRevenuePage = withSuspense(() => import("./CoachRevenuePage"));
+const CoachBuilderPage = withSuspense(() => import("./CoachBuilderPage"));
+const CoachLibraryPage = withSuspense(() => import("./CoachLibraryPage"));
+const CoachesAdminPage = withSuspense(() => import("./CoachesAdminPage"));
+const ClientWorkspace = withSuspense(() => import("./ClientWorkspace"));
+const CheckInsPage = withSuspense(() => import("./CheckInsPage"));
 
 function App() {
   const { t, i18n } = useTranslation();

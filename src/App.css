@@ -26280,6 +26280,28 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 /* 3D tilt on path cards */
 .lv3PathCard { will-change: transform; }
 
+/* Loading placeholder for code-split routes */
+.lazyFallback {
+  min-height: 60vh;
+  display: grid;
+  place-items: center;
+}
+.lazyFallback::after {
+  content: "";
+  width: 34px;
+  height: 34px;
+  border: 3px solid rgba(14, 14, 13, 0.15);
+  border-top-color: #d4af37;
+  border-radius: 50%;
+  animation: lazySpin 0.8s linear infinite;
+}
+@keyframes lazySpin {
+  to { transform: rotate(360deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lazyFallback::after { animation: none; }
+}
+
 .lv3BtnPrimary { position: relative; overflow: hidden; }
 .lv3BtnPrimary::after {
   content: "";
