@@ -1,0 +1,278 @@
+/* Co-located styles for CoachOrdersPage — split out of App.css so they load with the CoachOrdersPage chunk, not the main bundle. */
+.ordersWorkspace {
+  display: grid;
+  gap: 22px;
+}
+.ordersGrid {
+  display: grid;
+  gap: 18px;
+}
+.manualOrderPanel {
+  border: 1px solid rgba(212, 175, 55, 0.28);
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+  display: grid;
+  gap: 18px;
+  padding: 22px 24px;
+}
+.manualOrderNotes textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+.pendingActivationSection {
+  background: rgba(212, 175, 55, 0.06);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.pendingActivationHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.pendingActivationHeader span {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #d4af37;
+  opacity: 0.8;
+}
+.pendingActivationHeader h3 {
+  margin: 2px 0 0;
+  font-size: 16px;
+}
+.pendingActivationHeader strong {
+  font-size: 22px;
+  color: #d4af37;
+}
+.pendingActivationBody {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.85fr) minmax(0, 1.6fr);
+  gap: 18px;
+}
+.pendingActivationList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.pendingOrderCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+.pendingOrderInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.pendingOrderInfo strong {
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pendingOrderInfo span {
+  font-size: 12px;
+  opacity: 0.6;
+}
+.pendingOrderInfo small {
+  font-size: 11px;
+  opacity: 0.45;
+}
+.pendingOrderActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.portalSharePanel {
+  background: rgba(212, 175, 55, 0.08);
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  border-radius: 10px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.portalShareHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.portalShareHeader span {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #d4af37;
+}
+.portalShareDismiss {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.4);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 0;
+}
+.portalShareDismiss:hover {
+  color: white;
+}
+.portalShareClientName {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0;
+}
+.portalShareLinkRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.portalShareUrl {
+  flex: 1;
+  font-size: 11px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 6px 10px;
+  color: #d4af37;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.portalShareMessage {
+  width: 100%;
+  min-height: 90px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: white;
+  font-size: 13px;
+  line-height: 1.5;
+  resize: none;
+  cursor: text;
+  box-sizing: border-box;
+}
+.portalShareHint {
+  font-size: 11px;
+  opacity: 0.45;
+  margin: 0;
+}
+.orderReviewQueue,
+.orderReviewDetail {
+  border: 1px solid rgba(212, 175, 55, 0.28);
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+  padding: 22px 24px;
+}
+.orderReviewHeader strong {
+  color: #f8e27d;
+  font-size: 2.3rem;
+  line-height: 1;
+}
+.orderReviewList {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+}
+.orderReviewItem {
+  border: 1px solid rgba(212, 175, 55, 0.24);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.28);
+  color: white;
+  cursor: pointer;
+  display: grid;
+  gap: 5px;
+  padding: 14px;
+  text-align: left;
+}
+.orderReviewItem span {
+  color: #d6d6d6;
+}
+.orderReviewItem small {
+  color: #f8e27d;
+  font-weight: 900;
+}
+.orderReviewDetail {
+  display: grid;
+  gap: 18px;
+}
+.orderCard {
+  display: grid;
+  gap: 18px;
+}
+.orderCardHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: flex-start;
+}
+.orderCardHeader h3 {
+  color: #f8e27d;
+  font-size: clamp(1.4rem, 2.2vw, 2.2rem);
+  margin: 4px 0 6px;
+}
+.orderCardHeader p {
+  color: #ddd;
+  margin: 0;
+}
+.onboardingStage {
+  border: 1px solid rgba(212, 175, 55, 0.18);
+  border-radius: 999px;
+  color: #9a9a9a;
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  padding: 9px 10px;
+  text-align: center;
+}
+.orderActions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+.emptyOrderCard {
+  min-height: 180px;
+  align-content: center;
+}
+/* Fresh, unfulfilled order — electric-blue tone so "New Order" reads distinct
+   from in-progress (grey) and Program Loaded (gold). */
+.newOrderStatus {
+  background: rgba(58, 134, 255, 0.16);
+  color: #6ea8ff;
+  border: 1px solid rgba(58, 134, 255, 0.45);
+}
+/* Pending payment + one-tap verify on coach order cards. */
+.orderPaymentPending {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.orderPaymentPending strong { color: #8b1e2d; }
+.orderVerifyButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid rgba(27, 122, 62, 0.45);
+  border-radius: 999px;
+  background: #e9f6ee;
+  color: #1b7a3e;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 10px;
+  cursor: pointer;
+}
+.orderVerifyButton:hover { background: #d9efe2; }

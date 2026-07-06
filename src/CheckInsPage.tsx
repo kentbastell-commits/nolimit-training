@@ -1,6 +1,7 @@
 // Extracted from App.tsx (monolith split) — JSX verbatim; props threaded.
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { CheckInFilter } from "./appCore";
+import "./CheckInsPage.css";
 
 export default function CheckInsPage({
   checkInFilter,

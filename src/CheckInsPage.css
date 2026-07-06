@@ -1,0 +1,36 @@
+/* Co-located styles for CheckInsPage — split out of App.css so they load with the CheckInsPage chunk, not the main bundle. */
+.checkInsPage {
+  margin-top: 22px;
+}
+.checkInToolbar {
+  grid-template-columns: minmax(220px, 1fr) minmax(160px, 220px) auto;
+}
+.checkInList {
+  display: grid;
+  gap: 12px;
+}
+.checkInDueCard {
+  border-color: rgba(212, 175, 55, 0.55);
+  background: rgba(212, 175, 55, 0.08);
+}
+.checkInMeta {
+  min-width: 0;
+}
+.checkInMeta span {
+  display: block;
+  color: #aaa;
+  font-size: 12px;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+}
+.checkInMeta strong {
+  display: block;
+  color: #d4af37;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.checkInMeta p {
+  margin: 4px 0 0;
+  color: #aaa;
+}

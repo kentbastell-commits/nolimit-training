@@ -2,6 +2,7 @@
 // verbatim; state/handlers threaded as props.
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { ChevronDown } from "lucide-react";
+import "./ReviewPage.css";
 import { normalizeDate } from "./appCore";
 
 export default function ReviewPage({

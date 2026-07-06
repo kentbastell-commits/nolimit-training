@@ -1,6 +1,7 @@
 // Extracted from App.tsx (monolith split) — JSX verbatim; props threaded.
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { ChevronDown, MoreVertical, Settings, Trash2, X } from "lucide-react";
+import "./CoachTeamsPage.css";
 import { dateToInputValue, labelColor } from "./appCore";
 
 export default function CoachTeamsPage({

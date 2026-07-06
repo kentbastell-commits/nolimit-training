@@ -1,0 +1,1891 @@
+/* Co-located styles for CoachBuilderPage — split out of App.css so they load with the CoachBuilderPage chunk, not the main bundle. */
+.builderEmptyCanvasIcon {
+  display: grid;
+  place-items: center;
+  width: 74px;
+  height: 74px;
+  border-radius: 22px;
+  background: #111;
+  color: #ead47a;
+  box-shadow: 0 18px 38px rgba(18, 18, 18, 0.16);
+}
+.builderPreviewTitleRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding-right: 72px;
+}
+.builderPreviewTitleRow h2 {
+  flex: 1;
+}
+.builderOrderToggle {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 8px;
+  margin-top: 18px;
+  min-height: 42px !important;
+  padding: 0 14px !important;
+  white-space: nowrap;
+}
+.builderDrawerTabs {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+  border: 1px solid #111;
+  border-radius: 14px;
+  padding: 5px;
+  background: #ffffff;
+}
+.builderDrawerTabs button {
+  min-height: 46px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #111;
+  font-weight: 950;
+}
+.builderDrawerExerciseGrid {
+  display: grid;
+  min-height: 0;
+  flex: 1;
+  gap: 10px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.builderExercisePickCard {
+  display: grid;
+  gap: 5px;
+  width: 100%;
+  border: 1px solid rgba(17, 17, 17, 0.1);
+  border-radius: 16px;
+  background: #ffffff;
+  color: #111;
+  padding: 15px;
+  text-align: left;
+  box-shadow: 0 10px 24px rgba(18, 18, 18, 0.05);
+  transition:
+    border-color 160ms ease,
+    transform 160ms ease,
+    box-shadow 160ms ease;
+}
+.builderExercisePickCard:hover {
+  border-color: #111;
+  transform: translateY(-1px);
+  box-shadow: 0 16px 34px rgba(18, 18, 18, 0.11);
+}
+.builderExercisePickCard span {
+  font-size: 17px;
+  font-weight: 950;
+}
+.builderExercisePickCard small {
+  color: #707069;
+  font-weight: 800;
+}
+.builderSectionPicker {
+  display: grid;
+  gap: 14px;
+}
+.builderSectionPicker h3 {
+  margin: 2px 0 0;
+  color: #111;
+  font-size: 28px;
+}
+.builderSectionPicker p,
+.builderSectionPicker label span {
+  margin: 0;
+  color: #686862;
+  font-weight: 900;
+}
+.builderSupersetLinkRow {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 10px;
+  margin: -2px 0;
+}
+.builderSupersetLinkRow::before,
+.builderSupersetLinkRow::after {
+  content: "";
+  height: 1px;
+  background: rgba(17, 17, 17, 0.14);
+}
+.builderSupersetLinkButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 34px;
+  border: 1px solid rgba(17, 17, 17, 0.22);
+  border-radius: 999px;
+  background: #ffffff;
+  color: #111;
+  padding: 0 13px;
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0.02em;
+  box-shadow: 0 6px 16px rgba(18, 18, 18, 0.06);
+}
+.builderSupersetLinkButton:hover,
+.builderSupersetLinkButton:focus-visible {
+  border-color: rgba(17, 17, 17, 0.55);
+  transform: translateY(-1px);
+}
+.builderModalExerciseEditor {
+  display: grid;
+  gap: 10px;
+  border: 1px solid rgba(17, 17, 17, 0.12);
+  border-radius: 18px;
+  background: #ffffff;
+  padding: 14px;
+  box-shadow: 0 14px 32px rgba(18, 18, 18, 0.08);
+}
+.builderModalCheck {
+  align-content: end;
+}
+.builderModalCheck input {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  min-height: 28px;
+  appearance: none;
+  border: 2px solid #111;
+  border-radius: 7px;
+  background: #fff;
+  cursor: pointer;
+}
+.builderModalCheck input:checked {
+  background: #fff;
+}
+.builderModalCheck input:checked::after {
+  position: absolute;
+  inset: 5px;
+  border-radius: 4px;
+  background: #111;
+  content: "";
+}
+.builderDrawerClose {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid rgba(17, 17, 17, 0.12);
+  border-radius: 999px;
+  background: #111;
+  color: #ead47a;
+}
+.builderDrawerFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: auto;
+}
+.builderArrangementSidebarHeader {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 8px;
+  padding: 12px 14px 10px;
+  border-bottom: 1px solid rgba(17, 17, 17, 0.08);
+}
+.builderArrangementSidebarHeader h4 {
+  margin: 0;
+  font-size: 14px;
+  color: #111;
+}
+.builderArrangementSidebarList {
+  display: flex;
+  flex-direction: column;
+  padding: 8px;
+  gap: 5px;
+}
+.builderSidebarItem {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 10px;
+  border: 1px solid rgba(17, 17, 17, 0.08);
+  border-radius: 10px;
+  background: #ffffff;
+  cursor: grab;
+  user-select: none;
+  transition:
+    transform 140ms ease,
+    border-color 140ms ease,
+    background 140ms ease,
+    box-shadow 140ms ease;
+  min-width: 0;
+  will-change: transform;
+}
+.builderSidebarItem:hover {
+  border-color: rgba(17, 17, 17, 0.22);
+  box-shadow: 0 6px 14px rgba(17, 17, 17, 0.08);
+  transform: translateY(-1px);
+}
+.builderSidebarGroupItem {
+  align-items: flex-start;
+  border-color: rgba(17, 17, 17, 0.18);
+  background: #f2f0ea;
+}
+.builderSidebarGroupBadge {
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  display: inline-grid;
+  place-items: center;
+  background: #111;
+  color: #ead36d;
+  box-shadow: 0 8px 18px rgba(17, 17, 17, 0.12);
+}
+.builderSidebarItemStack {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex: 1;
+}
+.builderSidebarGroupLabel {
+  font-size: 10px;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #6f6a5f;
+}
+.builderSidebarGroupItem .sidebarItemName {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+}
+.sidebarDragHandle {
+  flex: 0 0 auto;
+  color: #aaa;
+}
+.sidebarItemName {
+  font-size: 12px;
+  font-weight: 850;
+  color: #111;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  flex: 1;
+}
+.dangerButton {
+  background: rgba(120, 22, 22, 0.35);
+  color: #ffb4b4;
+  border: 1px solid rgba(220, 80, 80, 0.5);
+  font-weight: 600;
+}
+.dangerButton:hover {
+  background: rgba(150, 28, 28, 0.5);
+}
+.dangerButton:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.builderHubMain {
+  min-width: 0;
+}
+.builderHubList {
+  display: grid;
+  gap: 12px;
+}
+.builderCheckboxLabel {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: #ddd;
+  font-weight: 800;
+}
+.builderCheckboxLabel input {
+  width: 18px;
+  height: 18px;
+}
+.builderMetricCheckbox {
+  align-self: end;
+  min-height: 48px;
+  padding: 10px 12px;
+  border: 1px solid rgba(17, 17, 17, 0.14);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.72);
+  color: #111;
+  font-weight: 900;
+}
+.builderMetricCheckbox input {
+  width: 20px;
+  height: 20px;
+  accent-color: #111;
+}
+.builderMetricConfig {
+  grid-column: 1 / -1;
+  width: 100%;
+  margin-top: 4px;
+  padding: 14px;
+  border-color: rgba(17, 17, 17, 0.14);
+  background: rgba(255, 255, 255, 0.68);
+}
+.savedTemplateHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.savedTemplateHeader h3 {
+  margin: 0;
+  color: #d4af37;
+  font-size: 19px;
+}
+.savedTemplateList {
+  display: grid;
+  gap: 8px;
+}
+.savedTemplateItem {
+  width: 100%;
+  text-align: left;
+  display: grid;
+  gap: 4px;
+  border: 1px solid rgba(212, 175, 55, 0.18);
+  border-radius: 8px;
+  padding: 12px;
+  color: #eee;
+  background: rgba(0, 0, 0, 0.24);
+  cursor: pointer;
+}
+.savedTemplateCard {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  cursor: default;
+}
+.savedTemplateMainButton {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  padding: 0;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+.templateActionMenu {
+  position: relative;
+  justify-self: end;
+}
+.templateActionMenu summary {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #dcd8cd;
+  border-radius: 9px;
+  background: #fff;
+  color: #111;
+  list-style: none;
+  font-size: 18px;
+  font-weight: 950;
+  line-height: 0;
+  cursor: pointer;
+}
+.templateActionMenu summary::-webkit-details-marker {
+  display: none;
+}
+.templateActionMenu > div {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 35;
+  min-width: 140px;
+  display: grid;
+  gap: 4px;
+  border: 1px solid #dcd8cd;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.16);
+  padding: 6px;
+}
+.templateActionMenu button {
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #111;
+  padding: 9px 10px;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 900;
+  cursor: pointer;
+}
+.templateActionMenu button:hover {
+  background: #111;
+  color: #f4df94;
+}
+.savedTemplateItem:hover,
+.selectedSavedTemplateItem {
+  border-color: rgba(212, 175, 55, 0.58);
+  background: rgba(212, 175, 55, 0.12);
+}
+.savedTemplateItem strong {
+  overflow-wrap: anywhere;
+  color: #d4af37;
+}
+.savedTemplateItem span,
+.savedTemplateItem small {
+  color: #bdbdbd;
+}
+/* ---- Builder sub-tabs (Build / Product Settings) ---- */
+.builderSubTabBar {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  margin: 0 0 16px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(212, 175, 55, 0.2);
+}
+.builderSubTabBar button {
+  border: none;
+  background: transparent;
+  color: #cfcabb;
+  font-weight: 850;
+  font-size: 14px;
+  padding: 8px 18px;
+  border-radius: 9px;
+  cursor: pointer;
+}
+.builderTabPanel {
+  border: 1px solid rgba(212, 175, 55, 0.22);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 16px;
+  margin-bottom: 18px;
+}
+.builderTabPanelHead {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.18);
+}
+.builderTabPanelHead strong {
+  font-size: 18px;
+  font-weight: 950;
+  color: #d4af37;
+}
+.builderTabPanelHead small {
+  color: #9a958a;
+  font-weight: 700;
+}
+/* ---- Mobile builder: program overview hub ---- */
+.mbOvWeek {
+  border: 1px solid #e2ddd1;
+  border-radius: 12px;
+  background: #faf8f2;
+  padding: 10px;
+  margin-bottom: 12px;
+}
+.mbOvWeekHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.mbOvWeekHead strong {
+  font-size: 14px;
+  font-weight: 950;
+  color: #111;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.mbOvDup {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid #ddd7ca;
+  background: #fff;
+  color: #4b4b45;
+  border-radius: 7px;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 800;
+}
+.mbOvDay {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  text-align: left;
+  border: 1px solid #e2ddd1;
+  border-left: 4px solid #111;
+  border-radius: 10px;
+  background: #fff;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+}
+.mbOvDayMain {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.mbOvDayMain strong {
+  font-size: 14px;
+  font-weight: 850;
+  color: #1c1c19;
+}
+.mbOvDayMain small {
+  font-size: 12px;
+  color: #8b8579;
+  font-weight: 700;
+}
+.mbOvChevron {
+  font-size: 22px;
+  color: #b5afa1;
+  flex-shrink: 0;
+}
+.mbOvAdd {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 9px;
+  border: 1px dashed rgba(0, 0, 0, 0.3);
+  border-radius: 10px;
+  background: transparent;
+  color: #111;
+  font-weight: 800;
+  font-size: 13px;
+}
+/* ---- Session editor drawer (multi-day builder) ---- */
+.builderEditorBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1490;
+  background: rgba(0, 0, 0, 0.38);
+}
+.builderEditorWrap.asDrawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(880px, 95vw);
+  background: #fff;
+  border-left: 1px solid #e2ddd1;
+  box-shadow: -16px 0 50px rgba(0, 0, 0, 0.25);
+  z-index: 1500;
+  overflow: auto;
+  padding: 0 22px 48px;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.16s ease;
+}
+.builderEditorDrawerHead {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 0 12px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid #ece9e1;
+  background: #fff;
+}
+.builderEditorDrawerHead strong {
+  font-size: 16px;
+  font-weight: 950;
+  color: #111;
+}
+/* ---- Program calendar grid (Week × Day 1-7 builder landing) ---- */
+.programGridWrap {
+  overflow-x: auto;
+  border: 1px solid rgba(212, 175, 55, 0.22);
+  border-radius: 12px;
+  margin-bottom: 22px;
+  -webkit-overflow-scrolling: touch;
+}
+.programGridHead {
+  display: grid;
+  grid-template-columns: var(--dayCols, repeat(7, minmax(0, 1fr)));
+  background: #111;
+}
+.programGridDayLabel {
+  padding: 11px 14px;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: #e7d8a8;
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  min-width: 0;
+}
+.programGridDayLabel:first-child {
+  border-left: none;
+}
+.dayCollapseBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: rgba(255, 255, 255, 0.08);
+  color: #e7d8a8;
+  border-radius: 5px;
+  padding: 3px;
+  cursor: pointer;
+  opacity: 0.55;
+}
+.programGridDayLabel:hover .dayCollapseBtn {
+  opacity: 1;
+}
+.programGridDayLabel.dayCollapsed {
+  cursor: pointer;
+  padding: 11px 4px;
+  justify-content: center;
+}
+.collapsedDayText {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: #cdb976;
+}
+.programGridCell.dayCollapsed {
+  align-items: center;
+  justify-content: center;
+  padding: 6px 2px;
+  cursor: pointer;
+  min-height: 0;
+}
+.programGridCell.dayCollapsed:hover {
+  background: rgba(212, 175, 55, 0.08);
+}
+.collapsedCellDot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: #d4af37;
+  color: #111;
+  font-size: 11px;
+  font-weight: 900;
+}
+.programGridWeek {
+  border-top: 1px solid rgba(212, 175, 55, 0.16);
+}
+.programGridWeekLabel {
+  padding: 9px 14px 5px;
+  font-size: 13px;
+  font-weight: 950;
+  color: #d4af37;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.weekVolChip {
+  font-size: 11px;
+  font-weight: 800;
+  color: #8b8579;
+  text-transform: none;
+  letter-spacing: 0;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.05);
+  white-space: nowrap;
+}
+.mbOvWeekHead .weekVolChip {
+  margin-left: auto;
+}
+.weekDupWrap {
+  position: relative;
+}
+.weekDupTrigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid rgba(0, 0, 0, 0.18);
+  background: #fff;
+  color: #4b4b45;
+  border-radius: 7px;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: none;
+  letter-spacing: 0;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+.programGridWeek:hover .weekDupTrigger {
+  opacity: 1;
+}
+.weekDupBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+}
+.weekDupSection {
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #9a958a;
+  padding: 6px 4px 4px;
+}
+.weekDupPctRow {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  margin-bottom: 4px;
+}
+.weekDupPctRow button {
+  border: 1px solid #ddd7ca;
+  background: #faf8f2;
+  color: #4b4b45;
+  border-radius: 6px;
+  padding: 5px 0;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.weekDupTarget {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: transparent;
+  color: #1c1c19;
+  border-radius: 6px;
+  padding: 7px 8px;
+  font-size: 13px;
+  font-weight: 750;
+  cursor: pointer;
+}
+.weekDupTarget:hover {
+  background: #f3ecd6;
+}
+.weekDupAll {
+  font-weight: 900;
+  color: #8b650e;
+  border-top: 1px solid #ece9e1;
+  margin-top: 4px;
+}
+.programGridRow {
+  display: grid;
+  grid-template-columns: var(--dayCols, repeat(7, minmax(0, 1fr)));
+}
+.programGridCell {
+  min-height: 118px;
+  padding: 8px;
+  border-left: 1px solid rgba(212, 175, 55, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.programGridCell:first-child {
+  border-left: none;
+}
+.programGridCell.gridDropActive {
+  background: rgba(212, 175, 55, 0.14);
+  outline: 2px dashed rgba(212, 175, 55, 0.5);
+  outline-offset: -3px;
+}
+.gridDraftTag {
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: #d4af37;
+}
+.programGridCardMeta {
+  font-size: 11px;
+  font-weight: 700;
+  color: #cfcabb;
+}
+.programGridCardActions {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  display: flex;
+  gap: 3px;
+  padding: 2px;
+  border-radius: 7px;
+  background: rgba(20, 20, 20, 0.92);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s ease;
+}
+.programGridAdd {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 7px;
+  border: 1px dashed rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  background: transparent;
+  color: #111;
+  cursor: pointer;
+  opacity: 0.4;
+  transition: opacity 0.12s ease;
+}
+.programGridCell:hover .programGridAdd,
+.programGridCell.hasSess .programGridAdd {
+  opacity: 1;
+}
+.programGridAdd:hover {
+  background: rgba(0, 0, 0, 0.07);
+}
+.programStoreToggle {
+  border: 1px solid rgba(212, 175, 55, 0.28);
+  border-radius: 10px;
+  justify-content: center;
+  min-height: 62px;
+  padding: 12px 14px;
+}
+.programStoreToggle input {
+  width: auto;
+}
+.programProductReadiness {
+  border: 1px solid rgba(212, 175, 55, 0.28);
+  border-radius: 12px;
+  background: rgba(212, 175, 55, 0.08);
+  padding: 16px;
+  margin: 0 0 22px;
+}
+.programProductReadiness.readyForSale {
+  border-color: rgba(84, 185, 129, 0.46);
+  background: rgba(84, 185, 129, 0.12);
+}
+.programProductReadinessHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+  margin-bottom: 14px;
+}
+.programProductReadinessHeader span {
+  color: #d4af37;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+}
+.programProductReadinessHeader h3 {
+  margin: 4px 0 0;
+  color: #fff;
+  font-size: 24px;
+  line-height: 1.05;
+}
+.programProductReadinessHeader strong {
+  border: 1px solid rgba(245, 215, 123, 0.35);
+  border-radius: 999px;
+  color: #d4af37;
+  padding: 8px 12px;
+  white-space: nowrap;
+}
+/* Back-to-Programs: plain black text, no pill. */
+.builderBackLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: none;
+  background: transparent;
+  color: #111;
+  font-weight: 850;
+  font-size: 14px;
+  padding: 2px 0;
+  margin-bottom: 6px;
+  cursor: pointer;
+}
+.builderBackLink:hover {
+  color: #000;
+  text-decoration: underline;
+}
+.builderLibraryEmpty {
+  padding: 22px;
+  color: #aaa;
+  text-align: center;
+  border-top: 1px solid rgba(245, 215, 123, 0.16);
+}
+.builderSectionTitleSpaced {
+  margin-top: 28px;
+}
+.sessionGoalField {
+  min-width: 0;
+}
+.builderSessionHint {
+  margin: -6px 0 10px;
+  color: var(--nl-muted, #b8b8b8);
+  font-size: 14px;
+  font-weight: 700;
+}
+.editingSessionCard {
+  background: rgba(245, 215, 123, 0.12);
+}
+.programSessionActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.emptyState {
+  text-align: center;
+  color: #888;
+  font-size: 14px;
+  padding: 24px 0;
+}
+/* Builder bundle picker */
+.programBundlePicker {
+  margin-top: 10px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px dashed rgba(212, 175, 55, 0.45);
+  background: rgba(212, 175, 55, 0.06);
+}
+.programBundleLabel {
+  display: block;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #9b7a21;
+  margin-bottom: 8px;
+}
+.programBundleRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  font-size: 13px;
+}
+.programBundleRowPrice {
+  margin-left: auto;
+  font-weight: 700;
+  color: #68645d;
+}
+.programBundleHint {
+  margin: 8px 0 0;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #2f8a43;
+}
+.programStoreImplied {
+  margin: 4px 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #9b7a21;
+}
+/* "Built for" tag on saved programs */
+.programBuiltForChip {
+  display: inline-block;
+  margin-top: 5px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #9b7a21;
+  background: rgba(212, 175, 55, 0.14);
+  border: 1px solid rgba(212, 175, 55, 0.4);
+}
+.accessoryExerciseCard {
+  border-left: 6px solid #3f8f64 !important;
+  background: linear-gradient(90deg, rgba(63, 143, 100, 0.1), rgba(255, 255, 255, 0.02));
+}
+.accessoryTargetCard {
+  border-color: #3f8f64 !important;
+  box-shadow:
+    0 0 0 2px rgba(63, 143, 100, 0.18),
+    0 18px 48px rgba(63, 143, 100, 0.16);
+}
+.exerciseSectionName {
+  display: block;
+  margin-bottom: 4px;
+  color: #aaa;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+.groupedExerciseCard {
+  border-color: rgba(120, 200, 255, 0.5);
+  background: rgba(120, 200, 255, 0.04);
+}
+.exerciseGroupPill {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  margin-top: 6px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 5px 11px;
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0.01em;
+}
+.exerciseGroupPillSuperset {
+  border-color: rgba(40, 104, 164, 0.42);
+  color: #123f67;
+  background: #e1f0fb;
+}
+.exerciseGroupPillCircuit {
+  border-color: rgba(116, 82, 158, 0.42);
+  color: #452971;
+  background: #eee6f8;
+}
+.exerciseAccessoryPill {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  margin-top: 6px;
+  border: 1px solid rgba(43, 124, 76, 0.42);
+  border-radius: 999px;
+  padding: 5px 11px;
+  color: #1f5d3d;
+  background: #e4f3e9;
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0.01em;
+}
+.builderCheckboxField input {
+  width: 26px;
+  height: 26px;
+  min-height: 26px;
+  accent-color: #111;
+}
+.builderWideField {
+  grid-column: 1 / -1;
+}
+.builderWideField textarea {
+  width: 100%;
+  min-height: 82px;
+  background: #050505;
+  color: white;
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  border-radius: 8px;
+  padding: 12px;
+  resize: vertical;
+}
+/* Final builder compact editor overrides */
+.builderExerciseListToolbar {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+  margin: 18px 0 8px !important;
+  border: 1px solid rgba(17, 17, 17, 0.12) !important;
+  border-radius: 14px !important;
+  background: #ffffff !important;
+  padding: 10px 12px !important;
+}
+.builderExerciseListToolbar span {
+  color: #5f5f59 !important;
+  font-size: 13px !important;
+  font-weight: 950 !important;
+  letter-spacing: 0.06em !important;
+  text-transform: uppercase !important;
+}
+.builderExerciseListToolbar span small {
+  display: block !important;
+  margin-top: 2px !important;
+  color: #111 !important;
+  font-size: 12px !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+}
+.builderExerciseListToolbar > div {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+}
+.builderExerciseActionToolbar {
+  margin-top: 10px !important;
+  margin-bottom: 10px !important;
+}
+.builderExerciseCardHeader {
+  display: flex !important;
+  align-items: flex-start !important;
+  gap: 10px !important;
+  width: 100% !important;
+}
+.builderExerciseSummaryTitle {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  min-width: 0 !important;
+}
+.builderExerciseSummaryTitle h3 {
+  margin: 0 !important;
+  color: #111 !important;
+  font-size: clamp(15px, 1.4vw, 20px) !important;
+  line-height: 1.05 !important;
+}
+.builderExerciseSummaryStats {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+}
+.builderExerciseSummaryStats span {
+  border: 1px solid rgba(17, 17, 17, 0.12) !important;
+  border-radius: 999px !important;
+  background: #f2f0ea !important;
+  color: #363631 !important;
+  padding: 4px 8px !important;
+  font-size: 12px !important;
+  font-weight: 900 !important;
+}
+.compactPageActions {
+  margin-top: 12px !important;
+  border-top: 1px solid rgba(17, 17, 17, 0.1) !important;
+  padding-top: 12px !important;
+}
+.builderExerciseSectionDivider {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  width: 100% !important;
+  margin: 14px 0 8px !important;
+  color: #111 !important;
+  font-size: 13px !important;
+  font-weight: 950 !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+}
+.builderExerciseSectionDivider::after {
+  flex: 1 !important;
+  height: 2px !important;
+  border-radius: 999px !important;
+  background: linear-gradient(90deg, rgba(17, 17, 17, 0.42), rgba(192, 162, 86, 0.08)) !important;
+  content: "" !important;
+}
+.builderExerciseSectionDivider span {
+  border: 1px solid rgba(17, 17, 17, 0.14) !important;
+  border-radius: 999px !important;
+  background: #111 !important;
+  color: #ead47a !important;
+  padding: 7px 12px !important;
+}
+.builderUsePercentToggle {
+  flex: 0 0 auto;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid #d8d1c4;
+  background: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  color: #68645d;
+  cursor: pointer;
+  white-space: nowrap;
+}
+/* Workout builder density pass */
+.builderCollapsiblePanel {
+  margin: 10px 0 14px !important;
+  border: 1px solid rgba(17, 17, 17, 0.14) !important;
+  border-radius: 16px !important;
+  background: #ffffff !important;
+  overflow: hidden !important;
+  box-shadow: 0 10px 26px rgba(18, 18, 18, 0.05) !important;
+}
+.builderCollapsiblePanel summary {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 14px !important;
+  min-height: 64px !important;
+  padding: 12px 16px !important;
+  cursor: pointer !important;
+  list-style: none !important;
+}
+.builderCollapsiblePanel summary::-webkit-details-marker {
+  display: none !important;
+}
+.builderCollapsiblePanel summary > div {
+  display: grid !important;
+  gap: 2px !important;
+  min-width: 0 !important;
+}
+.builderCollapsiblePanel summary strong {
+  color: #565249 !important;
+  font-size: 20px !important;
+  font-weight: 950 !important;
+  line-height: 1 !important;
+}
+.builderCollapsiblePanel summary small {
+  color: #66665f !important;
+  font-size: 13px !important;
+  font-weight: 850 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+.builderCollapsiblePanel summary > span {
+  display: inline-grid !important;
+  place-items: center !important;
+  min-width: 76px !important;
+  min-height: 36px !important;
+  border: 1px solid rgba(17, 17, 17, 0.18) !important;
+  border-radius: 999px !important;
+  background: #111 !important;
+  color: #ead47a !important;
+  font-size: 12px !important;
+  font-weight: 950 !important;
+}
+.builderCollapsiblePanel[open] summary {
+  border-bottom: 1px solid rgba(17, 17, 17, 0.1) !important;
+}
+.mobileBuilderBody {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 4px 2px;
+}
+.mbScreenTitle {
+  margin: 6px 0 4px;
+  font-size: 26px;
+  font-weight: 950;
+  color: #111;
+}
+.mbField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.mbFieldRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.mbFieldLabel {
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #66665f;
+}
+.mbTextarea {
+  min-height: 72px;
+  resize: vertical;
+}
+.mbFullButton {
+  width: 100%;
+  margin-top: 8px;
+}
+.mbEditorBody {
+  gap: 12px;
+}
+.mbEditorTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.mbEditorTop strong {
+  color: #111;
+  font-size: 16px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mbTextButton {
+  border: none;
+  background: transparent;
+  color: #8f6b12;
+  font-size: 15px;
+  font-weight: 900;
+  padding: 6px 2px;
+  cursor: pointer;
+}
+.mbEmpty {
+  display: grid;
+  gap: 10px;
+  place-items: center;
+  text-align: center;
+  padding: 40px 16px;
+  border: 1px dashed rgba(17, 17, 17, 0.18);
+  border-radius: 16px;
+  background: #ffffff;
+}
+.mbEmpty h3 {
+  margin: 0;
+  color: #111;
+  font-size: 20px;
+  font-weight: 950;
+}
+.mbEmpty p {
+  margin: 0;
+  color: #66665f;
+  font-size: 14px;
+}
+.mbExerciseGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.mobileSectionHeading {
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #8f6b12;
+}
+.mobileSupersetLinkButton {
+  align-self: flex-start;
+  border: 1px dashed rgba(17, 17, 17, 0.25);
+  border-radius: 999px;
+  background: #ffffff;
+  color: #444;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+.mobileExerciseCard {
+  border: 1px solid rgba(17, 17, 17, 0.12);
+  border-radius: 16px;
+  background: #fff;
+  padding: 12px;
+  box-shadow: 0 10px 26px rgba(18, 18, 18, 0.05);
+}
+.mobileExerciseCardHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.mobileExerciseCardHeader strong {
+  color: #111;
+  font-size: 15px;
+  font-weight: 900;
+}
+.mbCardControls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 10px;
+}
+.mbAddSet {
+  border: none;
+  background: transparent;
+  color: #8f6b12;
+  font-size: 14px;
+  font-weight: 900;
+  padding: 4px 2px;
+  cursor: pointer;
+}
+.mbCardMenuBtn {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  color: #66665f;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+/* Bottom-sheet popups (arrange / exercise options / details) */
+.mobileBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 3200;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  background: rgba(15, 15, 15, 0.42);
+  backdrop-filter: blur(2px);
+}
+.mobileBottomSheet {
+  display: flex;
+  flex-direction: column;
+  max-height: 78vh;
+  padding: 8px 16px calc(20px + env(safe-area-inset-bottom));
+  border-radius: 22px 22px 0 0;
+  background: #ffffff;
+  box-shadow: 0 -18px 50px rgba(0, 0, 0, 0.3);
+  animation: mbSheetUp 200ms ease;
+}
+.mobileSheetHandle {
+  width: 44px;
+  height: 5px;
+  margin: 4px auto 12px;
+  border-radius: 999px;
+  background: rgba(17, 17, 17, 0.18);
+  flex-shrink: 0;
+}
+.mobileSheetTitleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.mobileSheetTitleRow h3 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 950;
+  color: #111;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mobileSheetScroll {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.mobileOptionsTitle {
+  margin: 0 0 16px;
+  text-align: center;
+  font-size: 18px;
+  font-weight: 950;
+  color: #111;
+}
+.mobileOptionsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px 8px;
+  padding-bottom: 6px;
+}
+.mobileOptionsGrid button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  background: transparent;
+  color: #333;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.mbOptIcon {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 999px;
+  background: #151515;
+  color: #d4af37;
+}
+.mbOptIconDanger {
+  background: #7a1c1c;
+  color: #ffd9d9;
+}
+.mbDetailsHint {
+  margin: 0 0 10px;
+  color: #66665f;
+  font-size: 13px;
+  font-weight: 700;
+}
+/* Collapsible Workouts tab menu (mobile) — tucks the tab strip into a dropdown */
+.workoutTabMenu {
+  position: relative;
+  margin-bottom: 12px;
+}
+.workoutTabMenuCaret {
+  flex-shrink: 0;
+  transition: transform 160ms ease;
+}
+.workoutTabMenuOpen .workoutTabMenuCaret {
+  transform: rotate(180deg);
+}
+/* Mobile alternate-exercises pane */
+.mbAltList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.mbAltRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid rgba(17, 17, 17, 0.12);
+  border-radius: 12px;
+  background: #fff;
+  padding: 10px 12px;
+}
+.mbAltNum {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: #e8e6df;
+  color: #111;
+  font-size: 13px;
+  font-weight: 900;
+  flex-shrink: 0;
+}
+.mbAltName {
+  flex: 1;
+  min-width: 0;
+  color: #111;
+  font-size: 15px;
+  font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mbAltActions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.mbAltActions button {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid rgba(17, 17, 17, 0.12);
+  border-radius: 8px;
+  background: #ffffff;
+  color: #444;
+  font-size: 13px;
+  font-weight: 900;
+  cursor: pointer;
+}
+.mbAltActions button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.mbAltActions .mbAltDel {
+  border-color: rgba(180, 80, 80, 0.4);
+  color: #b46b6b;
+}
+.mbAltSearch {
+  width: 100%;
+  margin-bottom: 10px;
+}
+.mbAltLibrary {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.mbAltAddRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  border: none;
+  border-bottom: 1px solid rgba(17, 17, 17, 0.07);
+  background: transparent;
+  color: #1a1a1a;
+  font-size: 15px;
+  font-weight: 700;
+  text-align: left;
+  padding: 11px 4px;
+  cursor: pointer;
+}
+.mbAltAddRow svg {
+  color: #8f6b12;
+  flex-shrink: 0;
+}
+.mbEachSide {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 800;
+  color: #444;
+}
+.mbEachSide input {
+  width: 18px;
+  height: 18px;
+}
+.mobileBuilderActionBar {
+  position: fixed;
+  left: 10px;
+  right: 10px;
+  bottom: calc(74px + env(safe-area-inset-bottom));
+  z-index: 1100;
+  display: flex;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 16px;
+  border: 1px solid rgba(17, 17, 17, 0.1);
+  background: rgba(255, 253, 248, 0.97);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.16);
+  backdrop-filter: blur(12px);
+}
+.mobileBuilderActionBar button {
+  flex: 1;
+  padding: 13px 10px;
+  font-size: 15px;
+}
+/* Full-screen sub-screens (picker / arrange) */
+.mobileSheet {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: flex;
+  flex-direction: column;
+  background: #f2f0ea;
+}
+.mobileSheet .mobileBuilderBody {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px;
+  gap: 10px;
+}
+.mobileBuilderHeader {
+  display: grid;
+  grid-template-columns: 60px 1fr 72px;
+  align-items: center;
+  padding: calc(12px + env(safe-area-inset-top)) 12px 12px;
+  border-bottom: 1px solid rgba(17, 17, 17, 0.1);
+  background: #ffffff;
+}
+.mobileBuilderHeader h2 {
+  margin: 0;
+  text-align: center;
+  font-size: 17px;
+  font-weight: 950;
+  color: #111;
+}
+.mbHeaderBack {
+  border: none;
+  background: transparent;
+  color: #111;
+  font-size: 28px;
+  line-height: 1;
+  font-weight: 700;
+  text-align: left;
+  padding: 0 4px;
+  cursor: pointer;
+}
+.mbHeaderAction {
+  border: none;
+  background: transparent;
+  color: #8f6b12;
+  font-size: 15px;
+  font-weight: 950;
+  text-align: right;
+  cursor: pointer;
+}
+.mbHeaderAction:disabled {
+  color: #b7ad97;
+}
+.mbSearchInput {
+  width: 100%;
+}
+.mobilePickerCheck {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 2px solid rgba(17, 17, 17, 0.25);
+  border-radius: 999px;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 900;
+  flex-shrink: 0;
+}
+.mobilePickerRowSelected {
+  background: rgba(212, 175, 55, 0.1);
+}
+.mobileArrangeRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid rgba(17, 17, 17, 0.12);
+  border-radius: 12px;
+  background: #fff;
+  padding: 14px 12px;
+  margin-bottom: 8px;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  transition: transform 120ms ease, box-shadow 120ms ease,
+    border-color 120ms ease, background 120ms ease;
+}
+.mobileArrangeRow:active {
+  cursor: grabbing;
+}
+.mobileArrangeRowGroup {
+  border-left: 3px solid #8f6b12;
+  background: #ffffff;
+}
+.mobileArrangeBody {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.mobileArrangeSupersetTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 950;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #8f6b12;
+}
+.mobileArrangeName {
+  color: #111;
+  font-size: 15px;
+  font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mobileArrangeHandle {
+  display: grid;
+  place-items: center;
+  color: #b8ad92;
+  padding: 4px;
+  flex-shrink: 0;
+}
+/* Obvious "grabbed" state: lifts, scales up, gold ring. */
+.mobileArrangeRowDragging {
+  transform: scale(1.03);
+  border-color: #8f6b12;
+  background: #ffffff;
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.26);
+}
+.mobileArrangeRowDragging .mobileArrangeHandle {
+  color: #8f6b12;
+}
+.mobileArrangeRowOver {
+  border-color: #8f6b12;
+  border-style: dashed;
+  background: rgba(212, 175, 55, 0.12);
+}
+/* ==== Circuit blocks (builder + player) ==== */
+/* Rounds stepper on the first member of a circuit group in the builder. */
+.circuitRoundsControl {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px 3px 10px;
+  border: 1px solid rgba(116, 82, 158, 0.42);
+  border-radius: 999px;
+  background: #eee6f8;
+  color: #452971;
+  font-size: 12px;
+  font-weight: 700;
+}
+.circuitRoundsControl input {
+  width: 44px;
+  border: 1px solid rgba(116, 82, 158, 0.35);
+  border-radius: 8px;
+  padding: 2px 4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #452971;
+  background: #fff;
+  text-align: center;
+}
+/* Two link choices stacked on the mobile builder. */
+.mobileGroupLinkRow {
+  display: flex;
+  gap: 8px;
+}
+.mobileGroupLinkRow .mobileSupersetLinkButton {
+  flex: 1;
+}
+/* Circuit mode picker + timed-WOD player */
+.circuitControlsRow { display: inline-flex; gap: 6px; align-items: center; }
+.circuitRoundsControl select {
+  border: 1px solid rgba(116, 82, 158, 0.35);
+  border-radius: 8px;
+  padding: 2px 4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #452971;
+  background: #fff;
+}
+/* Builder: bulk edit, equipment filter, insert-saved-session, duration hint */
+.bulkEditBar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 10px 0;
+  padding: 10px 12px;
+  border: 1px dashed rgba(212, 175, 55, 0.45);
+  border-radius: 12px;
+  background: rgba(212, 175, 55, 0.06);
+}
+.bulkEditInput { width: 76px; }
+.bulkEditRest { width: 130px; }
+.bulkEditCheck { width: 20px; height: 20px; accent-color: #d4af37; cursor: pointer; }
+.builderEquipSelect {
+  border: 1px solid rgba(13, 13, 13, 0.15);
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-size: 13px;
+  background: #fff;
+}
+.builderInsertSavedRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 12px 0 4px;
+  font-size: 13px;
+  font-weight: 700;
+}
+.builderInsertSavedRow select { max-width: 260px; }
+.builderInsertSavedRow em { color: #8a8471; font-weight: 400; }
+.durationEstimateBtn {
+  margin-top: 5px;
+  border: 1px dashed rgba(13, 13, 13, 0.25);
+  border-radius: 999px;
+  background: transparent;
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #6b6455;
+  cursor: pointer;
+  width: fit-content;
+}
+.builderSessionHint { font-size: 12.5px; color: #8a8471; }
+/* Collapsible panel toggles read as subtle controls, not buttons. */
+.builderPanelToggle {
+  background: transparent !important;
+  border: 1px solid rgba(13, 13, 13, 0.15);
+  color: #6b6455 !important;
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 700;
+}
+/* Duration estimate chip sits beside the input, not dangling below. */
+.durationInputRow { display: flex; align-items: center; gap: 6px; }
+.durationInputRow input { flex: 1; min-width: 0; }
+.durationInputRow .durationEstimateBtn { margin-top: 0; white-space: nowrap; }
+/* Bulk edit: plain inline button until activated, band only when active. */
+.bulkEditBar { border: none; background: transparent; padding: 0; margin: 10px 0 2px; }
+/* Danger button: legible outline-danger instead of washed-out pink. */
+.dangerButton {
+  background: #fff;
+  color: #a02533;
+  border: 1px solid rgba(160, 37, 51, 0.55);
+}
+.dangerButton:hover:not(:disabled) { background: #fbeeee; }
+.dangerButton:disabled { opacity: 0.45; }

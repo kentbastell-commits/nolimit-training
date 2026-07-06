@@ -1,6 +1,7 @@
 // Extracted from App.tsx (monolith split) — body verbatim (was an IIFE).
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { ProductOrder } from "./appCore";
+import "./CoachRevenuePage.css";
 import { Suspense } from "react";
 import { dateToInputValue } from "./appCore";
 

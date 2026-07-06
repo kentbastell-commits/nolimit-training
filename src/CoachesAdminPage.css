@@ -1,0 +1,14 @@
+/* Co-located styles for CoachesAdminPage — split out of App.css so they load with the CoachesAdminPage chunk, not the main bundle. */
+.coachManagementPage {
+  display: grid;
+  gap: 22px;
+}
+.coachTableCard {
+  overflow-x: auto;
+}
+.coachRowActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}

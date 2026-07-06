@@ -1,6 +1,7 @@
 // Extracted from App.tsx (monolith split) — JSX verbatim; props threaded.
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import PortalHome from "./PortalHome";
+import "./ClientWorkspace.css";
 import PortalTraining from "./PortalTraining";
 import PortalPrograms from "./PortalPrograms";
 import ClientOverview from "./ClientOverview";

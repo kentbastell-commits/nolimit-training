@@ -1,6 +1,7 @@
 // Extracted from App.tsx (monolith split) — JSX verbatim; props threaded.
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { ProgramExercise } from "./appCore";
+import "./CoachBuilderPage.css";
 import { isCardioCategory } from "./appCore";
 import { Fragment } from "react";
 import { ChevronDown, ChevronLeft, ChevronsLeftRight, Copy, Dumbbell, Eye, GripVertical, Link2, MoreVertical, Pencil, Plus, RefreshCw, Settings, Shuffle, Trash2, X } from "lucide-react";

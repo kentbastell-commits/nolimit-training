@@ -1,0 +1,12 @@
+/* Co-located styles for ClientInvitePage — split out of App.css so they load with the ClientInvitePage chunk, not the main bundle. */
+.inviteSectionTitle {
+  grid-column: 1 / -1;
+  margin: 26px 0 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(14, 14, 13, 0.12);
+  color: #8b1e2d;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}

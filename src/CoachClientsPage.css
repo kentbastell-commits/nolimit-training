@@ -1,0 +1,127 @@
+/* Co-located styles for CoachClientsPage — split out of App.css so they load with the CoachClientsPage chunk, not the main bundle. */
+.clientTableCard {
+  border-radius: 8px;
+  overflow-x: auto;
+}
+.engagementCell {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+.engagementCell .engPct {
+  font-size: 15px;
+  font-weight: 950;
+}
+.engagementCell small {
+  color: #6d6b64;
+  font-size: 11px;
+  font-weight: 700;
+}
+.engGood {
+  color: #1f7a43;
+}
+.engOk {
+  color: #9a7b1f;
+}
+.engLow {
+  color: #8b1e2d;
+}
+.engNeutral {
+  color: #6d6b64;
+}
+.rosterGroupRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 18px;
+  background: #ece8df;
+  border-bottom: 1px solid #dcd8cd;
+  font-weight: 950;
+  color: #2f2f2b;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 12px;
+}
+.rosterGroupRow small {
+  display: inline-grid;
+  place-items: center;
+  min-width: 22px;
+  height: 20px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: rgba(20, 18, 14, 0.1);
+  color: #54524b;
+  font-size: 11px;
+}
+.rosterTriageBar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 12px;
+}
+.rosterTriageLabel {
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #8b1e2d;
+  margin-right: 2px;
+}
+.rosterTriageChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 12px;
+  border: 1px solid #dcd8cd;
+  border-radius: 999px;
+  background: #fff;
+  color: #2f2f2b;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.rosterTriageChip:hover {
+  border-color: #b9b2a3;
+}
+.rosterTriageChip em {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 19px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: rgba(20, 18, 14, 0.08);
+  color: #54524b;
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 950;
+}
+.rosterTriageClear {
+  color: #54524b;
+  font-weight: 800;
+}
+/* ===================== Clients table action icons + chips ===================== */
+.clientRowActions { display: inline-flex; align-items: center; gap: 6px; }
+.rosterChips { display: flex; flex-wrap: wrap; gap: 4px; }
+.teamChip,
+.tagChip {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 2px 9px;
+  font-size: 11.5px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.teamChip {
+  background: color-mix(in srgb, #5b6770 16%, #fff);
+  color: #44525c;
+  border: 1px solid color-mix(in srgb, #5b6770 30%, #fff);
+}
+.tagChip {
+  background: color-mix(in srgb, #3a86ff 14%, #fff);
+  color: #1f5fd6;
+  border: 1px solid color-mix(in srgb, #3a86ff 30%, #fff);
+}
+.lastLoginCell { font-weight: 700; color: #565249; }

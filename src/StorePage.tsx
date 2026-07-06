@@ -3,6 +3,7 @@
 // mechanical move; tighten when the store gets its own state).
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { ArrowRight, Check, Eye, Lock, Plus, Shield } from "lucide-react";
+import "./StorePage.css";
 import type { Client, Coach, Program, ProgramReview, Toast } from "./appCore";
 
 export default function StorePage({

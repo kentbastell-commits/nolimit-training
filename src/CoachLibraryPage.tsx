@@ -1,6 +1,7 @@
 // Extracted from App.tsx (monolith split) — JSX verbatim; props threaded.
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Fragment } from "react";
+import "./CoachLibraryPage.css";
 import { ClipboardList, Play, Trash2 } from "lucide-react";
 import { categorySlug, videoThumbnail } from "./appCore";
 

@@ -1,4 +1,5 @@
 // Extracted from App.tsx (monolith split) — JSX verbatim, props threaded.
+import "./InPersonEnquiryPage.css";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 export default function InPersonEnquiryPage({

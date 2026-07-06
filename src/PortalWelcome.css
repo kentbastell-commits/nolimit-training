@@ -1,0 +1,107 @@
+/* Co-located styles for PortalWelcome — split out of App.css so they load with the PortalWelcome chunk, not the main bundle. */
+/* Portal Welcome Screen */
+.portalWelcomeShell {
+  min-height: 100vh;
+  background: #080808;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.portalWelcome {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  max-width: 420px;
+  width: 100%;
+  padding: 40px 24px;
+  text-align: center;
+}
+.portalWelcomeBrand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.portalWelcomeCheck {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: rgba(212, 175, 55, 0.15);
+  border: 2px solid #d4af37;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  color: #d4af37;
+}
+.portalWelcome h1 {
+  font-size: 26px;
+  margin: 0;
+}
+.portalWelcomeProgramName {
+  font-size: 14px;
+  color: #d4af37;
+  font-weight: 600;
+  margin: 0;
+}
+.portalWelcomeSubtitle {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.6);
+  line-height: 1.6;
+  margin: 0;
+}
+.portalWelcomeSpinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid rgba(212, 175, 55, 0.2);
+  border-top-color: #d4af37;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+.portalWelcomeSteps {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+}
+.portalWelcomeStep {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+.portalWelcomeStep span {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(212, 175, 55, 0.15);
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: #d4af37;
+  flex-shrink: 0;
+}
+.portalWelcomeStep p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.4;
+}
+.portalWelcomeActions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+.portalWelcomeActions a,
+.portalWelcomeActions button {
+  width: 100%;
+  text-align: center;
+  text-decoration: none;
+}

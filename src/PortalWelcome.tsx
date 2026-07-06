@@ -1,4 +1,5 @@
 // Post-intake welcome / program-loading overlay. Extracted from App.tsx.
+import "./PortalWelcome.css";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 export default function PortalWelcome({

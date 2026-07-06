@@ -1,6 +1,7 @@
 // Extracted from App.tsx (monolith split) — JSX verbatim; props threaded.
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Check, Trash2 } from "lucide-react";
+import "./CoachOrdersPage.css";
 import { addDays } from "./appCore";
 
 export default function CoachOrdersPage({

@@ -1,0 +1,224 @@
+/* Co-located styles for CoachTeamsPage — split out of App.css so they load with the CoachTeamsPage chunk, not the main bundle. */
+/* ===================== Teams page ===================== */
+.teamsPage { width: 100%; }
+.teamsHeader {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.teamsHeader h2 { margin: 2px 0 0; font-size: 1.9rem; color: #10100f; }
+.teamDetail {
+  background: #fff;
+  border: 1px solid #dcd8cd;
+  border-radius: 14px;
+  padding: 18px 20px;
+  min-height: 320px;
+}
+.teamDetailHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+.teamDetailHeader h3 { margin: 2px 0 0; font-size: 1.5rem; color: #10100f; }
+.teamNotes { margin: 6px 0 0; color: #66645e; font-weight: 600; }
+.teamDetailActions { display: flex; align-items: center; gap: 8px; }
+.teamSection { margin-top: 18px; }
+.teamMembersGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 10px;
+}
+.teamMemberRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid #e4e0d6;
+  border-radius: 10px;
+  padding: 8px 10px;
+  cursor: pointer;
+  background: #fff;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.teamMemberRow:hover { border-color: #c3bca8; background: #faf9f5; }
+.teamMemberCheck { width: 18px; height: 18px; flex: 0 0 auto; cursor: pointer; }
+.teamMemberName {
+  flex: 1;
+  min-width: 0;
+  color: #10100f;
+  font-size: 0.95rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.teamMembersCaption {
+  margin: 0 0 12px;
+  color: #66645e;
+  font-weight: 600;
+  font-size: 0.82rem;
+}
+.teamAssignHint { margin: 10px 0 0; color: #66645e; font-weight: 600; font-size: 0.85rem; }
+/* Team editor */
+.teamEditor h3 { margin: 0 0 14px; font-size: 1.4rem; color: #10100f; }
+.teamField { display: block; margin-bottom: 12px; }
+.teamField span {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #66645e;
+}
+.teamField input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #dcd8cd;
+  border-radius: 10px;
+  background: #fff;
+  color: #1a1a1a;
+  font-size: 15px;
+  padding: 11px 12px;
+}
+.teamEditorActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+}
+.teamsIntro { margin: 0; color: #66645e; font-weight: 600; max-width: 46rem; }
+.teamPositionInput {
+  align-self: stretch;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  border: 1px solid #dcd8cd;
+  border-radius: 8px;
+  background: #fff;
+  color: #1a1a1a;
+  font-size: 13px;
+  padding: 6px 9px;
+}
+.teamSubgroupRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.teamSubgroupLabel {
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #66645e;
+}
+.teamSubgroupRow select {
+  border: 1px solid #dcd8cd;
+  border-radius: 10px;
+  background: #fff;
+  color: #1a1a1a;
+  font-weight: 700;
+  font-size: 14px;
+  padding: 0 12px;
+  min-height: 40px;
+  min-width: 200px;
+}
+.teamSubgroupCount { color: #66645e; font-weight: 700; font-size: 0.85rem; }
+/* ===================== Teams table ===================== */
+.teamsTableCard { border-radius: 8px; overflow-x: auto; margin-top: 14px; }
+.teamsTableHeader,
+.teamsTableRow {
+  display: grid;
+  grid-template-columns: 30px minmax(220px, 1.6fr) 140px 100px minmax(150px, 1fr) 120px 110px;
+  align-items: center;
+  gap: 12px;
+  min-width: 1000px;
+}
+.teamsTableHeader { padding: 14px 16px; }
+.teamsTableRow { padding: 13px 16px; }
+/* Quick "assign program to whole squad" modal */
+.teamQuickAssignModal {
+  width: min(440px, 92vw);
+  border: 1px solid var(--public-border, #dcd8cd);
+  border-radius: 18px;
+  background: #fffefa;
+  padding: 22px 24px 20px;
+  box-shadow: 0 30px 70px rgba(14, 14, 13, 0.32);
+}
+.teamQuickAssignSub {
+  margin: 4px 0 16px;
+  color: #54524b;
+  font-size: 14px;
+  font-weight: 700;
+}
+.teamQuickAssignFields {
+  display: grid;
+  gap: 12px;
+}
+.teamQuickAssignFields label {
+  display: grid;
+  gap: 5px;
+}
+.teamQuickAssignFields label span {
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #6d6b64;
+}
+.teamQuickAssignFields select,
+.teamQuickAssignFields input {
+  min-height: 42px;
+  padding: 9px 12px;
+}
+.teamQuickAssignActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 18px;
+}
+.teamAvatarSquare { border-radius: 12px !important; background: #0d0d0d; color: #f0d987; }
+.teamRowActions { display: inline-flex; align-items: center; gap: 6px; }
+.teamRowMenuWrap { position: relative; }
+/* Team detail: subgroup blocks + compact athlete rows */
+.teamSubgroupBlock { margin-bottom: 12px; }
+.teamSubgroupHeading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0 8px;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #66645e;
+}
+.teamSubgroupHeading span {
+  background: #f2f0ea;
+  border: 1px solid #e4e0d6;
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-size: 11px;
+  color: #66645e;
+}
+.teamDetail .teamMembersGrid {
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 8px;
+}
+.teamMemberRow { padding: 6px 9px; gap: 8px; }
+.teamMemberRow .teamMemberName { white-space: normal; font-size: 0.9rem; }
+/* Team groups manager + colored group/position labels */
+.teamGroupsManager { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+.teamSubgroupName {
+  display: inline-block;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 2px 10px;
+  font-size: 0.74rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}

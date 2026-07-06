@@ -2,6 +2,7 @@
 // Extracted from App.tsx (split phase I) — JSX verbatim; props threaded.
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Fragment } from "react";
+import "./CoachClientsPage.css";
 import { CalendarDays, Link2, UserCircle } from "lucide-react";
 import type { ClientBucket } from "./appCore";
 
