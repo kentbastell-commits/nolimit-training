@@ -1,6 +1,7 @@
 // Extracted from App.tsx (monolith split) — JSX verbatim; props threaded.
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { X } from "lucide-react";
+import "./CreateProgramModal.css";
 
 export default function CreateProgramModal({
   createDraft,

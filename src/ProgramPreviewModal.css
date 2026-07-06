@@ -1,0 +1,35 @@
+/* Co-located styles for ProgramPreviewModal — load with the ProgramPreviewModal chunk, not the main bundle. */
+/* ---- Program preview window ---- */
+.previewModal {
+  width: 100%;
+  max-width: 560px;
+  max-height: 86vh;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  color: #1c1c19;
+  border: 1px solid #e2ddd1;
+  border-radius: 14px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+}
+.previewBody {
+  overflow-y: auto;
+  padding: 6px 20px 16px;
+}
+.previewWeek {
+  margin-top: 14px;
+}
+.previewWeekLabel {
+  font-size: 13px;
+  font-weight: 950;
+  color: #111;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+.previewDays {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}

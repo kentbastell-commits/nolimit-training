@@ -1,0 +1,40 @@
+/* Co-located styles for AssignmentDrawer — load with the AssignmentDrawer chunk, not the main bundle. */
+.assignmentDrawerTypes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.assignmentDrawerTypes button {
+  border: 1px solid #d4cdbc;
+  border-radius: 10px;
+  background: #fff;
+  color: #111;
+  padding: 13px 10px;
+  font-size: 14px;
+  font-weight: 950;
+  cursor: pointer;
+}
+.assignmentDrawerWide {
+  grid-column: 1 / -1;
+}
+.assignmentDrawerSessions {
+  display: grid;
+  gap: 10px;
+  border: 1px solid #dcd8cd;
+  border-radius: 12px;
+  background: #fff;
+  margin-top: 18px;
+  padding: 14px;
+}
+.assignmentDrawerSessions > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.assignmentDrawerSessions > div strong {
+  color: #111;
+  font-size: 14px;
+  font-weight: 950;
+}

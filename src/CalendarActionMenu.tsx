@@ -1,6 +1,7 @@
 // Extracted from App.tsx (monolith split) — JSX verbatim; props threaded.
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Copy, Scissors, Trash2, X } from "lucide-react";
+import "./CalendarActionMenu.css";
 import { formatCalendarLabel } from "./appCore";
 
 export default function CalendarActionMenu({

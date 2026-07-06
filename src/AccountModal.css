@@ -1,0 +1,86 @@
+/* Co-located styles for AccountModal — load with the AccountModal chunk, not the main bundle. */
+/* ===================== Athlete Account modal ===================== */
+.accountModal { max-width: 560px; width: min(560px, 94vw); }
+.accountModalHeader { align-items: center; }
+.accountModalIdentity { display: flex; align-items: center; gap: 14px; }
+.accountModalIdentity h2 { margin: 0; }
+.accountModalIdentity p { margin: 2px 0 0; color: #66645e; }
+.accountModalBody {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  max-height: 68vh;
+  overflow-y: auto;
+  padding: 4px 2px;
+}
+.accountSection { display: flex; flex-direction: column; gap: 8px; }
+.accountTeamList { display: flex; flex-direction: column; gap: 4px; }
+.accountTeamRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid #e4e0d6;
+  border-radius: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.accountTeamRow input[type="checkbox"] { width: 17px; height: 17px; }
+.accountSaveBtn { align-self: flex-start; margin-top: 4px; }
+/* Account modal additions */
+.accountHeaderActions { display: flex; align-items: center; gap: 10px; }
+.accountTeamRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: space-between;
+}
+.accountTeamToggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  flex: 1;
+  min-width: 0;
+}
+.accountTeamPosition {
+  flex: 0 0 auto;
+  width: 160px;
+  border: 1px solid #dcd8cd;
+  border-radius: 8px;
+  padding: 6px 9px;
+  font-size: 13px;
+}
+/* Account modal subscription editor */
+.subStatusInline { font-style: normal; color: #66645e; font-weight: 800; }
+.subGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.subGrid label { display: flex; flex-direction: column; gap: 4px; }
+.subGrid label > span {
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #66645e;
+}
+.subGrid input,
+.subGrid select {
+  border: 1px solid #dcd8cd;
+  border-radius: 9px;
+  padding: 8px 10px;
+  font-size: 14px;
+  background: #fff;
+  color: #1a1a1a;
+}
+.subAutoRenew {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 8px !important;
+}
+.subAutoRenew input { width: 17px; height: 17px; }
+.subActions { display: flex; gap: 10px; align-items: center; }
+.subRemoveBtn { color: #8b1e2d !important; border-color: rgba(139,30,45,0.35) !important; }

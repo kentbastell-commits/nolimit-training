@@ -1,6 +1,7 @@
 // Extracted from App.tsx (monolith split) — JSX verbatim; props threaded.
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { stripLocalizedExerciseMeta } from "./appCore";
+import "./WorkoutPlayerModal.css";
 import { Check, ChevronLeft, ChevronRight, ClipboardList, Clock3, Film, MoreVertical, Play, RefreshCw, Shuffle, Timer, Trash2, X } from "lucide-react";
 import { getDisplayTaskStatus, makeExerciseLabel, parseExerciseNotes, videoThumbnail } from "./appCore";
 

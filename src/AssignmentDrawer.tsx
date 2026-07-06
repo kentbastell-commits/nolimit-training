@@ -1,6 +1,7 @@
 // Extracted from App.tsx (monolith split) — JSX verbatim; props threaded.
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { formatCalendarLabel, normalizeDate } from "./appCore";
+import "./AssignmentDrawer.css";
 
 export default function AssignmentDrawer({
   assignLoading,

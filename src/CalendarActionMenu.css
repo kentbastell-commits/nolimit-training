@@ -1,0 +1,44 @@
+/* Co-located styles for CalendarActionMenu — load with the CalendarActionMenu chunk, not the main bundle. */
+.calendarContextMenu {
+  position: fixed;
+  z-index: 3000;
+  width: min(190px, calc(100vw - 24px));
+  padding: 8px;
+  border: 1px solid rgba(22, 22, 22, 0.16);
+  border-radius: 14px;
+  background: rgba(255, 253, 248, 0.98);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.16);
+  color: #151515;
+}
+.calendarContextMenu strong {
+  display: block;
+  padding: 8px 10px 10px;
+  border-bottom: 1px solid rgba(22, 22, 22, 0.08);
+  font-size: 13px;
+  line-height: 1.25;
+  font-weight: 900;
+}
+.calendarContextMenu button {
+  width: 100%;
+  margin-top: 4px;
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #151515;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 850;
+  text-align: left;
+  transition: background 140ms ease, transform 140ms ease;
+}
+.calendarContextMenu button:hover {
+  background: rgba(22, 22, 22, 0.08);
+  transform: translateY(-1px);
+}
+.calendarContextMenu .dangerContextAction {
+  color: #8b1e2d;
+}

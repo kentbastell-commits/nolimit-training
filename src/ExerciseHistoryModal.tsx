@@ -1,6 +1,7 @@
 // Extracted from App.tsx (monolith split) — JSX verbatim; props threaded.
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { ChevronDown } from "lucide-react";
+import "./ExerciseHistoryModal.css";
 
 export default function ExerciseHistoryModal({
   t,

@@ -1,6 +1,7 @@
 // Extracted from App.tsx (monolith split) — JSX verbatim; props threaded.
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Copy, Pencil, X } from "lucide-react";
+import "./ProgramPreviewModal.css";
 import { getWorkoutColorClass } from "./appCore";
 
 export default function ProgramPreviewModal({

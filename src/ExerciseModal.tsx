@@ -1,6 +1,7 @@
 // Extracted from App.tsx (monolith split) — JSX verbatim; props threaded.
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { TrackingType } from "./appCore";
+import "./ExerciseModal.css";
 import { X } from "lucide-react";
 
 export default function ExerciseModal({

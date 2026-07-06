@@ -1,0 +1,63 @@
+/* Co-located styles for ContentAssignmentModal — load with the ContentAssignmentModal chunk, not the main bundle. */
+.contentAssignmentModal {
+  max-width: 680px;
+}
+.contentAssignmentFields {
+  display: grid;
+  gap: 16px;
+  margin-top: 22px;
+}
+.contentAssignmentFields label {
+  display: grid;
+  gap: 8px;
+}
+.contentAssignmentFields label > span {
+  color: #111;
+  font-size: 16px;
+  font-weight: 900;
+}
+.contentAssignmentFields small {
+  color: #666;
+  font-weight: 700;
+}
+.contentAssignmentFields input,
+.contentAssignmentFields select,
+.contentAssignmentFields textarea {
+  width: 100%;
+  border: 1px solid #cfc7b8;
+  border-radius: 8px;
+  background: #fff;
+  color: #111;
+  padding: 13px 14px;
+  font: inherit;
+  font-weight: 800;
+}
+.contentAssignmentFields textarea {
+  min-height: 110px;
+  resize: vertical;
+}
+.submissionCommentField {
+  border: 1px solid #dcd8cd;
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 14px;
+}
+.testResultHeader {
+  display: grid;
+  gap: 4px;
+}
+.testResultHeader span {
+  color: #111;
+  font-size: 18px;
+  font-weight: 900;
+}
+.testResultHeader small {
+  color: #6f6a61;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+.testResultNotesField span {
+  color: #6f6a61;
+  font-size: 13px;
+}

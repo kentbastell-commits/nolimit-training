@@ -1,6 +1,7 @@
 // Extracted from App.tsx (monolith split) — JSX verbatim; props threaded.
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { CalendarDays } from "lucide-react";
+import "./AccountModal.css";
 import { labelColor } from "./appCore";
 
 export default function AccountModal({

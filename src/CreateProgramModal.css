@@ -1,0 +1,18 @@
+/* Co-located styles for CreateProgramModal — load with the CreateProgramModal chunk, not the main bundle. */
+.createProgramField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.createProgramField > span {
+  font-size: 12px;
+  font-weight: 850;
+  color: #4b4b45;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+.createProgramRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
