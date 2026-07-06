@@ -219,6 +219,20 @@ function App() {
     !isClientInvite &&
     !isInPersonEnquiry &&
     !isCoachView;
+  // Coach/portal-only styles live in a separate chunk (appInterior.css) so the
+  // public bundle stays lean. Load it on demand when a coach or client is in.
+  const needsInteriorCss = isCoachView || isClientPortal;
+  const [interiorCssReady, setInteriorCssReady] = useState(!needsInteriorCss);
+  useEffect(() => {
+    if (!needsInteriorCss) return;
+    let alive = true;
+    void import("./appInterior.css").then(() => {
+      if (alive) setInteriorCssReady(true);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [needsInteriorCss]);
   const clientPortalCode = (
     inviteSearchParams.get("client") ||
     inviteSearchParams.get("clientCode") ||
@@ -16713,6 +16727,12 @@ function App() {
         toasts={toasts}
       />
     );
+  }
+
+  // Hold authed views behind a brief spinner until their stylesheet loads, so
+  // the coach/portal UI never flashes unstyled on first paint.
+  if (needsInteriorCss && !interiorCssReady) {
+    return <div className="lazyFallback" aria-busy="true" aria-live="polite" />;
   }
 
   if (isClientPortal && portalPostIntake && selectedClient) {
