@@ -148,6 +148,15 @@ When a screenshot arrives: it's a bug report. Locate the component, fix root cau
 sweep for the same class of bug nearby (one screenshot usually means a category,
 not one string), verify, ship.
 
+## After every non-trivial solved problem
+
+Run the `/extract-approach` skill before reporting the problem as done — a
+solution without its learnings note is unfinished work. It routes the insight to
+exactly one home (a named mistake here, a skill edit, a memory file) and ends
+the report with "Learnings filed: ...". Trivial mechanical fixes are exempt;
+anything involving a wrong assumption, an external-system surprise, or an
+invented procedure is not.
+
 ## Environment
 
 - Windows 11; Bash tool = Git Bash. The shell cwd resets between commands — always
@@ -156,5 +165,5 @@ not one string), verify, ship.
 - Server: `ssh nolimit` (43.132.228.109). Node/npm on server via lighthouse paths.
 - Local `.env` in each repo has Feishu creds for its own base only. `AI_API_KEY`
   exists only on the kangfu server.
-- Skills: `/deploy`, `/bilingual-sweep`, `/seed-feishu` in `.claude/skills/` cover
-  the recurring workflows — prefer them over improvising.
+- Skills: `/deploy`, `/bilingual-sweep`, `/seed-feishu`, `/extract-approach` in
+  `.claude/skills/` cover the recurring workflows — prefer them over improvising.
