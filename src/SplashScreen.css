@@ -1,0 +1,60 @@
+.nlSplash {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 34px;
+  padding: 48px 32px calc(48px + env(safe-area-inset-bottom));
+  background:
+    radial-gradient(120% 78% at 50% 42%, #1c1a15 0%, var(--brand-ink, #121210) 62%);
+}
+/* The wordmark asset is gold on a solid-black plate; `screen` drops the black
+   into the dark splash background so only the gold letters show. */
+.nlSplash__logo { width: min(62vw, 240px); height: auto; mix-blend-mode: screen; }
+.nlSplash__bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 11px;
+  height: 150px;
+}
+.nlSplash__bar {
+  width: 18px;
+  border-radius: 5px;
+  /* gold charge — bright top → deep brand gold */
+  background: linear-gradient(var(--brand-gold-soft, #d8bd62), var(--brand-gold, #9f7a1b));
+  transition: height 0.12s linear;
+}
+.nlSplash__pct {
+  font-family: var(--brand-display, "Bebas Neue", Impact, sans-serif);
+  font-size: 58px;
+  line-height: 0.9;
+  letter-spacing: 1px;
+  color: var(--brand-cream, #f5f1e8);
+}
+.nlSplash__pct span {
+  font-size: 26px;
+  color: var(--nl-gold-soft, #d4af37);
+  margin-left: 2px;
+}
+.nlSplash__track {
+  width: min(78vw, 320px);
+  height: 6px;
+  background: rgba(216, 189, 98, 0.16);
+  border-radius: 99px;
+  overflow: hidden;
+}
+.nlSplash__fill {
+  display: block;
+  height: 100%;
+  background: var(--nl-gold-soft, #d4af37);
+  border-radius: 99px;
+  transition: width 0.2s linear;
+}
+.nlSplash__label {
+  font-size: 11px;
+  letter-spacing: 6px;
+  color: rgba(216, 189, 98, 0.55);
+}
