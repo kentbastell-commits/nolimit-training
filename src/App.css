@@ -5949,6 +5949,12 @@ body {
     font-size: 28px;
   }
 
+  /* Portal greeting is scoped tighter than the coach view (higher specificity
+     wins over the rule above), so shrink it explicitly on phones. */
+  .clientPortalApp .clientTop h1 {
+    font-size: 23px;
+  }
+
   .clientTop,
   .clientProfileActions {
     align-items: flex-start;
@@ -6755,14 +6761,14 @@ body {
 
 .clientPortalApp .clientTop {
   align-items: center;
-  gap: 16px;
-  padding-bottom: 12px;
+  gap: 10px;
+  padding-bottom: 8px;
   border-bottom: 1px solid #deded8;
 }
 
 .clientPortalApp .clientTop h1 {
   color: #111;
-  font-size: 34px;
+  font-size: 26px;
   font-weight: 900;
   letter-spacing: 0;
 }
@@ -6803,7 +6809,7 @@ body {
   background: #fff;
   color: #111;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
-  padding: 16px 18px;
+  padding: 14px 16px;
 }
 
 .clientPortalApp .clientPortalTrainingHero span {
@@ -6814,7 +6820,7 @@ body {
 
 .clientPortalApp .clientPortalTrainingHero h2 {
   color: #111;
-  font-size: 28px;
+  font-size: 22px;
   font-weight: 900;
 }
 
@@ -7087,8 +7093,8 @@ body {
 .clientHomeGrid {
   display: grid;
   grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
-  gap: 16px;
-  margin-top: 18px;
+  gap: 11px;
+  margin-top: 12px;
 }
 
 /* Full-width header rows — without this the pill-shaped tab bar (and the

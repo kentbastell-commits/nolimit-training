@@ -848,20 +848,20 @@
 .portalHomeTabs {
   display: flex;
   gap: 4px;
-  padding: 4px;
-  margin-bottom: 14px;
+  padding: 3px;
+  margin-bottom: 8px;
   border-radius: 999px;
   background: rgba(13, 13, 13, 0.06);
   border: 1px solid rgba(13, 13, 13, 0.08);
 }
 .portalHomeTab {
   flex: 1 1 0;
-  padding: 10px 8px;
+  padding: 7px 8px;
   border: none;
   border-radius: 999px;
   background: transparent;
   color: var(--nl-muted, #68645d);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.01em;
   cursor: pointer;
@@ -1217,15 +1217,15 @@
 }
 /* Daily wellness check-in (coached clients) */
 .wellnessCard {
-  padding: 16px;
-  border-radius: 16px;
+  padding: 13px 14px;
+  border-radius: 12px;
   background: #0d0d0d;
   color: #fff;
-  margin-bottom: 14px;
+  margin-bottom: 8px;
 }
 .wellnessPrompt strong {
   display: block;
-  font-size: 17px;
+  font-size: 15px;
   font-weight: 800;
 }
 .wellnessPrompt span {
@@ -1235,13 +1235,13 @@
   color: rgba(255, 255, 255, 0.65);
 }
 .wellnessCta {
-  margin-top: 12px;
-  padding: 11px 18px;
+  margin-top: 10px;
+  padding: 9px 16px;
   border-radius: 999px;
   border: none;
   background: #d4af37;
   color: #0d0d0d;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 800;
   cursor: pointer;
 }
@@ -2521,7 +2521,7 @@
   border-radius: 8px;
   background: #fff;
   color: #111;
-  padding: 18px;
+  padding: 13px 14px;
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.06);
 }
 .clientHomePanelHeader {
@@ -2529,7 +2529,7 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 14px;
+  margin-bottom: 9px;
 }
 .clientHomePanelHeader span,
 .homeFocusGrid span {
@@ -2543,8 +2543,8 @@
 .clientHomePanelHeader h2 {
   margin: 4px 0 0;
   color: #111;
-  font-size: 24px;
-  line-height: 1.05;
+  font-size: 18px;
+  line-height: 1.1;
   font-weight: 900;
 }
 .clientProgramCard {
@@ -2552,13 +2552,13 @@
   border-radius: 8px;
   background: #111;
   color: #e8e6df;
-  padding: 16px;
+  padding: 14px;
 }
 .clientProgramCard h3 {
   margin: 4px 0 8px;
   color: #f7e18a;
-  font-size: 24px;
-  line-height: 1.05;
+  font-size: 19px;
+  line-height: 1.1;
 }
 .clientProgramCard p {
   margin: 0;
@@ -4329,11 +4329,11 @@
 }
 .coachLockCard span { color: #f2a3a3; font-size: 13px; font-weight: 700; }
 /* Athlete coach-inbox */
-.coachInboxList { display: flex; flex-direction: column; gap: 10px; }
+.coachInboxList { display: flex; flex-direction: column; gap: 8px; }
 .coachInboxItem {
   border: 1px solid #e3e1d7;
-  border-radius: 12px;
-  padding: 12px 14px;
+  border-radius: 10px;
+  padding: 10px 12px;
   background: #fff;
 }
 .coachInboxItem.unread { border-color: rgba(111, 207, 127, 0.65); background: rgba(111, 207, 127, 0.1); }
