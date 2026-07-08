@@ -92,6 +92,11 @@ data between them, never "borrow" a table ID across products.
 14. **The blocking AI call** — making a save await a translation/draft with no
     guard. Rule: AI calls get a timeout + try/catch and the save proceeds without
     the AI result on any failure.
+15. **The phantom suite failure** — every vitest file fails at once with nonsense
+    errors ("failed to find the current suite", `undefined (reading 'config')`)
+    while a single file passes: that's worker memory exhaustion, not broken tests.
+    Rule: keep `maxWorkers` capped in vitest.config.ts (currently 4); if the whole
+    suite dies weirdly, re-run one file before touching any test code.
 
 ## Quality bar — checkable, per deliverable
 
