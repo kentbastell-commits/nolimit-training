@@ -2,10 +2,13 @@
 // JSX verbatim; state/handlers arrive via props (typed loosely for the
 // mechanical move; tighten when the store gets its own state).
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { useEffect, useState } from "react";
 import {
   Activity,
   ArrowRight,
   Check,
+  ChevronLeft,
+  ChevronRight,
   Dumbbell,
   Eye,
   Home,
@@ -15,9 +18,10 @@ import {
   Shield,
   Snowflake,
   Timer,
+  X,
   Zap,
 } from "lucide-react";
-import { motion, useReducedMotion, type Variants } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion, type Variants } from "framer-motion";
 import "@fontsource/inter/400.css";
 import "@fontsource/inter/500.css";
 import "@fontsource/inter/600.css";
@@ -62,7 +66,6 @@ export default function StorePage({
   clients,
   coaches,
   programs,
-  programsLoading,
   toasts,
   storeReviews,
   storeLang,
@@ -72,10 +75,6 @@ export default function StorePage({
   requestStoreStep,
   storeCategoryFilter,
   setStoreCategoryFilter,
-  storeSeasonFilter,
-  setStoreSeasonFilter,
-  storeProgramSearch,
-  setStoreProgramSearch,
   storeFaqOpen,
   setStoreFaqOpen,
   storeSelectedProgram,
@@ -130,7 +129,6 @@ export default function StorePage({
 }) {
   const sZh = storeLang === "zh";
   const storePrograms = programs.filter((p) => p.publicStoreVisible);
-  const searchText = storeProgramSearch.trim().toLowerCase();
 
   // The coach to feature in "Meet your coach": prefer a Head/Admin coach,
   // else the first active one. Bio is editable in the coach record; until
@@ -287,25 +285,84 @@ export default function StorePage({
     ...Array.from(catMap.values()),
   ];
 
-  const filteredStorePrograms = storePrograms.filter((program) => {
-    if (isAddonProgram(program)) return false;
-    const matchesCategory =
-      storeCategoryFilter === "all" || getProgramCategory(program) === storeCategoryFilter;
-    const matchesSeason =
-      storeSeasonFilter === "all" || getProgramSeason(program) === storeSeasonFilter;
-    const matchesSearch =
-      !searchText || programSearchBlob(program).includes(searchText);
-    return matchesCategory && matchesSeason && matchesSearch;
-  });
-
-  const selectedCategoryLabel =
-    storeCategories.find((category) => category.id === storeCategoryFilter)?.title ||
-    (sZh ? "全部" : "All");
-
   const reduce = useReducedMotion();
   // Scroll-reveal props for a section; a no-op when reduced motion is on so the
   // section (and its children) render static and fully visible.
   const sectionReveal = reduce ? {} : revealProps;
+
+  // ---- Catalog → sport popup → program detail popup flow ----
+  const [catalogSport, setCatalogSport] = useState<string | null>(null);
+  const [catalogSeason, setCatalogSeason] = useState("all");
+  const [detailProgram, setDetailProgram] = useState<Program | null>(null);
+  const [detailAddonIds, setDetailAddonIds] = useState<string[]>([]);
+
+  const priceNum = (p: Program) => parseFloat(p.price || "0") || 0;
+  const seasonNum = (p: Program) =>
+    Number(getProgramSeason(p).replace("season-", "")) || 1;
+  const programsForSport = (id: string) =>
+    storePrograms.filter((p) =>
+      id === "all" ? !isAddonProgram(p) : getProgramCategory(p) === id
+    );
+
+  const openSport = (id: string) => {
+    setStoreCategoryFilter(id);
+    setCatalogSeason("all");
+    setCatalogSport(id);
+  };
+  const openDetail = (program: Program) => {
+    setDetailAddonIds([]);
+    setDetailProgram(program);
+  };
+  const closeDetail = (goBack: boolean) => {
+    setDetailProgram(null);
+    if (!goBack) setCatalogSport(null);
+  };
+  const getThisProgram = (program: Program) => {
+    requestStoreStep(3);
+    setStoreSelectedProgram(program);
+    setStoreSelectedAddonIds(detailAddonIds);
+    setStoreStep(3);
+    setDetailProgram(null);
+    setCatalogSport(null);
+  };
+
+  // Esc closes the detail popup first, then the sport popup.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      if (detailProgram) setDetailProgram(null);
+      else if (catalogSport) setCatalogSport(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [detailProgram, catalogSport]);
+
+  const sportTitle =
+    (catalogSport &&
+      storeCategories.find((c) => c.id === catalogSport)?.title) ||
+    (sZh ? "全部" : "All Programs");
+  const sportItems = catalogSport ? programsForSport(catalogSport) : [];
+  const sportSeasons = Array.from(new Set(sportItems.map(seasonNum))).sort(
+    (a, b) => a - b
+  );
+  const visibleSportItems = sportItems
+    .filter((p) => catalogSeason === "all" || seasonNum(p) === Number(catalogSeason))
+    .sort((a, b) => seasonNum(a) - seasonNum(b));
+
+  const detailIsAddon = detailProgram ? isAddonProgram(detailProgram) : false;
+  const detailAddonOptions = detailProgram
+    ? storePrograms.filter(
+        (p) => isAddonProgram(p) && p.recordId !== detailProgram.recordId
+      )
+    : [];
+  const detailSelectedAddons = detailAddonOptions.filter((a) =>
+    detailAddonIds.includes(a.recordId)
+  );
+  const detailBase = detailProgram ? priceNum(detailProgram) : 0;
+  const detailCurrency =
+    (detailProgram && detailProgram.currency) || "CNY";
+  const detailTotal =
+    detailBase + detailSelectedAddons.reduce((s, a) => s + priceNum(a), 0);
 
   return (
     <div className={`storePageV2 storePageV3 ${sZh ? "zh" : "en"}`}>
@@ -549,7 +606,7 @@ export default function StorePage({
               <motion.button
                 className={`storeCategoryCardV2 ${storeCategoryFilter === category.id ? "active" : ""}`}
                 key={category.id}
-                onClick={() => setStoreCategoryFilter(category.id)}
+                onClick={() => openSport(category.id)}
                 variants={reduce ? undefined : rise}
               >
                 <span className="storeCategoryIconV3" aria-hidden="true">
@@ -560,135 +617,6 @@ export default function StorePage({
             ))}
           </motion.div>
         </motion.section>
-
-        <section className="storeProgramShelfV2">
-          <div className="storeSectionIntroV2">
-            <span className="storeEyebrowV2">{selectedCategoryLabel}</span>
-            <h2>{sZh ? "可购买计划" : "Available Programs"}</h2>
-          </div>
-
-          <div className="storeToolbarV2">
-            <input
-              className="storeSearchV2"
-              value={storeProgramSearch}
-              onChange={(e) => setStoreProgramSearch(e.target.value)}
-              placeholder={sZh ? "搜索项目、级别或计划..." : "Search sport, level, or program..."}
-            />
-            <select
-              className="storeSelectV2"
-              value={storeSeasonFilter}
-              onChange={(e) => setStoreSeasonFilter(e.target.value)}
-            >
-              <option value="all">{sZh ? "全部赛季" : "All Seasons"}</option>
-              <option value="season-1">Season 1</option>
-              <option value="season-2">Season 2</option>
-              <option value="season-3">Season 3</option>
-            </select>
-          </div>
-
-          {programsLoading ? (
-            <div className="storeLoadingV2">
-              {sZh ? "正在加载训练计划..." : "Loading programs..."}
-            </div>
-          ) : filteredStorePrograms.length === 0 ? (
-            <div className="storeEmptyV2">
-              <strong>{sZh ? "暂无匹配计划" : "No matching programs yet"}</strong>
-              <span>
-                {sZh
-                  ? "该分类会随着 Season 1 产品上线继续扩展。"
-                  : "This category will expand as Season 1 products go live."}
-              </span>
-            </div>
-          ) : (
-            <motion.div className="storeGridV2" {...sectionReveal}>
-              {filteredStorePrograms.map((program) => {
-                const name = sZh && program.programNameCn ? program.programNameCn : program.programName;
-                const description =
-                  (sZh && (program.storeDescriptionCn || program.salesDescriptionCn)) ||
-                  program.storeDescription ||
-                  program.salesDescription ||
-                  (sZh
-                    ? "专业、循证、可执行的训练周期。"
-                    : "Professional, evidence-based training you can schedule around real life.");
-                const category = storeCategories.find((item) => item.id === getProgramCategory(program));
-                return (
-                  <motion.article
-                    className="storeProductCardV2"
-                    key={program.recordId}
-                    variants={reduce ? undefined : rise}
-                  >
-                    <button
-                      className="storeProductClickTarget"
-                      onClick={() => setStoreSelectedProgram(program)}
-                      aria-label={name}
-                    />
-                    <div className="storeProductVisualV2">
-                      {/* Always the clean branded visual (dark gradient + faint
-                          monogram), not the uploaded productImage — matches the
-                          store design reference and keeps every card uniform. */}
-                      <div className="storeProductFallbackV2">
-                        <img src="/nl_monogram_clean.png" alt="" />
-                      </div>
-                      <span>{category?.title || (sZh ? "训练计划" : "Program")}</span>
-                    </div>
-                    <div className="storeProductBodyV2">
-                      <div className="storeProductTagsV2">
-                        {isBundleProgram(program) && (
-                          <span className="storeBundleBadge">
-                            {sZh ? "套餐" : "Package"}
-                          </span>
-                        )}
-                        <span>{getProgramSeason(program).replace("-", " ")}</span>
-                        <span>{program.level || (sZh ? "多水平" : "All levels")}</span>
-                      </div>
-                      <h3>{name}</h3>
-                      <p>{description}</p>
-                    </div>
-                    <div className="storeProductFooterV2">
-                      <strong>{formatPrice(program)}</strong>
-                      {(() => {
-                        if (!isBundleProgram(program)) {
-                          return <span>{formatDuration(program)}</span>;
-                        }
-                        const total = bundleIndividualTotal(program);
-                        const bp = parseFloat(program.price || "0") || 0;
-                        if (total > bp && bp > 0) {
-                          return (
-                            <span className="storeBundleSave">
-                              <s>
-                                {(program.currency || "CNY")} {total}
-                              </s>{" "}
-                              {sZh ? `省 ${total - bp}` : `Save ${total - bp}`}
-                            </span>
-                          );
-                        }
-                        return (
-                          <span>
-                            {bundleIncludes(program).length}{" "}
-                            {sZh ? "个计划" : "programs"}
-                          </span>
-                        );
-                      })()}
-                    </div>
-                    {!isBundleProgram(program) && (
-                      <button
-                        type="button"
-                        className="storeProductPreviewBtn"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openProgramPreview(program);
-                        }}
-                      >
-                        <Eye size={14} />{" "}
-                        {sZh ? "预览样板周" : "Preview sample week"}
-                      </button>
-                    )}
-                  </motion.article>
-                );
-              })}
-            </motion.div>
-          )}
-        </section>
 
         <section className="storeHowV2" id="how">
           <div className="storeSectionIntroV2">
@@ -953,6 +881,311 @@ export default function StorePage({
           />
         </section>
       </main>
+
+      {/* Level 1 — sport popup (list of that direction's programs) */}
+      <AnimatePresence>
+        {catalogSport && (
+          <motion.div
+            className="storePopScrim"
+            onClick={() => setCatalogSport(null)}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+          >
+            <motion.div
+              className="storePopPanel storeSportPanel"
+              onClick={(e) => e.stopPropagation()}
+              initial={reduce ? { opacity: 0 } : { y: "100%" }}
+              animate={reduce ? { opacity: 1 } : { y: 0 }}
+              exit={reduce ? { opacity: 0 } : { y: "100%" }}
+              transition={{ duration: 0.34, ease: EASE }}
+            >
+              <div className="storeSportHead">
+                <div>
+                  <span className="storeSportEyebrow">
+                    {sZh ? "训练方向" : "Training Direction"}
+                  </span>
+                  <h3>{sportTitle}</h3>
+                  <span className="storeSportCount">
+                    {visibleSportItems.length}{" "}
+                    {sZh
+                      ? "个计划"
+                      : visibleSportItems.length === 1
+                        ? "program"
+                        : "programs"}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  className="storePopClose"
+                  onClick={() => setCatalogSport(null)}
+                  aria-label={sZh ? "关闭" : "Close"}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+              <div className="storeSportSeasonRow">
+                <div className="storeSportSeasonWrap">
+                  <select
+                    className="storeSportSeason"
+                    value={catalogSeason}
+                    onChange={(e) => setCatalogSeason(e.target.value)}
+                  >
+                    <option value="all">{sZh ? "全部赛季" : "All seasons"}</option>
+                    {sportSeasons.map((n) => (
+                      <option key={n} value={String(n)}>
+                        {sZh ? `第 ${n} 季` : `Season ${n}`}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronRight size={13} className="storeSportSeasonChevron" />
+                </div>
+              </div>
+              <div className="storeSportList">
+                {visibleSportItems.length === 0 ? (
+                  <p className="storeSportEmpty">
+                    {sZh ? "该赛季暂无计划。" : "No programs in this season yet."}
+                  </p>
+                ) : (
+                  visibleSportItems.map((p) => {
+                    const name =
+                      sZh && p.programNameCn ? p.programNameCn : p.programName;
+                    return (
+                      <button
+                        type="button"
+                        className="storeSportRow"
+                        key={p.recordId}
+                        onClick={() => openDetail(p)}
+                      >
+                        <span className="storeSportRowLeft">
+                          <span className="storeSeasonBadge">S{seasonNum(p)}</span>
+                          <span className="storeSportRowText">
+                            <strong>{name}</strong>
+                            <small>
+                              {formatDuration(p)} · {formatPrice(p)}
+                            </small>
+                          </span>
+                        </span>
+                        <ChevronRight size={18} className="storeSportRowChevron" />
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Level 2 — program detail (add-ons + live total + WeChat pay) */}
+      <AnimatePresence>
+        {detailProgram &&
+          (() => {
+            const p = detailProgram;
+            const name = sZh && p.programNameCn ? p.programNameCn : p.programName;
+            const desc =
+              (sZh && (p.storeDescriptionCn || p.salesDescriptionCn)) ||
+              p.storeDescription ||
+              p.salesDescription ||
+              (sZh
+                ? "专业、循证、可执行的训练周期。"
+                : "Professional, evidence-based training you can schedule around real life.");
+            const goal = sZh ? p.goalCn || p.goal : p.goal;
+            const includes = [
+              formatDuration(p),
+              p.level && (sZh ? `${p.level} 水平` : `${p.level} level`),
+              goal,
+            ].filter(Boolean) as string[];
+            const catTitle = storeCategories.find(
+              (c) => c.id === getProgramCategory(p)
+            )?.title;
+            const tags = [
+              catTitle,
+              sZh ? `第 ${seasonNum(p)} 季` : `Season ${seasonNum(p)}`,
+              p.level,
+            ].filter(Boolean) as string[];
+            return (
+              <motion.div
+                className="storePopScrim"
+                onClick={() => closeDetail(true)}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.25 }}
+              >
+                <motion.div
+                  className="storePopPanel storeDetailPanel"
+                  onClick={(e) => e.stopPropagation()}
+                  initial={reduce ? { opacity: 0 } : { y: "100%" }}
+                  animate={reduce ? { opacity: 1 } : { y: 0 }}
+                  exit={reduce ? { opacity: 0 } : { y: "100%" }}
+                  transition={{ duration: 0.34, ease: EASE }}
+                >
+                  <div className="storeDetailHead">
+                    <button
+                      type="button"
+                      className="storeDetailBack"
+                      onClick={() => closeDetail(true)}
+                    >
+                      <ChevronLeft size={16} /> {sportTitle}
+                    </button>
+                    <button
+                      type="button"
+                      className="storePopClose"
+                      onClick={() => closeDetail(false)}
+                      aria-label={sZh ? "关闭" : "Close"}
+                    >
+                      <X size={18} />
+                    </button>
+                  </div>
+                  <div className="storeDetailBody">
+                    <div className="storeDetailTags">
+                      {tags.map((tg, i) => (
+                        <span key={i}>{tg}</span>
+                      ))}
+                    </div>
+                    <h3 className="storeDetailTitle">{name}</h3>
+                    <p className="storeDetailDesc">{desc}</p>
+                    <div className="storeDetailIncludes">
+                      {includes.map((inc, i) => (
+                        <div key={i}>
+                          <Check size={16} />
+                          <span>{inc}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {!detailIsAddon && detailAddonOptions.length > 0 && (
+                      <div className="storeDetailAddons">
+                        <div className="storeDetailAddonsHead">
+                          <Plus size={16} />
+                          <strong>
+                            {sZh
+                              ? "加购关节专项训练"
+                              : "Add joint-specific training"}
+                          </strong>
+                        </div>
+                        <p>
+                          {sZh
+                            ? "为你的计划搭配针对性的关节强化模块，一起训练。"
+                            : "Bundle a targeted resilience block to run alongside your program."}
+                        </p>
+                        <div className="storeDetailAddonList">
+                          {detailAddonOptions.map((a) => {
+                            const on = detailAddonIds.includes(a.recordId);
+                            const aName =
+                              sZh && a.programNameCn
+                                ? a.programNameCn
+                                : a.programName;
+                            return (
+                              <button
+                                type="button"
+                                key={a.recordId}
+                                className={`storeAddonRow${on ? " on" : ""}`}
+                                onClick={() =>
+                                  setDetailAddonIds((prev) =>
+                                    on
+                                      ? prev.filter((id) => id !== a.recordId)
+                                      : [...prev, a.recordId]
+                                  )
+                                }
+                              >
+                                <span className="storeAddonCheck">
+                                  {on && <Check size={13} />}
+                                </span>
+                                <span className="storeAddonText">
+                                  <strong>{aName}</strong>
+                                  <small>{formatDuration(a)}</small>
+                                </span>
+                                <span className="storeAddonPrice">
+                                  {a.currency || "CNY"} {priceNum(a)}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="storeDetailPay">
+                      <div className="storeDetailPayTop">
+                        <span className="storeDetailPayEyebrow">
+                          {sZh ? "一次性" : "ONE-TIME"}
+                        </span>
+                        <span className="storeDetailPayTotal">
+                          {detailCurrency} {detailTotal}
+                        </span>
+                      </div>
+                      {detailSelectedAddons.length > 0 && (
+                        <div className="storeDetailBreakdown">
+                          <div>
+                            <span>{name}</span>
+                            <span>
+                              {detailCurrency} {detailBase}
+                            </span>
+                          </div>
+                          {detailSelectedAddons.map((a) => (
+                            <div key={a.recordId}>
+                              <span>
+                                +{" "}
+                                {sZh && a.programNameCn
+                                  ? a.programNameCn
+                                  : a.programName}
+                              </span>
+                              <span>
+                                {detailCurrency} {priceNum(a)}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <div className="storeDetailPayScan">
+                        <div className="storeDetailQr">
+                          <img src="/wechat-pay-qr.jpg" alt="WeChat QR" />
+                        </div>
+                        <div className="storeDetailScanText">
+                          <strong>{sZh ? "扫码支付" : "Scan to pay"}</strong>
+                          <p>
+                            {sZh
+                              ? "打开微信扫码付款，然后把姓名发给我们解锁你的客户端。"
+                              : "Open WeChat → Scan, complete payment, then message us your name to unlock your portal."}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        className="storeBtnPrimaryV3 storeDetailCta"
+                        onClick={() => getThisProgram(p)}
+                      >
+                        {sZh ? "获取这个计划" : "Get this program"}{" "}
+                        <ArrowRight size={16} />
+                      </button>
+                    </div>
+
+                    <div className="storeDetailFoot">
+                      <button
+                        type="button"
+                        className="storeDetailPreview"
+                        onClick={() => openProgramPreview(p)}
+                      >
+                        <Eye size={14} />{" "}
+                        {sZh ? "预览样板周" : "Preview a sample week"}
+                      </button>
+                      <a
+                        className="storeDetailHelp"
+                        href="#storeContactAnchor"
+                        onClick={() => closeDetail(false)}
+                      >
+                        {sZh ? "不确定？先咨询教练 →" : "Not sure? Ask a coach first →"}
+                      </a>
+                    </div>
+                  </div>
+                </motion.div>
+              </motion.div>
+            );
+          })()}
+      </AnimatePresence>
 
       {storeSelectedProgram && (() => {
         const sp = storeSelectedProgram;

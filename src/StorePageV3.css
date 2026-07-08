@@ -330,3 +330,182 @@
 .storePageV3 .storeCoachV3 .storeCoachIntroV3 h2 { color: #f5f1e8; }
 .storePageV3 .storeContactV2 .storeContactCopyV3 h2,
 .storePageV3 .storeContactV2 h2 { color: #f5f1e8; }
+
+/* ============================================================
+   Catalog popups — Level 1 sport list + Level 2 program detail
+   Desktop: centered 720px modal. Mobile: bottom sheet.
+   ============================================================ */
+.storePopScrim {
+  position: fixed; inset: 0; z-index: 1200;
+  display: flex; align-items: flex-end; justify-content: center;
+  background: rgba(18, 18, 16, 0.62);
+  backdrop-filter: blur(3px);
+  padding: 0;
+}
+.storePopPanel {
+  width: 100%; max-width: 720px;
+  max-height: 92vh; display: flex; flex-direction: column;
+  background: #f5f1e8;
+  border-radius: 26px 26px 0 0;
+  box-shadow: 0 -20px 60px -20px rgba(18, 18, 16, 0.5);
+  overflow: hidden;
+}
+.storePopClose {
+  flex-shrink: 0;
+  width: 36px; height: 36px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: none; cursor: pointer;
+  background: rgba(245, 241, 232, 0.12); color: #f5f1e8;
+  transition: background 0.18s ease;
+}
+.storePopClose:hover { background: rgba(245, 241, 232, 0.24); }
+
+/* ---- Level 1: sport popup ---- */
+.storeSportHead {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 16px; padding: 26px 26px 22px;
+  background: #1b1915; color: #f5f1e8;
+}
+.storeSportEyebrow {
+  display: block; font-size: 11px; letter-spacing: 3px; text-transform: uppercase;
+  color: #d8bd62; margin-bottom: 8px;
+}
+.storeSportHead h3 {
+  font-family: "Bebas Neue", sans-serif; font-size: 34px; line-height: 1;
+  letter-spacing: 0.5px; margin: 0; color: #f5f1e8;
+}
+.storeSportCount { display: block; margin-top: 6px; font-size: 13px; color: #b6ad99; }
+.storeSportSeasonRow {
+  display: flex; justify-content: flex-end;
+  padding: 14px 26px; background: #ece7dc; border-bottom: 1px solid #e2ddcf;
+}
+.storeSportSeasonWrap { position: relative; display: inline-flex; align-items: center; }
+.storeSportSeason {
+  appearance: none; -webkit-appearance: none;
+  padding: 8px 30px 8px 14px; border-radius: 999px;
+  border: 1px solid #d8cfb8; background: #fff; color: #26221a;
+  font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.storeSportSeasonChevron {
+  position: absolute; right: 11px; transform: rotate(90deg);
+  pointer-events: none; color: #9f7a1b;
+}
+.storeSportList { overflow-y: auto; padding: 12px 16px 20px; -webkit-overflow-scrolling: touch; }
+.storeSportRow {
+  width: 100%; display: flex; align-items: center; justify-content: space-between;
+  gap: 14px; padding: 15px 16px; margin-bottom: 8px;
+  background: #fff; border: 1px solid #e2ddcf; border-radius: 16px;
+  cursor: pointer; text-align: left; transition: border-color 0.16s ease, transform 0.16s ease, box-shadow 0.16s ease;
+}
+.storeSportRow:hover { border-color: #d8bd62; transform: translateY(-1px); box-shadow: 0 12px 26px -18px rgba(159, 122, 27, 0.55); }
+.storeSportRowLeft { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.storeSeasonBadge {
+  flex-shrink: 0; width: 40px; height: 40px; border-radius: 12px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-family: "Bebas Neue", sans-serif; font-size: 20px; letter-spacing: 0.5px;
+  background: linear-gradient(140deg, #26221a, #1b1915); color: #e6c766;
+}
+.storeSportRowText { display: flex; flex-direction: column; min-width: 0; }
+.storeSportRowText strong { font-size: 16px; color: #121210; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.storeSportRowText small { font-size: 12.5px; color: #6b6459; margin-top: 2px; }
+.storeSportRowChevron { flex-shrink: 0; color: #9f7a1b; }
+.storeSportEmpty { text-align: center; padding: 40px 20px; color: #6b6459; font-size: 14px; }
+
+/* ---- Level 2: program detail ---- */
+.storeDetailHead {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; padding: 18px 22px;
+  background: #1b1915;
+}
+.storeDetailBack {
+  display: inline-flex; align-items: center; gap: 5px;
+  border: none; background: none; cursor: pointer;
+  color: #d8bd62; font-size: 14px; font-weight: 600;
+  padding: 6px 4px;
+}
+.storeDetailBack:hover { color: #e6c766; }
+.storeDetailBody { overflow-y: auto; padding: 24px 26px 30px; -webkit-overflow-scrolling: touch; }
+.storeDetailTags { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.storeDetailTags span {
+  font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase;
+  padding: 5px 12px; border-radius: 999px;
+  background: #ece7dc; color: #6b6459; font-weight: 600;
+}
+.storeDetailTitle {
+  font-family: "Bebas Neue", sans-serif; font-size: 42px; line-height: 1;
+  letter-spacing: 0.5px; margin: 0 0 14px; color: #121210;
+}
+.storeDetailDesc { font-size: 15px; line-height: 1.6; color: #6b6459; margin: 0 0 22px; }
+.storeDetailIncludes { display: flex; flex-direction: column; gap: 10px; margin-bottom: 26px; }
+.storeDetailIncludes > div { display: flex; align-items: center; gap: 10px; font-size: 14px; color: #26221a; }
+.storeDetailIncludes svg { flex-shrink: 0; color: #9f7a1b; }
+
+.storeDetailAddons {
+  padding: 20px; margin-bottom: 24px;
+  background: #ece7dc; border: 1px solid #e2ddcf; border-radius: 18px;
+}
+.storeDetailAddonsHead { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.storeDetailAddonsHead svg { color: #9f7a1b; }
+.storeDetailAddonsHead strong { font-size: 15px; color: #121210; }
+.storeDetailAddons > p { font-size: 13px; color: #6b6459; margin: 0 0 14px; line-height: 1.5; }
+.storeDetailAddonList { display: flex; flex-direction: column; gap: 8px; }
+.storeAddonRow {
+  display: flex; align-items: center; gap: 12px; width: 100%;
+  padding: 12px 14px; text-align: left; cursor: pointer;
+  background: #fff; border: 1px solid #e2ddcf; border-radius: 14px;
+  transition: border-color 0.16s ease, background 0.16s ease;
+}
+.storeAddonRow:hover { border-color: #d8bd62; }
+.storeAddonRow.on { border-color: #9f7a1b; background: #fbf7ec; }
+.storeAddonCheck {
+  flex-shrink: 0; width: 22px; height: 22px; border-radius: 7px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1.5px solid #cfc6ae; background: #fff; color: #fff;
+}
+.storeAddonRow.on .storeAddonCheck { background: linear-gradient(140deg, #e6c766, #9f7a1b); border-color: #9f7a1b; }
+.storeAddonText { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.storeAddonText strong { font-size: 14px; color: #121210; }
+.storeAddonText small { font-size: 12px; color: #6b6459; margin-top: 1px; }
+.storeAddonPrice { flex-shrink: 0; font-size: 14px; font-weight: 700; color: #26221a; }
+
+.storeDetailPay {
+  padding: 22px; border-radius: 20px; margin-bottom: 20px;
+  background: linear-gradient(155deg, #26221a, #17150f); color: #f5f1e8;
+}
+.storeDetailPayTop { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 6px; }
+.storeDetailPayEyebrow { font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: #b6ad99; }
+.storeDetailPayTotal { font-family: "Bebas Neue", sans-serif; font-size: 40px; letter-spacing: 1px; color: #e6c766; }
+.storeDetailBreakdown {
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 12px 0; margin-bottom: 6px;
+  border-top: 1px solid rgba(245, 241, 232, 0.14);
+  border-bottom: 1px solid rgba(245, 241, 232, 0.14);
+}
+.storeDetailBreakdown > div { display: flex; justify-content: space-between; font-size: 13px; color: #d8d1c1; }
+.storeDetailPayScan { display: flex; align-items: center; gap: 16px; margin: 18px 0; }
+.storeDetailQr {
+  flex-shrink: 0; width: 84px; height: 84px; border-radius: 12px; padding: 6px;
+  background: #fff;
+}
+.storeDetailQr img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.storeDetailScanText strong { display: block; font-size: 15px; margin-bottom: 4px; color: #f5f1e8; }
+.storeDetailScanText p { font-size: 12.5px; line-height: 1.5; color: #b6ad99; margin: 0; }
+.storeDetailCta { width: 100%; justify-content: center; }
+.storeDetailFoot {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+  gap: 12px;
+}
+.storeDetailPreview {
+  display: inline-flex; align-items: center; gap: 6px;
+  border: none; background: none; cursor: pointer;
+  color: #9f7a1b; font-size: 13.5px; font-weight: 600; padding: 6px 2px;
+}
+.storeDetailPreview:hover { color: #7d5f14; }
+.storeDetailHelp { font-size: 13.5px; color: #6b6459; text-decoration: none; }
+.storeDetailHelp:hover { color: #26221a; }
+
+/* ---- desktop: centered modal instead of bottom sheet ---- */
+@media (min-width: 761px) {
+  .storePopScrim { align-items: center; padding: 24px; }
+  .storePopPanel { border-radius: 22px; max-height: 88vh; }
+}
