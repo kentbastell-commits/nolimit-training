@@ -21,6 +21,7 @@ import {
   UserCircle,
   Users,
   Shield,
+  ShoppingBag,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -179,6 +180,7 @@ const CoachTestsPage = withSuspense(() => import("./CoachTestsPage"));
 const CoachesAdminPage = withSuspense(() => import("./CoachesAdminPage"));
 const ClientWorkspace = withSuspense(() => import("./ClientWorkspace"));
 const CheckInsPage = withSuspense(() => import("./CheckInsPage"));
+const CoachStorePage = withSuspense(() => import("./CoachStorePage"));
 
 // Modals/menus are only needed on interaction, never at first paint — split
 // them out with a null fallback so opening one loads its chunk silently.
@@ -259,6 +261,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       "Teams",
       "Library",
       "Workouts",
+      "Digital",
       "Tests",
       "Review",
       "Coaches",
@@ -270,6 +273,10 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       : "Clients";
   });
   const [openNavGroup, setOpenNavGroup] = useState<string | null>(null);
+  // Digital tab sub-navigation: the program builder vs the store manager.
+  const [digitalSubTab, setDigitalSubTab] = useState<"program" | "store">(
+    "program"
+  );
   const [clients, setClients] = useState<Client[]>([]);
   const [coaches, setCoaches] = useState<Coach[]>([]);
   const [productOrders, setProductOrders] = useState<ProductOrder[]>([]);
@@ -1292,6 +1299,9 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   const [programCoach, setProgramCoach] = useState("Kent Bastell");
   const [programProductType, setProgramProductType] = useState("Digital Program");
   const [programPrice, setProgramPrice] = useState("");
+  // Optional struck-through "was" price shown in the store (Price stays the
+  // real charge). Blank = no discount shown.
+  const [programCompareAtPrice, setProgramCompareAtPrice] = useState("");
   const [programCurrency, setProgramCurrency] = useState("CNY");
   const [programPublicStoreVisible, setProgramPublicStoreVisible] = useState(false);
   const [programPurchaseLink, setProgramPurchaseLink] = useState("");
@@ -1299,6 +1309,10 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   const [programAccessLengthDays, setProgramAccessLengthDays] = useState("42");
   const [programProductStatus, setProgramProductStatus] = useState("Draft");
   const [programSalesDescription, setProgramSalesDescription] = useState("");
+  const [programSalesDescriptionCn, setProgramSalesDescriptionCn] = useState("");
+  // Explicit store season (drives the S1/S2 badges instead of guessing from
+  // the program name). Blank = season 1 / no badge grouping.
+  const [programSeason, setProgramSeason] = useState("");
   // Tag a saved program with the client / team it was built for (searchable,
   // reusable). Empty = a generic/internal template.
   const [programBuiltForClient, setProgramBuiltForClient] = useState("");
@@ -4055,8 +4069,26 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   const existingStoreCategories = Array.from(
     new Set(programs.map((p) => (p.storeCategory || "").trim()).filter(Boolean))
   ).sort();
+  // Clean split: the new Digital tab owns store products (Digital Program /
+  // Add-on / Bundle, or anything published to the store); the Workouts tab owns
+  // coached / 1-on-1 / internal programs. Same builder, scoped list.
+  const DIGITAL_PRODUCT_TYPES = [
+    "Digital Program",
+    "Digital Add-on",
+    "Digital Bundle",
+  ];
+  const isDigitalProduct = (p: Program) =>
+    DIGITAL_PRODUCT_TYPES.includes(p.productType || "") ||
+    Boolean(p.publicStoreVisible);
+  const builderScope: "digital" | "coached" =
+    activePage === "Digital" ? "digital" : "coached";
   const visibleSavedPrograms = programs
     .filter((program) => program.status !== "Archived")
+    .filter((program) =>
+      builderScope === "digital"
+        ? isDigitalProduct(program)
+        : !isDigitalProduct(program)
+    )
     .filter((program) => {
       const f = savedProgramProductFilter;
       if (f === "All") return true;
@@ -4901,6 +4933,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       setProgramCoach(sourceProgram.coach || "Kent Bastell");
       setProgramProductType(sourceProgram.productType || "Digital Program");
       setProgramPrice(sourceProgram.price || "");
+      setProgramCompareAtPrice(sourceProgram.compareAtPrice || "");
       setProgramCurrency(sourceProgram.currency || "CNY");
       setProgramPublicStoreVisible(Boolean(sourceProgram.publicStoreVisible));
       setProgramPurchaseLink(sourceProgram.purchaseLink || "");
@@ -4908,6 +4941,8 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       setProgramAccessLengthDays(sourceProgram.accessLengthDays || "42");
       setProgramProductStatus(sourceProgram.productStatus || "Draft");
       setProgramSalesDescription(sourceProgram.salesDescription || "");
+      setProgramSalesDescriptionCn(sourceProgram.salesDescriptionCn || "");
+      setProgramSeason(sourceProgram.season || "");
       // Carry the original "built for" tag so the coach can re-point the copy
       // at a new client/team before saving.
       setProgramBuiltForClient(sourceProgram.builtForClient || "");
@@ -4967,6 +5002,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     // Commerce/store fields must not leak from a previously loaded product
     // into a fresh program (it could publish with the old price/copy).
     setProgramPrice("");
+    setProgramCompareAtPrice("");
     setProgramCurrency("CNY");
     setProgramPublicStoreVisible(false);
     setProgramPurchaseLink("");
@@ -4974,6 +5010,8 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     setProgramAccessLengthDays("42");
     setProgramProductStatus("Draft");
     setProgramSalesDescription("");
+    setProgramSalesDescriptionCn("");
+    setProgramSeason("");
     setProgramStoreCategory("");
     setProgramStoreCategoryCn("");
     setProgramBundleIds([]);
@@ -9603,6 +9641,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
         status: "Active",
         productType: singleWorkoutMode ? "Single Workout" : programProductType,
         price: digitalProductProgram ? programPrice : "",
+        compareAtPrice: digitalProductProgram ? programCompareAtPrice : "",
         currency: digitalProductProgram ? programCurrency : "",
         publicStoreVisible: digitalProductProgram ? effectiveStoreVisible : false,
         purchaseLink: digitalProductProgram ? programPurchaseLink : "",
@@ -9610,6 +9649,8 @@ function App({ onReady }: { onReady?: () => void } = {}) {
         accessLengthDays: digitalProductProgram ? programAccessLengthDays : "",
         productStatus: digitalProductProgram ? programProductStatus : "Draft",
         salesDescription: digitalProductProgram ? programSalesDescription : "",
+        salesDescriptionCn: digitalProductProgram ? programSalesDescriptionCn : "",
+        season: digitalProductProgram ? programSeason : "",
         builtForClient:
           coachedProgramType || singleWorkoutMode ? programBuiltForClient : "",
         builtForTeam:
@@ -9774,6 +9815,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       setProgramSessionsPerWeek("3");
       setProgramProductType("Digital Program");
       setProgramPrice("");
+      setProgramCompareAtPrice("");
       setProgramCurrency("CNY");
       setProgramPublicStoreVisible(false);
       setProgramPurchaseLink("");
@@ -9781,6 +9823,8 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       setProgramAccessLengthDays("42");
       setProgramProductStatus("Draft");
       setProgramSalesDescription("");
+      setProgramSalesDescriptionCn("");
+      setProgramSeason("");
       setSessionName("");
       setProgramWeek("1");
       setProgramDay("1");
@@ -10078,6 +10122,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     // Commerce/store fields must not leak from a previously loaded product
     // into a fresh program (it could publish with the old price/copy).
     setProgramPrice("");
+    setProgramCompareAtPrice("");
     setProgramCurrency("CNY");
     setProgramPublicStoreVisible(false);
     setProgramPurchaseLink("");
@@ -10085,6 +10130,8 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     setProgramAccessLengthDays("42");
     setProgramProductStatus("Draft");
     setProgramSalesDescription("");
+    setProgramSalesDescriptionCn("");
+    setProgramSeason("");
     setProgramStoreCategory("");
     setProgramStoreCategoryCn("");
     setProgramBundleIds([]);
@@ -10331,6 +10378,66 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     }
   };
 
+  // Quick store-product creator used by the Digital > Store tab. Creates the
+  // product listing (metadata + pricing) via the same handler the builder uses;
+  // for an individual program the coach then adds workouts in the builder.
+  const createStoreProduct = async (product: {
+    programName: string;
+    productType: string; // Digital Program | Digital Bundle | Digital Add-on
+    price?: string;
+    compareAtPrice?: string;
+    storeCategory?: string;
+    storeCategoryCn?: string;
+    season?: string;
+    bundleProgramIds?: string[];
+    salesDescription?: string;
+  }): Promise<boolean> => {
+    if (!product.programName.trim()) {
+      notify("Give the product a name first.", "error");
+      return false;
+    }
+    const isBundle = product.productType === "Digital Bundle";
+    const isAddon = product.productType === "Digital Add-on";
+    try {
+      const res = await fetch("/api/createProgram", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          programName: product.programName.trim(),
+          productType: product.productType,
+          price: product.price || "",
+          compareAtPrice: product.compareAtPrice || "",
+          currency: "CNY",
+          publicStoreVisible: true,
+          productStatus: "Active",
+          storeCategory: isAddon ? "Joint Add-Ons" : product.storeCategory || "",
+          storeCategoryCn: isAddon
+            ? "关节加购"
+            : product.storeCategoryCn || "",
+          season: product.season || "",
+          salesDescription: product.salesDescription || "",
+          storeListingType: isBundle ? "Bundle" : isAddon ? "Add-on" : "Main",
+          bundleProgramIds: isBundle
+            ? (product.bundleProgramIds || []).join(",")
+            : "",
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        console.error(data);
+        notify("Could not create the product. Check the API response.", "error");
+        return false;
+      }
+      notify(`Created "${product.programName.trim()}".`, "success");
+      await loadPrograms(true);
+      return true;
+    } catch (err) {
+      console.error(err);
+      notify("Could not create the product.", "error");
+      return false;
+    }
+  };
+
   const findMyPortal = async () => {
     // The store modal is localized by storeLang, not the portal i18n instance.
     const zh = storeLang === "zh";
@@ -10509,7 +10616,12 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   // Navigate to a top-level page and trigger any data the page needs. Shared by
   // the grouped sidebar menu and any other in-app navigation.
   const goToPage = (page: Page) => {
-    if (page !== activePage && activePage === "Workouts" && !confirmLeaveBuilder())
+    if (
+      page !== activePage &&
+      (activePage === "Workouts" ||
+        (activePage === "Digital" && digitalSubTab === "program")) &&
+      !confirmLeaveBuilder()
+    )
       return;
     setSelectedClient(null);
     setSelectedWorkout(null);
@@ -10518,10 +10630,10 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     setSavedExerciseDraftIds([]);
     setActivePage(page);
 
-    if (page === "Library" || page === "Workouts") {
+    if (page === "Library" || page === "Workouts" || page === "Digital") {
       loadExerciseLibrary();
     }
-    if (page === "Workouts") {
+    if (page === "Workouts" || page === "Digital") {
       loadPrograms();
     }
     if (page === "Teams") {
@@ -10622,6 +10734,19 @@ function App({ onReady }: { onReady?: () => void } = {}) {
           mobileLabel: "Tests",
           count: savedTestTemplates.length,
           icon: ClipboardList,
+        },
+      ],
+    },
+    {
+      key: "digital",
+      label: "Digital",
+      icon: ShoppingBag,
+      items: [
+        {
+          name: "Digital",
+          label: "Digital",
+          count: programs.filter((p) => p.publicStoreVisible).length,
+          icon: ShoppingBag,
         },
       ],
     },
@@ -17985,8 +18110,29 @@ function App({ onReady }: { onReady?: () => void } = {}) {
               />
             )}
 
-            {activePage === "Workouts" && (
+            {activePage === "Digital" && (
+              <div className="digitalSubTabBar">
+                <button
+                  type="button"
+                  className={digitalSubTab === "program" ? "active" : ""}
+                  onClick={() => setDigitalSubTab("program")}
+                >
+                  Digital Program
+                </button>
+                <button
+                  type="button"
+                  className={digitalSubTab === "store" ? "active" : ""}
+                  onClick={() => setDigitalSubTab("store")}
+                >
+                  Store
+                </button>
+              </div>
+            )}
+
+            {(activePage === "Workouts" ||
+              (activePage === "Digital" && digitalSubTab === "program")) && (
               <CoachBuilderPage
+                builderScope={builderScope}
                 usePercentExerciseIndexes={usePercentExerciseIndexes}
                 selectedSavedTestId={selectedSavedTestId}
                 selectedSavedProgramId={selectedSavedProgramId}
@@ -18124,6 +18270,8 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                 programName={programName}
                 programPhase={programPhase}
                 programPrice={programPrice}
+                programCompareAtPrice={programCompareAtPrice}
+                programSeason={programSeason}
                 programProductChecklist={programProductChecklist}
                 programProductReadyCount={programProductReadyCount}
                 programProductReadyForSale={programProductReadyForSale}
@@ -18132,6 +18280,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                 programPublicStoreVisible={programPublicStoreVisible}
                 programPurchaseLink={programPurchaseLink}
                 programSalesDescription={programSalesDescription}
+                programSalesDescriptionCn={programSalesDescriptionCn}
                 programSessions={programSessions}
                 programStoreCategory={programStoreCategory}
                 programStoreCategoryCn={programStoreCategoryCn}
@@ -18245,11 +18394,14 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                 setProgramName={setProgramName}
                 setProgramPhase={setProgramPhase}
                 setProgramPrice={setProgramPrice}
+                setProgramCompareAtPrice={setProgramCompareAtPrice}
+                setProgramSeason={setProgramSeason}
                 setProgramProductStatus={setProgramProductStatus}
                 setProgramProductType={setProgramProductType}
                 setProgramPublicStoreVisible={setProgramPublicStoreVisible}
                 setProgramPurchaseLink={setProgramPurchaseLink}
                 setProgramSalesDescription={setProgramSalesDescription}
+                setProgramSalesDescriptionCn={setProgramSalesDescriptionCn}
                 setProgramSessionDropId={setProgramSessionDropId}
                 setProgramStoreCategory={setProgramStoreCategory}
                 setProgramStoreCategoryCn={setProgramStoreCategoryCn}
@@ -18315,6 +18467,23 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                 workoutPageTab={workoutPageTab}
                 workoutTabList={workoutTabList}
                 workoutTabsMenuOpen={workoutTabsMenuOpen}
+              />
+            )}
+
+            {activePage === "Digital" && digitalSubTab === "store" && (
+              <CoachStorePage
+                programs={programs}
+                existingStoreCategories={existingStoreCategories}
+                createStoreProduct={createStoreProduct}
+                onEditProduct={(program: Program) => {
+                  setDigitalSubTab("program");
+                  loadSavedProgramIntoBuilder(program, { edit: true });
+                }}
+                onNewProgram={() => {
+                  setDigitalSubTab("program");
+                  setCreateProgramOpen(true);
+                }}
+                notify={notify}
               />
             )}
 

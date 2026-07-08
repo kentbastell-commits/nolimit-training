@@ -232,6 +232,12 @@ export default function StorePage({
     );
 
   const getProgramSeason = (program: Program) => {
+    // Prefer the explicit Season field; fall back to guessing from the
+    // name/phase/description for legacy programs that never set it.
+    const explicit = Number(program.season);
+    if (program.season && Number.isFinite(explicit) && explicit > 0) {
+      return `season-${explicit}`;
+    }
     const blob = programSearchBlob(program);
     const match = blob.match(/season\s*(\d+)|s(\d+)|第\s*(\d+)\s*季/i);
     const season = match?.[1] || match?.[2] || match?.[3];

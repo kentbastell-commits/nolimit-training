@@ -1,0 +1,315 @@
+.coachStorePage {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 8px 4px 60px;
+}
+
+/* head */
+.cspHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 20px;
+}
+.cspEyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: #b5731a;
+  font-weight: 600;
+}
+.cspHead h2 {
+  margin: 6px 0 2px;
+  font-size: 24px;
+  color: #151515;
+}
+.cspHead p {
+  margin: 0;
+  font-size: 13px;
+  color: #6b6459;
+}
+
+/* quick creator */
+.cspCreator {
+  background: #fff;
+  border: 1px solid #e7e2d6;
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 26px;
+  box-shadow: 0 10px 30px -22px rgba(0, 0, 0, 0.4);
+}
+.cspCreatorRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+.cspInput {
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1px solid #ddd6c6;
+  background: #fbfaf6;
+  font-size: 14px;
+  color: #151515;
+}
+.cspInput:focus {
+  outline: none;
+  border-color: #d4af37;
+  background: #fff;
+}
+.cspGrow {
+  flex: 1 1 200px;
+  min-width: 160px;
+}
+.cspNarrow {
+  width: 110px;
+}
+.cspTiny {
+  width: 84px;
+}
+.cspTypePick {
+  display: inline-flex;
+  border: 1px solid #ddd6c6;
+  border-radius: 10px;
+  overflow: hidden;
+}
+.cspTypePick button {
+  padding: 9px 14px;
+  border: none;
+  background: #fbfaf6;
+  font-size: 13px;
+  cursor: pointer;
+  color: #6b6459;
+  border-right: 1px solid #ece7db;
+}
+.cspTypePick button:last-child {
+  border-right: none;
+}
+.cspTypePick button.active {
+  background: linear-gradient(140deg, #e6c766, #b5731a);
+  color: #1a1712;
+  font-weight: 600;
+}
+.cspCreateBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 18px;
+  border-radius: 10px;
+  border: none;
+  background: #151515;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.cspCreateBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.cspCategoryRow,
+.cspBundlePick {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid #ece7db;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.cspFieldLabel {
+  width: 100%;
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b6459;
+  margin-bottom: 2px;
+}
+.cspChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.cspChip {
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(212, 175, 55, 0.45);
+  background: transparent;
+  font-size: 12.5px;
+  cursor: pointer;
+  color: #6b6459;
+}
+.cspChip.active {
+  background: linear-gradient(140deg, #e6c766, #b5731a);
+  border-color: transparent;
+  color: #1a1712;
+  font-weight: 600;
+}
+
+.cspBundleList {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+.cspBundleItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1px solid #e7e2d6;
+  background: #fbfaf6;
+  cursor: pointer;
+  text-align: left;
+  font-size: 13.5px;
+  color: #151515;
+}
+.cspBundleItem.on {
+  border-color: #b5731a;
+  background: #fbf5e8;
+}
+.cspBundleCheck {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  border: 1.5px solid #cfc6ae;
+  background: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+}
+.cspBundleItem.on .cspBundleCheck {
+  background: linear-gradient(140deg, #e6c766, #b5731a);
+  border-color: #b5731a;
+}
+.cspBundleItemPrice {
+  margin-left: auto;
+  color: #6b6459;
+  font-size: 12.5px;
+}
+
+.cspCreatorHint {
+  margin: 14px 0 0;
+  font-size: 12.5px;
+  color: #8a8372;
+  line-height: 1.5;
+}
+.cspLink {
+  border: none;
+  background: none;
+  padding: 0;
+  color: #b5731a;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+/* product groups */
+.cspGroup {
+  margin-bottom: 26px;
+}
+.cspGroupTitle {
+  font-size: 17px;
+  color: #151515;
+  margin: 0 0 12px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #e7e2d6;
+}
+.cspSub {
+  margin-bottom: 14px;
+}
+.cspSubLabel {
+  display: block;
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #a39b88;
+  margin-bottom: 6px;
+}
+.cspRow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  border: 1px solid #e7e2d6;
+  border-radius: 12px;
+  background: #fff;
+  margin-bottom: 8px;
+}
+.cspRowMain {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+.cspRowMain strong {
+  font-size: 14.5px;
+  color: #151515;
+}
+.cspRowMain small {
+  font-size: 12px;
+  color: #8a8372;
+  margin-top: 1px;
+}
+.cspPrice {
+  font-size: 14px;
+  font-weight: 700;
+  color: #151515;
+  white-space: nowrap;
+}
+.cspPrice s {
+  color: #b3ab98;
+  font-weight: 500;
+  margin-right: 6px;
+  font-size: 12.5px;
+}
+.cspEditBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 12px;
+  border-radius: 9px;
+  border: 1px solid #ddd6c6;
+  background: #fbfaf6;
+  font-size: 12.5px;
+  color: #6b6459;
+  cursor: pointer;
+}
+.cspEditBtn:hover {
+  border-color: #b5731a;
+  color: #b5731a;
+}
+
+.cspEmpty {
+  font-size: 13px;
+  color: #8a8372;
+}
+.cspEmptyBig {
+  text-align: center;
+  padding: 50px 20px;
+}
+
+@media (max-width: 640px) {
+  .cspCreatorRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .cspNarrow,
+  .cspTiny {
+    width: 100%;
+  }
+  .cspTypePick {
+    width: 100%;
+  }
+  .cspTypePick button {
+    flex: 1;
+  }
+}

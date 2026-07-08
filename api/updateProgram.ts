@@ -37,6 +37,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       level,
       durationWeeks,
       phase,
+      season,
       sessionsPerWeek,
       coach,
       status,
@@ -75,6 +76,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (phase !== undefined) fields.Phase = phase;
     if (sessionsPerWeek !== undefined) {
       fields["Sessions / Week"] = Number(sessionsPerWeek) || 1;
+    }
+    if (season !== undefined && season !== "") {
+      fields.Season = Number(season) || 0;
     }
     if (coach !== undefined) fields.Coach = coach;
     if (status !== undefined) fields.Status = status;

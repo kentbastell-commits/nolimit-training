@@ -11,6 +11,7 @@ import { TEST_CATEGORIES, testCategoryLabelKey } from "./testVisuals";
 import { useTranslation } from "react-i18next";
 
 export default function CoachBuilderPage({
+  builderScope,
   accessoryTargetIndex,
   copiedSession,
   mobileDragIndex,
@@ -148,6 +149,8 @@ export default function CoachBuilderPage({
   programName,
   programPhase,
   programPrice,
+  programCompareAtPrice,
+  programSeason,
   programProductChecklist,
   programProductReadyCount,
   programProductReadyForSale,
@@ -156,6 +159,7 @@ export default function CoachBuilderPage({
   programPublicStoreVisible,
   programPurchaseLink,
   programSalesDescription,
+  programSalesDescriptionCn,
   programSessions,
   programStoreCategory,
   programStoreCategoryCn,
@@ -269,11 +273,14 @@ export default function CoachBuilderPage({
   setProgramName,
   setProgramPhase,
   setProgramPrice,
+  setProgramCompareAtPrice,
+  setProgramSeason,
   setProgramProductStatus,
   setProgramProductType,
   setProgramPublicStoreVisible,
   setProgramPurchaseLink,
   setProgramSalesDescription,
+  setProgramSalesDescriptionCn,
   setProgramSessionDropId,
   setProgramStoreCategory,
   setProgramStoreCategoryCn,
@@ -422,21 +429,36 @@ export default function CoachBuilderPage({
                               setSavedProgramProductFilter(event.target.value)
                             }
                           >
-                            <option value="All">My Programs</option>
-                            <optgroup label="Program type">
-                              <option value="type:Digital Program">
-                                Digital programs
-                              </option>
-                              <option value="type:Online Coaching">
-                                Online coaching
-                              </option>
-                              <option value="type:In-Person Training">
-                                In-person training
-                              </option>
-                              <option value="internal">
-                                Internal / general
-                              </option>
-                            </optgroup>
+                            <option value="All">
+                              {builderScope === "digital"
+                                ? "All products"
+                                : "My Programs"}
+                            </option>
+                            {builderScope === "digital" ? (
+                              <optgroup label="Product type">
+                                <option value="type:Digital Program">
+                                  Digital programs
+                                </option>
+                                <option value="type:Digital Bundle">
+                                  Bundles
+                                </option>
+                                <option value="type:Digital Add-on">
+                                  Add-ons
+                                </option>
+                              </optgroup>
+                            ) : (
+                              <optgroup label="Program type">
+                                <option value="type:Online Coaching">
+                                  Online coaching
+                                </option>
+                                <option value="type:In-Person Training">
+                                  In-person training
+                                </option>
+                                <option value="internal">
+                                  Internal / general
+                                </option>
+                              </optgroup>
+                            )}
                             {teams.length > 0 && (
                               <optgroup label="By team">
                                 {teams.map((tm: any) => (
@@ -1093,7 +1115,7 @@ export default function CoachBuilderPage({
                 {showDigitalProductSettings && builderSubTab === "product" && (
                   <div className="builderProductPanel builderTabPanel">
                     <div className="builderTabPanelHead">
-                      <span className="eyebrow">Digital Product</span>
+                      <span className="eyebrow">{programProductType || "Digital Product"}</span>
                       <strong>Product Settings</strong>
                       <small>
                         {programPrice || "--"} {programCurrency || "CNY"} /{" "}
@@ -1103,11 +1125,27 @@ export default function CoachBuilderPage({
 
                     <div className="programProductGrid">
                   <label>
-                    <span>Price</span>
+                    <span>Price ({programCurrency || "CNY"})</span>
                     <input
+                      type="number"
+                      min="0"
+                      inputMode="decimal"
                       value={programPrice}
                       onChange={(e) => setProgramPrice(e.target.value)}
-                      placeholder="Price"
+                      placeholder="e.g. 299"
+                      className="miniSearch"
+                    />
+                  </label>
+
+                  <label>
+                    <span>Compare-at (was)</span>
+                    <input
+                      type="number"
+                      min="0"
+                      inputMode="decimal"
+                      value={programCompareAtPrice}
+                      onChange={(e) => setProgramCompareAtPrice(e.target.value)}
+                      placeholder="optional · struck-through"
                       className="miniSearch"
                     />
                   </label>
@@ -1126,11 +1164,13 @@ export default function CoachBuilderPage({
                   </label>
 
                   <label>
-                    <span>Access Days</span>
+                    <span>Access length (days)</span>
                     <input
+                      type="number"
+                      min="0"
                       value={programAccessLengthDays}
                       onChange={(e) => setProgramAccessLengthDays(e.target.value)}
-                      placeholder="42"
+                      placeholder="42 · blank = lifetime"
                       className="miniSearch"
                     />
                   </label>
@@ -1186,23 +1226,33 @@ export default function CoachBuilderPage({
 
                   {programStoreFieldsVisible && (
                     <div className="programStorePlacement">
-                      <label>
-                        <span>Store category</span>
+                      <div className="programCategoryPicker">
+                        <span className="programCategoryPickerLabel">
+                          Store category (sport)
+                        </span>
+                        <div className="programCategoryChips">
+                          {existingStoreCategories.map((cat: any) => (
+                            <button
+                              type="button"
+                              key={cat}
+                              className={`programCategoryChip${
+                                programStoreCategory === cat ? " active" : ""
+                              }`}
+                              onClick={() => setProgramStoreCategory(cat)}
+                            >
+                              {cat}
+                            </button>
+                          ))}
+                        </div>
                         <input
-                          list="storeCategoryOptions"
                           value={programStoreCategory}
                           onChange={(e) =>
                             setProgramStoreCategory(e.target.value)
                           }
-                          placeholder="e.g. Rock Climbing, Soccer…"
+                          placeholder="Pick a label above, or type a new one…"
                           className="miniSearch"
                         />
-                        <datalist id="storeCategoryOptions">
-                          {existingStoreCategories.map((cat: any) => (
-                            <option key={cat} value={cat} />
-                          ))}
-                        </datalist>
-                      </label>
+                      </div>
                       <label>
                         <span>Category name (中文)</span>
                         <input
@@ -1211,6 +1261,17 @@ export default function CoachBuilderPage({
                             setProgramStoreCategoryCn(e.target.value)
                           }
                           placeholder="可选 · 如 足球"
+                          className="miniSearch"
+                        />
+                      </label>
+                      <label>
+                        <span>Season (badge)</span>
+                        <input
+                          type="number"
+                          min="1"
+                          value={programSeason}
+                          onChange={(e) => setProgramSeason(e.target.value)}
+                          placeholder="e.g. 1 → shows S1"
                           className="miniSearch"
                         />
                       </label>
@@ -1310,11 +1371,22 @@ export default function CoachBuilderPage({
                     </div>
 
                     <label className="programSalesDescription">
-                      <span>Sales Description</span>
+                      <span>Sales Description (EN)</span>
                       <textarea
                         value={programSalesDescription}
                         onChange={(e) => setProgramSalesDescription(e.target.value)}
                         placeholder="Short product description for the store or order workflow."
+                      />
+                    </label>
+
+                    <label className="programSalesDescription">
+                      <span>销售描述 (中文)</span>
+                      <textarea
+                        value={programSalesDescriptionCn}
+                        onChange={(e) =>
+                          setProgramSalesDescriptionCn(e.target.value)
+                        }
+                        placeholder="店铺中文简介 · 留空则中文用户看到英文描述。"
                       />
                     </label>
 

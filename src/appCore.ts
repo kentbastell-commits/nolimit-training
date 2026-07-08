@@ -8,6 +8,7 @@ export type Page =
   | "Teams"
   | "Library"
   | "Workouts"
+  | "Digital"
   | "Tests"
   | "Check-ins"
   | "Orders"
@@ -163,6 +164,7 @@ export type Program = {
   durationWeeks: string;
   phase: string;
   phaseCn?: string;
+  season?: string;
   sessionsPerWeek: string;
   coach: string;
   status: string;

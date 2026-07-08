@@ -13654,3 +13654,29 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 .savedProgramSessions .exercise-card { margin: 0; padding: 12px 16px; }
 .savedProgramSessions .exercise-card h3 { font-size: 14.5px; margin-bottom: 6px; }
 .savedProgramSessions .exercise-card p { font-size: 13px; margin: 2px 0; color: #55524a; }
+
+/* Digital tab sub-navigation (Digital Program | Store) */
+.digitalSubTabBar {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 12px;
+  background: #ece7db;
+  margin: 4px auto 20px;
+}
+.digitalSubTabBar button {
+  padding: 8px 20px;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  font-size: 14px;
+  font-weight: 600;
+  color: #6b6459;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.digitalSubTabBar button.active {
+  background: #fff;
+  color: #151515;
+  box-shadow: 0 2px 8px -3px rgba(0, 0, 0, 0.3);
+}

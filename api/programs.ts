@@ -82,6 +82,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         durationWeeks: fieldToText(fields["Duration Weeks"]),
         phase: fieldToText(fields["Phase"]),
         phaseCn: fieldToText(fields["Phase CN"]),
+        season: fieldToText(fields["Season"]),
         sessionsPerWeek: fieldToText(fields["Sessions / Week"]),
         coach: fieldToText(fields["Coach"]),
         status: fieldToText(fields["Status"]),

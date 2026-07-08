@@ -95,6 +95,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       level,
       durationWeeks,
       phase,
+      season,
       sessionsPerWeek,
       coach,
       status,
@@ -181,6 +182,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       "Store Category CN": storeCategoryCn || "",
       "Store Listing Type": storeListingType || "",
       "Bundle Program IDs": bundleProgramIds || "",
+      Season: season === "" || season === undefined ? "" : Number(season) || 0,
     };
     const fallbackFields = {
       "Program ID": programId,
