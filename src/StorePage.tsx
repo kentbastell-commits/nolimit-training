@@ -349,12 +349,25 @@ export default function StorePage({
     .filter((p) => catalogSeason === "all" || seasonNum(p) === Number(catalogSeason))
     .sort((a, b) => seasonNum(a) - seasonNum(b));
 
+  // A struck-through "was" price (only when it's genuinely higher than the
+  // charge) so an item can show a saving without ever lying about the total.
+  const compareNum = (p: Program) => parseFloat(p.compareAtPrice || "0") || 0;
+  const strikePrice = (p: Program) =>
+    compareNum(p) > priceNum(p) ? compareNum(p) : 0;
+
   const detailIsAddon = detailProgram ? isAddonProgram(detailProgram) : false;
-  const detailAddonOptions = detailProgram
-    ? storePrograms.filter(
-        (p) => isAddonProgram(p) && p.recordId !== detailProgram.recordId
-      )
-    : [];
+  const detailIsBundle = detailProgram ? isBundleProgram(detailProgram) : false;
+  const detailBundleItems = detailProgram ? bundleIncludes(detailProgram) : [];
+  const detailBundleRegular = detailProgram
+    ? bundleIndividualTotal(detailProgram)
+    : 0;
+  // Bundles don't take add-ons (they already package multiple programs).
+  const detailAddonOptions =
+    detailProgram && !detailIsBundle
+      ? storePrograms.filter(
+          (p) => isAddonProgram(p) && p.recordId !== detailProgram.recordId
+        )
+      : [];
   const detailSelectedAddons = detailAddonOptions.filter((a) =>
     detailAddonIds.includes(a.recordId)
   );
@@ -992,17 +1005,35 @@ export default function StorePage({
                 ? "专业、循证、可执行的训练周期。"
                 : "Professional, evidence-based training you can schedule around real life.");
             const goal = sZh ? p.goalCn || p.goal : p.goal;
-            const includes = [
-              formatDuration(p),
-              p.level && (sZh ? `${p.level} 水平` : `${p.level} level`),
-              goal,
-            ].filter(Boolean) as string[];
+            // A bundle lists the programs it packages; a single program lists
+            // its own duration/level/goal.
+            const includes = detailIsBundle
+              ? detailBundleItems.map((m) =>
+                  sZh && m.programNameCn ? m.programNameCn : m.programName
+                )
+              : ([
+                  formatDuration(p),
+                  p.level && (sZh ? `${p.level} 水平` : `${p.level} level`),
+                  goal,
+                ].filter(Boolean) as string[]);
             const catTitle = storeCategories.find(
               (c) => c.id === getProgramCategory(p)
             )?.title;
             const tags = [
-              catTitle,
-              sZh ? `第 ${seasonNum(p)} 季` : `Season ${seasonNum(p)}`,
+              detailIsBundle
+                ? sZh
+                  ? "套餐"
+                  : "Bundle"
+                : detailIsAddon
+                  ? sZh
+                    ? "加购"
+                    : "Add-on"
+                  : catTitle,
+              !detailIsBundle && !detailIsAddon
+                ? sZh
+                  ? `第 ${seasonNum(p)} 季`
+                  : `Season ${seasonNum(p)}`
+                : "",
               p.level,
             ].filter(Boolean) as string[];
             return (
@@ -1047,14 +1078,27 @@ export default function StorePage({
                     </div>
                     <h3 className="storeDetailTitle">{name}</h3>
                     <p className="storeDetailDesc">{desc}</p>
-                    <div className="storeDetailIncludes">
-                      {includes.map((inc, i) => (
-                        <div key={i}>
-                          <Check size={16} />
-                          <span>{inc}</span>
+                    {includes.length > 0 && (
+                      <>
+                        <strong className="storeDetailIncludesTitle">
+                          {detailIsBundle
+                            ? sZh
+                              ? "套餐包含"
+                              : "Programs in this bundle"
+                            : sZh
+                              ? "包含内容"
+                              : "What's included"}
+                        </strong>
+                        <div className="storeDetailIncludes">
+                          {includes.map((inc, i) => (
+                            <div key={i}>
+                              <Check size={16} />
+                              <span>{inc}</span>
+                            </div>
+                          ))}
                         </div>
-                      ))}
-                    </div>
+                      </>
+                    )}
 
                     {!detailIsAddon && detailAddonOptions.length > 0 && (
                       <div className="storeDetailAddons">
@@ -1062,14 +1106,14 @@ export default function StorePage({
                           <Plus size={16} />
                           <strong>
                             {sZh
-                              ? "加购关节专项训练"
-                              : "Add joint-specific training"}
+                              ? "加购关节专项训练（优惠价）"
+                              : "Add joint-specific training at a discount"}
                           </strong>
                         </div>
                         <p>
                           {sZh
-                            ? "为你的计划搭配针对性的关节强化模块，一起训练。"
-                            : "Bundle a targeted resilience block to run alongside your program."}
+                            ? "为你的计划搭配针对性的关节强化模块，一起训练，享受搭配优惠价。"
+                            : "Bundle a targeted resilience block alongside your program at a reduced price."}
                         </p>
                         <div className="storeDetailAddonList">
                           {detailAddonOptions.map((a) => {
@@ -1099,6 +1143,11 @@ export default function StorePage({
                                   <small>{formatDuration(a)}</small>
                                 </span>
                                 <span className="storeAddonPrice">
+                                  {strikePrice(a) > 0 && (
+                                    <s>
+                                      {a.currency || "CNY"} {strikePrice(a)}
+                                    </s>
+                                  )}
                                   {a.currency || "CNY"} {priceNum(a)}
                                 </span>
                               </button>
@@ -1114,9 +1163,34 @@ export default function StorePage({
                           {sZh ? "一次性" : "ONE-TIME"}
                         </span>
                         <span className="storeDetailPayTotal">
+                          {(() => {
+                            // Struck "was" price: a bundle's members-summed
+                            // total, else the item's own Compare At price — only
+                            // when no add-ons are stacked (which would make the
+                            // comparison meaningless) and it beats the total.
+                            const wasPrice = detailIsBundle
+                              ? detailBundleRegular
+                              : strikePrice(p);
+                            return (
+                              detailSelectedAddons.length === 0 &&
+                              wasPrice > detailTotal && (
+                                <s className="storeDetailWas">
+                                  {detailCurrency} {wasPrice}
+                                </s>
+                              )
+                            );
+                          })()}
                           {detailCurrency} {detailTotal}
                         </span>
                       </div>
+                      {detailIsBundle &&
+                        detailBundleRegular > detailBase && (
+                          <div className="storeDetailSaveRow">
+                            {sZh
+                              ? `立省 ${detailCurrency} ${detailBundleRegular - detailBase}`
+                              : `Save ${detailCurrency} ${detailBundleRegular - detailBase} vs buying separately`}
+                          </div>
+                        )}
                       {detailSelectedAddons.length > 0 && (
                         <div className="storeDetailBreakdown">
                           <div>
@@ -1552,7 +1626,11 @@ export default function StorePage({
                               className="primaryButton"
                               disabled={storeRegistering}
                               onClick={() =>
-                                void registerForProgram(sp, selectedAddons)
+                                void registerForProgram(
+                                  sp,
+                                  selectedAddons,
+                                  isBundleProgram(sp) ? bundleIncludes(sp) : []
+                                )
                               }
                             >
                               {storeRegistering

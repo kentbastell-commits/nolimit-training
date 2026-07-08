@@ -42,6 +42,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       status,
       productType,
       price,
+      compareAtPrice,
       currency,
       publicStoreVisible,
       purchaseLink,
@@ -83,6 +84,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // URLFieldConvFail) and that fails the whole update. The store form sends
     // "" for these on every non-digital program, so omit empties instead.
     if (price !== undefined && price !== "") fields.Price = Number(price) || 0;
+    if (compareAtPrice !== undefined && compareAtPrice !== "") {
+      fields["Compare At Price"] = Number(compareAtPrice) || 0;
+    }
     if (currency !== undefined) fields.Currency = currency;
     if (publicStoreVisible !== undefined) {
       fields["Public Store Visible"] = Boolean(publicStoreVisible) as any;

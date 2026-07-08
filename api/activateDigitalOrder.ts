@@ -135,6 +135,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     defaultIntakeFormId,
     paymentCode,
     addons,
+    bundleItems,
     languagePreference,
   } = req.body;
 
@@ -161,6 +162,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               : undefined,
             programName: item.programName ? String(item.programName) : undefined,
             amount: item.amount,
+          }))
+      : []),
+    // Bundle members: an order each so the buyer owns every included program,
+    // but with NO amount — the bundle line above carries the single charge.
+    ...(Array.isArray(bundleItems)
+      ? bundleItems
+          .filter((item: any) => item && item.programId)
+          .map((item: any) => ({
+            programId: String(item.programId),
+            programRecordId: item.programRecordId
+              ? String(item.programRecordId)
+              : undefined,
+            programName: item.programName ? String(item.programName) : undefined,
+            amount: undefined,
           }))
       : []),
   ];

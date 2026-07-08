@@ -93,6 +93,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         bundleProgramIds: fieldToText(fields["Bundle Program IDs"]),
         productType: fieldToText(fields["Product Type"]),
         price: fieldToText(fields["Price"]),
+        compareAtPrice: fieldToText(fields["Compare At Price"]),
         currency: fieldToText(fields["Currency"]),
         publicStoreVisible: Boolean(fields["Public Store Visible"]),
         purchaseLink: fieldToText(fields["Purchase Link"]),

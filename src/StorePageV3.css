@@ -436,9 +436,13 @@
   letter-spacing: 0.5px; margin: 0 0 14px; color: #121210;
 }
 .storeDetailDesc { font-size: 15px; line-height: 1.6; color: #6b6459; margin: 0 0 22px; }
+.storeDetailIncludesTitle { display: block; font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase; color: #9f7a1b; margin-bottom: 12px; }
 .storeDetailIncludes { display: flex; flex-direction: column; gap: 10px; margin-bottom: 26px; }
 .storeDetailIncludes > div { display: flex; align-items: center; gap: 10px; font-size: 14px; color: #26221a; }
 .storeDetailIncludes svg { flex-shrink: 0; color: #9f7a1b; }
+.storeAddonPrice s { color: #a39b88; font-weight: 500; margin-right: 6px; font-size: 12.5px; }
+.storeDetailWas { color: #b6ad99; font-weight: 500; font-size: 20px; margin-right: 10px; -webkit-text-fill-color: #b6ad99; }
+.storeDetailSaveRow { font-size: 13px; font-weight: 600; color: #e6c766; margin: -2px 0 4px; }
 
 .storeDetailAddons {
   padding: 20px; margin-bottom: 24px;

@@ -100,6 +100,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       status,
       productType,
       price,
+      compareAtPrice,
       currency,
       publicStoreVisible,
       purchaseLink,
@@ -162,6 +163,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const optionalProductFields = {
       "Product Type": productType || "Digital Program",
       Price: price === "" || price === undefined ? "" : Number(price) || 0,
+      "Compare At Price":
+        compareAtPrice === "" || compareAtPrice === undefined
+          ? ""
+          : Number(compareAtPrice) || 0,
       Currency: currency || "CNY",
       "Public Store Visible": Boolean(publicStoreVisible),
       "Purchase Link": purchaseLink || "",

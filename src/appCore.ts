@@ -174,6 +174,7 @@ export type Program = {
   bundleProgramIds?: string;
   productType?: string;
   price?: string;
+  compareAtPrice?: string;
   currency?: string;
   publicStoreVisible?: boolean;
   purchaseLink?: string;

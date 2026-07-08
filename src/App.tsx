@@ -10257,7 +10257,11 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     return `NL-${code}`;
   };
 
-  const registerForProgram = async (program: Program, addonList: Program[] = []) => {
+  const registerForProgram = async (
+    program: Program,
+    addonList: Program[] = [],
+    bundleMembers: Program[] = []
+  ) => {
     if (!storeRegName.trim() || !storeRegPhone.trim()) {
       notify(
         storeLang === "zh"
@@ -10295,6 +10299,14 @@ function App({ onReady }: { onReady?: () => void } = {}) {
             programRecordId: addon.recordId,
             programName: addon.programName,
             amount: Number(addon.price) || undefined,
+          })),
+          // Bundle members are fulfilled (an order each so the client actually
+          // owns every included program) but carry no amount — the bundle's own
+          // price is the single charge, so members must not double-bill.
+          bundleItems: bundleMembers.map((member) => ({
+            programId: member.programId,
+            programRecordId: member.recordId,
+            programName: member.programName,
           })),
         }),
       });
