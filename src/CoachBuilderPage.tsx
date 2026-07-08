@@ -7,6 +7,8 @@ import { Fragment } from "react";
 import { ChevronDown, ChevronLeft, ChevronsLeftRight, Copy, Dumbbell, Eye, GripVertical, Link2, MoreVertical, Pencil, Plus, RefreshCw, Settings, Shuffle, Trash2, X } from "lucide-react";
 import type { Program, ProgramSession } from "./appCore";
 import { getWorkoutColorClass, normalizeDate } from "./appCore";
+import { TEST_CATEGORIES, testCategoryLabelKey } from "./testVisuals";
+import { useTranslation } from "react-i18next";
 
 export default function CoachBuilderPage({
   accessoryTargetIndex,
@@ -299,8 +301,9 @@ export default function CoachBuilderPage({
   setSessionSetupOpen,
   setSessionType,
   setShowProgramDetail,
+  setTestTemplateCategory,
   setTestTemplateName,
-  setTestView,
+  exitTestBuilder,
   setWeekDupMenu,
   setWeekDupPct,
   setWorkoutTabsMenuOpen,
@@ -310,6 +313,7 @@ export default function CoachBuilderPage({
   startNewSession,
   teams,
   testItems,
+  testTemplateCategory,
   testTemplateName,
   testTemplatesLoading,
   testView,
@@ -336,6 +340,7 @@ export default function CoachBuilderPage({
   workoutTabList,
   workoutTabsMenuOpen,
 }: { [key: string]: any }) {
+  const { t } = useTranslation();
   return (
     <>
               <>
@@ -4497,16 +4502,12 @@ export default function CoachBuilderPage({
                   </section>
                 )}
 
-                {workoutPageTab === "Tests" &&
-                  testView === "list" &&
-                  renderTemplateLibrary("test")}
-
                 {workoutPageTab === "Tests" && testView === "builder" && (
                   <section className="tableCard builderHubPanel">
                     <button
                       type="button"
                       className="builderBackLink"
-                      onClick={() => setTestView("list")}
+                      onClick={() => exitTestBuilder()}
                     >
                       <ChevronLeft size={16} /> Tests
                     </button>
@@ -4640,6 +4641,22 @@ export default function CoachBuilderPage({
                               value={testTemplateName}
                               onChange={(e) => setTestTemplateName(e.target.value)}
                             />
+                          </label>
+                          <label>
+                            <span>{t("testsCategoryLabel")}</span>
+                            <select
+                              className="miniSearch"
+                              value={testTemplateCategory}
+                              onChange={(e) =>
+                                setTestTemplateCategory(e.target.value)
+                              }
+                            >
+                              {TEST_CATEGORIES.map((category) => (
+                                <option key={category} value={category}>
+                                  {t(testCategoryLabelKey(category))}
+                                </option>
+                              ))}
+                            </select>
                           </label>
                         </div>
 

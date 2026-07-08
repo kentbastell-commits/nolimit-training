@@ -175,6 +175,7 @@ const CoachTeamsPage = withSuspense(() => import("./CoachTeamsPage"));
 const CoachRevenuePage = withSuspense(() => import("./CoachRevenuePage"));
 const CoachBuilderPage = withSuspense(() => import("./CoachBuilderPage"));
 const CoachLibraryPage = withSuspense(() => import("./CoachLibraryPage"));
+const CoachTestsPage = withSuspense(() => import("./CoachTestsPage"));
 const CoachesAdminPage = withSuspense(() => import("./CoachesAdminPage"));
 const ClientWorkspace = withSuspense(() => import("./ClientWorkspace"));
 const CheckInsPage = withSuspense(() => import("./CheckInsPage"));
@@ -248,6 +249,7 @@ function App() {
       "Teams",
       "Library",
       "Workouts",
+      "Tests",
       "Review",
       "Coaches",
       "Orders",
@@ -1457,6 +1459,7 @@ function App() {
   const [formTemplatesLoading, setFormTemplatesLoading] = useState(false);
   const [savingFormTemplate, setSavingFormTemplate] = useState(false);
   const [testTemplateName, setTestTemplateName] = useState("Performance Test");
+  const [testTemplateCategory, setTestTemplateCategory] = useState("Other");
   const [testItems, setTestItems] = useState([
     {
       id: "T1",
@@ -3753,6 +3756,7 @@ function App() {
     }
 
     setTestTemplateName(test.name || test.testTemplateId || "Untitled Test");
+    setTestTemplateCategory(test.category || "Other");
     setEditingTestTemplate({
       recordId: test.recordId,
       testTemplateId: test.testTemplateId,
@@ -3794,6 +3798,7 @@ function App() {
     }
 
     setTestTemplateName(`${test.name || test.testTemplateId || "Untitled Test"} Copy`);
+    setTestTemplateCategory(test.category || "Other");
     setEditingTestTemplate(null);
     setTestItems(
       test.items.length > 0
@@ -3976,6 +3981,7 @@ function App() {
           recordId: editingTestTemplate?.recordId,
           testTemplateId: editingTestTemplate?.testTemplateId,
           name: testTemplateName,
+          category: testTemplateCategory,
           status: "Active",
           items: testItems,
         }),
@@ -5030,6 +5036,7 @@ function App() {
 
   const startNewTest = () => {
     setTestTemplateName("");
+    setTestTemplateCategory("Other");
     setEditingTestTemplate(null);
     setTestItems([
       {
@@ -5045,6 +5052,34 @@ function App() {
       },
     ]);
     setTestView("builder");
+  };
+
+  // The Tests library page lives on its own nav tab; the Physical Test
+  // Builder still lives inside the Programming page. These handlers hop
+  // between the two so create/edit/duplicate from the Tests page lands in
+  // the builder, and the builder's back link returns to the Tests page.
+  const openTestFromTestsPage = (test?: SavedTestTemplate) => {
+    if (test) {
+      setSelectedSavedTestId(test.testTemplateId);
+      loadSavedTestIntoBuilder(test);
+      setTestView("builder");
+    } else {
+      startNewTest();
+    }
+    setWorkoutPageTab("Tests");
+    setActivePage("Workouts");
+  };
+
+  const duplicateTestFromTestsPage = (test: SavedTestTemplate) => {
+    duplicateSavedTestIntoBuilder(test);
+    setTestView("builder");
+    setWorkoutPageTab("Tests");
+    setActivePage("Workouts");
+  };
+
+  const exitTestBuilder = () => {
+    setTestView("list");
+    setActivePage("Tests");
   };
 
   const loadProgramSessionsForAssignment = async () => {
@@ -9996,10 +10031,11 @@ function App() {
   // Top nav for the programming area: Programs | Sessions | Tests | Forms.
   // The multi-day builder ("Program Builder") is reached from Programs, not a
   // tab. Assignments now happens from the Programs table, so it's off the bar.
+  // Tests moved to its own nav tab (CoachTestsPage); the "Tests" value stays
+  // in WorkoutPageTab because the Physical Test Builder still renders under it.
   const workoutTabList: { value: WorkoutPageTab; label: string }[] = [
     { value: "Saved Programs", label: "Programs" },
     { value: "Sessions", label: "Sessions" },
-    { value: "Tests", label: "Tests" },
     { value: "Forms", label: "Forms" },
   ];
 
@@ -10560,6 +10596,13 @@ function App() {
           mobileLabel: "Build",
           count: workouts.length,
           icon: Dumbbell,
+        },
+        {
+          name: "Tests",
+          label: "Tests",
+          mobileLabel: "Tests",
+          count: savedTestTemplates.length,
+          icon: ClipboardList,
         },
       ],
     },
@@ -18026,8 +18069,9 @@ function App() {
                 setSessionSetupOpen={setSessionSetupOpen}
                 setSessionType={setSessionType}
                 setShowProgramDetail={setShowProgramDetail}
+                setTestTemplateCategory={setTestTemplateCategory}
                 setTestTemplateName={setTestTemplateName}
-                setTestView={setTestView}
+                exitTestBuilder={exitTestBuilder}
                 setWeekDupMenu={setWeekDupMenu}
                 setWeekDupPct={setWeekDupPct}
                 setWorkoutTabsMenuOpen={setWorkoutTabsMenuOpen}
@@ -18037,6 +18081,7 @@ function App() {
                 startNewSession={startNewSession}
                 teams={teams}
                 testItems={testItems}
+                testTemplateCategory={testTemplateCategory}
                 testTemplateName={testTemplateName}
                 testTemplatesLoading={testTemplatesLoading}
                 testView={testView}
@@ -18062,6 +18107,18 @@ function App() {
                 workoutPageTab={workoutPageTab}
                 workoutTabList={workoutTabList}
                 workoutTabsMenuOpen={workoutTabsMenuOpen}
+              />
+            )}
+
+            {activePage === "Tests" && (
+              <CoachTestsPage
+                savedTestTemplates={savedTestTemplates}
+                testTemplatesLoading={testTemplatesLoading}
+                loadTestTemplates={loadTestTemplates}
+                onCreateTest={openTestFromTestsPage}
+                onEditTest={openTestFromTestsPage}
+                onDuplicateTest={duplicateTestFromTestsPage}
+                deleteSavedTestTemplate={deleteSavedTestTemplate}
               />
             )}
 

@@ -78,7 +78,12 @@ Response ID | Assigned Forms ID | Form ID | Client ID | Submitted At | Answers J
 
 ## Test Templates
 
-Test Template ID | Name | Name CN | Description | Description CN
+Test Template ID | Name | Name CN | Description | Description CN | Category
+
+Category holds a stable English value from TEST_CATEGORIES in src/testVisuals.ts
+(Strength, Power, Speed & Agility, Energy Systems, Mobility & Flexibility,
+Balance & Stability, Skill & Technique, Body Composition, Other) — displayed
+localized, never persisted translated.
 
 ## Test Items
 

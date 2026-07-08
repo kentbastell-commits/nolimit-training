@@ -1,0 +1,149 @@
+/* Co-located styles for CoachTestsPage — loads with the page chunk, not the
+   main bundle. Category accents arrive as CSS vars (--test-tone*) set inline
+   per card from testVisuals.ts. Palette matches the coach UI (cream/ink). */
+.ctpPage { max-width: 960px; margin: 0 auto; width: 100%; }
+.ctpHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.ctpHead h2 { margin: 2px 0 0; font-size: 1.9rem; color: #10100f; }
+.ctpHead .goldButton { display: inline-flex; align-items: center; gap: 6px; }
+.ctpSearch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 14px 0 4px;
+  border: 1px solid #dcd8cd;
+  border-radius: 10px;
+  padding: 8px 12px;
+  color: #66645e;
+  background: #fff;
+}
+.ctpSearch input {
+  border: none;
+  outline: none;
+  font: inherit;
+  flex: 1;
+  background: transparent;
+  color: #10100f;
+}
+.ctpMuted { color: #66645e; font-size: 0.9rem; font-weight: 600; }
+.ctpGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+.ctpCard {
+  text-align: left;
+  background: #fff;
+  border: 1px solid #dcd8cd;
+  border-left: 4px solid var(--test-tone, #4f5258);
+  border-radius: 14px;
+  padding: 14px 16px;
+  cursor: pointer;
+  font: inherit;
+  display: grid;
+  gap: 4px;
+  transition: box-shadow 0.15s ease, transform 0.15s ease, border-color 0.15s ease;
+}
+.ctpCard:hover {
+  transform: translateY(-2px);
+  border-color: var(--test-tone-border, #c3bca8);
+  box-shadow: 0 10px 26px rgba(14, 14, 13, 0.08);
+}
+.ctpCard strong { font-size: 0.98rem; color: #10100f; }
+.ctpCard span { color: var(--test-tone, #4f5258); font-weight: 700; font-size: 0.84rem; }
+.ctpCard em { color: #66645e; font-style: normal; font-size: 0.78rem; }
+.ctpCategoryCard { background: var(--test-tone-soft, #faf9f5); }
+.ctpCategoryCard strong { font-size: 1.12rem; }
+.ctpBack {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: #66645e;
+  font: inherit;
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 6px 0;
+  margin-top: 6px;
+}
+.ctpBack:hover { color: #10100f; }
+.ctpCategoryTitle {
+  margin: 6px 0 0;
+  font-size: 1.35rem;
+  color: var(--test-tone, #10100f);
+}
+
+/* Detail view */
+.ctpDetail {
+  background: #fff;
+  border: 1px solid #dcd8cd;
+  border-top: 4px solid var(--test-tone, #4f5258);
+  border-radius: 14px;
+  padding: 18px 20px;
+  margin-top: 8px;
+}
+.ctpDetailHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.ctpDetailHeader h2 { margin: 8px 0 0; font-size: 1.5rem; color: #10100f; }
+.ctpDetailHeader p { margin: 6px 0 0; color: #66645e; font-weight: 600; }
+.ctpCategoryBadge {
+  display: inline-block;
+  background: var(--test-tone-soft, rgba(79, 82, 88, 0.12));
+  color: var(--test-tone, #4f5258);
+  border: 1px solid var(--test-tone-border, rgba(79, 82, 88, 0.34));
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-weight: 800;
+  font-size: 0.78rem;
+}
+.ctpDetailActions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.ctpDetailActions button { display: inline-flex; align-items: center; gap: 6px; }
+.ctpDetail h3 { margin: 16px 0 8px; color: #10100f; }
+.ctpItemList { display: grid; gap: 8px; }
+.ctpItemRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  border: 1px solid #e4e0d6;
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: #faf9f5;
+}
+.ctpItemOrder {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--test-tone-soft, rgba(79, 82, 88, 0.12));
+  color: var(--test-tone, #4f5258);
+  font-weight: 800;
+  font-size: 0.78rem;
+}
+.ctpItemName { font-weight: 700; color: #10100f; }
+.ctpItemMeta { color: #66645e; font-size: 0.84rem; font-weight: 600; }
+.ctpItemMetric {
+  margin-left: auto;
+  color: var(--test-tone, #4f5258);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+@media (max-width: 620px) {
+  .ctpItemMetric { margin-left: 34px; width: 100%; }
+}

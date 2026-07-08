@@ -303,6 +303,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           ]),
           description: readField(fields, ["description", "Description"]),
           descriptionCn: readField(fields, ["Description CN"]),
+          category: readField(fields, ["category", "Category", "Test Category"]),
           status: readField(fields, ["status", "Status"]),
           createdAt: readField(fields, ["createdAt", "Created At"]),
           items: items
@@ -385,7 +386,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         getTableFieldNames(testItemsTableId, token),
       ]);
 
-      const { recordId, testTemplateId, name, description, status, items } =
+      const { recordId, testTemplateId, name, description, category, status, items } =
         req.body || {};
 
       if (!recordId || !testTemplateId) {
@@ -410,6 +411,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             required: true,
           },
           { aliases: ["Description", "description"], value: String(description || "") },
+          { aliases: ["Category", "Test Category"], value: String(category || "") },
           { aliases: ["Status", "status"], value: String(status || "Active") },
         ]
       );
@@ -546,7 +548,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(405).json({ error: "Method not allowed" });
     }
 
-    const { name, description, status, items } = req.body;
+    const { name, description, category, status, items } = req.body;
 
     if (!name) {
       return res.status(400).json({ error: "Missing test template name" });
@@ -572,6 +574,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           required: true,
         },
         { aliases: ["Description", "description"], value: String(description || "") },
+        { aliases: ["Category", "Test Category"], value: String(category || "") },
         { aliases: ["Status", "status"], value: String(status || "Active") },
         { aliases: ["Created At", "createdAt"], value: toLarkDate() },
       ]

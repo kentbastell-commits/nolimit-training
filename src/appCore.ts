@@ -8,6 +8,7 @@ export type Page =
   | "Teams"
   | "Library"
   | "Workouts"
+  | "Tests"
   | "Check-ins"
   | "Orders"
   | "Review"
@@ -686,6 +687,7 @@ export type SavedTestTemplate = {
   nameCn?: string;
   description: string;
   descriptionCn?: string;
+  category?: string;
   status: string;
   createdAt: string;
   items: SavedTestItem[];
