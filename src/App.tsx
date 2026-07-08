@@ -76,7 +76,6 @@ import {
   languagePreferenceToCode,
   lookupTextMatches,
   makeExerciseLabel,
-  nativeFetch,
   normalizeDate,
   normalizeLookupText,
   normalizeTaskStatus,
@@ -469,50 +468,6 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   >("syncing");
   // Store checkout staged progress (the activation call takes several seconds).
   const [storeRegStage, setStoreRegStage] = useState(0);
-  // Coach access lock: the dashboard stays covered until the access key is
-  // entered once on this device (verified against the server).
-  const [coachUnlocked, setCoachUnlocked] = useState(() => {
-    try {
-      return Boolean(window.localStorage.getItem("nl_coach_key"));
-    } catch {
-      return true;
-    }
-  });
-  // If the server isn't enforcing a key (COACH_ACCESS_KEY unset), skip the
-  // lock screen entirely instead of asking for a key nothing checks.
-  useEffect(() => {
-    if (!isCoachView || coachUnlocked) return;
-    void nativeFetch("/api/analytics")
-      .then((res) => {
-        if (res.status !== 401) setCoachUnlocked(true);
-      })
-      .catch(() => {});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-  const [coachKeyInput, setCoachKeyInput] = useState("");
-  const [coachKeyError, setCoachKeyError] = useState("");
-  const [coachKeyBusy, setCoachKeyBusy] = useState(false);
-  const tryUnlockCoach = async () => {
-    const key = coachKeyInput.trim();
-    if (!key) return;
-    setCoachKeyBusy(true);
-    setCoachKeyError("");
-    try {
-      const res = await nativeFetch("/api/analytics", {
-        headers: { "x-coach-key": key },
-      });
-      if (res.status === 401) {
-        setCoachKeyError("Wrong access key.");
-        return;
-      }
-      window.localStorage.setItem("nl_coach_key", key);
-      window.location.reload();
-    } catch {
-      setCoachKeyError("Could not verify — check your connection and retry.");
-    } finally {
-      setCoachKeyBusy(false);
-    }
-  };
   // Duplicate a whole program (record + all sessions) server-side.
   const [duplicatingProgramId, setDuplicatingProgramId] = useState("");
   const duplicateSavedProgram = async (program: { recordId: string; programName: string }) => {
@@ -19009,35 +18964,6 @@ function App({ onReady }: { onReady?: () => void } = {}) {
             if (file) void submitFormVideo(file);
           }}
         />
-
-        {isCoachView && !coachUnlocked && (
-          <div className="coachLockOverlay">
-            <div className="coachLockCard">
-              <img src="/nl_seal_black.png" alt="NoLimit" />
-              <h2>Coach Access</h2>
-              <p>Enter your access key to open the coaching dashboard.</p>
-              <input
-                type="password"
-                value={coachKeyInput}
-                onChange={(e) => setCoachKeyInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") void tryUnlockCoach();
-                }}
-                placeholder="Access key"
-                autoFocus
-              />
-              {coachKeyError && <span>{coachKeyError}</span>}
-              <button
-                type="button"
-                className="primaryButton"
-                disabled={coachKeyBusy}
-                onClick={() => void tryUnlockCoach()}
-              >
-                {coachKeyBusy ? "Checking…" : "Unlock"}
-              </button>
-            </div>
-          </div>
-        )}
 
         {portalStartPicker && isClientPortal && (
           <div className="startPickerOverlay">

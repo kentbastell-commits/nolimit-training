@@ -13620,7 +13620,6 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 }
 .findPortalError { color: #a02533; font-size: 13px; font-weight: 600; }
 .celebrationSync.done { color: #7fd39a; }
-.coachLockCard .primaryButton { width: 100%; }
 .mobileClientBottomNav button { position: relative; }
 .coachTodayRow.warn { border-color: rgba(160, 37, 51, 0.4); background: #fdf3f0; }
 .coachTodayRow.warn strong { color: #7c2230; }
