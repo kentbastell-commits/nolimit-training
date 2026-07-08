@@ -623,13 +623,12 @@ export default function StorePage({
                       aria-label={name}
                     />
                     <div className="storeProductVisualV2">
-                      {program.productImage ? (
-                        <img src={program.productImage} alt={name} loading="lazy" />
-                      ) : (
-                        <div className="storeProductFallbackV2">
-                          <img src="/nl_monogram_clean.png" alt="" />
-                        </div>
-                      )}
+                      {/* Always the clean branded visual (dark gradient + faint
+                          monogram), not the uploaded productImage — matches the
+                          store design reference and keeps every card uniform. */}
+                      <div className="storeProductFallbackV2">
+                        <img src="/nl_monogram_clean.png" alt="" />
+                      </div>
                       <span>{category?.title || (sZh ? "训练计划" : "Program")}</span>
                     </div>
                     <div className="storeProductBodyV2">
