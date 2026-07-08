@@ -8,6 +8,8 @@ import { defineConfig, devices } from "@playwright/test";
 //   BASE_URL=http://localhost:3001 ...  -> tests a local server
 export default defineConfig({
   testDir: "./tests",
+  // Only *.spec.ts is Playwright's; tests/unit/**/*.test.ts* belongs to vitest.
+  testMatch: /.*\.spec\.ts/,
   timeout: 90_000,
   expect: { timeout: 15_000 },
   retries: 1,
