@@ -168,7 +168,11 @@ invented procedure is not.
   `cd` explicitly in compound commands. Python needs `PYTHONIOENCODING=utf-8` for
   CJK output.
 - Server: `ssh nolimit` (43.132.228.109). Node/npm on server via lighthouse paths.
-- Local `.env` in each repo has Feishu creds for its own base only. `AI_API_KEY`
+- Feishu creds: kangfu's local `.env` has them; **nolimit's local `.env` has only
+  `DATABASE_URL`** (Postgres work) — its Feishu creds live only in
+  `/opt/nolimit-training/.env` on the server. Any nolimit Feishu admin op (add
+  column, seed) = scp the script to the server and run it there; local
+  `npm run start` can't serve nolimit's Feishu-backed handlers. `AI_API_KEY`
   exists only on the kangfu server.
 - Skills: `/deploy`, `/bilingual-sweep`, `/seed-feishu`, `/extract-approach` in
   `.claude/skills/` cover the recurring workflows — prefer them over improvising.
