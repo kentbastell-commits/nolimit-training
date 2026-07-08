@@ -24,4 +24,17 @@ describe("SplashScreen", () => {
       timeout: 1500,
     });
   });
+
+  it("tracked mode holds while booting, then finishes once done flips true", async () => {
+    const onFinish = vi.fn();
+    const { rerender } = render(<SplashScreen done={false} onFinish={onFinish} />);
+    // Still booting — the bars trickle but must not complete on their own.
+    await new Promise((r) => setTimeout(r, 300));
+    expect(onFinish).not.toHaveBeenCalled();
+    // App signals ready — the fill should reach 100% and finish.
+    rerender(<SplashScreen done={true} onFinish={onFinish} />);
+    await waitFor(() => expect(onFinish).toHaveBeenCalledTimes(1), {
+      timeout: 2500,
+    });
+  });
 });

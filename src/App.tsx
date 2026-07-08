@@ -194,8 +194,17 @@ const AssignmentDrawer = withSuspense(() => import("./AssignmentDrawer"), null);
 const CreateProgramModal = withSuspense(() => import("./CreateProgramModal"), null);
 const ProgramPreviewModal = withSuspense(() => import("./ProgramPreviewModal"), null);
 
-function App() {
+function App({ onReady }: { onReady?: () => void } = {}) {
   const { t, i18n } = useTranslation();
+  // Fire the boot-splash "ready" signal exactly once, when the first meaningful
+  // screen has its data: the client portal once its client resolves, the coach
+  // console once the initial clients fetch settles.
+  const bootReadyRef = useRef(false);
+  const fireBootReady = () => {
+    if (bootReadyRef.current) return;
+    bootReadyRef.current = true;
+    onReady?.();
+  };
   // Load the ~2MB Chinese font set only when the language is Chinese.
   useEffect(() => {
     if (i18n.language === "zh") {
@@ -2215,7 +2224,11 @@ function App() {
         .catch(() => setStoreReviews([]));
       return;
     }
-    loadClients();
+    void loadClients().then(() => {
+      // Coach console is ready once the clients fetch settles. The portal waits
+      // instead for its client to resolve (see the selectedClient effect below).
+      if (!isClientPortal) fireBootReady();
+    });
     void loadNotifications();
     // Coaches / teams / subscriptions / coach reviews are coach-only — don't
     // make the client portal wait on (or fetch) them.
@@ -2226,6 +2239,13 @@ function App() {
       void loadCoachReviews();
     }
   }, []);
+
+  // Client portal: ready as soon as its client resolves (the "Loading your
+  // training portal" gate clears), so the splash hands off to a populated view.
+  useEffect(() => {
+    if (isClientPortal && selectedClient) fireBootReady();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isClientPortal, selectedClient]);
 
   useEffect(() => {
     // The portal needs orders (purchased programs); the coach only on

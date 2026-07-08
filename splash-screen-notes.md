@@ -45,12 +45,27 @@ Fix applied (exactly the fallback the prompt anticipated):
 
 Result: clean gold "NØLIMIT" wordmark on the dark splash, no box.
 
-## Behavior
+## Behavior — tracks real loading
 
-Timed fill as shipped: self-runs a ~2.6s charge, dwells ~0.45s at 100%, then
-mounts `<App />`. To tie it to real boot work instead, pass
-`progress={0..100}` from your own load steps and drive the reveal off that (the
-component already supports a controlled `progress` prop).
+The bars rise **in sync with the real boot**, not a fixed timer:
+
+- `src/main.tsx` mounts `<App onReady={…}/>` immediately, so it fetches data
+  *underneath* the splash, and overlays `<SplashScreen done={booted}/>` on top.
+- While booting (`done=false`) the bars trickle up and hold near ~90% so they
+  keep moving without ever completing early. When `App` signals ready
+  (`onReady`), `done` flips true and the bars snap to 100%, dwell ~0.45s, then
+  the overlay is removed — revealing an already-populated app (so the client
+  portal's own "Loading…" card no longer flashes afterwards).
+- `App` fires `onReady` once: the **client portal** the moment its client
+  resolves (`selectedClient`), the **coach console** once the initial clients
+  fetch settles.
+- Safety net in `main.tsx`: a 10s timeout forces completion so an unresolvable
+  boot (e.g. a bad portal link, which renders its own error) can never trap the
+  user behind the splash.
+
+`SplashScreen` still supports two other modes for standalone use: a controlled
+`progress={0..100}` prop, and a self-running ~2.6s timed fill when neither
+`progress` nor `done` is passed.
 
 ## Verification
 
