@@ -97,6 +97,13 @@ data between them, never "borrow" a table ID across products.
     while a single file passes: that's worker memory exhaustion, not broken tests.
     Rule: keep `maxWorkers` capped in vitest.config.ts (currently 4); if the whole
     suite dies weirdly, re-run one file before touching any test code.
+16. **The clobbered intent** — the store checkout has a `useEffect` keyed on
+    `storeSelectedProgram?.recordId` that resets step/add-ons/paymentCode. Any
+    handler that sets one of those *while also changing the selected program*
+    (e.g. the detail popup's "Get this program") has its `setState` wiped by that
+    effect on the same render. Rule: carry it through an intent ref the effect
+    adopts (`storeStepIntentRef`, `storeAddonIntentRef`) via `requestStoreStep` /
+    `requestStoreAddonIds` — never `setStore*` it directly alongside the program.
 
 ## Quality bar — checkable, per deliverable
 
