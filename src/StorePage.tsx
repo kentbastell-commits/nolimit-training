@@ -73,6 +73,7 @@ export default function StorePage({
   storeStep,
   setStoreStep,
   requestStoreStep,
+  requestStoreAddonIds,
   storeCategoryFilter,
   setStoreCategoryFilter,
   storeFaqOpen,
@@ -318,9 +319,12 @@ export default function StorePage({
     if (!goBack) setCatalogSport(null);
   };
   const getThisProgram = (program: Program) => {
+    // Carry the step + chosen add-ons through the program-change reset effect
+    // via the intent refs; setting add-on ids directly here would be wiped by
+    // that effect on the same render, dropping them from the cart.
     requestStoreStep(3);
+    requestStoreAddonIds(detailAddonIds);
     setStoreSelectedProgram(program);
-    setStoreSelectedAddonIds(detailAddonIds);
     setStoreStep(3);
     setDetailProgram(null);
     setCatalogSport(null);

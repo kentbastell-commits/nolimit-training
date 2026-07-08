@@ -399,6 +399,11 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   const [programsLoading, setProgramsLoading] = useState(false);
   const [storeSelectedProgram, setStoreSelectedProgram] = useState<Program | null>(null);
   const storeStepIntentRef = useRef<number | null>(null);
+  // Add-on ids a handler wants to carry into the cart (e.g. the detail-popup's
+  // "Get this program"). Like storeStepIntentRef, it survives the reset effect
+  // below — otherwise selecting a program would clear the add-ons on the same
+  // render, dropping them from the cart.
+  const storeAddonIntentRef = useRef<string[] | null>(null);
   const [storeSelectedAddonIds, setStoreSelectedAddonIds] = useState<string[]>([]);
   // Store checkout step: 1 = details, 2 = add-ons, 3 = cart + payment.
   const [storeStep, setStoreStep] = useState(1);
@@ -10744,7 +10749,8 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   // landing step via storeStepIntentRef — otherwise this effect would
   // clobber its step-jump back to 1 on the same render.
   useEffect(() => {
-    setStoreSelectedAddonIds([]);
+    setStoreSelectedAddonIds(storeAddonIntentRef.current ?? []);
+    storeAddonIntentRef.current = null;
     setStoreStep(storeStepIntentRef.current ?? 1);
     storeStepIntentRef.current = null;
     setStorePaymentCode("");
@@ -16900,6 +16906,9 @@ function App({ onReady }: { onReady?: () => void } = {}) {
         setStoreSelectedProgram={setStoreSelectedProgram}
         requestStoreStep={(step: number) => {
           storeStepIntentRef.current = step;
+        }}
+        requestStoreAddonIds={(ids: string[]) => {
+          storeAddonIntentRef.current = ids;
         }}
         storeSelectedAddonIds={storeSelectedAddonIds}
         setStoreSelectedAddonIds={setStoreSelectedAddonIds}
