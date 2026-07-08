@@ -1,0 +1,186 @@
+/* NoLimit — completion celebrations (fist bump / high five / thumbs up).
+   One shared shell + per-variant stage. Each plays ONCE on mount.
+   Brand: ink #121210 + gold. */
+
+.cel {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 30px 24px calc(26px + env(safe-area-inset-bottom));
+  overflow: hidden;
+  background: radial-gradient(120% 68% at 50% 38%, #221e15 0%, var(--brand-ink, #121210) 60%);
+}
+
+/* The wordmark asset is gold on a solid-black plate; `screen` drops the black
+   into the dark background so only the gold letters show. */
+.cel__logo { width: 122px; height: auto; mix-blend-mode: screen; }
+
+/* ---- stage ---- */
+.cel__stage {
+  position: relative;
+  flex: 1;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.cel__glow {
+  position: absolute;
+  width: 190px; height: 190px; border-radius: 50%;
+  background: radial-gradient(rgba(216, 189, 98, 0.22), rgba(216, 189, 98, 0) 70%);
+}
+
+/* ========== FIST BUMP ========== */
+.cel__fists {
+  position: relative; display: flex; align-items: center; justify-content: center;
+  animation: cel-shake 0.42s ease-in-out 0.72s both;
+}
+.cel__fist { font-size: 74px; line-height: 1; }
+.cel__fist--l { animation: cel-fist-l 0.95s cubic-bezier(.5,.02,.3,1) both; }
+.cel__fist--r { animation: cel-fist-r 0.95s cubic-bezier(.5,.02,.3,1) both; }
+.cel__mirror { display: inline-block; transform: scaleX(-1); }
+
+.cel__rays { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+.cel__raysHub { position: relative; width: 0; height: 0; }
+.cel__rayArm { position: absolute; left: -1.5px; top: 0; transform-origin: 50% 0; }
+.cel__ray {
+  display: block; width: 3px; height: 46px; border-radius: 2px;
+  background: linear-gradient(#f0d98a, rgba(159, 122, 27, 0));
+  transform-origin: 50% 0; transform: scaleY(0); opacity: 0;
+  animation: cel-ray 0.6s ease-out 0.72s both;
+}
+.cel__shock {
+  position: absolute; width: 120px; height: 120px; border-radius: 50%;
+  border: 3px solid #d8bd62; opacity: 0; transform: scale(0.3);
+  animation: cel-shock 0.7s ease-out 0.72s both;
+}
+.cel__flash {
+  position: absolute; width: 96px; height: 96px; border-radius: 50%;
+  background: radial-gradient(#fff3cf, #d8bd62 52%, rgba(216, 189, 98, 0) 72%);
+  opacity: 0; transform: scale(0.2);
+  animation: cel-flash 0.55s ease-out 0.72s both;
+}
+.cel__burstHub { position: absolute; left: 50%; top: 50%; width: 0; height: 0; pointer-events: none; }
+.cel__spark {
+  position: absolute; left: 0; top: 0; opacity: 0; transform: translate(0, 0) scale(0.2);
+  animation: cel-burst 1.6s ease-out 0.75s both;
+}
+
+/* ========== HIGH FIVE ========== */
+.cel__hands { font-size: 104px; line-height: 1; animation: cel-hi 0.7s ease-out both; }
+.cel__rain { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.cel__drop { position: absolute; top: -6%; opacity: 0; animation-name: cel-rain; animation-timing-function: linear; animation-fill-mode: both; }
+
+/* ========== THUMBS UP ========== */
+.cel__thumb { font-size: 88px; line-height: 1; animation: cel-thumb 0.7s ease-out 0.1s both; }
+.cel__seal {
+  position: absolute; width: 158px; height: 158px; border-radius: 50%;
+  border: 3px solid #d8bd62; box-shadow: inset 0 0 0 6px rgba(216, 189, 98, 0.12);
+  opacity: 0; animation: cel-stamp 0.7s ease-out both;
+}
+.cel__seal--dashed { border: 1px dashed rgba(216, 189, 98, 0.45); box-shadow: none; }
+
+/* ---- text reveal (shared) ---- */
+.cel__reveal { text-align: center; animation: cel-reveal 0.5s ease-out 0.95s both; }
+.cel__kicker {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 10px; letter-spacing: 5px; color: var(--nl-gold-soft, #d4af37); margin-bottom: 6px;
+}
+.cel__headline {
+  font-family: var(--brand-display, "Bebas Neue", Impact, sans-serif);
+  font-size: 52px; line-height: 0.9; letter-spacing: 0.5px;
+  color: var(--brand-cream, #f5f1e8); text-transform: uppercase;
+}
+.cel__coach {
+  display: flex; align-items: center; gap: 10px; width: 100%; max-width: 260px; margin-top: 20px;
+  padding: 10px 12px; border-radius: 14px;
+  background: rgba(216, 189, 98, 0.08); border: 1px solid rgba(216, 189, 98, 0.22);
+  animation: cel-coach 0.5s ease-out 1.25s both;
+}
+.cel__avatar {
+  flex: none; width: 34px; height: 34px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(var(--brand-gold-soft, #d8bd62), var(--brand-gold, #9f7a1b));
+  color: var(--brand-ink, #121210);
+  font-family: var(--brand-display, "Bebas Neue", Impact, sans-serif); font-size: 18px;
+}
+.cel__coachName { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 9px; letter-spacing: 3px; color: var(--nl-gold-soft, #d4af37); }
+.cel__coachMsg { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12px; line-height: 1.35; color: #e7e2d4; }
+.cel__stats {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 10px; letter-spacing: 3px; color: rgba(216, 189, 98, 0.5); margin-top: 18px; text-align: center;
+  animation: cel-coach 0.5s ease-out 1.4s both;
+}
+.cel__cta {
+  margin-top: 22px; padding: 14px 40px; border: 0; border-radius: 999px;
+  background: linear-gradient(var(--brand-gold-soft, #d8bd62), var(--brand-gold, #9f7a1b));
+  color: var(--brand-ink, #121210); cursor: pointer;
+  font-family: var(--brand-display, "Bebas Neue", Impact, sans-serif); font-size: 20px; letter-spacing: 2px;
+  transition: opacity 0.35s ease, transform 0.1s ease;
+}
+.cel__cta:active { transform: scale(0.97); }
+
+/* ---- keyframes ---- */
+@keyframes cel-fist-l {
+  0% { transform: translateX(-160px) rotate(-8deg); opacity: 0; }
+  20% { opacity: 1; }
+  70% { transform: translateX(-6px) rotate(0deg); }
+  85% { transform: translateX(-30px) rotate(0deg); }
+  100% { transform: translateX(-13px) rotate(0deg); opacity: 1; }
+}
+@keyframes cel-fist-r {
+  0% { transform: translateX(160px) rotate(8deg); opacity: 0; }
+  20% { opacity: 1; }
+  70% { transform: translateX(6px) rotate(0deg); }
+  85% { transform: translateX(30px) rotate(0deg); }
+  100% { transform: translateX(13px) rotate(0deg); opacity: 1; }
+}
+@keyframes cel-shake {
+  0% { transform: translate(0, 0); } 20% { transform: translate(3px, -3px); }
+  40% { transform: translate(-4px, 2px); } 60% { transform: translate(3px, 3px); }
+  80% { transform: translate(-3px, -2px); } 100% { transform: translate(0, 0); }
+}
+@keyframes cel-flash { 0% { opacity: 0; transform: scale(0.2); } 35% { opacity: 0.95; transform: scale(0.9); } 100% { opacity: 0; transform: scale(1.9); } }
+@keyframes cel-shock { 0% { opacity: 0; transform: scale(0.3); } 25% { opacity: 0.85; } 100% { opacity: 0; transform: scale(2.7); } }
+@keyframes cel-ray { 0% { transform: scaleY(0); opacity: 0; } 35% { transform: scaleY(1); opacity: 1; } 100% { transform: scaleY(0.15); opacity: 0; } }
+@keyframes cel-burst {
+  0% { opacity: 0; transform: translate(0, 0) scale(0.2) rotate(0deg); }
+  12% { opacity: 1; transform: translate(calc(var(--dx) * 0.35), calc(var(--dy) * 0.35)) scale(1) rotate(70deg); }
+  75% { opacity: 1; }
+  100% { opacity: 0; transform: translate(var(--dx), calc(var(--dy) + 150px)) scale(0.85) rotate(400deg); }
+}
+@keyframes cel-hi {
+  0% { opacity: 0; transform: scale(0.2) translateY(26px); }
+  55% { opacity: 1; transform: scale(1.2) translateY(-8px); }
+  75% { transform: scale(0.93); }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+@keyframes cel-rain {
+  0% { opacity: 0; transform: translateY(-14px) rotate(0deg); }
+  10% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(240px) rotate(420deg); }
+}
+@keyframes cel-stamp {
+  0% { opacity: 0; transform: scale(2.7) rotate(-18deg); }
+  55% { opacity: 1; transform: scale(0.9) rotate(0deg); }
+  75% { transform: scale(1); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes cel-thumb {
+  0% { opacity: 0; transform: scale(0.3); }
+  45% { opacity: 1; transform: scale(1.22); }
+  65% { transform: scale(0.95); }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes cel-reveal { 0% { opacity: 0; transform: translateY(14px) scale(0.9); } 70% { opacity: 1; transform: translateY(0) scale(1.06); } 100% { transform: scale(1); } }
+@keyframes cel-coach { 0% { opacity: 0; transform: translateY(10px); } 100% { opacity: 1; transform: translateY(0); } }
+
+/* Reduced motion: land on the end state, skip the theatrics. */
+@media (prefers-reduced-motion: reduce) {
+  .cel__fists, .cel__fist--l, .cel__fist--r, .cel__hands, .cel__thumb, .cel__seal,
+  .cel__reveal, .cel__coach, .cel__stats { animation-duration: 0.01s; animation-delay: 0s; }
+  .cel__flash, .cel__shock, .cel__ray, .cel__spark, .cel__rain { display: none; }
+}

@@ -137,6 +137,7 @@ import type {
   WorkoutPageTab,
 } from "./appCore";
 import LandingPage from "./LandingPage";
+import type { CelebrationVariant } from "./Celebration";
 
 // A shared loading placeholder for code-split routes.
 function PageFallback() {
@@ -192,6 +193,7 @@ const CalendarActionMenu = withSuspense(() => import("./CalendarActionMenu"), nu
 const AssignmentDrawer = withSuspense(() => import("./AssignmentDrawer"), null);
 const CreateProgramModal = withSuspense(() => import("./CreateProgramModal"), null);
 const ProgramPreviewModal = withSuspense(() => import("./ProgramPreviewModal"), null);
+const Celebration = withSuspense(() => import("./Celebration"), null);
 
 function App({ onReady }: { onReady?: () => void } = {}) {
   const { t, i18n } = useTranslation();
@@ -463,9 +465,23 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     payload: Record<string, unknown>;
     draftKey: string;
   } | null>(null);
-  const [celebrationSync, setCelebrationSync] = useState<
-    "syncing" | "done" | "failed"
-  >("syncing");
+  // Which animated celebration variant plays for the current submission.
+  const [celebrationVariant, setCelebrationVariant] =
+    useState<CelebrationVariant>("fistbump");
+  const lastCelebrationVariantRef = useRef<CelebrationVariant | null>(null);
+  const pickCelebrationVariant = (): CelebrationVariant => {
+    const all: CelebrationVariant[] = ["fistbump", "highfive", "thumbsup"];
+    const choices = all.filter((v) => v !== lastCelebrationVariantRef.current);
+    const next = choices[Math.floor(Math.random() * choices.length)];
+    lastCelebrationVariantRef.current = next;
+    return next;
+  };
+  // A failed background sync is kept here so its Retry survives the celebration
+  // being dismissed — a logged workout must never be silently lost.
+  const [failedSubmission, setFailedSubmission] = useState<{
+    payload: Record<string, unknown>;
+    draftKey: string;
+  } | null>(null);
   // Store checkout staged progress (the activation call takes several seconds).
   const [storeRegStage, setStoreRegStage] = useState(0);
   // Duplicate a whole program (record + all sessions) server-side.
@@ -6488,8 +6504,18 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     payload: Record<string, unknown>,
     draftKey: string
   ) => {
-    setCelebrationSync("syncing");
+    setFailedSubmission(null);
     void (async () => {
+      const markFailed = () => {
+        // Kept so the athlete can retry even after the celebration is dismissed.
+        setFailedSubmission({ payload, draftKey });
+        notify(
+          paceZh
+            ? "同步失败 — 你的训练已保存在本机，可点击重试。"
+            : "Sync failed — your workout is saved on this device. Tap retry.",
+          "error"
+        );
+      };
       try {
         const response = await fetch("/api/saveWorkoutLog", {
           method: "POST",
@@ -6499,7 +6525,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
         const data = await response.json();
         if (!response.ok) {
           console.error(data);
-          setCelebrationSync("failed");
+          markFailed();
           return;
         }
         if (draftKey) {
@@ -6509,11 +6535,11 @@ function App({ onReady }: { onReady?: () => void } = {}) {
             // storage unavailable — draft simply lingers, harmless
           }
         }
-        setCelebrationSync("done");
+        setFailedSubmission(null);
         if (selectedClient) void loadWorkoutComments(selectedClient);
       } catch (error) {
         console.error(error);
-        setCelebrationSync("failed");
+        markFailed();
       }
     })();
   };
@@ -6581,6 +6607,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     // Optimistic UI: celebrate instantly, close the player, mark it done
     // locally, then sync in the background.
     vibrate(24);
+    setCelebrationVariant(pickCelebrationVariant());
     setWorkoutCelebration({
       sessionName: localizedWorkoutName(selectedWorkout),
       dateLabel: normalizeDate(String(selectedWorkout.scheduledDate)),
@@ -19013,84 +19040,67 @@ function App({ onReady }: { onReady?: () => void } = {}) {
           </div>
         )}
 
-        {workoutCelebration && (
-          <div className="celebrationOverlay">
-            <div className="celebrationCard">
-              <img src="/nl_seal_black.png" alt="NoLimit" className="celebrationSeal" />
-              <h2>{paceZh ? "训练完成 💪" : "Session Complete 💪"}</h2>
-              <p className="celebrationSession">
-                {workoutCelebration.sessionName} · {workoutCelebration.dateLabel}
-              </p>
-              <div className="celebrationStats">
-                <div>
-                  <strong>{workoutCelebration.exercises}</strong>
-                  <span>{paceZh ? "动作" : "Exercises"}</span>
-                </div>
-                <div>
-                  <strong>{workoutCelebration.sets}</strong>
-                  <span>{paceZh ? "组数" : "Sets"}</span>
-                </div>
-                <div>
-                  <strong>
-                    {workoutCelebration.volumeKg > 0
-                      ? workoutCelebration.volumeKg.toLocaleString()
-                      : "—"}
-                  </strong>
-                  <span>{paceZh ? "总容量 (kg)" : "Volume (kg)"}</span>
-                </div>
-              </div>
-              {(workoutCelebration.rpe || workoutCelebration.durationMin > 0) && (
-                <p className="celebrationMeta">
-                  {workoutCelebration.rpe
-                    ? `RPE ${workoutCelebration.rpe}/10`
-                    : ""}
-                  {workoutCelebration.rpe && workoutCelebration.durationMin > 0
-                    ? " · "
-                    : ""}
-                  {workoutCelebration.durationMin > 0
-                    ? `${workoutCelebration.durationMin} min`
-                    : ""}
-                </p>
-              )}
-              <p className="celebrationShareHint">
-                {paceZh
-                  ? "📸 截图分享到朋友圈，让朋友看到你的坚持"
-                  : "📸 Screenshot & share your session"}
-              </p>
-              <div className={`celebrationSync ${celebrationSync}`}>
-                {celebrationSync === "syncing"
-                  ? paceZh
-                    ? "正在同步给教练…"
-                    : "Syncing to your coach…"
-                  : celebrationSync === "done"
-                    ? paceZh
-                      ? "✓ 已同步"
-                      : "✓ Synced"
-                    : paceZh
-                      ? "⚠️ 同步失败 — 数据已保存在本机"
-                      : "⚠️ Sync failed — your data is saved on this device"}
-                {celebrationSync === "failed" && (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      syncWorkoutSubmission(
-                        workoutCelebration.payload,
-                        workoutCelebration.draftKey
-                      )
-                    }
-                  >
-                    {paceZh ? "重试" : "Retry"}
-                  </button>
-                )}
-              </div>
-              <button
-                type="button"
-                className="primaryButton celebrationDone"
-                onClick={() => setWorkoutCelebration(null)}
-              >
-                {paceZh ? "完成" : "Done"}
-              </button>
-            </div>
+        {workoutCelebration &&
+          (() => {
+            const wc = workoutCelebration;
+            const coachName = (
+              selectedClientProgram?.coach || "Kent Bastell"
+            ).trim();
+            const parts: string[] = [];
+            if (wc.durationMin > 0) {
+              parts.push(paceZh ? `${wc.durationMin} 分钟` : `${wc.durationMin} MIN`);
+            }
+            parts.push(
+              paceZh ? `${wc.exercises} 个动作` : `${wc.exercises} EXERCISES`
+            );
+            if (wc.rpe) parts.push(`RPE ${wc.rpe}`);
+            const statsLine = parts.join(" · ");
+            const zhHeadline =
+              celebrationVariant === "fistbump"
+                ? "干得漂亮"
+                : celebrationVariant === "highfive"
+                  ? "击掌！"
+                  : "太强了";
+            const zhMessage =
+              celebrationVariant === "fistbump"
+                ? "冠军就是这样收尾的，明天见。"
+                : celebrationVariant === "highfive"
+                  ? "这周太拼了，保持这股劲头。"
+                  : "已查看你的训练 — 新标准达成，为你骄傲。";
+            const zhKicker =
+              celebrationVariant === "thumbsup" ? "教练认可" : "训练完成";
+            return (
+              <Celebration
+                variant={celebrationVariant}
+                kicker={paceZh ? zhKicker : undefined}
+                headline={paceZh ? zhHeadline : undefined}
+                coachName={coachName}
+                message={paceZh ? zhMessage : undefined}
+                stats={statsLine}
+                ctaLabel={paceZh ? "继续" : undefined}
+                onDone={() => setWorkoutCelebration(null)}
+              />
+            );
+          })()}
+
+        {failedSubmission && (
+          <div className="workoutSyncFailBar" role="alert">
+            <span>
+              {paceZh
+                ? "⚠️ 同步失败 — 数据已保存在本机"
+                : "⚠️ Sync failed — your data is saved on this device"}
+            </span>
+            <button
+              type="button"
+              onClick={() =>
+                syncWorkoutSubmission(
+                  failedSubmission.payload,
+                  failedSubmission.draftKey
+                )
+              }
+            >
+              {paceZh ? "重试" : "Retry"}
+            </button>
           </div>
         )}
 
