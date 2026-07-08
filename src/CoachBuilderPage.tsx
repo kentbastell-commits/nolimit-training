@@ -3,7 +3,7 @@
 import type { ProgramExercise } from "./appCore";
 import "./CoachBuilderPage.css";
 import { isCardioCategory } from "./appCore";
-import { Fragment } from "react";
+import { Fragment, useState } from "react";
 import { ChevronDown, ChevronLeft, ChevronsLeftRight, Copy, Dumbbell, Eye, GripVertical, Link2, MoreVertical, Pencil, Plus, RefreshCw, Settings, Shuffle, Trash2, X } from "lucide-react";
 import type { Program, ProgramSession } from "./appCore";
 import { getWorkoutColorClass, normalizeDate } from "./appCore";
@@ -59,7 +59,6 @@ export default function CoachBuilderPage({
   clientNameForCode,
   clients,
   coachVisibleClients,
-  collapseAllBuilderExercises,
   collapsedDays,
   commitMobilePicker,
   createContentAssignment,
@@ -82,10 +81,7 @@ export default function CoachBuilderPage({
   editingFormTemplate,
   editingProgramSessionId,
   editingTestTemplate,
-  estimateSessionMinutes,
   existingStoreCategories,
-  expandAllBuilderExercises,
-  expandedBuilderExerciseIndexes,
   finishMobileProgram,
   formQuestions,
   formTemplateName,
@@ -107,7 +103,6 @@ export default function CoachBuilderPage({
   libraryExercises,
   libraryLoading,
   linkExerciseWithPrevious,
-  loadExerciseLibrary,
   loadFormTemplates,
   loadPrograms,
   loadSavedFormIntoBuilder,
@@ -215,7 +210,6 @@ export default function CoachBuilderPage({
   sessionLibProgramId,
   sessionLibSessions,
   sessionName,
-  sessionNameCn,
   sessionNotes,
   sessionSetupOpen,
   sessionType,
@@ -297,13 +291,11 @@ export default function CoachBuilderPage({
   setSelectedSavedProgramId,
   setSelectedSavedTestId,
   setSessionEditorOpen,
-  setSessionEstimatedDuration,
   setSessionGoal,
   setSessionIntensity,
   setSessionLibProgramId,
   setSessionLibSessions,
   setSessionName,
-  setSessionNameCn,
   setSessionNotes,
   setSessionSetupOpen,
   setSessionType,
@@ -325,7 +317,6 @@ export default function CoachBuilderPage({
   testTemplatesLoading,
   testView,
   toggleBuilderCircuitLink,
-  toggleBuilderExerciseExpanded,
   toggleBuilderSupersetLink,
   toggleMobilePick,
   toggleUsePercent,
@@ -348,6 +339,11 @@ export default function CoachBuilderPage({
   workoutTabsMenuOpen,
 }: { [key: string]: any }) {
   const { t } = useTranslation();
+  // Which built-session exercise is open in the edit popup (null = none).
+  // Editing moved off the row (rows are now compact + drag-only) into a modal.
+  const [editExerciseIndex, setEditExerciseIndex] = useState<number | null>(
+    null
+  );
   return (
     <>
               <>
@@ -2098,15 +2094,6 @@ export default function CoachBuilderPage({
                         />
                       </label>
 
-                      <label className="sessionNameCnField">
-                        <span>Session Name CN</span>
-                        <input
-                          value={sessionNameCn}
-                          onChange={(e) => setSessionNameCn(e.target.value)}
-                          placeholder="中文课程名称"
-                          className="miniSearch"
-                        />
-                      </label>
                     </>
                   )}
 
@@ -2142,37 +2129,6 @@ export default function CoachBuilderPage({
                       <option>Max</option>
                       <option>Recovery</option>
                     </select>
-                  </label>
-
-                  <label className="sessionDurationField">
-                    <span>Duration</span>
-                    <span className="durationInputRow">
-                      <input
-                        value={sessionEstimatedDuration}
-                        onChange={(e) =>
-                          setSessionEstimatedDuration(e.target.value)
-                        }
-                        inputMode="numeric"
-                        placeholder="45"
-                        className="miniSearch"
-                      />
-                      {selectedProgramExercises.length > 0 && (
-                        <button
-                          type="button"
-                          className="durationEstimateBtn"
-                          title="Estimate from the prescription (sets, work, rest)"
-                          onClick={() =>
-                            setSessionEstimatedDuration(
-                              String(
-                                estimateSessionMinutes(selectedProgramExercises)
-                              )
-                            )
-                          }
-                        >
-                          ≈{estimateSessionMinutes(selectedProgramExercises)}m
-                        </button>
-                      )}
-                    </span>
                   </label>
 
                   <label className="sessionGoalField">
@@ -2301,56 +2257,19 @@ export default function CoachBuilderPage({
                   </div>
                 )}
 
-                <div className="builderSectionPresetBar" id="builder-exercises">
-                  <div>
-                    <span className="eyebrow">Section Presets</span>
-                    <strong>Active: {pendingSectionName || "Main"}</strong>
-                  </div>
-                  <div>
-                    {builderSectionOptions.slice(0, 8).map((section: any) => (
-                      <button
-                        key={section}
-                        type="button"
-                        className={
-                          pendingSectionName === section ? "active" : ""
-                        }
-                        onClick={() => selectBuilderSection(section)}
-                      >
-                        {section}
-                      </button>
-                    ))}
-                    <button
-                      type="button"
-                      className="customSectionButton"
-                      onClick={() => openBuilderLibrary("Sections")}
-                    >
-                      Custom
-                    </button>
-                  </div>
-                </div>
-
                 {selectedProgramExercises.length === 0 && (
-                  <div className="builderEmptyCanvas">
+                  <div className="builderEmptyCanvas" id="builder-exercises">
                     <div className="builderEmptyCanvasIcon">
                       <Dumbbell size={34} />
                     </div>
                     <h3>Drag your session into shape</h3>
-                    <p>
-                      Add an exercise, or choose a custom section such as Warmup,
-                      Strength, Power, Cardio, or Mobility first.
-                    </p>
+                    <p>Add exercises to build this session.</p>
                     <div>
                       <button
                         className="goldButton"
                         onClick={() => openBuilderLibrary("Exercises")}
                       >
                         + Add Exercise
-                      </button>
-                      <button
-                        className="outlineButton"
-                        onClick={() => openBuilderLibrary("Sections")}
-                      >
-                        + Add Section
                       </button>
                     </div>
                   </div>
@@ -2410,12 +2329,6 @@ export default function CoachBuilderPage({
                               )
                             )}
                           </select>
-                          <button
-                            className="outlineButton"
-                            onClick={() => void loadExerciseLibrary(true)}
-                          >
-                            Load
-                          </button>
                         </div>
 
                         <div className="builderDrawerExerciseGrid">
@@ -2846,42 +2759,23 @@ export default function CoachBuilderPage({
                 )}
 
                 {selectedProgramExercises.length > 0 && (
-                  <div className="builderExerciseListToolbar builderExerciseActionToolbar">
-                    <span>
-                      {selectedProgramExercises.length} exercises
-                      <small>Active: {pendingSectionName || builderSectionOptions[0]}</small>
-                    </span>
+                  <div
+                    className="builderExerciseListToolbar builderExerciseActionToolbar"
+                    id="builder-exercises"
+                  >
+                    <span>{selectedProgramExercises.length} exercises</span>
                     <div>
-                      <button
-                        className="outlineButton compactBuilderButton"
-                        onClick={() => openBuilderLibrary("Sections")}
-                      >
-                        + Section
-                      </button>
                       <button
                         className="goldButton compactBuilderButton"
                         onClick={() => openBuilderLibrary("Exercises")}
                       >
-                        + Exercise
-                      </button>
-                      <button
-                        className="outlineButton compactBuilderButton"
-                        onClick={expandAllBuilderExercises}
-                      >
-                        Expand All
-                      </button>
-                      <button
-                        className="outlineButton compactBuilderButton"
-                        onClick={collapseAllBuilderExercises}
-                      >
-                        Collapse All
+                        + Add Exercise
                       </button>
                     </div>
                   </div>
                 )}
 
                 {selectedProgramExercises.map((exercise: any, index: any) => {
-                  const isExpanded = expandedBuilderExerciseIndexes.has(index);
                   const currentSection = normalizeBuilderSection(exercise.sectionName);
                   const previousSection = normalizeBuilderSection(
                     selectedProgramExercises[index - 1]?.sectionName
@@ -2931,7 +2825,7 @@ export default function CoachBuilderPage({
                         <div className="builderExerciseCardHeader">
                           <button
                             className="builderExerciseSummaryButton"
-                            onClick={() => toggleBuilderExerciseExpanded(index)}
+                            onClick={() => setEditExerciseIndex(index)}
                             type="button"
                           >
                             <div className="builderExerciseSummaryTitle">
@@ -2953,18 +2847,8 @@ export default function CoachBuilderPage({
                             </div>
 
                             <span className="builderExerciseExpandIndicator">
-                              {isExpanded ? "Collapse" : "Edit"}
+                              Edit
                             </span>
-                          </button>
-                          <button
-                            type="button"
-                            className={`builderUsePercentToggle${
-                              usePercentExerciseIndexes.has(index) ? " active" : ""
-                            }`}
-                            onClick={() => toggleUsePercent(index)}
-                            title="Show the %1RM field for this exercise"
-                          >
-                            Use %
                           </button>
                           {bulkEditMode && (
                             <input
@@ -2981,7 +2865,6 @@ export default function CoachBuilderPage({
                               }
                             />
                           )}
-                          {renderBuilderExerciseOptionsMenu(exercise, index)}
                         </div>
 
                         {(exercise.groupType !== "Straight" && exercise.groupName) ||
@@ -3070,8 +2953,45 @@ export default function CoachBuilderPage({
 
                         {renderAlternateExerciseEditor(exercise, index)}
 
-                        {isExpanded && (
-                          <>
+                        {editExerciseIndex === index && (
+                          <div
+                            className="builderEditModalOverlay"
+                            onClick={() => setEditExerciseIndex(null)}
+                          >
+                            <div
+                              className="builderEditModal"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <div className="builderEditModalHead">
+                                <div className="builderEditModalTitle">
+                                  <span className="exerciseSectionName">
+                                    {exercise.sectionName || "Main"}
+                                  </span>
+                                  <h3>{exercise.exerciseName}</h3>
+                                </div>
+                                <button
+                                  type="button"
+                                  className={`builderUsePercentToggle${
+                                    usePercentExerciseIndexes.has(index)
+                                      ? " active"
+                                      : ""
+                                  }`}
+                                  onClick={() => toggleUsePercent(index)}
+                                  title="Show the %1RM field for this exercise"
+                                >
+                                  Use %
+                                </button>
+                                {renderBuilderExerciseOptionsMenu(exercise, index)}
+                                <button
+                                  type="button"
+                                  className="builderEditModalClose"
+                                  onClick={() => setEditExerciseIndex(null)}
+                                  aria-label="Close"
+                                >
+                                  <X size={18} />
+                                </button>
+                              </div>
+                              <div className="builderEditModalBody">
                             <div className="builderExerciseActions compactPageActions">
                               <button
                                 className="outlineButton compactBuilderButton"
@@ -3275,7 +3195,9 @@ export default function CoachBuilderPage({
                         />
                       </label>
                     </div>
-                          </>
+                              </div>
+                            </div>
+                          </div>
                         )}
                       </div>
                     </Fragment>

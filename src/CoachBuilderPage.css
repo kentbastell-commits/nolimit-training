@@ -1924,3 +1924,79 @@
 }
 .dangerButton:hover:not(:disabled) { background: #fbeeee; }
 .dangerButton:disabled { opacity: 0.45; }
+
+/* Exercise edit popup — opened by clicking a built-session exercise row.
+   Editing lives here now; the rows themselves are compact + drag-only. */
+.builderEditModalOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1300;
+  background: rgba(18, 18, 16, 0.55);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.builderEditModal {
+  width: 100%;
+  max-width: 640px;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 30px 70px -30px rgba(0, 0, 0, 0.6);
+  cursor: default;
+  text-align: left;
+}
+.builderEditModalHead {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 18px;
+  background: #1a1712;
+  color: #f5f1e8;
+}
+.builderEditModalTitle {
+  flex: 1;
+  min-width: 0;
+}
+.builderEditModalTitle .exerciseSectionName {
+  display: block;
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #d8bd62;
+}
+.builderEditModalTitle h3 {
+  margin: 2px 0 0;
+  font-size: 18px;
+  color: #f5f1e8;
+}
+.builderEditModalClose {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(245, 241, 232, 0.14);
+  color: #f5f1e8;
+}
+.builderEditModalClose:hover {
+  background: rgba(245, 241, 232, 0.26);
+}
+.builderEditModalBody {
+  padding: 18px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+@media (max-width: 640px) {
+  .builderEditModalOverlay { padding: 0; align-items: flex-end; }
+  .builderEditModal { max-width: 100%; max-height: 92vh; border-radius: 20px 20px 0 0; }
+}
