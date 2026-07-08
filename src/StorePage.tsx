@@ -2,9 +2,61 @@
 // JSX verbatim; state/handlers arrive via props (typed loosely for the
 // mechanical move; tighten when the store gets its own state).
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { ArrowRight, Check, Eye, Lock, Plus, Shield } from "lucide-react";
+import {
+  Activity,
+  ArrowRight,
+  Check,
+  Dumbbell,
+  Eye,
+  Home,
+  Lock,
+  Mountain,
+  Plus,
+  Shield,
+  Snowflake,
+  Timer,
+  Zap,
+} from "lucide-react";
+import { motion, useReducedMotion, type Variants } from "framer-motion";
+import "@fontsource/inter/400.css";
+import "@fontsource/inter/500.css";
+import "@fontsource/inter/600.css";
+import "@fontsource/inter/700.css";
 import "./StorePage.css";
+import "./StorePageV3.css";
 import type { Client, Coach, Program, ProgramReview, Toast } from "./appCore";
+
+// Motion system shared with the cinematic landing page (LandingPage.tsx):
+// opacity/transform only (GPU, China-safe), collapses to static under
+// prefers-reduced-motion.
+const EASE: [number, number, number, number] = [0.16, 1, 0.3, 1];
+const staggerParent: Variants = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.09, delayChildren: 0.05 } },
+};
+const rise: Variants = {
+  hidden: { opacity: 0, y: 28 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.75, ease: EASE } },
+};
+const revealProps = {
+  variants: staggerParent,
+  initial: "hidden" as const,
+  whileInView: "show" as const,
+  viewport: { once: true, amount: 0.2 },
+};
+
+// Category tile glyph, keyed by the category id from storeCategories.
+function CategoryIcon({ id }: { id: string }) {
+  const p = { size: 24, strokeWidth: 2 } as const;
+  if (id === "all") return <Home {...p} />;
+  if (id === "rock-climbing") return <Mountain {...p} />;
+  if (id === "hyrox") return <Timer {...p} />;
+  if (id === "snow-ski") return <Snowflake {...p} />;
+  if (id === "running") return <Activity {...p} />;
+  if (id === "general-foundation") return <Dumbbell {...p} />;
+  if (id === "joint-addons") return <Shield {...p} />;
+  return <Zap {...p} />;
+}
 
 export default function StorePage({
   clients,
@@ -250,8 +302,13 @@ export default function StorePage({
     storeCategories.find((category) => category.id === storeCategoryFilter)?.title ||
     (sZh ? "全部" : "All");
 
+  const reduce = useReducedMotion();
+  // Scroll-reveal props for a section; a no-op when reduced motion is on so the
+  // section (and its children) render static and fully visible.
+  const sectionReveal = reduce ? {} : revealProps;
+
   return (
-    <div className={`storePageV2 ${sZh ? "zh" : "en"}`}>
+    <div className={`storePageV2 storePageV3 ${sZh ? "zh" : "en"}`}>
       <div className="toastStack">
         {toasts.map((toast) => (
           <div className={`toast toast-${toast.type}`} key={toast.id}>
@@ -260,23 +317,28 @@ export default function StorePage({
         ))}
       </div>
 
-      <nav className="storeNavV2">
-        <a className="storeBrandV2" href="/">
+      <nav className="storeNavV3">
+        <a className="storeBrandV3" href="/">
           <img src="/nl_wordmark_black.png" alt="No Limit" />
         </a>
-        <div className="storeNavActionsV2">
-          <a href="/" className="storeNavLinkV2">{sZh ? "首页" : "Home"}</a>
+        <div className="storeNavLinksV3">
+          <a href="#catalog" className="storeNavLinkV3">{sZh ? "计划" : "Programs"}</a>
+          <a href="#how" className="storeNavLinkV3">{sZh ? "如何使用" : "How it works"}</a>
+          <a href="#coach" className="storeNavLinkV3">{sZh ? "教练" : "Coach"}</a>
+          <a href="#faq" className="storeNavLinkV3">FAQ</a>
+        </div>
+        <div className="storeNavActionsV3">
           {rememberedPortalCode ? (
             <a
               href={`/?portal=client&client=${encodeURIComponent(rememberedPortalCode)}`}
-              className="storeNavLinkV2 storeNavPortalV2"
+              className="storeNavPortalLinkV3"
             >
               {sZh ? "打开我的客户端" : "Open my portal"}
             </a>
           ) : (
             <button
               type="button"
-              className="storeNavLinkV2 storeNavPortalV2"
+              className="storeNavPortalLinkV3"
               onClick={() => {
                 setFindPortalError("");
                 setFindPortalOpen(true);
@@ -286,12 +348,19 @@ export default function StorePage({
             </button>
           )}
           <button
-            className="storeLangToggleV2"
+            className="storeLangToggleV3"
             onClick={() => setStoreLang(sZh ? "en" : "zh")}
             aria-label="Change language"
           >
             <span className={!sZh ? "active" : ""}>EN</span>
             <span className={sZh ? "active" : ""}>中文</span>
+          </button>
+          <button
+            type="button"
+            className="storeNavEnterV3"
+            onClick={() => setStoreLauncherOpen(true)}
+          >
+            {sZh ? "进入 App" : "Enter app"} <ArrowRight size={15} />
           </button>
         </div>
       </nav>
@@ -414,46 +483,83 @@ export default function StorePage({
       </div>
 
       <main className="storeMainV2">
-        <section className="storeHeroV2">
-          <div className="storeHeroCopyV2">
-            <span className="storeEyebrowV2">{sZh ? "为训练而生" : "Built for Training"}</span>
-            <h1>
-              {sZh
-                ? "顶级训练计划，直接送到你的手机。"
-                : "Olympic-level programming, delivered to your phone."}
-            </h1>
-            <p>
-              {sZh
-                ? "由奥运与职业级教练编排的训练计划，即时获取，价格远低于一对一私教。购买后完成简短问卷，计划即进入你的 App，可按月、按周或逐日安排。"
-                : "Programmed by an Olympic and professional-level coach — yours instantly, at a fraction of one-on-one pricing. Complete a short intake and the plan loads into your app to schedule by month, week, or day."}
-            </p>
+        <header className="storeHeroV3" id="top">
+          <div className="storeHeroGlowV3" aria-hidden="true">
+            <span className="storeHeroBlobA" />
+            <span className="storeHeroBlobB" />
           </div>
-          <div className="storeHeroCardV2 storeHeroShotV2">
-            <img
-              src="/showcase-calendar.png"
-              alt={sZh ? "训练日历" : "Training calendar"}
-            />
+          <div className="storeHeroInnerV3">
+            <motion.div
+              className="storeHeroCopyV3"
+              variants={reduce ? undefined : staggerParent}
+              initial={reduce ? undefined : "hidden"}
+              animate={reduce ? undefined : "show"}
+            >
+              <motion.div className="storeHeroEyebrowRowV3" variants={rise}>
+                <span className="storeEyebrowV2">{sZh ? "为训练而生" : "Built for Training"}</span>
+                <span className="storeHeroAccentLineV3" />
+              </motion.div>
+              <motion.h1 className="storeHeroTitleV3" variants={rise}>
+                {sZh ? (
+                  <>顶级训练计划，<br />直接送到<br /><span className="storeGold">你的手机。</span></>
+                ) : (
+                  <>Olympic-level<br />programming,<br /><span className="storeGold">in your pocket.</span></>
+                )}
+              </motion.h1>
+              <motion.p className="storeHeroLeadV3" variants={rise}>
+                {sZh
+                  ? "由奥运与职业级教练编排的训练计划，即时获取，价格远低于一对一私教。购买后完成简短问卷，计划即进入你的 App，可按月、按周或逐日安排。"
+                  : "Elite periodised training built by an Olympic and professional-level coach — yours instantly, at a fraction of one-on-one pricing. Finish a short intake and the full plan loads into your app."}
+              </motion.p>
+              <motion.div className="storeHeroCtasV3" variants={rise}>
+                <a href="#catalog" className="storeBtnPrimaryV3">
+                  {sZh ? "浏览计划" : "Browse programs"} <ArrowRight size={16} />
+                </a>
+                <a href="#showcase" className="storeBtnSecondaryV3">
+                  {sZh ? "预览样板周" : "Preview a sample week"}
+                </a>
+              </motion.div>
+            </motion.div>
+            <motion.div
+              className="storeHeroStageV3"
+              initial={reduce ? undefined : { opacity: 0, y: 34 }}
+              animate={reduce ? undefined : { opacity: 1, y: 0 }}
+              transition={{ duration: 1, ease: EASE, delay: 0.2 }}
+            >
+              <div className="storeHeroPhoneV3">
+                <div className="storeHeroPhoneScreenV3">
+                  <img src="/showcase-player.png" alt={sZh ? "训练播放器" : "Workout player"} />
+                </div>
+              </div>
+              <div className="storeHeroChipV3">
+                <span className="storeHeroChipBigV3">EN/中文</span>
+                <span className="storeHeroChipSmallV3">{sZh ? "完全双语" : "fully bilingual"}</span>
+              </div>
+            </motion.div>
           </div>
-        </section>
+        </header>
 
-        <section>
-          <div className="storeSectionIntroV2">
+        <motion.section id="catalog" {...sectionReveal}>
+          <motion.div className="storeSectionIntroV2" variants={reduce ? undefined : rise}>
             <span className="storeEyebrowV2">{sZh ? "项目目录" : "Sports Catalog"}</span>
             <h2>{sZh ? "先选择你的训练方向。" : "Start with your training direction."}</h2>
-          </div>
-          <div className="storeCatalogueGridV2">
+          </motion.div>
+          <motion.div className="storeCatalogueGridV2" variants={reduce ? undefined : staggerParent}>
             {storeCategories.map((category) => (
-              <button
+              <motion.button
                 className={`storeCategoryCardV2 ${storeCategoryFilter === category.id ? "active" : ""}`}
                 key={category.id}
                 onClick={() => setStoreCategoryFilter(category.id)}
+                variants={reduce ? undefined : rise}
               >
+                <span className="storeCategoryIconV3" aria-hidden="true">
+                  <CategoryIcon id={category.id} />
+                </span>
                 <strong>{category.title}</strong>
-                <span>{category.body}</span>
-              </button>
+              </motion.button>
             ))}
-          </div>
-        </section>
+          </motion.div>
+        </motion.section>
 
         <section className="storeProgramShelfV2">
           <div className="storeSectionIntroV2">
@@ -494,7 +600,7 @@ export default function StorePage({
               </span>
             </div>
           ) : (
-            <div className="storeGridV2">
+            <motion.div className="storeGridV2" {...sectionReveal}>
               {filteredStorePrograms.map((program) => {
                 const name = sZh && program.programNameCn ? program.programNameCn : program.programName;
                 const description =
@@ -506,7 +612,11 @@ export default function StorePage({
                     : "Professional, evidence-based training you can schedule around real life.");
                 const category = storeCategories.find((item) => item.id === getProgramCategory(program));
                 return (
-                  <article className="storeProductCardV2" key={program.recordId}>
+                  <motion.article
+                    className="storeProductCardV2"
+                    key={program.recordId}
+                    variants={reduce ? undefined : rise}
+                  >
                     <button
                       className="storeProductClickTarget"
                       onClick={() => setStoreSelectedProgram(program)}
@@ -574,14 +684,14 @@ export default function StorePage({
                         {sZh ? "预览样板周" : "Preview sample week"}
                       </button>
                     )}
-                  </article>
+                  </motion.article>
                 );
               })}
-            </div>
+            </motion.div>
           )}
         </section>
 
-        <section className="storeHowV2">
+        <section className="storeHowV2" id="how">
           <div className="storeSectionIntroV2">
             <span className="storeEyebrowV2">{sZh ? "如何使用" : "How it works"}</span>
             <h2>{sZh ? "三步开始训练" : "Three steps to start training"}</h2>
@@ -608,7 +718,7 @@ export default function StorePage({
           </div>
         </section>
 
-        <section className="storeShowcaseV2">
+        <section className="storeShowcaseV2" id="showcase">
           <div className="storeSectionIntroV2">
             <span className="storeEyebrowV2">{sZh ? "应用内体验" : "Inside the app"}</span>
             <h2>{sZh ? "购买后你会得到的" : "What you get after you buy"}</h2>
@@ -643,44 +753,79 @@ export default function StorePage({
           </div>
         </section>
 
-        <section className="storeCoachV2">
-          <div className="storeSectionIntroV2">
-            <span className="storeEyebrowV2">{sZh ? "认识你的教练" : "Meet your coach"}</span>
-            <h2>{sZh ? "为你编排训练的人" : "The coach behind your training"}</h2>
-          </div>
-          <div className="storeCoachCardV2">
-            <div className="storeCoachAsideV2">
-              <div className="storeCoachAvatarV2" aria-hidden="true">
-                {coachInitials}
-              </div>
-              <strong className="storeCoachNameV2">
-                {featuredCoach?.name || "NoLimit Coaching"}
-              </strong>
-              <span className="storeCoachRoleV2">
-                {featuredCoach?.role ||
-                  (sZh ? "主教练" : "Head Coach")}
-              </span>
-            </div>
-            <div className="storeCoachBodyV2">
-              <p className="storeCoachBioV2">{coachBio}</p>
-              <div className="storeCoachPillarsV2">
-                {coachPillars.map(([title, body]) => (
-                  <div className="storeCoachPillarV2" key={title}>
-                    <Shield size={16} className="storeCoachPillarIconV2" />
-                    <div>
-                      <strong>{title}</strong>
-                      <span>{body}</span>
+        <motion.section className="storeCoachV3" id="coach" {...sectionReveal}>
+          <div className="storeCoachGlowV3" aria-hidden="true" />
+          <motion.div className="storeCoachIntroV3" variants={reduce ? undefined : rise}>
+            <span className="storeEyebrowV2">{sZh ? "认识你的教练" : "Meet your coaches"}</span>
+            <h2>{sZh ? "为你编排训练的人" : "The coaches behind your training"}</h2>
+            <p>
+              {sZh
+                ? "每一套计划都由曾在职业与奥运层面工作的教练编排 —— 顶尖运动员使用的周期化训练，直接送到你的手机。是真正的高水平教练，而不是模板。"
+                : "Every program is built by coaches who've worked at the professional and Olympic level — periodised training used by elite athletes, brought straight to your phone. Real high-performance coaching, not a template."}
+            </p>
+          </motion.div>
+          {(() => {
+            const ordered = [
+              featuredCoach,
+              ...activeCoaches.filter((c: Coach) => c !== featuredCoach),
+            ].filter(Boolean) as Coach[];
+            const cards = ordered.slice(0, 2);
+            const initialsOf = (name?: string) =>
+              (name || "NL")
+                .split(/\s+/)
+                .map((w) => w[0])
+                .filter(Boolean)
+                .slice(0, 2)
+                .join("")
+                .toUpperCase() || "NL";
+            const list = cards.length
+              ? cards
+              : ([{ name: "NoLimit Coaching", role: "", bio: "" }] as any[]);
+            return (
+              <div
+                className={`storeCoachGridV3${list.length === 1 ? " storeCoachGridSoloV3" : ""}`}
+              >
+                {list.map((coach: any, i: number) => (
+                  <motion.div
+                    className="storeCoachCardV3"
+                    key={coach?.recordId || i}
+                    variants={reduce ? undefined : rise}
+                  >
+                    <div className="storeCoachAvatarV3" aria-hidden="true">
+                      {i === 0 ? coachInitials : initialsOf(coach?.name)}
                     </div>
-                  </div>
+                    <strong className="storeCoachNameV3">
+                      {coach?.name || "NoLimit Coaching"}
+                    </strong>
+                    <span className="storeCoachRoleV3">
+                      {coach?.role || (sZh ? "主教练" : "Head Coach")}
+                    </span>
+                    <p className="storeCoachBioV3">
+                      {(coach?.bio || "").trim() || coachBio}
+                    </p>
+                  </motion.div>
                 ))}
               </div>
-              <a className="storeCoachCtaV2" href="#storeContactAnchor">
-                {sZh ? "与教练取得联系" : "Get in touch with the coach"}
-                <ArrowRight size={16} />
-              </a>
-            </div>
-          </div>
-        </section>
+            );
+          })()}
+          <motion.div className="storeCoachPillarsV3" variants={reduce ? undefined : rise}>
+            {coachPillars.map(([title, body]) => (
+              <div className="storeCoachPillarV3" key={title}>
+                <Shield size={16} className="storeCoachPillarIconV3" />
+                <div>
+                  <strong>{title}</strong>
+                  <span>{body}</span>
+                </div>
+              </div>
+            ))}
+          </motion.div>
+          <motion.div className="storeCoachCtaWrapV3" variants={reduce ? undefined : rise}>
+            <a className="storeBtnSecondaryV3" href="#storeContactAnchor">
+              {sZh ? "与教练取得联系" : "Get in touch with the coaches"}
+              <ArrowRight size={16} />
+            </a>
+          </motion.div>
+        </motion.section>
 
         {storeReviews.length > 0 && (
           <section className="storeTestimonials">
@@ -710,7 +855,7 @@ export default function StorePage({
           </section>
         )}
 
-        <section className="storeFaqV2">
+        <section className="storeFaqV2" id="faq">
           <div className="storeSectionIntroV2">
             <span className="storeEyebrowV2">{sZh ? "常见问题" : "Common questions"}</span>
             <h2>{sZh ? "购买前你想知道的" : "What to know before you buy"}</h2>
@@ -1371,9 +1516,17 @@ export default function StorePage({
         );
       })()}
 
-      <footer className="storeFooterV2">
+      <footer className="storeFooterV3">
         <img src="/nl_wordmark_black.png" alt="No Limit" />
-        <span>{sZh ? "为训练而生。" : "Built for Training."}</span>
+        <div className="storeFooterLinksV3">
+          <a href="#catalog">{sZh ? "计划" : "Programs"}</a>
+          <a href="#coach">{sZh ? "教练" : "Coaching"}</a>
+          <a href="#faq">FAQ</a>
+          <button type="button" onClick={() => setStoreLauncherOpen(true)}>
+            {sZh ? "客户端" : "Client Portal"}
+          </button>
+        </div>
+        <span className="storeFooterTagV3">{sZh ? "为训练而生。" : "Built for Training."}</span>
       </footer>
     </div>
   );

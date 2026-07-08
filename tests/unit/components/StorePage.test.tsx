@@ -64,7 +64,9 @@ describe("StorePage", () => {
   it("renders the public store shell in English", () => {
     render(<StorePage {...baseProps} />);
     expect(screen.getByText("Find my portal")).toBeInTheDocument();
-    expect(screen.getByText("Home")).toBeInTheDocument();
+    // Redesigned nav still exposes the launcher + section links.
+    expect(screen.getAllByText("Enter app").length).toBeGreaterThan(0);
+    expect(screen.getByRole("link", { name: "How it works" })).toBeInTheDocument();
     // The wordmark appears in both the nav and the footer.
     expect(screen.getAllByAltText("No Limit").length).toBeGreaterThan(0);
   });
