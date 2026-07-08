@@ -12311,6 +12311,59 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     };
   }
 
+  // Reschedule one already-loaded calendar workout (client Edit Workouts modal).
+  const rescheduleClientWorkout = async (
+    workoutId: string,
+    scheduledDate: string
+  ) => {
+    const nextDate = normalizeDate(scheduledDate);
+    const previous = workouts;
+    setWorkouts((cur) =>
+      cur.map((w) => (w.id === workoutId ? { ...w, scheduledDate: nextDate } : w))
+    );
+    try {
+      await updateAssignedWorkoutScheduledDate(workoutId, nextDate);
+    } catch (error) {
+      console.error(error);
+      setWorkouts(previous);
+      notify("Could not update workout date.", "error");
+    }
+  };
+
+  // Restart a program: delete its calendar workouts so it can be re-scheduled.
+  // Caller confirms first (destructive — clears logged progress on this program).
+  const restartClientProgram = async (program = selectedClientProgram) => {
+    if (!selectedClient || !program) return false;
+    const cal = getClientProgramCalendarWorkouts(program);
+    if (cal.length === 0) return true;
+    let allOk = true;
+    for (const workout of cal) {
+      try {
+        const res = await fetch("/api/deleteRecord", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ resource: "workout", recordId: workout.id }),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) allOk = false;
+      } catch (error) {
+        console.error(error);
+        allOk = false;
+      }
+    }
+    await loadClientWorkouts(selectedClient, true);
+    setClientProgramSessions([]);
+    setClientProgramDayDates({});
+    setClientProgramWeekStarts({});
+    notify(
+      allOk
+        ? "Program reset — choose new dates to reschedule."
+        : "Some sessions could not be removed. Please retry.",
+      allOk ? "success" : "error"
+    );
+    return allOk;
+  };
+
   const loadClientProgramSessions = async (program = selectedClientProgram) => {
     if (!program) return;
 
@@ -12451,6 +12504,98 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     .sort();
   const selectedClientProgramLastDate =
     selectedClientProgramSortedDates[selectedClientProgramSortedDates.length - 1] || "";
+
+  // Compact in-progress dashboard data for the selected program — all real,
+  // derived from its calendar workouts + logged history (no hardcoding).
+  const clientProgramDashboard = (() => {
+    const cal = selectedClientProgramCalendarWorkouts;
+    if (!selectedClientProgram || cal.length === 0) return null;
+    const isDone = (w: Workout) => /complete/i.test(w.completionStatus || "");
+    const total = cal.length;
+    const done = cal.filter(isDone).length;
+    const pct = Math.round((done / total) * 100);
+    const incomplete = cal
+      .filter((w) => !isDone(w))
+      .sort((a, b) =>
+        String(a.scheduledDate || "").localeCompare(String(b.scheduledDate || ""))
+      );
+    const next = incomplete[0] || null;
+    const weekNums = cal.map((w) => Number(w.week) || 0);
+    const maxWeek = weekNums.length ? Math.max(...weekNums) : 0;
+    const currentWeek = next ? Number(next.week) || 1 : maxWeek;
+    const todayKey = dateToInputValue(new Date());
+    const dayNames = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+    const weekChips = cal
+      .filter((w) => Number(w.week) === currentWeek)
+      .sort((a, b) => Number(a.day) - Number(b.day))
+      .map((w) => {
+        const key = normalizeDate(String(w.scheduledDate || ""));
+        const d = new Date(`${key}T00:00:00`);
+        const label = isNaN(d.getTime()) ? `D${w.day}` : dayNames[d.getDay()];
+        const state = isDone(w) ? "done" : key === todayKey ? "today" : "planned";
+        return { label, state, id: w.id };
+      });
+    const due = cal.filter(
+      (w) => normalizeDate(String(w.scheduledDate || "")) <= todayKey
+    );
+    const adherence = due.length
+      ? Math.round((due.filter(isDone).length / due.length) * 100)
+      : 100;
+    // Consecutive-day training streak from logged history.
+    const trained = new Set(
+      workoutHistoryLogs
+        .map((l) => normalizeDate(String(l.date || "")))
+        .filter(Boolean)
+    );
+    let dayStreak = 0;
+    if (trained.size) {
+      const cursor = new Date(`${todayKey}T00:00:00`);
+      if (!trained.has(todayKey)) cursor.setDate(cursor.getDate() - 1);
+      while (trained.has(dateToInputValue(cursor))) {
+        dayStreak += 1;
+        cursor.setDate(cursor.getDate() - 1);
+      }
+    }
+    // PRs: exercises whose best weight set a new max on/after the program start.
+    const programFirst = selectedClientProgramFirstDate;
+    const byExercise: Record<string, { date: string; w: number }[]> = {};
+    for (const log of workoutHistoryLogs) {
+      const w = Number(log.actualWeight);
+      if (!Number.isFinite(w) || w <= 0) continue;
+      const name = String(log.exerciseName || "").split(" - ")[0].trim();
+      if (!name) continue;
+      (byExercise[name] = byExercise[name] || []).push({
+        date: normalizeDate(String(log.date || "")),
+        w,
+      });
+    }
+    let prCount = 0;
+    for (const name of Object.keys(byExercise)) {
+      const logs = byExercise[name].sort((a, b) => a.date.localeCompare(b.date));
+      let priorMax = 0;
+      let isPr = false;
+      for (const e of logs) {
+        if (e.w > priorMax) {
+          if (programFirst && e.date >= programFirst) isPr = true;
+          priorMax = e.w;
+        }
+      }
+      if (isPr) prCount += 1;
+    }
+    return {
+      pct,
+      done,
+      total,
+      currentWeek,
+      maxWeek,
+      next,
+      remaining: incomplete,
+      weekChips,
+      adherence,
+      dayStreak,
+      prCount,
+    };
+  })();
 
   // Draw the shareable finisher card to a canvas and return a PNG data URL.
   // Pure Canvas (no html2canvas dependency); the monogram is same-origin so the
@@ -18375,6 +18520,9 @@ function App({ onReady }: { onReady?: () => void } = {}) {
             totalTaskCount={totalTaskCount}
             uniqueClientPurchasedPrograms={uniqueClientPurchasedPrograms}
             clientProgramStatuses={clientProgramStatuses}
+            clientProgramDashboard={clientProgramDashboard}
+            rescheduleClientWorkout={rescheduleClientWorkout}
+            restartClientProgram={restartClientProgram}
             updateAssignableWorkoutDate={updateAssignableWorkoutDate}
             updateClientLanguagePreference={updateClientLanguagePreference}
             updateClientPackage={updateClientPackage}

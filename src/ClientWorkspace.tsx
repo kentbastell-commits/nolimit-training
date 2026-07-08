@@ -196,6 +196,9 @@ export default function ClientWorkspace({
   totalTaskCount,
   uniqueClientPurchasedPrograms,
   clientProgramStatuses,
+  clientProgramDashboard,
+  rescheduleClientWorkout,
+  restartClientProgram,
   updateAssignableWorkoutDate,
   updateClientLanguagePreference,
   updateClientPackage,
@@ -561,6 +564,10 @@ export default function ClientWorkspace({
                   setSelectedClientProgramId={setSelectedClientProgramId}
                   uniqueClientPurchasedPrograms={uniqueClientPurchasedPrograms}
                   clientProgramStatuses={clientProgramStatuses}
+                  clientProgramDashboard={clientProgramDashboard}
+                  openWorkout={openWorkout}
+                  rescheduleClientWorkout={rescheduleClientWorkout}
+                  restartClientProgram={restartClientProgram}
                 />
               )}
 

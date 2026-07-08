@@ -13,7 +13,10 @@ import {
   ChevronLeft,
   ChevronRight,
   Grid3x3,
+  MoreVertical,
+  RotateCcw,
   Store,
+  X,
 } from "lucide-react";
 import type { ClientProgramScheduleMode } from "./appCore";
 import { addDays } from "./appCore";
@@ -41,6 +44,11 @@ export default function PortalPrograms(props: { [key: string]: any }) {
     localizedProductType,
     localizedAssignableWorkoutName,
     localizedCalendarLabel,
+    // dashboard (in-progress)
+    clientProgramDashboard,
+    openWorkout,
+    rescheduleClientWorkout,
+    restartClientProgram,
     // scheduler
     clientProgramScheduleMode,
     setClientProgramScheduleMode,
@@ -58,7 +66,6 @@ export default function PortalPrograms(props: { [key: string]: any }) {
     populateClientProgramCalendar,
     populatingClientProgram,
     // progress / dashboard
-    renderProgramHome,
     renderProgramStore,
     selectedClientProgramAlreadyLoaded,
     setClientTab,
@@ -69,6 +76,8 @@ export default function PortalPrograms(props: { [key: string]: any }) {
   const [overviewSeg, setOverviewSeg] = useState<"overview" | "sessions">(
     "overview"
   );
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
 
   const screen = reduce
     ? {}
@@ -243,16 +252,100 @@ export default function PortalPrograms(props: { [key: string]: any }) {
   const program = selectedClientProgram;
   const st = statusOf(program);
 
-  // ---------------- DASHBOARD (in-progress) ----------------
+  // ---------------- DASHBOARD (in-progress) — compact design ----------------
   if (view === "dashboard") {
+    const d = clientProgramDashboard;
+    const ring = 339;
+    const encouragement = d
+      ? d.done === 0
+        ? paceZh
+          ? "先完成第一节训练。"
+          : "Let's get the first one in."
+        : paceZh
+          ? "干得漂亮 —— 保持连胜。"
+          : "Strong work — keep the streak alive."
+      : "";
+    const handleRestart = async () => {
+      setMenuOpen(false);
+      const proceed = window.confirm(
+        paceZh
+          ? "重新开始将删除这个计划已排的训练数据，确定继续吗？"
+          : "Your data will be deleted if you restart. Do you want to proceed?"
+      );
+      if (!proceed) return;
+      const ok = await restartClientProgram(program);
+      if (ok) setView("schedule");
+    };
+
     return (
-      <motion.div className="ppFlow" {...screen}>
-        <button type="button" className="ppBack" onClick={backToList}>
-          <ChevronLeft size={16} /> {t("myPrograms")}
-        </button>
-        {selectedClientProgramAlreadyLoaded ? (
-          renderProgramHome()
-        ) : (
+      <motion.div className="ppFlow ppDash" {...screen}>
+        <div className="ppDashTopRow">
+          <button type="button" className="ppBack" onClick={backToList}>
+            <ChevronLeft size={16} /> {t("myPrograms")}
+          </button>
+          <div className="ppDashActions">
+            {d && (
+              <span className="ppWeekPill">
+                {t("week")} {d.currentWeek}/{d.maxWeek}
+              </span>
+            )}
+            <div className="ppMenuWrap">
+              <button
+                type="button"
+                className="ppMenuBtn"
+                aria-label={paceZh ? "菜单" : "Menu"}
+                onClick={() => setMenuOpen((o) => !o)}
+              >
+                <MoreVertical size={18} />
+              </button>
+              {menuOpen && (
+                <>
+                  <div className="ppMenuScrim" onClick={() => setMenuOpen(false)} />
+                  <div className="ppMenu" role="menu">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMenuOpen(false);
+                        setOverviewSeg("overview");
+                        setView("overview");
+                      }}
+                    >
+                      <BookOpen size={15} />
+                      {paceZh ? "计划指南" : "Program guide"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMenuOpen(false);
+                        setEditOpen(true);
+                      }}
+                    >
+                      <CalendarDays size={15} />
+                      {paceZh ? "编辑训练日期" : "Edit workouts"}
+                    </button>
+                    <button
+                      type="button"
+                      className="ppMenuDanger"
+                      onClick={handleRestart}
+                    >
+                      <RotateCcw size={15} />
+                      {paceZh ? "重新开始计划" : "Restart program"}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="ppDashTitle">
+          <span className="ppKicker">
+            {program?.sport || (paceZh ? "训练" : "Training")}
+          </span>
+          <h2>{localizedProgramName(program)}</h2>
+        </div>
+
+        {!selectedClientProgramAlreadyLoaded || !d ? (
           <div className="ppEmpty">
             <BookOpen size={30} strokeWidth={1.8} />
             <p>
@@ -267,6 +360,185 @@ export default function PortalPrograms(props: { [key: string]: any }) {
             >
               {paceZh ? "加入日历" : "Load into calendar"} <ArrowRight size={16} />
             </button>
+          </div>
+        ) : (
+          <>
+            <div className="ppHero">
+              <div className="ppRing">
+                <svg viewBox="0 0 120 120">
+                  <circle
+                    cx="60"
+                    cy="60"
+                    r="54"
+                    fill="none"
+                    stroke="rgba(255,255,255,.14)"
+                    strokeWidth="11"
+                  />
+                  <circle
+                    cx="60"
+                    cy="60"
+                    r="54"
+                    fill="none"
+                    stroke="#d4af37"
+                    strokeWidth="11"
+                    strokeLinecap="round"
+                    strokeDasharray={ring}
+                    strokeDashoffset={ring - (ring * d.pct) / 100}
+                    transform="rotate(-90 60 60)"
+                  />
+                </svg>
+                <span className="ppRingPct">{d.pct}%</span>
+              </div>
+              <div className="ppHeroText">
+                <span>
+                  {paceZh
+                    ? `你已完成这个计划的 ${d.pct}%`
+                    : `You're ${d.pct}% through this program`}
+                </span>
+                <strong>
+                  {d.done} {paceZh ? "/" : "of"} {d.total}{" "}
+                  {paceZh ? "节训练" : "sessions"}
+                </strong>
+                <em>{encouragement}</em>
+              </div>
+            </div>
+
+            {d.next && (
+              <>
+                <div className="ppSectionLabel">
+                  {paceZh ? "下一节" : "Up next"}
+                </div>
+                <div className="ppNextCard">
+                  <div className="ppNextTop">
+                    <span className="ppNextDay">D{d.next.day}</span>
+                    <div>
+                      <strong>{localizedAssignableWorkoutName(d.next)}</strong>
+                      <small>
+                        {t("week")} {d.next.week} · {t("day")} {d.next.day}
+                        {(() => {
+                          const dt = new Date(
+                            `${String(d.next.scheduledDate || "")}T00:00:00`
+                          );
+                          return isNaN(dt.getTime())
+                            ? ""
+                            : ` · ${localizedCalendarLabel(d.next.scheduledDate)}`;
+                        })()}
+                      </small>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className="ppPrimary ppWide"
+                    onClick={() => openWorkout(d.next)}
+                  >
+                    {paceZh ? "开始训练" : "Start session"} <ArrowRight size={16} />
+                  </button>
+                </div>
+              </>
+            )}
+
+            <div className="ppSectionRow">
+              <span className="ppSectionLabel">
+                {paceZh ? "本周" : "This week"}
+              </span>
+              <button
+                type="button"
+                className="ppLink"
+                onClick={() => setClientTab("Training")}
+              >
+                {paceZh ? "完整日历 ›" : "Full calendar ›"}
+              </button>
+            </div>
+            <div className="ppWeekStrip">
+              {d.weekChips.length === 0 ? (
+                <span className="ppMuted">
+                  {paceZh ? "本周暂无训练。" : "Nothing scheduled this week."}
+                </span>
+              ) : (
+                d.weekChips.map((c: any, i: number) => (
+                  <div className={`ppDayChip ${c.state}`} key={c.id || i}>
+                    <span className="ppDayLabel">{c.label}</span>
+                    <span className="ppDayMark">
+                      {c.state === "done" ? "✓" : c.state === "today" ? "●" : "○"}
+                    </span>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="ppDashStats">
+              <div>
+                <strong>{d.adherence}%</strong>
+                <span>{paceZh ? "完成度" : "Adherence"}</span>
+              </div>
+              <div>
+                <strong>{d.dayStreak}</strong>
+                <span>{paceZh ? "连续天数" : "Day streak"}</span>
+              </div>
+              <div>
+                <strong>{d.prCount}</strong>
+                <span>{paceZh ? "个人纪录" : "PRs"}</span>
+              </div>
+            </div>
+          </>
+        )}
+
+        {editOpen && (
+          <div className="ppModalScrim" onClick={() => setEditOpen(false)}>
+            <div
+              className="ppModal"
+              role="dialog"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="ppModalHead">
+                <h3>{paceZh ? "编辑训练日期" : "Edit workout dates"}</h3>
+                <button
+                  type="button"
+                  className="ppModalClose"
+                  onClick={() => setEditOpen(false)}
+                  aria-label={paceZh ? "关闭" : "Close"}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+              <p className="ppModalSub">
+                {paceZh
+                  ? "调整还未完成的训练日期。"
+                  : "Move the dates of the sessions you have left."}
+              </p>
+              <div className="ppModalList">
+                {(d?.remaining || []).length === 0 ? (
+                  <p className="ppMuted">
+                    {paceZh ? "没有待完成的训练。" : "No sessions left to move."}
+                  </p>
+                ) : (
+                  (d?.remaining || []).map((w: any) => (
+                    <label className="ppDateRow" key={w.id}>
+                      <span>
+                        <b>{localizedAssignableWorkoutName(w)}</b>
+                        <small>
+                          {t("week")} {w.week} · {t("day")} {w.day}
+                        </small>
+                      </span>
+                      <input
+                        type="date"
+                        defaultValue={w.scheduledDate}
+                        onChange={(e) =>
+                          rescheduleClientWorkout(w.id, e.target.value)
+                        }
+                      />
+                    </label>
+                  ))
+                )}
+              </div>
+              <button
+                type="button"
+                className="ppPrimary ppWide"
+                onClick={() => setEditOpen(false)}
+              >
+                {paceZh ? "完成" : "Done"}
+              </button>
+            </div>
           </div>
         )}
       </motion.div>

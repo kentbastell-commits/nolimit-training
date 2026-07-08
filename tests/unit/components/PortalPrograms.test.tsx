@@ -32,6 +32,10 @@ const baseProps: any = {
   setSelectedClientProgramId: vi.fn(),
   uniqueClientPurchasedPrograms: [],
   clientProgramStatuses: {},
+  clientProgramDashboard: null,
+  openWorkout: vi.fn(),
+  rescheduleClientWorkout: vi.fn(),
+  restartClientProgram: vi.fn(),
 };
 
 const program = {
@@ -83,8 +87,7 @@ describe("PortalPrograms", () => {
     expect(loadSessions).toHaveBeenCalled();
   });
 
-  it("shows the in-progress dashboard (renderProgramHome) via the status route", () => {
-    const dash = vi.fn(() => <div>DASH</div>);
+  it("routes an in-progress program to the compact dashboard with real data", () => {
     render(
       <PortalPrograms
         {...baseProps}
@@ -92,20 +95,42 @@ describe("PortalPrograms", () => {
         clientProgramStatuses={{
           p1: {
             status: "in-progress",
-            done: 2,
-            total: 12,
-            currentWeek: 1,
+            done: 9,
+            total: 32,
+            currentWeek: 3,
             totalWeeks: 8,
           },
         }}
         selectedClientProgram={program}
         selectedClientProgramAlreadyLoaded={true}
-        renderProgramHome={dash}
+        clientProgramDashboard={{
+          pct: 28,
+          done: 9,
+          total: 32,
+          currentWeek: 3,
+          maxWeek: 8,
+          next: {
+            id: "w1",
+            week: 3,
+            day: 2,
+            sessionName: "Upper · Pull",
+            scheduledDate: "2026-07-16",
+          },
+          remaining: [],
+          weekChips: [{ label: "MON", state: "done", id: "w0" }],
+          adherence: 92,
+          dayStreak: 5,
+          prCount: 3,
+        }}
       />
     );
     expect(screen.getByText(/In progress/)).toBeInTheDocument();
     fireEvent.click(screen.getByText("Strength Base"));
-    expect(dash).toHaveBeenCalled();
-    expect(screen.getByText("DASH")).toBeInTheDocument();
+    // Compact dashboard: ring %, sessions count, stats.
+    expect(screen.getByText("28%")).toBeInTheDocument();
+    expect(screen.getByText(/9\s+of\s+32/)).toBeInTheDocument();
+    expect(screen.getByText("Adherence")).toBeInTheDocument();
+    expect(screen.getByText("92%")).toBeInTheDocument();
+    expect(screen.getByText("Start session")).toBeInTheDocument();
   });
 });
