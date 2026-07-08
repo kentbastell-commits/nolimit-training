@@ -195,6 +195,7 @@ export default function ClientWorkspace({
   todayValue,
   totalTaskCount,
   uniqueClientPurchasedPrograms,
+  clientProgramStatuses,
   updateAssignableWorkoutDate,
   updateClientLanguagePreference,
   updateClientPackage,
@@ -559,6 +560,7 @@ export default function ClientWorkspace({
                   setProgramsTab={setProgramsTab}
                   setSelectedClientProgramId={setSelectedClientProgramId}
                   uniqueClientPurchasedPrograms={uniqueClientPurchasedPrograms}
+                  clientProgramStatuses={clientProgramStatuses}
                 />
               )}
 

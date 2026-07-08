@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import PortalPrograms from "../../../src/PortalPrograms";
 
-const baseProps = {
-  selectedClientProgramCalendarWorkouts: [],
+const baseProps: any = {
   t: (k: string) => k,
+  paceZh: false,
   clientProgramScheduleMode: "Month",
   clientProgramScheduledWorkouts: [],
   clientProgramSessions: [],
@@ -15,34 +15,30 @@ const baseProps = {
   loadingClientProgramSessions: false,
   localizedAssignableWorkoutName: (w: any) => w?.sessionName || "",
   localizedCalendarLabel: (d: string) => d,
-  localizedProductType: (t: string) => t,
+  localizedProductType: (type: string) => type,
   localizedProgramName: (p: any) => p?.programName || "",
-  paceZh: false,
   populateClientProgramCalendar: vi.fn(),
   populatingClientProgram: false,
-  programsTab: "progress",
   renderProgramHome: () => null,
   renderProgramStore: () => null,
   selectedClientProgram: null,
   selectedClientProgramAlreadyLoaded: false,
-  selectedClientProgramFirstDate: "",
-  selectedClientProgramId: "",
-  selectedClientProgramLastDate: "",
   setClientProgramDayDates: vi.fn(),
   setClientProgramScheduleMode: vi.fn(),
   setClientProgramSessions: vi.fn(),
   setClientProgramStartDate: vi.fn(),
   setClientProgramWeekStarts: vi.fn(),
   setClientTab: vi.fn(),
-  setProgramsTab: vi.fn(),
   setSelectedClientProgramId: vi.fn(),
   uniqueClientPurchasedPrograms: [],
+  clientProgramStatuses: {},
 };
 
 const program = {
   recordId: "p1",
   programId: "PRG-1",
   programName: "Strength Base",
+  sport: "Rock Climbing",
   productType: "Digital Program",
   durationWeeks: 8,
   sessionsPerWeek: 4,
@@ -51,27 +47,65 @@ const program = {
 describe("PortalPrograms", () => {
   it("renders the empty state with no purchased programs", () => {
     render(<PortalPrograms {...baseProps} />);
-    expect(screen.getByText("myPrograms")).toBeInTheDocument();
     expect(screen.getByText("noPurchasedPrograms")).toBeInTheDocument();
   });
 
-  it("renders the selected program card and sub tabs", () => {
+  it("renders a sport-grouped card with its derived status and routes on tap", () => {
+    const setSelected = vi.fn();
+    const loadSessions = vi.fn();
     render(
       <PortalPrograms
         {...baseProps}
         uniqueClientPurchasedPrograms={[program]}
+        clientProgramStatuses={{
+          p1: {
+            status: "not-started",
+            done: 0,
+            total: 0,
+            currentWeek: 0,
+            totalWeeks: 8,
+          },
+        }}
         selectedClientProgram={program}
-        selectedClientProgramId="p1"
+        setSelectedClientProgramId={setSelected}
+        loadClientProgramSessions={loadSessions}
       />
     );
-    // Name appears in the picker option and the program card.
-    expect(screen.getAllByText("Strength Base").length).toBeGreaterThan(0);
-    expect(screen.getByRole("tab", { name: "Progress" })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: "Edit" })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: "Store" })).toBeInTheDocument();
-    // Progress tab, program not loaded yet -> calendar hint empty state.
-    expect(
-      screen.getByText(/Add this program to your calendar/)
-    ).toBeInTheDocument();
+    // My Programs list: group header + card + derived status tag.
+    expect(screen.getByText("myPrograms")).toBeInTheDocument();
+    expect(screen.getByText("Rock Climbing")).toBeInTheDocument();
+    expect(screen.getByText("Strength Base")).toBeInTheDocument();
+    expect(screen.getByText(/Not started/)).toBeInTheDocument();
+
+    // Tapping a not-started program selects it and previews its sessions.
+    fireEvent.click(screen.getByText("Strength Base"));
+    expect(setSelected).toHaveBeenCalledWith("p1");
+    expect(loadSessions).toHaveBeenCalled();
+  });
+
+  it("shows the in-progress dashboard (renderProgramHome) via the status route", () => {
+    const dash = vi.fn(() => <div>DASH</div>);
+    render(
+      <PortalPrograms
+        {...baseProps}
+        uniqueClientPurchasedPrograms={[program]}
+        clientProgramStatuses={{
+          p1: {
+            status: "in-progress",
+            done: 2,
+            total: 12,
+            currentWeek: 1,
+            totalWeeks: 8,
+          },
+        }}
+        selectedClientProgram={program}
+        selectedClientProgramAlreadyLoaded={true}
+        renderProgramHome={dash}
+      />
+    );
+    expect(screen.getByText(/In progress/)).toBeInTheDocument();
+    fireEvent.click(screen.getByText("Strength Base"));
+    expect(dash).toHaveBeenCalled();
+    expect(screen.getByText("DASH")).toBeInTheDocument();
   });
 });

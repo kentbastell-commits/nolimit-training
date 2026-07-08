@@ -12271,6 +12271,46 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     });
   };
 
+  // Per-program status for the redesigned My Programs list. There is no status
+  // field on a program — it's derived from the real calendar workouts: none on
+  // the calendar = not started; all complete = completed; otherwise in progress.
+  const clientProgramStatuses: Record<
+    string,
+    {
+      status: "in-progress" | "not-started" | "completed";
+      done: number;
+      total: number;
+      currentWeek: number;
+      totalWeeks: number;
+    }
+  > = {};
+  for (const program of uniqueClientPurchasedPrograms) {
+    const cal = getClientProgramCalendarWorkouts(program);
+    const total = cal.length;
+    const done = cal.filter((w) =>
+      /complete/i.test(w.completionStatus || "")
+    ).length;
+    const weekNums = cal.map((w) => Number(w.week) || 0);
+    const totalWeeks = weekNums.length
+      ? Math.max(...weekNums)
+      : Number(program.durationWeeks) || 0;
+    const nextUp = cal
+      .filter((w) => !/complete/i.test(w.completionStatus || ""))
+      .sort((a, b) =>
+        String(a.scheduledDate || "").localeCompare(String(b.scheduledDate || ""))
+      )[0];
+    const currentWeek = nextUp ? Number(nextUp.week) || 1 : totalWeeks;
+    const status: "in-progress" | "not-started" | "completed" =
+      total === 0 ? "not-started" : done >= total ? "completed" : "in-progress";
+    clientProgramStatuses[program.recordId] = {
+      status,
+      done,
+      total,
+      currentWeek,
+      totalWeeks,
+    };
+  }
+
   const loadClientProgramSessions = async (program = selectedClientProgram) => {
     if (!program) return;
 
@@ -18334,6 +18374,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
             todayValue={todayValue}
             totalTaskCount={totalTaskCount}
             uniqueClientPurchasedPrograms={uniqueClientPurchasedPrograms}
+            clientProgramStatuses={clientProgramStatuses}
             updateAssignableWorkoutDate={updateAssignableWorkoutDate}
             updateClientLanguagePreference={updateClientLanguagePreference}
             updateClientPackage={updateClientPackage}
