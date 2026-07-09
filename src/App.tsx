@@ -10391,6 +10391,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     season?: string;
     bundleProgramIds?: string[];
     salesDescription?: string;
+    publicStoreVisible?: boolean; // Live intent from the create flow (default live)
   }): Promise<boolean> => {
     if (!product.programName.trim()) {
       notify("Give the product a name first.", "error");
@@ -10398,6 +10399,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     }
     const isBundle = product.productType === "Digital Bundle";
     const isAddon = product.productType === "Digital Add-on";
+    const live = product.publicStoreVisible !== false;
     try {
       const res = await fetch("/api/createProgram", {
         method: "POST",
@@ -10408,8 +10410,8 @@ function App({ onReady }: { onReady?: () => void } = {}) {
           price: product.price || "",
           compareAtPrice: product.compareAtPrice || "",
           currency: "CNY",
-          publicStoreVisible: true,
-          productStatus: "Active",
+          publicStoreVisible: live,
+          productStatus: live ? "Active" : "Draft",
           storeCategory: isAddon ? "Joint Add-Ons" : product.storeCategory || "",
           storeCategoryCn: isAddon
             ? "关节加购"
@@ -10435,6 +10437,48 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       console.error(err);
       notify("Could not create the product.", "error");
       return false;
+    }
+  };
+
+  // Persist a store product's live/draft flip (publicStoreVisible) from the
+  // Store tab's Live toggle, then refresh so counts stay in sync.
+  const setProductLive = async (program: Program, live: boolean) => {
+    try {
+      const res = await fetch("/api/updateProgram", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          programRecordId: program.recordId,
+          publicStoreVisible: live,
+          productStatus: live ? "Active" : "Draft",
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "update failed");
+      await loadPrograms(true);
+    } catch (err) {
+      console.error(err);
+      notify("Could not update the store status.", "error");
+      throw err;
+    }
+  };
+
+  // Persist edits from the Store tab's Product Settings slide-over.
+  const saveProduct = async (program: Program, patch: Record<string, any>) => {
+    try {
+      const res = await fetch("/api/updateProgram", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ programRecordId: program.recordId, ...patch }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "update failed");
+      notify("Saved.", "success");
+      await loadPrograms(true);
+    } catch (err) {
+      console.error(err);
+      notify("Could not save the product.", "error");
+      throw err;
     }
   };
 
@@ -18475,6 +18519,8 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                 programs={programs}
                 existingStoreCategories={existingStoreCategories}
                 createStoreProduct={createStoreProduct}
+                setProductLive={setProductLive}
+                saveProduct={saveProduct}
                 onEditProduct={(program: Program) => {
                   setDigitalSubTab("program");
                   loadSavedProgramIntoBuilder(program, { edit: true });
