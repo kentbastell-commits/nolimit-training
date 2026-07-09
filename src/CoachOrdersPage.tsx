@@ -127,7 +127,12 @@ export default function CoachOrdersPage(props: { [key: string]: any }) {
   // FLAG: /api/updateProductOrder must accept `coach` (added) to persist.
   const assignOrderCoach = async (order: any, coach: any) => {
     setAssignTarget(null);
-    await updateProductOrder(order, { coach: coach.name });
+    // "Assign Coach" is a DuplexLink column → send the coach record id so the
+    // API can write [recordId] (name is the text fallback for non-link setups).
+    await updateProductOrder(order, {
+      coach: coach.name,
+      coachRecordId: coach.recordId,
+    });
   };
 
   const closeReview = () => setOrderReviewOrder(null);

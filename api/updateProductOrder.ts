@@ -156,6 +156,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       fulfilledAt,
       notes,
       coach,
+      coachRecordId,
     } = req.body || {};
 
     if (!recordId) {
@@ -231,13 +232,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ["Payment Status", "Payment"],
       paymentStatus
     );
-    // Coach assignment from the Orders page (writes the existing coach column).
+    // Coach assignment from the Orders page. "Assign Coach" is a DuplexLink
+    // column, so pass the coach's record id as a [recordId] array (applyField
+    // uses linkValue when the column is a link); the name is the text fallback.
     applyField(
       tableFields,
       fields,
       omittedFields,
       ["Assign Coach", "Assigned Coach", "Coach", "Coach Assigned"],
-      coach
+      coach,
+      coachRecordId ? [String(coachRecordId)] : undefined
     );
 
     const startDate = toLarkDate(accessStartDate);
