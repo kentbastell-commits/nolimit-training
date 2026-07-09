@@ -18130,6 +18130,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                 deleteExercise={deleteExercise}
                 filteredLibraryExercises={filteredLibraryExercises}
                 groupedLibraryExercises={groupedLibraryExercises}
+                libraryExercises={libraryExercises}
                 libraryCategoryFilter={libraryCategoryFilter}
                 libraryCategoryOptions={libraryCategoryOptions}
                 libraryLoading={libraryLoading}

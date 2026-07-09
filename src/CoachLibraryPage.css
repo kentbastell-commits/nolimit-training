@@ -1,80 +1,652 @@
-/* Co-located styles for CoachLibraryPage — split out of App.css so they load with the CoachLibraryPage chunk, not the main bundle. */
-.cueIconButton {
-  width: 42px;
-  height: 42px;
+/* Exercise Library — same visual language as the Store / Programs / Clients pages. */
+.coachLibraryPage {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 4px 2px 90px;
+  color: #151515;
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+}
+.coachLibraryPage input:focus {
+  outline: none;
+  border-color: #d4af37 !important;
+  background: #fff !important;
+}
+.coachLibraryPage ::placeholder {
+  color: #a8a091;
+}
+
+/* header */
+.clHead {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin: 6px 0 22px;
+}
+.clEyebrow {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  border: 1px solid rgba(212, 175, 55, 0.45);
-  border-radius: 8px;
-  background: rgba(212, 175, 55, 0.08);
-  color: #d4af37;
-  cursor: pointer;
+  gap: 7px;
+  font-size: 11px;
+  letter-spacing: 1.8px;
+  text-transform: uppercase;
+  color: #b5731a;
+  font-weight: 700;
 }
-.cueIconButton:hover {
-  border-color: rgba(245, 215, 123, 0.8);
-  background: rgba(212, 175, 55, 0.16);
+.clHead h1 {
+  margin: 8px 0 4px;
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  color: #151515;
 }
-/* Video-derived thumbnail in place of initials — a larger 16:9 frame so the
-   image is actually legible (initials avatars stay small circles). */
-.exerciseThumbAvatar {
-  width: 104px !important;
-  height: 60px !important;
-  border-radius: 10px !important;
-  padding: 0 !important;
-  overflow: hidden;
-  flex: 0 0 auto;
+.clHead > div > p {
+  margin: 0;
+  font-size: 14px;
+  color: #6b6459;
 }
-.exerciseThumbAvatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-/* The short-video button now renders a real Play icon (was a CSS triangle). */
-.libraryVideoButton {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-.libraryVideoCell {
-  display: inline-flex;
-  align-items: center;
+.clHeadActions {
+  display: flex;
   gap: 10px;
+  flex-wrap: wrap;
 }
-.libraryLongVideoLink {
-  font-size: 12px;
+.clReload {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  border: 1px solid #ddd6c6;
+  background: #fff;
+  color: #6b6459;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.clReload:hover {
+  border-color: #b5731a;
+  color: #b5731a;
+}
+.clAddBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 12px;
+  background: #151515;
+  color: #fff;
+  font-size: 14.5px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 8px 20px -10px rgba(0, 0, 0, 0.5);
+}
+.clAddBtn:hover {
+  background: #000;
+}
+
+/* board */
+.clBoard {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 22px;
+}
+.clBoardLib {
+  flex: 1 1 260px;
+  min-width: 240px;
+  background: linear-gradient(150deg, #26221a, #171410);
+  border-radius: 18px;
+  padding: 20px 22px;
+  color: #f3ede0;
+  position: relative;
+  overflow: hidden;
+}
+.clBoardGlow {
+  position: absolute;
+  right: -30px;
+  top: -30px;
+  width: 130px;
+  height: 130px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(214, 175, 55, 0.4), transparent 70%);
+}
+.clBoardEyebrow {
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: #c9ab55;
+  font-weight: 700;
+}
+.clBoardEyebrowLight {
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: #8a8372;
+  font-weight: 700;
+}
+.clBoardBig {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-top: 6px;
+}
+.clBoardBig > span {
+  font-size: 44px;
+  font-weight: 800;
+  line-height: 1;
+}
+.clBoardBigDark {
+  color: #151515;
+}
+.clBoardBig small {
+  font-size: 13px;
+  color: #b3aa93;
+}
+.clBoardCues .clBoardBig small {
+  color: #8a8372;
+}
+.clBoardBreak {
+  display: flex;
+  gap: 18px;
+  margin-top: 16px;
+  font-size: 13px;
+  color: #d8d0bd;
+}
+.clBoardBreak strong {
+  color: #fff;
+}
+.clBoardCues {
+  flex: 0 1 230px;
+  min-width: 200px;
+  background: #fff;
+  border: 1px solid #e7e2d6;
+  border-radius: 18px;
+  padding: 20px 22px;
+}
+.clBoardCues p {
+  margin: 14px 0 0;
+  font-size: 12.5px;
+  color: #a8a091;
+  line-height: 1.5;
+}
+
+/* search + chips */
+.clSearchRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+.clSearch {
+  position: relative;
+  flex: 1 1 260px;
+  min-width: 220px;
+  display: flex;
+  align-items: center;
+}
+.clSearch svg {
+  position: absolute;
+  left: 13px;
+  color: #a8a091;
+  pointer-events: none;
+}
+.clSearch input {
+  width: 100%;
+  padding: 10px 13px 10px 36px;
+  border-radius: 11px;
+  border: 1px solid #ddd6c6;
+  background: #fbfaf6;
+  font-size: 14px;
+  color: #151515;
+}
+.clChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 22px;
+}
+.clChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 13px;
+  border-radius: 999px;
+  font-size: 12.5px;
   font-weight: 600;
-  color: #3a86ff;
-  text-decoration: underline;
+  cursor: pointer;
   white-space: nowrap;
+  transition: all 0.15s;
+  background: #fff;
+  border: 1px solid #e2ddcf;
+  color: #6b6459;
 }
-/* Exercise library: category group headers + filter select */
-.libraryCategoryGroupHeader {
+.clChip em {
+  font-style: normal;
+  opacity: 0.6;
+}
+.clChip.active {
+  background: linear-gradient(140deg, #e6c766, #b5731a);
+  border-color: transparent;
+  color: #1a1712;
+}
+.clChip.active em {
+  opacity: 0.8;
+}
+
+/* groups + grid */
+.clGroup {
+  margin-bottom: 24px;
+}
+.clGroupHead {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 16px 22px 8px;
-  border-top: 1px solid #ece8df;
+  margin: 6px 2px 14px;
 }
-.libraryCategoryGroupHeader em {
-  font-style: normal;
+.clGroupTag {
+  font-size: 13px;
   font-weight: 800;
-  font-size: 12px;
-  color: #66645e;
-  background: #f2f0ea;
-  border: 1px solid #e4e0d6;
-  border-radius: 999px;
-  padding: 2px 9px;
+  letter-spacing: 0.3px;
+  border: 1px solid;
+  padding: 4px 12px;
+  border-radius: 8px;
 }
-.libraryCategorySelect {
-  border: 1px solid #dcd8cd;
-  border-radius: 10px;
-  background: #ffffff;
-  color: #1a1a1a;
-  font-weight: 700;
-  font-size: 14px;
-  padding: 0 12px;
-  min-height: 44px;
+.clGroupCount {
+  font-size: 12px;
+  color: #a8a091;
+  font-weight: 600;
+}
+.clGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(176px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+/* card */
+.clCard {
+  background: #fff;
+  border: 1px solid #e7e2d6;
+  border-radius: 16px;
+  overflow: hidden;
   cursor: pointer;
+  transition: box-shadow 0.16s, border-color 0.16s, transform 0.16s;
+}
+.clCard:hover {
+  box-shadow: 0 14px 30px -18px rgba(0, 0, 0, 0.45);
+  border-color: #d8cfb6;
+  transform: translateY(-2px);
+}
+.clMedia {
+  position: relative;
+  height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-bottom: 1px solid #f0ebe0;
+  overflow: hidden;
+}
+.clThumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.clGlyph {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  opacity: 0.28;
+}
+.clGlyphBar {
+  width: 7px;
+  height: 17px;
+  border-radius: 3px;
+  background: currentColor;
+}
+.clGlyphMid {
+  width: 18px;
+  height: 4px;
+  background: currentColor;
+}
+.clCatTag {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  border: 1px solid;
+  padding: 3px 9px;
+  border-radius: 7px;
+}
+.clPlayBadge {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(20, 17, 12, 0.72);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+}
+.clInDepth {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #fff;
+  background: rgba(20, 17, 12, 0.6);
+  backdrop-filter: blur(3px);
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+.clCardBody {
+  padding: 10px 12px 3px;
+}
+.clCardBody strong {
+  display: block;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #151515;
+  line-height: 1.3;
+}
+.clCardMeta {
+  margin-top: 3px;
+  font-size: 11.5px;
+  color: #8a8372;
+}
+.clCardFoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px 10px;
+}
+.clCueBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 11px;
+  border-radius: 9px;
+  border: 1px solid #e2ddcf;
+  background: #fbfaf6;
+  color: #6b6459;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.clCueBtn.needs {
+  border-color: #ecd9a8;
+  background: #fbf3df;
+  color: #9a6a12;
+}
+.clCardActions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.clIconBtn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  border: 1px solid #e2ddcf;
+  background: #fbfaf6;
+  color: #8a8372;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.clIconBtn:hover {
+  border-color: #b5731a;
+  color: #b5731a;
+}
+.clIconDanger:hover {
+  border-color: #c0392b;
+  color: #c0392b;
+}
+
+/* "view all" tile */
+.clMoreTile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 178px;
+  border: 1.5px dashed #dcc9a0;
+  border-radius: 16px;
+  background: #fbf6ea;
+  color: #9a6a12;
+  cursor: pointer;
+}
+.clMoreTile strong {
+  font-size: 16px;
+  font-weight: 800;
+}
+.clMoreTile span {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.clSentinel {
+  text-align: center;
+  padding: 20px;
+  font-size: 12.5px;
+  color: #a8a091;
+}
+.clLoading {
+  font-size: 13.5px;
+  color: #8a8372;
+  padding: 20px 4px;
+}
+.clEmpty {
+  text-align: center;
+  padding: 60px 20px;
+  background: #fff;
+  border: 1px dashed #d8cfb6;
+  border-radius: 16px;
+}
+.clEmptyTitle {
+  margin: 0 0 4px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #151515;
+}
+.clEmptySub {
+  margin: 0;
+  font-size: 13.5px;
+  color: #8a8372;
+}
+
+/* cue slide-over */
+.clSlideScrim {
+  position: fixed;
+  inset: 0;
+  z-index: 85;
+  background: rgba(20, 17, 12, 0.42);
+  backdrop-filter: blur(2px);
+  display: flex;
+  justify-content: flex-end;
+}
+.clSlide {
+  width: 480px;
+  max-width: 100%;
+  height: 100%;
+  overflow: auto;
+  background: #faf8f2;
+  box-shadow: -30px 0 60px -30px rgba(0, 0, 0, 0.5);
+}
+.clSlideHero {
+  position: relative;
+  height: 150px;
+  overflow: hidden;
+}
+.clSlideHeroImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.clSlideClose {
+  position: absolute;
+  right: 16px;
+  top: 16px;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  border: none;
+  background: rgba(20, 17, 12, 0.55);
+  backdrop-filter: blur(4px);
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.clSlideTag {
+  position: absolute;
+  left: 20px;
+  top: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #6b6459;
+  background: #fff;
+  border: 1px solid #e2ddcf;
+  padding: 4px 11px;
+  border-radius: 8px;
+}
+.clWatch {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #1a1712;
+  background: linear-gradient(140deg, #e6c766, #b5731a);
+  padding: 8px 14px;
+  border-radius: 999px;
+}
+.clWatch:hover {
+  color: #1a1712;
+}
+.clSlideBody {
+  padding: 20px 24px 30px;
+}
+.clSlideBody h2 {
+  margin: 0;
+  font-size: 23px;
+  font-weight: 800;
+  color: #151515;
+}
+.clSlideMeta {
+  margin-top: 5px;
+  font-size: 13px;
+  color: #8a8372;
+}
+.clInDepthLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #b5731a;
+}
+.clCueSections {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin: 20px 0 22px;
+}
+.clCueTitle {
+  font-size: 11px;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: #b5731a;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+.clCueLines {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.clCueLine {
+  display: flex;
+  gap: 9px;
+  font-size: 13.5px;
+  color: #3a352c;
+  line-height: 1.5;
+}
+.clCueDot {
+  flex: none;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #d4af37;
+  margin-top: 8px;
+}
+.clCueEmpty {
+  margin: 22px 0;
+  padding: 22px;
+  text-align: center;
+  border: 1px dashed #d8cfb6;
+  border-radius: 13px;
+  background: #fff;
+}
+.clCueEmpty p {
+  margin: 0 0 12px;
+  font-size: 13.5px;
+  color: #8a8372;
+}
+.clAddCuesBtn {
+  padding: 9px 18px;
+  border-radius: 10px;
+  border: 1px solid #ecd9a8;
+  background: #fbf3df;
+  color: #9a6a12;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.clSlideFoot {
+  padding-top: 6px;
+  border-top: 1px solid #ebe5d7;
+}
+.clEditExerciseBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: 100%;
+  padding: 12px;
+  border-radius: 11px;
+  border: none;
+  background: #151515;
+  color: #fff;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+@media (max-width: 640px) {
+  .clBoard {
+    flex-direction: column;
+  }
+  .clBoardCues {
+    flex: 1 1 auto;
+  }
+  .clSlide {
+    width: 100%;
+  }
 }
