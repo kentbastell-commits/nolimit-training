@@ -1,16 +1,28 @@
-/* 1:1 Online Coaching flow — matches CoachingFlowReference exactly.
-   Bebas Neue headings + Inter body; paper #e7e2d6, card #f5f1e8, dark bar. */
-@import url("https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap");
+/* 1:1 Online Coaching flow — matched to the homepage (lv3) system.
+   Heavy system headings (no web font — Google Fonts is China-blocked, so
+   the landing page avoids it and so must this); homepage paper #f4f1ea,
+   oxblood eyebrows #8b1e2d, gold #d4af37 accents. */
 
 .cfpWrap {
   min-height: 100vh;
   display: flex;
   justify-content: center;
   padding: 26px 18px;
-  background: #e7e2d6;
-  color: #121210;
-  font-family: Inter, system-ui, sans-serif;
+  background: #f4f1ea;
+  color: #0e0e0d;
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
   -webkit-font-smoothing: antialiased;
+}
+/* Shared heavy display treatment — replaces the old Bebas Neue web font. */
+.cfpLogo,
+.cfpH1,
+.cfpTierLabel,
+.cfpOrderTotal strong,
+.cfpFooterPrice,
+.cfpNextNum {
+  font-family: inherit;
+  font-weight: 900;
+  letter-spacing: -0.02em;
 }
 .cfpWrap * {
   box-sizing: border-box;
@@ -18,7 +30,8 @@
 .cfpShell {
   width: 100%;
   max-width: 940px;
-  background: #f5f1e8;
+  background: #fbfaf6;
+  border: 1px solid rgba(14, 14, 13, 0.07);
   border-radius: 26px;
   box-shadow: 0 40px 90px -50px rgba(18, 18, 16, 0.5);
   overflow: hidden;
@@ -78,9 +91,9 @@
   gap: 11px;
 }
 .cfpLogo {
-  font-family: "Bebas Neue", sans-serif;
-  font-size: 23px;
-  letter-spacing: 1.5px;
+  font-size: 20px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
   color: #f5f1e8;
 }
 .cfpBadge {
@@ -191,7 +204,7 @@
 
 /* body */
 .cfpPad {
-  padding: 34px 40px 130px;
+  padding: 30px 40px 120px;
   flex: 1;
 }
 @keyframes cfpRise {
@@ -239,23 +252,24 @@
 }
 
 .cfpEyebrow {
+  display: inline-block;
   font-size: 11px;
-  letter-spacing: 3.5px;
-  color: #9f7a1b;
-  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #8b1e2d;
+  font-weight: 800;
 }
 .cfpH1 {
-  font-family: "Bebas Neue", sans-serif;
-  font-size: 46px;
-  line-height: 0.98;
-  letter-spacing: 0.5px;
-  margin-top: 8px;
+  font-size: 39px;
+  line-height: 1.04;
+  margin-top: 10px;
+  color: #0e0e0d;
 }
 .cfpLead {
   font-size: 15px;
   line-height: 1.6;
-  color: #6b6459;
-  margin-top: 10px;
+  color: #5f625e;
+  margin-top: 12px;
   max-width: 560px;
 }
 
@@ -264,7 +278,7 @@
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 14px;
-  margin-top: 26px;
+  margin-top: 22px;
 }
 .cfpTier {
   position: relative;
@@ -304,10 +318,10 @@
   border-radius: 999px;
 }
 .cfpTierLabel {
-  font-family: "Bebas Neue", sans-serif;
-  font-size: 30px;
-  letter-spacing: 0.5px;
-  line-height: 1;
+  font-size: 22px;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  line-height: 1.05;
 }
 .cfpTierPrice {
   margin-top: 12px;
@@ -489,10 +503,9 @@
   font-weight: 800;
 }
 .cfpOrderTotal strong {
-  font-family: "Bebas Neue", sans-serif;
-  font-size: 32px !important;
-  letter-spacing: 0.5px;
-  line-height: 0.9;
+  font-size: 29px !important;
+  font-weight: 900 !important;
+  line-height: 1;
 }
 .cfpOrderSave {
   justify-content: flex-end;
@@ -560,16 +573,20 @@
   align-items: center;
   justify-content: center;
   border: none;
-  border-radius: 14px;
-  background: linear-gradient(140deg, #e6c766, #b5731a);
-  color: #1a1712;
+  border-radius: 12px;
+  background: #d4af37;
+  color: #0e0e0d;
   font-size: 15px;
   font-weight: 800;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.2px;
   cursor: pointer;
   text-decoration: none;
-  box-shadow: 0 14px 26px -14px rgba(181, 115, 26, 0.7);
-  transition: opacity 0.15s ease;
+  box-shadow: 0 10px 26px rgba(212, 175, 55, 0.28);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.cfpPrimary:not(:disabled):hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 38px rgba(212, 175, 55, 0.4);
 }
 .cfpPrimary:disabled {
   opacity: 0.55;
@@ -696,10 +713,10 @@
 }
 .cfpNextNum {
   flex: none;
-  font-family: "Bebas Neue", sans-serif;
-  font-size: 24px;
-  color: #d8bd62;
-  line-height: 1;
+  font-size: 19px;
+  color: #b5731a;
+  line-height: 1.1;
+  min-width: 24px;
 }
 .cfpNextItem strong {
   font-size: 14.5px;
@@ -739,11 +756,9 @@
   font-weight: 600;
 }
 .cfpFooterPrice {
-  font-family: "Bebas Neue", sans-serif;
-  font-size: 28px;
-  letter-spacing: 0.5px;
-  line-height: 0.9;
-  color: #121210;
+  font-size: 24px;
+  line-height: 1;
+  color: #0e0e0d;
 }
 .cfpFooterActions {
   display: flex;
@@ -757,15 +772,20 @@
 }
 
 @media (max-width: 720px) {
+  .cfpWrap {
+    padding: 0;
+  }
   .cfpShell {
+    border: none;
     border-radius: 0;
     min-height: 100vh;
   }
   .cfpPad {
-    padding: 22px 18px 130px;
+    padding: 20px 18px 120px;
   }
   .cfpTiers {
     grid-template-columns: 1fr 1fr;
+    gap: 24px 12px;
   }
   .cfpTwo {
     grid-template-columns: 1fr;
@@ -777,6 +797,24 @@
     display: none;
   }
   .cfpH1 {
-    font-size: 38px;
+    font-size: 32px;
+  }
+  .cfpTierLabel {
+    font-size: 20px;
+  }
+  .cfpFooter {
+    padding: 14px 18px;
+    gap: 12px;
+  }
+  .cfpFooterInfo {
+    min-width: 0;
+  }
+  .cfpFooterPrice {
+    font-size: 22px;
+    white-space: nowrap;
+  }
+  .cfpFooterActions .cfpPrimary {
+    padding: 13px 18px;
+    white-space: nowrap;
   }
 }

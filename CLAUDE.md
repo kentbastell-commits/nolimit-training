@@ -104,6 +104,15 @@ data between them, never "borrow" a table ID across products.
     effect on the same render. Rule: carry it through an intent ref the effect
     adopts (`storeStepIntentRef`, `storeAddonIntentRef`) via `requestStoreStep` /
     `requestStoreAddonIds` — never `setStore*` it directly alongside the program.
+17. **The China-blocked web font** — loading a display font via Google Fonts
+    (`@import url(fonts.googleapis.com…)`) in any client-facing page. Google is
+    blocked in mainland China, so the `@import` silently fails and headings fall
+    back to a broken bare sans (looked like ghost/clipped text on a real phone).
+    Rule: no external font hosts — the landing page (`lv3`) deliberately uses no
+    web font; match it with heavy system Inter (`font-weight: 900;
+    letter-spacing: -0.02em`) and `text-transform: uppercase` where you need caps.
+    A condensed web font swapped for a system one renders WIDER — shrink the size
+    and add uppercase to keep the look.
 
 ## Quality bar — checkable, per deliverable
 
