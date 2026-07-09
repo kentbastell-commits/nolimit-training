@@ -2683,7 +2683,11 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   useEffect(() => {
     // Only the detail/assign panel (opened via the gear) needs this; skip the
     // fetch on a plain row click that opens the builder.
-    if (activePage !== "Workouts" || !selectedSavedProgramId || !showProgramDetail)
+    if (
+      (activePage !== "Workouts" && activePage !== "Digital") ||
+      !selectedSavedProgramId ||
+      !showProgramDetail
+    )
       return;
 
     loadSavedProgramTemplates(selectedSavedProgramId);

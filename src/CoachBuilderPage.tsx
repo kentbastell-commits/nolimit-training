@@ -4,6 +4,7 @@ import type { ProgramExercise } from "./appCore";
 import "./CoachBuilderPage.css";
 import { isCardioCategory } from "./appCore";
 import { Fragment, useState } from "react";
+import CoachProgramsLanding from "./CoachProgramsLanding";
 import { ChevronDown, ChevronLeft, ChevronsLeftRight, Copy, Dumbbell, Eye, GripVertical, Link2, MoreVertical, Pencil, Plus, RefreshCw, Settings, Shuffle, Trash2, X } from "lucide-react";
 import type { Program, ProgramSession } from "./appCore";
 import { getWorkoutColorClass, normalizeDate } from "./appCore";
@@ -388,9 +389,7 @@ export default function CoachBuilderPage({
   return (
     <>
               <>
-                {builderScope === "digital" ? (
-                  <h2 className="digitalBuilderHeading">Product Builder</h2>
-                ) : useMobileWorkoutRows ? (
+                {builderScope === "digital" ? null : useMobileWorkoutRows ? (
                   <div
                     className={`workoutTabMenu ${
                       workoutTabsMenuOpen ? "workoutTabMenuOpen" : ""
@@ -452,6 +451,51 @@ export default function CoachBuilderPage({
                   const libraryList = sessionsTab
                     ? visibleSessionsOnly
                     : visibleProgramsOnly;
+                  if (builderScope === "digital" && !sessionsTab) {
+                    return (
+                      <CoachProgramsLanding
+                        programs={programs}
+                        visibleProgramsOnly={visibleProgramsOnly}
+                        programsLoading={programsLoading}
+                        savedProgramProductFilter={savedProgramProductFilter}
+                        setSavedProgramProductFilter={setSavedProgramProductFilter}
+                        savedProgramSearch={savedProgramSearch}
+                        setSavedProgramSearch={setSavedProgramSearch}
+                        loadPrograms={loadPrograms}
+                        setCreateProgramOpen={setCreateProgramOpen}
+                        setSelectedSavedProgramId={setSelectedSavedProgramId}
+                        setSavedAssignableWorkouts={setSavedAssignableWorkouts}
+                        setShowProgramDetail={setShowProgramDetail}
+                        showProgramDetail={showProgramDetail}
+                        selectedSavedProgram={selectedSavedProgram}
+                        loadSavedProgramIntoBuilder={loadSavedProgramIntoBuilder}
+                        duplicateSavedProgram={duplicateSavedProgram}
+                        duplicatingProgramId={duplicatingProgramId}
+                        deleteSavedProgram={deleteSavedProgram}
+                        deletingSavedProgramId={deletingSavedProgramId}
+                        savedProgramSessions={savedProgramSessions}
+                        savedTemplatesLoading={savedTemplatesLoading}
+                        clientNameForCode={clientNameForCode}
+                        teams={teams}
+                        coachVisibleClients={coachVisibleClients}
+                        clients={clients}
+                        savedAssignClientId={savedAssignClientId}
+                        setSavedAssignClientId={setSavedAssignClientId}
+                        savedAssignStartDate={savedAssignStartDate}
+                        setSavedAssignStartDate={setSavedAssignStartDate}
+                        savedAssignLoading={savedAssignLoading}
+                        savedAssignableWorkouts={savedAssignableWorkouts}
+                        savedAssigningProgram={savedAssigningProgram}
+                        assignSavedProgramToClient={assignSavedProgramToClient}
+                        loadSavedProgramSessionsForAssignment={
+                          loadSavedProgramSessionsForAssignment
+                        }
+                        updateSavedAssignableWorkoutDate={
+                          updateSavedAssignableWorkoutDate
+                        }
+                      />
+                    );
+                  }
                   return (
                   <section className="programLibraryPanel">
                     <div className="programLibraryHeader programLandingHeader">
