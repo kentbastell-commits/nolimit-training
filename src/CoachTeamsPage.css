@@ -1,224 +1,910 @@
-/* Co-located styles for CoachTeamsPage — split out of App.css so they load with the CoachTeamsPage chunk, not the main bundle. */
-/* ===================== Teams page ===================== */
-.teamsPage { width: 100%; }
-.teamsHeader {
+/* Teams (squads) — same visual language as the Store / Clients / Library pages. */
+.coachTeamsPage {
+  max-width: 1060px;
+  margin: 0 auto;
+  padding: 4px 2px 90px;
+  color: #151515;
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+}
+.coachTeamsPage input:focus,
+.coachTeamsPage select:focus {
+  outline: none;
+  border-color: #d4af37 !important;
+  background: #fff !important;
+}
+.coachTeamsPage ::placeholder {
+  color: #a8a091;
+}
+
+/* header */
+.ctpHead {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  gap: 16px;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin: 6px 0 22px;
+}
+.ctpEyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  letter-spacing: 1.8px;
+  text-transform: uppercase;
+  color: #b5731a;
+  font-weight: 700;
+}
+.ctpHead h1 {
+  margin: 8px 0 4px;
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+}
+.ctpHead > div > p {
+  margin: 0;
+  font-size: 14px;
+  color: #6b6459;
+}
+.ctpNewBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 12px;
+  background: #151515;
+  color: #fff;
+  font-size: 14.5px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 8px 20px -10px rgba(0, 0, 0, 0.5);
+}
+.ctpNewBtn:hover {
+  background: #000;
+}
+
+/* board */
+.ctpBoard {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 22px;
+}
+.ctpBoardMain {
+  flex: 1 1 260px;
+  min-width: 240px;
+  background: linear-gradient(150deg, #26221a, #171410);
+  border-radius: 18px;
+  padding: 20px 22px;
+  color: #f3ede0;
+  position: relative;
+  overflow: hidden;
+}
+.ctpBoardGlow {
+  position: absolute;
+  right: -30px;
+  top: -30px;
+  width: 130px;
+  height: 130px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(214, 175, 55, 0.4), transparent 70%);
+}
+.ctpBoardEyebrow {
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: #c9ab55;
+  font-weight: 700;
+}
+.ctpBoardEyebrowLight {
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: #8a8372;
+  font-weight: 700;
+}
+.ctpBoardBig {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-top: 6px;
+}
+.ctpBoardBig > span {
+  font-size: 44px;
+  font-weight: 800;
+  line-height: 1;
+}
+.ctpBoardBig small {
+  font-size: 13px;
+  color: #b3aa93;
+}
+.ctpBoardBreak {
+  display: flex;
+  gap: 18px;
+  margin-top: 16px;
+  font-size: 13px;
+  color: #d8d0bd;
+}
+.ctpBoardBreak strong {
+  color: #fff;
+}
+.ctpBoardSide {
+  flex: 0 1 230px;
+  min-width: 200px;
+  background: #fff;
+  border: 1px solid #e7e2d6;
+  border-radius: 18px;
+  padding: 20px 22px;
+}
+.ctpBiggestName {
+  margin-top: 6px;
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1.1;
+  color: #151515;
+}
+.ctpBiggestSub {
+  margin: 12px 0 0;
+  font-size: 12.5px;
+  color: #a8a091;
+  line-height: 1.5;
+}
+.ctpBiggestSub strong {
+  color: #b5731a;
+}
+
+/* bulk bar */
+.ctpBulkBar {
   margin-bottom: 16px;
 }
-.teamsHeader h2 { margin: 2px 0 0; font-size: 1.9rem; color: #10100f; }
-.teamDetail {
-  background: #fff;
-  border: 1px solid #dcd8cd;
-  border-radius: 14px;
-  padding: 18px 20px;
-  min-height: 320px;
-}
-.teamDetailHeader {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 14px;
-}
-.teamDetailHeader h3 { margin: 2px 0 0; font-size: 1.5rem; color: #10100f; }
-.teamNotes { margin: 6px 0 0; color: #66645e; font-weight: 600; }
-.teamDetailActions { display: flex; align-items: center; gap: 8px; }
-.teamSection { margin-top: 18px; }
-.teamMembersGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 10px;
-}
-.teamMemberRow {
+.ctpBulkMain {
   display: flex;
   align-items: center;
   gap: 10px;
-  border: 1px solid #e4e0d6;
-  border-radius: 10px;
-  padding: 8px 10px;
-  cursor: pointer;
-  background: #fff;
-  transition: border-color 0.15s ease, background 0.15s ease;
+  flex-wrap: wrap;
+  padding: 12px 16px;
+  background: #26221a;
+  border-radius: 13px;
+  color: #f3ede0;
 }
-.teamMemberRow:hover { border-color: #c3bca8; background: #faf9f5; }
-.teamMemberCheck { width: 18px; height: 18px; flex: 0 0 auto; cursor: pointer; }
-.teamMemberName {
+.ctpBulkMain > strong {
+  font-size: 14px;
+}
+.ctpBulkDivider {
+  width: 1px;
+  height: 20px;
+  background: rgba(255, 255, 255, 0.15);
+}
+.ctpBulkBtn {
+  padding: 7px 13px;
+  border-radius: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: transparent;
+  color: #f3ede0;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.ctpBulkBtn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+.ctpBulkClear {
+  margin-left: auto;
+  border: none;
+  background: none;
+  color: #c9ab55;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.ctpBulkPanel {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  padding: 12px 16px;
+  margin-top: 8px;
+  background: #fff;
+  border: 1px solid #e7e2d6;
+  border-radius: 13px;
+}
+.ctpBulkPanel select,
+.ctpBulkPanel input {
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1px solid #ddd6c6;
+  background: #fbfaf6;
+  font-size: 13.5px;
+  color: #151515;
+}
+.ctpBulkPanel select {
+  flex: 1;
+  min-width: 180px;
+}
+
+/* rows */
+.ctpRow {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 14px 16px;
+  background: #fff;
+  border: 1px solid #e7e2d6;
+  border-radius: 14px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: box-shadow 0.16s, border-color 0.16s;
+}
+.ctpRow:hover {
+  box-shadow: 0 10px 26px -18px rgba(0, 0, 0, 0.45);
+  border-color: #d8cfb6;
+}
+.ctpCheck {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: 1.5px solid #cfc6ae;
+  background: #fff;
+  padding: 0;
+}
+.ctpCheck.on {
+  border-color: #b5731a;
+  background: linear-gradient(140deg, #e6c766, #b5731a);
+}
+.ctpAvatar {
+  flex: none;
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  background: #0d0d0d;
+  color: #f0d987;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 800;
+}
+.ctpAvatarLg {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  font-size: 17px;
+}
+.ctpRowMain {
   flex: 1;
   min-width: 0;
-  color: #10100f;
-  font-size: 0.95rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
+}
+.ctpRowTitle {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-wrap: wrap;
+}
+.ctpRowTitle strong {
+  font-size: 15.5px;
+  font-weight: 700;
+  color: #151515;
+}
+.ctpFocusChip {
+  font-size: 11px;
+  font-weight: 700;
+  color: #6b6459;
+  background: #f1eee6;
+  border: 1px solid #e2ddcf;
+  padding: 2px 9px;
+  border-radius: 6px;
+}
+.ctpRowSub {
+  margin-top: 4px;
+  font-size: 12.5px;
+  color: #8a8372;
+}
+.ctpStat {
+  flex: none;
+  text-align: center;
+  width: 78px;
+}
+.ctpStat strong {
+  display: block;
+  font-size: 17px;
+  font-weight: 800;
+  color: #151515;
+}
+.ctpStat span {
+  font-size: 11px;
+  color: #a8a091;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  font-weight: 600;
+}
+.ctpRowActions {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.ctpAssignBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 13px;
+  border-radius: 10px;
+  border: none;
+  background: linear-gradient(140deg, #e6c766, #b5731a);
+  color: #1a1712;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
   white-space: nowrap;
 }
-.teamMembersCaption {
-  margin: 0 0 12px;
-  color: #66645e;
-  font-weight: 600;
-  font-size: 0.82rem;
+.ctpGearBtn {
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  border: 1px solid #e2ddcf;
+  background: #fbfaf6;
+  color: #8a8372;
+  cursor: pointer;
+  transition: all 0.15s;
 }
-.teamAssignHint { margin: 10px 0 0; color: #66645e; font-weight: 600; font-size: 0.85rem; }
-/* Team editor */
-.teamEditor h3 { margin: 0 0 14px; font-size: 1.4rem; color: #10100f; }
-.teamField { display: block; margin-bottom: 12px; }
-.teamField span {
-  display: block;
-  margin-bottom: 5px;
-  font-size: 0.72rem;
-  font-weight: 900;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: #66645e;
+.ctpGearBtn:hover {
+  border-color: #b5731a;
+  color: #b5731a;
 }
-.teamField input {
-  width: 100%;
-  box-sizing: border-box;
-  border: 1px solid #dcd8cd;
-  border-radius: 10px;
+
+.ctpLoading {
+  font-size: 13.5px;
+  color: #8a8372;
+  padding: 20px 4px;
+}
+.ctpEmpty {
+  text-align: center;
+  padding: 60px 20px;
   background: #fff;
-  color: #1a1a1a;
+  border: 1px dashed #d8cfb6;
+  border-radius: 16px;
+}
+.ctpEmptyTitle {
+  margin: 0 0 4px;
   font-size: 15px;
-  padding: 11px 12px;
+  font-weight: 700;
+  color: #151515;
 }
-.teamEditorActions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 16px;
+.ctpEmptySub {
+  margin: 0;
+  font-size: 13.5px;
+  color: #8a8372;
 }
-.teamsIntro { margin: 0; color: #66645e; font-weight: 600; max-width: 46rem; }
-.teamPositionInput {
-  align-self: stretch;
-  width: 100%;
-  min-width: 0;
-  box-sizing: border-box;
-  border: 1px solid #dcd8cd;
-  border-radius: 8px;
-  background: #fff;
-  color: #1a1a1a;
-  font-size: 13px;
-  padding: 6px 9px;
-}
-.teamSubgroupRow {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 12px;
-}
-.teamSubgroupLabel {
-  font-size: 0.72rem;
-  font-weight: 900;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: #66645e;
-}
-.teamSubgroupRow select {
-  border: 1px solid #dcd8cd;
+
+/* shared gold / ghost / dark buttons */
+.ctpGoldBtn {
+  padding: 11px 16px;
   border-radius: 10px;
+  border: none;
+  background: linear-gradient(140deg, #e6c766, #b5731a);
+  color: #1a1712;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.ctpGoldBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.ctpGhostBtn {
+  padding: 11px 18px;
+  border-radius: 11px;
+  border: 1px solid #ddd6c6;
   background: #fff;
-  color: #1a1a1a;
-  font-weight: 700;
-  font-size: 14px;
-  padding: 0 12px;
-  min-height: 40px;
-  min-width: 200px;
+  color: #6b6459;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
 }
-.teamSubgroupCount { color: #66645e; font-weight: 700; font-size: 0.85rem; }
-/* ===================== Teams table ===================== */
-.teamsTableCard { border-radius: 8px; overflow-x: auto; margin-top: 14px; }
-.teamsTableHeader,
-.teamsTableRow {
-  display: grid;
-  grid-template-columns: 30px minmax(220px, 1.6fr) 140px 100px minmax(150px, 1fr) 120px 110px;
+.ctpDarkBtn {
+  padding: 12px 22px;
+  border-radius: 11px;
+  border: none;
+  background: #151515;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.ctpDarkBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* modals (quick + editor) */
+.ctpModalScrim {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  background: rgba(20, 17, 12, 0.5);
+  backdrop-filter: blur(3px);
+  display: flex;
   align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.ctpQuickModal,
+.ctpEditorModal {
+  width: 600px;
+  max-width: 100%;
+  max-height: 92vh;
+  overflow: auto;
+  background: #faf8f2;
+  border-radius: 22px;
+  box-shadow: 0 40px 80px -30px rgba(0, 0, 0, 0.6);
+}
+.ctpQuickModal {
+  width: 440px;
+}
+.ctpModalHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 22px 26px 0;
+}
+.ctpModalHead h2 {
+  margin: 6px 0 0;
+  font-size: 22px;
+  font-weight: 800;
+  color: #151515;
+}
+.ctpModalClose {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid #e2ddcf;
+  background: #fff;
+  color: #6b6459;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ctpQuickBody {
+  padding: 14px 26px 24px;
+}
+.ctpQuickSub {
+  margin: 0 0 16px;
+  font-size: 13.5px;
+  color: #6b6459;
+  line-height: 1.5;
+}
+.ctpField {
+  display: block;
+  margin-bottom: 14px;
+}
+.ctpField > span {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #6b6459;
+  margin-bottom: 6px;
+}
+.ctpField em {
+  color: #a8a091;
+  font-weight: 400;
+  font-style: normal;
+}
+.ctpField input,
+.ctpField select {
+  width: 100%;
+  padding: 11px 13px;
+  border-radius: 11px;
+  border: 1px solid #ddd6c6;
+  background: #fbfaf6;
+  font-size: 14.5px;
+  color: #151515;
+}
+.ctpModalActions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+/* editor */
+.ctpEditorHead {
+  padding: 22px 26px 0;
+}
+.ctpEditorBody {
+  padding: 18px 26px 26px;
+}
+.ctpEditorRow {
+  display: flex;
   gap: 12px;
-  min-width: 1000px;
+  flex-wrap: wrap;
 }
-.teamsTableHeader { padding: 14px 16px; }
-.teamsTableRow { padding: 13px 16px; }
-/* Quick "assign program to whole squad" modal */
-.teamQuickAssignModal {
-  width: min(440px, 92vw);
-  border: 1px solid var(--public-border, #dcd8cd);
-  border-radius: 18px;
-  background: #fffefa;
-  padding: 22px 24px 20px;
-  box-shadow: 0 30px 70px rgba(14, 14, 13, 0.32);
+.ctpEditorRow .ctpField {
+  flex: 1;
+  min-width: 180px;
 }
-.teamQuickAssignSub {
-  margin: 4px 0 16px;
-  color: #54524b;
-  font-size: 14px;
-  font-weight: 700;
+.ctpFieldFull {
+  display: block;
 }
-.teamQuickAssignFields {
-  display: grid;
-  gap: 12px;
+.ctpFieldLabel {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #6b6459;
+  margin-bottom: 8px;
 }
-.teamQuickAssignFields label {
-  display: grid;
+.ctpFieldLabel em {
+  color: #a8a091;
+  font-weight: 400;
+  font-style: normal;
+}
+.ctpGroupsManager {
+  margin-bottom: 16px;
+}
+.ctpChipRow {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 9px;
+}
+.ctpMuted {
+  font-size: 12.5px;
+  color: #a8a091;
+}
+.ctpGroupPill {
+  display: inline-flex;
+  align-items: center;
   gap: 5px;
-}
-.teamQuickAssignFields label span {
   font-size: 12px;
-  font-weight: 950;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: #6d6b64;
+  font-weight: 700;
+  border: 1px solid transparent;
+  padding: 3px 7px 3px 11px;
+  border-radius: 999px;
 }
-.teamQuickAssignFields select,
-.teamQuickAssignFields input {
-  min-height: 42px;
+.ctpGroupPill button {
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: inherit;
+  font-size: 15px;
+  line-height: 1;
+  padding: 0;
+  margin-left: 1px;
+}
+.ctpChipAdd {
+  display: flex;
+  gap: 8px;
+}
+.ctpChipAdd input {
+  flex: 1;
   padding: 9px 12px;
+  border-radius: 10px;
+  border: 1px solid #ddd6c6;
+  background: #fbfaf6;
+  font-size: 13.5px;
+  color: #151515;
 }
-.teamQuickAssignActions {
+.ctpChipAdd .ctpGhostBtn {
+  padding: 9px 16px;
+}
+.ctpPickList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 260px;
+  overflow: auto;
+  padding: 2px;
+}
+.ctpPickWrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ctpPickItem {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 8px 11px;
+  border-radius: 10px;
+  cursor: pointer;
+  border: 1px solid #e7e2d6;
+  background: #fff;
+}
+.ctpPickItem.on {
+  border-color: #b5731a;
+  background: #fbf5e8;
+}
+.ctpPickCheck {
+  flex: none;
+  width: 19px;
+  height: 19px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid #cfc6ae;
+  background: #fff;
+}
+.ctpPickCheck.on {
+  border-color: #b5731a;
+  background: linear-gradient(140deg, #e6c766, #b5731a);
+}
+.ctpPickAvatar {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+}
+.ctpPickName {
+  flex: 1;
+  text-align: left;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #151515;
+}
+.ctpPickCat {
+  flex: none;
+  width: 132px;
+  padding: 8px 9px;
+  border-radius: 9px;
+  border: 1px solid #ddd6c6;
+  background: #fbfaf6;
+  font-size: 12.5px;
+  color: #6b6459;
+  cursor: pointer;
+}
+.ctpEditorActions {
+  margin-top: 20px;
+}
+
+/* detail slide-over */
+.ctpSlideScrim {
+  position: fixed;
+  inset: 0;
+  z-index: 85;
+  background: rgba(20, 17, 12, 0.42);
+  backdrop-filter: blur(2px);
   display: flex;
   justify-content: flex-end;
+}
+.ctpSlide {
+  width: 500px;
+  max-width: 100%;
+  height: 100%;
+  overflow: auto;
+  background: #faf8f2;
+  box-shadow: -30px 0 60px -30px rgba(0, 0, 0, 0.5);
+}
+.ctpSlideHead {
+  padding: 24px 24px 18px;
+  border-bottom: 1px solid #ebe5d7;
+}
+.ctpSlideClose {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: -6px;
+}
+.ctpSlideClose button {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  border: 1px solid #e2ddcf;
+  background: #fff;
+  color: #6b6459;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ctpSlideTitle {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.ctpSlideTitle h2 {
+  margin: 2px 0 0;
+  font-size: 22px;
+  font-weight: 800;
+  color: #151515;
+}
+.ctpSlideSub {
+  margin-top: 3px;
+  font-size: 12.5px;
+  color: #8a8372;
+}
+.ctpSlideNotes {
+  margin: 14px 0 0;
+  font-size: 13px;
+  color: #6b6459;
+  line-height: 1.5;
+}
+.ctpSlideBody {
+  padding: 20px 24px 30px;
+}
+.ctpSectionLabel {
+  font-size: 11px;
+  letter-spacing: 1.3px;
+  text-transform: uppercase;
+  color: #a8a091;
+  font-weight: 700;
+  margin: 0 0 12px;
+}
+.ctpSectionLabel span {
+  color: #c3bba7;
+}
+.ctpGroupBlock {
+  margin-bottom: 16px;
+}
+.ctpGroupHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.ctpGroupChip {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: #8a8372;
+  background: #f1eee6;
+  border: 1px solid #e2ddcf;
+  padding: 3px 10px;
+  border-radius: 7px;
+}
+.ctpGroupCount {
+  font-size: 12px;
+  color: #a8a091;
+  font-weight: 600;
+}
+.ctpMemberList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ctpMemberRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 11px;
+  background: #fff;
+  border: 1px solid #e7e2d6;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.ctpMemberRow:hover {
+  border-color: #d8cfb6;
+}
+.ctpMemberRow.checked {
+  border-color: #b5731a;
+  background: #fbf5e8;
+}
+.ctpMemberCheck {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: #b5731a;
+}
+.ctpMemberAvatar {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 800;
+}
+.ctpMemberName {
+  flex: 1;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #151515;
+}
+
+/* assign card */
+.ctpAssignCard {
+  margin-top: 8px;
+  padding: 16px;
+  background: #fbf6ea;
+  border: 1px solid #ecdcb4;
+  border-radius: 14px;
+}
+.ctpAssignLabel {
+  font-size: 11px;
+  letter-spacing: 1.3px;
+  text-transform: uppercase;
+  color: #9a6a12;
+  font-weight: 700;
+  margin-bottom: 11px;
+}
+.ctpAssignSelect {
+  width: 100%;
+  padding: 10px 12px;
+  margin-bottom: 9px;
+  border-radius: 10px;
+  border: 1px solid #ddd6c6;
+  background: #fff;
+  font-size: 13.5px;
+  color: #151515;
+}
+.ctpAssignBtnWide {
+  width: 100%;
+  padding: 11px;
+}
+.ctpAssignHint {
+  margin: 10px 0 0;
+  font-size: 11.5px;
+  color: #a8895a;
+  line-height: 1.5;
+}
+.ctpSlideFoot {
+  display: flex;
   gap: 10px;
   margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid #ebe5d7;
 }
-.teamAvatarSquare { border-radius: 12px !important; background: #0d0d0d; color: #f0d987; }
-.teamRowActions { display: inline-flex; align-items: center; gap: 6px; }
-.teamRowMenuWrap { position: relative; }
-/* Team detail: subgroup blocks + compact athlete rows */
-.teamSubgroupBlock { margin-bottom: 12px; }
-.teamSubgroupHeading {
-  display: flex;
+.ctpFootBtn {
+  flex: 1;
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
-  margin: 4px 0 8px;
-  font-size: 0.72rem;
-  font-weight: 900;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: #66645e;
+  justify-content: center;
+  gap: 6px;
+  padding: 11px;
+  border-radius: 11px;
+  border: 1px solid #ddd6c6;
+  background: #fff;
+  color: #6b6459;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
 }
-.teamSubgroupHeading span {
-  background: #f2f0ea;
-  border: 1px solid #e4e0d6;
-  border-radius: 999px;
-  padding: 1px 8px;
-  font-size: 11px;
-  color: #66645e;
+.ctpFootBtn:hover {
+  border-color: #b5731a;
+  color: #b5731a;
 }
-.teamDetail .teamMembersGrid {
-  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
-  gap: 8px;
+.ctpFootDanger {
+  border-color: #f0d0cb;
+  color: #c0392b;
 }
-.teamMemberRow { padding: 6px 9px; gap: 8px; }
-.teamMemberRow .teamMemberName { white-space: normal; font-size: 0.9rem; }
-/* Team groups manager + colored group/position labels */
-.teamGroupsManager { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
-.teamSubgroupName {
-  display: inline-block;
-  border: 1px solid transparent;
-  border-radius: 999px;
-  padding: 2px 10px;
-  font-size: 0.74rem;
-  font-weight: 900;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+.ctpFootDanger:hover {
+  border-color: #c0392b;
+  color: #c0392b;
+}
+
+@media (max-width: 640px) {
+  .ctpBoard {
+    flex-direction: column;
+  }
+  .ctpBoardSide {
+    flex: 1 1 auto;
+  }
+  .ctpRow {
+    flex-wrap: wrap;
+  }
+  .ctpQuickModal,
+  .ctpEditorModal,
+  .ctpSlide {
+    width: 100%;
+  }
 }
