@@ -17821,23 +17821,6 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                 <h1>{activePage}</h1>
                 <p>NoLimit Training System</p>
               </div>
-              {activePage === "Clients" && (
-                <div className="topbarActions">
-                  <button
-                    className="goldButton"
-                    onClick={openNewClientForm}
-                  >
-                    + Add Client
-                  </button>
-                  <button
-                    className="outlineButton"
-                    onClick={() => setShowInviteModal(true)}
-                  >
-                    Invite Client
-                  </button>
-                </div>
-              )}
-
               {activePage === "Coaches" && canManageCoaches && (
                 <div className="topbarActions">
                   <button className="goldButton" onClick={openNewCoachForm}>
@@ -17890,6 +17873,8 @@ function App({ onReady }: { onReady?: () => void } = {}) {
             {activePage === "Clients" && (
               <CoachClientsPage
                 loading={loading}
+                clients={clients}
+                openNewClientForm={openNewClientForm}
                 todayValue={todayValue}
                 activeCoaches={activeCoaches}
                 buildClientPortalLink={buildClientPortalLink}
