@@ -13680,3 +13680,36 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   color: #151515;
   box-shadow: 0 2px 8px -3px rgba(0, 0, 0, 0.3);
 }
+
+/* ── Coach topbar cleanup ───────────────────────────────────────────
+   Every redesigned coach page now carries its own header, so the shared
+   topbar's duplicate title + "NoLimit Training System" was removed. When a
+   page has no topbar action the bar is empty — hide it entirely (all
+   viewports) so it doesn't leave a gap. Pages that keep a topbar action
+   (e.g. the Program Builder's Save) still show a slim action bar. */
+.app:not(.clientPortalApp) .topbar:empty {
+  display: none !important;
+}
+.app:not(.clientPortalApp) .topbar {
+  justify-content: flex-end;
+}
+@media (max-width: 768px) {
+  .app:not(.clientPortalApp) .topbar {
+    margin-top: 0;
+  }
+  /* Coach KPI boards use `flex: 1 1 260px` so cards size by content in a row.
+     When they stack on mobile the px basis becomes a min-HEIGHT, leaving dead
+     space. Reset to content height so the dark/light board cards fit snugly. */
+  .wkBoardDark, .wkBoardLight,
+  .crpBoardActive, .crpBoardAttn,
+  .clBoardLib, .clBoardCues,
+  .copBoardDark, .copBoardLight, .copKpi,
+  .cplBoardLib, .cplBoardStat,
+  .crpHero, .crpSideCol, .crpSideCard,
+  .cspBoardLive, .cspBoardDraft,
+  .ctpBoardMain, .ctpBoardSide,
+  .ctpBoardDark, .ctpBoardLight {
+    flex-basis: auto !important;
+    min-height: 0 !important;
+  }
+}

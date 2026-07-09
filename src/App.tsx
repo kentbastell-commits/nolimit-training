@@ -2049,28 +2049,16 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     });
   };
 
-  const openNewCoachForm = () => {
-    setEditingCoach(null);
-    setCoachForm({
-      name: "",
-      email: "",
-      phoneWechat: "",
-      role: "Coach",
-      status: "Active",
-      bio: "",
-    });
-    setShowCoachModal(true);
-  };
-
-  const openEditCoachForm = (coach: Coach) => {
+  // coach === null → add a new coach (blank form); a coach object → edit it.
+  const openEditCoachForm = (coach: Coach | null) => {
     setEditingCoach(coach);
     setCoachForm({
-      name: coach.name || "",
-      email: coach.email || "",
-      phoneWechat: coach.phoneWechat || "",
-      role: coach.role || "Coach",
-      status: coach.status || "Active",
-      bio: coach.bio || "",
+      name: coach?.name || "",
+      email: coach?.email || "",
+      phoneWechat: coach?.phoneWechat || "",
+      role: coach?.role || "Coach",
+      status: coach?.status || "Active",
+      bio: coach?.bio || "",
     });
     setShowCoachModal(true);
   };
@@ -17829,18 +17817,6 @@ function App({ onReady }: { onReady?: () => void } = {}) {
         {!selectedClient && (
           <>
             <header className="topbar">
-              <div>
-                <h1>{activePage}</h1>
-                <p>NoLimit Training System</p>
-              </div>
-              {activePage === "Coaches" && canManageCoaches && (
-                <div className="topbarActions">
-                  <button className="goldButton" onClick={openNewCoachForm}>
-                    + Add Coach
-                  </button>
-                </div>
-              )}
-
               {activePage === "Orders" && (
                 <div className="topbarActions">
                   <button className="outlineButton" onClick={loadProductOrders}>
