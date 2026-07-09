@@ -19338,6 +19338,11 @@ function App({ onReady }: { onReady?: () => void } = {}) {
             saveCoachForm={saveCoachForm}
             savingCoach={savingCoach}
             setCoachForm={setCoachForm}
+            clients={clients}
+            clientBelongsToCoach={clientBelongsToCoach}
+            updateCoachStatus={updateCoachStatus}
+            setCoachScope={setCoachScope}
+            setActivePage={setActivePage}
           />
         )}
 
