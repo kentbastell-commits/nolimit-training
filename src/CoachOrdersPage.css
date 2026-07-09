@@ -1,278 +1,1095 @@
-/* Co-located styles for CoachOrdersPage — split out of App.css so they load with the CoachOrdersPage chunk, not the main bundle. */
-.ordersWorkspace {
-  display: grid;
-  gap: 22px;
+/* Orders — restructured by relationship type. Same visual language as the
+   Store / Clients / Teams pages (paper, cards, dark board, slide-over, modal). */
+.copPage {
+  max-width: 1060px;
+  margin: 0 auto;
+  padding: 4px 2px 90px;
+  color: #151515;
+  font-family: Inter, system-ui, -apple-system, sans-serif;
 }
-.ordersGrid {
-  display: grid;
-  gap: 18px;
+.copPage input:focus,
+.copPage select:focus,
+.copPage textarea:focus {
+  outline: none;
+  border-color: #d4af37 !important;
+  background: #fff !important;
 }
-.manualOrderPanel {
-  border: 1px solid rgba(212, 175, 55, 0.28);
-  background: rgba(255, 255, 255, 0.06);
-  border-radius: 14px;
-  display: grid;
-  gap: 18px;
-  padding: 22px 24px;
+.copPage ::placeholder {
+  color: #a8a091;
 }
-.manualOrderNotes textarea {
-  min-height: 100px;
-  resize: vertical;
+@keyframes copFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
-.pendingActivationSection {
-  background: rgba(212, 175, 55, 0.06);
-  border: 1px solid rgba(212, 175, 55, 0.3);
-  border-radius: 12px;
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+.copFadeIn {
+  animation: copFade 0.18s ease;
 }
-.pendingActivationHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+@media (prefers-reduced-motion: reduce) {
+  .copFadeIn {
+    animation: none;
+  }
 }
-.pendingActivationHeader span {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #d4af37;
-  opacity: 0.8;
+
+/* header */
+.copHead {
+  margin: 6px 0 20px;
 }
-.pendingActivationHeader h3 {
-  margin: 2px 0 0;
-  font-size: 16px;
-}
-.pendingActivationHeader strong {
-  font-size: 22px;
-  color: #d4af37;
-}
-.pendingActivationBody {
-  display: grid;
-  grid-template-columns: minmax(260px, 0.85fr) minmax(0, 1.6fr);
-  gap: 18px;
-}
-.pendingActivationList {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.pendingOrderCard {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 8px;
-  padding: 12px 14px;
-}
-.pendingOrderInfo {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-.pendingOrderInfo strong {
-  font-size: 14px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.pendingOrderInfo span {
-  font-size: 12px;
-  opacity: 0.6;
-}
-.pendingOrderInfo small {
-  font-size: 11px;
-  opacity: 0.45;
-}
-.pendingOrderActions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-}
-.portalSharePanel {
-  background: rgba(212, 175, 55, 0.08);
-  border: 1px solid rgba(212, 175, 55, 0.35);
-  border-radius: 10px;
-  padding: 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.portalShareHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.portalShareHeader span {
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #d4af37;
-}
-.portalShareDismiss {
-  background: transparent;
-  border: none;
-  color: rgba(255, 255, 255, 0.4);
-  cursor: pointer;
-  font-size: 14px;
-  padding: 0;
-}
-.portalShareDismiss:hover {
-  color: white;
-}
-.portalShareClientName {
-  font-size: 15px;
-  font-weight: 600;
-  margin: 0;
-}
-.portalShareLinkRow {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.portalShareUrl {
-  flex: 1;
-  font-size: 11px;
-  background: rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 6px;
-  padding: 6px 10px;
-  color: #d4af37;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  min-width: 0;
-}
-.portalShareMessage {
-  width: 100%;
-  min-height: 90px;
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  padding: 10px 12px;
-  color: white;
-  font-size: 13px;
-  line-height: 1.5;
-  resize: none;
-  cursor: text;
-  box-sizing: border-box;
-}
-.portalShareHint {
-  font-size: 11px;
-  opacity: 0.45;
-  margin: 0;
-}
-.orderReviewQueue,
-.orderReviewDetail {
-  border: 1px solid rgba(212, 175, 55, 0.28);
-  background: rgba(255, 255, 255, 0.06);
-  border-radius: 14px;
-  padding: 22px 24px;
-}
-.orderReviewHeader strong {
-  color: #f8e27d;
-  font-size: 2.3rem;
-  line-height: 1;
-}
-.orderReviewList {
-  display: grid;
-  gap: 10px;
-  margin-top: 16px;
-}
-.orderReviewItem {
-  border: 1px solid rgba(212, 175, 55, 0.24);
-  border-radius: 10px;
-  background: rgba(0, 0, 0, 0.28);
-  color: white;
-  cursor: pointer;
-  display: grid;
-  gap: 5px;
-  padding: 14px;
-  text-align: left;
-}
-.orderReviewItem span {
-  color: #d6d6d6;
-}
-.orderReviewItem small {
-  color: #f8e27d;
-  font-weight: 900;
-}
-.orderReviewDetail {
-  display: grid;
-  gap: 18px;
-}
-.orderCard {
-  display: grid;
-  gap: 18px;
-}
-.orderCardHeader {
-  display: flex;
-  justify-content: space-between;
-  gap: 18px;
-  align-items: flex-start;
-}
-.orderCardHeader h3 {
-  color: #f8e27d;
-  font-size: clamp(1.4rem, 2.2vw, 2.2rem);
-  margin: 4px 0 6px;
-}
-.orderCardHeader p {
-  color: #ddd;
-  margin: 0;
-}
-.onboardingStage {
-  border: 1px solid rgba(212, 175, 55, 0.18);
-  border-radius: 999px;
-  color: #9a9a9a;
-  font-size: 0.76rem;
-  font-weight: 900;
-  letter-spacing: 0.02em;
-  padding: 9px 10px;
-  text-align: center;
-}
-.orderActions {
-  display: flex;
-  gap: 12px;
-  justify-content: flex-end;
-  flex-wrap: wrap;
-}
-.emptyOrderCard {
-  min-height: 180px;
-  align-content: center;
-}
-/* Fresh, unfulfilled order — electric-blue tone so "New Order" reads distinct
-   from in-progress (grey) and Program Loaded (gold). */
-.newOrderStatus {
-  background: rgba(58, 134, 255, 0.16);
-  color: #6ea8ff;
-  border: 1px solid rgba(58, 134, 255, 0.45);
-}
-/* Pending payment + one-tap verify on coach order cards. */
-.orderPaymentPending {
+.copEyebrow {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
+  font-size: 11px;
+  letter-spacing: 1.8px;
+  text-transform: uppercase;
+  color: #b5731a;
+  font-weight: 700;
+}
+.copHead h1 {
+  margin: 8px 0 4px;
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+}
+.copHead p {
+  margin: 0;
+  font-size: 14px;
+  color: #6b6459;
+}
+
+/* digital roll-up */
+.copDigital {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 15px 20px;
+  margin-bottom: 22px;
+  background: #fff;
+  border: 1px solid #e7e2d6;
+  border-left: 3px solid #b5731a;
+  border-radius: 14px;
+  text-decoration: none;
+}
+.copDigital:hover {
+  border-color: #d8cfb6;
+}
+.copDigitalIcon {
+  flex: none;
+  width: 42px;
+  height: 42px;
+  border-radius: 11px;
+  background: #f4ecd8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #b5731a;
+}
+.copDigitalCopy {
+  flex: 1;
+  min-width: 0;
+}
+.copDigitalEyebrow {
+  display: block;
+  font-size: 11px;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: #a8a091;
+  font-weight: 700;
+}
+.copDigitalLine {
+  display: block;
+  font-size: 14.5px;
+  color: #151515;
+  margin-top: 2px;
+}
+.copDigitalLine strong {
+  font-weight: 800;
+}
+.copDigitalLink {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #b5731a;
+}
+
+/* segmented control */
+.copSeg {
+  display: flex;
+  gap: 6px;
+  padding: 5px;
+  background: #e7e0d1;
+  border-radius: 14px;
+  margin-bottom: 22px;
+  max-width: 520px;
+}
+.copSegBtn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 11px 14px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+  background: transparent;
+  color: #6b6459;
+  font-family: inherit;
+  font-size: 14.5px;
+  font-weight: 700;
+}
+.copSegBtn.on {
+  background: #151515;
+  color: #fff;
+  box-shadow: 0 4px 12px -4px rgba(0, 0, 0, 0.4);
+}
+.copSegCount {
+  font-size: 12px;
+  font-weight: 800;
+  background: #d8cfba;
+  color: #6b6459;
+  padding: 2px 9px;
+  border-radius: 999px;
+}
+.copSegBtn.on .copSegCount {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
+/* board */
+.copBoard {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 22px;
+}
+.copBoardDark {
+  flex: 1 1 260px;
+  min-width: 240px;
+  background: linear-gradient(150deg, #26221a, #171410);
+  border-radius: 18px;
+  padding: 20px 22px;
+  color: #f3ede0;
+  position: relative;
+  overflow: hidden;
+}
+.copBoardGlow {
+  position: absolute;
+  right: -30px;
+  top: -30px;
+  width: 130px;
+  height: 130px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(214, 175, 55, 0.4), transparent 70%);
+}
+.copBoardEyebrow {
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: #c9ab55;
+  font-weight: 700;
+}
+.copBoardEyebrowGreen {
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: #237a30;
+  font-weight: 700;
+}
+.copBoardBig {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-top: 6px;
+}
+.copBoardBig > span {
+  font-size: 44px;
+  font-weight: 800;
+  line-height: 1;
+}
+.copBoardBigDark {
+  color: #151515;
+}
+.copBoardBig small {
+  font-size: 13px;
+  color: #b3aa93;
+}
+.copBoardLight .copBoardBig small {
+  color: #8a8372;
+}
+.copBoardBreak {
+  display: flex;
+  gap: 18px;
+  margin-top: 16px;
+  font-size: 13px;
+  color: #d8d0bd;
+}
+.copBoardBreak strong {
+  color: #fff;
+}
+.copBoardLight {
+  flex: 0 1 230px;
+  min-width: 200px;
+  background: #fff;
+  border: 1px solid #e7e2d6;
+  border-radius: 18px;
+  padding: 20px 22px;
+}
+.copBoardLight p {
+  margin: 14px 0 0;
+  font-size: 12.5px;
+  color: #a8a091;
+  line-height: 1.5;
+}
+
+/* filters + search */
+.copFilters,
+.copToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+.copFilterTabs {
+  display: inline-flex;
+  gap: 2px;
+  padding: 4px;
+  background: #e7e0d1;
+  border-radius: 11px;
   flex-wrap: wrap;
 }
-.orderPaymentPending strong { color: #8b1e2d; }
-.orderVerifyButton {
+.copFilterTab {
+  padding: 8px 14px;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  background: transparent;
+  color: #8a8372;
+  font-family: inherit;
+}
+.copFilterTab.on {
+  background: #fff;
+  color: #151515;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+.copSearch {
+  position: relative;
+  flex: 0 1 250px;
+  min-width: 200px;
+  display: flex;
+  align-items: center;
+}
+.copSearch svg {
+  position: absolute;
+  left: 13px;
+  color: #a8a091;
+  pointer-events: none;
+}
+.copSearch input {
+  width: 100%;
+  padding: 10px 13px 10px 36px;
+  border-radius: 11px;
+  border: 1px solid #ddd6c6;
+  background: #fbfaf6;
+  font-size: 14px;
+  color: #151515;
+}
+
+/* coaching card */
+.copCard {
+  background: #fff;
+  border: 1px solid #e7e2d6;
+  border-radius: 16px;
+  padding: 18px 20px;
+  margin-bottom: 14px;
+}
+.copCardTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+.copCardWho {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  min-width: 0;
+}
+.copAvatar {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 800;
+}
+.copCardName {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-wrap: wrap;
+}
+.copCardName h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  color: #151515;
+}
+.copTerm {
+  font-size: 11px;
+  font-weight: 800;
+  color: #1a1712;
+  background: linear-gradient(140deg, #e6c766, #c7a33f);
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+.copCardMeta {
+  font-size: 12.5px;
+  color: #8a8372;
+  margin-top: 3px;
+}
+.copPaidChip,
+.copPendChip {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 5px 11px;
+  border-radius: 8px;
+  white-space: nowrap;
+}
+.copPaidChip {
+  color: #237a30;
+  background: #eafaef;
+  border: 1px solid #c2e6cd;
+}
+.copPendChip {
+  color: #9a6a12;
+  background: #fbf3df;
+  border: 1px solid #ecd9a8;
+}
+.copVerify {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  border: 1px solid rgba(27, 122, 62, 0.45);
-  border-radius: 999px;
+  margin-left: 4px;
+  padding: 3px 8px;
+  border-radius: 7px;
+  border: 1px solid #ecd9a8;
+  background: #fff;
+  color: #9a6a12;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.copStrip {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 15px 0 14px;
+}
+.copStripTile {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex: 1 1 210px;
+  min-width: 190px;
+  padding: 10px 12px;
+  border-radius: 11px;
+  border: 1px solid #e7e2d6;
+  background: #f7f5ef;
+}
+.copStripTile.ok {
+  border-color: #c2e6cd;
+  background: #f2faf4;
+}
+.copStripTile.warn {
+  border-color: #eadfc6;
+  background: #fbf6ea;
+}
+.copStripTile.bad {
+  border-color: #f0c9d0;
+  background: #fbe9ec;
+}
+.copStripDot {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background: #a8a091;
+}
+.copStripDot.ok {
+  background: #237a30;
+}
+.copStripDot.warn {
+  background: #c79a2e;
+}
+.copStripDot.bad {
+  background: #c0546a;
+}
+.copStripK {
+  display: block;
+  font-size: 10px;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: #a8a091;
+  font-weight: 700;
+}
+.copStripTile strong {
+  display: block;
+  font-size: 12.5px;
+  color: #151515;
+}
+.copBadText {
+  color: #8b1e2d;
+}
+
+.copCardFoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding-top: 14px;
+  border-top: 1px solid #f0ebe0;
+}
+.copFootMeta {
+  font-size: 12.5px;
+  color: #8a8372;
+}
+.copFootMeta strong {
+  color: #151515;
+  font-weight: 700;
+}
+.copFootActions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* buttons */
+.copGoldBtn {
+  padding: 8px 16px;
+  border-radius: 10px;
+  border: none;
+  background: linear-gradient(140deg, #e6c766, #b5731a);
+  color: #1a1712;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+}
+.copGoldBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.copGhostBtn {
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: 1px solid #ddd6c6;
+  background: #fbfaf6;
+  color: #6b6459;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+.copGhostBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.copDarkBtn {
+  padding: 12px 20px;
+  border-radius: 11px;
+  border: none;
+  background: #151515;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+}
+.copDarkBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* empty */
+.copEmpty,
+.copLedgerEmpty {
+  text-align: center;
+  padding: 56px 20px;
+  background: #fff;
+  border: 1px dashed #d8cfb6;
+  border-radius: 16px;
+}
+.copLedgerEmpty {
+  border: none;
+}
+.copEmptyTitle {
+  margin: 0 0 4px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #151515;
+}
+.copEmptySub {
+  margin: 0;
+  font-size: 13.5px;
+  color: #8a8372;
+}
+
+/* in-person KPIs */
+.copKpis {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 22px;
+}
+.copKpi {
+  flex: 1 1 210px;
+  min-width: 190px;
+  background: #fff;
+  border: 1px solid #e7e2d6;
+  border-radius: 18px;
+  padding: 20px 22px;
+}
+.copKpiK {
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+.copKpiGreen {
+  color: #237a30;
+}
+.copKpiAmber {
+  color: #9a6a12;
+}
+.copKpiRed {
+  color: #8b1e2d;
+}
+.copKpiV {
+  font-size: 34px;
+  font-weight: 800;
+  line-height: 1.1;
+  margin-top: 8px;
+  color: #151515;
+}
+.copKpi p {
+  margin: 8px 0 0;
+  font-size: 12.5px;
+  color: #a8a091;
+}
+
+.copNewBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 18px;
+  border: none;
+  border-radius: 12px;
+  background: #151515;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 8px 20px -10px rgba(0, 0, 0, 0.5);
+  font-family: inherit;
+}
+
+/* ledger */
+.copLedger {
+  background: #fff;
+  border: 1px solid #e7e2d6;
+  border-radius: 16px;
+  overflow: hidden;
+}
+.copRow {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 15px 20px;
+  border-bottom: 1px solid #f0ebe0;
+  flex-wrap: wrap;
+}
+.copRow:last-child {
+  border-bottom: none;
+}
+.copRowMain {
+  flex: 1 1 220px;
+  min-width: 180px;
+}
+.copRowLabel {
+  font-size: 15px;
+  font-weight: 800;
+  color: #151515;
+}
+.copRowItem {
+  font-size: 12.5px;
+  color: #8a8372;
+  margin-top: 2px;
+}
+.copRowMid {
+  flex: 0 1 150px;
+  min-width: 120px;
+  font-size: 12.5px;
+  color: #8a8372;
+}
+.copRowMid div + div {
+  margin-top: 2px;
+}
+.copRowAmt {
+  flex: 0 1 150px;
+  min-width: 120px;
+  text-align: right;
+  font-size: 16px;
+  font-weight: 800;
+  color: #151515;
+}
+.copRowEnd {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.copStatusChip {
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: 8px;
+  white-space: nowrap;
+}
+.copStatusChip.paid {
+  color: #237a30;
+  background: #eafaef;
+  border: 1px solid #c2e6cd;
+}
+.copStatusChip.pending {
+  color: #9a6a12;
+  background: #fbf3df;
+  border: 1px solid #ecd9a8;
+}
+.copStatusChip.other {
+  color: #6b6459;
+  background: #f1eee6;
+  border: 1px solid #e2ddcf;
+}
+.copMarkPaid {
+  padding: 7px 12px;
+  border-radius: 9px;
+  border: 1px solid #b6dcc4;
   background: #e9f6ee;
   color: #1b7a3e;
   font-size: 12px;
   font-weight: 700;
-  padding: 3px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: inherit;
+}
+.copTrash {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  border: 1px solid #e2ddcf;
+  background: #fbfaf6;
+  color: #8a8372;
   cursor: pointer;
 }
-.orderVerifyButton:hover { background: #d9efe2; }
+.copTrash:hover {
+  border-color: #c0392b;
+  color: #c0392b;
+}
+.copReload {
+  margin-top: 14px;
+  padding: 9px 16px;
+  border-radius: 10px;
+  border: 1px solid #ddd6c6;
+  background: #fff;
+  color: #6b6459;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+/* modal (assign + manual) */
+.copModalScrim {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  background: rgba(20, 17, 12, 0.5);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.copModal {
+  width: 480px;
+  max-width: 100%;
+  max-height: 92vh;
+  overflow: auto;
+  background: #faf8f2;
+  border-radius: 22px;
+  box-shadow: 0 40px 80px -30px rgba(0, 0, 0, 0.6);
+}
+.copModalWide {
+  width: 620px;
+}
+.copModalHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 22px 26px 0;
+}
+.copEyebrowSm {
+  font-size: 11px;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+  color: #b5731a;
+  font-weight: 700;
+}
+.copModalHead h2 {
+  margin: 6px 0 2px;
+  font-size: 22px;
+  font-weight: 800;
+  color: #151515;
+}
+.copModalMeta {
+  margin: 0;
+  font-size: 12.5px;
+  color: #8a8372;
+}
+.copModalClose {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid #e2ddcf;
+  background: #fff;
+  color: #6b6459;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.copModalBody {
+  padding: 18px 26px 26px;
+}
+.copModalActions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 18px;
+}
+
+/* assign coach list */
+.copPickLabel {
+  font-size: 11px;
+  letter-spacing: 1.3px;
+  text-transform: uppercase;
+  color: #a8a091;
+  font-weight: 700;
+  margin-bottom: 11px;
+}
+.copCoachList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.copCoachRow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  text-align: left;
+  padding: 14px 16px;
+  border-radius: 13px;
+  background: #fff;
+  border: 1px solid #e7e2d6;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+}
+.copCoachRow:hover {
+  border-color: #d8cfb6;
+  box-shadow: 0 8px 20px -14px rgba(0, 0, 0, 0.4);
+}
+.copCoachAv {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #f4ecd8;
+  color: #b5731a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 800;
+}
+.copCoachMain {
+  flex: 1;
+  min-width: 0;
+}
+.copCoachName {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.copCoachName strong {
+  font-size: 15px;
+  font-weight: 800;
+  color: #151515;
+}
+.copCoachName em {
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 700;
+  color: #8a8372;
+}
+.copCoachBarRow {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 8px;
+}
+.copCoachBar {
+  flex: 1;
+  height: 5px;
+  border-radius: 999px;
+  background: #ece6d7;
+  overflow: hidden;
+}
+.copCoachBar span {
+  display: block;
+  height: 100%;
+}
+.copCoachLoad {
+  font-size: 11px;
+  font-weight: 700;
+  color: #8a8372;
+  white-space: nowrap;
+}
+.copCoachChev {
+  flex: none;
+  color: #c3bba8;
+}
+
+/* form grid (manual order) */
+.copFormGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.copFormGrid label,
+.copFormFull {
+  display: block;
+}
+.copFormFull {
+  margin-top: 12px;
+}
+.copFormGrid label span,
+.copFormFull span {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b6459;
+  margin-bottom: 5px;
+}
+.copFormFull em {
+  color: #a8a091;
+  font-weight: 400;
+  font-style: normal;
+}
+.copFormGrid input,
+.copFormGrid select,
+.copFormFull textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #ddd6c6;
+  background: #fbfaf6;
+  font-size: 14px;
+  color: #151515;
+  font-family: inherit;
+}
+.copFormFull textarea {
+  min-height: 60px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+/* review slide-over */
+.copSlideScrim {
+  position: fixed;
+  inset: 0;
+  z-index: 85;
+  background: rgba(20, 17, 12, 0.42);
+  backdrop-filter: blur(2px);
+  display: flex;
+  justify-content: flex-end;
+}
+.copSlide {
+  width: 520px;
+  max-width: 100%;
+  height: 100%;
+  overflow: auto;
+  background: #faf8f2;
+  box-shadow: -30px 0 60px -30px rgba(0, 0, 0, 0.5);
+}
+.copSlideHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 22px 24px 18px;
+  border-bottom: 1px solid #ebe5d7;
+}
+.copSlideHead h2 {
+  margin: 6px 0 2px;
+  font-size: 21px;
+  font-weight: 800;
+  color: #151515;
+}
+.copSlideSub {
+  font-size: 12.5px;
+  color: #8a8372;
+}
+.copSlideBody {
+  padding: 20px 24px 30px;
+}
+.copFacts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: #e7e2d6;
+  border: 1px solid #e7e2d6;
+  border-radius: 13px;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+.copFacts > div {
+  background: #fff;
+  padding: 13px 12px;
+}
+.copFacts span {
+  display: block;
+  font-size: 10.5px;
+  color: #a8a091;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+.copFacts strong {
+  display: block;
+  margin-top: 3px;
+  font-size: 13px;
+  color: #151515;
+}
+.copGreen {
+  color: #237a30 !important;
+}
+.copAmber {
+  color: #9a6a12 !important;
+}
+.copRespLabel {
+  font-size: 11px;
+  letter-spacing: 1.3px;
+  text-transform: uppercase;
+  color: #a8a091;
+  font-weight: 700;
+  margin: 0 0 11px;
+}
+.copMuted {
+  font-size: 13px;
+  color: #8a8372;
+}
+.copResponses {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 22px;
+}
+.copRespGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.copRespRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 11px 13px;
+  background: #fff;
+  border: 1px solid #e7e2d6;
+  border-radius: 11px;
+}
+.copRespRow span {
+  font-size: 12.5px;
+  color: #8a8372;
+  flex: 1;
+}
+.copRespRow strong {
+  font-size: 13px;
+  color: #151515;
+  text-align: right;
+  max-width: 55%;
+}
+.copSlideFoot {
+  display: flex;
+  gap: 9px;
+  flex-wrap: wrap;
+  padding-top: 6px;
+  border-top: 1px solid #ebe5d7;
+}
+.copSlideFoot .copGhostBtn,
+.copSlideFoot .copGoldBtn {
+  flex: 1;
+  min-width: 130px;
+  padding: 11px;
+  text-align: center;
+}
+
+@media (max-width: 640px) {
+  .copBoard,
+  .copKpis {
+    flex-direction: column;
+  }
+  .copFormGrid {
+    grid-template-columns: 1fr;
+  }
+  .copModal,
+  .copModalWide,
+  .copSlide {
+    width: 100%;
+  }
+}

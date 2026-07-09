@@ -18119,6 +18119,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                 orderSearch={orderSearch}
                 programs={programs}
                 readyOrdersCount={readyOrdersCount}
+                setOrderReviewOrder={setOrderReviewOrder}
                 resetManualOrderForm={resetManualOrderForm}
                 reviewAndLoadProgram={reviewAndLoadProgram}
                 reviewQueueOrders={reviewQueueOrders}

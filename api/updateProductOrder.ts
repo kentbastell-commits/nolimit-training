@@ -155,6 +155,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       accessEndDate,
       fulfilledAt,
       notes,
+      coach,
     } = req.body || {};
 
     if (!recordId) {
@@ -229,6 +230,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       omittedFields,
       ["Payment Status", "Payment"],
       paymentStatus
+    );
+    // Coach assignment from the Orders page (writes the existing coach column).
+    applyField(
+      tableFields,
+      fields,
+      omittedFields,
+      ["Assign Coach", "Assigned Coach", "Coach", "Coach Assigned"],
+      coach
     );
 
     const startDate = toLarkDate(accessStartDate);
