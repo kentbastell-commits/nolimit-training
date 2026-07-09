@@ -1925,6 +1925,145 @@
 .dangerButton:hover:not(:disabled) { background: #fbeeee; }
 .dangerButton:disabled { opacity: 0.45; }
 
+/* Digital "Product Builder" heading + grouped list */
+.digitalBuilderHeading {
+  font-size: 22px;
+  font-weight: 800;
+  color: #151515;
+  margin: 0 0 14px;
+}
+.programViewSelectSmall {
+  font-size: 12.5px !important;
+  padding: 6px 10px !important;
+  font-weight: 600;
+}
+.programTableGroupDivider {
+  grid-column: 1 / -1;
+  padding: 14px 14px 6px;
+  font-size: 12px;
+  letter-spacing: 1.3px;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: #b5731a;
+  border-bottom: 1px solid #ece7db;
+  margin-top: 4px;
+}
+
+/* Session stats bar (Exercises · Work sets · Est. duration) */
+.builderSessionStatsBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 14px 4px 16px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid #e7e2d6;
+}
+.builderSessionStats {
+  display: flex;
+  gap: 34px;
+}
+.builderSessionStat strong {
+  display: block;
+  font-size: 30px;
+  line-height: 1;
+  font-weight: 800;
+  color: #151515;
+}
+.builderSessionStat strong em {
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 700;
+  margin-left: 2px;
+}
+.builderSessionStat span {
+  display: block;
+  margin-top: 5px;
+  font-size: 11px;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: #9a927f;
+  font-weight: 600;
+}
+
+/* Exercise editor — quick chips + link-with-above pills */
+.exEditChipRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.exEditChip {
+  padding: 7px 15px;
+  border-radius: 999px;
+  border: 1px solid #d8d1c0;
+  background: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  color: #55524a;
+  cursor: pointer;
+}
+.exEditChip.active {
+  background: #f0ead9;
+  border-color: #c9bfa2;
+  color: #1a1712;
+}
+.exEditChipCheck {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #33302a;
+  cursor: pointer;
+}
+.exEditChipCheck input { width: 17px; height: 17px; }
+.exEditReveal {
+  width: 100%;
+  margin-bottom: 12px;
+}
+.exEditCue {
+  min-height: 72px;
+  resize: vertical;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #ddd6c6;
+  background: #fbfaf6;
+  font: inherit;
+}
+.exLinkRow {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-wrap: wrap;
+  padding: 12px 0 16px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid #efeade;
+}
+.exLinkLabel {
+  font-size: 13px;
+  color: #9a927f;
+  font-weight: 500;
+}
+.exLinkPill {
+  padding: 7px 15px;
+  border-radius: 999px;
+  border: 1.5px dashed;
+  background: transparent;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.exLinkSuperset { color: #3b6fd4; border-color: #b7c9ef; }
+.exLinkSuperset:hover { background: #eef3fc; }
+.exLinkCircuit { color: #7c4dbe; border-color: #d2c0ec; }
+.exLinkCircuit:hover { background: #f4eefb; }
+.exLinkAccessory { color: #2f9268; border-color: #b4ddca; }
+.exLinkAccessory:hover { background: #eaf7f1; }
+.exLinkAccessory.active { background: #2f9268; border-style: solid; border-color: #2f9268; color: #fff; }
+
 /* Exercise edit popup — opened by clicking a built-session exercise row.
    Editing lives here now; the rows themselves are compact + drag-only. */
 .builderEditModalOverlay {

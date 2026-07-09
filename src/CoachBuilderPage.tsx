@@ -81,6 +81,7 @@ export default function CoachBuilderPage({
   editingFormTemplate,
   editingProgramSessionId,
   editingTestTemplate,
+  estimateSessionMinutes,
   existingStoreCategories,
   finishMobileProgram,
   formQuestions,
@@ -140,7 +141,6 @@ export default function CoachBuilderPage({
   programDurationWeeks,
   programGoal,
   programGridDrop,
-  programInherentStoreProduct,
   programName,
   programPhase,
   programPrice,
@@ -151,7 +151,6 @@ export default function CoachBuilderPage({
   programProductReadyForSale,
   programProductStatus,
   programProductType,
-  programPublicStoreVisible,
   programPurchaseLink,
   programSalesDescription,
   programSalesDescriptionCn,
@@ -271,7 +270,6 @@ export default function CoachBuilderPage({
   setProgramSeason,
   setProgramProductStatus,
   setProgramProductType,
-  setProgramPublicStoreVisible,
   setProgramPurchaseLink,
   setProgramSalesDescription,
   setProgramSalesDescriptionCn,
@@ -344,10 +342,55 @@ export default function CoachBuilderPage({
   const [editExerciseIndex, setEditExerciseIndex] = useState<number | null>(
     null
   );
+  // Optional fields in the editor reveal on demand (matching the "+ Tempo" /
+  // "+ Cue" chips) so the popup stays clean until a coach needs them.
+  const [cueOpen, setCueOpen] = useState(false);
+  const [tempoOpen, setTempoOpen] = useState(false);
+  const openExerciseEditor = (i: number) => {
+    setCueOpen(false);
+    setTempoOpen(false);
+    setEditExerciseIndex(i);
+  };
+  // In the Digital "Product Builder", order the list by sport, then that
+  // sport's bundles, with all add-ons last — inserting {__divider} rows.
+  const groupDigitalList = (list: any[]) => {
+    const isAddon = (p: any) =>
+      (p.storeListingType || "").toLowerCase() === "add-on" ||
+      p.productType === "Digital Add-on";
+    const isBundle = (p: any) =>
+      (p.storeListingType || "").toLowerCase() === "bundle" ||
+      p.productType === "Digital Bundle";
+    const key = (p: any) =>
+      isAddon(p)
+        ? "zzz~add-ons"
+        : isBundle(p)
+          ? `${p.storeCategory || "Other"}~1bundles`
+          : `${p.storeCategory || "Other"}~0`;
+    const label = (p: any) =>
+      isAddon(p)
+        ? "Add-ons"
+        : isBundle(p)
+          ? `${p.storeCategory || "Other"} · Bundles`
+          : p.storeCategory || "Other";
+    const sorted = [...list].sort((a, b) => key(a).localeCompare(key(b)));
+    const out: any[] = [];
+    let last: string | null = null;
+    for (const p of sorted) {
+      const lbl = label(p);
+      if (lbl !== last) {
+        out.push({ __divider: lbl });
+        last = lbl;
+      }
+      out.push(p);
+    }
+    return out;
+  };
   return (
     <>
               <>
-                {useMobileWorkoutRows ? (
+                {builderScope === "digital" ? (
+                  <h2 className="digitalBuilderHeading">Product Builder</h2>
+                ) : useMobileWorkoutRows ? (
                   <div
                     className={`workoutTabMenu ${
                       workoutTabsMenuOpen ? "workoutTabMenuOpen" : ""
@@ -419,7 +462,11 @@ export default function CoachBuilderPage({
                           </span>
                         ) : (
                           <select
-                            className="programViewSelect"
+                            className={`programViewSelect${
+                              builderScope === "digital"
+                                ? " programViewSelectSmall"
+                                : ""
+                            }`}
                             value={savedProgramProductFilter}
                             onChange={(event) =>
                               setSavedProgramProductFilter(event.target.value)
@@ -528,7 +575,20 @@ export default function CoachBuilderPage({
                           </p>
                         )}
 
-                        {libraryList.map((program: any) => {
+                        {(builderScope === "digital" && !sessionsTab
+                          ? groupDigitalList(libraryList)
+                          : libraryList
+                        ).map((program: any) => {
+                          if (program.__divider) {
+                            return (
+                              <div
+                                key={`divider-${program.__divider}`}
+                                className="programTableGroupDivider"
+                              >
+                                {program.__divider}
+                              </div>
+                            );
+                          }
                           const initials =
                             (program.programName || "")
                               .split(/\s+/)
@@ -1200,25 +1260,6 @@ export default function CoachBuilderPage({
                       ))}
                     </select>
                   </label>
-
-                  {programInherentStoreProduct ? (
-                    <p className="programStoreImplied">
-                      {programProductType === "Digital Bundle"
-                        ? "Bundles are always listed in the digital store."
-                        : "Add-ons are always listed in the digital store."}
-                    </p>
-                  ) : (
-                    <label className="programStoreToggle">
-                      <input
-                        type="checkbox"
-                        checked={programPublicStoreVisible}
-                        onChange={(e) =>
-                          setProgramPublicStoreVisible(e.target.checked)
-                        }
-                      />
-                      <span>Show in digital store</span>
-                    </label>
-                  )}
 
                   {programStoreFieldsVisible && (
                     <div className="programStorePlacement">
@@ -2759,19 +2800,36 @@ export default function CoachBuilderPage({
                 )}
 
                 {selectedProgramExercises.length > 0 && (
-                  <div
-                    className="builderExerciseListToolbar builderExerciseActionToolbar"
-                    id="builder-exercises"
-                  >
-                    <span>{selectedProgramExercises.length} exercises</span>
-                    <div>
-                      <button
-                        className="goldButton compactBuilderButton"
-                        onClick={() => openBuilderLibrary("Exercises")}
-                      >
-                        + Add Exercise
-                      </button>
+                  <div className="builderSessionStatsBar" id="builder-exercises">
+                    <div className="builderSessionStats">
+                      <div className="builderSessionStat">
+                        <strong>{selectedProgramExercises.length}</strong>
+                        <span>Exercises</span>
+                      </div>
+                      <div className="builderSessionStat">
+                        <strong>
+                          {selectedProgramExercises.reduce(
+                            (sum: number, ex: any) =>
+                              sum + (parseInt(ex.sets, 10) || 0),
+                            0
+                          )}
+                        </strong>
+                        <span>Work sets</span>
+                      </div>
+                      <div className="builderSessionStat">
+                        <strong>
+                          ~{estimateSessionMinutes(selectedProgramExercises)}
+                          <em>min</em>
+                        </strong>
+                        <span>Est. duration</span>
+                      </div>
                     </div>
+                    <button
+                      className="goldButton compactBuilderButton"
+                      onClick={() => openBuilderLibrary("Exercises")}
+                    >
+                      + Add Exercise
+                    </button>
                   </div>
                 )}
 
@@ -2825,7 +2883,7 @@ export default function CoachBuilderPage({
                         <div className="builderExerciseCardHeader">
                           <button
                             className="builderExerciseSummaryButton"
-                            onClick={() => setEditExerciseIndex(index)}
+                            onClick={() => openExerciseEditor(index)}
                             type="button"
                           >
                             <div className="builderExerciseSummaryTitle">
@@ -2992,18 +3050,122 @@ export default function CoachBuilderPage({
                                 </button>
                               </div>
                               <div className="builderEditModalBody">
-                            <div className="builderExerciseActions compactPageActions">
+                            {/* Quick optional fields — reveal on demand */}
+                            <div className="exEditChipRow">
                               <button
-                                className="outlineButton compactBuilderButton"
-                                onClick={() => linkExerciseWithPrevious(index, "Superset")}
+                                type="button"
+                                className={`exEditChip${
+                                  tempoOpen || exercise.tempo ? " active" : ""
+                                }`}
+                                onClick={() => setTempoOpen((v) => !v)}
                               >
-                                Superset
+                                + Tempo
                               </button>
                               <button
-                                className="outlineButton compactBuilderButton"
-                                onClick={() => linkExerciseWithPrevious(index, "Circuit")}
+                                type="button"
+                                className={`exEditChip${
+                                  cueOpen || exercise.coachingNotes ? " active" : ""
+                                }`}
+                                onClick={() => setCueOpen((v) => !v)}
                               >
-                                Circuit
+                                + Cue
+                              </button>
+                              <label className="exEditChipCheck">
+                                <input
+                                  type="checkbox"
+                                  checked={Boolean(exercise.isUnilateral)}
+                                  onChange={(e) =>
+                                    updateProgramExercise(
+                                      index,
+                                      "isUnilateral",
+                                      e.target.checked
+                                    )
+                                  }
+                                />
+                                Each side
+                              </label>
+                            </div>
+
+                            {(tempoOpen || exercise.tempo) && (
+                              <input
+                                className="miniSearch exEditReveal"
+                                value={exercise.tempo || ""}
+                                onChange={(e) =>
+                                  updateProgramExercise(
+                                    index,
+                                    "tempo",
+                                    e.target.value
+                                  )
+                                }
+                                placeholder="Tempo — e.g. 3-1-1"
+                              />
+                            )}
+                            {(cueOpen || exercise.coachingNotes) && (
+                              <textarea
+                                className="exEditReveal exEditCue"
+                                value={exercise.coachingNotes || ""}
+                                onChange={(e) =>
+                                  updateProgramExercise(
+                                    index,
+                                    "coachingNotes",
+                                    e.target.value
+                                  )
+                                }
+                                placeholder="Cue for the athlete..."
+                              />
+                            )}
+
+                            {/* Link this exercise with the one above it */}
+                            <div className="exLinkRow">
+                              <span className="exLinkLabel">link with above:</span>
+                              <button
+                                type="button"
+                                className="exLinkPill exLinkSuperset"
+                                onClick={() =>
+                                  linkExerciseWithPrevious(index, "Superset")
+                                }
+                              >
+                                + Superset
+                              </button>
+                              <button
+                                type="button"
+                                className="exLinkPill exLinkCircuit"
+                                onClick={() =>
+                                  linkExerciseWithPrevious(index, "Circuit")
+                                }
+                              >
+                                + Circuit
+                              </button>
+                              <button
+                                type="button"
+                                className={`exLinkPill exLinkAccessory${
+                                  exercise.isAccessory ? " active" : ""
+                                }`}
+                                onClick={() => {
+                                  const makeAccessory = !exercise.isAccessory;
+                                  setSelectedProgramExercises((current: any) =>
+                                    current.map((item: any, itemIndex: any) =>
+                                      itemIndex === index
+                                        ? {
+                                            ...item,
+                                            isAccessory: makeAccessory,
+                                            accessoryParentLabel: makeAccessory
+                                              ? item.accessoryParentLabel ||
+                                                selectedProgramExercises[
+                                                  index - 1
+                                                ]?.exerciseLabel ||
+                                                ""
+                                              : "",
+                                            accessoryColor: makeAccessory
+                                              ? item.accessoryColor || "Green"
+                                              : item.accessoryColor,
+                                          }
+                                        : item
+                                    )
+                                  );
+                                }}
+                              >
+                                + Accessory
                               </button>
                             </div>
 
@@ -3056,49 +3218,6 @@ export default function CoachBuilderPage({
                             updateProgramExercise(index, "order", e.target.value)
                           }
                           placeholder="Order"
-                        />
-                      </label>
-
-                      <label className="builderCheckboxField">
-                        <span>Accessory</span>
-                        <input
-                          type="checkbox"
-                          checked={Boolean(exercise.isAccessory)}
-                          onChange={(e) => {
-                            const checked = e.target.checked;
-                            setSelectedProgramExercises((current: any) =>
-                              current.map((item: any, itemIndex: any) =>
-                                itemIndex === index
-                                  ? {
-                                      ...item,
-                                      isAccessory: checked,
-                                      accessoryParentLabel: checked
-                                        ? item.accessoryParentLabel ||
-                                          item.exerciseLabel
-                                        : "",
-                                      accessoryColor: checked
-                                        ? item.accessoryColor || "Green"
-                                        : item.accessoryColor,
-                                    }
-                                  : item
-                              )
-                            );
-                          }}
-                        />
-                      </label>
-
-                      <label className="builderCheckboxField">
-                        <span>Each Side</span>
-                        <input
-                          type="checkbox"
-                          checked={Boolean(exercise.isUnilateral)}
-                          onChange={(e) =>
-                            updateProgramExercise(
-                              index,
-                              "isUnilateral",
-                              e.target.checked
-                            )
-                          }
                         />
                       </label>
                     </div>
@@ -3180,20 +3299,6 @@ export default function CoachBuilderPage({
                         </>
                       )}
 
-                      <label className="builderWideField">
-                        <span>Personalized Coach Notes</span>
-                        <textarea
-                          value={exercise.coachingNotes}
-                          onChange={(e) =>
-                            updateProgramExercise(
-                              index,
-                              "coachingNotes",
-                              e.target.value
-                            )
-                          }
-                          placeholder="Coach-specific notes for this client or session..."
-                        />
-                      </label>
                     </div>
                               </div>
                             </div>
