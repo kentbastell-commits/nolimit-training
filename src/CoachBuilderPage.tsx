@@ -5,11 +5,32 @@ import "./CoachBuilderPage.css";
 import { isCardioCategory } from "./appCore";
 import { Fragment, useState } from "react";
 import CoachProgramsLanding from "./CoachProgramsLanding";
-import { ChevronDown, ChevronLeft, ChevronsLeftRight, Copy, Dumbbell, Eye, GripVertical, Link2, MoreVertical, Pencil, Plus, RefreshCw, Settings, Shuffle, Trash2, X } from "lucide-react";
+import { BookOpen, ChevronDown, ChevronLeft, ChevronsLeftRight, Copy, Dumbbell, Eye, GripVertical, Link2, MoreVertical, Pencil, Plus, RefreshCw, Settings, Shuffle, Trash2, X } from "lucide-react";
 import type { Program, ProgramSession } from "./appCore";
 import { getWorkoutColorClass, normalizeDate } from "./appCore";
 import { TEST_CATEGORIES, testCategoryLabelKey } from "./testVisuals";
 import { useTranslation } from "react-i18next";
+
+// Type/form badge tones for the Library · Programming lists (redesign).
+const WK_TYPE_TONE: Record<string, { background: string; color: string }> = {
+  "Online Coaching": { background: "#e8f0ff", color: "#1f5fd6" },
+  "In-Person Training": { background: "#eef6ec", color: "#2f7d32" },
+  "Digital Program": { background: "#fbf1dd", color: "#a9791a" },
+  "Digital Bundle": { background: "#f3ecfb", color: "#6a2f9e" },
+  "Digital Add-on": { background: "#e6f6f7", color: "#0c7382" },
+};
+const wkTypeTone = (t?: string) =>
+  WK_TYPE_TONE[t || ""] || { background: "#efece5", color: "#6b6459" };
+const WK_FORM_TONE: Record<string, { background: string; color: string }> = {
+  Intake: { background: "#e8f0ff", color: "#1f5fd6" },
+  "Check-in": { background: "#eef6ec", color: "#2f7d32" },
+  Readiness: { background: "#fbf1dd", color: "#a9791a" },
+  Assessment: { background: "#f3ecfb", color: "#6a2f9e" },
+  Questionnaire: { background: "#f3ecfb", color: "#6a2f9e" },
+  Feedback: { background: "#e6f6f7", color: "#0c7382" },
+};
+const wkFormTone = (t?: string) =>
+  WK_FORM_TONE[t || ""] || { background: "#efece5", color: "#6b6459" };
 
 export default function CoachBuilderPage({
   builderScope,
@@ -127,7 +148,6 @@ export default function CoachBuilderPage({
   openMobileAlternate,
   openMobileLibPick,
   openMobilePicker,
-  openProgramPreview,
   pendingSectionName,
   programAccessLengthDays,
   programBuiltForClient,
@@ -172,7 +192,6 @@ export default function CoachBuilderPage({
   renderExerciseLabelBadge,
   renderMobileSetTable,
   renderSetPrescriptionTable,
-  renderTemplateLibrary,
   reorderAlternateExercise,
   reorderProgramExercise,
   reorderProgramSession,
@@ -389,60 +408,210 @@ export default function CoachBuilderPage({
   return (
     <>
               <>
-                {builderScope === "digital" ? null : useMobileWorkoutRows ? (
-                  <div
-                    className={`workoutTabMenu ${
-                      workoutTabsMenuOpen ? "workoutTabMenuOpen" : ""
-                    }`}
-                  >
-                    <button
-                      className="workoutTabMenuTrigger"
-                      aria-expanded={workoutTabsMenuOpen}
-                      onClick={() => setWorkoutTabsMenuOpen((open: any) => !open)}
-                    >
-                      <span>
-                        {workoutTabList.find(
-                          (t: any) => t.value === activeWorkoutTabValue
-                        )?.label || "Programs"}
-                      </span>
-                      <ChevronDown size={18} className="workoutTabMenuCaret" />
-                    </button>
-                    {workoutTabsMenuOpen && (
-                      <div className="workoutTabMenuList">
-                        {workoutTabList.map((tab: any) => (
-                          <button
-                            key={tab.value}
-                            className={
-                              activeWorkoutTabValue === tab.value ? "active" : ""
-                            }
-                            onClick={() => {
-                              selectWorkoutTab(tab.value);
-                              setWorkoutTabsMenuOpen(false);
-                            }}
-                          >
-                            {tab.label}
+                {builderScope === "digital" ? null : (() => {
+                  // Redesigned Library · Programming hub — header + per-tab KPI
+                  // board + segmented tabs. Numbers derived from the real arrays.
+                  const isListTab =
+                    workoutPageTab === "Saved Programs" ||
+                    workoutPageTab === "Sessions" ||
+                    workoutPageTab === "Forms";
+                  const P = programs || [];
+                  const S = visibleSessionsOnly || [];
+                  const F = savedFormTemplates || [];
+                  const grp = (t: string) =>
+                    /online coaching|in.?person/i.test(t || "")
+                      ? "coaching"
+                      : /digital/i.test(t || "")
+                      ? "digital"
+                      : "internal";
+                  const coaching = P.filter((p: any) => grp(p.productType) === "coaching").length;
+                  const digital = P.filter((p: any) => grp(p.productType) === "digital").length;
+                  const templates = P.filter((p: any) => grp(p.productType) === "internal").length;
+                  const workoutsBuilt = P.reduce(
+                    (a: number, p: any) =>
+                      a + (Number(p.durationWeeks) || 0) * (Number(p.sessionsPerWeek) || 0),
+                    0
+                  );
+                  const liveCount = P.filter((p: any) => p.publicStoreVisible).length;
+                  const sessFocus = new Set(S.map((s: any) => s.goal).filter(Boolean)).size;
+                  const sessLevels = new Set(S.map((s: any) => s.level).filter(Boolean)).size;
+                  const fType = (re: RegExp) => F.filter((f: any) => re.test(f.type || "")).length;
+                  const intakeN = fType(/intake/i);
+                  const checkinN = fType(/check.?in|readiness/i);
+                  const assessN = fType(/assessment|questionnaire|custom|feedback/i);
+                  const formTypes = new Set(F.map((f: any) => f.type).filter(Boolean)).size;
+
+                  let board: any = null;
+                  if (workoutPageTab === "Sessions") {
+                    board = {
+                      eyebrow: "Reusable sessions",
+                      mainNum: S.length,
+                      mainLabel: "saved session templates",
+                      breakdown: [
+                        { num: sessFocus, label: "focus areas" },
+                        { num: sessLevels, label: "levels" },
+                      ],
+                      statEyebrow: "Focus areas",
+                      statNum: sessFocus,
+                      statLabel: "across your sessions",
+                      statNote: "Drag any session into the builder to reuse it.",
+                    };
+                  } else if (workoutPageTab === "Forms") {
+                    board = {
+                      eyebrow: "Forms",
+                      mainNum: F.length,
+                      mainLabel: "intake, check-in & assessment",
+                      breakdown: [
+                        { num: intakeN, label: "intake" },
+                        { num: checkinN, label: "check-in" },
+                        { num: assessN, label: "assessment" },
+                      ],
+                      statEyebrow: "Form types",
+                      statNum: formTypes,
+                      statLabel: "in your library",
+                      statNote: "Set a default intake form per program.",
+                    };
+                  } else {
+                    board = {
+                      eyebrow: "Your programs",
+                      mainNum: P.length,
+                      mainLabel: "programs, bundles & add-ons",
+                      breakdown: [
+                        { num: coaching, label: "coaching" },
+                        { num: digital, label: "digital" },
+                        { num: templates, label: "templates" },
+                      ],
+                      statEyebrow: "Workouts built",
+                      statNum: workoutsBuilt,
+                      statLabel: "across all programs",
+                      statNote: `${liveCount} live on the store right now.`,
+                    };
+                  }
+                  const createLabel =
+                    workoutPageTab === "Sessions"
+                      ? "Create session"
+                      : workoutPageTab === "Forms"
+                      ? "Create form"
+                      : "Create program";
+                  const onCreate = () => {
+                    if (workoutPageTab === "Sessions") startNewSession();
+                    else if (workoutPageTab === "Forms") setFormView("builder");
+                    else setCreateProgramOpen(true);
+                  };
+
+                  return (
+                    <div className="wkHub">
+                      <div className="wkHead">
+                        <div>
+                          <span className="wkEyebrow">
+                            <BookOpen size={14} /> Library · Programming
+                          </span>
+                          <h1>Workouts</h1>
+                          <p>
+                            Your programs, reusable sessions, and intake forms —
+                            build once, assign anywhere.
+                          </p>
+                        </div>
+                        {isListTab && (
+                          <button type="button" className="wkCreateBtn" onClick={onCreate}>
+                            <Plus size={17} /> {createLabel}
                           </button>
-                        ))}
+                        )}
                       </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="workoutPageTabs">
-                    {workoutTabList.map((tab: any) => (
-                      <button
-                        key={tab.value}
-                        className={
-                          activeWorkoutTabValue === tab.value
-                            ? "goldButton"
-                            : "outlineButton"
-                        }
-                        onClick={() => selectWorkoutTab(tab.value)}
-                      >
-                        {tab.label}
-                      </button>
-                    ))}
-                  </div>
-                )}
+
+                      {isListTab && (
+                        <div className="wkBoard">
+                          <div className="wkBoardDark">
+                            <div className="wkBoardGlow" />
+                            <span className="wkBoardEyebrow">{board.eyebrow}</span>
+                            <div className="wkBoardBig">
+                              <span>{board.mainNum}</span>
+                              <small>{board.mainLabel}</small>
+                            </div>
+                            <div className="wkBoardBreak">
+                              {board.breakdown.map((b: any) => (
+                                <span key={b.label}>
+                                  <strong>{b.num}</strong> {b.label}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                          <div className="wkBoardLight">
+                            <span className="wkBoardEyebrowLight">{board.statEyebrow}</span>
+                            <div className="wkBoardBig">
+                              <span className="wkBoardBigDark">{board.statNum}</span>
+                              <small>{board.statLabel}</small>
+                            </div>
+                            <p>{board.statNote}</p>
+                          </div>
+                        </div>
+                      )}
+
+                      {useMobileWorkoutRows ? (
+                        <div
+                          className={`workoutTabMenu ${
+                            workoutTabsMenuOpen ? "workoutTabMenuOpen" : ""
+                          }`}
+                        >
+                          <button
+                            className="workoutTabMenuTrigger"
+                            aria-expanded={workoutTabsMenuOpen}
+                            onClick={() => setWorkoutTabsMenuOpen((open: any) => !open)}
+                          >
+                            <span>
+                              {workoutTabList.find(
+                                (t: any) => t.value === activeWorkoutTabValue
+                              )?.label || "Programs"}
+                            </span>
+                            <ChevronDown size={18} className="workoutTabMenuCaret" />
+                          </button>
+                          {workoutTabsMenuOpen && (
+                            <div className="workoutTabMenuList">
+                              {workoutTabList.map((tab: any) => (
+                                <button
+                                  key={tab.value}
+                                  className={
+                                    activeWorkoutTabValue === tab.value ? "active" : ""
+                                  }
+                                  onClick={() => {
+                                    selectWorkoutTab(tab.value);
+                                    setWorkoutTabsMenuOpen(false);
+                                  }}
+                                >
+                                  {tab.label}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="wkTabs">
+                          {workoutTabList.map((tab: any) => {
+                            const count =
+                              tab.value === "Sessions"
+                                ? S.length
+                                : tab.value === "Forms"
+                                ? F.length
+                                : P.length;
+                            return (
+                              <button
+                                key={tab.value}
+                                type="button"
+                                className={`wkTab${
+                                  activeWorkoutTabValue === tab.value ? " on" : ""
+                                }`}
+                                onClick={() => selectWorkoutTab(tab.value)}
+                              >
+                                <span>{tab.label}</span>
+                                <span className="wkTabCount">{count}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 {(workoutPageTab === "Saved Programs" ||
                   workoutPageTab === "Sessions") &&
@@ -584,16 +753,6 @@ export default function CoachBuilderPage({
                         <button className="outlineButton" onClick={loadPrograms}>
                           Refresh
                         </button>
-                        <button
-                          className="goldButton"
-                          onClick={() =>
-                            sessionsTab
-                              ? startNewSession()
-                              : setCreateProgramOpen(true)
-                          }
-                        >
-                          {sessionsTab ? "Create Session" : "Create Program"}
-                        </button>
                       </div>
                     </div>
 
@@ -658,7 +817,7 @@ export default function CoachBuilderPage({
                               onClick={() => {
                                 setSelectedSavedProgramId(program.programId);
                                 setSavedAssignableWorkouts([]);
-                                void openProgramPreview(program);
+                                setShowProgramDetail(true);
                               }}
                               onContextMenu={(e) => {
                                 e.preventDefault();
@@ -689,7 +848,12 @@ export default function CoachBuilderPage({
                                 {program.goal || "—"}
                               </span>
                               <span className="programTableCell">
-                                {program.productType || "Template"}
+                                <span
+                                  className="wkTypePill"
+                                  style={wkTypeTone(program.productType)}
+                                >
+                                  {program.productType || "Template"}
+                                </span>
                               </span>
                               <span className="programTableCell">
                                 {program.coach || "—"}
@@ -741,7 +905,14 @@ export default function CoachBuilderPage({
                       </div>
 
                       {showProgramDetail && selectedSavedProgram && (
-                      <section className="programDetailPanel">
+                      <div
+                        className="wkSlideScrim"
+                        onClick={() => setShowProgramDetail(false)}
+                      >
+                      <section
+                        className="programDetailPanel wkSlide"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         {selectedSavedProgram && (
                           <>
                             <div className="programDetailTop">
@@ -964,6 +1135,7 @@ export default function CoachBuilderPage({
                           </>
                         )}
                       </section>
+                      </div>
                       )}
                     </div>
                   </section>
@@ -4415,9 +4587,125 @@ export default function CoachBuilderPage({
                   </>
                 )}
 
-                {workoutPageTab === "Forms" &&
-                  formView === "list" &&
-                  renderTemplateLibrary("form")}
+                {workoutPageTab === "Forms" && formView === "list" && (
+                  <section className="programLibraryPanel">
+                    <div className="programLibraryHeader programLandingHeader">
+                      <div className="programLandingControls">
+                        <span className="programViewSelect programViewStatic">
+                          All forms
+                        </span>
+                        <input
+                          className="templateSearchInput programLandingSearch"
+                          value={savedFormSearch}
+                          onChange={(e) => setSavedFormSearch(e.target.value)}
+                          placeholder="Search forms..."
+                        />
+                      </div>
+                      <div className="programLandingActions">
+                        <button
+                          className="outlineButton"
+                          onClick={() => void loadFormTemplates(true)}
+                        >
+                          Refresh
+                        </button>
+                      </div>
+                    </div>
+                    <div className="programLibraryStack">
+                      <div className="programTable wkFormsTable">
+                        <div className="programTableHead">
+                          <span>Title</span>
+                          <span>Type</span>
+                          <span>Items</span>
+                          <span>Created By</span>
+                          <span className="programTableActionsHead">Actions</span>
+                        </div>
+                        {formTemplatesLoading &&
+                          savedFormTemplates.length === 0 && (
+                            <p className="programTableEmpty">Loading…</p>
+                          )}
+                        {!formTemplatesLoading &&
+                          savedFormTemplates.length === 0 && (
+                            <p className="programTableEmpty">
+                              No saved forms yet. Create one to assign to clients.
+                            </p>
+                          )}
+                        {!formTemplatesLoading &&
+                          savedFormTemplates.length > 0 &&
+                          visibleSavedForms.length === 0 && (
+                            <p className="programTableEmpty">
+                              No forms match your search.
+                            </p>
+                          )}
+                        {visibleSavedForms.map((form: any) => {
+                          const initials =
+                            (form.name || form.formId || "")
+                              .split(/\s+/)
+                              .map((w: any) => w[0])
+                              .filter(Boolean)
+                              .join("")
+                              .slice(0, 3)
+                              .toUpperCase() || "FM";
+                          return (
+                            <div
+                              key={form.recordId}
+                              className="programTableRow"
+                              onClick={() => loadSavedFormIntoBuilder(form)}
+                            >
+                              <span className="programTableTitle">
+                                <span
+                                  className="programTableBadge"
+                                  style={wkFormTone(form.type)}
+                                >
+                                  {initials}
+                                </span>
+                                <span className="programTableName">
+                                  <strong>
+                                    {form.name || form.formId || "Untitled Form"}
+                                  </strong>
+                                </span>
+                              </span>
+                              <span className="programTableCell">
+                                <span
+                                  className="wkTypePill"
+                                  style={wkFormTone(form.type)}
+                                >
+                                  {form.type || "Form"}
+                                </span>
+                              </span>
+                              <span className="programTableCell">
+                                {(form.questions?.length ?? 0)} questions
+                              </span>
+                              <span className="programTableCell">
+                                {form.createdBy || form.coach || "—"}
+                              </span>
+                              <span
+                                className="programTableActions"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <button
+                                  type="button"
+                                  className="iconActionButton"
+                                  title="Duplicate form"
+                                  onClick={() => duplicateSavedFormIntoBuilder(form)}
+                                >
+                                  <Copy size={16} />
+                                </button>
+                                <button
+                                  type="button"
+                                  className="iconActionButton dangerMenuItem"
+                                  title="Delete form"
+                                  onClick={() => deleteSavedFormTemplate(form)}
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </section>
+                )}
 
                 {workoutPageTab === "Forms" && formView === "builder" && (
                   <section className="tableCard builderHubPanel">

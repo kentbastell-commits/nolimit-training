@@ -2139,3 +2139,525 @@
   .builderEditModalOverlay { padding: 0; align-items: flex-end; }
   .builderEditModal { max-width: 100%; max-height: 92vh; border-radius: 20px 20px 0 0; }
 }
+
+/* ========================================================================
+   Library · Programming (Workouts) redesign — light system. Overrides the
+   older programLibrary/programTable/programDetailPanel styles above.
+   ======================================================================== */
+.wkHub {
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+}
+.wkHead {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin: 4px 0 22px;
+}
+.wkEyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  letter-spacing: 1.8px;
+  text-transform: uppercase;
+  color: #b5731a;
+  font-weight: 700;
+}
+.wkHead h1 {
+  margin: 8px 0 4px;
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  color: #151515;
+}
+.wkHead > div > p {
+  margin: 0;
+  font-size: 14px;
+  color: #6b6459;
+}
+.wkCreateBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 12px;
+  background: #151515;
+  color: #fff;
+  font-size: 14.5px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 8px 20px -10px rgba(0, 0, 0, 0.5);
+}
+.wkCreateBtn:hover { background: #000; }
+
+/* board */
+.wkBoard {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 22px;
+}
+.wkBoardDark {
+  flex: 1 1 300px;
+  min-width: 260px;
+  background: linear-gradient(150deg, #26221a, #171410);
+  border-radius: 18px;
+  padding: 20px 22px;
+  color: #f3ede0;
+  position: relative;
+  overflow: hidden;
+}
+.wkBoardGlow {
+  position: absolute;
+  right: -30px;
+  top: -30px;
+  width: 130px;
+  height: 130px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(214, 175, 55, 0.4), transparent 70%);
+}
+.wkBoardEyebrow {
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: #c9ab55;
+  font-weight: 700;
+}
+.wkBoardEyebrowLight {
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: #a99a78;
+  font-weight: 700;
+}
+.wkBoardBig {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-top: 6px;
+}
+.wkBoardBig > span {
+  font-size: 44px;
+  font-weight: 800;
+  line-height: 1;
+}
+.wkBoardBigDark { color: #151515; }
+.wkBoardBig small {
+  font-size: 12.5px;
+  color: #b7ad98;
+  font-weight: 500;
+}
+.wkBoardLight .wkBoardBig small { color: #8a8372; }
+.wkBoardBreak {
+  display: flex;
+  gap: 18px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  color: #cdc4b0;
+}
+.wkBoardBreak strong { color: #f3ede0; font-weight: 700; }
+.wkBoardLight {
+  flex: 1 1 240px;
+  min-width: 220px;
+  background: #fff;
+  border: 1px solid #ece4d3;
+  border-radius: 18px;
+  padding: 20px 22px;
+}
+.wkBoardLight p {
+  margin: 14px 0 0;
+  font-size: 13px;
+  color: #6b6459;
+}
+
+/* segmented tabs */
+.wkTabs {
+  display: flex;
+  gap: 4px;
+  padding: 5px;
+  background: #e7e0d1;
+  border-radius: 14px;
+  margin-bottom: 18px;
+  max-width: 520px;
+}
+.wkTab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 14.5px;
+  font-weight: 600;
+  background: transparent;
+  color: #8a8372;
+  transition: all 0.12s;
+}
+.wkTab.on {
+  background: #fff;
+  color: #151515;
+  font-weight: 700;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+.wkTabCount {
+  min-width: 22px;
+  padding: 1px 7px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  background: rgba(0, 0, 0, 0.08);
+}
+
+/* filter bar (reuses existing classes) */
+.wkHub ~ * .programLibraryPanel,
+.programLibraryPanel {
+  background: transparent;
+  border: none;
+  padding: 0;
+  box-shadow: none;
+}
+.programLibraryHeader.programLandingHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+.programLandingControls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 240px;
+  flex-wrap: wrap;
+}
+.programLandingControls .programViewSelect,
+.programViewStatic {
+  height: 44px;
+  padding: 0 15px;
+  border: 1px solid #e0d7c2;
+  border-radius: 12px;
+  background: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  color: #151515;
+  display: inline-flex;
+  align-items: center;
+}
+.programLandingControls .templateSearchInput,
+.programLandingSearch {
+  flex: 1;
+  min-width: 200px;
+  height: 44px;
+  padding: 0 15px;
+  border: 1px solid #e0d7c2;
+  border-radius: 12px;
+  background: #fff;
+  font-size: 14px;
+  color: #151515;
+}
+.programLandingActions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.programLandingActions .outlineButton,
+.programLandingActions .goldButton {
+  height: 44px;
+}
+
+/* card-row table */
+.programLibraryStack { display: block; }
+.programTable {
+  background: #fff;
+  border: 1px solid #ece4d3;
+  border-radius: 16px;
+  overflow: hidden;
+}
+.programTableHead,
+.programTableRow {
+  display: grid;
+  grid-template-columns: minmax(220px, 2.4fr) 1fr 1.2fr 1.2fr 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 13px 18px;
+}
+.wkFormsTable .programTableHead,
+.wkFormsTable .programTableRow {
+  grid-template-columns: minmax(240px, 2.6fr) 1.2fr 1fr 1fr auto;
+}
+.programTableHead {
+  background: #faf7f0;
+  border-bottom: 1px solid #efe8d9;
+  font-size: 11px;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: #a99a78;
+  font-weight: 700;
+}
+.programTableActionsHead { text-align: right; }
+.programTableRow {
+  border-top: 1px solid #f4efe4;
+  border-bottom: none;
+  cursor: pointer;
+  transition: background 0.12s;
+  background: #fff;
+}
+.programTableRow:hover { background: #faf8f2; }
+.programTableRow.active { background: #faf6ec; }
+.programTableTitle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.programTableBadge {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  background: #eef1ee;
+  color: #5a6b5a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+.programTableName {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.programTableName strong {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #151515;
+}
+.programBuiltForChip {
+  font-style: normal;
+  font-size: 12px;
+  color: #8a8372;
+}
+.programTableCell {
+  font-size: 13.5px;
+  color: #55524a;
+  min-width: 0;
+}
+.wkTypePill {
+  display: inline-flex;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+.programTableActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 4px;
+}
+.programTable .programTableActions .iconActionButton {
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #e6ddca;
+  border-radius: 9px;
+  background: #fff;
+  color: #6b6459;
+  cursor: pointer;
+}
+.programTable .programTableActions .iconActionButton:hover {
+  background: #faf6ec;
+  border-color: #d4af37;
+}
+.programTable .programTableActions .dangerMenuItem {
+  border-color: #f0d9d3;
+  color: #c0563c;
+}
+.programTable .programTableActions .dangerMenuItem:hover {
+  background: #fbeee9;
+  border-color: #e0a595;
+}
+.programTableEmpty {
+  padding: 48px 20px;
+  text-align: center;
+  font-size: 13.5px;
+  color: #8a8372;
+}
+.programTableGroupDivider {
+  padding: 12px 18px 6px;
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #a99a78;
+  font-weight: 700;
+  background: #faf7f0;
+}
+
+/* program detail → slide-over */
+@keyframes wkSlideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+@keyframes wkScrimIn { from { opacity: 0; } to { opacity: 1; } }
+.wkSlideScrim {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  background: rgba(21, 18, 12, 0.42);
+  display: flex;
+  justify-content: flex-end;
+  animation: wkScrimIn 0.16s ease;
+}
+.programDetailPanel.wkSlide {
+  width: min(520px, 94vw);
+  height: 100%;
+  margin: 0;
+  overflow-y: auto;
+  background: #f5f1e8;
+  border: none;
+  border-radius: 0;
+  box-shadow: -20px 0 60px -20px rgba(0, 0, 0, 0.5);
+  animation: wkSlideIn 0.26s cubic-bezier(0.16, 1, 0.3, 1);
+  padding: 0 0 40px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .wkSlideScrim, .programDetailPanel.wkSlide { animation: none; }
+}
+.programDetailPanel.wkSlide .programDetailTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 24px 26px 18px;
+  border-bottom: 1px solid #e6ddc9;
+  background: #fff;
+  flex-wrap: wrap;
+}
+.programDetailPanel.wkSlide .programDetailTop h3 {
+  margin: 0 0 4px;
+  font-size: 22px;
+  font-weight: 800;
+  color: #151515;
+}
+.programDetailPanel.wkSlide .programDetailTop p {
+  margin: 0;
+  font-size: 12.5px;
+  color: #8a8372;
+}
+.programDetailPanel.wkSlide .rowActions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.programDetailPanel.wkSlide .programMetaGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  padding: 22px 26px 0;
+}
+.programDetailPanel.wkSlide .programMetaGrid span {
+  display: block;
+  background: #fff;
+  border: 1px solid #ece4d3;
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #151515;
+}
+.programDetailPanel.wkSlide .programMetaGrid span strong {
+  display: block;
+  font-size: 10.5px;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: #a99a78;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.programDetailPanel.wkSlide .savedAssignPanel,
+.programDetailPanel.wkSlide .savedProgramSessions {
+  margin: 22px 26px 0;
+  background: #fff;
+  border: 1px solid #ece4d3;
+  border-radius: 14px;
+  padding: 16px;
+}
+.programDetailPanel.wkSlide .savedAssignPanel h3,
+.programDetailPanel.wkSlide .savedProgramSessions h3 {
+  margin: 0 0 12px;
+  font-size: 12px;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: #a99a78;
+  font-weight: 700;
+}
+.programDetailPanel.wkSlide .savedAssignGrid {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.programDetailPanel.wkSlide .savedAssignGrid label {
+  flex: 1;
+  min-width: 140px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 11px;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: #a99a78;
+  font-weight: 700;
+}
+.programDetailPanel.wkSlide .savedAssignGrid .miniSearch,
+.programDetailPanel.wkSlide .arrangeWorkoutRow .miniSearch {
+  height: 42px;
+  padding: 0 12px;
+  border: 1px solid #e0d7c2;
+  border-radius: 10px;
+  background: #faf7f0;
+  font-size: 14px;
+  color: #151515;
+}
+.programDetailPanel.wkSlide .exercise-card {
+  background: #faf7f0;
+  border: 1px solid #ece4d3;
+  border-radius: 11px;
+  padding: 11px 13px;
+  margin-bottom: 8px;
+}
+.programDetailPanel.wkSlide .exercise-card h3 {
+  margin: 0 0 4px;
+  font-size: 13.5px;
+  letter-spacing: 0;
+  text-transform: none;
+  color: #151515;
+}
+.programDetailPanel.wkSlide .exercise-card p {
+  margin: 2px 0;
+  font-size: 12.5px;
+  color: #6b6459;
+}
+
+@media (max-width: 720px) {
+  .wkBoard { flex-direction: column; }
+  .programDetailPanel.wkSlide { width: 100%; }
+  .programTableHead { display: none; }
+  .programTableRow { grid-template-columns: 1fr auto; }
+  .wkFormsTable .programTableRow { grid-template-columns: 1fr auto; }
+  .programTableRow > .programTableCell:nth-of-type(2),
+  .programTableRow > .programTableCell:nth-of-type(3) { display: none; }
+}
