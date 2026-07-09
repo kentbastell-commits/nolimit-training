@@ -79,6 +79,7 @@ import athleteMetrics from "../api/athleteMetrics.ts";
 import checkIns from "../api/checkIns.ts";
 import clients from "../api/clients.ts";
 import coaches from "../api/coaches.ts";
+import coachingSignup from "../api/coachingSignup.ts";
 import contentResponses from "../api/contentResponses.ts";
 import contentAssignments from "../api/contentAssignments.ts";
 import createClient from "../api/createClient.ts";
@@ -173,6 +174,7 @@ const handlers = {
   checkIns,
   clients,
   coaches,
+  coachingSignup,
   contentResponses,
   contentAssignments,
   createClient,

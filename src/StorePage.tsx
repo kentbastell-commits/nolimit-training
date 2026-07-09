@@ -405,6 +405,7 @@ export default function StorePage({
           <a href="#catalog" className="storeNavLinkV3">{sZh ? "计划" : "Programs"}</a>
           <a href="#how" className="storeNavLinkV3">{sZh ? "如何使用" : "How it works"}</a>
           <a href="#coach" className="storeNavLinkV3">{sZh ? "教练" : "Coach"}</a>
+          <a href="/?invite=client" className="storeNavLinkV3">{sZh ? "一对一私教" : "1:1 Coaching"}</a>
           <a href="#faq" className="storeNavLinkV3">FAQ</a>
         </div>
         <div className="storeNavActionsV3">
@@ -640,6 +641,28 @@ export default function StorePage({
             ))}
           </motion.div>
         </motion.section>
+
+        <section className="storeCoachingBand" id="coaching">
+          <div className="storeCoachingBandInner">
+            <div className="storeCoachingBandCopy">
+              <span className="storeCoachingBandEyebrow">
+                {sZh ? "线上一对一私教" : "1:1 Online Coaching"}
+              </span>
+              <h2>
+                {sZh ? "想要专属教练全程陪伴？" : "Want a coach in your corner?"}
+              </h2>
+              <p>
+                {sZh
+                  ? "获得完全个性化的训练计划、每周复盘，以及与教练微信直接沟通。选择你的指导周期即可开始。"
+                  : "Get a fully personalised plan, weekly check-ins, and direct WeChat access to your coach. Choose your term to begin."}
+              </p>
+            </div>
+            <a className="storeCoachingBandBtn" href="/?invite=client">
+              {sZh ? "了解一对一私教" : "Explore 1:1 coaching"}{" "}
+              <ArrowRight size={16} />
+            </a>
+          </div>
+        </section>
 
         <section className="storeHowV2" id="how">
           <div className="storeSectionIntroV2">

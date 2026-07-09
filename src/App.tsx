@@ -167,6 +167,7 @@ function withSuspense<P extends object>(
 
 const StorePage = withSuspense(() => import("./StorePage"));
 const ClientInvitePage = withSuspense(() => import("./ClientInvitePage"));
+const CoachingFlowPage = withSuspense(() => import("./CoachingFlowPage"));
 const InPersonEnquiryPage = withSuspense(() => import("./InPersonEnquiryPage"));
 const PortalWelcome = withSuspense(() => import("./PortalWelcome"));
 const ReviewPage = withSuspense(() => import("./ReviewPage"));
@@ -1589,8 +1590,11 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   };
 
   const buildInviteLink = (packageType = coachInvitePackage) => {
+    // coach=1 keeps a coach-sent onboarding link on the free intake form; the
+    // bare public /?invite=client is now the paid 1:1 coaching purchase flow.
     const params = new URLSearchParams({
       invite: "client",
+      coach: "1",
       package: packageType,
     });
 
@@ -17137,6 +17141,14 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   }
 
   if (isClientInvite) {
+    // Public 1:1 coaching signup is the paid flow (Commitment → qualifier →
+    // WeChat payment → post-payment questionnaire). Coach-generated onboarding
+    // links carry ?coach=1 and still reach the free intake, so a coach can add
+    // someone who paid/arranged offline without forcing a fresh payment.
+    const isCoachOnboard = inviteSearchParams.get("coach") === "1";
+    if (!isCoachOnboard) {
+      return <CoachingFlowPage />;
+    }
     return (
       <ClientInvitePage
         copyToClipboard={copyToClipboard}
