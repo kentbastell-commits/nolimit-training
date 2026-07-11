@@ -13313,18 +13313,18 @@ function App({ onReady }: { onReady?: () => void } = {}) {
             </div>
           ) : (
             <>
+              <span className="wellnessEyebrow">
+                {paceZh ? "每日状态" : "Daily readiness"}
+              </span>
               <div className="wellnessPrompt">
                 <strong>
-                  {paceZh ? "今天感觉如何？" : "How are you feeling today?"}
-                </strong>
-                <span>
                   {paceZh
-                    ? "每日打卡，教练会看到你的状态趋势。"
-                    : "A quick daily check-in — your coach tracks your trends."}
-                </span>
+                    ? "记录今日晨检，解锁状态评分，让教练了解你的感受。"
+                    : "Log your morning check-in to unlock today's readiness score and let your coach know how you're feeling."}
+                </strong>
               </div>
               <button type="button" className="wellnessCta" onClick={openForm}>
-                {paceZh ? "开始打卡 →" : "Check in →"}
+                {paceZh ? "开始打卡" : "Start check-in"}
               </button>
               {streak > 1 && (
                 <span className="wellnessStreakInline">

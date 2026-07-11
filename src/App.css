@@ -14231,3 +14231,282 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
     transition: none;
   }
 }
+
+/* =========================================================================
+   Client Home — paper/gold re-skin (matches home reference screenshots).
+   Daily Readiness hero + segmented tabs + transparent panels with
+   eyebrow+title headers + white card items (coach inbox, tasks). Scoped to
+   .clientPortalApp, source-order-last. Handlers/data untouched.
+   ========================================================================= */
+
+/* single-column, mobile-first portal home */
+.clientPortalApp .clientHomeGrid {
+  grid-template-columns: 1fr !important;
+  gap: 14px;
+}
+
+/* Daily Readiness dark hero (pre-check-in) */
+.clientPortalApp .wellnessCard:not(.done) {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+  background: linear-gradient(150deg, #26221a, #10100f) !important;
+  border: none !important;
+  border-radius: 22px !important;
+  padding: 22px !important;
+  color: #f3ede0 !important;
+  box-shadow: 0 18px 40px -24px rgba(16, 16, 15, 0.6) !important;
+}
+.clientPortalApp .wellnessCard:not(.done)::after {
+  content: "";
+  position: absolute;
+  right: -46px;
+  top: -56px;
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(214, 175, 55, 0.34), transparent 68%);
+  pointer-events: none;
+}
+.clientPortalApp .wellnessEyebrow {
+  position: relative;
+  z-index: 1;
+  font-size: 10.5px;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+  color: #c9ab55;
+  font-weight: 800;
+}
+.clientPortalApp .wellnessCard:not(.done) .wellnessPrompt {
+  position: relative;
+  z-index: 1;
+}
+.clientPortalApp .wellnessCard:not(.done) .wellnessPrompt strong {
+  display: block;
+  margin-top: 10px;
+  color: #f3ede0;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.4;
+  max-width: 34ch;
+}
+.clientPortalApp .wellnessCard:not(.done) .wellnessCta {
+  position: relative;
+  z-index: 1;
+  margin-top: 16px;
+  align-self: flex-start;
+  background: linear-gradient(140deg, #e6c766, #b5731a) !important;
+  color: #1a1712 !important;
+  border: none !important;
+  border-radius: 999px !important;
+  padding: 11px 22px !important;
+  font-weight: 800 !important;
+  font-size: 14px !important;
+  box-shadow: 0 12px 24px -14px rgba(181, 115, 26, 0.8) !important;
+}
+.clientPortalApp .wellnessCard:not(.done) .wellnessStreakInline {
+  position: relative;
+  z-index: 1;
+  margin-top: 12px;
+  color: #c9ab55;
+  font-weight: 700;
+  font-size: 12px;
+}
+.clientPortalApp .wellnessCard.done {
+  background: #eef6f0 !important;
+  border: 1px solid #cfe6d6 !important;
+  border-radius: 16px !important;
+  color: #1f7a4d !important;
+  padding: 14px 16px !important;
+}
+
+/* segmented tabs */
+.clientPortalApp .portalHomeTabs {
+  display: flex;
+  gap: 5px;
+  background: #e4dfd3 !important;
+  border: 1px solid #d9d3c5;
+  border-radius: 14px;
+  padding: 4px;
+}
+.clientPortalApp .portalHomeTab {
+  flex: 1;
+  border: none;
+  background: transparent;
+  border-radius: 11px;
+  padding: 9px 0;
+  font-weight: 800;
+  font-size: 13.5px;
+  color: #66645e;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.clientPortalApp .portalHomeTab.portalHomeTabActive {
+  background: #10100f;
+  color: #f0dc88;
+}
+
+/* panels: transparent sections, eyebrow + title header */
+.clientPortalApp .clientHomePanel {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+.clientPortalApp .clientHomePanelHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px !important;
+  border: none !important;
+}
+.clientPortalApp .clientHomePanelHeader > div > span {
+  color: #b5731a !important;
+  font-size: 10.5px !important;
+  letter-spacing: 1.4px !important;
+  text-transform: uppercase;
+  font-weight: 800 !important;
+}
+.clientPortalApp .clientHomePanelHeader > div > h2 {
+  margin: 2px 0 0 !important;
+  color: #151515 !important;
+  font-size: 20px !important;
+  font-weight: 800 !important;
+}
+.clientPortalApp .clientHomePanelHeader .outlineButton {
+  background: #fff !important;
+  border: 1px solid #d4cbb7 !important;
+  border-radius: 999px !important;
+  color: #10100f !important;
+  font-weight: 800 !important;
+  font-size: 12.5px !important;
+  padding: 7px 13px !important;
+  min-height: 0 !important;
+}
+
+/* coach inbox — white message cards, dark NEW pill */
+.clientPortalApp .coachInboxList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.clientPortalApp .coachInboxItem {
+  background: #fff !important;
+  border: 1px solid #dcd8cd !important;
+  border-radius: 14px !important;
+  padding: 13px 15px !important;
+  box-shadow: 0 8px 20px -14px rgba(0, 0, 0, 0.4);
+}
+.clientPortalApp .coachInboxItem.unread {
+  border-color: #e7d4a8 !important;
+}
+.clientPortalApp .coachInboxItemHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.clientPortalApp .coachInboxItemHead strong {
+  color: #10100f !important;
+  font-size: 14.5px;
+  font-weight: 800;
+}
+.clientPortalApp .coachInboxItemHead em {
+  flex: none;
+  background: #10100f;
+  color: #f0dc88;
+  font-style: normal;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  border-radius: 999px;
+  padding: 3px 9px;
+}
+.clientPortalApp .coachInboxItem p {
+  margin: 6px 0 0;
+  color: #5f5f59 !important;
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+/* upcoming tasks — white cards with type left border */
+.clientPortalApp .homeWorkoutList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.clientPortalApp .homeWorkoutItem {
+  background: #fff !important;
+  border: 1px solid #dcd8cd !important;
+  border-radius: 14px !important;
+  padding: 12px 14px !important;
+  box-shadow: 0 8px 20px -14px rgba(0, 0, 0, 0.4);
+}
+.clientPortalApp .homeWorkoutItem .taskDatePill {
+  color: #8a8372 !important;
+  font-size: 10.5px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.clientPortalApp .homeWorkoutItem strong {
+  color: #10100f !important;
+  font-size: 15px;
+  font-weight: 800;
+}
+.clientPortalApp .homeWorkoutItem small {
+  color: #66645e !important;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+.clientPortalApp .taskActionBadge {
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  background: #10100f;
+  color: #f0dc88;
+}
+.clientPortalApp .taskActionBadge.completed {
+  background: #eaf2ec;
+  color: #1f7a4d;
+}
+.clientPortalApp .taskActionBadge.missed {
+  background: #fbecec;
+  color: #b23b3b;
+}
+
+/* workload logger */
+.clientPortalApp .workloadWeekStrip {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 5px;
+}
+.clientPortalApp .workloadDayBtn {
+  border: 1px solid #dcd8cd;
+  background: #fff;
+  border-radius: 12px;
+  padding: 8px 0;
+  color: #10100f;
+  cursor: pointer;
+}
+.clientPortalApp .workloadDayBtn.workloadDayActive {
+  background: #10100f;
+  border-color: #10100f;
+  color: #f7f0dc;
+}
+.clientPortalApp .workloadField input {
+  border: 1px solid #cfc9bb !important;
+  border-radius: 10px !important;
+  background: #fff !important;
+}
+.clientPortalApp .workloadRowLoad {
+  color: #b5731a !important;
+  font-weight: 900;
+}
