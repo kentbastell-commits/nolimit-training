@@ -1,131 +1,259 @@
-/* Co-located styles for ReviewPage — split out of App.css so they load with the ReviewPage chunk, not the main bundle. */
-.coachReviewWorkspacePage {
-  display: grid;
-  gap: 1.2rem;
+/* Co-located styles for ReviewPage — coach "needs-a-decision" inbox.
+   Light "paper" system shared with the redesigned Store / Clients / Revenue
+   pages, plus a dark KPI hero. Loads with the ReviewPage chunk. */
+
+.rvPage {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 4px 2px 90px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  color: #151515;
 }
-.coachReviewIntro {
+
+/* ---- header ---- */
+.rvHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.rvEyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  letter-spacing: 1.8px;
+  text-transform: uppercase;
+  color: #b5731a;
+  font-weight: 800;
+}
+.rvTitle {
+  margin: 0;
+  font-size: clamp(26px, 5vw, 34px);
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  color: #151515;
+  line-height: 1.05;
+}
+.rvIntro {
   margin: 0;
   max-width: 60rem;
-  color: #66645e;
-  font-size: 0.95rem;
+  font-size: 14.5px;
   font-weight: 600;
+  color: #66645e;
   line-height: 1.5;
 }
-.coachReviewSummaryCard {
+
+.rvError {
+  background: #fdecea;
+  border: 1px solid #f3c5c0;
+  color: #b3402e;
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+/* ---- dark KPI hero ---- */
+.rvHero {
   position: relative;
   overflow: hidden;
-  width: 100%;
+  background: linear-gradient(150deg, #26221a, #10100f);
+  border-radius: 20px;
+  padding: 26px 28px;
+  color: #f3ede0;
+}
+.rvHeroGlow {
+  position: absolute;
+  right: -40px;
+  top: -50px;
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(214, 175, 55, 0.32), transparent 68%);
+  pointer-events: none;
+}
+.rvHeroEyebrow {
+  font-size: 11px;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+  color: #c9ab55;
+  font-weight: 800;
+}
+.rvHeroRow {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+.rvHeroNum {
+  font-size: clamp(40px, 8vw, 56px);
+  font-weight: 800;
+  line-height: 1;
+}
+.rvHeroSub {
+  font-size: 14px;
+  color: #b3aa93;
+  font-weight: 600;
+}
+
+/* ---- summary grid ---- */
+.rvSummaryGrid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  margin-bottom: 10px;
+}
+.rvSummaryCard {
+  position: relative;
+  overflow: hidden;
   text-align: left;
   font: inherit;
+  background: #fff;
+  border: 1px solid #dcd8cd;
+  border-radius: 16px;
+  padding: 15px 16px 15px 18px;
   cursor: pointer;
-  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+  box-shadow: 0 0.55rem 1.4rem rgba(0, 0, 0, 0.055);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease,
+    transform 0.18s ease;
 }
-.coachReviewSummaryCard:hover,
-.coachReviewSummaryCard:focus-visible {
+.rvSummaryCard:hover,
+.rvSummaryCard:focus-visible {
   border-color: #d4af37;
   box-shadow: 0 0.85rem 1.8rem rgba(0, 0, 0, 0.1);
   transform: translateY(-2px);
+  outline: none;
 }
-.coachReviewSummaryCard::before {
-  content: "";
+.rvSummaryBar {
   position: absolute;
+  left: 0;
   top: 0;
   bottom: 0;
-  left: 0;
   width: 4px;
   background: #d4af37;
 }
-.coachReviewColumn {
-  scroll-margin-top: 90px;
-  transition: box-shadow 0.25s ease, border-color 0.25s ease;
-}
-.coachReviewColumnFlash {
-  border-color: #d4af37;
-  box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.55),
-    0 0.9rem 2rem rgba(0, 0, 0, 0.1);
-  animation: coachReviewFlash 1.2s ease;
-}
-.coachReviewSummaryCard,
-.coachReviewColumn {
-  background: #ffffff;
-  border: 1px solid #dcd8cd;
-  box-shadow: 0 0.65rem 1.6rem rgba(0, 0, 0, 0.06);
-}
-.coachReviewSummaryCard {
-  border-radius: 1.15rem;
-  padding: 1rem;
-}
-.coachReviewSummaryCard span,
-.coachReviewColumnHeader span {
-  color: #66645e;
+.rvSummaryLabel {
   display: block;
-  font-size: 0.76rem;
+  color: #66645e;
+  font-size: 11px;
   font-weight: 900;
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
-.coachReviewSummaryCard strong {
-  color: #10100f;
+.rvSummaryCount {
   display: block;
-  font-size: 2.2rem;
+  color: #10100f;
+  font-size: 34px;
   line-height: 1;
-  margin-top: 0.45rem;
+  margin-top: 8px;
+  font-weight: 800;
 }
-.coachReviewColumn {
-  border-radius: 1rem;
-  padding: 0.5rem 1rem 0.9rem;
+
+/* ---- board / sections ---- */
+.rvBoard {
+  display: grid;
+  gap: 14px;
 }
-.coachReviewColumnHeader {
+.rvSection {
+  background: #fff;
+  border: 1px solid #dcd8cd;
+  border-radius: 16px;
+  padding: 0.5rem 1.1rem 1rem;
+  box-shadow: 0 0.55rem 1.4rem rgba(0, 0, 0, 0.055);
+  scroll-margin-top: 90px;
+  transition: box-shadow 0.25s ease, border-color 0.25s ease;
+}
+.rvFlash {
+  border-color: #d4af37;
+  animation: coachReviewFlash 1.2s ease;
+}
+@keyframes coachReviewFlash {
+  0% {
+    box-shadow: 0 0 0 0 rgba(212, 175, 55, 0);
+  }
+  25% {
+    box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.6),
+      0 0.9rem 2rem rgba(0, 0, 0, 0.12);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(212, 175, 55, 0);
+  }
+}
+
+.rvSecHead {
+  display: flex;
   align-items: center;
-  appearance: none;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 100%;
   background: transparent;
   border: 0;
   cursor: pointer;
-  display: flex;
-  gap: 1rem;
-  justify-content: space-between;
-  margin: 0;
-  padding: 0.55rem 0;
+  padding: 0.7rem 0;
   text-align: left;
-  width: 100%;
+  font: inherit;
 }
-.coachReviewHeaderRight {
-  align-items: center;
+.rvSecHeadStatic {
+  cursor: default;
+}
+.rvSecEyebrow {
+  display: block;
+  color: #66645e;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.rvSecTitle {
+  display: block;
+  color: #10100f;
+  font-size: 22px;
+  margin-top: 2px;
+}
+.rvSecHeadRight {
   display: flex;
+  align-items: center;
   gap: 0.6rem;
 }
-.coachReviewChevron {
-  color: #66645e;
-  transition: transform 0.18s ease;
-}
-.coachReviewColumnHeader strong {
-  color: #10100f;
-  display: block;
-  font-size: 1.35rem;
-}
-.coachReviewColumnHeader em {
+.rvPill {
   background: #10100f;
   border-radius: 999px;
   color: #f0dc88;
   font-style: normal;
   font-weight: 900;
   min-width: 2rem;
-  padding: 0.25rem 0.55rem;
+  padding: 0.28rem 0.6rem;
   text-align: center;
+  font-size: 13px;
 }
-.coachReviewGlobalList {
+.rvChev {
+  color: #66645e;
+  transition: transform 0.18s ease;
+}
+.rvChev.open {
+  transform: rotate(180deg);
+}
+
+.rvGrid {
   display: grid;
   gap: 0.5rem;
   grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
   margin-top: 0.6rem;
 }
-/* Daily check-in review cards (coach replies to an athlete's check-in) */
-.coachReviewEmpty {
-  color: #6b6b6b;
-  font-size: 0.85rem;
-  padding: 0.4rem 0.2rem;
+.rvGridWide {
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
 }
-.coachCheckInReviewCard {
+.rvEmpty {
+  margin: 0.4rem 0.2rem;
+  color: #8a8372;
+  font-size: 13.5px;
+}
+
+/* ---- plain cards (enquiries / check-ins) ---- */
+.rvCard {
   background: #fff;
   border: 1px solid #dcd8cd;
   border-radius: 0.8rem;
@@ -134,140 +262,106 @@
   flex-direction: column;
   gap: 0.55rem;
 }
-.coachCheckInReviewHead {
+.rvCardTap {
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+.rvCardHead {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: 0.5rem;
 }
-.coachCheckInReviewHead strong {
+.rvCardHead strong {
   color: #10100f;
-  font-size: 0.98rem;
+  font-size: 15px;
 }
-.coachCheckInReviewHead small {
+.rvCardHead small {
   color: #8a8a82;
-  font-size: 0.75rem;
+  font-size: 12px;
+  white-space: nowrap;
 }
-.coachCheckInStats {
+.rvChips {
   display: flex;
   flex-wrap: wrap;
   gap: 0.35rem;
 }
-.coachCheckInStats span {
+.rvChip {
   background: #f4f1ea;
   border: 1px solid #e6e2d6;
   border-radius: 999px;
   padding: 0.15rem 0.55rem;
-  font-size: 0.74rem;
+  font-size: 12px;
   font-weight: 700;
   color: #3a3a34;
+  white-space: nowrap;
 }
-.coachCheckInNotes {
+.rvNote {
   margin: 0;
   color: #44443e;
-  font-size: 0.86rem;
+  font-size: 13.5px;
   line-height: 1.45;
 }
-.coachCheckInReplyInput {
+.rvNoteClamp {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ---- reply textareas + buttons ---- */
+.rvReply {
   width: 100%;
-  min-height: 64px;
+  min-height: 60px;
   resize: vertical;
   border: 1px solid #d4af37;
   border-radius: 0.6rem;
   padding: 0.55rem 0.65rem;
-  font-size: 0.88rem;
+  font: inherit;
+  font-size: 14px;
   background: #fffdf7;
   color: #10100f;
 }
-.coachCheckInReplyActions {
+.rvReply:focus {
+  outline: none;
+  border-color: #d4af37;
+  background: #fff;
+}
+.rvReply::placeholder {
+  color: #a8a091;
+}
+.rvReplyActions {
   display: flex;
   justify-content: flex-end;
 }
-.coachReviewGlobalItem {
-  background: #fff;
-  border: 1px solid #dcd8cd;
-  border-radius: 0.7rem;
-  color: #10100f;
-  padding: 0.55rem 0.7rem;
-  text-align: left;
-  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
-  width: 100%;
-}
-button.coachReviewGlobalItem,
-.coachReviewItemMain {
-  cursor: pointer;
-}
-.coachReviewGlobalItem:hover,
-.coachReviewGlobalItem:focus-within {
-  border-color: #10100f;
-  box-shadow: 0 0.75rem 1.6rem rgba(0, 0, 0, 0.08);
-  transform: translateY(-1px);
-}
-.coachReviewGlobalItem.urgent {
-  border-left: 5px solid #10100f;
-}
-.coachReviewItemMain {
-  appearance: none;
-  background: transparent;
-  border: 0;
-  color: inherit;
-  display: grid;
-  gap: 0.25rem;
-  padding: 0;
-  text-align: left;
-  width: 100%;
-}
-.coachReviewGlobalItem span {
-  color: #66645e;
-  display: block;
-  font-size: 0.66rem;
-  font-weight: 900;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-}
-.coachReviewGlobalItem strong {
-  color: #10100f;
-  display: block;
-  font-size: 0.92rem;
-  line-height: 1.2;
-}
-.coachReviewGlobalItem small,
-.coachReviewPreview {
-  color: #66645e;
-  display: block;
-  font-size: 0.78rem;
-  font-weight: 800;
-  margin: 0.1rem 0 0;
-}
-.coachReviewPreview {
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-}
-.coachReviewItemActions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-top: 0.7rem;
-}
-.coachReviewItemActions button {
-  background: #ffffff;
-  border: 1px solid #d4cbb7;
+.rvGoldBtn {
+  align-self: flex-start;
+  background: linear-gradient(140deg, #e6c766, #b5731a);
+  color: #1a1712;
+  border: none;
   border-radius: 999px;
-  color: #10100f;
+  padding: 0.55rem 1rem;
+  font-weight: 800;
+  font-size: 13px;
   cursor: pointer;
-  font-weight: 900;
-  padding: 0.45rem 0.7rem;
+  transition: opacity 0.15s ease;
 }
-.coachReviewItemActions .reviewDoneButton {
-  background: #10100f;
-  border-color: #10100f;
-  color: #f0dc88;
+.rvGoldBtn:disabled {
+  opacity: 0.55;
+  cursor: default;
 }
-/* Coach form-video review */
-.formVideoReviewList { display: flex; flex-direction: column; gap: 14px; padding: 14px; }
-.formVideoReviewCard {
+.rvGoldBtnBlock {
+  align-self: stretch;
+  width: 100%;
+  border-radius: 12px;
+  padding: 0.7rem 1rem;
+  font-size: 14px;
+}
+
+/* ---- form video cards ---- */
+.rvVideoCard {
   border: 1px solid rgba(13, 13, 13, 0.1);
   border-radius: 14px;
   padding: 14px;
@@ -276,20 +370,234 @@ button.coachReviewGlobalItem,
   gap: 10px;
   background: #fff;
 }
-.formVideoReviewMeta { display: flex; flex-direction: column; gap: 2px; }
-.formVideoReviewMeta strong { font-size: 15px; }
-.formVideoReviewMeta span { font-size: 12.5px; color: #77746a; }
-.formVideoReviewCard video {
+.rvVideoMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.rvVideoMeta strong {
+  font-size: 15px;
+  color: #10100f;
+}
+.rvVideoMeta span {
+  font-size: 12.5px;
+  color: #77746a;
+}
+.rvVideo {
   width: 100%;
   max-height: 420px;
   border-radius: 10px;
   background: #000;
 }
-.formVideoReviewCard textarea {
-  border: 1px solid #d9d7cd;
+.rvVideoCard .rvReply {
+  border-color: #d9d7cd;
+  background: #fbfaf6;
+}
+
+/* ---- comment / order / missed / submission items ---- */
+.rvItem {
+  background: #fff;
+  border: 1px solid #dcd8cd;
+  border-radius: 0.7rem;
+  color: #10100f;
+  padding: 0.6rem 0.7rem;
+  text-align: left;
+  display: grid;
+  gap: 0.2rem;
+  font: inherit;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease,
+    transform 0.18s ease;
+}
+button.rvItem {
+  cursor: pointer;
+}
+button.rvItem:hover,
+button.rvItem:focus-visible {
+  border-color: #10100f;
+  box-shadow: 0 0.75rem 1.6rem rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
+  outline: none;
+}
+.rvItemUrgent {
+  border-left: 5px solid #10100f;
+}
+.rvItemKicker {
+  color: #66645e;
+  font-size: 10.5px;
+  font-weight: 900;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+.rvItem strong {
+  color: #10100f;
+  font-size: 14.5px;
+  line-height: 1.2;
+}
+.rvItem small {
+  color: #66645e;
+  font-size: 12.5px;
+  font-weight: 800;
+}
+.rvCommentNote {
+  display: block;
+  color: #44443e;
+  font-size: 13px;
+  line-height: 1.4;
+  margin-top: 0.35rem;
+}
+.rvItemActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.65rem;
+}
+.rvGhostBtn,
+.rvDarkBtn {
+  border-radius: 999px;
+  cursor: pointer;
+  font-weight: 900;
+  font-size: 12.5px;
+  padding: 0.42rem 0.8rem;
+  border: 1px solid #d4cbb7;
+}
+.rvGhostBtn {
+  background: #fff;
+  color: #10100f;
+}
+.rvDarkBtn {
+  background: #10100f;
+  border-color: #10100f;
+  color: #f0dc88;
+}
+.rvDarkBtn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+/* ---- check-in slide-over ---- */
+.rvScrim {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(16, 16, 15, 0.45);
+  display: flex;
+  justify-content: flex-end;
+}
+.rvSlide {
+  width: min(440px, 100%);
+  height: 100%;
+  background: #f6f3ec;
+  box-shadow: -12px 0 40px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  animation: reviewSlideIn 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@keyframes reviewSlideIn {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+.rvSlideHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 22px 22px 16px;
+  border-bottom: 1px solid #e3ddcf;
+}
+.rvSlideEyebrow {
+  display: block;
+  color: #b5731a;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.rvSlideTitle {
+  display: block;
+  color: #10100f;
+  font-size: 20px;
+  margin-top: 4px;
+}
+.rvSlideSub {
+  display: block;
+  color: #8a8a82;
+  font-size: 12.5px;
+  font-weight: 700;
+  margin-top: 3px;
+}
+.rvSlideClose {
+  flex: none;
+  width: 34px;
+  height: 34px;
   border-radius: 10px;
-  padding: 10px 12px;
+  border: 1px solid #ddd6c6;
+  background: #fff;
+  color: #66645e;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.rvSlideBody {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 22px;
+}
+.rvChipsLg {
+  gap: 0.4rem;
+  margin-bottom: 16px;
+}
+.rvChipLg {
+  background: #fff;
+  padding: 0.3rem 0.7rem;
+  font-size: 12.5px;
+}
+.rvNoteBlock {
+  margin-bottom: 12px;
+}
+.rvNoteLabel {
+  display: block;
+  color: #8a8372;
+  font-size: 10.5px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 3px;
+}
+.rvNoteText {
+  margin: 0;
+  color: #2c2c26;
   font-size: 14px;
-  min-height: 64px;
-  resize: vertical;
+  line-height: 1.5;
+}
+.rvSlideReply {
+  margin-top: 18px;
+}
+.rvSlideReply .rvNoteLabel {
+  margin-bottom: 6px;
+}
+.rvSlideReply .rvReplyLg {
+  min-height: 96px;
+}
+
+@media (max-width: 640px) {
+  .rvPage {
+    padding: 4px 2px 90px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rvFlash {
+    animation: none;
+  }
+  .rvSlide {
+    animation: none;
+  }
+  .rvSummaryCard,
+  button.rvItem {
+    transition: none;
+  }
 }
