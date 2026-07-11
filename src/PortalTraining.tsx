@@ -1,7 +1,18 @@
 // Extracted from App.tsx (monolith split) — JSX verbatim; props threaded.
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { DragEvent } from "react";
-import { CalendarDays, ChevronLeft, ChevronRight, Copy, Plus, Scissors } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, ClipboardList, Copy, Dumbbell, HeartPulse, Plus, Scissors, Target, Trophy, Waves } from "lucide-react";
+
+// Category → colourful icon (colour comes from the .wcatIcon.<class> CSS).
+const CAT_ICON: Record<string, any> = {
+  "wcol-strength": Dumbbell,
+  "wcol-cardio": HeartPulse,
+  "wcol-mobility": Waves,
+  "wcol-skill": Target,
+  "wcol-test": Trophy,
+  "wcol-purple": ClipboardList,
+};
+const catIcon = (cc: string) => CAT_ICON[cc] || Dumbbell;
 import type { CalendarView } from "./appCore";
 import { dateToInputValue, formatCalendarLabel, formatMonthTitle, getAssignmentColorClass, getDisplayTaskStatus, getMonthDates, getSessionTypeClass, getStatusClass, getWorkoutColorClass, normalizeDate } from "./appCore";
 
@@ -841,6 +852,19 @@ export default function PortalTraining({
                               }}
                             >
                               <div className="workoutBlockMain">
+                                {isClientPortal &&
+                                  (() => {
+                                    const cc = getWorkoutColorClass(
+                                      workout.sessionName,
+                                      workout.sessionType
+                                    );
+                                    const Icon = catIcon(cc);
+                                    return (
+                                      <span className={`wcatIcon ${cc}`}>
+                                        <Icon size={15} aria-hidden="true" />
+                                      </span>
+                                    );
+                                  })()}
                                 {localizedWorkoutName(workout)}
                                 <span>
                                   {workout.sessionType
@@ -1040,7 +1064,21 @@ export default function PortalTraining({
                               <span>
                                 {t("week")} {workout.week} - {t("day")} {workout.day}
                               </span>
-                              <strong>{localizedWorkoutName(workout)}</strong>
+                              <strong>
+                                {(() => {
+                                  const cc = getWorkoutColorClass(
+                                    workout.sessionName,
+                                    workout.sessionType
+                                  );
+                                  const Icon = catIcon(cc);
+                                  return (
+                                    <span className={`wcatIcon ${cc}`}>
+                                      <Icon size={15} aria-hidden="true" />
+                                    </span>
+                                  );
+                                })()}
+                                {localizedWorkoutName(workout)}
+                              </strong>
                               <small>
                                 {movingWorkoutId === workout.id
                                   ? t("moving")
@@ -1315,7 +1353,21 @@ export default function PortalTraining({
                                 <span>
                                   {t("program")} - {t("week")} {workout.week}, {t("day")} {workout.day}
                                 </span>
-                                <strong>{localizedWorkoutName(workout)}</strong>
+                                <strong>
+                                {(() => {
+                                  const cc = getWorkoutColorClass(
+                                    workout.sessionName,
+                                    workout.sessionType
+                                  );
+                                  const Icon = catIcon(cc);
+                                  return (
+                                    <span className={`wcatIcon ${cc}`}>
+                                      <Icon size={15} aria-hidden="true" />
+                                    </span>
+                                  );
+                                })()}
+                                {localizedWorkoutName(workout)}
+                              </strong>
                                 <small>
                                   {movingWorkoutId === workout.id
                                     ? t("moving")

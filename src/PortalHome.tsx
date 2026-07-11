@@ -1,7 +1,26 @@
 // Portal Home tab (tasks / records / metrics / workload). Extracted from
 // App.tsx (split phase H) — JSX verbatim; state/handlers via props.
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import {
+  ClipboardList,
+  Dumbbell,
+  HeartPulse,
+  Target,
+  Trophy,
+  Waves,
+} from "lucide-react";
 import { normalizeDate } from "./appCore";
+
+// Category → colourful icon (colour comes from the .wcatIcon.<class> CSS).
+const CAT_ICON: Record<string, any> = {
+  "wcol-strength": Dumbbell,
+  "wcol-cardio": HeartPulse,
+  "wcol-mobility": Waves,
+  "wcol-skill": Target,
+  "wcol-test": Trophy,
+  "wcol-purple": ClipboardList,
+};
+const catIcon = (cc: string) => CAT_ICON[cc] || Dumbbell;
 
 export default function PortalHome({
   t,
@@ -225,7 +244,19 @@ export default function PortalHome({
                                 </span>
                               )}
                             </span>
-                            <strong>{task.title}</strong>
+                            <strong>
+                              {(() => {
+                                const Icon = catIcon(task.colorClass);
+                                return (
+                                  <span
+                                    className={`wcatIcon ${task.colorClass}`}
+                                  >
+                                    <Icon size={16} aria-hidden="true" />
+                                  </span>
+                                );
+                              })()}
+                              {task.title}
+                            </strong>
                             <small>
                               {task.meta} - {localizeTaskStatus(task.status)}
                             </small>
