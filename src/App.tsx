@@ -175,6 +175,7 @@ const CoachClientsPage = withSuspense(() => import("./CoachClientsPage"));
 const CoachOrdersPage = withSuspense(() => import("./CoachOrdersPage"));
 const CoachTeamsPage = withSuspense(() => import("./CoachTeamsPage"));
 const CoachRevenuePage = withSuspense(() => import("./CoachRevenuePage"));
+import ErrorBoundary from "./ErrorBoundary";
 const CoachBuilderPage = withSuspense(() => import("./CoachBuilderPage"));
 const CoachLibraryPage = withSuspense(() => import("./CoachLibraryPage"));
 const CoachTestsPage = withSuspense(() => import("./CoachTestsPage"));
@@ -6298,8 +6299,20 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       } else if (savedDraft) {
         try {
           const parsedDraft = JSON.parse(savedDraft);
-          setSetLogs(parsedDraft.logs || baseLogs);
-          setSavedExerciseDraftIds(parsedDraft.savedExerciseIds || []);
+          // A corrupt/stale draft (schema drift across deploys) must not seed
+          // setLogs with a non-array — every player .map/.filter would then throw
+          // and, before the error boundary, white-screen the app.
+          const draftLogs =
+            Array.isArray(parsedDraft?.logs) &&
+            parsedDraft.logs.every((l: any) => l && l.exerciseName != null)
+              ? parsedDraft.logs
+              : baseLogs;
+          setSetLogs(draftLogs);
+          setSavedExerciseDraftIds(
+            Array.isArray(parsedDraft?.savedExerciseIds)
+              ? parsedDraft.savedExerciseIds
+              : []
+          );
           setCheckedWorkoutPageItems([]);
         } catch {
           setSetLogs(baseLogs);
@@ -18547,6 +18560,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
         )}
 
         {selectedClient && (
+          <ErrorBoundary label="portal">
           <ClientWorkspace
             t={t}
             assignLoading={assignLoading}
@@ -18747,6 +18761,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
             workouts={workouts}
             workoutsLoading={workoutsLoading}
           />
+          </ErrorBoundary>
         )}
 
         {showAnalyticsModal && (
@@ -19549,6 +19564,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
         )}
 
         {selectedWorkout && (
+          <ErrorBoundary label="player">
           <WorkoutPlayerModal
             getLabelColorClass={getLabelColorClass}
             t={t}
@@ -19634,6 +19650,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
             workoutSetCheckKey={workoutSetCheckKey}
             workoutSubmissionNote={workoutSubmissionNote}
           />
+          </ErrorBoundary>
         )}
 
         {workoutVideoOverlay &&

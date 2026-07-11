@@ -301,7 +301,8 @@ export default function ClientWorkspace({
               {isClientPortal ? (
                 clientTab === "Home" &&
                 (() => {
-                  const first = selectedClient.name.split(" ")[0] || "there";
+                  const first =
+                    (selectedClient.name || "there").split(" ")[0] || "there";
                   const dateLabel = new Date(
                     `${todayValue}T00:00:00`
                   ).toLocaleDateString(

@@ -1435,7 +1435,7 @@ export function getStatusClass(status: string) {
 }
 
 export function getSessionTypeClass(sessionType = "") {
-  const clean = sessionType.toLowerCase();
+  const clean = String(sessionType || "").toLowerCase();
 
   if (clean.includes("cardio") || clean.includes("conditioning")) {
     return "sessionTypeCardio";
@@ -1458,8 +1458,10 @@ export function getSessionTypeClass(sessionType = "") {
 // assignments are red (see getAssignmentColorClass). The default "Strength"
 // sessionType is ignored as noise so a workout named "Cardio" stays cardio.
 export function getWorkoutColorClass(workoutName = "", sessionType = "") {
-  const type = sessionType.toLowerCase().trim();
-  const haystack = `${workoutName} ${type === "strength" ? "" : type}`.toLowerCase();
+  const type = String(sessionType || "").toLowerCase().trim();
+  const haystack = `${workoutName || ""} ${
+    type === "strength" ? "" : type
+  }`.toLowerCase();
   if (
     haystack.includes("mobility") ||
     haystack.includes("recovery") ||
@@ -1516,7 +1518,7 @@ export function getWorkoutColorClass(workoutName = "", sessionType = "") {
 }
 
 export function getAssignmentColorClass(assignmentType = "") {
-  return assignmentType.toLowerCase().includes("test")
+  return String(assignmentType || "").toLowerCase().includes("test")
     ? "wcol-test"
     : "wcol-purple";
 }

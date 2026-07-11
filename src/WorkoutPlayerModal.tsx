@@ -1194,7 +1194,7 @@ export default function WorkoutPlayerModal({
                                   : resolvePrescribedLoad(
                                       log.prescribedPercent,
                                       log.prescribedLoad,
-                                      log.exerciseName.split(" - ")[0]
+                                      String(log.exerciseName || "").split(" - ")[0]
                                     );
                                 const fields =
                                   log.trackingFields && log.trackingFields.length
@@ -1339,7 +1339,7 @@ export default function WorkoutPlayerModal({
                                 (() => {
                                   const zh = i18n.language === "zh";
                                   const mode = log.prescribedIntensityMode || "";
-                                  const exName = log.exerciseName.split(" - ")[0];
+                                  const exName = String(log.exerciseName || "").split(" - ")[0];
                                   const isRun = /run|treadmill|track|jog/i.test(
                                     log.exerciseName
                                   );
