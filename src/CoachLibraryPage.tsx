@@ -22,6 +22,15 @@ const BATCH = 60;
 const CAP = 8;
 const EASE = [0.16, 1, 0.3, 1] as const;
 
+// A self-hosted / direct video file (uploaded via /uploads). We can paint a
+// poster frame straight from the <video> element; YouTube/Vimeo links keep
+// their videoThumbnail() image instead.
+const isDirectVideo = (url: string) =>
+  /\.(mp4|mov|webm|m4v)(\?|#|$)/i.test(String(url || ""));
+// #t=0.5 tells the browser to show the frame at 0.5s as the poster (no play).
+const videoPosterSrc = (url: string) =>
+  `${String(url || "")}${String(url || "").includes("#") ? "" : "#t=0.5"}`;
+
 const CAT_COLORS: Record<string, { fg: string; bg: string; bd: string }> = {
   Squat: { fg: "#1f5fd6", bg: "#e8f0ff", bd: "#bcd3ff" },
   Hinge: { fg: "#237a30", bg: "#e9f6ee", bd: "#c2e6cd" },
@@ -118,6 +127,7 @@ export default function CoachLibraryPage(props: { [key: string]: any }) {
   const Card = (e: any) => {
     const col = catCol(e.category);
     const thumb = videoThumbnail(e.videoUrl || "");
+    const posterVideo = !thumb && isDirectVideo(e.videoUrl || "");
     const cued = hasCues(e);
     return (
       <div
@@ -128,11 +138,23 @@ export default function CoachLibraryPage(props: { [key: string]: any }) {
         <div
           className="clMedia"
           style={{
-            background: thumb ? "#0d0b08" : `linear-gradient(135deg, ${col.bg}, #fff)`,
+            background:
+              thumb || posterVideo
+                ? "#0d0b08"
+                : `linear-gradient(135deg, ${col.bg}, #fff)`,
           }}
         >
           {thumb ? (
             <img className="clThumb" src={thumb} alt="" loading="lazy" />
+          ) : posterVideo ? (
+            <video
+              className="clThumb"
+              src={videoPosterSrc(e.videoUrl)}
+              muted
+              playsInline
+              preload="metadata"
+              tabIndex={-1}
+            />
           ) : (
             <div className="clGlyph" style={{ color: col.fg }}>
               <span className="clGlyphBar" />
@@ -347,6 +369,7 @@ export default function CoachLibraryPage(props: { [key: string]: any }) {
               const col = catCol(e.category);
               const sections = parseExerciseCueSections(e.notes || "");
               const thumb = videoThumbnail(e.videoUrl || "");
+              const heroVideo = !thumb && isDirectVideo(e.videoUrl || "");
               return (
                 <motion.div
                   className="clSlide"
@@ -357,13 +380,22 @@ export default function CoachLibraryPage(props: { [key: string]: any }) {
                   transition={{ duration: 0.26, ease: EASE }}
                 >
                   <div
-                    className="clSlideHero"
+                    className={`clSlideHero${heroVideo ? " clSlideHeroHasVideo" : ""}`}
                     style={{
                       background: `linear-gradient(135deg, ${col.bg}, ${col.fg}22)`,
                     }}
                   >
                     {thumb && (
                       <img className="clSlideHeroImg" src={thumb} alt="" />
+                    )}
+                    {heroVideo && (
+                      <video
+                        className="clSlideHeroVideo"
+                        src={videoPosterSrc(e.videoUrl)}
+                        controls
+                        playsInline
+                        preload="metadata"
+                      />
                     )}
                     <button
                       type="button"
@@ -378,7 +410,7 @@ export default function CoachLibraryPage(props: { [key: string]: any }) {
                     >
                       {e.category || "Uncategorized"}
                     </span>
-                    {e.videoUrl && (
+                    {e.videoUrl && !heroVideo && (
                       <a
                         className="clWatch"
                         href={e.videoUrl}

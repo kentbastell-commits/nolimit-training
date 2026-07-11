@@ -494,6 +494,19 @@
   height: 100%;
   object-fit: cover;
 }
+/* Inline player for a self-hosted clip — let the hero grow and letterbox the
+   video on the dark background so the whole frame is watchable. */
+.clSlideHero.clSlideHeroHasVideo {
+  height: auto;
+  background: #0d0b08 !important;
+}
+.clSlideHeroVideo {
+  display: block;
+  width: 100%;
+  max-height: 340px;
+  background: #0d0b08;
+  object-fit: contain;
+}
 .clSlideClose {
   position: absolute;
   right: 16px;
