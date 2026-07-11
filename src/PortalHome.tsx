@@ -261,7 +261,13 @@ export default function PortalHome({
                                   >
                                     <Icon size={24} aria-hidden="true" />
                                   </span>
-                                  <span className="homeTaskBody">{inner}</span>
+                                  <span className="homeTaskBody">
+                                    <strong>{task.title}</strong>
+                                    <small>
+                                      {localizedCalendarLabel(task.date)} ·{" "}
+                                      {task.meta}
+                                    </small>
+                                  </span>
                                 </>
                               ) : (
                                 inner
