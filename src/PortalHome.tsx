@@ -221,50 +221,57 @@ export default function PortalHome({
 
                     <div className="homeWorkoutList">
                       {clientPortalUpcomingTasks.length > 0 ? (
-                        clientPortalUpcomingTasks.slice(0, 4).map((task: any) => (
-                          <button
-                            key={`${task.type}-${task.id}`}
-                            className={`homeWorkoutItem ${task.colorClass} ${
-                              task.date === todayValue ? "dueTodayTaskItem" : ""
-                            }`}
-                            onClick={task.open}
-                          >
-                            <span className="taskDatePill">
-                              {localizedCalendarLabel(task.date)}
-                            </span>
-                            <span className="taskChipRow">
-                              <span className={`taskTypeChip ${task.type}`}>
-                                {task.type === "assignment"
-                                  ? localizeAssignmentKind(task.kindLabel)
-                                  : task.kindLabel}
+                        clientPortalUpcomingTasks.slice(0, 4).map((task: any) => {
+                          const Icon = catIcon(task.colorClass);
+                          const inner = (
+                            <>
+                              <span className="taskDatePill">
+                                {localizedCalendarLabel(task.date)}
                               </span>
-                              {task.date === todayValue && (
-                                <span className="taskTodayMarker">
-                                  {paceZh ? "今天" : "Today"}
+                              <span className="taskChipRow">
+                                <span className={`taskTypeChip ${task.type}`}>
+                                  {task.type === "assignment"
+                                    ? localizeAssignmentKind(task.kindLabel)
+                                    : task.kindLabel}
                                 </span>
-                              )}
-                            </span>
-                            <strong>
-                              {(() => {
-                                const Icon = catIcon(task.colorClass);
-                                return (
-                                  <span
-                                    className={`wcatIcon ${task.colorClass}`}
-                                  >
-                                    <Icon size={16} aria-hidden="true" />
+                                {task.date === todayValue && (
+                                  <span className="taskTodayMarker">
+                                    {paceZh ? "今天" : "Today"}
                                   </span>
-                                );
-                              })()}
-                              {task.title}
-                            </strong>
-                            <small>
-                              {task.meta} - {localizeTaskStatus(task.status)}
-                            </small>
-                            <em className={`taskActionBadge ${getTaskTone(task.status)}`}>
-                              {getTaskActionLabel(task.status, task.hasProgress)}
-                            </em>
-                          </button>
-                        ))
+                                )}
+                              </span>
+                              <strong>{task.title}</strong>
+                              <small>
+                                {task.meta} - {localizeTaskStatus(task.status)}
+                              </small>
+                            </>
+                          );
+                          return (
+                            <button
+                              key={`${task.type}-${task.id}`}
+                              className={`homeWorkoutItem ${task.colorClass} ${
+                                task.date === todayValue ? "dueTodayTaskItem" : ""
+                              }`}
+                              onClick={task.open}
+                            >
+                              {isClientPortal ? (
+                                <>
+                                  <span
+                                    className={`wcatBadge ${task.colorClass}`}
+                                  >
+                                    <Icon size={24} aria-hidden="true" />
+                                  </span>
+                                  <span className="homeTaskBody">{inner}</span>
+                                </>
+                              ) : (
+                                inner
+                              )}
+                              <em className={`taskActionBadge ${getTaskTone(task.status)}`}>
+                                {getTaskActionLabel(task.status, task.hasProgress)}
+                              </em>
+                            </button>
+                          );
+                        })
                       ) : (
                         <p className="homeEmptyText">
                           {t("noUpcomingWorkouts")}

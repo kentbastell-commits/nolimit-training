@@ -861,7 +861,7 @@ export default function PortalTraining({
                                     const Icon = catIcon(cc);
                                     return (
                                       <span className={`wcatIcon ${cc}`}>
-                                        <Icon size={15} aria-hidden="true" />
+                                        <Icon size={17} aria-hidden="true" />
                                       </span>
                                     );
                                   })()}
@@ -1073,7 +1073,7 @@ export default function PortalTraining({
                                   const Icon = catIcon(cc);
                                   return (
                                     <span className={`wcatIcon ${cc}`}>
-                                      <Icon size={15} aria-hidden="true" />
+                                      <Icon size={17} aria-hidden="true" />
                                     </span>
                                   );
                                 })()}
@@ -1362,7 +1362,7 @@ export default function PortalTraining({
                                   const Icon = catIcon(cc);
                                   return (
                                     <span className={`wcatIcon ${cc}`}>
-                                      <Icon size={15} aria-hidden="true" />
+                                      <Icon size={17} aria-hidden="true" />
                                     </span>
                                   );
                                 })()}

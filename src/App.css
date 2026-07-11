@@ -14778,19 +14778,54 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   border-left: 5px solid #6c7a99 !important;
 }
 
-/* leading category icon — colour flows from currentColor */
-.clientPortalApp .wcatIcon {
+/* Tinted circle category badge — big leading circle on home cards, a smaller
+   inline circle on the calendar glance / Full blocks. Icon colour + tint bg
+   per category. */
+.clientPortalApp .wcatIcon,
+.clientPortalApp .wcatBadge {
   display: inline-flex;
-  vertical-align: -3px;
-  margin-right: 7px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
   flex: none;
 }
-.clientPortalApp .wcatIcon.wcol-strength { color: #35618e; }
-.clientPortalApp .wcatIcon.wcol-cardio { color: #d1495b; }
-.clientPortalApp .wcatIcon.wcol-mobility { color: #2a9d8f; }
-.clientPortalApp .wcatIcon.wcol-skill { color: #8e5ea8; }
-.clientPortalApp .wcatIcon.wcol-test { color: #b5731a; }
-.clientPortalApp .wcatIcon.wcol-purple { color: #6c7a99; }
+.clientPortalApp .wcatIcon {
+  width: 30px;
+  height: 30px;
+  margin-right: 9px;
+  vertical-align: -9px;
+}
+.clientPortalApp .wcatBadge {
+  width: 48px;
+  height: 48px;
+}
+.clientPortalApp .wcatIcon.wcol-strength,
+.clientPortalApp .wcatBadge.wcol-strength { background: #e6edf5; color: #35618e; }
+.clientPortalApp .wcatIcon.wcol-cardio,
+.clientPortalApp .wcatBadge.wcol-cardio { background: #fae7ea; color: #d1495b; }
+.clientPortalApp .wcatIcon.wcol-mobility,
+.clientPortalApp .wcatBadge.wcol-mobility { background: #e2f3f0; color: #2a9d8f; }
+.clientPortalApp .wcatIcon.wcol-skill,
+.clientPortalApp .wcatBadge.wcol-skill { background: #f1e9f6; color: #8e5ea8; }
+.clientPortalApp .wcatIcon.wcol-test,
+.clientPortalApp .wcatBadge.wcol-test { background: #f7efd6; color: #b5731a; }
+.clientPortalApp .wcatIcon.wcol-purple,
+.clientPortalApp .wcatBadge.wcol-purple { background: #eaedf3; color: #6c7a99; }
+
+/* home task card → leading badge · content · action */
+.clientPortalApp .homeWorkoutItem {
+  display: flex !important;
+  align-items: center;
+  gap: 14px;
+}
+.clientPortalApp .homeTaskBody {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
 
 /* keep card text crisp */
 .clientPortalApp .homeWorkoutItem strong,
