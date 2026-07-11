@@ -5,8 +5,8 @@ import type { TrackingType } from "./appCore";
 import "./ExerciseModal.css";
 import { Upload, X } from "lucide-react";
 
-// Keep in step with the server's express.raw limit (160mb) with headroom.
-const MAX_UPLOAD_MB = 150;
+// Keep in step with the server's streamed-upload cap (500MB) and nginx.
+const MAX_UPLOAD_MB = 500;
 
 type VideoField = "videoUrl" | "longVideoUrl";
 
@@ -269,7 +269,9 @@ export default function ExerciseModal({
                 {uploadError && <p className="exerciseUploadError">{uploadError}</p>}
                 <p className="exerciseUploadHint">
                   Upload plays in-app and inside mainland China (self-hosted) —
-                  unlike a YouTube link. Max {MAX_UPLOAD_MB} MB; MP4 or MOV.
+                  unlike a YouTube link. Up to {MAX_UPLOAD_MB} MB; MP4 or MOV. A
+                  large phone video can take a minute or two to upload — keep the
+                  page open.
                 </p>
                 {renderVideoPreview(exerciseForm.videoUrl)}
 

@@ -138,30 +138,63 @@ const port = Number(process.env.PORT || 3001);
 // library video.
 const uploadsDir = path.resolve(__dirname, "../uploads");
 fs.mkdirSync(uploadsDir, { recursive: true });
-app.post(
-  "/api/uploadFormVideoFile",
-  express.raw({ type: () => true, limit: "160mb" }),
-  (req, res) => {
-    try {
-      const body = req.body as Buffer;
-      if (!body || !body.length) {
+// Stream the upload straight to disk rather than buffering the whole file in
+// memory — this box has ~1.7GB RAM, so a buffered 300MB+ phone video would risk
+// OOM. Constant memory here regardless of file size; the cap is enforced by
+// counting bytes. Registered BEFORE express.json so req is the raw body stream.
+const MAX_UPLOAD_BYTES = 500 * 1024 * 1024; // keep in step with the client cap
+app.post("/api/uploadFormVideoFile", (req, res) => {
+  const extMatch = String(req.query.name || "").match(/\.(mp4|mov|webm|m4v)$/i);
+  const ext = extMatch ? extMatch[0].toLowerCase() : ".mp4";
+  const prefix = req.query.kind === "exercise" ? "ex" : "fv";
+  const name = `${prefix}-${crypto.randomBytes(12).toString("hex")}${ext}`;
+  const dest = path.join(uploadsDir, name);
+  const ws = fs.createWriteStream(dest);
+  let received = 0;
+  let settled = false;
+  const settle = (fn: () => void) => {
+    if (settled) return;
+    settled = true;
+    fn();
+  };
+  const abort = (code: number, payload: Record<string, unknown>) =>
+    settle(() => {
+      ws.destroy();
+      fs.unlink(dest, () => {});
+      if (!res.headersSent) res.status(code).json(payload);
+    });
+  req.on("data", (chunk: Buffer) => {
+    if (settled) return;
+    received += chunk.length;
+    if (received > MAX_UPLOAD_BYTES) {
+      req.destroy();
+      abort(413, { error: "File too large" });
+      return;
+    }
+    if (!ws.write(chunk)) {
+      req.pause();
+      ws.once("drain", () => {
+        if (!settled) req.resume();
+      });
+    }
+  });
+  req.on("end", () => {
+    if (!settled) ws.end();
+  });
+  req.on("error", () => abort(500, { error: "Upload failed" }));
+  req.on("aborted", () => abort(400, { error: "Upload aborted" }));
+  ws.on("error", () => abort(500, { error: "Upload failed" }));
+  ws.on("finish", () =>
+    settle(() => {
+      if (!received) {
+        fs.unlink(dest, () => {});
         res.status(400).json({ error: "Empty upload" });
         return;
       }
-      const extMatch = String(req.query.name || "").match(/\.(mp4|mov|webm|m4v)$/i);
-      const ext = extMatch ? extMatch[0].toLowerCase() : ".mp4";
-      const prefix = req.query.kind === "exercise" ? "ex" : "fv";
-      const name = `${prefix}-${crypto.randomBytes(12).toString("hex")}${ext}`;
-      fs.writeFileSync(path.join(uploadsDir, name), body);
       res.status(200).json({ success: true, url: `/uploads/${name}` });
-    } catch (error) {
-      res.status(500).json({
-        error: "Upload failed",
-        message: error instanceof Error ? error.message : String(error),
-      });
-    }
-  }
-);
+    })
+  );
+});
 app.use(
   "/uploads",
   express.static(uploadsDir, { maxAge: "365d", immutable: true })
