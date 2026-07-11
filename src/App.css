@@ -14403,6 +14403,8 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   gap: 12px;
   margin-bottom: 10px !important;
   border: none !important;
+  /* Test: greige heading strips instead of the creamy #e8e6df. */
+  background: #e4e0d8 !important;
 }
 .clientPortalApp .clientHomePanelHeader > div > span {
   color: #b5731a !important;
