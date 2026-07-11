@@ -1072,12 +1072,11 @@ export default function PortalTraining({
                                 </span>
                               );
                             })()}
-                            <div>
-                              <span>
-                                {t("week")} {workout.week} - {t("day")} {workout.day}
-                              </span>
+                            <div className="homeTaskBody">
                               <strong>{localizedWorkoutName(workout)}</strong>
                               <small>
+                                {t("week")} {workout.week} · {t("day")}{" "}
+                                {workout.day} ·{" "}
                                 {movingWorkoutId === workout.id
                                   ? t("moving")
                                   : getDisplayTaskStatus(
@@ -1359,12 +1358,11 @@ export default function PortalTraining({
                                   </span>
                                 );
                               })()}
-                              <div>
-                                <span>
-                                  {t("program")} - {t("week")} {workout.week}, {t("day")} {workout.day}
-                                </span>
+                              <div className="homeTaskBody">
                                 <strong>{localizedWorkoutName(workout)}</strong>
                                 <small>
+                                  {t("week")} {workout.week} · {t("day")}{" "}
+                                  {workout.day} ·{" "}
                                   {movingWorkoutId === workout.id
                                     ? t("moving")
                                     : getDisplayTaskStatus(

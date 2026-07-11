@@ -14883,3 +14883,17 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   font-weight: 800;
   cursor: pointer;
 }
+
+/* Calendar glance cards mirror the home card: name + one muted subtitle
+   (no eyebrow, no status pill). */
+.clientPortalApp .selectedDayWorkout .homeTaskBody small {
+  background: none !important;
+  border: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  color: #66645e !important;
+  font-size: 12.5px;
+  font-weight: 700;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+}
