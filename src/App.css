@@ -13713,3 +13713,515 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
     min-height: 0 !important;
   }
 }
+
+/* =========================================================================
+   Client Training Calendar — paper/gold re-skin (matches CalendarReference).
+   Authoritative block: source-order-last so it wins the older scattered
+   client-calendar rules. Scoped to .clientPortalApp only; coach calendar
+   (.app:not(.clientPortalApp)) is untouched.
+   Type colors: strength #10100f · cardio #2a6fdb · mobility #1f8a5b ·
+   skill #7a3fb0 · form/checkin #b5731a · test #b5731a.
+   ========================================================================= */
+
+/* header */
+.clientPortalApp .clientCalendarHead {
+  margin: 6px 0 14px;
+}
+.clientPortalApp .clientCalendarEyebrow {
+  display: block;
+  font-size: 10.5px;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+  color: #b5731a;
+  font-weight: 800;
+}
+.clientPortalApp .clientCalendarTitle {
+  margin: 5px 0 0;
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  color: #151515;
+}
+
+/* next-workout dark hero */
+.clientPortalApp .clientPortalTrainingHero {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+  background: linear-gradient(150deg, #26221a, #10100f) !important;
+  border: none !important;
+  border-radius: 22px !important;
+  padding: 20px !important;
+  color: #f3ede0 !important;
+  box-shadow: 0 18px 40px -24px rgba(16, 16, 15, 0.6) !important;
+  margin-bottom: 16px;
+}
+.clientPortalApp .clientPortalTrainingHero::after {
+  content: "";
+  position: absolute;
+  right: -46px;
+  top: -56px;
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(214, 175, 55, 0.34), transparent 68%);
+  pointer-events: none;
+}
+.clientPortalApp .clientPortalTrainingHero > div {
+  position: relative;
+  z-index: 1;
+}
+.clientPortalApp .clientPortalTrainingHero span {
+  color: #c9ab55 !important;
+  font-size: 10.5px !important;
+  letter-spacing: 1.5px !important;
+  text-transform: uppercase;
+  font-weight: 800 !important;
+}
+.clientPortalApp .clientPortalTrainingHero h2 {
+  color: #f3ede0 !important;
+  font-size: 22px !important;
+  font-weight: 800 !important;
+  margin: 6px 0 3px !important;
+}
+.clientPortalApp .clientPortalTrainingHero p {
+  color: #b3aa93 !important;
+  font-size: 13.5px !important;
+  font-weight: 600 !important;
+  margin: 0 0 15px !important;
+}
+.clientPortalApp .clientPortalTrainingHero .goldButton,
+.clientPortalApp .clientPortalTrainingHero .compactNextWorkoutButton {
+  position: relative;
+  z-index: 1;
+  background: linear-gradient(140deg, #e6c766, #b5731a) !important;
+  border: none !important;
+  color: #1a1712 !important;
+  border-radius: 999px !important;
+  padding: 10px 22px !important;
+  font-weight: 800 !important;
+  font-size: 14px !important;
+  box-shadow: 0 12px 24px -14px rgba(181, 115, 26, 0.8) !important;
+}
+
+/* view toggle — segmented control */
+.clientPortalApp .clientCalendarViewToggle {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 5px;
+  background: #e4dfd3;
+  border: 1px solid #d9d3c5;
+  border-radius: 14px;
+  padding: 4px;
+  margin-bottom: 12px;
+}
+.clientPortalApp .clientCalendarViewToggle button {
+  border: none;
+  border-radius: 11px;
+  padding: 9px 0;
+  font-weight: 800;
+  font-size: 13.5px;
+  cursor: pointer;
+  background: transparent;
+  color: #66645e;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.clientPortalApp .clientCalendarViewToggle button.active {
+  background: #10100f;
+  color: #f0dc88;
+}
+
+/* navigator */
+.clientPortalApp .calendarNavigator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  border: none;
+  background: transparent;
+  padding: 0;
+}
+.clientPortalApp .calendarRangeControls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+.clientPortalApp .calendarRangeControls strong {
+  flex: 1;
+  text-align: center;
+  font-size: 15px;
+  font-weight: 800;
+  color: #10100f !important;
+}
+.clientPortalApp .calendarNavigator .outlineButton {
+  width: 40px;
+  height: 40px;
+  min-height: 40px;
+  padding: 0;
+  border-radius: 12px;
+  border: 1px solid #d4cbb7;
+  background: #fff;
+  color: #10100f;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.clientPortalApp .calendarQuickControls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.clientPortalApp .calendarNavigator .todayButton {
+  width: auto;
+  padding: 0 14px;
+  height: 40px;
+  border-radius: 12px;
+  font-weight: 800;
+  font-size: 13px;
+  color: #10100f;
+}
+.clientPortalApp .calendarDatePickerButton {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  border: 1px solid #d4cbb7 !important;
+  background: #fff !important;
+  color: #10100f !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* WEEK STRIP */
+.clientPortalApp .clientWeekStripCalendar {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 5px;
+  margin-bottom: 16px;
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+.clientPortalApp .clientWeekStripCalendar .calendarDay {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  border-radius: 14px;
+  padding: 9px 0 7px;
+  min-height: 0;
+  cursor: pointer;
+  background: #fff !important;
+  border: 1px solid #dcd8cd !important;
+  color: #10100f;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.clientPortalApp .clientWeekStripCalendar .todayCalendarDay {
+  border-color: #d4af37 !important;
+}
+.clientPortalApp .clientWeekStripCalendar .selectedCalendarDay {
+  background: #10100f !important;
+  border-color: #10100f !important;
+  color: #f7f0dc !important;
+}
+.clientPortalApp .clientWeekStripCalendar .calendarDateLabel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  margin: 0;
+}
+.clientPortalApp .clientWeekStripCalendar .calendarDateLabel span {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.75;
+  color: inherit !important;
+}
+.clientPortalApp .clientWeekStripCalendar .calendarDateLabel b {
+  font-size: 16px;
+  font-weight: 800;
+  color: inherit !important;
+}
+.clientPortalApp .clientWeekStripCalendar .selectedCalendarDay .calendarDateLabel span,
+.clientPortalApp .clientWeekStripCalendar .selectedCalendarDay .calendarDateLabel b {
+  color: #f7f0dc !important;
+}
+
+/* work-dots (Week strip + Month grid) — colored by session type */
+.clientPortalApp .calendarWorkMarkers {
+  display: flex;
+  gap: 3px;
+  justify-content: center;
+  min-height: 6px;
+  margin-top: 5px;
+}
+.clientPortalApp .calendarWorkMarkers span {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #cfc9bb;
+}
+.clientPortalApp .calendarWorkMarkers span.wcol-strength { background: #10100f; }
+.clientPortalApp .calendarWorkMarkers span.wcol-cardio { background: #2a6fdb; }
+.clientPortalApp .calendarWorkMarkers span.wcol-mobility { background: #1f8a5b; }
+.clientPortalApp .calendarWorkMarkers span.wcol-skill { background: #7a3fb0; }
+.clientPortalApp .calendarWorkMarkers span.wcol-test { background: #b5731a; }
+.clientPortalApp .calendarWorkMarkers span.wcol-purple { background: #7a3fb0; }
+.clientPortalApp .calendarWorkMarkers .emptyMarker { background: #cfc9bb; opacity: 0.5; }
+.clientPortalApp .selectedCalendarDay .calendarWorkMarkers span { background: #f0dc88 !important; }
+
+/* selected-day glance (Week + Month) */
+.clientPortalApp .selectedDayGlance {
+  border: none;
+  background: transparent;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.clientPortalApp .selectedDayGlanceHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 2px 2px 1px;
+}
+.clientPortalApp .selectedDayGlanceHeader span {
+  font-size: 13px;
+  font-weight: 800;
+  color: #66645e !important;
+}
+.clientPortalApp .selectedDayGlanceHeader strong {
+  font-size: 13px;
+  font-weight: 800;
+  color: #10100f;
+}
+.clientPortalApp .selectedDayWorkout {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  background: #fff !important;
+  border: 1px solid #dcd8cd !important;
+  border-left: 5px solid #b5731a !important;
+  border-radius: 14px !important;
+  padding: 12px 14px !important;
+  cursor: pointer;
+  box-shadow: 0 8px 20px -14px rgba(0, 0, 0, 0.4);
+}
+.clientPortalApp .selectedDayWorkout.wcol-strength { border-left-color: #10100f !important; }
+.clientPortalApp .selectedDayWorkout.wcol-cardio { border-left-color: #2a6fdb !important; }
+.clientPortalApp .selectedDayWorkout.wcol-mobility { border-left-color: #1f8a5b !important; }
+.clientPortalApp .selectedDayWorkout.wcol-skill { border-left-color: #7a3fb0 !important; }
+.clientPortalApp .selectedDayWorkout.wcol-test { border-left-color: #b5731a !important; }
+.clientPortalApp .selectedDayWorkout.wcol-purple { border-left-color: #7a3fb0 !important; }
+.clientPortalApp .selectedDayWorkout > div {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.clientPortalApp .selectedDayWorkout > div > span {
+  font-size: 10.5px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #8a8372 !important;
+}
+.clientPortalApp .selectedDayWorkout > div > strong {
+  font-size: 15px;
+  color: #10100f !important;
+  font-weight: 800;
+}
+.clientPortalApp .selectedDayWorkout > div > small {
+  align-self: flex-start;
+  margin-top: 7px;
+  font-size: 10.5px;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border-radius: 999px;
+  padding: 3px 9px;
+  background: #10100f;
+  color: #f0dc88;
+}
+.clientPortalApp .selectedDayWorkout.completedWorkout > div > small {
+  background: #eaf2ec;
+  color: #1f7a4d;
+}
+.clientPortalApp .selectedDayWorkout.missedWorkout > div > small {
+  background: #fbecec;
+  color: #b23b3b;
+}
+.clientPortalApp .selectedDayWorkout .selectedDayWorkoutAction {
+  flex: none;
+  color: #b5731a !important;
+  font-size: 12.5px;
+  font-weight: 900;
+  background: none;
+  border: none;
+  padding: 0;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+/* MONTH dot-grid card */
+.clientPortalApp .clientMonthCalendarCard {
+  background: #fff;
+  border: 1px solid #dcd8cd;
+  border-radius: 16px;
+  padding: 14px 12px 12px;
+  box-shadow: 0 9px 22px -16px rgba(0, 0, 0, 0.5);
+  margin-bottom: 16px;
+}
+.clientPortalApp .clientMonthCalendarHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.clientPortalApp .clientMonthCalendarHeader strong {
+  font-size: 15px;
+  font-weight: 800;
+  color: #10100f;
+}
+.clientPortalApp .clientMonthArrow {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  border: 1px solid #d4cbb7;
+  background: #fff;
+  color: #10100f;
+  cursor: pointer;
+}
+.clientPortalApp .clientMonthWeekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  margin-bottom: 6px;
+}
+.clientPortalApp .clientMonthWeekdays span {
+  text-align: center;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #a49c8a;
+}
+.clientPortalApp .clientMonthGrid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+.clientPortalApp .clientMonthDay {
+  aspect-ratio: 1;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  padding: 5px 3px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.clientPortalApp .clientMonthDay > span:first-child {
+  font-size: 12.5px;
+  font-weight: 800;
+  color: #10100f;
+}
+.clientPortalApp .clientMonthDay .calendarWorkMarkers {
+  margin-top: auto;
+}
+.clientPortalApp .clientMonthDay.todayClientMonthDay {
+  border-color: #d4af37;
+}
+.clientPortalApp .clientMonthDay.todayClientMonthDay > span:first-child {
+  color: #b5731a;
+}
+.clientPortalApp .clientMonthDay.selectedClientMonthDay {
+  background: #10100f;
+  border-color: #10100f;
+}
+.clientPortalApp .clientMonthDay.selectedClientMonthDay > span:first-child {
+  color: #f7f0dc;
+}
+.clientPortalApp .clientMonthDay.selectedClientMonthDay .calendarWorkMarkers span {
+  background: #f0dc88 !important;
+}
+.clientPortalApp .emptyClientMonthDay {
+  background: transparent;
+  border: none;
+}
+
+/* FULL — single-column stacked day-by-day agenda */
+.clientPortalApp .clientFullCalendar {
+  display: flex !important;
+  flex-direction: column;
+  gap: 8px;
+  grid-template-columns: 1fr !important;
+}
+.clientPortalApp .clientFullCalendar .calendarDay {
+  border-radius: 14px;
+  padding: 13px 14px;
+  border: 1px solid #dcd8cd !important;
+  background: #f4f1ea !important;
+  min-height: 0;
+  gap: 0;
+}
+.clientPortalApp .clientFullCalendar .calendarDay.hasCalendarWork {
+  background: #fff !important;
+  box-shadow: 0 8px 18px -14px rgba(0, 0, 0, 0.4);
+}
+.clientPortalApp .clientFullCalendar .calendarDateLabel {
+  display: block;
+  font-size: 13px;
+  font-weight: 800;
+  color: #a49c8a !important;
+  margin: 0;
+}
+.clientPortalApp .clientFullCalendar .calendarDay.hasCalendarWork .calendarDateLabel {
+  color: #10100f !important;
+}
+.clientPortalApp .clientFullCalendar .workoutBlock {
+  display: block;
+  margin-top: 8px;
+  text-align: left;
+  background: #faf8f2 !important;
+  border: 1px solid #e6e2d6 !important;
+  border-left: 5px solid #b5731a !important;
+  border-radius: 10px !important;
+  padding: 9px 11px !important;
+}
+.clientPortalApp .clientFullCalendar .workoutBlock.wcol-strength { border-left-color: #10100f !important; }
+.clientPortalApp .clientFullCalendar .workoutBlock.wcol-cardio { border-left-color: #2a6fdb !important; }
+.clientPortalApp .clientFullCalendar .workoutBlock.wcol-mobility { border-left-color: #1f8a5b !important; }
+.clientPortalApp .clientFullCalendar .workoutBlock.wcol-skill { border-left-color: #7a3fb0 !important; }
+.clientPortalApp .clientFullCalendar .workoutBlock.wcol-test,
+.clientPortalApp .clientFullCalendar .assignmentBlock.wcol-purple { border-left-color: #7a3fb0 !important; }
+.clientPortalApp .clientFullCalendar .workoutBlockMain {
+  font-size: 14px;
+  font-weight: 800;
+  color: #10100f;
+}
+.clientPortalApp .clientFullCalendar .workoutBlockMain span {
+  display: block;
+  font-size: 12px;
+  color: #77746a !important;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .clientPortalApp .clientWeekStripCalendar .calendarDay,
+  .clientPortalApp .clientCalendarViewToggle button {
+    transition: none;
+  }
+}

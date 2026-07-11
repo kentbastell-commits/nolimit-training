@@ -1,7 +1,7 @@
 // Extracted from App.tsx (monolith split) — JSX verbatim; props threaded.
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { DragEvent } from "react";
-import { CalendarDays, Copy, Plus, Scissors } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, Copy, Plus, Scissors } from "lucide-react";
 import type { CalendarView } from "./appCore";
 import { dateToInputValue, formatCalendarLabel, formatMonthTitle, getAssignmentColorClass, getDisplayTaskStatus, getMonthDates, getSessionTypeClass, getStatusClass, getWorkoutColorClass, normalizeDate } from "./appCore";
 
@@ -97,9 +97,29 @@ export default function PortalTraining({
   workouts,
   workoutsLoading,
 }: { [key: string]: any }) {
+  // Up to 3 session-type color classes for the work-dots on a date (Week strip
+  // + Month grid). Colors come from the same helpers that color the blocks.
+  const workDotClasses = (date: any): string[] => [
+    ...getWorkoutsForDate(date).map((w: any) =>
+      getWorkoutColorClass(w.sessionName, w.sessionType)
+    ),
+    ...getAssignmentsForDate(date).map((a: any) =>
+      getAssignmentColorClass(a.assignmentType)
+    ),
+  ].slice(0, 3);
+
   return (
     <>
                 <div className="trainingCalendar">
+                  {isClientPortal && (
+                    <div className="clientCalendarHead">
+                      <span className="clientCalendarEyebrow">{t("program")}</span>
+                      <h1 className="clientCalendarTitle">
+                        {t("trainingCalendar")}
+                      </h1>
+                    </div>
+                  )}
+
                   {isClientPortal && clientPortalUpcomingWorkouts[0] && (
                     <section className="clientPortalTrainingHero">
                       <div>
@@ -164,28 +184,25 @@ export default function PortalTraining({
                     </section>
                   )}
 
-                  <div className="calendarHeader">
-                    <h2>{t("trainingCalendar")}</h2>
+                  {isClientPortal && (
+                    <div className="clientCalendarViewToggle">
+                      {(["Week", "Month", "Full"] as const).map((view) => (
+                        <button
+                          key={view}
+                          className={clientCalendarStyle === view ? "active" : ""}
+                          onClick={() => setClientCalendarStyle(view)}
+                          type="button"
+                        >
+                          {t(view.toLowerCase())}
+                        </button>
+                      ))}
+                    </div>
+                  )}
 
-                    {isClientPortal && (
-                      <div className="clientCalendarViewToggle">
-                        {(["Week", "Month", "Full"] as const).map((view) => (
-                          <button
-                            key={view}
-                            className={
-                              clientCalendarStyle === view ? "active" : ""
-                            }
-                            onClick={() => setClientCalendarStyle(view)}
-                            type="button"
-                          >
-                            {t(view.toLowerCase())}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-
-                    {!isClientPortal && (
-                    <div className="calendarControls">
+                  {!isClientPortal && (
+                    <div className="calendarHeader">
+                      <h2>{t("trainingCalendar")}</h2>
+                      <div className="calendarControls">
                       {(["Week", "Month", "Full"] as CalendarView[]).map(
                         (view) => (
                           <button
@@ -250,17 +267,22 @@ export default function PortalTraining({
                           </div>
                         )}
                       </div>
+                      </div>
                     </div>
-                    )}
-                  </div>
+                  )}
 
                   <div className="calendarNavigator">
                     <div className="calendarRangeControls">
                       <button
                         className="outlineButton"
+                        aria-label={t("previous")}
                         onClick={() => moveCalendarRange(-1)}
                       >
-                        {t("previous")}
+                        {isClientPortal ? (
+                          <ChevronLeft size={16} aria-hidden="true" />
+                        ) : (
+                          t("previous")
+                        )}
                       </button>
 
                       <strong>
@@ -275,9 +297,14 @@ export default function PortalTraining({
 
                       <button
                         className="outlineButton"
+                        aria-label={t("next")}
                         onClick={() => moveCalendarRange(1)}
                       >
-                        {t("next")}
+                        {isClientPortal ? (
+                          <ChevronRight size={16} aria-hidden="true" />
+                        ) : (
+                          t("next")
+                        )}
                       </button>
                     </div>
 
@@ -540,6 +567,12 @@ export default function PortalTraining({
                               ? "selectedCalendarDay"
                               : ""
                           } ${
+                            isClientPortal &&
+                            date === todayValue &&
+                            date !== calendarAnchorDate
+                              ? "todayCalendarDay"
+                              : ""
+                          } ${
                             dayItemCount > 0 ? "hasCalendarWork" : ""
                           }`}
                           key={date}
@@ -664,13 +697,12 @@ export default function PortalTraining({
                           {isClientPortal && (
                             <span className="calendarWorkMarkers" aria-hidden="true">
                               {dayItemCount > 0 ? (
-                                <>
-                                  {Array.from({
-                                    length: Math.min(dayItemCount, 3),
-                                  }).map((_: any, index: any) => (
-                                    <span key={`${date}-marker-${index}`} />
-                                  ))}
-                                </>
+                                workDotClasses(date).map((cls, index) => (
+                                  <span
+                                    key={`${date}-marker-${index}`}
+                                    className={cls}
+                                  />
+                                ))
                               ) : (
                                 <span className="emptyMarker" />
                               )}
@@ -1173,10 +1205,11 @@ export default function PortalTraining({
                                   aria-hidden="true"
                                 >
                                   {dateItemCount > 0 ? (
-                                    Array.from({
-                                      length: Math.min(dateItemCount, 3),
-                                    }).map((_, markerIndex) => (
-                                      <span key={`${date}-month-marker-${markerIndex}`} />
+                                    workDotClasses(date).map((cls, markerIndex) => (
+                                      <span
+                                        key={`${date}-month-marker-${markerIndex}`}
+                                        className={cls}
+                                      />
                                     ))
                                   ) : (
                                     <span className="emptyMarker" />
