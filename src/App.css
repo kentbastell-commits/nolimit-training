@@ -14718,66 +14718,79 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 }
 
 /* =========================================================================
-   CLIENT HOME — new brand-palette TEST (revertable, home-only classes).
-   Ink #141414 · Signal Orange #E18D4A · Sand #AB8C76 · Taupe #6C5A50 ·
-   Steel #758EAE · Sky #9AA8C3 — gold kept as the hero.
+   CLIENT MOBILE — brighter ground + soft solid category fills on workout
+   cards (gold look kept). Category colours drawn from the new palette:
+   strength = terracotta · cardio = steel blue · mobility = sky blue ·
+   skill = taupe · forms/check-ins = sand · test/PB = gold.
    ========================================================================= */
 
-/* headings → ink */
-.clientPortalApp .clientGreetingName,
-.clientPortalApp .clientHomePanelHeader > div > h2,
-.clientPortalApp .coachInboxItemHead strong,
-.clientPortalApp .homeWorkoutItem strong {
+/* brighter, airier ground so the tinted cards pop */
+.clientPortalApp {
+  background: #faf8f4 !important;
+}
+
+/* --- soft solid category fills: home cards + calendar glance + Full blocks --- */
+.clientPortalApp .homeWorkoutItem.wcol-strength,
+.clientPortalApp .selectedDayWorkout.wcol-strength,
+.clientPortalApp .clientFullCalendar .workoutBlock.wcol-strength {
+  background: #fbebdd !important;
+  border-color: #ecc9ab !important;
+  border-left: 5px solid #c96a2c !important;
+}
+.clientPortalApp .homeWorkoutItem.wcol-cardio,
+.clientPortalApp .selectedDayWorkout.wcol-cardio,
+.clientPortalApp .clientFullCalendar .workoutBlock.wcol-cardio {
+  background: #e8eef6 !important;
+  border-color: #c5d3e6 !important;
+  border-left: 5px solid #5e79a0 !important;
+}
+.clientPortalApp .homeWorkoutItem.wcol-mobility,
+.clientPortalApp .selectedDayWorkout.wcol-mobility,
+.clientPortalApp .clientFullCalendar .workoutBlock.wcol-mobility {
+  background: #edf1f8 !important;
+  border-color: #cfd9ea !important;
+  border-left: 5px solid #7788a8 !important;
+}
+.clientPortalApp .homeWorkoutItem.wcol-skill,
+.clientPortalApp .selectedDayWorkout.wcol-skill,
+.clientPortalApp .clientFullCalendar .workoutBlock.wcol-skill {
+  background: #ede7e1 !important;
+  border-color: #d8cec4 !important;
+  border-left: 5px solid #7a6456 !important;
+}
+.clientPortalApp .homeWorkoutItem.wcol-test,
+.clientPortalApp .selectedDayWorkout.wcol-test,
+.clientPortalApp .clientFullCalendar .workoutBlock.wcol-test,
+.clientPortalApp .clientFullCalendar .assignmentBlock.wcol-test {
+  background: #f7efd6 !important;
+  border-color: #e7d5a3 !important;
+  border-left: 5px solid #b5731a !important;
+}
+.clientPortalApp .homeWorkoutItem.wcol-purple,
+.clientPortalApp .selectedDayWorkout.wcol-purple,
+.clientPortalApp .clientFullCalendar .workoutBlock.wcol-purple,
+.clientPortalApp .clientFullCalendar .assignmentBlock.wcol-purple {
+  background: #f1ebe2 !important;
+  border-color: #ddd2c4 !important;
+  border-left: 5px solid #9a8471 !important;
+}
+
+/* keep card text crisp on the tints */
+.clientPortalApp .homeWorkoutItem strong,
+.clientPortalApp .selectedDayWorkout > div > strong,
+.clientPortalApp .clientFullCalendar .workoutBlockMain {
   color: #141414 !important;
 }
-
-/* eyebrows → taupe (legible warm neutral) */
-.clientPortalApp .clientGreetingDate,
-.clientPortalApp .clientHomePanelHeader > div > span {
-  color: #6c5a50 !important;
+/* date pill reads as a chip on the tinted card, not a cream block */
+.clientPortalApp .homeWorkoutItem .taskDatePill {
+  background: rgba(255, 255, 255, 0.6) !important;
+  border-color: rgba(20, 20, 20, 0.08) !important;
 }
 
-/* secondary / meta text → taupe */
-.clientPortalApp .homeWorkoutItem small,
-.clientPortalApp .homeWorkoutItem .taskDatePill,
-.clientPortalApp .coachInboxItem p {
-  color: #6c5a50 !important;
-}
-
-/* Daily-readiness hero: ink ground + orange glow, gold→orange CTA */
-.clientPortalApp .wellnessCard:not(.done) {
-  background: linear-gradient(150deg, #262019, #141414) !important;
-}
-.clientPortalApp .wellnessCard:not(.done)::after {
-  background: radial-gradient(circle, rgba(225, 141, 74, 0.42), transparent 66%) !important;
-}
-.clientPortalApp .wellnessEyebrow {
-  color: #e3b76a !important;
-}
-.clientPortalApp .wellnessCard:not(.done) .wellnessCta,
-.clientPortalApp .clientHomeGrid .goldButton {
-  background: linear-gradient(135deg, #e6c766, #e18d4a 55%, #b5731a) !important;
-}
-.clientPortalApp .wellnessStreakInline {
-  color: #e18d4a !important;
-}
-
-/* Session colour-coding — blue-forward; re-adds the type left accent */
-.clientPortalApp .homeWorkoutItem.wcol-strength {
-  border-left: 4px solid #141414 !important;
-}
-.clientPortalApp .homeWorkoutItem.wcol-cardio {
-  border-left: 4px solid #758eae !important;
-}
-.clientPortalApp .homeWorkoutItem.wcol-mobility {
-  border-left: 4px solid #ab8c76 !important;
-}
-.clientPortalApp .homeWorkoutItem.wcol-skill {
-  border-left: 4px solid #6c5a50 !important;
-}
-.clientPortalApp .homeWorkoutItem.wcol-test {
-  border-left: 4px solid #e18d4a !important;
-}
-.clientPortalApp .homeWorkoutItem.wcol-purple {
-  border-left: 4px solid #6c5a50 !important;
-}
+/* dots (Week strip + Month grid) recoloured to the same category accents */
+.clientPortalApp .calendarWorkMarkers span.wcol-strength { background: #c96a2c !important; }
+.clientPortalApp .calendarWorkMarkers span.wcol-cardio { background: #5e79a0 !important; }
+.clientPortalApp .calendarWorkMarkers span.wcol-mobility { background: #7788a8 !important; }
+.clientPortalApp .calendarWorkMarkers span.wcol-skill { background: #7a6456 !important; }
+.clientPortalApp .calendarWorkMarkers span.wcol-test { background: #b5731a !important; }
+.clientPortalApp .calendarWorkMarkers span.wcol-purple { background: #9a8471 !important; }
