@@ -302,18 +302,6 @@ export default function ClientWorkspace({
                 clientTab === "Home" &&
                 (() => {
                   const first = selectedClient.name.split(" ")[0] || "there";
-                  const hour = new Date().getHours();
-                  const greet = useChineseClientText
-                    ? hour < 12
-                      ? "早上好"
-                      : hour < 18
-                      ? "下午好"
-                      : "晚上好"
-                    : hour < 12
-                    ? "Good morning"
-                    : hour < 18
-                    ? "Good afternoon"
-                    : "Good evening";
                   const dateLabel = new Date(
                     `${todayValue}T00:00:00`
                   ).toLocaleDateString(
@@ -325,9 +313,7 @@ export default function ClientWorkspace({
                       <div>
                         <span className="clientGreetingDate">{dateLabel}</span>
                         <h1 className="clientGreetingName">
-                          {useChineseClientText
-                            ? `${greet}，${first}`
-                            : `${greet}, ${first}`}
+                          {t("hi", { name: first })}
                         </h1>
                       </div>
                       <div className="clientGreetingAvatar" aria-hidden="true">

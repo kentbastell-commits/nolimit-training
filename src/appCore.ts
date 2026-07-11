@@ -1494,7 +1494,20 @@ export function getWorkoutColorClass(workoutName = "", sessionType = "") {
     haystack.includes("erg") ||
     haystack.includes("bike") ||
     haystack.includes("row") ||
-    haystack.includes("interval")
+    haystack.includes("interval") ||
+    haystack.includes("tempo") ||
+    haystack.includes("threshold") ||
+    haystack.includes("zone") ||
+    haystack.includes("aerobic") ||
+    haystack.includes("hyrox") ||
+    haystack.includes("engine") ||
+    haystack.includes("hiit") ||
+    haystack.includes("metcon") ||
+    haystack.includes("sprint") ||
+    haystack.includes("swim") ||
+    haystack.includes("jog") ||
+    haystack.includes("amrap") ||
+    haystack.includes("emom")
   ) {
     return "wcol-cardio";
   }
