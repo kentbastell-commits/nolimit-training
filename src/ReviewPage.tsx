@@ -258,21 +258,19 @@ export default function ReviewPage({
           )}
         </article>
 
-        {/* Form Videos — not collapsible (no formVideos key in openReviewSections);
-            shown only when there are unreviewed clips, matching prior behavior. */}
+        {/* Form Videos — collapsible like the rest; shown only when there are
+            unreviewed clips (no summary card / KPI target points at it). */}
         {unreviewedFormVideos.length > 0 && (
           <article className="rvSection">
-            <div className="rvSecHead rvSecHeadStatic">
-              <div>
-                <span className="rvSecEyebrow">Needs review</span>
-                <strong className="rvSecTitle">Form Videos</strong>
-              </div>
-              <div className="rvSecHeadRight">
-                <em className="rvPill">{unreviewedFormVideos.length}</em>
-              </div>
-            </div>
-            <div className="rvGrid rvGridWide">
-              {unreviewedFormVideos.map((video: any) => (
+            {sectionHeader(
+              "Needs review",
+              "Form Videos",
+              unreviewedFormVideos.length,
+              "formVideos"
+            )}
+            {openReviewSections.formVideos && (
+              <div className="rvGrid rvGridWide">
+                {unreviewedFormVideos.map((video: any) => (
                 <div key={video.recordId} className="rvVideoCard">
                   <div className="rvVideoMeta">
                     <strong>{video.clientName || video.clientId}</strong>
@@ -307,8 +305,9 @@ export default function ReviewPage({
                     Send reply &amp; mark reviewed
                   </button>
                 </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </article>
         )}
 

@@ -982,7 +982,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   const [coachReviewError, setCoachReviewError] = useState("");
   const [openReviewSections, setOpenReviewSections] = useState<
     Record<string, boolean>
-  >({ comments: true, missed: true, submissions: true, checkins: true, enquiries: true });
+  >({ comments: true, missed: true, submissions: true, checkins: true, enquiries: true, formVideos: true });
   const toggleReviewSection = (key: string) =>
     setOpenReviewSections((prev) => ({ ...prev, [key]: !prev[key] }));
   const [activeContentAssignment, setActiveContentAssignment] =
