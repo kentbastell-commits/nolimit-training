@@ -14200,6 +14200,12 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   border-radius: 10px !important;
   padding: 9px 11px !important;
 }
+/* Neutralize the older session-type background fills so only the left border
+   carries the type color (matches the reference's uniform blocks). */
+.clientPortalApp .clientFullCalendar .calendarDay .workoutBlock {
+  background: #faf8f2 !important;
+  color: #10100f !important;
+}
 .clientPortalApp .clientFullCalendar .workoutBlock.wcol-strength { border-left-color: #10100f !important; }
 .clientPortalApp .clientFullCalendar .workoutBlock.wcol-cardio { border-left-color: #2a6fdb !important; }
 .clientPortalApp .clientFullCalendar .workoutBlock.wcol-mobility { border-left-color: #1f8a5b !important; }
