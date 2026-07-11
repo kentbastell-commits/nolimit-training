@@ -14716,3 +14716,68 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   line-height: 1.5;
   text-align: center;
 }
+
+/* =========================================================================
+   CLIENT HOME — new brand-palette TEST (revertable, home-only classes).
+   Ink #141414 · Signal Orange #E18D4A · Sand #AB8C76 · Taupe #6C5A50 ·
+   Steel #758EAE · Sky #9AA8C3 — gold kept as the hero.
+   ========================================================================= */
+
+/* headings → ink */
+.clientPortalApp .clientGreetingName,
+.clientPortalApp .clientHomePanelHeader > div > h2,
+.clientPortalApp .coachInboxItemHead strong,
+.clientPortalApp .homeWorkoutItem strong {
+  color: #141414 !important;
+}
+
+/* eyebrows → taupe (legible warm neutral) */
+.clientPortalApp .clientGreetingDate,
+.clientPortalApp .clientHomePanelHeader > div > span {
+  color: #6c5a50 !important;
+}
+
+/* secondary / meta text → taupe */
+.clientPortalApp .homeWorkoutItem small,
+.clientPortalApp .homeWorkoutItem .taskDatePill,
+.clientPortalApp .coachInboxItem p {
+  color: #6c5a50 !important;
+}
+
+/* Daily-readiness hero: ink ground + orange glow, gold→orange CTA */
+.clientPortalApp .wellnessCard:not(.done) {
+  background: linear-gradient(150deg, #262019, #141414) !important;
+}
+.clientPortalApp .wellnessCard:not(.done)::after {
+  background: radial-gradient(circle, rgba(225, 141, 74, 0.42), transparent 66%) !important;
+}
+.clientPortalApp .wellnessEyebrow {
+  color: #e3b76a !important;
+}
+.clientPortalApp .wellnessCard:not(.done) .wellnessCta,
+.clientPortalApp .clientHomeGrid .goldButton {
+  background: linear-gradient(135deg, #e6c766, #e18d4a 55%, #b5731a) !important;
+}
+.clientPortalApp .wellnessStreakInline {
+  color: #e18d4a !important;
+}
+
+/* Session colour-coding — blue-forward; re-adds the type left accent */
+.clientPortalApp .homeWorkoutItem.wcol-strength {
+  border-left: 4px solid #141414 !important;
+}
+.clientPortalApp .homeWorkoutItem.wcol-cardio {
+  border-left: 4px solid #758eae !important;
+}
+.clientPortalApp .homeWorkoutItem.wcol-mobility {
+  border-left: 4px solid #ab8c76 !important;
+}
+.clientPortalApp .homeWorkoutItem.wcol-skill {
+  border-left: 4px solid #6c5a50 !important;
+}
+.clientPortalApp .homeWorkoutItem.wcol-test {
+  border-left: 4px solid #e18d4a !important;
+}
+.clientPortalApp .homeWorkoutItem.wcol-purple {
+  border-left: 4px solid #6c5a50 !important;
+}
