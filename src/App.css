@@ -14449,7 +14449,9 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 .clientPortalApp .homeWorkoutItem .taskDatePill {
   display: inline-block;
   align-self: flex-start;
+  justify-self: start;
   width: auto;
+  text-align: center;
   background: #f4f1ea !important;
   border: 1px solid #e6e2d6 !important;
   color: #8a8372 !important;
