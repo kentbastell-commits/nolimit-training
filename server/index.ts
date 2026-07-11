@@ -130,13 +130,17 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const port = Number(process.env.PORT || 3001);
 
-// Form-video uploads: raw video body -> random filename on disk, served from
+// Video uploads: raw video body -> random filename on disk, served from
 // /uploads. Registered BEFORE express.json so large videos skip the 2mb cap.
+// Two callers share this: athlete form-review clips (kind=form, prefix "fv-",
+// may be pruned) and permanent exercise-library demos (kind=exercise, prefix
+// "ex-"). The prefix keeps the two apart on disk so cleanup never eats a
+// library video.
 const uploadsDir = path.resolve(__dirname, "../uploads");
 fs.mkdirSync(uploadsDir, { recursive: true });
 app.post(
   "/api/uploadFormVideoFile",
-  express.raw({ type: () => true, limit: "80mb" }),
+  express.raw({ type: () => true, limit: "160mb" }),
   (req, res) => {
     try {
       const body = req.body as Buffer;
@@ -146,7 +150,8 @@ app.post(
       }
       const extMatch = String(req.query.name || "").match(/\.(mp4|mov|webm|m4v)$/i);
       const ext = extMatch ? extMatch[0].toLowerCase() : ".mp4";
-      const name = `fv-${crypto.randomBytes(12).toString("hex")}${ext}`;
+      const prefix = req.query.kind === "exercise" ? "ex" : "fv";
+      const name = `${prefix}-${crypto.randomBytes(12).toString("hex")}${ext}`;
       fs.writeFileSync(path.join(uploadsDir, name), body);
       res.status(200).json({ success: true, url: `/uploads/${name}` });
     } catch (error) {
