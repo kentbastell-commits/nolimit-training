@@ -851,20 +851,20 @@ export default function PortalTraining({
                                 }
                               }}
                             >
+                              {isClientPortal &&
+                                (() => {
+                                  const cc = getWorkoutColorClass(
+                                    workout.sessionName,
+                                    workout.sessionType
+                                  );
+                                  const Icon = catIcon(cc);
+                                  return (
+                                    <span className={`wcatBadge ${cc}`}>
+                                      <Icon size={20} aria-hidden="true" />
+                                    </span>
+                                  );
+                                })()}
                               <div className="workoutBlockMain">
-                                {isClientPortal &&
-                                  (() => {
-                                    const cc = getWorkoutColorClass(
-                                      workout.sessionName,
-                                      workout.sessionType
-                                    );
-                                    const Icon = catIcon(cc);
-                                    return (
-                                      <span className={`wcatIcon ${cc}`}>
-                                        <Icon size={17} aria-hidden="true" />
-                                      </span>
-                                    );
-                                  })()}
                                 {localizedWorkoutName(workout)}
                                 <span>
                                   {workout.sessionType
@@ -1060,25 +1060,23 @@ export default function PortalTraining({
                             }}
                             onClick={() => openWorkout(workout)}
                           >
+                            {(() => {
+                              const cc = getWorkoutColorClass(
+                                workout.sessionName,
+                                workout.sessionType
+                              );
+                              const Icon = catIcon(cc);
+                              return (
+                                <span className={`wcatBadge ${cc}`}>
+                                  <Icon size={20} aria-hidden="true" />
+                                </span>
+                              );
+                            })()}
                             <div>
                               <span>
                                 {t("week")} {workout.week} - {t("day")} {workout.day}
                               </span>
-                              <strong>
-                                {(() => {
-                                  const cc = getWorkoutColorClass(
-                                    workout.sessionName,
-                                    workout.sessionType
-                                  );
-                                  const Icon = catIcon(cc);
-                                  return (
-                                    <span className={`wcatIcon ${cc}`}>
-                                      <Icon size={17} aria-hidden="true" />
-                                    </span>
-                                  );
-                                })()}
-                                {localizedWorkoutName(workout)}
-                              </strong>
+                              <strong>{localizedWorkoutName(workout)}</strong>
                               <small>
                                 {movingWorkoutId === workout.id
                                   ? t("moving")
@@ -1349,25 +1347,23 @@ export default function PortalTraining({
                                 openWorkout(workout);
                               }}
                             >
+                              {(() => {
+                                const cc = getWorkoutColorClass(
+                                  workout.sessionName,
+                                  workout.sessionType
+                                );
+                                const Icon = catIcon(cc);
+                                return (
+                                  <span className={`wcatBadge ${cc}`}>
+                                    <Icon size={20} aria-hidden="true" />
+                                  </span>
+                                );
+                              })()}
                               <div>
                                 <span>
                                   {t("program")} - {t("week")} {workout.week}, {t("day")} {workout.day}
                                 </span>
-                                <strong>
-                                {(() => {
-                                  const cc = getWorkoutColorClass(
-                                    workout.sessionName,
-                                    workout.sessionType
-                                  );
-                                  const Icon = catIcon(cc);
-                                  return (
-                                    <span className={`wcatIcon ${cc}`}>
-                                      <Icon size={17} aria-hidden="true" />
-                                    </span>
-                                  );
-                                })()}
-                                {localizedWorkoutName(workout)}
-                              </strong>
+                                <strong>{localizedWorkoutName(workout)}</strong>
                                 <small>
                                   {movingWorkoutId === workout.id
                                     ? t("moving")

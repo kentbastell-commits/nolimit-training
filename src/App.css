@@ -14168,37 +14168,42 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   gap: 8px;
   grid-template-columns: 1fr !important;
 }
+/* Days are just labels; the session is the card — no more blended beige rows. */
 .clientPortalApp .clientFullCalendar .calendarDay {
-  border-radius: 14px;
-  padding: 13px 14px;
-  border: 1px solid #dcd8cd !important;
-  background: #f4f1ea !important;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 6px 2px 2px !important;
   min-height: 0;
   gap: 0;
 }
-.clientPortalApp .clientFullCalendar .calendarDay.hasCalendarWork {
-  background: #fff !important;
-  box-shadow: 0 8px 18px -14px rgba(0, 0, 0, 0.4);
-}
 .clientPortalApp .clientFullCalendar .calendarDateLabel {
   display: block;
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 800;
-  color: #a49c8a !important;
-  margin: 0;
+  letter-spacing: 0.02em;
+  color: #a99f8d !important;
+  margin: 0 0 5px 2px;
 }
 .clientPortalApp .clientFullCalendar .calendarDay.hasCalendarWork .calendarDateLabel {
-  color: #10100f !important;
+  color: #151515 !important;
 }
 .clientPortalApp .clientFullCalendar .workoutBlock {
-  display: block;
-  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin-top: 6px;
   text-align: left;
-  background: #faf8f2 !important;
-  border: 1px solid #e6e2d6 !important;
+  background: #fff !important;
+  border: 1px solid #e7e2d6 !important;
   border-left: 5px solid #b5731a !important;
-  border-radius: 10px !important;
-  padding: 9px 11px !important;
+  border-radius: 12px !important;
+  padding: 11px 13px !important;
+  box-shadow: 0 8px 18px -14px rgba(0, 0, 0, 0.45);
+}
+.clientPortalApp .clientFullCalendar .workoutBlockMain {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 /* Neutralize the older session-type background fills so only the left border
    carries the type color (matches the reference's uniform blocks). */
@@ -14798,6 +14803,11 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 .clientPortalApp .wcatBadge {
   width: 48px;
   height: 48px;
+}
+.clientPortalApp .selectedDayWorkout .wcatBadge,
+.clientPortalApp .clientFullCalendar .workoutBlock .wcatBadge {
+  width: 40px;
+  height: 40px;
 }
 .clientPortalApp .wcatIcon.wcol-strength,
 .clientPortalApp .wcatBadge.wcol-strength { background: #e6edf5; color: #35618e; }
