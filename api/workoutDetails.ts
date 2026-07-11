@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { fetchAllBitableRecords } from "./_pagination.ts";
 import { getCached, setCached } from "./_cache.ts";
+import { getTenantToken } from "./_token.ts";
 
 function fieldToText(value: any): string {
   if (!value) return "";
@@ -173,48 +174,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
-    const tokenResponse = await fetch(
-      "https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          app_id: process.env.FEISHU_APP_ID,
-          app_secret: process.env.FEISHU_APP_SECRET,
-        }),
-      }
-    );
-
-    const tokenData = await tokenResponse.json();
-
-    if (!tokenData.tenant_access_token) {
-      return res.status(500).json({
-        error: "Could not get Lark tenant token",
-        larkResponse: tokenData,
-      });
-    }
-
-    // Both tables are scanned in full and joined in memory. They rarely change
-    // and are shared across every program/week/day, so cache the raw scans and
-    // serve repeat workout opens from memory (writers invalidate these keys).
+    // Cache-first: both tables are scanned in full and joined in memory. They
+    // rarely change and are shared across every program/week/day, so a warm
+    // cache serves repeat workout opens with NO Feishu round-trip at all — not
+    // even a token fetch (writers invalidate these keys). The token is only
+    // acquired on a cache miss, and via the shared 2h-cached helper.
     let templateItems = getCached<any[]>("workoutTemplatesRaw");
     let libraryItems = getCached<any[]>("exerciseLibraryRaw");
 
     if (!templateItems || !libraryItems) {
+      const token = await getTenantToken();
       const [templates, library] = await Promise.all([
         templateItems
           ? Promise.resolve(templateItems)
           : fetchAllBitableRecords(
               process.env.FEISHU_BASE_APP_TOKEN as string,
               process.env.FEISHU_WORKOUT_TEMPLATES_TABLE_ID as string,
-              tokenData.tenant_access_token
+              token
             ),
         libraryItems
           ? Promise.resolve(libraryItems)
           : fetchAllBitableRecords(
               process.env.FEISHU_BASE_APP_TOKEN as string,
               process.env.FEISHU_EXERCISE_LIBRARY_TABLE_ID as string,
-              tokenData.tenant_access_token
+              token
             ),
       ]);
       templateItems = templates;
