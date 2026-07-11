@@ -14401,9 +14401,12 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 10px !important;
+  margin-bottom: 8px !important;
   border: none !important;
-  background: #f1eee6 !important;
+  /* Blend the section header into the brighter page — no greige/cream block. */
+  background: transparent !important;
+  padding: 2px 4px 0 !important;
+  border-radius: 0 !important;
 }
 .clientPortalApp .clientHomePanelHeader > div > span {
   color: #b5731a !important;
@@ -14732,9 +14735,9 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 .clientPortalApp .homeWorkoutItem.wcol-strength,
 .clientPortalApp .selectedDayWorkout.wcol-strength,
 .clientPortalApp .clientFullCalendar .workoutBlock.wcol-strength {
-  background: #e8eaee !important;
-  border-color: #cdd3db !important;
-  border-left: 5px solid #43515f !important;
+  background: #eaeaec !important;
+  border-color: #d4d4d7 !important;
+  border-left: 5px solid #3a3f45 !important;
 }
 .clientPortalApp .homeWorkoutItem.wcol-cardio,
 .clientPortalApp .selectedDayWorkout.wcol-cardio,
@@ -14787,7 +14790,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 }
 
 /* dots (Week strip + Month grid) recoloured to the same category accents */
-.clientPortalApp .calendarWorkMarkers span.wcol-strength { background: #43515f !important; }
+.clientPortalApp .calendarWorkMarkers span.wcol-strength { background: #3a3f45 !important; }
 .clientPortalApp .calendarWorkMarkers span.wcol-cardio { background: #5e79a0 !important; }
 .clientPortalApp .calendarWorkMarkers span.wcol-mobility { background: #7788a8 !important; }
 .clientPortalApp .calendarWorkMarkers span.wcol-skill { background: #7a6456 !important; }
