@@ -39,97 +39,129 @@ export default function ClientOverview({
   return (
     <>
                 {isClientPortal ? (
-                  <div className="overviewGrid portalProfileGrid">
-                    <div className="profileCard">
-                      <div className="profileMetricsHeader">
-                        <h3>{i18n.language === "zh" ? "设置" : "Settings"}</h3>
+                  <div className="portalProfile">
+                    <header className="portalProfileHead">
+                      <span className="portalProfileEyebrow">
+                        {paceZh ? "账户" : "Account"}
+                      </span>
+                      <h1 className="portalProfileTitle">{t("profile")}</h1>
+                    </header>
+
+                    <div className="portalProfileHero">
+                      <div className="portalProfileAvatar" aria-hidden="true">
+                        {selectedClient.initials}
                       </div>
-                      <div className="clientInfoRows">
-                        <div>
-                          <span>{t("languagePreference")}</span>
-                          <select
-                            value={selectedClient.languagePreference || "English"}
-                            onChange={(event) =>
-                              updateClientLanguagePreference(event.target.value)
-                            }
-                          >
-                            <option value="English">{t("english")}</option>
-                            <option value="Mandarin">{t("mandarin")}</option>
-                          </select>
-                        </div>
-                        <div>
-                          <span>
-                            {i18n.language === "zh" ? "重量单位" : "Weight units"}
-                          </span>
-                          <select
-                            value={weightUnit}
-                            onChange={(event) =>
-                              setWeightUnitPref(
-                                event.target.value === "lb" ? "lb" : "kg"
-                              )
-                            }
-                          >
-                            <option value="kg">kg</option>
-                            <option value="lb">lb</option>
-                          </select>
-                        </div>
+                      <div>
+                        <strong>{selectedClient.name || "--"}</strong>
+                        <span>
+                          {selectedClient.program ||
+                            selectedClient.package ||
+                            selectedClient.status ||
+                            "--"}
+                        </span>
                       </div>
                     </div>
 
-                    <div className="profileCard">
-                      <div className="profileMetricsHeader">
-                        <h3>{i18n.language === "zh" ? "我的教练" : "My Coaching"}</h3>
+                    <section className="portalProfileCard">
+                      <span className="portalProfileCardEyebrow">
+                        {paceZh ? "设置" : "Settings"}
+                      </span>
+                      <div className="portalSettingRow">
+                        <span className="portalSettingLabel">
+                          {t("languagePreference")}
+                        </span>
+                        <select
+                          className="portalSettingSelect"
+                          value={selectedClient.languagePreference || "English"}
+                          onChange={(event) =>
+                            updateClientLanguagePreference(event.target.value)
+                          }
+                        >
+                          <option value="English">{t("english")}</option>
+                          <option value="Mandarin">{t("mandarin")}</option>
+                        </select>
                       </div>
-                      <div className="clientInfoRows">
-                        <div>
-                          <span>{t("coach")}</span>
-                          <strong>
-                            {getCoachDisplayName(
-                              selectedClient.coach ||
-                                selectedClient.primaryCoach ||
-                                "--"
-                            )}
-                          </strong>
-                        </div>
-                        <div>
-                          <span>{i18n.language === "zh" ? "套餐" : "Plan"}</span>
-                          <strong>
-                            {selectedClient.package ||
-                              selectedClient.status ||
-                              "--"}
-                          </strong>
-                        </div>
-                        <div>
-                          <span>
-                            {i18n.language === "zh" ? "有效期至" : "Access until"}
-                          </span>
-                          <strong>{selectedClient.accessEndDate || "--"}</strong>
+                      <div className="portalSettingRow">
+                        <span className="portalSettingLabel">
+                          {paceZh ? "重量单位" : "Weight units"}
+                        </span>
+                        <div
+                          className="portalUnitToggle"
+                          role="group"
+                          aria-label={paceZh ? "重量单位" : "Weight units"}
+                        >
+                          <button
+                            type="button"
+                            className={weightUnit === "kg" ? "active" : ""}
+                            onClick={() => setWeightUnitPref("kg")}
+                          >
+                            kg
+                          </button>
+                          <button
+                            type="button"
+                            className={weightUnit === "lb" ? "active" : ""}
+                            onClick={() => setWeightUnitPref("lb")}
+                          >
+                            lb
+                          </button>
                         </div>
                       </div>
-                    </div>
+                    </section>
 
-                    <div className="profileCard">
-                      <div className="profileMetricsHeader">
-                        <h3>{i18n.language === "zh" ? "我的资料" : "My Details"}</h3>
+                    <section className="portalProfileCard">
+                      <span className="portalProfileCardEyebrow">
+                        {paceZh ? "我的教练" : "My Coaching"}
+                      </span>
+                      <div className="portalSettingRow">
+                        <span className="portalSettingLabel">{t("coach")}</span>
+                        <strong>
+                          {getCoachDisplayName(
+                            selectedClient.coach ||
+                              selectedClient.primaryCoach ||
+                              "--"
+                          )}
+                        </strong>
                       </div>
-                      <div className="clientInfoRows">
-                        <div>
-                          <span>{t("name")}</span>
-                          <strong>{selectedClient.name || "--"}</strong>
-                        </div>
-                        <div>
-                          <span>{t("email")}</span>
-                          <strong>{selectedClient.email || "--"}</strong>
-                        </div>
-                        <div>
-                          <span>{t("phoneWechat")}</span>
-                          <strong>{selectedClient.phone || "--"}</strong>
-                        </div>
+                      <div className="portalSettingRow">
+                        <span className="portalSettingLabel">
+                          {paceZh ? "套餐" : "Plan"}
+                        </span>
+                        <strong>
+                          {selectedClient.package ||
+                            selectedClient.status ||
+                            "--"}
+                        </strong>
                       </div>
-                    </div>
+                      <div className="portalSettingRow">
+                        <span className="portalSettingLabel">
+                          {paceZh ? "有效期至" : "Access until"}
+                        </span>
+                        <strong>{selectedClient.accessEndDate || "--"}</strong>
+                      </div>
+                    </section>
+
+                    <section className="portalProfileCard">
+                      <span className="portalProfileCardEyebrow">
+                        {paceZh ? "我的资料" : "My Details"}
+                      </span>
+                      <div className="portalSettingRow">
+                        <span className="portalSettingLabel">{t("name")}</span>
+                        <strong>{selectedClient.name || "--"}</strong>
+                      </div>
+                      <div className="portalSettingRow">
+                        <span className="portalSettingLabel">{t("email")}</span>
+                        <strong>{selectedClient.email || "--"}</strong>
+                      </div>
+                      <div className="portalSettingRow">
+                        <span className="portalSettingLabel">
+                          {t("phoneWechat")}
+                        </span>
+                        <strong>{selectedClient.phone || "--"}</strong>
+                      </div>
+                    </section>
 
                     <p className="portalProfileHelp">
-                      {i18n.language === "zh"
+                      {paceZh
                         ? "关于训练有疑问？请联系您的教练。"
                         : "Questions about your training? Message your coach."}
                     </p>

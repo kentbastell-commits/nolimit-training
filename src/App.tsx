@@ -13319,8 +13319,8 @@ function App({ onReady }: { onReady?: () => void } = {}) {
               <div className="wellnessPrompt">
                 <strong>
                   {paceZh
-                    ? "记录今日晨检，解锁状态评分，让教练了解你的感受。"
-                    : "Log your morning check-in to unlock today's readiness score and let your coach know how you're feeling."}
+                    ? "记录你今天的状态，让教练了解你今天的情况。"
+                    : "Log your daily readiness and let your coach know your condition for today."}
                 </strong>
               </div>
               <button type="button" className="wellnessCta" onClick={openForm}>

@@ -14245,6 +14245,46 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   gap: 14px;
 }
 
+/* Home greeting header (replaces the old top bar): date eyebrow + greeting
+   + avatar, matching the reference. */
+.clientPortalApp .clientHomeGreeting {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 2px 0 14px;
+}
+.clientPortalApp .clientGreetingDate {
+  display: block;
+  font-size: 11px;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+  color: #b5731a;
+  font-weight: 800;
+}
+.clientPortalApp .clientGreetingName {
+  margin: 5px 0 0;
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  line-height: 1.05;
+  color: #151515;
+}
+.clientPortalApp .clientGreetingAvatar {
+  flex: none;
+  width: 54px;
+  height: 54px;
+  border-radius: 16px;
+  background: linear-gradient(150deg, #26221a, #10100f);
+  color: #f0dc88;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 16px;
+  letter-spacing: 0.5px;
+}
+
 /* Daily Readiness dark hero (pre-check-in) */
 .clientPortalApp .wellnessCard:not(.done) {
   position: relative;
@@ -14518,4 +14558,159 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 .clientPortalApp .workloadRowLoad {
   color: #b5731a !important;
   font-weight: 900;
+}
+
+/* Client Profile page — Account header + dark identity hero + settings cards */
+.clientPortalApp .portalProfile {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.clientPortalApp .portalProfileHead {
+  margin: 2px 0 2px;
+}
+.clientPortalApp .portalProfileEyebrow {
+  display: block;
+  font-size: 11px;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+  color: #b5731a;
+  font-weight: 800;
+}
+.clientPortalApp .portalProfileTitle {
+  margin: 5px 0 0;
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  color: #151515;
+}
+.clientPortalApp .portalProfileHero {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: linear-gradient(150deg, #26221a, #10100f);
+  border-radius: 18px;
+  padding: 16px 18px;
+  color: #f3ede0;
+  box-shadow: 0 18px 40px -26px rgba(16, 16, 15, 0.6);
+}
+.clientPortalApp .portalProfileHero::after {
+  content: "";
+  position: absolute;
+  right: -40px;
+  top: -50px;
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(214, 175, 55, 0.3), transparent 68%);
+  pointer-events: none;
+}
+.clientPortalApp .portalProfileAvatar {
+  position: relative;
+  z-index: 1;
+  flex: none;
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: linear-gradient(140deg, #e6c766, #b5731a);
+  color: #1a1712;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 16px;
+  letter-spacing: 0.5px;
+}
+.clientPortalApp .portalProfileHero > div {
+  position: relative;
+  z-index: 1;
+}
+.clientPortalApp .portalProfileHero strong {
+  display: block;
+  font-size: 18px;
+  font-weight: 800;
+  color: #f3ede0;
+}
+.clientPortalApp .portalProfileHero span {
+  display: block;
+  margin-top: 2px;
+  font-size: 13px;
+  color: #b3aa93;
+  font-weight: 600;
+}
+.clientPortalApp .portalProfileCard {
+  background: #fff;
+  border: 1px solid #dcd8cd;
+  border-radius: 16px;
+  padding: 16px 18px;
+  box-shadow: 0 8px 20px -14px rgba(0, 0, 0, 0.4);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.clientPortalApp .portalProfileCardEyebrow {
+  font-size: 10.5px;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: #b5731a;
+  font-weight: 800;
+}
+.clientPortalApp .portalSettingRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+.clientPortalApp .portalSettingLabel {
+  color: #151515;
+  font-weight: 700;
+  font-size: 14.5px;
+}
+.clientPortalApp .portalSettingRow > strong {
+  color: #10100f;
+  font-weight: 800;
+  font-size: 14.5px;
+  text-align: right;
+}
+.clientPortalApp .portalSettingSelect {
+  width: auto !important;
+  min-height: 0 !important;
+  background: #fff !important;
+  border: 1px solid #d4cbb7 !important;
+  border-radius: 10px !important;
+  color: #10100f !important;
+  font-weight: 800 !important;
+  padding: 8px 12px !important;
+}
+.clientPortalApp .portalUnitToggle {
+  display: flex;
+  gap: 4px;
+  background: #e4dfd3;
+  border: 1px solid #d9d3c5;
+  border-radius: 10px;
+  padding: 3px;
+}
+.clientPortalApp .portalUnitToggle button {
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  padding: 6px 15px;
+  font-weight: 800;
+  font-size: 13px;
+  color: #66645e;
+  cursor: pointer;
+}
+.clientPortalApp .portalUnitToggle button.active {
+  background: #10100f;
+  color: #f0dc88;
+}
+.clientPortalApp .portalProfileHelp {
+  margin: 4px 2px 0;
+  color: #8a8372;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: center;
 }

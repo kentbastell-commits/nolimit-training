@@ -298,40 +298,58 @@ export default function ClientWorkspace({
                     </div>
                   );
                 })()}
-              <div className="clientTop">
-                {isClientPortal ? (
-                  <div className="clientPortalMonogram" aria-hidden="true">
-                    <img src="/nl_monogram_clean.png" alt="" aria-hidden="true" />
-                  </div>
-                ) : (
+              {isClientPortal ? (
+                clientTab === "Home" &&
+                (() => {
+                  const first = selectedClient.name.split(" ")[0] || "there";
+                  const hour = new Date().getHours();
+                  const greet = useChineseClientText
+                    ? hour < 12
+                      ? "早上好"
+                      : hour < 18
+                      ? "下午好"
+                      : "晚上好"
+                    : hour < 12
+                    ? "Good morning"
+                    : hour < 18
+                    ? "Good afternoon"
+                    : "Good evening";
+                  const dateLabel = new Date(
+                    `${todayValue}T00:00:00`
+                  ).toLocaleDateString(
+                    useChineseClientText ? "zh-CN" : "en-US",
+                    { weekday: "long", month: "long", day: "numeric" }
+                  );
+                  return (
+                    <header className="clientHomeGreeting">
+                      <div>
+                        <span className="clientGreetingDate">{dateLabel}</span>
+                        <h1 className="clientGreetingName">
+                          {useChineseClientText
+                            ? `${greet}，${first}`
+                            : `${greet}, ${first}`}
+                        </h1>
+                      </div>
+                      <div className="clientGreetingAvatar" aria-hidden="true">
+                        {selectedClient.initials}
+                      </div>
+                    </header>
+                  );
+                })()
+              ) : (
+                <div className="clientTop">
                   <div className="clientAvatar largeAvatar">
                     {selectedClient.initials}
                   </div>
-                )}
-                <div>
-                  <h1>
-                    {isClientPortal
-                      ? clientTab === "Home"
-                        ? t("hi", {
-                            name: selectedClient.name.split(" ")[0] || "there",
-                          })
-                        : clientTab === "Overview"
-                        ? t("profile")
-                        : clientTab === "Programs"
-                        ? t("myPrograms")
-                        : t("calendar")
-                      : selectedClient.name}
-                  </h1>
-                  <p>
-                    {isClientPortal
-                      ? `${selectedClient.status} - ${selectedClient.program}`
-                      : `${selectedClient.clientCode || "Client"} - ${
-                          getCoachDisplayName(
-                            selectedClient.coach || selectedClient.primaryCoach || "Coach view"
-                          )
-                        }`}
-                  </p>
-                  {!isClientPortal && (
+                  <div>
+                    <h1>{selectedClient.name}</h1>
+                    <p>
+                      {`${selectedClient.clientCode || "Client"} - ${getCoachDisplayName(
+                        selectedClient.coach ||
+                          selectedClient.primaryCoach ||
+                          "Coach view"
+                      )}`}
+                    </p>
                     <div className="clientLayerBadges">
                       <span>{selectedClient.clientType || "Client"}</span>
                       <span>
@@ -341,79 +359,79 @@ export default function ClientWorkspace({
                         Payment: {selectedClient.paymentStatus || "Unpaid"}
                       </span>
                     </div>
-                  )}
-                  <div
-                    className="clientPortalLanguageSwitch"
-                    aria-label={t("languagePreference")}
-                  >
-                    <button
-                      type="button"
-                      className={
-                        languagePreferenceToCode(
-                          selectedClient.languagePreference
-                        ) === "en"
-                          ? "active"
-                          : ""
-                      }
-                      onClick={() => updateClientLanguagePreference("English")}
+                    <div
+                      className="clientPortalLanguageSwitch"
+                      aria-label={t("languagePreference")}
                     >
-                      EN
-                    </button>
-                    <button
-                      type="button"
-                      className={
-                        languagePreferenceToCode(
-                          selectedClient.languagePreference
-                        ) === "zh"
-                          ? "active"
-                          : ""
-                      }
-                      onClick={() => updateClientLanguagePreference("Mandarin")}
-                    >
-                      中文
-                    </button>
-                  </div>
-                </div>
-                {!isClientPortal && (
-                <div className="clientProfileActions">
-                  <details className="clientActionMenu">
-                    <summary
-                      className="iconActionButton profileIconButton"
-                      aria-label="Client actions"
-                    >
-                      <MoreVertical size={18} aria-hidden="true" />
-                    </summary>
-                    <div className="clientActionDropdown">
                       <button
-                        onClick={() =>
-                          copyToClipboard(
-                            buildClientPortalLink(selectedClient),
-                            "Client portal link"
-                          )
+                        type="button"
+                        className={
+                          languagePreferenceToCode(
+                            selectedClient.languagePreference
+                          ) === "en"
+                            ? "active"
+                            : ""
                         }
+                        onClick={() => updateClientLanguagePreference("English")}
                       >
-                        Copy portal link
-                      </button>
-                      <button onClick={() => openEditClientForm(selectedClient)}>
-                        Edit / assign coach
+                        EN
                       </button>
                       <button
-                        onClick={() => updateClientPackage(selectedClient, "Archived")}
-                        disabled={updatingClientStatus}
+                        type="button"
+                        className={
+                          languagePreferenceToCode(
+                            selectedClient.languagePreference
+                          ) === "zh"
+                            ? "active"
+                            : ""
+                        }
+                        onClick={() => updateClientLanguagePreference("Mandarin")}
                       >
-                        Archive client
-                      </button>
-                      <button
-                        className="dangerMenuItem"
-                        onClick={() => deleteClient(selectedClient)}
-                      >
-                        Delete client
+                        中文
                       </button>
                     </div>
-                  </details>
+                  </div>
+                  <div className="clientProfileActions">
+                    <details className="clientActionMenu">
+                      <summary
+                        className="iconActionButton profileIconButton"
+                        aria-label="Client actions"
+                      >
+                        <MoreVertical size={18} aria-hidden="true" />
+                      </summary>
+                      <div className="clientActionDropdown">
+                        <button
+                          onClick={() =>
+                            copyToClipboard(
+                              buildClientPortalLink(selectedClient),
+                              "Client portal link"
+                            )
+                          }
+                        >
+                          Copy portal link
+                        </button>
+                        <button onClick={() => openEditClientForm(selectedClient)}>
+                          Edit / assign coach
+                        </button>
+                        <button
+                          onClick={() =>
+                            updateClientPackage(selectedClient, "Archived")
+                          }
+                          disabled={updatingClientStatus}
+                        >
+                          Archive client
+                        </button>
+                        <button
+                          className="dangerMenuItem"
+                          onClick={() => deleteClient(selectedClient)}
+                        >
+                          Delete client
+                        </button>
+                      </div>
+                    </details>
+                  </div>
                 </div>
-                )}
-              </div>
+              )}
 
               <div
                 className={
