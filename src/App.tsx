@@ -17803,9 +17803,6 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                       <span className="desktopNavLabel">{group.label}</span>
                       <span className="mobileNavLabel">{group.label}</span>
                     </span>
-                    {leaf.count > 0 && (
-                      <span className="badge">{leaf.count}</span>
-                    )}
                     {showDot && <span className="navGroupDot" />}
                   </button>
                 </div>
@@ -17862,7 +17859,6 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                       >
                         <LeafIcon size={17} strokeWidth={2.2} />
                         <span className="navFlyoutLabel">{leaf.label}</span>
-                        <span className="badge">{leaf.count}</span>
                       </button>
                     );
                   })}
