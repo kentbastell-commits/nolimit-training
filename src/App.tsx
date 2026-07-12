@@ -2639,7 +2639,11 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   useEffect(() => {
     if (!selectedClient) return;
 
-    fetch(`/api/workoutHistory?clientId=${selectedClient.id}`)
+    fetch(
+      `/api/workoutHistory?clientId=${selectedClient.id}&clientCode=${encodeURIComponent(
+        selectedClient.clientCode || ""
+      )}`
+    )
       .then((res) => res.json())
       .then((data) => setWorkoutHistoryLogs(data.logs || []))
       .catch(() => setWorkoutHistoryLogs([]));
@@ -6255,7 +6259,11 @@ function App({ onReady }: { onReady?: () => void } = {}) {
         fetch(
           `/api/workoutDetails?programId=${workout.programId}&week=${workout.week}&day=${workout.day}`
         ),
-        fetch(`/api/workoutHistory?clientId=${selectedClient?.id || ""}`),
+        fetch(
+          `/api/workoutHistory?clientId=${
+            selectedClient?.id || ""
+          }&clientCode=${encodeURIComponent(selectedClient?.clientCode || "")}`
+        ),
       ]);
 
       const data = await detailsResponse.json();

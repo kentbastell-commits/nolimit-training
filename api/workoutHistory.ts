@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { getCached, setCached } from "./_cache.ts";
 import { getTenantToken } from "./_token.ts";
+import { fetchAllBitableRecords } from "./_pagination.ts";
 
 function fieldToText(value: any): string {
   if (!value) return "";
@@ -63,79 +64,76 @@ function toNumber(value: any) {
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const clientId = String(req.query.clientId || "");
+    const clientCode = String(req.query.clientCode || "");
     const exerciseNameFilter = String(req.query.exerciseName || "").toLowerCase();
 
-    // The whole workout-logs table is scanned and mapped once, then cached and
-    // filtered per-request in memory. Client ID here is a DuplexLink, and the
-    // portal passes the client's record_id — which a server-side text filter
-    // can't match against a link field, so we keep the whole-table scan + the
-    // 5-min cache (invalidated by saveWorkoutLog) rather than risk empty history.
-    let allLogs = getCached<any[]>("workoutLogs");
+    // Does a mapped log belong to this client? "Client ID" is a DuplexLink, so
+    // match either the record_id (portal passes selectedClient.id) or the code
+    // (the link resolves to the client code in text).
+    const matchesClient = (log: any) =>
+      (!clientId && !clientCode) ||
+      (clientId &&
+        (log.clientId.includes(clientId) ||
+          log.clientRecordIds.includes(clientId))) ||
+      (clientCode && log.clientId.includes(clientCode));
+
+    // Fetch only THIS client's logs by filtering on the code (a link resolves to
+    // the code, so a text filter on the code works where the record_id can't).
+    // Cache per client, and always narrow in memory before caching so a
+    // full-scan fallback can never leak another client's rows into the key.
+    const cacheKey = `workoutLogs:${clientCode || clientId || "all"}`;
+    let allLogs = getCached<any[]>(cacheKey);
 
     if (!allLogs) {
       const token = await getTenantToken();
 
-      const allItems: any[] = [];
-      let pageToken = "";
-      do {
-        const url = new URL(
-          `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${process.env.FEISHU_WORKOUT_LOGS_TABLE_ID}/records`
+      let allItems: any[] = clientCode
+        ? await fetchAllBitableRecords(
+            process.env.FEISHU_BASE_APP_TOKEN as string,
+            process.env.FEISHU_WORKOUT_LOGS_TABLE_ID as string,
+            token,
+            { filter: `CurrentValue.[Client ID]="${clientCode}"` }
+          )
+        : [];
+
+      // Fallback: a filter that matched nothing (link quirk, or genuinely no
+      // logs) → full scan, then narrow in memory. Never returns empty by mistake.
+      if (!allItems.length) {
+        allItems = await fetchAllBitableRecords(
+          process.env.FEISHU_BASE_APP_TOKEN as string,
+          process.env.FEISHU_WORKOUT_LOGS_TABLE_ID as string,
+          token
         );
-        url.searchParams.set("page_size", "500");
-        if (pageToken) url.searchParams.set("page_token", pageToken);
+      }
 
-        const recordsResponse = await fetch(url.toString(), {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const recordsData = await recordsResponse.json();
+      allLogs = allItems
+        .map((item: any) => {
+          const fields = item.fields || {};
+          return {
+            recordId: item.record_id,
+            clientId: fieldToText(fields["Client ID"]),
+            clientRecordIds: extractRecordIds(fields["Client ID"]),
+            exerciseName: fieldToText(fields["Exercise Name"]),
+            date: normalizeDate(fields["Date"]),
+            setNumber: fieldToText(fields["Set Number"]),
+            prescribedReps: fieldToText(fields["Prescribed Reps"]),
+            actualReps: fieldToText(fields["Actual Reps"]),
+            actualWeight: fieldToText(fields["Actual Weight"]),
+            actualTime: fieldToText(fields["Actual Time"]),
+            actualDistance: fieldToText(fields["Actual Distance"]),
+          };
+        })
+        .filter(matchesClient);
 
-        if (!recordsData?.data?.items) {
-          if (allItems.length === 0) {
-            return res.status(500).json({
-              error: "Could not fetch workout logs",
-              larkResponse: recordsData,
-            });
-          }
-          break;
-        }
-
-        allItems.push(...recordsData.data.items);
-        pageToken = recordsData.data.has_more ? recordsData.data.page_token : "";
-      } while (pageToken);
-
-      allLogs = allItems.map((item: any) => {
-        const fields = item.fields || {};
-
-        return {
-          recordId: item.record_id,
-          clientId: fieldToText(fields["Client ID"]),
-          clientRecordIds: extractRecordIds(fields["Client ID"]),
-          exerciseName: fieldToText(fields["Exercise Name"]),
-          date: normalizeDate(fields["Date"]),
-          setNumber: fieldToText(fields["Set Number"]),
-          prescribedReps: fieldToText(fields["Prescribed Reps"]),
-          actualReps: fieldToText(fields["Actual Reps"]),
-          actualWeight: fieldToText(fields["Actual Weight"]),
-          actualTime: fieldToText(fields["Actual Time"]),
-          actualDistance: fieldToText(fields["Actual Distance"]),
-        };
-      });
-
-      setCached("workoutLogs", allLogs, 5 * 60 * 1000);
+      setCached(cacheKey, allLogs, 5 * 60 * 1000);
     }
 
     const logs = allLogs
-      .filter((log: any) => {
-        const matchesClient =
-          !clientId ||
-          log.clientId.includes(clientId) ||
-          log.clientRecordIds.includes(clientId);
-        const matchesExercise =
+      .filter(
+        (log: any) =>
           !exerciseNameFilter ||
-          log.exerciseName.toLowerCase().includes(exerciseNameFilter);
-
-        return matchesClient && matchesExercise;
-      })
+          log.exerciseName.toLowerCase().includes(exerciseNameFilter)
+      )
       .sort((a: any, b: any) => b.date.localeCompare(a.date));
 
     const historyByExercise = new Map<string, any>();
