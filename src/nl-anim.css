@@ -26,6 +26,15 @@
                       25% { box-shadow: 0 0 0 3px rgba(212,175,55,.6), 0 .9rem 2rem rgba(0,0,0,.12); }
                       100% { box-shadow: 0 0 0 0 rgba(212,175,55,0); } }
 
+/* Breathing gold glow on hero radial-gradient overlays. These are styled by CSS
+   class (not inline), so the JS auto-layer's inline-style scan can't see them —
+   drive them straight from here for reliable, universal coverage. */
+[class*="HeroGlow"],
+[class*="heroGlow"],
+.lv3BlobGold {
+  animation: nlGlow 6s ease-in-out infinite;
+}
+
 /* Reusable hover-lift for cards/rows */
 .nl-lift { transition: transform .18s, box-shadow .18s, border-color .18s; }
 .nl-lift:hover { transform: translateY(-3px); box-shadow: 0 .95rem 2.1rem rgba(20,18,14,.1); border-color: #e6dcbf; }
