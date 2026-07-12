@@ -139,6 +139,7 @@ import type {
 } from "./appCore";
 import LandingPage from "./LandingPage";
 import type { CelebrationVariant } from "./Celebration";
+import { reportClientEvent } from "./telemetry";
 
 // A shared loading placeholder for code-split routes.
 function PageFallback() {
@@ -6668,6 +6669,9 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     void (async () => {
       const markFailed = () => {
         // Kept so the athlete can retry even after the celebration is dismissed.
+        reportClientEvent("api_fail", "workout_sync_failed", {
+          clientId: String(selectedClient?.clientCode || selectedClient?.id || ""),
+        });
         setFailedSubmission({ payload, draftKey });
         notify(
           paceZh
@@ -10498,12 +10502,16 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       });
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || "Registration failed");
+      reportClientEvent("funnel", "store_checkout_submitted", {
+        clientId: String(data.clientCode || ""),
+      });
       setStoreRegisteredCode(data.clientCode);
       setStoreRegisteredOrderId(data.orderId || "");
       // This code is now attached to a submitted order — never reuse it.
       setStorePaymentCode("");
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Registration failed";
+      reportClientEvent("api_fail", "store_checkout_failed", { message: msg });
       notify(msg, "error");
     } finally {
       stageTimers.forEach((timer) => window.clearTimeout(timer));

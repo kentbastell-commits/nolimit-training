@@ -6,6 +6,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useMemo, useState } from "react";
 import "./CoachingFlowPage.css";
+import { reportClientEvent } from "./telemetry";
 
 type Step = "commitment" | "qualifier" | "payment" | "onboarding" | "done";
 
@@ -83,7 +84,12 @@ export default function CoachingFlowPage() {
   const healthConsentRequired = !!injuries.trim();
 
   useEffect(() => {
-    if (step === "payment" && !paymentCode) setPaymentCode(genPaymentCode());
+    if (step === "payment" && !paymentCode) {
+      setPaymentCode(genPaymentCode());
+      // Funnel: reached the payment step (fires once per session — the code
+      // only generates on first entry).
+      reportClientEvent("funnel", "coaching_payment_step_reached");
+    }
   }, [step, paymentCode]);
 
   const fmtDate = (iso: string) => {
@@ -139,11 +145,17 @@ export default function CoachingFlowPage() {
       const data = await res.json();
       if (!res.ok || !data.success)
         throw new Error(data.error || data.message || "Signup failed");
+      reportClientEvent("funnel", "coaching_signup_submitted", {
+        clientId: String(data.clientCode || ""),
+      });
       setOrderId(data.orderId || data.clientCode || "");
       setClientCode(data.clientCode || "");
       setClientRecordId(data.clientRecordId || "");
       setStep("onboarding");
-    } catch {
+    } catch (err: unknown) {
+      reportClientEvent("api_fail", "coaching_signup_failed", {
+        message: err instanceof Error ? err.message : "Signup failed",
+      });
       setError(
         t(
           "Something went wrong saving your signup. Please try again or contact us on WeChat.",

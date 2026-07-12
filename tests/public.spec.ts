@@ -10,29 +10,36 @@ test("landing page renders hero and store links", async ({ page }) => {
   errs.assertNoCrashes();
 });
 
-test("store renders products before FAQ and opens checkout to the pay step", async ({ page }) => {
+test("store renders the catalog before FAQ and opens checkout to the pay step", async ({ page }) => {
   const errs = trackErrors(page);
   await page.goto("/store");
   await settle(page);
 
-  // At least one product card with a click target.
-  const product = page.locator(".storeProductClickTarget").first();
-  await expect(product).toBeVisible();
+  // Category-first catalog: at least one sport/category card.
+  const category = page.locator(".storeCategoryCardV2").first();
+  await expect(category).toBeVisible();
 
-  // Section order regression: programs section above the FAQ.
-  const programsY = await page
-    .locator("text=Available Programs")
+  // Section order regression: catalog section above the FAQ.
+  const catalogY = await page
+    .locator("#catalog")
     .first()
     .evaluate((el) => el.getBoundingClientRect().top + window.scrollY);
   const faqY = await page
     .locator(".storeFaqV2")
     .first()
     .evaluate((el) => el.getBoundingClientRect().top + window.scrollY);
-  expect(programsY).toBeLessThan(faqY);
+  expect(catalogY).toBeLessThan(faqY);
 
-  // Open product -> add to cart -> pay step shows QR, payment code, form.
-  await product.click();
-  await page.locator("button:visible", { hasText: /add to cart/i }).first().click();
+  // Category -> sport popup -> program row -> detail popup -> "Get this
+  // program" -> pay step shows QR, payment code, form.
+  await category.click();
+  const programRow = page.locator(".storeSportRow").first();
+  await expect(programRow).toBeVisible();
+  await programRow.click();
+  await page
+    .locator("button:visible", { hasText: /Get this program/i })
+    .first()
+    .click();
   await page.waitForTimeout(1500);
   await expect(page.locator(".storePayNowV2 img")).toBeVisible();
   await expect(page.locator(".storePaymentCodeV2 strong")).toHaveText(/^NL-/);
@@ -46,7 +53,18 @@ test("store renders products before FAQ and opens checkout to the pay step", asy
 // blank page or a ChunkLoadError (caught as a page crash).
 test("client invite route lazy-loads and renders", async ({ page }) => {
   const errs = trackErrors(page);
+  // /?invite=client is now the PAID 1:1 coaching flow (CoachingFlowPage).
   await page.goto("/?invite=client");
+  await settle(page);
+  await expect(page.locator(".cfpShell")).toBeVisible();
+  errs.assertNoCrashes();
+});
+
+test("coach onboarding invite still reaches the free intake", async ({ page }) => {
+  const errs = trackErrors(page);
+  // Coach-generated links carry &coach=1 and keep the free intake form, so a
+  // coach can add someone who paid offline without forcing a fresh payment.
+  await page.goto("/?invite=client&coach=1");
   await settle(page);
   await expect(page.locator(".inviteShell")).toBeVisible();
   errs.assertNoCrashes();

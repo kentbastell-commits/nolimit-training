@@ -1,6 +1,7 @@
 // Catches render/runtime errors in a subtree so one bad component can't
 // white-screen the whole SPA (the portal previously had no boundary at all).
 import { Component, type ReactNode } from "react";
+import { reportClientEvent } from "./telemetry.ts";
 
 type Props = { children: ReactNode; label?: string };
 type State = { hasError: boolean };
@@ -15,6 +16,10 @@ export default class ErrorBoundary extends Component<Props, State> {
   componentDidCatch(error: unknown, info: unknown) {
     // Surface it for debugging without taking down the app.
     console.error(`[ErrorBoundary${this.props.label ? `:${this.props.label}` : ""}]`, error, info);
+    reportClientEvent("crash", `boundary_${this.props.label || "app"}`, {
+      message: String((error as any)?.message || error || ""),
+      stack: String((error as any)?.stack || "").slice(0, 2000),
+    });
   }
 
   render() {

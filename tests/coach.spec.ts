@@ -67,6 +67,8 @@ test("session editor opens with settings, presets and save action", async ({ pag
   await page.waitForTimeout(2500);
   await expect(page.getByText("Session Settings").first()).toBeVisible();
   await expect(page.locator(".sessionSaveButton").first()).toBeVisible();
-  await expect(page.locator(".builderSectionPresetBar").first()).toBeVisible();
+  // The old preset bar was removed in the builder redesign; the session-type
+  // select is the drawer's surviving settings control.
+  await expect(page.locator(".sessionTypeField select").first()).toBeVisible();
   errs.assertNoCrashes();
 });

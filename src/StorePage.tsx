@@ -28,6 +28,7 @@ import "@fontsource/inter/600.css";
 import "@fontsource/inter/700.css";
 import "./StorePage.css";
 import "./StorePageV3.css";
+import { reportClientEvent } from "./telemetry";
 import type { Client, Coach, Program, ProgramReview, Toast } from "./appCore";
 
 // Motion system shared with the cinematic landing page (LandingPage.tsx):
@@ -327,6 +328,8 @@ export default function StorePage({
     if (!goBack) setCatalogSport(null);
   };
   const getThisProgram = (program: Program) => {
+    // Funnel: entered checkout with a chosen program.
+    reportClientEvent("funnel", "store_checkout_started");
     // Carry the step + chosen add-ons through the program-change reset effect
     // via the intent refs; setting add-on ids directly here would be wiped by
     // that effect on the same render, dropping them from the cart.
