@@ -37,12 +37,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       athletes,
       duration,
       notes,
+      privacyAccepted,
+      crossBorderAccepted,
     } = req.body || {};
 
     if (!contactPerson || !contact) {
       return res
         .status(400)
         .json({ error: "Please add a contact person and a way to reach you." });
+    }
+    if (privacyAccepted !== true || crossBorderAccepted !== true) {
+      return res.status(400).json({ error: "Privacy and cross-border consent required" });
     }
 
     const fields: Record<string, any> = {

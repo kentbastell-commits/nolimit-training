@@ -130,6 +130,8 @@ export default function StorePage({
 }) {
   const sZh = storeLang === "zh";
   const storePrograms = programs.filter((p) => p.publicStoreVisible);
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
+  const [crossBorderAccepted, setCrossBorderAccepted] = useState(false);
 
   // The coach to feature in "Meet your coach": prefer a Head/Admin coach,
   // else the first active one. Bio is editable in the coach record; until
@@ -1657,12 +1659,21 @@ export default function StorePage({
                             </label>
                             <button
                               className="primaryButton"
-                              disabled={storeRegistering}
+                              disabled={
+                                storeRegistering ||
+                                !privacyAccepted ||
+                                !crossBorderAccepted
+                              }
                               onClick={() =>
                                 void registerForProgram(
                                   sp,
                                   selectedAddons,
-                                  isBundleProgram(sp) ? bundleIncludes(sp) : []
+                                  isBundleProgram(sp) ? bundleIncludes(sp) : [],
+                                  {
+                                    privacyAccepted,
+                                    crossBorderAccepted,
+                                    consentVersion: "2026-07-12",
+                                  }
                                 )
                               }
                             >
@@ -1687,6 +1698,42 @@ export default function StorePage({
                                 ? "点击即表示你已完成微信付款。"
                                 : "Tapping this confirms you've paid via WeChat."}
                             </span>
+                            <div className="storeConsentGroup">
+                              <label>
+                                <input
+                                  type="checkbox"
+                                  checked={privacyAccepted}
+                                  onChange={(e) => setPrivacyAccepted(e.target.checked)}
+                                />
+                                <span>
+                                  {sZh ? "我已阅读并同意" : "I have read and agree to the"}{" "}
+                                  <a href="/terms" target="_blank" rel="noreferrer">
+                                    {sZh ? "服务条款" : "Terms"}
+                                  </a>
+                                  {sZh ? "、" : ", "}
+                                  <a href="/privacy" target="_blank" rel="noreferrer">
+                                    {sZh ? "隐私政策" : "Privacy Policy"}
+                                  </a>
+                                  {sZh ? "和" : ", and "}
+                                  <a href="/refund" target="_blank" rel="noreferrer">
+                                    {sZh ? "退款政策" : "Refund Policy"}
+                                  </a>
+                                  。
+                                </span>
+                              </label>
+                              <label>
+                                <input
+                                  type="checkbox"
+                                  checked={crossBorderAccepted}
+                                  onChange={(e) => setCrossBorderAccepted(e.target.checked)}
+                                />
+                                <span>
+                                  {sZh
+                                    ? "我单独同意：在完成中国内地迁移前，为提供服务所必需的信息可能在中国内地与香港之间处理。"
+                                    : "I separately consent to necessary processing between mainland China and Hong Kong until the mainland migration is complete."}
+                                </span>
+                              </label>
+                            </div>
                           </div>
                           <div className="storeStepActions">
                             <button
@@ -1868,6 +1915,9 @@ export default function StorePage({
           <button type="button" onClick={() => setStoreLauncherOpen(true)}>
             {sZh ? "客户端" : "Client Portal"}
           </button>
+          <a href="/privacy">{sZh ? "隐私" : "Privacy"}</a>
+          <a href="/terms">{sZh ? "条款" : "Terms"}</a>
+          <a href="/refund">{sZh ? "退款" : "Refunds"}</a>
         </div>
         <span className="storeFooterTagV3">{sZh ? "为训练而生。" : "Built for Training."}</span>
       </footer>

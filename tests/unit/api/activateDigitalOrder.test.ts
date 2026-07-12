@@ -73,6 +73,7 @@ describe("api/activateDigitalOrder", () => {
               { field_name: "Fulfillment Status" },
               { field_name: "Purchased At" },
               { field_name: "Access Start Date" },
+              { field_name: "Notes" },
             ],
           },
         },
@@ -96,6 +97,9 @@ describe("api/activateDigitalOrder", () => {
           amount: "299",
           currency: "CNY",
           paymentCode: "PAY123",
+          privacyAccepted: true,
+          crossBorderAccepted: true,
+          consentVersion: "2026-07-12",
         },
       }) as any,
       res as any
@@ -126,6 +130,16 @@ describe("api/activateDigitalOrder", () => {
     expect(sent["Payment Status"]).toBe("Pending");
     expect(sent["Payment Reference"]).toBe("PAY123");
     expect(sent["Fulfillment Status"]).toBe("New Order");
+    expect(sent.Notes).toContain("Privacy / Terms: accepted (2026-07-12)");
+
+    const clientConsentCall = impl.mock.calls.find(
+      ([url, options]: any[]) =>
+        String(url).includes("tbl-cli-ado/records/recClient1") &&
+        options?.method === "PUT"
+    );
+    expect(clientConsentCall).toBeTruthy();
+    const clientConsent = JSON.parse(clientConsentCall![1].body).fields.Notes;
+    expect(clientConsent).toContain("Mainland China / Hong Kong processing");
   });
 
   it("reports orderPersisted false (still 200) when the order write fails", async () => {
@@ -155,7 +169,13 @@ describe("api/activateDigitalOrder", () => {
     await handler(
       makeReq({
         method: "POST",
-        body: { clientName: "Bob", phone: "138000", programId: "PR-1" },
+        body: {
+          clientName: "Bob",
+          phone: "138000",
+          programId: "PR-1",
+          privacyAccepted: true,
+          crossBorderAccepted: true,
+        },
       }) as any,
       res as any
     );
@@ -164,5 +184,20 @@ describe("api/activateDigitalOrder", () => {
     expect(res.body.orderPersisted).toBe(false);
     expect(res.body.orderIds).toHaveLength(0);
     expect(res.body.orderError).toBeTruthy();
+  });
+
+  it("400s when privacy or cross-border consent is missing", async () => {
+    stubTables();
+    const res = makeRes();
+    await handler(
+      makeReq({
+        method: "POST",
+        body: { clientName: "Bob", phone: "138000", programId: "PR-1" },
+      }) as any,
+      res as any
+    );
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body.error).toBe("Privacy and cross-border consent required");
   });
 });

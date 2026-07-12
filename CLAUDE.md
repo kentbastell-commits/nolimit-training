@@ -122,6 +122,10 @@ data between them, never "borrow" a table ID across products.
     assume your edit took. (Cost hours on the sidebar identity box: a stray
     `.coachBoxWrap { position:absolute }` in appInterior.css pinned it out of
     flow and made the nav overlap it — invisible from App.css.)
+19. **The future-state privacy promise** — writing the privacy policy as if a
+    planned mainland/Postgres migration is already complete. Rule: disclose the
+    live data path until migration is verified, record temporary cross-border
+    consent, then remove that consent and update the policy in the cutover pass.
 
 ## Quality bar — checkable, per deliverable
 

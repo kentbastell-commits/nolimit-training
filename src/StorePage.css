@@ -487,6 +487,27 @@
   font-weight: 700;
   text-align: center;
 }
+
+.storeConsentGroup {
+  display: grid;
+  gap: 10px;
+  padding: 14px 0 2px;
+  border-top: 1px solid rgba(23, 22, 16, 0.12);
+}
+
+.storeConsentGroup label {
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  gap: 9px;
+  align-items: start;
+  color: #6c675e;
+  font-size: 12px;
+  line-height: 1.55;
+  cursor: pointer;
+}
+
+.storeConsentGroup input { margin: 2px 0 0; accent-color: #b78915; }
+.storeConsentGroup a { color: #6f5310; font-weight: 700; }
 /* ---- Checkout: post-payment confirmation ---- */
 .storeConfirmV2 {
   margin-top: 22px;

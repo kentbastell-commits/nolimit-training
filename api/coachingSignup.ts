@@ -133,6 +133,11 @@ function buildQualifierNotes(body: any): string {
     `Sport: ${body.sport || "—"}`,
     `Preferred start: ${body.startDate || "—"}`,
     `Primary goal: ${body.goal || "—"}`,
+    "",
+    "— CONSENT RECORD —",
+    `Privacy / Terms: accepted (${body.consentVersion || "2026-07-12"})`,
+    "Mainland China / Hong Kong processing: separately accepted",
+    `Recorded: ${new Date().toISOString()}`,
   ];
   return lines.join("\n");
 }
@@ -147,6 +152,11 @@ function buildIntakeNotes(body: any): string {
     `Injuries / limitations: ${body.injuries || "—"}`,
     `Equipment / gym: ${body.equipment || "—"}`,
     `Other notes: ${body.notes || "—"}`,
+    "",
+    "— SENSITIVE INFORMATION CONSENT —",
+    `Health / injury information: ${body.healthConsent ? "separately accepted" : "not provided"}`,
+    `Policy version: ${body.consentVersion || "2026-07-12"}`,
+    `Recorded: ${new Date().toISOString()}`,
   ];
   return lines.join("\n");
 }
@@ -182,6 +192,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const clientRecordId = String(body.clientRecordId || "");
       if (!clientRecordId)
         return res.status(400).json({ error: "clientRecordId required" });
+      if (String(body.injuries || "").trim() && body.healthConsent !== true)
+        return res.status(400).json({ error: "Separate health information consent required" });
 
       // Read current notes so we append rather than overwrite the qualifier.
       let existingNotes = "";
@@ -232,6 +244,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res
         .status(400)
         .json({ error: "clientName, phone, and termLabel required" });
+    if (body.privacyAccepted !== true || body.crossBorderAccepted !== true)
+      return res.status(400).json({ error: "Privacy and cross-border consent required" });
 
     const languagePreference =
       String(body.languagePreference || "").toLowerCase() === "chinese"

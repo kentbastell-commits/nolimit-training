@@ -169,6 +169,7 @@ const StorePage = withSuspense(() => import("./StorePage"));
 const ClientInvitePage = withSuspense(() => import("./ClientInvitePage"));
 const CoachingFlowPage = withSuspense(() => import("./CoachingFlowPage"));
 const InPersonEnquiryPage = withSuspense(() => import("./InPersonEnquiryPage"));
+const LegalPage = withSuspense(() => import("./LegalPage"));
 const PortalWelcome = withSuspense(() => import("./PortalWelcome"));
 const ReviewPage = withSuspense(() => import("./ReviewPage"));
 const CoachClientsPage = withSuspense(() => import("./CoachClientsPage"));
@@ -225,6 +226,14 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   const isClientPortal = inviteSearchParams.get("portal") === "client";
   const isCoachView = inviteSearchParams.get("view") === "coach";
   const publicPath = window.location.pathname.replace(/\/+$/, "") || "/";
+  const legalKind =
+    publicPath === "/privacy"
+      ? "privacy"
+      : publicPath === "/terms"
+        ? "terms"
+        : publicPath === "/refund"
+          ? "refund"
+          : null;
   // Root is the public brand landing page. Store remains available at /store
   // and ?page=store. Coach app is at ?view=coach, athlete portal at
   // ?portal=client, intake at ?invite=client.
@@ -232,6 +241,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     inviteSearchParams.get("page") === "store" || publicPath === "/store";
   const isPublicLandingPage =
     !isStorePage &&
+    !legalKind &&
     !isClientPortal &&
     !isClientInvite &&
     !isInPersonEnquiry &&
@@ -1707,7 +1717,12 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     }
   };
 
-  const submitInviteForm = async () => {
+  const submitInviteForm = async (consent?: {
+    privacyAccepted?: boolean;
+    crossBorderAccepted?: boolean;
+    healthConsent?: boolean;
+    consentVersion?: string;
+  }) => {
     if (!inviteForm.name.trim()) {
       notify("Please enter your name.", "error");
       return;
@@ -1715,6 +1730,10 @@ function App({ onReady }: { onReady?: () => void } = {}) {
 
     if (!inviteForm.email.trim() && !inviteForm.phone.trim()) {
       notify("Please add an email or phone/WeChat.", "error");
+      return;
+    }
+    if (!consent?.privacyAccepted || !consent.crossBorderAccepted || !consent.healthConsent) {
+      notify("Please complete the privacy and health consent choices.", "error");
       return;
     }
 
@@ -1747,6 +1766,12 @@ function App({ onReady }: { onReady?: () => void } = {}) {
         line("Equipment", inviteForm.equipment),
         "",
         line("Anything else", inviteForm.notes),
+        "",
+        "— CONSENT RECORD —",
+        `Privacy / Terms: accepted (${consent.consentVersion || "2026-07-12"})`,
+        "Sensitive health information: separately accepted",
+        "Mainland China / Hong Kong processing: separately accepted",
+        `Recorded: ${new Date().toISOString()}`,
       ]
         // Drop empty value-lines but keep section headers that have content.
         .filter((l, i, arr) => {
@@ -1792,7 +1817,11 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     }
   };
 
-  const submitEnquiry = async () => {
+  const submitEnquiry = async (consent?: {
+    privacyAccepted?: boolean;
+    crossBorderAccepted?: boolean;
+    consentVersion?: string;
+  }) => {
     if (!enquiryForm.contactPerson.trim()) {
       notify("Please enter a contact person.", "error");
       return;
@@ -1801,12 +1830,28 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       notify("Please add a WeChat or email so we can reach you.", "error");
       return;
     }
+    if (!consent?.privacyAccepted || !consent.crossBorderAccepted) {
+      notify("Please complete the privacy consent choices.", "error");
+      return;
+    }
     setSubmittingEnquiry(true);
     try {
       const response = await fetch("/api/inPersonEnquiry", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(enquiryForm),
+        body: JSON.stringify({
+          ...enquiryForm,
+          notes: [
+            enquiryForm.notes,
+            "— CONSENT RECORD —",
+            `Privacy / Terms: accepted (${consent.consentVersion || "2026-07-12"})`,
+            "Mainland China / Hong Kong processing: separately accepted",
+            `Recorded: ${new Date().toISOString()}`,
+          ].filter(Boolean).join("\n"),
+          privacyAccepted: consent.privacyAccepted,
+          crossBorderAccepted: consent.crossBorderAccepted,
+          consentVersion: consent.consentVersion || "2026-07-12",
+        }),
       });
       const data = await response.json();
       if (!response.ok || !data.success) {
@@ -10380,13 +10425,27 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   const registerForProgram = async (
     program: Program,
     addonList: Program[] = [],
-    bundleMembers: Program[] = []
+    bundleMembers: Program[] = [],
+    consent?: {
+      privacyAccepted?: boolean;
+      crossBorderAccepted?: boolean;
+      consentVersion?: string;
+    }
   ) => {
     if (!storeRegName.trim() || !storeRegPhone.trim()) {
       notify(
         storeLang === "zh"
           ? "请输入姓名和微信号。"
           : "Please enter your name and WeChat ID.",
+        "error"
+      );
+      return;
+    }
+    if (!consent?.privacyAccepted || !consent.crossBorderAccepted) {
+      notify(
+        storeLang === "zh"
+          ? "请先完成隐私与数据处理同意选项。"
+          : "Please complete the privacy consent choices.",
         "error"
       );
       return;
@@ -10414,6 +10473,9 @@ function App({ onReady }: { onReady?: () => void } = {}) {
           defaultIntakeFormId: program.defaultIntakeFormId || "",
           paymentCode: storePaymentCode,
           languagePreference: storeLang === "zh" ? "Chinese" : "English",
+          privacyAccepted: consent.privacyAccepted,
+          crossBorderAccepted: consent.crossBorderAccepted,
+          consentVersion: consent.consentVersion || "2026-07-12",
           addons: addonList.map((addon) => ({
             programId: addon.programId,
             programRecordId: addon.recordId,
@@ -17215,6 +17277,12 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       setPortalHomeTab(portalHomeOrder[next]);
     }
   };
+
+  if (legalKind) {
+    return (
+      <LegalPage kind={legalKind} lang={storeLang} setLang={setStoreLang} />
+    );
+  }
 
   if (isPublicLandingPage) {
     return (

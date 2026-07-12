@@ -551,6 +551,9 @@ export default function LandingPage({
           <a href="/?invite=client">{landingCopy.navCoaching}</a>
           <a href="/?portal=client">{lZh ? "客户端" : "Client Portal"}</a>
           <a href="/?view=coach">{landingCopy.coachLogin}</a>
+          <a href="/privacy">{lZh ? "隐私" : "Privacy"}</a>
+          <a href="/terms">{lZh ? "条款" : "Terms"}</a>
+          <a href="/refund">{lZh ? "退款" : "Refunds"}</a>
         </div>
       </footer>
     </div>

@@ -137,10 +137,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     addons,
     bundleItems,
     languagePreference,
+    privacyAccepted,
+    crossBorderAccepted,
+    consentVersion,
   } = req.body;
 
   if (!clientName || !phone || !programId)
     return res.status(400).json({ error: "clientName, phone, and programId required" });
+  if (privacyAccepted !== true || crossBorderAccepted !== true)
+    return res.status(400).json({ error: "Privacy and cross-border consent required" });
+
+  const consentRecord = [
+    "— CONSENT RECORD —",
+    `Privacy / Terms: accepted (${consentVersion || "2026-07-12"})`,
+    "Mainland China / Hong Kong processing: separately accepted",
+    `Recorded: ${new Date().toISOString()}`,
+  ].join("\n");
 
   // Full cart: the main program plus any joint/mobility add-ons bought with it.
   // Each item becomes its own order so autoLoadProgram fulfils every purchase
@@ -203,6 +215,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // 1. Find existing client by phone
     let clientRecordId = "";
     let clientCode = "";
+    let existingClientNotes = "";
 
     if (clientsTableId) {
       const searchRes = await fetch(
@@ -217,6 +230,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           fieldToText(existing.fields?.["Client ID"]) ||
           fieldToText(existing.fields?.["client id"]) ||
           makeId("CL");
+        existingClientNotes = fieldToText(existing.fields?.["Notes"]);
       }
     }
 
@@ -244,6 +258,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               String(languagePreference || "").toLowerCase() === "english"
                 ? "English"
                 : "Chinese",
+            Notes: consentRecord,
           },
         }),
       });
@@ -253,6 +268,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (!clientRecordId)
       return res.status(500).json({ error: "Could not create or find client" });
+
+    await fetch(`${base}/${clientsTableId}/records/${clientRecordId}`, {
+      method: "PUT",
+      headers,
+      body: JSON.stringify({
+        fields: {
+          Notes: [existingClientNotes, consentRecord].filter(Boolean).join("\n\n"),
+        },
+      }),
+    });
 
     // 3. Create one product order per cart item — schema-aware so a missing
     // column or an empty value never silently fails the whole write (the old
@@ -357,6 +382,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         ["Access Start Date", "Start Date", "Program Start Date"],
         toLarkDate(today)
       );
+      applyField(orderFieldsSchema, fields, ["Notes", "Internal Notes"], consentRecord);
 
       const orderRes = await fetch(`${base}/${ordersTableId}/records`, {
         method: "POST",

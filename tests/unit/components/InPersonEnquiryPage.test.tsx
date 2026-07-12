@@ -40,4 +40,14 @@ describe("InPersonEnquiryPage", () => {
     fireEvent.click(screen.getByText("中文"));
     expect(setInviteLang).toHaveBeenCalledWith("zh");
   });
+
+  it("requires privacy and temporary cross-border consent", () => {
+    render(<InPersonEnquiryPage {...baseProps} />);
+    const submit = screen.getByRole("button", { name: "Send Enquiry" });
+    expect(submit).toBeDisabled();
+    const checks = screen.getAllByRole("checkbox");
+    expect(checks).toHaveLength(2);
+    checks.forEach((check) => fireEvent.click(check));
+    expect(submit).toBeEnabled();
+  });
 });

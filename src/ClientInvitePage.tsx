@@ -1,5 +1,6 @@
 // Extracted from App.tsx (monolith split) — JSX verbatim, props threaded.
 import "./ClientInvitePage.css";
+import { useState } from "react";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 export default function ClientInvitePage({
@@ -15,6 +16,9 @@ export default function ClientInvitePage({
   toasts,
 }: { [key: string]: any }) {
   const iZh = inviteLang === "zh";
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
+  const [crossBorderAccepted, setCrossBorderAccepted] = useState(false);
+  const [healthConsent, setHealthConsent] = useState(false);
   const invitePortalLink = inviteClientId
     ? `${window.location.origin}/?portal=client&client=${encodeURIComponent(inviteClientId)}`
     : "";
@@ -375,11 +379,31 @@ export default function ClientInvitePage({
               </label>
             </div>
 
+            <div className="inviteConsentGroup">
+              <label>
+                <input type="checkbox" checked={privacyAccepted} onChange={(e) => setPrivacyAccepted(e.target.checked)} />
+                <span>
+                  {iZh ? "我已阅读并同意" : "I have read and agree to the"}{" "}
+                  <a href="/terms" target="_blank" rel="noreferrer">{iZh ? "服务条款" : "Terms"}</a>
+                  {iZh ? "、" : ", "}<a href="/privacy" target="_blank" rel="noreferrer">{iZh ? "隐私政策" : "Privacy Policy"}</a>
+                  {iZh ? "和" : ", and "}<a href="/refund" target="_blank" rel="noreferrer">{iZh ? "退款政策" : "Refund Policy"}</a>。
+                </span>
+              </label>
+              <label>
+                <input type="checkbox" checked={crossBorderAccepted} onChange={(e) => setCrossBorderAccepted(e.target.checked)} />
+                <span>{iZh ? "我单独同意：在完成中国内地迁移前，为提供服务所必需的信息可能在中国内地与香港之间处理。" : "I separately consent to necessary processing between mainland China and Hong Kong until the mainland migration is complete."}</span>
+              </label>
+              <label>
+                <input type="checkbox" checked={healthConsent} onChange={(e) => setHealthConsent(e.target.checked)} />
+                <span>{iZh ? "我单独同意 NoLimit Training 为安全、个性化指导处理我提供的身体数据、伤病及健康信息，并理解这不是医疗服务。" : "I separately consent to processing the body, injury, and health information I provide for safe, personalised coaching, and understand this is not medical care."}</span>
+              </label>
+            </div>
+
             <div className="inviteActions">
               <button
                 className="goldButton"
-                onClick={() => void submitInviteForm()}
-                disabled={submittingInvite}
+                onClick={() => void submitInviteForm({ privacyAccepted, crossBorderAccepted, healthConsent, consentVersion: "2026-07-12" })}
+                disabled={submittingInvite || !privacyAccepted || !crossBorderAccepted || !healthConsent}
               >
                 {submittingInvite
                   ? iZh ? "提交中..." : "Submitting..."

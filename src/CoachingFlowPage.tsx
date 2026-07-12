@@ -56,6 +56,8 @@ export default function CoachingFlowPage() {
   const [sport, setSport] = useState("");
   const [startDate, setStartDate] = useState("");
   const [goal, setGoal] = useState("");
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
+  const [crossBorderAccepted, setCrossBorderAccepted] = useState(false);
   // onboarding (post-payment, all optional)
   const [trainingAge, setTrainingAge] = useState("");
   const [position, setPosition] = useState("");
@@ -64,13 +66,21 @@ export default function CoachingFlowPage() {
   const [injuries, setInjuries] = useState("");
   const [equipment, setEquipment] = useState("");
   const [notes, setNotes] = useState("");
+  const [healthConsent, setHealthConsent] = useState(false);
 
   const tier = useMemo(() => TIERS.find((x) => x.id === tierId) || null, [tierId]);
   const tierLabel = (x: Tier) =>
     zh ? `${x.months} 个月` : x.label;
 
   const qualifierValid =
-    name.trim() && wechat.trim() && sport && startDate && goal.trim();
+    name.trim() &&
+    wechat.trim() &&
+    sport &&
+    startDate &&
+    goal.trim() &&
+    privacyAccepted &&
+    crossBorderAccepted;
+  const healthConsentRequired = !!injuries.trim();
 
   useEffect(() => {
     if (step === "payment" && !paymentCode) setPaymentCode(genPaymentCode());
@@ -121,6 +131,9 @@ export default function CoachingFlowPage() {
           currency: "CNY",
           paymentCode,
           languagePreference: zh ? "Chinese" : "English",
+          privacyAccepted,
+          crossBorderAccepted,
+          consentVersion: "2026-07-12",
         }),
       });
       const data = await res.json();
@@ -130,7 +143,7 @@ export default function CoachingFlowPage() {
       setClientCode(data.clientCode || "");
       setClientRecordId(data.clientRecordId || "");
       setStep("onboarding");
-    } catch (e: any) {
+    } catch {
       setError(
         t(
           "Something went wrong saving your signup. Please try again or contact us on WeChat.",
@@ -160,6 +173,8 @@ export default function CoachingFlowPage() {
           injuries,
           equipment,
           notes,
+          healthConsent,
+          consentVersion: "2026-07-12",
         }),
       });
     } catch {
@@ -397,6 +412,37 @@ export default function CoachingFlowPage() {
                     onChange={(e) => setGoal(e.target.value)}
                   />
                 </label>
+                <div className="cfpConsentGroup">
+                  <label className="cfpConsentRow">
+                    <input
+                      type="checkbox"
+                      checked={privacyAccepted}
+                      onChange={(e) => setPrivacyAccepted(e.target.checked)}
+                    />
+                    <span>
+                      {t("I have read and agree to the ", "我已阅读并同意")}
+                      <a href="/terms" target="_blank" rel="noreferrer">{t("Terms", "《服务条款》")}</a>
+                      {t(", ", "、")}
+                      <a href="/privacy" target="_blank" rel="noreferrer">{t("Privacy Policy", "《隐私政策》")}</a>
+                      {t(", and ", "及")}
+                      <a href="/refund" target="_blank" rel="noreferrer">{t("Refund Policy", "《退款政策》")}</a>
+                      {t(".", "。")}
+                    </span>
+                  </label>
+                  <label className="cfpConsentRow">
+                    <input
+                      type="checkbox"
+                      checked={crossBorderAccepted}
+                      onChange={(e) => setCrossBorderAccepted(e.target.checked)}
+                    />
+                    <span>
+                      {t(
+                        "I separately consent to necessary processing between mainland China and Hong Kong until the mainland migration is complete.",
+                        "我单独同意：在完成中国内地迁移前，为提供服务所必需的信息可能在中国内地与香港之间处理。"
+                      )}
+                    </span>
+                  </label>
+                </div>
               </div>
             </div>
           )}
@@ -556,6 +602,19 @@ export default function CoachingFlowPage() {
                       onChange={(e) => setInjuries(e.target.value)}
                     />
                   </label>
+                  <label className="cfpConsentRow cfpHealthConsent">
+                    <input
+                      type="checkbox"
+                      checked={healthConsent}
+                      onChange={(e) => setHealthConsent(e.target.checked)}
+                    />
+                    <span>
+                      {t(
+                        "I separately consent to NoLimit Training processing the injury and health information I provide for safe, personalised coaching. I understand this is not medical care.",
+                        "我单独同意 NoLimit Training 为安全、个性化地提供训练指导而处理我主动提供的伤病与健康信息。我理解本服务不属于医疗服务。"
+                      )}
+                    </span>
+                  </label>
                   <label>
                     <span>{t("Equipment / gym access", "器械 / 场地条件")}</span>
                     <select value={equipment} onChange={(e) => setEquipment(e.target.value)}>
@@ -584,10 +643,18 @@ export default function CoachingFlowPage() {
               </div>
 
               <div className="cfpOnboardActions">
-                <button className="cfpPrimary" onClick={finish} disabled={submitting}>
+                <button
+                  className="cfpPrimary"
+                  onClick={finish}
+                  disabled={submitting || (healthConsentRequired && !healthConsent)}
+                >
                   {submitting ? t("Submitting…", "提交中…") : t("Submit questionnaire", "提交问卷")}
                 </button>
-                <button className="cfpGhost" onClick={finish} disabled={submitting}>
+                <button
+                  className="cfpGhost"
+                  onClick={finish}
+                  disabled={submitting || (healthConsentRequired && !healthConsent)}
+                >
                   {t("I'll finish later", "稍后再填")}
                 </button>
               </div>
@@ -679,6 +746,11 @@ export default function CoachingFlowPage() {
             </div>
           </div>
         )}
+        <div className="cfpPolicyLinks">
+          <a href="/privacy">{t("Privacy", "隐私政策")}</a>
+          <a href="/terms">{t("Terms", "服务条款")}</a>
+          <a href="/refund">{t("Refunds", "退款政策")}</a>
+        </div>
       </div>
     </div>
   );

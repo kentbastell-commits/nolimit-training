@@ -431,6 +431,29 @@
   font-weight: 500;
   font-style: normal;
 }
+
+.cfpConsentGroup {
+  display: grid;
+  gap: 10px;
+  padding: 14px 0 0;
+  border-top: 1px solid #e2dccf;
+}
+
+.cfpConsentRow {
+  display: grid !important;
+  grid-template-columns: 18px 1fr;
+  gap: 10px;
+  align-items: start;
+  color: #69655d;
+  font-size: 12px;
+  line-height: 1.55;
+  cursor: pointer;
+}
+
+.cfpConsentRow input { width: 16px; height: 16px; margin: 2px 0 0; accent-color: #ba8c18; }
+.cfpConsentRow span { color: inherit !important; font-size: inherit !important; font-weight: 500 !important; text-transform: none !important; letter-spacing: 0 !important; }
+.cfpConsentRow a { color: #8a6710; font-weight: 800; }
+.cfpHealthConsent { padding: 13px 14px; border: 1px solid #ded5c5; border-radius: 12px; background: #faf7f0; }
 .cfpSection {
   margin-top: 24px;
 }
@@ -770,6 +793,17 @@
   font-size: 14px;
   border-radius: 12px;
 }
+
+.cfpPolicyLinks {
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  padding: 16px 24px;
+  background: #f5f0e6;
+  border-top: 1px solid #e1d9c9;
+}
+
+.cfpPolicyLinks a { color: #777065; font-size: 11px; font-weight: 700; }
 
 @media (max-width: 720px) {
   .cfpWrap {

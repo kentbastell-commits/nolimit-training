@@ -59,6 +59,8 @@ describe("api/inPersonEnquiry", () => {
           athletes: "12",
           duration: "8 weeks",
           notes: "Pre-season",
+          privacyAccepted: true,
+          crossBorderAccepted: true,
         },
       }) as any,
       res as any
@@ -91,7 +93,12 @@ describe("api/inPersonEnquiry", () => {
     await handler(
       makeReq({
         method: "POST",
-        body: { contactPerson: "Zhang Wei", contact: "138-0000-0000" },
+        body: {
+          contactPerson: "Zhang Wei",
+          contact: "138-0000-0000",
+          privacyAccepted: true,
+          crossBorderAccepted: true,
+        },
       }) as any,
       res as any
     );
@@ -99,5 +106,19 @@ describe("api/inPersonEnquiry", () => {
     expect(res.statusCode).toBe(500);
     expect(res.body.error).toBe("Could not save enquiry");
     expect(res.body.larkResponse.code).toBe(1254045);
+  });
+
+  it("400 when privacy consent is missing", async () => {
+    stubFeishuEnv({ FEISHU_ENQUIRIES_TABLE_ID: "tbl-enq" });
+    const res = makeRes();
+    await handler(
+      makeReq({
+        method: "POST",
+        body: { contactPerson: "Zhang Wei", contact: "138-0000-0000" },
+      }) as any,
+      res as any
+    );
+    expect(res.statusCode).toBe(400);
+    expect(res.body.error).toBe("Privacy and cross-border consent required");
   });
 });

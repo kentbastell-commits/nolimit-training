@@ -1,5 +1,6 @@
 // Extracted from App.tsx (monolith split) — JSX verbatim, props threaded.
 import "./InPersonEnquiryPage.css";
+import { useState } from "react";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 export default function InPersonEnquiryPage({
@@ -13,6 +14,8 @@ export default function InPersonEnquiryPage({
   toasts,
 }: { [key: string]: any }) {
   const iZh = inviteLang === "zh";
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
+  const [crossBorderAccepted, setCrossBorderAccepted] = useState(false);
   return (
     <div className="invitePage">
       <div className="toastStack">
@@ -133,6 +136,21 @@ export default function InPersonEnquiryPage({
               </label>
             </div>
 
+            <div className="inviteConsentGroup">
+              <label>
+                <input type="checkbox" checked={privacyAccepted} onChange={(e) => setPrivacyAccepted(e.target.checked)} />
+                <span>
+                  {iZh ? "我已阅读并同意" : "I have read and agree to the"}{" "}
+                  <a href="/terms" target="_blank" rel="noreferrer">{iZh ? "服务条款" : "Terms"}</a>
+                  {iZh ? "和" : " and "}<a href="/privacy" target="_blank" rel="noreferrer">{iZh ? "隐私政策" : "Privacy Policy"}</a>。
+                </span>
+              </label>
+              <label>
+                <input type="checkbox" checked={crossBorderAccepted} onChange={(e) => setCrossBorderAccepted(e.target.checked)} />
+                <span>{iZh ? "我单独同意：在完成中国内地迁移前，为回复本次咨询所必需的信息可能在中国内地与香港之间处理。" : "I separately consent to necessary processing between mainland China and Hong Kong until the mainland migration is complete."}</span>
+              </label>
+            </div>
+
             <div className="enquiryQrRow">
               <img
                 src="https://i.ibb.co/Y4nXVG4g/Weixin-Image-20260611202846-56-2.jpg"
@@ -144,8 +162,8 @@ export default function InPersonEnquiryPage({
             <div className="inviteActions">
               <button
                 className="goldButton"
-                onClick={() => void submitEnquiry()}
-                disabled={submittingEnquiry}
+                onClick={() => void submitEnquiry({ privacyAccepted, crossBorderAccepted, consentVersion: "2026-07-12" })}
+                disabled={submittingEnquiry || !privacyAccepted || !crossBorderAccepted}
               >
                 {submittingEnquiry
                   ? iZh ? "提交中..." : "Sending..."

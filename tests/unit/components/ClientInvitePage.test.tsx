@@ -50,6 +50,16 @@ describe("ClientInvitePage", () => {
     expect(setInviteLang).toHaveBeenCalledWith("zh");
   });
 
+  it("requires the three separate consent choices before submission", () => {
+    render(<ClientInvitePage {...baseProps} />);
+    const submit = screen.getByRole("button", { name: "Submit Intake" });
+    expect(submit).toBeDisabled();
+    const checks = screen.getAllByRole("checkbox");
+    expect(checks).toHaveLength(3);
+    checks.forEach((check) => fireEvent.click(check));
+    expect(submit).toBeEnabled();
+  });
+
   it("shows the success state with a portal link after submission", () => {
     render(
       <ClientInvitePage
