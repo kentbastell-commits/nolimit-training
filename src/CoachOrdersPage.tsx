@@ -65,7 +65,9 @@ export default function CoachOrdersPage(props: { [key: string]: any }) {
     showManualOrderForm,
     updateProductOrder,
     visibleProductOrders,
+    isChinese,
   } = props;
+  const tr = (en: string, zh: string) => (isChinese ? zh : en);
 
   const reduce = useReducedMotion();
   const [segment, setSegment] = useState<"online" | "inperson">("online");
@@ -94,6 +96,7 @@ export default function CoachOrdersPage(props: { [key: string]: any }) {
   // ---- digital roll-up ----
   const digSales = digital.length;
   const digRevenue = digital.reduce((a, o) => a + (Number(o.amount) || 0), 0);
+  const digitalPending = digital.filter((o) => !isPaid(o));
 
   // ---- online board ----
   const awaitingCoach = online.filter((o) => !coachOf(o)).length;
@@ -178,6 +181,53 @@ export default function CoachOrdersPage(props: { [key: string]: any }) {
           View in Digital <ChevronRight size={16} />
         </span>
       </a>
+
+      {digitalPending.length > 0 && (
+        <section className="copDigitalPayments" aria-label={tr("Digital payment verification", "数字计划付款核对")}>
+          <div className="copSectionHead">
+            <div>
+              <span className="copEyebrow">{tr("Payment verification", "付款核对")}</span>
+              <h2>{tr("Digital orders awaiting confirmation", "待确认的数字计划订单")}</h2>
+            </div>
+            <span className="copPendChip">
+              <Clock size={12} /> {digitalPending.length} {tr("pending", "笔待核对")}
+            </span>
+          </div>
+          <div className="copLedger">
+            {digitalPending.map((order) => (
+              <div className="copRow" key={order.recordId || order.orderId}>
+                <div className="copRowMain">
+                  <div className="copRowLabel">{order.clientName || tr("Unnamed buyer", "未命名买家")}</div>
+                  <div className="copRowItem">{order.productName || tr("Digital program", "数字训练计划")}</div>
+                </div>
+                <div className="copRowMid">
+                  <div>{tr("Reference", "付款备注")} <strong>{order.paymentReference || "—"}</strong></div>
+                  <div>{order.orderId || tr("No order ID", "无订单号")}</div>
+                </div>
+                <div className="copRowAmt">{money(order.amount, order.currency)}</div>
+                <div className="copRowEnd">
+                  <button
+                    type="button"
+                    className="copMarkPaid"
+                    disabled={orderProcessingId === order.recordId || !order.paymentReference}
+                    title={
+                      order.paymentReference
+                        ? tr(
+                            `Confirm WeChat reference ${order.paymentReference}`,
+                            `确认微信付款备注 ${order.paymentReference}`
+                          )
+                        : tr("Payment reference missing", "缺少付款备注")
+                    }
+                    onClick={() => void updateProductOrder(order, { paymentStatus: "Paid" })}
+                  >
+                    <Check size={13} /> {tr("Verify payment", "确认付款")}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* segmented control */}
       <div className="copSeg">

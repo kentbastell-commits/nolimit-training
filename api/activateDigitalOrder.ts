@@ -144,6 +144,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (!clientName || !phone || !programId)
     return res.status(400).json({ error: "clientName, phone, and programId required" });
+  if (!/^NL-[2-9A-HJ-NP-Z]{4}$/.test(String(paymentCode || "").trim()))
+    return res.status(400).json({ error: "A valid NL payment reference is required" });
   if (privacyAccepted !== true || crossBorderAccepted !== true)
     return res.status(400).json({ error: "Privacy and cross-border consent required" });
 
@@ -247,7 +249,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             ...(email ? { Email: email } : {}),
             "Client ID": clientCode,
             Source: "Store",
-            "Payment Status": "Paid",
+            "Payment Status": "Pending",
             "Intake Status": "Not Sent",
             "Subscription Status": "Active",
             "Client Type": "Digital Program",
@@ -286,8 +288,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     //
     // Payment Status starts at "Pending": the buyer confirms they paid, and the
     // coach one-tap-verifies against the payment code they put in the WeChat
-    // transfer note. Access (intake + program load) is NOT gated on
-    // verification, so the client never waits on the coach.
+    // transfer note. The intake portal opens immediately, but
+    // autoLoadProgram keeps the paid training plan locked until verification.
     const orderIds: string[] = [];
     let orderId = "";
     let orderPersisted = false;

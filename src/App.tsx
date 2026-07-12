@@ -455,6 +455,8 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   const [portalPostIntake, setPortalPostIntake] = useState(false);
   const [portalAutoLoading, setPortalAutoLoading] = useState(false);
   const [portalLoadedProgram, setPortalLoadedProgram] = useState("");
+  const [portalPaymentPending, setPortalPaymentPending] = useState(false);
+  const [portalPendingStartDate, setPortalPendingStartDate] = useState("");
   // Post-intake start-date chooser (today / Monday / custom) before auto-load.
   const [portalStartPicker, setPortalStartPicker] = useState(false);
   const [portalStartCustom, setPortalStartCustom] = useState("");
@@ -11806,28 +11808,68 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     updates: Record<string, string | undefined>
   ) => {
     try {
-      const response = await fetch("/api/updateProductOrder", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          recordId: order.recordId,
-          ...updates,
-        }),
-      });
-      const data = await response.json();
+      const isPaymentVerification = /^paid$/i.test(updates.paymentStatus || "");
+      // A cart creates one order per program/add-on. They share one WeChat
+      // reference, so one verification action must settle the whole cart.
+      const matchingTargets =
+        isPaymentVerification && order.paymentReference
+          ? productOrders.filter(
+              (item) =>
+                item.paymentReference === order.paymentReference &&
+                !/^paid$/i.test(item.paymentStatus || "")
+            )
+          : [order];
+      const targets = matchingTargets.length ? matchingTargets : [order];
 
-      if (!response.ok || !data.success) {
-        console.warn("Product order pipeline update skipped", data);
-        return false;
+      for (const target of targets) {
+        const response = await fetch("/api/updateProductOrder", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            recordId: target.recordId,
+            ...updates,
+          }),
+        });
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+          console.warn("Product order pipeline update skipped", data);
+          return false;
+        }
+
+        if (data.omittedFields?.length) {
+          console.info("Optional product order columns not found", data.omittedFields);
+        }
       }
 
-      if (data.omittedFields?.length) {
-        console.info("Optional product order columns not found", data.omittedFields);
+      if (isPaymentVerification) {
+        const client = getOrderClient(order);
+        if (client) {
+          await fetch("/api/updateClient", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              clientRecordId: client.id,
+              paymentStatus: "Paid",
+            }),
+          });
+
+          if (/submitted|complete/i.test(order.intakeStatus || "") && getOrderProgram(order)) {
+            await fetch("/api/autoLoadProgram", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                clientRecordId: client.id,
+                startDate: getOrderStartDate(order),
+              }),
+            });
+          }
+        }
       }
 
-      await loadProductOrders(true);
+      await Promise.all([loadProductOrders(true), loadClients(true)]);
       return true;
     } catch (error) {
       console.warn("Product order pipeline update failed", error);
@@ -15333,6 +15375,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   // post-intake start-date chooser.
   const loadProgramFromDate = async (startDate: string) => {
     if (!selectedClient) return;
+    setPortalPendingStartDate(startDate);
     setPortalStartPicker(false);
     setPortalAutoLoading(true);
     try {
@@ -15345,7 +15388,23 @@ function App({ onReady }: { onReady?: () => void } = {}) {
         }),
       });
       const loadData = await loadRes.json();
-      if (loadData.success && loadData.programName && !loadData.alreadyLoaded) {
+      if (!loadRes.ok || !loadData.success) {
+        if (loadData.paymentPending) {
+          setPortalPaymentPending(true);
+          notify(
+            paceZh
+              ? "付款正在核对中。教练确认微信付款后即可解锁训练计划。"
+              : "Payment is being verified. Your program unlocks after the coach confirms it.",
+            "info"
+          );
+        } else {
+          setPortalStartPicker(true);
+          notify(loadData.message || loadData.error || "Could not load your program.", "error");
+        }
+        return;
+      }
+      setPortalPaymentPending(false);
+      if (loadData.programName && !loadData.alreadyLoaded) {
         setPortalLoadedProgram(loadData.programName);
         // Land on the calendar so the "Next Workout — Start" card is the
         // first thing the new client sees after their plan loads.
@@ -15353,7 +15412,11 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       }
       void loadContentAssignments(selectedClient);
     } catch {
-      // Silent — program loading can be retried by coach
+      setPortalStartPicker(true);
+      notify(
+        paceZh ? "暂时无法加载训练计划，请重试。" : "Could not load your program. Please try again.",
+        "error"
+      );
     } finally {
       setPortalAutoLoading(false);
     }
@@ -17436,6 +17499,10 @@ function App({ onReady }: { onReady?: () => void } = {}) {
         useChineseClientText={useChineseClientText}
         portalAutoLoading={portalAutoLoading}
         portalLoadedProgram={portalLoadedProgram}
+        portalPaymentPending={portalPaymentPending}
+        retryPendingPayment={() =>
+          void loadProgramFromDate(portalPendingStartDate || todayValue)
+        }
         setPortalPostIntake={setPortalPostIntake}
         copyToClipboard={copyToClipboard}
         setClientTab={setClientTab}
@@ -18395,6 +18462,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                 showManualOrderForm={showManualOrderForm}
                 updateProductOrder={updateProductOrder}
                 visibleProductOrders={visibleProductOrders}
+                isChinese={paceZh}
               />
             )}
 

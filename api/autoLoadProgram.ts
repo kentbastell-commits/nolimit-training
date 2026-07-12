@@ -109,7 +109,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // ALL unloaded orders for this client — a purchase with add-ons creates
     // one order per program, and every one of them must be fulfilled here
     // (previously only the first pending order was loaded).
-    const pendingOrders = allOrders.filter((item) => {
+    const unloadedOrders = allOrders.filter((item) => {
       const f = item.fields || {};
       const oClientId = fieldToText(f["Client ID"]);
       const oClientName = fieldToText(f["Client Name"]);
@@ -123,8 +123,32 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return isThisClient && isNotLoaded && hasProgramId;
     });
 
-    if (pendingOrders.length === 0) {
+    if (unloadedOrders.length === 0) {
       return res.status(200).json({ success: true, alreadyLoaded: true, message: "No pending program orders found" });
+    }
+
+    // Fulfil only after the coach verifies the WeChat reference. Match the
+    // complete value: substring checks would incorrectly treat "Unpaid" as paid.
+    const pendingOrders = unloadedOrders.filter((item) => {
+      const paymentStatus = fieldToText(item.fields?.["Payment Status"]).trim();
+      return /^paid$/i.test(paymentStatus);
+    });
+
+    if (pendingOrders.length === 0) {
+      const paymentReferences = Array.from(
+        new Set(
+          unloadedOrders
+            .map((item) => fieldToText(item.fields?.["Payment Reference"]).trim())
+            .filter(Boolean)
+        )
+      );
+      return res.status(402).json({
+        success: false,
+        paymentPending: true,
+        error: "Payment verification required",
+        message: "Your WeChat payment is still awaiting coach verification.",
+        paymentReferences,
+      });
     }
 
     // 3. Load lookup tables once for all pending orders

@@ -143,6 +143,10 @@ data between them, never "borrow" a table ID across products.
     that looks complete ("Please select a client and program", AssignmentDrawer).
     Rule: every select needs either an explicit `<option value="">` placeholder
     or an effect that adopts the first option when state leaves the list.
+22. **The buyer-claim unlock** — treating “I've paid” or a loose
+    `status.includes("paid")` check as authorization to fulfil (the latter also
+    matches `Unpaid`). Rule: create `Pending`; unlock server-side only when the
+    normalized payment status is exactly `Paid` after coach/provider verification.
 
 ## Quality bar — checkable, per deliverable
 

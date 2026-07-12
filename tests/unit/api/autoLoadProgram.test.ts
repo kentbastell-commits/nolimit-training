@@ -134,6 +134,7 @@ describe("api/autoLoadProgram", () => {
                   "Client ID": "CL-9",
                   "Client Name": "Bob",
                   "Fulfillment Status": "New Order",
+                  "Payment Status": "Paid",
                   "Program ID": "PR-1",
                   "Product Name": "Strength 101",
                 },
@@ -240,5 +241,44 @@ describe("api/autoLoadProgram", () => {
     expect(clientFields["Access End Date"]).toBe(
       new Date(`${handlerAddDays("2026-07-07", 27)}T00:00:00`).getTime()
     );
+  });
+
+  it("blocks program fulfilment while payment is still pending", async () => {
+    stubTables();
+    stubFetch([
+      tokenRoute,
+      clientRoute,
+      {
+        match: "tbl-ord-alp/records",
+        json: {
+          code: 0,
+          data: {
+            items: [
+              {
+                record_id: "recOrder1",
+                fields: {
+                  "Client ID": "CL-9",
+                  "Client Name": "Bob",
+                  "Fulfillment Status": "New Order",
+                  "Payment Status": "Pending",
+                  "Payment Reference": "NL-7KQ9",
+                  "Program ID": "PR-1",
+                },
+              },
+            ],
+          },
+        },
+      },
+    ]);
+
+    const res = makeRes();
+    await handler(
+      makeReq({ method: "POST", body: { clientRecordId: "recClient1" } }) as any,
+      res as any
+    );
+
+    expect(res.statusCode).toBe(402);
+    expect(res.body.paymentPending).toBe(true);
+    expect(res.body.paymentReferences).toEqual(["NL-7KQ9"]);
   });
 });

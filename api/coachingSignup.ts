@@ -168,6 +168,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const body = req.body || {};
   const stage = body.stage === "intake" ? "intake" : "order";
 
+  // Reject incomplete paid orders before acquiring a Feishu token. Besides
+  // being faster, this guarantees that no order can reach a write path without
+  // the reference needed to reconcile the WeChat transfer.
+  if (stage === "order") {
+    const clientName = String(body.clientName || "").trim();
+    const phone = String(body.phone || "").trim();
+    const termLabel = String(body.termLabel || "").trim();
+    const paymentCode = String(body.paymentCode || "").trim();
+    if (!clientName || !phone || !termLabel)
+      return res
+        .status(400)
+        .json({ error: "clientName, phone, and termLabel required" });
+    if (body.privacyAccepted !== true || body.crossBorderAccepted !== true)
+      return res.status(400).json({ error: "Privacy and cross-border consent required" });
+    if (!/^NL-[2-9A-HJ-NP-Z]{4}$/.test(paymentCode))
+      return res.status(400).json({ error: "A valid NL payment reference is required" });
+  }
+
   const appToken = process.env.FEISHU_BASE_APP_TOKEN;
   const clientsTableId = process.env.FEISHU_CLIENTS_TABLE_ID;
   const ordersTableId =
@@ -234,25 +252,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(200).json({ success: ok });
     }
 
-    // ---- stage "order": create/find client + write the paid coaching order ----
+    // ---- stage "order": create/find client + write the pending coaching order ----
     const clientName = String(body.clientName || "").trim();
     const phone = String(body.phone || "").trim();
     const termLabel = String(body.termLabel || "").trim();
     const amountNum = Number(body.amount);
-
-    if (!clientName || !phone || !termLabel)
-      return res
-        .status(400)
-        .json({ error: "clientName, phone, and termLabel required" });
-    if (body.privacyAccepted !== true || body.crossBorderAccepted !== true)
-      return res.status(400).json({ error: "Privacy and cross-border consent required" });
 
     const languagePreference =
       String(body.languagePreference || "").toLowerCase() === "chinese"
         ? "Chinese"
         : "English";
     const currency = String(body.currency || "CNY");
-    const paymentCode = body.paymentCode ? String(body.paymentCode) : "";
+    const paymentCode = body.paymentCode ? String(body.paymentCode).trim() : "";
 
     // 1. Find existing client by phone / WeChat
     let clientRecordId = "";
@@ -285,7 +296,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             "Phone/WeChat": phone,
             "Client ID": clientCode,
             Source: "Store",
-            "Payment Status": "Paid",
+            "Payment Status": "Pending",
             "Intake Status": "Not Sent",
             "Subscription Status": "Active",
             "Client Type": "Online Coaching",
@@ -309,7 +320,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         headers,
         body: JSON.stringify({
           fields: {
-            "Payment Status": "Paid",
             "Subscription Status": "Active",
             "Client Type": "Online Coaching",
             "Package Type": termLabel,

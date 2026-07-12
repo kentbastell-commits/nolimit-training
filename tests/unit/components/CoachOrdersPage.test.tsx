@@ -50,6 +50,7 @@ const baseProps = {
   showManualOrderForm: false,
   updateProductOrder: vi.fn(),
   visibleProductOrders: [],
+  isChinese: false,
 };
 
 describe("CoachOrdersPage", () => {
@@ -81,6 +82,35 @@ describe("CoachOrdersPage", () => {
     expect(setShowManualOrderForm).toHaveBeenCalledWith(true);
     expect(setManualOrder).toHaveBeenCalledWith(
       expect.objectContaining({ productType: "In-Person Training" })
+    );
+  });
+
+  it("shows and verifies a pending digital payment reference", () => {
+    const updateProductOrder = vi.fn();
+    const order = {
+      recordId: "rec-order-1",
+      orderId: "ORD-1001",
+      clientName: "Wei Chen",
+      productName: "Climbing S1",
+      productType: "Digital Program",
+      amount: "299",
+      currency: "CNY",
+      paymentStatus: "Pending",
+      paymentReference: "NL-7KQ9",
+    };
+    render(
+      <CoachOrdersPage
+        {...baseProps}
+        visibleProductOrders={[order]}
+        updateProductOrder={updateProductOrder}
+      />
+    );
+
+    expect(screen.getByText("NL-7KQ9")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Verify payment" }));
+    expect(updateProductOrder).toHaveBeenCalledWith(
+      order,
+      { paymentStatus: "Paid" }
     );
   });
 });

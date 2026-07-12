@@ -8,6 +8,8 @@ export default function PortalWelcome({
   useChineseClientText,
   portalAutoLoading,
   portalLoadedProgram,
+  portalPaymentPending,
+  retryPendingPayment,
   setPortalPostIntake,
   copyToClipboard,
   setClientTab,
@@ -35,6 +37,41 @@ export default function PortalWelcome({
               {iZh ? "请稍候，您的训练日历正在生成。" : "Please wait while your training calendar is being built."}
             </p>
             <div className="portalWelcomeSpinner" />
+          </>
+        ) : portalPaymentPending ? (
+          <>
+            <div className="portalWelcomeCheck portalWelcomePending">…</div>
+            <h1>{iZh ? "付款核对中" : "Payment verification in progress"}</h1>
+            <p className="portalWelcomeSubtitle">
+              {iZh
+                ? "问卷已保存。教练会根据付款备注核对微信付款，确认后训练计划才会加载。"
+                : "Your intake is saved. Your coach will verify the WeChat payment reference before the training program is loaded."}
+            </p>
+            <div className="portalWelcomeSteps">
+              <div className="portalWelcomeStep">
+                <span>1</span>
+                <p>{iZh ? "核对微信付款备注" : "We verify the WeChat payment reference"}</p>
+              </div>
+              <div className="portalWelcomeStep">
+                <span>2</span>
+                <p>{iZh ? "按你选择的日期安排计划" : "We schedule the plan from your chosen date"}</p>
+              </div>
+              <div className="portalWelcomeStep">
+                <span>3</span>
+                <p>{iZh ? "训练日历自动解锁" : "Your training calendar unlocks"}</p>
+              </div>
+            </div>
+            <div className="portalWelcomeActions">
+              <button className="goldButton" onClick={retryPendingPayment}>
+                {iZh ? "重新检查付款状态" : "Check payment status again"}
+              </button>
+              <button
+                className="outlineButton"
+                onClick={() => void copyToClipboard(portalLink, "Portal link")}
+              >
+                {iZh ? "保存我的客户端链接" : "Save My Portal Link"}
+              </button>
+            </div>
           </>
         ) : (
           <>

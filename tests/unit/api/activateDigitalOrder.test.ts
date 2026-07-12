@@ -40,6 +40,27 @@ describe("api/activateDigitalOrder", () => {
     expect(res.body.error).toBe("clientName, phone, and programId required");
   });
 
+  it("400s before writing when the payment reference is missing", async () => {
+    stubTables();
+    const res = makeRes();
+    await handler(
+      makeReq({
+        method: "POST",
+        body: {
+          clientName: "Bob",
+          phone: "138000",
+          programId: "PR-1",
+          privacyAccepted: true,
+          crossBorderAccepted: true,
+        },
+      }) as any,
+      res as any
+    );
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body.error).toBe("A valid NL payment reference is required");
+  });
+
   it("finds the existing client by phone and writes a schema-aware order with link arrays", async () => {
     stubTables();
     const impl = stubFetch([
@@ -96,7 +117,7 @@ describe("api/activateDigitalOrder", () => {
           programName: "Strength 101",
           amount: "299",
           currency: "CNY",
-          paymentCode: "PAY123",
+          paymentCode: "NL-7KQ9",
           privacyAccepted: true,
           crossBorderAccepted: true,
           consentVersion: "2026-07-12",
@@ -128,7 +149,7 @@ describe("api/activateDigitalOrder", () => {
     expect(sent["Product Name"]).toBe("Strength 101");
     expect(sent.Amount).toBe(299); // numeric, never ""
     expect(sent["Payment Status"]).toBe("Pending");
-    expect(sent["Payment Reference"]).toBe("PAY123");
+    expect(sent["Payment Reference"]).toBe("NL-7KQ9");
     expect(sent["Fulfillment Status"]).toBe("New Order");
     expect(sent.Notes).toContain("Privacy / Terms: accepted (2026-07-12)");
 
@@ -173,6 +194,7 @@ describe("api/activateDigitalOrder", () => {
           clientName: "Bob",
           phone: "138000",
           programId: "PR-1",
+          paymentCode: "NL-7KQ9",
           privacyAccepted: true,
           crossBorderAccepted: true,
         },
@@ -192,7 +214,12 @@ describe("api/activateDigitalOrder", () => {
     await handler(
       makeReq({
         method: "POST",
-        body: { clientName: "Bob", phone: "138000", programId: "PR-1" },
+        body: {
+          clientName: "Bob",
+          phone: "138000",
+          programId: "PR-1",
+          paymentCode: "NL-7KQ9",
+        },
       }) as any,
       res as any
     );
