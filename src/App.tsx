@@ -831,6 +831,12 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   const [coachDashTab, setCoachDashTab] = useState<"science" | "activity">(
     "science"
   );
+  // Replay the app-wide entrance animation (nl-anim) on navigation — a short
+  // delay lets React commit the new page's DOM before the stagger re-runs.
+  useEffect(() => {
+    const id = window.setTimeout(() => window.nlAnimReplay?.(), 30);
+    return () => window.clearTimeout(id);
+  }, [activePage, selectedClient?.id, clientTab, coachDashTab]);
   // Coach wellness-trend chart: which metric to plot for the selected client.
   const [wellnessMetric, setWellnessMetric] = useState<
     "readiness" | "sleep" | "sleepHours" | "energy" | "soreness" | "mood" | "stress" | "bodyWeight"

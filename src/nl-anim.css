@@ -1,0 +1,36 @@
+/* ============================================================================
+   NoLimit — animation keyframes + reduced-motion guard
+   Imported once at the app root (main.tsx), alongside nl-anim.ts.
+   ============================================================================ */
+
+/* Staggered entrance — content sections fade + rise */
+@keyframes nlRise   { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+
+/* Breathing gold hero glow */
+@keyframes nlGlow   { 0%,100% { opacity: .82; transform: scale(1); } 50% { opacity: 1; transform: scale(1.08); } }
+
+/* Data-viz */
+@keyframes nlBarGrow{ from { transform: scaleY(0); } to { transform: scaleY(1); } }   /* transform-origin:bottom */
+@keyframes nlDraw   { to   { stroke-dashoffset: 0; } }                                  /* set dasharray=dashoffset=path length */
+@keyframes nlFadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+/* Slide-over drawer + scrim */
+@keyframes nlSlide  { from { transform: translateX(44px); opacity: .3; } to { transform: none; opacity: 1; } }
+@keyframes nlScrim  { from { opacity: 0; } to { opacity: 1; } }
+
+/* Segmented pill / tab select */
+@keyframes nlPop    { 0% { transform: scale(.96); } 60% { transform: scale(1.02); } 100% { transform: scale(1); } }
+
+/* Section flash (KPI card → scroll-to-queue confirmation) */
+@keyframes nlFlash  { 0% { box-shadow: 0 0 0 0 rgba(212,175,55,0); }
+                      25% { box-shadow: 0 0 0 3px rgba(212,175,55,.6), 0 .9rem 2rem rgba(0,0,0,.12); }
+                      100% { box-shadow: 0 0 0 0 rgba(212,175,55,0); } }
+
+/* Reusable hover-lift for cards/rows */
+.nl-lift { transition: transform .18s, box-shadow .18s, border-color .18s; }
+.nl-lift:hover { transform: translateY(-3px); box-shadow: 0 .95rem 2.1rem rgba(20,18,14,.1); border-color: #e6dcbf; }
+
+/* Accessibility: honour reduced-motion everywhere */
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
+}

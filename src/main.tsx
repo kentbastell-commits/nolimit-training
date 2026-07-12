@@ -1,6 +1,8 @@
 import { StrictMode, useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
+import './nl-anim.css'
+import './nl-anim'
 import './i18n'
 import App from './App.tsx'
 import SplashScreen from './SplashScreen.tsx'
