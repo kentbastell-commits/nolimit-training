@@ -319,6 +319,22 @@ export default function StorePage({
     setCatalogSeason("all");
     setCatalogSport(id);
   };
+
+  // The store leads with real products: the first three visible non-add-on
+  // programs (Feishu row order — reorder the Programs rows there to curate)
+  // shown as full cards with price/level/duration, so a first-time buyer sees
+  // concrete offers without opening the catalog popups first.
+  const featuredPrograms = storePrograms
+    .filter((p) => !isAddonProgram(p))
+    .slice(0, 3);
+  const levelLabel = (level?: string) => {
+    const clean = String(level || "").toLowerCase();
+    if (!sZh) return level || "";
+    if (clean.includes("beginner")) return "初级";
+    if (clean.includes("intermediate")) return "中级";
+    if (clean.includes("advanced")) return "高级";
+    return level || "";
+  };
   const openDetail = (program: Program) => {
     setDetailAddonIds([]);
     setDetailProgram(program);
@@ -407,7 +423,7 @@ export default function StorePage({
           <img src="/nl_wordmark_black.png" alt="No Limit" />
         </a>
         <div className="storeNavLinksV3">
-          <a href="#catalog" className="storeNavLinkV3">{sZh ? "计划" : "Programs"}</a>
+          <a href="#featured" className="storeNavLinkV3">{sZh ? "计划" : "Programs"}</a>
           <a href="#how" className="storeNavLinkV3">{sZh ? "如何使用" : "How it works"}</a>
           <a href="#coach" className="storeNavLinkV3">{sZh ? "教练" : "Coach"}</a>
           <a href="/coaching" className="storeNavLinkV3">{sZh ? "一对一私教" : "1:1 Coaching"}</a>
@@ -512,15 +528,11 @@ export default function StorePage({
         </div>
       )}
 
+      {/* The floating "Enter app" duplicate was removed — the nav button opens
+          this same launcher, and a first-time buyer needs one account entry
+          point, not three. */}
       <div className="storeLauncherV2">
-        {!storeLauncherOpen ? (
-          <button
-            className="storeLauncherToggleV2"
-            onClick={() => setStoreLauncherOpen(true)}
-          >
-            {sZh ? "进入应用" : "Enter app"}
-          </button>
-        ) : (
+        {storeLauncherOpen && (
           <div className="storeLauncherPanelV2">
             <div className="storeLauncherHeadV2">
               <span>{sZh ? "进入应用" : "Enter app"}</span>
@@ -594,11 +606,11 @@ export default function StorePage({
               </motion.h1>
               <motion.p className="storeHeroLeadV3" variants={rise}>
                 {sZh
-                  ? "由奥运与职业级教练编排的训练计划，即时获取，价格远低于一对一私教。购买后完成简短问卷，计划即进入你的 App，可按月、按周或逐日安排。"
-                  : "Elite periodised training built by an Olympic and professional-level coach — yours instantly, at a fraction of one-on-one pricing. Finish a short intake and the full plan loads into your app."}
+                  ? "由奥运与职业级教练编排的训练计划，价格远低于一对一私教。提交订单并完成问卷后，教练核对微信付款，整套计划随即加载到你的 App。"
+                  : "Elite periodised training built by an Olympic and professional-level coach at a fraction of one-on-one pricing. Submit your order and intake; the full plan loads after WeChat payment verification."}
               </motion.p>
               <motion.div className="storeHeroCtasV3" variants={rise}>
-                <a href="#catalog" className="storeBtnPrimaryV3">
+                <a href="#featured" className="storeBtnPrimaryV3">
                   {sZh ? "浏览计划" : "Browse programs"} <ArrowRight size={16} />
                 </a>
                 <a href="#showcase" className="storeBtnSecondaryV3">
@@ -625,10 +637,46 @@ export default function StorePage({
           </div>
         </header>
 
+        {featuredPrograms.length > 0 && (
+          <motion.section className="storeFeaturedV3" id="featured" {...sectionReveal}>
+            <motion.div className="storeSectionIntroV2" variants={reduce ? undefined : rise}>
+              <span className="storeEyebrowV2">{sZh ? "精选计划" : "Featured Programs"}</span>
+              <h2>{sZh ? "从最受欢迎的计划直接开始。" : "Start with a proven program."}</h2>
+            </motion.div>
+            <motion.div className="storeFeaturedGridV3" variants={reduce ? undefined : staggerParent}>
+              {featuredPrograms.map((p) => {
+                const name = sZh && p.programNameCn ? p.programNameCn : p.programName;
+                return (
+                  <motion.button
+                    type="button"
+                    className="storeFeaturedCardV3"
+                    key={p.recordId}
+                    onClick={() => openDetail(p)}
+                    variants={reduce ? undefined : rise}
+                  >
+                    <span className="storeFeaturedTopV3">
+                      <strong>{name}</strong>
+                      {p.level && (
+                        <em className="storeFeaturedLevelV3">{levelLabel(p.level)}</em>
+                      )}
+                    </span>
+                    <span className="storeFeaturedMetaV3">
+                      {formatDuration(p)} · {formatPrice(p)}
+                    </span>
+                    <span className="storeFeaturedCtaV3">
+                      {sZh ? "查看计划" : "View program"} <ArrowRight size={14} />
+                    </span>
+                  </motion.button>
+                );
+              })}
+            </motion.div>
+          </motion.section>
+        )}
+
         <motion.section id="catalog" {...sectionReveal}>
           <motion.div className="storeSectionIntroV2" variants={reduce ? undefined : rise}>
             <span className="storeEyebrowV2">{sZh ? "项目目录" : "Sports Catalog"}</span>
-            <h2>{sZh ? "先选择你的训练方向。" : "Start with your training direction."}</h2>
+            <h2>{sZh ? "浏览完整目录，按方向选择。" : "Or browse the full catalog by direction."}</h2>
           </motion.div>
           <motion.div className="storeCatalogueGridV2" variants={reduce ? undefined : staggerParent}>
             {storeCategories.map((category) => (
@@ -843,7 +891,7 @@ export default function StorePage({
               ? [
                   [
                     "付款后如何拿到训练计划？",
-                    "用微信扫码付款后，在结算页填写姓名和微信号，我们会立即为你创建专属客户端。完成一份简短的问卷后，整套计划就会加载进你的 App，可按月、按周或逐日安排。",
+                    "用微信扫码付款后，在结算页填写姓名和微信号，我们会立即创建专属客户端。完成简短问卷并通过付款核对后，整套计划会加载进你的 App，可按月、按周或逐日安排。",
                   ],
                   [
                     "我需要健身房或很多器械吗？",
@@ -869,7 +917,7 @@ export default function StorePage({
               : [
                   [
                     "How do I get my program after paying?",
-                    "Scan the WeChat QR to pay, then enter your name and WeChat ID on the checkout step. We create your private client portal right away. After a short intake form, the full plan loads into your app to schedule by month, week, or day.",
+                    "Scan the WeChat QR to pay, then enter your name and WeChat ID on the checkout step. We create your private client portal right away. Complete the short intake while your coach verifies the payment reference; then the full plan loads into your app.",
                   ],
                   [
                     "Do I need a gym or lots of equipment?",
@@ -926,7 +974,7 @@ export default function StorePage({
             </p>
           </div>
           <img
-            src="https://i.ibb.co/Y4nXVG4g/Weixin-Image-20260611202846-56-2.jpg"
+            src="/wechat-contact-qr.jpg"
             alt="WeChat QR"
             className="storeContactQrV2"
           />
@@ -1566,12 +1614,12 @@ export default function StorePage({
                             <Check size={28} />
                           </div>
                           <strong className="storeConfirmTitleV2">
-                            {sZh ? "你已成功加入！" : "You're in!"}
+                            {sZh ? "订单已提交！" : "Order received!"}
                           </strong>
                           <p className="storeConfirmSubV2">
                             {sZh
-                              ? `${spName} 已准备就绪。完成一份简短问卷后，整套计划会加载进你的 App。`
-                              : `${spName} is ready. Complete a short intake and the full plan loads into your app.`}
+                              ? `${spName} 已为你保留。你可以先完成问卷，教练核对微信付款后训练计划会自动解锁。`
+                              : `${spName} is reserved for you. Complete the intake while your coach verifies the WeChat payment; the program unlocks after confirmation.`}
                           </p>
                           <div className="storeConfirmMetaV2">
                             {storeRegisteredOrderId && (
@@ -1587,8 +1635,8 @@ export default function StorePage({
                           </div>
                           <p className="storeConfirmNoteV2">
                             {sZh
-                              ? `请保存好登录代码——以后用它进入客户端。我们会用付款备注代码 ${storePaymentCode || ""} 核对你的微信付款，你可以立即开始。`
-                              : `Save your login code — you'll use it to open your portal. We'll match your WeChat payment via note code ${storePaymentCode || ""}; you can start right away.`}
+                              ? `请保存好登录代码——以后用它进入客户端。我们会用付款备注代码 ${storePaymentCode || ""} 核对微信付款；付款确认前不会加载训练计划。`
+                              : `Save your login code — you'll use it to open your portal. We'll match the WeChat payment using reference ${storePaymentCode || ""}; the training program stays locked until verification.`}
                           </p>
                           <a
                             className="primaryButton storeConfirmCtaV2"
@@ -1615,7 +1663,7 @@ export default function StorePage({
                             </li>
                             <li>
                               <span>4</span>
-                              {sZh ? "完成问卷，计划自动加载" : "Finish intake → plan loads"}
+                              {sZh ? "完成问卷并核款，计划自动加载" : "Finish intake + verify payment → plan loads"}
                             </li>
                           </ol>
                           <div className="storePayNowV2">
@@ -1638,8 +1686,8 @@ export default function StorePage({
                               <strong>{storePaymentCode}</strong>
                               <small>
                                 {sZh
-                                  ? "它能让我们立刻核对你的付款，无需等待。"
-                                  : "It lets us match your payment instantly — no waiting."}
+                                  ? "它能帮助教练快速、准确地核对你的付款。"
+                                  : "It helps your coach verify the correct payment quickly."}
                               </small>
                             </div>
                           )}
@@ -1693,13 +1741,13 @@ export default function StorePage({
                                       ? "正在创建你的客户端…"
                                       : "Creating your portal…"
                                 : sZh
-                                  ? "我已付款，创建客户端"
-                                  : "I've paid — create my portal"}
+                                  ? "我已付款，提交订单"
+                                  : "I've paid — submit my order"}
                             </button>
                             <span className="storeRegisterHintV2">
                               {sZh
-                                ? "点击即表示你已完成微信付款。"
-                                : "Tapping this confirms you've paid via WeChat."}
+                                ? "点击即表示你已完成微信付款。教练核对付款备注后，训练计划才会加载。"
+                                : "Tapping confirms you paid via WeChat. The program loads only after your coach verifies the reference."}
                             </span>
                             <div className="storeConsentGroup">
                               <label>

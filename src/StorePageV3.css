@@ -113,9 +113,34 @@
 .storeHeroChipBigV3 { font-family: "Bebas Neue", sans-serif; font-size: 30px; color: #d8bd62; line-height: 0.8; }
 .storeHeroChipSmallV3 { font-size: 10px; color: #c3bdaf; line-height: 1.3; max-width: 48px; }
 
+/* ---- featured programs (products first, catalog below) ---- */
+.storePageV3 .storeFeaturedV3 { max-width: 1200px; margin: 0 auto; padding: 88px 40px 8px; }
+.storePageV3 .storeFeaturedGridV3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.storePageV3 .storeFeaturedCardV3 {
+  display: flex; flex-direction: column; gap: 14px;
+  min-height: 168px; padding: 22px; border-radius: 18px; background: #fff; border: 1px solid #e2ddcf;
+  color: #121210; text-align: left; cursor: pointer;
+  transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+}
+.storePageV3 .storeFeaturedCardV3:hover {
+  transform: translateY(-4px); border-color: #d8bd62;
+  box-shadow: 0 0 0 1px #d8bd62, 0 18px 42px -14px rgba(216, 189, 98, 0.6);
+}
+.storePageV3 .storeFeaturedTopV3 { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.storePageV3 .storeFeaturedTopV3 strong { font-size: 19px; font-weight: 800; letter-spacing: -0.01em; }
+.storePageV3 .storeFeaturedLevelV3 {
+  font-style: normal; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;
+  padding: 4px 9px; border-radius: 999px; background: #f2eddd; color: #7a6a33; white-space: nowrap;
+}
+.storePageV3 .storeFeaturedMetaV3 { font-size: 14px; color: #6d675a; }
+.storePageV3 .storeFeaturedCtaV3 {
+  margin-top: auto; display: inline-flex; align-items: center; gap: 6px;
+  font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #b39433;
+}
+
 /* ---- catalog ---- */
 .storePageV3 .storeMainV2 { max-width: none; padding: 0; }
-.storePageV3 #catalog { max-width: 1200px; margin: 0 auto; padding: 88px 40px 40px; }
+.storePageV3 #catalog { max-width: 1200px; margin: 0 auto; padding: 56px 40px 40px; }
 .storePageV3 .storeCatalogueGridV2 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
 .storePageV3 .storeCategoryCardV2 {
   display: flex; flex-direction: column; justify-content: space-between; gap: 22px;
@@ -309,7 +334,8 @@
   .storeHeroInnerV3 { grid-template-columns: 1fr; gap: 40px; }
   .storeHeroTitleV3 { font-size: 60px; }
   .storeHeroStageV3 { order: -1; }
-  .storePageV3 #catalog, .storePageV3 .storeProgramShelfV2, .storePageV3 .storeShowcaseV2, .storePageV3 .storeTestimonials { padding-left: 22px; padding-right: 22px; }
+  .storePageV3 #catalog, .storePageV3 .storeFeaturedV3, .storePageV3 .storeProgramShelfV2, .storePageV3 .storeShowcaseV2, .storePageV3 .storeTestimonials { padding-left: 22px; padding-right: 22px; }
+  .storePageV3 .storeFeaturedGridV3 { grid-template-columns: 1fr; }
   .storePageV3 .storeHowV2, .storePageV3 .storeFaqV2, .storePageV3 .storeContactV2 { padding-left: 22px; padding-right: 22px; }
   .storePageV3 .storeCatalogueGridV2 { grid-template-columns: repeat(2, 1fr); }
   .storePageV3 .storeGridV2, .storePageV3 .storeHowGridV2, .storePageV3 .storeTestimonialsGrid { grid-template-columns: 1fr; }

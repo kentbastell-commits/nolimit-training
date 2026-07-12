@@ -516,7 +516,7 @@ export default function LandingPage({
           </motion.div>
           <motion.div className="lv3Wechat" variants={item}>
             <img
-              src="https://i.ibb.co/Y4nXVG4g/Weixin-Image-20260611202846-56-2.jpg"
+              src="/wechat-contact-qr.jpg"
               alt="WeChat QR"
             />
             <strong>{lZh ? "扫码加微信咨询" : "Scan for WeChat"}</strong>
