@@ -106,6 +106,10 @@ data between them, never "borrow" a table ID across products.
     effect on the same render. Rule: carry it through an intent ref the effect
     adopts (`storeStepIntentRef`, `storeAddonIntentRef`) via `requestStoreStep` /
     `requestStoreAddonIds` — never `setStore*` it directly alongside the program.
+    Corollary (cost a live no-payment-code bug): state DERIVED from the landing
+    step (the minted payment code) must be set inside the reset effect itself —
+    a separate mint effect that already ran in the same batch sees unchanged
+    deps next render and never re-fires after the wipe.
 17. **The China-blocked web font** — loading a display font via Google Fonts
     (`@import url(fonts.googleapis.com…)`) in any client-facing page. Google is
     blocked in mainland China, so the `@import` silently fails and headings fall

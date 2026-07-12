@@ -11062,9 +11062,17 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   useEffect(() => {
     setStoreSelectedAddonIds(storeAddonIntentRef.current ?? []);
     storeAddonIntentRef.current = null;
-    setStoreStep(storeStepIntentRef.current ?? 1);
+    const landingStep = storeStepIntentRef.current ?? 1;
+    setStoreStep(landingStep);
     storeStepIntentRef.current = null;
-    setStorePaymentCode("");
+    // Landing straight on the pay step must mint the payment code HERE.
+    // Clearing it and relying on the mint effect fails: that effect already
+    // ran earlier in this same effect batch (minting a code this line then
+    // wiped), and on the next render its deps ([step, code]) compare equal to
+    // what it last saw — so it never re-fires and the buyer gets NO payment
+    // code, which breaks payment matching entirely.
+    setStorePaymentCode(landingStep === 3 ? makePaymentCode() : "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storeSelectedProgram?.recordId]);
 
   // When the selected workload day (or its saved log) changes, refill the draft.
