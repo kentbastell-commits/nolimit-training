@@ -961,17 +961,6 @@ export default function CoachBuilderPage({
 
                             <div className="programMetaGrid">
                               <span>
-                                <strong>Built For</strong>
-                                {[
-                                  clientNameForCode(
-                                    selectedSavedProgram.builtForClient
-                                  ),
-                                  selectedSavedProgram.builtForTeam,
-                                ]
-                                  .filter(Boolean)
-                                  .join(" · ") || "Template"}
-                              </span>
-                              <span>
                                 <strong>Goal</strong>
                                 {selectedSavedProgram.goal || "--"}
                               </span>
@@ -994,36 +983,6 @@ export default function CoachBuilderPage({
                               <span>
                                 <strong>Sessions / Week</strong>
                                 {selectedSavedProgram.sessionsPerWeek || "--"}
-                              </span>
-                              <span>
-                                <strong>Product Type</strong>
-                                {selectedSavedProgram.productType || "--"}
-                              </span>
-                              <span>
-                                <strong>Price</strong>
-                                {selectedSavedProgram.price
-                                  ? `${selectedSavedProgram.price} ${
-                                      selectedSavedProgram.currency || "CNY"
-                                    }`
-                                  : "--"}
-                              </span>
-                              <span>
-                                <strong>Store Visible</strong>
-                                {selectedSavedProgram.publicStoreVisible ? "Yes" : "No"}
-                              </span>
-                              <span>
-                                <strong>Product Status</strong>
-                                {selectedSavedProgram.productStatus || "--"}
-                              </span>
-                              <span>
-                                <strong>Access</strong>
-                                {selectedSavedProgram.accessLengthDays
-                                  ? `${selectedSavedProgram.accessLengthDays} days`
-                                  : "--"}
-                              </span>
-                              <span>
-                                <strong>Default Intake</strong>
-                                {selectedSavedProgram.defaultIntakeFormId || "--"}
                               </span>
                             </div>
 
