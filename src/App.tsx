@@ -196,6 +196,8 @@ const CoachEditModal = withSuspense(() => import("./CoachEditModal"), null);
 const CalendarActionMenu = withSuspense(() => import("./CalendarActionMenu"), null);
 const AssignmentDrawer = withSuspense(() => import("./AssignmentDrawer"), null);
 const CreateProgramModal = withSuspense(() => import("./CreateProgramModal"), null);
+const CreateSessionModal = withSuspense(() => import("./CreateSessionModal"), null);
+const CreateFormModal = withSuspense(() => import("./CreateFormModal"), null);
 const ProgramPreviewModal = withSuspense(() => import("./ProgramPreviewModal"), null);
 const Celebration = withSuspense(() => import("./Celebration"), null);
 
@@ -1360,6 +1362,19 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     goal: "",
     phase: "Foundation",
     durationWeeks: "4",
+  });
+  // Create-session / create-form popups (mirror the Program Details modal).
+  const [createSessionOpen, setCreateSessionOpen] = useState(false);
+  const [sessionDraft, setSessionDraft] = useState({
+    name: "",
+    sessionType: "Strength",
+    intensity: "Moderate",
+    goal: "",
+  });
+  const [createFormOpen, setCreateFormOpen] = useState(false);
+  const [formDraft, setFormDraft] = useState({
+    name: "",
+    type: "Questionnaire",
   });
   const [sessionType, setSessionType] = useState("Strength");
   const [sessionGoal, setSessionGoal] = useState("");
@@ -5067,6 +5082,24 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     setWorkoutPageTab("Program Builder");
   };
 
+  // "Create session" popup → reset the builder, then adopt the draft details.
+  const startSessionFromDraft = () => {
+    startNewSession();
+    const name = sessionDraft.name.trim();
+    setProgramName(name);
+    setSessionName(name);
+    setSessionType(sessionDraft.sessionType);
+    setSessionIntensity(sessionDraft.intensity);
+    setSessionGoal(sessionDraft.goal.trim());
+    setCreateSessionOpen(false);
+    setSessionDraft({
+      name: "",
+      sessionType: "Strength",
+      intensity: "Moderate",
+      goal: "",
+    });
+  };
+
   // Forms/Tests "Create" → reset the builder and switch to builder view.
   const startNewForm = () => {
     setFormTemplateName("");
@@ -5076,6 +5109,15 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       { id: "Q1", label: "New question", questionType: "Text", required: false },
     ]);
     setFormView("builder");
+  };
+
+  // "Create form" popup → reset the form builder, then adopt the draft details.
+  const startFormFromDraft = () => {
+    startNewForm();
+    setFormTemplateName(formDraft.name.trim());
+    setFormTemplateType(formDraft.type);
+    setCreateFormOpen(false);
+    setFormDraft({ name: "", type: "Questionnaire" });
   };
 
   const startNewTest = () => {
@@ -17715,6 +17757,25 @@ function App({ onReady }: { onReady?: () => void } = {}) {
         />
       )}
 
+      {createSessionOpen && (
+        <CreateSessionModal
+          sessionDraft={sessionDraft}
+          setSessionDraft={setSessionDraft}
+          setCreateSessionOpen={setCreateSessionOpen}
+          startSessionFromDraft={startSessionFromDraft}
+          builderSectionOptions={builderSectionOptions}
+        />
+      )}
+
+      {createFormOpen && (
+        <CreateFormModal
+          formDraft={formDraft}
+          setFormDraft={setFormDraft}
+          setCreateFormOpen={setCreateFormOpen}
+          startFormFromDraft={startFormFromDraft}
+        />
+      )}
+
       {customizeFieldsIndex !== null &&
         selectedProgramExercises[customizeFieldsIndex] &&
         (() => {
@@ -18521,6 +18582,8 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                 setCircuitGroupRounds={setCircuitGroupRounds}
                 setCollapsedDays={setCollapsedDays}
                 setCreateProgramOpen={setCreateProgramOpen}
+                setCreateSessionOpen={setCreateSessionOpen}
+                setCreateFormOpen={setCreateFormOpen}
                 setCustomBuilderSectionName={setCustomBuilderSectionName}
                 setDraggedLibSessionId={setDraggedLibSessionId}
                 setDraggedProgramSessionId={setDraggedProgramSessionId}

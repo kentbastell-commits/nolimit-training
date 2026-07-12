@@ -255,6 +255,8 @@ export default function CoachBuilderPage({
   setCircuitGroupRounds,
   setCollapsedDays,
   setCreateProgramOpen,
+  setCreateSessionOpen,
+  setCreateFormOpen,
   setCustomBuilderSectionName,
   setDraggedLibSessionId,
   setDraggedProgramSessionId,
@@ -327,7 +329,6 @@ export default function CoachBuilderPage({
   showDigitalProductSettings,
   showProgramDetail,
   startMobileDrag,
-  startNewSession,
   teams,
   testItems,
   testTemplateCategory,
@@ -494,8 +495,8 @@ export default function CoachBuilderPage({
                       ? "Create form"
                       : "Create program";
                   const onCreate = () => {
-                    if (workoutPageTab === "Sessions") startNewSession();
-                    else if (workoutPageTab === "Forms") setFormView("builder");
+                    if (workoutPageTab === "Sessions") setCreateSessionOpen(true);
+                    else if (workoutPageTab === "Forms") setCreateFormOpen(true);
                     else setCreateProgramOpen(true);
                   };
 
