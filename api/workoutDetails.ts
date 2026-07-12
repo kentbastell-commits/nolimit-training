@@ -180,8 +180,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // warm cache serves repeat opens with zero Feishu round-trips (not even a
     // token). Writers invalidate "workoutTemplatesRaw" (prefix) so per-program
     // keys clear too.
-    const tplKey = `workoutTemplatesRaw:${programId}`;
-    let templateItems = getCached<any[]>(tplKey);
+    let templateItems = getCached<any[]>("workoutTemplatesRaw");
     let libraryItems = getCached<any[]>("exerciseLibraryRaw");
 
     if (!templateItems || !libraryItems) {
@@ -189,24 +188,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const [templates, library] = await Promise.all([
         templateItems
           ? Promise.resolve(templateItems)
-          : (async () => {
-              // Only this program's rows. Fall back to a full scan if the
-              // filter matches nothing, so a field-type surprise can never
-              // return an empty workout — only a slower one.
-              const filtered = await fetchAllBitableRecords(
-                process.env.FEISHU_BASE_APP_TOKEN as string,
-                process.env.FEISHU_WORKOUT_TEMPLATES_TABLE_ID as string,
-                token,
-                { filter: `CurrentValue.[Program ID]="${programId}"` }
-              );
-              return filtered.length
-                ? filtered
-                : fetchAllBitableRecords(
-                    process.env.FEISHU_BASE_APP_TOKEN as string,
-                    process.env.FEISHU_WORKOUT_TEMPLATES_TABLE_ID as string,
-                    token
-                  );
-            })(),
+          : fetchAllBitableRecords(
+              process.env.FEISHU_BASE_APP_TOKEN as string,
+              process.env.FEISHU_WORKOUT_TEMPLATES_TABLE_ID as string,
+              token
+            ),
         libraryItems
           ? Promise.resolve(libraryItems)
           : fetchAllBitableRecords(
@@ -217,7 +203,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ]);
       templateItems = templates;
       libraryItems = library;
-      setCached(tplKey, templateItems, 10 * 60 * 1000);
+      setCached("workoutTemplatesRaw", templateItems, 10 * 60 * 1000);
       setCached("exerciseLibraryRaw", libraryItems, 10 * 60 * 1000);
     }
 
