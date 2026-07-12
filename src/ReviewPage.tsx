@@ -296,13 +296,18 @@ export default function ReviewPage({
                       {video.workoutName ? ` · ${video.workoutName}` : ""}
                     </span>
                   </div>
-                  <video
-                    className="rvVideo"
-                    src={video.videoUrl}
-                    controls
-                    playsInline
-                    preload="metadata"
-                  />
+                  {video.videoUrl && (
+                    <video
+                      className="rvVideo"
+                      src={video.videoUrl}
+                      controls
+                      playsInline
+                      preload="metadata"
+                    />
+                  )}
+                  {video.clientNote && (
+                    <p className="rvNote">{video.clientNote}</p>
+                  )}
                   <textarea
                     className="rvReply"
                     placeholder="Reply to your athlete…"

@@ -3908,6 +3908,25 @@ body {
   margin-bottom: 18px;
 }
 
+/* Training tab "Completed" scope: newest-first review list (reuses the
+   selectedDayWorkout row look; rows open the workout in review mode). */
+.clientCompletedList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.clientCompletedList .selectedDayWorkout {
+  width: 100%;
+}
+.clientCompletedAction {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.clientTrainingScopeToggle {
+  margin-bottom: 10px;
+}
+
 .clientPortalWorkoutList h3 {
   color: #d4af37;
   margin: 0 0 12px;

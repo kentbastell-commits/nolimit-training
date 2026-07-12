@@ -326,3 +326,69 @@
   font-size: 13.5px;
   font-weight: 700;
 }
+
+/* Client review mode: submitted banner replacing the finish button */
+.workoutReviewBanner {
+  margin: 14px 0 4px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(212, 175, 55, 0.45);
+  background: rgba(212, 175, 55, 0.12);
+  color: #9b7a21;
+  font-size: 13.5px;
+  font-weight: 700;
+  text-align: center;
+}
+
+/* Retrospective note-to-coach composer */
+.formNoteOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(13, 13, 13, 0.55);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+}
+.formNotePanel {
+  width: min(440px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 18px;
+  border-radius: 16px;
+  background: var(--nl-surface, #fdfcf9);
+  border: 1px solid rgba(13, 13, 13, 0.12);
+  box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.45);
+}
+.formNoteHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.formNoteHead strong {
+  font-size: 15px;
+  font-weight: 800;
+}
+.formNoteExercise {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--nl-muted, #68645d);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.formNotePanel textarea {
+  min-height: 96px;
+  resize: vertical;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(13, 13, 13, 0.16);
+  background: #fff;
+  font: inherit;
+  font-size: 14px;
+}

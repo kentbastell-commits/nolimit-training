@@ -81,7 +81,7 @@ describe("api/formVideos", () => {
     expect(older.status).toBe("New");
   });
 
-  it("POST 400 when clientId or videoUrl is missing", async () => {
+  it("POST 400 when there is neither a video nor a note", async () => {
     videoEnv();
     stubFetch([tokenRoute]);
     const res = makeRes();
@@ -90,7 +90,36 @@ describe("api/formVideos", () => {
       res as any
     );
     expect(res.statusCode).toBe(400);
-    expect(res.body.error).toBe("clientId and videoUrl required");
+    expect(res.body.error).toBe("clientId and a videoUrl or note required");
+  });
+
+  it("POST accepts a note-only submission and omits the URL column", async () => {
+    // Retrospective notes ride this channel without a video. The Video URL
+    // field must be OMITTED (an empty value on a Feishu URL column fails the
+    // whole record write).
+    videoEnv();
+    const fetchImpl = stubFetch([
+      tokenRoute,
+      { match: `${TABLE}/records`, json: { code: 0 } },
+    ]);
+
+    const res = makeRes();
+    await handler(
+      makeReq({
+        method: "POST",
+        body: { clientId: "NL-0001", exerciseName: "Squat", note: "Knee felt off" },
+      }) as any,
+      res as any
+    );
+
+    expect(res.statusCode).toBe(200);
+    const createCall = fetchImpl.mock.calls.find(
+      ([url, init]: any[]) =>
+        init?.method === "POST" && String(url).includes(`${TABLE}/records`)
+    );
+    const fields = JSON.parse(createCall![1].body).fields;
+    expect(fields["Client Note"]).toBe("Knee felt off");
+    expect("Video URL" in fields).toBe(false);
   });
 
   it("POST stores an absolute video URL built from the requesting host", async () => {

@@ -668,6 +668,48 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       if (formVideoInputRef.current) formVideoInputRef.current.value = "";
     }
   };
+  // Retrospective note to coach — rides the same form-video channel (a
+  // note-only submission), so it lands in the coach's review inbox next to
+  // the videos. Opened per exercise from the player's action menu.
+  const [formNoteExercise, setFormNoteExercise] = useState<{
+    exerciseName: string;
+  } | null>(null);
+  const [formNoteText, setFormNoteText] = useState("");
+  const [formNoteBusy, setFormNoteBusy] = useState(false);
+  const submitFormNote = async () => {
+    if (!formNoteExercise || !selectedClient || !formNoteText.trim()) return;
+    setFormNoteBusy(true);
+    try {
+      const res = await fetch("/api/formVideos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clientId: selectedClient.clientCode || selectedClient.id,
+          clientName: selectedClient.name,
+          exerciseName: formNoteExercise.exerciseName,
+          workoutName: selectedWorkout
+            ? localizedWorkoutName(selectedWorkout)
+            : "",
+          note: formNoteText.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Could not send note");
+      }
+      setFormNoteExercise(null);
+      setFormNoteText("");
+      notify(paceZh ? "备注已发送给教练 ✓" : "Note sent to your coach ✓", "success");
+    } catch (error) {
+      console.error(error);
+      notify(
+        paceZh ? "备注发送失败，请重试。" : "Note failed to send — try again.",
+        "error"
+      );
+    } finally {
+      setFormNoteBusy(false);
+    }
+  };
   // One-time first-workout coach marks (per browser).
   const [playerTutorialOpen, setPlayerTutorialOpen] = useState(false);
   // Timed-circuit (AMRAP/EMOM) stopwatch + rounds score for the focus player.
@@ -6378,11 +6420,15 @@ function App({ onReady }: { onReady?: () => void } = {}) {
         ? window.localStorage.getItem(draftKey)
         : null;
 
-      // Coach opening a completed workout = review mode: overlay the athlete's
+      // Opening a completed workout = review mode: overlay the athlete's
       // actual submitted values (from their logs on that date) onto the cards.
-      const coachReviewing =
-        !isClientPortal && /complete/i.test(workout.completionStatus || "");
-      if (coachReviewing) {
+      // Coaches always get this; premium clients get it too so re-opening a
+      // past workout reads as a real review (what they lifted), not a blank
+      // form — from there they can retro-send a form video or note.
+      const reviewingCompleted =
+        /complete/i.test(workout.completionStatus || "") &&
+        (!isClientPortal || isPremiumClient());
+      if (reviewingCompleted) {
         const wDate = normalizeDate(String(workout.scheduledDate));
         const dayLogs = (historyData.logs || []).filter(
           (l: WorkoutHistoryLog) => l.date === wDate
@@ -6407,6 +6453,9 @@ function App({ onReady }: { onReady?: () => void } = {}) {
         setSetLogs(reviewLogs);
         setSavedExerciseDraftIds([]);
         setCheckedWorkoutPageItems([]);
+        // The client review lands directly on the full exercise list (their
+        // values visible) instead of the pre-start glance screen.
+        if (isClientPortal) setWorkoutLoggingStarted(true);
       } else if (savedDraft) {
         try {
           const parsedDraft = JSON.parse(savedDraft);
@@ -6712,6 +6761,18 @@ function App({ onReady }: { onReady?: () => void } = {}) {
 
   const saveWorkout = () => {
     if (!selectedWorkout || !selectedClient) return;
+    // A completed workout can be REVIEWED by the athlete but never re-submitted
+    // — saveWorkoutLog always creates rows, so a second submit would duplicate
+    // every logged set in Feishu.
+    if (isClientPortal && /complete/i.test(selectedWorkout.completionStatus || "")) {
+      notify(
+        paceZh
+          ? "这次训练已提交过了 — 备注和视频会直接发给教练。"
+          : "This workout was already submitted — notes and videos go straight to your coach.",
+        "error"
+      );
+      return;
+    }
 
     // Timed-circuit score (AMRAP rounds / EMOM minutes) rides on the note so
     // the coach sees it with the submission.
@@ -11173,6 +11234,14 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   // Coach opening a completed workout reviews it (read-only) rather than logging.
   const coachReviewMode =
     !isClientPortal &&
+    /complete/i.test(selectedWorkout?.completionStatus || "");
+  // Premium client re-opening a completed workout = review mode: their logged
+  // values are shown (openWorkout overlays them) and they can retro-send a
+  // form video or note, but never re-submit (a second save would duplicate
+  // every set row in Feishu).
+  const clientReviewMode =
+    isClientPortal &&
+    isPremiumClient() &&
     /complete/i.test(selectedWorkout?.completionStatus || "");
 
   const renderWorkloadTab = () => {
@@ -17243,6 +17312,9 @@ function App({ onReady }: { onReady?: () => void } = {}) {
 
   // Open the finish/review screen: freeze the elapsed duration and celebrate.
   const openWorkoutFinish = () => {
+    // Reviewing a completed workout — nothing to finish; the retro channel is
+    // form videos/notes, and saveWorkout has the same guard as a backstop.
+    if (clientReviewMode) return;
     const dur = workoutStartedAtRef.current
       ? Math.max(1, Math.round((Date.now() - workoutStartedAtRef.current) / 60000))
       : 0;
@@ -19909,13 +19981,20 @@ function App({ onReady }: { onReady?: () => void } = {}) {
             t={t}
             checkAndSaveWorkoutSet={checkAndSaveWorkoutSet}
             checkedWorkoutPageItems={checkedWorkoutPageItems}
+            clientReviewMode={clientReviewMode}
             coachReviewMode={coachReviewMode}
             deleteWorkout={deleteWorkout}
             detailsLoading={detailsLoading}
             editingWorkoutDate={editingWorkoutDate}
+            formNoteBusy={formNoteBusy}
+            formNoteExercise={formNoteExercise}
+            formNoteText={formNoteText}
             formVideoBusy={formVideoBusy}
             formVideoInputRef={formVideoInputRef}
             formVideoSentIds={formVideoSentIds}
+            setFormNoteExercise={setFormNoteExercise}
+            setFormNoteText={setFormNoteText}
+            submitFormNote={submitFormNote}
             getWorkoutGroupBounds={getWorkoutGroupBounds}
             getWorkoutGroupIndexes={getWorkoutGroupIndexes}
             getWorkoutGroupRoundCount={getWorkoutGroupRoundCount}

@@ -83,38 +83,49 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method === "POST") {
       const { clientId, clientName, exerciseName, workoutName, videoUrl, note } =
         req.body || {};
-      if (!clientId || !videoUrl)
-        return res.status(400).json({ error: "clientId and videoUrl required" });
-      // Feishu URL columns mangle relative paths ("http:///uploads/…") — store
-      // an absolute URL built from the requesting host.
-      const host = String(req.headers["x-forwarded-host"] || req.headers.host || "");
-      const absoluteUrl = String(videoUrl).startsWith("/")
-        ? `https://${host}${videoUrl}`
-        : String(videoUrl);
+      // A submission is a video, a written note, or both — clients reviewing a
+      // past workout can send a note without re-filming anything.
+      if (!clientId || (!videoUrl && !String(note || "").trim()))
+        return res
+          .status(400)
+          .json({ error: "clientId and a videoUrl or note required" });
       const videoId = `FV-${Math.floor(100000 + Math.random() * 900000)}`;
+      const fields: Record<string, any> = {
+        "Video ID": videoId,
+        "Client ID": String(clientId),
+        "Client Name": String(clientName || ""),
+        "Exercise Name": String(exerciseName || ""),
+        "Workout Name": String(workoutName || ""),
+        "Client Note": String(note || ""),
+        "Submitted At": Date.now(),
+        Status: "New",
+      };
+      if (videoUrl) {
+        // Feishu URL columns mangle relative paths ("http:///uploads/…") —
+        // store an absolute URL built from the requesting host. Omit the
+        // field entirely for note-only submissions (an empty value would fail
+        // the whole record write).
+        const host = String(
+          req.headers["x-forwarded-host"] || req.headers.host || ""
+        );
+        const absoluteUrl = String(videoUrl).startsWith("/")
+          ? `https://${host}${videoUrl}`
+          : String(videoUrl);
+        fields["Video URL"] = { link: absoluteUrl, text: "Form video" };
+      }
       const r = await fetch(`${base()}/records`, {
         method: "POST",
         headers,
-        body: JSON.stringify({
-          fields: {
-            "Video ID": videoId,
-            "Client ID": String(clientId),
-            "Client Name": String(clientName || ""),
-            "Exercise Name": String(exerciseName || ""),
-            "Workout Name": String(workoutName || ""),
-            "Video URL": { link: absoluteUrl, text: "Form video" },
-            "Client Note": String(note || ""),
-            "Submitted At": Date.now(),
-            Status: "New",
-          },
-        }),
+        body: JSON.stringify({ fields }),
       });
       const d = await r.json();
       if (d.code !== 0)
         return res.status(500).json({ error: "Could not save video", larkResponse: d });
       invalidateCache("formVideos");
       void notifyCoach(
-        `📹 Form video from ${clientName || clientId}\n${exerciseName || "Exercise"} — review it in the coach app.`
+        videoUrl
+          ? `📹 Form video from ${clientName || clientId}\n${exerciseName || "Exercise"} — review it in the coach app.`
+          : `📝 Workout note from ${clientName || clientId}\n${exerciseName || "Exercise"}: ${String(note || "").slice(0, 120)}`
       );
       return res.status(200).json({ success: true, videoId });
     }

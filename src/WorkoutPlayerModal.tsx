@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { stripLocalizedExerciseMeta } from "./appCore";
 import "./WorkoutPlayerModal.css";
-import { Check, ChevronLeft, ChevronRight, ClipboardList, Clock3, Film, MoreVertical, Play, RefreshCw, Shuffle, Timer, Trash2, X } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, ClipboardList, Clock3, Film, MessageSquare, MoreVertical, Play, RefreshCw, Shuffle, Timer, Trash2, X } from "lucide-react";
 import { getDisplayTaskStatus, makeExerciseLabel, parseExerciseNotes, videoThumbnail } from "./appCore";
 
 export default function WorkoutPlayerModal({
@@ -10,10 +10,14 @@ export default function WorkoutPlayerModal({
   t,
   checkAndSaveWorkoutSet,
   checkedWorkoutPageItems,
+  clientReviewMode,
   coachReviewMode,
   deleteWorkout,
   detailsLoading,
   editingWorkoutDate,
+  formNoteBusy,
+  formNoteExercise,
+  formNoteText,
   formVideoBusy,
   formVideoInputRef,
   formVideoSentIds,
@@ -52,7 +56,10 @@ export default function WorkoutPlayerModal({
   selectedWorkout,
   setAlternatePickerExercise,
   setEditingWorkoutDate,
+  setFormNoteExercise,
+  setFormNoteText,
   setFormVideoExercise,
+  submitFormNote,
   setHistoryExerciseName,
   setLogs,
   setOpenWorkoutActionMenuId,
@@ -1072,6 +1079,25 @@ export default function WorkoutPlayerModal({
                                     </span>
                                   </button>
                                 )}
+
+                                {isPremiumClient() && (
+                                  <button
+                                    type="button"
+                                    disabled={formNoteBusy}
+                                    onClick={() => {
+                                      setOpenWorkoutActionMenuId("");
+                                      setFormNoteText("");
+                                      setFormNoteExercise({
+                                        exerciseName: exercise.exerciseName,
+                                      });
+                                    }}
+                                  >
+                                    <MessageSquare size={16} aria-hidden="true" />
+                                    <span>
+                                      {paceZh ? "备注给教练" : "Note to coach"}
+                                    </span>
+                                  </button>
+                                )}
                               </div>
                             )}
                           </div>
@@ -1503,7 +1529,7 @@ export default function WorkoutPlayerModal({
                                 </>
                               )}
 
-                              {isClientPortal && !coachReviewMode && (
+                              {isClientPortal && !coachReviewMode && !clientReviewMode && (
                                 <button
                                   className={`setSaveCheckButton${
                                     setChecked ? " setSaveCheckButtonDone" : ""
@@ -1543,10 +1569,18 @@ export default function WorkoutPlayerModal({
                   </button>
                 )}
 
-                {coachReviewMode
+                {coachReviewMode || clientReviewMode
                   ? selectedWorkout?.clientNotes && (
                       <div className="workoutReviewComment">
-                        <span>{paceZh ? "运动员备注" : "Athlete comment"}</span>
+                        <span>
+                          {clientReviewMode
+                            ? paceZh
+                              ? "我的训练备注"
+                              : "My workout comment"
+                            : paceZh
+                              ? "运动员备注"
+                              : "Athlete comment"}
+                        </span>
                         <p>{selectedWorkout.clientNotes}</p>
                       </div>
                     )
@@ -1575,6 +1609,12 @@ export default function WorkoutPlayerModal({
                     />
                     <span>{paceZh ? "已审阅" : "Coach reviewed"}</span>
                   </label>
+                ) : clientReviewMode ? (
+                  <div className="workoutReviewBanner">
+                    {paceZh
+                      ? "已提交 ✓ — 点动作菜单可补发视频或备注给教练。"
+                      : "Submitted ✓ — use an exercise menu to send your coach a video or note."}
+                  </div>
                 ) : (
                   (!isClientPortal ||
                     (workoutLoggingStarted && !workoutFocusMode)) && (
@@ -1742,6 +1782,63 @@ export default function WorkoutPlayerModal({
               </div>
             </div>
           </div>
+
+          {/* Retrospective note-to-coach composer — rides the form-video
+              channel as a note-only submission. */}
+          {formNoteExercise && (
+            <div
+              className="formNoteOverlay"
+              onClick={() => setFormNoteExercise(null)}
+            >
+              <div
+                className="formNotePanel"
+                role="dialog"
+                aria-label={paceZh ? "备注给教练" : "Note to coach"}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="formNoteHead">
+                  <strong>
+                    {paceZh ? "备注给教练" : "Note to coach"}
+                  </strong>
+                  <button
+                    type="button"
+                    className="iconActionButton"
+                    aria-label={paceZh ? "关闭" : "Close"}
+                    onClick={() => setFormNoteExercise(null)}
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+                <p className="formNoteExercise">
+                  {stripLocalizedExerciseMeta(formNoteExercise.exerciseName)}
+                </p>
+                <textarea
+                  autoFocus
+                  value={formNoteText}
+                  onChange={(e) => setFormNoteText(e.target.value)}
+                  placeholder={
+                    paceZh
+                      ? "例如：这组感觉轻松 / 左膝有点不适 / 忘了拍视频…"
+                      : "e.g. Felt easy / left knee tweaked / forgot to film this one…"
+                  }
+                />
+                <button
+                  type="button"
+                  className="goldButton"
+                  disabled={formNoteBusy || !formNoteText.trim()}
+                  onClick={() => void submitFormNote()}
+                >
+                  {formNoteBusy
+                    ? paceZh
+                      ? "发送中…"
+                      : "Sending…"
+                    : paceZh
+                      ? "发送给教练"
+                      : "Send to coach"}
+                </button>
+              </div>
+            </div>
+          )}
     </>
   );
 }

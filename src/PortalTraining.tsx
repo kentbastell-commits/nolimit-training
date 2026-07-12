@@ -1,7 +1,8 @@
 // Extracted from App.tsx (monolith split) — JSX verbatim; props threaded.
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { DragEvent } from "react";
-import { CalendarDays, ChevronLeft, ChevronRight, ClipboardList, Copy, Dumbbell, HeartPulse, Plus, Scissors, Target, Trophy, Waves } from "lucide-react";
+import { useState } from "react";
+import { CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, ClipboardList, Copy, Dumbbell, HeartPulse, Plus, Scissors, Target, Trophy, Waves } from "lucide-react";
 
 // Category → colourful icon (colour comes from the .wcatIcon.<class> CSS).
 const CAT_ICON: Record<string, any> = {
@@ -119,6 +120,20 @@ export default function PortalTraining({
       getAssignmentColorClass(a.assignmentType)
     ),
   ].slice(0, 3);
+
+  // Upcoming | Completed scope for the client Training tab. "Completed" swaps
+  // the calendar for a newest-first history list — tapping a workout opens it
+  // in review mode (their logged values shown; retro videos/notes from there).
+  const [trainingScope, setTrainingScope] = useState<"upcoming" | "completed">(
+    "upcoming"
+  );
+  const completedWorkouts = (workouts || [])
+    .filter((w: any) => /complete/i.test(w.completionStatus || ""))
+    .sort((a: any, b: any) =>
+      normalizeDate(String(b.scheduledDate)).localeCompare(
+        normalizeDate(String(a.scheduledDate))
+      )
+    );
 
   return (
     <>
@@ -259,6 +274,21 @@ export default function PortalTraining({
                   )}
 
                   {isClientPortal && (
+                    <div className="clientCalendarViewToggle clientTrainingScopeToggle">
+                      {(["upcoming", "completed"] as const).map((scope) => (
+                        <button
+                          key={scope}
+                          className={trainingScope === scope ? "active" : ""}
+                          onClick={() => setTrainingScope(scope)}
+                          type="button"
+                        >
+                          {scope === "upcoming" ? t("upcoming") : t("completed")}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {isClientPortal && trainingScope === "upcoming" && (
                     <div className="clientCalendarViewToggle">
                       {(["Week", "Month", "Full"] as const).map((view) => (
                         <button
@@ -271,6 +301,48 @@ export default function PortalTraining({
                         </button>
                       ))}
                     </div>
+                  )}
+
+                  {isClientPortal && trainingScope === "completed" && (
+                    <section className="clientPortalWorkoutList clientCompletedList">
+                      {completedWorkouts.length === 0 ? (
+                        <p className="homeEmptyText">{t("noCompletedWorkouts")}</p>
+                      ) : (
+                        completedWorkouts.map((workout: any) => {
+                          const cc = getWorkoutColorClass(
+                            workout.sessionName,
+                            workout.sessionType
+                          );
+                          const Icon = catIcon(cc);
+                          return (
+                            <button
+                              key={workout.id}
+                              className={`selectedDayWorkout ${cc}`}
+                              onClick={() => openWorkout(workout)}
+                              type="button"
+                            >
+                              <span className={`wcatBadge ${cc}`}>
+                                <Icon size={20} aria-hidden="true" />
+                              </span>
+                              <div className="homeTaskBody">
+                                <strong>{localizedWorkoutName(workout)}</strong>
+                                <small>
+                                  {localizedCalendarLabel(
+                                    normalizeDate(String(workout.scheduledDate))
+                                  )}{" "}
+                                  · {t("week")} {workout.week} · {t("day")}{" "}
+                                  {workout.day}
+                                </small>
+                              </div>
+                              <span className="selectedDayWorkoutAction clientCompletedAction">
+                                <CheckCircle2 size={15} aria-hidden="true" />
+                                {t("review")}
+                              </span>
+                            </button>
+                          );
+                        })
+                      )}
+                    </section>
                   )}
 
                   {!isClientPortal && (
@@ -346,6 +418,7 @@ export default function PortalTraining({
                     </div>
                   )}
 
+                  {(!isClientPortal || trainingScope === "upcoming") && (
                   <div className="calendarNavigator">
                     <div className="calendarRangeControls">
                       <button
@@ -419,6 +492,7 @@ export default function PortalTraining({
                       </label>
                     </div>
                   </div>
+                  )}
 
                   {false && !isClientPortal && (
                   <section className="assignProgramPanel">
@@ -595,6 +669,7 @@ export default function PortalTraining({
 
                   {workoutsLoading && <p>Loading workouts...</p>}
 
+                  {(!isClientPortal || trainingScope === "upcoming") && (
                   <div
                     className={
                       isClientPortal && clientCalendarStyle === "Week"
@@ -1744,6 +1819,7 @@ export default function PortalTraining({
                       </div>
                     )}
                   </div>
+                  )}
                 </div>
     </>
   );
