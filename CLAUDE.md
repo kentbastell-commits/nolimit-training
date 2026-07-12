@@ -94,9 +94,11 @@ data between them, never "borrow" a table ID across products.
     the AI result on any failure.
 15. **The phantom suite failure** — every vitest file fails at once with nonsense
     errors ("failed to find the current suite", `undefined (reading 'config')`)
-    while a single file passes: that's worker memory exhaustion, not broken tests.
-    Rule: keep `maxWorkers` capped in vitest.config.ts (currently 4); if the whole
-    suite dies weirdly, re-run one file before touching any test code.
+    while a single file passes: that's memory exhaustion, not broken tests — and
+    it's driven by the machine's FREE RAM, not the config cap (it fired at
+    `--maxWorkers=2` with 1.2GB free; other apps eat the RAM, not node). Rule:
+    single file passes → check free RAM → step down `--maxWorkers`; `1` always
+    fits (full 98-file suite ≈75s). Never touch test code off a phantom run.
 16. **The clobbered intent** — the store checkout has a `useEffect` keyed on
     `storeSelectedProgram?.recordId` that resets step/add-ons/paymentCode. Any
     handler that sets one of those *while also changing the selected program*
