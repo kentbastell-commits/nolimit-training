@@ -275,7 +275,7 @@
   top: 0;
   bottom: 0;
   width: 5px;
-  background: #8e5ea8;
+  background: #b3a6d4; /* Wisteria */
 }
 .rvCardTap {
   cursor: pointer;
@@ -307,17 +307,19 @@
   display: inline-flex;
   align-items: baseline;
   gap: 0.3rem;
-  background: #f4eefa;
-  border: 1px solid #e6d8f2;
+  background: color-mix(in srgb, #b3a6d4 18%, #fff); /* soft Wisteria tint */
+  border: 1px solid color-mix(in srgb, #b3a6d4 40%, #fff);
   border-radius: 999px;
   padding: 0.15rem 0.55rem;
   font-size: 12px;
   font-weight: 700;
   white-space: nowrap;
 }
-/* Check-in chips read "Energy 3" as a purple metric label + a black answer. */
+/* Check-in chips read "Energy 3" as a Wisteria/Amethyst metric label + a black
+   answer. The label uses Amethyst (a darker sibling of Wisteria) so small text
+   stays legible on the tint. */
 .rvChipK {
-  color: #8e5ea8;
+  color: #7e5aa6;
   font-weight: 800;
 }
 .rvChipV {
@@ -460,13 +462,13 @@ button.rvItem:focus-visible {
   width: 5px;
 }
 .rvItemUrgent::before {
-  background: #3f6ea3;
+  background: #c99a4e; /* Ochre — orders/intake */
 }
 .rvItemMissed::before {
-  background: #d1495b;
+  background: #d8412f; /* Vermilion — missed */
 }
 .rvItemSubmission::before {
-  background: #3f9d6a;
+  background: #5e8a86; /* Dusty Teal — submissions */
 }
 .rvItemKicker {
   color: #66645e;
@@ -475,15 +477,16 @@ button.rvItem:focus-visible {
   letter-spacing: 0.09em;
   text-transform: uppercase;
 }
-/* Make the queue label pop in its plate color instead of muted grey. */
+/* Kicker text is small — use a darkened sibling of each plate hue so the label
+   stays legible while reading as the same category color. */
 .rvItemUrgent .rvItemKicker {
-  color: #3f6ea3;
+  color: #9c7628; /* dark Ochre */
 }
 .rvItemMissed .rvItemKicker {
-  color: #d1495b;
+  color: #c0392b; /* dark Vermilion */
 }
 .rvItemSubmission .rvItemKicker {
-  color: #3f9d6a;
+  color: #436460; /* dark Dusty Teal */
 }
 .rvItem strong {
   color: #10100f;

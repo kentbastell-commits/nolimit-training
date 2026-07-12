@@ -8157,6 +8157,19 @@ body {
 
 /* Final light theme contrast pass */
 .app:not(.clientPortalApp),
+/* Workout/task category coding — one source of truth, brand palette, softer
+   register. Reds are Vermilion (not oxblood). Every wcol- surface (badges,
+   side plates, calendar dots, blocks) derives its tint from these via
+   color-mix, so the whole app stays coherent and re-tuning is one line. */
+:root {
+  --wcol-strength: #758eae; /* Steel Blue */
+  --wcol-cardio: #d8412f;   /* Vermilion */
+  --wcol-mobility: #5e8a86; /* Dusty Teal */
+  --wcol-skill: #7e5aa6;    /* Amethyst */
+  --wcol-test: #c99a4e;     /* Ochre */
+  --wcol-other: #6c5a50;    /* Taupe Grey */
+}
+
 .clientPortalApp,
 .clientPortalShell {
   --nl-ink: #111111;
@@ -11821,38 +11834,38 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 .app:not(.clientPortalApp) .calendarDay .workoutBlock.wcol-strength,
 .clientPortalApp .calendarDay .workoutBlock.wcol-strength,
 .selectedDayWorkout.wcol-strength {
-  background: color-mix(in srgb, #5b6770 20%, #fff) !important;
-  border-color: color-mix(in srgb, #5b6770 38%, #fff) !important;
+  background: color-mix(in srgb, var(--wcol-strength) 18%, #fff) !important;
+  border-color: color-mix(in srgb, var(--wcol-strength) 38%, #fff) !important;
 }
 .app:not(.clientPortalApp) .calendarDay .workoutBlock.wcol-cardio,
 .clientPortalApp .calendarDay .workoutBlock.wcol-cardio,
 .selectedDayWorkout.wcol-cardio {
-  background: color-mix(in srgb, #3a86ff 15%, #fff) !important;
-  border-color: color-mix(in srgb, #3a86ff 32%, #fff) !important;
+  background: color-mix(in srgb, var(--wcol-cardio) 15%, #fff) !important;
+  border-color: color-mix(in srgb, var(--wcol-cardio) 32%, #fff) !important;
 }
 .app:not(.clientPortalApp) .calendarDay .workoutBlock.wcol-mobility,
 .clientPortalApp .calendarDay .workoutBlock.wcol-mobility,
 .selectedDayWorkout.wcol-mobility {
-  background: color-mix(in srgb, #15897a 15%, #fff) !important;
-  border-color: color-mix(in srgb, #15897a 32%, #fff) !important;
+  background: color-mix(in srgb, var(--wcol-mobility) 15%, #fff) !important;
+  border-color: color-mix(in srgb, var(--wcol-mobility) 32%, #fff) !important;
 }
 .app:not(.clientPortalApp) .calendarDay .workoutBlock.wcol-skill,
 .clientPortalApp .calendarDay .workoutBlock.wcol-skill,
 .selectedDayWorkout.wcol-skill {
-  background: color-mix(in srgb, #6a4bc9 15%, #fff) !important;
-  border-color: color-mix(in srgb, #6a4bc9 32%, #fff) !important;
+  background: color-mix(in srgb, var(--wcol-skill) 15%, #fff) !important;
+  border-color: color-mix(in srgb, var(--wcol-skill) 32%, #fff) !important;
 }
 .app:not(.clientPortalApp) .calendarDay .workoutBlock.wcol-test,
 .clientPortalApp .calendarDay .workoutBlock.wcol-test,
 .selectedDayWorkout.wcol-test {
-  background: color-mix(in srgb, #d64545 16%, #fff) !important;
-  border-color: color-mix(in srgb, #d64545 34%, #fff) !important;
+  background: color-mix(in srgb, var(--wcol-test) 16%, #fff) !important;
+  border-color: color-mix(in srgb, var(--wcol-test) 34%, #fff) !important;
 }
 .app:not(.clientPortalApp) .calendarDay .workoutBlock.wcol-purple,
 .clientPortalApp .calendarDay .workoutBlock.wcol-purple,
 .selectedDayWorkout.wcol-purple {
-  background: color-mix(in srgb, #7b3fbf 15%, #fff) !important;
-  border-color: color-mix(in srgb, #7b3fbf 32%, #fff) !important;
+  background: color-mix(in srgb, var(--wcol-other) 15%, #fff) !important;
+  border-color: color-mix(in srgb, var(--wcol-other) 32%, #fff) !important;
 }
 
 /* Left status bar: dark by default, red when the task was missed. Overrides
@@ -11898,12 +11911,12 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 }
 
 /* Color-code the portal Upcoming Tasks cards by workout/task type (left accent) */
-.homeWorkoutItem.wcol-strength { border-left: 4px solid #5b6770; }
-.homeWorkoutItem.wcol-cardio { border-left: 4px solid #3a86ff; }
-.homeWorkoutItem.wcol-mobility { border-left: 4px solid #15897a; }
-.homeWorkoutItem.wcol-skill { border-left: 4px solid #6a4bc9; }
-.homeWorkoutItem.wcol-test { border-left: 4px solid #c0392b; }
-.homeWorkoutItem.wcol-purple { border-left: 4px solid #7b3fbf; }
+.homeWorkoutItem.wcol-strength { border-left: 4px solid var(--wcol-strength); }
+.homeWorkoutItem.wcol-cardio { border-left: 4px solid var(--wcol-cardio); }
+.homeWorkoutItem.wcol-mobility { border-left: 4px solid var(--wcol-mobility); }
+.homeWorkoutItem.wcol-skill { border-left: 4px solid var(--wcol-skill); }
+.homeWorkoutItem.wcol-test { border-left: 4px solid var(--wcol-test); }
+.homeWorkoutItem.wcol-purple { border-left: 4px solid var(--wcol-other); }
 .subStatusChip.status-pastdue { color: #8b1e2d; border-color: rgba(139,30,45,0.4); background: rgba(139,30,45,0.08); }
 .subStatusChip.status-active { color: #237a30; border-color: rgba(35,122,48,0.35); background: rgba(35,122,48,0.08); }
 .subStatusChip.status-trial { color: #1f5fd6; border-color: rgba(58,134,255,0.35); background: rgba(58,134,255,0.08); }
@@ -13975,12 +13988,12 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   border-radius: 50%;
   background: #cfc9bb;
 }
-.clientPortalApp .calendarWorkMarkers span.wcol-strength { background: #10100f; }
-.clientPortalApp .calendarWorkMarkers span.wcol-cardio { background: #2a6fdb; }
-.clientPortalApp .calendarWorkMarkers span.wcol-mobility { background: #1f8a5b; }
-.clientPortalApp .calendarWorkMarkers span.wcol-skill { background: #7a3fb0; }
-.clientPortalApp .calendarWorkMarkers span.wcol-test { background: #b5731a; }
-.clientPortalApp .calendarWorkMarkers span.wcol-purple { background: #7a3fb0; }
+.clientPortalApp .calendarWorkMarkers span.wcol-strength { background: var(--wcol-strength); }
+.clientPortalApp .calendarWorkMarkers span.wcol-cardio { background: var(--wcol-cardio); }
+.clientPortalApp .calendarWorkMarkers span.wcol-mobility { background: var(--wcol-mobility); }
+.clientPortalApp .calendarWorkMarkers span.wcol-skill { background: var(--wcol-skill); }
+.clientPortalApp .calendarWorkMarkers span.wcol-test { background: var(--wcol-test); }
+.clientPortalApp .calendarWorkMarkers span.wcol-purple { background: var(--wcol-other); }
 .clientPortalApp .calendarWorkMarkers .emptyMarker { background: #cfc9bb; opacity: 0.5; }
 .clientPortalApp .selectedCalendarDay .calendarWorkMarkers span { background: #f0dc88 !important; }
 
@@ -14023,12 +14036,12 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   cursor: pointer;
   box-shadow: 0 8px 20px -14px rgba(0, 0, 0, 0.4);
 }
-.clientPortalApp .selectedDayWorkout.wcol-strength { border-left-color: #10100f !important; }
-.clientPortalApp .selectedDayWorkout.wcol-cardio { border-left-color: #2a6fdb !important; }
-.clientPortalApp .selectedDayWorkout.wcol-mobility { border-left-color: #1f8a5b !important; }
-.clientPortalApp .selectedDayWorkout.wcol-skill { border-left-color: #7a3fb0 !important; }
-.clientPortalApp .selectedDayWorkout.wcol-test { border-left-color: #b5731a !important; }
-.clientPortalApp .selectedDayWorkout.wcol-purple { border-left-color: #7a3fb0 !important; }
+.clientPortalApp .selectedDayWorkout.wcol-strength { border-left-color: var(--wcol-strength) !important; }
+.clientPortalApp .selectedDayWorkout.wcol-cardio { border-left-color: var(--wcol-cardio) !important; }
+.clientPortalApp .selectedDayWorkout.wcol-mobility { border-left-color: var(--wcol-mobility) !important; }
+.clientPortalApp .selectedDayWorkout.wcol-skill { border-left-color: var(--wcol-skill) !important; }
+.clientPortalApp .selectedDayWorkout.wcol-test { border-left-color: var(--wcol-test) !important; }
+.clientPortalApp .selectedDayWorkout.wcol-purple { border-left-color: var(--wcol-other) !important; }
 .clientPortalApp .selectedDayWorkout > div {
   flex: 1;
   min-width: 0;
@@ -14219,12 +14232,12 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   background: #faf8f2 !important;
   color: #10100f !important;
 }
-.clientPortalApp .clientFullCalendar .workoutBlock.wcol-strength { border-left-color: #10100f !important; }
-.clientPortalApp .clientFullCalendar .workoutBlock.wcol-cardio { border-left-color: #2a6fdb !important; }
-.clientPortalApp .clientFullCalendar .workoutBlock.wcol-mobility { border-left-color: #1f8a5b !important; }
-.clientPortalApp .clientFullCalendar .workoutBlock.wcol-skill { border-left-color: #7a3fb0 !important; }
-.clientPortalApp .clientFullCalendar .workoutBlock.wcol-test,
-.clientPortalApp .clientFullCalendar .assignmentBlock.wcol-purple { border-left-color: #7a3fb0 !important; }
+.clientPortalApp .clientFullCalendar .workoutBlock.wcol-strength { border-left-color: var(--wcol-strength) !important; }
+.clientPortalApp .clientFullCalendar .workoutBlock.wcol-cardio { border-left-color: var(--wcol-cardio) !important; }
+.clientPortalApp .clientFullCalendar .workoutBlock.wcol-mobility { border-left-color: var(--wcol-mobility) !important; }
+.clientPortalApp .clientFullCalendar .workoutBlock.wcol-skill { border-left-color: var(--wcol-skill) !important; }
+.clientPortalApp .clientFullCalendar .workoutBlock.wcol-test { border-left-color: var(--wcol-test) !important; }
+.clientPortalApp .clientFullCalendar .assignmentBlock.wcol-purple { border-left-color: var(--wcol-other) !important; }
 .clientPortalApp .clientFullCalendar .workoutBlockMain {
   font-size: 14px;
   font-weight: 800;
@@ -14756,39 +14769,39 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 .clientPortalApp .selectedDayWorkout.wcol-strength,
 .clientPortalApp .clientFullCalendar .workoutBlock.wcol-strength {
   background: #fff !important;
-  border-left: 5px solid #35618e !important;
+  border-left: 5px solid var(--wcol-strength) !important;
 }
 .clientPortalApp .homeWorkoutItem.wcol-cardio,
 .clientPortalApp .selectedDayWorkout.wcol-cardio,
 .clientPortalApp .clientFullCalendar .workoutBlock.wcol-cardio {
   background: #fff !important;
-  border-left: 5px solid #d1495b !important;
+  border-left: 5px solid var(--wcol-cardio) !important;
 }
 .clientPortalApp .homeWorkoutItem.wcol-mobility,
 .clientPortalApp .selectedDayWorkout.wcol-mobility,
 .clientPortalApp .clientFullCalendar .workoutBlock.wcol-mobility {
   background: #fff !important;
-  border-left: 5px solid #2a9d8f !important;
+  border-left: 5px solid var(--wcol-mobility) !important;
 }
 .clientPortalApp .homeWorkoutItem.wcol-skill,
 .clientPortalApp .selectedDayWorkout.wcol-skill,
 .clientPortalApp .clientFullCalendar .workoutBlock.wcol-skill {
   background: #fff !important;
-  border-left: 5px solid #8e5ea8 !important;
+  border-left: 5px solid var(--wcol-skill) !important;
 }
 .clientPortalApp .homeWorkoutItem.wcol-test,
 .clientPortalApp .selectedDayWorkout.wcol-test,
 .clientPortalApp .clientFullCalendar .workoutBlock.wcol-test,
 .clientPortalApp .clientFullCalendar .assignmentBlock.wcol-test {
   background: #fff !important;
-  border-left: 5px solid #b5731a !important;
+  border-left: 5px solid var(--wcol-test) !important;
 }
 .clientPortalApp .homeWorkoutItem.wcol-purple,
 .clientPortalApp .selectedDayWorkout.wcol-purple,
 .clientPortalApp .clientFullCalendar .workoutBlock.wcol-purple,
 .clientPortalApp .clientFullCalendar .assignmentBlock.wcol-purple {
   background: #fff !important;
-  border-left: 5px solid #6c7a99 !important;
+  border-left: 5px solid var(--wcol-other) !important;
 }
 
 /* Tinted circle category badge — big leading circle on home cards, a smaller
@@ -14818,17 +14831,17 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   height: 40px;
 }
 .clientPortalApp .wcatIcon.wcol-strength,
-.clientPortalApp .wcatBadge.wcol-strength { background: #e6edf5; color: #35618e; }
+.clientPortalApp .wcatBadge.wcol-strength { background: color-mix(in srgb, var(--wcol-strength) 15%, #fff); color: var(--wcol-strength); }
 .clientPortalApp .wcatIcon.wcol-cardio,
-.clientPortalApp .wcatBadge.wcol-cardio { background: #fae7ea; color: #d1495b; }
+.clientPortalApp .wcatBadge.wcol-cardio { background: color-mix(in srgb, var(--wcol-cardio) 14%, #fff); color: var(--wcol-cardio); }
 .clientPortalApp .wcatIcon.wcol-mobility,
-.clientPortalApp .wcatBadge.wcol-mobility { background: #e2f3f0; color: #2a9d8f; }
+.clientPortalApp .wcatBadge.wcol-mobility { background: color-mix(in srgb, var(--wcol-mobility) 15%, #fff); color: var(--wcol-mobility); }
 .clientPortalApp .wcatIcon.wcol-skill,
-.clientPortalApp .wcatBadge.wcol-skill { background: #f1e9f6; color: #8e5ea8; }
+.clientPortalApp .wcatBadge.wcol-skill { background: color-mix(in srgb, var(--wcol-skill) 15%, #fff); color: var(--wcol-skill); }
 .clientPortalApp .wcatIcon.wcol-test,
-.clientPortalApp .wcatBadge.wcol-test { background: #f7efd6; color: #b5731a; }
+.clientPortalApp .wcatBadge.wcol-test { background: color-mix(in srgb, var(--wcol-test) 16%, #fff); color: var(--wcol-test); }
 .clientPortalApp .wcatIcon.wcol-purple,
-.clientPortalApp .wcatBadge.wcol-purple { background: #eaedf3; color: #6c7a99; }
+.clientPortalApp .wcatBadge.wcol-purple { background: color-mix(in srgb, var(--wcol-other) 15%, #fff); color: var(--wcol-other); }
 
 /* home task card → leading badge · content · action */
 .clientPortalApp .homeWorkoutItem {
@@ -14857,12 +14870,12 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 }
 
 /* dots (Week strip + Month grid) recoloured to the same category accents */
-.clientPortalApp .calendarWorkMarkers span.wcol-strength { background: #35618e !important; }
-.clientPortalApp .calendarWorkMarkers span.wcol-cardio { background: #d1495b !important; }
-.clientPortalApp .calendarWorkMarkers span.wcol-mobility { background: #2a9d8f !important; }
-.clientPortalApp .calendarWorkMarkers span.wcol-skill { background: #8e5ea8 !important; }
-.clientPortalApp .calendarWorkMarkers span.wcol-test { background: #b5731a !important; }
-.clientPortalApp .calendarWorkMarkers span.wcol-purple { background: #6c7a99 !important; }
+.clientPortalApp .calendarWorkMarkers span.wcol-strength { background: var(--wcol-strength) !important; }
+.clientPortalApp .calendarWorkMarkers span.wcol-cardio { background: var(--wcol-cardio) !important; }
+.clientPortalApp .calendarWorkMarkers span.wcol-mobility { background: var(--wcol-mobility) !important; }
+.clientPortalApp .calendarWorkMarkers span.wcol-skill { background: var(--wcol-skill) !important; }
+.clientPortalApp .calendarWorkMarkers span.wcol-test { background: var(--wcol-test) !important; }
+.clientPortalApp .calendarWorkMarkers span.wcol-purple { background: var(--wcol-other) !important; }
 
 /* Error-boundary fallback (replaces a white-screen crash) */
 .appErrorFallback {

@@ -110,37 +110,37 @@ export default function ReviewPage({
       label: "Workout comments",
       count: globalUnreviewedWorkoutComments.length,
       target: "reviewColComments",
-      accent: "#6c7a99",
+      accent: "#758eae", // Steel Blue
     },
     {
       label: "Submissions",
       count: globalReviewSubmissionItems.length,
       target: "reviewColSubmissions",
-      accent: "#3f9d6a",
+      accent: "#5e8a86", // Dusty Teal
     },
     {
       label: "Missed tasks",
       count: globalMissedWorkouts.length,
       target: "reviewColMissed",
-      accent: "#d1495b",
+      accent: "#d8412f", // Vermilion
     },
     {
       label: "Order reviews",
       count: globalReviewOrders.length,
       target: "reviewColComments",
-      accent: "#3f6ea3",
+      accent: "#c99a4e", // Ochre
     },
     {
       label: "Check-ins",
       count: coachReviewCheckIns.length,
       target: "reviewColCheckins",
-      accent: "#8e5ea8",
+      accent: "#b3a6d4", // Wisteria
     },
     {
       label: "In-person enquiries",
       count: newEnquiries.length,
       target: "reviewColEnquiries",
-      accent: "#b5731a",
+      accent: "#b5654a", // Clay
     },
   ];
 

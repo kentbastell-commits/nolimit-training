@@ -427,12 +427,12 @@
   opacity: 0.5;
   border-style: dashed;
 }
-.programGridCard.wcol-strength { border-left-color: #5b6770; }
-.programGridCard.wcol-cardio { border-left-color: #3a86ff; }
-.programGridCard.wcol-mobility { border-left-color: #15897a; }
-.programGridCard.wcol-skill { border-left-color: #6a4bc9; }
-.programGridCard.wcol-test { border-left-color: #d64545; }
-.programGridCard.wcol-purple { border-left-color: #7b3fbf; }
+.programGridCard.wcol-strength { border-left-color: var(--wcol-strength); }
+.programGridCard.wcol-cardio { border-left-color: var(--wcol-cardio); }
+.programGridCard.wcol-mobility { border-left-color: var(--wcol-mobility); }
+.programGridCard.wcol-skill { border-left-color: var(--wcol-skill); }
+.programGridCard.wcol-test { border-left-color: var(--wcol-test); }
+.programGridCard.wcol-purple { border-left-color: var(--wcol-other); }
 .programGridCardHead {
   position: relative;
   display: flex;
@@ -3926,12 +3926,14 @@
   display: block;
 }
 /* Program builder: only the session LABEL takes the type color (no tab tint). */
-.builderSessionLabel.wcol-strength { color: #46535c !important; }
-.builderSessionLabel.wcol-cardio { color: #2f6fd0 !important; }
-.builderSessionLabel.wcol-mobility { color: #0f7468 !important; }
-.builderSessionLabel.wcol-skill { color: #5538a8 !important; }
-.builderSessionLabel.wcol-test { color: #b3261e !important; }
-.builderSessionLabel.wcol-purple { color: #6a2f9e !important; }
+/* Session labels are text on a light surface — darken the brand hue ~30% for
+   legible contrast while staying on the same category color. */
+.builderSessionLabel.wcol-strength { color: color-mix(in srgb, var(--wcol-strength) 70%, #000) !important; }
+.builderSessionLabel.wcol-cardio { color: color-mix(in srgb, var(--wcol-cardio) 72%, #000) !important; }
+.builderSessionLabel.wcol-mobility { color: color-mix(in srgb, var(--wcol-mobility) 70%, #000) !important; }
+.builderSessionLabel.wcol-skill { color: color-mix(in srgb, var(--wcol-skill) 72%, #000) !important; }
+.builderSessionLabel.wcol-test { color: color-mix(in srgb, var(--wcol-test) 66%, #000) !important; }
+.builderSessionLabel.wcol-purple { color: color-mix(in srgb, var(--wcol-other) 78%, #000) !important; }
 .teamSection .profileMetricsHeader { margin-bottom: 12px; }
 .teamAssignRow {
   display: flex;
