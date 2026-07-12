@@ -132,7 +132,7 @@ export default function CoachClientsPage(props: { [key: string]: any }) {
     .filter((p: any) => p != null) as number[];
   const sumAvg = withPct.length
     ? Math.round(withPct.reduce((a, b) => a + b, 0) / withPct.length)
-    : 0;
+    : null;
 
   // ---- bucket segmented (All / Active / Paused only) ----
   const bucketCount = (name: string) =>
@@ -236,7 +236,18 @@ export default function CoachClientsPage(props: { [key: string]: any }) {
         <div className="crpAvatar" style={{ background: col.bg, color: col.fg }}>
           {c.initials}
         </div>
-        <div className="crpRowMain">
+        <div
+          className="crpRowMain"
+          role="button"
+          tabIndex={0}
+          aria-label={`Preview ${c.name}`}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              setPeekId(c.id);
+            }
+          }}
+        >
           <div className="crpRowName">
             <strong>{c.name}</strong>
             {teamsOf.map((t: any) => (
@@ -370,19 +381,30 @@ export default function CoachClientsPage(props: { [key: string]: any }) {
             <small>athletes flagged</small>
           </div>
           <p>
-            <strong>{sumAvg}%</strong> average compliance this week.
+            {sumAvg == null ? (
+              "No compliance data this week."
+            ) : (
+              <>
+                <strong>{sumAvg}%</strong> average compliance this week.
+              </>
+            )}
           </p>
         </div>
       </div>
 
       {/* filter bar */}
       <div className="crpFilters">
-        <div className="crpBucketTabs">
+        <div
+          className="crpBucketTabs"
+          role="group"
+          aria-label="Client status filters"
+        >
           {BUCKETS.map(([name, label]) => (
             <button
               key={name}
               type="button"
               className={clientBucket === name ? "active" : ""}
+              aria-pressed={clientBucket === name}
               onClick={() => {
                 setClientBucket(name);
                 setClientStatusFilter("All");
@@ -396,6 +418,7 @@ export default function CoachClientsPage(props: { [key: string]: any }) {
           <div className="crpSearch">
             <Search size={15} />
             <input
+              aria-label="Search clients"
               value={clientSearch}
               onChange={(e) => setClientSearch(e.target.value)}
               placeholder="Search client…"
@@ -403,6 +426,7 @@ export default function CoachClientsPage(props: { [key: string]: any }) {
           </div>
           <select
             className="crpSelect"
+            aria-label="Group clients"
             value={groupView}
             onChange={(e) => onGroupChange(e.target.value)}
           >
@@ -413,6 +437,7 @@ export default function CoachClientsPage(props: { [key: string]: any }) {
           </select>
           <select
             className="crpSelect"
+            aria-label="Filter client status"
             value={clientStatusFilter}
             onChange={(e) => setClientStatusFilter(e.target.value)}
           >
@@ -425,7 +450,8 @@ export default function CoachClientsPage(props: { [key: string]: any }) {
           </select>
           {activeCoaches?.length > 0 && (
             <select
-              className="crpSelect"
+              className="crpSelect crpCoachSelect"
+              aria-label="Filter by coach"
               value={coachScope}
               onChange={(e) => setCoachScope(e.target.value)}
             >
@@ -450,7 +476,7 @@ export default function CoachClientsPage(props: { [key: string]: any }) {
 
       {/* triage chips */}
       {triageDefs.some((d: any) => triageCounts[d.key] > 0) && (
-        <div className="crpTriage">
+        <div className="crpTriage" role="group" aria-label="Attention filters">
           <span className="crpTriageLabel">Needs attention</span>
           {triageDefs
             .filter((d: any) => triageCounts[d.key] > 0)
@@ -459,6 +485,7 @@ export default function CoachClientsPage(props: { [key: string]: any }) {
                 key={d.key}
                 type="button"
                 className={`crpTriageChip${rosterTriage === d.key ? " active" : ""}`}
+                aria-pressed={rosterTriage === d.key}
                 onClick={() =>
                   setRosterTriage((cur: any) => (cur === d.key ? "" : d.key))
                 }
@@ -570,24 +597,39 @@ export default function CoachClientsPage(props: { [key: string]: any }) {
 
       {/* roster */}
       {loading && totalShown === 0 ? (
-        <p className="crpLoading">Loading clients…</p>
+        <p className="crpLoading" role="status">
+          Loading clients…
+        </p>
       ) : totalShown === 0 ? (
         <div className="crpEmpty">
+          <UserCircle className="crpEmptyIcon" size={28} aria-hidden="true" />
           <p className="crpEmptyTitle">No clients match</p>
           <p className="crpEmptySub">Try a different bucket, filter, or search.</p>
         </div>
       ) : (
-        renderGroups.map((g, gi) => (
-          <div key={g.label || gi}>
-            {g.showTitle && (
-              <div className="crpGroupHead">
-                <h2>{g.label}</h2>
-                <span>{g.clients.length}</span>
-              </div>
-            )}
-            {g.clients.map(Row)}
-          </div>
-        ))
+        <>
+          {groupView !== "team" && (
+            <div className="crpRosterHead" aria-hidden="true">
+              <span />
+              <span />
+              <span>Athlete</span>
+              <span>Engagement</span>
+              <span>Attention</span>
+              <span>Actions</span>
+            </div>
+          )}
+          {renderGroups.map((g, gi) => (
+            <div key={g.label || gi}>
+              {g.showTitle && (
+                <div className="crpGroupHead">
+                  <h2>{g.label}</h2>
+                  <span>{g.clients.length}</span>
+                </div>
+              )}
+              {g.clients.map(Row)}
+            </div>
+          ))}
+        </>
       )}
 
       {/* ===== peek slide-over ===== */}
@@ -616,7 +658,13 @@ export default function CoachClientsPage(props: { [key: string]: any }) {
               return (
                 <motion.div
                   className="crpSlide"
+                  role="dialog"
+                  aria-modal="true"
+                  aria-labelledby="crp-peek-title"
                   onClick={(e) => e.stopPropagation()}
+                  onKeyDown={(event) => {
+                    if (event.key === "Escape") setPeekId(null);
+                  }}
                   initial={reduce ? { opacity: 0 } : { x: "100%" }}
                   animate={reduce ? { opacity: 1 } : { x: 0 }}
                   exit={reduce ? { opacity: 0 } : { x: "100%" }}
@@ -627,6 +675,7 @@ export default function CoachClientsPage(props: { [key: string]: any }) {
                       type="button"
                       className="crpSlideClose"
                       aria-label="Close"
+                      autoFocus
                       onClick={() => setPeekId(null)}
                     >
                       <X size={17} />
@@ -639,7 +688,7 @@ export default function CoachClientsPage(props: { [key: string]: any }) {
                         {c.initials}
                       </div>
                       <div>
-                        <h2>{c.name}</h2>
+                        <h2 id="crp-peek-title">{c.name}</h2>
                         <div className="crpSlideSub">
                           {c.clientType || "Client"} · {seenLabel(c)}
                         </div>

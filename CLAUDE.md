@@ -156,6 +156,9 @@ data between them, never "borrow" a table ID across products.
 25. **The lazy CSS last word** — route-level CSS loads after the main bundle, so
     equal-specificity shared polish can disappear after navigation. Rule: use a
     route root + target selector and verify computed styles after the chunk loads.
+26. **The wrap-and-pray card** — a dense desktop flex row merely wraps on mobile,
+    leaving names and metadata in vertical slivers. Rule: define explicit mobile
+    identity/status/action grid areas and inspect real long labels at 390px.
 
 ## Quality bar — checkable, per deliverable
 

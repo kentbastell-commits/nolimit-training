@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import CoachClientsPage from "../../../src/CoachClientsPage";
 
 const baseProps = {
@@ -88,6 +88,8 @@ describe("CoachClientsPage", () => {
     expect(
       screen.getByRole("button", { name: "Copy invite" })
     ).toBeInTheDocument();
+    expect(screen.getByLabelText("Search clients")).toBeInTheDocument();
+    expect(screen.getByText("No compliance data this week.")).toBeInTheDocument();
   });
 
   it("renders a roster row and opens the client on click", () => {
@@ -119,5 +121,26 @@ describe("CoachClientsPage", () => {
     render(<CoachClientsPage {...baseProps} loadClients={loadClients} />);
     fireEvent.click(screen.getByRole("button", { name: "Refresh" }));
     expect(loadClients).toHaveBeenCalledWith(true);
+  });
+
+  it("opens and closes the client preview from the keyboard", async () => {
+    render(
+      <CoachClientsPage
+        {...baseProps}
+        clients={[client]}
+        rosterClients={[client]}
+      />
+    );
+
+    fireEvent.keyDown(
+      screen.getByRole("button", { name: "Preview Ada Lovelace" }),
+      { key: "Enter" }
+    );
+    const dialog = screen.getByRole("dialog", { name: "Ada Lovelace" });
+    expect(dialog).toBeInTheDocument();
+    fireEvent.keyDown(dialog, { key: "Escape" });
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
+    );
   });
 });
