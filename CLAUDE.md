@@ -113,6 +113,15 @@ data between them, never "borrow" a table ID across products.
     letter-spacing: -0.02em`) and `text-transform: uppercase` where you need caps.
     A condensed web font swapped for a system one renders WIDER — shrink the size
     and add uppercase to keep the look.
+18. **The overriding co-located stylesheet** — editing a rule in `App.css` and
+    seeing ZERO effect because the same selector is redefined in a co-located
+    chunk CSS (`appInterior.css`, or a component's own `.css`) that loads AFTER
+    `App.css` and wins. Rule: when a CSS change has no visible effect, `grep` the
+    selector across **every** `.css` file (not just App.css) before touching more
+    App.css; verify against the *served/built* CSS or `getComputedStyle`, never
+    assume your edit took. (Cost hours on the sidebar identity box: a stray
+    `.coachBoxWrap { position:absolute }` in appInterior.css pinned it out of
+    flow and made the nav overlap it — invisible from App.css.)
 
 ## Quality bar — checkable, per deliverable
 
