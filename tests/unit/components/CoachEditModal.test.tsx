@@ -51,19 +51,11 @@ describe("CoachEditModal", () => {
   });
 
   it("calls closeCoachForm from the close button", () => {
-    // The old "Cancel" button is gone; the slide-over closes via an icon-only
-    // X button. That button has NO accessible name (no aria-label, icon only)
-    // — an accessibility regression noted upstream — so query by class until
-    // the product adds a label.
+    // The old "Cancel" button is gone; the slide-over closes via the icon-only
+    // X button (aria-label="Close").
     const closeCoachForm = vi.fn();
-    const { container } = render(
-      <CoachEditModal {...baseProps} closeCoachForm={closeCoachForm} />
-    );
-    const closeButton = container.querySelector(
-      "button.capSlideClose"
-    ) as HTMLElement;
-    expect(closeButton).not.toBeNull();
-    fireEvent.click(closeButton);
+    render(<CoachEditModal {...baseProps} closeCoachForm={closeCoachForm} />);
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
     expect(closeCoachForm).toHaveBeenCalled();
   });
 });

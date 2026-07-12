@@ -626,6 +626,7 @@ export default function CoachClientsPage(props: { [key: string]: any }) {
                     <button
                       type="button"
                       className="crpSlideClose"
+                      aria-label="Close"
                       onClick={() => setPeekId(null)}
                     >
                       <X size={17} />

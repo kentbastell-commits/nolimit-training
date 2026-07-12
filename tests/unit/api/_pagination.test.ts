@@ -55,13 +55,25 @@ describe("api/_pagination", () => {
     expect(secondUrl).toContain("page_token=tok-page-2");
   });
 
-  it("returns an empty list when the response has no items", async () => {
+  it("returns an empty list for an empty table (code 0, no items)", async () => {
     stubFetch([
-      { match: "/tables/tbl-empty/records", json: { code: 1, msg: "denied" } },
+      { match: "/tables/tbl-empty/records", json: { code: 0, data: {} } },
     ]);
 
     const items = await fetchAllBitableRecords("app-tok", "tbl-empty", "tok");
 
     expect(items).toEqual([]);
+  });
+
+  it("throws on a Feishu error payload instead of faking an empty table", async () => {
+    // An error envelope (throttling, auth failure, bad table id) also lacks
+    // data.items — it must throw so handlers 500 instead of caching [] as real.
+    stubFetch([
+      { match: "/tables/tbl-err/records", json: { code: 1254607, msg: "Data not ready" } },
+    ]);
+
+    await expect(
+      fetchAllBitableRecords("app-tok", "tbl-err", "tok")
+    ).rejects.toThrow(/code 1254607/);
   });
 });

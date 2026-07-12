@@ -151,6 +151,13 @@ describe("api/saveWorkloadLog", () => {
     stubFeishuEnv(WORKLOAD_ENV);
     stubFetch([
       tokenRoute,
+      // The dedup scan (page_size=500) succeeds with no existing log; only the
+      // save itself is rejected — a failing scan now throws in the pagination
+      // helper and would 500 before the save is even attempted.
+      {
+        match: "page_size=500",
+        json: { code: 0, data: { has_more: false, items: [] } },
+      },
       {
         match: "tbl-wl/records",
         text: JSON.stringify({

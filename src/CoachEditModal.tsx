@@ -61,7 +61,7 @@ export default function CoachEditModal(props: { [key: string]: any }) {
               <h2>{coachForm.name || "New coach"}</h2>
             </div>
           </div>
-          <button type="button" className="capSlideClose" onClick={closeCoachForm}>
+          <button type="button" className="capSlideClose" aria-label="Close" onClick={closeCoachForm}>
             <X size={17} />
           </button>
           <div className="capSlideMeta">

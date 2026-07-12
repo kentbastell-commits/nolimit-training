@@ -25,6 +25,18 @@ export async function fetchAllBitableRecords(
     });
     const data = await response.json();
 
+    // A Feishu error payload (throttling 1254607, auth failure, bad table id)
+    // also lacks data.items — treating it as end-of-data made handlers cache
+    // an EMPTY list as if it were real (clients then saw e.g. a blank workout
+    // history for the whole cache TTL). Errors must throw so the handler's
+    // catch returns a real 500 and nothing poisons the cache.
+    if (data?.code !== 0) {
+      throw new Error(
+        `Feishu records scan failed for table ${tableId}: code ${data?.code} ${
+          data?.msg || ""
+        }`.trim()
+      );
+    }
     if (!data?.data?.items) break;
     items.push(...data.data.items);
     pageToken = data.data.has_more ? data.data.page_token : "";
