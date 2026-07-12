@@ -6,6 +6,9 @@ import './nl-anim'
 import './i18n'
 import App from './App.tsx'
 import SplashScreen from './SplashScreen.tsx'
+import { applyPageMetadata } from './seo.ts'
+
+applyPageMetadata()
 
 // The boot splash is a brand moment for the actual app experiences — the coach
 // console (?view=coach) and the client portal (?portal=client) — which fetch

@@ -221,11 +221,13 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     }
   }, [i18n.language]);
   const inviteSearchParams = new URLSearchParams(window.location.search);
-  const isClientInvite = inviteSearchParams.get("invite") === "client";
-  const isInPersonEnquiry = inviteSearchParams.get("enquiry") === "inperson";
+  const publicPath = window.location.pathname.replace(/\/+$/, "") || "/";
+  const isClientInvite =
+    inviteSearchParams.get("invite") === "client" || publicPath === "/coaching";
+  const isInPersonEnquiry =
+    inviteSearchParams.get("enquiry") === "inperson" || publicPath === "/in-person";
   const isClientPortal = inviteSearchParams.get("portal") === "client";
   const isCoachView = inviteSearchParams.get("view") === "coach";
-  const publicPath = window.location.pathname.replace(/\/+$/, "") || "/";
   const legalKind =
     publicPath === "/privacy"
       ? "privacy"

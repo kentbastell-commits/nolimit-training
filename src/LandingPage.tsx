@@ -332,7 +332,7 @@ export default function LandingPage({
                 {lZh ? "浏览训练计划" : "Browse Programs"}
                 <ArrowRight size={18} />
               </a>
-              <a className="lv3BtnBlue" href="/?invite=client">
+              <a className="lv3BtnBlue" href="/coaching">
                 {lZh ? "一对一训练" : "Train with us 1:1"}
               </a>
             </motion.div>
@@ -398,7 +398,7 @@ export default function LandingPage({
                   </li>
                 ))}
               </ul>
-              <a className="lv3BtnBlue lv3PathBtn" href="/?invite=client">
+              <a className="lv3BtnBlue lv3PathBtn" href="/coaching">
                 {lZh ? "一对一训练" : "Train with us 1:1"}
                 <ArrowRight size={17} />
               </a>
@@ -430,7 +430,7 @@ export default function LandingPage({
                   </li>
                 ))}
               </ul>
-              <a className="lv3BtnOx lv3PathBtn" href="/?enquiry=inperson">
+              <a className="lv3BtnOx lv3PathBtn" href="/in-person">
                 {lZh ? "线下合作咨询" : "Train with us In-Person"}
                 <ArrowRight size={17} />
               </a>
@@ -537,7 +537,7 @@ export default function LandingPage({
               {lZh ? "浏览训练计划" : "Browse Programs"}
               <ArrowRight size={18} />
             </a>
-            <a className="lv3BtnBlue" href="/?invite=client">
+            <a className="lv3BtnBlue" href="/coaching">
               {lZh ? "一对一训练" : "Train with us 1:1"}
             </a>
           </motion.div>
@@ -548,7 +548,7 @@ export default function LandingPage({
         <span>{landingCopy.footer}</span>
         <div className="lv3FooterLinks">
           <a href="/store">{landingCopy.navPrograms}</a>
-          <a href="/?invite=client">{landingCopy.navCoaching}</a>
+          <a href="/coaching">{landingCopy.navCoaching}</a>
           <a href="/?portal=client">{lZh ? "客户端" : "Client Portal"}</a>
           <a href="/?view=coach">{landingCopy.coachLogin}</a>
           <a href="/privacy">{lZh ? "隐私" : "Privacy"}</a>

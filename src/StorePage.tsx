@@ -407,7 +407,7 @@ export default function StorePage({
           <a href="#catalog" className="storeNavLinkV3">{sZh ? "计划" : "Programs"}</a>
           <a href="#how" className="storeNavLinkV3">{sZh ? "如何使用" : "How it works"}</a>
           <a href="#coach" className="storeNavLinkV3">{sZh ? "教练" : "Coach"}</a>
-          <a href="/?invite=client" className="storeNavLinkV3">{sZh ? "一对一私教" : "1:1 Coaching"}</a>
+          <a href="/coaching" className="storeNavLinkV3">{sZh ? "一对一私教" : "1:1 Coaching"}</a>
           <a href="#faq" className="storeNavLinkV3">FAQ</a>
         </div>
         <div className="storeNavActionsV3">
@@ -659,7 +659,7 @@ export default function StorePage({
                   : "Get a fully personalised plan, weekly check-ins, and direct WeChat access to your coach. Choose your term to begin."}
               </p>
             </div>
-            <a className="storeCoachingBandBtn" href="/?invite=client">
+            <a className="storeCoachingBandBtn" href="/coaching">
               {sZh ? "了解一对一私教" : "Explore 1:1 coaching"}{" "}
               <ArrowRight size={16} />
             </a>

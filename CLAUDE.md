@@ -129,6 +129,10 @@ data between them, never "borrow" a table ID across products.
     live data path until migration is verified, record temporary cross-border
     consent, then remove that consent and update the policy in the cutover pass.
 
+20. **The invisible crawler head** — adding runtime or Express SEO metadata when
+    production Nginx serves `dist` directly. Rule: inspect the live delivery path,
+    emit static route HTML at build time, and verify raw HTML rather than the DOM.
+
 ## Quality bar — checkable, per deliverable
 
 **Any shipped code change**

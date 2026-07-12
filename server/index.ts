@@ -4,6 +4,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { injectSeo } from "./seo.ts";
 
 // ---------------------------------------------------------------------------
 // Process-wide Feishu tenant-token cache.
@@ -280,10 +281,20 @@ Object.entries(handlers).forEach(([name, handler]) => {
 });
 
 const distPath = path.resolve(__dirname, "../dist");
+const indexTemplate = fs.readFileSync(path.join(distPath, "index.html"), "utf8");
+const publicSiteUrl =
+  process.env.PUBLIC_SITE_URL ||
+  process.env.VITE_PUBLIC_SITE_URL ||
+  "https://trainnolimit.com";
 
-app.use(express.static(distPath));
-app.get(/.*/, (_req, res) => {
-  res.sendFile(path.join(distPath, "index.html"));
+// Keep index:false so every HTML request receives route-specific metadata.
+// Assets, robots.txt and sitemap.xml still come straight from the built dist.
+app.use(express.static(distPath, { index: false }));
+app.get(/.*/, (req, res) => {
+  res
+    .type("html")
+    .set("Cache-Control", "no-cache, no-store, must-revalidate")
+    .send(injectSeo(indexTemplate, req.originalUrl, publicSiteUrl));
 });
 
 app.listen(port, "127.0.0.1", () => {
