@@ -765,7 +765,7 @@
 .copModalScrim {
   position: fixed;
   inset: 0;
-  z-index: 90;
+  z-index: 1300;
   background: rgba(20, 17, 12, 0.5);
   backdrop-filter: blur(3px);
   display: flex;
@@ -975,7 +975,7 @@
 .copSlideScrim {
   position: fixed;
   inset: 0;
-  z-index: 85;
+  z-index: 1300;
   background: rgba(20, 17, 12, 0.42);
   backdrop-filter: blur(2px);
   display: flex;
@@ -984,7 +984,7 @@
 .copSlide {
   width: 520px;
   max-width: 100%;
-  height: 100%;
+  height: 100dvh;
   overflow: auto;
   background: #faf8f2;
   box-shadow: -30px 0 60px -30px rgba(0, 0, 0, 0.5);
@@ -1102,21 +1102,232 @@
   text-align: center;
 }
 
+.copSegBtn:focus-visible,
+.copFilterTab:focus-visible,
+.copNewBtn:focus-visible,
+.copGhostBtn:focus-visible,
+.copGoldBtn:focus-visible,
+.copDarkBtn:focus-visible,
+.copVerify:focus-visible,
+.copMarkPaid:focus-visible,
+.copTrash:focus-visible,
+.copModalClose:focus-visible,
+.copCoachRow:focus-visible {
+  outline: 3px solid rgba(181, 115, 26, 0.3);
+  outline-offset: 3px;
+}
+
 @media (max-width: 640px) {
+  .copPage {
+    padding-top: 0;
+  }
+  .copDigital {
+    display: grid;
+    grid-template-columns: 42px minmax(0, 1fr);
+    grid-template-areas:
+      "icon copy"
+      "icon link";
+    gap: 5px 14px;
+    padding: 14px 16px;
+  }
+  .copDigitalIcon {
+    grid-area: icon;
+    align-self: center;
+  }
+  .copDigitalCopy {
+    grid-area: copy;
+  }
+  .copDigitalLine {
+    line-height: 1.4;
+  }
+  .copDigitalLink {
+    grid-area: link;
+    justify-self: start;
+    min-height: 28px;
+  }
+  .copSeg {
+    max-width: none;
+    width: 100%;
+  }
   .copSectionHead {
     align-items: flex-start;
     flex-direction: column;
   }
-  .copBoard,
-  .copKpis {
+  .copBoard {
     flex-direction: column;
+  }
+  .copBoard {
+    gap: 12px;
+  }
+  .copFilters,
+  .copToolbar {
+    align-items: stretch;
+    gap: 10px;
+  }
+  .copFilterTabs,
+  .copSearch,
+  .copNewBtn {
+    width: 100%;
+  }
+  .copFilterTabs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .copFilterTab {
+    min-height: 40px;
+    padding-inline: 8px;
+  }
+  .copSearch {
+    flex-basis: auto;
+    max-width: none;
+  }
+  .copSearch input {
+    min-height: 44px;
+  }
+  .copNewBtn {
+    min-height: 46px;
+    justify-content: center;
+  }
+  .copCard {
+    padding: 16px;
+  }
+  .copCardTop {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+  .copCardWho {
+    align-items: flex-start;
+  }
+  .copCardName h3 {
+    font-size: 17px;
+  }
+  .copPaidChip,
+  .copPendChip {
+    justify-self: start;
+  }
+  .copVerify {
+    min-height: 38px;
+    padding-inline: 12px;
+  }
+  .copStrip {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .copStripTile {
+    min-width: 0;
+  }
+  .copCardFoot,
+  .copFootActions {
+    align-items: stretch;
+  }
+  .copFootActions {
+    width: 100%;
+  }
+  .copFootActions .copGhostBtn,
+  .copFootActions .copGoldBtn {
+    flex: 1;
+    min-height: 44px;
+  }
+  .copKpis {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .copKpi {
+    min-width: 0;
+    padding: 14px 10px;
+    border-radius: 14px;
+  }
+  .copKpiK {
+    font-size: 9px;
+    letter-spacing: 0.8px;
+  }
+  .copKpiV {
+    margin-top: 6px;
+    font-size: 21px;
+    letter-spacing: -0.5px;
+  }
+  .copKpi p {
+    margin-top: 5px;
+    font-size: 10.5px;
+  }
+  .copRow {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "main main"
+      "mid amount"
+      "actions actions";
+    gap: 10px 12px;
+    padding: 16px;
+  }
+  .copRowMain {
+    grid-area: main;
+    min-width: 0;
+  }
+  .copRowMid {
+    grid-area: mid;
+    min-width: 0;
+  }
+  .copRowAmt {
+    grid-area: amount;
+    min-width: 0;
+  }
+  .copRowEnd {
+    grid-area: actions;
+    justify-content: flex-end;
+  }
+  .copMarkPaid,
+  .copTrash {
+    min-height: 44px;
+  }
+  .copTrash {
+    width: 44px;
   }
   .copFormGrid {
     grid-template-columns: 1fr;
+  }
+  .copModalScrim {
+    align-items: stretch;
+    padding: 0;
   }
   .copModal,
   .copModalWide,
   .copSlide {
     width: 100%;
+  }
+  .copModal,
+  .copModalWide {
+    height: 100dvh;
+    max-height: 100dvh;
+    border-radius: 0;
+  }
+  .copModalHead,
+  .copSlideHead {
+    padding: 20px 20px 16px;
+  }
+  .copModalClose {
+    width: 44px;
+    height: 44px;
+  }
+  .copModalBody,
+  .copSlideBody {
+    padding: 18px 20px 28px;
+  }
+  .copModalActions {
+    align-items: stretch;
+    flex-wrap: wrap;
+  }
+  .copModalActions .copGhostBtn,
+  .copModalActions .copDarkBtn,
+  .copModalActions .copGoldBtn {
+    flex: 1;
+    min-width: calc(50% - 5px);
+    min-height: 44px;
+  }
+  .copSlideFoot .copGhostBtn,
+  .copSlideFoot .copGoldBtn {
+    min-height: 44px;
   }
 }

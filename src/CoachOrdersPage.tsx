@@ -3,7 +3,7 @@
 // splits Online Coaching (onboarding + coach assignment) from In-person (a money
 // ledger). View-layer restructure wired to the existing handlers.
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import "./CoachOrdersPage.css";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
@@ -139,6 +139,24 @@ export default function CoachOrdersPage(props: { [key: string]: any }) {
   };
 
   const closeReview = () => setOrderReviewOrder(null);
+
+  useEffect(() => {
+    if (!assignTarget && !orderReviewOrder && !showManualOrderForm) return;
+    const closeTopLayer = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      if (orderReviewOrder) setOrderReviewOrder(null);
+      else if (assignTarget) setAssignTarget(null);
+      else setShowManualOrderForm(false);
+    };
+    window.addEventListener("keydown", closeTopLayer);
+    return () => window.removeEventListener("keydown", closeTopLayer);
+  }, [
+    assignTarget,
+    orderReviewOrder,
+    setOrderReviewOrder,
+    setShowManualOrderForm,
+    showManualOrderForm,
+  ]);
 
   const fade = reduce
     ? {}
@@ -292,6 +310,7 @@ export default function CoachOrdersPage(props: { [key: string]: any }) {
             <div className="copSearch">
               <Search size={16} />
               <input
+                aria-label="Search orders"
                 value={orderSearch}
                 onChange={(e) => setOrderSearch(e.target.value)}
                 placeholder="Search athletes, orders…"
@@ -523,8 +542,9 @@ export default function CoachOrdersPage(props: { [key: string]: any }) {
                     )}
                     <button
                       type="button"
-                      className="copTrash"
-                      title="Delete order"
+                    className="copTrash"
+                    title="Delete order"
+                    aria-label={`Delete ${o.clientName || o.productName || "order"}`}
                       onClick={() => void deleteProductOrder(o)}
                     >
                       <Trash2 size={15} />
@@ -551,6 +571,9 @@ export default function CoachOrdersPage(props: { [key: string]: any }) {
           >
             <motion.div
               className="copModal"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="cop-assign-title"
               onClick={(e) => e.stopPropagation()}
               initial={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.94 }}
               animate={reduce ? { opacity: 1 } : { opacity: 1, scale: 1 }}
@@ -560,12 +583,18 @@ export default function CoachOrdersPage(props: { [key: string]: any }) {
               <div className="copModalHead">
                 <div>
                   <span className="copEyebrowSm">Assign coach</span>
-                  <h2>{assignTarget.clientName || "Athlete"}</h2>
+                  <h2 id="cop-assign-title">
+                    {assignTarget.clientName || "Athlete"}
+                  </h2>
                   <p className="copModalMeta">
                     {termOf(assignTarget)} · {assignTarget.orderId || "no ID"}
                   </p>
                 </div>
-                <button className="copModalClose" onClick={() => setAssignTarget(null)}>
+                <button
+                  className="copModalClose"
+                  aria-label="Close coach assignment"
+                  onClick={() => setAssignTarget(null)}
+                >
                   <X size={18} />
                 </button>
               </div>
@@ -622,6 +651,9 @@ export default function CoachOrdersPage(props: { [key: string]: any }) {
           >
             <motion.div
               className="copSlide"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="cop-review-title"
               onClick={(e) => e.stopPropagation()}
               initial={reduce ? { opacity: 0 } : { x: "100%" }}
               animate={reduce ? { opacity: 1 } : { x: 0 }}
@@ -633,12 +665,18 @@ export default function CoachOrdersPage(props: { [key: string]: any }) {
                   <span className="copEyebrowSm">
                     Coaching · {coachOf(orderReviewOrder) || "unassigned"}
                   </span>
-                  <h2>{orderReviewOrder.clientName || "Unnamed client"}</h2>
+                  <h2 id="cop-review-title">
+                    {orderReviewOrder.clientName || "Unnamed client"}
+                  </h2>
                   <div className="copSlideSub">
                     {termOf(orderReviewOrder)} · {orderReviewOrder.orderId || "no ID"}
                   </div>
                 </div>
-                <button className="copModalClose" onClick={closeReview}>
+                <button
+                  className="copModalClose"
+                  aria-label="Close intake review"
+                  onClick={closeReview}
+                >
                   <X size={17} />
                 </button>
               </div>
@@ -717,6 +755,9 @@ export default function CoachOrdersPage(props: { [key: string]: any }) {
           >
             <motion.div
               className="copModal copModalWide"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="cop-manual-title"
               onClick={(e) => e.stopPropagation()}
               initial={reduce ? { opacity: 0 } : { opacity: 0, y: 16, scale: 0.985 }}
               animate={reduce ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
@@ -726,12 +767,16 @@ export default function CoachOrdersPage(props: { [key: string]: any }) {
               <div className="copModalHead">
                 <div>
                   <span className="copEyebrowSm">In-person</span>
-                  <h2>New in-person order</h2>
+                  <h2 id="cop-manual-title">New in-person order</h2>
                   <p className="copModalMeta">
                     A record for a session or package sold in person.
                   </p>
                 </div>
-                <button className="copModalClose" onClick={() => setShowManualOrderForm(false)}>
+                <button
+                  className="copModalClose"
+                  aria-label="Close in-person order form"
+                  onClick={() => setShowManualOrderForm(false)}
+                >
                   <X size={18} />
                 </button>
               </div>

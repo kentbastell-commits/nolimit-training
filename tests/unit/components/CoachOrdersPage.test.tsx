@@ -113,4 +113,34 @@ describe("CoachOrdersPage", () => {
       { paymentStatus: "Paid" }
     );
   });
+
+  it("presents the manual order form as a dialog and closes it with Escape", () => {
+    const setShowManualOrderForm = vi.fn();
+    render(
+      <CoachOrdersPage
+        {...baseProps}
+        manualOrder={{
+          clientName: "",
+          phone: "",
+          productName: "",
+          purchasedAt: "2026-07-13",
+          amount: "0",
+          currency: "CNY",
+          paymentProvider: "WeChat QR",
+          paymentStatus: "Paid",
+          assignedCoach: "",
+          paymentReference: "",
+          notes: "",
+        }}
+        setShowManualOrderForm={setShowManualOrderForm}
+        showManualOrderForm
+      />
+    );
+
+    expect(
+      screen.getByRole("dialog", { name: "New in-person order" })
+    ).toBeInTheDocument();
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(setShowManualOrderForm).toHaveBeenCalledWith(false);
+  });
 });
