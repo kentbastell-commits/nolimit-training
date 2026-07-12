@@ -153,9 +153,10 @@ data between them, never "borrow" a table ID across products.
 24. **The forced-light dark-mode leak** — a light page inherits root heading
     tokens that turn white under `prefers-color-scheme: dark`. Rule: forced-light
     surfaces own foreground tokens and get visual/contrast checks in dark OS mode.
-25. **The lazy CSS last word** — route-level CSS loads after the main bundle, so
-    equal-specificity shared polish can disappear after navigation. Rule: use a
-    route root + target selector and verify computed styles after the chunk loads.
+25. **The lazy CSS last word** — route-level CSS chunks stay loaded after
+    navigation, so equal-specificity shared class names can make the layout depend
+    on visit order. Rule: use page-unique class names (or a route root + target)
+    and verify computed styles after every relevant chunk has loaded.
 26. **The wrap-and-pray card** — a dense desktop flex row merely wraps on mobile,
     leaving names and metadata in vertical slivers. Rule: define explicit mobile
     identity/status/action grid areas and inspect real long labels at 390px.

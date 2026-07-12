@@ -4,7 +4,11 @@
   margin: 0 auto;
   padding: 4px 2px 90px;
   color: #151515;
-  font-family: Inter, system-ui, -apple-system, sans-serif;
+  font-family:
+    Inter,
+    system-ui,
+    -apple-system,
+    sans-serif;
 }
 .crpPage input:focus {
   outline: none;
@@ -38,7 +42,7 @@
 }
 
 /* KPI board */
-.crpBoard {
+.crpRevenueBoard {
   display: flex;
   gap: 14px;
   flex-wrap: wrap;
@@ -471,6 +475,12 @@
   gap: 7px;
 }
 .crpSubRow {
+  width: 100%;
+  appearance: none;
+  background: #fff;
+  color: inherit;
+  font: inherit;
+  text-align: left;
   display: flex;
   align-items: center;
   gap: 14px;
@@ -478,11 +488,18 @@
   border: 1px solid #e7e2d6;
   border-radius: 11px;
   cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
 }
 .crpSubRow:hover {
   border-color: #d8cfb6;
   background: #fbfaf6;
+}
+.crpSubRow:focus-visible {
+  outline: 3px solid rgba(181, 115, 26, 0.22);
+  outline-offset: 2px;
+  border-color: #b5731a;
 }
 .crpSubAv {
   flex: none;
@@ -630,17 +647,284 @@
 }
 
 @media (max-width: 640px) {
-  .crpBoard,
+  .crpPage {
+    padding: 0 0 104px;
+  }
+  .crpHead {
+    margin: 2px 0 16px;
+  }
+  .crpHead h1 {
+    margin-top: 6px;
+    font-size: 28px;
+  }
+  .crpHead p {
+    max-width: 33ch;
+    font-size: 13px;
+    line-height: 1.45;
+  }
+
+  .crpRevenueBoard {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .crpHero {
+    min-width: 0;
+    padding: 18px;
+    border-radius: 16px;
+  }
+  .crpHeroBig {
+    display: grid;
+    gap: 7px;
+  }
+  .crpHeroBig > span:first-child {
+    font-size: clamp(36px, 11vw, 44px);
+  }
+  .crpHeroBreak {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 14px;
+  }
+  .crpSideCol {
+    min-width: 0;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .crpSideCard {
+    min-width: 0;
+    padding: 12px 14px;
+    border-radius: 13px;
+  }
+  .crpSideV {
+    font-size: 22px;
+  }
+
   .crpStreams {
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .crpStream {
+    min-width: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "top value"
+      "sub value"
+      "bar bar";
+    column-gap: 12px;
+    padding: 12px 14px;
+    border-radius: 13px;
+  }
+  .crpStreamTop {
+    grid-area: top;
+    justify-content: flex-start;
+  }
+  .crpStreamPct {
+    padding: 2px 6px;
+    border-radius: 999px;
+    background: #f1eee6;
+  }
+  .crpStreamV {
+    grid-area: value;
+    align-self: center;
+    margin: 0;
+    font-size: 22px;
+  }
+  .crpStreamSub {
+    grid-area: sub;
+    min-width: 0;
+    margin-top: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .crpStreamBar {
+    grid-area: bar;
+    margin-top: 9px;
+    height: 4px;
+  }
+
+  .crpOutstanding {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 5px 12px;
+    padding: 13px 14px;
+    margin-bottom: 10px;
+    border-radius: 13px;
+  }
+  .crpOutK {
+    align-self: center;
+  }
+  .crpOutItem {
+    justify-content: flex-end;
+  }
+  .crpOutItem strong {
+    font-size: 20px;
+  }
+  .crpOutItem span,
+  .crpOutDivider {
+    display: none;
+  }
+  .crpOutNote {
+    grid-column: 1 / -1;
+    margin-left: 0;
+    padding-left: 23px;
+    font-size: 11px;
+  }
+
+  .crpCard,
+  .crpEarnings {
+    padding: 16px;
+    margin-bottom: 10px;
+    border-radius: 15px;
+  }
+  .crpChartHead {
+    margin-bottom: 15px;
   }
   .crpBars {
-    overflow-x: auto;
+    gap: 5px;
+    height: 154px;
+    overflow: visible;
+  }
+  .crpBarCol {
+    gap: 6px;
+    min-width: 0;
+  }
+  .crpBarVal {
+    max-width: 100%;
+    overflow: hidden;
+    font-size: 10px;
+    text-overflow: ellipsis;
+  }
+  .crpBarMonth {
+    font-size: 10.5px;
+  }
+
+  .crpEarningsHead {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    gap: 10px;
+  }
+  .crpEarningsHead h2 {
+    font-size: 17px;
+  }
+  .crpShare {
+    display: grid;
+    gap: 4px;
+    justify-items: end;
+  }
+  .crpEarningsGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .crpEarnTile {
+    min-width: 0;
+    padding: 12px;
+  }
+  .crpEarnTile strong {
+    font-size: 19px;
+  }
+
+  .crpSubsHead {
+    align-items: stretch;
+    gap: 12px;
+  }
+  .crpSubsMetrics {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+    width: 100%;
+  }
+  .crpSubsMetrics > div {
+    padding: 9px 10px;
+    border-radius: 10px;
+    background: #f7f4ec;
+    text-align: left;
+  }
+  .crpSubsMetrics strong {
+    font-size: 17px;
+  }
+  .crpSubsMetrics small {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .crpSubRow {
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: 38px minmax(0, 1fr) auto;
+    grid-template-areas:
+      "avatar name status"
+      "avatar plan price"
+      ". due due";
+    gap: 3px 9px;
+    padding: 11px;
   }
+  .crpSubAv {
+    grid-area: avatar;
+    width: 38px;
+    height: 38px;
+  }
+  .crpSubName {
+    grid-area: name;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .crpSubPlan {
+    grid-area: plan;
+    width: auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .crpSubPrice {
+    grid-area: price;
+    width: auto;
+    text-align: right;
+  }
+  .crpSubDue {
+    grid-area: due;
+    display: flex;
+    justify-content: flex-end;
+    gap: 7px;
+    width: auto;
+  }
+  .crpSubStatus {
+    grid-area: status;
+    justify-self: end;
+    padding: 3px 7px;
+  }
+
   .crpBottom {
     grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .crpTopRow {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 5px 10px;
+  }
+  .crpTopBar {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    width: 100%;
+  }
+  .crpTopCount {
+    width: auto;
+  }
+  .crpRecentMain strong,
+  .crpRecentMain span {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 }

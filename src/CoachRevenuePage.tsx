@@ -49,36 +49,57 @@ export default function CoachRevenuePage(props: { [key: string]: any }) {
   const isCoachScoped = coachScope !== "All Coaches";
   const scopedOrders = productOrders.filter(orderBelongsToCoachScope);
   const paidOrders = scopedOrders.filter(
-    (o: any) => o.paymentStatus === "Paid" || o.paymentStatus === "paid"
+    (o: any) => o.paymentStatus === "Paid" || o.paymentStatus === "paid",
   );
 
   const parseAmount = (o: ProductOrder) => parseFloat(o.amount || "0") || 0;
 
-  const totalRevenue = paidOrders.reduce((sum: any, o: any) => sum + parseAmount(o), 0);
+  const totalRevenue = paidOrders.reduce(
+    (sum: any, o: any) => sum + parseAmount(o),
+    0,
+  );
 
   const thisMonthOrders = paidOrders.filter((o: any) => {
     const d = new Date(o.purchasedAt);
-    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+    return (
+      d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth()
+    );
   });
-  const thisMonthRevenue = thisMonthOrders.reduce((sum: any, o: any) => sum + parseAmount(o), 0);
+  const thisMonthRevenue = thisMonthOrders.reduce(
+    (sum: any, o: any) => sum + parseAmount(o),
+    0,
+  );
 
   const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
   const lastMonthOrders = paidOrders.filter((o: any) => {
     const d = new Date(o.purchasedAt);
-    return d.getFullYear() === lastMonthDate.getFullYear() && d.getMonth() === lastMonthDate.getMonth();
+    return (
+      d.getFullYear() === lastMonthDate.getFullYear() &&
+      d.getMonth() === lastMonthDate.getMonth()
+    );
   });
-  const lastMonthRevenue = lastMonthOrders.reduce((sum: any, o: any) => sum + parseAmount(o), 0);
-  const revenueGrowth = lastMonthRevenue > 0
-    ? Math.round(((thisMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100)
-    : null;
+  const lastMonthRevenue = lastMonthOrders.reduce(
+    (sum: any, o: any) => sum + parseAmount(o),
+    0,
+  );
+  const revenueGrowth =
+    lastMonthRevenue > 0
+      ? Math.round(
+          ((thisMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100,
+        )
+      : null;
 
   const activeClientCount = coachVisibleClients.filter(
-    (c: any) => c.status === "Active" || c.status === "Premium" || c.status === "Online Coaching"
+    (c: any) =>
+      c.status === "Active" ||
+      c.status === "Premium" ||
+      c.status === "Online Coaching",
   ).length;
 
   const programCounts: Record<string, number> = {};
   paidOrders.forEach((o: any) => {
-    if (o.productName) programCounts[o.productName] = (programCounts[o.productName] || 0) + 1;
+    if (o.productName)
+      programCounts[o.productName] = (programCounts[o.productName] || 0) + 1;
   });
   const topPrograms = Object.entries(programCounts)
     .sort((a: any, b: any) => b[1] - a[1])
@@ -90,7 +111,9 @@ export default function CoachRevenuePage(props: { [key: string]: any }) {
     const rev = paidOrders
       .filter((o: any) => {
         const od = new Date(o.purchasedAt);
-        return od.getFullYear() === d.getFullYear() && od.getMonth() === d.getMonth();
+        return (
+          od.getFullYear() === d.getFullYear() && od.getMonth() === d.getMonth()
+        );
       })
       .reduce((sum: any, o: any) => sum + parseAmount(o), 0);
     return { month: label, revenue: Math.round(rev) };
@@ -101,21 +124,53 @@ export default function CoachRevenuePage(props: { [key: string]: any }) {
 
   // ---- revenue by stream (bucket collected orders on productType) ----
   const streamDefs = [
-    { key: "coaching", label: "Online Coaching", accent: "#b5731a", match: /online coaching/i, sub: "recurring · attributed", noun: "active" },
-    { key: "digital", label: "Digital · self-serve", accent: "#1f5fd6", match: /digital/i, sub: "hands-off, no onboarding", noun: "sales" },
-    { key: "inperson", label: "In-person", accent: "#237a30", match: /in.?person/i, sub: "sessions & packs", noun: "sales" },
+    {
+      key: "coaching",
+      label: "Online Coaching",
+      accent: "#b5731a",
+      match: /online coaching/i,
+      sub: "recurring · attributed",
+      noun: "active",
+    },
+    {
+      key: "digital",
+      label: "Digital · self-serve",
+      accent: "#1f5fd6",
+      match: /digital/i,
+      sub: "hands-off, no onboarding",
+      noun: "sales",
+    },
+    {
+      key: "inperson",
+      label: "In-person",
+      accent: "#237a30",
+      match: /in.?person/i,
+      sub: "sessions & packs",
+      noun: "sales",
+    },
   ];
   const streamStats = streamDefs.map((def) => {
-    const rows = paidOrders.filter((o: any) => def.match.test(o.productType || ""));
-    return { ...def, amount: rows.reduce((s: number, o: any) => s + parseAmount(o), 0), count: rows.length };
+    const rows = paidOrders.filter((o: any) =>
+      def.match.test(o.productType || ""),
+    );
+    return {
+      ...def,
+      amount: rows.reduce((s: number, o: any) => s + parseAmount(o), 0),
+      count: rows.length,
+    };
   });
   const streamTotal = streamStats.reduce((s, x) => s + x.amount, 0) || 1;
 
   // ---- outstanding (owed, not collected — excluded from paidOrders) ----
   // FLAG: no deposit/balance concept exists in the order schema, so deposit
   // balances are 0; "unpaid" = orders still Pending.
-  const unpaidOrders = scopedOrders.filter((o: any) => /pending/i.test(o.paymentStatus || ""));
-  const unpaidDue = unpaidOrders.reduce((s: number, o: any) => s + parseAmount(o), 0);
+  const unpaidOrders = scopedOrders.filter((o: any) =>
+    /pending/i.test(o.paymentStatus || ""),
+  );
+  const unpaidDue = unpaidOrders.reduce(
+    (s: number, o: any) => s + parseAmount(o),
+    0,
+  );
   const depositDue = 0;
   const depositCount = 0;
 
@@ -124,30 +179,50 @@ export default function CoachRevenuePage(props: { [key: string]: any }) {
 
   // ---- subscriptions ----
   const scopedSubs = subscriptions.filter(
-    (s: any) => coachScope === "All Coaches" || !s.coach || s.coach === coachScope
+    (s: any) =>
+      coachScope === "All Coaches" || !s.coach || s.coach === coachScope,
   );
   const subCycleMonths = (label: string) =>
-    /year|annual/i.test(label) ? 12 : /6\s*month/i.test(label) ? 6 : /3\s*month|quarter/i.test(label) ? 3 : 1;
-  const activeSubs = scopedSubs.filter((s: any) => !/cancel|paused/i.test(s.status));
+    /year|annual/i.test(label)
+      ? 12
+      : /6\s*month/i.test(label)
+        ? 6
+        : /3\s*month|quarter/i.test(label)
+          ? 3
+          : 1;
+  const activeSubs = scopedSubs.filter(
+    (s: any) => !/cancel|paused/i.test(s.status),
+  );
   const mrrByCurrency: Record<string, number> = {};
   activeSubs.forEach((s: any) => {
     const m = (s.price || 0) / subCycleMonths(s.billingCycle);
-    mrrByCurrency[s.currency || "CNY"] = (mrrByCurrency[s.currency || "CNY"] || 0) + m;
+    mrrByCurrency[s.currency || "CNY"] =
+      (mrrByCurrency[s.currency || "CNY"] || 0) + m;
   });
-  const overdueSubs = activeSubs.filter((s: any) => subEffectiveStatus(s) === "Past Due");
+  const overdueSubs = activeSubs.filter(
+    (s: any) => subEffectiveStatus(s) === "Past Due",
+  );
   const dueCutoff = dateToInputValue(new Date(Date.now() + 14 * 86400000));
   const dueSoonSubs = activeSubs.filter(
-    (s: any) => s.nextBillingDate && s.nextBillingDate >= todayValue && s.nextBillingDate <= dueCutoff
+    (s: any) =>
+      s.nextBillingDate &&
+      s.nextBillingDate >= todayValue &&
+      s.nextBillingDate <= dueCutoff,
   );
   const sortedActiveSubs = [...activeSubs].sort((a: any, b: any) =>
-    (a.nextBillingDate || "9999").localeCompare(b.nextBillingDate || "9999")
+    (a.nextBillingDate || "9999").localeCompare(b.nextBillingDate || "9999"),
   );
   const curSymbol = (c: string) => (c === "USD" ? "$" : "¥");
 
-  const topMax = topPrograms.length ? Math.max(...topPrograms.map(([, c]: any) => c)) : 1;
+  const topMax = topPrograms.length
+    ? Math.max(...topPrograms.map(([, c]: any) => c))
+    : 1;
   const recentOrders = paidOrders
     .slice()
-    .sort((a: any, b: any) => new Date(b.purchasedAt).getTime() - new Date(a.purchasedAt).getTime())
+    .sort(
+      (a: any, b: any) =>
+        new Date(b.purchasedAt).getTime() - new Date(a.purchasedAt).getTime(),
+    )
     .slice(0, 8);
 
   return (
@@ -162,21 +237,27 @@ export default function CoachRevenuePage(props: { [key: string]: any }) {
       </div>
 
       {/* KPI board */}
-      <div className="crpBoard">
+      <div className="crpRevenueBoard">
         <div className="crpHero">
           <div className="crpHeroGlow" />
           <span className="crpHeroEyebrow">This month</span>
           <div className="crpHeroBig">
             <span>{formatCurrency(thisMonthRevenue)}</span>
-            <span className={`crpGrowth${revenueGrowth !== null && revenueGrowth < 0 ? " neg" : ""}`}>
+            <span
+              className={`crpGrowth${revenueGrowth !== null && revenueGrowth < 0 ? " neg" : ""}`}
+            >
               {revenueGrowth !== null
                 ? `${revenueGrowth >= 0 ? "+" : ""}${revenueGrowth}% vs last month`
                 : `${thisMonthOrders.length} orders`}
             </span>
           </div>
           <div className="crpHeroBreak">
-            <span><strong>{formatCurrency(totalRevenue)}</strong> total revenue</span>
-            <span><strong>{paidOrders.length}</strong> paid orders</span>
+            <span>
+              <strong>{formatCurrency(totalRevenue)}</strong> total revenue
+            </span>
+            <span>
+              <strong>{paidOrders.length}</strong> paid orders
+            </span>
           </div>
         </div>
         <div className="crpSideCol">
@@ -196,9 +277,15 @@ export default function CoachRevenuePage(props: { [key: string]: any }) {
         {streamStats.map((st) => {
           const pct = Math.round((st.amount / streamTotal) * 100);
           return (
-            <div className="crpStream" key={st.key} style={{ borderLeftColor: st.accent }}>
+            <div
+              className="crpStream"
+              key={st.key}
+              style={{ borderLeftColor: st.accent }}
+            >
               <div className="crpStreamTop">
-                <span className="crpStreamK" style={{ color: st.accent }}>{st.label}</span>
+                <span className="crpStreamK" style={{ color: st.accent }}>
+                  {st.label}
+                </span>
                 <span className="crpStreamPct">{pct}%</span>
               </div>
               <div className="crpStreamV">{formatCurrency(st.amount)}</div>
@@ -218,11 +305,15 @@ export default function CoachRevenuePage(props: { [key: string]: any }) {
         <span className="crpOutK">
           <Clock size={15} /> Outstanding
         </span>
-        <div className="crpOutItem">
-          <strong>{formatCurrency(depositDue)}</strong>
-          <span>deposit balances · {depositCount} orders</span>
-        </div>
-        <div className="crpOutDivider" />
+        {depositCount > 0 && (
+          <>
+            <div className="crpOutItem">
+              <strong>{formatCurrency(depositDue)}</strong>
+              <span>deposit balances · {depositCount} orders</span>
+            </div>
+            <div className="crpOutDivider" />
+          </>
+        )}
         <div className="crpOutItem">
           <strong className="crpOutRed">{formatCurrency(unpaidDue)}</strong>
           <span>unpaid · {unpaidOrders.length} orders</span>
@@ -242,7 +333,9 @@ export default function CoachRevenuePage(props: { [key: string]: any }) {
               <span className="crpBarVal">{formatCurrency(m.revenue)}</span>
               <div
                 className={`crpBar${i === monthlyData.length - 1 ? " cur" : ""}`}
-                style={{ height: `${Math.max(2, Math.round((m.revenue / chartMax) * 130))}px` }}
+                style={{
+                  height: `${Math.max(2, Math.round((m.revenue / chartMax) * 130))}px`,
+                }}
               />
               <span className="crpBarMonth">{m.month}</span>
             </div>
@@ -267,7 +360,9 @@ export default function CoachRevenuePage(props: { [key: string]: any }) {
                   max={100}
                   value={coachSharePercent}
                   onChange={(e) =>
-                    setCoachSharePercent(Math.max(0, Math.min(100, Number(e.target.value) || 0)))
+                    setCoachSharePercent(
+                      Math.max(0, Math.min(100, Number(e.target.value) || 0)),
+                    )
                   }
                 />
                 <strong>%</strong>
@@ -289,8 +384,13 @@ export default function CoachRevenuePage(props: { [key: string]: any }) {
             </div>
             <div className="crpEarnTile crpPayout">
               <span>Est. payout · {coachSharePercent}%</span>
-              <strong>{formatCurrency((totalRevenue * coachSharePercent) / 100)}</strong>
-              <em>This month {formatCurrency((thisMonthRevenue * coachSharePercent) / 100)}</em>
+              <strong>
+                {formatCurrency((totalRevenue * coachSharePercent) / 100)}
+              </strong>
+              <em>
+                This month{" "}
+                {formatCurrency((thisMonthRevenue * coachSharePercent) / 100)}
+              </em>
             </div>
           </div>
         </div>
@@ -311,12 +411,17 @@ export default function CoachRevenuePage(props: { [key: string]: any }) {
               </div>
               {Object.entries(mrrByCurrency).map(([cur, amt]) => (
                 <div key={cur}>
-                  <strong>{curSymbol(cur)}{Math.round(amt as number)}</strong>
+                  <strong>
+                    {curSymbol(cur)}
+                    {Math.round(amt as number)}
+                  </strong>
                   <small>MRR ({cur})</small>
                 </div>
               ))}
               <div>
-                <strong className={overdueSubs.length ? "crpRed" : ""}>{overdueSubs.length}</strong>
+                <strong className={overdueSubs.length ? "crpRed" : ""}>
+                  {overdueSubs.length}
+                </strong>
                 <small>Overdue</small>
               </div>
               <div>
@@ -329,32 +434,48 @@ export default function CoachRevenuePage(props: { [key: string]: any }) {
             <div className="crpSubsList">
               {sortedActiveSubs.map((s: any) => {
                 const c = clients.find(
-                  (cl: any) => cl.clientCode === s.clientId || s.clientRecordIds.includes(cl.id)
+                  (cl: any) =>
+                    cl.clientCode === s.clientId ||
+                    s.clientRecordIds.includes(cl.id),
                 );
                 const eff = subEffectiveStatus(s);
                 const rel = relativeDue(s.nextBillingDate);
                 const od = eff === "Past Due";
                 const ac = avatarColor(c?.name || s.clientId || "");
                 return (
-                  <div
+                  <button
+                    type="button"
                     key={s.id}
                     className="crpSubRow"
                     onClick={() => c && openAccountModal(c)}
+                    aria-label={`Open account for ${c?.name || s.clientId || "client"}`}
                   >
-                    <span className="crpSubAv" style={{ background: ac.bg, color: ac.fg }}>
+                    <span
+                      className="crpSubAv"
+                      style={{ background: ac.bg, color: ac.fg }}
+                    >
                       {initialsOf(c?.name || s.clientId || "?")}
                     </span>
-                    <strong className="crpSubName">{c?.name || s.clientId || "Client"}</strong>
+                    <strong className="crpSubName">
+                      {c?.name || s.clientId || "Client"}
+                    </strong>
                     <span className="crpSubPlan">{s.plan}</span>
                     <span className="crpSubPrice">
-                      {curSymbol(s.currency)}{s.price}/{s.billingCycle}
+                      {curSymbol(s.currency)}
+                      {s.price}/{s.billingCycle}
                     </span>
                     <div className="crpSubDue">
                       <div>{s.nextBillingDate || "—"}</div>
-                      {rel && <div className={`crpSubRel${od ? " od" : ""}`}>{rel}</div>}
+                      {rel && (
+                        <div className={`crpSubRel${od ? " od" : ""}`}>
+                          {rel}
+                        </div>
+                      )}
                     </div>
-                    <span className={`crpSubStatus${od ? " od" : ""}`}>{eff}</span>
-                  </div>
+                    <span className={`crpSubStatus${od ? " od" : ""}`}>
+                      {eff}
+                    </span>
+                  </button>
                 );
               })}
             </div>
@@ -373,7 +494,9 @@ export default function CoachRevenuePage(props: { [key: string]: any }) {
               <div className="crpTopRow" key={name}>
                 <strong>{name}</strong>
                 <div className="crpTopBar">
-                  <div style={{ width: `${Math.round((count / topMax) * 100)}%` }} />
+                  <div
+                    style={{ width: `${Math.round((count / topMax) * 100)}%` }}
+                  />
                 </div>
                 <span className="crpTopCount">{count}</span>
               </div>
