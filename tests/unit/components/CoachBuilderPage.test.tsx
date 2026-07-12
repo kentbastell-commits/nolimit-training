@@ -56,11 +56,14 @@ describe("CoachBuilderPage", () => {
   });
 
   it("switches tabs from the tab bar", () => {
+    // Redesign: the segmented wkTabs bar appends a per-tab count badge, so
+    // the button's accessible name becomes "Programs0" (label + count, no
+    // whitespace). Match on the label prefix to stay resilient to the count.
     const selectWorkoutTab = vi.fn();
     render(
       <CoachBuilderPage {...baseProps} selectWorkoutTab={selectWorkoutTab} />
     );
-    fireEvent.click(screen.getByRole("button", { name: "Programs" }));
+    fireEvent.click(screen.getByRole("button", { name: /^Programs/ }));
     expect(selectWorkoutTab).toHaveBeenCalledWith("Saved Programs");
   });
 });

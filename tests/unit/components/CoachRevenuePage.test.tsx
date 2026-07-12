@@ -2,11 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import CoachRevenuePage from "../../../src/CoachRevenuePage";
 
-const StubChart = () => <div data-testid="revenue-chart" />;
-
 const baseProps = {
-  RevenueChart: StubChart,
-  t: (k: string) => k,
   clients: [],
   coachScope: "All Coaches",
   coachSharePercent: 50,
@@ -22,17 +18,22 @@ const baseProps = {
 };
 
 describe("CoachRevenuePage", () => {
-  it("renders the revenue stats and chart card with no orders", () => {
+  it("renders the revenue board and chart card with no orders", () => {
     render(<CoachRevenuePage {...baseProps} />);
-    expect(screen.getByText("Total Revenue")).toBeInTheDocument();
-    expect(screen.getByText("Revenue — Last 6 Months")).toBeInTheDocument();
+    // the "Total Revenue" tile became a hero-board breakdown line, and the
+    // injected RevenueChart component was replaced by inline bars
+    expect(screen.getByText("total revenue")).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Revenue — last 6 months" })
+    ).toBeInTheDocument();
     expect(screen.getAllByText("No paid orders yet.")).toHaveLength(2);
-    expect(screen.getByTestId("revenue-chart")).toBeInTheDocument();
   });
 
   it("shows the coach earnings card when scoped to a single coach", () => {
     render(<CoachRevenuePage {...baseProps} coachScope="Kent" />);
-    expect(screen.getByText("Kent — Earnings")).toBeInTheDocument();
-    expect(screen.getByText("Est. Payout (50%)")).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Kent — earnings" })
+    ).toBeInTheDocument();
+    expect(screen.getByText("Est. payout · 50%")).toBeInTheDocument();
   });
 });

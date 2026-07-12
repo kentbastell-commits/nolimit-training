@@ -40,8 +40,11 @@ describe("api/workoutDetails", () => {
       res as any
     );
 
+    // getTenantToken (api/_token.ts) now throws on a missing token; the
+    // handler's generic catch turns that into a 500 with the thrown message.
     expect(res.statusCode).toBe(500);
-    expect(res.body.error).toBe("Could not get Lark tenant token");
+    expect(res.body.error).toBe("Server error");
+    expect(res.body.message).toMatch(/Could not get tenant token/);
   });
 
   it("joins template rows with the exercise library for the requested day", async () => {

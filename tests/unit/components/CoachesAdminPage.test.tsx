@@ -24,19 +24,34 @@ const baseProps = {
 };
 
 describe("CoachesAdminPage", () => {
-  it("renders the summary and coach table row", () => {
+  it("renders the KPI board and coach table row", () => {
     render(<CoachesAdminPage {...baseProps} />);
-    expect(screen.getByText("Total coaches")).toBeInTheDocument();
-    expect(screen.getByText("Kent Bastell")).toBeInTheDocument();
-    expect(screen.getByText("Deactivate")).toBeInTheDocument();
+    // dark KPI board replaced the old "Total coaches" summary tile
+    expect(screen.getByText("coaches on staff")).toBeInTheDocument();
+    // name appears in the table row AND the board's "Busiest" line
+    expect(screen.getAllByText("Kent Bastell").length).toBeGreaterThan(0);
+    // role pill in the card-row table
+    expect(screen.getByText("Admin")).toBeInTheDocument();
+    expect(screen.getByText("kent@example.com")).toBeInTheDocument();
   });
 
-  it("opens the edit form for a coach", () => {
+  it("opens the edit slide-over when a coach row is clicked", () => {
     const openEditCoachForm = vi.fn();
     render(
       <CoachesAdminPage {...baseProps} openEditCoachForm={openEditCoachForm} />
     );
-    fireEvent.click(screen.getByText("Edit"));
+    // the per-row "Edit" button is gone; the whole row is clickable now
+    // (click the row's unique contact cell — the name also appears on the board)
+    fireEvent.click(screen.getByText("kent@example.com"));
     expect(openEditCoachForm).toHaveBeenCalledWith(coach);
+  });
+
+  it("opens a blank edit form from the Add coach button", () => {
+    const openEditCoachForm = vi.fn();
+    render(
+      <CoachesAdminPage {...baseProps} openEditCoachForm={openEditCoachForm} />
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Add coach" }));
+    expect(openEditCoachForm).toHaveBeenCalledWith(null);
   });
 });

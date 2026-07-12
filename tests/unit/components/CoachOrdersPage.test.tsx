@@ -43,6 +43,7 @@ const baseProps = {
   setActivationClientName: vi.fn(),
   setActivationPortalLink: vi.fn(),
   setManualOrder: vi.fn(),
+  setOrderReviewOrder: vi.fn(),
   setOrderSearch: vi.fn(),
   setOrderStartDates: vi.fn(),
   setShowManualOrderForm: vi.fn(),
@@ -52,24 +53,34 @@ const baseProps = {
 };
 
 describe("CoachOrdersPage", () => {
-  it("renders the orders summary and empty review queue", () => {
+  it("renders the onboarding board and empty coaching queue", () => {
     render(<CoachOrdersPage {...baseProps} />);
-    expect(screen.getByText("Total Orders")).toBeInTheDocument();
-    expect(screen.getByText("Intake Review Queue")).toBeInTheDocument();
-    expect(
-      screen.getByText("No intake items need review right now.")
-    ).toBeInTheDocument();
+    // the "Total Orders" summary + "Intake Review Queue" were replaced by a
+    // segmented layout; the default Online Coaching segment shows an
+    // onboarding-queue board and an empty state
+    expect(screen.getByText("Onboarding queue")).toBeInTheDocument();
+    expect(screen.getByText("athletes need attention")).toBeInTheDocument();
+    expect(screen.getByText("No coaching orders here")).toBeInTheDocument();
   });
 
-  it("toggles the manual order form", () => {
+  it("opens the manual order form from the in-person ledger", () => {
     const setShowManualOrderForm = vi.fn();
+    const setManualOrder = vi.fn();
     render(
       <CoachOrdersPage
         {...baseProps}
         setShowManualOrderForm={setShowManualOrderForm}
+        setManualOrder={setManualOrder}
       />
     );
-    fireEvent.click(screen.getByText("+ Manual Order"));
-    expect(setShowManualOrderForm).toHaveBeenCalledTimes(1);
+    // "+ Manual Order" moved into the In-person segment as "New in-person order"
+    fireEvent.click(screen.getByText("In-person"));
+    fireEvent.click(
+      screen.getByRole("button", { name: "New in-person order" })
+    );
+    expect(setShowManualOrderForm).toHaveBeenCalledWith(true);
+    expect(setManualOrder).toHaveBeenCalledWith(
+      expect.objectContaining({ productType: "In-Person Training" })
+    );
   });
 });

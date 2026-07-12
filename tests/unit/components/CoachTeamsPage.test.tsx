@@ -74,16 +74,19 @@ const baseProps = {
 describe("CoachTeamsPage", () => {
   it("renders the teams page with an empty state", () => {
     render(<CoachTeamsPage {...baseProps} />);
-    expect(screen.getByText("+ Create Team")).toBeInTheDocument();
     expect(
-      screen.getByText(/No teams yet\. Create one to group athletes/)
+      screen.getByRole("button", { name: /New team/i })
+    ).toBeInTheDocument();
+    expect(screen.getByText("No teams yet")).toBeInTheDocument();
+    expect(
+      screen.getByText(/Create a squad to group athletes/)
     ).toBeInTheDocument();
   });
 
-  it("opens the new team editor when Create Team is clicked", () => {
+  it("opens the new team editor when New team is clicked", () => {
     const openNewTeam = vi.fn();
     render(<CoachTeamsPage {...baseProps} openNewTeam={openNewTeam} />);
-    fireEvent.click(screen.getByText("+ Create Team"));
+    fireEvent.click(screen.getByRole("button", { name: /New team/i }));
     expect(openNewTeam).toHaveBeenCalledTimes(1);
   });
 });

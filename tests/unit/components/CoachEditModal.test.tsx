@@ -18,31 +18,52 @@ const baseProps = {
   setCoachForm: vi.fn(),
 };
 
+// Redesign: the modal is now a right-hand slide-over. The heading is the
+// coach's name ("New coach" fallback) instead of "Add Coach"/"Edit Coach";
+// mode is distinguished by the footer save button ("Create coach" vs
+// "Save coach") and the edit-only Assigned-clients section.
 describe("CoachEditModal", () => {
   it("renders the add-coach form", () => {
     render(<CoachEditModal {...baseProps} />);
     expect(
-      screen.getByRole("heading", { name: "Add Coach" })
+      screen.getByRole("heading", { name: "New coach" })
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Create Coach" })
+      screen.getByRole("button", { name: "Create coach" })
     ).toBeInTheDocument();
   });
 
   it("renders edit mode when editing a coach", () => {
-    render(<CoachEditModal {...baseProps} editingCoach={{ id: "C-1" }} />);
+    render(
+      <CoachEditModal
+        {...baseProps}
+        coachForm={{ ...baseProps.coachForm, name: "Jane Doe" }}
+        editingCoach={{ id: "C-1" }}
+      />
+    );
     expect(
-      screen.getByRole("heading", { name: "Edit Coach" })
+      screen.getByRole("heading", { name: "Jane Doe" })
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Save Coach" })
+      screen.getByRole("button", { name: "Save coach" })
     ).toBeInTheDocument();
+    expect(screen.getByText("Assigned clients (0)")).toBeInTheDocument();
   });
 
-  it("calls closeCoachForm from the Cancel button", () => {
+  it("calls closeCoachForm from the close button", () => {
+    // The old "Cancel" button is gone; the slide-over closes via an icon-only
+    // X button. That button has NO accessible name (no aria-label, icon only)
+    // — an accessibility regression noted upstream — so query by class until
+    // the product adds a label.
     const closeCoachForm = vi.fn();
-    render(<CoachEditModal {...baseProps} closeCoachForm={closeCoachForm} />);
-    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    const { container } = render(
+      <CoachEditModal {...baseProps} closeCoachForm={closeCoachForm} />
+    );
+    const closeButton = container.querySelector(
+      "button.capSlideClose"
+    ) as HTMLElement;
+    expect(closeButton).not.toBeNull();
+    fireEvent.click(closeButton);
     expect(closeCoachForm).toHaveBeenCalled();
   });
 });

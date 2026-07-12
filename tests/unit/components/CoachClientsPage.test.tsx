@@ -77,22 +77,29 @@ const client = {
 
 describe("CoachClientsPage", () => {
   it("renders the toolbar and empty roster state", () => {
+    // Redesign: placeholder gained an ellipsis, the empty state is a two-line
+    // "No clients match" card, and the invite button is "Copy invite".
     render(<CoachClientsPage {...baseProps} />);
-    expect(screen.getByPlaceholderText("Search client")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Search client…")).toBeInTheDocument();
+    expect(screen.getByText("No clients match")).toBeInTheDocument();
     expect(
-      screen.getByText("No clients match your filters.")
+      screen.getByText("Try a different bucket, filter, or search.")
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Copy Invite" })
+      screen.getByRole("button", { name: "Copy invite" })
     ).toBeInTheDocument();
   });
 
   it("renders a roster row and opens the client on click", () => {
+    // Redesign: clicking a row now opens a peek slide-over (looked up in the
+    // full `clients` list by id); "Open client home" inside it routes into the
+    // client's Home tab — the same destination the old row click had.
     const setSelectedClient = vi.fn();
     const setClientTab = vi.fn();
     render(
       <CoachClientsPage
         {...baseProps}
+        clients={[client]}
         rosterClients={[client]}
         rosterGroups={[{ key: "all", label: "", clients: [client] }]}
         setSelectedClient={setSelectedClient}
@@ -100,6 +107,9 @@ describe("CoachClientsPage", () => {
       />
     );
     fireEvent.click(screen.getByText("Ada Lovelace"));
+    fireEvent.click(
+      screen.getByRole("button", { name: /Open client home/ })
+    );
     expect(setSelectedClient).toHaveBeenCalledWith(client);
     expect(setClientTab).toHaveBeenCalledWith("Home");
   });

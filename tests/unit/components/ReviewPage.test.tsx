@@ -43,7 +43,7 @@ describe("ReviewPage", () => {
   it("renders the review workspace with its summary cards", () => {
     render(<ReviewPage {...baseProps} />);
     expect(
-      screen.getByText(/Client comments, form and test submissions/i)
+      screen.getByText(/Client comments, form & test submissions/i)
     ).toBeInTheDocument();
     expect(screen.getByText("Workout comments")).toBeInTheDocument();
     expect(screen.getByText("In-Person Enquiries")).toBeInTheDocument();

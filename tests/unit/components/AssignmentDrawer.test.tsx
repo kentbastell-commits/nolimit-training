@@ -30,6 +30,7 @@ const baseProps = {
   setAssignmentDueDate: vi.fn(),
   setAssignmentTemplateId: vi.fn(),
   setAssignmentType: vi.fn(),
+  setAssignProgramKind: vi.fn(),
   setCalendarAnchorDate: vi.fn(),
   setSelectedAssignProgramId: vi.fn(),
   shiftAssignableWorkoutsToStartDate: vi.fn(),
@@ -62,11 +63,24 @@ describe("AssignmentDrawer", () => {
   });
 
   it("switches assignment type when a type chip is clicked", () => {
+    // Redesign: chips are now Session / Program / Form / Test Item. "Check-in"
+    // forms are assignable under "Form". Display labels differ from the
+    // persisted assignmentType constants ("Questionnaire" / "Physical Test"),
+    // which never change.
     const setAssignmentType = vi.fn();
+    const setAssignProgramKind = vi.fn();
     render(
-      <AssignmentDrawer {...baseProps} setAssignmentType={setAssignmentType} />
+      <AssignmentDrawer
+        {...baseProps}
+        setAssignmentType={setAssignmentType}
+        setAssignProgramKind={setAssignProgramKind}
+      />
     );
-    fireEvent.click(screen.getByRole("button", { name: "Check-in" }));
-    expect(setAssignmentType).toHaveBeenCalledWith("Check-in");
+    fireEvent.click(screen.getByRole("button", { name: "Form" }));
+    expect(setAssignmentType).toHaveBeenCalledWith("Questionnaire");
+
+    fireEvent.click(screen.getByRole("button", { name: "Session" }));
+    expect(setAssignmentType).toHaveBeenCalledWith("Program");
+    expect(setAssignProgramKind).toHaveBeenCalledWith("session");
   });
 });
