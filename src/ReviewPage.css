@@ -262,6 +262,21 @@
   flex-direction: column;
   gap: 0.55rem;
 }
+/* Daily check-in cards get a purple side plate to match their purple KPI +
+   chips. Plate is a ::before bar so it survives any border/hover change. */
+.rvCardCheckin {
+  position: relative;
+  overflow: hidden;
+}
+.rvCardCheckin::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  background: #8e5ea8;
+}
 .rvCardTap {
   cursor: pointer;
   display: flex;
@@ -289,14 +304,25 @@
   gap: 0.35rem;
 }
 .rvChip {
-  background: #f4f1ea;
-  border: 1px solid #e6e2d6;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.3rem;
+  background: #f4eefa;
+  border: 1px solid #e6d8f2;
   border-radius: 999px;
   padding: 0.15rem 0.55rem;
   font-size: 12px;
   font-weight: 700;
-  color: #3a3a34;
   white-space: nowrap;
+}
+/* Check-in chips read "Energy 3" as a purple metric label + a black answer. */
+.rvChipK {
+  color: #8e5ea8;
+  font-weight: 800;
+}
+.rvChipV {
+  color: #10100f;
+  font-weight: 800;
 }
 .rvNote {
   margin: 0;

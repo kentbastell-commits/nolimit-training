@@ -73,7 +73,7 @@ export default function ReviewPage({
 
   const checkInChips = (c: any) => {
     const mk = (label: string, v: any) =>
-      v && String(v).trim() ? `${label} ${v}` : null;
+      v && String(v).trim() ? { label, value: String(v).trim() } : null;
     return [
       mk("Energy", c.energy),
       mk("Sleep", c.sleepQuality),
@@ -81,8 +81,10 @@ export default function ReviewPage({
       mk("Mood", c.mood),
       mk("Stress", c.stress),
       mk("Readiness", c.readinessScore),
-      c.bodyWeight ? `BW ${c.bodyWeight}` : null,
-    ].filter(Boolean) as string[];
+      c.bodyWeight
+        ? { label: "BW", value: String(c.bodyWeight).trim() }
+        : null,
+    ].filter(Boolean) as { label: string; value: string }[];
   };
   const checkInNotesLine = (c: any) =>
     [
@@ -132,7 +134,7 @@ export default function ReviewPage({
       label: "Check-ins",
       count: coachReviewCheckIns.length,
       target: "reviewColCheckins",
-      accent: "#2a9d8f",
+      accent: "#8e5ea8",
     },
     {
       label: "In-person enquiries",
@@ -343,7 +345,7 @@ export default function ReviewPage({
                 const chips = checkInChips(checkIn);
                 const notes = checkInNotesLine(checkIn);
                 return (
-                  <div key={checkIn.recordId} className="rvCard">
+                  <div key={checkIn.recordId} className="rvCard rvCardCheckin">
                     <div
                       className="rvCardTap"
                       onClick={() => setSelectedCheckIn(checkIn)}
@@ -358,7 +360,8 @@ export default function ReviewPage({
                         <div className="rvChips">
                           {chips.map((s, i) => (
                             <span key={i} className="rvChip">
-                              {s}
+                              <span className="rvChipK">{s.label}</span>
+                              <span className="rvChipV">{s.value}</span>
                             </span>
                           ))}
                         </div>
@@ -583,7 +586,8 @@ export default function ReviewPage({
                   <div className="rvChips rvChipsLg">
                     {chips.map((s, i) => (
                       <span key={i} className="rvChip rvChipLg">
-                        {s}
+                        <span className="rvChipK">{s.label}</span>
+                        <span className="rvChipV">{s.value}</span>
                       </span>
                     ))}
                   </div>

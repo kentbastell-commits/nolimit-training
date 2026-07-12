@@ -1304,6 +1304,14 @@ body {
   background: rgba(0, 0, 0, 0.78);
   position: relative;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Pin the coach identity box to the bottom of the sidebar so a short nav
+   list can't let it ride up and overlap the last nav item (e.g. Admin). */
+.coachBoxWrap {
+  margin-top: auto;
 }
 
 @media (min-width: 1101px) {

@@ -1542,7 +1542,11 @@ export type CachedData<T> = {
 };
 
 export const CACHE_KEYS = {
-  clients: "clients:v1",
+  // Bumped v1->v2: a stale locally-cached clients list (older objects without a
+  // clientCode) made clientLabel fall back to showing the raw code (e.g.
+  // "CL-0002") instead of the name on the Review page. Bumping the key forces a
+  // one-time fresh re-fetch so every browser gets clientCode-bearing objects.
+  clients: "clients:v2",
   exercises: "exercises:v1",
   productOrders: "product-orders:v1",
   programs: "programs:v1",
