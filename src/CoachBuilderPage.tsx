@@ -3,9 +3,9 @@
 import type { ProgramExercise } from "./appCore";
 import "./CoachBuilderPage.css";
 import { isCardioCategory } from "./appCore";
-import { Fragment, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import CoachProgramsLanding from "./CoachProgramsLanding";
-import { BookOpen, ChevronDown, ChevronLeft, ChevronsLeftRight, Copy, Dumbbell, Eye, GripVertical, Link2, MoreVertical, Pencil, Plus, RefreshCw, Settings, Shuffle, Trash2, X } from "lucide-react";
+import { BookOpen, ChevronDown, ChevronLeft, ChevronUp, ChevronsLeftRight, Copy, Dumbbell, Eye, GripVertical, Link2, MoreVertical, Pencil, Plus, RefreshCw, Settings, Shuffle, Trash2, X } from "lucide-react";
 import type { Program, ProgramSession } from "./appCore";
 import { getWorkoutColorClass, normalizeDate } from "./appCore";
 import { TEST_CATEGORIES, testCategoryLabelKey } from "./testVisuals";
@@ -374,6 +374,30 @@ export default function CoachBuilderPage({
     setTempoOpen(false);
     setEditExerciseIndex(i);
   };
+  useEffect(() => {
+    const closeMobileLayer = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      if (mobileAlternateIndex != null) setMobileAlternateIndex(null);
+      else if (mobileDetailsIndex != null) setMobileDetailsIndex(null);
+      else if (mobileMenuIndex != null) setMobileMenuIndex(null);
+      else if (["picker", "arrange", "libpick"].includes(mobileBuilderStep)) {
+        setMobilePickerSelected(new Set());
+        setMobileBuilderStep("editor");
+      }
+    };
+    window.addEventListener("keydown", closeMobileLayer);
+    return () => window.removeEventListener("keydown", closeMobileLayer);
+  }, [
+    mobileAlternateIndex,
+    mobileBuilderStep,
+    mobileDetailsIndex,
+    mobileMenuIndex,
+    setMobileAlternateIndex,
+    setMobileBuilderStep,
+    setMobileDetailsIndex,
+    setMobileMenuIndex,
+    setMobilePickerSelected,
+  ]);
   // In the Digital "Product Builder", order the list by sport, then that
   // sport's bundles, with all add-ons last — inserting {__divider} rows.
   const groupDigitalList = (list: any[]) => {
@@ -503,7 +527,13 @@ export default function CoachBuilderPage({
                   };
 
                   return (
-                    <div className="wkHub">
+                    <div
+                      className={`wkHub${
+                        workoutPageTab === "Program Builder"
+                          ? " wkHubBuilderActive"
+                          : ""
+                      }`}
+                    >
                       <div className="wkHead">
                         <div>
                           <span className="wkEyebrow">
@@ -4034,7 +4064,12 @@ export default function CoachBuilderPage({
                     )}
 
                     {mobileBuilderStep === "picker" && (
-                      <div className="mobileSheet">
+                      <div
+                        className="mobileSheet"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-label="Select exercises"
+                      >
                         <header className="mobileBuilderHeader">
                           <button
                             className="mbHeaderBack"
@@ -4128,6 +4163,9 @@ export default function CoachBuilderPage({
                         <div
                           className="mobileBottomSheet"
                           onClick={(e) => e.stopPropagation()}
+                          role="dialog"
+                          aria-modal="true"
+                          aria-label="Arrange exercises"
                         >
                           <div className="mobileSheetHandle" />
                           <div className="mobileSheetTitleRow">
@@ -4164,9 +4202,6 @@ export default function CoachBuilderPage({
                                       ? "mobileArrangeRowOver"
                                       : ""
                                   }`}
-                                  onPointerDown={(e) =>
-                                    startMobileDrag(e, itemIndex)
-                                  }
                                 >
                                   <div className="mobileArrangeBody">
                                     {item.isLinkedGroup && (
@@ -4186,12 +4221,52 @@ export default function CoachBuilderPage({
                                       </span>
                                     ))}
                                   </div>
-                                  <span
-                                    className="mobileArrangeHandle"
-                                    aria-hidden="true"
-                                  >
-                                    <GripVertical size={22} />
-                                  </span>
+                                  <div className="mobileArrangeActions">
+                                    <button
+                                      type="button"
+                                      className="mobileArrangeMove"
+                                      disabled={itemIndex === 0}
+                                      aria-label={`Move ${
+                                        item.exercises[0]?.exerciseName || "exercise"
+                                      } up`}
+                                      onClick={() =>
+                                        reorderProgramExercise(
+                                          item.start,
+                                          items[itemIndex - 1].start
+                                        )
+                                      }
+                                    >
+                                      <ChevronUp size={18} />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="mobileArrangeMove"
+                                      disabled={itemIndex === items.length - 1}
+                                      aria-label={`Move ${
+                                        item.exercises[0]?.exerciseName || "exercise"
+                                      } down`}
+                                      onClick={() =>
+                                        reorderProgramExercise(
+                                          item.start,
+                                          items[itemIndex + 1].start
+                                        )
+                                      }
+                                    >
+                                      <ChevronDown size={18} />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="mobileArrangeHandle"
+                                      aria-label={`Drag ${
+                                        item.exercises[0]?.exerciseName || "exercise"
+                                      } to reorder`}
+                                      onPointerDown={(e) =>
+                                        startMobileDrag(e, itemIndex)
+                                      }
+                                    >
+                                      <GripVertical size={22} />
+                                    </button>
+                                  </div>
                                 </div>
                               ));
                             })()}
@@ -4303,7 +4378,12 @@ export default function CoachBuilderPage({
                     )}
 
                     {mobileBuilderStep === "libpick" && (
-                      <div className="mobileSheet">
+                      <div
+                        className="mobileSheet"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-label="Select saved session"
+                      >
                         <header className="mobileBuilderHeader">
                           <button
                             className="mbHeaderBack"
@@ -4378,6 +4458,9 @@ export default function CoachBuilderPage({
                           <div
                             className="mobileBottomSheet mobileOptionsSheet"
                             onClick={(e) => e.stopPropagation()}
+                            role="dialog"
+                            aria-modal="true"
+                            aria-label="Exercise options"
                           >
                             <div className="mobileSheetHandle" />
                             <h3 className="mobileOptionsTitle">Exercise options</h3>
@@ -4444,6 +4527,12 @@ export default function CoachBuilderPage({
                           <div
                             className="mobileBottomSheet mobileDetailsSheet"
                             onClick={(e) => e.stopPropagation()}
+                            role="dialog"
+                            aria-modal="true"
+                            aria-label={`Exercise details for ${
+                              selectedProgramExercises[mobileDetailsIndex]
+                                .exerciseName
+                            }`}
                           >
                             <div className="mobileSheetHandle" />
                             <div className="mobileSheetTitleRow">
@@ -4517,6 +4606,9 @@ export default function CoachBuilderPage({
                             <div
                               className="mobileBottomSheet mobileAltSheet"
                               onClick={(e) => e.stopPropagation()}
+                              role="dialog"
+                              aria-modal="true"
+                              aria-label={`Alternates for ${ex.exerciseName}`}
                             >
                               <div className="mobileSheetHandle" />
                               <div className="mobileSheetTitleRow">

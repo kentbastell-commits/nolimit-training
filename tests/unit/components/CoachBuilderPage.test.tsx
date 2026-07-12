@@ -66,4 +66,79 @@ describe("CoachBuilderPage", () => {
     fireEvent.click(screen.getByRole("button", { name: /^Programs/ }));
     expect(selectWorkoutTab).toHaveBeenCalledWith("Saved Programs");
   });
+
+  it("offers button-based arranging and closes the mobile sheet with Escape", () => {
+    const setMobileBuilderStep = vi.fn();
+    const reorderProgramExercise = vi.fn();
+    const exercises = [
+      {
+        exerciseId: "squat",
+        exerciseName: "Back Squat",
+        sectionName: "Strength",
+        coachingNotes: "",
+        isUnilateral: false,
+      },
+      {
+        exerciseId: "row",
+        exerciseName: "Cable Row",
+        sectionName: "Strength",
+        coachingNotes: "",
+        isUnilateral: false,
+      },
+    ];
+    const orderItems = exercises.map((exercise, index) => ({
+      key: exercise.exerciseId,
+      start: index,
+      end: index,
+      exercises: [exercise],
+      isLinkedGroup: false,
+    }));
+
+    render(
+      <CoachBuilderPage
+        {...baseProps}
+        workoutPageTab="Program Builder"
+        activeWorkoutTabValue="Program Builder"
+        workoutTabList={[{ value: "Program Builder", label: "Builder" }]}
+        useMobileWorkoutRows
+        mobileBuilderStep="arrange"
+        setMobileBuilderStep={setMobileBuilderStep}
+        setMobilePickerSelected={vi.fn()}
+        mobileMenuIndex={null}
+        mobileDetailsIndex={null}
+        mobileAlternateIndex={null}
+        setMobileMenuIndex={vi.fn()}
+        setMobileDetailsIndex={vi.fn()}
+        setMobileAlternateIndex={vi.fn()}
+        selectedProgramExercises={exercises}
+        programName="Strength Block"
+        programSessions={[]}
+        isExerciseLinkedWithPrevious={() => false}
+        renderMobileSetTable={() => <div>Set table</div>}
+        updateProgramExercise={vi.fn()}
+        adjustProgramExerciseSets={vi.fn()}
+        openMobilePicker={vi.fn()}
+        saveMobileProgramDay={vi.fn()}
+        savingTemplate={false}
+        getBuilderOrderItems={() => orderItems}
+        mobileArrangeItemsRef={{ current: [] }}
+        mobileArrangeRefs={{ current: [] }}
+        mobileDragIndex={null}
+        mobileDragOverIndex={null}
+        startMobileDrag={vi.fn()}
+        reorderProgramExercise={reorderProgramExercise}
+      />
+    );
+
+    expect(
+      screen.getByRole("dialog", { name: "Arrange exercises" })
+    ).toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Move Back Squat down" })
+    );
+    expect(reorderProgramExercise).toHaveBeenCalledWith(0, 1);
+
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(setMobileBuilderStep).toHaveBeenCalledWith("editor");
+  });
 });

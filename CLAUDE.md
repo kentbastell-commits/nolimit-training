@@ -166,6 +166,9 @@ data between them, never "borrow" a table ID across products.
 28. **The buried drawer footer** — a full-height slide-over sits below the coach
     mobile nav (`z-index: 1200`), hiding its save action. Rule: operational overlays
     must clear the nav stacking layer, use `100dvh`, and expose the footer at 390px.
+29. **The drag-locked list** — putting `touch-action: none` on an entire reorder row
+    breaks normal vertical scrolling and leaves keyboard users stuck. Rule: confine
+    drag gestures to a dedicated handle, keep the row `pan-y`, and provide move buttons.
 
 ## Quality bar — checkable, per deliverable
 

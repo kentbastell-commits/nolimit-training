@@ -209,7 +209,7 @@
   border: 1px solid rgba(17, 17, 17, 0.08);
   border-radius: 10px;
   background: #ffffff;
-  cursor: grab;
+  cursor: default;
   user-select: none;
   transition:
     transform 140ms ease,
@@ -1445,6 +1445,7 @@
   position: fixed;
   inset: 0;
   z-index: 3200;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
@@ -1454,7 +1455,7 @@
 .mobileBottomSheet {
   display: flex;
   flex-direction: column;
-  max-height: 78vh;
+  max-height: min(86dvh, 760px);
   padding: 8px 16px calc(20px + env(safe-area-inset-bottom));
   border-radius: 22px 22px 0 0;
   background: #ffffff;
@@ -1513,6 +1514,7 @@
   font-size: 13px;
   font-weight: 800;
   cursor: pointer;
+  min-height: 78px;
 }
 .mbOptIcon {
   display: grid;
@@ -1655,7 +1657,7 @@
   left: 10px;
   right: 10px;
   bottom: calc(74px + env(safe-area-inset-bottom));
-  z-index: 1100;
+  z-index: 1300;
   display: flex;
   gap: 8px;
   padding: 10px;
@@ -1667,14 +1669,19 @@
 }
 .mobileBuilderActionBar button {
   flex: 1;
+  min-width: 0;
+  min-height: 48px;
   padding: 13px 10px;
   font-size: 15px;
+  white-space: nowrap;
 }
 /* Full-screen sub-screens (picker / arrange) */
 .mobileSheet {
   position: fixed;
   inset: 0;
   z-index: 3000;
+  width: 100%;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   background: #f2f0ea;
@@ -1751,8 +1758,8 @@
   background: #fff;
   padding: 14px 12px;
   margin-bottom: 8px;
-  cursor: grab;
-  touch-action: none;
+  cursor: default;
+  touch-action: pan-y;
   user-select: none;
   transition: transform 120ms ease, box-shadow 120ms ease,
     border-color 120ms ease, background 120ms ease;
@@ -1791,9 +1798,49 @@
 .mobileArrangeHandle {
   display: grid;
   place-items: center;
+  width: 42px;
+  height: 42px;
+  border: none;
+  border-radius: 10px;
+  background: #f2f0ea;
   color: #b8ad92;
-  padding: 4px;
+  padding: 0;
+  cursor: grab;
+  touch-action: none;
   flex-shrink: 0;
+}
+.mobileArrangeHandle:active {
+  cursor: grabbing;
+}
+.mobileArrangeActions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.mobileArrangeMove {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 42px;
+  border: 1px solid rgba(17, 17, 17, 0.12);
+  border-radius: 10px;
+  background: #fff;
+  color: #4b4b45;
+  cursor: pointer;
+}
+.mobileArrangeMove:disabled {
+  color: #c8c3b8;
+  background: #f6f4ef;
+  cursor: default;
+}
+.mobileArrangeMove:focus-visible,
+.mobileArrangeHandle:focus-visible,
+.mobilePickerRow:focus-visible,
+.mbOvDay:focus-visible,
+.mbOvAdd:focus-visible {
+  outline: 3px solid rgba(181, 115, 26, 0.24);
+  outline-offset: 2px;
 }
 /* Obvious "grabbed" state: lifts, scales up, gold ring. */
 .mobileArrangeRowDragging {
@@ -2679,11 +2726,86 @@
 }
 
 @media (max-width: 720px) {
-  .wkBoard { flex-direction: column; }
+  .wkHubBuilderActive .wkHead {
+    display: none;
+  }
+  .wkHubBuilderActive .workoutTabMenu {
+    margin-top: 0;
+  }
+  .wkHead {
+    display: grid;
+    gap: 14px;
+    margin-bottom: 16px;
+  }
+  .wkHead h1 {
+    font-size: 28px;
+  }
+  .wkHead > div > p {
+    max-width: 34ch;
+    line-height: 1.45;
+  }
+  .wkCreateBtn {
+    width: 100%;
+    min-height: 48px;
+    justify-content: center;
+  }
+  .wkBoard {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .wkBoardDark,
+  .wkBoardLight {
+    min-width: 0;
+    padding: 14px;
+    border-radius: 14px;
+  }
+  .wkBoardBig {
+    display: grid;
+    gap: 4px;
+  }
+  .wkBoardBig > span {
+    font-size: 32px;
+  }
+  .wkBoardBig small {
+    line-height: 1.25;
+  }
+  .wkBoardBreak {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+    margin-top: 12px;
+    font-size: 11px;
+  }
+  .wkBoardLight p {
+    margin-top: 10px;
+    font-size: 12px;
+    line-height: 1.35;
+  }
   .programDetailPanel.wkSlide { width: 100%; }
   .programTableHead { display: none; }
   .programTableRow { grid-template-columns: 1fr auto; }
   .wkFormsTable .programTableRow { grid-template-columns: 1fr auto; }
   .programTableRow > .programTableCell:nth-of-type(2),
   .programTableRow > .programTableCell:nth-of-type(3) { display: none; }
+}
+
+@media (max-width: 390px) {
+  .mobileBuilderActionBar {
+    left: 6px;
+    right: 6px;
+    gap: 5px;
+    padding: 7px;
+  }
+  .mobileBuilderActionBar button {
+    padding-inline: 7px;
+    font-size: 13px;
+  }
+  .mobileArrangeRow {
+    padding: 10px;
+  }
+  .mobileArrangeMove {
+    width: 32px;
+  }
 }
