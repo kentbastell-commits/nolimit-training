@@ -137,6 +137,13 @@ data between them, never "borrow" a table ID across products.
     production Nginx serves `dist` directly. Rule: inspect the live delivery path,
     emit static route HTML at build time, and verify raw HTML rather than the DOM.
 
+21. **The phantom select value** — a `<select value={state}>` whose state is ""
+    (or filtered out of the options) DISPLAYS the first option while state holds
+    nothing; with one option onChange can never fire, so submit rejects a form
+    that looks complete ("Please select a client and program", AssignmentDrawer).
+    Rule: every select needs either an explicit `<option value="">` placeholder
+    or an effect that adopts the first option when state leaves the list.
+
 ## Quality bar — checkable, per deliverable
 
 **Any shipped code change**
