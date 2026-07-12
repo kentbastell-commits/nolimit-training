@@ -167,7 +167,7 @@
 }
 .capTabs {
   display: inline-flex;
-  background: #e7e0d1;
+  background: #e8e6df;
   border-radius: 13px;
   padding: 5px;
   gap: 4px;
@@ -182,7 +182,7 @@
   border-radius: 10px;
   transition: 0.15s;
   background: transparent;
-  color: #8a8372;
+  color: #38352f;
 }
 .capTab.on {
   background: #fff;

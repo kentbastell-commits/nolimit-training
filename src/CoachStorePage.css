@@ -171,7 +171,7 @@
   display: inline-flex;
   gap: 2px;
   padding: 4px;
-  background: #e7e0d1;
+  background: #e8e6df;
   border-radius: 11px;
 }
 .cspStatusTabs button {
@@ -183,7 +183,7 @@
   cursor: pointer;
   transition: all 0.15s;
   background: transparent;
-  color: #8a8372;
+  color: #38352f;
 }
 .cspStatusTabs button.active {
   background: #fff;
