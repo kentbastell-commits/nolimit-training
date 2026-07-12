@@ -750,6 +750,7 @@ export default function CoachingFlowPage() {
           <a href="/privacy">{t("Privacy", "隐私政策")}</a>
           <a href="/terms">{t("Terms", "服务条款")}</a>
           <a href="/refund">{t("Refunds", "退款政策")}</a>
+          <a href="/business">{t("Business", "经营者信息")}</a>
         </div>
       </div>
     </div>

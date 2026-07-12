@@ -233,6 +233,8 @@ function App({ onReady }: { onReady?: () => void } = {}) {
         ? "terms"
         : publicPath === "/refund"
           ? "refund"
+          : publicPath === "/business"
+            ? "business"
           : null;
   // Root is the public brand landing page. Store remains available at /store
   // and ?page=store. Coach app is at ?view=coach, athlete portal at

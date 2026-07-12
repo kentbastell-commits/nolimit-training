@@ -46,6 +46,12 @@
 .legalContact { margin-top: 24px; padding: 24px 28px; border-radius: 18px; background: #171713; color: #f6f1e7; }
 .legalContact strong { color: #f1d36a; }
 .legalContact p { margin: 8px 0 0; color: #c7c1b5; font-size: 14px; line-height: 1.65; }
+.businessTranslationNote { font-style: italic; }
+.businessDetails { margin: 20px 0 0; display: grid; }
+.businessDetails div { display: grid; grid-template-columns: minmax(160px, .75fr) 1.5fr; gap: 22px; padding: 14px 0; border-top: 1px solid #e6dfd3; }
+.businessDetails dt { color: #7b7469; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; }
+.businessDetails dd { margin: 0; color: #27241f; font-size: 14px; line-height: 1.55; font-weight: 650; overflow-wrap: anywhere; }
+.businessRegistryLink { display: inline-flex; margin-top: 9px; color: #7b5a0b; font-size: 13px; font-weight: 800; }
 
 @media (max-width: 640px) {
   .legalNav { height: 64px; padding: 0 18px; }
@@ -54,4 +60,5 @@
   .legalHero { padding-top: 30px; }
   .legalArticle { padding: 8px 22px 30px; border-radius: 19px; }
   .legalTabs { overflow-x: auto; }
+  .businessDetails div { grid-template-columns: 1fr; gap: 5px; }
 }

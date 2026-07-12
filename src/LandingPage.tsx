@@ -554,6 +554,7 @@ export default function LandingPage({
           <a href="/privacy">{lZh ? "隐私" : "Privacy"}</a>
           <a href="/terms">{lZh ? "条款" : "Terms"}</a>
           <a href="/refund">{lZh ? "退款" : "Refunds"}</a>
+          <a href="/business">{lZh ? "经营者信息" : "Business"}</a>
         </div>
       </footer>
     </div>

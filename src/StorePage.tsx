@@ -1918,6 +1918,7 @@ export default function StorePage({
           <a href="/privacy">{sZh ? "隐私" : "Privacy"}</a>
           <a href="/terms">{sZh ? "条款" : "Terms"}</a>
           <a href="/refund">{sZh ? "退款" : "Refunds"}</a>
+          <a href="/business">{sZh ? "经营者信息" : "Business"}</a>
         </div>
         <span className="storeFooterTagV3">{sZh ? "为训练而生。" : "Built for Training."}</span>
       </footer>

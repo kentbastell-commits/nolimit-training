@@ -1,7 +1,7 @@
 import { ArrowLeft, ShieldCheck } from "lucide-react";
 import "./LegalPage.css";
 
-type LegalKind = "privacy" | "terms" | "refund";
+type LegalKind = "privacy" | "terms" | "refund" | "business";
 
 const EFFECTIVE_DATE = "12 July 2026";
 const EFFECTIVE_DATE_ZH = "2026 年 7 月 12 日";
@@ -25,9 +25,13 @@ export default function LegalPage({
         ? zh
           ? "服务条款"
           : "Terms of Service"
-        : zh
-          ? "退款政策"
-          : "Refund Policy";
+        : kind === "refund"
+          ? zh
+            ? "退款政策"
+            : "Refund Policy"
+          : zh
+            ? "经营者信息"
+            : "Business Information";
 
   return (
     <div className="legalPage">
@@ -65,11 +69,15 @@ export default function LegalPage({
           <a className={kind === "refund" ? "active" : ""} href="/refund">
             {zh ? "退款" : "Refunds"}
           </a>
+          <a className={kind === "business" ? "active" : ""} href="/business">
+            {zh ? "经营者" : "Business"}
+          </a>
         </nav>
 
         {kind === "privacy" && (zh ? <PrivacyZh /> : <PrivacyEn />)}
         {kind === "terms" && (zh ? <TermsZh /> : <TermsEn />)}
         {kind === "refund" && (zh ? <RefundZh /> : <RefundEn />)}
+        {kind === "business" && (zh ? <BusinessZh /> : <BusinessEn />)}
 
         <div className="legalContact">
           <strong>{zh ? "有问题或需要行使您的权利？" : "Questions or a privacy request?"}</strong>
@@ -90,7 +98,7 @@ function PrivacyEn() {
       <section>
         <h2>1. Who operates this service</h2>
         <p>
-          NoLimit Training operates this website, coaching service, digital-program store, and athlete portal. For privacy requests, contact us through the official WeChat QR shown on the website.
+          Guangzhou Yueran Sports Information Consulting Co., Ltd. (广州跃燃体育信息咨询有限公司), trading as NoLimit Training, operates this website, coaching service, digital-program store, and athlete portal. Its unified social credit code is 91440104MAKEAJP20G. For privacy requests, contact us through the official WeChat QR shown on the website.
         </p>
       </section>
       <section>
@@ -143,7 +151,7 @@ function PrivacyEn() {
 function PrivacyZh() {
   return (
     <article className="legalArticle">
-      <section><h2>1. 谁在运营本服务</h2><p>NoLimit Training 运营本网站、教练服务、数字训练计划商店及学员客户端。如需提出隐私相关请求，请通过网站展示的官方微信二维码联系我们。</p></section>
+      <section><h2>1. 谁在运营本服务</h2><p>广州跃燃体育信息咨询有限公司（统一社会信用代码：91440104MAKEAJP20G）以 NoLimit Training 品牌运营本网站、教练服务、数字训练计划商店及学员客户端。如需提出隐私相关请求，请通过网站展示的官方微信二维码联系我们。</p></section>
       <section><h2>2. 我们收集的信息</h2><ul>
         <li><strong>身份与联系方式：</strong>姓名、邮箱、电话或微信号、语言偏好及客户端代码。</li>
         <li><strong>订单与服务信息：</strong>所选计划或指导周期、价格、付款备注与状态、开始日期及客服沟通。</li>
@@ -218,6 +226,62 @@ function RefundZh() {
       <section><h2>数字计划交付后</h2><p>数字计划已经交付或访问后，在法律允许的范围内，仅因改变主意可能无法获得全额退款。如计划与描述严重不符、重复购买、无法访问、存在重大技术问题或未交付，请联系我们。我们会优先修复或更换；如无法合理解决，将提供适当退款。</p></section>
       <section><h2>一对一指导</h2><p>个性化编排或指导开始前，可申请全额退款。开始后，我们会结合尚未交付的服务、已经完成的工作及适用法律权利进行处理。我们不会设置不公平条款，也不会对未提供的重要服务保留费用。</p></section>
       <section><h2>申请方式</h2><p>请通过官方微信提供姓名、订单号或客户端代码、付款备注、申请原因及希望的解决方式。请勿在公开渠道发布财务或健康信息。获批退款将通过适当且可用的付款方式退回，银行或支付网络处理时间可能有所不同。</p></section>
+    </article>
+  );
+}
+
+function BusinessEn() {
+  return (
+    <article className="legalArticle businessArticle">
+      <section>
+        <h2>Registered operator</h2>
+        <p className="businessTranslationNote">The Chinese registration text is authoritative; the English company name below is a convenience translation.</p>
+        <dl className="businessDetails">
+          <div><dt>Registered name</dt><dd>广州跃燃体育信息咨询有限公司</dd></div>
+          <div><dt>English rendering</dt><dd>Guangzhou Yueran Sports Information Consulting Co., Ltd.</dd></div>
+          <div><dt>Trading brand</dt><dd>NoLimit Training</dd></div>
+          <div><dt>Unified social credit code</dt><dd>91440104MAKEAJP20G</dd></div>
+          <div><dt>Company type</dt><dd>Limited liability company (foreign invested, non-wholly-owned)</dd></div>
+          <div><dt>Legal representative</dt><dd>BASTELL KENT</dd></div>
+          <div><dt>Registered capital</dt><dd>RMB 300,000</dd></div>
+          <div><dt>Established</dt><dd>5 June 2026</dd></div>
+          <div><dt>Registered address</dt><dd>Room 825D, 8th Floor, No. 48 Jianshe 6th Road, Yuexiu District, Guangzhou, China</dd></div>
+          <div><dt>Registration authority</dt><dd>Guangzhou Yuexiu District Administration for Market Regulation</dd></div>
+          <div><dt>Customer contact</dt><dd>Official NoLimit Training WeChat QR displayed on this website</dd></div>
+        </dl>
+      </section>
+      <section>
+        <h2>Registered business scope</h2>
+        <p>Business services. Specific registered activities are subject to the record in China’s National Enterprise Credit Information Publicity System and any approvals required by law.</p>
+        <a className="businessRegistryLink" href="https://www.gsxt.gov.cn/" target="_blank" rel="noreferrer">Check the official national registry</a>
+      </section>
+    </article>
+  );
+}
+
+function BusinessZh() {
+  return (
+    <article className="legalArticle businessArticle">
+      <section>
+        <h2>经营者登记信息</h2>
+        <dl className="businessDetails">
+          <div><dt>企业名称</dt><dd>广州跃燃体育信息咨询有限公司</dd></div>
+          <div><dt>运营品牌</dt><dd>NoLimit Training</dd></div>
+          <div><dt>统一社会信用代码</dt><dd>91440104MAKEAJP20G</dd></div>
+          <div><dt>类型</dt><dd>有限责任公司（外商投资、非独资）</dd></div>
+          <div><dt>法定代表人</dt><dd>BASTELL KENT</dd></div>
+          <div><dt>注册资本</dt><dd>叁拾万元（人民币）</dd></div>
+          <div><dt>成立日期</dt><dd>2026 年 6 月 5 日</dd></div>
+          <div><dt>住所</dt><dd>广州市越秀区建设六马路48号第8层825D</dd></div>
+          <div><dt>登记机关</dt><dd>广州市越秀区市场监督管理局</dd></div>
+          <div><dt>客户联系方式</dt><dd>本网站展示的 NoLimit Training 官方微信二维码</dd></div>
+        </dl>
+      </section>
+      <section>
+        <h2>登记经营范围</h2>
+        <p>商务服务业。具体经营项目及依法须经批准的项目，以国家企业信用信息公示系统登记和有关部门批准为准。</p>
+        <a className="businessRegistryLink" href="https://www.gsxt.gov.cn/" target="_blank" rel="noreferrer">前往国家企业信用信息公示系统查询</a>
+      </section>
     </article>
   );
 }
