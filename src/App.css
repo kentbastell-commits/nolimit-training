@@ -1309,9 +1309,11 @@ body {
 }
 
 /* Pin the coach identity box to the bottom of the sidebar so a short nav
-   list can't let it ride up and overlap the last nav item (e.g. Admin). */
+   list can't let it ride up and overlap the last nav item (e.g. Admin), and
+   always keep a clear gap above it even when the nav nearly fills the height. */
 .coachBoxWrap {
   margin-top: auto;
+  padding-top: 22px;
 }
 
 @media (min-width: 1101px) {
@@ -8254,6 +8256,26 @@ body {
   border-color: var(--nl-line) !important;
   color: var(--nl-ink) !important;
   box-shadow: 0 16px 42px rgba(17, 17, 17, 0.08) !important;
+}
+
+/* Keep the coach identity box INK in the light coach theme (Kent's ask), with a
+   gold hairline like the sidebar nav. Comes after the white-card rule above so
+   it wins (same specificity, later + !important). */
+.app:not(.clientPortalApp) .coachBox {
+  background: #141414 !important;
+  border-color: rgba(212, 175, 55, 0.5) !important;
+  color: #f4e9c9 !important;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.3) !important;
+}
+.app:not(.clientPortalApp) .coachBox strong {
+  color: #ffffff !important;
+}
+.app:not(.clientPortalApp) .coachBox p {
+  color: #b8b2a4 !important;
+}
+.app:not(.clientPortalApp) .coachBoxCaret {
+  color: #d4af37 !important;
+  opacity: 0.9 !important;
 }
 
 .app:not(.clientPortalApp) .tableHeader,
