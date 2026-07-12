@@ -1,6 +1,6 @@
 // Extracted from App.tsx (monolith split) — JSX verbatim; props threaded.
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { formatCalendarLabel, normalizeDate } from "./appCore";
 import "./AssignmentDrawer.css";
 
@@ -41,6 +41,37 @@ export default function AssignmentDrawer({
   // Local filter for the Saved Session picker — narrow the list by session type
   // (Cardio, Mobility, Strength…) so a coach can find the session they built.
   const [sessionTypeFilter, setSessionTypeFilter] = useState("All");
+
+  // The list the Saved Session/Program select shows, after kind + type filters.
+  const assignList = (programs || []).filter((p: any) =>
+    assignProgramKind === "session"
+      ? p.productType === "Single Workout" &&
+        (sessionTypeFilter === "All" ||
+          (p.sessionType || "").trim() === sessionTypeFilter)
+      : p.productType !== "Single Workout"
+  );
+
+  // Keep the selection honest: with value="" (or a value filtered out of the
+  // list) the browser DISPLAYS the first option while React state holds
+  // nothing — and with a single option onChange can never fire, so "Assign"
+  // rejected a fully-filled form ("Please select a client and program").
+  // Whenever the visible list no longer contains the selected id, adopt the
+  // first item and drop sessions loaded for the previous selection.
+  useEffect(() => {
+    if (assignmentType !== "Program") return;
+    if (assignList.some((p: any) => p.programId === selectedAssignProgramId)) {
+      return;
+    }
+    setSelectedAssignProgramId(assignList[0]?.programId || "");
+    setAssignableWorkouts([]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    assignmentType,
+    assignProgramKind,
+    sessionTypeFilter,
+    programs,
+    selectedAssignProgramId,
+  ]);
   return (
     <>
           <div
@@ -196,13 +227,6 @@ export default function AssignmentDrawer({
                         : "Saved Program"}
                     </span>
                     {(() => {
-                      const assignList = programs.filter((p: any) =>
-                        assignProgramKind === "session"
-                          ? p.productType === "Single Workout" &&
-                            (sessionTypeFilter === "All" ||
-                              (p.sessionType || "").trim() === sessionTypeFilter)
-                          : p.productType !== "Single Workout"
-                      );
                       return (
                         <select
                           value={selectedAssignProgramId}
