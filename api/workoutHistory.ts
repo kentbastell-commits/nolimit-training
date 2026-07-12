@@ -66,15 +66,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const exerciseNameFilter = String(req.query.exerciseName || "").toLowerCase();
 
     // The whole workout-logs table is scanned and mapped once, then cached and
-    // filtered per-request in memory. The scan is the slow part (the table grows
-    // fast and is read on every client open); saveWorkoutLog invalidates this.
+    // filtered per-request in memory. Client ID here is a DuplexLink, and the
+    // portal passes the client's record_id — which a server-side text filter
+    // can't match against a link field, so we keep the whole-table scan + the
+    // 5-min cache (invalidated by saveWorkoutLog) rather than risk empty history.
     let allLogs = getCached<any[]>("workoutLogs");
 
     if (!allLogs) {
       const token = await getTenantToken();
 
-      // Paginate — a single 500-row page would drop the most recent logs (and
-      // whole clients' histories) once the table is full.
       const allItems: any[] = [];
       let pageToken = "";
       do {

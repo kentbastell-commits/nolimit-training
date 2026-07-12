@@ -174,12 +174,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
-    // Cache-first: both tables are scanned in full and joined in memory. They
-    // rarely change and are shared across every program/week/day, so a warm
-    // cache serves repeat workout opens with NO Feishu round-trip at all — not
-    // even a token fetch (writers invalidate these keys). The token is only
-    // acquired on a cache miss, and via the shared 2h-cached helper.
-    let templateItems = getCached<any[]>("workoutTemplatesRaw");
+    // Cache-first, and only fetch THIS program's templates (server-side filter)
+    // instead of scanning the entire templates table for all clients. The
+    // exercise library is shared across programs so it stays cached whole. A
+    // warm cache serves repeat opens with zero Feishu round-trips (not even a
+    // token). Writers invalidate "workoutTemplatesRaw" (prefix) so per-program
+    // keys clear too.
+    const tplKey = `workoutTemplatesRaw:${programId}`;
+    let templateItems = getCached<any[]>(tplKey);
     let libraryItems = getCached<any[]>("exerciseLibraryRaw");
 
     if (!templateItems || !libraryItems) {
@@ -187,11 +189,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const [templates, library] = await Promise.all([
         templateItems
           ? Promise.resolve(templateItems)
-          : fetchAllBitableRecords(
-              process.env.FEISHU_BASE_APP_TOKEN as string,
-              process.env.FEISHU_WORKOUT_TEMPLATES_TABLE_ID as string,
-              token
-            ),
+          : (async () => {
+              // Only this program's rows. Fall back to a full scan if the
+              // filter matches nothing, so a field-type surprise can never
+              // return an empty workout — only a slower one.
+              const filtered = await fetchAllBitableRecords(
+                process.env.FEISHU_BASE_APP_TOKEN as string,
+                process.env.FEISHU_WORKOUT_TEMPLATES_TABLE_ID as string,
+                token,
+                { filter: `CurrentValue.[Program ID]="${programId}"` }
+              );
+              return filtered.length
+                ? filtered
+                : fetchAllBitableRecords(
+                    process.env.FEISHU_BASE_APP_TOKEN as string,
+                    process.env.FEISHU_WORKOUT_TEMPLATES_TABLE_ID as string,
+                    token
+                  );
+            })(),
         libraryItems
           ? Promise.resolve(libraryItems)
           : fetchAllBitableRecords(
@@ -202,7 +217,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ]);
       templateItems = templates;
       libraryItems = library;
-      setCached("workoutTemplatesRaw", templateItems, 10 * 60 * 1000);
+      setCached(tplKey, templateItems, 10 * 60 * 1000);
       setCached("exerciseLibraryRaw", libraryItems, 10 * 60 * 1000);
     }
 
