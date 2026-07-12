@@ -1082,6 +1082,9 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     Record<string, string[]>
   >({});
   const [calendarDropWorkoutId, setCalendarDropWorkoutId] = useState("");
+  // Which calendar day the finger is currently over during a client touch-drag,
+  // so the mobile calendar can pop up a live preview of that day.
+  const [dragPreviewDate, setDragPreviewDate] = useState("");
   const movingWorkoutId = "";
   const movingAssignmentId = "";
   const [copiedCalendarItem, setCopiedCalendarItem] =
@@ -15062,6 +15065,17 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       moved: false,
     };
     setDraggingWorkoutId(workout.id);
+    setDragPreviewDate("");
+  }
+
+  // The calendar day (YYYY-MM-DD) under a touch point, if any — used to drive
+  // the drag preview and to reschedule when a workout is released over a day
+  // cell (not just over another workout card).
+  function dayUnderTouch(clientX: number, clientY: number): string {
+    const el = document
+      .elementFromPoint(clientX, clientY)
+      ?.closest("[data-cal-day]") as HTMLElement | null;
+    return el?.dataset.calDay || "";
   }
 
   function moveClientCalendarWorkoutTouch(event: TouchEvent<HTMLElement>) {
@@ -15082,6 +15096,10 @@ function App({ onReady }: { onReady?: () => void } = {}) {
           ? targetWorkoutId
           : ""
       );
+
+      // Live preview: show the day the finger is hovering (setState bails out
+      // when the value is unchanged, so this is cheap per touchmove).
+      setDragPreviewDate(dayUnderTouch(touch.clientX, touch.clientY));
     }
   }
 
@@ -15090,6 +15108,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     clientCalendarTouchDrag.current = null;
     setDraggingWorkoutId("");
     setCalendarDropWorkoutId("");
+    setDragPreviewDate("");
 
     if (!touchDrag?.moved) return;
 
@@ -15099,26 +15118,32 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     }, 0);
 
     const touch = event.changedTouches[0];
+    const sourceWorkout = workouts.find(
+      (workout) => workout.id === touchDrag.workoutId
+    );
+
     const targetElement = document
       .elementFromPoint(touch.clientX, touch.clientY)
       ?.closest("[data-client-calendar-workout-id]") as HTMLElement | null;
     const targetWorkoutId = targetElement?.dataset.clientCalendarWorkoutId;
     const targetDate = targetElement?.dataset.clientCalendarDate;
 
-    if (!targetWorkoutId || !targetDate || targetWorkoutId === touchDrag.workoutId) {
+    // Released over another workout card → move to its date, or reorder within
+    // the same date.
+    if (targetWorkoutId && targetDate && targetWorkoutId !== touchDrag.workoutId) {
+      if (sourceWorkout && touchDrag.date !== targetDate) {
+        void moveWorkoutToDate(sourceWorkout, targetDate);
+        return;
+      }
+      reorderClientCalendarWorkout(targetDate, touchDrag.workoutId, targetWorkoutId);
       return;
     }
 
-    const sourceWorkout = workouts.find(
-      (workout) => workout.id === touchDrag.workoutId
-    );
-
-    if (sourceWorkout && touchDrag.date !== targetDate) {
-      void moveWorkoutToDate(sourceWorkout, targetDate);
-      return;
+    // Released over a day cell (even an empty one) → reschedule to that day.
+    const dayDate = dayUnderTouch(touch.clientX, touch.clientY);
+    if (sourceWorkout && dayDate && dayDate !== touchDrag.date) {
+      void moveWorkoutToDate(sourceWorkout, dayDate);
     }
-
-    reorderClientCalendarWorkout(targetDate, touchDrag.workoutId, targetWorkoutId);
   }
 
   const handleOpenContentAssignment = async (assignment: ContentAssignment) => {
@@ -18642,6 +18667,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
           <ClientWorkspace
             t={t}
             clientHeroKpis={computeClientHeroKpis()}
+            dragPreviewDate={dragPreviewDate}
             assignLoading={assignLoading}
             assignProgramToClient={assignProgramToClient}
             assignStartDate={assignStartDate}

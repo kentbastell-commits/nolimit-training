@@ -32,6 +32,7 @@ export default function ClientWorkspace({
   clientCalendarTouchDrag,
   clientComments,
   clientHeroKpis,
+  dragPreviewDate,
   clientMonthAnchorDate,
   clientMonthCalendarDates,
   clientPortalUpcomingTasks,
@@ -575,6 +576,7 @@ export default function ClientWorkspace({
               {clientTab === "Training" && (
                 <PortalTraining
                   calendarDropWorkoutId={calendarDropWorkoutId}
+                  dragPreviewDate={dragPreviewDate}
                   t={t}
                   todayValue={todayValue}
                   assignLoading={assignLoading}

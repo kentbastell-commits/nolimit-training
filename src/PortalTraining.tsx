@@ -18,6 +18,7 @@ import { dateToInputValue, formatCalendarLabel, formatMonthTitle, getAssignmentC
 
 export default function PortalTraining({
   calendarDropWorkoutId,
+  dragPreviewDate,
   t,
   todayValue,
   assignLoading,
@@ -121,6 +122,68 @@ export default function PortalTraining({
 
   return (
     <>
+                {isClientPortal && draggingWorkoutId && dragPreviewDate && (
+                  <div className="dragDayPreview" aria-hidden="true">
+                    <div className="dragDayPreviewHead">
+                      <span className="dragDayPreviewEyebrow">
+                        {useChineseClientText ? "移动到" : "Move to"}
+                      </span>
+                      <strong>{localizedCalendarLabel(dragPreviewDate)}</strong>
+                    </div>
+                    <div className="dragDayPreviewBody">
+                      {getWorkoutsForDate(dragPreviewDate).length === 0 &&
+                      getAssignmentsForDate(dragPreviewDate).length === 0 ? (
+                        <p className="dragDayPreviewEmpty">
+                          {t("nothingScheduledShort")}
+                        </p>
+                      ) : (
+                        <>
+                          {getWorkoutsForDate(dragPreviewDate).map((w: any) => {
+                            const cc = getWorkoutColorClass(
+                              w.sessionName,
+                              w.sessionType
+                            );
+                            const Icon = catIcon(cc);
+                            return (
+                              <div
+                                className={`dragDayPreviewCard ${cc}`}
+                                key={w.id}
+                              >
+                                <span className={`wcatBadge ${cc}`}>
+                                  <Icon size={18} aria-hidden="true" />
+                                </span>
+                                <div className="homeTaskBody">
+                                  <strong>{localizedWorkoutName(w)}</strong>
+                                  <small>
+                                    {t("week")} {w.week} · {t("day")} {w.day}
+                                  </small>
+                                </div>
+                              </div>
+                            );
+                          })}
+                          {getAssignmentsForDate(dragPreviewDate).map(
+                            (a: any) => (
+                              <div
+                                className="dragDayPreviewCard dragDayPreviewAssignment"
+                                key={a.recordId}
+                              >
+                                <div className="homeTaskBody">
+                                  <strong>{getAssignmentDisplayName(a)}</strong>
+                                  <small>
+                                    {a.assignmentType || "Questionnaire"}
+                                  </small>
+                                </div>
+                              </div>
+                            )
+                          )}
+                        </>
+                      )}
+                    </div>
+                    <div className="dragDayPreviewHint">
+                      {useChineseClientText ? "松手移到此日" : "Release to move here"}
+                    </div>
+                  </div>
+                )}
                 <div className="trainingCalendar">
                   {isClientPortal && (
                     <div className="clientCalendarHead">
@@ -586,8 +649,11 @@ export default function PortalTraining({
                               : ""
                           } ${
                             dayItemCount > 0 ? "hasCalendarWork" : ""
+                          } ${
+                            dragPreviewDate === date ? "dragPreviewTargetDay" : ""
                           }`}
                           key={date}
+                          data-cal-day={date}
                           onDragOver={(event: DragEvent<HTMLDivElement>) => {
                             event.preventDefault();
                             event.dataTransfer.dropEffect = "move";

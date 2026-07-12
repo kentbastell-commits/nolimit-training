@@ -407,3 +407,115 @@
 .app:not(.clientPortalApp) .coachSelectedDayGlance .wcatBadge.wcol-skill { background: color-mix(in srgb, var(--wcol-skill) 15%, #fff); color: var(--wcol-skill); }
 .app:not(.clientPortalApp) .coachSelectedDayGlance .wcatBadge.wcol-test { background: color-mix(in srgb, var(--wcol-test) 16%, #fff); color: var(--wcol-test); }
 .app:not(.clientPortalApp) .coachSelectedDayGlance .wcatBadge.wcol-purple { background: color-mix(in srgb, var(--wcol-other) 15%, #fff); color: var(--wcol-other); }
+
+/* ── Client mobile calendar: live day preview while dragging a workout ──
+   Floating card that shows the day the finger is over (a bigger version of
+   that day) and live-swaps as the finger moves to another day. */
+.clientPortalApp .dragDayPreview {
+  position: fixed;
+  top: calc(12px + env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1400;
+  width: min(340px, calc(100vw - 28px));
+  background: #fff;
+  border: 1px solid #e5dfd2;
+  border-radius: 18px;
+  box-shadow: 0 22px 55px rgba(20, 18, 14, 0.3);
+  padding: 14px 16px 12px;
+  pointer-events: none;
+  animation: dragPreviewIn 0.14s ease;
+}
+@keyframes dragPreviewIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(-6px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+.clientPortalApp .dragDayPreviewHead {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 10px;
+}
+.clientPortalApp .dragDayPreviewEyebrow {
+  font-size: 10.5px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #b5731a;
+}
+.clientPortalApp .dragDayPreviewHead strong {
+  font-size: 18px;
+  font-weight: 900;
+  color: #10100f;
+}
+.clientPortalApp .dragDayPreviewBody {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 42vh;
+  overflow: hidden;
+}
+.clientPortalApp .dragDayPreviewEmpty {
+  margin: 2px 0 6px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #8a8372;
+}
+.clientPortalApp .dragDayPreviewCard {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #faf8f4;
+  border: 1px solid #ece7db;
+  border-left: 4px solid var(--wcol-other);
+  border-radius: 12px;
+  padding: 9px 11px;
+}
+.clientPortalApp .dragDayPreviewCard.wcol-strength { border-left-color: var(--wcol-strength); }
+.clientPortalApp .dragDayPreviewCard.wcol-cardio { border-left-color: var(--wcol-cardio); }
+.clientPortalApp .dragDayPreviewCard.wcol-mobility { border-left-color: var(--wcol-mobility); }
+.clientPortalApp .dragDayPreviewCard.wcol-skill { border-left-color: var(--wcol-skill); }
+.clientPortalApp .dragDayPreviewCard.wcol-test { border-left-color: var(--wcol-test); }
+.clientPortalApp .dragDayPreviewCard.wcol-purple { border-left-color: var(--wcol-other); }
+.clientPortalApp .dragDayPreviewCard .wcatBadge {
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+}
+.clientPortalApp .dragDayPreviewCard .homeTaskBody {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.clientPortalApp .dragDayPreviewCard strong {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #10100f;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.clientPortalApp .dragDayPreviewCard small {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #66645e;
+}
+.clientPortalApp .dragDayPreviewHint {
+  margin-top: 10px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: #b5731a;
+}
+/* The day cell the finger is currently over. */
+.clientPortalApp .dragPreviewTargetDay {
+  outline: 2px solid var(--wcol-cardio);
+  outline-offset: -2px;
+  border-radius: 12px;
+}
