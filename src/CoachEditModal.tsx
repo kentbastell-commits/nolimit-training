@@ -4,6 +4,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import "./CoachesAdminPage.css";
 import { X } from "lucide-react";
+import { useEffect } from "react";
 
 const initialsOf = (name: string) =>
   String(name || "")
@@ -44,9 +45,23 @@ export default function CoachEditModal(props: { [key: string]: any }) {
 
   const set = (k: string, v: string) => setCoachForm({ ...coachForm, [k]: v });
 
+  useEffect(() => {
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") closeCoachForm();
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [closeCoachForm]);
+
   return (
     <div className="capSlideScrim" onClick={closeCoachForm}>
-      <div className="capSlide" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="capSlide"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="cap-slide-title"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* header */}
         <div className="capSlideHead">
           <div className="capSlideTitle">
@@ -58,10 +73,15 @@ export default function CoachEditModal(props: { [key: string]: any }) {
             </div>
             <div className="capSlideName">
               <span className="capSlideRole">{coachForm.role || "Coach"}</span>
-              <h2>{coachForm.name || "New coach"}</h2>
+              <h2 id="cap-slide-title">{coachForm.name || "New coach"}</h2>
             </div>
           </div>
-          <button type="button" className="capSlideClose" aria-label="Close" onClick={closeCoachForm}>
+          <button
+            type="button"
+            className="capSlideClose"
+            aria-label="Close coach editor"
+            onClick={closeCoachForm}
+          >
             <X size={17} />
           </button>
           <div className="capSlideMeta">

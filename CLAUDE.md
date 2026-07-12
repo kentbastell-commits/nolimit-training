@@ -162,6 +162,9 @@ data between them, never "borrow" a table ID across products.
 27. **The dashboard wall** — desktop KPI tiles stack into full-width mobile cards
     and push the actionable queue below the fold. Rule: compact repeated summaries
     into a mobile grid and collapse duplicate inline forms into one focused drawer.
+28. **The buried drawer footer** — a full-height slide-over sits below the coach
+    mobile nav (`z-index: 1200`), hiding its save action. Rule: operational overlays
+    must clear the nav stacking layer, use `100dvh`, and expose the footer at 390px.
 
 ## Quality bar — checkable, per deliverable
 

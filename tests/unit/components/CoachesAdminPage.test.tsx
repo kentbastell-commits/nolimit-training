@@ -35,14 +35,15 @@ describe("CoachesAdminPage", () => {
     expect(screen.getByText("kent@example.com")).toBeInTheDocument();
   });
 
-  it("opens the edit slide-over when a coach row is clicked", () => {
+  it("opens the edit slide-over from the keyboard-accessible coach row", () => {
     const openEditCoachForm = vi.fn();
     render(
       <CoachesAdminPage {...baseProps} openEditCoachForm={openEditCoachForm} />
     );
-    // the per-row "Edit" button is gone; the whole row is clickable now
-    // (click the row's unique contact cell — the name also appears on the board)
-    fireEvent.click(screen.getByText("kent@example.com"));
+    fireEvent.keyDown(
+      screen.getByRole("button", { name: "Edit Kent Bastell" }),
+      { key: "Enter" }
+    );
     expect(openEditCoachForm).toHaveBeenCalledWith(coach);
   });
 

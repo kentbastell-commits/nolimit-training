@@ -252,6 +252,15 @@
 .capRow:hover {
   background: #faf7f0;
 }
+.capRow:focus-visible,
+.capAddBtn:focus-visible,
+.capTab:focus-visible,
+.capSlideClose:focus-visible,
+.capFootBtn:focus-visible,
+.capFootSave:focus-visible {
+  outline: 3px solid rgba(181, 115, 26, 0.3);
+  outline-offset: 3px;
+}
 .capRowCoach {
   display: flex;
   align-items: center;
@@ -323,6 +332,9 @@
   font-weight: 700;
   color: #151515;
 }
+.capClients span {
+  display: none;
+}
 .capContact {
   font-size: 13.5px;
   color: #6b6459;
@@ -363,7 +375,7 @@
 .capSlideScrim {
   position: fixed;
   inset: 0;
-  z-index: 100;
+  z-index: 1300;
   background: rgba(21, 18, 12, 0.42);
   display: flex;
   justify-content: flex-end;
@@ -372,7 +384,7 @@
 }
 .capSlide {
   width: min(520px, 94vw);
-  height: 100%;
+  height: 100dvh;
   background: #f6f2ea;
   box-shadow: -24px 0 60px rgba(21, 18, 12, 0.24);
   animation: capSlideIn 0.3s cubic-bezier(0.22, 1, 0.36, 1);
@@ -602,20 +614,118 @@
 }
 
 @media (max-width: 720px) {
+  .capPage {
+    padding-top: 0;
+  }
+  .capHead {
+    align-items: stretch;
+    margin-bottom: 20px;
+  }
+  .capHead > div,
+  .capAddBtn {
+    width: 100%;
+  }
+  .capAddBtn {
+    min-height: 46px;
+    justify-content: center;
+  }
   .capBoard {
     grid-template-columns: 1fr;
+    gap: 12px;
+    margin-bottom: 22px;
+  }
+  .capBoardDark,
+  .capBoardLight {
+    padding: 22px 24px;
+    border-radius: 18px;
+  }
+  .capBoardBig > span {
+    font-size: 50px;
+  }
+  .capBoardBreak {
+    gap: 18px;
+    margin-top: 18px;
+  }
+  .capFilters {
+    align-items: stretch;
+    gap: 10px;
+  }
+  .capTabs,
+  .capSearch {
+    width: 100%;
+  }
+  .capTabs {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .capTab {
+    min-height: 40px;
+    padding-inline: 8px;
   }
   .capTableHead {
     display: none;
   }
   .capRow {
-    grid-template-columns: 1fr auto;
-    gap: 10px;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-areas:
+      "coach coach chevron"
+      "role status clients";
+    gap: 12px 10px;
+    padding: 16px;
   }
-  .capRow > div:nth-child(2),
-  .capRow > div:nth-child(3),
-  .capRow > div:nth-child(5) {
+  .capRowCoach {
+    grid-area: coach;
+  }
+  .capRoleCell {
+    grid-area: role;
+  }
+  .capStatus {
+    grid-area: status;
+    justify-self: center;
+  }
+  .capClients {
+    grid-area: clients;
+    justify-self: end;
+    color: #6b6459;
+    font-size: 13px;
+  }
+  .capClients span {
+    display: inline;
+    font-weight: 600;
+  }
+  .capContact {
     display: none;
+  }
+  .capChevron {
+    grid-area: chevron;
+  }
+  .capSlide {
+    width: 100%;
+  }
+  .capSlideHead {
+    padding: 20px 20px 16px;
+  }
+  .capSlideClose {
+    top: 20px;
+    right: 20px;
+    width: 44px;
+    height: 44px;
+  }
+  .capSlideBody {
+    padding: 20px;
+  }
+  .capSlideFoot {
+    padding: 14px 20px calc(14px + env(safe-area-inset-bottom));
+    flex-wrap: wrap;
+  }
+  .capFootBtn {
+    flex: 1;
+    min-width: calc(50% - 6px);
+    min-height: 44px;
+  }
+  .capFootSave {
+    flex-basis: 100%;
+    min-height: 46px;
   }
   .capFormGrid {
     grid-template-columns: 1fr;

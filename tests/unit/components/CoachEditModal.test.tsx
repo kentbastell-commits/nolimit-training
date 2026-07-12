@@ -31,6 +31,9 @@ describe("CoachEditModal", () => {
     expect(
       screen.getByRole("button", { name: "Create coach" })
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole("dialog", { name: "New coach" })
+    ).toBeInTheDocument();
   });
 
   it("renders edit mode when editing a coach", () => {
@@ -50,12 +53,13 @@ describe("CoachEditModal", () => {
     expect(screen.getByText("Assigned clients (0)")).toBeInTheDocument();
   });
 
-  it("calls closeCoachForm from the close button", () => {
-    // The old "Cancel" button is gone; the slide-over closes via the icon-only
-    // X button (aria-label="Close").
+  it("calls closeCoachForm from the close button and Escape", () => {
     const closeCoachForm = vi.fn();
     render(<CoachEditModal {...baseProps} closeCoachForm={closeCoachForm} />);
-    fireEvent.click(screen.getByRole("button", { name: "Close" }));
-    expect(closeCoachForm).toHaveBeenCalled();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Close coach editor" })
+    );
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(closeCoachForm).toHaveBeenCalledTimes(2);
   });
 });

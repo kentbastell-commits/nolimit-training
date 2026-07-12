@@ -158,6 +158,7 @@ export default function CoachesAdminPage(props: { [key: string]: any }) {
         <div className="capSearch">
           <Search size={16} />
           <input
+            aria-label="Search coaches"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search coaches…"
@@ -184,7 +185,16 @@ export default function CoachesAdminPage(props: { [key: string]: any }) {
               <div
                 className="capRow"
                 key={coach.recordId || coach.coachId || coach.name}
+                role="button"
+                tabIndex={0}
+                aria-label={`Edit ${coach.name}`}
                 onClick={() => openEditCoachForm(coach)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    openEditCoachForm(coach);
+                  }
+                }}
               >
                 <div className="capRowCoach">
                   <div className="capAvatar" style={avatarStyle(coach)}>
@@ -195,7 +205,7 @@ export default function CoachesAdminPage(props: { [key: string]: any }) {
                     <small>{coach.bio || coach.coachId || "Coach record"}</small>
                   </div>
                 </div>
-                <div>
+                <div className="capRoleCell">
                   <span
                     className={`capRolePill${coach.role === "Admin" ? " admin" : ""}`}
                   >
@@ -209,7 +219,9 @@ export default function CoachesAdminPage(props: { [key: string]: any }) {
                   />
                   {coach.status || "Active"}
                 </div>
-                <div className="capClients">{assignedCount(coach)}</div>
+                <div className="capClients">
+                  {assignedCount(coach)} <span>clients</span>
+                </div>
                 <div className="capContact">
                   {coach.email || coach.phoneWechat || "—"}
                 </div>
