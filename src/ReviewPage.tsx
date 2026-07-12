@@ -108,31 +108,37 @@ export default function ReviewPage({
       label: "Workout comments",
       count: globalUnreviewedWorkoutComments.length,
       target: "reviewColComments",
+      accent: "#6c7a99",
     },
     {
       label: "Submissions",
       count: globalReviewSubmissionItems.length,
       target: "reviewColSubmissions",
+      accent: "#3f9d6a",
     },
     {
       label: "Missed tasks",
       count: globalMissedWorkouts.length,
       target: "reviewColMissed",
+      accent: "#d1495b",
     },
     {
       label: "Order reviews",
       count: globalReviewOrders.length,
       target: "reviewColComments",
+      accent: "#3f6ea3",
     },
     {
       label: "Check-ins",
       count: coachReviewCheckIns.length,
       target: "reviewColCheckins",
+      accent: "#2a9d8f",
     },
     {
       label: "In-person enquiries",
       count: newEnquiries.length,
       target: "reviewColEnquiries",
+      accent: "#b5731a",
     },
   ];
 
@@ -199,7 +205,11 @@ export default function ReviewPage({
             className="rvSummaryCard"
             onClick={() => focusReviewColumn(card.target)}
           >
-            <span className="rvSummaryBar" aria-hidden="true" />
+            <span
+              className="rvSummaryBar"
+              style={{ background: card.accent }}
+              aria-hidden="true"
+            />
             <span className="rvSummaryLabel">{card.label}</span>
             <strong className="rvSummaryCount">{card.count}</strong>
           </button>
@@ -482,7 +492,7 @@ export default function ReviewPage({
                 <button
                   type="button"
                   key={`missed-${workout.assignedWorkoutId || workout.id}`}
-                  className="rvItem"
+                  className="rvItem rvItemMissed"
                   onClick={() => openReviewWorkout(workout)}
                 >
                   <span className="rvItemKicker">Missed workout</span>
@@ -521,7 +531,7 @@ export default function ReviewPage({
                   <button
                     type="button"
                     key={`submission-${group.key}`}
-                    className="rvItem"
+                    className="rvItem rvItemSubmission"
                     onClick={() => setSelectedContentSubmission(group)}
                   >
                     <span className="rvItemKicker">{group.responseType}</span>

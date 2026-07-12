@@ -396,6 +396,8 @@
 
 /* ---- comment / order / missed / submission items ---- */
 .rvItem {
+  position: relative;
+  overflow: hidden;
   background: #fff;
   border: 1px solid #dcd8cd;
   border-radius: 0.7rem;
@@ -418,8 +420,27 @@ button.rvItem:focus-visible {
   transform: translateY(-1px);
   outline: none;
 }
-.rvItemUrgent {
-  border-left: 5px solid #10100f;
+/* Color-coded side plates. Built as a ::before bar (not border-left) so the
+   hover state's border-color change can't repaint them: orders/intake = steel
+   blue, missed tasks = red, form/test submissions = green. */
+.rvItemUrgent::before,
+.rvItemMissed::before,
+.rvItemSubmission::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+}
+.rvItemUrgent::before {
+  background: #3f6ea3;
+}
+.rvItemMissed::before {
+  background: #d1495b;
+}
+.rvItemSubmission::before {
+  background: #3f9d6a;
 }
 .rvItemKicker {
   color: #66645e;
@@ -427,6 +448,16 @@ button.rvItem:focus-visible {
   font-weight: 900;
   letter-spacing: 0.09em;
   text-transform: uppercase;
+}
+/* Make the queue label pop in its plate color instead of muted grey. */
+.rvItemUrgent .rvItemKicker {
+  color: #3f6ea3;
+}
+.rvItemMissed .rvItemKicker {
+  color: #d1495b;
+}
+.rvItemSubmission .rvItemKicker {
+  color: #3f9d6a;
 }
 .rvItem strong {
   color: #10100f;
