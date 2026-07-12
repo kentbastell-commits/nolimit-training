@@ -2547,16 +2547,19 @@
   background: #fff;
   flex-wrap: wrap;
 }
-.programDetailPanel.wkSlide .programDetailTop h3 {
-  margin: 0 0 4px;
-  font-size: 22px;
-  font-weight: 800;
-  color: #151515;
+.programDetailPanel.wkSlide .programDetailTop .eyebrow {
+  display: block;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  font-size: 11px;
+  font-weight: 900;
+  color: #b08a1e;
 }
-.programDetailPanel.wkSlide .programDetailTop p {
-  margin: 0;
-  font-size: 12.5px;
-  color: #8a8372;
+.programDetailPanel.wkSlide .programDetailTop h3 {
+  margin: 4px 0 0;
+  font-size: 21px;
+  font-weight: 950;
+  color: #111;
 }
 .programDetailPanel.wkSlide .rowActions {
   display: flex;
@@ -2566,27 +2569,50 @@
 .programDetailPanel.wkSlide .programMetaGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  padding: 22px 26px 0;
+  gap: 8px;
+  padding: 18px 26px 0;
 }
 .programDetailPanel.wkSlide .programMetaGrid span {
   display: block;
-  background: #fff;
-  border: 1px solid #ece4d3;
-  border-radius: 12px;
-  padding: 12px 14px;
-  font-size: 14px;
-  font-weight: 700;
+  background: #faf8f2;
+  border: 1px solid #ece9e1;
+  border-radius: 10px;
+  padding: 9px 12px;
+  font-size: 13.5px;
+  font-weight: 800;
   color: #151515;
 }
 .programDetailPanel.wkSlide .programMetaGrid span strong {
   display: block;
-  font-size: 10.5px;
-  letter-spacing: 0.6px;
+  font-size: 10px;
+  letter-spacing: 0.8px;
   text-transform: uppercase;
-  color: #a99a78;
-  font-weight: 700;
-  margin-bottom: 4px;
+  color: #b08a1e;
+  font-weight: 900;
+  margin-bottom: 2px;
+}
+/* At-a-glance week groups inside the slide-over (markup mirrors the preview
+   modal; styles are scoped here so they don't depend on that modal's chunk
+   being loaded). */
+.programDetailPanel.wkSlide .previewWeek {
+  margin-bottom: 14px;
+}
+.programDetailPanel.wkSlide .previewWeekLabel {
+  font-size: 13px;
+  font-weight: 950;
+  color: #111;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+.programDetailPanel.wkSlide .previewDays {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.programDetailPanel.wkSlide .previewDays .programGridCard {
+  width: 100%;
+  cursor: default;
 }
 .programDetailPanel.wkSlide .savedAssignPanel,
 .programDetailPanel.wkSlide .savedProgramSessions {

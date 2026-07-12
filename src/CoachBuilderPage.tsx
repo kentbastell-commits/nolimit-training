@@ -922,12 +922,14 @@ export default function CoachBuilderPage({
                           <>
                             <div className="programDetailTop">
                               <div>
-                                <h3>{selectedSavedProgram.programName}</h3>
-                                <p>
+                                <span className="eyebrow">
                                   {selectedSavedProgram.productType ||
-                                    "Internal Coaching Template"}{" "}
-                                  / {selectedSavedProgram.status || "--"}
-                                </p>
+                                    "Internal Coaching Template"}
+                                  {selectedSavedProgram.status
+                                    ? ` · ${selectedSavedProgram.status}`
+                                    : ""}
+                                </span>
+                                <h3>{selectedSavedProgram.programName}</h3>
                               </div>
 
                               <div className="rowActions">
@@ -1081,20 +1083,99 @@ export default function CoachBuilderPage({
                                   <p>No template records found for this program.</p>
                                 )}
 
-                              {savedProgramSessions.map((session: any) => (
-                                <div className="exercise-card" key={session.localId}>
-                                  <h3>
-                                    Week {session.week} / Day {session.day}:{" "}
-                                    {session.sessionName}
-                                  </h3>
-
-                                  {session.exercises.map((exercise: any) => (
-                                    <p key={`${session.localId}-${exercise.order}`}>
-                                      {exercise.order}. {exercise.exerciseName || "--"}
-                                    </p>
-                                  ))}
-                                </div>
-                              ))}
+                              {/* Same at-a-glance week/day cards as the preview
+                                  modal: colored session card + labeled exercise
+                                  chain with prescriptions. */}
+                              {(() => {
+                                const maxWeek = savedProgramSessions.reduce(
+                                  (m: number, s: any) =>
+                                    Math.max(m, Number(s.week) || 1),
+                                  1
+                                );
+                                return Array.from(
+                                  { length: maxWeek },
+                                  (_, i) => i + 1
+                                ).map((w) => {
+                                  const days = savedProgramSessions
+                                    .filter(
+                                      (s: any) => Number(s.week) === w
+                                    )
+                                    .sort(
+                                      (a: any, b: any) =>
+                                        Number(a.day) - Number(b.day)
+                                    );
+                                  if (days.length === 0) return null;
+                                  return (
+                                    <div className="previewWeek" key={w}>
+                                      <div className="previewWeekLabel">
+                                        Week {w}
+                                      </div>
+                                      <div className="previewDays">
+                                        {days.map((s: any) => (
+                                          <div
+                                            key={s.localId}
+                                            className={`programGridCard ${getWorkoutColorClass(
+                                              s.sessionName,
+                                              s.sessionType
+                                            )}`}
+                                          >
+                                            <div className="programGridCardHead">
+                                              <strong className="programGridCardName">
+                                                Day {s.day} ·{" "}
+                                                {s.sessionName ||
+                                                  `Week ${w} Day ${s.day}`}
+                                              </strong>
+                                            </div>
+                                            <div className="glanceChain">
+                                              {buildGlanceChain(s.exercises).map(
+                                                (it: any, gi: any) => (
+                                                  <div
+                                                    className="glanceRow"
+                                                    key={`${s.localId}-${gi}`}
+                                                  >
+                                                    <div className="glanceBadgeWrap">
+                                                      {it.linked && !it.isFirst && (
+                                                        <span
+                                                          className={`glanceLineUp line-${it.lineUpColor}`}
+                                                        />
+                                                      )}
+                                                      {it.linked && !it.isLast && (
+                                                        <span
+                                                          className={`glanceLineDown line-${it.lineDownColor}`}
+                                                        />
+                                                      )}
+                                                      <span
+                                                        className={`exerciseLabelBadge glanceBadge ${it.colorClass}`}
+                                                      >
+                                                        {it.display}
+                                                      </span>
+                                                    </div>
+                                                    <div className="glanceText">
+                                                      <strong>
+                                                        {it.ex.exerciseName}
+                                                      </strong>
+                                                      {(it.ex.sets ||
+                                                        it.ex.reps) && (
+                                                        <span>
+                                                          {it.ex.sets &&
+                                                          it.ex.reps
+                                                            ? `${it.ex.sets} x ${it.ex.reps}`
+                                                            : it.ex.sets ||
+                                                              it.ex.reps}
+                                                        </span>
+                                                      )}
+                                                    </div>
+                                                  </div>
+                                                )
+                                              )}
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  );
+                                });
+                              })()}
                             </div>
                           </>
                         )}
