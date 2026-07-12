@@ -13851,6 +13851,18 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   color: #151515;
   box-shadow: 0 2px 8px -3px rgba(0, 0, 0, 0.3);
 }
+@media (max-width: 640px) {
+  .digitalSubTabBar {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+    margin: 0 0 14px;
+  }
+  .digitalSubTabBar button {
+    min-height: 44px;
+    padding: 9px 10px;
+  }
+}
 
 /* ── Coach topbar cleanup ───────────────────────────────────────────
    Every redesigned coach page now carries its own header, so the shared

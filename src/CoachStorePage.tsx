@@ -4,7 +4,7 @@
 // (productStatus is no longer shown as the row label). Recreated from the
 // StoreAdminReference design — exact palette/type/motion.
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import "./CoachStorePage.css";
 import type { Program } from "./appCore";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
@@ -104,6 +104,17 @@ export default function CoachStorePage({
   const [editId, setEditId] = useState<string | null>(null);
   const [eDraft, setEDraft] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!createOpen && editId == null) return;
+    const closeLayer = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      if (editId != null) setEditId(null);
+      else setCreateOpen(false);
+    };
+    window.addEventListener("keydown", closeLayer);
+    return () => window.removeEventListener("keydown", closeLayer);
+  }, [createOpen, editId]);
 
   // ---- helpers ----
   const isAddon = (p: Program) =>
@@ -347,7 +358,9 @@ export default function CoachStorePage({
           <button
             type="button"
             style={trackStyle(live)}
-            title="Toggle live on store"
+            role="switch"
+            aria-checked={live}
+            aria-label={`${live ? "Hide" : "Publish"} ${p.programName} on the store`}
             onClick={() => toggleLive(p)}
           >
             <span style={knobStyle(live)} />
@@ -487,6 +500,13 @@ export default function CoachStorePage({
             <motion.div
               className="cspModal"
               onClick={(e) => e.stopPropagation()}
+              role="dialog"
+              aria-modal="true"
+              aria-label={
+                createStep === 1
+                  ? "Choose store product type"
+                  : `Create ${createType || "store product"}`
+              }
               initial={reduce ? { opacity: 0 } : { opacity: 0, y: 16, scale: 0.985 }}
               animate={reduce ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
               exit={reduce ? { opacity: 0 } : { opacity: 0, y: 16, scale: 0.985 }}
@@ -509,6 +529,7 @@ export default function CoachStorePage({
                   type="button"
                   className="cspModalClose"
                   onClick={() => setCreateOpen(false)}
+                  aria-label="Close new product"
                 >
                   <X size={18} />
                 </button>
@@ -758,6 +779,9 @@ export default function CoachStorePage({
                 <motion.div
                   className="cspSlide"
                   onClick={(e) => e.stopPropagation()}
+                  role="dialog"
+                  aria-modal="true"
+                  aria-label={`Product settings for ${p.programName}`}
                   initial={reduce ? { opacity: 0 } : { x: "100%" }}
                   animate={reduce ? { opacity: 1 } : { x: 0 }}
                   exit={reduce ? { opacity: 0 } : { x: "100%" }}
@@ -774,6 +798,7 @@ export default function CoachStorePage({
                       type="button"
                       className="cspModalClose"
                       onClick={() => setEditId(null)}
+                      aria-label="Close product settings"
                     >
                       <X size={17} />
                     </button>
@@ -798,6 +823,9 @@ export default function CoachStorePage({
                       <button
                         type="button"
                         style={trackStyle(live)}
+                        role="switch"
+                        aria-checked={live}
+                        aria-label={`${live ? "Hide" : "Publish"} ${p.programName} on the store`}
                         onClick={() => toggleLive(p)}
                       >
                         <span style={knobStyle(live)} />
