@@ -7202,13 +7202,13 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     "Warmup",
     "Strength",
     "Power",
+    "Plyometric",
     "Accessory",
     "Conditioning",
     "Cardio",
     "Mobility",
     "Skill",
     "Recovery",
-    "Climbing",
   ];
 
   const getBuilderSectionSelectOptions = (currentSection?: string) => {

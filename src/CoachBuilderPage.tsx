@@ -2361,15 +2361,19 @@ export default function CoachBuilderPage({
                       onChange={(e) => setSessionType(e.target.value)}
                       className="miniSearch"
                     >
-                      <option>Strength</option>
-                      <option>Cardio</option>
-                      <option>Mobility</option>
-                      <option>Recovery</option>
-                      <option>Test</option>
-                      <option>Skill</option>
-                      <option>Climbing</option>
-                      <option>Conditioning</option>
-                      <option>Hybrid</option>
+                      {/* Session type options come from the workout builder
+                          sections (single source). A legacy value not in the
+                          list (e.g. an older "Climbing" session) is kept so it
+                          still shows until the coach re-tags it. */}
+                      {Array.from(
+                        new Set(
+                          [...builderSectionOptions, sessionType].filter(Boolean)
+                        )
+                      ).map((opt: any) => (
+                        <option key={opt} value={opt}>
+                          {opt}
+                        </option>
+                      ))}
                     </select>
                   </label>
 
