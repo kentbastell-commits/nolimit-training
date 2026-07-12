@@ -1281,6 +1281,7 @@ export default function PortalTraining({
                                 } ${
                                   draggingWorkoutId ? "calendarDropTarget" : ""
                                 }`}
+                                data-cal-day={date}
                                 onDragOver={(event) => {
                                   event.preventDefault();
                                   event.dataTransfer.dropEffect = "move";
@@ -1570,6 +1571,7 @@ export default function PortalTraining({
                                   } ${
                                     dateItemCount > 0 ? "hasClientMonthWork" : ""
                                   }`}
+                                  data-cal-day={date}
                                   onClick={() => {
                                     setCalendarAnchorDate(date);
                                     setAssignStartDate(date);

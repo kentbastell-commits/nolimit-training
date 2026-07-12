@@ -15070,12 +15070,27 @@ function App({ onReady }: { onReady?: () => void } = {}) {
 
   // The calendar day (YYYY-MM-DD) under a touch point, if any — used to drive
   // the drag preview and to reschedule when a workout is released over a day
-  // cell (not just over another workout card).
-  function dayUnderTouch(clientX: number, clientY: number): string {
-    const el = document
-      .elementFromPoint(clientX, clientY)
-      ?.closest("[data-cal-day]") as HTMLElement | null;
-    return el?.dataset.calDay || "";
+  // cell. Uses elementsFromPoint and SKIPS the dragged card: the card follows
+  // the finger, so a plain elementFromPoint returns the card itself (not the
+  // day beneath it) and no target day is ever found.
+  function dayUnderTouch(
+    clientX: number,
+    clientY: number,
+    draggedId = ""
+  ): string {
+    const stack = document.elementsFromPoint(clientX, clientY);
+    for (const node of stack) {
+      const el = node as HTMLElement;
+      if (
+        draggedId &&
+        el.closest?.(`[data-client-calendar-workout-id="${draggedId}"]`)
+      ) {
+        continue; // skip the card being dragged
+      }
+      const day = el.closest?.("[data-cal-day]") as HTMLElement | null;
+      if (day) return day.dataset.calDay || "";
+    }
+    return "";
   }
 
   function moveClientCalendarWorkoutTouch(event: TouchEvent<HTMLElement>) {
@@ -15099,7 +15114,9 @@ function App({ onReady }: { onReady?: () => void } = {}) {
 
       // Live preview: show the day the finger is hovering (setState bails out
       // when the value is unchanged, so this is cheap per touchmove).
-      setDragPreviewDate(dayUnderTouch(touch.clientX, touch.clientY));
+      setDragPreviewDate(
+        dayUnderTouch(touch.clientX, touch.clientY, touchDrag.workoutId)
+      );
     }
   }
 
@@ -15140,7 +15157,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     }
 
     // Released over a day cell (even an empty one) → reschedule to that day.
-    const dayDate = dayUnderTouch(touch.clientX, touch.clientY);
+    const dayDate = dayUnderTouch(touch.clientX, touch.clientY, touchDrag.workoutId);
     if (sourceWorkout && dayDate && dayDate !== touchDrag.date) {
       void moveWorkoutToDate(sourceWorkout, dayDate);
     }
