@@ -64,53 +64,75 @@ function toNumber(value: any) {
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const clientId = String(req.query.clientId || "");
+    const clientCode = String(req.query.clientCode || "");
     const exerciseNameFilter = String(req.query.exerciseName || "").toLowerCase();
 
-    // WorkoutLogs.Client ID is a DuplexLink, and Feishu's list `filter` can't
-    // match it by the client's record_id OR code (both return empty — verified),
-    // so we can't fetch one client's rows server-side. Scan the whole table once,
-    // cache it (5-min TTL, invalidated by saveWorkoutLog), then filter in memory.
-    let allLogs = getCached<any[]>("workoutLogs");
+    // Does a mapped log belong to this client? Match the plain-text Client Code,
+    // the Client ID link's resolved text, or its record_ids.
+    const matchesClient = (log: any) =>
+      (!clientId && !clientCode) ||
+      (clientCode &&
+        (log.clientCode === clientCode || log.clientId.includes(clientCode))) ||
+      (clientId &&
+        (log.clientId.includes(clientId) ||
+          log.clientRecordIds.includes(clientId)));
+
+    // Fetch only THIS client's logs by filtering on the plain-text "Client Code"
+    // column (a text field IS filterable, unlike the Client ID link). Cache per
+    // client. Fall back to a full scan if the filter matches nothing (e.g. before
+    // the backfill completes) and always narrow in memory before caching.
+    const cacheKey = `workoutLogs:${clientCode || clientId || "all"}`;
+    let allLogs = getCached<any[]>(cacheKey);
 
     if (!allLogs) {
       const token = await getTenantToken();
-      const allItems = await fetchAllBitableRecords(
-        process.env.FEISHU_BASE_APP_TOKEN as string,
-        process.env.FEISHU_WORKOUT_LOGS_TABLE_ID as string,
-        token
-      );
 
-      allLogs = allItems.map((item: any) => {
-        const fields = item.fields || {};
-        return {
-          recordId: item.record_id,
-          clientId: fieldToText(fields["Client ID"]),
-          clientRecordIds: extractRecordIds(fields["Client ID"]),
-          exerciseName: fieldToText(fields["Exercise Name"]),
-          date: normalizeDate(fields["Date"]),
-          setNumber: fieldToText(fields["Set Number"]),
-          prescribedReps: fieldToText(fields["Prescribed Reps"]),
-          actualReps: fieldToText(fields["Actual Reps"]),
-          actualWeight: fieldToText(fields["Actual Weight"]),
-          actualTime: fieldToText(fields["Actual Time"]),
-          actualDistance: fieldToText(fields["Actual Distance"]),
-        };
-      });
+      let allItems: any[] = clientCode
+        ? await fetchAllBitableRecords(
+            process.env.FEISHU_BASE_APP_TOKEN as string,
+            process.env.FEISHU_WORKOUT_LOGS_TABLE_ID as string,
+            token,
+            { filter: `CurrentValue.[Client Code]="${clientCode}"` }
+          )
+        : [];
 
-      setCached("workoutLogs", allLogs, 5 * 60 * 1000);
+      if (!allItems.length) {
+        allItems = await fetchAllBitableRecords(
+          process.env.FEISHU_BASE_APP_TOKEN as string,
+          process.env.FEISHU_WORKOUT_LOGS_TABLE_ID as string,
+          token
+        );
+      }
+
+      allLogs = allItems
+        .map((item: any) => {
+          const fields = item.fields || {};
+          return {
+            recordId: item.record_id,
+            clientId: fieldToText(fields["Client ID"]),
+            clientCode: fieldToText(fields["Client Code"]),
+            clientRecordIds: extractRecordIds(fields["Client ID"]),
+            exerciseName: fieldToText(fields["Exercise Name"]),
+            date: normalizeDate(fields["Date"]),
+            setNumber: fieldToText(fields["Set Number"]),
+            prescribedReps: fieldToText(fields["Prescribed Reps"]),
+            actualReps: fieldToText(fields["Actual Reps"]),
+            actualWeight: fieldToText(fields["Actual Weight"]),
+            actualTime: fieldToText(fields["Actual Time"]),
+            actualDistance: fieldToText(fields["Actual Distance"]),
+          };
+        })
+        .filter(matchesClient);
+
+      setCached(cacheKey, allLogs, 5 * 60 * 1000);
     }
 
     const logs = allLogs
-      .filter((log: any) => {
-        const matchesClient =
-          !clientId ||
-          log.clientId.includes(clientId) ||
-          log.clientRecordIds.includes(clientId);
-        const matchesExercise =
+      .filter(
+        (log: any) =>
           !exerciseNameFilter ||
-          log.exerciseName.toLowerCase().includes(exerciseNameFilter);
-        return matchesClient && matchesExercise;
-      })
+          log.exerciseName.toLowerCase().includes(exerciseNameFilter)
+      )
       .sort((a: any, b: any) => b.date.localeCompare(a.date));
 
     const historyByExercise = new Map<string, any>();

@@ -130,6 +130,13 @@ export default async function handler(
       "Athlete Notes",
       "Session Notes",
     ]);
+    // Plain-text mirror of the Client ID DuplexLink, so workout history can be
+    // filtered server-side by client (a link field can't be). Only written if
+    // the column exists (added by the migration script).
+    const clientCodeFieldName = resolveFieldName(tableFields, [
+      "Client Code",
+      "ClientCode",
+    ]);
 
     // Build every set's record first, then create them in one batch call.
     // (Previously this POSTed one record per set sequentially — a 20-set
@@ -181,6 +188,10 @@ export default async function handler(
 
       if (notesFieldName && submissionNote) {
         fields[notesFieldName] = toText(submissionNote);
+      }
+
+      if (clientCodeFieldName && clientCode) {
+        fields[clientCodeFieldName] = toText(clientCode);
       }
 
       return { fields };
