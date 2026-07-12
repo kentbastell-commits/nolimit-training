@@ -10,6 +10,21 @@ test("landing page renders hero and store links", async ({ page }) => {
   errs.assertNoCrashes();
 });
 
+test("all legal policies keep readable headings in dark system mode", async ({ page }) => {
+  await page.emulateMedia({ colorScheme: "dark" });
+
+  for (const route of ["/privacy", "/terms", "/refund", "/business"]) {
+    await page.goto(route);
+    const title = page.locator(".legalHero h1");
+    const sectionTitle = page.locator(".legalArticle h2").first();
+
+    await expect(title).toBeVisible();
+    await expect(sectionTitle).toBeVisible();
+    await expect(title).toHaveCSS("color", "rgb(23, 22, 16)");
+    await expect(sectionTitle).toHaveCSS("color", "rgb(40, 37, 31)");
+  }
+});
+
 test("store renders the catalog before FAQ and opens checkout to the pay step", async ({ page }) => {
   const errs = trackErrors(page);
   await page.goto("/store");

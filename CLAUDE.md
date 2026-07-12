@@ -150,6 +150,9 @@ data between them, never "borrow" a table ID across products.
 23. **The save-label collision** — showing several nearby “Save” actions that
     persist different scopes. Rule: keep one primary action per surface and name
     it by scope (`Done`, `Save Day`, `Save Program`) so the outcome is predictable.
+24. **The forced-light dark-mode leak** — a light page inherits root heading
+    tokens that turn white under `prefers-color-scheme: dark`. Rule: forced-light
+    surfaces own foreground tokens and get visual/contrast checks in dark OS mode.
 
 ## Quality bar — checkable, per deliverable
 
