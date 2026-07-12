@@ -1,0 +1,72 @@
+/* Coach-console access gate — full-screen, matches the app's light system. */
+.coachKeyGate {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: #f5f1e8;
+  color: #121210;
+}
+.coachKeyGateCard {
+  width: min(380px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 34px 30px;
+  border-radius: 18px;
+  background: #fff;
+  border: 1px solid #e2ddcf;
+  box-shadow: 0 24px 60px -28px rgba(0, 0, 0, 0.25);
+  text-align: center;
+}
+.coachKeyGateIcon {
+  width: 46px;
+  height: 46px;
+  margin: 0 auto 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(212, 175, 55, 0.16);
+  border: 1px solid rgba(212, 175, 55, 0.45);
+  color: #9b7a21;
+}
+.coachKeyGateCard h1 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+}
+.coachKeyGateCard p {
+  margin: 0 0 8px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: #6d675a;
+}
+.coachKeyGateCard form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.coachKeyGateCard input {
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(13, 13, 13, 0.16);
+  background: #fdfcf9;
+  font: inherit;
+  font-size: 15px;
+  text-align: center;
+  letter-spacing: 0.08em;
+}
+.coachKeyGateCard input:focus-visible {
+  outline: 2px solid #d4af37;
+  outline-offset: 1px;
+}
+.coachKeyGateError {
+  margin: 4px 0 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: #a13030;
+}

@@ -137,6 +137,7 @@ import type {
   WorkoutHistoryLog,
   WorkoutPageTab,
 } from "./appCore";
+import CoachKeyGate from "./CoachKeyGate";
 import LandingPage from "./LandingPage";
 import type { CelebrationVariant } from "./Celebration";
 import { reportClientEvent } from "./telemetry";
@@ -265,6 +266,29 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       alive = false;
     };
   }, [needsInteriorCss]);
+  // Coach-console access gate. Once COACH_ACCESS_KEY is set on the server,
+  // coach endpoints 401 without the key — probe one on entry and show the
+  // unlock screen (CoachKeyGate) instead of a console full of failed loads.
+  const [coachGate, setCoachGate] = useState<"checking" | "locked" | "open">(
+    isCoachView ? "checking" : "open"
+  );
+  useEffect(() => {
+    if (!isCoachView) return;
+    let alive = true;
+    void fetch("/api/enquiries")
+      .then((res) => {
+        if (alive) setCoachGate(res.status === 401 ? "locked" : "open");
+      })
+      .catch(() => {
+        // Offline/transient — let the console render; its own requests will
+        // surface real errors.
+        if (alive) setCoachGate("open");
+      });
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const clientPortalCode = (
     inviteSearchParams.get("client") ||
     inviteSearchParams.get("clientCode") ||
@@ -17557,6 +17581,17 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   // the coach/portal UI never flashes unstyled on first paint.
   if (needsInteriorCss && !interiorCssReady) {
     return <div className="lazyFallback" aria-busy="true" aria-live="polite" />;
+  }
+
+  // Coach console requires the access key once the server enforces it. Unlock
+  // stores the key on this device, then reloads so every boot fetch re-runs
+  // with the key attached.
+  if (isCoachView && coachGate !== "open") {
+    return coachGate === "checking" ? (
+      <div className="lazyFallback" aria-busy="true" aria-live="polite" />
+    ) : (
+      <CoachKeyGate onUnlocked={() => window.location.reload()} />
+    );
   }
 
   if (isClientPortal && portalPostIntake && selectedClient) {
