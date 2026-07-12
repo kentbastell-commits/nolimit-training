@@ -10,6 +10,7 @@ import { useEffect, useState } from "react";
 import { CheckSquare, ChevronDown, X } from "lucide-react";
 import "./ReviewPage.css";
 import { normalizeDate } from "./appCore";
+import CountUp from "./CountUp";
 
 export default function ReviewPage({
   reviewFlashColumn,
@@ -191,7 +192,9 @@ export default function ReviewPage({
         <div className="rvHeroGlow" aria-hidden="true" />
         <span className="rvHeroEyebrow">Needs a decision</span>
         <div className="rvHeroRow">
-          <span className="rvHeroNum">{total}</span>
+          <span className="rvHeroNum">
+            <CountUp value={total} />
+          </span>
           <span className="rvHeroSub">
             open items across 6 queues waiting on you
           </span>
@@ -213,7 +216,9 @@ export default function ReviewPage({
               aria-hidden="true"
             />
             <span className="rvSummaryLabel">{card.label}</span>
-            <strong className="rvSummaryCount">{card.count}</strong>
+            <strong className="rvSummaryCount">
+              <CountUp value={card.count} />
+            </strong>
           </button>
         ))}
       </div>

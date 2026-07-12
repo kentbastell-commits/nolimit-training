@@ -39,6 +39,82 @@
 .nl-lift { transition: transform .18s, box-shadow .18s, border-color .18s; }
 .nl-lift:hover { transform: translateY(-3px); box-shadow: 0 .95rem 2.1rem rgba(20,18,14,.1); border-color: #e6dcbf; }
 
+/* ============================================================================
+   Applied tiers — wired to the app's existing classes.
+   ============================================================================ */
+
+/* Tier 1 · slide-over ease — detail drawers glide in with a soft overshoot and
+   their scrims fade. */
+.rvSlide,
+.ctpSlide,
+.crpSlide,
+.wellnessModal,
+.assignmentDrawerPanel {
+  animation: nlSlide .34s cubic-bezier(.2, .9, .3, 1.4) both;
+}
+.rvScrim,
+.ctpSlideScrim,
+.crpSlideScrim,
+.wkSlideScrim {
+  animation: nlScrim .25s ease both;
+}
+
+/* Tier 2 · bar-chart grow — load bars scale up from the baseline with a light
+   per-column stagger. */
+.loadBar {
+  transform-origin: bottom;
+  animation: nlBarGrow .6s cubic-bezier(.2, .8, .2, 1) both;
+}
+.loadBars .loadBarCol:nth-child(1) .loadBar { animation-delay: 0ms; }
+.loadBars .loadBarCol:nth-child(2) .loadBar { animation-delay: 55ms; }
+.loadBars .loadBarCol:nth-child(3) .loadBar { animation-delay: 110ms; }
+.loadBars .loadBarCol:nth-child(4) .loadBar { animation-delay: 165ms; }
+.loadBars .loadBarCol:nth-child(5) .loadBar { animation-delay: 220ms; }
+.loadBars .loadBarCol:nth-child(6) .loadBar { animation-delay: 275ms; }
+.loadBars .loadBarCol:nth-child(7) .loadBar { animation-delay: 330ms; }
+.loadBars .loadBarCol:nth-child(8) .loadBar { animation-delay: 385ms; }
+.loadBars .loadBarCol:nth-child(9) .loadBar { animation-delay: 440ms; }
+.loadBars .loadBarCol:nth-child(10) .loadBar { animation-delay: 495ms; }
+.loadBars .loadBarCol:nth-child(11) .loadBar { animation-delay: 550ms; }
+.loadBars .loadBarCol:nth-child(12) .loadBar { animation-delay: 605ms; }
+
+/* Tier 3 · segmented pill / tab pop — the pill that becomes active plays a
+   subtle scale pop. */
+.activeTab,
+.portalHomeTabActive,
+.clientCalendarViewToggle button.active {
+  animation: nlPop .28s ease;
+}
+
+/* Tier 3 · button press — primary gold buttons dip on press. */
+.goldButton,
+.rvGoldBtn,
+.saveWorkoutButton,
+.taskActionBadge,
+.assignmentDrawerAssign {
+  transition: transform .12s ease, filter .12s ease, box-shadow .12s ease;
+}
+.goldButton:active,
+.rvGoldBtn:active,
+.saveWorkoutButton:active,
+.taskActionBadge:active,
+.assignmentDrawerAssign:active {
+  transform: translateY(1px);
+}
+
+/* Tier 3 · hover-lift on the clearly-card list items (low-conflict set). */
+.programGridCard,
+.cplTypeCard,
+.crpRow {
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+}
+.programGridCard:hover,
+.cplTypeCard:hover,
+.crpRow:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 .7rem 1.6rem rgba(20, 18, 14, .09);
+}
+
 /* Accessibility: honour reduced-motion everywhere */
 @media (prefers-reduced-motion: reduce) {
   * { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }

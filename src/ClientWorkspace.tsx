@@ -7,6 +7,7 @@ import PortalPrograms from "./PortalPrograms";
 import ClientOverview from "./ClientOverview";
 import { BookOpen, CalendarDays, Home, MoreVertical, UserCircle } from "lucide-react";
 import { normalizeDate } from "./appCore";
+import CountUp from "./CountUp";
 
 export default function ClientWorkspace({
   t,
@@ -403,7 +404,7 @@ export default function ClientWorkspace({
                           <div className="cdHeroKpi" key={k.label}>
                             <span className="cdHeroKpiLabel">{k.label}</span>
                             <strong className="cdHeroKpiValue">
-                              {k.value}
+                              <CountUp value={k.value} />
                               {k.unit ? (
                                 <em className="cdHeroKpiUnit">{k.unit}</em>
                               ) : null}
