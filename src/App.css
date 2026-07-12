@@ -9283,7 +9283,8 @@ textarea {
   color: var(--brand-ink) !important;
 }
 
-.app:not(.clientPortalApp) .activeTab {
+.app:not(.clientPortalApp) .activeTab,
+.app:not(.clientPortalApp) .activeTab:hover {
   background: #fff !important;
   color: #151515 !important;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12) !important;
