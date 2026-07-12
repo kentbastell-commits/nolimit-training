@@ -342,3 +342,68 @@
 .app:not(.clientPortalApp) .portalProfileEyebrow {
   color: #b5731a !important;
 }
+
+/* ── Coach calendar (Month) → match the client-side card look ───────────
+   Category-coloured dots + white day-detail cards with a coloured side-plate
+   and a tinted category icon badge. Layout is unchanged; only the styling
+   mirrors the client cards. Week/Full views (.workoutBlock) are untouched. */
+.app:not(.clientPortalApp) .calendarWorkMarkers span.wcol-strength { background: var(--wcol-strength) !important; }
+.app:not(.clientPortalApp) .calendarWorkMarkers span.wcol-cardio { background: var(--wcol-cardio) !important; }
+.app:not(.clientPortalApp) .calendarWorkMarkers span.wcol-mobility { background: var(--wcol-mobility) !important; }
+.app:not(.clientPortalApp) .calendarWorkMarkers span.wcol-skill { background: var(--wcol-skill) !important; }
+.app:not(.clientPortalApp) .calendarWorkMarkers span.wcol-test { background: var(--wcol-test) !important; }
+.app:not(.clientPortalApp) .calendarWorkMarkers span.wcol-purple { background: var(--wcol-other) !important; }
+
+.app:not(.clientPortalApp) .coachSelectedDayGlance .selectedDayWorkout {
+  display: flex !important;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  background: #fff !important;
+  border: 1px solid #e5dfd2 !important;
+  border-left: 5px solid var(--wcol-other) !important;
+  border-radius: 14px !important;
+  padding: 12px 14px;
+  color: #10100f !important;
+}
+.app:not(.clientPortalApp) .coachSelectedDayGlance .selectedDayWorkout.wcol-strength { border-left-color: var(--wcol-strength) !important; }
+.app:not(.clientPortalApp) .coachSelectedDayGlance .selectedDayWorkout.wcol-cardio { border-left-color: var(--wcol-cardio) !important; }
+.app:not(.clientPortalApp) .coachSelectedDayGlance .selectedDayWorkout.wcol-mobility { border-left-color: var(--wcol-mobility) !important; }
+.app:not(.clientPortalApp) .coachSelectedDayGlance .selectedDayWorkout.wcol-skill { border-left-color: var(--wcol-skill) !important; }
+.app:not(.clientPortalApp) .coachSelectedDayGlance .selectedDayWorkout.wcol-test { border-left-color: var(--wcol-test) !important; }
+.app:not(.clientPortalApp) .coachSelectedDayGlance .selectedDayWorkout.wcol-purple { border-left-color: var(--wcol-other) !important; }
+.app:not(.clientPortalApp) .coachSelectedDayGlance .selectedDayWorkout .homeTaskBody {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.app:not(.clientPortalApp) .coachSelectedDayGlance .selectedDayWorkout strong {
+  color: #10100f !important;
+  font-size: 15px;
+}
+.app:not(.clientPortalApp) .coachSelectedDayGlance .selectedDayWorkout small {
+  color: #66645e !important;
+  font-weight: 700;
+}
+.app:not(.clientPortalApp) .coachSelectedDayGlance .selectedDayWorkoutAction {
+  flex: 0 0 auto;
+  color: #b5731a !important;
+  font-weight: 800;
+}
+.app:not(.clientPortalApp) .coachSelectedDayGlance .wcatBadge {
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+}
+.app:not(.clientPortalApp) .coachSelectedDayGlance .wcatBadge.wcol-strength { background: color-mix(in srgb, var(--wcol-strength) 15%, #fff); color: var(--wcol-strength); }
+.app:not(.clientPortalApp) .coachSelectedDayGlance .wcatBadge.wcol-cardio { background: color-mix(in srgb, var(--wcol-cardio) 14%, #fff); color: var(--wcol-cardio); }
+.app:not(.clientPortalApp) .coachSelectedDayGlance .wcatBadge.wcol-mobility { background: color-mix(in srgb, var(--wcol-mobility) 15%, #fff); color: var(--wcol-mobility); }
+.app:not(.clientPortalApp) .coachSelectedDayGlance .wcatBadge.wcol-skill { background: color-mix(in srgb, var(--wcol-skill) 15%, #fff); color: var(--wcol-skill); }
+.app:not(.clientPortalApp) .coachSelectedDayGlance .wcatBadge.wcol-test { background: color-mix(in srgb, var(--wcol-test) 16%, #fff); color: var(--wcol-test); }
+.app:not(.clientPortalApp) .coachSelectedDayGlance .wcatBadge.wcol-purple { background: color-mix(in srgb, var(--wcol-other) 15%, #fff); color: var(--wcol-other); }

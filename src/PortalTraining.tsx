@@ -1516,13 +1516,14 @@ export default function PortalTraining({
                                     aria-hidden="true"
                                   >
                                     {dateItemCount > 0 ? (
-                                      Array.from({
-                                        length: Math.min(dateItemCount, 3),
-                                      }).map((_, markerIndex) => (
-                                        <span
-                                          key={`${date}-coach-month-marker-${markerIndex}`}
-                                        />
-                                      ))
+                                      workDotClasses(date).map(
+                                        (cls, markerIndex) => (
+                                          <span
+                                            key={`${date}-coach-month-marker-${markerIndex}`}
+                                            className={cls}
+                                          />
+                                        )
+                                      )
                                     ) : (
                                       <span className="emptyMarker" />
                                     )}
@@ -1549,18 +1550,25 @@ export default function PortalTraining({
 
                           {selectedCalendarDateItemCount > 0 ? (
                             <>
-                            {selectedCalendarDateWorkouts.map((workout: any) => (
+                            {selectedCalendarDateWorkouts.map((workout: any) => {
+                              const cc = getWorkoutColorClass(
+                                workout.sessionName,
+                                workout.sessionType
+                              );
+                              const Icon = catIcon(cc);
+                              return (
                               <button
-                                className="selectedDayWorkout"
+                                className={`selectedDayWorkout ${cc}`}
                                 key={workout.id}
                                 onClick={() => openWorkout(workout)}
                               >
-                                <div>
-                                  <span>
-                                    Week {workout.week} - Day {workout.day}
-                                  </span>
+                                <span className={`wcatBadge ${cc}`}>
+                                  <Icon size={20} aria-hidden="true" />
+                                </span>
+                                <div className="homeTaskBody">
                                   <strong>{workout.sessionName || "Workout"}</strong>
                                   <small>
+                                    Week {workout.week} · Day {workout.day} ·{" "}
                                     {getDisplayTaskStatus(
                                       workout.completionStatus,
                                       workout.scheduledDate
@@ -1571,7 +1579,8 @@ export default function PortalTraining({
                                   Open
                                 </span>
                               </button>
-                            ))}
+                              );
+                            })}
                             {selectedCalendarDateAssignments.map((assignment: any) => (
                               <button
                                 className={`selectedDayWorkout selectedDayAssignment ${getStatusClass(
