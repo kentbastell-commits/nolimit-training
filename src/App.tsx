@@ -591,7 +591,10 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     }
   };
   useEffect(() => {
-    if (isClientPortal) return;
+    // Review data belongs to the coach console. Public/store/intake routes use
+    // the same App state defaults (activePage starts at Clients), but must not
+    // fetch internal queues or surface coach-only failure toasts to visitors.
+    if (!isCoachView) return;
     if (activePage === "Review" || activePage === "Clients") {
       void loadFormVideos();
     }

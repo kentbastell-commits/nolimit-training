@@ -1,0 +1,174 @@
+/* Shared visual primitives for public and athlete-facing surfaces.
+   Coach page composition is deliberately excluded: those screens are reviewed
+   with Kent one-by-one before layout or density changes are made. */
+
+:where(.lv3, .storePageV3, .legalPage, .invitePage, .cfpWrap, .clientPortalApp) {
+  --nl-radius-control: 12px;
+  --nl-radius-card: 18px;
+  --nl-radius-panel: 24px;
+  --nl-focus: #2563eb;
+  --nl-focus-halo: #fffefa;
+  --nl-state-bg: #fbfaf6;
+  --nl-state-border: #d9d2c4;
+  --text: #5f625e;
+  --text-h: #121210;
+  color-scheme: light;
+}
+
+/* A dual-colour focus ring stays visible on cream, white, gold and charcoal. */
+:where(.lv3, .storePageV3, .legalPage, .invitePage, .cfpWrap, .clientPortalApp)
+  :is(a[href], button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 3px solid var(--nl-focus);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 5px var(--nl-focus-halo);
+}
+
+:where(.lv3, .storePageV3, .legalPage, .invitePage, .cfpWrap, .clientPortalApp)
+  :is(button, input, select, textarea):disabled {
+  cursor: not-allowed;
+  opacity: 0.56;
+  filter: saturate(0.7);
+  box-shadow: none;
+}
+
+:where(.lv3, .storePageV3, .legalPage, .invitePage, .cfpWrap, .clientPortalApp)
+  :is(input, select, textarea):disabled {
+  background: #efede7;
+  color: #706c63;
+}
+
+/* Shape hierarchy: controls < cards < major panels; pills remain fully round. */
+.lv3 :is(.lv3BtnPrimary, .lv3BtnBlue, .lv3BtnOx),
+.cfpWrap :is(.cfpPrimary, .cfpGhost),
+.clientPortalApp :is(.ppPrimary, .ppSecondary),
+.invitePage :is(.goldButton, .outlineButton) {
+  border-radius: var(--nl-radius-control);
+}
+
+.lv3 :is(.lv3PathCard, .lv3ProgramCard, .lv3StepCard),
+.storePageV3 :is(.storeFeaturedCardV3, .storeCategoryCardV2, .storeHowStepV2,
+  .storeTestimonial),
+.clientPortalApp :is(.ppCard, .ppStatTiles > div) {
+  border-radius: var(--nl-radius-card);
+}
+
+.lv3 .lv3InPerson,
+.storePageV3 .storeContactV2,
+.legalPage .legalArticle,
+.invitePage :is(.inviteCard, .inviteSuccess),
+.cfpWrap .cfpShell {
+  border-radius: var(--nl-radius-panel);
+}
+
+/* Empty and error states share the same calm, intentional container language. */
+.clientPortalApp .ppEmpty,
+.storePageV3 .storeSportEmpty {
+  border: 1px dashed var(--nl-state-border);
+  border-radius: var(--nl-radius-card);
+  background: var(--nl-state-bg);
+  color: #68645d;
+}
+
+.clientPortalApp .homeEmptyText {
+  margin: 8px 0 0;
+  padding: 15px 16px;
+  border: 1px dashed var(--nl-state-border);
+  border-radius: 14px;
+  background: var(--nl-state-bg);
+  color: #68645d;
+  line-height: 1.5;
+}
+
+.storePageV3 .findPortalError,
+.cfpWrap .cfpError {
+  padding: 11px 13px;
+  border: 1px solid #e5b8b2;
+  border-radius: var(--nl-radius-control);
+  background: #fff1ef;
+  color: #8c2f26;
+  line-height: 1.45;
+}
+
+.lazyFallback {
+  color-scheme: light;
+  background: linear-gradient(180deg, #f4f1ea, #fbfaf6);
+}
+
+/* Chinese needs breathing room and legal break opportunities, especially in
+   mobile buttons, hero headlines and data-dependent product names. */
+:is(.lv3, .storePageV3, .legalPage, .invitePage, .cfpWrap).zh
+  :is(h1, h2, h3, h4, p, strong, small, label, button, a, dd) {
+  line-break: auto;
+  word-break: normal;
+  overflow-wrap: anywhere;
+}
+
+:is(.lv3Lang, .storeLangToggleV3, .inviteLangToggle, .cfpLangToggle) {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  word-break: keep-all !important;
+  overflow-wrap: normal !important;
+}
+
+.cfpLangToggle { min-width: 52px; }
+
+:is(.lv3, .storePageV3, .legalPage, .invitePage, .cfpWrap).zh
+  :is(h1, h2, h3, .lv3HeroTitle, .storeHeroTitleV3, .cfpH1) {
+  line-height: 1.16;
+  letter-spacing: 0;
+  text-wrap: balance;
+}
+
+:where(.lv3, .storePageV3, .legalPage, .invitePage, .cfpWrap, .clientPortalApp)
+  :is(h1, h2, h3) {
+  text-wrap: balance;
+}
+
+:where(.lv3, .storePageV3, .legalPage, .invitePage, .cfpWrap, .clientPortalApp)
+  p {
+  text-wrap: pretty;
+}
+
+@media (pointer: coarse) {
+  :is(.lv3Brand, .storeBrandV3, .legalBrand, .lv3BtnPrimary, .lv3BtnBlue,
+    .lv3BtnOx, .lv3NavCta, .storeNavEnterV3, .storeNavPortalLinkV3,
+    .storeLangToggleV3, .storeBuyBtnV2, .storeRegisterBtnV2,
+    .legalBack, .legalTabs a, .legalNavActions button, .invitePage .goldButton,
+    .invitePage .outlineButton, .cfpPrimary, .cfpGhost, .cfpLangToggle,
+    .clientPortalApp .goldButton, .clientPortalApp .outlineButton,
+    .clientPortalApp .tab, .clientPortalApp .ppBack,
+    .clientPortalApp .ppStoreBtn, .clientPortalApp .ppMenuBtn) {
+    min-height: 44px;
+  }
+
+  :is(.lv3Brand, .storeBrandV3, .legalBrand) {
+    display: inline-flex;
+    align-items: center;
+  }
+}
+
+@media (max-width: 720px) {
+  .legalPage .legalArticle { border-radius: 20px; }
+  .cfpWrap .cfpShell { border-radius: 0; }
+  .cfpTop { padding-inline: 18px; }
+  .cfpTopHint { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :where(.lv3, .storePageV3, .legalPage, .invitePage, .cfpWrap, .clientPortalApp) *,
+  :where(.lv3, .storePageV3, .legalPage, .invitePage, .cfpWrap, .clientPortalApp) *::before,
+  :where(.lv3, .storePageV3, .legalPage, .invitePage, .cfpWrap, .clientPortalApp) *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media (forced-colors: active) {
+  :where(.lv3, .storePageV3, .legalPage, .invitePage, .cfpWrap, .clientPortalApp)
+    :is(a[href], button, input, select, textarea, summary, [tabindex]):focus-visible {
+    outline: 3px solid Highlight;
+    box-shadow: none;
+  }
+}

@@ -499,7 +499,7 @@ export default function StorePage({
               />
             </label>
             {findPortalError && (
-              <p className="findPortalError">{findPortalError}</p>
+              <p className="findPortalError" role="alert">{findPortalError}</p>
             )}
             <div className="findPortalActions">
               <button

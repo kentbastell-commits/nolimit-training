@@ -153,6 +153,9 @@ data between them, never "borrow" a table ID across products.
 24. **The forced-light dark-mode leak** — a light page inherits root heading
     tokens that turn white under `prefers-color-scheme: dark`. Rule: forced-light
     surfaces own foreground tokens and get visual/contrast checks in dark OS mode.
+25. **The lazy CSS last word** — route-level CSS loads after the main bundle, so
+    equal-specificity shared polish can disappear after navigation. Rule: use a
+    route root + target selector and verify computed styles after the chunk loads.
 
 ## Quality bar — checkable, per deliverable
 

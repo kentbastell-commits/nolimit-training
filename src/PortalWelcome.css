@@ -3,6 +3,10 @@
 .portalWelcomeShell {
   min-height: 100vh;
   background: #080808;
+  color: #f5f1e8 !important;
+  color-scheme: dark;
+  --text: #c9c4b8;
+  --text-h: #f5f1e8;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -42,6 +46,7 @@
 .portalWelcome h1 {
   font-size: 26px;
   margin: 0;
+  color: #f5f1e8;
 }
 .portalWelcomeProgramName {
   font-size: 14px;
@@ -62,6 +67,26 @@
   border-top-color: #d4af37;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
+}
+
+.portalWelcomeShell :is(a[href], button):focus-visible {
+  outline: 3px solid #f0d46f;
+  outline-offset: 3px;
+  box-shadow: 0 0 0 5px #080808;
+}
+
+.portalWelcomeShell button:disabled {
+  cursor: not-allowed;
+  opacity: 0.56;
+  box-shadow: none;
+}
+
+@media (pointer: coarse) {
+  .portalWelcomeShell :is(a[href], button) { min-height: 44px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .portalWelcomeSpinner { animation: none; }
 }
 .portalWelcomeSteps {
   display: flex;

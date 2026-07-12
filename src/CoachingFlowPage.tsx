@@ -219,7 +219,7 @@ export default function CoachingFlowPage() {
   const firstName = name.trim().split(/\s+/)[0] || t("athlete", "同学");
 
   return (
-    <div className="cfpWrap">
+    <div className={`cfpWrap ${zh ? "zh" : "en"}`}>
       <div className="cfpShell">
         {/* top bar */}
         <div className="cfpTop">
@@ -511,7 +511,7 @@ export default function CoachingFlowPage() {
                 </div>
               </div>
 
-              {error && <p className="cfpError">{error}</p>}
+              {error && <p className="cfpError" role="alert">{error}</p>}
               <button className="cfpPrimary cfpPayBtn" onClick={pay} disabled={submitting}>
                 {submitting
                   ? t("Confirming…", "确认中…")

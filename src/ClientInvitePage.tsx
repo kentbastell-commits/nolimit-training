@@ -24,7 +24,7 @@ export default function ClientInvitePage({
     : "";
 
   return (
-    <div className="invitePage">
+    <div className={`invitePage ${iZh ? "zh" : "en"}`}>
       <div className="toastStack">
         {toasts.map((toast: any) => (
           <div className={`toast toast-${toast.type}`} key={toast.id}>

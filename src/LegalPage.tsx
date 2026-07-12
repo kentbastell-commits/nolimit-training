@@ -34,7 +34,7 @@ export default function LegalPage({
             : "Business Information";
 
   return (
-    <div className="legalPage">
+    <div className={`legalPage ${zh ? "zh" : "en"}`}>
       <header className="legalNav">
         <a className="legalBrand" href="/">
           <img src="/nl_wordmark_black.png" alt="No Limit" />
@@ -60,16 +60,16 @@ export default function LegalPage({
         </div>
 
         <nav className="legalTabs" aria-label={zh ? "法律政策" : "Legal policies"}>
-          <a className={kind === "privacy" ? "active" : ""} href="/privacy">
+          <a className={kind === "privacy" ? "active" : ""} href="/privacy" aria-current={kind === "privacy" ? "page" : undefined}>
             {zh ? "隐私" : "Privacy"}
           </a>
-          <a className={kind === "terms" ? "active" : ""} href="/terms">
+          <a className={kind === "terms" ? "active" : ""} href="/terms" aria-current={kind === "terms" ? "page" : undefined}>
             {zh ? "条款" : "Terms"}
           </a>
-          <a className={kind === "refund" ? "active" : ""} href="/refund">
+          <a className={kind === "refund" ? "active" : ""} href="/refund" aria-current={kind === "refund" ? "page" : undefined}>
             {zh ? "退款" : "Refunds"}
           </a>
-          <a className={kind === "business" ? "active" : ""} href="/business">
+          <a className={kind === "business" ? "active" : ""} href="/business" aria-current={kind === "business" ? "page" : undefined}>
             {zh ? "经营者" : "Business"}
           </a>
         </nav>

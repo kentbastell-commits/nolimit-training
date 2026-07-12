@@ -36,7 +36,11 @@ export default function PortalWelcome({
             <p className="portalWelcomeSubtitle">
               {iZh ? "请稍候，您的训练日历正在生成。" : "Please wait while your training calendar is being built."}
             </p>
-            <div className="portalWelcomeSpinner" />
+            <div
+              className="portalWelcomeSpinner"
+              role="status"
+              aria-label={iZh ? "正在载入训练计划" : "Loading your training plan"}
+            />
           </>
         ) : portalPaymentPending ? (
           <>

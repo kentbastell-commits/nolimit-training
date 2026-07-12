@@ -28,6 +28,9 @@ describe("PortalWelcome", () => {
   it("shows the loading state while the program is being built", () => {
     render(<PortalWelcome {...baseProps} portalAutoLoading={true} />);
     expect(screen.getByText("Loading your program...")).toBeInTheDocument();
+    expect(
+      screen.getByRole("status", { name: "Loading your training plan" })
+    ).toBeInTheDocument();
   });
 
   it("shows a truthful waiting state until payment is verified", () => {
