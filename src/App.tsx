@@ -4768,17 +4768,18 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     );
   };
 
-  const assignSavedProgramToClient = async () => {
+  // Returns true on success so the detail panel can show its "Assigned" chip.
+  const assignSavedProgramToClient = async (): Promise<boolean> => {
     const client = clients.find((item) => item.id === savedAssignClientId);
 
     if (!client || !selectedSavedProgram) {
       notify("Please select a client and program.");
-      return;
+      return false;
     }
 
     if (savedAssignableWorkouts.length === 0) {
       notify("Please load sessions first.");
-      return;
+      return false;
     }
 
     setSavedAssigningProgram(true);
@@ -4810,14 +4811,16 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       if (!response.ok || !data.success) {
         console.error(data);
         notify("Could not assign program. Check API response.");
-        return;
+        return false;
       }
 
       notify(`Program assigned to ${client.name}. Workouts created: ${data.recordsCreated}`);
       setSavedAssignableWorkouts([]);
+      return true;
     } catch (error) {
       console.error(error);
       notify("Could not assign program.");
+      return false;
     } finally {
       setSavedAssigningProgram(false);
     }

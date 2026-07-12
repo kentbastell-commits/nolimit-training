@@ -5,6 +5,7 @@ import "./CoachBuilderPage.css";
 import { isCardioCategory } from "./appCore";
 import { Fragment, useEffect, useState } from "react";
 import CoachProgramsLanding from "./CoachProgramsLanding";
+import ProgramDetailPanel from "./ProgramDetailPanel";
 import { BookOpen, ChevronDown, ChevronLeft, ChevronUp, ChevronsLeftRight, Copy, Dumbbell, Eye, GripVertical, Link2, MoreVertical, Pencil, Plus, RefreshCw, Settings, Shuffle, Trash2, X } from "lucide-react";
 import type { Program, ProgramSession } from "./appCore";
 import { getWorkoutColorClass, normalizeDate } from "./appCore";
@@ -973,282 +974,41 @@ export default function CoachBuilderPage({
                       </div>
 
                       {showProgramDetail && selectedSavedProgram && (
-                      <div
-                        className="wkSlideScrim"
-                        onClick={() => setShowProgramDetail(false)}
-                      >
-                      <section
-                        className="programDetailPanel wkSlide"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        {selectedSavedProgram && (
-                          <>
-                            <div className="programDetailTop">
-                              <div>
-                                <span className="eyebrow">
-                                  {selectedSavedProgram.productType ||
-                                    "Internal Coaching Template"}
-                                  {selectedSavedProgram.status
-                                    ? ` · ${selectedSavedProgram.status}`
-                                    : ""}
-                                </span>
-                                <h3>{selectedSavedProgram.programName}</h3>
-                              </div>
-
-                              <div className="rowActions">
-                                <button
-                                  className="goldButton"
-                                  onClick={() => loadSavedProgramIntoBuilder()}
-                                  disabled={savedTemplatesLoading}
-                                >
-                                  Open in Builder
-                                </button>
-
-                                <button
-                                  className="outlineButton"
-                                  onClick={() => setShowProgramDetail(false)}
-                                >
-                                  Close
-                                </button>
-
-                                <button
-                                  className="dangerButton"
-                                  onClick={() =>
-                                    deleteSavedProgram(selectedSavedProgram)
-                                  }
-                                  disabled={
-                                    deletingSavedProgramId ===
-                                    selectedSavedProgram.recordId
-                                  }
-                                >
-                                  {deletingSavedProgramId ===
-                                  selectedSavedProgram.recordId
-                                    ? "Deleting..."
-                                    : "Delete Program"}
-                                </button>
-                              </div>
-                            </div>
-
-                            <div className="programMetaGrid">
-                              <span>
-                                <strong>Goal</strong>
-                                {selectedSavedProgram.goal || "--"}
-                              </span>
-                              <span>
-                                <strong>Sport</strong>
-                                {selectedSavedProgram.sport || "--"}
-                              </span>
-                              <span>
-                                <strong>Level</strong>
-                                {selectedSavedProgram.level || "--"}
-                              </span>
-                              <span>
-                                <strong>Duration</strong>
-                                {selectedSavedProgram.durationWeeks || "--"} weeks
-                              </span>
-                              <span>
-                                <strong>Phase</strong>
-                                {selectedSavedProgram.phase || "--"}
-                              </span>
-                              <span>
-                                <strong>Sessions / Week</strong>
-                                {selectedSavedProgram.sessionsPerWeek || "--"}
-                              </span>
-                            </div>
-
-                            <div className="savedAssignPanel">
-                              <h3>Assign to Client</h3>
-
-                              <div className="savedAssignGrid">
-                                <label>
-                                  <span>Client</span>
-                                  <select
-                                    className="miniSearch"
-                                    value={savedAssignClientId}
-                                    onChange={(e) => setSavedAssignClientId(e.target.value)}
-                                  >
-                                    <option value="">Select client</option>
-                                    {clients.map((client: any) => (
-                                      <option key={client.id} value={client.id}>
-                                        {client.name}
-                                      </option>
-                                    ))}
-                                  </select>
-                                </label>
-
-                                <label>
-                                  <span>Start Date</span>
-                                  <input
-                                    type="date"
-                                    className="miniSearch"
-                                    value={savedAssignStartDate}
-                                    onChange={(e) =>
-                                      setSavedAssignStartDate(e.target.value)
-                                    }
-                                  />
-                                </label>
-
-                                <button
-                                  className="outlineButton"
-                                  onClick={loadSavedProgramSessionsForAssignment}
-                                  disabled={savedAssignLoading}
-                                >
-                                  {savedAssignLoading ? "Loading..." : "Load Sessions"}
-                                </button>
-
-                                <button
-                                  className="goldButton"
-                                  onClick={assignSavedProgramToClient}
-                                  disabled={savedAssigningProgram}
-                                >
-                                  {savedAssigningProgram ? "Assigning..." : "Assign Program"}
-                                </button>
-                              </div>
-
-                              {savedAssignableWorkouts.length > 0 && (
-                                <div className="arrangeWorkouts">
-                                  <h4>Arrange Workouts</h4>
-
-                                  {savedAssignableWorkouts.map((workout: any) => (
-                                    <div
-                                      key={workout.localId}
-                                      className="arrangeWorkoutRow"
-                                    >
-                                      <span>Week {workout.week}</span>
-                                      <span>Day {workout.day}</span>
-                                      <strong>{workout.sessionName}</strong>
-
-                                      <input
-                                        type="date"
-                                        className="miniSearch"
-                                        value={workout.scheduledDate}
-                                        onChange={(e) =>
-                                          updateSavedAssignableWorkoutDate(
-                                            workout.localId,
-                                            e.target.value
-                                          )
-                                        }
-                                      />
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-
-                            <div className="savedProgramSessions">
-                              <div className="exerciseTitleRow">
-                                <h3>Program Sessions</h3>
-                                {savedTemplatesLoading && <span>Loading...</span>}
-                              </div>
-
-                              {!savedTemplatesLoading &&
-                                savedProgramSessions.length === 0 && (
-                                  <p>No template records found for this program.</p>
-                                )}
-
-                              {/* Same at-a-glance week/day cards as the preview
-                                  modal: colored session card + labeled exercise
-                                  chain with prescriptions. */}
-                              {(() => {
-                                const maxWeek = savedProgramSessions.reduce(
-                                  (m: number, s: any) =>
-                                    Math.max(m, Number(s.week) || 1),
-                                  1
-                                );
-                                return Array.from(
-                                  { length: maxWeek },
-                                  (_, i) => i + 1
-                                ).map((w) => {
-                                  const days = savedProgramSessions
-                                    .filter(
-                                      (s: any) => Number(s.week) === w
-                                    )
-                                    .sort(
-                                      (a: any, b: any) =>
-                                        Number(a.day) - Number(b.day)
-                                    );
-                                  if (days.length === 0) return null;
-                                  return (
-                                    <div className="previewWeek" key={w}>
-                                      <div className="previewWeekLabel">
-                                        Week {w}
-                                      </div>
-                                      <div className="previewDays">
-                                        {days.map((s: any) => (
-                                          <div
-                                            key={s.localId}
-                                            className={`programGridCard ${getWorkoutColorClass(
-                                              s.sessionName,
-                                              s.sessionType
-                                            )}`}
-                                          >
-                                            <div className="programGridCardHead">
-                                              <strong className="programGridCardName">
-                                                Day {s.day} ·{" "}
-                                                {s.sessionName ||
-                                                  `Week ${w} Day ${s.day}`}
-                                              </strong>
-                                            </div>
-                                            <div className="glanceChain">
-                                              {buildGlanceChain(s.exercises).map(
-                                                (it: any, gi: any) => (
-                                                  <div
-                                                    className="glanceRow"
-                                                    key={`${s.localId}-${gi}`}
-                                                  >
-                                                    <div className="glanceBadgeWrap">
-                                                      {it.linked && !it.isFirst && (
-                                                        <span
-                                                          className={`glanceLineUp line-${it.lineUpColor}`}
-                                                        />
-                                                      )}
-                                                      {it.linked && !it.isLast && (
-                                                        <span
-                                                          className={`glanceLineDown line-${it.lineDownColor}`}
-                                                        />
-                                                      )}
-                                                      <span
-                                                        className={`exerciseLabelBadge glanceBadge ${it.colorClass}`}
-                                                      >
-                                                        {it.display}
-                                                      </span>
-                                                    </div>
-                                                    <div className="glanceText">
-                                                      <strong>
-                                                        {it.ex.exerciseName}
-                                                      </strong>
-                                                      {(it.ex.sets ||
-                                                        it.ex.reps) && (
-                                                        <span>
-                                                          {it.ex.sets &&
-                                                          it.ex.reps
-                                                            ? `${it.ex.sets} x ${it.ex.reps}`
-                                                            : it.ex.sets ||
-                                                              it.ex.reps}
-                                                        </span>
-                                                      )}
-                                                    </div>
-                                                  </div>
-                                                )
-                                              )}
-                                            </div>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  );
-                                });
-                              })()}
-                            </div>
-                          </>
-                        )}
-                      </section>
-                      </div>
+                        <ProgramDetailPanel
+                          isSession={
+                            sessionsTab ||
+                            selectedSavedProgram.goal === "Single Workout"
+                          }
+                          selectedSavedProgram={selectedSavedProgram}
+                          setShowProgramDetail={setShowProgramDetail}
+                          loadSavedProgramIntoBuilder={loadSavedProgramIntoBuilder}
+                          savedTemplatesLoading={savedTemplatesLoading}
+                          deleteSavedProgram={deleteSavedProgram}
+                          deletingSavedProgramId={deletingSavedProgramId}
+                          clients={clients}
+                          savedAssignClientId={savedAssignClientId}
+                          setSavedAssignClientId={setSavedAssignClientId}
+                          savedAssignStartDate={savedAssignStartDate}
+                          setSavedAssignStartDate={setSavedAssignStartDate}
+                          savedAssignLoading={savedAssignLoading}
+                          savedAssignableWorkouts={savedAssignableWorkouts}
+                          savedAssigningProgram={savedAssigningProgram}
+                          assignSavedProgramToClient={assignSavedProgramToClient}
+                          loadSavedProgramSessionsForAssignment={
+                            loadSavedProgramSessionsForAssignment
+                          }
+                          updateSavedAssignableWorkoutDate={
+                            updateSavedAssignableWorkoutDate
+                          }
+                          savedProgramSessions={savedProgramSessions}
+                          buildGlanceChain={buildGlanceChain}
+                        />
                       )}
                     </div>
                   </section>
                   );
                 })()}
+
 
                 {workoutPageTab === "Program Builder" &&
                   !useMobileWorkoutRows && (
