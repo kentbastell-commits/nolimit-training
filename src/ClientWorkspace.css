@@ -141,3 +141,204 @@
   width: 9px; height: 9px; border-radius: 50%;
   background: #d4453a; border: 2px solid #fff;
 }
+
+/* ── Coach client-detail: black/gold KPI hero ──────────────────────────
+   Selectors are scoped .app:not(.clientPortalApp) .cdHero … so they out-
+   specify the coach light-theme's !important h1/p color rules. */
+.app:not(.clientPortalApp) .cdHeaderIntro {
+  margin: 2px 0 14px;
+}
+.app:not(.clientPortalApp) .cdEyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  letter-spacing: 1.8px;
+  text-transform: uppercase;
+  color: #b5731a;
+  font-weight: 800;
+}
+.app:not(.clientPortalApp) .cdHeaderIntro .cdIntro {
+  margin: 8px 0 0;
+  max-width: 60rem;
+  font-size: 14px;
+  font-weight: 600;
+  color: #66645e !important;
+  line-height: 1.5;
+}
+.app:not(.clientPortalApp) .cdHero {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(150deg, #26221a, #10100f);
+  border-radius: 22px;
+  padding: 26px 28px;
+  color: #f3ede0;
+  margin-bottom: 20px;
+}
+.app:not(.clientPortalApp) .cdHeroGlow {
+  position: absolute;
+  right: -50px;
+  top: -60px;
+  width: 230px;
+  height: 230px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(214, 175, 55, 0.34), transparent 68%);
+  pointer-events: none;
+}
+.app:not(.clientPortalApp) .cdHeroTop {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 18px;
+}
+.app:not(.clientPortalApp) .cdHeroAvatar {
+  flex: 0 0 auto;
+  width: 66px;
+  height: 66px;
+  border-radius: 50%;
+  border: 2px solid rgba(212, 175, 55, 0.7);
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  font-size: 22px;
+  color: #f0dc88;
+  background: rgba(212, 175, 55, 0.1);
+}
+.app:not(.clientPortalApp) .cdHeroIdentity {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.app:not(.clientPortalApp) .cdHero .cdHeroName {
+  margin: 0 !important;
+  font-size: clamp(28px, 5vw, 40px) !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.02em;
+  line-height: 1.02;
+  color: #ffffff !important;
+}
+.app:not(.clientPortalApp) .cdHero .cdHeroCoach {
+  margin: 7px 0 0 !important;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: #c9ab55 !important;
+}
+.app:not(.clientPortalApp) .cdHeroPills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 13px;
+}
+.app:not(.clientPortalApp) .cdHeroPill {
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(240, 220, 136, 0.28);
+  border-radius: 999px;
+  padding: 0.34rem 0.8rem;
+  font-size: 12.5px;
+  font-weight: 800;
+  color: #e7dcc0;
+}
+.app:not(.clientPortalApp) .cdHero .clientProfileActions {
+  flex: 0 0 auto;
+}
+.app:not(.clientPortalApp) .cdHeroActionButton {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(240, 220, 136, 0.28) !important;
+  color: #f0dc88 !important;
+}
+.app:not(.clientPortalApp) .cdHeroKpis {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-top: 22px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(240, 220, 136, 0.16);
+}
+.app:not(.clientPortalApp) .cdHeroKpiLabel {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #9a9078;
+}
+.app:not(.clientPortalApp) .cdHero .cdHeroKpiValue {
+  display: block;
+  margin: 6px 0 0 !important;
+  font-size: clamp(24px, 4vw, 32px);
+  font-weight: 800;
+  line-height: 1;
+  color: #f0dc88 !important;
+  font-variant-numeric: tabular-nums;
+}
+.app:not(.clientPortalApp) .cdHeroKpiUnit {
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 700;
+  color: #b3aa93;
+  margin-left: 3px;
+}
+.app:not(.clientPortalApp) .cdHeroKpiSub {
+  display: block;
+  margin-top: 4px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #8f866f;
+}
+@media (max-width: 640px) {
+  .app:not(.clientPortalApp) .cdHeroKpis {
+    grid-template-columns: 1fr 1fr;
+    gap: 16px 14px;
+  }
+  .app:not(.clientPortalApp) .cdHeroTop {
+    gap: 14px;
+  }
+  .app:not(.clientPortalApp) .cdHeroAvatar {
+    width: 54px;
+    height: 54px;
+    font-size: 18px;
+  }
+}
+
+/* Coach calendar view toggle (Week/Month/Full) → same grey segmented control
+   as the client-side calendar. The 3-class scope out-specifies the base
+   .clientCalendarViewToggle so no !important is needed. */
+.app:not(.clientPortalApp) .clientCalendarViewToggle {
+  background: #e8e6df;
+  border: 1px solid #e0dacb;
+  border-radius: 999px;
+  padding: 5px;
+  gap: 6px;
+}
+.app:not(.clientPortalApp) .clientCalendarViewToggle button {
+  background: transparent;
+  color: #38352f;
+  border-radius: 999px;
+}
+.app:not(.clientPortalApp) .clientCalendarViewToggle button.active {
+  background: #fff;
+  color: #151515;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+/* Coach Client Overview — section headings get a small gold accent bar so
+   their colour language matches the client-detail hero. */
+.app:not(.clientPortalApp) .profileMetricsHeader h3 {
+  color: #10100f !important;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+.app:not(.clientPortalApp) .profileMetricsHeader h3::before {
+  content: "";
+  display: inline-block;
+  width: 3px;
+  height: 0.92em;
+  margin-right: 9px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #d4af37, #b5731a);
+  vertical-align: -1px;
+}
+.app:not(.clientPortalApp) .portalProfileEyebrow {
+  color: #b5731a !important;
+}

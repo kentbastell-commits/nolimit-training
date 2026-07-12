@@ -6,7 +6,7 @@ import PortalTraining from "./PortalTraining";
 import PortalPrograms from "./PortalPrograms";
 import ClientOverview from "./ClientOverview";
 import { BookOpen, CalendarDays, Home, MoreVertical, UserCircle } from "lucide-react";
-import { languagePreferenceToCode, normalizeDate } from "./appCore";
+import { normalizeDate } from "./appCore";
 
 export default function ClientWorkspace({
   t,
@@ -31,6 +31,7 @@ export default function ClientWorkspace({
   clientCalendarStyle,
   clientCalendarTouchDrag,
   clientComments,
+  clientHeroKpis,
   clientMonthAnchorDate,
   clientMonthCalendarDates,
   clientPortalUpcomingTasks,
@@ -324,100 +325,95 @@ export default function ClientWorkspace({
                   );
                 })()
               ) : (
-                <div className="clientTop">
-                  <div className="clientAvatar largeAvatar">
-                    {selectedClient.initials}
-                  </div>
-                  <div>
-                    <h1>{selectedClient.name}</h1>
-                    <p>
-                      {`${selectedClient.clientCode || "Client"} - ${getCoachDisplayName(
-                        selectedClient.coach ||
-                          selectedClient.primaryCoach ||
-                          "Coach view"
-                      )}`}
+                <>
+                  <div className="cdHeaderIntro">
+                    <span className="cdEyebrow">
+                      <UserCircle size={14} aria-hidden="true" /> Client Dashboard
+                    </span>
+                    <p className="cdIntro">
+                      Training-load monitoring, wellness trends and session
+                      activity for this athlete — at a glance.
                     </p>
-                    <div className="clientLayerBadges">
-                      <span>{selectedClient.clientType || "Client"}</span>
-                      <span>
-                        Intake: {selectedClient.intakeStatus || "Not Sent"}
-                      </span>
-                      <span>
-                        Payment: {selectedClient.paymentStatus || "Unpaid"}
-                      </span>
-                    </div>
-                    <div
-                      className="clientPortalLanguageSwitch"
-                      aria-label={t("languagePreference")}
-                    >
-                      <button
-                        type="button"
-                        className={
-                          languagePreferenceToCode(
-                            selectedClient.languagePreference
-                          ) === "en"
-                            ? "active"
-                            : ""
-                        }
-                        onClick={() => updateClientLanguagePreference("English")}
-                      >
-                        EN
-                      </button>
-                      <button
-                        type="button"
-                        className={
-                          languagePreferenceToCode(
-                            selectedClient.languagePreference
-                          ) === "zh"
-                            ? "active"
-                            : ""
-                        }
-                        onClick={() => updateClientLanguagePreference("Mandarin")}
-                      >
-                        中文
-                      </button>
-                    </div>
                   </div>
-                  <div className="clientProfileActions">
-                    <details className="clientActionMenu">
-                      <summary
-                        className="iconActionButton profileIconButton"
-                        aria-label="Client actions"
-                      >
-                        <MoreVertical size={18} aria-hidden="true" />
-                      </summary>
-                      <div className="clientActionDropdown">
-                        <button
-                          onClick={() =>
-                            copyToClipboard(
-                              buildClientPortalLink(selectedClient),
-                              "Client portal link"
-                            )
-                          }
-                        >
-                          Copy portal link
-                        </button>
-                        <button onClick={() => openEditClientForm(selectedClient)}>
-                          Edit / assign coach
-                        </button>
-                        <button
-                          onClick={() =>
-                            updateClientPackage(selectedClient, "Archived")
-                          }
-                          disabled={updatingClientStatus}
-                        >
-                          Archive client
-                        </button>
-                        <button
-                          className="dangerMenuItem"
-                          onClick={() => deleteClient(selectedClient)}
-                        >
-                          Delete client
-                        </button>
+                  <header className="cdHero">
+                    <div className="cdHeroGlow" aria-hidden="true" />
+                    <div className="cdHeroTop">
+                      <div className="cdHeroAvatar">{selectedClient.initials}</div>
+                      <div className="cdHeroIdentity">
+                        <h1 className="cdHeroName">{selectedClient.name}</h1>
+                        <p className="cdHeroCoach">
+                          {getCoachDisplayName(
+                            selectedClient.coach ||
+                              selectedClient.primaryCoach ||
+                              "Coach view"
+                          )}
+                        </p>
+                        <div className="cdHeroPills">
+                          <span className="cdHeroPill">
+                            {selectedClient.clientType || "Client"}
+                          </span>
+                        </div>
                       </div>
-                    </details>
-                  </div>
-                </div>
+                      <div className="clientProfileActions">
+                        <details className="clientActionMenu">
+                          <summary
+                            className="iconActionButton cdHeroActionButton"
+                            aria-label="Client actions"
+                          >
+                            <MoreVertical size={18} aria-hidden="true" />
+                          </summary>
+                          <div className="clientActionDropdown">
+                            <button
+                              onClick={() =>
+                                copyToClipboard(
+                                  buildClientPortalLink(selectedClient),
+                                  "Client portal link"
+                                )
+                              }
+                            >
+                              Copy portal link
+                            </button>
+                            <button
+                              onClick={() => openEditClientForm(selectedClient)}
+                            >
+                              Edit / assign coach
+                            </button>
+                            <button
+                              onClick={() =>
+                                updateClientPackage(selectedClient, "Archived")
+                              }
+                              disabled={updatingClientStatus}
+                            >
+                              Archive client
+                            </button>
+                            <button
+                              className="dangerMenuItem"
+                              onClick={() => deleteClient(selectedClient)}
+                            >
+                              Delete client
+                            </button>
+                          </div>
+                        </details>
+                      </div>
+                    </div>
+                    {Array.isArray(clientHeroKpis) && clientHeroKpis.length > 0 && (
+                      <div className="cdHeroKpis">
+                        {clientHeroKpis.map((k: any) => (
+                          <div className="cdHeroKpi" key={k.label}>
+                            <span className="cdHeroKpiLabel">{k.label}</span>
+                            <strong className="cdHeroKpiValue">
+                              {k.value}
+                              {k.unit ? (
+                                <em className="cdHeroKpiUnit">{k.unit}</em>
+                              ) : null}
+                            </strong>
+                            <span className="cdHeroKpiSub">{k.sub}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </header>
+                </>
               )}
 
               <div

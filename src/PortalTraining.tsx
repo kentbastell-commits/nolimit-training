@@ -214,19 +214,20 @@ export default function PortalTraining({
                     <div className="calendarHeader">
                       <h2>{t("trainingCalendar")}</h2>
                       <div className="calendarControls">
-                      {(["Week", "Month", "Full"] as CalendarView[]).map(
-                        (view) => (
-                          <button
-                            key={view}
-                            className={
-                              calendarView === view ? "goldButton" : "outlineButton"
-                            }
-                            onClick={() => setCalendarView(view)}
-                          >
-                            {view}
-                          </button>
-                        )
-                      )}
+                      <div className="clientCalendarViewToggle">
+                        {(["Week", "Month", "Full"] as CalendarView[]).map(
+                          (view) => (
+                            <button
+                              key={view}
+                              type="button"
+                              className={calendarView === view ? "active" : ""}
+                              onClick={() => setCalendarView(view)}
+                            >
+                              {view}
+                            </button>
+                          )
+                        )}
+                      </div>
 
                       <div className="calendarAddMenuWrap">
                         <button

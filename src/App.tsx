@@ -16642,6 +16642,76 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     );
   };
 
+  // Hero KPI band for the coach client-detail header. Reuses the SAME real
+  // values the Training Load + Wellness panels below render (no mock numbers):
+  // weekly sRPE load, latest/avg readiness from check-ins, task compliance, and
+  // an acute:chronic workload ratio computed from the same daily-load map.
+  const computeClientHeroKpis = () => {
+    const ref = new Date(`${todayValue}T00:00:00`);
+    const loadByDate = loadByDateForWorkouts(workouts);
+    for (const [d, v] of workloadLoadByDate()) {
+      loadByDate.set(d, (loadByDate.get(d) || 0) + v);
+    }
+    const { weeklyLoad } = computeMonotonyStrain(loadByDate, ref);
+    const avgDailyLoad = (daysBack: number) => {
+      let sum = 0;
+      for (let i = 0; i < daysBack; i++) {
+        const d = new Date(ref);
+        d.setDate(d.getDate() - i);
+        sum += loadByDate.get(dateToInputValue(d)) || 0;
+      }
+      return sum / daysBack;
+    };
+    const chronic = avgDailyLoad(28);
+    const acwr = chronic > 0 ? avgDailyLoad(7) / chronic : 0;
+    const acwrZone =
+      acwr === 0
+        ? paceZh ? "暂无数据" : "no data"
+        : acwr < 0.8
+          ? paceZh ? "偏低" : "undertraining"
+          : acwr <= 1.3
+            ? paceZh ? "安全区间" : "safe window"
+            : paceZh ? "偏高风险" : "high risk";
+    const readi = clientCheckIns
+      .slice()
+      .sort((a, b) => a.submittedDate.localeCompare(b.submittedDate))
+      .map((c) => Number(c.readinessScore) || 0)
+      .filter((v) => v > 0);
+    const readiLatest = readi.length ? readi[readi.length - 1] : 0;
+    const readiWindow = readi.slice(-7);
+    const readiAvg = readiWindow.length
+      ? Math.round((readiWindow.reduce((a, x) => a + x, 0) / readiWindow.length) * 10) / 10
+      : 0;
+    return [
+      {
+        label: paceZh ? "周负荷" : "Weekly Load",
+        value: weeklyLoad ? weeklyLoad.toLocaleString() : "—",
+        unit: weeklyLoad ? "AU" : "",
+        sub: paceZh ? "sRPE 内部负荷" : "sRPE internal load",
+      },
+      {
+        label: paceZh ? "状态" : "Readiness",
+        value: readiLatest || "—",
+        unit: "",
+        sub: readi.length
+          ? `${paceZh ? "周均" : "avg"} ${readiAvg}`
+          : paceZh ? "暂无打卡" : "no check-ins",
+      },
+      {
+        label: paceZh ? "完成率" : "Compliance",
+        value: completionRate,
+        unit: "%",
+        sub: `${completedTaskCount} / ${totalTaskCount} ${paceZh ? "任务" : "tasks"}`,
+      },
+      {
+        label: "ACWR",
+        value: acwr ? acwr.toFixed(2) : "—",
+        unit: "",
+        sub: acwrZone,
+      },
+    ];
+  };
+
 
   // PR leaderboard + the progress chart, for the coach Overview's capacity view.
   // PR metric toggle + ranked leaderboard. Clicking a row selects that exercise
@@ -18571,6 +18641,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
           <ErrorBoundary label="portal">
           <ClientWorkspace
             t={t}
+            clientHeroKpis={computeClientHeroKpis()}
             assignLoading={assignLoading}
             assignProgramToClient={assignProgramToClient}
             assignStartDate={assignStartDate}

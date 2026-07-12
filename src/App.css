@@ -8705,17 +8705,45 @@ body {
 }
 
 .app:not(.clientPortalApp) .tab {
-  background: #fff !important;
-  border-color: #dcd8cd !important;
-  color: #151515 !important;
-  box-shadow: 0 10px 22px rgba(20, 18, 14, 0.05);
+  background: transparent !important;
+  border-color: transparent !important;
+  color: #38352f !important;
+  box-shadow: none;
 }
 
-.app:not(.clientPortalApp) .tab:hover,
-.app:not(.clientPortalApp) .activeTab {
-  background: #151515 !important;
-  border-color: #151515 !important;
-  color: #d4af37 !important;
+.app:not(.clientPortalApp) .tab:hover {
+  background: rgba(255, 255, 255, 0.55) !important;
+  border-color: transparent !important;
+  color: #151515 !important;
+}
+
+.app:not(.clientPortalApp) .activeTab,
+.app:not(.clientPortalApp) .activeTab:hover {
+  background: #fff !important;
+  border-color: transparent !important;
+  color: #151515 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12) !important;
+}
+
+/* Coach Sport Science / Activity toggle → same grey segmented style. */
+.app:not(.clientPortalApp) .coachDashTabs {
+  background: #e8e6df !important;
+  border: 1px solid #e0dacb !important;
+  border-radius: 999px;
+  padding: 5px;
+  gap: 6px;
+}
+.app:not(.clientPortalApp) .coachDashTabs .portalHomeTab {
+  background: transparent !important;
+  border-color: transparent !important;
+  color: #38352f !important;
+  box-shadow: none !important;
+}
+.app:not(.clientPortalApp) .coachDashTabs .portalHomeTabActive {
+  background: #fff !important;
+  border-color: transparent !important;
+  color: #151515 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12) !important;
 }
 
 .app:not(.clientPortalApp) .clientActionDropdown {
@@ -9032,11 +9060,11 @@ body {
 .app:not(.clientPortalApp) .clientTabs {
   display: inline-grid;
   grid-template-columns: repeat(3, minmax(190px, 1fr));
-  gap: 10px;
-  padding: 6px;
-  border: 1px solid #dcd8cd;
+  gap: 6px;
+  padding: 5px;
+  border: 1px solid #e0dacb;
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.62);
+  background: #e8e6df;
 }
 
 .app:not(.clientPortalApp) .tab {
