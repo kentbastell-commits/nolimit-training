@@ -362,6 +362,9 @@ export default function CoachBuilderPage({
   const [editExerciseIndex, setEditExerciseIndex] = useState<number | null>(
     null
   );
+  // Sessions library: filter the list by session category (Focus column —
+  // Strength / Cardio / Mobility…). "All" shows everything.
+  const [sessionCategoryFilter, setSessionCategoryFilter] = useState("All");
   // Optional fields in the editor reveal on demand (matching the "+ Tempo" /
   // "+ Cue" chips) so the popup stays clean until a coach needs them.
   const [cueOpen, setCueOpen] = useState(false);
@@ -618,7 +621,11 @@ export default function CoachBuilderPage({
                   (() => {
                   const sessionsTab = workoutPageTab === "Sessions";
                   const libraryList = sessionsTab
-                    ? visibleSessionsOnly
+                    ? visibleSessionsOnly.filter(
+                        (s: any) =>
+                          sessionCategoryFilter === "All" ||
+                          (s.sessionType || "").trim() === sessionCategoryFilter
+                      )
                     : visibleProgramsOnly;
                   if (builderScope === "digital" && !sessionsTab) {
                     return (
@@ -670,9 +677,33 @@ export default function CoachBuilderPage({
                     <div className="programLibraryHeader programLandingHeader">
                       <div className="programLandingControls">
                         {sessionsTab ? (
-                          <span className="programViewSelect programViewStatic">
-                            Sessions
-                          </span>
+                          // Category filter — matches the Focus column. The
+                          // full builder section list is offered (plus any
+                          // legacy type already selected) so nothing is
+                          // unreachable.
+                          <select
+                            className="programViewSelect"
+                            value={sessionCategoryFilter}
+                            onChange={(event) =>
+                              setSessionCategoryFilter(event.target.value)
+                            }
+                          >
+                            <option value="All">All categories</option>
+                            {Array.from(
+                              new Set(
+                                [
+                                  ...(builderSectionOptions || []),
+                                  sessionCategoryFilter === "All"
+                                    ? ""
+                                    : sessionCategoryFilter,
+                                ].filter(Boolean)
+                              )
+                            ).map((type: any) => (
+                              <option key={type} value={type}>
+                                {type}
+                              </option>
+                            ))}
+                          </select>
                         ) : (
                           <select
                             className={`programViewSelect${
@@ -773,7 +804,9 @@ export default function CoachBuilderPage({
                         {!programsLoading && libraryList.length === 0 && (
                           <p className="programTableEmpty">
                             {sessionsTab
-                              ? "No saved sessions yet. Create one to reuse across programs."
+                              ? sessionCategoryFilter !== "All"
+                                ? `No ${sessionCategoryFilter} sessions yet.`
+                                : "No saved sessions yet. Create one to reuse across programs."
                               : "No programs match your filter."}
                           </p>
                         )}
