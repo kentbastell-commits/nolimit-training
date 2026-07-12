@@ -58,6 +58,15 @@ export default function ReviewPage({
     }
   }, [coachReviewCheckIns, selectedCheckIn]);
 
+  useEffect(() => {
+    if (!selectedCheckIn) return;
+    const closeCheckIn = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setSelectedCheckIn(null);
+    };
+    window.addEventListener("keydown", closeCheckIn);
+    return () => window.removeEventListener("keydown", closeCheckIn);
+  }, [selectedCheckIn]);
+
   const unreviewedFormVideos = reviewFormVideos.filter(
     (v: any) => v.status !== "Reviewed"
   );
@@ -358,7 +367,18 @@ export default function ReviewPage({
                   <div key={checkIn.recordId} className="rvCard rvCardCheckin">
                     <div
                       className="rvCardTap"
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`Review check-in from ${clientLabel(
+                        checkIn.clientName || checkIn.clientId
+                      )}`}
                       onClick={() => setSelectedCheckIn(checkIn)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          setSelectedCheckIn(checkIn);
+                        }
+                      }}
                     >
                       <div className="rvCardHead">
                         <strong>
@@ -377,6 +397,9 @@ export default function ReviewPage({
                         </div>
                       )}
                       {notes && <p className="rvNote rvNoteClamp">{notes}</p>}
+                      <span className="rvCardOpenHint" aria-hidden="true">
+                        Review &amp; reply →
+                      </span>
                     </div>
                     <textarea
                       className="rvReply"
@@ -567,11 +590,17 @@ export default function ReviewPage({
       {/* check-in slide-over */}
       {selectedCheckIn && (
         <div className="rvScrim" onClick={() => setSelectedCheckIn(null)}>
-          <aside className="rvSlide" onClick={(e) => e.stopPropagation()}>
+          <aside
+            className="rvSlide"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="rv-checkin-title"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="rvSlideHead">
               <div>
                 <span className="rvSlideEyebrow">Daily check-in</span>
-                <strong className="rvSlideTitle">
+                <strong className="rvSlideTitle" id="rv-checkin-title">
                   {clientLabel(
                     selectedCheckIn.clientName || selectedCheckIn.clientId
                   )}
@@ -584,7 +613,7 @@ export default function ReviewPage({
                 type="button"
                 className="rvSlideClose"
                 onClick={() => setSelectedCheckIn(null)}
-                aria-label="Close"
+                aria-label="Close check-in review"
               >
                 <X size={16} />
               </button>

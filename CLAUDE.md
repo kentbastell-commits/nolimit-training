@@ -159,6 +159,9 @@ data between them, never "borrow" a table ID across products.
 26. **The wrap-and-pray card** — a dense desktop flex row merely wraps on mobile,
     leaving names and metadata in vertical slivers. Rule: define explicit mobile
     identity/status/action grid areas and inspect real long labels at 390px.
+27. **The dashboard wall** — desktop KPI tiles stack into full-width mobile cards
+    and push the actionable queue below the fold. Rule: compact repeated summaries
+    into a mobile grid and collapse duplicate inline forms into one focused drawer.
 
 ## Quality bar — checkable, per deliverable
 

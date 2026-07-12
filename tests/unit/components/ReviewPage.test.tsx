@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import ReviewPage from "../../../src/ReviewPage";
 
 const baseProps = {
@@ -55,5 +55,33 @@ describe("ReviewPage", () => {
     expect(
       screen.getByText("No new in-person enquiries.")
     ).toBeInTheDocument();
+  });
+
+  it("opens a check-in review by keyboard and closes it with Escape", () => {
+    const checkIn = {
+      recordId: "checkin-1",
+      clientName: "Li Meini",
+      submittedDate: "2026-07-02",
+      energy: "7",
+      clientNotes: "Felt strong today.",
+    };
+    render(
+      <ReviewPage
+        {...baseProps}
+        clientLabel={(value: string) => value}
+        coachReviewCheckIns={[checkIn]}
+      />
+    );
+
+    const open = screen.getByRole("button", {
+      name: "Review check-in from Li Meini",
+    });
+    fireEvent.keyDown(open, { key: "Enter" });
+    expect(
+      screen.getByRole("dialog", { name: "Li Meini" })
+    ).toBeInTheDocument();
+
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 });
