@@ -6,6 +6,7 @@ import "./AssignmentDrawer.css";
 export default function AssignmentDrawer({
   assignLoading,
   assignProgramKind,
+  setAssignProgramKind,
   assignProgramToClient,
   assignStartDate,
   assignableWorkouts,
@@ -65,38 +66,47 @@ export default function AssignmentDrawer({
               </div>
 
               <div className="assignmentDrawerTypes">
-                {(["Program", "Questionnaire", "Physical Test", "Check-in"] as const).map(
-                  (type) => (
+                {/* Four coach-facing categories. "Session" and "Program" are the
+                    same internal assignmentType ("Program") split by
+                    assignProgramKind (Single Workout vs multi-week plan). "Form"
+                    and "Test Item" are display labels for the persisted
+                    "Questionnaire" / "Physical Test" types — the stored values
+                    never change. Check-in forms remain assignable under Form. */}
+                {([
+                  { label: "Session", type: "Program", kind: "session" },
+                  { label: "Program", type: "Program", kind: "program" },
+                  { label: "Form", type: "Questionnaire" },
+                  { label: "Test Item", type: "Physical Test" },
+                ] as const).map((opt) => {
+                  const active =
+                    opt.type === "Program"
+                      ? assignmentType === "Program" &&
+                        assignProgramKind === opt.kind
+                      : assignmentType === opt.type;
+                  return (
                     <button
-                      key={type}
-                      className={assignmentType === type ? "active" : ""}
+                      key={opt.label}
+                      className={active ? "active" : ""}
                       type="button"
                       onClick={() => {
-                        setAssignmentType(type);
-                        if (type === "Program") {
+                        setAssignmentType(opt.type);
+                        if (opt.type === "Program") {
+                          setAssignProgramKind(opt.kind);
                           setAssignmentTemplateId("");
-                        } else if (type === "Physical Test") {
+                          setSelectedAssignProgramId("");
+                        } else if (opt.type === "Physical Test") {
                           const activeTests = savedTestTemplates.filter(
                             (test: any) => test.status !== "Archived"
                           );
-
                           setAssignmentTemplateId(
                             activeTests.length === 1
                               ? activeTests[0].testTemplateId
                               : ""
                           );
                         } else {
-                          const formsForType = savedFormTemplates.filter((form: any) => {
-                            const formType = form.type.toLowerCase();
-                            return (
-                              form.status !== "Archived" &&
-                              (type === "Check-in"
-                                ? formType.includes("check") ||
-                                    formType.includes("readiness")
-                                : true)
-                            );
-                          });
-
+                          const formsForType = savedFormTemplates.filter(
+                            (form: any) => form.status !== "Archived"
+                          );
                           setAssignmentTemplateId(
                             formsForType.length === 1 ? formsForType[0].formId : ""
                           );
@@ -107,10 +117,10 @@ export default function AssignmentDrawer({
                         setAssignStartDate(calendarAnchorDate);
                       }}
                     >
-                      {type}
+                      {opt.label}
                     </button>
-                  )
-                )}
+                  );
+                })}
               </div>
 
               <div className="assignmentDrawerForm">

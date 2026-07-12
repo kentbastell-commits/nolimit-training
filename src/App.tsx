@@ -19147,6 +19147,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
           <AssignmentDrawer
             assignLoading={assignLoading}
             assignProgramKind={assignProgramKind}
+            setAssignProgramKind={setAssignProgramKind}
             assignProgramToClient={assignProgramToClient}
             assignStartDate={assignStartDate}
             assignableWorkouts={assignableWorkouts}
