@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { fetchAllBitableRecords } from "./_pagination.ts";
-import { getCached, setCached } from "./_cache.ts";
+import { getCached, setCached, invalidateCache } from "./_cache.ts";
 
 function fieldToText(value: any): string {
   if (!value) return "";
@@ -31,6 +31,50 @@ function fieldToText(value: any): string {
   if (value?.link_record_ids) return value.link_record_ids.join(", ");
 
   return "";
+}
+
+// Build programId -> Session Type from the workout-templates table and cache it
+// (30 min). Runs in the background so /api/programs never blocks on this large
+// fetch. Guarded so concurrent misses don't each kick off a fetch.
+let sessionTypeRefreshInFlight = false;
+async function refreshSessionTypeMap(token: string) {
+  if (sessionTypeRefreshInFlight) return;
+  sessionTypeRefreshInFlight = true;
+  try {
+    const templateItems = await fetchAllBitableRecords(
+      process.env.FEISHU_BASE_APP_TOKEN as string,
+      process.env.FEISHU_WORKOUT_TEMPLATES_TABLE_ID as string,
+      token
+    );
+    const map: Record<string, string> = {};
+    for (const templateItem of templateItems) {
+      const f = templateItem.fields || {};
+      const type = fieldToText(f["Session Type"]);
+      if (!type) continue;
+      const pidField = f["Program ID"];
+      const keys: string[] = [];
+      const pidText = fieldToText(pidField);
+      if (pidText) keys.push(pidText);
+      const pushIds = (o: any) => {
+        if (o && typeof o === "object") {
+          if (Array.isArray(o.record_ids)) keys.push(...o.record_ids);
+          if (Array.isArray(o.link_record_ids)) keys.push(...o.link_record_ids);
+          if (typeof o.record_id === "string") keys.push(o.record_id);
+        }
+      };
+      if (Array.isArray(pidField)) pidField.forEach(pushIds);
+      else pushIds(pidField);
+      for (const key of keys) {
+        if (key && !(key in map)) map[key] = type;
+      }
+    }
+    setCached("programSessionTypes", map, 30 * 60 * 1000);
+    invalidateCache("programs"); // re-map programs with types on the next call
+  } catch {
+    // ignore — retry on the next cache miss
+  } finally {
+    sessionTypeRefreshInFlight = false;
+  }
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -67,42 +111,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       tokenData.tenant_access_token
     );
 
-    // A session's type ("Session Type") lives on its workout rows in the
-    // templates table, not on the program record. Join it in so the library +
-    // calendar Session picker can filter single-workout sessions by type.
-    // Best-effort: if this fetch fails, programs still return (no sessionType).
-    const sessionTypeByProgram = new Map<string, string>();
-    try {
-      const templateItems = await fetchAllBitableRecords(
-        process.env.FEISHU_BASE_APP_TOKEN as string,
-        process.env.FEISHU_WORKOUT_TEMPLATES_TABLE_ID as string,
-        tokenData.tenant_access_token
-      );
-      for (const templateItem of templateItems) {
-        const f = templateItem.fields || {};
-        const type = fieldToText(f["Session Type"]);
-        if (!type) continue;
-        const pidField = f["Program ID"];
-        const keys: string[] = [];
-        const pidText = fieldToText(pidField);
-        if (pidText) keys.push(pidText);
-        const pushIds = (o: any) => {
-          if (o && typeof o === "object") {
-            if (Array.isArray(o.record_ids)) keys.push(...o.record_ids);
-            if (Array.isArray(o.link_record_ids)) keys.push(...o.link_record_ids);
-            if (typeof o.record_id === "string") keys.push(o.record_id);
-          }
-        };
-        if (Array.isArray(pidField)) pidField.forEach(pushIds);
-        else pushIds(pidField);
-        for (const key of keys) {
-          if (key && !sessionTypeByProgram.has(key)) {
-            sessionTypeByProgram.set(key, type);
-          }
-        }
-      }
-    } catch {
-      // best-effort join — leave sessionType blank on failure
+    // A session's type ("Session Type") lives on its workout rows in the (large)
+    // templates table, not on the program record. Fetching it inline made this
+    // endpoint ~12s, so instead we serve the programId->type map from a
+    // long-lived cache and refresh it in the BACKGROUND (the self-hosted server
+    // keeps the promise alive after responding). When the refresh finishes it
+    // drops the programs cache so the next call re-maps with types.
+    const sessionTypeMap =
+      getCached<Record<string, string>>("programSessionTypes") || {};
+    if (!getCached("programSessionTypes")) {
+      void refreshSessionTypeMap(tokenData.tenant_access_token);
     }
 
     const programs = programItems.map((item: any) => {
@@ -113,9 +131,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         recordId: item.record_id,
         programId: programCode,
         sessionType:
-          sessionTypeByProgram.get(programCode) ||
-          sessionTypeByProgram.get(item.record_id) ||
-          "",
+          sessionTypeMap[programCode] || sessionTypeMap[item.record_id] || "",
         programName: fieldToText(fields["Program Name"]),
         programNameCn: fieldToText(fields["Program Name CN"]),
         goal: fieldToText(fields["Goal"]),
