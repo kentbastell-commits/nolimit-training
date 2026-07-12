@@ -73,11 +73,13 @@
   background: #f2f0ea;
   color: #151515;
 }
+/* Normal block flow after the nav (NOT absolute-pinned to the sidebar bottom):
+   an absolute box sits out of flow, so a full-height nav on a short laptop
+   viewport spilled down over it. Flowing it after the nav with a fixed gap
+   (App.css .coachBoxWrap { margin-top }) makes overlap impossible. */
 .coachBoxWrap {
-  position: absolute;
-  bottom: 22px;
-  left: 18px;
-  right: 18px;
+  position: relative; /* in-flow (no bottom-pin) but still anchors .coachScopeMenu */
+  margin-top: 26px;
 }
 .coachBoxButton {
   background: transparent;

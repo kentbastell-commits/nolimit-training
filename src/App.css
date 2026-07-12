@@ -1304,16 +1304,16 @@ body {
   background: rgba(0, 0, 0, 0.78);
   position: relative;
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
 }
 
-/* Pin the coach identity box to the bottom of the sidebar so a short nav
-   list can't let it ride up and overlap the last nav item (e.g. Admin), and
-   always keep a clear gap above it even when the nav nearly fills the height. */
+/* Sidebar footer: the identity box sits in normal block flow right after the
+   nav with a fixed gap, so it can NEVER overlap the last nav item regardless of
+   viewport height. (Earlier flexbox attempts — margin-top:auto bottom-pin, then
+   flex-grow nav — both let the box collide with the nav on short laptop
+   screens; block flow is immune to that.) On very short screens the box simply
+   flows below the fold instead of overlapping. */
 .coachBoxWrap {
-  margin-top: auto;
-  padding-top: 22px;
+  margin-top: 26px;
 }
 
 @media (min-width: 1101px) {
