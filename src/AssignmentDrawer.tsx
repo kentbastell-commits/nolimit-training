@@ -1,5 +1,6 @@
 // Extracted from App.tsx (monolith split) — JSX verbatim; props threaded.
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { useState } from "react";
 import { formatCalendarLabel, normalizeDate } from "./appCore";
 import "./AssignmentDrawer.css";
 
@@ -37,6 +38,9 @@ export default function AssignmentDrawer({
   shiftAssignableWorkoutsToStartDate,
   updateAssignableWorkoutDate,
 }: { [key: string]: any }) {
+  // Local filter for the Saved Session picker — narrow the list by session type
+  // (Cardio, Mobility, Strength…) so a coach can find the session they built.
+  const [sessionTypeFilter, setSessionTypeFilter] = useState("All");
   return (
     <>
           <div
@@ -152,6 +156,38 @@ export default function AssignmentDrawer({
                   />
                 </label>
 
+                {assignmentType === "Program" &&
+                  assignProgramKind === "session" &&
+                  (() => {
+                    const sessionTypes = Array.from(
+                      new Set(
+                        programs
+                          .filter((p: any) => p.productType === "Single Workout")
+                          .map((p: any) => (p.sessionType || "").trim())
+                          .filter(Boolean)
+                      )
+                    ).sort();
+                    if (sessionTypes.length === 0) return null;
+                    return (
+                      <label className="assignmentDrawerWide">
+                        <span>Session Type</span>
+                        <select
+                          value={sessionTypeFilter}
+                          onChange={(event) =>
+                            setSessionTypeFilter(event.target.value)
+                          }
+                        >
+                          <option value="All">All types</option>
+                          {sessionTypes.map((type: any) => (
+                            <option key={type} value={type}>
+                              {type}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    );
+                  })()}
+
                 {assignmentType === "Program" ? (
                   <label className="assignmentDrawerWide">
                     <span>
@@ -162,7 +198,9 @@ export default function AssignmentDrawer({
                     {(() => {
                       const assignList = programs.filter((p: any) =>
                         assignProgramKind === "session"
-                          ? p.productType === "Single Workout"
+                          ? p.productType === "Single Workout" &&
+                            (sessionTypeFilter === "All" ||
+                              (p.sessionType || "").trim() === sessionTypeFilter)
                           : p.productType !== "Single Workout"
                       );
                       return (

@@ -67,12 +67,55 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       tokenData.tenant_access_token
     );
 
+    // A session's type ("Session Type") lives on its workout rows in the
+    // templates table, not on the program record. Join it in so the library +
+    // calendar Session picker can filter single-workout sessions by type.
+    // Best-effort: if this fetch fails, programs still return (no sessionType).
+    const sessionTypeByProgram = new Map<string, string>();
+    try {
+      const templateItems = await fetchAllBitableRecords(
+        process.env.FEISHU_BASE_APP_TOKEN as string,
+        process.env.FEISHU_WORKOUT_TEMPLATES_TABLE_ID as string,
+        tokenData.tenant_access_token
+      );
+      for (const templateItem of templateItems) {
+        const f = templateItem.fields || {};
+        const type = fieldToText(f["Session Type"]);
+        if (!type) continue;
+        const pidField = f["Program ID"];
+        const keys: string[] = [];
+        const pidText = fieldToText(pidField);
+        if (pidText) keys.push(pidText);
+        const pushIds = (o: any) => {
+          if (o && typeof o === "object") {
+            if (Array.isArray(o.record_ids)) keys.push(...o.record_ids);
+            if (Array.isArray(o.link_record_ids)) keys.push(...o.link_record_ids);
+            if (typeof o.record_id === "string") keys.push(o.record_id);
+          }
+        };
+        if (Array.isArray(pidField)) pidField.forEach(pushIds);
+        else pushIds(pidField);
+        for (const key of keys) {
+          if (key && !sessionTypeByProgram.has(key)) {
+            sessionTypeByProgram.set(key, type);
+          }
+        }
+      }
+    } catch {
+      // best-effort join — leave sessionType blank on failure
+    }
+
     const programs = programItems.map((item: any) => {
       const fields = item.fields || {};
+      const programCode = fieldToText(fields["Program ID"]);
 
       return {
         recordId: item.record_id,
-        programId: fieldToText(fields["Program ID"]),
+        programId: programCode,
+        sessionType:
+          sessionTypeByProgram.get(programCode) ||
+          sessionTypeByProgram.get(item.record_id) ||
+          "",
         programName: fieldToText(fields["Program Name"]),
         programNameCn: fieldToText(fields["Program Name CN"]),
         goal: fieldToText(fields["Goal"]),

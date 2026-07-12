@@ -175,6 +175,7 @@ export type Program = {
   storeListingType?: string;
   bundleProgramIds?: string;
   productType?: string;
+  sessionType?: string;
   price?: string;
   compareAtPrice?: string;
   currency?: string;
