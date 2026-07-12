@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { invalidateCache } from "./_cache.ts";
+import { invalidateCache, getCached, setCached } from "./_cache.ts";
 
 type ProgramExercise = {
   exerciseRecordId?: string;
@@ -523,6 +523,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     invalidateCache("workoutTemplatesRaw");
     invalidateCache("programs");
+
+    // /api/programs resolves each program's Session Type from a long-lived
+    // programId->type map (programSessionTypes). Adding a new session here would
+    // otherwise be invisible to that map for up to 30 min — so the session's
+    // type never surfaces in the Sessions list or the calendar's Session Type
+    // filter. Patch the entry in place (keyed by both program code and record
+    // id, matching how the map is built) so it's live immediately without a full
+    // templates-table rebuild.
+    const typeMap = getCached<Record<string, string>>("programSessionTypes");
+    if (typeMap) {
+      const type = String(sessionType || "Strength");
+      if (programId) typeMap[programId] = type;
+      if (programRecordId) typeMap[programRecordId] = type;
+      setCached("programSessionTypes", typeMap, 30 * 60 * 1000);
+    }
 
     return res.status(200).json({
       success: true,

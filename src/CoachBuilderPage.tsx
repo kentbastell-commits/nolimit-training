@@ -846,7 +846,12 @@ export default function CoachBuilderPage({
                                 {program.level || "—"}
                               </span>
                               <span className="programTableCell">
-                                {program.goal || "—"}
+                                {/* Sessions carry their meaning in Session Type
+                                    (goal is always "Single Workout" for them);
+                                    real programs use goal as the focus. */}
+                                {(sessionsTab
+                                  ? program.sessionType
+                                  : program.goal) || "—"}
                               </span>
                               <span className="programTableCell">
                                 <span
