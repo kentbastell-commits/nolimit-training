@@ -77,32 +77,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         (log.clientId.includes(clientId) ||
           log.clientRecordIds.includes(clientId)));
 
-    // Fetch only THIS client's logs by filtering on the plain-text "Client Code"
-    // column (a text field IS filterable, unlike the Client ID link). Cache per
-    // client. Fall back to a full scan if the filter matches nothing (e.g. before
-    // the backfill completes) and always narrow in memory before caching.
+    // One page of ~500 records is a single Feishu round-trip (~2s from CN); a
+    // server-side `filter` or `field_names` projection both measured SLOWER here
+    // (Feishu does more work per request), so we do the plain scan and narrow in
+    // memory. Cache per client (5 min); repeat views are then instant. The
+    // plain-text "Client Code" column still gets written on save — once logs span
+    // many clients and the table grows past a few pages, a per-client `filter`
+    // fetch will win and can be reintroduced then.
     const cacheKey = `workoutLogs:${clientCode || clientId || "all"}`;
     let allLogs = getCached<any[]>(cacheKey);
 
     if (!allLogs) {
       const token = await getTenantToken();
 
-      let allItems: any[] = clientCode
-        ? await fetchAllBitableRecords(
-            process.env.FEISHU_BASE_APP_TOKEN as string,
-            process.env.FEISHU_WORKOUT_LOGS_TABLE_ID as string,
-            token,
-            { filter: `CurrentValue.[Client Code]="${clientCode}"` }
-          )
-        : [];
-
-      if (!allItems.length) {
-        allItems = await fetchAllBitableRecords(
-          process.env.FEISHU_BASE_APP_TOKEN as string,
-          process.env.FEISHU_WORKOUT_LOGS_TABLE_ID as string,
-          token
-        );
-      }
+      const allItems = await fetchAllBitableRecords(
+        process.env.FEISHU_BASE_APP_TOKEN as string,
+        process.env.FEISHU_WORKOUT_LOGS_TABLE_ID as string,
+        token
+      );
 
       allLogs = allItems
         .map((item: any) => {
