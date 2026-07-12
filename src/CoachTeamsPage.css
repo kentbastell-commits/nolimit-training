@@ -233,7 +233,6 @@
   border: 1px solid #e7e2d6;
   border-radius: 14px;
   margin-bottom: 10px;
-  cursor: pointer;
   transition: box-shadow 0.16s, border-color 0.16s;
 }
 .ctpRow:hover {
@@ -276,9 +275,34 @@
   border-radius: 14px;
   font-size: 17px;
 }
+.ctpRowOpen {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 10px;
+}
+.ctpRowOpen:focus-visible,
+.ctpCheck:focus-visible,
+.ctpAssignBtn:focus-visible,
+.ctpGearBtn:focus-visible,
+.ctpModalClose:focus-visible,
+.ctpFootBtn:focus-visible {
+  outline: 3px solid rgba(181, 115, 26, 0.3);
+  outline-offset: 3px;
+}
 .ctpRowMain {
   flex: 1;
   min-width: 0;
+  display: block;
 }
 .ctpRowTitle {
   display: flex;
@@ -301,9 +325,15 @@
   border-radius: 6px;
 }
 .ctpRowSub {
+  display: block;
   margin-top: 4px;
   font-size: 12.5px;
   color: #8a8372;
+}
+.ctpStats {
+  flex: none;
+  display: flex;
+  align-items: center;
 }
 .ctpStat {
   flex: none;
@@ -893,14 +923,107 @@
 }
 
 @media (max-width: 640px) {
+  .coachTeamsPage {
+    padding-top: 0;
+  }
+  .ctpHead {
+    align-items: stretch;
+    margin-bottom: 20px;
+  }
+  .ctpHead > div,
+  .ctpNewBtn {
+    width: 100%;
+  }
+  .ctpNewBtn {
+    min-height: 44px;
+    justify-content: center;
+  }
   .ctpBoard {
     flex-direction: column;
+    gap: 12px;
   }
   .ctpBoardSide {
     flex: 1 1 auto;
   }
   .ctpRow {
+    display: grid;
+    grid-template-columns: 22px minmax(0, 1fr) auto;
+    grid-template-areas:
+      "check identity identity"
+      "stats stats actions";
+    gap: 14px 12px;
+    padding: 16px;
+    border-radius: 16px;
+  }
+  .ctpCheck {
+    grid-area: check;
+    width: 22px;
+    height: 22px;
+    align-self: center;
+  }
+  .ctpRowOpen {
+    grid-area: identity;
+    gap: 12px;
+  }
+  .ctpAvatar {
+    width: 48px;
+    height: 48px;
+  }
+  .ctpRowTitle {
+    gap: 6px;
+  }
+  .ctpRowTitle strong {
+    font-size: 16px;
+  }
+  .ctpRowSub {
+    margin-top: 3px;
+    line-height: 1.4;
+  }
+  .ctpStats {
+    grid-area: stats;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(70px, 1fr));
+    background: #f7f4ec;
+    border: 1px solid #ece5d5;
+    border-radius: 12px;
+    padding: 7px 4px;
+  }
+  .ctpStat {
+    width: auto;
+    min-width: 0;
+  }
+  .ctpStat + .ctpStat {
+    border-left: 1px solid #e2dac7;
+  }
+  .ctpRowActions {
+    grid-area: actions;
+    align-self: stretch;
+  }
+  .ctpAssignBtn,
+  .ctpGearBtn {
+    min-height: 44px;
+  }
+  .ctpAssignBtn {
+    padding-inline: 14px;
+  }
+  .ctpGearBtn {
+    width: 44px;
+  }
+  .ctpModalScrim {
+    padding: 16px;
+  }
+  .ctpSlideHead {
+    padding: 20px 20px 16px;
+  }
+  .ctpSlideBody {
+    padding: 18px 20px 28px;
+  }
+  .ctpSlideFoot {
     flex-wrap: wrap;
+  }
+  .ctpFootBtn {
+    min-width: calc(50% - 5px);
+    min-height: 44px;
   }
   .ctpQuickModal,
   .ctpEditorModal,

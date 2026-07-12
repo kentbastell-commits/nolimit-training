@@ -108,6 +108,15 @@ export default function CoachLibraryPage(props: { [key: string]: any }) {
     setVisibleCount(BATCH);
   }, [libraryCategoryFilter, librarySearch]);
 
+  useEffect(() => {
+    if (!cueEx) return;
+    const closeDrawer = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setCueEx(null);
+    };
+    window.addEventListener("keydown", closeDrawer);
+    return () => window.removeEventListener("keydown", closeDrawer);
+  }, [cueEx]);
+
   // grow the window as the sentinel scrolls into view (no-dep virtualization)
   useEffect(() => {
     if (isAllView) return;
@@ -192,6 +201,7 @@ export default function CoachLibraryPage(props: { [key: string]: any }) {
               type="button"
               className="clIconBtn"
               title="Edit"
+              aria-label={`Edit ${e.exerciseName || "exercise"}`}
               onClick={() => openEditExerciseForm(e)}
             >
               <Pencil size={14} />
@@ -200,6 +210,7 @@ export default function CoachLibraryPage(props: { [key: string]: any }) {
               type="button"
               className="clIconBtn clIconDanger"
               title="Delete"
+              aria-label={`Delete ${e.exerciseName || "exercise"}`}
               onClick={() => deleteExercise(e)}
             >
               <Trash2 size={14} />
@@ -229,6 +240,7 @@ export default function CoachLibraryPage(props: { [key: string]: any }) {
             type="button"
             className="clReload"
             title="Reload"
+            aria-label="Reload exercise library"
             onClick={() => void loadExerciseLibrary(true)}
           >
             <RefreshCw size={16} />
@@ -272,6 +284,7 @@ export default function CoachLibraryPage(props: { [key: string]: any }) {
         <div className="clSearch">
           <Search size={16} />
           <input
+            aria-label="Search exercises"
             value={librarySearch}
             onChange={(e) => setLibrarySearch(e.target.value)}
             placeholder="Search exercise…"
@@ -373,6 +386,9 @@ export default function CoachLibraryPage(props: { [key: string]: any }) {
               return (
                 <motion.div
                   className="clSlide"
+                  role="dialog"
+                  aria-modal="true"
+                  aria-labelledby="cl-cue-title"
                   onClick={(ev) => ev.stopPropagation()}
                   initial={reduce ? { opacity: 0 } : { x: "100%" }}
                   animate={reduce ? { opacity: 1 } : { x: 0 }}
@@ -400,6 +416,7 @@ export default function CoachLibraryPage(props: { [key: string]: any }) {
                     <button
                       type="button"
                       className="clSlideClose"
+                      aria-label="Close exercise details"
                       onClick={() => setCueEx(null)}
                     >
                       <X size={17} />
@@ -422,7 +439,7 @@ export default function CoachLibraryPage(props: { [key: string]: any }) {
                     )}
                   </div>
                   <div className="clSlideBody">
-                    <h2>{e.exerciseName || "Exercise"}</h2>
+                    <h2 id="cl-cue-title">{e.exerciseName || "Exercise"}</h2>
                     {metaOf(e) && <div className="clSlideMeta">{metaOf(e)}</div>}
                     {e.longVideoUrl && (
                       <a

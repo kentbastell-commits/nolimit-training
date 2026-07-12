@@ -412,6 +412,16 @@
   border-color: #c0392b;
   color: #c0392b;
 }
+.clReload:focus-visible,
+.clAddBtn:focus-visible,
+.clChip:focus-visible,
+.clCueBtn:focus-visible,
+.clIconBtn:focus-visible,
+.clSlideClose:focus-visible,
+.clEditExerciseBtn:focus-visible {
+  outline: 3px solid rgba(181, 115, 26, 0.3);
+  outline-offset: 3px;
+}
 
 /* "view all" tile */
 .clMoreTile {
@@ -653,6 +663,21 @@
 }
 
 @media (max-width: 640px) {
+  .coachLibraryPage {
+    padding-top: 0;
+  }
+  .clHead {
+    align-items: stretch;
+  }
+  .clHead > div,
+  .clHeadActions {
+    width: 100%;
+  }
+  .clAddBtn {
+    flex: 1;
+    min-height: 44px;
+    justify-content: center;
+  }
   .clBoard {
     flex-direction: column;
   }
@@ -661,5 +686,14 @@
   }
   .clSlide {
     width: 100%;
+  }
+  .clCueBtn,
+  .clIconBtn,
+  .clSlideClose {
+    min-height: 44px;
+  }
+  .clIconBtn,
+  .clSlideClose {
+    width: 44px;
   }
 }

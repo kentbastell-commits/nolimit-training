@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import CoachLibraryPage from "../../../src/CoachLibraryPage";
 
 const baseProps = {
@@ -56,5 +56,33 @@ describe("CoachLibraryPage", () => {
     );
     fireEvent.click(screen.getByRole("button", { name: "Add exercise" }));
     expect(openNewExerciseForm).toHaveBeenCalledTimes(1);
+  });
+
+  it("presents exercise details as a dialog that closes with Escape", async () => {
+    const exercise = {
+      recordId: "r1",
+      exerciseId: "EX-1",
+      exerciseName: "Back Squat",
+      category: "Squat",
+      notes: "Setup:\nBrace before descending.",
+      videoUrl: "",
+    };
+    render(
+      <CoachLibraryPage
+        {...baseProps}
+        filteredLibraryExercises={[exercise]}
+        groupedLibraryExercises={[["Squat", [exercise]]]}
+        libraryExercises={[exercise]}
+      />
+    );
+
+    fireEvent.click(screen.getByText("Back Squat"));
+    expect(
+      screen.getByRole("dialog", { name: "Back Squat" })
+    ).toBeInTheDocument();
+    fireEvent.keyDown(window, { key: "Escape" });
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
+    );
   });
 });

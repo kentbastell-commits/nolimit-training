@@ -71,6 +71,18 @@ const baseProps = {
   visibleTeams: [],
 };
 
+const team = {
+  id: "team-1",
+  name: "QA Squad",
+  coach: "Kent",
+  focus: "Strength",
+  groups: ["Forwards"],
+  memberCount: 0,
+  memberIds: [],
+  notes: "",
+  positions: {},
+};
+
 describe("CoachTeamsPage", () => {
   it("renders the teams page with an empty state", () => {
     render(<CoachTeamsPage {...baseProps} />);
@@ -88,5 +100,38 @@ describe("CoachTeamsPage", () => {
     render(<CoachTeamsPage {...baseProps} openNewTeam={openNewTeam} />);
     fireEvent.click(screen.getByRole("button", { name: /New team/i }));
     expect(openNewTeam).toHaveBeenCalledTimes(1);
+  });
+
+  it("opens a squad from a clearly labelled keyboard-accessible control", () => {
+    const setSelectedTeamId = vi.fn();
+    render(
+      <CoachTeamsPage
+        {...baseProps}
+        sortedTeams={[team]}
+        teams={[team]}
+        setSelectedTeamId={setSelectedTeamId}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Open QA Squad" }));
+    expect(setSelectedTeamId).toHaveBeenCalledWith("team-1");
+  });
+
+  it("labels the team detail as a dialog and closes it with Escape", () => {
+    const setSelectedTeamId = vi.fn();
+    render(
+      <CoachTeamsPage
+        {...baseProps}
+        selectedTeam={team}
+        teams={[team]}
+        setSelectedTeamId={setSelectedTeamId}
+      />
+    );
+
+    expect(
+      screen.getByRole("dialog", { name: "QA Squad" })
+    ).toBeInTheDocument();
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(setSelectedTeamId).toHaveBeenCalledWith("");
   });
 });

@@ -5,6 +5,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import "./CoachTeamsPage.css";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { useEffect } from "react";
 import {
   Pencil,
   Plus,
@@ -129,6 +130,27 @@ export default function CoachTeamsPage(props: { [key: string]: any }) {
     ? allTeams.find((t) => t.id === teamQuickAssignId)
     : null;
 
+  useEffect(() => {
+    if (!editingTeam && !quickTeam && !detailOpen) return;
+
+    const closeTopLayer = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      if (editingTeam) setEditingTeam(false);
+      else if (quickTeam) setTeamQuickAssignId("");
+      else setSelectedTeamId("");
+    };
+
+    window.addEventListener("keydown", closeTopLayer);
+    return () => window.removeEventListener("keydown", closeTopLayer);
+  }, [
+    detailOpen,
+    editingTeam,
+    quickTeam,
+    setEditingTeam,
+    setSelectedTeamId,
+    setTeamQuickAssignId,
+  ]);
+
   const openQuickAssign = (team: any) => {
     setTeamQuickAssignId(team.id);
     setTeamQuickProgramId("");
@@ -210,6 +232,7 @@ export default function CoachTeamsPage(props: { [key: string]: any }) {
           {teamBulkPanel === "program" && (
             <div className="ctpBulkPanel">
               <select
+                aria-label="Program to assign to selected squads"
                 value={teamBulkProgramId}
                 onChange={(e) => setTeamBulkProgramId(e.target.value)}
               >
@@ -221,6 +244,7 @@ export default function CoachTeamsPage(props: { [key: string]: any }) {
                 ))}
               </select>
               <input
+                aria-label="Assignment start date"
                 type="date"
                 value={teamBulkStartDate}
                 onChange={(e) => setTeamBulkStartDate(e.target.value)}
@@ -267,15 +291,12 @@ export default function CoachTeamsPage(props: { [key: string]: any }) {
           <div
             key={team.id}
             className="ctpRow"
-            onClick={() => {
-              setEditingTeam(false);
-              setSelectedTeamId(team.id);
-            }}
           >
             <button
               type="button"
               className={`ctpCheck${selected ? " on" : ""}`}
               title="Select squad"
+              aria-label={`${selected ? "Deselect" : "Select"} ${team.name}`}
               onClick={(e) => {
                 e.stopPropagation();
                 toggleTeamSelect(team.id);
@@ -296,29 +317,41 @@ export default function CoachTeamsPage(props: { [key: string]: any }) {
                 </svg>
               )}
             </button>
-            <div className="ctpAvatar">{initialsOf(team.name)}</div>
-            <div className="ctpRowMain">
-              <div className="ctpRowTitle">
-                <strong>{team.name}</strong>
-                {focus && <span className="ctpFocusChip">{focus}</span>}
+            <button
+              type="button"
+              className="ctpRowOpen"
+              aria-label={`Open ${team.name}`}
+              onClick={() => {
+                setEditingTeam(false);
+                setSelectedTeamId(team.id);
+              }}
+            >
+              <span className="ctpAvatar">{initialsOf(team.name)}</span>
+              <span className="ctpRowMain">
+                <span className="ctpRowTitle">
+                  <strong>{team.name}</strong>
+                  {focus && <span className="ctpFocusChip">{focus}</span>}
+                </span>
+                <span className="ctpRowSub">
+                  {(team.coach || currentCoachName || "—") +
+                    " · " +
+                    (groups.length
+                      ? `${groups.length} group${groups.length === 1 ? "" : "s"}`
+                      : "no groups")}
+                </span>
+              </span>
+            </button>
+            <div className="ctpStats" aria-label="Squad totals">
+              <div className="ctpStat">
+                <strong>{team.memberCount}</strong>
+                <span>Athletes</span>
               </div>
-              <div className="ctpRowSub">
-                {(team.coach || currentCoachName || "—") +
-                  " · " +
-                  (groups.length
-                    ? `${groups.length} group${groups.length === 1 ? "" : "s"}`
-                    : "no groups")}
+              <div className="ctpStat">
+                <strong>{teamPlannedCounts[team.id] ?? 0}</strong>
+                <span>Planned</span>
               </div>
             </div>
-            <div className="ctpStat">
-              <strong>{team.memberCount}</strong>
-              <span>Athletes</span>
-            </div>
-            <div className="ctpStat">
-              <strong>{teamPlannedCounts[team.id] ?? 0}</strong>
-              <span>Planned</span>
-            </div>
-            <div className="ctpRowActions" onClick={(e) => e.stopPropagation()}>
+            <div className="ctpRowActions">
               <button
                 type="button"
                 className="ctpAssignBtn"
@@ -330,6 +363,7 @@ export default function CoachTeamsPage(props: { [key: string]: any }) {
                 type="button"
                 className="ctpGearBtn"
                 title="Edit team"
+                aria-label={`Edit ${team.name}`}
                 onClick={() => openTeamEditor(team)}
               >
                 <Settings size={15} />
@@ -350,6 +384,9 @@ export default function CoachTeamsPage(props: { [key: string]: any }) {
           >
             <motion.div
               className="ctpQuickModal"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="ctp-quick-title"
               onClick={(e) => e.stopPropagation()}
               initial={reduce ? { opacity: 0 } : { opacity: 0, y: 16, scale: 0.985 }}
               animate={reduce ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
@@ -359,11 +396,12 @@ export default function CoachTeamsPage(props: { [key: string]: any }) {
               <div className="ctpModalHead">
                 <div>
                   <span className="ctpEyebrow">Assign program</span>
-                  <h2>{quickTeam.name}</h2>
+                  <h2 id="ctp-quick-title">{quickTeam.name}</h2>
                 </div>
                 <button
                   type="button"
                   className="ctpModalClose"
+                  aria-label="Close program assignment"
                   onClick={() => setTeamQuickAssignId("")}
                 >
                   <X size={18} />
@@ -439,6 +477,9 @@ export default function CoachTeamsPage(props: { [key: string]: any }) {
           >
             <motion.div
               className="ctpSlide"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="ctp-detail-title"
               onClick={(e) => e.stopPropagation()}
               initial={reduce ? { opacity: 0 } : { x: "100%" }}
               animate={reduce ? { opacity: 1 } : { x: 0 }}
@@ -451,6 +492,7 @@ export default function CoachTeamsPage(props: { [key: string]: any }) {
                     type="button"
                     onClick={() => setSelectedTeamId("")}
                     title="Close"
+                    aria-label="Close team details"
                   >
                     <X size={17} />
                   </button>
@@ -461,7 +503,7 @@ export default function CoachTeamsPage(props: { [key: string]: any }) {
                   </div>
                   <div>
                     <span className="ctpEyebrow">Team</span>
-                    <h2>{selectedTeam.name}</h2>
+                    <h2 id="ctp-detail-title">{selectedTeam.name}</h2>
                     <div className="ctpSlideSub">
                       {(selectedTeam.coach || currentCoachName || "—") +
                         " · " +
@@ -582,6 +624,7 @@ export default function CoachTeamsPage(props: { [key: string]: any }) {
                   {selectedTeamSubgroups.length > 0 && (
                     <select
                       className="ctpAssignSelect"
+                      aria-label="Athletes to include"
                       value={teamAssignSubgroup}
                       onChange={(e) => applyAssignSubgroup(e.target.value)}
                     >
@@ -595,6 +638,7 @@ export default function CoachTeamsPage(props: { [key: string]: any }) {
                   )}
                   <select
                     className="ctpAssignSelect"
+                    aria-label="Program to assign"
                     value={teamAssignProgramId}
                     onChange={(e) => setTeamAssignProgramId(e.target.value)}
                   >
@@ -607,6 +651,7 @@ export default function CoachTeamsPage(props: { [key: string]: any }) {
                   </select>
                   <input
                     className="ctpAssignSelect"
+                    aria-label="Assignment start date"
                     type="date"
                     value={teamAssignStartDate}
                     onChange={(e) => setTeamAssignStartDate(e.target.value)}
@@ -669,6 +714,9 @@ export default function CoachTeamsPage(props: { [key: string]: any }) {
           >
             <motion.div
               className="ctpEditorModal"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="ctp-editor-title"
               onClick={(e) => e.stopPropagation()}
               initial={reduce ? { opacity: 0 } : { opacity: 0, y: 16, scale: 0.985 }}
               animate={reduce ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
@@ -678,11 +726,14 @@ export default function CoachTeamsPage(props: { [key: string]: any }) {
               <div className="ctpModalHead ctpEditorHead">
                 <div>
                   <span className="ctpEyebrow">Squad</span>
-                  <h2>{selectedTeam ? "Edit team" : "New team"}</h2>
+                  <h2 id="ctp-editor-title">
+                    {selectedTeam ? "Edit team" : "New team"}
+                  </h2>
                 </div>
                 <button
                   type="button"
                   className="ctpModalClose"
+                  aria-label="Close team editor"
                   onClick={() => setEditingTeam(false)}
                 >
                   <X size={18} />
@@ -826,6 +877,7 @@ export default function CoachTeamsPage(props: { [key: string]: any }) {
                         {selected && teamDraft.groups.length > 0 && (
                           <select
                             className="ctpPickCat"
+                            aria-label={`${client.name} category`}
                             value={teamDraft.positions[client.id] || ""}
                             onChange={(e) =>
                               setMemberPosition(client.id, e.target.value)
