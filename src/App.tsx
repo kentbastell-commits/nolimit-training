@@ -437,7 +437,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   const [storeSeasonFilter, setStoreSeasonFilter] = useState("all");
   const [storeProgramSearch, setStoreProgramSearch] = useState("");
   // Which store FAQ row is expanded (accordion; null = all collapsed).
-  const [storeFaqOpen, setStoreFaqOpen] = useState<number | null>(0);
+  const [storeFaqOpen, setStoreFaqOpen] = useState<number | null>(null);
   const [storeRegName, setStoreRegName] = useState("");
   const [storeRegPhone, setStoreRegPhone] = useState("");
   const [storeRegistering, setStoreRegistering] = useState(false);
@@ -9479,10 +9479,6 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     window.setTimeout(() => setBuilderSaveStatus("saved"), 0);
   };
 
-  const addCurrentSessionToProgram = () => {
-    saveCurrentSessionToProgram(true, builderMode !== "Single Workout");
-  };
-
   const reorderProgramSession = (sourceId: string, targetId: string) => {
     if (!sourceId || !targetId || sourceId === targetId) return;
 
@@ -18519,7 +18515,6 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                 programSessionDropId={programSessionDropId}
                 activeWorkoutTabValue={activeWorkoutTabValue}
                 addAlternateExercise={addAlternateExercise}
-                addCurrentSessionToProgram={addCurrentSessionToProgram}
                 addExerciseToProgram={addExerciseToProgram}
                 addFormQuestion={addFormQuestion}
                 addMobileDayToWeek={addMobileDayToWeek}

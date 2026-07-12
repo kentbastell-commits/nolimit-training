@@ -357,6 +357,141 @@
 .storePageV3 .storeContactV2 .storeContactCopyV3 h2,
 .storePageV3 .storeContactV2 h2 { color: #f5f1e8; }
 
+/* Conversion-length pass: tighter vertical rhythm and compact proof grids. */
+.storeHeroV3 { padding-top: 70px; padding-bottom: 76px; }
+.storePageV3 .storeFeaturedV3 { padding-top: 62px; }
+.storePageV3 #catalog { padding-top: 44px; padding-bottom: 30px; }
+.storePageV3 .storeHowV2,
+.storePageV3 .storeTestimonials,
+.storePageV3 .storeFaqV2 { padding-top: 62px; padding-bottom: 62px; }
+.storePageV3 .storeShowcaseV2 { padding-top: 62px; padding-bottom: 62px; }
+.storePageV3 .storeShowcaseGridV2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 28px;
+}
+.storePageV3 .storeShowcaseItemV2 {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  text-align: center;
+}
+.storePageV3 .storeShowcaseItemV2:nth-child(even) .storeShowcaseShot { order: 0; }
+.storePageV3 .storeShowcaseShot img { width: 196px; height: 402px; border-radius: 32px; }
+.storePageV3 .storeShowcaseItemV2 figcaption strong { font-size: 32px; }
+.storePageV3 .storeShowcaseItemV2 figcaption span { margin-left: auto; margin-right: auto; }
+.storeCoachV3 { padding-top: 66px; padding-bottom: 66px; }
+.storeCoachIntroV3 { margin-bottom: 32px; }
+.storeCoachPillarsV3 { margin-top: 26px; }
+.storePageV3 .storeContactV2 { padding-top: 58px; padding-bottom: 58px; }
+
+@media (max-width: 900px) {
+  .storeHeroV3 { padding: 44px 20px 52px; }
+  .storeHeroInnerV3 { gap: 24px; }
+  .storeHeroStageV3 { height: 322px; align-items: flex-start; }
+  .storeHeroPhoneV3 { width: 150px; height: 308px; border-radius: 26px; padding: 6px; }
+  .storeHeroPhoneScreenV3 { border-radius: 21px; }
+  .storeHeroChipV3 { bottom: 34px; right: calc(50% - 128px); padding: 8px 10px; }
+  .storeHeroChipBigV3 { font-size: 23px; }
+  .storeHeroTitleV3 { font-size: 48px; }
+  .storeHeroLeadV3 { margin-top: 17px; font-size: 15px; line-height: 1.5; }
+  .storeHeroCtasV3 { margin-top: 24px; }
+  .storePageV3 .storeFeaturedV3,
+  .storePageV3 #catalog,
+  .storePageV3 .storeHowV2,
+  .storePageV3 .storeShowcaseV2,
+  .storePageV3 .storeTestimonials,
+  .storePageV3 .storeFaqV2 { padding-top: 42px; padding-bottom: 42px; }
+  .storePageV3 .storeSectionIntroV2 { margin-bottom: 22px; }
+  .storePageV3 .storeFeaturedGridV3,
+  .storePageV3 .storeCatalogueGridV2,
+  .storePageV3 .storeHowGridV2,
+  .storePageV3 .storeShowcaseGridV2,
+  .storePageV3 .storeTestimonialsGrid {
+    display: flex;
+    gap: 14px;
+    overflow-x: auto;
+    padding: 2px 14vw 14px 1px;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    overscroll-behavior-x: contain;
+  }
+  .storePageV3 .storeFeaturedGridV3::-webkit-scrollbar,
+  .storePageV3 .storeCatalogueGridV2::-webkit-scrollbar,
+  .storePageV3 .storeHowGridV2::-webkit-scrollbar,
+  .storePageV3 .storeShowcaseGridV2::-webkit-scrollbar,
+  .storePageV3 .storeTestimonialsGrid::-webkit-scrollbar { display: none; }
+  .storePageV3 .storeFeaturedCardV3 {
+    flex: 0 0 80vw;
+    max-width: 330px;
+    min-height: 150px;
+    scroll-snap-align: start;
+  }
+  .storePageV3 .storeCategoryCardV2 {
+    flex: 0 0 43vw;
+    max-width: 190px;
+    min-height: 122px;
+    gap: 14px;
+    scroll-snap-align: start;
+  }
+  .storePageV3 .storeHowStepV2 {
+    flex: 0 0 78vw;
+    max-width: 330px;
+    min-height: 230px;
+    padding: 26px;
+    scroll-snap-align: start;
+  }
+  .storePageV3 .storeHowNumV2 { font-size: 52px; }
+  .storePageV3 .storeShowcaseItemV2 {
+    flex: 0 0 80vw;
+    max-width: 340px;
+    gap: 20px;
+    scroll-snap-align: start;
+  }
+  .storePageV3 .storeShowcaseShot img { width: 170px; height: 348px; }
+  .storePageV3 .storeShowcaseItemV2 figcaption strong { font-size: 29px; }
+  .storePageV3 .storeTestimonial {
+    flex: 0 0 80vw;
+    max-width: 330px;
+    scroll-snap-align: start;
+  }
+  .storeCoachV3 { padding: 46px 22px; }
+  .storeCoachIntroV3 { margin-bottom: 24px; }
+  .storeCoachIntroV3 h2 { font-size: 40px; }
+  .storeCoachGridV3,
+  .storeCoachGridV3.storeCoachGridSoloV3 {
+    display: flex;
+    justify-content: flex-start;
+    gap: 14px;
+    max-width: none;
+    overflow-x: auto;
+    padding: 2px 14vw 12px 1px;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+  }
+  .storeCoachGridV3::-webkit-scrollbar { display: none; }
+  .storeCoachCardV3 {
+    flex: 0 0 80vw;
+    max-width: 330px;
+    padding: 22px;
+    scroll-snap-align: start;
+  }
+  .storeCoachPillarsV3 {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding: 2px 14vw 10px 1px;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+  }
+  .storeCoachPillarsV3::-webkit-scrollbar { display: none; }
+  .storeCoachPillarV3 { flex: 0 0 76vw; max-width: 310px; scroll-snap-align: start; }
+  .storePageV3 .storeFaqItemV2 { padding-left: 17px; padding-right: 17px; }
+  .storePageV3 .storeContactV2 { padding-top: 42px; padding-bottom: 42px; }
+  .storePageV3 .storeContactV2 h2 { font-size: 40px; }
+  .storePageV3 .storeContactQrV2 { width: 142px; height: 142px; }
+}
+
 /* ============================================================
    Catalog popups — Level 1 sport list + Level 2 program detail
    Desktop: centered 720px modal. Mobile: bottom sheet.

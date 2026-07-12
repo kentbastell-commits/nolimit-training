@@ -147,6 +147,9 @@ data between them, never "borrow" a table ID across products.
     `status.includes("paid")` check as authorization to fulfil (the latter also
     matches `Unpaid`). Rule: create `Pending`; unlock server-side only when the
     normalized payment status is exactly `Paid` after coach/provider verification.
+23. **The save-label collision** — showing several nearby “Save” actions that
+    persist different scopes. Rule: keep one primary action per surface and name
+    it by scope (`Done`, `Save Day`, `Save Program`) so the outcome is predictable.
 
 ## Quality bar — checkable, per deliverable
 

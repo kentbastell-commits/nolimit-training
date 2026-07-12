@@ -45,7 +45,6 @@ export default function CoachBuilderPage({
   usePercentExerciseIndexes,
   activeWorkoutTabValue,
   addAlternateExercise,
-  addCurrentSessionToProgram,
   addExerciseToProgram,
   addFormQuestion,
   addMobileDayToWeek,
@@ -2174,9 +2173,18 @@ export default function CoachBuilderPage({
                     )}
                     <button
                       className="goldButton sessionSaveButton"
-                      onClick={addCurrentSessionToProgram}
+                      disabled={savingTemplate}
+                      onClick={() =>
+                        isSingleWorkoutBuilder
+                          ? void saveFullProgram()
+                          : saveCurrentSessionToProgram(true, false)
+                      }
                     >
-                      {isSingleWorkoutBuilder ? "Save" : "Save & Next"}
+                      {savingTemplate
+                        ? "Saving…"
+                        : isSingleWorkoutBuilder
+                          ? "Save Workout"
+                          : "Save Day"}
                     </button>
                   </div>
                 </div>
@@ -2865,21 +2873,10 @@ export default function CoachBuilderPage({
                             Cancel
                           </button>
                           <button
-                            className="outlineButton"
-                            onClick={() => saveCurrentSessionToProgram(false, false)}
-                          >
-                            Save
-                          </button>
-                          <button
                             className="goldButton"
-                            onClick={() => {
-                              saveCurrentSessionToProgram(false, false);
-                              if (selectedProgramExercises.length > 0) {
-                                setIsBuilderLibraryOpen(false);
-                              }
-                            }}
+                            onClick={() => setIsBuilderLibraryOpen(false)}
                           >
-                            Save & Close
+                            Done
                           </button>
                         </div>
                       </section>
@@ -3494,41 +3491,6 @@ export default function CoachBuilderPage({
                   );
                 })}
 
-                {selectedProgramExercises.length > 0 && (
-                  <div className="builderSessionSaveBar">
-                    <div>
-                      <strong>
-                        {isSingleWorkoutBuilder
-                          ? editingProgramSessionId
-                            ? "Editing workout"
-                            : "New workout"
-                          : editingProgramSessionId
-                          ? "Editing day"
-                          : "New day"}
-                      </strong>
-                      <span>
-                        {isSingleWorkoutBuilder
-                          ? programName || "Untitled Workout"
-                          : `Week ${programWeek || "--"} / Day ${
-                              programDay || "--"
-                            }: ${sessionName || "Untitled Session"}`}
-                      </span>
-                    </div>
-                    <div>
-                      {!isSingleWorkoutBuilder && (
-                        <button
-                          className="outlineButton"
-                          onClick={() => saveCurrentSessionToProgram(true, false)}
-                        >
-                          Save Day
-                        </button>
-                      )}
-                      <button className="goldButton" onClick={addCurrentSessionToProgram}>
-                        {isSingleWorkoutBuilder ? "Save" : "Save & Next"}
-                      </button>
-                    </div>
-                  </div>
-                )}
                 </div>
 
                 {isSingleWorkoutBuilder && (
@@ -3646,19 +3608,19 @@ export default function CoachBuilderPage({
                 </>
                 )}
 
-                <button
-                  className="goldButton saveWorkoutButton"
-                  onClick={saveFullProgram}
-                  disabled={savingTemplate}
-                >
-                  {savingTemplate
-                    ? "Saving..."
-                    : isSingleWorkoutBuilder
-                    ? "Save Workout"
-                    : editProgramRecordId
-                    ? "Update Program"
-                    : "Save Full Program"}
-                </button>
+                {!isSingleWorkoutBuilder && (
+                  <button
+                    className="goldButton saveWorkoutButton"
+                    onClick={saveFullProgram}
+                    disabled={savingTemplate}
+                  >
+                    {savingTemplate
+                      ? "Saving..."
+                      : editProgramRecordId
+                        ? "Update Program"
+                        : "Save Program"}
+                  </button>
+                )}
               </section>
                 )}
 
@@ -3943,22 +3905,13 @@ export default function CoachBuilderPage({
                                 {savingTemplate ? "Saving…" : "Save"}
                               </button>
                             ) : (
-                              <>
-                                <button
-                                  className="outlineButton"
-                                  disabled={savingTemplate}
-                                  onClick={saveMobileProgramDay}
-                                >
-                                  Save Day
-                                </button>
-                                <button
-                                  className="goldButton"
-                                  disabled={savingTemplate}
-                                  onClick={finishMobileProgram}
-                                >
-                                  {savingTemplate ? "Saving…" : "Finish"}
-                                </button>
-                              </>
+                              <button
+                                className="goldButton"
+                                disabled={savingTemplate}
+                                onClick={saveMobileProgramDay}
+                              >
+                                Save Day
+                              </button>
                             )}
                           </div>
                         </>
@@ -4225,7 +4178,11 @@ export default function CoachBuilderPage({
                             disabled={savingTemplate}
                             onClick={finishMobileProgram}
                           >
-                            {savingTemplate ? "Saving…" : "Finish & Save"}
+                            {savingTemplate
+                              ? "Saving…"
+                              : editProgramRecordId
+                                ? "Update Program"
+                                : "Save Program"}
                           </button>
                         </div>
                       </section>
