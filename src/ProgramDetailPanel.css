@@ -143,6 +143,10 @@
   gap: 14px;
   margin-bottom: 22px;
 }
+/* Single-session variant: one full-width Focus card. */
+.pdpMetaSession {
+  grid-template-columns: 1fr;
+}
 .pdpTile {
   display: flex;
   align-items: center;

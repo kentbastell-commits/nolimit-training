@@ -4527,56 +4527,11 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     }
   };
 
-  const savedProgramSessions = Array.from(
-    savedProgramTemplates
-      .reduce((sessions, template) => {
-        const key = `${template.week}-${template.day}-${template.sessionName}`;
-
-        if (!sessions.has(key)) {
-          sessions.set(key, {
-            localId: key,
-            week: String(template.week),
-            day: String(template.day),
-            sessionName: template.sessionName,
-            sessionType: template.sessionType || "Strength",
-            sessionGoal: template.sessionGoal || "",
-            estimatedDuration: template.estimatedDuration || "",
-            intensity: template.intensity || "Moderate",
-            isSingleWorkout: Boolean(template.isSingleWorkout),
-            exercises: [] as ProgramExercise[],
-          });
-        }
-
-        const baseExercise: ProgramExercise = {
-          exerciseRecordId: "",
-          exerciseId: template.exerciseId,
-          exerciseName: template.exerciseName,
-          order: template.order,
-          sectionName: "Main",
-          exerciseLabel: makeExerciseLabel(
-            sessions.get(key)?.exercises.length || 0
-          ),
-          sets: "",
-          reps: "",
-          load: "",
-          tempo: "",
-          rest: "",
-          coachingNotes: "",
-          trackingType: "Weight",
-          isUnilateral: false,
-          groupType: "Straight",
-          groupName: "",
-        };
-
-        sessions.get(key)?.exercises.push(withNormalizedSetFields(baseExercise));
-
-        return sessions;
-      }, new Map<string, ProgramSession>())
-      .values()
-  ).sort((a, b) => {
-    if (Number(a.week) !== Number(b.week)) return Number(a.week) - Number(b.week);
-    return Number(a.day) - Number(b.day);
-  });
+  // Same rich mapper the preview/session-library use — parses the notes meta
+  // so the detail panel gets real sections, labels, and full prescriptions
+  // (the old inline reducer hardcoded sectionName "Main" and empty sets/reps,
+  // which rendered the at-a-glance chain grey and bare).
+  const savedProgramSessions = buildSessionsFromTemplates(savedProgramTemplates);
 
   const loadSavedProgramTemplates = async (programId: string) => {
     if (!programId) return;
@@ -4831,9 +4786,11 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   // Group the flat per-exercise template rows into builder sessions. The rows
   // already carry the full prescription (sets/reps/tempo/rest/notes), so this
   // needs no extra round-trips.
-  const buildSessionsFromTemplates = (
+  // Function declaration (hoisted) — savedProgramSessions calls this during
+  // render above this point in the file.
+  function buildSessionsFromTemplates(
     templates: SavedProgramTemplate[]
-  ): ProgramSession[] => {
+  ): ProgramSession[] {
     const map = new Map<string, ProgramSession>();
     [...templates]
       .sort(
@@ -4893,7 +4850,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
         session.exercises.push(withNormalizedSetFields(baseExercise));
       });
     return [...map.values()];
-  };
+  }
 
   const fetchProgramSessions = async (
     programId: string,

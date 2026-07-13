@@ -161,7 +161,10 @@ export default function ProgramDetailPanel({
         0
       );
 
-  const focus = p.sessionType || "Strength";
+  // The session builder's "Focus" dropdown value (stored as sessionType on
+  // the record; fall back to the built day's own type).
+  const focus =
+    p.sessionType || weeks[0]?.days[0]?.session?.sessionType || "Strength";
 
   const openAssign = () => {
     if (!savedAssignClientId) return;
@@ -277,23 +280,45 @@ export default function ProgramDetailPanel({
           </div>
         </div>
 
-        {/* meta tiles */}
-        <div className="pdpMeta pdpRise" style={{ animationDelay: ".04s" }}>
-          {META_TILES.map((m) => (
+        {/* meta tiles — a single workout gets ONE card (its Focus); the six
+            program facts are all constants for sessions and just add noise. */}
+        <div
+          className={`pdpMeta${isSession ? " pdpMetaSession" : ""} pdpRise`}
+          style={{ animationDelay: ".04s" }}
+        >
+          {isSession ? (
             <div
               className="pdpTile"
-              key={m.key}
-              style={{ background: m.tint, borderColor: m.border }}
+              style={{
+                background: `${focusHex(focus)}14`,
+                borderColor: `${focusHex(focus)}40`,
+              }}
             >
-              <span className="pdpTileIcon" style={{ color: m.hue }}>
-                <m.Icon size={18} strokeWidth={2.4} />
+              <span className="pdpTileIcon" style={{ color: focusHex(focus) }}>
+                <Target size={18} strokeWidth={2.4} />
               </span>
               <div className="pdpTileText">
-                <span>{m.label}</span>
-                <strong>{metaValues[m.key]}</strong>
+                <span>Focus</span>
+                <strong>{focus}</strong>
               </div>
             </div>
-          ))}
+          ) : (
+            META_TILES.map((m) => (
+              <div
+                className="pdpTile"
+                key={m.key}
+                style={{ background: m.tint, borderColor: m.border }}
+              >
+                <span className="pdpTileIcon" style={{ color: m.hue }}>
+                  <m.Icon size={18} strokeWidth={2.4} />
+                </span>
+                <div className="pdpTileText">
+                  <span>{m.label}</span>
+                  <strong>{metaValues[m.key]}</strong>
+                </div>
+              </div>
+            ))
+          )}
         </div>
 
         {/* assign hero */}
