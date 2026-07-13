@@ -12241,6 +12241,8 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   box-shadow: none !important;
 }
 
+/* Tone headers: soft warm inset, no hard accent bar — matches the cream/white
+   card system used everywhere else in the coach console. */
 .app:not(.clientPortalApp) .programLandingHeader,
 .app:not(.clientPortalApp) .builderHubHeader,
 .app:not(.clientPortalApp) .builderToneHeader,
@@ -12248,8 +12250,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 .app:not(.clientPortalApp) .exerciseFormModal .modal-header {
   background: #f4f2ed !important;
   border: 1px solid #dcd8cd !important;
-  border-left: 4px solid #1a1a1a !important;
-  border-radius: 10px !important;
+  border-radius: 14px !important;
   box-shadow: none !important;
 }
 

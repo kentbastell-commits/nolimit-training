@@ -233,6 +233,17 @@ export default function PortalPrograms(props: { [key: string]: any }) {
             })}
           </div>
         ))}
+
+        {/* Ghost CTA to the store — gives short/empty lists a next step. */}
+        <button
+          type="button"
+          className="ppBrowseStoreBtn"
+          onClick={() => setView("store")}
+        >
+          <Store size={16} />
+          {paceZh ? "浏览商店，发现更多训练计划" : "Browse the store for more programs"}
+          <ChevronRight size={16} />
+        </button>
       </motion.div>
     );
   }

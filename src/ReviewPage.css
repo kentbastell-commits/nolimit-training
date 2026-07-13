@@ -478,6 +478,63 @@ button.rvItem:focus-visible {
 .rvItemSubmission::before {
   background: #5e8a86; /* Dusty Teal — submissions */
 }
+/* Missed tasks grouped per client — summary row + collapsible item list. */
+.rvMissGroup {
+  background: #fff;
+  border: 1px solid #dcd8cd;
+  border-radius: 0.7rem;
+  overflow: hidden;
+  align-self: start;
+}
+.rvMissSummary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0.7rem 0.8rem;
+  min-height: 44px;
+}
+.rvMissSummary::-webkit-details-marker {
+  display: none;
+}
+.rvMissSummary strong {
+  font-size: 14.5px;
+  color: #10100f;
+}
+.rvMissSummary span {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 900;
+  color: #c0392b;
+  background: #fbeae7;
+  border-radius: 999px;
+  padding: 3px 9px;
+}
+.rvMissSummary::after {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid #66645e;
+  border-bottom: 2px solid #66645e;
+  transform: rotate(45deg);
+  transition: transform 0.15s ease;
+  flex: 0 0 auto;
+  margin-top: -4px;
+}
+.rvMissGroup[open] .rvMissSummary::after {
+  transform: rotate(-135deg);
+  margin-top: 4px;
+}
+.rvMissList {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0 0.55rem 0.55rem;
+}
+.rvMissList .rvItem {
+  min-height: 0;
+}
+
 .rvItemKicker {
   color: #66645e;
   font-size: 10.5px;

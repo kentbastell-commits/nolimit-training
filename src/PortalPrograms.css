@@ -47,6 +47,31 @@
   cursor: pointer;
 }
 .ppStoreBtn:hover { border-color: #d4af37; }
+/* Ghost "browse the store" CTA at the end of the program list. */
+.ppBrowseStoreBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  width: 100%;
+  min-height: 52px;
+  margin-top: 6px;
+  border: 1.5px dashed #cfc7b4;
+  border-radius: 14px;
+  background: transparent;
+  color: #6b6459;
+  font: inherit;
+  font-size: 14.5px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+.ppBrowseStoreBtn:hover,
+.ppBrowseStoreBtn:focus-visible {
+  border-color: #b5731a;
+  color: #b5731a;
+  outline: none;
+}
 .ppGroup { display: flex; flex-direction: column; gap: 10px; }
 .ppGroupHead {
   display: flex;

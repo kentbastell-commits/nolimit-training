@@ -2423,6 +2423,17 @@
 .programLandingActions .goldButton {
   height: 44px;
 }
+@media (max-width: 720px) {
+  /* Stops the lone Refresh pill floating centered with dead space around it. */
+  .programLandingActions {
+    width: 100%;
+  }
+  .programLandingActions .outlineButton,
+  .programLandingActions .goldButton {
+    flex: 1;
+    justify-content: center;
+  }
+}
 
 /* card-row table */
 .programLibraryStack { display: block; }

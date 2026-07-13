@@ -524,21 +524,47 @@ export default function ReviewPage({
           )}
           {openReviewSections.missed && (
             <div className="rvGrid">
-              {globalMissedWorkouts.map((workout: any) => (
-                <button
-                  type="button"
-                  key={`missed-${workout.assignedWorkoutId || workout.id}`}
-                  className="rvItem rvItemMissed"
-                  onClick={() => openReviewWorkout(workout)}
-                >
-                  <span className="rvItemKicker">Missed workout</span>
-                  <strong>{workout.sessionName || "Workout"}</strong>
-                  <small>
-                    {normalizeDate(String(workout.scheduledDate)) || "—"} ·{" "}
-                    {clientLabel(workout.clientId)}
-                  </small>
-                </button>
-              ))}
+              {(() => {
+                // One collapsible group per client — a 16-card wall repeating
+                // the same three names buries the rest of the queue.
+                const groups = new Map<string, any[]>();
+                globalMissedWorkouts.forEach((w: any) => {
+                  const label = clientLabel(w.clientId) || "Unknown client";
+                  if (!groups.has(label)) groups.set(label, []);
+                  groups.get(label)!.push(w);
+                });
+                return Array.from(groups.entries())
+                  .sort((a, b) => b[1].length - a[1].length)
+                  .map(([label, items]) => (
+                    <details
+                      className="rvMissGroup"
+                      key={label}
+                      open={globalMissedWorkouts.length <= 6}
+                    >
+                      <summary className="rvMissSummary">
+                        <strong>{label}</strong>
+                        <span>{items.length} missed</span>
+                      </summary>
+                      <div className="rvMissList">
+                        {items.map((workout: any) => (
+                          <button
+                            type="button"
+                            key={`missed-${workout.assignedWorkoutId || workout.id}`}
+                            className="rvItem rvItemMissed"
+                            onClick={() => openReviewWorkout(workout)}
+                          >
+                            <span className="rvItemKicker">Missed workout</span>
+                            <strong>{workout.sessionName || "Workout"}</strong>
+                            <small>
+                              {normalizeDate(String(workout.scheduledDate)) ||
+                                "—"}
+                            </small>
+                          </button>
+                        ))}
+                      </div>
+                    </details>
+                  ));
+              })()}
               {globalMissedWorkouts.length === 0 && (
                 <p className="rvEmpty">No missed workouts need attention.</p>
               )}
