@@ -6,6 +6,7 @@
 import { useMemo, useState } from "react";
 import "./CoachesAdminPage.css";
 import { ChevronRight, Plus, Search, Users } from "lucide-react";
+import { coachRoleLabel } from "./appCore";
 
 const initialsOf = (name: string) =>
   String(name || "")
@@ -120,7 +121,8 @@ export default function CoachesAdminPage(props: { [key: string]: any }) {
               <strong>{(activeCoaches as any[]).length}</strong> active
             </span>
             <span>
-              <strong>{adminCount}</strong> admins
+              <strong>{adminCount}</strong> head{" "}
+              {adminCount === 1 ? "coach" : "coaches"}
             </span>
             <span>
               <strong>{inactiveCount}</strong> inactive
@@ -145,7 +147,7 @@ export default function CoachesAdminPage(props: { [key: string]: any }) {
           {[
             { k: "all", label: "All" },
             { k: "active", label: "Active" },
-            { k: "admins", label: "Admins" },
+            { k: "admins", label: "Head Coaches" },
           ].map((tab) => (
             <button
               key={tab.k}
@@ -211,7 +213,7 @@ export default function CoachesAdminPage(props: { [key: string]: any }) {
                   <span
                     className={`capRolePill${coach.role === "Admin" ? " admin" : ""}`}
                   >
-                    {coach.role || "Coach"}
+                    {coachRoleLabel(coach.role)}
                   </span>
                 </div>
                 <div className="capStatus">

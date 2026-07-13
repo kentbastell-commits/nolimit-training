@@ -1524,6 +1524,13 @@ export function getAssignmentColorClass(assignmentType = "") {
     : "wcol-purple";
 }
 
+// Coach role → human label. The stored value stays "Admin" (it gates the
+// manage-coaches permission and the admins count/filter via === "Admin"); this
+// only changes what the coach's TYPE reads as in the UI.
+export function coachRoleLabel(role?: string) {
+  return role === "Admin" ? "Head Coach" : role || "Coach";
+}
+
 export function languagePreferenceToCode(language?: string) {
   const clean = String(language || "").toLowerCase();
 

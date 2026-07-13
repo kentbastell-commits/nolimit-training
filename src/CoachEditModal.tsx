@@ -5,6 +5,7 @@
 import "./CoachesAdminPage.css";
 import { X } from "lucide-react";
 import { useEffect } from "react";
+import { coachRoleLabel } from "./appCore";
 
 const initialsOf = (name: string) =>
   String(name || "")
@@ -72,7 +73,7 @@ export default function CoachEditModal(props: { [key: string]: any }) {
               {initialsOf(coachForm.name || "New coach")}
             </div>
             <div className="capSlideName">
-              <span className="capSlideRole">{coachForm.role || "Coach"}</span>
+              <span className="capSlideRole">{coachRoleLabel(coachForm.role)}</span>
               <h2 id="cap-slide-title">{coachForm.name || "New coach"}</h2>
             </div>
           </div>
@@ -119,8 +120,10 @@ export default function CoachEditModal(props: { [key: string]: any }) {
                 value={coachForm.role}
                 onChange={(e) => set("role", e.target.value)}
               >
-                <option>Coach</option>
-                <option>Admin</option>
+                {/* value stays "Admin" (gates permissions); label reads
+                    "Head Coach". */}
+                <option value="Coach">Coach</option>
+                <option value="Admin">Head Coach</option>
               </select>
             </label>
             <label>
