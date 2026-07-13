@@ -28,3 +28,9 @@ export function invalidateCache(prefix: string) {
     if (key.startsWith(prefix)) store.delete(key);
   }
 }
+
+// When the entry for `key` expires (ms epoch), or null if absent. Used by the
+// warm-cache endpoint to evict entries that would go cold between cron passes.
+export function cacheExpiry(key: string): number | null {
+  return store.get(key)?.expiry ?? null;
+}
