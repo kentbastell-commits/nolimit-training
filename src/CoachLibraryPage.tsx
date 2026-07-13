@@ -145,7 +145,7 @@ export default function CoachLibraryPage(props: { [key: string]: any }) {
         onClick={() => setCueEx(e)}
       >
         <div
-          className="clMedia"
+          className={`clMedia${thumb || posterVideo ? "" : " clMediaEmpty"}`}
           style={{
             background:
               thumb || posterVideo

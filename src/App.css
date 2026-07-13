@@ -7542,6 +7542,12 @@ body {
     grid-template-columns: 1fr;
   }
 
+  /* Full-width single-column cards don't need the desktop equal-height
+     floor — it just leaves ~50px of dead space under the value. */
+  .performanceMetricCard {
+    min-height: 0;
+  }
+
   .performanceMetricCard strong {
     font-size: 32px;
   }
@@ -11348,6 +11354,20 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
     width: 100% !important;
   }
 
+  /* Lone utility actions (Reload Orders / Refresh Queue) read as an orphaned
+     full-width pill floating above the page header — keep them compact and
+     right-aligned instead. The builder's own action bar stays full-width. */
+  .app:not(.clientPortalApp) .topbarActions:not(.builderTopbarActions) {
+    display: flex !important;
+    justify-content: flex-end !important;
+  }
+  .app:not(.clientPortalApp)
+    .topbarActions:not(.builderTopbarActions)
+    .outlineButton {
+    width: auto;
+    min-height: 40px;
+  }
+
   .app:not(.clientPortalApp) .sidebar nav {
     position: fixed !important;
     left: 0 !important;
@@ -11784,8 +11804,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 .performanceMetricCard {
   background: #ffffff !important;
   border: 1px solid #dcd8cd !important;
-  border-left: 4px solid #0d0d0d !important;
-  border-radius: 12px !important;
+  border-radius: 14px !important;
   padding: 16px 18px !important;
 }
 
@@ -14157,7 +14176,9 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 .clientPortalApp .calendarWorkMarkers span.wcol-test { background: var(--wcol-test); }
 .clientPortalApp .calendarWorkMarkers span.wcol-purple { background: var(--wcol-other); }
 .clientPortalApp .calendarWorkMarkers .emptyMarker { background: #cfc9bb; opacity: 0.5; }
-.clientPortalApp .selectedCalendarDay .calendarWorkMarkers span { background: #f0dc88 !important; }
+/* Keep the placeholder marker muted on the selected day — only real event
+   markers turn gold (an empty day must not signal a scheduled session). */
+.clientPortalApp .selectedCalendarDay .calendarWorkMarkers span:not(.emptyMarker) { background: #f0dc88 !important; }
 
 /* selected-day glance (Week + Month) */
 .clientPortalApp .selectedDayGlance {

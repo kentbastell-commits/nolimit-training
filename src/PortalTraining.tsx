@@ -667,7 +667,7 @@ export default function PortalTraining({
                   </section>
                   )}
 
-                  {workoutsLoading && <p>Loading workouts...</p>}
+                  {workoutsLoading && <p>{t("loadingWorkouts")}</p>}
 
                   {(!isClientPortal || trainingScope === "upcoming") && (
                   <div
@@ -1687,7 +1687,7 @@ export default function PortalTraining({
                                       ? ""
                                       : "s"
                                   }`
-                                : "Nothing scheduled"}
+                                : t("nothingScheduledShort")}
                             </strong>
                           </div>
 
@@ -1777,7 +1777,7 @@ export default function PortalTraining({
                             </>
                           ) : (
                             <p className="homeEmptyText">
-                              Nothing scheduled for this date.
+                              {t("nothingScheduled")}
                             </p>
                           )}
                           {!isClientPortal && (

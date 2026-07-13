@@ -248,7 +248,9 @@ export default function CoachRevenuePage(props: { [key: string]: any }) {
             >
               {revenueGrowth !== null
                 ? `${revenueGrowth >= 0 ? "+" : ""}${revenueGrowth}% vs last month`
-                : `${thisMonthOrders.length} orders`}
+                : `${thisMonthOrders.length} order${
+                    thisMonthOrders.length === 1 ? "" : "s"
+                  }`}
             </span>
           </div>
           <div className="crpHeroBreak">
@@ -256,7 +258,8 @@ export default function CoachRevenuePage(props: { [key: string]: any }) {
               <strong>{formatCurrency(totalRevenue)}</strong> total revenue
             </span>
             <span>
-              <strong>{paidOrders.length}</strong> paid orders
+              <strong>{paidOrders.length}</strong>{" "}
+              {paidOrders.length === 1 ? "paid order" : "paid orders"}
             </span>
           </div>
         </div>
@@ -290,7 +293,8 @@ export default function CoachRevenuePage(props: { [key: string]: any }) {
               </div>
               <div className="crpStreamV">{formatCurrency(st.amount)}</div>
               <div className="crpStreamSub">
-                {st.count.toLocaleString("en-US")} {st.noun} · {st.sub}
+                {st.count.toLocaleString("en-US")}{" "}
+                {st.count === 1 ? st.noun.replace(/s$/, "") : st.noun} · {st.sub}
               </div>
               <div className="crpStreamBar">
                 <div style={{ width: `${pct}%`, background: st.accent }} />
@@ -334,7 +338,11 @@ export default function CoachRevenuePage(props: { [key: string]: any }) {
               <div
                 className={`crpBar${i === monthlyData.length - 1 ? " cur" : ""}`}
                 style={{
-                  height: `${Math.max(2, Math.round((m.revenue / chartMax) * 130))}px`,
+                  height: `${Math.max(
+                    // Keep the gold current-month bar visible even at ¥0.
+                    i === monthlyData.length - 1 ? 6 : 2,
+                    Math.round((m.revenue / chartMax) * 130)
+                  )}px`,
                 }}
               />
               <span className="crpBarMonth">{m.month}</span>

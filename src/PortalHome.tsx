@@ -43,6 +43,7 @@ export default function PortalHome({
   localizeTaskStatus,
   localizedCalendarLabel,
   localizedWorkoutName,
+  workoutsLoading,
   markInboxSeen,
   needsAttentionItems,
   openWorkout,
@@ -242,7 +243,7 @@ export default function PortalHome({
                               </span>
                               <strong>{task.title}</strong>
                               <small>
-                                {task.meta} - {localizeTaskStatus(task.status)}
+                                {task.meta} · {localizeTaskStatus(task.status)}
                               </small>
                             </>
                           );
@@ -278,6 +279,11 @@ export default function PortalHome({
                             </button>
                           );
                         })
+                      ) : workoutsLoading ? (
+                        // Don't claim "nothing scheduled" while the workouts
+                        // fetch is still in flight — it settles on a false
+                        // empty state that contradicts the calendar.
+                        <p className="homeEmptyText">{t("loadingWorkouts")}</p>
                       ) : (
                         <p className="homeEmptyText">
                           {t("noUpcomingWorkouts")}

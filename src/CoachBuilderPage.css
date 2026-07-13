@@ -2734,6 +2734,9 @@
   }
   .wkHead {
     display: grid;
+    /* Explicit full-width track — the implicit column is content-sized by
+       the 34ch intro paragraph, which left the CTA ~80% wide and ragged. */
+    grid-template-columns: minmax(0, 1fr);
     gap: 14px;
     margin-bottom: 16px;
   }

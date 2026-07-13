@@ -804,16 +804,28 @@
     justify-content: center;
     min-height: 44px;
   }
+  /* Compact 2-up summary (Workouts .wkBoard pattern) instead of two stacked
+     full-width boards — keeps the roster near the top of the screen. */
   .crpBoard {
-    flex-direction: column;
-    gap: 12px;
-    margin-bottom: 20px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 16px;
   }
   .crpBoardActive,
   .crpBoardAttn {
-    flex: 1 1 auto;
+    flex: none;
     min-width: 0;
-    padding: 18px 20px;
+    padding: 14px 16px;
+    border-radius: 14px;
+  }
+  .crpBoardBig > span {
+    font-size: 34px;
+  }
+  .crpBoardBreak {
+    flex-wrap: wrap;
+    gap: 8px 14px;
+    margin-top: 10px;
   }
   .crpFilters { gap: 12px; }
   .crpBucketTabs {
@@ -860,11 +872,13 @@
   .crpRosterHead { display: none; }
   .crpRow {
     display: grid;
-    grid-template-columns: 32px 44px minmax(0, 1fr);
+    /* Trailing auto column (Teams pattern): flags get the wide flexible
+       area, the icon actions hug the right — not the other way round. */
+    grid-template-columns: 32px 44px minmax(0, 1fr) auto;
     grid-template-areas:
-      "check avatar main"
-      "eng eng eng"
-      "flags flags actions";
+      "check avatar main main"
+      "eng eng eng eng"
+      "flags flags flags actions";
     gap: 12px;
     padding: 16px;
     margin-bottom: 10px;

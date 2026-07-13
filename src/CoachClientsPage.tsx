@@ -270,6 +270,8 @@ export default function CoachClientsPage(props: { [key: string]: any }) {
             <span className="crpNoEng">No sessions yet</span>
           ) : (
             <>
+              {/* No compliance % yet but trained recently: an empty ring with a
+                  dash reads as broken — show a full soft-green ring + check. */}
               <svg width="34" height="34" viewBox="0 0 36 36" className="crpRing">
                 <circle cx="18" cy="18" r="15" fill="none" stroke="#eee7d8" strokeWidth="4" />
                 <circle
@@ -277,16 +279,18 @@ export default function CoachClientsPage(props: { [key: string]: any }) {
                   cy="18"
                   r="15"
                   fill="none"
-                  stroke={ringColor}
+                  stroke={pct != null ? ringColor : "#8fc9a0"}
                   strokeWidth="4"
                   strokeLinecap="round"
                   strokeDasharray={CIRC}
-                  strokeDashoffset={pct != null ? (CIRC * (1 - pct / 100)).toFixed(1) : CIRC}
+                  strokeDashoffset={pct != null ? (CIRC * (1 - pct / 100)).toFixed(1) : 0}
                   transform="rotate(-90 18 18)"
                 />
               </svg>
               <div className="crpEngText">
-                <strong style={{ color: ringColor }}>{pct != null ? `${pct}%` : "—"}</strong>
+                <strong style={{ color: pct != null ? ringColor : "#2f8a43" }}>
+                  {pct != null ? `${pct}%` : <Check size={15} strokeWidth={3} />}
+                </strong>
                 <span>{trained}</span>
               </div>
             </>

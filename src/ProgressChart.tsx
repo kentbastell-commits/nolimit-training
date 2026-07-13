@@ -30,7 +30,7 @@ export default function ProgressChart({
             day: "numeric",
           }),
         }))}
-        margin={{ top: 10, right: 8, left: -18, bottom: 0 }}
+        margin={{ top: 10, right: 16, left: -14, bottom: 0 }}
       >
         <defs>
           <linearGradient id="progressGold" x1="0" y1="0" x2="0" y2="1">

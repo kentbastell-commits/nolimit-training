@@ -180,7 +180,7 @@ export default function CoachTeamsPage(props: { [key: string]: any }) {
           <span className="ctpBoardEyebrow">Active squads</span>
           <div className="ctpBoardBig">
             <span>{sumTeams}</span>
-            <small>teams you coach</small>
+            <small>{sumTeams === 1 ? "team you coach" : "teams you coach"}</small>
           </div>
           <div className="ctpBoardBreak">
             <span>

@@ -5,7 +5,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useMemo, useState } from "react";
 import "./CoachesAdminPage.css";
-import { ChevronRight, Plus, Search } from "lucide-react";
+import { ChevronRight, Plus, Search, Users } from "lucide-react";
 
 const initialsOf = (name: string) =>
   String(name || "")
@@ -88,7 +88,9 @@ export default function CoachesAdminPage(props: { [key: string]: any }) {
       {/* header */}
       <div className="capHead">
         <div>
-          <span className="capEyebrow">Team · Coaches</span>
+          <span className="capEyebrow">
+            <Users size={14} /> Team · Coaches
+          </span>
           <h1>Coaches</h1>
           <p>
             Manage coach access, client ownership, and roster assignment across
@@ -111,7 +113,7 @@ export default function CoachesAdminPage(props: { [key: string]: any }) {
           <span className="capBoardEyebrow">Your team</span>
           <div className="capBoardBig">
             <span>{coaches.length}</span>
-            <small>coaches on staff</small>
+            <small>{coaches.length === 1 ? "coach on staff" : "coaches on staff"}</small>
           </div>
           <div className="capBoardBreak">
             <span>
@@ -220,7 +222,8 @@ export default function CoachesAdminPage(props: { [key: string]: any }) {
                   {coach.status || "Active"}
                 </div>
                 <div className="capClients">
-                  {assignedCount(coach)} <span>clients</span>
+                  {assignedCount(coach)}{" "}
+                  <span>{assignedCount(coach) === 1 ? "client" : "clients"}</span>
                 </div>
                 <div className="capContact">
                   {coach.email || coach.phoneWechat || "—"}

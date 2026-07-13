@@ -860,7 +860,7 @@ export default function CoachBuilderPage({
                             (program.programName || "")
                               .split(/\s+/)
                               .map((w: any) => w[0])
-                              .filter(Boolean)
+                              .filter((ch: any) => /[a-z0-9]/i.test(ch || ""))
                               .join("")
                               .slice(0, 3)
                               .toUpperCase() || "PR";

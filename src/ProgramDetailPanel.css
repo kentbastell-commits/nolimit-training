@@ -677,6 +677,14 @@
   .pdpMeta {
     grid-template-columns: 1fr 1fr;
   }
+  /* Goal is the only free-text tile (program names get long) — give it the
+     full row so it can't sliver into one-word-per-line next to Sport. */
+  .pdpTile:first-child {
+    grid-column: 1 / -1;
+  }
+  .pdpTileText strong {
+    font-size: 17px;
+  }
   .pdpAssignGrid {
     grid-template-columns: 1fr;
   }

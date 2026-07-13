@@ -573,8 +573,9 @@ export default function ReviewPage({
                     <span className="rvItemKicker">{group.responseType}</span>
                     <strong>{group.title || "Submission"}</strong>
                     <small>
-                      {clientLabel(first?.clientName || first?.clientId)} ·{" "}
-                      {group.submittedAt || "—"}
+                      {clientLabel(first?.clientName || first?.clientId) ||
+                        "Unknown client"}
+                      {group.submittedAt ? ` · ${group.submittedAt}` : ""}
                     </small>
                   </button>
                 );

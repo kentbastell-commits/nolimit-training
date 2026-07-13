@@ -191,7 +191,10 @@ export default function CoachOrdersPage(props: { [key: string]: any }) {
         <span className="copDigitalCopy">
           <span className="copDigitalEyebrow">Digital programs · self-serve</span>
           <span className="copDigitalLine">
-            <strong>{digSales} sales</strong> · <strong>{money(digRevenue)}</strong>{" "}
+            <strong>
+              {digSales} {digSales === 1 ? "sale" : "sales"}
+            </strong>{" "}
+            · <strong>{money(digRevenue)}</strong>{" "}
             · hands-off, no onboarding
           </span>
         </span>
@@ -273,7 +276,11 @@ export default function CoachOrdersPage(props: { [key: string]: any }) {
               <span className="copBoardEyebrow">Onboarding queue</span>
               <div className="copBoardBig">
                 <span>{onQueue}</span>
-                <small>athletes need attention</small>
+                <small>
+                  {onQueue === 1
+                    ? "athlete needs attention"
+                    : "athletes need attention"}
+                </small>
               </div>
               <div className="copBoardBreak">
                 <span><strong>{awaitingCoach}</strong> awaiting coach</span>

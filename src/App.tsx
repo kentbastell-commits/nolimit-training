@@ -11363,10 +11363,11 @@ function App({ onReady }: { onReady?: () => void } = {}) {
             return (
               <div className="workloadRow" key={row.label}>
                 <span className="workloadRowLabel">{row.label}</span>
+                {/* No placeholder text — the unit suffix already labels the
+                    field ("RPE RPE" / "min min" read as a bug when empty). */}
                 <label className="workloadField">
                   <input
                     inputMode="numeric"
-                    placeholder="RPE"
                     value={dr[row.rpeKey]}
                     onChange={(e) =>
                       setWorkloadDraft((s) => ({
@@ -11380,7 +11381,6 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                 <label className="workloadField">
                   <input
                     inputMode="numeric"
-                    placeholder={paceZh ? "分钟" : "min"}
                     value={dr[row.minKey]}
                     onChange={(e) =>
                       setWorkloadDraft((s) => ({
@@ -16355,7 +16355,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       : normalizeDate(raw);
     const source = metric.sourceTestName || metric.metricName || t("latest");
 
-    return date ? `${source} - ${date}` : source;
+    return date ? `${source} · ${date}` : source;
   };
   // Running volume from logged distance (stored in metres). Calendar week
   // (Mon–Sun) and calendar month totals, in km.
@@ -16656,6 +16656,41 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       if (result.date > current.latestDate) current.latestDate = result.date;
 
       byExercise.set(name, current);
+    }
+
+    // Fallback: when the results table has nothing for this athlete (workouts
+    // logged before per-exercise results were recorded), derive the bests from
+    // the raw workout logs — otherwise the PR list claims "no records yet"
+    // right above a history chart full of PRs.
+    if (byExercise.size === 0) {
+      for (const log of workoutHistoryLogs) {
+        const name = (log.exerciseName || "").replace(
+          /\s*-\s*(left|right)\s*$/i,
+          ""
+        );
+        const weight = Number(log.actualWeight) || 0;
+        if (!name || weight <= 0) continue;
+        const reps = Number(log.actualReps) || 0;
+        const e1rm = Math.round(epley1rm(weight, reps || 1));
+        const volume = Math.round(weight * (reps || 1));
+        const date = normalizeDate(log.date);
+        const current = byExercise.get(name) || {
+          exerciseName: name,
+          bestWeight: 0,
+          bestWeightReps: 0,
+          bestE1rm: 0,
+          bestVolume: 0,
+          latestDate: "",
+        };
+        if (weight > current.bestWeight) {
+          current.bestWeight = weight;
+          current.bestWeightReps = reps;
+        }
+        if (e1rm > current.bestE1rm) current.bestE1rm = e1rm;
+        if (volume > current.bestVolume) current.bestVolume = volume;
+        if (date > current.latestDate) current.latestDate = date;
+        byExercise.set(name, current);
+      }
     }
 
     const metricValue = (row: { bestWeight: number; bestE1rm: number; bestVolume: number }) =>

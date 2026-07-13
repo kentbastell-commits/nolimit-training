@@ -490,6 +490,7 @@ export default function ClientWorkspace({
                   toReviewWorkouts={toReviewWorkouts}
                   todayValue={todayValue}
                   totalTaskCount={totalTaskCount}
+                  workoutsLoading={workoutsLoading}
                 />
               )}
 

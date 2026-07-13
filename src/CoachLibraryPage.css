@@ -678,11 +678,27 @@
     min-height: 44px;
     justify-content: center;
   }
+  /* Compact 2-up summary (Workouts .wkBoard pattern) — the exercise grid
+     starts a full screen earlier. */
   .clBoard {
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
   }
+  .clBoardLib,
   .clBoardCues {
-    flex: 1 1 auto;
+    flex: none;
+    min-width: 0;
+    padding: 14px 16px;
+    border-radius: 14px;
+  }
+  .clBoardBig > span {
+    font-size: 34px;
+  }
+  .clBoardBreak {
+    flex-wrap: wrap;
+    gap: 8px 14px;
+    margin-top: 10px;
   }
   .clSlide {
     width: 100%;
@@ -695,5 +711,19 @@
   .clIconBtn,
   .clSlideClose {
     width: 44px;
+  }
+  /* Two-up cards on phones — a 467-exercise library in one column is minutes
+     of scrolling; 176px min never fits twice in a 390px viewport. */
+  .clGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  /* Cards without a video thumb collapse their decorative media band to a
+     slim tinted strip (the category tag still sits in it). */
+  .clMediaEmpty {
+    height: 44px;
+  }
+  .clMediaEmpty .clGlyph {
+    display: none;
   }
 }

@@ -1207,7 +1207,8 @@
     justify-self: start;
   }
   .copVerify {
-    min-height: 38px;
+    /* The money action keeps the same 44px tap floor as everything else. */
+    min-height: 44px;
     padding-inline: 12px;
   }
   .copStrip {

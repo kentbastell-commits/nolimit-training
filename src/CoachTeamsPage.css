@@ -938,12 +938,27 @@
     min-height: 44px;
     justify-content: center;
   }
+  /* Compact 2-up summary (Workouts .wkBoard pattern) — keeps the team list
+     near the top of the screen instead of stacking two full-width boards. */
   .ctpBoard {
-    flex-direction: column;
-    gap: 12px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
   }
+  .ctpBoardMain,
   .ctpBoardSide {
-    flex: 1 1 auto;
+    flex: none;
+    min-width: 0;
+    padding: 14px 16px;
+    border-radius: 14px;
+  }
+  .ctpBoardBig > span {
+    font-size: 34px;
+  }
+  .ctpBoardBreak {
+    flex-wrap: wrap;
+    gap: 8px 14px;
+    margin-top: 10px;
   }
   .ctpRow {
     display: grid;

@@ -25,11 +25,15 @@
   flex-wrap: wrap;
   margin: 6px 0 24px;
 }
+/* Match the Orders/Revenue/Review header generation: amber icon eyebrow. */
 .capEyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: 1.6px;
-  color: #a99a78;
+  color: #b5731a;
   text-transform: uppercase;
 }
 .capHead h1 {
@@ -620,6 +624,9 @@
   .capHead {
     align-items: stretch;
     margin-bottom: 20px;
+  }
+  .capHead h1 {
+    font-size: 28px;
   }
   .capHead > div,
   .capAddBtn {
