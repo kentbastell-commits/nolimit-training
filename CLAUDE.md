@@ -189,6 +189,14 @@ data between them, never "borrow" a table ID across products.
     (`node --env-file=.env` on the server → `GET /tables/{id}/fields`), check
     every write response for `code !== 0`, and test the exact write shape on a
     throwaway record.
+33. **The deploy that crashes open tabs** — every page and add-modal is a lazy
+    chunk; a deploy that deletes old hashed chunks makes any pre-deploy tab
+    white-screen on its next navigation ("the app keeps crashing"). Three
+    guards now exist — `build.emptyOutDir: false` (old chunks stay servable;
+    weekly server cron prunes >14d), the `vite:preloadError` one-shot reload in
+    main.tsx, and the app-level ErrorBoundary in main.tsx. Rule: never remove
+    any of the three, and suspect stale chunks whenever "crashes on navigation"
+    reports follow a day of deploys.
 
 ## Quality bar — checkable, per deliverable
 
