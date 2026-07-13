@@ -246,5 +246,12 @@ invented procedure is not.
   column, seed) = scp the script to the server and run it there; local
   `npm run start` can't serve nolimit's Feishu-backed handlers. `AI_API_KEY`
   exists only on the kangfu server.
+- **Visual verification without deploying**: run `npx vite --port 5199` locally
+  and drive it with Playwright whose context `route()`s `**/api/**` to
+  `https://trainnolimit.com` — local frontend, live read-only data. Coach pages:
+  `/?view=coach&page=<Name>`; portal: `/?portal=client&client=CL-0001`. Gotchas:
+  full-page screenshots paint fixed bottom navs once mid-image (artifact, not a
+  bug), and `position:fixed` overlays capture only one viewport — scroll the
+  overlay element and take viewport shots instead.
 - Skills: `/deploy`, `/bilingual-sweep`, `/seed-feishu`, `/extract-approach` in
   `.claude/skills/` cover the recurring workflows — prefer them over improvising.
