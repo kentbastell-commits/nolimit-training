@@ -4270,6 +4270,17 @@ body {
   box-shadow: 0 25px 90px rgba(0, 0, 0, 0.8);
 }
 
+/* Containment safety net: .clientFormModal's full styling lives in the lazy
+   appInterior.css chunk — if that chunk is missing or late (stale tab after a
+   deploy), the dialog must still be viewport-bound and scrollable, never a
+   full-length form whose top is unreachable inside the centered overlay. */
+.clientFormModal {
+  width: 760px;
+  max-width: 95vw;
+  max-height: 88vh;
+  overflow-y: auto;
+}
+
 .analyticsGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
