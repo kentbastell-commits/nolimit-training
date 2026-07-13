@@ -266,6 +266,14 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       alive = false;
     };
   }, [needsInteriorCss]);
+  // Pre-fetch the portal's UI chunk at boot: rendered lazily once the client
+  // resolves, it otherwise starts downloading mid-way through the ~16-request
+  // boot burst and queues behind heavy JSON on slow connections — measured
+  // ~3s later than it needs to be.
+  useEffect(() => {
+    if (isClientPortal) void import("./ClientWorkspace");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   // Coach-console access gate. Once COACH_ACCESS_KEY is set on the server,
   // coach endpoints 401 without the key — probe one on entry and show the
   // unlock screen (CoachKeyGate) instead of a console full of failed loads.
