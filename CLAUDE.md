@@ -197,6 +197,16 @@ data between them, never "borrow" a table ID across products.
     main.tsx, and the app-level ErrorBoundary in main.tsx. Rule: never remove
     any of the three, and suspect stale chunks whenever "crashes on navigation"
     reports follow a day of deploys.
+34. **The animated shell that captures every modal** — nl-anim's stagger once
+    landed a transform animation on `.app`; Chrome treats an applied transform
+    animation (even FINISHED, held by `fill-mode: both`) as the containing
+    block for `position: fixed` descendants, so after one page switch every
+    modal anchored to the tall document instead of the viewport ("popup way
+    down the middle"). Twin trap: headless Chromium defaults to
+    `prefers-reduced-motion: reduce`, so animation bugs are INVISIBLE to
+    default Playwright runs. Rule: never put transform/filter animations on
+    `.app`/`.main` (nl-anim's pick() now refuses shells), and pass
+    `reducedMotion: "no-preference"` when verifying anything animation-adjacent.
 
 ## Quality bar — checkable, per deliverable
 
@@ -279,7 +289,9 @@ invented procedure is not.
   `https://trainnolimit.com` — local frontend, live read-only data. Coach pages:
   `/?view=coach&page=<Name>`; portal: `/?portal=client&client=CL-0001`. Gotchas:
   full-page screenshots paint fixed bottom navs once mid-image (artifact, not a
-  bug), and `position:fixed` overlays capture only one viewport — scroll the
-  overlay element and take viewport shots instead.
+  bug), `position:fixed` overlays capture only one viewport — scroll the
+  overlay element and take viewport shots instead — and headless Chromium
+  defaults to reduced motion: pass `reducedMotion: "no-preference"` in the
+  context or every entrance/transition animation (and its bugs) is skipped.
 - Skills: `/deploy`, `/bilingual-sweep`, `/seed-feishu`, `/extract-approach` in
   `.claude/skills/` cover the recurring workflows — prefer them over improvising.
