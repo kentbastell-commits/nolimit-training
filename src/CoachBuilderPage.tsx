@@ -882,59 +882,6 @@ export default function CoachBuilderPage({
                     </div>
 
                     <div className="programLibraryStack">
-                      {sessionsTab ? (
-                        <div className="sbSessionGrid">
-                          {libraryList.map((program: any) => {
-                            const t = (program.sessionType || "Strength").trim();
-                            const tc = /power/i.test(t)
-                              ? "#b5731a"
-                              : /plyo/i.test(t)
-                                ? "#15897a"
-                                : /mobil/i.test(t)
-                                  ? "#2e8b3d"
-                                  : /strength/i.test(t)
-                                    ? "#5b6770"
-                                    : "#4f5258";
-                            return (
-                              <button
-                                type="button"
-                                className="sbSessionCard"
-                                key={program.recordId}
-                                style={{ borderLeftColor: tc }}
-                                onClick={() => {
-                                  setSelectedSavedProgramId(program.programId);
-                                  setSavedAssignableWorkouts([]);
-                                  setShowProgramDetail(true);
-                                }}
-                              >
-                                <span
-                                  className="sbSessionKicker"
-                                  style={{ color: tc }}
-                                >
-                                  <i style={{ background: tc }} />
-                                  {t}
-                                </span>
-                                <strong>{program.programName}</strong>
-                                <span className="sbSessionMeta">
-                                  {[
-                                    program.level,
-                                    program.coach ? `by ${program.coach}` : "",
-                                  ]
-                                    .filter(Boolean)
-                                    .join(" · ") || "Single workout"}
-                                </span>
-                              </button>
-                            );
-                          })}
-                          {libraryList.length === 0 && !programsLoading && (
-                            <p className="programTableEmpty">
-                              {sessionCategoryFilter !== "All"
-                                ? `No ${sessionCategoryFilter} sessions yet.`
-                                : "No saved sessions yet. Create one to reuse across programs."}
-                            </p>
-                          )}
-                        </div>
-                      ) : (
                       <div className="programTable">
                         <div className="programTableHead">
                           <span>Title</span>
@@ -1088,7 +1035,6 @@ export default function CoachBuilderPage({
                           );
                         })}
                       </div>
-                      )}
 
                       {showProgramDetail && selectedSavedProgram && (
                         <ProgramDetailPanel
