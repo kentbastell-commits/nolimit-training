@@ -1,14 +1,36 @@
 // Extracted from App.tsx (monolith split) — JSX verbatim; props threaded.
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { useEffect } from "react";
 import { X } from "lucide-react";
 import "./CreateProgramModal.css";
 
+// Program types are scoped to the side you're creating from: the Digital page
+// makes digital products, the coaching Library makes coaching programs.
+const DIGITAL_TYPES = ["Digital Program", "Digital Add-on", "Digital Bundle"];
+const COACHED_TYPES = [
+  "Online Coaching",
+  "In-Person Training",
+  "Internal Coaching Template",
+];
+
 export default function CreateProgramModal({
+  builderScope,
   createDraft,
   setCreateDraft,
   setCreateProgramOpen,
   startProgramFromDraft,
 }: { [key: string]: any }) {
+  const typeOptions = builderScope === "digital" ? DIGITAL_TYPES : COACHED_TYPES;
+
+  // Keep the draft's type inside the scoped list — otherwise the select
+  // DISPLAYS the first option while the state still holds an off-scope value.
+  useEffect(() => {
+    if (!typeOptions.includes(createDraft.productType)) {
+      setCreateDraft((d: any) => ({ ...d, productType: typeOptions[0] }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [builderScope]);
+
   return (
     <>
         <div
@@ -44,12 +66,9 @@ export default function CreateProgramModal({
                   }
                   className="miniSearch"
                 >
-                  <option>Digital Program</option>
-                  <option>Digital Add-on</option>
-                  <option>Digital Bundle</option>
-                  <option>Online Coaching</option>
-                  <option>In-Person Training</option>
-                  <option>Internal Coaching Template</option>
+                  {typeOptions.map((o) => (
+                    <option key={o}>{o}</option>
+                  ))}
                 </select>
               </label>
 

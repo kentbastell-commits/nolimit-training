@@ -18006,6 +18006,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
 
       {createProgramOpen && (
         <CreateProgramModal
+          builderScope={builderScope}
           createDraft={createDraft}
           setCreateDraft={setCreateDraft}
           setCreateProgramOpen={setCreateProgramOpen}

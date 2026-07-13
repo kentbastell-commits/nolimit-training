@@ -8197,6 +8197,11 @@ body {
   --wcol-other: #6c5a50;    /* Taupe Grey */
 }
 
+/* These tokens are consumed by BOTH the portal and the coach light theme
+   below (`.app:not(.clientPortalApp) …`) — the coach scope must define them
+   too, or `background: var(--nl-surface)` computes to TRANSPARENT there
+   (this made every coach modal/card in that rule see-through). */
+.app:not(.clientPortalApp),
 .clientPortalApp,
 .clientPortalShell {
   --nl-ink: #111111;

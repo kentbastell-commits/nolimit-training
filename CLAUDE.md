@@ -174,6 +174,13 @@ data between them, never "borrow" a table ID across products.
     template→session mappers and the crude one hardcoded `sectionName: "Main"` and
     empty sets/reps. Rule: when a view is a degraded twin of another, diff their
     data mappers first and reuse the rich one (`buildSessionsFromTemplates`).
+31. **The out-of-scope token** — `background: var(--nl-surface) !important` on a
+    coach surface while the `--nl-*` tokens were defined only on
+    `.clientPortalApp`: an undefined `var()` computes to TRANSPARENT (made coach
+    modals see-through). Rule: any rule consuming `--nl-*` tokens must target a
+    scope that defines them (they now live on `.app:not(.clientPortalApp)` too);
+    when adding tokens, define them for every scope that consumes them or use
+    `var(--x, fallback)`.
 
 ## Quality bar — checkable, per deliverable
 
