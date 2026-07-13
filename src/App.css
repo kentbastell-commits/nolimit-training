@@ -3113,6 +3113,9 @@ body {
   font-weight: 800;
   color: #fff;
   line-height: 1.2;
+  /* Long exercise names wrap inside the day cell instead of bleeding into
+     the next column. */
+  overflow-wrap: anywhere;
 }
 
 .glanceText span {

@@ -464,6 +464,7 @@
   color: #10100f;
   letter-spacing: -0.005em;
   line-height: 1.15;
+  overflow-wrap: anywhere;
 }
 .pdpRowText span {
   display: block;
