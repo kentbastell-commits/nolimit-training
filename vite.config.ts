@@ -64,10 +64,13 @@ function seoFiles(mode: string): Plugin {
 export default defineConfig(({ mode }) => ({
   plugins: [react(), seoFiles(mode)],
   build: {
-    // Keep previous builds' hashed chunks on disk: tabs opened before a deploy
-    // still lazy-load their old chunks instead of white-screening on the next
-    // page change. (A weekly server cron prunes assets older than 14 days.)
-    emptyOutDir: false,
+    // Keep previous builds' hashed chunks on disk (server/Linux only): tabs
+    // opened before a deploy still lazy-load their old chunks instead of
+    // white-screening on the next page change. A weekly server cron prunes
+    // assets older than 14 days. Windows keeps the default clean build —
+    // overwrite-copying public/ files onto a non-empty dist trips file locks
+    // there, and local dist retention serves no one.
+    emptyOutDir: process.platform === "win32",
     rollupOptions: {
       output: {
         // Split stable, always-loaded third-party libs into their own chunks so
