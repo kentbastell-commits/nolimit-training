@@ -1,91 +1,528 @@
-/* Co-located styles for ExerciseModal — load with the ExerciseModal chunk, not the main bundle. */
-.exerciseModalEyebrow {
-  font-size: 11px;
-  font-weight: 900;
-  letter-spacing: 0.6px;
-  text-transform: uppercase;
-  color: #6b675e;
+/* Add/Edit Exercise modal — design-refs handoff. Self-contained ax* classes:
+   nothing here relies on the legacy clientFormModal / workout-modal-overlay /
+   tone-header families, so no cross-stylesheet overrides apply.
+   No external fonts (China): headings use heavy Inter per the app rule. */
+
+@keyframes axScrim {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
-.exerciseModalClose {
-  background: #ffffff !important;
-  align-self: center;
+@keyframes axPop {
+  from { opacity: 0; transform: translateY(16px) scale(0.985); }
+  to { opacity: 1; transform: none; }
 }
-.exerciseUrlRow {
-  grid-column: 1 / -1;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px;
-}
-.exerciseUnilateralField {
-  grid-column: 1 / -1;
-  flex-direction: row !important;
-  align-items: center !important;
-  gap: 10px !important;
-  background: #f6f5f3;
-  border: 1px solid #e2ddd1;
-  border-radius: 10px;
-  padding: 12px 14px;
-}
-.exerciseUnilateralField input {
-  width: 18px;
-  height: 18px;
-  flex-shrink: 0;
-}
-.exerciseUnilateralField span {
-  text-transform: none !important;
-  color: #1c1c19 !important;
-  font-weight: 800 !important;
-  font-size: 14px !important;
+@keyframes axGlow {
+  0%, 100% { opacity: 0.85; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.08); }
 }
 
-/* Upload-from-device controls under each video field */
-.exerciseFileInput {
-  display: none;
-}
-.exerciseUploadRow {
+/* ===== scrim + dialog ===== */
+.axScrim {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: rgba(13, 12, 10, 0.55);
+  backdrop-filter: blur(3px);
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-top: 8px;
+  justify-content: center;
+  padding: 22px;
+  animation: axScrim 0.22s ease both;
 }
-.exerciseUploadBtn {
+.axDialog {
+  width: min(760px, 100%);
+  max-height: 92vh;
+  overflow-y: auto;
+  background: #f5f2ea;
+  border-radius: 22px;
+  box-shadow: 0 40px 90px rgba(0, 0, 0, 0.42);
+  animation: axPop 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.35) both;
+}
+
+/* ===== header ===== */
+.axHead {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(150deg, #26221a, #10100f);
+  color: #f3ede0;
+  padding: 24px 26px 26px;
+}
+.axHeadGlow {
+  position: absolute;
+  right: -34px;
+  top: -56px;
+  width: 190px;
+  height: 190px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(214, 175, 55, 0.3), transparent 68%);
+  pointer-events: none;
+  animation: axGlow 6s ease-in-out infinite;
+}
+.axHeadInner {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.axHeadText {
+  min-width: 0;
+}
+.axEyebrow {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  font-size: 12.5px;
+  gap: 8px;
+  font-size: 10.5px;
   font-weight: 800;
-  color: #8a5a12;
-  background: #f7efdc;
-  border: 1px solid #e7d4a8;
-  border-radius: 9px;
-  padding: 8px 13px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #c9ab55;
+}
+/* Triple-selector + !important: the coach light theme force-inks all h2/p
+   with `.app:not(.clientPortalApp) h2 { … !important }` — this header sits on
+   the dark band and must out-rank that regardless of chunk load order. */
+.axScrim .axHeadText h2 {
+  margin: 7px 0 4px;
+  font-family: "Inter", sans-serif;
+  font-size: 30px;
+  font-weight: 900;
+  letter-spacing: -0.015em;
+  line-height: 1.02;
+  color: #fff !important;
+}
+.axScrim .axHeadText p {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #b8b09c !important;
+}
+.axClose {
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(240, 220, 136, 0.28);
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 11px;
+  color: #f0dc88;
   cursor: pointer;
+  transition: background 0.15s ease;
+}
+.axClose:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* ===== body + field grid ===== */
+.axBody {
+  padding: 22px 26px 8px;
+}
+.axGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px 18px;
+}
+.axField {
+  display: block;
+  min-width: 0;
+}
+.axLabel {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: #8a8372;
+  margin-bottom: 7px;
+}
+.axInput,
+.axSelect {
+  width: 100%;
+  padding: 0.82rem 0.95rem;
+  border-radius: 13px;
+  border: 1px solid #ddd6c6;
+  background: #fff;
+  color: #10100f;
+  font-size: 15px;
+  font-weight: 700;
+  font-family: inherit;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.axInput::placeholder,
+.axArea::placeholder {
+  color: #a8a091;
+  font-weight: 600;
+}
+.axInput:focus,
+.axSelect:focus,
+.axArea:focus {
+  outline: none;
+  border-color: #b5731a;
+  box-shadow: 0 0 0 3px rgba(181, 115, 26, 0.15);
+}
+.axSelectWrap {
+  position: relative;
+}
+.axSelect {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 2.4rem;
+  cursor: pointer;
+}
+.axCaret {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: #8a8372;
+}
+
+/* ===== unilateral toggle card ===== */
+.axUniRow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  margin-top: 18px;
+  text-align: left;
+  background: #f1ede3;
+  border: 1px solid #e6e0d2;
+  border-radius: 14px;
+  padding: 14px 16px;
+  cursor: pointer;
+  font-family: inherit;
   transition: background 0.15s ease, border-color 0.15s ease;
 }
-.exerciseUploadBtn:hover:not(:disabled) {
-  background: #f2e6c8;
-  border-color: #dcc088;
+.axUniRow.on {
+  background: #f8efda;
+  border-color: #ecdcb6;
 }
-.exerciseUploadBtn:disabled {
+.axUniBox {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: #fff;
+  border: 1px solid #cdc6b6;
+  color: #1a1712;
+  transition: all 0.15s ease;
+}
+.axUniRow.on .axUniBox {
+  background: linear-gradient(140deg, #e6c766, #b5731a);
+  border-color: transparent;
+}
+.axUniText {
+  min-width: 0;
+}
+.axUniText strong {
+  display: block;
+  font-size: 14.5px;
+  font-weight: 800;
+  color: #10100f;
+}
+.axUniText > span {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #8a8372;
+}
+
+/* ===== demo video cards ===== */
+.axSectionLabel {
+  margin-top: 22px;
+}
+.axVideoGrid {
+  gap: 14px;
+}
+.axVideoCard {
+  background: #fff;
+  border: 1px solid #e6e0d2;
+  border-radius: 16px;
+  padding: 15px 16px 16px;
+  min-width: 0;
+}
+.axVideoCard-gold {
+  border-color: #ecdcb6;
+}
+.axVideoCard-teal {
+  border-color: #cfe8e2;
+}
+.axVideoHead {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin-bottom: 12px;
+}
+.axVideoIcon {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 11px;
+  color: #fff;
+}
+.axVideoIcon-gold {
+  background: linear-gradient(140deg, #e6c766, #b5731a);
+  box-shadow: 0 3px 8px rgba(181, 115, 26, 0.2);
+}
+.axVideoIcon-teal {
+  background: linear-gradient(140deg, #2fb39c, #15897a);
+  box-shadow: 0 3px 8px rgba(21, 137, 122, 0.2);
+}
+.axVideoTitle {
+  min-width: 0;
+}
+.axVideoTitle strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 800;
+  color: #10100f;
+  letter-spacing: -0.01em;
+}
+.axVideoTag {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 700;
+}
+.axVideoTag-gold {
+  color: #b5731a;
+}
+.axVideoTag-teal {
+  color: #15897a;
+}
+.axVideoInput {
+  padding: 0.72rem 0.9rem;
+  border-radius: 11px;
+  border-color: #e4ddcc;
+  background: #faf8f2;
+  font-size: 14px;
+}
+.axOrRow {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 10px;
+}
+.axOrRow > span {
+  flex: 1;
+  height: 1px;
+  background: #e4ddcc;
+}
+.axOrRow > em {
+  font-size: 10.5px;
+  font-weight: 800;
+  font-style: normal;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #b3ab9a;
+}
+.axUploadBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 10px;
+  border-radius: 11px;
+  padding: 0.62rem 1rem;
+  font-size: 13.5px;
+  font-weight: 800;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.axUploadBtn-gold {
+  border: 1px dashed #ecdcb6;
+  background: #f8efda;
+  color: #95601a;
+}
+.axUploadBtn-gold:hover:not(:disabled) {
+  background: #f0e4c6;
+}
+.axUploadBtn-teal {
+  border: 1px dashed #cfe8e2;
+  background: #e7f4f1;
+  color: #0f6b5f;
+}
+.axUploadBtn-teal:hover:not(:disabled) {
+  background: #d8ede8;
+}
+.axUploadBtn:disabled {
   opacity: 0.6;
   cursor: default;
 }
-.exerciseUploadedTag {
-  font-size: 12px;
-  font-weight: 800;
-  color: #1f7a43;
+.axFileInput {
+  display: none;
 }
-.exerciseUploadError {
-  grid-column: 1 / -1;
-  margin: 2px 0 0;
+.axUploadError {
+  margin: 12px 0 0;
   font-size: 13px;
   font-weight: 600;
   color: #b3402e;
 }
-.exerciseUploadHint {
-  grid-column: 1 / -1;
-  margin: 2px 0 0;
-  font-size: 12px;
+
+/* ===== green callout ===== */
+.axCallout {
+  display: flex;
+  gap: 11px;
+  margin-top: 14px;
+  background: linear-gradient(135deg, #eef4ee, #e9f1ec);
+  border: 1px solid #d7e6da;
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+.axCalloutBadge {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: #2e8b3d;
+  box-shadow: 0 2px 6px rgba(46, 139, 61, 0.25);
+  color: #fff;
+}
+.axCallout p {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #3d5c43;
   line-height: 1.5;
-  color: #6b675e;
+}
+.axCallout strong {
+  font-weight: 800;
+  color: #256b31;
+}
+
+/* ===== notes ===== */
+.axNotes {
+  margin-top: 22px;
+}
+.axNotesHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 9px;
+}
+.axNotesHead .axLabel {
+  margin-bottom: 0;
+  letter-spacing: 0.1em;
+}
+.axNotesActions {
+  display: flex;
+  gap: 8px;
+}
+.axAiBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid #ddd6c6;
+  border-radius: 11px;
+  padding: 0.5rem 0.85rem;
+  background: #fff;
+  color: #3a3a34;
+  font-size: 12.5px;
+  font-weight: 800;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.axAiBtn:hover {
+  background: #f0ece2;
+}
+.axAiBtn-gold:hover {
+  background: linear-gradient(140deg, #e6c766, #b5731a);
+  color: #1a1712;
+  border-color: transparent;
+}
+.axArea {
+  width: 100%;
+  min-height: 130px;
+  resize: vertical;
+  padding: 0.9rem 1rem;
+  border-radius: 14px;
+  border: 1px solid #ddd6c6;
+  background: #fff;
+  color: #10100f;
+  font-size: 14.5px;
+  font-weight: 600;
+  font-family: inherit;
+  line-height: 1.55;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* ===== footer ===== */
+.axFoot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 26px 22px;
+  position: sticky;
+  bottom: 0;
+  background: linear-gradient(180deg, rgba(245, 242, 234, 0), #f5f2ea 32%);
+}
+.axCancel {
+  border: 1px solid #ddd6c6;
+  border-radius: 13px;
+  padding: 0.82rem 1.4rem;
+  background: #fff;
+  color: #3a3a34;
+  font-size: 14px;
+  font-weight: 800;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.axCancel:hover {
+  background: #f0ece2;
+}
+.axCreate {
+  border: none;
+  border-radius: 13px;
+  padding: 0.82rem 1.6rem;
+  background: linear-gradient(145deg, #26221a, #10100f);
+  color: #f0dc88;
+  font-size: 15px;
+  font-weight: 800;
+  font-family: inherit;
+  cursor: pointer;
+  box-shadow: 0 6px 16px rgba(16, 16, 15, 0.24);
+}
+.axCreate:disabled {
+  opacity: 0.65;
+  cursor: default;
+}
+
+/* ===== responsive + motion ===== */
+@media (max-width: 620px) {
+  .axScrim {
+    padding: 0;
+    align-items: stretch;
+  }
+  .axDialog {
+    max-height: 100vh;
+    max-height: 100dvh;
+    border-radius: 0;
+  }
+  .axGrid {
+    grid-template-columns: 1fr;
+  }
+  .axNotesActions {
+    flex-wrap: wrap;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .axScrim,
+  .axDialog,
+  .axHeadGlow {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+  }
 }
