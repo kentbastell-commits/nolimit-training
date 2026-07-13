@@ -8,7 +8,10 @@ import "./ProgramDetailPanel.css";
 import {
   Check,
   Clock3,
+  Dumbbell,
+  Feather,
   Gem,
+  HeartPulse,
   Pencil,
   RefreshCw,
   Target,
@@ -17,6 +20,15 @@ import {
   X,
   Zap,
 } from "lucide-react";
+
+// Focus (session type) → icon, matching the session library / client-mobile set.
+const focusIcon = (focus?: string) => {
+  const f = (focus || "").toLowerCase();
+  if (f.includes("mobil")) return Feather;
+  if (f.includes("cardio") || f.includes("condition")) return HeartPulse;
+  if (f.includes("skill") || f.includes("technique")) return Target;
+  return Dumbbell;
+};
 
 // Section color key from the design (matches the app's label-badge hues).
 const SECTION_HEX: Record<string, { bg: string; text: string }> = {
@@ -295,7 +307,10 @@ export default function ProgramDetailPanel({
               }}
             >
               <span className="pdpTileIcon" style={{ color: focusHex(focus) }}>
-                <Target size={18} strokeWidth={2.4} />
+                {(() => {
+                  const FI = focusIcon(focus);
+                  return <FI size={18} strokeWidth={2.4} />;
+                })()}
               </span>
               <div className="pdpTileText">
                 <span>Focus</span>
@@ -375,8 +390,8 @@ export default function ProgramDetailPanel({
           <div className="pdpSectionsHead">
             <span className="pdpSectionsEyebrow">Program Sessions</span>
             <span className="pdpSectionsCount">
-              {totalExercises} exercises · {totalSections}{" "}
-              {totalSections === 1 ? "section" : "sections"}
+              {totalExercises} {totalExercises === 1 ? "exercise" : "exercises"}{" "}
+              · {totalSections} {totalSections === 1 ? "section" : "sections"}
             </span>
           </div>
 
