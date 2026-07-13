@@ -2967,13 +2967,28 @@
   background: #f26a5f;
   animation: pbPulse 1.8s ease-in-out infinite;
 }
-.pbSaveFullBtn {
+/* Save cluster: gold Save + outlined Save + Exit, unsaved note below. */
+.pbSaveCluster {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 9px;
+}
+.pbSaveRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.pbSaveBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
   border: none;
-  border-radius: 14px;
-  padding: 0.74rem 1.35rem;
+  border-radius: 16px;
+  padding: 0.8rem 1.6rem;
   background: linear-gradient(140deg, #e6c766, #b5731a);
   color: #1a1712;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 800;
   font-family: inherit;
   cursor: pointer;
@@ -2981,8 +2996,45 @@
   white-space: nowrap;
   transition: transform 0.15s ease;
 }
-.pbSaveFullBtn:hover {
+.pbSaveBtn:hover:not(:disabled) {
   transform: translateY(-1px);
+}
+.pbSaveExitBtn {
+  border: 1px solid rgba(240, 220, 136, 0.32);
+  border-radius: 16px;
+  padding: 0.8rem 1.5rem;
+  background: rgba(255, 255, 255, 0.04);
+  color: #f0dc88;
+  font-size: 16px;
+  font-weight: 800;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease;
+}
+.pbSaveExitBtn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+}
+.pbSaveBtn:disabled,
+.pbSaveExitBtn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.pbUnsavedNote {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding-left: 4px;
+  color: #ef8f86;
+  font-size: 14px;
+  font-weight: 800;
+}
+.pbUnsavedNote i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #d98079;
+  animation: pbPulse 1.8s ease-in-out infinite;
 }
 
 /* ---- program setup card ---- */

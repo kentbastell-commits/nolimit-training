@@ -6,7 +6,7 @@ import { isCardioCategory } from "./appCore";
 import { Fragment, useEffect, useState } from "react";
 import CoachProgramsLanding from "./CoachProgramsLanding";
 import ProgramDetailPanel from "./ProgramDetailPanel";
-import { BookOpen, ChevronDown, ChevronLeft, ChevronUp, ChevronsLeftRight, Copy, Dumbbell, Eye, GripVertical, Link2, MoreVertical, Pencil, Plus, RefreshCw, Settings, Shuffle, Tag, Target, Trash2, X } from "lucide-react";
+import { BookOpen, ChevronDown, ChevronLeft, ChevronUp, ChevronsLeftRight, Copy, Dumbbell, Eye, GripVertical, Link2, MoreVertical, Pencil, Plus, RefreshCw, Save, Settings, Shuffle, Tag, Target, Trash2, X } from "lucide-react";
 import type { Program, ProgramSession } from "./appCore";
 import { getWorkoutColorClass, normalizeDate } from "./appCore";
 import { TEST_CATEGORIES, testCategoryLabelKey } from "./testVisuals";
@@ -578,24 +578,44 @@ export default function CoachBuilderPage({
                             </button>
                           )}
                           {workoutPageTab === "Program Builder" && (
-                            <>
+                            <div className="pbSaveCluster">
+                              <div className="pbSaveRow">
+                                <button
+                                  type="button"
+                                  className="pbSaveBtn"
+                                  disabled={savingTemplate}
+                                  onClick={saveFullProgram}
+                                >
+                                  <Save size={17} strokeWidth={2.2} />
+                                  {savingTemplate ? "Saving..." : "Save"}
+                                </button>
+                                <button
+                                  type="button"
+                                  className="pbSaveExitBtn"
+                                  disabled={savingTemplate}
+                                  onClick={() => {
+                                    void (async () => {
+                                      await saveFullProgram();
+                                      // Tab switch is guarded: if the save
+                                      // failed the unsaved-changes confirm
+                                      // still protects the work.
+                                      selectWorkoutTab(
+                                        isSingleWorkoutBuilder
+                                          ? "Sessions"
+                                          : "Saved Programs"
+                                      );
+                                    })();
+                                  }}
+                                >
+                                  Save + Exit
+                                </button>
+                              </div>
                               {builderSaveStatus === "dirty" && (
-                                <span className="pbUnsavedPill">
+                                <span className="pbUnsavedNote">
                                   <i /> Unsaved changes
                                 </span>
                               )}
-                              <button
-                                type="button"
-                                className="pbSaveFullBtn"
-                                onClick={saveFullProgram}
-                              >
-                                {savingTemplate
-                                  ? "Saving..."
-                                  : editProgramRecordId
-                                  ? "Update Program"
-                                  : "Save Full Program"}
-                              </button>
-                            </>
+                            </div>
                           )}
                         </div>
                       </div>
@@ -2075,12 +2095,17 @@ export default function CoachBuilderPage({
                     </div>
                     {!isSingleWorkoutBuilder && (
                       <div className="pbSaveBar">
-                        <button type="button" onClick={saveFullProgram}>
-                          {savingTemplate
-                            ? "Saving..."
-                            : editProgramRecordId
-                            ? "Update Program"
-                            : "Save Program"}
+                        <button
+                          type="button"
+                          disabled={savingTemplate}
+                          onClick={() => {
+                            void (async () => {
+                              await saveFullProgram();
+                              selectWorkoutTab("Saved Programs");
+                            })();
+                          }}
+                        >
+                          {savingTemplate ? "Saving..." : "Save + Exit"}
                         </button>
                       </div>
                     )}
