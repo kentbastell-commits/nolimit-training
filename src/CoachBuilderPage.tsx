@@ -590,15 +590,27 @@ export default function CoachBuilderPage({
                           {workoutPageTab === "Program Builder" && (
                             <div className="pbSaveCluster">
                               <div className="pbSaveRow">
-                                <button
-                                  type="button"
-                                  className="pbSaveBtn"
-                                  disabled={savingTemplate}
-                                  onClick={saveFullProgram}
-                                >
-                                  <Save size={17} strokeWidth={2.2} />
-                                  {savingTemplate ? "Saving..." : "Save"}
-                                </button>
+                                <div className="pbSaveCol">
+                                  <button
+                                    type="button"
+                                    className="pbSaveBtn"
+                                    disabled={savingTemplate}
+                                    onClick={saveFullProgram}
+                                  >
+                                    <Save size={17} strokeWidth={2.2} />
+                                    {savingTemplate ? "Saving..." : "Save"}
+                                  </button>
+                                  <span
+                                    className={`pbSaveStatus${
+                                      builderSaveStatus === "dirty" ? " dirty" : ""
+                                    }`}
+                                  >
+                                    <i />
+                                    {builderSaveStatus === "dirty"
+                                      ? "Unsaved changes"
+                                      : "All changes saved"}
+                                  </span>
+                                </div>
                                 <button
                                   type="button"
                                   className="pbSaveExitBtn"
@@ -620,11 +632,6 @@ export default function CoachBuilderPage({
                                   Save + Exit
                                 </button>
                               </div>
-                              {builderSaveStatus === "dirty" && (
-                                <span className="pbUnsavedNote">
-                                  <i /> Unsaved changes
-                                </span>
-                              )}
                             </div>
                           )}
                         </div>
@@ -872,6 +879,59 @@ export default function CoachBuilderPage({
                     </div>
 
                     <div className="programLibraryStack">
+                      {sessionsTab ? (
+                        <div className="sbSessionGrid">
+                          {libraryList.map((program: any) => {
+                            const t = (program.sessionType || "Strength").trim();
+                            const tc = /power/i.test(t)
+                              ? "#b5731a"
+                              : /plyo/i.test(t)
+                                ? "#15897a"
+                                : /mobil/i.test(t)
+                                  ? "#2e8b3d"
+                                  : /strength/i.test(t)
+                                    ? "#5b6770"
+                                    : "#4f5258";
+                            return (
+                              <button
+                                type="button"
+                                className="sbSessionCard"
+                                key={program.recordId}
+                                style={{ borderLeftColor: tc }}
+                                onClick={() => {
+                                  setSelectedSavedProgramId(program.programId);
+                                  setSavedAssignableWorkouts([]);
+                                  setShowProgramDetail(true);
+                                }}
+                              >
+                                <span
+                                  className="sbSessionKicker"
+                                  style={{ color: tc }}
+                                >
+                                  <i style={{ background: tc }} />
+                                  {t}
+                                </span>
+                                <strong>{program.programName}</strong>
+                                <span className="sbSessionMeta">
+                                  {[
+                                    program.level,
+                                    program.coach ? `by ${program.coach}` : "",
+                                  ]
+                                    .filter(Boolean)
+                                    .join(" · ") || "Single workout"}
+                                </span>
+                              </button>
+                            );
+                          })}
+                          {libraryList.length === 0 && !programsLoading && (
+                            <p className="programTableEmpty">
+                              {sessionCategoryFilter !== "All"
+                                ? `No ${sessionCategoryFilter} sessions yet.`
+                                : "No saved sessions yet. Create one to reuse across programs."}
+                            </p>
+                          )}
+                        </div>
+                      ) : (
                       <div className="programTable">
                         <div className="programTableHead">
                           <span>Title</span>
@@ -1025,6 +1085,7 @@ export default function CoachBuilderPage({
                           );
                         })}
                       </div>
+                      )}
 
                       {showProgramDetail && selectedSavedProgram && (
                         <ProgramDetailPanel
@@ -1081,7 +1142,11 @@ export default function CoachBuilderPage({
                   </button>
                 )}
 
-                <h2 className="builderPageTitle">
+                <h2
+                  className={`builderPageTitle${
+                    isSingleWorkoutBuilder ? " pbSessionTitle" : ""
+                  }`}
+                >
                   {isSingleWorkoutBuilder
                     ? programName.trim() || "Session Builder"
                     : programName.trim()
@@ -1144,7 +1209,11 @@ export default function CoachBuilderPage({
                 >
                   <summary>
                     <span className="pbSetupIcon">
-                      <Pencil size={21} />
+                      {isSingleWorkoutBuilder ? (
+                        <Dumbbell size={21} />
+                      ) : (
+                        <Pencil size={21} />
+                      )}
                     </span>
                     <div>
                       <span className="eyebrow">
@@ -1155,7 +1224,12 @@ export default function CoachBuilderPage({
                       </strong>
                       <span className="pbChipRow">
                         <em>{programName || "Untitled"}</em>
-                        {!isSingleWorkoutBuilder && (
+                        {isSingleWorkoutBuilder ? (
+                          <>
+                            <em>{sessionType || "Strength"}</em>
+                            <em>{sessionIntensity || "Moderate"}</em>
+                          </>
+                        ) : (
                           <>
                             <em>{programProductType || "Program"}</em>
                             <em>
@@ -2208,6 +2282,11 @@ export default function CoachBuilderPage({
                   }
                 >
                   <summary>
+                    {isSingleWorkoutBuilder && (
+                      <span className="pbSetupIcon">
+                        <Dumbbell size={21} />
+                      </span>
+                    )}
                     <div>
                       <span className="eyebrow">
                         {isSingleWorkoutBuilder ? "Workout Setup" : "Session"}
@@ -2217,6 +2296,13 @@ export default function CoachBuilderPage({
                           ? "Workout Details"
                           : "Session Settings"}
                       </strong>
+                      {isSingleWorkoutBuilder && (
+                        <span className="pbChipRow">
+                          <em>{programName || "Untitled"}</em>
+                          <em>{sessionType || "Strength"}</em>
+                          <em>{sessionIntensity || "Moderate"}</em>
+                        </span>
+                      )}
                     </div>
                     <span className="builderPanelToggle">
                       {sessionSetupOpen ? "Hide ▴" : "Show ▾"}
