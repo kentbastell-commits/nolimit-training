@@ -717,7 +717,11 @@ export default function CoachBuilderPage({
                           (s.sessionType || "").trim() === sessionCategoryFilter
                       )
                     : visibleProgramsOnly;
-                  if (builderScope === "digital" && !sessionsTab) {
+                  // The Digital side always shows its product library — the
+                  // coaching Library's Sessions/Forms tab state must not leak
+                  // in (it used to blank this page with an empty sessions
+                  // list when you arrived from the Sessions tab).
+                  if (builderScope === "digital") {
                     return (
                       <CoachProgramsLanding
                         programs={programs}
