@@ -540,12 +540,22 @@ export default function CoachBuilderPage({
                           <span className="wkEyebrow">
                             <BookOpen size={14} /> Library · Programming
                           </span>
-                          <h1>Workouts</h1>
+                          <h1>
+                            {workoutPageTab === "Program Builder"
+                              ? isSingleWorkoutBuilder
+                                ? "Create Session"
+                                : "Create Program"
+                              : "Workouts"}
+                          </h1>
                           <p>
-                            Your programs, reusable sessions, and intake forms —
-                            build once, assign anywhere.
+                            {workoutPageTab === "Program Builder"
+                              ? isSingleWorkoutBuilder
+                                ? "Build a reusable session once — drop it into any program, anytime."
+                                : "Build a full phase of programming — sessions, weeks, and progressions in one place."
+                              : "Your programs, reusable sessions, and intake forms — build once, assign anywhere."}
                           </p>
-                          {!useMobileWorkoutRows && (
+                          {!useMobileWorkoutRows &&
+                            workoutPageTab !== "Program Builder" && (
                             <div className="wkTabs">
                               {workoutTabList.map((tab: any) => {
                                 const count =
