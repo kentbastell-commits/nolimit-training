@@ -6,7 +6,7 @@ import { isCardioCategory } from "./appCore";
 import { Fragment, useEffect, useState } from "react";
 import CoachProgramsLanding from "./CoachProgramsLanding";
 import ProgramDetailPanel from "./ProgramDetailPanel";
-import { BookOpen, ChevronDown, ChevronLeft, ChevronUp, ChevronsLeftRight, Copy, Dumbbell, Eye, GripVertical, Link2, MoreVertical, Pencil, Plus, RefreshCw, Save, Settings, Shuffle, Tag, Target, Trash2, X } from "lucide-react";
+import { BookOpen, ChevronDown, ChevronLeft, ChevronUp, ChevronsLeftRight, ClipboardList, Copy, Dumbbell, Eye, GripVertical, HeartPulse, Link2, MoreVertical, Pencil, Plus, RefreshCw, Save, Settings, Shuffle, Tag, Target, Trash2, Trophy, Waves, X } from "lucide-react";
 import type { Program, ProgramSession } from "./appCore";
 import { getWorkoutColorClass, normalizeDate } from "./appCore";
 import { TEST_CATEGORIES, testCategoryLabelKey } from "./testVisuals";
@@ -32,6 +32,19 @@ const WK_FORM_TONE: Record<string, { background: string; color: string }> = {
 };
 const wkFormTone = (t?: string) =>
   WK_FORM_TONE[t || ""] || { background: "#efece5", color: "#6b6459" };
+
+// Session focus → lucide icon, matching the client mobile category icons
+// (CAT_ICON in PortalHome). The colour comes from the wcol- class the badge
+// carries, so a Cardio session shows a vermilion heart, Mobility a moss wave, etc.
+const WCOL_ICON: Record<string, any> = {
+  "wcol-strength": Dumbbell,
+  "wcol-cardio": HeartPulse,
+  "wcol-mobility": Waves,
+  "wcol-skill": Target,
+  "wcol-test": Trophy,
+  "wcol-purple": ClipboardList,
+};
+const wcolIcon = (cc: string) => WCOL_ICON[cc] || Dumbbell;
 
 export default function CoachBuilderPage({
   builderScope,
@@ -919,14 +932,14 @@ export default function CoachBuilderPage({
                               </div>
                             );
                           }
-                          const initials =
-                            (program.programName || "")
-                              .split(/\s+/)
-                              .map((w: any) => w[0])
-                              .filter((ch: any) => /[a-z0-9]/i.test(ch || ""))
-                              .join("")
-                              .slice(0, 3)
-                              .toUpperCase() || "PR";
+                          // Sessions get a focus-coloured icon (heart = cardio,
+                          // wave = mobility …) like the client mobile side;
+                          // programs get a black/gold barbell.
+                          const wcolClass = getWorkoutColorClass(
+                            program.programName,
+                            program.sessionType
+                          );
+                          const FocusIcon = wcolIcon(wcolClass);
                           const builtFor = [
                             clientNameForCode(program.builtForClient),
                             program.builtForTeam,
@@ -956,9 +969,17 @@ export default function CoachBuilderPage({
                               }}
                             >
                               <span className="programTableTitle">
-                                <span className="programTableBadge">
-                                  {initials}
-                                </span>
+                                {sessionsTab ? (
+                                  <span
+                                    className={`programTableBadge sessionFocusBadge ${wcolClass}`}
+                                  >
+                                    <FocusIcon size={19} strokeWidth={2.2} />
+                                  </span>
+                                ) : (
+                                  <span className="programTableBadge programIconBadge">
+                                    <Dumbbell size={19} strokeWidth={2.2} />
+                                  </span>
+                                )}
                                 <span className="programTableName">
                                   <strong>{program.programName}</strong>
                                   {builtFor && (

@@ -2494,6 +2494,37 @@
   font-weight: 800;
   letter-spacing: 0.5px;
 }
+/* Program rows: black tile, gold barbell (no initials). */
+.programTableBadge.programIconBadge {
+  background: linear-gradient(145deg, #26221a, #10100f);
+  color: #f0dc88;
+  border: 1px solid rgba(240, 220, 136, 0.35);
+}
+/* Session rows: tinted focus colour + matching icon (client-mobile style). */
+.programTableBadge.sessionFocusBadge.wcol-strength {
+  background: color-mix(in srgb, var(--wcol-strength) 15%, #fff);
+  color: var(--wcol-strength);
+}
+.programTableBadge.sessionFocusBadge.wcol-cardio {
+  background: color-mix(in srgb, var(--wcol-cardio) 14%, #fff);
+  color: var(--wcol-cardio);
+}
+.programTableBadge.sessionFocusBadge.wcol-mobility {
+  background: color-mix(in srgb, var(--wcol-mobility) 15%, #fff);
+  color: var(--wcol-mobility);
+}
+.programTableBadge.sessionFocusBadge.wcol-skill {
+  background: color-mix(in srgb, var(--wcol-skill) 15%, #fff);
+  color: var(--wcol-skill);
+}
+.programTableBadge.sessionFocusBadge.wcol-test {
+  background: color-mix(in srgb, var(--wcol-test) 16%, #fff);
+  color: var(--wcol-test);
+}
+.programTableBadge.sessionFocusBadge.wcol-purple {
+  background: color-mix(in srgb, var(--wcol-other) 15%, #fff);
+  color: var(--wcol-other);
+}
 .programTableName {
   min-width: 0;
   display: flex;
