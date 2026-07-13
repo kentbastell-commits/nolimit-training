@@ -9472,14 +9472,17 @@ function App({ onReady }: { onReady?: () => void } = {}) {
 
     return sessions.map((session) => {
       const week = String(Number(session.week) || 1);
+      // Preserve the day the coach actually placed the session on — rest-day
+      // gaps (e.g. runs on Day 1/4/6) and multiple sessions per day are valid
+      // layouts. Only assign a sequential day when a session has none; never
+      // compact intentional gaps (that used to shove Day-4 sessions onto Day 3).
+      const placedDay = Number(session.day);
+      if (Number.isFinite(placedDay) && placedDay >= 1) {
+        return { ...session, week, day: String(placedDay) };
+      }
       const nextDay = (dayCounters[week] || 0) + 1;
       dayCounters[week] = nextDay;
-
-      return {
-        ...session,
-        week,
-        day: String(nextDay),
-      };
+      return { ...session, week, day: String(nextDay) };
     });
   };
 
@@ -9931,44 +9934,57 @@ function App({ onReady }: { onReady?: () => void } = {}) {
 
       let totalRecordsCreated = 0;
 
+      // Save one session (its exercises → template rows).
+      const saveOneSession = async (session: ProgramSession) => {
+        const templateResponse = await fetch("/api/createWorkoutTemplate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            programId: programData.programId,
+            programRecordId: programData.programRecordId,
+            week: Number(session.week),
+            day: Number(session.day),
+            sessionName: session.sessionName,
+            sessionNameCn: session.sessionNameCn || "",
+            sessionType: session.sessionType,
+            sessionGoal: session.sessionGoal,
+            estimatedDuration: session.estimatedDuration,
+            intensity: session.intensity,
+            isSingleWorkout: session.isSingleWorkout,
+            exercises: session.exercises.map((exercise, index) => ({
+              ...exercise,
+              order: Number(exercise.order) || index + 1,
+              sets: Number(exercise.sets) || 1,
+              coachingNotes: buildExerciseCoachingNotes(exercise),
+              status: "Active",
+            })),
+          }),
+        });
+        const templateData = await templateResponse.json();
+        return {
+          ok: templateResponse.ok && templateData.success,
+          session,
+          templateData,
+          recordsCreated: Number(templateData.recordsCreated || 0),
+        };
+      };
+
       // Save sessions in parallel (bounded) instead of one-at-a-time.
-      const saveResults = await mapWithConcurrency(
-        sessionsToSave,
-        6,
-        async (session) => {
-          const templateResponse = await fetch("/api/createWorkoutTemplate", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              programId: programData.programId,
-              programRecordId: programData.programRecordId,
-              week: Number(session.week),
-              day: Number(session.day),
-              sessionName: session.sessionName,
-              sessionNameCn: session.sessionNameCn || "",
-              sessionType: session.sessionType,
-              sessionGoal: session.sessionGoal,
-              estimatedDuration: session.estimatedDuration,
-              intensity: session.intensity,
-              isSingleWorkout: session.isSingleWorkout,
-              exercises: session.exercises.map((exercise, index) => ({
-                ...exercise,
-                order: Number(exercise.order) || index + 1,
-                sets: Number(exercise.sets) || 1,
-                coachingNotes: buildExerciseCoachingNotes(exercise),
-                status: "Active",
-              })),
-            }),
-          });
-          const templateData = await templateResponse.json();
-          return {
-            ok: templateResponse.ok && templateData.success,
-            session,
-            templateData,
-            recordsCreated: Number(templateData.recordsCreated || 0),
-          };
-        }
-      );
+      let saveResults = await mapWithConcurrency(sessionsToSave, 6, saveOneSession);
+
+      // Retry transient failures once. A heavy save (many sessions) can trip a
+      // Feishu throttle (code 1254607 "data not ready") on a session or two —
+      // a single blip must not fail the whole program save. Wait, then re-run
+      // just the failed sessions at lower concurrency.
+      const firstFailures = saveResults.filter((r) => !r.ok).map((r) => r.session);
+      if (firstFailures.length > 0) {
+        await new Promise((res) => window.setTimeout(res, 3000));
+        const retried = await mapWithConcurrency(firstFailures, 3, saveOneSession);
+        const fixed = new Map(
+          retried.filter((r) => r.ok).map((r) => [r.session, r])
+        );
+        saveResults = saveResults.map((r) => (r.ok ? r : fixed.get(r.session) || r));
+      }
 
       const failed = saveResults.find((r) => !r.ok);
       if (failed) {
