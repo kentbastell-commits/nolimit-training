@@ -6,7 +6,7 @@ import { isCardioCategory } from "./appCore";
 import { Fragment, useEffect, useState } from "react";
 import CoachProgramsLanding from "./CoachProgramsLanding";
 import ProgramDetailPanel from "./ProgramDetailPanel";
-import { BookOpen, ChevronDown, ChevronLeft, ChevronUp, ChevronsLeftRight, Copy, Dumbbell, Eye, GripVertical, Link2, MoreVertical, Pencil, Plus, RefreshCw, Settings, Shuffle, Trash2, X } from "lucide-react";
+import { BookOpen, ChevronDown, ChevronLeft, ChevronUp, ChevronsLeftRight, Copy, Dumbbell, Eye, GripVertical, Link2, MoreVertical, Pencil, Plus, RefreshCw, Settings, Shuffle, Tag, Target, Trash2, X } from "lucide-react";
 import type { Program, ProgramSession } from "./appCore";
 import { getWorkoutColorClass, normalizeDate } from "./appCore";
 import { TEST_CATEGORIES, testCategoryLabelKey } from "./testVisuals";
@@ -536,7 +536,7 @@ export default function CoachBuilderPage({
                       }`}
                     >
                       <div className="wkHead">
-                        <div>
+                        <div className="wkHeadLeft">
                           <span className="wkEyebrow">
                             <BookOpen size={14} /> Library · Programming
                           </span>
@@ -545,12 +545,59 @@ export default function CoachBuilderPage({
                             Your programs, reusable sessions, and intake forms —
                             build once, assign anywhere.
                           </p>
+                          {!useMobileWorkoutRows && (
+                            <div className="wkTabs">
+                              {workoutTabList.map((tab: any) => {
+                                const count =
+                                  tab.value === "Sessions"
+                                    ? S.length
+                                    : tab.value === "Forms"
+                                    ? F.length
+                                    : P.length;
+                                return (
+                                  <button
+                                    key={tab.value}
+                                    type="button"
+                                    className={`wkTab${
+                                      activeWorkoutTabValue === tab.value ? " on" : ""
+                                    }`}
+                                    onClick={() => selectWorkoutTab(tab.value)}
+                                  >
+                                    <span>{tab.label}</span>
+                                    <span className="wkTabCount">{count}</span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
                         </div>
-                        {isListTab && (
-                          <button type="button" className="wkCreateBtn" onClick={onCreate}>
-                            <Plus size={17} /> {createLabel}
-                          </button>
-                        )}
+                        <div className="wkHeadRight">
+                          {isListTab && (
+                            <button type="button" className="wkCreateBtn" onClick={onCreate}>
+                              <Plus size={17} /> {createLabel}
+                            </button>
+                          )}
+                          {workoutPageTab === "Program Builder" && (
+                            <>
+                              {builderSaveStatus === "dirty" && (
+                                <span className="pbUnsavedPill">
+                                  <i /> Unsaved changes
+                                </span>
+                              )}
+                              <button
+                                type="button"
+                                className="pbSaveFullBtn"
+                                onClick={saveFullProgram}
+                              >
+                                {savingTemplate
+                                  ? "Saving..."
+                                  : editProgramRecordId
+                                  ? "Update Program"
+                                  : "Save Full Program"}
+                              </button>
+                            </>
+                          )}
+                        </div>
                       </div>
 
                       {isListTab && (
@@ -581,7 +628,7 @@ export default function CoachBuilderPage({
                         </div>
                       )}
 
-                      {useMobileWorkoutRows ? (
+                      {useMobileWorkoutRows && (
                         <div
                           className={`workoutTabMenu ${
                             workoutTabsMenuOpen ? "workoutTabMenuOpen" : ""
@@ -617,30 +664,6 @@ export default function CoachBuilderPage({
                               ))}
                             </div>
                           )}
-                        </div>
-                      ) : (
-                        <div className="wkTabs">
-                          {workoutTabList.map((tab: any) => {
-                            const count =
-                              tab.value === "Sessions"
-                                ? S.length
-                                : tab.value === "Forms"
-                                ? F.length
-                                : P.length;
-                            return (
-                              <button
-                                key={tab.value}
-                                type="button"
-                                className={`wkTab${
-                                  activeWorkoutTabValue === tab.value ? " on" : ""
-                                }`}
-                                onClick={() => selectWorkoutTab(tab.value)}
-                              >
-                                <span>{tab.label}</span>
-                                <span className="wkTabCount">{count}</span>
-                              </button>
-                            );
-                          })}
                         </div>
                       )}
                     </div>
@@ -1090,6 +1113,9 @@ export default function CoachBuilderPage({
                   }
                 >
                   <summary>
+                    <span className="pbSetupIcon">
+                      <Pencil size={21} />
+                    </span>
                     <div>
                       <span className="eyebrow">
                         {isSingleWorkoutBuilder ? "Workout Setup" : "Program Setup"}
@@ -1097,13 +1123,18 @@ export default function CoachBuilderPage({
                       <strong>
                         {isSingleWorkoutBuilder ? "Workout Details" : "Program Details"}
                       </strong>
-                      <small>
-                        {programName || "Untitled"}{" "}
-                        {!isSingleWorkoutBuilder &&
-                          `/ ${programProductType || "Program"} / ${
-                            programDurationWeeks || "--"
-                          } weeks`}
-                      </small>
+                      <span className="pbChipRow">
+                        <em>{programName || "Untitled"}</em>
+                        {!isSingleWorkoutBuilder && (
+                          <>
+                            <em>{programProductType || "Program"}</em>
+                            <em>
+                              {programDurationWeeks || "--"} week
+                              {programDurationWeeks === "1" ? "" : "s"}
+                            </em>
+                          </>
+                        )}
+                      </span>
                     </div>
                     <span className="builderPanelToggle">
                       {programDetailsOpen ? "Hide ▴" : "Show ▾"}
@@ -1111,26 +1142,32 @@ export default function CoachBuilderPage({
                   </summary>
 
                   <div className="programDetailsGrid">
-                    <label>
+                    <label className="pbFeat pbFeatGold">
                       <span>{isSingleWorkoutBuilder ? "Workout Name" : "Program Name"}</span>
-                      <input
-                        value={programName}
-                        onChange={(e) => setProgramName(e.target.value)}
-                        placeholder={isSingleWorkoutBuilder ? "Workout Name" : "Program Name"}
-                        className="miniSearch"
-                      />
+                      <div className="pbFieldWrap">
+                        <Tag size={15} className="pbFieldIco" />
+                        <input
+                          value={programName}
+                          onChange={(e) => setProgramName(e.target.value)}
+                          placeholder={isSingleWorkoutBuilder ? "Workout Name" : "Program Name"}
+                          className="miniSearch"
+                        />
+                      </div>
                     </label>
 
                     {!isSingleWorkoutBuilder && (
                       <>
-                        <label>
+                        <label className="pbFeat pbFeatTeal">
                           <span>Goal</span>
-                          <input
-                            value={programGoal}
-                            onChange={(e) => setProgramGoal(e.target.value)}
-                            placeholder="e.g. Build muscle"
-                            className="miniSearch"
-                          />
+                          <div className="pbFieldWrap">
+                            <Target size={15} className="pbFieldIco" />
+                            <input
+                              value={programGoal}
+                              onChange={(e) => setProgramGoal(e.target.value)}
+                              placeholder="e.g. Build muscle"
+                              className="miniSearch"
+                            />
+                          </div>
                         </label>
 
                         <label>
@@ -2021,7 +2058,12 @@ export default function CoachBuilderPage({
                                         });
                                       }}
                                     >
-                                      <Plus size={16} />
+                                      <span className="pbAddIco">
+                                        <Plus size={14} />
+                                      </span>
+                                      {cellSessions.length === 0 && (
+                                        <span className="pbAddLabel">Add</span>
+                                      )}
                                     </button>
                                   </div>
                                 );
@@ -2031,6 +2073,17 @@ export default function CoachBuilderPage({
                         ))}
                       </div>
                     </div>
+                    {!isSingleWorkoutBuilder && (
+                      <div className="pbSaveBar">
+                        <button type="button" onClick={saveFullProgram}>
+                          {savingTemplate
+                            ? "Saving..."
+                            : editProgramRecordId
+                            ? "Update Program"
+                            : "Save Program"}
+                        </button>
+                      </div>
+                    )}
                     </>
                   );
                 })()}
@@ -3529,19 +3582,8 @@ export default function CoachBuilderPage({
                 </>
                 )}
 
-                {!isSingleWorkoutBuilder && (
-                  <button
-                    className="goldButton saveWorkoutButton"
-                    onClick={saveFullProgram}
-                    disabled={savingTemplate}
-                  >
-                    {savingTemplate
-                      ? "Saving..."
-                      : editProgramRecordId
-                        ? "Update Program"
-                        : "Save Program"}
-                  </button>
-                )}
+                {/* Bottom save now lives in the sticky pbSaveBar (plus the
+                    hero's Save Full Program) — one primary action per surface. */}
               </section>
                 )}
 

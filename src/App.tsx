@@ -18326,25 +18326,8 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                 </div>
               )}
 
-              {activePage === "Workouts" &&
-                workoutPageTab === "Program Builder" && (
-                <div className="topbarActions builderTopbarActions">
-                  <span
-                    className={`builderSaveStatusPill ${
-                      builderSaveStatus === "dirty" ? "isDirty" : "isSaved"
-                    }`}
-                  >
-                    {builderSaveStatus === "dirty" ? "Unsaved changes" : "Saved"}
-                  </span>
-                  <button className="goldButton" onClick={saveFullProgram}>
-                    {savingTemplate
-                      ? "Saving..."
-                      : editProgramRecordId
-                      ? "Update Program"
-                      : "Save Full Program"}
-                  </button>
-                </div>
-              )}
+              {/* Builder save actions moved into the Workouts hero (design
+                  redesign) — the sticky bottom bar covers mobile. */}
             </header>
 
             {activePage === "Clients" && (

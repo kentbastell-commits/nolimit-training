@@ -2823,3 +2823,510 @@
     width: 32px;
   }
 }
+
+/* ============================================================
+   Builder redesign (design-refs handoff): dark hero with in-hero
+   tabs + save cluster, rainbow-strip setup card with featured
+   fields, calendar chrome (dark day header, quiet week headers,
+   dashed Add), sticky bottom save bar. Appended last so these
+   override the legacy rules above. No external fonts (China):
+   headings use heavy Inter.
+   ============================================================ */
+
+/* ---- hero band ---- */
+.wkHub .wkHead {
+  position: relative;
+  overflow: hidden;
+  align-items: flex-start;
+  background: linear-gradient(135deg, #2a2620 0%, #141210 55%, #10100f 100%);
+  border-radius: 26px;
+  padding: 34px 34px 30px;
+  margin: 0 0 26px;
+}
+.wkHub .wkHead::before,
+.wkHub .wkHead::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+}
+.wkHub .wkHead::before {
+  right: -30px;
+  top: -70px;
+  width: 260px;
+  height: 260px;
+  background: radial-gradient(circle, rgba(214, 175, 55, 0.34), transparent 66%);
+}
+.wkHub .wkHead::after {
+  left: -60px;
+  bottom: -90px;
+  width: 240px;
+  height: 240px;
+  background: radial-gradient(circle, rgba(46, 139, 61, 0.24), transparent 68%);
+}
+.wkHeadLeft {
+  position: relative;
+  min-width: 0;
+}
+.wkHeadRight {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  flex-shrink: 0;
+}
+.wkHub .wkHead .wkHeadLeft .wkEyebrow {
+  color: #e6c766 !important;
+  font-weight: 800;
+}
+.wkHub .wkHead .wkHeadLeft h1 {
+  color: #fff !important;
+  font-size: clamp(34px, 4.6vw, 50px);
+  font-weight: 900;
+  letter-spacing: -0.025em;
+  line-height: 1;
+  margin: 10px 0 8px;
+}
+.wkHub .wkHead .wkHeadLeft > p {
+  color: #b8b09c !important;
+  font-size: 15.5px;
+  font-weight: 600;
+  max-width: 560px;
+}
+/* tabs inside the hero */
+.wkHub .wkHead .wkTabs {
+  display: inline-flex;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(240, 220, 136, 0.16);
+  border-radius: 15px;
+  padding: 5px;
+  margin-top: 22px;
+}
+.wkHub .wkHead .wkTab {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  border: none;
+  border-radius: 11px;
+  padding: 0.6rem 1.15rem;
+  font-size: 14.5px;
+  font-weight: 800;
+  font-family: inherit;
+  background: transparent;
+  color: #b8b09c;
+  box-shadow: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.wkHub .wkHead .wkTab .wkTabCount {
+  display: grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 800;
+  background: rgba(255, 255, 255, 0.08);
+  color: #8a8372;
+}
+.wkHub .wkHead .wkTab.on {
+  background: linear-gradient(140deg, #e6c766, #b5731a);
+  color: #1a1712;
+  box-shadow: 0 4px 12px rgba(181, 115, 26, 0.3);
+}
+.wkHub .wkHead .wkTab.on .wkTabCount {
+  background: rgba(26, 23, 18, 0.18);
+  color: #1a1712;
+}
+/* unsaved pill + gold save in the hero */
+@keyframes pbPulse {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+.pbUnsavedPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 999px;
+  padding: 0.62rem 1.05rem;
+  background: rgba(209, 68, 59, 0.16);
+  border: 1px solid rgba(224, 120, 110, 0.4);
+  color: #f2b7b0;
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.pbUnsavedPill i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #f26a5f;
+  animation: pbPulse 1.8s ease-in-out infinite;
+}
+.pbSaveFullBtn {
+  border: none;
+  border-radius: 14px;
+  padding: 0.74rem 1.35rem;
+  background: linear-gradient(140deg, #e6c766, #b5731a);
+  color: #1a1712;
+  font-size: 14px;
+  font-weight: 800;
+  font-family: inherit;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(181, 115, 26, 0.34);
+  white-space: nowrap;
+  transition: transform 0.15s ease;
+}
+.pbSaveFullBtn:hover {
+  transform: translateY(-1px);
+}
+
+/* ---- program setup card ---- */
+.builderCollapsiblePanel.programDetailsPanel {
+  position: relative;
+  background: #fff;
+  border: 1px solid #ece7db;
+  border-radius: 20px;
+  box-shadow: 0 12px 30px rgba(20, 18, 14, 0.05);
+  overflow: hidden;
+  padding-top: 4px;
+}
+.builderCollapsiblePanel.programDetailsPanel::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #b5731a, #2e8b3d 45%, #15897a 72%, #3f6390);
+}
+.programDetailsPanel summary {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 22px 26px 20px;
+}
+.programDetailsPanel[open] summary {
+  border-bottom: 1px solid #f0ebdf;
+}
+.pbSetupIcon {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: linear-gradient(145deg, #26221a, #10100f);
+  color: #f0dc88;
+}
+.programDetailsPanel summary > div {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.programDetailsPanel summary .eyebrow {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #a29a86;
+}
+.programDetailsPanel summary strong {
+  display: block;
+  font-size: 23px;
+  font-weight: 900;
+  letter-spacing: -0.01em;
+  color: #10100f;
+}
+.pbChipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 8px;
+}
+.pbChipRow em {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.24rem 0.68rem;
+  background: #f4f1ea;
+  border: 1px solid #e8e2d4;
+  color: #7a7263;
+  font-size: 11.5px;
+  font-weight: 800;
+  font-style: normal;
+}
+.programDetailsPanel .builderPanelToggle {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: none;
+  border-radius: 12px;
+  padding: 0.6rem 1.05rem;
+  background: linear-gradient(145deg, #26221a, #10100f);
+  color: #f0dc88;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+}
+/* featured Name / Goal fields */
+.pbFeat > span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.pbFeat > span::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.pbFeatGold > span { color: #95601a !important; }
+.pbFeatGold > span::before { background: #b5731a; }
+.pbFeatTeal > span { color: #0f6b5f !important; }
+.pbFeatTeal > span::before { background: #15897a; }
+.pbFieldWrap {
+  position: relative;
+}
+.pbFieldIco {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+.pbFeatGold .pbFieldIco { color: #b5731a; }
+.pbFeatTeal .pbFieldIco { color: #15897a; }
+.pbFeat .pbFieldWrap input {
+  padding-left: 2.5rem;
+  width: 100%;
+}
+.pbFeatGold .pbFieldWrap input {
+  background: #fdfaf3;
+  border-color: #ecdcb6;
+}
+.pbFeatTeal .pbFieldWrap input {
+  background: #f3faf8;
+  border-color: #cfe8e2;
+}
+
+/* ---- calendar chrome ---- */
+.programGridWrap {
+  border: 1px solid #ece7db;
+  border-radius: 20px;
+  box-shadow: 0 12px 30px rgba(20, 18, 14, 0.05);
+  background: #fff;
+}
+.programGridHead {
+  background: linear-gradient(180deg, #26221a, #141210);
+}
+.programGridDayLabel {
+  padding: 15px 14px;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  color: #f0dc88;
+  border-left: 1px solid rgba(255, 255, 255, 0.06);
+}
+.programGridDayLabel:first-child {
+  border-left: none;
+}
+.dayCollapseBtn {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  border: 1px solid rgba(240, 220, 136, 0.22);
+  background: rgba(255, 255, 255, 0.05);
+  color: #c9ab55;
+  opacity: 1;
+}
+.dayCollapseBtn:hover {
+  background: rgba(240, 220, 136, 0.14);
+}
+.programGridWeek {
+  border-top: 1px solid #eee7d9;
+}
+.programGridWeekLabel {
+  padding: 14px 16px;
+  background: #fff;
+  text-transform: none;
+  letter-spacing: 0.02em;
+  color: #10100f;
+  font-size: 15px;
+  font-weight: 800;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.programGridWeekLabel > span:first-child::after {
+  content: "";
+  display: inline-block;
+  width: 20px;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #e6c766, #b5731a);
+  margin-left: 8px;
+  vertical-align: middle;
+}
+.weekVolChip {
+  padding: 0.34rem 0.8rem;
+  background: #f4f1ea;
+  border: 1px solid #e8e2d4;
+  color: #7a7263;
+  font-size: 12px;
+  font-weight: 800;
+}
+.weekDupTrigger {
+  gap: 7px;
+  border: 1px solid #ddd6c6;
+  border-radius: 10px;
+  padding: 0.4rem 0.8rem;
+  background: #fff;
+  color: #3a3a34;
+  font-size: 12.5px;
+  font-weight: 800;
+}
+.weekDupTrigger:hover {
+  background: #f6f3ec;
+}
+.programGridCell {
+  min-height: 200px;
+  padding: 14px 12px;
+  border-left: 1px solid #f0ebdf;
+  transition: background 0.15s ease;
+}
+.programGridCell:first-child {
+  border-left: none;
+}
+.programGridCell:hover {
+  background: #fcfaf4;
+}
+.programGrid .programGridCard {
+  background: #fff !important;
+  border: 1px solid #e7e1d3 !important;
+  border-radius: 14px;
+  padding: 15px 15px 17px;
+  box-shadow: 0 4px 14px rgba(20, 18, 14, 0.06);
+}
+.programGrid .programGridCardName {
+  font-size: 15px;
+  font-weight: 800;
+  color: #10100f;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+}
+/* dashed Add pinned to the cell bottom */
+.programGrid .programGridAdd {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  border: 1.5px dashed #ddd6c6;
+  border-radius: 11px;
+  padding: 0.7rem;
+  background: #fcfbf7;
+  color: #a8a091;
+  font-size: 12px;
+  font-weight: 800;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  opacity: 1;
+}
+.pbAddIco {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  background: #f1ede3;
+  color: #8a8372;
+  transition: all 0.18s ease;
+}
+.programGrid .programGridAdd:hover {
+  border-color: #c9a24a;
+  background: #fdf8ec;
+  color: #b5731a;
+}
+.programGrid .programGridAdd:hover .pbAddIco {
+  background: #f3e3bb;
+  color: #95601a;
+  transform: rotate(90deg);
+}
+
+/* ---- sticky save bar ---- */
+.pbSaveBar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 950;
+  padding: 14px 28px 18px;
+  background: linear-gradient(180deg, rgba(251, 250, 247, 0), #fbfaf7 34%);
+  pointer-events: none;
+}
+.pbSaveBar button {
+  pointer-events: auto;
+  display: block;
+  width: 100%;
+  max-width: 1320px;
+  margin: 0 auto;
+  border: none;
+  border-radius: 16px;
+  padding: 1.05rem;
+  background: linear-gradient(145deg, #26221a, #10100f);
+  color: #f0dc88;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  font-family: inherit;
+  cursor: pointer;
+  box-shadow: 0 10px 26px rgba(16, 16, 15, 0.28);
+  transition: transform 0.15s ease;
+}
+.pbSaveBar button:hover {
+  transform: translateY(-1px);
+}
+.programBuilderPanel {
+  padding-bottom: 110px;
+}
+
+@media (max-width: 720px) {
+  .wkHub .wkHead {
+    padding: 22px 20px;
+    border-radius: 20px;
+  }
+  .wkHeadRight {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+  /* keep the sticky save button above the fixed coach bottom nav */
+  .pbSaveBar {
+    bottom: calc(64px + env(safe-area-inset-bottom));
+    padding: 10px 14px 12px;
+  }
+}
+/* Program title above the setup card: heavy Inter, sentence case (was the
+   condensed display font). */
+.app:not(.clientPortalApp) .builderPageTitle {
+  font-family: "Inter", sans-serif !important;
+  font-size: 28px !important;
+  font-weight: 900 !important;
+  letter-spacing: -0.01em !important;
+  text-transform: none !important;
+  margin: 0 0 18px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pbUnsavedPill i {
+    animation: none;
+  }
+}
