@@ -169,6 +169,11 @@ data between them, never "borrow" a table ID across products.
 29. **The drag-locked list** — putting `touch-action: none` on an entire reorder row
     breaks normal vertical scrolling and leaves keyboard users stuck. Rule: confine
     drag gestures to a dedicated handle, keep the row `pan-y`, and provide move buttons.
+30. **The pale twin mapper** — one surface renders the same records visibly poorer
+    than a sibling (grey badges, missing reps): not CSS — App.tsx has duplicate
+    template→session mappers and the crude one hardcoded `sectionName: "Main"` and
+    empty sets/reps. Rule: when a view is a degraded twin of another, diff their
+    data mappers first and reuse the rich one (`buildSessionsFromTemplates`).
 
 ## Quality bar — checkable, per deliverable
 
