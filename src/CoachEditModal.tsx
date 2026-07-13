@@ -19,7 +19,7 @@ function avatarStyle(role: string, status: string) {
   const active = (status || "Active") === "Active";
   if (!active) return { background: "#eae4d6", color: "#8a8372" };
   return role === "Admin"
-    ? { background: "#efe4c5", color: "#8a6d24" }
+    ? { background: "#e7f2e9", color: "#2f7d43" }
     : { background: "#e6ecf6", color: "#3560ac" };
 }
 

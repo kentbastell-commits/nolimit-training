@@ -16,7 +16,7 @@ import { useTranslation } from "react-i18next";
 const WK_TYPE_TONE: Record<string, { background: string; color: string }> = {
   "Online Coaching": { background: "#e8f0ff", color: "#1f5fd6" },
   "In-Person Training": { background: "#eef6ec", color: "#2f7d32" },
-  "Digital Program": { background: "#fbf1dd", color: "#a9791a" },
+  "Digital Program": { background: "#eceef2", color: "#4f5b6b" },
   "Digital Bundle": { background: "#f3ecfb", color: "#6a2f9e" },
   "Digital Add-on": { background: "#e6f6f7", color: "#0c7382" },
 };
@@ -25,7 +25,7 @@ const wkTypeTone = (t?: string) =>
 const WK_FORM_TONE: Record<string, { background: string; color: string }> = {
   Intake: { background: "#e8f0ff", color: "#1f5fd6" },
   "Check-in": { background: "#eef6ec", color: "#2f7d32" },
-  Readiness: { background: "#fbf1dd", color: "#a9791a" },
+  Readiness: { background: "#eceef2", color: "#4f5b6b" },
   Assessment: { background: "#f3ecfb", color: "#6a2f9e" },
   Questionnaire: { background: "#f3ecfb", color: "#6a2f9e" },
   Feedback: { background: "#e6f6f7", color: "#0c7382" },

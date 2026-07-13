@@ -3155,8 +3155,8 @@
   transition: border-color 0.18s ease, background 0.18s ease;
 }
 .builderEmptyCanvas:hover {
-  border-color: #c9a24a;
-  background: #fbf6ea;
+  border-color: #b8b0a0;
+  background: #f4f2ec;
 }
 .builderEmptyCanvas .builderEmptyCanvasIcon {
   display: inline-grid;
@@ -3539,13 +3539,13 @@
   transition: all 0.18s ease;
 }
 .programGrid .programGridAdd:hover {
-  border-color: #c9a24a;
-  background: #fdf8ec;
-  color: #b5731a;
+  border-color: #10100f;
+  background: #f4f2ec;
+  color: #10100f;
 }
 .programGrid .programGridAdd:hover .pbAddIco {
-  background: #f3e3bb;
-  color: #95601a;
+  background: #10100f;
+  color: #fff;
   transform: rotate(90deg);
 }
 
