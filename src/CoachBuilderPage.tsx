@@ -77,7 +77,6 @@ export default function CoachBuilderPage({
   bulkRest,
   bulkSelectedIdx,
   bulkSets,
-  clearCurrentProgramSession,
   clientNameForCode,
   clients,
   coachVisibleClients,
@@ -2225,16 +2224,16 @@ export default function CoachBuilderPage({
                     </div>
                   )}
 
+                {/* Single-workout builder: saving is consolidated in the hero
+                    (Save / Save + Exit) — no duplicate header row. The program
+                    drawer keeps its scoped "Save Day". */}
+                {!isSingleWorkoutBuilder && (
                 <div className="builderSectionHeader" id="builder-session">
                   <div>
-                    <h3 className="builderSectionTitle">
-                      {isSingleWorkoutBuilder ? "Workout Session" : "Current Session"}
-                    </h3>
+                    <h3 className="builderSectionTitle">Current Session</h3>
                     {editingProgramSessionId && (
                       <p className="builderSessionHint">
-                        {isSingleWorkoutBuilder
-                          ? "Editing this workout — save when ready."
-                          : "Save this day, then pick the next session."}
+                        Save this day, then pick the next session.
                       </p>
                     )}
                   </div>
@@ -2246,31 +2245,16 @@ export default function CoachBuilderPage({
                     >
                       {builderSaveStatus === "dirty" ? "Unsaved" : "Saved"}
                     </span>
-                    {editingProgramSessionId && isSingleWorkoutBuilder && (
-                      <button
-                        className="outlineButton"
-                        onClick={() => clearCurrentProgramSession(false)}
-                      >
-                        Close Editor
-                      </button>
-                    )}
                     <button
                       className="goldButton sessionSaveButton"
                       disabled={savingTemplate}
-                      onClick={() =>
-                        isSingleWorkoutBuilder
-                          ? void saveFullProgram()
-                          : saveCurrentSessionToProgram(true, false)
-                      }
+                      onClick={() => saveCurrentSessionToProgram(true, false)}
                     >
-                      {savingTemplate
-                        ? "Saving…"
-                        : isSingleWorkoutBuilder
-                          ? "Save Workout"
-                          : "Save Day"}
+                      {savingTemplate ? "Saving…" : "Save Day"}
                     </button>
                   </div>
                 </div>
+                )}
 
                 <details
                   className="builderCollapsiblePanel builderSessionDetails"
