@@ -207,6 +207,15 @@ data between them, never "borrow" a table ID across products.
     default Playwright runs. Rule: never put transform/filter animations on
     `.app`/`.main` (nl-anim's pick() now refuses shells), and pass
     `reducedMotion: "no-preference"` when verifying anything animation-adjacent.
+35. **The renumber that collapses rest days** — the builder's
+    `renumberProgramSessionsByWeek` used to reassign each week's days by array
+    order (1,2,3…), silently pulling a Day-4 session onto Day 3 and destroying an
+    intentional Day 1/4/6 layout — surfaced as "error with Day 3 run" on save
+    (the Day-4 run had been renumbered). Rule: a session with a real placed
+    `day` keeps it; only fill unplaced sessions sequentially. Never compact
+    intentional day gaps. Twin cause on that same save: heavy 30-session saves
+    trip Feishu throttle (1254607) with no retry — `saveFullProgram` now retries
+    failed sessions once after a 3s pause. Any bulk writer needs the same.
 
 ## Quality bar — checkable, per deliverable
 
