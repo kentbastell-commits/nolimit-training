@@ -553,32 +553,6 @@ export default function CoachBuilderPage({
                                 : "Build a full phase of programming — sessions, weeks, and progressions in one place."
                               : "Your programs, reusable sessions, and intake forms — build once, assign anywhere."}
                           </p>
-                          {!useMobileWorkoutRows &&
-                            workoutPageTab !== "Program Builder" && (
-                            <div className="wkTabs">
-                              {workoutTabList.map((tab: any) => {
-                                const count =
-                                  tab.value === "Sessions"
-                                    ? S.length
-                                    : tab.value === "Forms"
-                                    ? F.length
-                                    : P.length;
-                                return (
-                                  <button
-                                    key={tab.value}
-                                    type="button"
-                                    className={`wkTab${
-                                      activeWorkoutTabValue === tab.value ? " on" : ""
-                                    }`}
-                                    onClick={() => selectWorkoutTab(tab.value)}
-                                  >
-                                    <span>{tab.label}</span>
-                                    <span className="wkTabCount">{count}</span>
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          )}
                         </div>
                         <div className="wkHeadRight">
                           {isListTab && (
@@ -664,6 +638,32 @@ export default function CoachBuilderPage({
                         </div>
                       )}
 
+                      {!useMobileWorkoutRows &&
+                        workoutPageTab !== "Program Builder" && (
+                        <div className="wkTabs">
+                          {workoutTabList.map((tab: any) => {
+                            const count =
+                              tab.value === "Sessions"
+                                ? S.length
+                                : tab.value === "Forms"
+                                ? F.length
+                                : P.length;
+                            return (
+                              <button
+                                key={tab.value}
+                                type="button"
+                                className={`wkTab${
+                                  activeWorkoutTabValue === tab.value ? " on" : ""
+                                }`}
+                                onClick={() => selectWorkoutTab(tab.value)}
+                              >
+                                <span>{tab.label}</span>
+                                <span className="wkTabCount">{count}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
                       {useMobileWorkoutRows && (
                         <div
                           className={`workoutTabMenu ${
