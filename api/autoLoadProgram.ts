@@ -97,7 +97,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const clientData = await clientRes.json();
     const clientFields = clientData?.data?.record?.fields || {};
     const clientCode = fieldToText(clientFields["Client ID"]);
-    const clientName = fieldToText(clientFields["Name"]);
+    // The clients table's name column is "Full Name" ("Name" doesn't exist).
+    const clientName =
+      fieldToText(clientFields["Full Name"]) || fieldToText(clientFields["Name"]);
 
     if (!clientCode) return res.status(404).json({ error: "Client not found" });
 
@@ -370,8 +372,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Update client once with everything that loaded. Access End Date comes
     // from the longest purchased program's "Access Length Days" (0 = no expiry).
+    // The clients table has no "Program" text column — the program relation is
+    // the "Program ID" DuplexLink (what the coach console displays and what
+    // clears the "Needs program" flag). Merge with any existing links so a
+    // second purchase never unlinks the first program.
+    const existingProgramLinks: string[] = (() => {
+      const v: any = clientFields["Program ID"];
+      if (Array.isArray(v?.link_record_ids)) return v.link_record_ids;
+      if (Array.isArray(v)) {
+        return v.flatMap((o: any) =>
+          Array.isArray(o?.record_ids) ? o.record_ids : typeof o === "string" ? [o] : []
+        );
+      }
+      return [];
+    })();
     const clientFieldsUpdate: Record<string, any> = {
-      Program: loadedPrograms.join(" + "),
+      "Program ID": Array.from(
+        new Set([...existingProgramLinks, ...loadedProgramRecordIds])
+      ),
       "Intake Status": "Reviewed",
       "Access Start Date": new Date(`${today}T00:00:00`).getTime(),
     };

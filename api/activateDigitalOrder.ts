@@ -499,18 +499,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           );
         }
 
-        // Update client intake status
-        await fetch(`${base}/${clientsTableId}/records/${clientRecordId}`, {
-          method: "PUT",
-          headers,
-          body: JSON.stringify({
-            fields: {
-              "Intake Status": intakeAssigned ? "Sent" : "Not Sent",
-              "Purchased Program ID": programId,
-              Program: programName,
-            },
-          }),
-        });
+        // Update client intake status. (No "Program" text column exists on
+        // the clients table — writing it made Feishu reject this whole PUT
+        // silently, losing Intake Status too. The program link itself is set
+        // by autoLoadProgram once the workouts are created.)
+        const clientStatusRes = await fetch(
+          `${base}/${clientsTableId}/records/${clientRecordId}`,
+          {
+            method: "PUT",
+            headers,
+            body: JSON.stringify({
+              fields: {
+                "Intake Status": intakeAssigned ? "Sent" : "Not Sent",
+                "Purchased Program ID": programId,
+              },
+            }),
+          }
+        );
+        const clientStatusData = await readResponseJson(clientStatusRes);
+        if (!clientStatusRes.ok || clientStatusData?.code !== 0) {
+          console.error(
+            "activateDigitalOrder: client intake-status update failed (non-fatal)",
+            JSON.stringify({ larkResponse: clientStatusData })
+          );
+        }
       }
     }
 

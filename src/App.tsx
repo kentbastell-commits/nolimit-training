@@ -3753,9 +3753,13 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     setCoachReviewLoading(true);
     setCoachReviewError("");
 
-    try {
+    // Each feed lands independently — one transient blip (a deploy restart,
+    // a Feishu hiccup) must not blank the whole queue and greet the coach
+    // with an error toast. Failed feeds keep their previous data and get one
+    // quiet retry before anything is surfaced.
+    const attempt = async (): Promise<number> => {
       const [, responses, comments, assignedWorkouts, checkIns, enquiryList] =
-        await Promise.all([
+        await Promise.allSettled([
           loadProductOrders(force),
           fetchAllContentResponses(),
           fetchAllWorkoutComments(),
@@ -3764,17 +3768,41 @@ function App({ onReady }: { onReady?: () => void } = {}) {
           fetchEnquiries(),
         ]);
 
-      setCoachReviewResponses(responses);
-      setCoachReviewComments(comments);
-      setCoachReviewWorkouts(assignedWorkouts);
-      setCoachReviewCheckIns(checkIns);
-      setCoachReviewEnquiries(enquiryList);
-    } catch (error) {
-      console.error(error);
-      const message =
-        error instanceof Error ? error.message : "Could not load review queue.";
-      setCoachReviewError(message);
-      notify("Could not load coach review queue.", "error");
+      if (responses.status === "fulfilled")
+        setCoachReviewResponses(responses.value);
+      if (comments.status === "fulfilled") setCoachReviewComments(comments.value);
+      if (assignedWorkouts.status === "fulfilled")
+        setCoachReviewWorkouts(assignedWorkouts.value);
+      if (checkIns.status === "fulfilled") setCoachReviewCheckIns(checkIns.value);
+      if (enquiryList.status === "fulfilled")
+        setCoachReviewEnquiries(enquiryList.value);
+
+      const failures = [
+        responses,
+        comments,
+        assignedWorkouts,
+        checkIns,
+        enquiryList,
+      ].filter((r) => r.status === "rejected");
+      failures.forEach((f) =>
+        console.error("review feed failed:", (f as PromiseRejectedResult).reason)
+      );
+      return failures.length;
+    };
+
+    try {
+      let failed = await attempt();
+      if (failed > 0) {
+        await new Promise((resolve) => setTimeout(resolve, 4000));
+        failed = await attempt();
+      }
+      if (failed > 0) {
+        setCoachReviewError("Part of the review queue could not load.");
+        notify(
+          "Part of the review queue could not load — use Refresh Queue to retry.",
+          "error"
+        );
+      }
     } finally {
       setCoachReviewLoading(false);
     }
