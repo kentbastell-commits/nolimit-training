@@ -181,6 +181,14 @@ data between them, never "borrow" a table ID across products.
     scope that defines them (they now live on `.app:not(.clientPortalApp)` too);
     when adding tokens, define them for every scope that consumes them or use
     `var(--x, fallback)`.
+32. **The phantom column** — writing a field name the Feishu table doesn't have
+    (`Program` on clients; the real columns were `Program ID`/`Full Name`)
+    rejects the ENTIRE record write, and an unchecked writer makes it silent —
+    every digital purchase lost Intake Status + access dates for weeks. Rule:
+    before shipping a Feishu writer, list the table's live fields
+    (`node --env-file=.env` on the server → `GET /tables/{id}/fields`), check
+    every write response for `code !== 0`, and test the exact write shape on a
+    throwaway record.
 
 ## Quality bar — checkable, per deliverable
 
