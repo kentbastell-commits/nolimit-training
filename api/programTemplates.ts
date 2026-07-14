@@ -101,6 +101,7 @@ export default async function handler(
     if (!allItems) {
       allItems = [];
       let pageToken = "";
+      let truncated = false;
       do {
         const url = new URL(
           `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${process.env.FEISHU_WORKOUT_TEMPLATES_TABLE_ID}/records`
@@ -108,10 +109,20 @@ export default async function handler(
         url.searchParams.set("page_size", "500");
         if (pageToken) url.searchParams.set("page_token", pageToken);
 
-        const recordsResponse = await fetch(url.toString(), {
-          headers: { Authorization: `Bearer ${tokenData.tenant_access_token}` },
-        });
-        const pageData = await recordsResponse.json();
+        // Retry each page a few times: Feishu throttles after heavy writes
+        // (1254607 "Data not ready"), and new template rows live on the LAST
+        // page — a silently dropped page means a program looks empty.
+        let pageData: any = null;
+        for (let attempt = 0; attempt < 3; attempt++) {
+          const recordsResponse = await fetch(url.toString(), {
+            headers: {
+              Authorization: `Bearer ${tokenData.tenant_access_token}`,
+            },
+          });
+          pageData = await recordsResponse.json();
+          if (pageData?.data?.items) break;
+          await new Promise((resolve) => setTimeout(resolve, 800));
+        }
 
         if (!pageData?.data?.items) {
           if (allItems.length === 0) {
@@ -120,6 +131,7 @@ export default async function handler(
               larkResponse: pageData,
             });
           }
+          truncated = true;
           break;
         }
 
@@ -127,7 +139,11 @@ export default async function handler(
         pageToken = pageData.data.has_more ? pageData.data.page_token : "";
       } while (pageToken);
 
-      setCached("workoutTemplatesRaw", allItems, 10 * 60 * 1000);
+      // Never cache a partial scan — a truncated snapshot makes every program
+      // whose rows sit on the missing pages look empty for the whole TTL.
+      if (!truncated) {
+        setCached("workoutTemplatesRaw", allItems, 10 * 60 * 1000);
+      }
     }
 
     const programSearch = String(programId || "");
