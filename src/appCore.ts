@@ -316,6 +316,9 @@ export type ExerciseSetPrescription = {
   intensityValue: string;
   rpe: string;
   rir: string;
+  // Per-set duration for holds / isometrics (e.g. "30 s"), shown when the
+  // coach picks the "Time" tracking field.
+  time: string;
   tempo: string;
   rest: string;
 };
@@ -814,6 +817,7 @@ export type SetLog = {
   prescribedIntensityValue: string;
   prescribedRpe: string;
   prescribedRir: string;
+  prescribedTime?: string;
   trackingFields: string[];
   actualReps: string;
   actualWeight: string;
@@ -1041,6 +1045,7 @@ export function parseExerciseNotes(notes = ""): ExerciseNoteMeta {
               intensityValue: String(set?.intensityValue || ""),
               rpe: String(set?.rpe || ""),
               rir: String(set?.rir || ""),
+              time: String(set?.time || ""),
               tempo: String(set?.tempo || ""),
               rest: String(set?.rest || ""),
             }))
@@ -1097,7 +1102,7 @@ export const EN_META_LINE =
 // stay intact.
 export const CN_META_LINE = /^\s*[一-鿿][一-鿿0-9]{0,11}[:：]/;
 export const META_JSON_FRAGMENT =
-  /^\s*[[\]{}]|"(?:setNumber|reps|load|percent|percentMas|intensityMode|intensityValue|rpe|rir|tempo|rest|exerciseRecordId|exerciseId|exerciseName)"\s*:/;
+  /^\s*[[\]{}]|"(?:setNumber|reps|load|percent|percentMas|intensityMode|intensityValue|rpe|rir|time|tempo|rest|exerciseRecordId|exerciseId|exerciseName)"\s*:/;
 
 export function stripLocalizedExerciseMeta(note = ""): string {
   return note
@@ -1132,8 +1137,9 @@ export function composeExerciseNotes(
 }
 
 // Strength tracking fields the coach can customize (max 3). Cardio keeps its
-// own Time/Distance/Pace layout and is unaffected by this.
-export const STRENGTH_TRACKING_FIELDS = ["Weight", "Reps", "RPE", "RIR"] as const;
+// own Time/Distance/Pace layout and is unaffected by this. "Time" is for
+// holds/isometrics — a per-set duration alongside (or instead of) reps.
+export const STRENGTH_TRACKING_FIELDS = ["Weight", "Reps", "Time", "RPE", "RIR"] as const;
 
 export function effectiveTrackingFields(
   trackingType: TrackingType,

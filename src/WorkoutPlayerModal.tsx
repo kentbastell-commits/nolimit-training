@@ -1297,6 +1297,33 @@ export default function WorkoutPlayerModal({
                                       </label>
                                     );
                                   }
+                                  if (f === "Time") {
+                                    return (
+                                      <label className="setLogField" key="time">
+                                        <span>
+                                          {paceZh ? "时间" : "Time"}
+                                          {log.prescribedTime
+                                            ? ` (${log.prescribedTime})`
+                                            : ""}
+                                        </span>
+                                        <input
+                                          inputMode="text"
+                                          value={log.actualTime}
+                                          placeholder={
+                                            log.prescribedTime ||
+                                            (paceZh ? "秒" : "30 s")
+                                          }
+                                          onChange={(e) =>
+                                            updateSetLog(
+                                              globalIndex,
+                                              "actualTime",
+                                              e.target.value
+                                            )
+                                          }
+                                        />
+                                      </label>
+                                    );
+                                  }
                                   if (f === "RPE") {
                                     return (
                                       <label className="setLogField" key="rpe">

@@ -6453,6 +6453,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
           ).trim();
           const prescribedRpe = String(setPrescription?.rpe ?? "").trim();
           const prescribedRir = String(setPrescription?.rir ?? "").trim();
+          const prescribedTime = String(setPrescription?.time ?? "").trim();
           const trackingFields = effectiveTrackingFields(
             meta.trackingType,
             meta.trackingFields
@@ -6475,6 +6476,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
             prescribedIntensityValue,
             prescribedRpe,
             prescribedRir,
+            prescribedTime,
             trackingFields,
             actualReps: meta.trackingType === "Weight" ? exercise.reps : "",
             actualWeight: "",
@@ -7871,6 +7873,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       intensityValue: String(source?.intensityValue ?? ""),
       rpe: String(source?.rpe ?? ""),
       rir: String(source?.rir ?? ""),
+      time: String(source?.time ?? ""),
       tempo: String(source?.tempo ?? exercise.tempo ?? ""),
       rest: String(source?.rest ?? exercise.rest ?? ""),
     };
@@ -8143,12 +8146,14 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     > = {
       Weight: "load",
       Reps: "reps",
+      Time: "time",
       RPE: "rpe",
       RIR: "rir",
     };
     const fieldPlaceholderOf: Record<string, string> = {
       Weight: "kg",
       Reps: "Reps",
+      Time: "30 s",
       RPE: "1-10",
       RIR: "0-5",
     };
@@ -8800,6 +8805,27 @@ function App({ onReady }: { onReady?: () => void } = {}) {
           intensityMode: "rpe",
         })),
       };
+    }
+
+    // Isometrics are time-based by default: holds swap Reps for Time
+    // (Weight + Time), and OVERCOMING isometrics (max pushes into a fixed bar)
+    // count efforts AND duration — Reps + Time (Rest has its own column).
+    if (
+      newExercise.trackingType === "Weight" &&
+      !newExercise.trackingFields?.length
+    ) {
+      const lower = (exercise.exerciseName || "").toLowerCase();
+      const isIsometric = /isometric|\biso\b|\bhold\b|blade position/.test(
+        lower
+      );
+      if (isIsometric) {
+        newExercise = {
+          ...newExercise,
+          trackingFields: /overcoming/.test(lower)
+            ? ["Reps", "Time"]
+            : ["Weight", "Time"],
+        };
+      }
     }
     return newExercise;
   };
@@ -17498,7 +17524,9 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     return Boolean(
       String(log.actualWeight || "").trim() ||
         String(log.actualRpe || "").trim() ||
-        String(log.actualRir || "").trim()
+        String(log.actualRir || "").trim() ||
+        // Time-tracked strength sets (isometric holds) complete on a logged time.
+        String(log.actualTime || "").trim()
     );
   };
 
