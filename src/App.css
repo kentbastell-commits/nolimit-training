@@ -793,6 +793,40 @@
   margin-top: 8px;
 }
 
+/* Colour swatches for a custom section (picked before "Use"). */
+.builderSectionColorRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+.builderSectionColorRow small {
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #8a8578;
+  margin-right: 2px;
+}
+.builderSectionColorDot {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  padding: 0;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
+  transition: transform 0.1s ease;
+}
+.builderSectionColorDot:hover {
+  transform: scale(1.12);
+}
+.builderSectionColorDot.active {
+  border-color: #111;
+  outline: 2px solid #fff;
+  outline-offset: -4px;
+}
+
 .builderLibraryPreview {
   position: relative;
   display: flex;
@@ -5134,6 +5168,15 @@ body {
   border-color: rgba(125, 74, 120, 0.5) !important;
   background: #7d4a78 !important;
   color: #faf1f9 !important;
+}
+
+/* Coach-picked custom section colour (via --section-custom). Triple class
+   beats every palette class AND the warmup class regardless of source order
+   (all use !important at two-class specificity). */
+.exerciseLabelBadge.labelCustomHex.labelCustomHex {
+  border-color: var(--section-custom) !important;
+  background: var(--section-custom) !important;
+  color: #ffffff !important;
 }
 
 .exerciseLabelBadge.exerciseLabelBadgeWarmup {

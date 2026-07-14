@@ -284,6 +284,9 @@ export type AlternateExerciseDetail = {
 
 export type ExerciseNoteMeta = {
   sectionName: string;
+  // Optional custom hex chosen by the coach for a custom section; overrides
+  // the keyword/hash palette everywhere badges render.
+  sectionColor: string;
   exerciseLabel: string;
   groupType?: ProgramExercise["groupType"];
   groupName: string;
@@ -544,6 +547,7 @@ export type ProgramExercise = {
   isAccessory?: boolean;
   accessoryParentLabel?: string;
   accessoryColor?: string;
+  sectionColor?: string;
   setPrescriptions?: ExerciseSetPrescription[];
   alternateExercises?: ExerciseAlternate[];
   targetSource?: string;
@@ -971,6 +975,7 @@ export function parseExerciseNotes(notes = ""): ExerciseNoteMeta {
   const lines = notes.split(/\r?\n/);
   const meta: ExerciseNoteMeta = {
     sectionName: "",
+    sectionColor: "",
     exerciseLabel: "",
     groupName: "",
     trackingType: "Weight",
@@ -987,7 +992,7 @@ export function parseExerciseNotes(notes = ""): ExerciseNoteMeta {
   lines.forEach((line) => {
     const trimmed = line.trim();
     const match = trimmed.match(
-      /^(Section|Label|Superset|Circuit|Circuit Mode|Circuit Minutes|Tracking|Fields|Unilateral|Accessory|Accessory Parent|Accessory Color|Set Prescriptions|Alternate Exercises):\s*(.+)$/i
+      /^(Section|Section Color|Label|Superset|Circuit|Circuit Mode|Circuit Minutes|Tracking|Fields|Unilateral|Accessory|Accessory Parent|Accessory Color|Set Prescriptions|Alternate Exercises):\s*(.+)$/i
     );
 
     if (!match) {
@@ -999,6 +1004,7 @@ export function parseExerciseNotes(notes = ""): ExerciseNoteMeta {
     const value = match[2].trim();
 
     if (key === "section") meta.sectionName = value;
+    if (key === "section color") meta.sectionColor = value;
     if (key === "label") meta.exerciseLabel = value;
     if (key === "tracking") {
       const clean = value.toLowerCase();

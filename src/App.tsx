@@ -4896,6 +4896,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
           isAccessory: meta.isAccessory,
           accessoryParentLabel: meta.accessoryParentLabel,
           accessoryColor: meta.accessoryColor,
+          sectionColor: meta.sectionColor,
           setPrescriptions: meta.setPrescriptions,
           alternateExercises: meta.alternateExercises,
         };
@@ -5204,6 +5205,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
           .filter(Boolean)
       );
       setProgramSessions(sessions);
+      adoptSectionColors(sessions.flatMap((s) => s.exercises));
       setSelectedProgramExercises([]);
       setProgramWeek("1");
       setProgramDay("1");
@@ -7555,6 +7557,33 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   // Color the exercise label (A1, B1...) by its SECTION type, with hues that
   // represent each section (cardio = blue, etc.). Only the label badge is
   // colored, never the whole card.
+  // Coach-picked colours for custom sections (key = normalized lowercase
+  // section name). Persisted per exercise via the "Section Color:" meta line;
+  // this live map carries the coach's current pick while building.
+  const [customSectionColors, setCustomSectionColors] = useState<
+    Record<string, string>
+  >({});
+
+  const resolveSectionColor = (exercise: {
+    sectionName?: string;
+    sectionColor?: string;
+  }) => {
+    const key = normalizeBuilderSection(exercise.sectionName).toLowerCase();
+    return customSectionColors[key] || exercise.sectionColor || "";
+  };
+
+  // Adopt persisted section colours from loaded exercises so newly added
+  // exercises in the same section pick up the same colour.
+  const adoptSectionColors = (exercises: ProgramExercise[]) => {
+    const found: Record<string, string> = {};
+    exercises.forEach((ex) => {
+      const key = normalizeBuilderSection(ex.sectionName).toLowerCase();
+      if (ex.sectionColor && !found[key]) found[key] = ex.sectionColor;
+    });
+    if (Object.keys(found).length === 0) return;
+    setCustomSectionColors((prev) => ({ ...found, ...prev }));
+  };
+
   function getLabelColorClass(_label?: string, sectionName?: string) {
     const clean = normalizeBuilderSection(sectionName).toLowerCase();
     if (clean.includes("warm") || clean.includes("prep")) return "labelWarmup";
@@ -7638,7 +7667,10 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   }
 
   function renderExerciseLabelBadge(exercise: ProgramExercise, index: number) {
-    if (isWarmupSection(exercise.sectionName)) {
+    // A coach-picked custom colour beats the warmup keyword guess (a section
+    // named "Sprint Prep" with its own colour is not a warmup).
+    const customHex = resolveSectionColor(exercise);
+    if (isWarmupSection(exercise.sectionName) && !customHex) {
       return (
         <span className="exerciseLabelBadge exerciseLabelBadgeWarmup">
           {index + 1}
@@ -7651,7 +7683,12 @@ function App({ onReady }: { onReady?: () => void } = {}) {
         className={`exerciseLabelBadge ${getLabelColorClass(
           exercise.exerciseLabel,
           exercise.sectionName
-        )}`}
+        )}${customHex ? " labelCustomHex" : ""}`}
+        style={
+          customHex
+            ? ({ "--section-custom": customHex } as React.CSSProperties)
+            : undefined
+        }
       >
         {exercise.exerciseLabel || index + 1}
       </span>
@@ -7693,6 +7730,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       ex: ProgramExercise;
       display: string;
       colorClass: string;
+      customHex: string;
       linked: boolean;
       isFirst: boolean;
       isLast: boolean;
@@ -7725,6 +7763,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
           colorClass: run.isWarmup
             ? "exerciseLabelBadgeWarmup"
             : getLabelColorClass(undefined, ex.sectionName),
+          customHex: resolveSectionColor(ex),
           linked: !run.isWarmup && n > 1,
           isFirst: pos === 0,
           isLast: pos === n - 1,
@@ -9418,8 +9457,10 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   };
 
   const buildExerciseCoachingNotes = (exercise: ProgramExercise) => {
+    const sectionColor = resolveSectionColor(exercise);
     const meta = [
       exercise.sectionName ? `Section: ${exercise.sectionName}` : "",
+      sectionColor ? `Section Color: ${sectionColor}` : "",
       exercise.exerciseLabel ? `Label: ${exercise.exerciseLabel}` : "",
       `Tracking: ${exercise.trackingType || "Weight"}`,
       exercise.trackingFields && exercise.trackingFields.length > 0
@@ -9880,6 +9921,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     setSessionIntensity(session.intensity || "Moderate");
     setBuilderMode(session.isSingleWorkout ? "Single Workout" : "Program");
     setSelectedProgramExercises(session.exercises);
+    adoptSectionColors(session.exercises);
     setExpandedBuilderExerciseIndexes(new Set());
     setEditingProgramSessionId(session.localId);
     // Program sessions keep the drawer underneath (it owns "Save Day"), but the
@@ -19249,6 +19291,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                 savingTemplate={savingTemplate}
                 savingTestTemplate={savingTestTemplate}
                 selectBuilderSection={selectBuilderSection}
+                setCustomSectionColors={setCustomSectionColors}
                 selectWorkoutTab={selectWorkoutTab}
                 selectedProgramExercises={selectedProgramExercises}
                 selectedSavedProgram={selectedSavedProgram}

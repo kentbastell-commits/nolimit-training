@@ -47,6 +47,18 @@ const WCOL_ICON: Record<string, any> = {
 };
 const wcolIcon = (cc: string) => WCOL_ICON[cc] || Dumbbell;
 
+// Custom-section colour choices — deliberately distinct from every hue the
+// keyword/hash section palette already uses.
+const CUSTOM_SECTION_COLORS = [
+  "#c92a2a", // red
+  "#d6336c", // rose
+  "#ae3ec9", // magenta
+  "#1e3a8a", // navy
+  "#15aabf", // cyan
+  "#74b816", // lime
+  "#795548", // brown
+];
+
 export default function CoachBuilderPage({
   builderScope,
   accessoryTargetIndex,
@@ -231,6 +243,7 @@ export default function CoachBuilderPage({
   savingTemplate,
   savingTestTemplate,
   selectBuilderSection,
+  setCustomSectionColors,
   selectWorkoutTab,
   selectedProgramExercises,
   selectedSavedProgram,
@@ -383,6 +396,8 @@ export default function CoachBuilderPage({
   // "+ Cue" chips) so the popup stays clean until a coach needs them.
   const [cueOpen, setCueOpen] = useState(false);
   const [tempoOpen, setTempoOpen] = useState(false);
+  // Swatch picked for the NEXT custom section (applied on "Use").
+  const [customSectionColorChoice, setCustomSectionColorChoice] = useState("");
   const openExerciseEditor = (i: number) => {
     setCueOpen(false);
     setTempoOpen(false);
@@ -2142,7 +2157,19 @@ export default function CoachBuilderPage({
                                                       />
                                                     )}
                                                     <span
-                                                      className={`exerciseLabelBadge glanceBadge ${it.colorClass}`}
+                                                      className={`exerciseLabelBadge glanceBadge ${it.colorClass}${
+                                                        it.customHex
+                                                          ? " labelCustomHex"
+                                                          : ""
+                                                      }`}
+                                                      style={
+                                                        it.customHex
+                                                          ? ({
+                                                              "--section-custom":
+                                                                it.customHex,
+                                                            } as any)
+                                                          : undefined
+                                                      }
                                                     >
                                                       {it.display}
                                                     </span>
@@ -2236,52 +2263,49 @@ export default function CoachBuilderPage({
                     isSingleWorkoutBuilder ? "" : " asDrawer"
                   }${sessionEditorOpen ? " open" : ""}`}
                 >
-                  {!isSingleWorkoutBuilder && (
-                    <div className="builderEditorDrawerHead">
-                      <strong>
-                        Week {programWeek || "--"} · Day {programDay || "--"}
-                      </strong>
+                {/* Program drawer: one dark hero band carries the identity
+                    (week/day + session name) and the save actions — matching
+                    the hero language used across the detail pages. The
+                    single-workout builder keeps its own hero. */}
+                {!isSingleWorkoutBuilder && (
+                  <div className="drawerSessionHero" id="builder-session">
+                    <div className="drawerSessionHeroText">
+                      <span className="drawerSessionHeroEyebrow">
+                        Current Session · Week {programWeek || "--"} · Day{" "}
+                        {programDay || "--"}
+                      </span>
+                      <h2>{sessionName || "Name your session"}</h2>
+                      <p>
+                        {editingProgramSessionId
+                          ? "Save this day, then pick the next session."
+                          : "Build the day, then save it into the program."}
+                      </p>
+                    </div>
+                    <div className="drawerSessionHeroActions">
+                      <span
+                        className={`drawerHeroStatusPill ${
+                          builderSaveStatus === "dirty" ? "isDirty" : "isSaved"
+                        }`}
+                      >
+                        {builderSaveStatus === "dirty" ? "Unsaved" : "Saved"}
+                      </span>
+                      <button
+                        className="goldButton drawerHeroSave"
+                        disabled={savingTemplate}
+                        onClick={() => saveCurrentSessionToProgram(true, false)}
+                      >
+                        {savingTemplate ? "Saving…" : "Save Day"}
+                      </button>
                       <button
                         type="button"
-                        className="iconActionButton"
+                        className="drawerHeroClose"
                         title="Close editor"
                         onClick={() => setSessionEditorOpen(false)}
                       >
                         <X size={18} />
                       </button>
                     </div>
-                  )}
-
-                {/* Single-workout builder: saving is consolidated in the hero
-                    (Save / Save + Exit) — no duplicate header row. The program
-                    drawer keeps its scoped "Save Day". */}
-                {!isSingleWorkoutBuilder && (
-                <div className="builderSectionHeader" id="builder-session">
-                  <div>
-                    <h3 className="builderSectionTitle">Current Session</h3>
-                    {editingProgramSessionId && (
-                      <p className="builderSessionHint">
-                        Save this day, then pick the next session.
-                      </p>
-                    )}
                   </div>
-                  <div className="builderSessionHeaderActions">
-                    <span
-                      className={`builderSaveStatusPill compact ${
-                        builderSaveStatus === "dirty" ? "isDirty" : "isSaved"
-                      }`}
-                    >
-                      {builderSaveStatus === "dirty" ? "Unsaved" : "Saved"}
-                    </span>
-                    <button
-                      className="goldButton sessionSaveButton"
-                      disabled={savingTemplate}
-                      onClick={() => saveCurrentSessionToProgram(true, false)}
-                    >
-                      {savingTemplate ? "Saving…" : "Save Day"}
-                    </button>
-                  </div>
-                </div>
                 )}
 
                 <details
@@ -2774,12 +2798,43 @@ export default function CoachBuilderPage({
                                 />
                                 <button
                                   className="goldButton"
-                                  onClick={() =>
-                                    selectBuilderSection(customBuilderSectionName)
-                                  }
+                                  onClick={() => {
+                                    const name = (customBuilderSectionName || "").trim();
+                                    if (name && customSectionColorChoice) {
+                                      setCustomSectionColors((prev: any) => ({
+                                        ...prev,
+                                        [normalizeBuilderSection(name).toLowerCase()]:
+                                          customSectionColorChoice,
+                                      }));
+                                    }
+                                    selectBuilderSection(customBuilderSectionName);
+                                  }}
                                 >
                                   Use
                                 </button>
+                              </div>
+                              <div className="builderSectionColorRow">
+                                <small>Colour</small>
+                                {CUSTOM_SECTION_COLORS.map((hex) => (
+                                  <button
+                                    key={hex}
+                                    type="button"
+                                    className={`builderSectionColorDot${
+                                      customSectionColorChoice === hex
+                                        ? " active"
+                                        : ""
+                                    }`}
+                                    style={{ background: hex }}
+                                    title={hex}
+                                    onClick={() =>
+                                      setCustomSectionColorChoice(
+                                        customSectionColorChoice === hex
+                                          ? ""
+                                          : hex
+                                      )
+                                    }
+                                  />
+                                ))}
                               </div>
                             </label>
                           </div>

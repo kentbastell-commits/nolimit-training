@@ -150,6 +150,7 @@ export default function ProgramDetailPanel({
             const groups: Array<{
               name: string;
               colorClass: string;
+              customHex: string;
               items: any[];
             }> = [];
             items.forEach((it: any) => {
@@ -158,7 +159,12 @@ export default function ProgramDetailPanel({
               if (last && last.colorClass === it.colorClass && last.name === name) {
                 last.items.push(it);
               } else {
-                groups.push({ name, colorClass: it.colorClass, items: [it] });
+                groups.push({
+                  name,
+                  colorClass: it.colorClass,
+                  customHex: it.customHex || "",
+                  items: [it],
+                });
               }
             });
             return { session: s, items, groups };
@@ -230,7 +236,9 @@ export default function ProgramDetailPanel({
   };
 
   const renderRow = (it: any, linked: boolean) => {
-    const hex = sectionHex(it.colorClass);
+    const hex = it.customHex
+      ? { bg: it.customHex, text: "#ffffff" }
+      : sectionHex(it.colorClass);
     const sets =
       it.ex.sets && it.ex.reps
         ? `${it.ex.sets} × ${it.ex.reps}`
@@ -461,11 +469,17 @@ export default function ProgramDetailPanel({
                           <div className="pdpGroupHead">
                             <span
                               className="pdpSwatch"
-                              style={{ background: sectionHex(g.colorClass).bg }}
+                              style={{
+                                background:
+                                  g.customHex || sectionHex(g.colorClass).bg,
+                              }}
                             />
                             <span
                               className="pdpGroupName"
-                              style={{ color: sectionHex(g.colorClass).bg }}
+                              style={{
+                                color:
+                                  g.customHex || sectionHex(g.colorClass).bg,
+                              }}
                             >
                               {g.name}
                             </span>

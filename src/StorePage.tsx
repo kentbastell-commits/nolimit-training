@@ -1894,7 +1894,16 @@ export default function StorePage({
                                     />
                                   )}
                                   <span
-                                    className={`exerciseLabelBadge glanceBadge ${it.colorClass}`}
+                                    className={`exerciseLabelBadge glanceBadge ${it.colorClass}${
+                                      it.customHex ? " labelCustomHex" : ""
+                                    }`}
+                                    style={
+                                      it.customHex
+                                        ? ({
+                                            "--section-custom": it.customHex,
+                                          } as any)
+                                        : undefined
+                                    }
                                   >
                                     {it.display}
                                   </span>

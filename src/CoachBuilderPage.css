@@ -589,23 +589,92 @@
   visibility: hidden;
   transition: opacity 0.16s ease;
 }
-.builderEditorDrawerHead {
-  position: sticky;
-  top: 0;
-  z-index: 2;
+/* Program drawer hero: dark identity band with week/day eyebrow, session
+   name and the save actions — same hero language as the detail pages. */
+.drawerSessionHero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 18px 0 16px;
+  padding: 20px 22px;
+  border-radius: 18px;
+  background:
+    radial-gradient(
+      120% 190% at 100% 0%,
+      rgba(212, 175, 55, 0.18),
+      transparent 55%
+    ),
+    #131310;
+}
+.drawerSessionHeroText {
+  min-width: 0;
+}
+.drawerSessionHeroEyebrow {
+  display: block;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #d4af37;
+}
+.app:not(.clientPortalApp) .drawerSessionHero h2,
+.drawerSessionHero h2 {
+  margin: 6px 0 4px;
+  font-size: 24px;
+  font-weight: 950;
+  letter-spacing: -0.01em;
+  color: #ffffff !important;
+}
+.drawerSessionHero p {
+  margin: 0;
+  font-size: 12.5px;
+  color: rgba(255, 255, 255, 0.6);
+}
+.drawerSessionHeroActions {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 10px;
-  padding: 14px 0 12px;
-  margin-bottom: 8px;
-  border-bottom: 1px solid #ece9e1;
-  background: #fff;
+  flex-shrink: 0;
 }
-.builderEditorDrawerHead strong {
-  font-size: 16px;
-  font-weight: 950;
-  color: #111;
+.drawerHeroStatusPill {
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.drawerHeroStatusPill.isDirty {
+  background: rgba(212, 175, 55, 0.16);
+  border: 1px solid rgba(212, 175, 55, 0.42);
+  color: #e9d9a6;
+}
+.drawerHeroStatusPill.isSaved {
+  background: rgba(72, 199, 116, 0.14);
+  border: 1px solid rgba(72, 199, 116, 0.38);
+  color: #7fd99f;
+}
+.drawerHeroSave {
+  min-height: 42px;
+  padding: 0 18px;
+  border-radius: 12px;
+  font-weight: 900;
+}
+.drawerHeroClose {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+.drawerHeroClose:hover {
+  background: rgba(255, 255, 255, 0.18);
 }
 /* ---- Program calendar grid (Week × Day 1-7 builder landing) ---- */
 .programGridWrap {
@@ -3207,10 +3276,9 @@
   }
 }
 
-/* Single-workout builder: the Workout Details panel gets the same card
-   chrome as the program setup card (scoped so the program builder's
-   session-editor DRAWER variant is untouched). */
-.builderEditorWrap:not(.asDrawer) .builderSessionDetails {
+/* Session/Workout Details panel gets the same card chrome as the program
+   setup card — in the single-workout builder AND the program drawer. */
+.builderEditorWrap .builderSessionDetails {
   position: relative;
   background: #fff;
   border: 1px solid #ece7db;
@@ -3219,7 +3287,7 @@
   overflow: hidden;
   padding-top: 4px;
 }
-.builderEditorWrap:not(.asDrawer) .builderSessionDetails::before {
+.builderEditorWrap .builderSessionDetails::before {
   content: "";
   position: absolute;
   top: 0;
@@ -3228,20 +3296,20 @@
   height: 4px;
   background: linear-gradient(90deg, #b5731a, #2e8b3d 45%, #15897a 72%, #3f6390);
 }
-.builderEditorWrap:not(.asDrawer) .builderSessionDetails summary {
+.builderEditorWrap .builderSessionDetails summary {
   display: flex;
   align-items: flex-start;
   gap: 16px;
   padding: 22px 26px 20px;
 }
-.builderEditorWrap:not(.asDrawer) .builderSessionDetails[open] summary {
+.builderEditorWrap .builderSessionDetails[open] summary {
   border-bottom: 1px solid #f0ebdf;
 }
-.builderEditorWrap:not(.asDrawer) .builderSessionDetails summary > div {
+.builderEditorWrap .builderSessionDetails summary > div {
   flex: 1 1 auto;
   min-width: 0;
 }
-.builderEditorWrap:not(.asDrawer) .builderSessionDetails summary .eyebrow {
+.builderEditorWrap .builderSessionDetails summary .eyebrow {
   display: block;
   font-size: 10.5px;
   font-weight: 800;
@@ -3249,14 +3317,14 @@
   text-transform: uppercase;
   color: #a29a86;
 }
-.builderEditorWrap:not(.asDrawer) .builderSessionDetails summary strong {
+.builderEditorWrap .builderSessionDetails summary strong {
   display: block;
   font-size: 23px;
   font-weight: 900;
   letter-spacing: -0.01em;
   color: #10100f;
 }
-.builderEditorWrap:not(.asDrawer) .builderSessionDetails .builderPanelToggle {
+.builderEditorWrap .builderSessionDetails .builderPanelToggle {
   flex: 0 0 auto;
   display: inline-flex;
   align-items: center;

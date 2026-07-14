@@ -302,7 +302,18 @@ export default function WorkoutPlayerModal({
                                       meta.exerciseLabel,
                                       sectionName
                                     )
+                              }${
+                                meta.sectionColor
+                                  ? " labelCustomHex"
+                                  : ""
                               }`}
+                              style={
+                                meta.sectionColor
+                                  ? ({
+                                      "--section-custom": meta.sectionColor,
+                                    } as React.CSSProperties)
+                                  : undefined
+                              }
                             >
                               {isWarmupSection(sectionName)
                                 ? index + 1
@@ -813,7 +824,18 @@ export default function WorkoutPlayerModal({
                                       meta.exerciseLabel,
                                       sectionName
                                     )
+                              }${
+                                meta.sectionColor
+                                  ? " labelCustomHex"
+                                  : ""
                               }`}
+                              style={
+                                meta.sectionColor
+                                  ? ({
+                                      "--section-custom": meta.sectionColor,
+                                    } as React.CSSProperties)
+                                  : undefined
+                              }
                             >
                               {isWarmupSection(sectionName)
                                 ? index + 1
