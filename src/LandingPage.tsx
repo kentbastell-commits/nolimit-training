@@ -205,8 +205,11 @@ export default function LandingPage({
   };
 
   const landingStats: [number, string][] = [
-    [landingPrograms.length, lZh ? "训练计划" : "Programs"],
-    [uniqueSports, lZh ? "运动项目" : "Sports"],
+    [
+      landingPrograms.length,
+      lZh ? "训练计划" : landingPrograms.length === 1 ? "Program" : "Programs",
+    ],
+    [uniqueSports, lZh ? "运动项目" : uniqueSports === 1 ? "Sport" : "Sports"],
     [2, lZh ? "语言" : "Languages"],
   ];
 
