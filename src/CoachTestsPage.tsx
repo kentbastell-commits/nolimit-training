@@ -101,7 +101,6 @@ export default function CoachTestsPage(props: { [key: string]: any }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           testName: ctForm.name,
-          testNameCn: ctForm.nameCn || "",
           category: ctForm.category || "Other",
           resultMetric: ctForm.metric || "",
           resultUnit: ctForm.unit || "",
@@ -761,14 +760,6 @@ export default function CoachTestsPage(props: { [key: string]: any }) {
                       value={ctForm.name || ""}
                       onChange={(e) => setCt("name", e.target.value)}
                       placeholder="1RM Test — Incline Bench Press"
-                    />
-                  </label>
-                  <label>
-                    <span>{t("testsCtNameCn")}</span>
-                    <input
-                      value={ctForm.nameCn || ""}
-                      onChange={(e) => setCt("nameCn", e.target.value)}
-                      placeholder="上斜卧推极限重量测试"
                     />
                   </label>
                   <label>
