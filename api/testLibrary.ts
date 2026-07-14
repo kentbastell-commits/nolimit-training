@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { getCached, setCached } from "./_cache.ts";
+import { getCached, setCached, invalidateCache } from "./_cache.ts";
 
 // Canonical Test Library (physical tests): 1RM tests bound to exercises,
 // energy-system tests, jump/speed/mobility tests. Athlete metrics bind to
@@ -47,6 +47,83 @@ export default async function handler(
       return res.status(503).json({
         error: "Not configured",
         message: "Missing FEISHU_TEST_LIBRARY_TABLE_ID",
+      });
+    }
+
+    // POST: create a canonical test (the coach's "Create Test" builder).
+    if (req.method === "POST") {
+      const body = req.body || {};
+      const testName = String(body.testName || "").trim();
+      const category = String(body.category || "").trim();
+      if (!testName || !category) {
+        return res.status(400).json({
+          error: "Missing fields",
+          message: "testName and category are required",
+        });
+      }
+
+      const tokenResponse = await fetch(
+        "https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            app_id: process.env.FEISHU_APP_ID,
+            app_secret: process.env.FEISHU_APP_SECRET,
+          }),
+        }
+      );
+      const tokenData = await tokenResponse.json();
+
+      const testId =
+        "TST-" + String(Math.floor(1000 + Math.random() * 9000));
+      const fields: Record<string, any> = {
+        "Test ID": testId,
+        "Test Name": testName,
+        Category: category,
+        Status: "Active",
+        "Higher Is Better": Boolean(body.higherIsBetter),
+      };
+      // Omit empties — typed Feishu columns reject "".
+      if (String(body.testNameCn || "").trim())
+        fields["Test Name CN"] = String(body.testNameCn).trim();
+      if (String(body.resultMetric || "").trim())
+        fields["Result Metric"] = String(body.resultMetric).trim();
+      if (String(body.resultUnit || "").trim())
+        fields["Result Unit"] = String(body.resultUnit).trim();
+      if (String(body.calculation || "").trim())
+        fields["Calculation"] = String(body.calculation).trim();
+      if (String(body.protocol || "").trim())
+        fields["Protocol"] = String(body.protocol).trim();
+      if (String(body.protocolCn || "").trim())
+        fields["Protocol CN"] = String(body.protocolCn).trim();
+      if (String(body.linkedExerciseRecordId || "").trim())
+        fields["Linked Exercise"] = [String(body.linkedExerciseRecordId).trim()];
+
+      const createResponse = await fetch(
+        `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${process.env.FEISHU_TEST_LIBRARY_TABLE_ID}/records`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${tokenData.tenant_access_token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ fields }),
+        }
+      );
+      const createData = await createResponse.json();
+      if (createData.code !== 0) {
+        return res.status(502).json({
+          error: "Feishu error",
+          message: createData.msg || "Could not create test",
+          larkResponse: createData,
+        });
+      }
+      invalidateCache("testLibrary");
+      return res.status(200).json({
+        success: true,
+        testId,
+        recordId: createData.data?.record?.record_id || "",
       });
     }
 

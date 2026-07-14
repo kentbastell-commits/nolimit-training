@@ -1606,6 +1606,8 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   // Canonical Test Library (physical tests bound to exercises/metrics).
   const [testLibraryTests, setTestLibraryTests] = useState<any[]>([]);
   const [testLibraryLoading, setTestLibraryLoading] = useState(false);
+  // Battery builder modal on the Tests page (replaces the old Workouts hop).
+  const [testBatteryModalOpen, setTestBatteryModalOpen] = useState(false);
   const [assignmentType, setAssignmentType] = useState("Program");
   const [assignmentClientId, setAssignmentClientId] = useState("");
   const [assignmentTemplateId, setAssignmentTemplateId] = useState("");
@@ -3425,9 +3427,10 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     }
   };
 
-  // Canonical Test Library — read-only list, fetched once per session.
-  const loadTestLibrary = async () => {
-    if (testLibraryTests.length > 0 || testLibraryLoading) return;
+  // Canonical Test Library — fetched once per session (force reloads after
+  // creating a test).
+  const loadTestLibrary = async (force?: boolean) => {
+    if ((testLibraryTests.length > 0 && !force) || testLibraryLoading) return;
     setTestLibraryLoading(true);
     try {
       const response = await fetch("/api/testLibrary");
@@ -4233,12 +4236,14 @@ function App({ onReady }: { onReady?: () => void } = {}) {
         recordId: data.testRecordId,
         testTemplateId: data.testTemplateId,
       });
+      return true;
     } catch (error) {
       console.error(error);
       notify("Could not save test template.", "error");
     } finally {
       setSavingTestTemplate(false);
     }
+    return false;
   };
 
   const assignmentTemplateOptions =
@@ -5378,27 +5383,25 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     setTestView("builder");
   };
 
-  // The Tests library page lives on its own nav tab; the Physical Test
-  // Builder still lives inside the Programming page. These handlers hop
-  // between the two so create/edit/duplicate from the Tests page lands in
-  // the builder, and the builder's back link returns to the Tests page.
+  // Battery create/edit/duplicate opens the modal on the Tests page itself —
+  // no more hop into the Workouts page (the old inline builder is retired).
   const openTestFromTestsPage = (test?: SavedTestTemplate) => {
     if (test) {
       setSelectedSavedTestId(test.testTemplateId);
       loadSavedTestIntoBuilder(test);
-      setTestView("builder");
     } else {
-      startNewTest();
+      // New battery starts EMPTY — items are picked from the Test Library.
+      setTestTemplateName("");
+      setTestTemplateCategory("Other");
+      setEditingTestTemplate(null);
+      setTestItems([]);
     }
-    setWorkoutPageTab("Tests");
-    setActivePage("Workouts");
+    setTestBatteryModalOpen(true);
   };
 
   const duplicateTestFromTestsPage = (test: SavedTestTemplate) => {
     duplicateSavedTestIntoBuilder(test);
-    setTestView("builder");
-    setWorkoutPageTab("Tests");
-    setActivePage("Workouts");
+    setTestBatteryModalOpen(true);
   };
 
   const exitTestBuilder = () => {
@@ -19518,6 +19521,20 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                 onEditTest={openTestFromTestsPage}
                 onDuplicateTest={duplicateTestFromTestsPage}
                 deleteSavedTestTemplate={deleteSavedTestTemplate}
+                testBatteryModalOpen={testBatteryModalOpen}
+                setTestBatteryModalOpen={setTestBatteryModalOpen}
+                testTemplateName={testTemplateName}
+                setTestTemplateName={setTestTemplateName}
+                testTemplateCategory={testTemplateCategory}
+                setTestTemplateCategory={setTestTemplateCategory}
+                testItems={testItems}
+                setTestItems={setTestItems}
+                saveTestTemplate={saveTestTemplate}
+                savingTestTemplate={savingTestTemplate}
+                editingTestTemplate={editingTestTemplate}
+                libraryExercises={libraryExercises}
+                loadExerciseLibrary={loadExerciseLibrary}
+                notify={notify}
               />
             )}
 

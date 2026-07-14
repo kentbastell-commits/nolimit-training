@@ -18,7 +18,8 @@ import {
 } from "lucide-react";
 import "./CoachTestsPage.css";
 import type { SavedTestTemplate } from "./appCore";
-import { calculationFor } from "./testCalculations";
+import PortalToApp from "./PortalToApp";
+import { TEST_CALCULATIONS, calculationFor } from "./testCalculations";
 import {
   TEST_CATEGORIES,
   normalizeTestCategory,
@@ -40,6 +41,20 @@ export default function CoachTestsPage(props: { [key: string]: any }) {
     onEditTest,
     onDuplicateTest,
     deleteSavedTestTemplate,
+    testBatteryModalOpen,
+    setTestBatteryModalOpen,
+    testTemplateName,
+    setTestTemplateName,
+    testTemplateCategory,
+    setTestTemplateCategory,
+    testItems,
+    setTestItems,
+    saveTestTemplate,
+    savingTestTemplate,
+    editingTestTemplate,
+    libraryExercises,
+    loadExerciseLibrary,
+    notify,
   } = props;
 
   const { t, i18n } = useTranslation();
@@ -53,7 +68,98 @@ export default function CoachTestsPage(props: { [key: string]: any }) {
   const [query, setQuery] = useState("");
   // Live calculator inputs for the open canonical test (keyed by input key).
   const [calcValues, setCalcValues] = useState<Record<string, string>>({});
+  // "Create Test" modal (writes a canonical test to the Test Library).
+  const [createTestOpen, setCreateTestOpen] = useState(false);
+  const [ctForm, setCtForm] = useState<Record<string, string>>({});
+  const [ctHigher, setCtHigher] = useState(true);
+  const [ctSaving, setCtSaving] = useState(false);
+  const [ctExerciseQuery, setCtExerciseQuery] = useState("");
+  // Battery modal: search box for picking canonical tests.
+  const [batteryPickQuery, setBatteryPickQuery] = useState("");
   const zh = (i18n.language || "").startsWith("zh");
+
+  const setCt = (key: string, value: string) =>
+    setCtForm((prev) => ({ ...prev, [key]: value }));
+
+  const openCreateTest = () => {
+    setCtForm({ metric: "Load", unit: "kg", calculation: "None" });
+    setCtHigher(true);
+    setCtExerciseQuery("");
+    setCreateTestOpen(true);
+    if (!(libraryExercises || []).length) void loadExerciseLibrary?.();
+  };
+
+  const submitCreateTest = async () => {
+    if (!String(ctForm.name || "").trim()) {
+      notify?.(t("testsCtNeedName"), "error");
+      return;
+    }
+    setCtSaving(true);
+    try {
+      const response = await fetch("/api/testLibrary", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          testName: ctForm.name,
+          testNameCn: ctForm.nameCn || "",
+          category: ctForm.category || "Other",
+          resultMetric: ctForm.metric || "",
+          resultUnit: ctForm.unit || "",
+          calculation: ctForm.calculation || "None",
+          higherIsBetter: ctHigher,
+          protocol: ctForm.protocol || "",
+          protocolCn: ctForm.protocolCn || "",
+          linkedExerciseRecordId: ctForm.linkedExerciseRecordId || "",
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        notify?.(data.message || "Could not create test.", "error");
+        return;
+      }
+      notify?.(t("testsCtCreated"), "success");
+      setCreateTestOpen(false);
+      void loadTestLibrary(true);
+    } catch (error) {
+      console.error(error);
+      notify?.("Could not create test.", "error");
+    } finally {
+      setCtSaving(false);
+    }
+  };
+
+  // Map a canonical test onto a battery item (the shape the battery save
+  // API already stores).
+  const METRIC_MAP: Record<string, string> = {
+    Load: "Weight", Time: "Time", Distance: "Distance", Reps: "Reps",
+    Height: "Height", Watts: "Power", Force: "Power", Score: "Score",
+  };
+  const CALC_MAP: Record<string, string> = {
+    "e1RM (Epley)": "Epley 1RM",
+    "MAS (m/s)": "Max Aerobic Speed (m/s)",
+    "Pace (min/km)": "Run Pace (min/km)",
+    "Relative (per kg)": "Relative Strength (x BW)",
+    RSI: "Reactive Strength Index (RSI)",
+  };
+  const addTestToBattery = (test: any) => {
+    setTestItems((current: any[]) => [
+      ...current,
+      {
+        id: `T${current.length + 1}`,
+        testId: test.testId,
+        testName: test.testName,
+        metricType: METRIC_MAP[test.resultMetric] || "Score",
+        unit: test.resultUnit || "score",
+        createsMetric: Boolean(
+          test.calculation && test.calculation !== "None"
+        ),
+        metricName: test.testName,
+        metricUnit: test.resultUnit || "",
+        calculationMethod: CALC_MAP[test.calculation] || "Direct Value",
+        inputUnit: "",
+      },
+    ]);
+  };
 
   useEffect(() => {
     void loadTestTemplates();
@@ -190,8 +296,15 @@ export default function CoachTestsPage(props: { [key: string]: any }) {
           <h1>{t("testsPageTitle")}</h1>
           <p>{t("testsPageSub")}</p>
         </div>
-        <button type="button" className="ctpNewBtn" onClick={() => onCreateTest()}>
-          <Plus size={17} /> {t("testsCreate")}
+        <button
+          type="button"
+          className="ctpNewBtn"
+          onClick={() =>
+            mode === "library" ? openCreateTest() : onCreateTest()
+          }
+        >
+          <Plus size={17} />{" "}
+          {mode === "library" ? t("testsNewTest") : t("testsNewBattery")}
         </button>
       </div>
 
@@ -614,6 +727,352 @@ export default function CoachTestsPage(props: { [key: string]: any }) {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ---- Create Test modal (canonical Test Library) ---- */}
+      {createTestOpen && (
+        <PortalToApp>
+          <div
+            className="createProgramOverlay"
+            onClick={() => setCreateTestOpen(false)}
+          >
+            <div
+              className="createProgramModal libPickModal"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="createProgramHeader">
+                <div>
+                  <span className="eyebrow">{t("testsLibTab")}</span>
+                  <h3>{t("testsNewTest")}</h3>
+                </div>
+                <button
+                  type="button"
+                  className="iconActionButton"
+                  title="Close"
+                  onClick={() => setCreateTestOpen(false)}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+              <div className="createProgramBody ctpModalBody">
+                <div className="ctpModalGrid">
+                  <label>
+                    <span>{t("testsCtName")}</span>
+                    <input
+                      value={ctForm.name || ""}
+                      onChange={(e) => setCt("name", e.target.value)}
+                      placeholder="1RM Test — Incline Bench Press"
+                    />
+                  </label>
+                  <label>
+                    <span>{t("testsCtNameCn")}</span>
+                    <input
+                      value={ctForm.nameCn || ""}
+                      onChange={(e) => setCt("nameCn", e.target.value)}
+                      placeholder="上斜卧推极限重量测试"
+                    />
+                  </label>
+                  <label>
+                    <span>{t("testsCategoryLabel")}</span>
+                    <select
+                      value={ctForm.category || "Other"}
+                      onChange={(e) => setCt("category", e.target.value)}
+                    >
+                      {TEST_CATEGORIES.map((category) => (
+                        <option key={category} value={category}>
+                          {categoryLabel(category)}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    <span>{t("testsLibMeasures")}</span>
+                    <select
+                      value={ctForm.metric || "Load"}
+                      onChange={(e) => setCt("metric", e.target.value)}
+                    >
+                      {["Load", "Time", "Distance", "Reps", "Height", "Watts", "Force", "Score"].map(
+                        (metricOption) => (
+                          <option key={metricOption} value={metricOption}>
+                            {metricOption}
+                          </option>
+                        )
+                      )}
+                    </select>
+                  </label>
+                  <label>
+                    <span>{t("testsCtUnit")}</span>
+                    <input
+                      value={ctForm.unit || ""}
+                      onChange={(e) => setCt("unit", e.target.value)}
+                      placeholder="kg, s, m, cm, N..."
+                    />
+                  </label>
+                  <label>
+                    <span>{t("testsLibCalc")}</span>
+                    <select
+                      value={ctForm.calculation || "None"}
+                      onChange={(e) => setCt("calculation", e.target.value)}
+                    >
+                      <option value="None">None</option>
+                      {Object.keys(TEST_CALCULATIONS).map((calcName) => (
+                        <option key={calcName} value={calcName}>
+                          {calcName}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+                <label className="ctpModalCheck">
+                  <input
+                    type="checkbox"
+                    checked={ctHigher}
+                    onChange={(e) => setCtHigher(e.target.checked)}
+                  />
+                  <span>{t("testsLibHigher")}</span>
+                </label>
+                <label className="ctpModalWide">
+                  <span>{t("testsCtLinked")}</span>
+                  <input
+                    value={ctExerciseQuery}
+                    onChange={(e) => {
+                      setCtExerciseQuery(e.target.value);
+                      setCt("linkedExerciseRecordId", "");
+                    }}
+                    placeholder={t("testsCtLinkedHint")}
+                  />
+                  {ctExerciseQuery.trim() &&
+                    !ctForm.linkedExerciseRecordId && (
+                      <div className="ctpModalPickList">
+                        {(libraryExercises || [])
+                          .filter((exercise: any) =>
+                            (exercise.exerciseName || "")
+                              .toLowerCase()
+                              .includes(ctExerciseQuery.trim().toLowerCase())
+                          )
+                          .slice(0, 6)
+                          .map((exercise: any) => (
+                            <button
+                              type="button"
+                              key={exercise.recordId}
+                              onClick={() => {
+                                setCt(
+                                  "linkedExerciseRecordId",
+                                  exercise.recordId
+                                );
+                                setCtExerciseQuery(exercise.exerciseName);
+                              }}
+                            >
+                              {exercise.exerciseName}
+                            </button>
+                          ))}
+                      </div>
+                    )}
+                </label>
+                <label className="ctpModalWide">
+                  <span>{t("testsLibProtocol")} (EN)</span>
+                  <textarea
+                    value={ctForm.protocol || ""}
+                    onChange={(e) => setCt("protocol", e.target.value)}
+                    placeholder="Warm-up, execution, scoring, stop criteria..."
+                  />
+                </label>
+                <label className="ctpModalWide">
+                  <span>{t("testsLibProtocol")} (中文)</span>
+                  <textarea
+                    value={ctForm.protocolCn || ""}
+                    onChange={(e) => setCt("protocolCn", e.target.value)}
+                    placeholder="热身、执行要点、计分方式、终止标准…"
+                  />
+                </label>
+              </div>
+              <div className="createProgramFooter">
+                <button
+                  type="button"
+                  className="outlineButton"
+                  onClick={() => setCreateTestOpen(false)}
+                >
+                  {t("cancel")}
+                </button>
+                <button
+                  type="button"
+                  className="goldButton"
+                  disabled={ctSaving}
+                  onClick={() => void submitCreateTest()}
+                >
+                  {ctSaving ? t("saving") : t("testsCtSave")}
+                </button>
+              </div>
+            </div>
+          </div>
+        </PortalToApp>
+      )}
+
+      {/* ---- Test Battery builder modal (picks from the Test Library) ---- */}
+      {testBatteryModalOpen && (
+        <PortalToApp>
+          <div
+            className="createProgramOverlay"
+            onClick={() => setTestBatteryModalOpen(false)}
+          >
+            <div
+              className="createProgramModal libPickModal ctpBatteryModal"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="createProgramHeader">
+                <div>
+                  <span className="eyebrow">{t("testsMineTab")}</span>
+                  <h3>
+                    {editingTestTemplate
+                      ? t("testsBatteryEdit")
+                      : t("testsNewBattery")}
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  className="iconActionButton"
+                  title="Close"
+                  onClick={() => setTestBatteryModalOpen(false)}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+              <div className="createProgramBody ctpModalBody">
+                <div className="ctpModalGrid">
+                  <label>
+                    <span>{t("testsCtBatteryName")}</span>
+                    <input
+                      value={testTemplateName}
+                      onChange={(e) => setTestTemplateName(e.target.value)}
+                      placeholder="Return-to-sport screen, Power profile..."
+                    />
+                  </label>
+                  <label>
+                    <span>{t("testsCategoryLabel")}</span>
+                    <select
+                      value={testTemplateCategory}
+                      onChange={(e) => setTestTemplateCategory(e.target.value)}
+                    >
+                      {TEST_CATEGORIES.map((category) => (
+                        <option key={category} value={category}>
+                          {categoryLabel(category)}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+
+                <div className="ctpItemsLabel">
+                  {t("testsBatteryItems")}{" "}
+                  <span>· {(testItems || []).length}</span>
+                </div>
+                {(testItems || []).length === 0 ? (
+                  <p className="ctpCalcHint">{t("testsBatteryEmpty")}</p>
+                ) : (
+                  <div className="ctpBatteryItems">
+                    {(testItems || []).map((item: any, index: number) => (
+                      <div className="ctpBatteryItem" key={`${item.id}-${index}`}>
+                        <span className="ctpBatteryBadge">{index + 1}</span>
+                        <span className="ctpBatteryInfo">
+                          <strong>{item.testName}</strong>
+                          <small>
+                            {[item.metricType, item.unit]
+                              .filter(Boolean)
+                              .join(" · ")}
+                            {item.calculationMethod &&
+                            item.calculationMethod !== "Direct Value"
+                              ? ` · ${item.calculationMethod}`
+                              : ""}
+                          </small>
+                        </span>
+                        <button
+                          type="button"
+                          className="iconActionButton"
+                          title="Remove"
+                          onClick={() =>
+                            setTestItems((current: any[]) =>
+                              current.filter((_, i) => i !== index)
+                            )
+                          }
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="ctpItemsLabel">{t("testsBatteryPick")}</div>
+                <input
+                  className="libPickSearch"
+                  value={batteryPickQuery}
+                  onChange={(e) => setBatteryPickQuery(e.target.value)}
+                  placeholder={t("testsSearchPlaceholder")}
+                />
+                <div className="ctpBatteryPickList">
+                  {libTests
+                    .filter((test: any) => {
+                      const q = batteryPickQuery.trim().toLowerCase();
+                      if (!q) return true;
+                      return `${test.testName} ${test.testNameCn || ""} ${test.category}`
+                        .toLowerCase()
+                        .includes(q);
+                    })
+                    .slice(0, 30)
+                    .map((test: any) => (
+                      <button
+                        type="button"
+                        className="ctpBatteryPickRow"
+                        key={test.recordId}
+                        onClick={() => addTestToBattery(test)}
+                      >
+                        <span className="ctpBatteryInfo">
+                          <strong>
+                            {zh && test.testNameCn
+                              ? test.testNameCn
+                              : test.testName}
+                          </strong>
+                          <small>
+                            {[categoryLabel(test.category), test.resultMetric, test.resultUnit]
+                              .filter(Boolean)
+                              .join(" · ")}
+                          </small>
+                        </span>
+                        <Plus size={16} />
+                      </button>
+                    ))}
+                </div>
+              </div>
+              <div className="createProgramFooter">
+                <button
+                  type="button"
+                  className="outlineButton"
+                  onClick={() => setTestBatteryModalOpen(false)}
+                >
+                  {t("cancel")}
+                </button>
+                <button
+                  type="button"
+                  className="goldButton"
+                  disabled={savingTestTemplate}
+                  onClick={() =>
+                    void Promise.resolve(saveTestTemplate()).then(
+                      (saved: any) => {
+                        if (saved) setTestBatteryModalOpen(false);
+                      }
+                    )
+                  }
+                >
+                  {savingTestTemplate
+                    ? t("saving")
+                    : editingTestTemplate
+                      ? t("testsBatteryUpdate")
+                      : t("testsBatterySave")}
+                </button>
+              </div>
+            </div>
+          </div>
+        </PortalToApp>
+      )}
     </div>
   );
 }
