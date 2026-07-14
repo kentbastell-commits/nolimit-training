@@ -1664,6 +1664,16 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     d: number;
   } | null>(null);
   const [libPickLoadingId, setLibPickLoadingId] = useState("");
+  // "Add from Library" flow: choose a single session, or import whole days
+  // from another program (week/day checkboxes → placement week).
+  const [libPickMode, setLibPickMode] = useState<
+    "choice" | "sessions" | "programs" | "days" | "place"
+  >("choice");
+  const [libPickProgram, setLibPickProgram] = useState<Program | null>(null);
+  const [libPickSessions, setLibPickSessions] = useState<ProgramSession[]>([]);
+  const [libPickSessionsLoading, setLibPickSessionsLoading] = useState(false);
+  const [libPickChecked, setLibPickChecked] = useState<Set<string>>(new Set());
+  const [libPickStartWeek, setLibPickStartWeek] = useState("1");
   // Cut/Copy clipboard for builder sessions; Paste drops it on another day.
   const [copiedSession, setCopiedSession] = useState<{
     session: ProgramSession;
@@ -4986,6 +4996,64 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     notify(
       `Pasted "${session.sessionName}" into Week ${week}, Day ${day}.`
     );
+  };
+
+  // "Add from Library" → "Add Program": load a program's days for the
+  // week/day checkbox picker.
+  const loadLibPickProgramDays = async (program: Program) => {
+    setLibPickProgram(program);
+    setLibPickMode("days");
+    setLibPickSessionsLoading(true);
+    setLibPickSessions([]);
+    setLibPickChecked(new Set());
+    try {
+      const sessions = await fetchProgramSessions(
+        program.programId,
+        program.recordId || ""
+      );
+      sessions.sort(
+        (a, b) =>
+          (Number(a.week) || 1) - (Number(b.week) || 1) ||
+          (Number(a.day) || 1) - (Number(b.day) || 1)
+      );
+      setLibPickSessions(sessions);
+    } catch (error) {
+      console.error(error);
+      notify("Could not load that program's sessions.");
+      setLibPickMode("programs");
+    } finally {
+      setLibPickSessionsLoading(false);
+    }
+  };
+
+  // Import the checked days into the builder. Sessions keep their day of the
+  // week; weeks are shifted so the earliest selected week lands on the chosen
+  // start week (so W3-4 of Spring Ankle can become W1-2 of the new program).
+  const importProgramDaysFromLibrary = () => {
+    const chosen = libPickSessions.filter((s) => libPickChecked.has(s.localId));
+    if (chosen.length === 0) return;
+    const minWeek = Math.min(...chosen.map((s) => Number(s.week) || 1));
+    const startWeek = Math.max(1, Number(libPickStartWeek) || 1);
+    const offset = startWeek - minWeek;
+    setProgramSessions((current) => [
+      ...current,
+      ...chosen.map((s) => ({
+        ...s,
+        localId: `${Date.now()}-${Math.random()}`,
+        week: String((Number(s.week) || 1) + offset),
+        day: String(Number(s.day) || 1),
+        isSingleWorkout: false,
+        exercises: s.exercises.map((ex) => ({ ...ex })),
+      })),
+    ]);
+    setBuilderSaveStatus("dirty");
+    notify(
+      `Added ${chosen.length} session${chosen.length > 1 ? "s" : ""} from "${
+        libPickProgram?.programName || "program"
+      }" starting at Week ${startWeek}.`,
+      "success"
+    );
+    setLibPickTarget(null);
   };
 
   // "Add from Library": one click on a saved session → fetch + insert into the
@@ -17911,6 +17979,11 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                 const { w, d } = cellMenu;
                 setCellMenu(null);
                 if (programs.length === 0) void loadPrograms();
+                setLibPickMode("choice");
+                setLibPickProgram(null);
+                setLibPickSessions([]);
+                setLibPickChecked(new Set());
+                setLibPickStartWeek("1");
                 setLibPickTarget({ w, d });
               }}
             >
@@ -17933,7 +18006,13 @@ function App({ onReady }: { onReady?: () => void } = {}) {
               <div>
                 <span className="eyebrow">Add from Library</span>
                 <h3>
-                  Week {libPickTarget.w} · Day {libPickTarget.d}
+                  {libPickMode === "choice" && "What do you want to add?"}
+                  {libPickMode === "sessions" &&
+                    `Session → Week ${libPickTarget.w} · Day ${libPickTarget.d}`}
+                  {libPickMode === "programs" && "Pick a program to import from"}
+                  {libPickMode === "days" &&
+                    (libPickProgram?.programName || "Pick the days")}
+                  {libPickMode === "place" && "Where should they go?"}
                 </h3>
               </div>
               <button
@@ -17946,40 +18025,280 @@ function App({ onReady }: { onReady?: () => void } = {}) {
               </button>
             </div>
             <div className="createProgramBody">
-              {(() => {
-                const sessionPrograms = programs.filter(
-                  (pp) =>
-                    pp.productType === "Single Workout" &&
-                    pp.status !== "Archived"
-                );
-                if (sessionPrograms.length === 0) {
-                  return (
-                    <p className="mbHint">
-                      No saved sessions yet. Create one in the Sessions tab.
-                    </p>
-                  );
-                }
-                return sessionPrograms.map((pp) => (
+              {libPickMode === "choice" && (
+                <div className="libPickChoiceGrid">
                   <button
-                    key={pp.recordId}
                     type="button"
-                    className="mobilePickerRow"
-                    disabled={Boolean(libPickLoadingId)}
-                    onClick={() => insertSessionFromLibrary(pp)}
+                    className="libPickChoiceCard"
+                    onClick={() => setLibPickMode("sessions")}
                   >
-                    <span className="mobilePickerInfo">
-                      <strong>{pp.programName}</strong>
-                      <small>
-                        {libPickLoadingId === pp.programId
-                          ? "Adding…"
-                          : pp.goal || "Session"}
-                      </small>
-                    </span>
+                    <Dumbbell size={22} />
+                    <strong>Add Session</strong>
+                    <small>
+                      Drop one saved session into Week {libPickTarget.w}, Day{" "}
+                      {libPickTarget.d}.
+                    </small>
                   </button>
-                ));
-              })()}
+                  <button
+                    type="button"
+                    className="libPickChoiceCard"
+                    onClick={() => setLibPickMode("programs")}
+                  >
+                    <ClipboardList size={22} />
+                    <strong>Add Program</strong>
+                    <small>
+                      Pick days from another program — e.g. weave the Spring
+                      Ankle series into this one.
+                    </small>
+                  </button>
+                </div>
+              )}
+
+              {libPickMode === "sessions" &&
+                (() => {
+                  const sessionPrograms = programs.filter(
+                    (pp) =>
+                      pp.productType === "Single Workout" &&
+                      pp.status !== "Archived"
+                  );
+                  if (sessionPrograms.length === 0) {
+                    return (
+                      <p className="mbHint">
+                        No saved sessions yet. Create one in the Sessions tab.
+                      </p>
+                    );
+                  }
+                  return sessionPrograms.map((pp) => (
+                    <button
+                      key={pp.recordId}
+                      type="button"
+                      className="mobilePickerRow"
+                      disabled={Boolean(libPickLoadingId)}
+                      onClick={() => insertSessionFromLibrary(pp)}
+                    >
+                      <span className="mobilePickerInfo">
+                        <strong>{pp.programName}</strong>
+                        <small>
+                          {libPickLoadingId === pp.programId
+                            ? "Adding…"
+                            : pp.goal || "Session"}
+                        </small>
+                      </span>
+                    </button>
+                  ));
+                })()}
+
+              {libPickMode === "programs" &&
+                (() => {
+                  const fullPrograms = programs.filter(
+                    (pp) =>
+                      pp.productType !== "Single Workout" &&
+                      pp.status !== "Archived"
+                  );
+                  if (fullPrograms.length === 0) {
+                    return <p className="mbHint">No saved programs yet.</p>;
+                  }
+                  return fullPrograms.map((pp) => (
+                    <button
+                      key={pp.recordId}
+                      type="button"
+                      className="mobilePickerRow"
+                      onClick={() => void loadLibPickProgramDays(pp)}
+                    >
+                      <span className="mobilePickerInfo">
+                        <strong>{pp.programName}</strong>
+                        <small>
+                          {[
+                            pp.durationWeeks
+                              ? `${pp.durationWeeks} weeks`
+                              : "",
+                            pp.goal || "",
+                          ]
+                            .filter(Boolean)
+                            .join(" · ") || "Program"}
+                        </small>
+                      </span>
+                    </button>
+                  ));
+                })()}
+
+              {libPickMode === "days" &&
+                (libPickSessionsLoading ? (
+                  <p className="mbHint">Loading sessions…</p>
+                ) : libPickSessions.length === 0 ? (
+                  <p className="mbHint">That program has no sessions yet.</p>
+                ) : (
+                  (() => {
+                    const weeks = new Map<number, ProgramSession[]>();
+                    libPickSessions.forEach((s) => {
+                      const w = Number(s.week) || 1;
+                      weeks.set(w, [...(weeks.get(w) || []), s]);
+                    });
+                    const weekBlocks = [...weeks.entries()].map(([w, sessions]) => {
+                      const allChecked = sessions.every((s) =>
+                        libPickChecked.has(s.localId)
+                      );
+                      const someChecked =
+                        !allChecked &&
+                        sessions.some((s) => libPickChecked.has(s.localId));
+                      return (
+                        <div className="libPickWeek" key={w}>
+                          <label className="libPickWeekHead">
+                            <input
+                              type="checkbox"
+                              checked={allChecked}
+                              ref={(el) => {
+                                if (el) el.indeterminate = someChecked;
+                              }}
+                              onChange={() =>
+                                setLibPickChecked((prev) => {
+                                  const next = new Set(prev);
+                                  sessions.forEach((s) =>
+                                    allChecked
+                                      ? next.delete(s.localId)
+                                      : next.add(s.localId)
+                                  );
+                                  return next;
+                                })
+                              }
+                            />
+                            <strong>Week {w}</strong>
+                            <small>
+                              {sessions.length} session
+                              {sessions.length > 1 ? "s" : ""}
+                            </small>
+                          </label>
+                          {sessions.map((s) => (
+                            <label className="libPickDayRow" key={s.localId}>
+                              <input
+                                type="checkbox"
+                                checked={libPickChecked.has(s.localId)}
+                                onChange={() =>
+                                  setLibPickChecked((prev) => {
+                                    const next = new Set(prev);
+                                    if (next.has(s.localId))
+                                      next.delete(s.localId);
+                                    else next.add(s.localId);
+                                    return next;
+                                  })
+                                }
+                              />
+                              <span className="libPickDayBadge">
+                                D{s.day}
+                              </span>
+                              <span className="libPickDayInfo">
+                                <strong>{s.sessionName}</strong>
+                                <small>
+                                  {s.exercises.length} exercise
+                                  {s.exercises.length > 1 ? "s" : ""}
+                                  {s.sessionType ? ` · ${s.sessionType}` : ""}
+                                </small>
+                              </span>
+                            </label>
+                          ))}
+                        </div>
+                      );
+                    });
+                    return <div className="libPickDays">{weekBlocks}</div>;
+                  })()
+                ))}
+
+              {libPickMode === "place" &&
+                (() => {
+                  const chosen = libPickSessions.filter((s) =>
+                    libPickChecked.has(s.localId)
+                  );
+                  const minWeek = Math.min(
+                    ...chosen.map((s) => Number(s.week) || 1)
+                  );
+                  const startWeek = Math.max(
+                    1,
+                    Number(libPickStartWeek) || 1
+                  );
+                  return (
+                    <div className="libPickPlace">
+                      <p className="mbHint">
+                        {chosen.length} session{chosen.length > 1 ? "s" : ""}{" "}
+                        selected. They keep their day of the week; their weeks
+                        shift so the earliest selected week lands where you
+                        choose.
+                      </p>
+                      <label className="libPickPlaceField">
+                        <span>Start at week</span>
+                        <input
+                          type="number"
+                          min={1}
+                          value={libPickStartWeek}
+                          onChange={(e) =>
+                            setLibPickStartWeek(e.target.value)
+                          }
+                        />
+                      </label>
+                      <div className="libPickPlacePreview">
+                        {chosen.slice(0, 8).map((s) => (
+                          <small key={s.localId}>
+                            W{s.week} D{s.day} {s.sessionName} → W
+                            {(Number(s.week) || 1) - minWeek + startWeek} D
+                            {s.day}
+                          </small>
+                        ))}
+                        {chosen.length > 8 && (
+                          <small>…and {chosen.length - 8} more</small>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
             </div>
             <div className="createProgramFooter">
+              {(libPickMode === "sessions" ||
+                libPickMode === "programs") && (
+                <button
+                  type="button"
+                  className="outlineButton"
+                  onClick={() => setLibPickMode("choice")}
+                >
+                  Back
+                </button>
+              )}
+              {libPickMode === "days" && (
+                <>
+                  <button
+                    type="button"
+                    className="outlineButton"
+                    onClick={() => setLibPickMode("programs")}
+                  >
+                    Back
+                  </button>
+                  <button
+                    type="button"
+                    className="goldButton"
+                    disabled={libPickChecked.size === 0}
+                    onClick={() => setLibPickMode("place")}
+                  >
+                    Next ({libPickChecked.size} selected)
+                  </button>
+                </>
+              )}
+              {libPickMode === "place" && (
+                <>
+                  <button
+                    type="button"
+                    className="outlineButton"
+                    onClick={() => setLibPickMode("days")}
+                  >
+                    Back
+                  </button>
+                  <button
+                    type="button"
+                    className="goldButton"
+                    onClick={importProgramDaysFromLibrary}
+                  >
+                    Add {libPickChecked.size} Session
+                    {libPickChecked.size > 1 ? "s" : ""}
+                  </button>
+                </>
+              )}
               <button
                 type="button"
                 className="outlineButton"
