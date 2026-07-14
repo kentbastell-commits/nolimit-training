@@ -8,6 +8,7 @@ import "./ProgramDetailPanel.css";
 import {
   Check,
   Clock3,
+  Copy,
   Dumbbell,
   Feather,
   Gem,
@@ -274,9 +275,17 @@ export default function ProgramDetailPanel({
               type="button"
               className="pdpBtnDark"
               disabled={savedTemplatesLoading}
-              onClick={() => loadSavedProgramIntoBuilder()}
+              onClick={() => loadSavedProgramIntoBuilder(p, { edit: true })}
             >
-              <Pencil size={15} /> Open in Builder
+              <Pencil size={15} /> Edit
+            </button>
+            <button
+              type="button"
+              className="pdpBtnGhost"
+              disabled={savedTemplatesLoading}
+              onClick={() => loadSavedProgramIntoBuilder(p, { asCopy: true })}
+            >
+              <Copy size={15} /> Duplicate
             </button>
             <button
               type="button"
