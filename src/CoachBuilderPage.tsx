@@ -736,7 +736,59 @@ export default function CoachBuilderPage({
                   // in (it used to blank this page with an empty sessions
                   // list when you arrived from the Sessions tab).
                   if (builderScope === "digital") {
+                    // Bundles/add-ons keep the landing's own slide (member
+                    // lists, store framing). Real programs open the same full
+                    // ProgramDetailPanel as the coaching library — portaled to
+                    // .app so the animated page containers can't capture the
+                    // fixed overlay (named mistake #34).
+                    const detailIsAux =
+                      Boolean(selectedSavedProgram) &&
+                      ((selectedSavedProgram.storeListingType || "")
+                        .toLowerCase() === "add-on" ||
+                        (selectedSavedProgram.storeListingType || "")
+                          .toLowerCase() === "bundle" ||
+                        selectedSavedProgram.productType === "Digital Add-on" ||
+                        selectedSavedProgram.productType === "Digital Bundle");
                     return (
+                      <>
+                      {showProgramDetail &&
+                        selectedSavedProgram &&
+                        !detailIsAux && (
+                          <PortalToApp>
+                            <ProgramDetailPanel
+                              isSession={
+                                selectedSavedProgram.goal === "Single Workout"
+                              }
+                              selectedSavedProgram={selectedSavedProgram}
+                              setShowProgramDetail={setShowProgramDetail}
+                              loadSavedProgramIntoBuilder={
+                                loadSavedProgramIntoBuilder
+                              }
+                              savedTemplatesLoading={savedTemplatesLoading}
+                              deleteSavedProgram={deleteSavedProgram}
+                              deletingSavedProgramId={deletingSavedProgramId}
+                              clients={clients}
+                              savedAssignClientId={savedAssignClientId}
+                              setSavedAssignClientId={setSavedAssignClientId}
+                              savedAssignStartDate={savedAssignStartDate}
+                              setSavedAssignStartDate={setSavedAssignStartDate}
+                              savedAssignLoading={savedAssignLoading}
+                              savedAssignableWorkouts={savedAssignableWorkouts}
+                              savedAssigningProgram={savedAssigningProgram}
+                              assignSavedProgramToClient={
+                                assignSavedProgramToClient
+                              }
+                              loadSavedProgramSessionsForAssignment={
+                                loadSavedProgramSessionsForAssignment
+                              }
+                              updateSavedAssignableWorkoutDate={
+                                updateSavedAssignableWorkoutDate
+                              }
+                              savedProgramSessions={savedProgramSessions}
+                              buildGlanceChain={buildGlanceChain}
+                            />
+                          </PortalToApp>
+                        )}
                       <CoachProgramsLanding
                         programs={programs}
                         visibleProgramsOnly={visibleProgramsOnly}
@@ -750,7 +802,7 @@ export default function CoachBuilderPage({
                         setSelectedSavedProgramId={setSelectedSavedProgramId}
                         setSavedAssignableWorkouts={setSavedAssignableWorkouts}
                         setShowProgramDetail={setShowProgramDetail}
-                        showProgramDetail={showProgramDetail}
+                        showProgramDetail={showProgramDetail && detailIsAux}
                         selectedSavedProgram={selectedSavedProgram}
                         loadSavedProgramIntoBuilder={loadSavedProgramIntoBuilder}
                         duplicateSavedProgram={duplicateSavedProgram}
@@ -778,6 +830,7 @@ export default function CoachBuilderPage({
                           updateSavedAssignableWorkoutDate
                         }
                       />
+                      </>
                     );
                   }
                   return (
