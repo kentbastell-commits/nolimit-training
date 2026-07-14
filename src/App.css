@@ -5110,6 +5110,32 @@ body {
   color: #ffffff !important;
 }
 
+/* Alt palette for custom section names (Posterior, Ankle, Rocker…): each
+   section hashes to one of these stable hues in getLabelColorClass. */
+.exerciseLabelBadge.labelAlt1 {
+  border-color: rgba(166, 61, 87, 0.5) !important;
+  background: #a63d57 !important;
+  color: #fdf1f4 !important;
+}
+
+.exerciseLabelBadge.labelAlt2 {
+  border-color: rgba(63, 91, 148, 0.5) !important;
+  background: #3f5b94 !important;
+  color: #f0f4fb !important;
+}
+
+.exerciseLabelBadge.labelAlt3 {
+  border-color: rgba(47, 127, 158, 0.5) !important;
+  background: #2f7f9e !important;
+  color: #eff8fc !important;
+}
+
+.exerciseLabelBadge.labelAlt4 {
+  border-color: rgba(125, 74, 120, 0.5) !important;
+  background: #7d4a78 !important;
+  color: #faf1f9 !important;
+}
+
 .exerciseLabelBadge.exerciseLabelBadgeWarmup {
   border-color: rgba(194, 103, 28, 0.4) !important;
   background: #f0e0cf !important;

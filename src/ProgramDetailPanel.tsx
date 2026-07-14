@@ -40,6 +40,10 @@ const SECTION_HEX: Record<string, { bg: string; text: string }> = {
   labelCardio: { bg: "#3a86ff", text: "#f0f6ff" },
   labelSkill: { bg: "#6a4bc9", text: "#f2edff" },
   exerciseLabelBadgeWarmup: { bg: "#c2671c", text: "#fff7e8" },
+  labelAlt1: { bg: "#a63d57", text: "#fdf1f4" },
+  labelAlt2: { bg: "#3f5b94", text: "#f0f4fb" },
+  labelAlt3: { bg: "#2f7f9e", text: "#eff8fc" },
+  labelAlt4: { bg: "#7d4a78", text: "#faf1f9" },
   labelDefault: { bg: "#4f5258", text: "#ffffff" },
 };
 const sectionHex = (colorClass?: string) =>

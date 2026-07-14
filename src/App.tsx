@@ -7496,7 +7496,15 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     if (clean.includes("strength") || clean.includes("main")) {
       return "labelStrength";
     }
-    return "labelDefault";
+    if (!clean) return "labelDefault";
+    // Custom sections (Posterior, Ankle, Rocker…) get a stable hue from a small
+    // alt palette so each section's badges stay distinct and always match that
+    // section's header dot — instead of everything falling to the same grey.
+    let hash = 0;
+    for (let i = 0; i < clean.length; i++) {
+      hash = (hash * 31 + clean.charCodeAt(i)) >>> 0;
+    }
+    return `labelAlt${(hash % 4) + 1}`;
   }
 
   // Hex accent per section (matches the label-badge hues) for the workout
@@ -7517,6 +7525,14 @@ function App({ onReady }: { onReady?: () => void } = {}) {
         return "#15897a";
       case "labelStrength":
         return "#5b6770";
+      case "labelAlt1":
+        return "#a63d57";
+      case "labelAlt2":
+        return "#3f5b94";
+      case "labelAlt3":
+        return "#2f7f9e";
+      case "labelAlt4":
+        return "#7d4a78";
       default:
         return "#4f5258";
     }
@@ -9746,6 +9762,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     setProgramDay(String(day));
     setBuilderMode("Program");
     setSessionEditorOpen(true);
+    setIsBuilderLibraryOpen(true);
     setBuilderLibraryMode("Exercises");
     if (libraryExercises.length === 0 && !libraryLoading) {
       void loadExerciseLibrary();
@@ -9766,8 +9783,10 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     setSelectedProgramExercises(session.exercises);
     setExpandedBuilderExerciseIndexes(new Set());
     setEditingProgramSessionId(session.localId);
+    // Program sessions keep the drawer underneath (it owns "Save Day"), but the
+    // big library builder opens on top immediately — one click straight to editing.
     if (!session.isSingleWorkout) setSessionEditorOpen(true);
-    else setIsBuilderLibraryOpen(true);
+    setIsBuilderLibraryOpen(true);
     setBuilderLibraryMode("Exercises");
     if (libraryExercises.length === 0 && !libraryLoading) {
       void loadExerciseLibrary();
