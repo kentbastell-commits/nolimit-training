@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import "./CoachTestsPage.css";
 import type { SavedTestTemplate } from "./appCore";
+import { calculationFor } from "./testCalculations";
 import {
   TEST_CATEGORIES,
   normalizeTestCategory,
@@ -50,6 +51,8 @@ export default function CoachTestsPage(props: { [key: string]: any }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedLibId, setSelectedLibId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
+  // Live calculator inputs for the open canonical test (keyed by input key).
+  const [calcValues, setCalcValues] = useState<Record<string, string>>({});
   const zh = (i18n.language || "").startsWith("zh");
 
   useEffect(() => {
@@ -158,7 +161,10 @@ export default function CoachTestsPage(props: { [key: string]: any }) {
       className="ctpTestCard"
       key={test.recordId}
       style={testCategoryToneStyle(test.category)}
-      onClick={() => setSelectedLibId(test.testId || test.recordId)}
+      onClick={() => {
+        setCalcValues({});
+        setSelectedLibId(test.testId || test.recordId);
+      }}
     >
       <strong>{zh && test.testNameCn ? test.testNameCn : test.testName}</strong>
       <span className="ctpTestCardCat">{categoryLabel(test.category || "")}</span>
@@ -446,6 +452,51 @@ export default function CoachTestsPage(props: { [key: string]: any }) {
                     </strong>
                   </div>
                 </div>
+
+                {(() => {
+                  const calc = calculationFor(selectedLib.calculation);
+                  if (!calc) return null;
+                  const numeric: Record<string, number> = {};
+                  calc.inputs.forEach((input) => {
+                    numeric[input.key] = parseFloat(calcValues[input.key] || "");
+                  });
+                  const result = calc.compute(numeric);
+                  return (
+                    <div className="ctpCalc">
+                      <div className="ctpItemsLabel">{t("testsLibTryCalc")}</div>
+                      <div className="ctpCalcInputs">
+                        {calc.inputs.map((input) => (
+                          <label className="ctpCalcField" key={input.key}>
+                            <span>{zh ? input.labelZh : input.labelEn}</span>
+                            <input
+                              inputMode="decimal"
+                              placeholder={input.placeholder}
+                              value={calcValues[input.key] || ""}
+                              onChange={(e) =>
+                                setCalcValues((prev) => ({
+                                  ...prev,
+                                  [input.key]: e.target.value,
+                                }))
+                              }
+                            />
+                          </label>
+                        ))}
+                      </div>
+                      {result ? (
+                        <div className="ctpCalcResult">
+                          <strong>{result.display}</strong>
+                          {(zh ? result.detailZh : result.detailEn) && (
+                            <small>
+                              {zh ? result.detailZh : result.detailEn}
+                            </small>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="ctpCalcHint">{t("testsLibCalcHint")}</p>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 <div className="ctpItemsLabel">{t("testsLibProtocol")}</div>
                 <p className="ctpLibProtocol">
