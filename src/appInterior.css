@@ -761,38 +761,62 @@
   flex-shrink: 0;
 }
 .libPickPlace {
-  display: grid;
-  gap: 12px;
-}
-.libPickPlaceField {
+  flex: 1;
+  min-height: 0;
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 10px;
 }
-.libPickPlaceField span {
-  font-weight: 800;
-  font-size: 13px;
+.libPickPlaceRow {
+  flex-shrink: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid #e7e2d6;
+  border-radius: 12px;
+  background: #fff;
 }
-.libPickPlaceField input {
-  width: 84px;
-  padding: 8px 10px;
+.libPickPlaceSource {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.libPickPlaceSource strong {
+  font-size: 13.5px;
+  font-weight: 800;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.libPickPlaceSource small {
+  color: #8a8578;
+  font-size: 11.5px;
+}
+.libPickPlaceRow label {
+  display: grid;
+  gap: 2px;
+  justify-items: center;
+}
+.libPickPlaceRow label span {
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #8a8578;
+}
+.libPickPlaceRow input {
+  width: 58px;
+  padding: 7px 8px;
   border: 1px solid #d9d4c6;
   border-radius: 10px;
   font-weight: 800;
+  text-align: center;
 }
-.libPickPlacePreview {
-  display: grid;
-  gap: 3px;
-  padding: 10px 12px;
-  border: 1px dashed #ddd8ca;
-  border-radius: 10px;
-  background: #fbfaf5;
-  max-height: 180px;
-  overflow-y: auto;
-}
-.libPickPlacePreview small {
-  color: #6d6a60;
-  font-size: 11.5px;
+.libPickPlaceRow input:focus {
+  outline: none;
+  border-color: #b08a1e;
 }
 .programSalesDescription {
   margin-bottom: 22px;

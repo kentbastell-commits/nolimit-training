@@ -1673,7 +1673,12 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   const [libPickSessions, setLibPickSessions] = useState<ProgramSession[]>([]);
   const [libPickSessionsLoading, setLibPickSessionsLoading] = useState(false);
   const [libPickChecked, setLibPickChecked] = useState<Set<string>>(new Set());
-  const [libPickStartWeek, setLibPickStartWeek] = useState("1");
+  // Per-session target placement (week/day in the program being built),
+  // keyed by the source session's localId. First selection defaults to the
+  // cell the coach clicked "+ Add" on; every row is editable.
+  const [libPickPlacement, setLibPickPlacement] = useState<
+    Record<string, { week: string; day: string }>
+  >({});
   const [libPickSearch, setLibPickSearch] = useState("");
   // Cut/Copy clipboard for builder sessions; Paste drops it on another day.
   const [copiedSession, setCopiedSession] = useState<{
@@ -5027,31 +5032,56 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     }
   };
 
-  // Import the checked days into the builder. Sessions keep their day of the
-  // week; weeks are shifted so the earliest selected week lands on the chosen
-  // start week (so W3-4 of Spring Ankle can become W1-2 of the new program).
+  // Moving to the placement step: default each chosen session's target.
+  // The first selection lands on the cell the coach clicked "+ Add" on; the
+  // rest keep their relative week layout (and source day) from that anchor.
+  const openLibPickPlacement = () => {
+    const chosen = libPickSessions.filter((s) => libPickChecked.has(s.localId));
+    if (chosen.length === 0) return;
+    const anchorWeek = libPickTarget?.w || 1;
+    const anchorDay = libPickTarget?.d || 1;
+    const minWeek = Math.min(...chosen.map((s) => Number(s.week) || 1));
+    const placement: Record<string, { week: string; day: string }> = {};
+    chosen.forEach((s, i) => {
+      placement[s.localId] = {
+        week: String(
+          Math.max(1, (Number(s.week) || 1) - minWeek + anchorWeek)
+        ),
+        day: i === 0 ? String(anchorDay) : String(Number(s.day) || 1),
+      };
+    });
+    setLibPickPlacement(placement);
+    setLibPickMode("place");
+  };
+
+  // Import the checked days into the builder at their chosen week/day.
   const importProgramDaysFromLibrary = () => {
     const chosen = libPickSessions.filter((s) => libPickChecked.has(s.localId));
     if (chosen.length === 0) return;
-    const minWeek = Math.min(...chosen.map((s) => Number(s.week) || 1));
-    const startWeek = Math.max(1, Number(libPickStartWeek) || 1);
-    const offset = startWeek - minWeek;
     setProgramSessions((current) => [
       ...current,
-      ...chosen.map((s) => ({
-        ...s,
-        localId: `${Date.now()}-${Math.random()}`,
-        week: String((Number(s.week) || 1) + offset),
-        day: String(Number(s.day) || 1),
-        isSingleWorkout: false,
-        exercises: s.exercises.map((ex) => ({ ...ex })),
-      })),
+      ...chosen.map((s) => {
+        const place = libPickPlacement[s.localId];
+        const week = Math.max(1, Number(place?.week) || Number(s.week) || 1);
+        const day = Math.min(
+          7,
+          Math.max(1, Number(place?.day) || Number(s.day) || 1)
+        );
+        return {
+          ...s,
+          localId: `${Date.now()}-${Math.random()}`,
+          week: String(week),
+          day: String(day),
+          isSingleWorkout: false,
+          exercises: s.exercises.map((ex) => ({ ...ex })),
+        };
+      }),
     ]);
     setBuilderSaveStatus("dirty");
     notify(
       `Added ${chosen.length} session${chosen.length > 1 ? "s" : ""} from "${
         libPickProgram?.programName || "program"
-      }" starting at Week ${startWeek}.`,
+      }".`,
       "success"
     );
     setLibPickTarget(null);
@@ -17984,7 +18014,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                 setLibPickProgram(null);
                 setLibPickSessions([]);
                 setLibPickChecked(new Set());
-                setLibPickStartWeek("1");
+                setLibPickPlacement({});
                 setLibPickSearch("");
                 setLibPickTarget({ w, d });
               }}
@@ -18236,43 +18266,60 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                   const chosen = libPickSessions.filter((s) =>
                     libPickChecked.has(s.localId)
                   );
-                  const minWeek = Math.min(
-                    ...chosen.map((s) => Number(s.week) || 1)
-                  );
-                  const startWeek = Math.max(
-                    1,
-                    Number(libPickStartWeek) || 1
-                  );
+                  const setPlace = (
+                    localId: string,
+                    field: "week" | "day",
+                    value: string
+                  ) =>
+                    setLibPickPlacement((prev) => ({
+                      ...prev,
+                      [localId]: {
+                        week: prev[localId]?.week || "1",
+                        day: prev[localId]?.day || "1",
+                        [field]: value,
+                      },
+                    }));
                   return (
                     <div className="libPickPlace">
                       <p className="mbHint">
-                        {chosen.length} session{chosen.length > 1 ? "s" : ""}{" "}
-                        selected. They keep their day of the week; their weeks
-                        shift so the earliest selected week lands where you
-                        choose.
+                        Give each session a week and day in this program — the
+                        first one defaults to the cell you clicked.
                       </p>
-                      <label className="libPickPlaceField">
-                        <span>Start at week</span>
-                        <input
-                          type="number"
-                          min={1}
-                          value={libPickStartWeek}
-                          onChange={(e) =>
-                            setLibPickStartWeek(e.target.value)
-                          }
-                        />
-                      </label>
-                      <div className="libPickPlacePreview">
-                        {chosen.slice(0, 8).map((s) => (
-                          <small key={s.localId}>
-                            W{s.week} D{s.day} {s.sessionName} → W
-                            {(Number(s.week) || 1) - minWeek + startWeek} D
-                            {s.day}
-                          </small>
+                      <div className="libPickList">
+                        {chosen.map((s) => (
+                          <div className="libPickPlaceRow" key={s.localId}>
+                            <span className="libPickPlaceSource">
+                              <strong>{s.sessionName}</strong>
+                              <small>
+                                from W{s.week} D{s.day}
+                                {s.sessionType ? ` · ${s.sessionType}` : ""}
+                              </small>
+                            </span>
+                            <label>
+                              <span>Week</span>
+                              <input
+                                type="number"
+                                min={1}
+                                value={libPickPlacement[s.localId]?.week || ""}
+                                onChange={(e) =>
+                                  setPlace(s.localId, "week", e.target.value)
+                                }
+                              />
+                            </label>
+                            <label>
+                              <span>Day</span>
+                              <input
+                                type="number"
+                                min={1}
+                                max={7}
+                                value={libPickPlacement[s.localId]?.day || ""}
+                                onChange={(e) =>
+                                  setPlace(s.localId, "day", e.target.value)
+                                }
+                              />
+                            </label>
+                          </div>
                         ))}
-                        {chosen.length > 8 && (
-                          <small>…and {chosen.length - 8} more</small>
-                        )}
                       </div>
                     </div>
                   );
@@ -18302,7 +18349,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                     type="button"
                     className="goldButton"
                     disabled={libPickChecked.size === 0}
-                    onClick={() => setLibPickMode("place")}
+                    onClick={openLibPickPlacement}
                   >
                     Next ({libPickChecked.size} selected)
                   </button>
