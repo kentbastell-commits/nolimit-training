@@ -1603,6 +1603,9 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   } | null>(null);
   const [testTemplatesLoading, setTestTemplatesLoading] = useState(false);
   const [savingTestTemplate, setSavingTestTemplate] = useState(false);
+  // Canonical Test Library (physical tests bound to exercises/metrics).
+  const [testLibraryTests, setTestLibraryTests] = useState<any[]>([]);
+  const [testLibraryLoading, setTestLibraryLoading] = useState(false);
   const [assignmentType, setAssignmentType] = useState("Program");
   const [assignmentClientId, setAssignmentClientId] = useState("");
   const [assignmentTemplateId, setAssignmentTemplateId] = useState("");
@@ -3419,6 +3422,23 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       return [];
     } finally {
       setFormTemplatesLoading(false);
+    }
+  };
+
+  // Canonical Test Library — read-only list, fetched once per session.
+  const loadTestLibrary = async () => {
+    if (testLibraryTests.length > 0 || testLibraryLoading) return;
+    setTestLibraryLoading(true);
+    try {
+      const response = await fetch("/api/testLibrary");
+      const data = await response.json();
+      if (response.ok && Array.isArray(data.tests)) {
+        setTestLibraryTests(data.tests);
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setTestLibraryLoading(false);
     }
   };
 
@@ -19463,6 +19483,9 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                 savedTestTemplates={savedTestTemplates}
                 testTemplatesLoading={testTemplatesLoading}
                 loadTestTemplates={loadTestTemplates}
+                testLibraryTests={testLibraryTests}
+                testLibraryLoading={testLibraryLoading}
+                loadTestLibrary={loadTestLibrary}
                 onCreateTest={openTestFromTestsPage}
                 onEditTest={openTestFromTestsPage}
                 onDuplicateTest={duplicateTestFromTestsPage}

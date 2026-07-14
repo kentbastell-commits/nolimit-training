@@ -32,20 +32,29 @@ export default function CoachTestsPage(props: { [key: string]: any }) {
     savedTestTemplates,
     testTemplatesLoading,
     loadTestTemplates,
+    testLibraryTests,
+    testLibraryLoading,
+    loadTestLibrary,
     onCreateTest,
     onEditTest,
     onDuplicateTest,
     deleteSavedTestTemplate,
   } = props;
 
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const reduce = useReducedMotion();
+  // "library" = the canonical Test Library (1RM tests per exercise, energy
+  // systems…); "batteries" = the coach's own saved test templates.
+  const [mode, setMode] = useState<"library" | "batteries">("library");
   const [category, setCategory] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedLibId, setSelectedLibId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
+  const zh = (i18n.language || "").startsWith("zh");
 
   useEffect(() => {
     void loadTestTemplates();
+    void loadTestLibrary();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -56,6 +65,39 @@ export default function CoachTestsPage(props: { [key: string]: any }) {
       ),
     [savedTestTemplates]
   );
+
+  // ---- canonical library ----
+  const libTests: any[] = useMemo(
+    () =>
+      (testLibraryTests || []).filter((test: any) => test.status !== "Archived"),
+    [testLibraryTests]
+  );
+  const libByCategory = useMemo(() => {
+    const groups = new Map<string, any[]>();
+    for (const test of libTests) {
+      const key = normalizeTestCategory(test.category);
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(test);
+    }
+    return TEST_CATEGORIES.filter((key) => groups.has(key)).map(
+      (key) => [key, groups.get(key)!] as const
+    );
+  }, [libTests]);
+  const libSearchResults = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return [];
+    return libTests.filter(
+      (test: any) =>
+        (test.testName || "").toLowerCase().includes(q) ||
+        (test.testNameCn || "").includes(query.trim()) ||
+        (test.linkedExerciseName || "").toLowerCase().includes(q) ||
+        (test.category || "").toLowerCase().includes(q)
+    );
+  }, [query, libTests]);
+  const selectedLib =
+    libTests.find(
+      (test: any) => test.testId === selectedLibId || test.recordId === selectedLibId
+    ) || null;
 
   const byCategory = useMemo(() => {
     const groups = new Map<string, SavedTestTemplate[]>();
@@ -110,8 +152,26 @@ export default function CoachTestsPage(props: { [key: string]: any }) {
     </button>
   );
 
+  const renderLibCard = (test: any) => (
+    <button
+      type="button"
+      className="ctpTestCard"
+      key={test.recordId}
+      style={testCategoryToneStyle(test.category)}
+      onClick={() => setSelectedLibId(test.testId || test.recordId)}
+    >
+      <strong>{zh && test.testNameCn ? test.testNameCn : test.testName}</strong>
+      <span className="ctpTestCardCat">{categoryLabel(test.category || "")}</span>
+      <em>
+        {[test.resultMetric, test.resultUnit].filter(Boolean).join(" · ")}
+        {test.linkedExerciseName ? ` · ${test.linkedExerciseName}` : ""}
+      </em>
+    </button>
+  );
+
   const inCategory = !query.trim() && !!category;
   const searching = !!query.trim();
+  const libraryMode = mode === "library";
 
   return (
     <div className="ctpPage">
@@ -135,26 +195,63 @@ export default function CoachTestsPage(props: { [key: string]: any }) {
           <div className="ctpBoardGlow" />
           <span className="ctpBoardEyebrow">{t("testsLibrary")}</span>
           <div className="ctpBoardBig">
-            <span>{totalTests}</span>
+            <span>{mode === "library" ? libTests.length : totalTests}</span>
             <small>{t("testsProtocolsReady")}</small>
           </div>
           <div className="ctpBoardBreak">
             <span>
-              <strong>{catCount}</strong> {t("testsCategoriesLabel")}
+              <strong>
+                {mode === "library" ? libByCategory.length : catCount}
+              </strong>{" "}
+              {t("testsCategoriesLabel")}
             </span>
             <span>
-              <strong>{itemCount}</strong> {t("testsItemsLabel")}
+              <strong>{mode === "library" ? libTests.length : itemCount}</strong>{" "}
+              {t("testsItemsLabel")}
             </span>
           </div>
         </div>
         <div className="ctpBoardLight">
           <span className="ctpBoardEyebrowLight">{t("testsCreatesMetricsTitle")}</span>
           <div className="ctpBoardBig">
-            <span className="ctpBoardBigDark">{metricCount}</span>
+            <span className="ctpBoardBigDark">
+              {mode === "library"
+                ? libTests.filter(
+                    (test: any) =>
+                      test.calculation && test.calculation !== "None"
+                  ).length
+                : metricCount}
+            </span>
             <small>{t("testsTrackedOverTime")}</small>
           </div>
           <p>{t("testsMetricsHint")}</p>
         </div>
+      </div>
+
+      {/* library / batteries toggle */}
+      <div className="ctpModeToggle">
+        <button
+          type="button"
+          className={libraryMode ? "active" : ""}
+          onClick={() => {
+            setMode("library");
+            setCategory(null);
+            setQuery("");
+          }}
+        >
+          {t("testsLibTab")}
+        </button>
+        <button
+          type="button"
+          className={!libraryMode ? "active" : ""}
+          onClick={() => {
+            setMode("batteries");
+            setCategory(null);
+            setQuery("");
+          }}
+        >
+          {t("testsMineTab")}
+        </button>
       </div>
 
       {/* search */}
@@ -167,8 +264,61 @@ export default function CoachTestsPage(props: { [key: string]: any }) {
         />
       </div>
 
-      {/* content */}
-      {testTemplatesLoading && activeTests.length === 0 ? (
+      {/* content — canonical library */}
+      {libraryMode &&
+        (testLibraryLoading && libTests.length === 0 ? (
+          <p className="ctpMuted">{t("testsLibLoading")}</p>
+        ) : searching ? (
+          libSearchResults.length === 0 ? (
+            <p className="ctpMuted">{t("testsNoMatches")}</p>
+          ) : (
+            <div className="ctpGrid">{libSearchResults.map(renderLibCard)}</div>
+          )
+        ) : inCategory ? (
+          <>
+            <button
+              type="button"
+              className="ctpBack"
+              onClick={() => setCategory(null)}
+            >
+              <ArrowLeft size={15} /> {t("testsAllCategories")}
+            </button>
+            <h2
+              className="ctpCategoryTitle"
+              style={testCategoryToneStyle(category!)}
+            >
+              {categoryLabel(category!)}
+            </h2>
+            <div className="ctpGrid">
+              {(libByCategory.find(([key]) => key === category)?.[1] || []).map(
+                renderLibCard
+              )}
+            </div>
+          </>
+        ) : (
+          <div className="ctpGrid">
+            {libByCategory.map(([key, list]) => (
+              <button
+                type="button"
+                className="ctpCatCard"
+                key={key}
+                style={testCategoryToneStyle(key)}
+                onClick={() => setCategory(key)}
+              >
+                <span className="ctpCatIcon">
+                  <FlaskConical size={18} />
+                </span>
+                <strong>{categoryLabel(key)}</strong>
+                <span className="ctpCatCount">
+                  {t("testsCount", { count: list.length })}
+                </span>
+              </button>
+            ))}
+          </div>
+        ))}
+
+      {/* content — coach's saved test batteries */}
+      {!libraryMode && (testTemplatesLoading && activeTests.length === 0 ? (
         <p className="ctpMuted">{t("testsLoading")}</p>
       ) : searching ? (
         searchResults.length === 0 ? (
@@ -221,7 +371,98 @@ export default function CoachTestsPage(props: { [key: string]: any }) {
             </button>
           ))}
         </div>
-      )}
+      ))}
+
+      {/* canonical-test detail slide-over */}
+      <AnimatePresence>
+        {selectedLib && (
+          <motion.div
+            className="ctpSlideScrim"
+            onClick={() => setSelectedLibId(null)}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.16 }}
+          >
+            <motion.div
+              className="ctpSlide"
+              onClick={(e) => e.stopPropagation()}
+              initial={reduce ? { opacity: 0 } : { x: "100%" }}
+              animate={reduce ? { opacity: 1 } : { x: 0 }}
+              exit={reduce ? { opacity: 0 } : { x: "100%" }}
+              transition={{ duration: 0.26, ease: EASE }}
+            >
+              <div
+                className="ctpSlideHeader"
+                style={testCategoryToneStyle(selectedLib.category)}
+              >
+                <div className="ctpSlideClose">
+                  <button type="button" onClick={() => setSelectedLibId(null)}>
+                    <X size={17} />
+                  </button>
+                </div>
+                <span className="ctpBadge">
+                  {categoryLabel(selectedLib.category || "")}
+                </span>
+                <h2>
+                  {zh && selectedLib.testNameCn
+                    ? selectedLib.testNameCn
+                    : selectedLib.testName}
+                </h2>
+                {(zh ? selectedLib.testName : selectedLib.testNameCn) && (
+                  <p>{zh ? selectedLib.testName : selectedLib.testNameCn}</p>
+                )}
+              </div>
+
+              <div className="ctpSlideBody">
+                <div className="ctpLibFacts">
+                  <div className="ctpLibFact">
+                    <span>{t("testsLibMeasures")}</span>
+                    <strong>
+                      {[selectedLib.resultMetric, selectedLib.resultUnit]
+                        .filter(Boolean)
+                        .join(" · ") || "—"}
+                    </strong>
+                  </div>
+                  {selectedLib.calculation &&
+                    selectedLib.calculation !== "None" && (
+                      <div className="ctpLibFact">
+                        <span>{t("testsLibCalc")}</span>
+                        <strong>{selectedLib.calculation}</strong>
+                      </div>
+                    )}
+                  {selectedLib.linkedExerciseName && (
+                    <div className="ctpLibFact">
+                      <span>{t("testsLibLinked")}</span>
+                      <strong>{selectedLib.linkedExerciseName}</strong>
+                    </div>
+                  )}
+                  <div className="ctpLibFact">
+                    <span>{selectedLib.testId}</span>
+                    <strong>
+                      {selectedLib.higherIsBetter
+                        ? t("testsLibHigher")
+                        : t("testsLibLower")}
+                    </strong>
+                  </div>
+                </div>
+
+                <div className="ctpItemsLabel">{t("testsLibProtocol")}</div>
+                <p className="ctpLibProtocol">
+                  {zh && selectedLib.protocolCn
+                    ? selectedLib.protocolCn
+                    : selectedLib.protocol}
+                </p>
+                {(zh ? selectedLib.protocol : selectedLib.protocolCn) && (
+                  <p className="ctpLibProtocol ctpLibProtocolAlt">
+                    {zh ? selectedLib.protocol : selectedLib.protocolCn}
+                  </p>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* detail slide-over */}
       <AnimatePresence>
