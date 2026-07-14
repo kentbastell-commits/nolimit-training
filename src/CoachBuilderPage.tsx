@@ -2687,7 +2687,7 @@ export default function CoachBuilderPage({
                             title="Filter by equipment"
                           >
                             <option value="">All equipment</option>
-                            {["Barbell", "Dumbbell", "Kettlebell", "Bodyweight", "Bands", "Cable", "Machine", "Sled", "Medicine Ball", "Hangboard"].map(
+                            {["Barbell", "Dumbbell", "Kettlebell", "Landmine", "Trap Bar", "Bodyweight", "Bands", "Cable", "Machine", "Sled", "Medicine Ball", "Box", "Pull-Up Bar", "Hangboard"].map(
                               (eq) => (
                                 <option key={eq} value={eq}>
                                   {eq}
