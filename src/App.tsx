@@ -1674,6 +1674,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   const [libPickSessionsLoading, setLibPickSessionsLoading] = useState(false);
   const [libPickChecked, setLibPickChecked] = useState<Set<string>>(new Set());
   const [libPickStartWeek, setLibPickStartWeek] = useState("1");
+  const [libPickSearch, setLibPickSearch] = useState("");
   // Cut/Copy clipboard for builder sessions; Paste drops it on another day.
   const [copiedSession, setCopiedSession] = useState<{
     session: ProgramSession;
@@ -17984,6 +17985,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                 setLibPickSessions([]);
                 setLibPickChecked(new Set());
                 setLibPickStartWeek("1");
+                setLibPickSearch("");
                 setLibPickTarget({ w, d });
               }}
             >
@@ -17999,7 +18001,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
           onClick={() => setLibPickTarget(null)}
         >
           <div
-            className="createProgramModal"
+            className="createProgramModal libPickModal"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="createProgramHeader">
@@ -18030,7 +18032,10 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                   <button
                     type="button"
                     className="libPickChoiceCard"
-                    onClick={() => setLibPickMode("sessions")}
+                    onClick={() => {
+                      setLibPickSearch("");
+                      setLibPickMode("sessions");
+                    }}
                   >
                     <Dumbbell size={22} />
                     <strong>Add Session</strong>
@@ -18042,7 +18047,10 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                   <button
                     type="button"
                     className="libPickChoiceCard"
-                    onClick={() => setLibPickMode("programs")}
+                    onClick={() => {
+                      setLibPickSearch("");
+                      setLibPickMode("programs");
+                    }}
                   >
                     <ClipboardList size={22} />
                     <strong>Add Program</strong>
@@ -18054,72 +18062,92 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                 </div>
               )}
 
-              {libPickMode === "sessions" &&
+              {(libPickMode === "sessions" || libPickMode === "programs") &&
                 (() => {
-                  const sessionPrograms = programs.filter(
-                    (pp) =>
-                      pp.productType === "Single Workout" &&
-                      pp.status !== "Archived"
+                  const isPrograms = libPickMode === "programs";
+                  const pool = programs.filter((pp) =>
+                    isPrograms
+                      ? pp.productType !== "Single Workout" &&
+                        pp.status !== "Archived"
+                      : pp.productType === "Single Workout" &&
+                        pp.status !== "Archived"
                   );
-                  if (sessionPrograms.length === 0) {
-                    return (
-                      <p className="mbHint">
-                        No saved sessions yet. Create one in the Sessions tab.
-                      </p>
-                    );
-                  }
-                  return sessionPrograms.map((pp) => (
-                    <button
-                      key={pp.recordId}
-                      type="button"
-                      className="mobilePickerRow"
-                      disabled={Boolean(libPickLoadingId)}
-                      onClick={() => insertSessionFromLibrary(pp)}
-                    >
-                      <span className="mobilePickerInfo">
-                        <strong>{pp.programName}</strong>
-                        <small>
-                          {libPickLoadingId === pp.programId
-                            ? "Adding…"
-                            : pp.goal || "Session"}
-                        </small>
-                      </span>
-                    </button>
-                  ));
-                })()}
-
-              {libPickMode === "programs" &&
-                (() => {
-                  const fullPrograms = programs.filter(
-                    (pp) =>
-                      pp.productType !== "Single Workout" &&
-                      pp.status !== "Archived"
+                  const q = libPickSearch.trim().toLowerCase();
+                  const shown = q
+                    ? pool.filter((pp) =>
+                        `${pp.programName} ${pp.goal || ""} ${pp.sport || ""} ${
+                          pp.phase || ""
+                        }`
+                          .toLowerCase()
+                          .includes(q)
+                      )
+                    : pool;
+                  return (
+                    <>
+                      <input
+                        className="libPickSearch"
+                        placeholder={
+                          isPrograms
+                            ? "Search programs…"
+                            : "Search sessions…"
+                        }
+                        value={libPickSearch}
+                        onChange={(e) => setLibPickSearch(e.target.value)}
+                        autoFocus
+                      />
+                      <div className="libPickList">
+                        {pool.length === 0 && (
+                          <p className="mbHint">
+                            {isPrograms
+                              ? "No saved programs yet."
+                              : "No saved sessions yet. Create one in the Sessions tab."}
+                          </p>
+                        )}
+                        {pool.length > 0 && shown.length === 0 && (
+                          <p className="mbHint">
+                            Nothing matches “{libPickSearch.trim()}”.
+                          </p>
+                        )}
+                        {shown.map((pp) => (
+                          <button
+                            key={pp.recordId}
+                            type="button"
+                            className="libPickCard"
+                            disabled={Boolean(libPickLoadingId)}
+                            onClick={() =>
+                              isPrograms
+                                ? void loadLibPickProgramDays(pp)
+                                : void insertSessionFromLibrary(pp)
+                            }
+                          >
+                            <span className="libPickCardIcon">
+                              {isPrograms ? (
+                                <ClipboardList size={19} />
+                              ) : (
+                                <Dumbbell size={19} />
+                              )}
+                            </span>
+                            <span className="libPickCardInfo">
+                              <strong>{pp.programName}</strong>
+                              <small>
+                                {libPickLoadingId === pp.programId
+                                  ? "Adding…"
+                                  : [pp.sport, pp.goal || pp.phase]
+                                      .filter(Boolean)
+                                      .join(" · ") ||
+                                    (isPrograms ? "Program" : "Session")}
+                              </small>
+                            </span>
+                            {isPrograms && pp.durationWeeks ? (
+                              <span className="libPickCardWeeks">
+                                {pp.durationWeeks} wk
+                              </span>
+                            ) : null}
+                          </button>
+                        ))}
+                      </div>
+                    </>
                   );
-                  if (fullPrograms.length === 0) {
-                    return <p className="mbHint">No saved programs yet.</p>;
-                  }
-                  return fullPrograms.map((pp) => (
-                    <button
-                      key={pp.recordId}
-                      type="button"
-                      className="mobilePickerRow"
-                      onClick={() => void loadLibPickProgramDays(pp)}
-                    >
-                      <span className="mobilePickerInfo">
-                        <strong>{pp.programName}</strong>
-                        <small>
-                          {[
-                            pp.durationWeeks
-                              ? `${pp.durationWeeks} weeks`
-                              : "",
-                            pp.goal || "",
-                          ]
-                            .filter(Boolean)
-                            .join(" · ") || "Program"}
-                        </small>
-                      </span>
-                    </button>
-                  ));
                 })()}
 
               {libPickMode === "days" &&
