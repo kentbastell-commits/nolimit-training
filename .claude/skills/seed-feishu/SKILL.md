@@ -73,6 +73,16 @@ all of them, they are what make re-running safe:
    checks `code !== 0` on every response (Feishu 200s its errors).
 8. Treats `code 1254607` ("Data not ready") as transient: those records simply
    remain unseeded and the script is re-run 20s later.
+9. **Network transients too**: wrap every fetch in a retry loop (~4 attempts,
+   8s apart) — a mid-seed `SocketError: other side closed` otherwise strands a
+   half-written parent record. For parent+children seeds (program + sessions),
+   support `--resume=<parentId>`: reuse the existing parent and skip children
+   already live (dedupe by a natural key like `week|day|sessionName`).
+10. Dupe-guards that read the live API can be fooled by the ~10-min in-process
+   cache: records deleted via direct Feishu writes (which bypass
+   `invalidateCache`) still appear, and fresh writes may be missing. Guard by
+   record/parent ID, not just name — or verify the cache state before trusting
+   an ABORT.
 
 ## Phase 4 — Verify in Feishu (not just script exit codes)
 
