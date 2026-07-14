@@ -207,6 +207,12 @@ data between them, never "borrow" a table ID across products.
     default Playwright runs. Rule: never put transform/filter animations on
     `.app`/`.main` (nl-anim's pick() now refuses shells), and pass
     `reducedMotion: "no-preference"` when verifying anything animation-adjacent.
+    The class RECURRED for builder overlays nested deep in page containers
+    (Kent-only, unreproducible headlessly). Durable fix: wrap fixed overlays in
+    `PortalToApp` (src/PortalToApp.tsx) — portals to the `.app` root, NOT body,
+    so `.app:not(.clientPortalApp)` scoped CSS keeps matching. Verify by
+    injecting a hostile `transform: translateZ(0)` on `.main > *` and checking
+    the overlay rect still equals the viewport.
 35. **The renumber that collapses rest days** — the builder's
     `renumberProgramSessionsByWeek` used to reassign each week's days by array
     order (1,2,3…), silently pulling a Day-4 session onto Day 3 and destroying an

@@ -6,6 +6,7 @@ import { isCardioCategory } from "./appCore";
 import { Fragment, useEffect, useState } from "react";
 import CoachProgramsLanding from "./CoachProgramsLanding";
 import ProgramDetailPanel from "./ProgramDetailPanel";
+import PortalToApp from "./PortalToApp";
 import { BookOpen, ChevronDown, ChevronLeft, ChevronUp, ChevronsLeftRight, ClipboardList, Copy, Dumbbell, Eye, Feather, GripVertical, HeartPulse, Link2, MoreVertical, Pencil, Plus, RefreshCw, Save, Settings, Shuffle, Tag, Target, Trash2, Trophy, X } from "lucide-react";
 import type { Program, ProgramSession } from "./appCore";
 import { getWorkoutColorClass, normalizeDate } from "./appCore";
@@ -2168,12 +2169,15 @@ export default function CoachBuilderPage({
                 })()}
 
                 {!isSingleWorkoutBuilder && sessionEditorOpen && (
-                  <div
-                    className="builderEditorBackdrop"
-                    onClick={() => setSessionEditorOpen(false)}
-                  />
+                  <PortalToApp>
+                    <div
+                      className="builderEditorBackdrop"
+                      onClick={() => setSessionEditorOpen(false)}
+                    />
+                  </PortalToApp>
                 )}
 
+                <PortalToApp enabled={!isSingleWorkoutBuilder}>
                 <div
                   className={`builderEditorWrap${
                     isSingleWorkoutBuilder ? "" : " asDrawer"
@@ -2560,6 +2564,7 @@ export default function CoachBuilderPage({
                 )}
 
                 {isBuilderLibraryOpen && (
+                  <PortalToApp>
                   <div
                     className="builderLibraryOverlay"
                     onClick={() => setIsBuilderLibraryOpen(false)}
@@ -3029,6 +3034,7 @@ export default function CoachBuilderPage({
                       )}
                     </div>
                   </div>
+                  </PortalToApp>
                 )}
 
                 {selectedProgramExercises.length > 0 && (
@@ -3542,6 +3548,7 @@ export default function CoachBuilderPage({
                 })}
 
                 </div>
+                </PortalToApp>
 
                 {isSingleWorkoutBuilder && (
                   <>

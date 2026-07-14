@@ -11048,6 +11048,9 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 }
 
 .app:not(.clientPortalApp) .builderDropHint {
+  /* fill the pane between the title and the pinned footer so an empty
+     session reads as a big drop target, not a small box above a void */
+  flex: 1 1 auto !important;
   min-height: 140px !important;
   margin-top: 6px !important;
   border-radius: 14px !important;
@@ -11211,7 +11214,9 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   position: sticky !important;
   bottom: 0 !important;
   align-items: center !important;
-  margin: 0 -30px -18px !important;
+  /* top margin stays auto so the footer pins to the pane's bottom even when
+     the session is empty (margin: 0 here once left a huge void below it) */
+  margin: auto -30px -18px !important;
   padding: 10px 30px !important;
   border-top: 1px solid rgba(17, 17, 17, 0.08) !important;
   background: rgba(255, 253, 248, 0.96) !important;
