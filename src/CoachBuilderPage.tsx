@@ -7,7 +7,7 @@ import { Fragment, useEffect, useState } from "react";
 import CoachProgramsLanding from "./CoachProgramsLanding";
 import ProgramDetailPanel from "./ProgramDetailPanel";
 import PortalToApp from "./PortalToApp";
-import { BookOpen, ChevronDown, ChevronLeft, ChevronUp, ChevronsLeftRight, ClipboardList, Copy, Dumbbell, Eye, Feather, GripVertical, HeartPulse, Link2, MoreVertical, Pencil, Plus, RefreshCw, Save, Settings, Shuffle, Tag, Target, Trash2, Trophy, X } from "lucide-react";
+import { BookOpen, ChevronDown, ChevronLeft, ChevronUp, ChevronsLeftRight, ClipboardList, Copy, Dumbbell, Eye, Feather, FlaskConical, GripVertical, HeartPulse, Link2, MoreVertical, Pencil, Plus, RefreshCw, Save, Settings, Shuffle, Tag, Target, Trash2, Trophy, X } from "lucide-react";
 import type { Program, ProgramSession } from "./appCore";
 import { getWorkoutColorClass, normalizeDate } from "./appCore";
 import { TEST_CATEGORIES, testCategoryLabelKey } from "./testVisuals";
@@ -5076,7 +5076,7 @@ export default function CoachBuilderPage({
                 )}
 
                 {workoutPageTab === "Tests" && testView === "builder" && (
-                  <section className="tableCard builderHubPanel">
+                  <section className="tableCard builderHubPanel ptbPanel">
                     <button
                       type="button"
                       className="builderBackLink"
@@ -5084,16 +5084,22 @@ export default function CoachBuilderPage({
                     >
                       <ChevronLeft size={16} /> Tests
                     </button>
-                    <div className="builderHubHeader builderToneHeader">
-                      <div>
-                        <h2>Physical Test Builder</h2>
+                    <div className="ptbHero">
+                      <div className="ptbHeroText">
+                        <span className="ptbHeroEyebrow">
+                          <FlaskConical size={14} /> Physical Tests · Builder
+                        </span>
+                        <h2>
+                          {testTemplateName.trim() || "Physical Test Builder"}
+                        </h2>
                         <p>
-                          Build test batteries for strength, speed, power, mobility, or return-to-training checkpoints.
+                          Build test batteries for strength, speed, power,
+                          mobility, or return-to-training checkpoints.
                         </p>
                       </div>
-                      <div className="builderHubActions">
+                      <div className="builderHubActions ptbHeroActions">
                         <details className="savedTemplateDropdown">
-                          <summary className="outlineButton">
+                          <summary className="outlineButton ptbGhostBtn">
                             Saved Tests
                             <span>{savedTestTemplates.length}</span>
                           </summary>
@@ -5206,54 +5212,75 @@ export default function CoachBuilderPage({
                     </div>
 
                     <div className="builderHubMain">
-                        <div className="builderHubGrid">
-                          <label>
-                            <span>Test Template Name</span>
-                            <input
-                              className="miniSearch"
-                              value={testTemplateName}
-                              onChange={(e) => setTestTemplateName(e.target.value)}
-                            />
-                          </label>
-                          <label>
-                            <span>{t("testsCategoryLabel")}</span>
-                            <select
-                              className="miniSearch"
-                              value={testTemplateCategory}
-                              onChange={(e) =>
-                                setTestTemplateCategory(e.target.value)
-                              }
-                            >
-                              {TEST_CATEGORIES.map((category) => (
-                                <option key={category} value={category}>
-                                  {t(testCategoryLabelKey(category))}
-                                </option>
-                              ))}
-                            </select>
-                          </label>
+                        <div className="ptbSetupCard">
+                          <div className="ptbCardHead">
+                            <div>
+                              <span className="eyebrow">Battery</span>
+                              <strong>Test Setup</strong>
+                            </div>
+                          </div>
+                          <div className="builderHubGrid ptbSetupGrid">
+                            <label>
+                              <span>Test Template Name</span>
+                              <input
+                                className="miniSearch"
+                                value={testTemplateName}
+                                onChange={(e) => setTestTemplateName(e.target.value)}
+                                placeholder="Return-to-sport screen, Power profile..."
+                              />
+                            </label>
+                            <label>
+                              <span>{t("testsCategoryLabel")}</span>
+                              <select
+                                className="miniSearch"
+                                value={testTemplateCategory}
+                                onChange={(e) =>
+                                  setTestTemplateCategory(e.target.value)
+                                }
+                              >
+                                {TEST_CATEGORIES.map((category) => (
+                                  <option key={category} value={category}>
+                                    {t(testCategoryLabelKey(category))}
+                                  </option>
+                                ))}
+                              </select>
+                            </label>
+                          </div>
                         </div>
 
                         <div className="builderHubList">
-                          <div className="exerciseTitleRow">
-                            <h3>Test Items</h3>
-                            <button className="outlineButton" onClick={addTestItem}>
+                          <div className="ptbItemsHead">
+                            <div>
+                              <span className="eyebrow">Protocol</span>
+                              <h3>Test Items</h3>
+                            </div>
+                            <button className="goldButton" onClick={addTestItem}>
                               + Add Test
                             </button>
                           </div>
 
                           {testItems.map((item: any, index: any) => (
-                            <div className="builderHubRow testBuilderRow" key={`${item.id}-${index}`}>
-                              <label>
-                                <span>Test Name</span>
+                            <div className="ptbItemCard" key={`${item.id}-${index}`}>
+                              <div className="ptbItemHead">
+                                <span className="ptbItemBadge">{index + 1}</span>
                                 <input
-                                  className="miniSearch"
+                                  className="ptbItemNameInput"
                                   value={item.testName}
                                   onChange={(e) =>
                                     updateTestItem(index, "testName", e.target.value)
                                   }
                                   placeholder="Countermovement jump, 5RM squat..."
                                 />
-                              </label>
+                                <button
+                                  type="button"
+                                  className="iconActionButton ptbItemRemove"
+                                  title="Remove test item"
+                                  onClick={() => removeTestItem(index)}
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              </div>
+                              <div className="ptbItemGrid">
                               <label>
                                 <span>Metric</span>
                                 <select
@@ -5296,7 +5323,7 @@ export default function CoachBuilderPage({
                                   <option>none</option>
                                 </select>
                               </label>
-                              <label className="checkboxRow builderMetricCheckbox">
+                              <label className="checkboxRow builderMetricCheckbox ptbMetricToggle">
                                 <input
                                   type="checkbox"
                                   checked={Boolean(item.createsMetric)}
@@ -5310,8 +5337,9 @@ export default function CoachBuilderPage({
                                 />
                                 <span>Create athlete metric</span>
                               </label>
+                              </div>
                               {item.createsMetric && (
-                                <div className="builderHubRow builderMetricConfig">
+                                <div className="ptbMetricConfig">
                                   <label>
                                     <span>Metric Name</span>
                                     <input
@@ -5389,12 +5417,6 @@ export default function CoachBuilderPage({
                                   </label>
                                 </div>
                               )}
-                              <button
-                                className="outlineButton"
-                                onClick={() => removeTestItem(index)}
-                              >
-                                Remove
-                              </button>
                             </div>
                           ))}
                         </div>
