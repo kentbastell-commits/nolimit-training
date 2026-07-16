@@ -29,17 +29,26 @@ const baseProps: any = {
   savedTestTemplates: [],
   testTemplatesLoading: false,
   loadTestTemplates: vi.fn(),
+  testLibraryTests: [],
+  testLibraryLoading: false,
+  loadTestLibrary: vi.fn(),
   onCreateTest: vi.fn(),
   onEditTest: vi.fn(),
   onDuplicateTest: vi.fn(),
   deleteSavedTestTemplate: vi.fn(),
 };
 
+// The page opens in canonical-library mode; the coach's saved batteries live
+// behind the "My Test Batteries" toggle.
+const openBatteries = () => fireEvent.click(screen.getByText("My Test Batteries"));
+
 describe("CoachTestsPage", () => {
   it("shows the empty state and loads templates on mount", () => {
     render(<CoachTestsPage {...baseProps} />);
     expect(baseProps.loadTestTemplates).toHaveBeenCalled();
+    expect(baseProps.loadTestLibrary).toHaveBeenCalled();
     expect(screen.getByText("Tests")).toBeInTheDocument();
+    openBatteries();
     expect(
       screen.getByText("No saved tests yet. Create one to track performance.")
     ).toBeInTheDocument();
@@ -63,6 +72,7 @@ describe("CoachTestsPage", () => {
       }),
     ];
     render(<CoachTestsPage {...baseProps} savedTestTemplates={tests} />);
+    openBatteries();
 
     // Directory level: one card per non-empty category.
     expect(screen.getByText("Strength")).toBeInTheDocument();
@@ -78,6 +88,7 @@ describe("CoachTestsPage", () => {
   it("opens the detail view with items and hands edit off to the builder", () => {
     const test = makeTest({ category: "Power", name: "Jump Testing" });
     render(<CoachTestsPage {...baseProps} savedTestTemplates={[test]} />);
+    openBatteries();
 
     fireEvent.click(screen.getByText("Power"));
     fireEvent.click(screen.getByText("Jump Testing"));
@@ -101,6 +112,7 @@ describe("CoachTestsPage", () => {
       }),
     ];
     render(<CoachTestsPage {...baseProps} savedTestTemplates={tests} />);
+    openBatteries();
     fireEvent.change(screen.getByPlaceholderText("Search tests..."), {
       target: { value: "sit and" },
     });

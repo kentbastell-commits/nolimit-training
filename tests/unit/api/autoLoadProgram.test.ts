@@ -229,7 +229,9 @@ describe("api/autoLoadProgram", () => {
       "Program Loaded"
     );
 
-    // The client got Program + access window (28 days => end = start + 27).
+    // The client got the program link + access window (28 days => end =
+    // start + 27). The clients table has no "Program" text column — the
+    // handler writes the "Program ID" DuplexLink (record-id array).
     const clientUpdateCall = impl.mock.calls.find(
       ([url, options]: any[]) =>
         String(url).includes("tbl-cli-alp/records/recClient1") &&
@@ -237,7 +239,8 @@ describe("api/autoLoadProgram", () => {
     );
     expect(clientUpdateCall).toBeTruthy();
     const clientFields = JSON.parse(clientUpdateCall![1].body).fields;
-    expect(clientFields.Program).toBe("Strength 101");
+    expect(clientFields["Program ID"]).toEqual(["recProg1"]);
+    expect(clientFields["Intake Status"]).toBe("Reviewed");
     expect(clientFields["Access End Date"]).toBe(
       new Date(`${handlerAddDays("2026-07-07", 27)}T00:00:00`).getTime()
     );

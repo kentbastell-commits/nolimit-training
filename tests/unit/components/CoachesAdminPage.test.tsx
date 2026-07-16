@@ -26,12 +26,13 @@ const baseProps = {
 describe("CoachesAdminPage", () => {
   it("renders the KPI board and coach table row", () => {
     render(<CoachesAdminPage {...baseProps} />);
-    // dark KPI board replaced the old "Total coaches" summary tile
-    expect(screen.getByText("coaches on staff")).toBeInTheDocument();
+    // dark KPI board replaced the old "Total coaches" summary tile; the count
+    // label singularizes (baseProps has exactly one coach)
+    expect(screen.getByText("coach on staff")).toBeInTheDocument();
     // name appears in the table row AND the board's "Busiest" line
     expect(screen.getAllByText("Kent Bastell").length).toBeGreaterThan(0);
-    // role pill in the card-row table
-    expect(screen.getByText("Admin")).toBeInTheDocument();
+    // role pill in the card-row table (coachRoleLabel maps Admin → Head Coach)
+    expect(screen.getByText("Head Coach")).toBeInTheDocument();
     expect(screen.getByText("kent@example.com")).toBeInTheDocument();
   });
 
