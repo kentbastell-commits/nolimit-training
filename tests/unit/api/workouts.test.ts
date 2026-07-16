@@ -1,10 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import handler from "../../../api/workouts.ts";
 import { invalidateCache } from "../../../api/_cache.ts";
+import { resetTokenCacheForTests } from "../../../api/_token.ts";
 import { makeReq, makeRes, stubFetch, stubFeishuEnv } from "../helpers.ts";
 
 beforeEach(() => {
   invalidateCache("workouts");
+  // The repository path shares api/_token.ts's ~2h token cache; reset it so
+  // the token-failure test actually exercises a token fetch.
+  resetTokenCacheForTests();
 });
 
 afterEach(() => {

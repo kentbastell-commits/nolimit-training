@@ -415,7 +415,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     let intakeAssigned = false;
     if (assignedFormsTableId && formsTableId) {
       let intakeTemplateId = defaultIntakeFormId || "";
-      let intakeTemplateName = "";
 
       if (!intakeTemplateId) {
         const tmplRes = await fetch(`${base}/${formsTableId}/records?page_size=50`, { headers });
@@ -429,10 +428,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             fieldToText(template.fields?.["Form ID"]) ||
             fieldToText(template.fields?.["Template ID"]) ||
             template.record_id;
-          intakeTemplateName =
-            fieldToText(template.fields?.["Name"]) ||
-            fieldToText(template.fields?.["Template Name"]) ||
-            "Intake Form";
         }
       }
 

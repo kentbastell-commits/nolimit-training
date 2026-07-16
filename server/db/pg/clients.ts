@@ -1,0 +1,142 @@
+import { eq } from "drizzle-orm";
+import { db } from "../client.ts";
+import { clients } from "../schema.ts";
+import { epochToDate, str } from "./_util.ts";
+import type { ClientDTO, UpdateClientInput, WriteResult } from "../dto.ts";
+
+type Row = typeof clients.$inferSelect;
+
+export async function listClients(): Promise<ClientDTO[]> {
+  const rows = await db.select().from(clients);
+  return rows.map((r: Row): ClientDTO => {
+    const name = r.fullName || "Unnamed Client";
+    return {
+      id: r.clientId, // business code is the identity on Postgres
+      clientCode: r.clientId,
+      name,
+      initials: name
+        .split(" ")
+        .map((word) => word[0])
+        .join("")
+        .slice(0, 2)
+        .toUpperCase(),
+      activity: epochToDate(r.lastCheckinDate, "--"),
+      training: "--",
+      program: str(r.programId) || "--",
+      status: r.packageType || "Active",
+      clientType: str(r.clientType),
+      primaryCoach: str(r.primaryCoachId),
+      secondaryCoach: str(r.secondaryCoachId),
+      package: str(r.package),
+      subscriptionStatus: str(r.subscriptionStatus),
+      intakeStatus: str(r.intakeStatus),
+      paymentStatus: str(r.paymentStatus),
+      purchasedProgramId: str(r.purchasedProgramId),
+      accessStartDate: epochToDate(r.accessStartDate, "--"),
+      accessEndDate: epochToDate(r.accessEndDate, "--"),
+      source: str(r.source),
+      paymentId: str(r.stripePaymentId),
+      email: str(r.email),
+      phone: str(r.phone),
+      coach: str(r.primaryCoachId) || str(r.coachAssigned),
+      notes: str(r.notes),
+      notesEn: str(r.notesEn),
+      startDate: epochToDate(r.startDate, "--"),
+      languagePreference: r.languagePreference || "English",
+      masKmhOverride: str(r.mas),
+      hrMaxOverride: str(r.hrMax),
+      restingHrOverride: str(r.restingHr),
+      zone5kPct: str(r.zone5kPct),
+      zone10kPct: str(r.zone10kPct),
+      zoneThresholdPct: str(r.zoneThresholdPct),
+      zoneEasyPct: str(r.zoneEasyPct),
+      tags: r.tags ?? [],
+      categories: r.categories ?? [],
+      lastLogin: r.lastLogin ?? 0,
+    };
+  });
+}
+
+function dateMs(value?: string) {
+  if (!value || value === "--") return undefined;
+  const ms = new Date(`${value}T00:00:00`).getTime();
+  return Number.isFinite(ms) ? ms : undefined;
+}
+
+function numOrNull(value: unknown) {
+  if (value === undefined) return undefined;
+  if (value === null || value === "" || value === "--") return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+export async function recordLogin(
+  clientRecordId?: string,
+  clientCode?: string
+): Promise<WriteResult> {
+  const id = clientRecordId || clientCode;
+  if (!id) return { success: false, error: "Missing client id" };
+  const r = await db
+    .update(clients)
+    .set({ lastLogin: Date.now() })
+    .where(eq(clients.clientId, id))
+    .returning({ clientId: clients.clientId });
+  return r.length ? { success: true, recordId: id } : { success: false, error: "Client not found" };
+}
+
+export async function updateClient(i: UpdateClientInput): Promise<WriteResult> {
+  const set: Partial<typeof clients.$inferInsert> = {};
+  if (i.name !== undefined) set.fullName = i.name;
+  if (i.email !== undefined) set.email = i.email;
+  if (i.phone !== undefined) set.phone = i.phone;
+  if (i.coach !== undefined) set.coachAssigned = i.coach;
+  if (i.primaryCoachId !== undefined) set.primaryCoachId = i.primaryCoachId || null;
+  if (i.secondaryCoachId !== undefined) set.secondaryCoachId = i.secondaryCoachId || null;
+  if (i.clientType !== undefined) set.clientType = i.clientType;
+  if (i.packageType !== undefined) set.packageType = i.packageType;
+  if (i.packageName !== undefined) set.package = i.packageName;
+  if (i.program !== undefined) set.programId = i.program || null;
+  if (i.subscriptionStatus !== undefined) set.subscriptionStatus = i.subscriptionStatus;
+  if (i.intakeStatus !== undefined) set.intakeStatus = i.intakeStatus;
+  if (i.paymentStatus !== undefined) set.paymentStatus = i.paymentStatus;
+  if (i.purchasedProgramId !== undefined) set.purchasedProgramId = i.purchasedProgramId;
+  if (i.source !== undefined) set.source = i.source;
+  if (i.paymentId !== undefined) set.stripePaymentId = i.paymentId;
+  if (i.notes !== undefined) set.notes = i.notes;
+  if (i.languagePreference !== undefined) set.languagePreference = i.languagePreference;
+
+  const sd = dateMs(i.startDate);
+  if (sd) set.startDate = sd;
+  const lc = dateMs(i.lastCheckInDate);
+  if (lc) set.lastCheckinDate = lc;
+  const asd = dateMs(i.accessStartDate);
+  if (asd) set.accessStartDate = asd;
+  const aed = dateMs(i.accessEndDate);
+  if (aed) set.accessEndDate = aed;
+
+  const overrides: Array<[keyof typeof clients.$inferInsert, unknown]> = [
+    ["mas", i.masKmhOverride],
+    ["hrMax", i.hrMaxOverride],
+    ["restingHr", i.restingHrOverride],
+    ["zone5kPct", i.zone5kPct],
+    ["zone10kPct", i.zone10kPct],
+    ["zoneThresholdPct", i.zoneThresholdPct],
+    ["zoneEasyPct", i.zoneEasyPct],
+  ];
+  for (const [col, value] of overrides) {
+    const v = numOrNull(value);
+    if (v !== undefined) (set as Record<string, unknown>)[col] = v;
+  }
+  if (i.tags !== undefined) set.tags = Array.isArray(i.tags) ? i.tags : [];
+  if (i.categories !== undefined) set.categories = Array.isArray(i.categories) ? i.categories : [];
+
+  if (Object.keys(set).length === 0) return { success: true, clientRecordId: i.clientRecordId };
+  const r = await db
+    .update(clients)
+    .set(set)
+    .where(eq(clients.clientId, i.clientRecordId))
+    .returning({ clientId: clients.clientId });
+  return r.length
+    ? { success: true, clientRecordId: i.clientRecordId }
+    : { success: false, error: "Client not found" };
+}

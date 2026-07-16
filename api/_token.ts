@@ -32,7 +32,14 @@ async function fetchToken(): Promise<string> {
   const data = await response.json();
 
   if (!data.tenant_access_token) {
-    throw new Error(`Could not get tenant token: ${JSON.stringify(data)}`);
+    // kind/larkResponse let callers report the legacy per-endpoint error
+    // bodies ({ error, larkResponse }) instead of a generic message.
+    const error: any = new Error(
+      `Could not get tenant token: ${JSON.stringify(data)}`
+    );
+    error.kind = "token";
+    error.larkResponse = data;
+    throw error;
   }
 
   // Feishu returns `expire` in seconds (typically 7200).
@@ -40,6 +47,15 @@ async function fetchToken(): Promise<string> {
   cachedToken = data.tenant_access_token as string;
   expiresAt = Date.now() + ttlMs;
   return cachedToken;
+}
+
+// Test hook: clears the module-level token cache so token-failure paths can be
+// exercised deterministically (a token cached by an earlier test would
+// otherwise skip the fetch the test stubs). Not used in production code.
+export function resetTokenCacheForTests() {
+  cachedToken = null;
+  expiresAt = 0;
+  inFlight = null;
 }
 
 export async function getTenantToken(): Promise<string> {

@@ -6,9 +6,10 @@ import { makeReq, makeRes, stubFetch, stubFeishuEnv } from "../helpers.ts";
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();
-  // The handler caches its payload under "analytics" for 3 minutes — clear it
-  // so one test's dashboard never leaks into the next.
-  invalidateCache("analytics");
+  // Analytics aggregates via the clients + workouts repositories, which cache
+  // under their own keys as well as "analytics" — clear everything so one
+  // test's data never leaks into the next.
+  invalidateCache("");
 });
 
 describe("api/analytics", () => {

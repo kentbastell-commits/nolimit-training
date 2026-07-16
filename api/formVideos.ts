@@ -76,7 +76,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }))
         .sort((a, b) => b.submittedAt - a.submittedAt);
       const payload = { videos };
-      setCached("formVideos", payload);
+      // Missing TTL made expiry NaN, so this cache NEVER hit before. Writes
+      // already invalidate "formVideos"; 5 min is the safety net.
+      setCached("formVideos", payload, 5 * 60 * 1000);
       return res.status(200).json(payload);
     }
 

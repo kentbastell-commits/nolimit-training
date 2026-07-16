@@ -41,3 +41,7 @@ dist-ssr
 /nl_verify_*.png
 /builder_density_*.png
 test-results/
+
+# Local data dumps (real client data — never commit)
+etl-data.json
+*.dump.json
