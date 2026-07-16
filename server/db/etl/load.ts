@@ -29,6 +29,11 @@ const ORDER: [string, any, string][] = [
   ["assigned_tests", s.assignedTests, "assignedTestId"],
   ["test_results", s.testResults, "resultId"],
   ["notifications", s.notifications, "notificationId"],
+  ["workload_logs", s.workloadLogs, "workloadLogId"],
+  ["reviews", s.reviews, "reviewId"],
+  ["enquiries", s.enquiries, "enquiryId"],
+  ["form_videos", s.formVideos, "videoId"],
+  ["test_library", s.testLibrary, "testId"],
 ];
 
 // child FK prop -> parent table name. Any value not present in the parent's PK
@@ -57,6 +62,10 @@ const FKS: Record<string, Record<string, string>> = {
     clientId: "clients",
   },
   notifications: { clientId: "clients" },
+  workload_logs: { clientId: "clients" },
+  reviews: { clientId: "clients", programId: "programs" },
+  form_videos: { clientId: "clients" },
+  test_library: { linkedExerciseId: "exercises" },
 };
 
 function dedupeByPk(rows: Record<string, any>[], pk: string) {

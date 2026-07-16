@@ -8,6 +8,13 @@
       "when": 1781884760844,
       "tag": "0000_lively_scorpion",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1784219559530,
+      "tag": "0001_high_mojo",
+      "breakpoints": true
     }
   ]
 }

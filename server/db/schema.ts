@@ -98,15 +98,24 @@ export const programs = pgTable(
     durationWeeks: integer("duration_weeks"),
     phase: text("phase"),
     phaseCn: text("phase_cn"),
+    season: integer("season"),
     sessionsPerWeek: integer("sessions_per_week"),
     // Stored as a coach name in Feishu (not a code), so no FK to coaches.
     coachId: text("coach_id"),
     description: text("description"),
     descriptionCn: text("description_cn"),
     status: text("status").default("Active"),
+    // Client/team-specific builds (stored as free text in Feishu — codes/names)
+    builtForClient: text("built_for_client"),
+    builtForTeam: text("built_for_team"),
     // Store / commerce
+    storeCategory: text("store_category"),
+    storeCategoryCn: text("store_category_cn"),
+    storeListingType: text("store_listing_type"),
+    bundleProgramIds: text("bundle_program_ids"), // comma/JSON list of PR- codes
     productType: text("product_type"),
     price: money("price"),
+    compareAtPrice: money("compare_at_price"),
     currency: text("currency"),
     publicStoreVisible: boolean("public_store_visible").default(false),
     purchaseLink: text("purchase_link"),
@@ -322,6 +331,11 @@ export const assignedWorkouts = pgTable(
     coachNotesCn: text("coach_notes_cn"),
     clientNotes: text("client_notes"),
     clientNotesCn: text("client_notes_cn"),
+    // Internal-load metrics (coach-only) written at workout finish
+    sessionRpe: doublePrecision("session_rpe"),
+    sessionDuration: doublePrecision("session_duration"), // minutes
+    sessionLoad: doublePrecision("session_load"), // RPE × duration
+    coachReviewed: boolean("coach_reviewed").default(false),
   },
   (t) => [
     index("assigned_workouts_client_idx").on(t.clientId),
@@ -337,6 +351,9 @@ export const workoutLogs = pgTable(
   {
     logId: text("log_id").primaryKey(),
     clientId: text("client_id").references(() => clients.clientId),
+    // Plain-text CL- code written on save (fast per-client filtering without
+    // resolving the link column)
+    clientCode: text("client_code"),
     assignedWorkoutId: text("assigned_workout_id").references(
       () => assignedWorkouts.assignedWorkoutId
     ),
@@ -348,6 +365,8 @@ export const workoutLogs = pgTable(
     prescribedReps: text("prescribed_reps"),
     actualReps: integer("actual_reps"),
     actualWeight: doublePrecision("actual_weight"),
+    actualRpe: doublePrecision("actual_rpe"),
+    actualRir: doublePrecision("actual_rir"),
     weightUnit: text("weight_unit"),
     actualTime: text("actual_time"),
     timeUnit: text("time_unit"),
@@ -463,6 +482,7 @@ export const productOrders = pgTable(
     accessStartDate: ts("access_start_date"),
     intakeStatus: text("intake_status"),
     assignCoach: text("assign_coach"),
+    fulfillmentStatus: text("fulfillment_status"), // New Order | Program Loaded
   },
   (t) => [
     index("product_orders_client_idx").on(t.clientId),
@@ -485,6 +505,13 @@ export const checkIns = pgTable(
     mood: text("mood"),
     stress: integer("stress"),
     soreness: integer("soreness"),
+    sleepHours: doublePrecision("sleep_hours"),
+    readinessScore: doublePrecision("readiness_score"),
+    status: text("status"),
+    nutritionNotes: text("nutrition_notes"),
+    trainingNotes: text("training_notes"),
+    wins: text("wins"),
+    problemsPain: text("problems_pain"),
     clientNotes: text("client_notes"),
     coachNotes: text("coach_notes"),
     reviewedDate: ts("reviewed_date"),
@@ -572,6 +599,7 @@ export const testTemplates = pgTable("test_templates", {
   testTemplateId: text("test_template_id").primaryKey(),
   name: text("name").notNull(),
   nameCn: text("name_cn"),
+  category: text("category"),
   description: text("description"),
   descriptionCn: text("description_cn"),
 });
@@ -662,3 +690,93 @@ export const notifications = pgTable(
   },
   (t) => [index("notifications_client_idx").on(t.clientId)]
 );
+
+/* ================== Tables added on Feishu after 2026-06-20 =============== */
+
+// Athlete weekly self-report (Tech AM/PM RPE+min, extra cardio) — one row per
+// client per day; Log ID = "<clientCode>-YYYY-MM-DD". Feeds the coach Training
+// Load dashboard (monotony/strain).
+export const workloadLogs = pgTable(
+  "workload_logs",
+  {
+    workloadLogId: text("workload_log_id").primaryKey(),
+    clientId: text("client_id").references(() => clients.clientId),
+    date: ts("date"),
+    techAmRpe: doublePrecision("tech_am_rpe"),
+    techAmMin: doublePrecision("tech_am_min"),
+    techPmRpe: doublePrecision("tech_pm_rpe"),
+    techPmMin: doublePrecision("tech_pm_min"),
+    cardioRpe: doublePrecision("cardio_rpe"),
+    cardioMin: doublePrecision("cardio_min"),
+    notes: text("notes"),
+  },
+  (t) => [index("workload_logs_client_date_idx").on(t.clientId, t.date)]
+);
+
+// Store testimonials (client-submitted, coach-approved).
+export const reviews = pgTable(
+  "reviews",
+  {
+    reviewId: text("review_id").primaryKey(),
+    clientId: text("client_id").references(() => clients.clientId),
+    clientName: text("client_name"),
+    programId: text("program_id").references(() => programs.programId),
+    programName: text("program_name"),
+    rating: doublePrecision("rating"),
+    quote: text("quote"),
+    showOnStore: boolean("show_on_store").default(false),
+    approved: boolean("approved").default(false),
+    submittedDate: ts("submitted_date"),
+  },
+  (t) => [index("reviews_program_idx").on(t.programId)]
+);
+
+// In-person training enquiries from the public store (no client FK — these
+// arrive before a client record exists).
+export const enquiries = pgTable("enquiries", {
+  enquiryId: text("enquiry_id").primaryKey(),
+  contactPerson: text("contact_person"),
+  contact: text("contact"),
+  organization: text("organization"),
+  athletes: text("athletes"),
+  duration: text("duration"),
+  notes: text("notes"),
+  submittedDate: text("submitted_date"), // stored as text in Feishu
+  status: text("status"),
+});
+
+// Athlete form-check submissions (video and/or note) + coach replies.
+export const formVideos = pgTable(
+  "form_videos",
+  {
+    videoId: text("video_id").primaryKey(),
+    clientId: text("client_id").references(() => clients.clientId),
+    clientName: text("client_name"),
+    exerciseName: text("exercise_name"),
+    workoutName: text("workout_name"),
+    videoUrl: text("video_url"),
+    clientNote: text("client_note"),
+    submittedAt: ts("submitted_at"),
+    status: text("status"), // New | Reviewed
+    coachReply: text("coach_reply"),
+    reviewedAt: ts("reviewed_at"),
+  },
+  (t) => [index("form_videos_client_idx").on(t.clientId)]
+);
+
+// Canonical physical-test library (the Tests page "identity layer"); batteries
+// (testTemplates/testItems) reference these by Test ID.
+export const testLibrary = pgTable("test_library", {
+  testId: text("test_id").primaryKey(),
+  name: text("name").notNull(),
+  nameCn: text("name_cn"),
+  category: text("category"),
+  resultMetric: text("result_metric"),
+  resultUnit: text("result_unit"),
+  calculation: text("calculation"),
+  protocol: text("protocol"),
+  protocolCn: text("protocol_cn"),
+  higherIsBetter: boolean("higher_is_better").default(true),
+  status: text("status"),
+  linkedExerciseId: text("linked_exercise_id").references(() => exercises.exerciseId),
+});

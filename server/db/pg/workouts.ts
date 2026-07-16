@@ -27,12 +27,10 @@ export async function listAllWorkouts(): Promise<WorkoutDTO[]> {
       coachNotesCn: str(r.coachNotesCn),
       clientNotes: str(r.clientNotes),
       workoutLogs: "",
-      // TODO(schema-resync): Session RPE/Duration/Load + Coach Reviewed were
-      // added to Assigned Workouts on Feishu after the June snapshot.
-      sessionRpe: "",
-      sessionDuration: "",
-      sessionLoad: "",
-      coachReviewed: false,
+      sessionRpe: str(r.sessionRpe),
+      sessionDuration: str(r.sessionDuration),
+      sessionLoad: str(r.sessionLoad),
+      coachReviewed: r.coachReviewed ?? false,
     })
   );
 }

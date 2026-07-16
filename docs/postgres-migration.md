@@ -1,6 +1,6 @@
 # Postgres Migration Plan
 
-Status: **Phase 1 (prep) in progress.** Last updated 2026-06-19.
+Status: **Read side + schema re-sync complete on branch `postgres-sprint`; write sprint next.** Last updated 2026-07-16.
 
 > **Milestone (2026-06-19): full pipeline verified end-to-end on a local
 > Postgres 16.** Migration creates all 25 tables → ETL loads a copy of real
@@ -201,9 +201,23 @@ first; TencentDB is a later upgrade when revenue justifies it.
   graceful config errors locally, `DATA_BACKEND=postgres` serves the June
   dataset end-to-end (exercises, programs, clients, analytics, teams, orders,
   history).
-- **Remaining before cutover**: schema re-sync (new tables: Test Library,
-  Workload Logs; new columns marked TODO(schema-resync)), ~25 write paths,
-  translate-on-write, ETL refresh; media is already self-hosted under
+- **2026-07-16 — schema re-synced to the LIVE base** (introspected all 36
+  Feishu tables via `scripts/introspect-schema.mjs` on the HK server; diffed
+  with `scripts/diff-schema.ts`). Added 5 new tables (workload_logs, reviews,
+  enquiries, form_videos, test_library) + new columns (programs
+  season/built-for/store-category/listing/bundles/compare-at, assigned_workouts
+  session RPE/duration/load + coach reviewed, workout_logs client_code +
+  actual RPE/RIR, product_orders fulfillment_status, check_ins 7 fields,
+  test_templates category). Migration `0001_high_mojo.sql` applied locally;
+  fresh ETL dump (2,760 rows / 29 tables) loaded; pg endpoints re-verified
+  (store fields, session-type map via one selectDistinct, load metrics,
+  per-clientCode history: 227 logs). 6 legacy no-env-var Feishu tables (Saved
+  Programs, Progress Metrics, old Check-ins, Payment, Onboarding Workflow,
+  Automations) intentionally NOT modeled — no handler reads them.
+- **Remaining before cutover**: ~25 write paths (the big one),
+  translate-on-write, convert the newer CRUD handlers (testLibrary,
+  formVideos, workloadLogs, reviews, enquiries) to repositories, install
+  Postgres on the CVM + final ETL re-run; media is already self-hosted under
   /uploads and synced to the CVM (COS optional later).
 
 ## Known future tech-debt (not part of this migration, but relevant to a sale)

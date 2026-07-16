@@ -30,7 +30,7 @@ export async function listProductOrders(): Promise<OrderDTO[]> {
       assignedCoach: str(r.assignCoach),
       intakeAssignmentId: "",
       onboardingStatus: "",
-      fulfillmentStatus: "",
+      fulfillmentStatus: str(r.fulfillmentStatus),
       fulfilledAt: "",
     })
   );

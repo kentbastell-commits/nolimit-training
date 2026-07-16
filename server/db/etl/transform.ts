@@ -115,7 +115,7 @@ export const TABLES: TableSpec[] = [
     table: "programs",
     envVar: "FEISHU_PROGRAMS_TABLE_ID",
     pkField: "Program ID",
-    expected: ["Program ID","Program Name","Program Name CN","Goal","Goal CN","Sport","Level","Duration Weeks","Phase","Phase CN","Sessions / Week","Coach","Description","Description CN","Status","Store URL","Store Description","Store Description CN","Product Image","Product Type","Price","Public Store Visible","Currency","Purchase Link","Default Intake Form ID","Access Length Days","Product Status","Sales Description","Sales Description CN","Duration/Weeks"],
+    expected: ["Program ID","Program Name","Program Name CN","Goal","Goal CN","Sport","Level","Duration Weeks","Phase","Phase CN","Season","Sessions / Week","Coach","Description","Description CN","Status","Built For Client","Built For Team","Store Category","Store Category CN","Store Listing Type","Bundle Program IDs","Store URL","Store Description","Store Description CN","Product Image","Product Type","Price","Compare At Price","Public Store Visible","Currency","Purchase Link","Default Intake Form ID","Access Length Days","Product Status","Sales Description","Sales Description CN","Duration/Weeks"],
     map: (r, ctx) => {
       const f = r.fields;
       return {
@@ -129,13 +129,21 @@ export const TABLES: TableSpec[] = [
         durationWeeks: fieldNum(f["Duration Weeks"]),
         phase: textOrNull(f["Phase"]),
         phaseCn: textOrNull(f["Phase CN"]),
+        season: fieldNum(f["Season"]),
         sessionsPerWeek: fieldNum(f["Sessions / Week"]),
         coachId: ref(f["Coach"], "coaches", ctx),
         description: textOrNull(f["Description"]),
         descriptionCn: textOrNull(f["Description CN"]),
         status: textOrNull(f["Status"]),
+        builtForClient: textOrNull(f["Built For Client"]),
+        builtForTeam: textOrNull(f["Built For Team"]),
+        storeCategory: textOrNull(f["Store Category"]),
+        storeCategoryCn: textOrNull(f["Store Category CN"]),
+        storeListingType: textOrNull(f["Store Listing Type"]),
+        bundleProgramIds: textOrNull(f["Bundle Program IDs"]),
         productType: textOrNull(f["Product Type"]),
         price: money(fieldNum(f["Price"])),
+        compareAtPrice: money(fieldNum(f["Compare At Price"])),
         currency: textOrNull(f["Currency"]),
         publicStoreVisible: fieldBool(f["Public Store Visible"]),
         purchaseLink: textOrNull(f["Purchase Link"]),
@@ -201,7 +209,7 @@ export const TABLES: TableSpec[] = [
     table: "teams",
     envVar: "FEISHU_TEAMS_TABLE_ID",
     pkField: "",
-    expected: ["Team Name", "Coach", "Notes", "Members", "Positions", "Focus", "Groups"],
+    expected: ["Team Name", "Coach", "Notes", "Members", "Positions", "Focus", "Groups", "Created Time"],
     map: (r) => ({
       teamId: r.record_id,
       name: textOrNull(r.fields["Team Name"]) ?? "",
@@ -210,7 +218,7 @@ export const TABLES: TableSpec[] = [
       notes: textOrNull(r.fields["Notes"]),
       positions: fieldJson(r.fields["Positions"]),
       groups: fieldJson(r.fields["Groups"]),
-      createdAt: null,
+      createdAt: fieldDateMs(r.fields["Created Time"]),
     }),
   },
   {
@@ -302,7 +310,7 @@ export const TABLES: TableSpec[] = [
     table: "assigned_workouts",
     envVar: "FEISHU_ASSIGNED_WORKOUTS_TABLE_ID",
     pkField: "Assigned Workout ID",
-    expected: ["Assigned Workout ID","Client ID","Program ID","Week","Day","Session Name","Session Name CN","Scheduled Date","Completion Status","Coach Notes","Coach Notes CN","Client Notes","Client Notes CN","Session Type","Session Goal","Estimated Duration","Intensity"],
+    expected: ["Assigned Workout ID","Client ID","Program ID","Week","Day","Session Name","Session Name CN","Scheduled Date","Completion Status","Coach Notes","Coach Notes CN","Client Notes","Client Notes CN","Session Type","Session Goal","Estimated Duration","Intensity","Session RPE","Session Duration","Session Load","Coach Reviewed"],
     map: (r, ctx) => {
       const f = r.fields;
       return {
@@ -323,6 +331,10 @@ export const TABLES: TableSpec[] = [
         coachNotesCn: textOrNull(f["Coach Notes CN"]),
         clientNotes: textOrNull(f["Client Notes"]),
         clientNotesCn: textOrNull(f["Client Notes CN"]),
+        sessionRpe: fieldNum(f["Session RPE"]),
+        sessionDuration: fieldNum(f["Session Duration"]),
+        sessionLoad: fieldNum(f["Session Load"]),
+        coachReviewed: fieldBool(f["Coach Reviewed"]),
       };
     },
   },
@@ -330,12 +342,13 @@ export const TABLES: TableSpec[] = [
     table: "workout_logs",
     envVar: "FEISHU_WORKOUT_LOGS_TABLE_ID",
     pkField: "Log ID",
-    expected: ["Log ID","Client ID","Assigned Workout ID","Exercise ID","Exercise Name","Date","Set Number","Prescribed Sets","Prescribed Reps","Actual Reps","Actual Weight","Weight Unit","Actual Time","Time Unit","Actual Distance","Distance Unit","Completed","Athlete Notes","Athlete Notes EN","Exercise Order","Created At","Volume","Duration Seconds","Load Score","Coach Reviewed"],
+    expected: ["Log ID","Client ID","Client Code","Assigned Workout ID","Exercise ID","Exercise Name","Date","Set Number","Prescribed Sets","Prescribed Reps","Actual Reps","Actual Weight","Actual RPE","Actual RIR","Weight Unit","Actual Time","Time Unit","Actual Distance","Distance Unit","Completed","Athlete Notes","Athlete Notes EN","Exercise Order","Created At","Volume","Duration Seconds","Load Score","Coach Reviewed"],
     map: (r, ctx) => {
       const f = r.fields;
       return {
         logId: code(r, "Log ID"),
         clientId: ref(f["Client ID"], "clients", ctx),
+        clientCode: textOrNull(f["Client Code"]),
         assignedWorkoutId: ref(f["Assigned Workout ID"], "assigned_workouts", ctx),
         exerciseId: ref(f["Exercise ID"], "exercises", ctx),
         exerciseName: textOrNull(f["Exercise Name"]),
@@ -345,6 +358,8 @@ export const TABLES: TableSpec[] = [
         prescribedReps: textOrNull(f["Prescribed Reps"]),
         actualReps: fieldNum(f["Actual Reps"]),
         actualWeight: fieldNum(f["Actual Weight"]),
+        actualRpe: fieldNum(f["Actual RPE"]),
+        actualRir: fieldNum(f["Actual RIR"]),
         weightUnit: textOrNull(f["Weight Unit"]),
         actualTime: textOrNull(f["Actual Time"]),
         timeUnit: textOrNull(f["Time Unit"]),
@@ -438,7 +453,7 @@ export const TABLES: TableSpec[] = [
     envVar: "FEISHU_PRODUCT_ORDERS_TABLE_ID",
     fallbackId: "tbllinXYFDiUboKX",
     pkField: "Order ID",
-    expected: ["Order ID","Client ID","Client Name","Product Type","Program ID","Product Name","Amount","Currency","Payment Status","Payment Provider","Payment Reference","Purchased At","Access Start Date","Intake Status","Assign Coach"],
+    expected: ["Order ID","Client ID","Client Name","Product Type","Program ID","Product Name","Amount","Currency","Payment Status","Payment Provider","Payment Reference","Purchased At","Access Start Date","Intake Status","Assign Coach","Fulfillment Status"],
     map: (r, ctx) => {
       const f = r.fields;
       return {
@@ -457,6 +472,7 @@ export const TABLES: TableSpec[] = [
         accessStartDate: fieldDateMs(f["Access Start Date"]),
         intakeStatus: textOrNull(f["Intake Status"]),
         assignCoach: textOrNull(f["Assign Coach"]),
+        fulfillmentStatus: textOrNull(f["Fulfillment Status"]),
       };
     },
   },
@@ -464,7 +480,7 @@ export const TABLES: TableSpec[] = [
     table: "check_ins",
     envVar: "FEISHU_CHECKINS_TABLE_ID",
     pkField: "Check-in ID",
-    expected: ["Check-in ID","Client ID","Client","Submitted Date","Body Weight","Sleep Quality","Energy","Mood","Stress","Soreness","Client Notes","Coaches Notes","Reviewed Date"],
+    expected: ["Check-in ID","Client ID","Client","Submitted Date","Body Weight","Sleep Quality","Energy","Mood","Stress","Soreness","Sleep Hours","Readiness Score","Status","Nutrition Notes","Training Notes","Wins","Problems / Pain","Client Notes","Coaches Notes","Reviewed Date"],
     map: (r, ctx) => {
       const f = r.fields;
       return {
@@ -478,6 +494,13 @@ export const TABLES: TableSpec[] = [
         mood: textOrNull(f["Mood"]),
         stress: fieldNum(f["Stress"]),
         soreness: fieldNum(f["Soreness"]),
+        sleepHours: fieldNum(f["Sleep Hours"]),
+        readinessScore: fieldNum(f["Readiness Score"]),
+        status: textOrNull(f["Status"]),
+        nutritionNotes: textOrNull(f["Nutrition Notes"]),
+        trainingNotes: textOrNull(f["Training Notes"]),
+        wins: textOrNull(f["Wins"]),
+        problemsPain: textOrNull(f["Problems / Pain"]),
         clientNotes: textOrNull(f["Client Notes"]),
         coachNotes: textOrNull(f["Coaches Notes"]),
         reviewedDate: fieldDateMs(f["Reviewed Date"]),
@@ -571,13 +594,14 @@ export const TABLES: TableSpec[] = [
     table: "test_templates",
     envVar: "FEISHU_TEST_TEMPLATES_TABLE_ID",
     pkField: "Test Template ID",
-    expected: ["Test Template ID", "Name", "Name CN", "Description", "Description CN"],
+    expected: ["Test Template ID", "Name", "Name CN", "Category", "Description", "Description CN"],
     map: (r) => {
       const f = r.fields;
       return {
         testTemplateId: code(r, "Test Template ID"),
         name: textOrNull(f["Name"]) ?? "",
         nameCn: textOrNull(f["Name CN"]),
+        category: textOrNull(f["Category"]),
         description: textOrNull(f["Description"]),
         descriptionCn: textOrNull(f["Description CN"]),
       };
@@ -666,6 +690,119 @@ export const TABLES: TableSpec[] = [
         type: textOrNull(f["Type"]),
         read: fieldBool(f["Read"]),
         createdAt: fieldDateMs(f["Created At"]),
+      };
+    },
+  },
+  /* ---------------- Tables added on Feishu after 2026-06-20 ---------------- */
+  {
+    table: "workload_logs",
+    envVar: "FEISHU_WORKLOAD_LOGS_TABLE_ID",
+    fallbackId: "tbl1dFbXBiOgDFYA",
+    pkField: "Log ID",
+    expected: ["Log ID","Client ID","Date","Tech AM RPE","Tech AM Min","Tech PM RPE","Tech PM Min","Cardio RPE","Cardio Min","Notes"],
+    map: (r, ctx) => {
+      const f = r.fields;
+      return {
+        workloadLogId: code(r, "Log ID"),
+        clientId: ref(f["Client ID"], "clients", ctx),
+        date: fieldDateMs(f["Date"]),
+        techAmRpe: fieldNum(f["Tech AM RPE"]),
+        techAmMin: fieldNum(f["Tech AM Min"]),
+        techPmRpe: fieldNum(f["Tech PM RPE"]),
+        techPmMin: fieldNum(f["Tech PM Min"]),
+        cardioRpe: fieldNum(f["Cardio RPE"]),
+        cardioMin: fieldNum(f["Cardio Min"]),
+        notes: textOrNull(f["Notes"]),
+      };
+    },
+  },
+  {
+    table: "reviews",
+    envVar: "FEISHU_REVIEWS_TABLE_ID",
+    fallbackId: "tblZH9gWqYr1trpG",
+    pkField: "Review ID",
+    expected: ["Review ID","Client ID","Client Name","Program ID","Program Name","Rating","Quote","Show On Store","Approved","Submitted Date"],
+    map: (r, ctx) => {
+      const f = r.fields;
+      return {
+        reviewId: code(r, "Review ID"),
+        clientId: ref(f["Client ID"], "clients", ctx),
+        clientName: textOrNull(f["Client Name"]),
+        programId: ref(f["Program ID"], "programs", ctx),
+        programName: textOrNull(f["Program Name"]),
+        rating: fieldNum(f["Rating"]),
+        quote: textOrNull(f["Quote"]),
+        showOnStore: fieldBool(f["Show On Store"]),
+        approved: fieldBool(f["Approved"]),
+        submittedDate: fieldDateMs(f["Submitted Date"]),
+      };
+    },
+  },
+  {
+    table: "enquiries",
+    envVar: "FEISHU_ENQUIRIES_TABLE_ID",
+    fallbackId: "tblkZ4LmzX3UxziW",
+    pkField: "Enquiry ID",
+    expected: ["Enquiry ID","Contact Person","Contact","Organization","Athletes","Duration","Notes","Submitted Date","Status"],
+    map: (r) => {
+      const f = r.fields;
+      return {
+        enquiryId: code(r, "Enquiry ID"),
+        contactPerson: textOrNull(f["Contact Person"]),
+        contact: textOrNull(f["Contact"]),
+        organization: textOrNull(f["Organization"]),
+        athletes: textOrNull(f["Athletes"]),
+        duration: textOrNull(f["Duration"]),
+        notes: textOrNull(f["Notes"]),
+        submittedDate: textOrNull(f["Submitted Date"]),
+        status: textOrNull(f["Status"]),
+      };
+    },
+  },
+  {
+    table: "form_videos",
+    envVar: "FEISHU_FORM_VIDEOS_TABLE_ID", // api/formVideos.ts hardcodes the id
+    fallbackId: "tbleqym6RxbSw4i2",
+    pkField: "Video ID",
+    expected: ["Video ID","Client ID","Client Name","Exercise Name","Workout Name","Video URL","Client Note","Submitted At","Status","Coach Reply","Reviewed At"],
+    map: (r, ctx) => {
+      const f = r.fields;
+      return {
+        videoId: code(r, "Video ID"),
+        clientId: ref(f["Client ID"], "clients", ctx),
+        clientName: textOrNull(f["Client Name"]),
+        exerciseName: textOrNull(f["Exercise Name"]),
+        workoutName: textOrNull(f["Workout Name"]),
+        videoUrl: textOrNull(f["Video URL"]),
+        clientNote: textOrNull(f["Client Note"]),
+        submittedAt: fieldDateMs(f["Submitted At"]),
+        status: textOrNull(f["Status"]),
+        coachReply: textOrNull(f["Coach Reply"]),
+        reviewedAt: fieldDateMs(f["Reviewed At"]),
+      };
+    },
+  },
+  {
+    table: "test_library",
+    envVar: "FEISHU_TEST_LIBRARY_TABLE_ID",
+    fallbackId: "tblzrkBZ0TCAkP6f",
+    pkField: "Test ID",
+    expected: ["Test ID","Test Name","Test Name CN","Category","Result Metric","Result Unit","Calculation","Protocol","Protocol CN","Higher Is Better","Status","Linked Exercise"],
+    map: (r, ctx) => {
+      const f = r.fields;
+      return {
+        testId: code(r, "Test ID"),
+        name: textOrNull(f["Test Name"]) ?? "",
+        nameCn: textOrNull(f["Test Name CN"]),
+        category: textOrNull(f["Category"]),
+        resultMetric: textOrNull(f["Result Metric"]),
+        resultUnit: textOrNull(f["Result Unit"]),
+        calculation: textOrNull(f["Calculation"]),
+        protocol: textOrNull(f["Protocol"]),
+        protocolCn: textOrNull(f["Protocol CN"]),
+        higherIsBetter: fieldBool(f["Higher Is Better"]),
+        status: textOrNull(f["Status"]),
+        linkedExerciseId: ref(f["Linked Exercise"], "exercises", ctx),
       };
     },
   },

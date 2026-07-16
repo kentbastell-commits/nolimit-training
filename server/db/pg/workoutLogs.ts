@@ -11,8 +11,9 @@ export async function listAllLogs(): Promise<LogDTO[]> {
     (r: Row): LogDTO => ({
       recordId: r.logId,
       clientId: str(r.clientId),
-      // On Postgres client_id already holds the business code (CL-0001).
-      clientCode: str(r.clientId),
+      // Prefer the stored plain-text code; client_id already holds the
+      // business code on Postgres anyway.
+      clientCode: str(r.clientCode) || str(r.clientId),
       clientRecordIds: r.clientId ? [r.clientId] : [],
       exerciseName: str(r.exerciseName),
       date: epochToDate(r.date),
