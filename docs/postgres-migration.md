@@ -273,9 +273,25 @@ first; TencentDB is a later upgrade when revenue justifies it.
   always `nohup … > /tmp/x.log &` long server jobs; re-run ETL any time
   (truncate+insert idempotent, /tmp/etl-hk.log). Twin data is THROWAWAY;
   Feishu remains source of truth until DNS cutover.
-- **Remaining before cutover**: translate-on-write; Postgres on the Shanghai
-  CVM (same recipe as HK) + final ETL re-run; media is already self-hosted
-  under /uploads and synced to the CVM (COS optional later).
+- **2026-07-17 (night) — SHANGHAI CUTOVER TARGET READY.** CN box bundle-
+  deployed to 155a7b9 (GitHub blocked → git bundle, like kangfu), PostgreSQL
+  **16.14** installed from the Tencent PGDG mirror
+  (mirrors.cloud.tencent.com/postgresql/repos/apt — mainland-fast, and avoids
+  Ubuntu 22.04's default PG14 which EOLs Nov 2026), migrations applied, full
+  ETL run on-box (Feishu reachable from mainland, ~0.13s), pm2 app
+  `nolimit-training-pg` PORT=3101 DATA_BACKEND=postgres saved. Verified:
+  /api/programs + /api/analytics serve business-code ids from Postgres on
+  127.0.0.1:3101. Not exposed externally (box stays dark until beian). ICP
+  beian SUBMITTED same day (order 30178426682034412, Guangdong bureau,
+  1-20 working days).
+- **Remaining before cutover**: translate-on-write (waiting on a Tencent MT
+  key from Kent's ENTERPRISE account — HK box is on his personal account,
+  keys/compliance live on the enterprise one); then at beian approval: final
+  ETL re-run on Shanghai, flip its main pm2 app to DATA_BACKEND=postgres,
+  DNS → Shanghai, TLS via certbot, Feishu read-only for ~2 weeks. Media is
+  already self-hosted under /uploads and synced to the CVM (COS optional
+  later). Open decision: post-cutover admin UI (Drizzle Studio via tunnel
+  demoed to Kent 2026-07-17 — likely sufficient, pending his verdict).
 
 ## Known future tech-debt (not part of this migration, but relevant to a sale)
 `src/App.tsx` is one ~900KB monolithic component. Splitting it is the biggest
