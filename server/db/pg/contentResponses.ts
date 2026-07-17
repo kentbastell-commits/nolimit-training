@@ -1,5 +1,6 @@
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, isNull, or } from "drizzle-orm";
 import { db } from "../client.ts";
+import { fillTranslation } from "../translate.ts";
 import {
   formResponses,
   testResults,
@@ -154,6 +155,25 @@ export async function submitContentResponse(
       };
     }
     createdRecords.push(responseId);
+
+    // Translate-on-write: mirror the client's comment into client_comment_en
+    // (best-effort, fills empty only).
+    if (clientComment) {
+      void fillTranslation(clientComment, "en", (en) =>
+        db
+          .update(formResponses)
+          .set({ clientCommentEn: en })
+          .where(
+            and(
+              eq(formResponses.responseId, responseId),
+              or(
+                isNull(formResponses.clientCommentEn),
+                eq(formResponses.clientCommentEn, "")
+              )
+            )
+          )
+      );
+    }
   } else {
     // Metric configs for this template's items, keyed by item id.
     const itemIds = responses

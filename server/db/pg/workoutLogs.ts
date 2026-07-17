@@ -1,6 +1,7 @@
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, isNull, or } from "drizzle-orm";
 import { db } from "../client.ts";
 import { workoutLogs, assignedWorkouts, clients } from "../schema.ts";
+import { fillTranslation } from "../translate.ts";
 import { createExerciseResults } from "./exerciseResults.ts";
 import { epochToDate, str } from "./_util.ts";
 import type { LogDTO } from "../dto.ts";
@@ -179,6 +180,22 @@ export async function saveWorkoutLog(
     // Skipped sets must not mint PRs/volume from prefilled plan values.
     logs: (logs as any[]).filter((l) => l?.completed !== false),
   });
+
+  // Translate-on-write: mirror the athlete's note into athlete_notes_en so
+  // the coach comment view has both languages (best-effort, fills empty only).
+  if (submissionNote && createdRecords.length) {
+    void fillTranslation(submissionNote, "en", (en) =>
+      db
+        .update(workoutLogs)
+        .set({ athleteNotesEn: en })
+        .where(
+          and(
+            inArray(workoutLogs.logId, createdRecords),
+            or(isNull(workoutLogs.athleteNotesEn), eq(workoutLogs.athleteNotesEn, ""))
+          )
+        )
+    );
+  }
 
   return {
     success: true,

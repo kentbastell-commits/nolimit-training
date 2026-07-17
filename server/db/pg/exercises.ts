@@ -1,9 +1,10 @@
 // Postgres-backed exercises read + upsert. Returns the same DTO/response
 // shapes as the Feishu impl so handlers/frontend don't change when
 // DATA_BACKEND=postgres.
-import { eq } from "drizzle-orm";
+import { and, eq, isNull, or } from "drizzle-orm";
 import { db } from "../client.ts";
 import { exercises } from "../schema.ts";
+import { fillTranslation } from "../translate.ts";
 import type { ExerciseDTO, ExerciseListResult } from "../dto.ts";
 import type {
   UpsertExerciseInput,
@@ -153,6 +154,25 @@ export async function upsertExercise(
     }
   } else {
     await db.insert(exercises).values({ ...set, exerciseId: code, name });
+  }
+
+  // Translate-on-write (replaces the Feishu AI formula): mirror the English
+  // name and cues into the CN columns. Best-effort, fills empty only — never
+  // touches curated bilingual library content.
+  const emptyOnly = (col: any) => or(isNull(col), eq(col, ""));
+  void fillTranslation(name, "zh", (zh) =>
+    db
+      .update(exercises)
+      .set({ nameCn: zh })
+      .where(and(eq(exercises.exerciseId, code), emptyOnly(exercises.nameCn)))
+  );
+  if (!archive && notes) {
+    void fillTranslation(notes, "zh", (zh) =>
+      db
+        .update(exercises)
+        .set({ coachingCuesCn: zh })
+        .where(and(eq(exercises.exerciseId, code), emptyOnly(exercises.coachingCuesCn)))
+    );
   }
 
   return {

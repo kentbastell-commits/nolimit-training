@@ -1,6 +1,7 @@
-import { eq } from "drizzle-orm";
+import { and, eq, or, isNull } from "drizzle-orm";
 import { db } from "../client.ts";
 import { clients } from "../schema.ts";
+import { fillTranslation } from "../translate.ts";
 import { epochToDate, str } from "./_util.ts";
 import type { ClientDTO, UpdateClientInput, WriteResult } from "../dto.ts";
 import type { CreateClientInput } from "../repositories/clients.ts";
@@ -129,6 +130,21 @@ export async function createClient(i: CreateClientInput): Promise<WriteResult> {
       fieldsSent: values,
     };
   }
+  // Translate-on-write: mirror the intake notes into notes_en (best-effort).
+  if (i.notes) {
+    void fillTranslation(i.notes, "en", (en) =>
+      db
+        .update(clients)
+        .set({ notesEn: en })
+        .where(
+          and(
+            eq(clients.clientId, clientId),
+            or(isNull(clients.notesEn), eq(clients.notesEn, ""))
+          )
+        )
+    );
+  }
+
   // On Postgres the business code IS the record identity, so echo it as both.
   return { success: true, clientId, recordId: clientId };
 }
@@ -199,6 +215,23 @@ export async function updateClient(i: UpdateClientInput): Promise<WriteResult> {
     .set(set)
     .where(eq(clients.clientId, i.clientRecordId))
     .returning({ clientId: clients.clientId });
+
+  // Translate-on-write (replaces the Feishu AI formula): mirror new notes into
+  // notes_en. Fire-and-forget; only fills an EMPTY mirror column.
+  if (r.length && i.notes) {
+    void fillTranslation(i.notes, "en", (en) =>
+      db
+        .update(clients)
+        .set({ notesEn: en })
+        .where(
+          and(
+            eq(clients.clientId, i.clientRecordId),
+            or(isNull(clients.notesEn), eq(clients.notesEn, ""))
+          )
+        )
+    );
+  }
+
   return r.length
     ? { success: true, clientRecordId: i.clientRecordId }
     : { success: false, error: "Client not found" };

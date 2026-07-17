@@ -1,6 +1,7 @@
-import { eq } from "drizzle-orm";
+import { and, eq, isNull, or } from "drizzle-orm";
 import { db } from "../client.ts";
 import { programs, workoutTemplates } from "../schema.ts";
+import { fillTranslation } from "../translate.ts";
 import { str } from "./_util.ts";
 import type { ProgramDTO } from "../dto.ts";
 import type {
@@ -148,6 +149,24 @@ export async function createProgram(i: CreateProgramInput): Promise<HandlerResul
     };
   }
 
+  // Translate-on-write: mirror name/goal into the CN columns (best-effort,
+  // fills empty only — the store shows programNameCn/goalCn).
+  const emptyOnly = (col: any) => or(isNull(col), eq(col, ""));
+  void fillTranslation(i.programName, "zh", (zh) =>
+    db
+      .update(programs)
+      .set({ nameCn: zh })
+      .where(and(eq(programs.programId, programId), emptyOnly(programs.nameCn)))
+  );
+  if (i.goal) {
+    void fillTranslation(i.goal, "zh", (zh) =>
+      db
+        .update(programs)
+        .set({ goalCn: zh })
+        .where(and(eq(programs.programId, programId), emptyOnly(programs.goalCn)))
+    );
+  }
+
   return {
     status: 200,
     body: {
@@ -222,6 +241,25 @@ export async function updateProgram(i: UpdateProgramInput): Promise<HandlerResul
       status: 500,
       body: { error: "Failed to update program", message: "Program not found" },
     };
+  }
+
+  // Translate-on-write for renamed programs / changed goals (fills empty only).
+  const emptyOnly = (col: any) => or(isNull(col), eq(col, ""));
+  if (i.programName !== undefined && i.programName) {
+    void fillTranslation(i.programName, "zh", (zh) =>
+      db
+        .update(programs)
+        .set({ nameCn: zh })
+        .where(and(eq(programs.programId, i.programRecordId), emptyOnly(programs.nameCn)))
+    );
+  }
+  if (i.goal !== undefined && i.goal) {
+    void fillTranslation(i.goal, "zh", (zh) =>
+      db
+        .update(programs)
+        .set({ goalCn: zh })
+        .where(and(eq(programs.programId, i.programRecordId), emptyOnly(programs.goalCn)))
+    );
   }
 
   return {
