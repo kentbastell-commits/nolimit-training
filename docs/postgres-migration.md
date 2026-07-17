@@ -247,10 +247,20 @@ first; TencentDB is a later upgrade when revenue justifies it.
   notifications/checkIns/exerciseResults/workoutLogs. Gate results: tsc clean,
   vite clean, 557/557 unit tests unmodified, 59/59 pg runtime checks, HTTP
   smoke in pg mode.
-- **Remaining before cutover**: translate-on-write, convert the newer CRUD
-  handlers (testLibrary, formVideos, workloadLogs, reviews, enquiries) to
-  repositories, install Postgres on the CVM + final ETL re-run; media is
-  already self-hosted under /uploads and synced to the CVM (COS optional later).
+- **2026-07-17 (later) — REPOSITORY LAYER 100% COMPLETE.** The five newer CRUD
+  handlers converted (enquiries+inPersonEnquiry, workloadLogs+saveWorkloadLog,
+  reviews, formVideos, testLibrary) — no handler anywhere touches Feishu
+  directly anymore (api/clientLog.ts is filesystem-only, no DB). Verified:
+  tsc + vite clean, unit tests green unmodified, 17-check pg runtime battery
+  (incl. workload same-day upsert-not-duplicate, review store-approval gate,
+  test-library exercise-name join). Also shipped earlier same day: main merged
+  to 666eae5 and DEPLOYED to HK production in Feishu mode — the post-cutover
+  code now serves live traffic against Feishu, so behavior differences surface
+  before the data swap.
+- **Remaining before cutover**: translate-on-write; Postgres on the HK box
+  (staging twin: second pm2 process, DATA_BACKEND=postgres, test port) and on
+  the Shanghai CVM + final ETL re-run; media is already self-hosted under
+  /uploads and synced to the CVM (COS optional later).
 
 ## Known future tech-debt (not part of this migration, but relevant to a sale)
 `src/App.tsx` is one ~900KB monolithic component. Splitting it is the biggest
