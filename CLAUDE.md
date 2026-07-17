@@ -291,7 +291,9 @@ invented procedure is not.
 
 - Windows 11; Bash tool = Git Bash. The shell cwd resets between commands — always
   `cd` explicitly in compound commands. Python needs `PYTHONIOENCODING=utf-8` for
-  CJK output.
+  CJK output. `curl -d "…中文…"` from Git Bash mangles CJK to literal `?` — send
+  Chinese payloads with `--data-binary @file` (write the file server-side or via
+  printf \x escapes), never inline in the command.
 - Server: `ssh nolimit` (43.132.228.109). Node/npm on server via lighthouse paths.
 - Feishu creds: kangfu's local `.env` has them; **nolimit's local `.env` has only
   `DATABASE_URL`** (Postgres work) — its Feishu creds live only in

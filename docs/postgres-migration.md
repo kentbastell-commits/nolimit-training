@@ -177,9 +177,16 @@ deferral.
    present (8 nulled in the test data) so a constraint can't break the load.
    `--dump`/`--from` split keeps extraction (Feishu creds) and loading (Postgres)
    on separate machines — also how the real cutover runs.
-7. ⬜ **Translate-on-write**: on create/update of a record with CN/EN fields,
-   call a translation API (Tencent MT or DeepL) to fill `*_cn` / `*_en`.
-   Replaces the Feishu AI formula. Cache results; cost is per new record.
+7. ✅ **Translate-on-write (2026-07-17)**: `server/db/translate.ts` — Tencent
+   MT via a hand-rolled TC3-signed call (no SDK), 5s timeout, in-process
+   cache, silent no-op without creds. Fire-and-forget hooks in the pg impls
+   fill EMPTY mirror columns only (client notes→notes_en, workout
+   notes→athlete_notes_en, form comments→client_comment_en, exercise
+   name/cues→*_cn, program name/goal→*_cn, test library→*_cn). Key: CAM
+   sub-user `tmt-api` (QcloudTMTFullAccess only) on the ENTERPRISE account;
+   creds in all three .envs. Verified live on the HK twin. Gotcha: verifying
+   with curl from Windows Git Bash mangles CJK in `-d` strings — test from
+   the server with `--data-binary @file`.
 8. ⬜ **Attachments → object storage**: exercise thumbnails/videos (and future
    photos) move to Tencent COS + CDN; Postgres stores only the URL.
 9. ⬜ Seed/integration tests against local Postgres.
@@ -284,14 +291,14 @@ first; TencentDB is a later upgrade when revenue justifies it.
   127.0.0.1:3101. Not exposed externally (box stays dark until beian). ICP
   beian SUBMITTED same day (order 30178426682034412, Guangdong bureau,
   1-20 working days).
-- **Remaining before cutover**: translate-on-write (waiting on a Tencent MT
-  key from Kent's ENTERPRISE account — HK box is on his personal account,
-  keys/compliance live on the enterprise one); then at beian approval: final
-  ETL re-run on Shanghai, flip its main pm2 app to DATA_BACKEND=postgres,
-  DNS → Shanghai, TLS via certbot, Feishu read-only for ~2 weeks. Media is
-  already self-hosted under /uploads and synced to the CVM (COS optional
-  later). Open decision: post-cutover admin UI (Drizzle Studio via tunnel
-  demoed to Kent 2026-07-17 — likely sufficient, pending his verdict).
+- **SPRINT COMPLETE 2026-07-17.** Everything is done except the cutover
+  itself, which is gated on beian approval (submitted 2026-07-17, order
+  30178426682034412). At approval: final ETL re-run on Shanghai, flip its
+  main pm2 app to DATA_BACKEND=postgres, DNS → Shanghai, TLS via certbot,
+  Feishu read-only for ~2 weeks. Media is already self-hosted under /uploads
+  and synced to the CVM (COS optional later). Open decision: post-cutover
+  admin UI (Drizzle Studio via tunnel demoed to Kent 2026-07-17 — likely
+  sufficient, pending his verdict).
 
 ## Known future tech-debt (not part of this migration, but relevant to a sale)
 `src/App.tsx` is one ~900KB monolithic component. Splitting it is the biggest
