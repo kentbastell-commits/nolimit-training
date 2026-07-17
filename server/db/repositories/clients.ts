@@ -65,6 +65,17 @@ export async function createClient(input: CreateClientInput): Promise<WriteResul
   return result;
 }
 
+// Portal recovery: exact Phone/WeChat match + fuzzy name check (so a phone
+// number alone can't enumerate portals). Returns the client code or "".
+export async function findClientByPhoneName(
+  phone: string,
+  name: string
+): Promise<string> {
+  return DATA_BACKEND === "postgres"
+    ? await (await import("../pg/clients.ts")).findClientByPhoneName(phone, name)
+    : await feishu.findClientByPhoneName(phone, name);
+}
+
 export async function updateClient(input: UpdateClientInput): Promise<WriteResult> {
   const result =
     DATA_BACKEND === "postgres"

@@ -291,9 +291,14 @@ first; TencentDB is a later upgrade when revenue justifies it.
   127.0.0.1:3101. Not exposed externally (box stays dark until beian). ICP
   beian SUBMITTED same day (order 30178426682034412, Guangdong bureau,
   1-20 working days).
-- **SPRINT COMPLETE 2026-07-17.** Everything is done except the cutover
-  itself, which is gated on beian approval (submitted 2026-07-17, order
-  30178426682034412). At approval: final ETL re-run on Shanghai, flip its
+- **Gap found 2026-07-17 (mini program work): `api/findMyPortal.ts` was never
+  repository-converted** — it still queries Feishu directly by phone filter.
+  Works today in both modes (Feishu has all clients), but post-cutover clients
+  created only in Postgres would be invisible to it. Convert before cutover
+  (needs a phone+name lookup in pg/clients).
+- **SPRINT COMPLETE 2026-07-17** (modulo the findMyPortal gap above).
+  Everything else is done except the cutover itself, which is gated on beian
+  approval (submitted 2026-07-17, order 30178426682034412). At approval: final ETL re-run on Shanghai, flip its
   main pm2 app to DATA_BACKEND=postgres, DNS → Shanghai, TLS via certbot,
   Feishu read-only for ~2 weeks. Media is already self-hosted under /uploads
   and synced to the CVM (COS optional later). Open decision: post-cutover

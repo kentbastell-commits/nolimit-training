@@ -236,3 +236,41 @@ export async function updateClient(i: UpdateClientInput): Promise<WriteResult> {
     ? { success: true, clientRecordId: i.clientRecordId }
     : { success: false, error: "Client not found" };
 }
+
+/* --------------------------- portal recovery ------------------------------ */
+// Same semantics as the Feishu impl: exact phone match + fuzzy name check.
+
+function normText(v?: string) {
+  return String(v || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9一-鿿]+/gi, " ")
+    .trim();
+}
+
+function textMatches(a?: string, b?: string) {
+  const na = normText(a);
+  const nb = normText(b);
+  return Boolean(na && nb && (na === nb || na.includes(nb) || nb.includes(na)));
+}
+
+export async function findClientByPhoneName(
+  phone: string,
+  name: string
+): Promise<string> {
+  const rows = await db
+    .select({
+      clientId: clients.clientId,
+      fullName: clients.fullName,
+      fullNameCn: clients.fullNameCn,
+    })
+    .from(clients)
+    .where(eq(clients.phone, String(phone).trim()))
+    .limit(10);
+
+  const match = rows.find(
+    (r) =>
+      textMatches(r.fullName || r.fullNameCn || "", String(name)) ||
+      textMatches(r.fullNameCn || "", String(name))
+  );
+  return match?.clientId || "";
+}

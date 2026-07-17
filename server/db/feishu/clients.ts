@@ -7,6 +7,7 @@ import {
   getFieldNames,
   createRecord,
   updateRecord,
+  getTenantToken,
 } from "./client.ts";
 import type { ClientDTO, UpdateClientInput, WriteResult } from "../dto.ts";
 import type { CreateClientInput } from "../repositories/clients.ts";
@@ -234,4 +235,50 @@ export async function updateClient(input: UpdateClientInput): Promise<WriteResul
     return { success: false, error: "Failed to update client", larkResponse: data, fieldsSent: filteredFields };
   }
   return { success: true, omittedFields, clientRecordId: i.clientRecordId, larkResponse: data };
+}
+
+
+/* --------------------------- portal recovery ------------------------------ */
+// Moved verbatim from api/findMyPortal.ts: exact Phone/WeChat filter + fuzzy
+// name check. Returns the client code or "" when nothing matches.
+
+function normText(v?: string) {
+  return String(v || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9一-鿿]+/gi, " ")
+    .trim();
+}
+
+function textMatches(a?: string, b?: string) {
+  const na = normText(a);
+  const nb = normText(b);
+  return Boolean(na && nb && (na === nb || na.includes(nb) || nb.includes(na)));
+}
+
+export async function findClientByPhoneName(
+  phone: string,
+  name: string
+): Promise<string> {
+  const token = await getTenantToken();
+  const appTokenValue = process.env.FEISHU_BASE_APP_TOKEN;
+  const clientsTableId = process.env.FEISHU_CLIENTS_TABLE_ID;
+
+  const searchRes = await fetch(
+    `https://open.feishu.cn/open-apis/bitable/v1/apps/${appTokenValue}/tables/${clientsTableId}/records?page_size=10&filter=CurrentValue.[Phone/WeChat]="${encodeURIComponent(String(phone).trim())}"`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  const searchData = await searchRes.json();
+  const items = (searchData?.data?.items || []) as any[];
+
+  const match = items.find((item) => {
+    const fullName =
+      fieldText(item.fields?.["Full Name"]) ||
+      fieldText(item.fields?.["Full Name CN"]);
+    const fullNameCn = fieldText(item.fields?.["Full Name CN"]);
+    return (
+      textMatches(fullName, String(name)) || textMatches(fullNameCn, String(name))
+    );
+  });
+
+  return match ? fieldText(match.fields?.["Client ID"]) : "";
 }
