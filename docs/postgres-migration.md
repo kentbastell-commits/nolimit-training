@@ -257,10 +257,25 @@ first; TencentDB is a later upgrade when revenue justifies it.
   to 666eae5 and DEPLOYED to HK production in Feishu mode — the post-cutover
   code now serves live traffic against Feishu, so behavior differences surface
   before the data swap.
-- **Remaining before cutover**: translate-on-write; Postgres on the HK box
-  (staging twin: second pm2 process, DATA_BACKEND=postgres, test port) and on
-  the Shanghai CVM + final ETL re-run; media is already self-hosted under
-  /uploads and synced to the CVM (COS optional later).
+- **2026-07-17 (evening) — HK STAGING TWIN LIVE.** PostgreSQL 15.18 installed
+  on the HK box (dnf, OpenCloudOS 9.6; local-only, scram auth; DATABASE_URL
+  appended to /opt/nolimit-training/.env — harmless to prod, pg is lazily
+  imported). Migrations applied (30 tables), full ETL run ON the box (extract
+  + load in one step since the Feishu creds live there; 927 workout templates,
+  766 set prescriptions, 604 exercises, 234 workout logs). Second pm2 app
+  **nolimit-training-pg** (PORT=3101, DATA_BACKEND=postgres, pm2 saved) +
+  nginx block `nolimit-training-pg.conf` serving the same dist at
+  **https://trainnolimit.com:8443** with the same cert. Verified from the box:
+  vhost 200, /api/programs/exercises/workoutHistory/analytics all serving
+  business-code ids from Postgres; production 443 untouched. External access
+  pending ONE Kent action: open TCP 8443 in the Tencent Lighthouse firewall
+  console. Ops notes: cross-border ssh drops during long Feishu-heavy runs —
+  always `nohup … > /tmp/x.log &` long server jobs; re-run ETL any time
+  (truncate+insert idempotent, /tmp/etl-hk.log). Twin data is THROWAWAY;
+  Feishu remains source of truth until DNS cutover.
+- **Remaining before cutover**: translate-on-write; Postgres on the Shanghai
+  CVM (same recipe as HK) + final ETL re-run; media is already self-hosted
+  under /uploads and synced to the CVM (COS optional later).
 
 ## Known future tech-debt (not part of this migration, but relevant to a sale)
 `src/App.tsx` is one ~900KB monolithic component. Splitting it is the biggest
