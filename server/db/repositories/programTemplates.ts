@@ -1,6 +1,26 @@
 import { DATA_BACKEND } from "../backend.ts";
 import * as feishu from "../feishu/programTemplates.ts";
 import type { TemplateSummaryDTO } from "../dto.ts";
+import type { ProgramExerciseInput } from "../templateMeta.ts";
+import { getCached, setCached, invalidateCache } from "../../../api/_cache.ts";
+
+export type HandlerResult = { status: number; body: Record<string, any> };
+
+export type CreateWorkoutTemplateInput = {
+  programId: string;
+  // Feishu record_id of the program; the PR-… code on Postgres.
+  programRecordId: string;
+  week: any;
+  day: any;
+  sessionName: string;
+  sessionNameCn?: any;
+  sessionType?: any;
+  sessionGoal?: any;
+  estimatedDuration?: any;
+  intensity?: any;
+  isSingleWorkout?: any;
+  exercises: ProgramExerciseInput[];
+};
 
 function normalizeLookupText(value?: string) {
   return String(value || "")
@@ -61,4 +81,35 @@ export async function listProgramTemplates(
     .sort((a, b) =>
       a.week !== b.week ? a.week - b.week : a.day !== b.day ? a.day - b.day : a.order - b.order
     );
+}
+
+export async function createWorkoutTemplate(
+  input: CreateWorkoutTemplateInput
+): Promise<HandlerResult> {
+  const result =
+    DATA_BACKEND === "postgres"
+      ? await (await import("../pg/programTemplates.ts")).createWorkoutTemplate(input)
+      : await feishu.createWorkoutTemplate(input);
+
+  if (result.status === 200) {
+    invalidateCache("workoutTemplatesRaw");
+    invalidateCache("programs");
+
+    // /api/programs resolves each program's Session Type from a long-lived
+    // programId->type map (programSessionTypes). Adding a new session here
+    // would otherwise be invisible to that map for up to 30 min — so the
+    // session's type never surfaces in the Sessions list or the calendar's
+    // Session Type filter. Patch the entry in place (keyed by both program
+    // code and record id, matching how the map is built) so it's live
+    // immediately without a full templates-table rebuild.
+    const typeMap = getCached<Record<string, string>>("programSessionTypes");
+    if (typeMap) {
+      const type = String(input.sessionType || "Strength");
+      if (input.programId) typeMap[input.programId] = type;
+      if (input.programRecordId) typeMap[input.programRecordId] = type;
+      setCached("programSessionTypes", typeMap, 30 * 60 * 1000);
+    }
+  }
+
+  return result;
 }

@@ -86,6 +86,74 @@ export async function updateRecord(tableId: string, recordId: string, fields: Re
   return res.json();
 }
 
+// Feishu batch_create caps each request; chunk to stay under the limit.
+// Never throws: collects per-chunk errors so callers decide soft vs hard fail
+// (matches the semantics the old handlers used).
+export async function batchCreateRecords(
+  tableId: string,
+  records: { fields: Record<string, any> }[]
+): Promise<{ created: any[]; errors: string[]; larkResponses: any[] }> {
+  const token = await getTenantToken();
+  const created: any[] = [];
+  const errors: string[] = [];
+  const larkResponses: any[] = [];
+  for (let i = 0; i < records.length; i += 200) {
+    const chunk = records.slice(i, i + 200);
+    try {
+      const res = await fetch(
+        `${FEISHU}/bitable/v1/apps/${appToken()}/tables/${tableId}/records/batch_create`,
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ records: chunk }),
+        }
+      );
+      const data = await res.json();
+      larkResponses.push(data);
+      if (!res.ok || data.code !== 0) {
+        errors.push(`batch_create ${tableId} rows ${i}-${i + chunk.length}: code ${data?.code} ${data?.msg || ""}`.trim());
+        continue;
+      }
+      created.push(...(data?.data?.records || []));
+    } catch (e: any) {
+      errors.push(`batch_create ${tableId} rows ${i}-${i + chunk.length}: ${e?.message || e}`);
+    }
+  }
+  return { created, errors, larkResponses };
+}
+
+// Feishu batch_delete caps each request; chunk to stay under the limit.
+export async function batchDeleteRecords(
+  tableId: string,
+  recordIds: string[]
+): Promise<{ deleted: number; errors: string[] }> {
+  const token = await getTenantToken();
+  let deleted = 0;
+  const errors: string[] = [];
+  for (let i = 0; i < recordIds.length; i += 100) {
+    const chunk = recordIds.slice(i, i + 100);
+    try {
+      const res = await fetch(
+        `${FEISHU}/bitable/v1/apps/${appToken()}/tables/${tableId}/records/batch_delete`,
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ records: chunk }),
+        }
+      );
+      const data = await res.json();
+      if (!res.ok || data.code !== 0) {
+        errors.push(`batch_delete ${tableId} rows ${i}-${i + chunk.length}: code ${data?.code} ${data?.msg || ""}`.trim());
+        continue;
+      }
+      deleted += chunk.length;
+    } catch (e: any) {
+      errors.push(`batch_delete ${tableId} rows ${i}-${i + chunk.length}: ${e?.message || e}`);
+    }
+  }
+  return { deleted, errors };
+}
+
 export async function deleteRecord(tableId: string, recordId: string) {
   const token = await getTenantToken();
   const res = await fetch(

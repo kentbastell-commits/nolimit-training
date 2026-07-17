@@ -3,6 +3,31 @@ import * as feishu from "../feishu/clients.ts";
 import type { ClientDTO, UpdateClientInput, WriteResult } from "../dto.ts";
 import { getCached, setCached, invalidateCache } from "../../../api/_cache.ts";
 
+export type CreateClientInput = {
+  clientId?: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  coach?: string;
+  primaryCoachId?: string;
+  secondaryCoachId?: string;
+  clientType?: string;
+  packageType?: string;
+  packageName?: string;
+  program?: string;
+  subscriptionStatus?: string;
+  intakeStatus?: string;
+  paymentStatus?: string;
+  purchasedProgramId?: string;
+  accessStartDate?: string;
+  accessEndDate?: string;
+  source?: string;
+  paymentId?: string;
+  languagePreference?: string;
+  startDate?: string;
+  notes?: string;
+};
+
 export async function listClients(): Promise<ClientDTO[]> {
   const cached = getCached<ClientDTO[]>("clients");
   if (cached) return cached;
@@ -25,6 +50,18 @@ export async function recordLogin(
       ? await (await import("../pg/clients.ts")).recordLogin(clientRecordId, clientCode)
       : await feishu.recordLogin(clientRecordId, clientCode);
   if (result.success) invalidateCache("clients");
+  return result;
+}
+
+export async function createClient(input: CreateClientInput): Promise<WriteResult> {
+  const result =
+    DATA_BACKEND === "postgres"
+      ? await (await import("../pg/clients.ts")).createClient(input)
+      : await feishu.createClient(input);
+  if (result.success) {
+    invalidateCache("clients");
+    invalidateCache("analytics");
+  }
   return result;
 }
 

@@ -1,7 +1,27 @@
 import { DATA_BACKEND } from "../backend.ts";
 import * as feishu from "../feishu/contentResponses.ts";
 import type { ResponseDTO } from "../dto.ts";
-import { getCached, setCached } from "../../../api/_cache.ts";
+import { getCached, setCached, invalidateCache } from "../../../api/_cache.ts";
+
+export type SubmitContentResponseInput = {
+  assignmentType: string;
+  assignmentId?: string;
+  // Feishu record_id of the assignment row; the AF-/AT- code on Postgres.
+  assignmentRecordId?: string;
+  templateId: string;
+  // Feishu: client record_id or code (stored as text); Postgres: CL-… code.
+  clientId: string;
+  clientName?: string;
+  responses: any[];
+};
+
+// HTTP-shaped ({status, body}) — the old handler produced many distinct
+// error bodies, so the impls build the exact response and the handler
+// forwards it verbatim.
+export type SubmitContentResponseResult = {
+  status: number;
+  body: Record<string, any>;
+};
 
 // Expansion of questionnaire answersJson + client filter + sort are
 // backend-agnostic, so they live here. The unfiltered list is cached (5 min);
@@ -45,4 +65,22 @@ export async function getContentResponses(clientId = "", clientName = ""): Promi
       );
     })
     .sort((a, b) => b.submittedAt.localeCompare(a.submittedAt));
+}
+
+export async function submitContentResponse(
+  input: SubmitContentResponseInput
+): Promise<SubmitContentResponseResult> {
+  const result =
+    DATA_BACKEND === "postgres"
+      ? await (await import("../pg/contentResponses.ts")).submitContentResponse(input)
+      : await feishu.submitContentResponse(input);
+
+  // Only a full success reaches these caches (matches the old handler, which
+  // invalidated right before its 200).
+  if (result.status === 200) {
+    invalidateCache("contentResponses");
+    invalidateCache("athleteMetrics");
+    invalidateCache("contentAssignments");
+  }
+  return result;
 }

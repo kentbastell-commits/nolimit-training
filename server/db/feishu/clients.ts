@@ -5,9 +5,11 @@ import {
   pickField,
   listRecords,
   getFieldNames,
+  createRecord,
   updateRecord,
 } from "./client.ts";
 import type { ClientDTO, UpdateClientInput, WriteResult } from "../dto.ts";
+import type { CreateClientInput } from "../repositories/clients.ts";
 
 export async function listClients(): Promise<ClientDTO[]> {
   const items = await listRecords(process.env.FEISHU_CLIENTS_TABLE_ID as string);
@@ -73,6 +75,62 @@ function toLarkNumber(value: unknown) {
   if (value === null || value === "" || value === "--") return null;
   const num = Number(value);
   return Number.isFinite(num) ? num : null;
+}
+
+function makeClientId() {
+  const random = Math.floor(1000 + Math.random() * 9000);
+  return `CL-${random}`;
+}
+
+export async function createClient(i: CreateClientInput): Promise<WriteResult> {
+  const tableId = process.env.FEISHU_CLIENTS_TABLE_ID as string;
+
+  const fields: Record<string, any> = {
+    "Client ID": i.clientId || makeClientId(),
+    "Full Name": i.name,
+    Email: i.email || "",
+    "Phone/WeChat": i.phone || "",
+    "Coach Assigned": i.coach || "Kent Bastell",
+    "Package Type": i.packageType || "Active",
+    "Language Preference": i.languagePreference || "English",
+    Notes: i.notes || "",
+  };
+
+  if (i.clientType) fields["Client Type"] = i.clientType;
+  if (i.primaryCoachId) fields["Primary Coach"] = [i.primaryCoachId];
+  if (i.secondaryCoachId) fields["Secondary Coach"] = [i.secondaryCoachId];
+  if (i.packageName) fields.Package = i.packageName;
+  if (i.program) fields.Program = i.program;
+  if (i.subscriptionStatus) fields["Subscription Status"] = i.subscriptionStatus;
+  if (i.intakeStatus) fields["Intake Status"] = i.intakeStatus;
+  if (i.paymentStatus) fields["Payment Status"] = i.paymentStatus;
+  if (i.purchasedProgramId) fields["Purchased Program ID"] = i.purchasedProgramId;
+  if (i.source) fields.Source = i.source;
+  if (i.paymentId) fields["Stripe/Payment ID"] = i.paymentId;
+
+  const larkStartDate = toLarkDate(i.startDate || "");
+  if (larkStartDate) fields["Start Date"] = larkStartDate;
+
+  const larkAccessStartDate = toLarkDate(i.accessStartDate || "");
+  const larkAccessEndDate = toLarkDate(i.accessEndDate || "");
+  if (larkAccessStartDate) fields["Access Start Date"] = larkAccessStartDate;
+  if (larkAccessEndDate) fields["Access End Date"] = larkAccessEndDate;
+
+  const data = await createRecord(tableId, fields);
+  if (data.code !== 0) {
+    return {
+      success: false,
+      error: "Failed to create client",
+      larkResponse: data,
+      fieldsSent: fields,
+    };
+  }
+  return {
+    success: true,
+    clientId: fields["Client ID"],
+    recordId: data?.data?.record?.record_id,
+    larkResponse: data,
+  };
 }
 
 export async function recordLogin(

@@ -3,6 +3,7 @@ import { db } from "../client.ts";
 import { clients } from "../schema.ts";
 import { epochToDate, str } from "./_util.ts";
 import type { ClientDTO, UpdateClientInput, WriteResult } from "../dto.ts";
+import type { CreateClientInput } from "../repositories/clients.ts";
 
 type Row = typeof clients.$inferSelect;
 
@@ -68,6 +69,68 @@ function numOrNull(value: unknown) {
   if (value === null || value === "" || value === "--") return null;
   const n = Number(value);
   return Number.isFinite(n) ? n : null;
+}
+
+// Mint the next sequential CL-XXXX code from what's already in the table.
+// (Feishu used a random 4-digit code; on Postgres client_id is the PRIMARY KEY,
+// so a random pick could collide — sequential max+1 is collision-free.)
+async function mintClientId(): Promise<string> {
+  const rows = await db.select({ clientId: clients.clientId }).from(clients);
+  let max = 0;
+  for (const r of rows) {
+    const m = /^CL-(\d+)$/.exec(r.clientId || "");
+    if (m) max = Math.max(max, Number(m[1]));
+  }
+  const next = Math.max(max + 1, 1);
+  return `CL-${String(next).padStart(4, "0")}`;
+}
+
+export async function createClient(i: CreateClientInput): Promise<WriteResult> {
+  const clientId = i.clientId || (await mintClientId());
+
+  const values: typeof clients.$inferInsert = {
+    clientId,
+    fullName: i.name,
+    email: i.email || "",
+    phone: i.phone || "",
+    coachAssigned: i.coach || "Kent Bastell",
+    packageType: i.packageType || "Active",
+    languagePreference: i.languagePreference || "English",
+    notes: i.notes || "",
+  };
+
+  if (i.clientType) values.clientType = i.clientType;
+  if (i.primaryCoachId) values.primaryCoachId = i.primaryCoachId;
+  if (i.secondaryCoachId) values.secondaryCoachId = i.secondaryCoachId;
+  if (i.packageName) values.package = i.packageName;
+  if (i.program) values.programId = i.program;
+  if (i.subscriptionStatus) values.subscriptionStatus = i.subscriptionStatus;
+  if (i.intakeStatus) values.intakeStatus = i.intakeStatus;
+  if (i.paymentStatus) values.paymentStatus = i.paymentStatus;
+  if (i.purchasedProgramId) values.purchasedProgramId = i.purchasedProgramId;
+  if (i.source) values.source = i.source;
+  if (i.paymentId) values.stripePaymentId = i.paymentId;
+
+  const sd = dateMs(i.startDate);
+  if (sd) values.startDate = sd;
+  const asd = dateMs(i.accessStartDate);
+  if (asd) values.accessStartDate = asd;
+  const aed = dateMs(i.accessEndDate);
+  if (aed) values.accessEndDate = aed;
+
+  try {
+    await db.insert(clients).values(values);
+  } catch (e: any) {
+    // Same failure shape as the Feishu impl (duplicate code, bad FK, ...).
+    return {
+      success: false,
+      error: "Failed to create client",
+      message: e?.message || String(e),
+      fieldsSent: values,
+    };
+  }
+  // On Postgres the business code IS the record identity, so echo it as both.
+  return { success: true, clientId, recordId: clientId };
 }
 
 export async function recordLogin(

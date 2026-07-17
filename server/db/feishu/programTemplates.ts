@@ -1,6 +1,12 @@
 import { appToken, getTenantToken } from "./client.ts";
 import type { TemplateRow } from "../dto.ts";
 import { getCached, setCached } from "../../../api/_cache.ts";
+import { parseTemplateMeta, toNum } from "../templateMeta.ts";
+import type { ParsedMeta, ProgramExerciseInput } from "../templateMeta.ts";
+import type {
+  HandlerResult,
+  CreateWorkoutTemplateInput,
+} from "../repositories/programTemplates.ts";
 
 function fieldToText(value: any): string {
   if (!value) return "";
@@ -123,4 +129,305 @@ export async function listAllTemplateRows(): Promise<TemplateRow[]> {
       notes: fieldToText(fields["Coaching Notes"]),
     };
   });
+}
+
+/* ---------------------------------- writes -------------------------------- */
+// createWorkoutTemplate moved verbatim from api/createWorkoutTemplate.ts:
+// batch-creates one template row per exercise, then dual-writes the parsed
+// set-prescription / alternate child tables (best-effort — child failures are
+// reported but never fail the main save).
+
+function makeTemplateId() {
+  const random = Math.floor(100000 + Math.random() * 900000);
+  return `WT-${random}`;
+}
+
+// Create records in chunks (Feishu batch_create caps per request). Resolves to
+// { created, errors } (created is a COUNT — the legacy response shape) and
+// never throws, so child-table writes can fail softly.
+async function batchCreateCounted(
+  tableId: string,
+  records: { fields: Record<string, any> }[],
+  token: string
+) {
+  const errors: any[] = [];
+  let total = 0;
+
+  for (let i = 0; i < records.length; i += 200) {
+    const chunk = records.slice(i, i + 200);
+    try {
+      const response = await fetch(
+        `https://open.feishu.cn/open-apis/bitable/v1/apps/${appToken()}/tables/${tableId}/records/batch_create`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ records: chunk }),
+        }
+      );
+      const data = await response.json();
+      if (!response.ok || data.code !== 0) {
+        errors.push(data);
+      } else {
+        total += data?.data?.records?.length || chunk.length;
+      }
+    } catch (error: any) {
+      errors.push({ message: error?.message || String(error) });
+    }
+  }
+
+  return { created: total, errors };
+}
+
+// Paginated raw scan (the exercise library can exceed one page). Throws the
+// legacy "Could not load records" message on an error page.
+async function getRecordsRaw(tableId: string, token: string) {
+  const items: any[] = [];
+  let pageToken = "";
+
+  do {
+    const params = new URLSearchParams({ page_size: "500" });
+    if (pageToken) params.set("page_token", pageToken);
+
+    const response = await fetch(
+      `https://open.feishu.cn/open-apis/bitable/v1/apps/${appToken()}/tables/${tableId}/records?${params.toString()}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    const data = await response.json();
+
+    if (!data?.data?.items) {
+      throw new Error(`Could not load records: ${JSON.stringify(data)}`);
+    }
+
+    items.push(...data.data.items);
+    pageToken = data.data.page_token || "";
+
+    if (!data.data.has_more) break;
+  } while (pageToken);
+
+  return items;
+}
+
+export async function createWorkoutTemplate(
+  input: CreateWorkoutTemplateInput
+): Promise<HandlerResult> {
+  const {
+    programId,
+    programRecordId,
+    week,
+    day,
+    sessionName,
+    sessionNameCn,
+    sessionType,
+    sessionGoal,
+    estimatedDuration,
+    intensity,
+    isSingleWorkout,
+    exercises,
+  } = input;
+
+  const token = await getTenantToken();
+
+  // Only read the (large) exercise library when at least one exercise lacks a
+  // resolved library record id. Programs built from the library already carry
+  // it, so a typical save skips this fetch entirely.
+  const needsLibraryLookup = exercises.some(
+    (e: ProgramExerciseInput) => !e.exerciseRecordId
+  );
+  const exerciseRecords = needsLibraryLookup
+    ? await getRecordsRaw(
+        process.env.FEISHU_EXERCISE_LIBRARY_TABLE_ID as string,
+        token
+      )
+    : [];
+
+  const metas: ParsedMeta[] = [];
+
+  const records = exercises.map(
+    (exercise: ProgramExerciseInput, index: number) => {
+      let exerciseLinkId = exercise.exerciseRecordId;
+      if (!exerciseLinkId) {
+        const matchingExercise = exerciseRecords.find((item: any) => {
+          const fields = item.fields || {};
+          return fieldToText(fields["Exercise ID"]) === exercise.exerciseId;
+        });
+        if (!matchingExercise) {
+          throw new Error(
+            `Exercise not found in Exercise Library: ${exercise.exerciseId}`
+          );
+        }
+        exerciseLinkId = matchingExercise.record_id;
+      }
+
+      const meta = parseTemplateMeta(exercise.coachingNotes || "");
+      metas.push(meta);
+
+      const fields: Record<string, any> = {
+        "Template ID": makeTemplateId(),
+
+        // Duplex link fields must be arrays of record IDs
+        "Program ID": [programRecordId],
+        "Exercise ID": [exerciseLinkId],
+
+        Week: Number(week),
+        Day: Number(day),
+        "Session Name": sessionName,
+        "Session Name CN": String(sessionNameCn || ""),
+        "Session Type": String(sessionType || "Strength"),
+        "Session Goal": String(sessionGoal || ""),
+        Intensity: String(intensity || "Moderate"),
+        "Is Single Workout": Boolean(isSingleWorkout),
+
+        Order: Number(exercise.order) || index + 1,
+        Sets: Number(exercise.sets) || 1,
+        Reps: String(exercise.reps || ""),
+        Tempo: String(exercise.tempo || ""),
+        Rest: String(exercise.rest || ""),
+        // Per-set loads (including "% 1RM" targets) and target metadata are
+        // serialized into "Coaching Notes" (see buildExerciseCoachingNotes),
+        // so they round-trip without dedicated Feishu columns. Do not add a
+        // top-level "Load"/"Target *" field here unless those columns exist
+        // in the Workout Templates table — Feishu rejects unknown fields.
+        "Coaching Notes": String(exercise.coachingNotes || ""),
+        Status: String(exercise.status || "Active"),
+
+        // Normalized typed columns (dual-write). These mirror the meta lines in
+        // the "Coaching Notes" blob so the data is migration-ready. The blob
+        // stays canonical for reads; these are written in addition.
+        "Is Unilateral": meta.isUnilateral,
+        "Is Accessory": meta.isAccessory,
+      };
+
+      if (meta.sectionName) fields["Section Name"] = meta.sectionName;
+      if (meta.exerciseLabel) fields["Exercise Label"] = meta.exerciseLabel;
+      if (meta.groupType) fields["Group Type"] = meta.groupType;
+      if (meta.groupName) fields["Group Name"] = meta.groupName;
+      if (meta.trackingType) fields["Tracking Type"] = meta.trackingType;
+      if (meta.accessoryParent) fields["Accessory Parent"] = meta.accessoryParent;
+      if (meta.accessoryColor) fields["Accessory Color"] = meta.accessoryColor;
+
+      // "Estimated Duration" is a Number field in Feishu — only send it when
+      // it is a real number. Sending "" (the common empty case) makes Feishu
+      // reject the whole batch with NumberFieldConvFail.
+      const durationNumber = Number(estimatedDuration);
+      if (Number.isFinite(durationNumber) && durationNumber > 0) {
+        fields["Estimated Duration"] = durationNumber;
+      }
+
+      return { fields };
+    }
+  );
+
+  const createResponse = await fetch(
+    `https://open.feishu.cn/open-apis/bitable/v1/apps/${appToken()}/tables/${process.env.FEISHU_WORKOUT_TEMPLATES_TABLE_ID}/records/batch_create`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ records }),
+    }
+  );
+
+  const createData = await createResponse.json();
+
+  if (!createResponse.ok || createData.code !== 0) {
+    return {
+      status: 500,
+      body: {
+        error: "Failed to create workout template records",
+        larkResponse: createData,
+        recordsSent: records,
+      },
+    };
+  }
+
+  // Dual-write child tables: fan the parsed per-set prescriptions and
+  // alternates out to their normalized tables, linked back to each template
+  // record. Two-way links auto-populate the parent side. These writes are
+  // best-effort — failures are reported but never fail the main save.
+  const createdTemplates: any[] = createData?.data?.records || [];
+  const setPrescriptionsTableId = process.env.FEISHU_SET_PRESCRIPTIONS_TABLE_ID;
+  const alternatesTableId = process.env.FEISHU_EXERCISE_ALTERNATES_TABLE_ID;
+
+  const setRecords: { fields: Record<string, any> }[] = [];
+  const altRecords: { fields: Record<string, any> }[] = [];
+
+  createdTemplates.forEach((record: any, index: number) => {
+    const templateRecordId = record.record_id;
+    const meta = metas[index];
+    if (!templateRecordId || !meta) return;
+
+    meta.setPrescriptions.forEach((set) => {
+      const fields: Record<string, any> = {
+        "Prescription ID": `SP-${Date.now()}-${setRecords.length + 1}`,
+        "Template ID": [templateRecordId],
+        "Set Number": set.setNumber,
+      };
+      if (set.reps) fields["Reps"] = set.reps;
+      if (set.load) fields["Load"] = set.load;
+      if (set.intensityValue) fields["Intensity Value"] = set.intensityValue;
+      if (set.tempo) fields["Tempo"] = set.tempo;
+      if (set.intensityMode) fields["Intensity Mode"] = set.intensityMode;
+      const percent = toNum(set.percent);
+      if (percent !== undefined) fields["Percent"] = percent;
+      const percentMas = toNum(set.percentMas);
+      if (percentMas !== undefined) fields["Percent MAS"] = percentMas;
+      const rest = toNum(set.rest);
+      if (rest !== undefined) fields["Rest"] = rest;
+      setRecords.push({ fields });
+    });
+
+    meta.alternates.forEach((alt) => {
+      const fields: Record<string, any> = {
+        "Alternate ID": `ALT-${Date.now()}-${altRecords.length + 1}`,
+        "Template ID": [templateRecordId],
+      };
+      if (alt.exerciseName) fields["Exercise Name"] = alt.exerciseName;
+      if (alt.exerciseRecordId) fields["Exercise ID"] = [alt.exerciseRecordId];
+      altRecords.push({ fields });
+    });
+  });
+
+  const childWrites: Record<string, any> = {};
+
+  if (setPrescriptionsTableId && setRecords.length > 0) {
+    childWrites.setPrescriptions = await batchCreateCounted(
+      setPrescriptionsTableId,
+      setRecords,
+      token
+    );
+  } else if (!setPrescriptionsTableId && setRecords.length > 0) {
+    childWrites.setPrescriptions = {
+      skipped: "Missing FEISHU_SET_PRESCRIPTIONS_TABLE_ID",
+    };
+  }
+
+  if (alternatesTableId && altRecords.length > 0) {
+    childWrites.alternates = await batchCreateCounted(
+      alternatesTableId,
+      altRecords,
+      token
+    );
+  } else if (!alternatesTableId && altRecords.length > 0) {
+    childWrites.alternates = {
+      skipped: "Missing FEISHU_EXERCISE_ALTERNATES_TABLE_ID",
+    };
+  }
+
+  return {
+    status: 200,
+    body: {
+      success: true,
+      recordsCreated: createData?.data?.records?.length || records.length,
+      programId,
+      programRecordId,
+      childWrites,
+      larkResponse: createData,
+    },
+  };
 }

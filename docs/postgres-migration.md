@@ -1,6 +1,8 @@
 # Postgres Migration Plan
 
-Status: **Read side + schema re-sync complete on branch `postgres-sprint`; write sprint next.** Last updated 2026-07-16.
+Status: **Read side + schema re-sync + ALL WRITE PATHS complete on branch
+`postgres-sprint`; every API handler now goes through the repository layer.**
+Last updated 2026-07-17.
 
 > **Milestone (2026-06-19): full pipeline verified end-to-end on a local
 > Postgres 16.** Migration creates all 25 tables → ETL loads a copy of real
@@ -115,20 +117,39 @@ deferral.
    record_id→code. Verified e.g. teams positions `{"CL-0001":"Forwards"}`,
    analytics summary, workoutDetails join.
 
-   **Write paths — STARTED + pattern verified.** Done + verified on Postgres:
-   `updateClient`, `recordLogin` (POST then read-back confirms notes/categories/
-   mas/lastLogin persisted). Write pattern: feishu impl verbatim (uses generic
-   `createRecord`/`updateRecord`/`deleteRecord` in feishu/client.ts) + pg impl
-   (Drizzle update/insert) + repository dispatch + thin handler. Key: the
-   frontend's `clientRecordId` is the business code in pg mode, so pg writes
+   ✅ **WRITE SIDE COMPLETE (2026-07-17) — all ~28 write handlers converted +
+   verified on Postgres.** Write pattern everywhere: feishu impl verbatim
+   (shared `createRecord`/`updateRecord`/`deleteRecord`/`batchCreateRecords`/
+   `batchDeleteRecords` in feishu/client.ts) + pg impl (Drizzle) + repository
+   dispatch (lazy pg import, cache invalidation moved here) + thin handler.
+   Key: the frontend's record ids are business codes in pg mode, so pg writes
    locate rows by code — consistent with the reads.
-   Remaining writes: createClient, assignProgram, saveWorkoutLog, createProgram/
-   updateProgram, createWorkoutTemplate, upsertExercise/Coach/Team/Subscription,
-   createProductOrder/updateProductOrder, submitContentResponse,
-   duplicateAssignedWorkout, updateAssignedProgramDate/updateContentAssignmentDate,
-   assignContent, autoLoadProgram, activateDigitalOrder, deleteRecord,
-   reviewWorkoutComment, and the CRUD halves of testTemplates/formTemplates/
-   notifications/checkIns/exerciseResults. Then translate-on-write + attachments→COS.
+   Converted: createClient/updateClient/recordLogin, upsertExercise,
+   upsertCoach/Team/Subscription, createProductOrder/updateProductOrder,
+   assignProgram, updateAssignedProgramDate, duplicateAssignedWorkout,
+   setWorkoutReviewed, saveWorkoutLog (logs + exercise results + sRPE load),
+   workoutComments/reviewWorkoutComment, createProgram/updateProgram/
+   duplicateProgram, createWorkoutTemplate (+ set_prescriptions +
+   exercise_alternates children), formTemplates + testTemplates full CRUD (new
+   domains), notifications/checkIns/exerciseResults full CRUD (new domains),
+   assignContent/updateContentAssignmentDate/contentAssignments (new domain),
+   submitContentResponse (incl. the test→metric pipeline, extracted
+   backend-agnostic into `server/db/metricPipeline.ts`), deleteRecord (generic
+   whitelist + client cascade, new `records` domain), autoLoadProgram +
+   activateDigitalOrder + coachingSignup (new `fulfillment` domain; coach
+   notifications composed in the impls, fired by the thin handlers).
+   pg-mode conventions locked in the process: pg code mints are
+   collision-safe (PKs — timestamp/remint where Feishu used bare random),
+   FK targets are validated before linking (Feishu just stores dead text; pg
+   nulls the link and keeps the row), and `clients.program_id` (single FK vs
+   Feishu multi-link) is set-when-empty, never overwritten.
+   Verified 2026-07-17: `tsc -b --force` clean, vite build clean, all 557 unit
+   tests pass UNMODIFIED (they pin the legacy wire responses), and a 59-check
+   runtime battery ran every write through the repository layer against local
+   Postgres (create→read-back→cleanup per domain; payment gate 402, autoload
+   dedup, Epley metric calc, client cascade delete all exercised), plus an
+   HTTP smoke through the booted Express server in pg mode.
+   Remaining: translate-on-write + attachments→COS (both optional for cutover).
 
    Note: live test data has many workout_templates with empty Program ID links and
    a few junk values (e.g. reps "46244") — not ETL bugs, just test data.
@@ -214,11 +235,22 @@ first; TencentDB is a later upgrade when revenue justifies it.
   per-clientCode history: 227 logs). 6 legacy no-env-var Feishu tables (Saved
   Programs, Progress Metrics, old Check-ins, Payment, Onboarding Workflow,
   Automations) intentionally NOT modeled — no handler reads them.
-- **Remaining before cutover**: ~25 write paths (the big one),
-  translate-on-write, convert the newer CRUD handlers (testLibrary,
-  formVideos, workloadLogs, reviews, enquiries) to repositories, install
-  Postgres on the CVM + final ETL re-run; media is already self-hosted under
-  /uploads and synced to the CVM (COS optional later).
+- **2026-07-17 — WRITE SPRINT COMPLETE.** All ~28 write handlers converted to
+  the repository pattern (details under Phase 1 §5). Ran as a 10-agent parallel
+  wave with strict per-domain file ownership; a session limit killed 8 agents
+  mid-flight, and the sprint was finished solo from their on-disk partial work
+  (the dying messages understated progress — most domains had 2 of 4 layers
+  already written and correct). New shared pieces: batch write helpers in
+  feishu/client.ts, `server/db/templateMeta.ts` (Coaching Notes parser),
+  `server/db/metricPipeline.ts` (test→metric calculations), new domains
+  records/fulfillment/contentAssignments/formTemplates/testTemplates/
+  notifications/checkIns/exerciseResults/workoutLogs. Gate results: tsc clean,
+  vite clean, 557/557 unit tests unmodified, 59/59 pg runtime checks, HTTP
+  smoke in pg mode.
+- **Remaining before cutover**: translate-on-write, convert the newer CRUD
+  handlers (testLibrary, formVideos, workloadLogs, reviews, enquiries) to
+  repositories, install Postgres on the CVM + final ETL re-run; media is
+  already self-hosted under /uploads and synced to the CVM (COS optional later).
 
 ## Known future tech-debt (not part of this migration, but relevant to a sale)
 `src/App.tsx` is one ~900KB monolithic component. Splitting it is the biggest

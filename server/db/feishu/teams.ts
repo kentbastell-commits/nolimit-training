@@ -1,5 +1,6 @@
-import { listRecords } from "./client.ts";
-import type { TeamDTO } from "../dto.ts";
+import { createRecord, getFieldNames, getTenantToken, listRecords, updateRecord } from "./client.ts";
+import type { TeamDTO, WriteResult } from "../dto.ts";
+import type { UpsertTeamInput } from "../repositories/teams.ts";
 
 function itemToText(item: any): string {
   if (item === null || item === undefined) return "";
@@ -73,4 +74,75 @@ export async function listTeams(): Promise<TeamDTO[]> {
   });
   teams.sort((a, b) => a.name.localeCompare(b.name));
   return teams;
+}
+
+/* ------------------------------- writes ---------------------------------- */
+
+export async function upsertTeam(input: UpsertTeamInput): Promise<WriteResult> {
+  const { recordId, teamName, coach, memberRecordIds, notes, positions, focus, groups } =
+    input;
+
+  if (!process.env.FEISHU_TEAMS_TABLE_ID) {
+    return { success: false, error: "Teams table is not configured" };
+  }
+
+  try {
+    await getTenantToken();
+  } catch (e: any) {
+    // Legacy body: the old handler surfaced the raw token payload on failure.
+    if (e?.kind === "token") {
+      return { success: false, error: "Could not get Lark token", larkResponse: e.larkResponse };
+    }
+    throw e;
+  }
+
+  const available = await getFieldNames(process.env.FEISHU_TEAMS_TABLE_ID as string).then(
+    (names) => new Set(names)
+  );
+
+  const allFields: Record<string, any> = {};
+  if (teamName !== undefined) allFields["Team Name"] = String(teamName);
+  if (coach !== undefined) allFields["Coach"] = String(coach || "");
+  if (notes !== undefined) allFields["Notes"] = String(notes || "");
+  if (focus !== undefined) allFields["Focus"] = String(focus || "");
+  if (Array.isArray(memberRecordIds)) {
+    // Link field accepts an array of linked record ids (empty array clears it).
+    allFields["Members"] = memberRecordIds.filter(Boolean);
+  }
+  if (positions !== undefined) {
+    // Per-member position/subgroup map, stored as JSON text.
+    allFields["Positions"] = JSON.stringify(positions || {});
+  }
+  if (groups !== undefined) {
+    // Defined group/position labels for this team, stored as JSON array.
+    allFields["Groups"] = JSON.stringify(Array.isArray(groups) ? groups : []);
+  }
+
+  const fields: Record<string, any> = {};
+  const omittedFields: string[] = [];
+  Object.entries(allFields).forEach(([k, v]) => {
+    if (available.has(k)) fields[k] = v;
+    else omittedFields.push(k);
+  });
+
+  const tableId = process.env.FEISHU_TEAMS_TABLE_ID as string;
+  const data = recordId
+    ? await updateRecord(tableId, recordId, fields)
+    : await createRecord(tableId, fields);
+
+  if (data.code !== 0) {
+    return {
+      success: false,
+      error: recordId ? "Failed to update team" : "Failed to create team",
+      larkResponse: data,
+      fieldsSent: fields,
+      omittedFields,
+    };
+  }
+
+  return {
+    success: true,
+    recordId: data?.data?.record?.record_id || recordId,
+    omittedFields,
+  };
 }
