@@ -43,14 +43,19 @@ differences" below).
 6. **DNS**: point trainnolimit.cn A record → 124.222.125.91. (trainnolimit.com
    stays on HK until its own migration decision; .com transfer eligible
    ~2026-08-19.)
-7. **Verify live** (from a mainland vantage if possible):
+7. **Write battery** against the box BEFORE DNS (17 steps: order → payment
+   gate → fulfilment → logging → check-in review → forms → videos → coaching
+   signup → cascade delete; self-cleaning):
+   `BATTERY_BASE=http://127.0.0.1:<port> node scripts/twin-write-battery.mjs --i-know-this-is-preprod`
+   Must be 17/17. (Passed 17/17 vs the HK twin 2026-07-18.)
+8. **Verify live** (from a mainland vantage if possible):
    - https://trainnolimit.cn 200, portal loads, coach console loads
    - one real WRITE round-trip: save a workout log on a test client, read back
    - store checkout → Pending order appears; NO fulfilment before coach verify
    - mini program dev build pointed at https://trainnolimit.cn works (then
      update `config/index.js` API_BASE + request-domain whitelist in
      mp.weixin.qq.com)
-8. **Feishu → read-only** (~2 weeks): tell coaches Feishu is now a stale
+9. **Feishu → read-only** (~2 weeks): tell coaches Feishu is now a stale
    mirror; all edits happen in the app.
 
 ## Rollback (any point before DNS TTL settles)
