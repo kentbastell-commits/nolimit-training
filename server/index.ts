@@ -127,6 +127,7 @@ import workoutDetails from "../api/workoutDetails.ts";
 import workoutHistory from "../api/workoutHistory.ts";
 import workoutComments from "../api/workoutComments.ts";
 import warmCache from "../api/warmCache.ts";
+import wxAuth from "../api/wxAuth.ts";
 import workouts from "../api/workouts.ts";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -260,6 +261,7 @@ const handlers = {
   upsertExercise,
   upsertTeam,
   warmCache,
+  wxAuth,
   workoutDetails,
   workoutHistory,
   workoutComments,

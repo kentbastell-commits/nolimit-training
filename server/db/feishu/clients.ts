@@ -282,3 +282,32 @@ export async function findClientByPhoneName(
 
   return match ? fieldText(match.fields?.["Client ID"]) : "";
 }
+
+// Mini program one-tap login: the "WeChat OpenID" text column ties a WeChat
+// account to a client. If the column doesn't exist yet, find never matches
+// and bind fails loudly (code !== 0) rather than silently.
+export async function findClientByOpenid(openid: string): Promise<string> {
+  const tableId = process.env.FEISHU_CLIENTS_TABLE_ID as string;
+  const items = await listRecords(tableId);
+  const match = items.find(
+    (it: any) => fieldText(it.fields?.["WeChat OpenID"]) === String(openid)
+  );
+  return match ? fieldText(match.fields?.["Client ID"]) : "";
+}
+
+export async function bindClientOpenid(
+  clientCode: string,
+  openid: string
+): Promise<WriteResult> {
+  const tableId = process.env.FEISHU_CLIENTS_TABLE_ID as string;
+  const items = await listRecords(tableId);
+  const match = items.find(
+    (it: any) => fieldText(it.fields?.["Client ID"]) === String(clientCode)
+  );
+  if (!match) return { success: false, error: "Client not found" };
+  const data = await updateRecord(tableId, match.record_id, {
+    "WeChat OpenID": String(openid),
+  });
+  if (data.code !== 0) return { success: false, larkResponse: data };
+  return { success: true, recordId: match.record_id };
+}

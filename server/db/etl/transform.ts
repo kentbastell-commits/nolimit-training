@@ -163,7 +163,7 @@ export const TABLES: TableSpec[] = [
     table: "clients",
     envVar: "FEISHU_CLIENTS_TABLE_ID",
     pkField: "Client ID",
-    expected: ["Client ID","Full Name","Full Name CN","Coach Assigned","Program ID","Start Date","Package Type","Email","Phone/WeChat","Notes","Last Check-in Date","Language Preference","Client Type","Primary Coach","Secondary Coach","Package","Subscription Status","Intake Status","Payment Status","Purchased Program ID","Access Start Date","Access End Date","Source","Stripe Payment ID","Notes EN","MAS","HR Max","Resting HR","Zone 5K%","Zone 10k%","Zone Threshold %","Zone Easy %","Tags","Categories","Last Login"],
+    expected: ["Client ID","Full Name","Full Name CN","Coach Assigned","Program ID","Start Date","Package Type","Email","Phone/WeChat","Notes","Last Check-in Date","Language Preference","Client Type","Primary Coach","Secondary Coach","Package","Subscription Status","Intake Status","Payment Status","Purchased Program ID","Access Start Date","Access End Date","Source","Stripe Payment ID","Notes EN","MAS","HR Max","Resting HR","Zone 5K%","Zone 10k%","Zone Threshold %","Zone Easy %","Tags","Categories","Last Login","WeChat OpenID"],
     map: (r, ctx) => {
       const f = r.fields;
       return {
@@ -173,6 +173,7 @@ export const TABLES: TableSpec[] = [
         email: textOrNull(f["Email"]),
         phone: textOrNull(f["Phone/WeChat"]),
         languagePreference: textOrNull(f["Language Preference"]),
+        wechatOpenid: textOrNull(f["WeChat OpenID"]),
         clientType: textOrNull(f["Client Type"]),
         primaryCoachId: ref(f["Primary Coach"], "coaches", ctx),
         secondaryCoachId: ref(f["Secondary Coach"], "coaches", ctx),

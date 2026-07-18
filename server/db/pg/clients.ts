@@ -274,3 +274,26 @@ export async function findClientByPhoneName(
   );
   return match?.clientId || "";
 }
+
+export async function findClientByOpenid(openid: string): Promise<string> {
+  const rows = await db
+    .select({ clientId: clients.clientId })
+    .from(clients)
+    .where(eq(clients.wechatOpenid, String(openid)))
+    .limit(1);
+  return rows[0]?.clientId || "";
+}
+
+export async function bindClientOpenid(
+  clientCode: string,
+  openid: string
+): Promise<WriteResult> {
+  const r = await db
+    .update(clients)
+    .set({ wechatOpenid: String(openid) })
+    .where(eq(clients.clientId, String(clientCode)))
+    .returning({ clientId: clients.clientId });
+  return r.length
+    ? { success: true, recordId: clientCode }
+    : { success: false, error: "Client not found" };
+}

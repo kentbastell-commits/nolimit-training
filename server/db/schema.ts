@@ -146,6 +146,9 @@ export const clients = pgTable(
     email: text("email"),
     phone: text("phone"),
     languagePreference: text("language_preference").default("en"),
+    // Mini program one-tap login: set when the athlete binds their WeChat
+    // account after a verified phone+name login. Never sent to the client.
+    wechatOpenid: text("wechat_openid"),
     clientType: text("client_type"),
     // Coach fields hold names in Feishu (not codes), so no FK to coaches.
     primaryCoachId: text("primary_coach_id"),

@@ -76,6 +76,26 @@ export async function findClientByPhoneName(
     : await feishu.findClientByPhoneName(phone, name);
 }
 
+// Mini program WeChat binding: look up a client by bound openid, or bind an
+// openid after the caller has re-verified phone+name via findClientByPhoneName.
+export async function findClientByOpenid(openid: string): Promise<string> {
+  return DATA_BACKEND === "postgres"
+    ? await (await import("../pg/clients.ts")).findClientByOpenid(openid)
+    : await feishu.findClientByOpenid(openid);
+}
+
+export async function bindClientOpenid(
+  clientCode: string,
+  openid: string
+): Promise<WriteResult> {
+  const result =
+    DATA_BACKEND === "postgres"
+      ? await (await import("../pg/clients.ts")).bindClientOpenid(clientCode, openid)
+      : await feishu.bindClientOpenid(clientCode, openid);
+  if (result.success) invalidateCache("clients");
+  return result;
+}
+
 export async function updateClient(input: UpdateClientInput): Promise<WriteResult> {
   const result =
     DATA_BACKEND === "postgres"
