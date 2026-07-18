@@ -55,7 +55,12 @@ ssh nolimit "cd /opt/kangfu-zhuanjia && git pull origin main && npm install --no
 
 1. `ssh nolimit "cd <server dir> && git log --oneline -1"` — must equal the local
    HEAD short hash. If it doesn't, the pull didn't take (for kangfu this almost
-   always means the bundle wasn't uploaded).
+   always means the bundle wasn't uploaded). Nolimit trap (bit once 2026-07-18):
+   a file scp'd into the server worktree and LATER committed makes `git pull`
+   abort on "untracked working tree files would be overwritten" — and
+   `pull | tail -1` shows a healthy-looking "Updating a..b" line while HEAD
+   never moves. Never scp into the server repo (use /tmp and run from there);
+   if it happened, `rm` the colliding file and re-pull.
 2. `curl -s -o /dev/null -w "%{http_code}" <live URL>/` — must be 200. Give PM2
    ~5 seconds after restart before probing.
 3. Behavior check: hit ONE live endpoint or page that exercises this deploy's
