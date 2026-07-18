@@ -9,8 +9,7 @@ trainnolimit.cn with `DATA_BACKEND=postgres` against its local PostgreSQL 16.
 The HK box stays running as fallback for ~2 weeks.
 
 Rehearsed end-to-end 2026-07-18: both twins ETL-loaded fresh, 29-endpoint
-parity harness run (scratchpad `parity-check.mjs` — recreate from this doc's
-appendix note if needed), all mismatches fixed or classified (see "Accepted
+parity harness run (`scripts/parity-check.mjs`), all mismatches fixed or classified (see "Accepted
 differences" below).
 
 ## Pre-flight (any day before)
