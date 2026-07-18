@@ -97,13 +97,24 @@ export async function listExercises(): Promise<ExerciseListResult> {
       movementPatternCn: readFirstField(fields, ["Movement Pattern CN"]),
       primaryMuscles: readFirstField(fields, ["Primary Muscles", "Primary Muscle", "Muscles"]),
       primaryMusclesCn: readFirstField(fields, ["Primary Muscles CN"]),
+      // Live column names first (note "Cn" casing and the "/ Watchouts" name —
+      // the older aliases matched nothing, so prod served empty CN content).
       technicalInstructionsCn: readFirstField(fields, [
+        "Technical Cues Cn",
         "Technical Instructions CN",
         "Form Instructions CN",
         "Instructions CN",
       ]),
-      coachingCuesCn: readFirstField(fields, ["Coaching Cues CN", "Technical Cues CN", "Notes CN"]),
-      commonMistakesCn: readFirstField(fields, ["Common Mistakes CN"]),
+      coachingCuesCn: readFirstField(fields, [
+        "Professional Coaching Cues CN",
+        "Coaching Cues CN",
+        "Technical Cues CN",
+        "Notes CN",
+      ]),
+      commonMistakesCn: readFirstField(fields, [
+        "Common Errors / Watchouts CN",
+        "Common Mistakes CN",
+      ]),
       notes,
       defaultMetric: readFirstField(fields, ["Default Metric", "Target Metric", "Metric"]),
       metricCategory: readFirstField(fields, ["Metric Category", "Metric Type"]),
