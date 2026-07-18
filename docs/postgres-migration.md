@@ -304,6 +304,23 @@ first; TencentDB is a later upgrade when revenue justifies it.
   and synced to the CVM (COS optional later). Open decision: post-cutover
   admin UI (Drizzle Studio via tunnel demoed to Kent 2026-07-17 — likely
   sufficient, pending his verdict).
+- **2026-07-18 — CUTOVER REHEARSAL.** Full dry run: both twins bundle/pull-
+  deployed to latest main (CN got migration 0002 wechat_openid), fresh ETL on
+  both boxes, then a 29-endpoint parity harness (prod Feishu vs HK pg twin).
+  Found + fixed three real defects: (1) assignContent writer used singular
+  "Assigned Form ID" aliases while the live column is PLURAL "Assigned Forms
+  ID" — every questionnaire assignment was created code-less; (2) the ETL
+  blank-row filter dropped any row missing its PK code, silently discarding
+  ALL assigned-form rows (client intakes would have been lost at cutover —
+  filter now keeps rows with real content, record_id fallback pk); (3) the
+  Feishu exercises read guessed wrong CN column names ("Technical Instructions
+  CN" vs live "Technical Cues Cn" etc.), so prod served empty Chinese exercise
+  content the twin had. Also backfilled 8 missing assignment codes + scrubbed
+  9 AI-translation placeholder strings in prod Feishu
+  (scripts/fix-assignment-codes-and-junk.mjs). Post-fix parity: 23/29 exact,
+  remaining 6 all classified as designed differences — see
+  **docs/cutover-runbook.md** (the step-by-step approval-day checklist,
+  rollback plan, and the accepted-differences list).
 
 ## Known future tech-debt (not part of this migration, but relevant to a sale)
 `src/App.tsx` is one ~900KB monolithic component. Splitting it is the biggest

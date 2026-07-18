@@ -188,7 +188,11 @@ data between them, never "borrow" a table ID across products.
     before shipping a Feishu writer, list the table's live fields
     (`node --env-file=.env` on the server → `GET /tables/{id}/fields`), check
     every write response for `code !== 0`, and test the exact write shape on a
-    throwaway record.
+    throwaway record. Same trap on READS and alias lists: a guessed alias
+    ("Assigned Form ID", "Common Mistakes CN") silently returns "" when the
+    live column is "Assigned Forms ID" / "Common Errors / Watchouts CN" — the
+    ETL `expected` lists in server/db/etl/transform.ts are the verified live
+    column names; check there before inventing an alias.
 33. **The deploy that crashes open tabs** — every page and add-modal is a lazy
     chunk; a deploy that deletes old hashed chunks makes any pre-deploy tab
     white-screen on its next navigation ("the app keeps crashing"). Three
