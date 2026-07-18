@@ -44,8 +44,16 @@ async function main() {
       continue;
     }
     const all = await listAll(id);
+    // Drop blank seed rows (Feishu grid padding: no field has any text), but
+    // KEEP real rows whose PK code was never written — code() falls back to
+    // the record_id for those. Filtering on the PK alone silently discarded
+    // every assigned-form row (writer never set "Assigned Forms ID").
     raw[spec.table] = spec.pkField
-      ? all.filter((rec) => textOrNull(rec.fields[spec.pkField]) !== null)
+      ? all.filter(
+          (rec) =>
+            textOrNull(rec.fields[spec.pkField]) !== null ||
+            Object.values(rec.fields || {}).some((v) => textOrNull(v) !== null)
+        )
       : all;
   }
 

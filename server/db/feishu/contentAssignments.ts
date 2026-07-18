@@ -224,6 +224,7 @@ export async function assignContent(
         ? [
             "Assigned Test ID",
             "Assigned Test Id",
+            "Assigned Tests ID",
             "assignedTestId",
             "Assignment ID",
             "Assignment Id",
@@ -232,6 +233,11 @@ export async function assignContent(
             "ID",
           ]
         : [
+            // The live column is the PLURAL "Assigned Forms ID" — the singular
+            // aliases silently missed it, so every questionnaire assignment was
+            // created without a code (and the ETL then dropped it as blank).
+            "Assigned Forms ID",
+            "Assigned Forms Id",
             "Assigned Form ID",
             "Assigned Form Id",
             "assignedFormId",
