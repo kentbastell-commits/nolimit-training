@@ -56,7 +56,7 @@ export const resources = {
       jlbModeDj: "Drop jump (RSI)",
       jlbPick: "Choose or film a jump video",
       jlbFilmTips:
-        "Side view, whole body + floor visible. Film in Slo-mo for the most accurate result — on iPhone: Settings → Camera → Record Slo-mo → 240fps.",
+        "Film in NORMAL video mode at 60fps (Settings → Camera → Record Video → 1080p/60). Prop the phone still, side view, whole body + floor visible, one second of stillness before and after the jump. Don't use Slo-mo — phone uploads re-encode it and break the timing.",
       jlbFrame: "frame",
       jlbMarkContact: "Mark ground contact",
       jlbMarkTakeoff: "Mark takeoff",
@@ -311,7 +311,7 @@ export const resources = {
       jlbModeDj: "跳深（RSI）",
       jlbPick: "选择或拍摄跳跃视频",
       jlbFilmTips:
-        "侧面拍摄，全身与地面都要入镜。用慢动作拍摄结果最准确——iPhone：设置 → 相机 → 录制慢动作 → 240 fps。",
+        "用普通视频模式 60fps 拍摄（设置 → 相机 → 录制视频 → 1080p/60）。手机固定不动，侧面拍摄，全身与地面入镜，跳跃前后各留一秒静止。不要用慢动作——手机上传会转码破坏计时。",
       jlbFrame: "帧",
       jlbMarkContact: "标记触地",
       jlbMarkTakeoff: "标记起跳",
