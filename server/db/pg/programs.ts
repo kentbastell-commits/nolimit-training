@@ -108,7 +108,9 @@ export async function createProgram(i: CreateProgramInput): Promise<HandlerResul
   const values: Insert = {
     programId,
     name: i.programName,
+    nameCn: i.programNameCn || null,
     goal: i.goal || "",
+    goalCn: i.goalCn || null,
     sport: i.sport || "",
     level: i.level || "",
     durationWeeks: Number(i.durationWeeks) || 1,

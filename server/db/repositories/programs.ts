@@ -10,7 +10,9 @@ export type HandlerResult = { status: number; body: Record<string, any> };
 
 export type CreateProgramInput = {
   programName: string;
+  programNameCn?: any;
   goal?: any;
+  goalCn?: any;
   sport?: any;
   level?: any;
   durationWeeks?: any;

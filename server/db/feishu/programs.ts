@@ -181,6 +181,8 @@ export async function createProgram(i: CreateProgramInput): Promise<HandlerResul
     "Store Category CN": i.storeCategoryCn || "",
     "Store Listing Type": i.storeListingType || "",
     "Bundle Program IDs": i.bundleProgramIds || "",
+    "Program Name CN": i.programNameCn || "",
+    "Goal CN": i.goalCn || "",
     Season: i.season === "" || i.season === undefined ? "" : Number(i.season) || 0,
   };
   const fallbackFields = {
