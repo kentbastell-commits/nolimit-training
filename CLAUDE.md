@@ -323,5 +323,11 @@ invented procedure is not.
   overlay element and take viewport shots instead — and headless Chromium
   defaults to reduced motion: pass `reducedMotion: "no-preference"` in the
   context or every entrance/transition animation (and its bugs) is skipped.
+  Video-frame extraction: a server without HTTP Range support (python
+  `http.server`) makes `<video>` seeks silently NO-OP in Chromium — every
+  "frame" you capture is the same first frame. Load clips via
+  fetch→blob→objectURL, and pixel-diff two distant timestamps before trusting
+  any extracted frames (cost an hour believing four jump clips were people
+  standing still).
 - Skills: `/deploy`, `/bilingual-sweep`, `/seed-feishu`, `/extract-approach` in
   `.claude/skills/` cover the recurring workflows — prefer them over improvising.
