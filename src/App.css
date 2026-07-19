@@ -15207,7 +15207,9 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   position: fixed;
   inset: 0;
   background: rgba(15, 17, 21, 0.5);
-  z-index: 1400;
+  /* Above the assignment/workout modal (2000) so the Jump Lab analyzer can
+     open on top of an assigned test, and above the mobile nav (1200). */
+  z-index: 2100;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -15548,4 +15550,9 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 .jlbDone .goldButton {
   width: 100%;
   margin-top: 14px;
+}
+
+.jlbMeasureButton {
+  width: 100%;
+  margin-bottom: 14px;
 }

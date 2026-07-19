@@ -1,6 +1,24 @@
 // Extracted from App.tsx (monolith split) — JSX verbatim; props threaded.
 import "./ContentAssignmentModal.css";
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { Suspense, lazy, useState } from "react";
+
+const JumpLabModal = lazy(() => import("./JumpLabModal"));
+
+// Map Jump Lab metrics onto a test's items by name/unit. Only simple
+// single-value items are filled; anything unmatched is left for manual entry.
+function matchJumpValue(item: any, r: any): string | null {
+  const name = String(item.testName || "").toLowerCase();
+  const unit = String(item.unit || "").toLowerCase();
+  if (/rsi/.test(name)) return r.rsiValue > 0 ? String(r.rsiValue) : null;
+  if (/contact|触地/.test(name)) return r.contactMs > 0 ? String(r.contactMs) : null;
+  if (/flight|腾空/.test(name)) return r.flightMs > 0 ? String(r.flightMs) : null;
+  if (/power|功率/.test(name) || unit === "w")
+    return r.powerW > 0 ? String(r.powerW) : null;
+  if (/height|jump|cmj|纵跳|跳/.test(name) || unit === "cm")
+    return r.heightCm > 0 ? String(r.heightCm) : null;
+  return null;
+}
 
 export default function ContentAssignmentModal({
   t,
@@ -21,6 +39,25 @@ export default function ContentAssignmentModal({
   submitActiveContentAssignment,
   submittingContentAssignment,
 }: { [key: string]: any }) {
+  // Jump Lab analyzer for jump-style tests: fills item answers from video.
+  const [jumpAnalyzerOpen, setJumpAnalyzerOpen] = useState(false);
+
+  const applyJumpResult = (r: any) => {
+    const filled: Record<string, string> = {};
+    for (const item of activeTestTemplate?.items || []) {
+      const value = matchJumpValue(item, r);
+      if (value !== null) filled[item.testItemId] = value;
+    }
+    if (Object.keys(filled).length) {
+      setContentAssignmentAnswers((current: any) => ({ ...current, ...filled }));
+    }
+    if (r.clipUrl) {
+      setContentAssignmentComment((current: string) =>
+        current ? `${current}\nVideo: ${r.clipUrl}` : `Video: ${r.clipUrl}`
+      );
+    }
+  };
+
   return (
     <>
           <div className="workout-modal-overlay">
@@ -68,6 +105,15 @@ export default function ContentAssignmentModal({
               </div>
 
               <div className="contentAssignmentFields">
+                {activeAssignmentIsTest ? (
+                  <button
+                    type="button"
+                    className="outlineButton jlbMeasureButton"
+                    onClick={() => setJumpAnalyzerOpen(true)}
+                  >
+                    📹 {t("jlbMeasure")}
+                  </button>
+                ) : null}
                 {activeAssignmentIsTest
                   ? (activeTestTemplate?.items || []).map((item: any) => {
                       const testMode = getTestInputMode(item);
@@ -316,6 +362,16 @@ export default function ContentAssignmentModal({
               </div>
             </div>
           </div>
+
+      {jumpAnalyzerOpen && (
+        <Suspense fallback={null}>
+          <JumpLabModal
+            onClose={() => setJumpAnalyzerOpen(false)}
+            onResult={applyJumpResult}
+            t={t}
+          />
+        </Suspense>
+      )}
     </>
   );
 }

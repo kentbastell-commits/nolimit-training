@@ -14,9 +14,15 @@ type MarkKey = "contact" | "takeoff" | "landing";
 
 const TEMPLATE_NAME = "Jump Testing (Video)";
 
+// Two usages:
+//  - self-serve (portal Home): saves a completed "Jump Testing (Video)" test
+//  - analyzer-for-a-test (assigned-test modal passes onResult): computes the
+//    numbers + uploads the clip, then hands everything back to the caller,
+//    which fills the assigned test's answer fields.
 export default function JumpLabModal({
   onClose,
   selectedClient,
+  onResult,
   t,
 }: { [key: string]: any }) {
   const [mode, setMode] = useState<Mode>("cmj");
@@ -110,6 +116,44 @@ export default function JumpLabModal({
   const mass = Number(bodyMass);
   const powerW = valid && mass > 0 ? round(sayersPeakPowerW(heightCm, mass), 0) : 0;
 
+  // Upload the clip for coach verification — best effort, never blocks.
+  const uploadClip = async (): Promise<string> => {
+    try {
+      const file = fileRef.current;
+      if (file && file.size < 200 * 1024 * 1024) {
+        const up = await fetch(
+          `/api/uploadFormVideoFile?name=${encodeURIComponent(file.name || "jump.mp4")}`,
+          { method: "POST", body: file }
+        );
+        const upData = await up.json();
+        if (up.ok && upData.url) {
+          return `${window.location.origin}${upData.url}`;
+        }
+      }
+    } catch {
+      /* metrics still save without the clip */
+    }
+    return "";
+  };
+
+  // Analyzer mode: hand the metrics back to the assigned-test modal.
+  const useResult = async () => {
+    if (!valid || saving) return;
+    setSaving(true);
+    const clipUrl = await uploadClip();
+    setSaving(false);
+    onResult({
+      mode,
+      heightCm,
+      flightMs: Math.round(flightS * 1000),
+      contactMs: mode === "dj" ? Math.round(contactS * 1000) : 0,
+      rsiValue,
+      powerW,
+      clipUrl,
+    });
+    onClose();
+  };
+
   const save = async () => {
     if (!valid || saving || !selectedClient) return;
     setSaving(true);
@@ -123,23 +167,7 @@ export default function JumpLabModal({
       );
       if (!template) throw new Error("Jump Testing template not found");
 
-      // Upload the clip for coach verification — best effort, never blocks.
-      let clipUrl = "";
-      try {
-        const file = fileRef.current;
-        if (file && file.size < 200 * 1024 * 1024) {
-          const up = await fetch(
-            `/api/uploadFormVideoFile?name=${encodeURIComponent(file.name || "jump.mp4")}`,
-            { method: "POST", body: file }
-          );
-          const upData = await up.json();
-          if (up.ok && upData.url) {
-            clipUrl = `${window.location.origin}${upData.url}`;
-          }
-        }
-      } catch {
-        /* metrics still save without the clip */
-      }
+      const clipUrl = await uploadClip();
 
       const assignRes = await fetch("/api/assignContent", {
         method: "POST",
@@ -377,9 +405,9 @@ export default function JumpLabModal({
                     <button
                       className="goldButton"
                       disabled={!valid || saving}
-                      onClick={save}
+                      onClick={onResult ? useResult : save}
                     >
-                      {saving ? "…" : t("jlbSave")}
+                      {saving ? "…" : onResult ? t("jlbUse") : t("jlbSave")}
                     </button>
                   </div>
                 </>
