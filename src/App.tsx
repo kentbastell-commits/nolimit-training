@@ -29,6 +29,7 @@ import {
   Suspense,
   lazy,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type ComponentType,
@@ -7260,8 +7261,14 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     return true;
   };
 
+  // Athlete-driven rescheduling is a digital-program feature: coaching and
+  // in-person clients' schedules stay coach-controlled.
+  const clientCanReschedule =
+    !isClientPortal || /digital/i.test(String(selectedClient?.clientType || ""));
+
   const moveWorkoutToDate = async (workout: Workout, scheduledDate: string) => {
     if (!selectedClient) return;
+    if (isClientPortal && !clientCanReschedule) return;
 
     const currentDate = normalizeDate(String(workout.scheduledDate));
     const nextDate = normalizeDate(scheduledDate);
@@ -7320,6 +7327,82 @@ function App({ onReady }: { onReady?: () => void } = {}) {
         pendingWorkoutMoveIds.current.delete(workout.id);
         setDraggingWorkoutId("");
       }
+    }
+  };
+
+  // Mass replan (digital clients): per-workout date edits saved in one pass.
+  const [replanOpen, setReplanOpen] = useState(false);
+  const [replanEdits, setReplanEdits] = useState<Record<string, string>>({});
+  const [replanSaving, setReplanSaving] = useState(false);
+
+  const replanRemaining = useMemo(
+    () =>
+      workouts
+        .filter(
+          (workout) =>
+            workout.completionStatus !== "Completed" &&
+            normalizeDate(String(workout.scheduledDate)) !== ""
+        )
+        .sort(
+          (a, b) =>
+            new Date(normalizeDate(String(a.scheduledDate))).getTime() -
+            new Date(normalizeDate(String(b.scheduledDate))).getTime()
+        ),
+    [workouts]
+  );
+
+  const saveReplan = async () => {
+    if (replanSaving || !selectedClient) return;
+    const changed = replanRemaining.filter((workout) => {
+      const edit = replanEdits[workout.id];
+      return edit && edit !== normalizeDate(String(workout.scheduledDate));
+    });
+    if (changed.length === 0) return;
+    setReplanSaving(true);
+    try {
+      // Whole plan moved by one uniform delta → a single bulk call; otherwise
+      // per-workout moves (each already optimistic with rollback).
+      const deltas = new Set(
+        changed.map(
+          (workout) =>
+            (new Date(replanEdits[workout.id]).getTime() -
+              new Date(normalizeDate(String(workout.scheduledDate))).getTime()) /
+            86400000
+        )
+      );
+      const uniform = deltas.size === 1 ? [...deltas][0] : 0;
+      if (
+        changed.length === replanRemaining.length &&
+        Number.isInteger(uniform) &&
+        uniform !== 0 &&
+        Math.abs(uniform) <= 30
+      ) {
+        const response = await fetch("/api/shiftAssignedWorkouts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            clientCode: selectedClient.clientCode,
+            fromDate: normalizeDate(String(replanRemaining[0].scheduledDate)),
+            days: uniform,
+          }),
+        });
+        const data = await response.json();
+        if (!response.ok || !data.success) throw new Error("shift failed");
+        await loadClientWorkouts(selectedClient, true);
+      } else {
+        for (const workout of changed) {
+          await moveWorkoutToDate(workout, replanEdits[workout.id]);
+        }
+      }
+      notify(t("replanDone"), "success");
+      setReplanOpen(false);
+      setReplanEdits({});
+    } catch (error) {
+      console.error(error);
+      notify(t("replanFailed"), "error");
+      await loadClientWorkouts(selectedClient, true);
+    } finally {
+      setReplanSaving(false);
     }
   };
 
@@ -15541,6 +15624,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     dateString: string
   ) {
     if (!isClientPortal) return;
+    if (!clientCanReschedule) return;
 
     const touch = event.touches[0];
     clientCalendarTouchDrag.current = {
@@ -19659,6 +19743,14 @@ function App({ onReady }: { onReady?: () => void } = {}) {
             moveClientMonth={moveClientMonth}
             moveContentAssignmentToDate={moveContentAssignmentToDate}
             moveWorkoutToDate={moveWorkoutToDate}
+            clientCanReschedule={clientCanReschedule}
+            replanOpen={replanOpen}
+            setReplanOpen={setReplanOpen}
+            replanEdits={replanEdits}
+            setReplanEdits={setReplanEdits}
+            replanSaving={replanSaving}
+            replanRemaining={replanRemaining}
+            saveReplan={saveReplan}
             movingAssignmentId={movingAssignmentId}
             movingWorkoutId={movingWorkoutId}
             needsAttentionItems={needsAttentionItems}

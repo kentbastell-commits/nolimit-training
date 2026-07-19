@@ -14,6 +14,7 @@ const CAT_ICON: Record<string, any> = {
   "wcol-purple": ClipboardList,
 };
 const catIcon = (cc: string) => CAT_ICON[cc] || Dumbbell;
+import PortalToApp from "./PortalToApp";
 import type { CalendarView } from "./appCore";
 import { dateToInputValue, formatCalendarLabel, formatMonthTitle, getAssignmentColorClass, getDisplayTaskStatus, getMonthDates, getSessionTypeClass, getStatusClass, getWorkoutColorClass, normalizeDate } from "./appCore";
 
@@ -72,6 +73,14 @@ export default function PortalTraining({
   moveClientMonth,
   moveContentAssignmentToDate,
   moveWorkoutToDate,
+  clientCanReschedule,
+  replanOpen,
+  setReplanOpen,
+  replanEdits,
+  setReplanEdits,
+  replanSaving,
+  replanRemaining,
+  saveReplan,
   movingAssignmentId,
   movingWorkoutId,
   openAssignmentHubFromCalendar,
@@ -470,6 +479,18 @@ export default function PortalTraining({
                       >
                         {t("today")}
                       </button>
+                      {isClientPortal && clientCanReschedule ? (
+                        <button
+                          className="outlineButton rpnOpenButton"
+                          onClick={() => {
+                            setReplanEdits({});
+                            setReplanOpen(true);
+                          }}
+                        >
+                          <CalendarDays size={16} aria-hidden="true" />
+                          {t("replanRemaining")}
+                        </button>
+                      ) : null}
 
                       <label className="calendarDatePickerButton" title="Choose date">
                         <CalendarDays size={18} strokeWidth={2.2} aria-hidden="true" />
@@ -901,7 +922,7 @@ export default function PortalTraining({
                               key={workout.id}
                               data-client-calendar-workout-id={workout.id}
                               data-client-calendar-date={date}
-                              draggable
+                              draggable={clientCanReschedule}
                               role="button"
                               tabIndex={0}
                               title={
@@ -1169,7 +1190,7 @@ export default function PortalTraining({
                             key={workout.id}
                             data-client-calendar-workout-id={workout.id}
                             data-client-calendar-date={calendarAnchorDate}
-                            draggable
+                            draggable={clientCanReschedule}
                             title="Drag to another date or tap to open"
                             onDragStart={(event) => {
                               event.dataTransfer.setData("text/plain", workout.id);
@@ -1439,7 +1460,7 @@ export default function PortalTraining({
                               key={workout.id}
                               data-client-calendar-workout-id={workout.id}
                               data-client-calendar-date={calendarAnchorDate}
-                              draggable
+                              draggable={clientCanReschedule}
                               title="Drag to another date or tap to open"
                               onDragStart={(event) => {
                                 event.dataTransfer.setData("text/plain", workout.id);
@@ -1821,6 +1842,118 @@ export default function PortalTraining({
                   </div>
                   )}
                 </div>
+
+      {replanOpen && isClientPortal && clientCanReschedule && (
+        <PortalToApp>
+          <div className="rpnOverlay" onClick={() => setReplanOpen(false)}>
+            <div className="rpnModal" onClick={(event) => event.stopPropagation()}>
+              <div className="rpnHead">
+                <h3>{t("replanTitle")}</h3>
+                <button
+                  className="rpnClose"
+                  aria-label="Close"
+                  onClick={() => setReplanOpen(false)}
+                >
+                  ✕
+                </button>
+              </div>
+              <p className="rpnHint">{t("replanHint")}</p>
+
+              <div className="rpnChips">
+                {[3, 7, 14].map((bump) => (
+                  <button
+                    key={bump}
+                    className="rpnChip"
+                    onClick={() => {
+                      const next: Record<string, string> = {};
+                      for (const workout of replanRemaining) {
+                        const base = new Date(
+                          replanEdits[workout.id] ||
+                            normalizeDate(String(workout.scheduledDate))
+                        );
+                        base.setDate(base.getDate() + bump);
+                        next[workout.id] = dateToInputValue(base);
+                      }
+                      setReplanEdits(next);
+                    }}
+                  >
+                    {t("replanAllPlus", { count: bump })}
+                  </button>
+                ))}
+                <button
+                  className="rpnChip rpnChipGhost"
+                  onClick={() => setReplanEdits({})}
+                >
+                  {t("replanReset")}
+                </button>
+              </div>
+
+              <div className="rpnList">
+                {replanRemaining.length === 0 ? (
+                  <p className="rpnHint">{t("replanNone")}</p>
+                ) : (
+                  replanRemaining.map((workout: any) => {
+                    const current = normalizeDate(String(workout.scheduledDate));
+                    const chosen = replanEdits[workout.id] || current;
+                    const changed = chosen !== current;
+                    const overdue = current < todayValue;
+                    return (
+                      <div key={workout.id} className="rpnRow">
+                        <span
+                          className={`rpnAccent ${getWorkoutColorClass(workout)}`}
+                        />
+                        <div className="rpnInfo">
+                          <strong>{localizedWorkoutName(workout)}</strong>
+                          <span className={overdue ? "rpnOverdue" : "rpnCurrent"}>
+                            {current}
+                            {overdue ? ` · ${t("replanOverdue")}` : ""}
+                          </span>
+                        </div>
+                        <input
+                          type="date"
+                          className={`rpnDate ${changed ? "rpnDateChanged" : ""}`}
+                          value={chosen}
+                          min={todayValue}
+                          onChange={(event) =>
+                            setReplanEdits((prev: Record<string, string>) => ({
+                              ...prev,
+                              [workout.id]: event.target.value,
+                            }))
+                          }
+                        />
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              <div className="rpnFooter">
+                {(() => {
+                  const changeCount = replanRemaining.filter(
+                    (workout: any) =>
+                      replanEdits[workout.id] &&
+                      replanEdits[workout.id] !==
+                        normalizeDate(String(workout.scheduledDate))
+                  ).length;
+                  return (
+                    <button
+                      className="goldButton"
+                      disabled={replanSaving || changeCount === 0}
+                      onClick={saveReplan}
+                    >
+                      {replanSaving
+                        ? "…"
+                        : changeCount > 0
+                        ? `${t("replanSave")} · ${t("replanChanges", { count: changeCount })}`
+                        : t("replanSave")}
+                    </button>
+                  );
+                })()}
+              </div>
+            </div>
+          </div>
+        </PortalToApp>
+      )}
     </>
   );
 }

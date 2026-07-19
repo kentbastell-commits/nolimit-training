@@ -25,6 +25,14 @@ export default function ClientWorkspace({
   calendarAnchorDate,
   calendarAssignmentDateInputRef,
   calendarDates,
+  clientCanReschedule,
+  replanOpen,
+  setReplanOpen,
+  replanEdits,
+  setReplanEdits,
+  replanSaving,
+  replanRemaining,
+  saveReplan,
   calendarDropWorkoutId,
   calendarRangeLabel,
   calendarView,
@@ -633,6 +641,14 @@ export default function ClientWorkspace({
                   moveClientMonth={moveClientMonth}
                   moveContentAssignmentToDate={moveContentAssignmentToDate}
                   moveWorkoutToDate={moveWorkoutToDate}
+                  clientCanReschedule={clientCanReschedule}
+                  replanOpen={replanOpen}
+                  setReplanOpen={setReplanOpen}
+                  replanEdits={replanEdits}
+                  setReplanEdits={setReplanEdits}
+                  replanSaving={replanSaving}
+                  replanRemaining={replanRemaining}
+                  saveReplan={saveReplan}
                   movingAssignmentId={movingAssignmentId}
                   movingWorkoutId={movingWorkoutId}
                   openAssignmentHubFromCalendar={openAssignmentHubFromCalendar}

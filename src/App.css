@@ -15195,3 +15195,193 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   text-transform: none !important;
   letter-spacing: 0 !important;
 }
+
+/* ---- Replan modal (digital clients rescheduling their remaining plan) ---- */
+.rpnOpenButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rpnOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 17, 21, 0.5);
+  z-index: 1400;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+}
+
+.rpnModal {
+  width: min(560px, 100%);
+  max-height: 86vh;
+  background: var(--nl-surface, #fff);
+  color: var(--nl-text, #16181d);
+  border-radius: 16px;
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 18px 50px rgba(10, 12, 16, 0.35);
+}
+
+.rpnHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.rpnHead h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.rpnClose {
+  border: none;
+  background: none;
+  font-size: 18px;
+  cursor: pointer;
+  color: var(--nl-muted, #7a8089);
+  padding: 4px 8px;
+}
+
+.rpnHint {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: var(--nl-muted, #7a8089);
+}
+
+.rpnChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 14px 0;
+}
+
+.rpnChip {
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--nl-text, #16181d);
+  color: var(--nl-surface, #fff);
+  border-radius: 999px;
+  padding: 7px 14px;
+}
+
+.rpnChipGhost {
+  background: var(--nl-soft, #f2f3f5);
+  color: var(--nl-text, #16181d);
+}
+
+.rpnList {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 80px;
+  margin: 0 -6px;
+  padding: 0 6px;
+}
+
+.rpnRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--nl-border, #edeef1);
+}
+
+.rpnRow:last-child {
+  border-bottom: none;
+}
+
+.rpnAccent {
+  width: 4px;
+  align-self: stretch;
+  border-radius: 2px;
+  background: currentColor;
+}
+
+.rpnInfo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.rpnInfo strong {
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rpnCurrent {
+  font-size: 12px;
+  color: var(--nl-muted, #7a8089);
+}
+
+.rpnOverdue {
+  font-size: 12px;
+  color: #c53030;
+  font-weight: 600;
+}
+
+.rpnDate {
+  border: 1px solid var(--nl-border, #dcdfe4);
+  background: var(--nl-soft, #f7f8f9);
+  color: var(--nl-text, #16181d);
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.rpnDateChanged {
+  background: var(--nl-text, #16181d);
+  color: var(--nl-surface, #fff);
+  border-color: var(--nl-text, #16181d);
+}
+
+.rpnFooter {
+  margin-top: 16px;
+}
+
+.rpnFooter .goldButton {
+  width: 100%;
+}
+
+@media (max-width: 640px) {
+  .rpnOverlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+  .rpnModal {
+    border-radius: 16px 16px 0 0;
+    max-height: 90dvh;
+    padding-bottom: calc(22px + env(safe-area-inset-bottom));
+  }
+}
+
+/* Header row: keep the replan button on one line; let portal quick controls
+   wrap to a second row on narrow phones instead of overlapping. */
+.rpnOpenButton {
+  white-space: nowrap;
+}
+
+.clientPortalApp .calendarQuickControls {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  row-gap: 8px;
+}
+
+.clientPortalApp .calendarNavigator .rpnOpenButton {
+  width: auto;
+  height: 40px;
+  padding: 0 14px;
+  gap: 6px;
+  font-weight: 800;
+  font-size: 13px;
+  white-space: nowrap;
+}
