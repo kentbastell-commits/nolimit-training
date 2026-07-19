@@ -4,6 +4,7 @@ import type { WorkoutDTO } from "../dto.ts";
 import type {
   AssignProgramInput,
   DuplicateWorkoutInput,
+  ShiftWorkoutDatesInput,
   UpdateWorkoutDateInput,
   WorkoutWriteResult,
 } from "../repositories/workouts.ts";
@@ -258,6 +259,79 @@ export async function updateAssignedWorkoutDate(
     scheduledDate,
     larkResponse: updateData,
   };
+}
+
+export async function shiftAssignedWorkoutDates(
+  input: ShiftWorkoutDatesInput
+): Promise<WorkoutWriteResult> {
+  const { clientCode, fromDate, days, includeCompleted } = input;
+
+  const tokenData = await fetchTenantTokenRaw();
+  if (!tokenData.tenant_access_token) {
+    return {
+      success: false,
+      error: "Could not get Lark tenant token",
+      larkResponse: tokenData,
+    };
+  }
+
+  const tableId = process.env.FEISHU_ASSIGNED_WORKOUTS_TABLE_ID as string;
+  const fromMs = new Date(fromDate).getTime();
+  const deltaMs = days * 86400000;
+
+  const items = await listRecords(tableId);
+  const targets = items.filter((item: any) => {
+    const fields = item.fields || {};
+    if (!fieldToText(fields["Client ID"]).includes(clientCode)) return false;
+    const scheduled = Number(fields["Scheduled Date"]);
+    if (!Number.isFinite(scheduled) || scheduled < fromMs) return false;
+    if (
+      !includeCompleted &&
+      /^completed$/i.test(fieldToText(fields["Completion Status"]).trim())
+    )
+      return false;
+    return true;
+  });
+
+  let updated = 0;
+  const failures: any[] = [];
+  for (const item of targets) {
+    const scheduled = Number(item.fields["Scheduled Date"]);
+    const res = await fetch(
+      `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables/${tableId}/records/${item.record_id}`,
+      {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${tokenData.tenant_access_token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          fields: { "Scheduled Date": scheduled + deltaMs },
+        }),
+      }
+    );
+    const data = await res.json();
+    if (!res.ok || data.code !== 0) {
+      failures.push({ recordId: item.record_id, larkResponse: data });
+    } else {
+      updated += 1;
+    }
+    // Gentle pacing so a long shift doesn't trip Feishu write throttling.
+    if ((updated + failures.length) % 8 === 0) {
+      await new Promise((resolve) => setTimeout(resolve, 300));
+    }
+  }
+
+  if (failures.length) {
+    return {
+      success: false,
+      error: "Some workouts could not be moved",
+      updated,
+      failed: failures.length,
+      failures: failures.slice(0, 5),
+    };
+  }
+  return { success: true, updated, matched: targets.length };
 }
 
 function toLarkDate(value?: string) {

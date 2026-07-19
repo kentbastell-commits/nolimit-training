@@ -108,6 +108,7 @@ import reviews from "../api/reviews.ts";
 import reviewWorkoutComment from "../api/reviewWorkoutComment.ts";
 import saveWorkoutLog from "../api/saveWorkoutLog.ts";
 import setWorkoutReviewed from "../api/setWorkoutReviewed.ts";
+import shiftAssignedWorkouts from "../api/shiftAssignedWorkouts.ts";
 import workloadLogs from "../api/workloadLogs.ts";
 import saveWorkloadLog from "../api/saveWorkloadLog.ts";
 import submitContentResponse from "../api/submitContentResponse.ts";
@@ -245,6 +246,7 @@ const handlers = {
   reviewWorkoutComment,
   saveWorkoutLog,
   setWorkoutReviewed,
+  shiftAssignedWorkouts,
   workloadLogs,
   saveWorkloadLog,
   submitContentResponse,

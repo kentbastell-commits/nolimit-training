@@ -55,6 +55,13 @@ export type DuplicateWorkoutInput = {
   scheduledDate?: string;
 };
 
+export type ShiftWorkoutDatesInput = {
+  clientCode: string;
+  fromDate: string; // YYYY-MM-DD — shift workouts scheduled on/after this day
+  days: number; // signed; validated by the handler
+  includeCompleted?: boolean; // default false: completed sessions stay put
+};
+
 export async function assignProgram(
   input: AssignProgramInput
 ): Promise<WorkoutWriteResult> {
@@ -76,6 +83,22 @@ export async function updateAssignedWorkoutDate(
     DATA_BACKEND === "postgres"
       ? await (await import("../pg/workouts.ts")).updateAssignedWorkoutDate(input)
       : await feishu.updateAssignedWorkoutDate(input);
+  if (result.success) {
+    invalidateCache("workouts");
+    invalidateCache("analytics");
+  }
+  return result;
+}
+
+// Bulk reschedule: the client-facing "shift my plan" action. Moves every
+// not-yet-completed workout scheduled on/after fromDate by N days.
+export async function shiftAssignedWorkoutDates(
+  input: ShiftWorkoutDatesInput
+): Promise<WorkoutWriteResult> {
+  const result =
+    DATA_BACKEND === "postgres"
+      ? await (await import("../pg/workouts.ts")).shiftAssignedWorkoutDates(input)
+      : await feishu.shiftAssignedWorkoutDates(input);
   if (result.success) {
     invalidateCache("workouts");
     invalidateCache("analytics");

@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq, gte, isNull, not, ilike, or, sql } from "drizzle-orm";
 import { db } from "../client.ts";
 import { assignedWorkouts } from "../schema.ts";
 import { str } from "./_util.ts";
@@ -6,6 +6,7 @@ import type { WorkoutDTO } from "../dto.ts";
 import type {
   AssignProgramInput,
   DuplicateWorkoutInput,
+  ShiftWorkoutDatesInput,
   UpdateWorkoutDateInput,
   WorkoutWriteResult,
 } from "../repositories/workouts.ts";
@@ -140,6 +141,33 @@ function toLarkDate(value?: string) {
     return new Date(year, month - 1, day).getTime();
   }
   return new Date(value).getTime();
+}
+
+export async function shiftAssignedWorkoutDates(
+  i: ShiftWorkoutDatesInput
+): Promise<WorkoutWriteResult> {
+  const fromMs = new Date(i.fromDate).getTime();
+  const deltaMs = i.days * 86400000;
+  const conditions = [
+    eq(assignedWorkouts.clientId, str(i.clientCode)),
+    gte(assignedWorkouts.scheduledDate, fromMs),
+  ];
+  if (!i.includeCompleted) {
+    conditions.push(
+      or(
+        isNull(assignedWorkouts.completionStatus),
+        not(ilike(assignedWorkouts.completionStatus, "completed"))
+      )!
+    );
+  }
+  const rows = await db
+    .update(assignedWorkouts)
+    .set({
+      scheduledDate: sql`${assignedWorkouts.scheduledDate} + ${deltaMs}`,
+    })
+    .where(and(...conditions))
+    .returning({ assignedWorkoutId: assignedWorkouts.assignedWorkoutId });
+  return { success: true, updated: rows.length, matched: rows.length };
 }
 
 export async function duplicateAssignedWorkout(
