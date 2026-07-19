@@ -5,11 +5,15 @@ import {
   ClipboardList,
   Dumbbell,
   HeartPulse,
+  Rocket,
   Target,
   Trophy,
   Waves,
 } from "lucide-react";
+import { Suspense, lazy, useState } from "react";
 import { normalizeDate } from "./appCore";
+
+const JumpLabModal = lazy(() => import("./JumpLabModal"));
 
 // Category → colourful icon (colour comes from the .wcatIcon.<class> CSS).
 const CAT_ICON: Record<string, any> = {
@@ -66,6 +70,9 @@ export default function PortalHome({
   todayValue,
   totalTaskCount,
 }: { [key: string]: any }) {
+  // Jump Lab (video jump testing) — self-contained, lazy-loaded on open.
+  const [jumpLabOpen, setJumpLabOpen] = useState(false);
+
   return (
                 <div
                   className="clientHomeGrid"
@@ -203,6 +210,30 @@ export default function PortalHome({
                         </section>
                       );
                     })()}
+
+                  {isClientPortal && portalHomeTab === "tasks" && (
+                    <button
+                      className="jlbCard"
+                      onClick={() => setJumpLabOpen(true)}
+                    >
+                      <Rocket size={20} aria-hidden="true" />
+                      <span className="jlbCardText">
+                        <strong>{t("jlbTitle")}</strong>
+                        <small>{t("jlbCard")}</small>
+                      </span>
+                      <span className="jlbCardChev">›</span>
+                    </button>
+                  )}
+
+                  {jumpLabOpen && (
+                    <Suspense fallback={null}>
+                      <JumpLabModal
+                        onClose={() => setJumpLabOpen(false)}
+                        selectedClient={selectedClient}
+                        t={t}
+                      />
+                    </Suspense>
+                  )}
 
                   {((isClientPortal && portalHomeTab === "tasks") ||
                     (!isClientPortal && coachDashTab === "activity")) && (
