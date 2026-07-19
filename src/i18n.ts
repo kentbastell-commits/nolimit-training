@@ -91,6 +91,8 @@ export const resources = {
         "Auto-marked (confidence {{conf}}%, {{count}} jump(s) found) — check both frames before saving.",
       jlbAutoFailed:
         "Couldn't auto-detect (moving camera or unclear footage) — mark the frames manually.",
+      jlbAutoNoContact:
+        "Drop pattern not found — takeoff/landing set; mark ground contact manually.",
       today: "Today",
       chooseDate: "Choose date",
       clientInformation: "Client Information",
@@ -343,6 +345,7 @@ export const resources = {
       jlbEdgeWarn: "⚠ 跳跃紧贴视频开头/结尾——请在跳跃前后各留一秒静止再拍摄。",
       jlbAutoDone: "已自动标记（置信度 {{conf}}%，检测到 {{count}} 次跳跃）——保存前请核对两帧。",
       jlbAutoFailed: "未能自动识别（镜头移动或画面不清晰），请手动标记。",
+      jlbAutoNoContact: "未识别到跳深模式——已标记起跳/落地，请手动标记触地。",
       today: "今天",
       chooseDate: "选择日期",
       clientInformation: "客户信息",

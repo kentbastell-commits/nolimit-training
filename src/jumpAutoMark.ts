@@ -97,6 +97,38 @@ export function detectFlights(
   return flights;
 }
 
+/**
+ * Drop-jump structure from a clip's flights: the drop off the box is one
+ * flight, the rebound jump another; the ground contact between them is what
+ * RSI needs. Picks the pair with the biggest rebound whose contact gap is
+ * physiologic; null when the clip doesn't contain a drop-jump pattern.
+ */
+export function pickDropJump(
+  flights: FlightDetection[],
+  opts: { minContactS?: number; maxContactS?: number } = {}
+): { contact: number; takeoff: number; landing: number } | null {
+  const minContact = opts.minContactS ?? 0.04;
+  const maxContact = opts.maxContactS ?? 4; // generous: slow-mo stretches it
+  const ordered = [...flights].sort((a, b) => a.takeoff - b.takeoff);
+  let best: { contact: number; takeoff: number; landing: number; score: number } | null =
+    null;
+  for (let i = 0; i < ordered.length - 1; i++) {
+    const drop = ordered[i];
+    const rebound = ordered[i + 1];
+    const gap = rebound.takeoff - drop.landing;
+    if (gap < minContact || gap > maxContact) continue;
+    if (!best || rebound.flight > best.score) {
+      best = {
+        contact: drop.landing,
+        takeoff: rebound.takeoff,
+        landing: rebound.landing,
+        score: rebound.flight,
+      };
+    }
+  }
+  return best ? { contact: best.contact, takeoff: best.takeoff, landing: best.landing } : null;
+}
+
 /** Best (longest-flight) confident jump, or null. */
 export function detectFlight(
   samples: PoseSample[],

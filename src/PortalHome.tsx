@@ -79,7 +79,13 @@ export default function PortalHome({
                   onTouchStart={isClientPortal ? handleHomeTouchStart : undefined}
                   onTouchEnd={isClientPortal ? handleHomeTouchEnd : undefined}
                 >
-                  {isClientPortal && renderDailyCheckIn()}
+                  {/* Daily wellness is a coached-athlete tool — digital
+                      program buyers aren't monitored day to day. */}
+                  {isClientPortal &&
+                    /online coaching|in[-\s]?person/i.test(
+                      String(selectedClient?.clientType || "")
+                    ) &&
+                    renderDailyCheckIn()}
                   {isClientPortal && (
                     <div
                       className="portalHomeTabs"

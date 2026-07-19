@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
-import { detectFlight, detectFlights } from "../../../src/jumpAutoMark.ts";
+import { detectFlight, detectFlights, pickDropJump } from "../../../src/jumpAutoMark.ts";
 
 // Fixtures are real pose trajectories from Kent's 120fps slo-mo clips
 // (2026-07-19). Ground truth for the static clip was hand-labeled frame by
@@ -41,6 +41,30 @@ describe("jumpAutoMark.detectFlight", () => {
     const best = detectFlight(load("pose-3jumps-60fps"), { minFlightS: 0.3 })!;
     expect(best.flight).toBeGreaterThan(0.6);
     expect(best.flight).toBeLessThan(0.66);
+  });
+
+  it("pairs a drop flight with its rebound for RSI marks", () => {
+    const flights = [
+      { takeoff: 1.0, landing: 1.4, flight: 0.4, confidence: 1 }, // drop off box
+      { takeoff: 1.62, landing: 2.25, flight: 0.63, confidence: 1 }, // rebound
+      { takeoff: 6.0, landing: 6.5, flight: 0.5, confidence: 1 }, // unrelated hop
+    ];
+    const dj = pickDropJump(flights)!;
+    expect(dj.contact).toBe(1.4);
+    expect(dj.takeoff).toBe(1.62);
+    expect(dj.landing).toBe(2.25);
+  });
+
+  it("returns null for drop-jump pairing when no plausible contact gap exists", () => {
+    expect(
+      pickDropJump([{ takeoff: 1, landing: 1.5, flight: 0.5, confidence: 1 }])
+    ).toBeNull();
+    expect(
+      pickDropJump([
+        { takeoff: 1, landing: 1.5, flight: 0.5, confidence: 1 },
+        { takeoff: 8, landing: 8.6, flight: 0.6, confidence: 1 }, // 6.5s gap
+      ])
+    ).toBeNull();
   });
 
   it("returns null on insufficient data", () => {

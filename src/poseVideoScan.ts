@@ -54,6 +54,8 @@ export type AutoMarkResult = {
   landing: number;
   confidence: number;
   jumpsFound: number;
+  // Every confident flight at fine precision, for drop-jump pairing.
+  flights: Array<{ takeoff: number; landing: number; flight: number; confidence: number }>;
 };
 
 export async function autoDetectJump(
@@ -185,5 +187,6 @@ export async function autoDetectJump(
     landing: best.landing,
     confidence: best.confidence,
     jumpsFound: flights.length,
+    flights,
   };
 }

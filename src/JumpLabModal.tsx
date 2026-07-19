@@ -10,6 +10,7 @@ import PortalToApp from "./PortalToApp";
 import { jumpHeightCm, rsi, sayersPeakPowerW, round } from "./jumpMath";
 import { detectVideoFps } from "./videoMeta";
 import { autoDetectJump } from "./poseVideoScan";
+import { pickDropJump } from "./jumpAutoMark";
 
 type Mode = "cmj" | "dj";
 type MarkKey = "contact" | "takeoff" | "landing";
@@ -205,21 +206,29 @@ export default function JumpLabModal({
         setError(t("jlbAutoFailed"));
         return;
       }
-      setMarks((prev) => ({
-        ...prev,
-        takeoff: result.takeoff,
-        landing: result.landing,
-      }));
+      // Drop-jump mode: the drop flight + rebound flight bracket the ground
+      // contact - all three marks land automatically when the pattern exists.
+      const dj = mode === "dj" ? pickDropJump(result.flights) : null;
+      if (mode === "dj" && dj) {
+        setMarks({ contact: dj.contact, takeoff: dj.takeoff, landing: dj.landing });
+      } else {
+        setMarks((prev) => ({
+          ...prev,
+          takeoff: result.takeoff,
+          landing: result.landing,
+        }));
+      }
       const video = videoRef.current;
       if (video) {
         video.pause();
-        video.currentTime = result.takeoff;
+        video.currentTime = dj ? dj.contact : result.takeoff;
       }
       setAutoInfo(
-        t("jlbAutoDone", {
-          conf: Math.round(result.confidence * 100),
-          count: result.jumpsFound,
-        })
+        (mode === "dj" && !dj ? t("jlbAutoNoContact") + " " : "") +
+          t("jlbAutoDone", {
+            conf: Math.round(result.confidence * 100),
+            count: result.jumpsFound,
+          })
       );
     } catch {
       if (!closedRef.current) setError(t("jlbAutoFailed"));
