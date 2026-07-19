@@ -8,6 +8,7 @@
 import { useEffect, useRef, useState } from "react";
 import PortalToApp from "./PortalToApp";
 import { jumpHeightCm, rsi, sayersPeakPowerW, round } from "./jumpMath";
+import { detectVideoFps } from "./videoMeta";
 
 type Mode = "cmj" | "dj";
 type MarkKey = "contact" | "takeoff" | "landing";
@@ -38,6 +39,11 @@ export default function JumpLabModal({
   // 30fps timeline → every real second lasts 8 timeline seconds). The athlete
   // tells us the recording rate; timeline durations get divided by the factor.
   const [recordingFps, setRecordingFps] = useState(0); // 0 = normal video
+  // Encoded fps read from the file's container metadata. A genuine high-fps
+  // file (original slo-mo, not a baked export) configures itself: mediaTime
+  // is already real time, and the stepper can move one true frame at a time.
+  const [fileFps, setFileFps] = useState<number | null>(null);
+  const fileFpsRef = useRef<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [savedOk, setSavedOk] = useState(false);
   const [error, setError] = useState("");
@@ -53,6 +59,12 @@ export default function JumpLabModal({
       setMediaTime(meta.mediaTime);
       const samples = frameSamples.current;
       const last = samples[samples.length - 1];
+      // With a metadata-detected high-fps file, keep the parsed frame
+      // duration — presented-frame deltas only reflect the display refresh.
+      if (fileFpsRef.current && fileFpsRef.current >= 100) {
+        handle = (video as any).requestVideoFrameCallback(cb);
+        return;
+      }
       if (last !== undefined && meta.mediaTime > last) {
         samples.push(meta.mediaTime);
         if (samples.length >= 12) {
@@ -86,6 +98,19 @@ export default function JumpLabModal({
     setMarks({});
     setSavedOk(false);
     setError("");
+    setFileFps(null);
+    fileFpsRef.current = null;
+    setRecordingFps(0);
+    // Container metadata beats guessing: a genuine high-fps file announces
+    // itself and the analyzer configures automatically (baked 30fps slow-mo
+    // exports are indistinguishable from normal video — the one-tap fix
+    // under the results stays for those).
+    void detectVideoFps(file).then((fps) => {
+      if (fileRef.current !== file || !fps) return;
+      setFileFps(fps);
+      fileFpsRef.current = fps;
+      if (fps >= 100) setFrameDur(1 / fps);
+    });
     setVideoUrl((old) => {
       if (old) URL.revokeObjectURL(old);
       return URL.createObjectURL(file);
@@ -360,6 +385,11 @@ export default function JumpLabModal({
                   </div>
 
                   <div className="jlbSlowmo">
+                    {fileFps ? (
+                      <span className="jlbDetected">
+                        {t("jlbDetected", { fps: fileFps })}
+                      </span>
+                    ) : null}
                     <span>{t("jlbSlowmo")}</span>
                     <select
                       value={recordingFps}

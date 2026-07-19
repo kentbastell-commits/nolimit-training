@@ -15585,3 +15585,11 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   padding: 8px 10px;
   font-size: 13px;
 }
+
+.jlbDetected {
+  font-weight: 700;
+  color: var(--nl-text, #16181d);
+  background: var(--nl-soft, #eef0f2);
+  border-radius: 999px;
+  padding: 4px 10px;
+}
