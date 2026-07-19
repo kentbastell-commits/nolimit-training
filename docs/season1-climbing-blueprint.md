@@ -1,8 +1,15 @@
 # Season 1 climbing products — approved blueprint (PARKED, ready to build)
 
-Status 2026-07-19: design approved by Kent ("save it and we can revisit").
-Nothing created yet — old SKUs still live (and still empty of sessions).
-When resumed: follow "Execution" at the bottom.
+Status 2026-07-20 (overnight): **STEPS 1-3 EXECUTED — awaiting Kent's review.**
+All 6 products created on prod Feishu (publicStoreVisible=false, Draft):
+PR-5345 Climbing 1 / PR-5772 Climbing 2 / PR-9055 Climbing 3 / PR-7449
+Climbing 4 / PR-1442 Fingers / PR-1234 Shoulders. 128 sessions seeded
+(28+28+28+28+8+8), verified via programTemplates counts + workoutDetails
+spot-checks; seed idempotent (re-run: 0 to write); CN names/goals patched.
+Old SKUs untouched and still store-visible. REMAINING (needs Kent): review
+in builder -> flip publicStoreVisible + productStatus Active -> create new
+bundle "Climbing Season 1 – Complete (1-4)" ¥899 with the new PR ids ->
+delete old SKUs (PR-6665/1803/3206/7596/3061/2367).
 
 ## Decisions already made (Kent, 2026-07-18/19)
 
