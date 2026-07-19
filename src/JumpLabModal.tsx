@@ -524,6 +524,23 @@ export default function JumpLabModal({
                     )}
                   </div>
 
+                  {/* Baked slo-mo guard: a ~30fps file with a slow-mo factor
+                      selected means a re-encoded export whose speed RAMPS make
+                      any uniform factor wrong (the 31.2-vs-21.8 field bug). */}
+                  {fileFps !== null && fileFps <= 60 && recordingFps >= 100 ? (
+                    <p className="jlbError">{t("jlbBakedWarn")}</p>
+                  ) : null}
+                  {(() => {
+                    const dur = videoRef.current?.duration || 0;
+                    const nearEdge =
+                      dur > 0 &&
+                      ((marks.takeoff !== undefined && marks.takeoff < 0.4) ||
+                        (marks.landing !== undefined && marks.landing > dur - 0.4));
+                    return nearEdge ? (
+                      <p className="jlbError">{t("jlbEdgeWarn")}</p>
+                    ) : null;
+                  })()}
+
                   {marksComplete && !valid ? (
                     <div>
                       <p className="jlbError">

@@ -83,6 +83,10 @@ export const resources = {
       jlbAuto: "Auto-mark (AI)",
       jlbAutoScanning: "Analyzing… {{pct}}%",
       jlbAutoLoading: "Loading AI model (first use ~10MB)…",
+      jlbBakedWarn:
+        "⚠ This file is a re-encoded slow-mo (speed-ramped) — measurements on it are unreliable. Open the ORIGINAL clip from your Photos library instead.",
+      jlbEdgeWarn:
+        "⚠ The jump touches the very start/end of the clip — trim risk. Film with a second of stillness before and after the jump.",
       jlbAutoDone:
         "Auto-marked (confidence {{conf}}%, {{count}} jump(s) found) — check both frames before saving.",
       jlbAutoFailed:
@@ -334,6 +338,9 @@ export const resources = {
       jlbAuto: "AI 自动标记",
       jlbAutoScanning: "分析中… {{pct}}%",
       jlbAutoLoading: "AI 模型加载中（首次约 10MB）…",
+      jlbBakedWarn:
+        "⚠ 该文件是转码后的慢动作（含变速渐变），测量结果不可靠——请从相册选择原始慢动作文件。",
+      jlbEdgeWarn: "⚠ 跳跃紧贴视频开头/结尾——请在跳跃前后各留一秒静止再拍摄。",
       jlbAutoDone: "已自动标记（置信度 {{conf}}%，检测到 {{count}} 次跳跃）——保存前请核对两帧。",
       jlbAutoFailed: "未能自动识别（镜头移动或画面不清晰），请手动标记。",
       today: "今天",
