@@ -23,17 +23,17 @@ export type FlightDetection = {
   confidence: number; // 0..1
 };
 
-export function detectFlight(
+export function detectFlights(
   samples: PoseSample[],
   opts: { minFlightS?: number; maxFlightS?: number } = {}
-): FlightDetection | null {
+): FlightDetection[] {
   const minFlight = opts.minFlightS ?? 0.15;
   const maxFlight = opts.maxFlightS ?? 5;
 
   const valid = samples.filter(
     (s): s is PoseSample & { foot: number } => s.foot !== null && s.vis > 0.3
   );
-  if (valid.length < 30) return null;
+  if (valid.length < 30) return [];
 
   const win = 1.8;
   const baselineAt = (t: number): number => {
@@ -49,34 +49,60 @@ export function detectFlight(
   const noise = absd[Math.floor(absd.length * 0.6)] || 0.004;
   const threshold = Math.max(noise * 4, 0.02);
 
-  // Longest contiguous run above threshold.
-  let best: { start: number; end: number; len: number } | null = null;
+  // All contiguous runs above threshold (a clip may hold several jumps).
+  const runs: Array<{ start: number; end: number }> = [];
   let start = -1;
   for (let i = 0; i <= resid.length; i++) {
     const airborne = i < resid.length && resid[i].d > threshold;
     if (airborne && start < 0) start = i;
     if (!airborne && start >= 0) {
-      const len = resid[i - 1].t - resid[start].t;
-      if (!best || len > best.len) best = { start, end: i - 1, len };
+      runs.push({ start, end: i - 1 });
       start = -1;
     }
   }
-  if (!best) return null;
 
-  const takeoff = resid[best.start].t;
-  const landing = resid[best.end].t;
-  const flight = landing - takeoff;
-  if (flight < minFlight || flight > maxFlight) return null;
+  // Edge refinement: the raw threshold crossing fires AFTER true takeoff and
+  // BEFORE true landing (systematically short). Interpolating each edge at the
+  // HALF-threshold crossing cancels that against the plantar-flexion tail —
+  // calibrated 2026-07-19 against a MyJump-measured 60fps jump: 624ms vs
+  // MyJump's 633ms (47.8cm vs 49.2cm) where raw crossings read 584ms (41.7cm).
+  const half = threshold / 2;
+  const halfCross = (edge: number, dir: -1 | 1): number => {
+    let i = edge;
+    while (i + dir >= 0 && i + dir < resid.length && resid[i].d > half) i += dir;
+    const a = resid[i];
+    const b = resid[i - dir] ?? a;
+    if (b.d === a.d) return a.t;
+    return a.t + ((half - a.d) * (b.t - a.t)) / (b.d - a.d);
+  };
 
-  // Confidence: how far the flight dip clears the noise floor, and how much
-  // of the run actually stayed above threshold (a ragged run = camera junk).
-  const runSamples = resid.slice(best.start, best.end + 1);
-  const depth = Math.max(...runSamples.map((r) => r.d));
-  const clearance = Math.min(1, depth / (threshold * 3));
-  const solidity =
-    runSamples.filter((r) => r.d > threshold).length / runSamples.length;
-  const confidence = Math.round(clearance * solidity * 100) / 100;
-  if (confidence < 0.5) return null;
+  const flights: FlightDetection[] = [];
+  for (const run of runs) {
+    const takeoff = halfCross(run.start, -1);
+    const landing = halfCross(run.end, 1);
+    const flight = landing - takeoff;
+    if (flight < minFlight || flight > maxFlight) continue;
 
-  return { takeoff, landing, flight, confidence };
+    // Confidence: dip depth over noise + how solidly the run held threshold.
+    const runSamples = resid.slice(run.start, run.end + 1);
+    const depth = Math.max(...runSamples.map((r) => r.d));
+    const clearance = Math.min(1, depth / (threshold * 3));
+    const solidity =
+      runSamples.filter((r) => r.d > threshold).length / runSamples.length;
+    const confidence = Math.round(clearance * solidity * 100) / 100;
+    if (confidence < 0.5) continue;
+
+    flights.push({ takeoff, landing, flight, confidence });
+  }
+  return flights;
+}
+
+/** Best (longest-flight) confident jump, or null. */
+export function detectFlight(
+  samples: PoseSample[],
+  opts: { minFlightS?: number; maxFlightS?: number } = {}
+): FlightDetection | null {
+  const flights = detectFlights(samples, opts);
+  if (!flights.length) return null;
+  return flights.reduce((best, f) => (f.flight > best.flight ? f : best));
 }
