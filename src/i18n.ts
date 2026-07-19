@@ -80,6 +80,12 @@ export const resources = {
       jlbTreat240: "This looks like a slow-mo clip — treat as 240fps",
       jlbTreat120: "…or as 120fps",
       jlbDetected: "File: {{fps}}fps",
+      jlbAuto: "Auto-mark (AI)",
+      jlbAutoScanning: "Analyzing… {{pct}}%",
+      jlbAutoDone:
+        "Auto-marked (confidence {{conf}}%, {{count}} jump(s) found) — check both frames before saving.",
+      jlbAutoFailed:
+        "Couldn't auto-detect (moving camera or unclear footage) — mark the frames manually.",
       today: "Today",
       chooseDate: "Choose date",
       clientInformation: "Client Information",
@@ -324,6 +330,10 @@ export const resources = {
       jlbTreat240: "看起来是慢动作视频——按 240fps 处理",
       jlbTreat120: "…或按 120fps 处理",
       jlbDetected: "文件：{{fps}}fps",
+      jlbAuto: "AI 自动标记",
+      jlbAutoScanning: "分析中… {{pct}}%",
+      jlbAutoDone: "已自动标记（置信度 {{conf}}%，检测到 {{count}} 次跳跃）——保存前请核对两帧。",
+      jlbAutoFailed: "未能自动识别（镜头移动或画面不清晰），请手动标记。",
       today: "今天",
       chooseDate: "选择日期",
       clientInformation: "客户信息",

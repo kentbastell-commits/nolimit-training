@@ -15593,3 +15593,14 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   border-radius: 999px;
   padding: 4px 10px;
 }
+
+.jlbAutoBtn {
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+.jlbAutoInfo {
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: #3d7a46;
+}

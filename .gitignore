@@ -45,3 +45,6 @@ test-results/
 # Local data dumps (real client data — never commit)
 etl-data.json
 *.dump.json
+public/pose/
+jv-tmp/
+pose-series-*.json

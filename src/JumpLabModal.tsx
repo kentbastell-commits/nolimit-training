@@ -9,6 +9,7 @@ import { useEffect, useRef, useState } from "react";
 import PortalToApp from "./PortalToApp";
 import { jumpHeightCm, rsi, sayersPeakPowerW, round } from "./jumpMath";
 import { detectVideoFps } from "./videoMeta";
+import { autoDetectJump } from "./poseVideoScan";
 
 type Mode = "cmj" | "dj";
 type MarkKey = "contact" | "takeoff" | "landing";
@@ -47,6 +48,17 @@ export default function JumpLabModal({
   const [saving, setSaving] = useState(false);
   const [savedOk, setSavedOk] = useState(false);
   const [error, setError] = useState("");
+  // Auto-mark: in-browser pose scan; cancelled if the modal closes mid-run.
+  const [autoBusy, setAutoBusy] = useState(false);
+  const [autoPct, setAutoPct] = useState(0);
+  const [autoInfo, setAutoInfo] = useState("");
+  const closedRef = useRef(false);
+  useEffect(() => {
+    closedRef.current = false;
+    return () => {
+      closedRef.current = true;
+    };
+  }, []);
 
   // Track the presented frame's exact mediaTime (frame-precise, unlike
   // video.currentTime after a seek) and estimate the true frame duration
@@ -61,7 +73,7 @@ export default function JumpLabModal({
       const last = samples[samples.length - 1];
       // With a metadata-detected high-fps file, keep the parsed frame
       // duration — presented-frame deltas only reflect the display refresh.
-      if (fileFpsRef.current && fileFpsRef.current >= 100) {
+      if (fileFpsRef.current && fileFpsRef.current >= 24) {
         handle = (video as any).requestVideoFrameCallback(cb);
         return;
       }
@@ -109,7 +121,7 @@ export default function JumpLabModal({
       if (fileRef.current !== file || !fps) return;
       setFileFps(fps);
       fileFpsRef.current = fps;
-      if (fps >= 100) setFrameDur(1 / fps);
+      if (fps >= 24) setFrameDur(1 / fps);
     });
     setVideoUrl((old) => {
       if (old) URL.revokeObjectURL(old);
@@ -170,6 +182,46 @@ export default function JumpLabModal({
       /* metrics still save without the clip */
     }
     return "";
+  };
+
+  const runAutoMark = async () => {
+    if (autoBusy || !videoUrl) return;
+    setAutoBusy(true);
+    setAutoPct(0);
+    setAutoInfo("");
+    setError("");
+    try {
+      const result = await autoDetectJump(videoUrl, {
+        frameDur,
+        onProgress: setAutoPct,
+        cancelled: () => closedRef.current,
+      });
+      if (closedRef.current) return;
+      if (!result) {
+        setError(t("jlbAutoFailed"));
+        return;
+      }
+      setMarks((prev) => ({
+        ...prev,
+        takeoff: result.takeoff,
+        landing: result.landing,
+      }));
+      const video = videoRef.current;
+      if (video) {
+        video.pause();
+        video.currentTime = result.takeoff;
+      }
+      setAutoInfo(
+        t("jlbAutoDone", {
+          conf: Math.round(result.confidence * 100),
+          count: result.jumpsFound,
+        })
+      );
+    } catch {
+      if (!closedRef.current) setError(t("jlbAutoFailed"));
+    } finally {
+      setAutoBusy(false);
+    }
   };
 
   // Analyzer mode: hand the metrics back to the assigned-test modal.
@@ -403,6 +455,17 @@ export default function JumpLabModal({
                       <span className="rpnHint">×{round(slowFactor, 1)}</span>
                     ) : null}
                   </div>
+
+                  <button
+                    className="goldButton jlbAutoBtn"
+                    disabled={autoBusy || saving}
+                    onClick={runAutoMark}
+                  >
+                    {autoBusy
+                      ? t("jlbAutoScanning", { pct: autoPct })
+                      : `⚡ ${t("jlbAuto")}`}
+                  </button>
+                  {autoInfo ? <p className="jlbAutoInfo">{autoInfo}</p> : null}
 
                   <div className="jlbMarks">
                     {markButtons.map(({ key, label }) => (
