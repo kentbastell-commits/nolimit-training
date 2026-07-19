@@ -56,7 +56,7 @@ export const resources = {
       jlbModeDj: "Drop jump (RSI)",
       jlbPick: "Choose or film a jump video",
       jlbFilmTips:
-        "Side view, whole body + floor visible. Slow-mo (120/240fps) gives the most accurate result.",
+        "Side view, whole body + floor visible. Film in Slo-mo for the most accurate result — on iPhone: Settings → Camera → Record Slo-mo → 240fps.",
       jlbFrame: "frame",
       jlbMarkContact: "Mark ground contact",
       jlbMarkTakeoff: "Mark takeoff",
@@ -77,6 +77,8 @@ export const resources = {
       jlbSlowmo240: "Slow-mo 240fps",
       jlbImplausible:
         "Flight of {{ms}}ms is outside the plausible range (100–1200ms). Mark the exact frames the feet leave and touch the floor — and if this is a slow-mo clip, pick its recording rate above.",
+      jlbTreat240: "This looks like a slow-mo clip — treat as 240fps",
+      jlbTreat120: "…or as 120fps",
       today: "Today",
       chooseDate: "Choose date",
       clientInformation: "Client Information",
@@ -296,7 +298,8 @@ export const resources = {
       jlbModeCmj: "纵跳高度（CMJ）",
       jlbModeDj: "跳深（RSI）",
       jlbPick: "选择或拍摄跳跃视频",
-      jlbFilmTips: "侧面拍摄，全身与地面都要入镜。慢动作（120/240帧）结果最准确。",
+      jlbFilmTips:
+        "侧面拍摄，全身与地面都要入镜。用慢动作拍摄结果最准确——iPhone：设置 → 相机 → 录制慢动作 → 240 fps。",
       jlbFrame: "帧",
       jlbMarkContact: "标记触地",
       jlbMarkTakeoff: "标记起跳",
@@ -317,6 +320,8 @@ export const resources = {
       jlbSlowmo240: "慢动作 240fps",
       jlbImplausible:
         "腾空 {{ms}}ms 超出合理范围（100–1200ms）。请把标记精确到脚离地/落地的那一帧；如果是慢动作视频，请在上方选择拍摄帧率。",
+      jlbTreat240: "看起来是慢动作视频——按 240fps 处理",
+      jlbTreat120: "…或按 120fps 处理",
       today: "今天",
       chooseDate: "选择日期",
       clientInformation: "客户信息",

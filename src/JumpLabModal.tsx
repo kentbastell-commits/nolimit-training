@@ -426,11 +426,33 @@ export default function JumpLabModal({
                   </div>
 
                   {marksComplete && !valid ? (
-                    <p className="jlbError">
-                      {t("jlbImplausible", {
-                        ms: Math.round(flightS * 1000),
-                      })}
-                    </p>
+                    <div>
+                      <p className="jlbError">
+                        {t("jlbImplausible", {
+                          ms: Math.round(flightS * 1000),
+                        })}
+                      </p>
+                      {/* Too-long flight with no slow factor set = almost
+                          certainly a slow-mo clip left on "Normal". Offer
+                          the one-tap fix; 240 first (the iPhone default we
+                          recommend), 120 as the alternative. */}
+                      {slowFactor === 1 && flightS >= 1.2 ? (
+                        <div className="rpnChips">
+                          <button
+                            className="rpnChip"
+                            onClick={() => setRecordingFps(240)}
+                          >
+                            {t("jlbTreat240")}
+                          </button>
+                          <button
+                            className="rpnChip rpnChipGhost"
+                            onClick={() => setRecordingFps(120)}
+                          >
+                            {t("jlbTreat120")}
+                          </button>
+                        </div>
+                      ) : null}
+                    </div>
                   ) : null}
 
                   {error ? <p className="jlbError">{error}</p> : null}
