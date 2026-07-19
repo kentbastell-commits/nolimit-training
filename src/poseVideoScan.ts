@@ -10,6 +10,7 @@ type PoseInstance = {
   onResults: (cb: (r: any) => void) => void;
   initialize: () => Promise<void>;
   send: (i: { image: HTMLVideoElement }) => Promise<void>;
+  reset?: () => void;
 };
 
 declare global {
@@ -127,38 +128,62 @@ export async function autoDetectJump(
   const fineWindow = 0.7;
   const estimatedTotal = coarseTimes.length + Math.ceil((fineWindow * 4) / frameDur);
 
+  // The model is a TRACKER - it assumes temporal continuity. Reset before
+  // every pass so a previous run's (or the coarse pass's) leftover state
+  // can't corrupt landmarks; all scan sequences below are forward-in-time.
+  pose.reset?.();
   const coarse = await scan(coarseTimes, 0, estimatedTotal);
   const coarseFlights = detectFlights(coarse, {
     minFlightS: Math.max(0.2, coarseStep * 2),
   });
   if (!coarseFlights.length) return null;
-  const target = coarseFlights.reduce((a, b) => (b.flight > a.flight ? b : a));
 
+  // EVERY coarse candidate gets the fine pass (near-equal jumps would
+  // otherwise swap ranking on landmark noise between runs, making the
+  // result non-deterministic). Edge windows are merged into forward-ordered
+  // non-overlapping ranges so the tracker never sees time move backwards.
+  const rawRanges: Array<[number, number]> = [];
+  for (const flight of coarseFlights.slice(0, 5)) {
+    if (flight.landing - fineWindow <= flight.takeoff + fineWindow) {
+      rawRanges.push([
+        Math.max(0, flight.takeoff - fineWindow),
+        Math.min(duration, flight.landing + fineWindow),
+      ]);
+    } else {
+      rawRanges.push([Math.max(0, flight.takeoff - fineWindow), flight.takeoff + fineWindow]);
+      rawRanges.push([flight.landing - fineWindow, Math.min(duration, flight.landing + fineWindow)]);
+    }
+  }
+  rawRanges.sort((a, b) => a[0] - b[0]);
+  const ranges: Array<[number, number]> = [];
+  for (const r of rawRanges) {
+    const last = ranges[ranges.length - 1];
+    if (last && r[0] <= last[1]) last[1] = Math.max(last[1], r[1]);
+    else ranges.push([...r] as [number, number]);
+  }
   const fineTimes: number[] = [];
-  for (let t = Math.max(0, target.takeoff - fineWindow); t < Math.min(duration, target.takeoff + fineWindow); t += frameDur) fineTimes.push(t);
-  for (let t = Math.max(0, target.landing - fineWindow); t < Math.min(duration, target.landing + fineWindow); t += frameDur) fineTimes.push(t);
+  for (const [a, b] of ranges) for (let t = a; t < b; t += frameDur) fineTimes.push(t);
 
+  pose.reset?.();
   const fine = await scan(fineTimes, coarseTimes.length, estimatedTotal);
 
-  // Merge (fine samples win near-duplicates) and re-detect at full precision.
-  const merged = [...coarse, ...fine].sort((a, b) => a.t - b.t);
+  // Merge - fine samples replace coarse near-duplicates (they were measured
+  // with better temporal context), then re-detect at full precision.
+  const byTime = new Map<number, PoseSample>();
+  for (const sample of coarse) byTime.set(Math.round(sample.t * 1000), sample);
+  for (const sample of fine) byTime.set(Math.round(sample.t * 1000), sample);
+  const merged = [...byTime.values()].sort((a, b) => a.t - b.t);
   const flights = detectFlights(merged, { minFlightS: Math.max(0.15, frameDur * 4) });
   if (!flights.length) return null;
 
-  // The flight overlapping the coarse target (multi-jump clips keep their
-  // other jumps at coarse precision only).
-  const mid = (target.takeoff + target.landing) / 2;
-  const best = flights.reduce((a, b) =>
-    Math.abs((b.takeoff + b.landing) / 2 - mid) <
-    Math.abs((a.takeoff + a.landing) / 2 - mid)
-      ? b
-      : a
-  );
+  // All jumps now carry fine precision - the longest flight IS the athlete's
+  // best jump, and the choice is stable across runs.
+  const best = flights.reduce((a, b) => (b.flight > a.flight ? b : a));
   opts.onProgress?.(100);
   return {
     takeoff: best.takeoff,
     landing: best.landing,
     confidence: best.confidence,
-    jumpsFound: coarseFlights.length,
+    jumpsFound: flights.length,
   };
 }
