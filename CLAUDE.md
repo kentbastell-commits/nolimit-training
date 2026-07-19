@@ -227,6 +227,15 @@ data between them, never "borrow" a table ID across products.
     trip Feishu throttle (1254607) with no retry — `saveFullProgram` now retries
     failed sessions once after a 3s pause. Any bulk writer needs the same.
 
+36. **The test item named "…Time"** — `getTestInputMode` (App.tsx) switches an
+    item to the minutes/seconds distance-time inputs when its name/unit/metric
+    text contains time/duration/minute/second/distance/meter (and weight-reps
+    on 1rm/epley/…). Such items can't be auto-filled by programmatic answers
+    keyed on `testItemId`, and the all-items-required submit gate then blocks
+    the whole test. Rule: millisecond-style items are named "Flight (ms)" /
+    "Ground Contact (ms)", never "Flight Time"; check the descriptor list
+    before naming any new test item.
+
 ## Quality bar — checkable, per deliverable
 
 **Any shipped code change**
