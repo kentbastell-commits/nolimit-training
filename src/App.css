@@ -15556,3 +15556,32 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   width: 100%;
   margin-bottom: 14px;
 }
+
+/* Jump Lab on phones: the sheet itself scrolls (was clipped, burying the
+   footer); children keep natural height. */
+.rpnModal.jlbModal {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.rpnModal.jlbModal > * {
+  flex-shrink: 0;
+}
+
+.jlbSlowmo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  font-size: 13px;
+  color: var(--nl-muted, #7a8089);
+}
+
+.jlbSlowmo select {
+  border: 1px solid var(--nl-border, #dcdfe4);
+  background: var(--nl-soft, #f7f8f9);
+  color: var(--nl-text, #16181d);
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-size: 13px;
+}

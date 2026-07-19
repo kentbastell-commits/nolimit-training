@@ -34,6 +34,10 @@ export default function JumpLabModal({
   const [frameDur, setFrameDur] = useState(1 / 30);
   const frameSamples = useRef<number[]>([]);
   const [bodyMass, setBodyMass] = useState("");
+  // Slow-mo handling: phone slow-mo exports are STRETCHED (240fps recorded,
+  // 30fps timeline → every real second lasts 8 timeline seconds). The athlete
+  // tells us the recording rate; timeline durations get divided by the factor.
+  const [recordingFps, setRecordingFps] = useState(0); // 0 = normal video
   const [saving, setSaving] = useState(false);
   const [savedOk, setSavedOk] = useState(false);
   const [error, setError] = useState("");
@@ -101,14 +105,21 @@ export default function JumpLabModal({
   const setMark = (key: MarkKey) =>
     setMarks((prev) => ({ ...prev, [key]: mediaTime }));
 
+  const playbackFps = 1 / frameDur;
+  const slowFactor =
+    recordingFps > playbackFps + 5 ? recordingFps / playbackFps : 1;
   const flightS =
     marks.takeoff !== undefined && marks.landing !== undefined
-      ? marks.landing - marks.takeoff
+      ? (marks.landing - marks.takeoff) / slowFactor
       : 0;
   const contactS =
     mode === "dj" && marks.contact !== undefined && marks.takeoff !== undefined
-      ? marks.takeoff - marks.contact
+      ? (marks.takeoff - marks.contact) / slowFactor
       : 0;
+  const marksComplete =
+    marks.takeoff !== undefined &&
+    marks.landing !== undefined &&
+    (mode === "cmj" || marks.contact !== undefined);
   const valid =
     flightS > 0.1 && flightS < 1.2 && (mode === "cmj" || (contactS > 0.05 && contactS < 1.5));
   const heightCm = valid ? round(jumpHeightCm(flightS)) : 0;
@@ -348,6 +359,21 @@ export default function JumpLabModal({
                     </button>
                   </div>
 
+                  <div className="jlbSlowmo">
+                    <span>{t("jlbSlowmo")}</span>
+                    <select
+                      value={recordingFps}
+                      onChange={(event) => setRecordingFps(Number(event.target.value))}
+                    >
+                      <option value={0}>{t("jlbSlowmoNormal")}</option>
+                      <option value={120}>{t("jlbSlowmo120")}</option>
+                      <option value={240}>{t("jlbSlowmo240")}</option>
+                    </select>
+                    {slowFactor > 1 ? (
+                      <span className="rpnHint">×{round(slowFactor, 1)}</span>
+                    ) : null}
+                  </div>
+
                   <div className="jlbMarks">
                     {markButtons.map(({ key, label }) => (
                       <button
@@ -398,6 +424,14 @@ export default function JumpLabModal({
                       </span>
                     )}
                   </div>
+
+                  {marksComplete && !valid ? (
+                    <p className="jlbError">
+                      {t("jlbImplausible", {
+                        ms: Math.round(flightS * 1000),
+                      })}
+                    </p>
+                  ) : null}
 
                   {error ? <p className="jlbError">{error}</p> : null}
 
