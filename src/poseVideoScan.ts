@@ -32,8 +32,10 @@ async function getPose(): Promise<PoseInstance> {
     });
   }
   const pose = new window.Pose!({ locateFile: (f: string) => `/pose/${f}` });
+  // Lite model: ~3x faster per frame on phones; foot-trajectory accuracy is
+  // what matters here and the crossing detector's noise threshold adapts.
   pose.setOptions({
-    modelComplexity: 1,
+    modelComplexity: 0,
     smoothLandmarks: false,
     minDetectionConfidence: 0.4,
     minTrackingConfidence: 0.4,
@@ -58,10 +60,13 @@ export async function autoDetectJump(
   opts: {
     frameDur: number;
     onProgress?: (pct: number) => void;
+    onStatus?: (status: "model" | "scan") => void;
     cancelled?: () => boolean;
   }
 ): Promise<AutoMarkResult | null> {
+  opts.onStatus?.("model");
   const pose = await getPose();
+  opts.onStatus?.("scan");
 
   const video = document.createElement("video");
   video.src = videoUrl;
@@ -75,7 +80,18 @@ export async function autoDetectJump(
   if (!Number.isFinite(duration) || duration < 1) return null;
 
   const frameDur = Math.min(Math.max(opts.frameDur || 1 / 30, 1 / 240), 1 / 10);
-  const coarseStep = Math.max(frameDur * 3, 1 / 15);
+  // Cap the coarse pass at ~110 frames so long clips don't take minutes on a
+  // phone; flights shorter than ~4 coarse steps are caught by the fine pass.
+  const coarseStep = Math.max(frameDur * 3, 1 / 15, duration / 110);
+
+  // Inference input: downscaled offscreen canvas. MediaPipe resizes to
+  // 256x256 internally - shipping 1080p frames across the JS/wasm boundary
+  // just burns phone CPU.
+  const scale = 384 / Math.max(video.videoWidth, video.videoHeight);
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(64, Math.round(video.videoWidth * Math.min(1, scale)));
+  canvas.height = Math.max(64, Math.round(video.videoHeight * Math.min(1, scale)));
+  const cx = canvas.getContext("2d")!;
 
   const coarseTimes: number[] = [];
   for (let t = 0; t < duration; t += coarseStep) coarseTimes.push(t);
@@ -86,9 +102,10 @@ export async function autoDetectJump(
       if (opts.cancelled?.()) throw new Error("cancelled");
       video.currentTime = times[i];
       await new Promise<void>((resolve) => (video.onseeked = () => resolve()));
+      cx.drawImage(video, 0, 0, canvas.width, canvas.height);
       const results: any = await new Promise((resolve) => {
         window.__nlPoseResolve = resolve;
-        void pose.send({ image: video });
+        void pose.send({ image: canvas as unknown as HTMLVideoElement });
       });
       window.__nlPoseResolve = null;
       const lm = results?.poseLandmarks;
@@ -112,7 +129,7 @@ export async function autoDetectJump(
 
   const coarse = await scan(coarseTimes, 0, estimatedTotal);
   const coarseFlights = detectFlights(coarse, {
-    minFlightS: Math.max(0.25, coarseStep * 4),
+    minFlightS: Math.max(0.2, coarseStep * 2),
   });
   if (!coarseFlights.length) return null;
   const target = coarseFlights.reduce((a, b) => (b.flight > a.flight ? b : a));

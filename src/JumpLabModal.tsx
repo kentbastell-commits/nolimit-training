@@ -194,6 +194,10 @@ export default function JumpLabModal({
       const result = await autoDetectJump(videoUrl, {
         frameDur,
         onProgress: setAutoPct,
+        onStatus: (status) => {
+          if (status === "model") setAutoPct(-1);
+          else setAutoPct(0);
+        },
         cancelled: () => closedRef.current,
       });
       if (closedRef.current) return;
@@ -462,7 +466,9 @@ export default function JumpLabModal({
                     onClick={runAutoMark}
                   >
                     {autoBusy
-                      ? t("jlbAutoScanning", { pct: autoPct })
+                      ? autoPct < 0
+                        ? t("jlbAutoLoading")
+                        : t("jlbAutoScanning", { pct: autoPct })
                       : `⚡ ${t("jlbAuto")}`}
                   </button>
                   {autoInfo ? <p className="jlbAutoInfo">{autoInfo}</p> : null}

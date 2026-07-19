@@ -82,6 +82,7 @@ export const resources = {
       jlbDetected: "File: {{fps}}fps",
       jlbAuto: "Auto-mark (AI)",
       jlbAutoScanning: "Analyzing… {{pct}}%",
+      jlbAutoLoading: "Loading AI model (first use ~10MB)…",
       jlbAutoDone:
         "Auto-marked (confidence {{conf}}%, {{count}} jump(s) found) — check both frames before saving.",
       jlbAutoFailed:
@@ -332,6 +333,7 @@ export const resources = {
       jlbDetected: "文件：{{fps}}fps",
       jlbAuto: "AI 自动标记",
       jlbAutoScanning: "分析中… {{pct}}%",
+      jlbAutoLoading: "AI 模型加载中（首次约 10MB）…",
       jlbAutoDone: "已自动标记（置信度 {{conf}}%，检测到 {{count}} 次跳跃）——保存前请核对两帧。",
       jlbAutoFailed: "未能自动识别（镜头移动或画面不清晰），请手动标记。",
       today: "今天",
