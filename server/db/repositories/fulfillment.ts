@@ -108,19 +108,19 @@ export async function activateDigitalOrder(
   // supplies identities, never amounts. Applies to the main program price;
   // add-ons stay full price (v1).
   try {
-    const { referralQuote } = await import("./referrals.ts");
+    const { referralQuote, priceWithReferral } = await import("./referrals.ts");
     const quote = await referralQuote({
       buyerCode: input.buyerClientCode,
       referrerCode: input.referrerCode,
     });
-    if (quote.discountPct > 0) {
-      // Always stamp the metadata (earn tracking works even for programs
-      // without a listed price); reprice only when the price is known.
+    if (quote.friendPct > 0 || quote.creditAvailable > 0) {
+      // Stamp the referrer even for unpriced programs (earn tracking);
+      // credit spends only where a price is known to compute against.
       input = {
         ...input,
         referralMeta: {
-          referrerCode: quote.friendUnit ? String(input.referrerCode).trim() : "",
-          rewardsUsed: quote.rewardUnits,
+          referrerCode: quote.friendPct ? String(input.referrerCode).trim() : "",
+          rewardsUsed: 0,
         },
       };
       const { listPrograms } = await import("./programs.ts");
@@ -131,9 +131,14 @@ export async function activateDigitalOrder(
       );
       const price = Number(program?.price);
       if (Number.isFinite(price) && price > 0) {
+        const priced = priceWithReferral(price, quote);
         input = {
           ...input,
-          amount: Math.round(price * (1 - quote.discountPct / 100)),
+          amount: priced.discounted,
+          referralMeta: {
+            referrerCode: quote.friendPct ? String(input.referrerCode).trim() : "",
+            rewardsUsed: priced.creditUsed,
+          },
         };
       }
     }
