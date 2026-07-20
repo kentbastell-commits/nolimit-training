@@ -235,6 +235,15 @@ data between them, never "borrow" a table ID across products.
     the whole test. Rule: millisecond-style items are named "Flight (ms)" /
     "Ground Contact (ms)", never "Flight Time"; check the descriptor list
     before naming any new test item.
+37. **The split-identity spender** — a ledger derived from orders (referral
+    credit: earned minus spent) silently double-spends when the spending order
+    is attributed to a different identity than the wallet owner: store checkout
+    deduped clients by TYPED PHONE only, so a logged-in rebuy minted a fresh
+    CL- code and the credit-consuming order was invisible to the spent lookup.
+    Rule: any flow with a known logged-in identity (`buyerClientCode`) attaches
+    writes to THAT record first, form fields second; and any balance computed
+    as earned−spent must be E2E-tested with a spend followed by a re-quote
+    (balance must visibly drop), not just a successful write.
 
 ## Quality bar — checkable, per deliverable
 
