@@ -83,6 +83,44 @@ export async function listProgramTemplates(
     );
 }
 
+export type BulkSessionInput = Omit<
+  CreateWorkoutTemplateInput,
+  "programId" | "programRecordId"
+>;
+
+export type CreateWorkoutTemplatesBulkInput = {
+  programId: string;
+  programRecordId: string;
+  sessions: BulkSessionInput[];
+};
+
+// Whole-program save in one call — the fast path for the builder (the Feishu
+// impl collapses N×3 round-trips into ~3). Same cache-invalidation contract as
+// the single-session write below.
+export async function createWorkoutTemplatesBulk(
+  input: CreateWorkoutTemplatesBulkInput
+): Promise<HandlerResult> {
+  const result =
+    DATA_BACKEND === "postgres"
+      ? await (await import("../pg/programTemplates.ts")).createWorkoutTemplatesBulk(input)
+      : await feishu.createWorkoutTemplatesBulk(input);
+
+  if (result.status === 200) {
+    invalidateCache("workoutTemplatesRaw");
+    invalidateCache("programs");
+    const typeMap = getCached<Record<string, string>>("programSessionTypes");
+    if (typeMap && input.sessions.length > 0) {
+      // Last session's type wins for the program-level map (matches how the
+      // single-write patch keys by program code + record id).
+      const type = String(input.sessions[input.sessions.length - 1].sessionType || "Strength");
+      if (input.programId) typeMap[input.programId] = type;
+      if (input.programRecordId) typeMap[input.programRecordId] = type;
+      setCached("programSessionTypes", typeMap, 30 * 60 * 1000);
+    }
+  }
+  return result;
+}
+
 export async function createWorkoutTemplate(
   input: CreateWorkoutTemplateInput
 ): Promise<HandlerResult> {

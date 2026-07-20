@@ -251,3 +251,166 @@ export async function createWorkoutTemplate(
     },
   };
 }
+
+// Bulk (whole-program) save — Postgres. pg writes are local/fast so this just
+// aggregates every session's rows into 3 inserts (templates, set-prescriptions,
+// alternates). Same per-row semantics as createWorkoutTemplate above.
+export async function createWorkoutTemplatesBulk(input: {
+  programId: string;
+  programRecordId: string;
+  sessions: Array<Omit<CreateWorkoutTemplateInput, "programId" | "programRecordId">>;
+}): Promise<HandlerResult> {
+  const { programRecordId, sessions } = input;
+
+  const allExercises = sessions.flatMap((s) => s.exercises);
+  const codes = Array.from(
+    new Set(
+      allExercises
+        .flatMap((e: ProgramExerciseInput) => [e.exerciseRecordId, e.exerciseId])
+        .filter(Boolean)
+        .map(String)
+    )
+  );
+  const known = new Set(
+    codes.length
+      ? (
+          await db
+            .select({ id: exercises.exerciseId })
+            .from(exercises)
+            .where(inArray(exercises.exerciseId, codes))
+        ).map((r) => r.id)
+      : []
+  );
+
+  const metas: ParsedMeta[] = [];
+  const templateRows: Insert[] = [];
+  for (const session of sessions) {
+    session.exercises.forEach((exercise: ProgramExerciseInput, index: number) => {
+      const exerciseLinkId =
+        (exercise.exerciseRecordId && known.has(String(exercise.exerciseRecordId))
+          ? String(exercise.exerciseRecordId)
+          : "") ||
+        (exercise.exerciseId && known.has(String(exercise.exerciseId))
+          ? String(exercise.exerciseId)
+          : "");
+      if (!exerciseLinkId) {
+        throw new Error(`Exercise not found in Exercise Library: ${exercise.exerciseId}`);
+      }
+      const meta = parseTemplateMeta(exercise.coachingNotes || "");
+      metas.push(meta);
+      const durationNumber = Number(session.estimatedDuration);
+      templateRows.push({
+        templateId: mintId("WT"),
+        programId: programRecordId,
+        exerciseId: exerciseLinkId,
+        week: Number(session.week),
+        day: Number(session.day),
+        sessionName: session.sessionName,
+        sessionNameCn: String(session.sessionNameCn || ""),
+        sessionType: String(session.sessionType || "Strength"),
+        sessionGoal: String(session.sessionGoal || ""),
+        intensity: String(session.intensity || "Moderate"),
+        isSingleWorkout: Boolean(session.isSingleWorkout),
+        exerciseName: exercise.exerciseName || "",
+        exerciseOrder: Number(exercise.order) || index + 1,
+        sets: Number(exercise.sets) || 1,
+        reps: String(exercise.reps || ""),
+        tempo: String(exercise.tempo || ""),
+        rest: String(exercise.rest || ""),
+        coachingNotes: String(exercise.coachingNotes || ""),
+        status: String(exercise.status || "Active"),
+        isUnilateral: meta.isUnilateral,
+        isAccessory: meta.isAccessory,
+        sectionName: meta.sectionName || null,
+        exerciseLabel: meta.exerciseLabel || null,
+        groupType: meta.groupType || null,
+        groupName: meta.groupName || null,
+        trackingType: meta.trackingType || null,
+        accessoryParent: meta.accessoryParent || null,
+        accessoryColor: meta.accessoryColor || null,
+        estimatedDuration:
+          Number.isFinite(durationNumber) && durationNumber > 0
+            ? Math.round(durationNumber)
+            : null,
+      });
+    });
+  }
+
+  if (templateRows.length === 0) {
+    return { status: 200, body: { success: true, recordsCreated: 0, sessionsSaved: 0, childWrites: {} } };
+  }
+
+  try {
+    await db.insert(workoutTemplates).values(templateRows);
+  } catch (e: any) {
+    return {
+      status: 500,
+      body: {
+        error: "Failed to create workout template records",
+        message: e?.message || String(e),
+      },
+    };
+  }
+
+  const setRows: (typeof setPrescriptions.$inferInsert)[] = [];
+  const altRows: (typeof exerciseAlternates.$inferInsert)[] = [];
+  templateRows.forEach((row, index) => {
+    const meta = metas[index];
+    if (!meta) return;
+    meta.setPrescriptions.forEach((set) => {
+      const rest = toNum(set.rest);
+      setRows.push({
+        prescriptionId: mintId("SP"),
+        templateId: row.templateId,
+        setNumber: set.setNumber,
+        reps: set.reps || null,
+        load: set.load || null,
+        intensityValue: set.intensityValue || null,
+        tempo: set.tempo || null,
+        intensityMode: set.intensityMode || null,
+        percent: toNum(set.percent) ?? null,
+        percentMas: toNum(set.percentMas) ?? null,
+        rest: rest === undefined ? null : String(rest),
+      });
+    });
+    meta.alternates.forEach((alt) => {
+      const altCode =
+        (alt.exerciseRecordId && known.has(alt.exerciseRecordId) ? alt.exerciseRecordId : "") ||
+        (alt.exerciseId && known.has(alt.exerciseId) ? alt.exerciseId : "");
+      altRows.push({
+        alternateId: mintId("ALT"),
+        templateId: row.templateId,
+        exerciseName: alt.exerciseName || null,
+        exerciseId: altCode || null,
+      });
+    });
+  });
+
+  const childWrites: Record<string, any> = {};
+  if (setRows.length > 0) {
+    try {
+      await db.insert(setPrescriptions).values(setRows);
+      childWrites.setPrescriptions = { created: setRows.length, errors: [] };
+    } catch (e: any) {
+      childWrites.setPrescriptions = { created: 0, errors: [{ message: e?.message || String(e) }] };
+    }
+  }
+  if (altRows.length > 0) {
+    try {
+      await db.insert(exerciseAlternates).values(altRows);
+      childWrites.alternates = { created: altRows.length, errors: [] };
+    } catch (e: any) {
+      childWrites.alternates = { created: 0, errors: [{ message: e?.message || String(e) }] };
+    }
+  }
+
+  return {
+    status: 200,
+    body: {
+      success: true,
+      recordsCreated: templateRows.length,
+      sessionsSaved: sessions.length,
+      childWrites,
+    },
+  };
+}

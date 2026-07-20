@@ -10257,9 +10257,56 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       let sessionsDone = 0;
       setSaveProgress({ done: 0, total: sessionsToSave.length });
 
-      // Save one session (its exercises → template rows). Never throws — a
-      // network/timeout error becomes ok:false so the retry path (not the
-      // whole-save catch) handles it, and one bad session can't sink the batch.
+      // Fast path: save the WHOLE program in one bulk call — the server
+      // collapses N×3 Feishu round-trips into ~3. It rolls back atomically on
+      // failure, so on any error we cleanly fall back to the per-session loop
+      // below with no risk of duplicate rows.
+      let bulkOk = false;
+      try {
+        const bulkRes = await fetchWithTimeout(
+          "/api/createWorkoutTemplatesBulk",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              programId: programData.programId,
+              programRecordId: programData.programRecordId,
+              sessions: sessionsToSave.map((session) => ({
+                week: Number(session.week),
+                day: Number(session.day),
+                sessionName: session.sessionName,
+                sessionNameCn: session.sessionNameCn || "",
+                sessionType: session.sessionType,
+                sessionGoal: session.sessionGoal,
+                estimatedDuration: session.estimatedDuration,
+                intensity: session.intensity,
+                isSingleWorkout: session.isSingleWorkout,
+                exercises: session.exercises.map((exercise, index) => ({
+                  ...exercise,
+                  order: Number(exercise.order) || index + 1,
+                  sets: Number(exercise.sets) || 1,
+                  coachingNotes: buildExerciseCoachingNotes(exercise),
+                  status: "Active",
+                })),
+              })),
+            }),
+          },
+          120000
+        );
+        const bulkData = await bulkRes.json();
+        if (bulkRes.ok && bulkData.success) {
+          bulkOk = true;
+          totalRecordsCreated = Number(bulkData.recordsCreated || 0);
+          setSaveProgress({ done: sessionsToSave.length, total: sessionsToSave.length });
+        }
+      } catch {
+        /* bulk timed out / errored — fall through to the per-session path */
+      }
+
+      // Per-session fallback. Save one session (its exercises → template rows).
+      // Never throws — a network/timeout error becomes ok:false so the retry
+      // path (not the whole-save catch) handles it, and one bad session can't
+      // sink the batch.
       const saveOneSession = async (session: ProgramSession) => {
         try {
           const templateResponse = await fetchWithTimeout(
@@ -10310,6 +10357,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       };
 
       // Save sessions in parallel (bounded) instead of one-at-a-time.
+      if (!bulkOk) {
       let saveResults = await mapWithConcurrency(sessionsToSave, 6, saveOneSession);
 
       // Retry transient failures once. A heavy save (many sessions) can trip a
@@ -10338,6 +10386,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
         (sum, r) => sum + r.recordsCreated,
         0
       );
+      }
 
       // In-place edit: the new sessions are written, so remove the old ones.
       if (inPlaceEdit && oldTemplateRecordIds.length > 0) {

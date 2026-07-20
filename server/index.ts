@@ -88,6 +88,7 @@ import createClient from "../api/createClient.ts";
 import createProductOrder from "../api/createProductOrder.ts";
 import createProgram from "../api/createProgram.ts";
 import createWorkoutTemplate from "../api/createWorkoutTemplate.ts";
+import createWorkoutTemplatesBulk from "../api/createWorkoutTemplatesBulk.ts";
 import deleteRecord from "../api/deleteRecord.ts";
 import duplicateAssignedWorkout from "../api/duplicateAssignedWorkout.ts";
 import duplicateProgram from "../api/duplicateProgram.ts";
@@ -231,6 +232,7 @@ const handlers = {
   createProductOrder,
   createProgram,
   createWorkoutTemplate,
+  createWorkoutTemplatesBulk,
   deleteRecord,
   duplicateAssignedWorkout,
   duplicateProgram,

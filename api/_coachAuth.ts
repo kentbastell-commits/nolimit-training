@@ -27,6 +27,7 @@ export const COACH_ONLY_HANDLERS = new Set([
   "createProductOrder",
   "createProgram",
   "createWorkoutTemplate",
+  "createWorkoutTemplatesBulk",
   "deleteRecord",
   "duplicateAssignedWorkout",
   "duplicateProgram",
