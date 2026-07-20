@@ -19,6 +19,7 @@ export async function listCoaches(): Promise<CoachDTO[]> {
       role: r.role || "Coach",
       status: r.status || "Active",
       bio: str(r.bio),
+      qrCodeUrl: str(r.qrCodeUrl),
       createdAt: epochToDate(r.createdAt),
     })
   );
@@ -47,6 +48,7 @@ export async function upsertCoach(i: UpsertCoachInput): Promise<WriteResult> {
     role: i.role || "Coach",
     status: i.status || "Active",
     bio: i.bio || "",
+    qrCodeUrl: i.qrCodeUrl || "",
   };
 
   if (i.recordId) {

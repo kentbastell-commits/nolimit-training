@@ -123,6 +123,7 @@ export type Coach = {
   role: "Admin" | "Coach" | string;
   status: "Active" | "Inactive" | string;
   bio?: string;
+  qrCodeUrl?: string;
   createdAt?: string;
 };
 

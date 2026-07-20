@@ -18,6 +18,7 @@ export async function listCoaches(): Promise<CoachDTO[]> {
         fieldText(fields["Phone"]) ||
         fieldText(fields["Wechat"]);
       const bio = fieldText(fields["Bio"]);
+      const qrCodeUrl = fieldText(fields["QR Code URL"]);
       return {
         recordId: item.record_id,
         coachId: coachId || item.record_id,
@@ -27,6 +28,7 @@ export async function listCoaches(): Promise<CoachDTO[]> {
         role: fieldText(fields["Role"]) || "Coach",
         status: fieldText(fields["Status"]) || "Active",
         bio,
+        qrCodeUrl,
         createdAt: formatDate(fields["Created At"]),
         hasRealData: Boolean(name || coachId || email || phoneWechat || bio),
       };
@@ -105,7 +107,8 @@ function filterExistingFields(
 
 export async function upsertCoach(input: UpsertCoachInput): Promise<WriteResult> {
   const tableId = process.env.FEISHU_COACHES_TABLE_ID || "tblzFeZwc4Zby2cr";
-  const { recordId, coachId, name, email, phoneWechat, role, status, bio } = input;
+  const { recordId, coachId, name, email, phoneWechat, role, status, bio, qrCodeUrl } =
+    input;
 
   const token = await getTenantToken();
   const availableFields = await getCoachFieldNames(tableId, token);
@@ -117,6 +120,7 @@ export async function upsertCoach(input: UpsertCoachInput): Promise<WriteResult>
     Role: role || "Coach",
     Status: status || "Active",
     Bio: bio || "",
+    "QR Code URL": qrCodeUrl || "",
   };
   const { existingFields, omittedFields } = filterExistingFields(fields, availableFields);
 

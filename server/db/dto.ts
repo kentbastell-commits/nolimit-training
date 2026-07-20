@@ -85,6 +85,7 @@ export type CoachDTO = {
   role: string;
   status: string;
   bio: string;
+  qrCodeUrl: string;
   createdAt: string;
 };
 

@@ -4,8 +4,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import "./CoachesAdminPage.css";
 import { X } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { coachRoleLabel } from "./appCore";
+
+const MAX_QR_UPLOAD_MB = 8;
 
 const initialsOf = (name: string) =>
   String(name || "")
@@ -45,6 +47,48 @@ export default function CoachEditModal(props: { [key: string]: any }) {
   const active = (coachForm.status || "Active") === "Active";
 
   const set = (k: string, v: string) => setCoachForm({ ...coachForm, [k]: v });
+
+  const [qrUploading, setQrUploading] = useState(false);
+  const [qrError, setQrError] = useState("");
+  const qrFileRef = useRef<HTMLInputElement>(null);
+
+  const handleQrPick = (e: any) => {
+    const file: File | undefined = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setQrError("");
+    const mb = file.size / (1024 * 1024);
+    if (mb > MAX_QR_UPLOAD_MB) {
+      setQrError(`That image is ${mb.toFixed(1)} MB — please keep it under ${MAX_QR_UPLOAD_MB} MB.`);
+      return;
+    }
+    setQrUploading(true);
+    const xhr = new XMLHttpRequest();
+    xhr.open(
+      "POST",
+      `/api/uploadFormVideoFile?kind=coach&name=${encodeURIComponent(file.name)}`
+    );
+    xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
+    xhr.onload = () => {
+      setQrUploading(false);
+      let data: any = {};
+      try {
+        data = JSON.parse(xhr.responseText);
+      } catch {
+        /* non-JSON */
+      }
+      if (xhr.status === 200 && data.url) {
+        set("qrCodeUrl", data.url);
+      } else {
+        setQrError("Upload failed — try again.");
+      }
+    };
+    xhr.onerror = () => {
+      setQrUploading(false);
+      setQrError("Upload failed — try again.");
+    };
+    xhr.send(file);
+  };
 
   useEffect(() => {
     const closeOnEscape = (event: KeyboardEvent) => {
@@ -159,6 +203,49 @@ export default function CoachEditModal(props: { [key: string]: any }) {
                 onChange={(e) => set("bio", e.target.value)}
                 placeholder="Specialty, schedule, internal notes…"
               />
+            </label>
+            <label className="capFormFull">
+              <span>WeCom "add me" QR code</span>
+              <div className="capQrRow">
+                {coachForm.qrCodeUrl ? (
+                  <img className="capQrPreview" src={coachForm.qrCodeUrl} alt="" />
+                ) : null}
+                <div className="capQrActions">
+                  <input
+                    ref={qrFileRef}
+                    type="file"
+                    accept="image/*"
+                    style={{ display: "none" }}
+                    onChange={handleQrPick}
+                  />
+                  <button
+                    type="button"
+                    className="capFootBtn"
+                    disabled={qrUploading}
+                    onClick={() => qrFileRef.current?.click()}
+                  >
+                    {qrUploading
+                      ? "Uploading…"
+                      : coachForm.qrCodeUrl
+                      ? "Replace image"
+                      : "Upload QR code"}
+                  </button>
+                  {coachForm.qrCodeUrl ? (
+                    <button
+                      type="button"
+                      className="capFootBtn"
+                      onClick={() => set("qrCodeUrl", "")}
+                    >
+                      Remove
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+              {qrError ? <div className="capQrError">{qrError}</div> : null}
+              <div className="capFieldHint">
+                From the WeCom app: 工作台 → 客户 → 加客户 → 我的二维码. Shown to
+                the athlete as "message your coach" — never displayed as raw text.
+              </div>
             </label>
           </div>
 

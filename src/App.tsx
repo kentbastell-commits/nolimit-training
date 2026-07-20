@@ -370,6 +370,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     role: "Coach",
     status: "Active",
     bio: "",
+    qrCodeUrl: "",
   });
   const [clientSearch, setClientSearch] = useState("");
   const [clientStatusFilter, setClientStatusFilter] = useState("All");
@@ -2222,6 +2223,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       role: "Coach",
       status: "Active",
       bio: "",
+      qrCodeUrl: "",
     });
   };
 
@@ -2235,6 +2237,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       role: coach?.role || "Coach",
       status: coach?.status || "Active",
       bio: coach?.bio || "",
+      qrCodeUrl: coach?.qrCodeUrl || "",
     });
     setShowCoachModal(true);
   };

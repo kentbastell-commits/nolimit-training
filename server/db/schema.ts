@@ -41,6 +41,9 @@ export const coaches = pgTable("coaches", {
   status: text("status").default("Active"),
   bio: text("bio"),
   revenueSharePct: doublePrecision("revenue_share_pct"),
+  // WeCom "add me" QR code image — lets a client-facing surface show
+  // "message your coach" without a personal-WeChat handle in plain text.
+  qrCodeUrl: text("qr_code_url"),
   createdAt: ts("created_at"),
 });
 

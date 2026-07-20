@@ -151,9 +151,13 @@ fs.mkdirSync(uploadsDir, { recursive: true });
 // counting bytes. Registered BEFORE express.json so req is the raw body stream.
 const MAX_UPLOAD_BYTES = 500 * 1024 * 1024; // keep in step with the client cap
 app.post("/api/uploadFormVideoFile", (req, res) => {
-  const extMatch = String(req.query.name || "").match(/\.(mp4|mov|webm|m4v)$/i);
-  const ext = extMatch ? extMatch[0].toLowerCase() : ".mp4";
-  const prefix = req.query.kind === "exercise" ? "ex" : "fv";
+  const extMatch = String(req.query.name || "").match(
+    /\.(mp4|mov|webm|m4v|jpg|jpeg|png|webp)$/i
+  );
+  const isImageKind = req.query.kind === "coach";
+  const ext = extMatch ? extMatch[0].toLowerCase() : isImageKind ? ".jpg" : ".mp4";
+  const prefix =
+    req.query.kind === "exercise" ? "ex" : isImageKind ? "coach" : "fv";
   const name = `${prefix}-${crypto.randomBytes(12).toString("hex")}${ext}`;
   const dest = path.join(uploadsDir, name);
   const ws = fs.createWriteStream(dest);

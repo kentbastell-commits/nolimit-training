@@ -12,6 +12,7 @@ export type UpsertCoachInput = {
   role?: string;
   status?: string;
   bio?: string;
+  qrCodeUrl?: string;
 };
 
 export async function listCoaches(): Promise<CoachDTO[]> {
