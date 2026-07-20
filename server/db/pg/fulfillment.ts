@@ -401,14 +401,23 @@ export async function activateDigitalOrder(
   // "Today" in China time — the UTC date lags Asia/Shanghai by 8h.
   const today = new Date(Date.now() + 8 * 3600 * 1000).toISOString().split("T")[0];
 
-  // 1+2. Find existing client by phone, or create one.
+  // 1+2. Find the existing client — the logged-in identity wins over the
+  // typed phone (a rebuy must land on the SAME client record, both for the
+  // athlete's login and for the referral spent-credit ledger) — or create one.
   let clientCode = "";
   let existingClientNotes = "";
-  const existingRows = await db
-    .select()
-    .from(clients)
-    .where(eq(clients.phone, String(phone)));
-  const existing = existingRows[0];
+  let existing: typeof clients.$inferSelect | undefined;
+  const buyerCode = String(input.buyerClientCode || "").trim();
+  if (buyerCode) {
+    existing = (
+      await db.select().from(clients).where(eq(clients.clientId, buyerCode))
+    )[0];
+  }
+  if (!existing) {
+    existing = (
+      await db.select().from(clients).where(eq(clients.phone, String(phone)))
+    )[0];
+  }
 
   if (existing) {
     clientCode = existing.clientId;

@@ -613,25 +613,35 @@ export async function activateDigitalOrder(
   };
   const base = `https://open.feishu.cn/open-apis/bitable/v1/apps/${process.env.FEISHU_BASE_APP_TOKEN}/tables`;
 
-  // 1. Find existing client by phone
+  // 1. Find the existing client — the logged-in identity (buyerClientCode)
+  // wins over the typed phone: a rebuy must land on the SAME client record,
+  // both for the athlete's login and for the referral spent-credit ledger.
   let clientRecordId = "";
   let clientCode = "";
   let existingClientNotes = "";
 
   if (clientsTableId) {
-    const searchRes = await fetch(
-      `${base}/${clientsTableId}/records?page_size=10&filter=CurrentValue.[Phone/WeChat]="${encodeURIComponent(phone)}"`,
-      { headers }
-    );
-    const searchData = await searchRes.json();
-    const existing = searchData?.data?.items?.[0];
-    if (existing) {
-      clientRecordId = existing.record_id;
-      clientCode =
-        fieldToText(existing.fields?.["Client ID"]) ||
-        fieldToText(existing.fields?.["client id"]) ||
-        makeShortId("CL");
-      existingClientNotes = fieldToText(existing.fields?.["Notes"]);
+    const buyerCode = String(input.buyerClientCode || "").trim();
+    const lookups = [
+      ...(buyerCode ? [`CurrentValue.[Client ID]="${encodeURIComponent(buyerCode)}"`] : []),
+      `CurrentValue.[Phone/WeChat]="${encodeURIComponent(phone)}"`,
+    ];
+    for (const filter of lookups) {
+      const searchRes = await fetch(
+        `${base}/${clientsTableId}/records?page_size=10&filter=${filter}`,
+        { headers }
+      );
+      const searchData = await searchRes.json();
+      const existing = searchData?.data?.items?.[0];
+      if (existing) {
+        clientRecordId = existing.record_id;
+        clientCode =
+          fieldToText(existing.fields?.["Client ID"]) ||
+          fieldToText(existing.fields?.["client id"]) ||
+          makeShortId("CL");
+        existingClientNotes = fieldToText(existing.fields?.["Notes"]);
+        break;
+      }
     }
   }
 
