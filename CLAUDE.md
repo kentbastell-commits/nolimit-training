@@ -244,6 +244,21 @@ data between them, never "borrow" a table ID across products.
     writes to THAT record first, form fields second; and any balance computed
     as earned−spent must be E2E-tested with a spend followed by a re-quote
     (balance must visibly drop), not just a successful write.
+38. **The uploads path that only worked for video** — prod's nginx has a
+    late `location ~* \.(?:js|css|...|png|jpe?g|...)$ { try_files $uri =404; }`
+    block (for caching hashed `dist/assets/*`) that, by file-extension regex,
+    also matches `/uploads/*.png` — and a plain `location /uploads/ { proxy_pass
+    ...}` loses to ANY regex location regardless of file order, so image
+    uploads 404'd (served from `dist/`, which doesn't have them) while video
+    uploads worked fine (`.mp4` isn't in that regex). Invisible for months
+    because nothing had ever uploaded a self-hosted image through
+    `/api/uploadFormVideoFile` before — `productImage` etc. were always
+    pasted external URLs. Rule: any `location` meant to always win for a
+    path prefix needs `^~` (e.g. `location ^~ /uploads/`), not a bare prefix
+    — and test a real upload against the LIVE domain (not just the twin,
+    whose nginx has no competing regex block) before calling an upload
+    feature done. The twin's config is not a faithful proxy stand-in for
+    prod's.
 
 ## Quality bar — checkable, per deliverable
 
