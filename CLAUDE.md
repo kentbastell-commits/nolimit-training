@@ -236,6 +236,18 @@ data between them, never "borrow" a table ID across products.
     single hung Feishu write freezes the whole save on "Saving…" forever;
     also make the per-item fn return ok:false on error (never throw) so one
     bad item can't reject `mapWithConcurrency` and sink the batch with no retry.
+    THE REAL FIX (shipped): a server-side BULK endpoint
+    (`/api/createWorkoutTemplatesBulk`) that takes the whole program and
+    flattens every session's rows into aggregated chunked `batch_create`s —
+    Feishu `batch_create` accepts up to 1000 records, so a whole program is
+    ~2-3 round-trips (templates + set-prescriptions + alternates) instead of
+    N×3. Save time becomes ~constant regardless of session count (a single
+    Feishu write is ~4-5s of latency; the bulk is that once, not per session).
+    Make it atomic (batch_delete rollback if the template write can't fully
+    complete) and have the client try bulk FIRST, falling back to the proven
+    per-session loop on ANY failure — so a bulk bug degrades to "old speed",
+    never "broken save". Same lever applies to any N-write loop over Feishu
+    (seed scripts, ETL): aggregate into batch_create, don't loop single writes.
 
 36. **The test item named "…Time"** — `getTestInputMode` (App.tsx) switches an
     item to the minutes/seconds distance-time inputs when its name/unit/metric
