@@ -1,15 +1,28 @@
-# Season 1 climbing products — approved blueprint (PARKED, ready to build)
+# Season 1 climbing products — approved blueprint (DONE 2026-07-20)
 
-Status 2026-07-20 (overnight): **STEPS 1-3 EXECUTED — awaiting Kent's review.**
-All 6 products created on prod Feishu (publicStoreVisible=false, Draft):
-PR-5345 Climbing 1 / PR-5772 Climbing 2 / PR-9055 Climbing 3 / PR-7449
-Climbing 4 / PR-1442 Fingers / PR-1234 Shoulders. 128 sessions seeded
-(28+28+28+28+8+8), verified via programTemplates counts + workoutDetails
-spot-checks; seed idempotent (re-run: 0 to write); CN names/goals patched.
-Old SKUs untouched and still store-visible. REMAINING (needs Kent): review
-in builder -> flip publicStoreVisible + productStatus Active -> create new
-bundle "Climbing Season 1 – Complete (1-4)" ¥899 with the new PR ids ->
-delete old SKUs (PR-6665/1803/3206/7596/3061/2367).
+Status 2026-07-20: **FLIP EXECUTED AND LIVE (Kent approved).** Store now shows
+7 Season-1 products, all visible + Active on prod, all verified to contain real
+exercises:
+- PR-5345 Climbing 1 – Foundation ¥299 (Main)
+- PR-5772 Climbing 2 – Base Strength ¥299 (Main)
+- PR-9055 Climbing 3 – Power ¥349 (Main)
+- PR-7449 Climbing 4 – Performance ¥349 (Main)
+- PR-1442 Climber's Fingers ¥99 / PR-1234 Climber's Shoulders ¥99 (Add-ons; sessions on days 2 & 5)
+- PR-4242 Climbing Season 1 – Complete (1–4) ¥899 (Bundle, members = the 4 mains)
+
+Old empty SKUs (PR-6665/1803/3206/7596 mains, PR-3061 old bundle, PR-2367 Joint
+Prep) **DELETED** — 0 orders referenced any of them (checked before delete;
+referral test orders were on the twin, not prod). The empty old programs were
+what caused the mini-program "exercise player shows nothing" report: the store
+sold them but they had zero workout templates.
+
+⚠️ TWIN NOT SYNCED: the new content lives on prod Feishu only; the pg staging
+twin (:8443, what the mini DEV build reads) still has 0 templates for PR-5345
+etc. To preview the NEW programs in the mini dev build, seed the twin too
+(run the season1 seed against :8443, DATA_BACKEND=postgres). Twin demo clients
+(CL-8332 → PR-8171) are unaffected and still show a populated player.
+
+Original plan below (all steps now complete).
 
 ## Decisions already made (Kent, 2026-07-18/19)
 
