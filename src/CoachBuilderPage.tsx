@@ -241,6 +241,7 @@ export default function CoachBuilderPage({
   savedTestTemplates,
   savingFormTemplate,
   savingTemplate,
+  saveBusyLabel = "Saving…",
   savingTestTemplate,
   selectBuilderSection,
   setCustomSectionColors,
@@ -600,7 +601,7 @@ export default function CoachBuilderPage({
                                     onClick={saveFullProgram}
                                   >
                                     <Save size={17} strokeWidth={2.2} />
-                                    {savingTemplate ? "Saving..." : "Save"}
+                                    {savingTemplate ? saveBusyLabel : "Save"}
                                   </button>
                                   <span
                                     className={`pbSaveStatus${
@@ -2245,7 +2246,7 @@ export default function CoachBuilderPage({
                             })();
                           }}
                         >
-                          {savingTemplate ? "Saving..." : "Save + Exit"}
+                          {savingTemplate ? saveBusyLabel : "Save + Exit"}
                         </button>
                       </div>
                     )}
@@ -2299,7 +2300,7 @@ export default function CoachBuilderPage({
                         disabled={savingTemplate}
                         onClick={() => saveCurrentSessionToProgram(true, false)}
                       >
-                        {savingTemplate ? "Saving…" : "Save Day"}
+                        {savingTemplate ? saveBusyLabel : "Save Day"}
                       </button>
                       <button
                         type="button"
@@ -4061,7 +4062,7 @@ export default function CoachBuilderPage({
                                 disabled={savingTemplate}
                                 onClick={saveMobileWorkout}
                               >
-                                {savingTemplate ? "Saving…" : "Save"}
+                                {savingTemplate ? saveBusyLabel : "Save"}
                               </button>
                             ) : (
                               <button

@@ -1717,6 +1717,11 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   const [sessionLibLoading, setSessionLibLoading] = useState(false);
   const [draggedLibSessionId, setDraggedLibSessionId] = useState("");
   const [savingTemplate, setSavingTemplate] = useState(false);
+  // Live "Saving 5/20…" progress for multi-session program saves, so a slow
+  // (Feishu writes are 4-8s each) save reads as working, not frozen.
+  const [saveProgress, setSaveProgress] = useState<{ done: number; total: number } | null>(
+    null
+  );
   const [builderSaveStatus, setBuilderSaveStatus] = useState<"saved" | "dirty">(
     "saved"
   );
@@ -10075,6 +10080,21 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     }
   };
 
+  // Browser fetch has no timeout; a hung Feishu write would freeze the whole
+  // save on "Saving…" forever. Abort after 90s so the session-retry path (or
+  // the outer catch) can recover instead.
+  const fetchWithTimeout = (
+    url: string,
+    opts: RequestInit,
+    ms = 90000
+  ): Promise<Response> => {
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => controller.abort(), ms);
+    return fetch(url, { ...opts, signal: controller.signal }).finally(() =>
+      window.clearTimeout(timer)
+    );
+  };
+
   const saveFullProgram = async (): Promise<boolean> => {
     const singleWorkoutMode = builderMode === "Single Workout";
     const digitalProductProgram =
@@ -10200,7 +10220,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
           console.warn("Could not list existing templates", templateError);
         }
 
-        const updRes = await fetch("/api/updateProgram", {
+        const updRes = await fetchWithTimeout("/api/updateProgram", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -10220,7 +10240,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
           programRecordId: editProgramRecordId,
         };
       } else {
-        const programResponse = await fetch("/api/createProgram", {
+        const programResponse = await fetchWithTimeout("/api/createProgram", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(programPayload),
@@ -10234,40 +10254,59 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       }
 
       let totalRecordsCreated = 0;
+      let sessionsDone = 0;
+      setSaveProgress({ done: 0, total: sessionsToSave.length });
 
-      // Save one session (its exercises → template rows).
+      // Save one session (its exercises → template rows). Never throws — a
+      // network/timeout error becomes ok:false so the retry path (not the
+      // whole-save catch) handles it, and one bad session can't sink the batch.
       const saveOneSession = async (session: ProgramSession) => {
-        const templateResponse = await fetch("/api/createWorkoutTemplate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            programId: programData.programId,
-            programRecordId: programData.programRecordId,
-            week: Number(session.week),
-            day: Number(session.day),
-            sessionName: session.sessionName,
-            sessionNameCn: session.sessionNameCn || "",
-            sessionType: session.sessionType,
-            sessionGoal: session.sessionGoal,
-            estimatedDuration: session.estimatedDuration,
-            intensity: session.intensity,
-            isSingleWorkout: session.isSingleWorkout,
-            exercises: session.exercises.map((exercise, index) => ({
-              ...exercise,
-              order: Number(exercise.order) || index + 1,
-              sets: Number(exercise.sets) || 1,
-              coachingNotes: buildExerciseCoachingNotes(exercise),
-              status: "Active",
-            })),
-          }),
-        });
-        const templateData = await templateResponse.json();
-        return {
-          ok: templateResponse.ok && templateData.success,
-          session,
-          templateData,
-          recordsCreated: Number(templateData.recordsCreated || 0),
-        };
+        try {
+          const templateResponse = await fetchWithTimeout(
+            "/api/createWorkoutTemplate",
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                programId: programData.programId,
+                programRecordId: programData.programRecordId,
+                week: Number(session.week),
+                day: Number(session.day),
+                sessionName: session.sessionName,
+                sessionNameCn: session.sessionNameCn || "",
+                sessionType: session.sessionType,
+                sessionGoal: session.sessionGoal,
+                estimatedDuration: session.estimatedDuration,
+                intensity: session.intensity,
+                isSingleWorkout: session.isSingleWorkout,
+                exercises: session.exercises.map((exercise, index) => ({
+                  ...exercise,
+                  order: Number(exercise.order) || index + 1,
+                  sets: Number(exercise.sets) || 1,
+                  coachingNotes: buildExerciseCoachingNotes(exercise),
+                  status: "Active",
+                })),
+              }),
+            }
+          );
+          const templateData = await templateResponse.json();
+          const ok = templateResponse.ok && templateData.success;
+          if (ok) setSaveProgress({ done: ++sessionsDone, total: sessionsToSave.length });
+          return {
+            ok,
+            session,
+            templateData,
+            recordsCreated: Number(templateData.recordsCreated || 0),
+          };
+        } catch (error) {
+          // Timeout/network — reported as a failed session, retried below.
+          return {
+            ok: false,
+            session,
+            templateData: { error: String(error) },
+            recordsCreated: 0,
+          };
+        }
       };
 
       // Save sessions in parallel (bounded) instead of one-at-a-time.
@@ -10359,6 +10398,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       return false;
     } finally {
       setSavingTemplate(false);
+      setSaveProgress(null);
     }
   };
 
@@ -19446,6 +19486,11 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                 savedTestTemplates={savedTestTemplates}
                 savingFormTemplate={savingFormTemplate}
                 savingTemplate={savingTemplate}
+                saveBusyLabel={
+                  saveProgress && saveProgress.total > 1
+                    ? `Saving ${saveProgress.done}/${saveProgress.total}…`
+                    : "Saving…"
+                }
                 savingTestTemplate={savingTestTemplate}
                 selectBuilderSection={selectBuilderSection}
                 setCustomSectionColors={setCustomSectionColors}
