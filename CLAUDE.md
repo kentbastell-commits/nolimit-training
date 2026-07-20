@@ -226,6 +226,16 @@ data between them, never "borrow" a table ID across products.
     intentional day gaps. Twin cause on that same save: heavy 30-session saves
     trip Feishu throttle (1254607) with no retry — `saveFullProgram` now retries
     failed sessions once after a 3s pause. Any bulk writer needs the same.
+    Third cause on that save surface: each session write is 4-8s (the Feishu
+    createWorkoutTemplate does 3 round-trips — template batch_create + set-
+    prescriptions + alternates dual-writes), so a full multi-week save
+    legitimately runs 30-60s+. A static "Saving…" made it look frozen and a
+    stuck-looking save was misread as broken. Rule: bulk client-side write
+    loops MUST (a) show live progress ("Saving 5/20…"), and (b) wrap every
+    fetch in an AbortController timeout — browser `fetch` has NO timeout, so a
+    single hung Feishu write freezes the whole save on "Saving…" forever;
+    also make the per-item fn return ok:false on error (never throw) so one
+    bad item can't reject `mapWithConcurrency` and sink the batch with no retry.
 
 36. **The test item named "…Time"** — `getTestInputMode` (App.tsx) switches an
     item to the minutes/seconds distance-time inputs when its name/unit/metric
