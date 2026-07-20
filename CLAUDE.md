@@ -259,6 +259,22 @@ data between them, never "borrow" a table ID across products.
     whose nginx has no competing regex block) before calling an upload
     feature done. The twin's config is not a faithful proxy stand-in for
     prod's.
+39. **The save that reads its own just-cleared state** — a save handler that
+    then navigates/guards in the SAME onClick closure (`await
+    saveFullProgram(); selectWorkoutTab(...)`) reads STALE closure state: the
+    leave-guard's `hasUnsavedBuilderWork()` still saw the pre-save
+    `programSessions` (the save had `setProgramSessions([])`, but the closure
+    captured the old array), so a successful save always prompted "You have
+    unsaved changes." Twin trap on the SAME surface: the "Saved/Unsaved" pill
+    used `setTimeout(0)` to flip to "saved", racing the dirty-tracking effect
+    that the save's own state resets fire — so it often stuck on "Unsaved",
+    making a real save look like it didn't persist. Rule: a save fn returns a
+    success boolean; callers navigate only on success and skip the leave-guard
+    (nothing's unsaved after a successful save); and status DERIVED from a
+    save must be cleared via a ref the dirty-effect reads (`justSavedRef`),
+    never a setTimeout racing that effect (same family as #16). Verify the
+    backend save chain is healthy FIRST (it was) so you fix the real layer —
+    client-side save-state tracking, not the API.
 
 ## Quality bar — checkable, per deliverable
 
