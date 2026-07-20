@@ -114,6 +114,15 @@ export async function activateDigitalOrder(
       referrerCode: input.referrerCode,
     });
     if (quote.discountPct > 0) {
+      // Always stamp the metadata (earn tracking works even for programs
+      // without a listed price); reprice only when the price is known.
+      input = {
+        ...input,
+        referralMeta: {
+          referrerCode: quote.friendUnit ? String(input.referrerCode).trim() : "",
+          rewardsUsed: quote.rewardUnits,
+        },
+      };
       const { listPrograms } = await import("./programs.ts");
       const programs = await listPrograms();
       const program: any = programs.find(
@@ -125,10 +134,6 @@ export async function activateDigitalOrder(
         input = {
           ...input,
           amount: Math.round(price * (1 - quote.discountPct / 100)),
-          referralMeta: {
-            referrerCode: quote.friendUnit ? String(input.referrerCode).trim() : "",
-            rewardsUsed: quote.rewardUnits,
-          },
         };
       }
     }
