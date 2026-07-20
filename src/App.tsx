@@ -1721,6 +1721,11 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     "saved"
   );
   const builderSaveStatusReadyRef = useRef(false);
+  // Set true by a save action right before it mutates builder state; the
+  // dirty-tracking effect (which those mutations trigger) reads it to mark
+  // "saved" instead of "dirty". Deterministic replacement for the old
+  // setTimeout(0) race that let the effect clobber a just-saved status.
+  const justSavedRef = useRef(false);
 
   const notify = (message: string, type: ToastType = "info") => {
     const id = Date.now() + Math.random();
@@ -9820,6 +9825,9 @@ function App({ onReady }: { onReady?: () => void } = {}) {
 
     if (!savedSession) return;
 
+    // Mark saved BEFORE the state mutations below (they fire the dirty effect).
+    justSavedRef.current = true;
+
     setProgramSessions((current) => {
       const hasExisting = current.some((session) => session.localId === localId);
       const nextSessions = hasExisting
@@ -9853,8 +9861,6 @@ function App({ onReady }: { onReady?: () => void } = {}) {
         ? "Day saved. Ready for the next day."
         : "Day saved."
     );
-
-    window.setTimeout(() => setBuilderSaveStatus("saved"), 0);
   };
 
   const reorderProgramSession = (sourceId: string, targetId: string) => {
@@ -10069,7 +10075,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     }
   };
 
-  const saveFullProgram = async () => {
+  const saveFullProgram = async (): Promise<boolean> => {
     const singleWorkoutMode = builderMode === "Single Workout";
     const digitalProductProgram =
       !singleWorkoutMode &&
@@ -10089,12 +10095,12 @@ function App({ onReady }: { onReady?: () => void } = {}) {
 
     if (!programName.trim()) {
       notify(singleWorkoutMode ? "Please fill Workout Name." : "Please fill Program Name.");
-      return;
+      return false;
     }
 
     if (programSessions.length === 0 && selectedProgramExercises.length === 0) {
       notify("Please add at least one session.");
-      return;
+      return false;
     }
 
     let sessionsToSave = [...programSessions];
@@ -10102,7 +10108,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     if (selectedProgramExercises.length > 0) {
       if (!singleWorkoutMode && (!programWeek || !programDay || !sessionName)) {
         notify("Current session has exercises but is missing Week, Day, or Session Name.");
-        return;
+        return false;
       }
 
       const currentSession = buildCurrentProgramSession(
@@ -10111,7 +10117,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
 
       if (!currentSession) {
         notify("Current session could not be saved.");
-        return;
+        return false;
       }
 
       sessionsToSave = sessionsToSave.some(
@@ -10206,7 +10212,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
         if (!updRes.ok || !updData.success) {
           console.error(updData);
           notify("Could not update program. Check API response.");
-          return;
+          return false;
         }
         programData = {
           success: true,
@@ -10223,7 +10229,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
         if (!programResponse.ok || !programData.success) {
           console.error(programData);
           notify("Could not create program. Check API response.");
-          return;
+          return false;
         }
       }
 
@@ -10287,7 +10293,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
         notify(
           `Program was saved, but session "${failed.session.sessionName}" failed. Check API response.`
         );
-        return;
+        return false;
       }
       totalRecordsCreated = saveResults.reduce(
         (sum, r) => sum + r.recordsCreated,
@@ -10316,6 +10322,9 @@ function App({ onReady }: { onReady?: () => void } = {}) {
           : `Program saved. Sessions: ${sessionsToSave.length}. Template records created: ${totalRecordsCreated}`
       );
 
+      // Mark saved BEFORE these resets fire the dirty-tracking effect, so the
+      // status lands on "saved" (not "dirty") deterministically.
+      justSavedRef.current = true;
       setEditProgramId("");
       setEditProgramRecordId("");
       setProgramSessions([]);
@@ -10342,11 +10351,12 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       setSessionName("");
       setProgramWeek("1");
       setProgramDay("1");
-      window.setTimeout(() => setBuilderSaveStatus("saved"), 0);
       void loadPrograms(true);
+      return true;
     } catch (error) {
       console.error(error);
       notify("Could not save full program.");
+      return false;
     } finally {
       setSavingTemplate(false);
     }
@@ -10525,8 +10535,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   };
 
   const saveMobileWorkout = async () => {
-    await saveFullProgram();
-    setMobileBuilderStep("details");
+    if (await saveFullProgram()) setMobileBuilderStep("details");
   };
 
   const saveMobileProgramDay = () => {
@@ -10570,8 +10579,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   };
 
   const finishMobileProgram = async () => {
-    await saveFullProgram();
-    setMobileBuilderStep("details");
+    if (await saveFullProgram()) setMobileBuilderStep("details");
   };
 
   const focusReviewColumn = (columnId: string) => {
@@ -10673,8 +10681,11 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     return false;
   };
 
-  const selectWorkoutTab = (tab: WorkoutPageTab) => {
-    if (tab !== workoutPageTab && !confirmLeaveBuilder()) return;
+  // skipGuard: the caller already saved (a successful saveFullProgram both
+  // resets the builder and returns true), so the unsaved-changes confirm must
+  // NOT run — its check reads stale closure state and would prompt anyway.
+  const selectWorkoutTab = (tab: WorkoutPageTab, skipGuard = false) => {
+    if (!skipGuard && tab !== workoutPageTab && !confirmLeaveBuilder()) return;
     setWorkoutPageTab(tab);
     if (tab === "Saved Programs" || tab === "Sessions") loadPrograms(true);
     if (tab === "Forms") {
@@ -10778,6 +10789,14 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   useEffect(() => {
     if (!builderSaveStatusReadyRef.current) {
       builderSaveStatusReadyRef.current = true;
+      return;
+    }
+
+    // A save action just reset builder state; that's what fired this effect —
+    // reflect "saved", don't treat the save's own clears as new dirty edits.
+    if (justSavedRef.current) {
+      justSavedRef.current = false;
+      setBuilderSaveStatus("saved");
       return;
     }
 

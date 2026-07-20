@@ -619,15 +619,20 @@ export default function CoachBuilderPage({
                                   disabled={savingTemplate}
                                   onClick={() => {
                                     void (async () => {
-                                      await saveFullProgram();
-                                      // Tab switch is guarded: if the save
-                                      // failed the unsaved-changes confirm
-                                      // still protects the work.
-                                      selectWorkoutTab(
-                                        isSingleWorkoutBuilder
-                                          ? "Sessions"
-                                          : "Saved Programs"
-                                      );
+                                      // Only leave once the save actually
+                                      // succeeded (it resets the builder and
+                                      // returns true); skip the guard since
+                                      // there's nothing unsaved left. On
+                                      // failure the toast explains and the
+                                      // work stays put.
+                                      const ok = await saveFullProgram();
+                                      if (ok)
+                                        selectWorkoutTab(
+                                          isSingleWorkoutBuilder
+                                            ? "Sessions"
+                                            : "Saved Programs",
+                                          true
+                                        );
                                     })();
                                   }}
                                 >
@@ -2235,8 +2240,8 @@ export default function CoachBuilderPage({
                           disabled={savingTemplate}
                           onClick={() => {
                             void (async () => {
-                              await saveFullProgram();
-                              selectWorkoutTab("Saved Programs");
+                              const ok = await saveFullProgram();
+                              if (ok) selectWorkoutTab("Saved Programs", true);
                             })();
                           }}
                         >
