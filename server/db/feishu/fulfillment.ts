@@ -749,6 +749,19 @@ export async function activateDigitalOrder(
         ["Payment Provider", "Payment Method", "Provider"],
         "WeChat QR"
       );
+      // Referral program: validated by the repository wrapper; only the MAIN
+      // cart item carries the discount metadata (add-ons stay full price).
+      if (item === cartItems[0] && input.referralMeta?.referrerCode) {
+        applyField(orderFieldsSchema, fields, ["Referrer Code"], input.referralMeta.referrerCode);
+      }
+      if (item === cartItems[0] && input.referralMeta && input.referralMeta.rewardsUsed > 0) {
+        applyField(
+          orderFieldsSchema,
+          fields,
+          ["Referral Rewards Used"],
+          input.referralMeta.rewardsUsed
+        );
+      }
       applyField(
         orderFieldsSchema,
         fields,

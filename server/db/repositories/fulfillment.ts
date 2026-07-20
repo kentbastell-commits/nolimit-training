@@ -66,6 +66,12 @@ export type ActivateDigitalOrderInput = {
   bundleItems?: any[];
   languagePreference?: string;
   consentVersion?: string;
+  // Referral program: who invited this buyer (share link), and the buyer's
+  // own client code when logged in (unlocks earned reward units).
+  referrerCode?: string;
+  buyerClientCode?: string;
+  // Set by the wrapper after server-side validation — impls just store it.
+  referralMeta?: { referrerCode: string; rewardsUsed: number };
 };
 
 export type CoachingSignupInput = {
@@ -98,6 +104,38 @@ export type CoachingSignupInput = {
 export async function activateDigitalOrder(
   input: ActivateDigitalOrderInput
 ): Promise<SignupResult> {
+  // Referral discount is computed and priced HERE, server-side — the client
+  // supplies identities, never amounts. Applies to the main program price;
+  // add-ons stay full price (v1).
+  try {
+    const { referralQuote } = await import("./referrals.ts");
+    const quote = await referralQuote({
+      buyerCode: input.buyerClientCode,
+      referrerCode: input.referrerCode,
+    });
+    if (quote.discountPct > 0) {
+      const { listPrograms } = await import("./programs.ts");
+      const programs = await listPrograms();
+      const program: any = programs.find(
+        (p: any) =>
+          p.programId === input.programId || p.recordId === input.programRecordId
+      );
+      const price = Number(program?.price);
+      if (Number.isFinite(price) && price > 0) {
+        input = {
+          ...input,
+          amount: Math.round(price * (1 - quote.discountPct / 100)),
+          referralMeta: {
+            referrerCode: quote.friendUnit ? String(input.referrerCode).trim() : "",
+            rewardsUsed: quote.rewardUnits,
+          },
+        };
+      }
+    }
+  } catch {
+    /* referral pricing is best-effort — a failure falls back to full price */
+  }
+
   const result =
     DATA_BACKEND === "postgres"
       ? await (await import("../pg/fulfillment.ts")).activateDigitalOrder(input)

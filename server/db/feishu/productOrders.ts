@@ -33,6 +33,8 @@ export async function listProductOrders(): Promise<OrderDTO[]> {
       currency: fieldText(f["Currency"]),
       paymentStatus: fieldText(f["Payment Status"]),
       paymentReference: fieldText(f["Payment Reference"]),
+      referrerCode: fieldText(f["Referrer Code"]),
+      referralRewardsUsed: Number(f["Referral Rewards Used"]) || 0,
       paymentProvider: fieldText(f["Payment Provider"]),
       purchasedAt: formatDate(f["Purchased At"]),
       accessStartDate: formatDate(f["Access Start Date"]),

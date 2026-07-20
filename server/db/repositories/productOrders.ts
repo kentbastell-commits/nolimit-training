@@ -24,6 +24,8 @@ export type CreateProductOrderInput = {
   onboardingStatus?: string;
   fulfillmentStatus?: string;
   paymentReference?: string;
+  referrerCode?: string;
+  referralRewardsUsed?: number;
   notes?: string;
 };
 

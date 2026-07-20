@@ -29,6 +29,8 @@ export async function listProductOrders(): Promise<OrderDTO[]> {
       currency: str(r.currency),
       paymentStatus: str(r.paymentStatus),
       paymentReference: str(r.paymentReference),
+      referrerCode: str(r.referrerCode),
+      referralRewardsUsed: Number(r.referralRewardsUsed) || 0,
       paymentProvider: str(r.paymentProvider),
       purchasedAt: epochToDate(r.purchasedAt),
       accessStartDate: epochToDate(r.accessStartDate),

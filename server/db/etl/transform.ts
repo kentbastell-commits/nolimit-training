@@ -454,7 +454,7 @@ export const TABLES: TableSpec[] = [
     envVar: "FEISHU_PRODUCT_ORDERS_TABLE_ID",
     fallbackId: "tbllinXYFDiUboKX",
     pkField: "Order ID",
-    expected: ["Order ID","Client ID","Client Name","Product Type","Program ID","Product Name","Amount","Currency","Payment Status","Payment Provider","Payment Reference","Purchased At","Access Start Date","Intake Status","Assign Coach","Fulfillment Status"],
+    expected: ["Order ID","Client ID","Client Name","Product Type","Program ID","Product Name","Amount","Currency","Payment Status","Payment Provider","Payment Reference","Purchased At","Access Start Date","Intake Status","Assign Coach","Fulfillment Status","Referrer Code","Referral Rewards Used"],
     map: (r, ctx) => {
       const f = r.fields;
       return {
@@ -469,6 +469,8 @@ export const TABLES: TableSpec[] = [
         paymentStatus: textOrNull(f["Payment Status"]),
         paymentProvider: textOrNull(f["Payment Provider"]),
         paymentReference: textOrNull(f["Payment Reference"]),
+        referrerCode: textOrNull(f["Referrer Code"]),
+        referralRewardsUsed: fieldNum(f["Referral Rewards Used"]),
         purchasedAt: fieldDateMs(f["Purchased At"]),
         accessStartDate: fieldDateMs(f["Access Start Date"]),
         intakeStatus: textOrNull(f["Intake Status"]),

@@ -427,6 +427,8 @@ export type OrderDTO = {
   currency: string;
   paymentStatus: string;
   paymentReference: string;
+  referrerCode?: string;
+  referralRewardsUsed?: number;
   paymentProvider: string;
   purchasedAt: string;
   accessStartDate: string;

@@ -102,6 +102,7 @@ import notifications from "../api/notifications.ts";
 import productOrders from "../api/productOrders.ts";
 import programs from "../api/programs.ts";
 import recordLogin from "../api/recordLogin.ts";
+import referralStatus from "../api/referralStatus.ts";
 import programTemplates from "../api/programTemplates.ts";
 import testLibrary from "../api/testLibrary.ts";
 import reviews from "../api/reviews.ts";
@@ -240,6 +241,7 @@ const handlers = {
   productOrders,
   programs,
   recordLogin,
+  referralStatus,
   programTemplates,
   testLibrary,
   reviews,

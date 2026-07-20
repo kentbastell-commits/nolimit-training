@@ -481,6 +481,10 @@ export const productOrders = pgTable(
     paymentStatus: text("payment_status"),
     paymentProvider: text("payment_provider"),
     paymentReference: text("payment_reference"),
+    // Referral program: who invited this buyer, and how many earned 10%
+    // reward units this purchase consumed (stack cap 5 = 50%).
+    referrerCode: text("referrer_code"),
+    referralRewardsUsed: integer("referral_rewards_used"),
     purchasedAt: ts("purchased_at"),
     accessStartDate: ts("access_start_date"),
     intakeStatus: text("intake_status"),

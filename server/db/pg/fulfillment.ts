@@ -486,6 +486,14 @@ export async function activateDigitalOrder(
         paymentStatus: "Pending",
         paymentReference: paymentCode ? String(paymentCode) : null,
         paymentProvider: "WeChat QR",
+        referrerCode:
+          item === cartItems[0] && input.referralMeta?.referrerCode
+            ? input.referralMeta.referrerCode
+            : null,
+        referralRewardsUsed:
+          item === cartItems[0] && input.referralMeta && input.referralMeta.rewardsUsed > 0
+            ? input.referralMeta.rewardsUsed
+            : null,
         intakeStatus: "Not Sent",
         fulfillmentStatus: "New Order",
         purchasedAt: toEpochOrNow(today),
