@@ -119,7 +119,7 @@ function PrivacyEn() {
       <section>
         <h2>4. Storage, service providers, and cross-border processing</h2>
         <p>
-          Our target system of record is Postgres hosted on Tencent Cloud in mainland China. During the current migration, restricted legacy coaching records and service infrastructure may also use Feishu/Lark and hosting in Hong Kong. This temporary path means information may be processed across the mainland China–Hong Kong border. We ask for separate consent while that path remains and require providers to handle information only for the service. We will update this notice and remove the temporary consent step after mainland-only processing is verified.
+          Our system of record is a Postgres database hosted on our own Tencent Cloud server in Hong Kong. A restricted, read-only legacy copy of earlier coaching records remains in Feishu/Lark for a limited transition period. Our target remains Postgres hosted on Tencent Cloud in mainland China; until that migration completes, information may be processed across the mainland China–Hong Kong border. We ask for separate consent while that path remains and require providers to handle information only for the service. We will update this notice and remove the temporary consent step after mainland-only processing is verified.
         </p>
         <p>We do not sell personal information. We share it only with assigned coaches, service providers acting for us, or authorities when legally required.</p>
       </section>
@@ -160,7 +160,7 @@ function PrivacyZh() {
         <li><strong>技术信息：</strong>基础浏览器/设备信息、错误记录，以及用于保持客户端运行和保护未同步训练记录的本地存储。</li>
       </ul></section>
       <section><h2>3. 使用目的</h2><p>我们仅在合理必要的范围内使用信息，用于提供和个性化训练、履行订单、与您沟通、跟踪进展与安全、支持客户端运行、防止重复或欺诈订单以及履行法定义务。</p><p>伤病和健康信息原则上为选填；如教练为安全提供服务确有需要，我们会另行取得单独同意。该信息不构成医疗诊断，也不会用于广告。</p></section>
-      <section><h2>4. 存储、服务商与跨境处理</h2><p>我们的目标主数据系统为部署在腾讯云中国内地服务器上的 Postgres。当前迁移期间，受限访问的历史教练记录和技术服务仍可能使用飞书/Lark 及香港基础设施，因此信息可能暂时在中国内地与香港之间处理。在该路径仍存在期间，我们会单独征求同意，并要求服务商仅为提供本服务处理信息。完成并验证中国内地单一区域处理后，我们会更新本政策并移除临时跨境同意步骤。</p><p>我们不会出售个人信息。仅会向负责您的教练、代表我们提供技术服务的供应商，或在法律要求时向主管机关提供必要信息。</p></section>
+      <section><h2>4. 存储、服务商与跨境处理</h2><p>我们的主数据系统为部署在我们自有腾讯云香港服务器上的 Postgres 数据库。历史教练记录的受限只读备份在有限的过渡期内仍保存于飞书/Lark。我们的目标仍是迁移至腾讯云中国内地服务器；在迁移完成前，信息可能暂时在中国内地与香港之间处理。在该路径仍存在期间，我们会单独征求同意，并要求服务商仅为提供本服务处理信息。完成并验证中国内地单一区域处理后，我们会更新本政策并移除临时跨境同意步骤。</p><p>我们不会出售个人信息。仅会向负责您的教练、代表我们提供技术服务的供应商，或在法律要求时向主管机关提供必要信息。</p></section>
       <section><h2>5. 保存期限</h2><ul>
         <li>未转化为客户的咨询通常保存不超过 12 个月。</li>
         <li>服务期间保存训练与指导记录；最后一次活动后通常保存不超过 3 年，除非您要求提前删除或法律要求更长时间。</li>
