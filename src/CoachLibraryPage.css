@@ -700,6 +700,26 @@
     gap: 8px 14px;
     margin-top: 10px;
   }
+  .clSearch input {
+    min-height: 44px;
+  }
+  /* Keep categories available without spending the first viewport on them. */
+  .clChips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: none;
+    margin-inline: -2px;
+    padding: 2px 2px 8px;
+  }
+  .clChips::-webkit-scrollbar {
+    display: none;
+  }
+  .clChip {
+    flex: 0 0 auto;
+    min-height: 44px;
+    padding-block: 10px;
+  }
   .clSlide {
     width: 100%;
   }

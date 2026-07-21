@@ -722,6 +722,10 @@ button.rvItem:focus-visible {
     padding: 0 2px 90px;
     gap: 12px;
   }
+  .rvSlideClose {
+    width: 44px;
+    height: 44px;
+  }
   .rvHero {
     border-radius: 18px;
     padding: 22px 24px;

@@ -15,7 +15,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     if (req.method === "GET") {
       const videos = await listFormVideos();
-      return res.status(200).json({ videos });
+      const clientId = String(req.query.clientId || "").trim().toLowerCase();
+      // Athlete clients request only their own queue. The unfiltered coach
+      // review response remains unchanged for the authenticated coach app.
+      const visible = clientId
+        ? videos.filter((video) => video.clientId.trim().toLowerCase() === clientId)
+        : videos;
+      return res.status(200).json({ videos: visible });
     }
 
     if (req.method === "POST") {

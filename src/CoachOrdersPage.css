@@ -1174,8 +1174,18 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .copFilterTab {
-    min-height: 40px;
+    min-height: 44px;
     padding-inline: 8px;
+  }
+  .copReload,
+  .copDigitalLink,
+  .copTrash,
+  .copModalClose {
+    min-height: 44px;
+  }
+  .copTrash,
+  .copModalClose {
+    width: 44px;
   }
   .copSearch {
     flex-basis: auto;

@@ -2849,6 +2849,13 @@
   background: #faf6ec;
   border-color: #d4af37;
 }
+
+@media (max-width: 640px) {
+  .programTable .programTableActions .iconActionButton {
+    width: 44px;
+    height: 44px;
+  }
+}
 .programTable .programTableActions .dangerMenuItem {
   border-color: #f0d9d3;
   color: #c0563c;

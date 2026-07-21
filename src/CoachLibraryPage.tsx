@@ -73,6 +73,7 @@ export default function CoachLibraryPage(props: { [key: string]: any }) {
   const reduce = useReducedMotion();
   const [cueEx, setCueEx] = useState<any>(null);
   const [visibleCount, setVisibleCount] = useState(BATCH);
+  const [compactMobile, setCompactMobile] = useState(false);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
   const all = (libraryExercises as any[]) || [];
@@ -107,6 +108,14 @@ export default function CoachLibraryPage(props: { [key: string]: any }) {
   useEffect(() => {
     setVisibleCount(BATCH);
   }, [libraryCategoryFilter, librarySearch]);
+
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 640px)");
+    const sync = () => setCompactMobile(media.matches);
+    sync();
+    media.addEventListener("change", sync);
+    return () => media.removeEventListener("change", sync);
+  }, []);
 
   useEffect(() => {
     if (!cueEx) return;
@@ -325,7 +334,9 @@ export default function CoachLibraryPage(props: { [key: string]: any }) {
         // All view: capped sections + "View all" tile
         (groupedLibraryExercises as [any, any[]][]).map(([category, items]) => {
           const col = catCol(category === "Uncategorized" ? "" : category);
-          const shown = items.slice(0, CAP);
+          // On phones one exercise plus the category's "View all" tile gives
+          // every category a single, scannable row instead of a 20,000px page.
+          const shown = items.slice(0, compactMobile ? 1 : CAP);
           const more = items.length - shown.length;
           return (
             <div className="clGroup" key={category}>

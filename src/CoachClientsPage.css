@@ -874,7 +874,7 @@
     display: grid;
     /* Trailing auto column (Teams pattern): flags get the wide flexible
        area, the icon actions hug the right — not the other way round. */
-    grid-template-columns: 32px 44px minmax(0, 1fr) auto;
+    grid-template-columns: 44px 44px minmax(0, 1fr) auto;
     grid-template-areas:
       "check avatar main main"
       "eng eng eng eng"
@@ -885,8 +885,13 @@
   }
   .crpCheck {
     grid-area: check;
-    width: 32px;
-    height: 32px;
+    width: 44px;
+    height: 44px;
+  }
+  .crpIconBtn,
+  .crpSlideClose {
+    width: 44px;
+    height: 44px;
   }
   .crpAvatar {
     grid-area: avatar;

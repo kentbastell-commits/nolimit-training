@@ -15619,3 +15619,26 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   font-size: 13px;
   color: #3d7a46;
 }
+
+/* Source-order-last mobile hit areas: several highly specific page themes
+   intentionally reset min-height, so the accessibility floor belongs here. */
+@media (max-width: 640px) {
+  .app:not(.clientPortalApp) .topbarActions .outlineButton,
+  .clientPortalApp .clientHomePanelHeader .outlineButton,
+  .clientPortalApp .portalSettingSelect,
+  .clientPortalApp .portalUnitToggle button,
+  .clientPortalApp .clientPortalLanguageSwitch button,
+  .clientPortalApp .wellnessCard button,
+  .clientPortalApp .portalHomeTab,
+  .clientPortalApp .clientCalendarViewToggle button {
+    min-height: 44px !important;
+  }
+  .clientPortalApp .portalHomeTab,
+  .clientPortalApp .clientCalendarViewToggle button {
+    padding-block: 10px;
+  }
+  .clientPortalApp .calendarNavigator button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
