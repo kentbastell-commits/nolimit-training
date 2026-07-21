@@ -298,6 +298,18 @@ data between them, never "borrow" a table ID across products.
     backend save chain is healthy FIRST (it was) so you fix the real layer —
     client-side save-state tracking, not the API.
 
+40. **The asset swap that inherits the old asset's hacks** — old logo PNGs were
+    gold baked onto black plates, so CSS around them grew compensating hacks
+    (`mix-blend-mode: screen` to drop the plate) and some "dark" surfaces are
+    actually light at runtime (.sidebar declares rgba(0,0,0,.78) but the coach
+    theme paints the collapsed rail WHITE — a white monogram there was
+    invisible). Rule: when swapping brand assets, audit every usage site's
+    COMPUTED background (getComputedStyle/screenshot, not the declared CSS),
+    pick the variant per surface, and delete the old asset's compensating
+    blend/filter hacks in the same pass. Big source packages never go in
+    public/ (it ships wholesale into dist) — gitignored branding/ holds the
+    package; only web-ready exports live in public/.
+
 ## Quality bar — checkable, per deliverable
 
 **Any shipped code change**
