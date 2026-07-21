@@ -359,9 +359,15 @@ await step("coachingSignup order + intake stages", async () => {
   assert(i.status === 200 && i.body.success === true, "signup intake", i.body);
 });
 
-await step("wxAuth unconfigured contract (503)", async () => {
+await step("wxAuth contract (503 unconfigured / 401 bad code)", async () => {
   const r = await call("POST", "/api/wxAuth", { code: "battery" });
-  assert(r.status === 503 && /not configured/i.test(r.body.error || ""), "wxAuth 503", r);
+  const unconfigured =
+    r.status === 503 && /not configured/i.test(r.body.error || "");
+  // With real WECHAT_MINI_* creds (live since 2026-07-21), WeChat itself
+  // rejects the fake code — the endpoint must surface that as a 401.
+  const configuredBadCode =
+    r.status === 401 && /login failed/i.test(r.body.error || "");
+  assert(unconfigured || configuredBadCode, "wxAuth 503-or-401", r);
 });
 
 /* ---------- E. cascade delete cleans up ---------- */
