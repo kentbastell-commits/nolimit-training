@@ -71,6 +71,10 @@ re-entered by hand (keep the window short; freeze writes if rolling back).
 - [ ] Feishu translate-on-write is replaced by TMT on the server — confirm
       `TENCENT_TMT_*` env on nolimit-cn (enterprise-account sub-user key).
 - [ ] `WECHAT_MINI_APPID`/`WECHAT_MINI_SECRET` env on nolimit-cn (one-tap login).
+- [ ] WeChat AppSecret **IP whitelist** (mp.weixin.qq.com → 开发管理 → 开发设置 →
+      IP白名单): replace the HK IP 43.132.228.109 with the new server's egress IP
+      (verify with `curl ifconfig.me` FROM the box) same day, or jscode2session
+      calls get rejected and one-tap login silently dies (enabled 2026-07-21).
 - [ ] 公安备案 within 30 days of the site going live on the filed domain.
 - [ ] 小程序备案 via mp.weixin.qq.com (needs the approved 主体备案号), then
       request-domain whitelist → WeChat review (decide 商户号 vs store flag-off
