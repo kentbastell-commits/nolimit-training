@@ -31,8 +31,8 @@ test("program detail opens with meta grid and sessions", async ({ page }) => {
   test.skip(!(await actions.isVisible().catch(() => false)), "no programs on this environment");
   await actions.locator("button").first().click();
   await page.waitForTimeout(2500);
-  await expect(page.locator(".programMetaGrid")).toBeVisible();
-  await expect(page.locator("button", { hasText: "Open in Builder" })).toBeVisible();
+  await expect(page.locator(".pdpMeta")).toBeVisible();
+  await expect(page.locator("button", { hasText: "Edit" }).first()).toBeVisible();
   errs.assertNoCrashes();
 });
 
@@ -44,7 +44,7 @@ test("builder opens with program grid and week duplication affordance", async ({
   test.skip(!(await actions.isVisible().catch(() => false)), "no programs on this environment");
   await actions.locator("button").first().click();
   await page.waitForTimeout(2000);
-  await page.locator("button", { hasText: "Open in Builder" }).first().click();
+  await page.locator("button", { hasText: "Edit" }).first().click();
   await page.waitForTimeout(3000);
   await expect(page.locator(".programGrid")).toBeVisible();
   await expect(page.locator(".programGridWeekLabel").first()).toBeVisible();
@@ -59,14 +59,14 @@ test("session editor opens with settings, presets and save action", async ({ pag
   test.skip(!(await actions.isVisible().catch(() => false)), "no programs on this environment");
   await actions.locator("button").first().click();
   await page.waitForTimeout(2000);
-  await page.locator("button", { hasText: "Open in Builder" }).first().click();
+  await page.locator("button", { hasText: "Edit" }).first().click();
   await page.waitForTimeout(3000);
   const sessionCard = page.locator(".programGrid .exerciseLabelBadge").first();
   test.skip(!(await sessionCard.isVisible().catch(() => false)), "program has no sessions");
   await sessionCard.click();
   await page.waitForTimeout(2500);
   await expect(page.getByText("Session Settings").first()).toBeVisible();
-  await expect(page.locator(".sessionSaveButton").first()).toBeVisible();
+  await expect(page.locator(".drawerHeroSave").first()).toBeVisible();
   // The old preset bar was removed in the builder redesign; the session-type
   // select is the drawer's surviving settings control.
   await expect(page.locator(".sessionTypeField select").first()).toBeVisible();

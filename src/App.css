@@ -13721,6 +13721,21 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   .lv3NavLinks { display: none; }
   .lv3PathCard { padding: 28px 22px; }
   .lv3InPerson { padding: 32px 24px; }
+  /* Fit brand + lang + CTA on one 320-412px row — the CTA used to clip
+     off-screen (page overflowed ~37px at 390px). */
+  .lv3Nav { gap: 10px; padding: 12px 14px; }
+  .lv3Brand img { height: 20px; }
+  .lv3Lang span { padding: 5px 9px; font-size: 0.72rem; }
+  .lv3NavCta { padding: 8px 13px; font-size: 0.8rem; white-space: nowrap; }
+}
+
+@media (max-width: 374px) {
+  /* The NØLIMIT wordmark is ~6.4:1 wide — at 20px tall it alone eats 129px
+     of a 320px row, so everything steps down another notch here. */
+  .lv3Nav { gap: 6px; padding: 10px 8px; }
+  .lv3Brand img { height: 16px; }
+  .lv3Lang span { padding: 4px 7px; font-size: 0.68rem; }
+  .lv3NavCta { padding: 7px 10px; font-size: 0.74rem; }
 }
 
 /* Pilot conversion pass: keep every proof point, but remove the long-page

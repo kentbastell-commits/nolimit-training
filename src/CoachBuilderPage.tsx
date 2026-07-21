@@ -573,6 +573,8 @@ export default function CoachBuilderPage({
                             {workoutPageTab === "Program Builder"
                               ? isSingleWorkoutBuilder
                                 ? "Create Session"
+                                : editProgramRecordId
+                                ? "Edit Program"
                                 : "Create Program"
                               : "Workouts"}
                           </h1>
@@ -580,6 +582,8 @@ export default function CoachBuilderPage({
                             {workoutPageTab === "Program Builder"
                               ? isSingleWorkoutBuilder
                                 ? "Build a reusable session once — drop it into any program, anytime."
+                                : editProgramRecordId
+                                ? "Editing an existing program — saving updates it in place."
                                 : "Build a full phase of programming — sessions, weeks, and progressions in one place."
                               : "Your programs, reusable sessions, and intake forms — build once, assign anywhere."}
                           </p>

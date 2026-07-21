@@ -5195,6 +5195,11 @@ function App({ onReady }: { onReady?: () => void } = {}) {
         templateData.templates || []
       );
 
+      // Loading a program is a clean baseline, not an edit: without this the
+      // dirty-tracking effect marks a freshly opened program "Unsaved" and the
+      // leave guard warns despite zero changes (same ref the save path uses).
+      justSavedRef.current = true;
+
       setBuilderMode(
         sourceProgram.productType === "Single Workout"
           ? "Single Workout"
@@ -10710,10 +10715,13 @@ function App({ onReady }: { onReady?: () => void } = {}) {
         : "Saved Programs"
       : workoutPageTab;
 
-  // Unsaved work = builder open with content not yet persisted (a successful
-  // "Save Full Program" clears these). Used to guard against losing a build.
+  // Unsaved work = builder open with content AND a real edit since the last
+  // save/load (builderSaveStatus tracks that; a programmatic load-for-edit
+  // baselines as "saved"). Content alone isn't enough — opening an existing
+  // program used to trip this guard with zero changes made.
   const hasUnsavedBuilderWork = () =>
     workoutPageTab === "Program Builder" &&
+    builderSaveStatus === "dirty" &&
     (selectedProgramExercises.length > 0 || programSessions.length > 0);
 
   // Clear the builder back to a blank state (used after a discard, so a

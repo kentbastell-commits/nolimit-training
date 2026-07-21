@@ -334,8 +334,6 @@ export default function CoachClientsPage(props: { [key: string]: any }) {
 
   return (
     <div className="coachClientsPage">
-      {renderCoachReviews()}
-
       {/* header */}
       <div className="crpHead">
         <div>
@@ -356,6 +354,10 @@ export default function CoachClientsPage(props: { [key: string]: any }) {
           )}
         </div>
       </div>
+
+      {/* Reviews queue sits below the page heading, matching every other
+          coach page's hierarchy. */}
+      {renderCoachReviews()}
 
       {/* board */}
       <div className="crpBoard">
