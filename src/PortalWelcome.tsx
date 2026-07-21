@@ -27,7 +27,7 @@ export default function PortalWelcome({
       </div>
       <section className="portalWelcome">
         <div className="portalWelcomeBrand">
-          <img src="/nl_monogram_clean.png" alt="NL" className="portalWelcomeMonogram" />
+          <img src="/nl_monogram_white.png" alt="NL" className="portalWelcomeMonogram" />
         </div>
 
         {portalAutoLoading ? (

@@ -420,7 +420,7 @@ export default function StorePage({
 
       <nav className="storeNavV3">
         <a className="storeBrandV3" href="/">
-          <img src="/nl_wordmark_black.png" alt="No Limit" />
+          <img src="/nl_wordmark_white.png" alt="No Limit" />
         </a>
         <div className="storeNavLinksV3">
           <a href="#featured" className="storeNavLinkV3">{sZh ? "计划" : "Programs"}</a>
@@ -1398,7 +1398,7 @@ export default function StorePage({
                     <img src={sp.productImage} alt={spName} />
                   ) : (
                     <div className="storeModalFallbackV2">
-                      <img src="/nl_monogram_clean.png" alt="" />
+                      <img src="/nl_monogram_white.png" alt="" />
                     </div>
                   )}
                 </div>
@@ -1967,7 +1967,7 @@ export default function StorePage({
       })()}
 
       <footer className="storeFooterV3">
-        <img src="/nl_wordmark_black.png" alt="No Limit" />
+        <img src="/nl_wordmark_white.png" alt="No Limit" />
         <div className="storeFooterLinksV3">
           <a href="#catalog">{sZh ? "计划" : "Programs"}</a>
           <a href="#coach">{sZh ? "教练" : "Coaching"}</a>

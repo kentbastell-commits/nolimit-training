@@ -11,9 +11,8 @@
   background:
     radial-gradient(120% 78% at 50% 42%, #1c1a15 0%, var(--brand-ink, #121210) 62%);
 }
-/* The wordmark asset is gold on a solid-black plate; `screen` drops the black
-   into the dark splash background so only the gold letters show. */
-.nlSplash__logo { width: min(62vw, 240px); height: auto; mix-blend-mode: screen; }
+/* White NØLIMIT wordmark on transparent background. */
+.nlSplash__logo { width: min(62vw, 240px); height: auto; }
 .nlSplash__bars {
   display: flex;
   align-items: flex-end;

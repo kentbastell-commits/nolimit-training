@@ -13621,7 +13621,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
         draw();
       };
       logo.onerror = () => draw();
-      logo.src = "/nl_monogram_clean.png";
+      logo.src = "/nl_monogram_white.png";
     });
 
   const openFinisherCard = async (payload: {
@@ -18089,7 +18089,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
         <section className="clientPortalEmpty">
           <div className="brandWordmark brandLogoLockup">
             <img
-              src="/nl_wordmark_clean.png"
+              src="/nl_wordmark_black.png"
               alt="NO LIMIT"
               className="brandWordmarkImage"
             />
@@ -18844,14 +18844,14 @@ function App({ onReady }: { onReady?: () => void } = {}) {
         <div className="brand">
           <div className="brandPlate">
             <img
-              src="/nl_wordmark_black.png"
+              src="/nl_wordmark_white.png"
               alt="NoLimit"
               className="brandWordmarkImg"
             />
             <span className="brandTagline">Built for Training</span>
           </div>
           <img
-            src="/nl_seal_black.png"
+            src="/nl_monogram_black.png"
             alt="NoLimit"
             className="brandCollapsedSeal"
           />
@@ -18973,7 +18973,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
             }
           >
             <div className="avatar monogramAvatar">
-              <img src="/nl_monogram_clean.png" alt="" aria-hidden="true" />
+              <img src="/nl_monogram_white.png" alt="" aria-hidden="true" />
             </div>
             <div className="coachBoxMeta">
               <strong>
@@ -20923,7 +20923,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                     ))}
                   </div>
                   <div className="workoutSummaryCrest">
-                    <img src="/nl_monogram_clean.png" alt="" />
+                    <img src="/nl_monogram_white.png" alt="" />
                   </div>
                   <h2 className="workoutSummaryTitle">
                     {paceZh ? "训练完成" : "Workout Complete"}

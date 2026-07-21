@@ -311,7 +311,7 @@
   background: #0c0b0a; padding: 38px 40px; display: flex; align-items: center; justify-content: space-between;
   flex-wrap: wrap; gap: 16px;
 }
-.storeFooterV3 img { height: 22px; opacity: 0.9; mix-blend-mode: screen; }
+.storeFooterV3 img { height: 22px; opacity: 0.9; }
 .storeFooterLinksV3 { display: flex; gap: 26px; font-size: 13px; }
 .storeFooterLinksV3 a, .storeFooterLinksV3 button { color: #a9a394; background: none; border: 0; cursor: pointer; font-size: 13px; }
 .storeFooterLinksV3 a:hover, .storeFooterLinksV3 button:hover { color: #d8bd62; }

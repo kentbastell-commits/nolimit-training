@@ -4206,7 +4206,7 @@ body {
   right: 8px;
   width: 22px;
   height: 22px;
-  background-image: url("/nl_monogram_clean.png");
+  background-image: url("/nl_monogram_black.png");
   background-size: contain;
   background-repeat: no-repeat;
   background-position: center;
@@ -11920,9 +11920,9 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 /* Uniform Warm App Grey (#E8E6DF) on every Overview section header. */
 .overviewGrid > .profileCard .profileMetricsHeader { background: #e8e6df !important; }
 
-/* Sidebar brand: gold NØLIMIT wordmark on a black plate with a hand-set
-   "Built for Training" tagline beneath. Collapses to a small seal on the
-   hover-narrowed desktop rail. */
+/* Sidebar brand: white NØLIMIT wordmark on a black plate with a hand-set
+   "Built for Training" tagline beneath. Collapses to the white NL monogram on
+   the hover-narrowed desktop rail. */
 .brandPlate {
   display: flex;
   flex-direction: column;

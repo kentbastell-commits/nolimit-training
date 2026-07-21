@@ -42,6 +42,10 @@ dist-ssr
 /builder_density_*.png
 test-results/
 
+# Brand source package (32MB PDF, mockups, font zips) — web-ready assets are
+# exported into public/; the package itself stays local only
+branding/
+
 # Local data dumps (real client data — never commit)
 etl-data.json
 *.dump.json

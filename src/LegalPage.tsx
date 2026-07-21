@@ -37,7 +37,7 @@ export default function LegalPage({
     <div className={`legalPage ${zh ? "zh" : "en"}`}>
       <header className="legalNav">
         <a className="legalBrand" href="/">
-          <img src="/nl_wordmark_black.png" alt="No Limit" />
+          <img src="/nl_wordmark_white.png" alt="No Limit" />
         </a>
         <div className="legalNavActions">
           <a href="/store">{zh ? "训练计划" : "Programs"}</a>
