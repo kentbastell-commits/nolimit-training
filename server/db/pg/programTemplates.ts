@@ -63,6 +63,31 @@ function mintId(prefix: string) {
   return `${prefix}-${Date.now()}-${mintCounter}`;
 }
 
+// Alternates parsed from coaching notes aren't in the top-level exercise
+// list, so the `known` FK-validation set must be extended with their codes
+// too — otherwise every alternate's exercise link is silently written NULL
+// on each builder save.
+async function extendKnownWithAlternates(
+  knownSet: Set<string>,
+  parsed: ParsedMeta[]
+) {
+  const altCodes = Array.from(
+    new Set(
+      parsed
+        .flatMap((m) => m.alternates)
+        .flatMap((a) => [a.exerciseRecordId, a.exerciseId])
+        .filter(Boolean)
+        .map(String)
+    )
+  ).filter((c) => !knownSet.has(c));
+  if (!altCodes.length) return;
+  const rows = await db
+    .select({ id: exercises.exerciseId })
+    .from(exercises)
+    .where(inArray(exercises.exerciseId, altCodes));
+  for (const r of rows) knownSet.add(r.id);
+}
+
 export async function createWorkoutTemplate(
   input: CreateWorkoutTemplateInput
 ): Promise<HandlerResult> {
@@ -175,6 +200,7 @@ export async function createWorkoutTemplate(
   }
 
   // Child tables: best-effort, reported but never fail the main save.
+  await extendKnownWithAlternates(known, metas);
   const setRows: (typeof setPrescriptions.$inferInsert)[] = [];
   const altRows: (typeof exerciseAlternates.$inferInsert)[] = [];
 
@@ -352,6 +378,7 @@ export async function createWorkoutTemplatesBulk(input: {
     };
   }
 
+  await extendKnownWithAlternates(known, metas);
   const setRows: (typeof setPrescriptions.$inferInsert)[] = [];
   const altRows: (typeof exerciseAlternates.$inferInsert)[] = [];
   templateRows.forEach((row, index) => {

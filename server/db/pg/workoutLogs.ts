@@ -105,11 +105,30 @@ export async function saveWorkoutLog(
         .where(eq(assignedWorkouts.assignedWorkoutId, String(assignedWorkoutRecordId)))
     ).length > 0;
 
+  // Stale-tab guard (cutover 2026-07-21): a browser tab opened pre-migration
+  // still holds Feishu record ids ("rec..."). Under pg those match nothing —
+  // without this check the save would "succeed" with orphaned rows (null
+  // client/workout links) and the workout never flips to Completed. Fail
+  // loudly instead so the athlete refreshes and resubmits against real ids.
+  const looksLikeFeishuId = (v: unknown) => /^rec[A-Za-z0-9]{8,}$/.test(String(v || ""));
+  if (
+    (!workoutExists && looksLikeFeishuId(assignedWorkoutRecordId)) ||
+    (!clientExists && looksLikeFeishuId(code))
+  ) {
+    return {
+      success: false,
+      error:
+        "This session was opened before a system upgrade. Please refresh the page and submit your workout again — your entries are safe in the form.",
+    };
+  }
+
   const rows: Insert[] = logs.map((log: any, index: number) => {
     const skipped = log.completed === false;
     const actualTimeNum = skipped ? undefined : toNum(log.actualTime);
     return {
-      logId: `LOG-${Date.now()}-${index + 1}`,
+      // Random component: two same-millisecond submits (e.g. athlete
+      // double-tap) collide on the PK without it.
+      logId: `LOG-${Date.now()}-${Math.floor(Math.random() * 1e6)}-${index + 1}`,
       clientId: clientExists ? code : null,
       clientCode: code,
       assignedWorkoutId: workoutExists ? String(assignedWorkoutRecordId) : null,

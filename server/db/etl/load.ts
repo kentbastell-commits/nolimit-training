@@ -110,6 +110,23 @@ export async function load(
   if (nulled) console.log(`nulled ${nulled} orphaned FK reference(s)`);
 
   const tableNames = [...ORDER.map(([n]) => n), "team_members"];
+
+  // Safety fence (post-cutover 2026-07-21): this loader TRUNCATEs everything,
+  // and production now lives in Postgres — a casual run against nolimit_prod
+  // would destroy every write since the Feishu freeze and reload the stale
+  // mirror. Fresh twin/CN targets are empty and pass untouched; a non-empty
+  // target requires an explicit, ugly override.
+  const occupied = await pool.query(
+    `SELECT (SELECT count(*) FROM clients) + (SELECT count(*) FROM workout_logs) AS n`
+  );
+  if (Number(occupied.rows[0]?.n || 0) > 0 && process.env.ETL_FORCE_RELOAD !== "yes") {
+    throw new Error(
+      "ETL refused: target database is NOT empty — it may be live production. " +
+        "This load TRUNCATEs all tables and reloads the frozen Feishu mirror. " +
+        "If you truly mean to wipe it, re-run with ETL_FORCE_RELOAD=yes."
+    );
+  }
+
   await pool.query(`TRUNCATE ${tableNames.map((n) => `"${n}"`).join(", ")} CASCADE`);
 
   for (const [name, table] of ORDER) {

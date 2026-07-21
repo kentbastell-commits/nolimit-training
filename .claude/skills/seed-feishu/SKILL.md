@@ -99,3 +99,8 @@ handler's `debug=1` bypass or wait it out), fix any pre-existing records the new
 fields left behind (backfill script), and report to Kent with counts per category
 and 1-2 sample entries. If UI changes are needed to surface new fields (filters,
 chips), that's a separate deliverable — flag it, don't bury it.
+
+> **⚠️ nolimit-training only: Feishu is a FROZEN read-only mirror since the
+> 2026-07-21 Postgres cutover — seeding its Feishu base does NOTHING for
+> production.** Seed nolimit content through the live API or Postgres instead.
+> This skill still applies unchanged to kangfu-zhuanjia (still Feishu-backed).

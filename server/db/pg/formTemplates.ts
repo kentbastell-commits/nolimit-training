@@ -7,7 +7,12 @@
 // them silently (buildFields semantics), reads return "".
 import { eq } from "drizzle-orm";
 import { db } from "../client.ts";
-import { formTemplates, formQuestions } from "../schema.ts";
+import {
+  formTemplates,
+  formQuestions,
+  assignedForms,
+  formResponses,
+} from "../schema.ts";
 import { str } from "./_util.ts";
 import type {
   FormTemplatesOpResult,
@@ -160,19 +165,38 @@ export async function deleteFormTemplate(
   // recordId carries the form code on Postgres; formId (when sent) matches it.
   const formId = String(input.formId || input.recordId);
 
-  const deletedQuestions = input.formId
-    ? await db
-        .delete(formQuestions)
-        .where(eq(formQuestions.formId, String(input.formId)))
-        .returning({ questionId: formQuestions.questionId })
-    : [];
+  // Transactional delete with FK detach: assigned_forms + form_responses
+  // reference the template, so the bare delete used to throw AFTER the
+  // questions were already destroyed (orphaned question-less template + 500).
+  // Feishu deleted cleanly leaving dead text links — nulling matches that.
+  let deletedQuestionCount = 0;
+  let found = false;
+  await db.transaction(async (tx) => {
+    await tx
+      .update(assignedForms)
+      .set({ formId: null })
+      .where(eq(assignedForms.formId, formId));
+    await tx
+      .update(formResponses)
+      .set({ formId: null })
+      .where(eq(formResponses.formId, formId));
 
-  const deletedTemplates = await db
-    .delete(formTemplates)
-    .where(eq(formTemplates.formId, formId))
-    .returning({ formId: formTemplates.formId });
+    const deletedQuestions = await tx
+      .delete(formQuestions)
+      .where(eq(formQuestions.formId, formId))
+      .returning({ questionId: formQuestions.questionId });
+    deletedQuestionCount = deletedQuestions.length;
 
-  if (!deletedTemplates.length) {
+    const deletedTemplates = await tx
+      .delete(formTemplates)
+      .where(eq(formTemplates.formId, formId))
+      .returning({ formId: formTemplates.formId });
+    // No rollback needed on miss: every statement above matches zero rows
+    // when the form doesn't exist.
+    found = deletedTemplates.length > 0;
+  });
+
+  if (!found) {
     return {
       status: 500,
       body: { error: "Could not delete form template" },
@@ -181,6 +205,6 @@ export async function deleteFormTemplate(
 
   return {
     status: 200,
-    body: { success: true, deletedQuestions: deletedQuestions.length },
+    body: { success: true, deletedQuestions: deletedQuestionCount },
   };
 }

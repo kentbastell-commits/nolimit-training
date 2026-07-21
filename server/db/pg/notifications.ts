@@ -37,7 +37,7 @@ export async function listNotifications(clientId?: string): Promise<Notification
 export async function createNotification(
   input: CreateNotificationInput
 ): Promise<WriteResult> {
-  const notificationId = `NOTIF-${Date.now()}`;
+  const notificationId = `NOTIF-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
   await db.insert(notifications).values({
     notificationId,
     clientId: String(input.clientId),

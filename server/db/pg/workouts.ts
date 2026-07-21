@@ -1,4 +1,4 @@
-import { and, eq, gte, isNull, not, ilike, or, sql } from "drizzle-orm";
+import { and, eq, gte, inArray, isNull, not, ilike, or, sql } from "drizzle-orm";
 import { db } from "../client.ts";
 import { assignedWorkouts } from "../schema.ts";
 import { str } from "./_util.ts";
@@ -56,6 +56,24 @@ function makeAssignedWorkoutId() {
   return `AW-${random}`;
 }
 
+// Mint collision-free AW ids (same Feishu shape, but here AW- is a PK — a
+// clash fails the whole batch insert; probability grows with table size).
+// Mirrors the hardened mint in pg/programs.ts.
+async function mintAssignedWorkoutIds(count: number): Promise<string[]> {
+  const ids = new Set<string>();
+  while (ids.size < count) ids.add(makeAssignedWorkoutId());
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const clash = await db
+      .select({ id: assignedWorkouts.assignedWorkoutId })
+      .from(assignedWorkouts)
+      .where(inArray(assignedWorkouts.assignedWorkoutId, [...ids]));
+    if (!clash.length) break;
+    for (const c of clash) ids.delete(String(c.id));
+    while (ids.size < count) ids.add(makeAssignedWorkoutId());
+  }
+  return [...ids];
+}
+
 // NaN-safe numeric coercion. Feishu's JSON.stringify turned NaN into null, so
 // null (not a crash) is the faithful equivalent for bad numbers here.
 function intOrNull(value: unknown): number | null {
@@ -70,10 +88,15 @@ function epochOrNull(ms: number): number | null {
 export async function assignProgram(input: AssignProgramInput): Promise<WorkoutWriteResult> {
   const { targetClientIds, programRecordId, scheduledWorkouts } = input;
 
+  const mintedIds = await mintAssignedWorkoutIds(
+    targetClientIds.length * scheduledWorkouts.length
+  );
+  let mintIndex = 0;
+
   const rows: Insert[] = targetClientIds.flatMap((cid) =>
     scheduledWorkouts.map((workout) => {
       const row: Insert = {
-        assignedWorkoutId: makeAssignedWorkoutId(),
+        assignedWorkoutId: mintedIds[mintIndex++],
         clientId: cid,
         programId: programRecordId,
         week: intOrNull(workout.week),
@@ -187,7 +210,7 @@ export async function duplicateAssignedWorkout(
 
   // Same semantics as the Feishu clone: copy every field, override id/date/
   // status. (Workout Logs links have no column here — logs point at workouts.)
-  const newId = makeAssignedWorkoutId();
+  const [newId] = await mintAssignedWorkoutIds(1);
   const clone: Insert = {
     ...source,
     assignedWorkoutId: newId,

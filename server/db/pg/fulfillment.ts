@@ -464,17 +464,29 @@ export async function activateDigitalOrder(
   for (const item of cartItems) {
     try {
       const itemOrderId = makeShortId("ORD");
-      // FK-validated program link; the order still lands without it.
+      // FK-validated program link. A requested-but-unknown program must FAIL
+      // LOUDLY (Feishu parity): silently nulling it creates an order that
+      // autoLoadProgram can never fulfil — the buyer pays and nothing ever
+      // unlocks. Stale pre-cutover tabs sending Feishu rec… ids hit this.
+      const requestedProgram = item.programRecordId
+        ? String(item.programRecordId)
+        : "";
       const programFk =
-        item.programRecordId &&
+        requestedProgram &&
         (
           await db
             .select({ id: programs.programId })
             .from(programs)
-            .where(eq(programs.programId, String(item.programRecordId)))
+            .where(eq(programs.programId, requestedProgram))
         ).length
-          ? String(item.programRecordId)
+          ? requestedProgram
           : null;
+      if (requestedProgram && !programFk) {
+        throw new Error(
+          `Unknown program id "${requestedProgram}" — order not created. ` +
+            "If this came from an open store tab, refresh the page and retry."
+        );
+      }
 
       const amountNum = Number(item.amount);
       const hasAmount =

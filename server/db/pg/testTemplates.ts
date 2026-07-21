@@ -6,9 +6,14 @@
 // Columns the Feishu tables have but Postgres doesn't (Status, Created At on
 // templates) behave like missing Feishu columns did: writes drop them
 // silently (buildFields semantics), reads return "".
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { db } from "../client.ts";
-import { testTemplates, testItems } from "../schema.ts";
+import {
+  testTemplates,
+  testItems,
+  testResults,
+  assignedTests,
+} from "../schema.ts";
 import { str } from "./_util.ts";
 import type {
   TestTemplatesOpResult,
@@ -108,6 +113,14 @@ function itemRows(testTemplateId: string, items: unknown) {
     calculationMethod: String(item?.calculationMethod || ""),
     inputUnit: String(item?.inputUnit || item?.unit || ""),
     instructions: String(item?.instructions || ""),
+    // CN + typing columns: the console doesn't send these; update() carries
+    // them over from the previous rows so an edit never strips them.
+    testNameCn: item?.testNameCn ? String(item.testNameCn) : null,
+    unitCn: item?.unitCn ? String(item.unitCn) : null,
+    instructionsCn: item?.instructionsCn ? String(item.instructionsCn) : null,
+    testingMetricType: item?.testingMetricType
+      ? String(item.testingMetricType)
+      : null,
   }));
 }
 
@@ -142,30 +155,67 @@ export async function updateTestTemplate(
 ): Promise<TestTemplatesOpResult> {
   const testTemplateId = String(input.testTemplateId);
 
-  const updated = await db
-    .update(testTemplates)
-    .set({
-      testTemplateId,
-      name: String(input.name),
-      description: String(input.description || ""),
-      category: String(input.category || ""),
-    })
-    .where(eq(testTemplates.testTemplateId, testTemplateId))
-    .returning({ testTemplateId: testTemplates.testTemplateId });
+  // Existing items feed two things: the CN/typing carry-over (the console
+  // payload doesn't include testNameCn/instructionsCn/unitCn/
+  // testingMetricType — without the carry-over one edit strips them forever)
+  // and the FK detach of historical results below.
+  const existingItems = await db
+    .select()
+    .from(testItems)
+    .where(eq(testItems.testTemplateId, testTemplateId));
+  const carry = new Map(existingItems.map((r) => [str(r.testName), r]));
 
-  if (!updated.length) {
+  const rows = itemRows(testTemplateId, input.items).map((row) => {
+    const prev = carry.get(row.testName);
+    if (!prev) return row;
+    return {
+      ...row,
+      testNameCn: row.testNameCn ?? prev.testNameCn,
+      unitCn: row.unitCn ?? prev.unitCn,
+      instructionsCn: row.instructionsCn ?? prev.instructionsCn,
+      testingMetricType: row.testingMetricType ?? prev.testingMetricType,
+    };
+  });
+
+  // Transactional replace: historical test_results FK-reference the old item
+  // rows, so the bare delete used to throw AFTER the template row was already
+  // updated (partial write + stale cache). Detach results first — the old
+  // item rows are being replaced, so their links are dead either way (same
+  // semantics Feishu had, where results kept text codes pointing nowhere).
+  let found = true;
+  await db.transaction(async (tx) => {
+    const updated = await tx
+      .update(testTemplates)
+      .set({
+        testTemplateId,
+        name: String(input.name),
+        description: String(input.description || ""),
+        category: String(input.category || ""),
+      })
+      .where(eq(testTemplates.testTemplateId, testTemplateId))
+      .returning({ testTemplateId: testTemplates.testTemplateId });
+    if (!updated.length) {
+      found = false;
+      return;
+    }
+
+    const oldIds = existingItems.map((r) => String(r.testItemId));
+    if (oldIds.length) {
+      await tx
+        .update(testResults)
+        .set({ testItemId: null })
+        .where(inArray(testResults.testItemId, oldIds));
+    }
+    await tx.delete(testItems).where(eq(testItems.testTemplateId, testTemplateId));
+    if (rows.length) await tx.insert(testItems).values(rows);
+  });
+
+  if (!found) {
     return {
       status: 500,
       body: { error: "Could not update test template" },
     };
   }
-
-  // Same replace semantics as Feishu: drop the template's items, then
-  // recreate from the payload.
-  await db.delete(testItems).where(eq(testItems.testTemplateId, testTemplateId));
-
-  const rows = itemRows(testTemplateId, input.items);
-  if (rows.length) await db.insert(testItems).values(rows);
 
   return {
     status: 200,
@@ -185,19 +235,52 @@ export async function deleteTestTemplate(
   // sent) matches it.
   const templateCode = String(input.testTemplateId || input.recordId);
 
-  const deletedItems = input.testTemplateId
-    ? await db
-        .delete(testItems)
-        .where(eq(testItems.testTemplateId, String(input.testTemplateId)))
-        .returning({ testItemId: testItems.testItemId })
-    : [];
+  // Transactional delete with FK detach: assigned_tests + test_results
+  // reference the template and its items, so the bare delete used to throw
+  // AFTER destroying the item rows (orphaned template, generic 500). Feishu
+  // deleted cleanly and left dead text links — nulling the FKs is the same
+  // semantics.
+  let deletedItemCount = 0;
+  let found = false;
+  await db.transaction(async (tx) => {
+    const itemIds = (
+      await tx
+        .select({ id: testItems.testItemId })
+        .from(testItems)
+        .where(eq(testItems.testTemplateId, templateCode))
+    ).map((r) => String(r.id));
 
-  const deletedTemplates = await db
-    .delete(testTemplates)
-    .where(eq(testTemplates.testTemplateId, templateCode))
-    .returning({ testTemplateId: testTemplates.testTemplateId });
+    if (itemIds.length) {
+      await tx
+        .update(testResults)
+        .set({ testItemId: null })
+        .where(inArray(testResults.testItemId, itemIds));
+    }
+    await tx
+      .update(testResults)
+      .set({ testTemplateId: null })
+      .where(eq(testResults.testTemplateId, templateCode));
+    await tx
+      .update(assignedTests)
+      .set({ testTemplateId: null })
+      .where(eq(assignedTests.testTemplateId, templateCode));
 
-  if (!deletedTemplates.length) {
+    const deletedItems = await tx
+      .delete(testItems)
+      .where(eq(testItems.testTemplateId, templateCode))
+      .returning({ testItemId: testItems.testItemId });
+    deletedItemCount = deletedItems.length;
+
+    const deletedTemplates = await tx
+      .delete(testTemplates)
+      .where(eq(testTemplates.testTemplateId, templateCode))
+      .returning({ testTemplateId: testTemplates.testTemplateId });
+    // No rollback needed on miss: every statement above matches zero rows
+    // when the template doesn't exist.
+    found = deletedTemplates.length > 0;
+  });
+
+  if (!found) {
     return {
       status: 500,
       body: { error: "Could not delete test template" },
@@ -206,6 +289,6 @@ export async function deleteTestTemplate(
 
   return {
     status: 200,
-    body: { success: true, deletedItems: deletedItems.length },
+    body: { success: true, deletedItems: deletedItemCount },
   };
 }

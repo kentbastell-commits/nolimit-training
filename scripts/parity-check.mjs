@@ -1,3 +1,11 @@
+// ⚠️ FROZEN MIRROR GUARD (2026-07-21): nolimit production moved to Postgres.
+// This script talks DIRECTLY to Feishu — reads show pre-cutover data, writes
+// go where production can never see them. Run only for historical inspection,
+// with FEISHU_MIRROR_OK=yes.
+if (process.env.FEISHU_MIRROR_OK !== "yes") {
+  console.error("Refusing: Feishu is a frozen read-only mirror for nolimit since 2026-07-21 (prod is Postgres). Set FEISHU_MIRROR_OK=yes to override.");
+  process.exit(1);
+}
 // Cutover parity harness: compares production API (Feishu backend) against the
 // HK Postgres twin for every read endpoint the apps use. Arrays are matched by
 // stable business key; record_id-ish fields are ignored (pg uses business codes

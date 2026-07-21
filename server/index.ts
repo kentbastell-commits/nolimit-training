@@ -1,5 +1,22 @@
 import "dotenv/config";
 import express from "express";
+import { DATA_BACKEND } from "./db/backend.ts";
+
+// Config tripwire (post-cutover 2026-07-21): DATA_BACKEND defaults to
+// "feishu", so losing the env var (mangled .env, restart without it) would
+// silently serve the FROZEN Feishu mirror — stale reads, writes into the
+// void — while looking perfectly healthy. If the configured DATABASE_URL is
+// the production Postgres, refuse to boot in feishu mode instead.
+if (
+  DATA_BACKEND !== "postgres" &&
+  String(process.env.DATABASE_URL || "").includes("nolimit_prod")
+) {
+  console.error(
+    "FATAL: DATABASE_URL targets nolimit_prod but DATA_BACKEND is not 'postgres'. " +
+      "Refusing to serve the stale Feishu mirror — set DATA_BACKEND=postgres in .env."
+  );
+  process.exit(1);
+}
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";

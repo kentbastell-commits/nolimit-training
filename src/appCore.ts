@@ -1567,13 +1567,16 @@ export const CACHE_KEYS = {
   // clientCode) made clientLabel fall back to showing the raw code (e.g.
   // "CL-0002") instead of the name on the Review page. Bumping the key forces a
   // one-time fresh re-fetch so every browser gets clientCode-bearing objects.
-  clients: "clients:v2",
-  exercises: "exercises:v1",
-  productOrders: "product-orders:v1",
-  programs: "programs:v1",
-  formTemplates: "form-templates:v1",
-  testTemplates: "test-templates:v1",
-  clientWorkouts: (clientCode: string) => `client-workouts:${clientCode}:v1`,
+  // Bumped again for the 2026-07-21 Postgres cutover: pre-migration caches
+  // hold Feishu record ids ("rec...") that no pg endpoint can resolve —
+  // fresh keys force every browser onto business-code-shaped rows.
+  clients: "clients:v3",
+  exercises: "exercises:v2",
+  productOrders: "product-orders:v2",
+  programs: "programs:v2",
+  formTemplates: "form-templates:v2",
+  testTemplates: "test-templates:v2",
+  clientWorkouts: (clientCode: string) => `client-workouts:${clientCode}:v2`,
 };
 
 export function isFreshCache(timestamp: number) {

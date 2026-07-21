@@ -1,3 +1,11 @@
+// ⚠️ FROZEN MIRROR GUARD (2026-07-21): nolimit production moved to Postgres.
+// This script talks DIRECTLY to Feishu — reads show pre-cutover data, writes
+// go where production can never see them. Run only for historical inspection,
+// with FEISHU_MIRROR_OK=yes.
+if (process.env.FEISHU_MIRROR_OK !== "yes") {
+  console.error("Refusing: Feishu is a frozen read-only mirror for nolimit since 2026-07-21 (prod is Postgres). Set FEISHU_MIRROR_OK=yes to override.");
+  process.exit(1);
+}
 // Seed a test store catalog: 4 climbing programs + a 4-part bundle + 1 joint
 // add-on. Re-runnable (dedupes by Program Name — updates in place, no dupes).
 // Run ON THE SERVER (nolimit Feishu creds live only there):

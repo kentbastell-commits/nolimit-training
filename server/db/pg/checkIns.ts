@@ -38,7 +38,12 @@ export async function listCheckIns(): Promise<CheckInDTO[]> {
     return {
       recordId: r.checkinId, // business code is the identity on Postgres
       checkInId: str(r.checkinId),
-      clientId: str(r.clientId),
+      // Fallback: rows whose FK link is NULL (Feishu's retry-without-link
+      // fallback wrote only the plain-text Client column, which the ETL put
+      // in clientName) would otherwise vanish from per-client views.
+      clientId:
+        str(r.clientId) ||
+        (/^CL-/.test(str(r.clientName)) ? str(r.clientName) : ""),
       clientRecordIds: [], // Feishu duplex-link ids don't exist on Postgres
       submittedDate: epochToDate(r.submittedDate),
       bodyWeight: str(r.bodyWeight),
