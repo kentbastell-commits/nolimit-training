@@ -1,5 +1,23 @@
 # Postgres cutover runbook — trainnolimit.cn on the Shanghai CVM
 
+**⚡ 2026-07-21: THE DATABASE SWAP ALREADY HAPPENED — on the HK box.** Kent
+approved doing the Feishu→Postgres flip early on familiar ground. Production
+(`trainnolimit.com`, pm2 `nolimit-training`) now runs `DATA_BACKEND=postgres`
+against local DB **`nolimit_prod`** (17/17 write battery, live write round-trip
+verified). The twin keeps throwaway DB `nolimit` via an explicit pm2-env
+`DATABASE_URL` override (pinned BEFORE the shared `.env` was repointed).
+Nightly `pg_dump` cron at 03:30 → `/opt/backups/pg`, 14-day retention.
+Feishu is now a **frozen read-only mirror** — edits there do nothing.
+Rollback (if ever needed): revert the two `.env` lines (`DATA_BACKEND`,
+`DATABASE_URL` → `/nolimit`) + `pm2 restart nolimit-training`; Feishu data
+frozen at 2026-07-21.
+
+**What remains of this runbook** is the SERVER + DOMAIN move (HK → Shanghai
+CVM, trainnolimit.cn): now a much simpler **pg→pg** move — `pg_dump
+nolimit_prod` → restore on nolimit-cn replaces steps 1–2 (no Feishu freeze, no
+ETL); steps 3–9 unchanged. Off-box backup shipping (HK→CN rsync of
+/opt/backups/pg) still worth adding.
+
 **Trigger:** ICP beian approval for trainnolimit.cn (order 30178426682034412,
 Guangdong bureau, submitted 2026-07-17). Until then: do nothing here.
 

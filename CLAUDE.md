@@ -32,9 +32,12 @@ data between them, never "borrow" a table ID across products.
 - **Backend**: `api/*.ts` are Vercel-style handlers, served self-hosted by
   `server/index.ts` (Express). **A new handler does nothing until you import it and
   add it to the `handlers` map in `server/index.ts`.**
-- **Database is Feishu Bitable.** Table/column names in `docs/feishu-base-reference.md`.
-  Handlers parse fields defensively (`fieldToText`-style helpers) because Feishu
-  returns strings, numbers, arrays of `{text}`, or link objects depending on column type.
+- **Database: nolimit is on Postgres since 2026-07-21** (`DATA_BACKEND=postgres`,
+  DB `nolimit_prod` on the HK box; Feishu is a frozen read-only mirror — never
+  write to it expecting effects). The repository layer (`server/db/repositories/`)
+  switches per `DATA_BACKEND`; **kangfu is still Feishu Bitable.** Feishu
+  reference stays in `docs/feishu-base-reference.md`; handlers keep parsing
+  defensively because kangfu + the ETL still consume Feishu shapes.
 - **Cache**: `api/_cache.ts` in-process cache makes reads fast. Every writer MUST
   call `invalidateCache(...)` for every cache key its write affects, or coaches see
   stale data for up to 10 minutes.
@@ -309,6 +312,17 @@ data between them, never "borrow" a table ID across products.
     blend/filter hacks in the same pass. Big source packages never go in
     public/ (it ships wholesale into dist) — gitignored branding/ holds the
     package; only web-ready exports live in public/.
+
+41. **The shared-.env sibling** — prod and the pg twin are two pm2 apps started
+    from the SAME `/opt/nolimit-training` dir and `.env`; repointing `.env`'s
+    `DATABASE_URL` for prod would have silently repointed the twin at the
+    production DB on its next restart (battery test writes into prod). Twin
+    trap: a battery step asserting an *unconfigured-service* contract (wxAuth
+    503) breaks the day the service is configured. Rules: before editing a
+    shared `.env`, pin every sibling app's divergent values into its own pm2
+    env (`VAR=x pm2 restart <sibling> --update-env`) FIRST; and contract tests
+    for optional services must accept both the unconfigured AND configured
+    responses.
 
 ## Quality bar — checkable, per deliverable
 
