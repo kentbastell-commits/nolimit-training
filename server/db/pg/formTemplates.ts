@@ -89,6 +89,10 @@ function questionRows(formId: string, questions: unknown) {
     options: String(question?.options || "") as unknown,
     required: Boolean(question?.required),
     helpText: String(question?.helpText || ""),
+    // CN columns: the console doesn't send these; update() carries them over
+    // from the previous rows so an edit never strips them.
+    labelCn: question?.labelCn ? String(question.labelCn) : null,
+    helpTextCn: question?.helpTextCn ? String(question.helpTextCn) : null,
   }));
 }
 
@@ -123,6 +127,14 @@ export async function updateFormTemplate(
 ): Promise<FormTemplatesOpResult> {
   const formId = String(input.formId);
 
+  // Carry CN text over across the replace-rewrite (the console payload has
+  // no labelCn/helpTextCn — without this, one edit strips them forever).
+  const existingQuestions = await db
+    .select()
+    .from(formQuestions)
+    .where(eq(formQuestions.formId, formId));
+  const carry = new Map(existingQuestions.map((r) => [str(r.label), r]));
+
   const updated = await db
     .update(formTemplates)
     .set({
@@ -142,10 +154,18 @@ export async function updateFormTemplate(
   }
 
   // Same replace semantics as Feishu: drop the template's questions, then
-  // recreate from the payload.
+  // recreate from the payload (CN text carried over by label).
   await db.delete(formQuestions).where(eq(formQuestions.formId, formId));
 
-  const rows = questionRows(formId, input.questions);
+  const rows = questionRows(formId, input.questions).map((row) => {
+    const prev = carry.get(row.label);
+    if (!prev) return row;
+    return {
+      ...row,
+      labelCn: row.labelCn ?? prev.labelCn,
+      helpTextCn: row.helpTextCn ?? prev.helpTextCn,
+    };
+  });
   if (rows.length) await db.insert(formQuestions).values(rows);
 
   return {
