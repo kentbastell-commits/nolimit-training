@@ -143,6 +143,9 @@ export async function assignProgram(input: AssignProgramInput): Promise<WorkoutW
         "Session Name": workout.sessionName,
         "Session Type": workout.sessionType || "Strength",
         "Session Goal": workout.sessionGoal || "",
+        ...(workout.sessionNotes
+          ? { "Coach Notes": workout.sessionNotes }
+          : {}),
         Intensity: workout.intensity || "Moderate",
 
         // Lark date fields usually want timestamp

@@ -208,6 +208,14 @@ export default function WorkoutPlayerModal({
                           </div>
                         );
                       })()}
+                    {/* Session-level coach notes (from the builder's Session
+                        Notes) — shown to the athlete above the exercise list. */}
+                    {selectedWorkout?.coachNotes?.trim() && (
+                      <div className="workoutCoachNotesBanner">
+                        <strong>{paceZh ? "教练提示" : "Coach notes"}</strong>
+                        <p>{selectedWorkout.coachNotes}</p>
+                      </div>
+                    )}
                     {isClientPortal && !workoutLoggingStarted && (
                       <p className="workoutGlanceIntro">
                         {t("selectFirstExercise")}

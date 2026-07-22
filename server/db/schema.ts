@@ -237,6 +237,9 @@ export const workoutTemplates = pgTable(
     sessionNameCn: text("session_name_cn"),
     sessionType: text("session_type"),
     sessionGoal: text("session_goal"),
+    // Session-level coach notes (intensity cues, warm-up instructions),
+    // replicated on each of the session's rows like sessionGoal.
+    sessionNotes: text("session_notes"),
     estimatedDuration: integer("estimated_duration"),
     intensity: text("intensity"),
     isSingleWorkout: boolean("is_single_workout"),

@@ -31,6 +31,9 @@ export type ScheduledWorkoutInput = {
   sessionNameCn?: string;
   sessionType?: string;
   sessionGoal?: string;
+  // Session-level coach notes from the builder — land in the assigned
+  // workout's Coach Notes so the athlete sees them in the player.
+  sessionNotes?: string;
   estimatedDuration?: string;
   intensity?: string;
   scheduledDate: string;

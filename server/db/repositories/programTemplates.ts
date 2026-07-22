@@ -16,6 +16,7 @@ export type CreateWorkoutTemplateInput = {
   sessionNameCn?: any;
   sessionType?: any;
   sessionGoal?: any;
+  sessionNotes?: any;
   estimatedDuration?: any;
   intensity?: any;
   isSingleWorkout?: any;
@@ -64,6 +65,7 @@ export async function listProgramTemplates(
         sessionNameCn: row.sessionNameCn,
         sessionType: row.sessionType,
         sessionGoal: row.sessionGoal,
+        sessionNotes: (row as any).sessionNotes || "",
         estimatedDuration: row.estimatedDuration,
         intensity: row.intensity,
         isSingleWorkout: row.isSingleWorkout,

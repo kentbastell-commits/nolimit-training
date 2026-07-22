@@ -609,6 +609,7 @@ export type ProgramSession = {
   sessionNameCn?: string;
   sessionType?: string;
   sessionGoal?: string;
+  sessionNotes?: string;
   estimatedDuration?: string;
   intensity?: string;
   isSingleWorkout?: boolean;
@@ -623,6 +624,7 @@ export type AssignableWorkout = {
   sessionNameCn?: string;
   sessionType?: string;
   sessionGoal?: string;
+  sessionNotes?: string;
   estimatedDuration?: string;
   intensity?: string;
   scheduledDate: string;
@@ -666,6 +668,7 @@ export type SavedProgramTemplate = {
   sessionName: string;
   sessionType?: string;
   sessionGoal?: string;
+  sessionNotes?: string;
   estimatedDuration?: string;
   intensity?: string;
   isSingleWorkout?: boolean;

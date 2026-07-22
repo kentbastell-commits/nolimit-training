@@ -392,3 +392,26 @@
   font: inherit;
   font-size: 14px;
 }
+
+/* Session-level coach notes banner in the workout player glance */
+.workoutCoachNotesBanner {
+  margin: 4px 0 12px;
+  padding: 11px 13px;
+  border: 1px solid rgba(159, 122, 27, 0.35);
+  border-radius: 12px;
+  background: rgba(216, 189, 98, 0.1);
+}
+.workoutCoachNotesBanner strong {
+  display: block;
+  font-size: 12px;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: #8a6d1c;
+  margin-bottom: 4px;
+}
+.workoutCoachNotesBanner p {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}

@@ -119,6 +119,7 @@ export async function assignProgram(input: AssignProgramInput): Promise<WorkoutW
         sessionName: workout.sessionName,
         sessionType: workout.sessionType || "Strength",
         sessionGoal: workout.sessionGoal || "",
+        coachNotes: workout.sessionNotes || null,
         intensity: workout.intensity || "Moderate",
         scheduledDate: epochOrNull(new Date(workout.scheduledDate).getTime()),
         completionStatus: "Scheduled",

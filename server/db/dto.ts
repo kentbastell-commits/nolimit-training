@@ -299,6 +299,7 @@ export type TemplateSummaryDTO = {
   sessionNameCn: string;
   sessionType: string;
   sessionGoal: string;
+  sessionNotes?: string;
   estimatedDuration: string;
   intensity: string;
   isSingleWorkout: boolean;
