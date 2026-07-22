@@ -41,7 +41,7 @@ function buildLibraryDetail(e?: ExRow) {
     technicalInstructionsCn: str(e?.technicalCuesCn),
     coachingCuesCn: str(e?.coachingCuesCn),
     commonMistakesCn: str(e?.commonErrorsCn),
-    cueNotes: str(e?.coachingCues),
+    cueNotes: str(e?.coachingCues) || str(e?.technicalCues),
     cueNotesCn: str(e?.coachingCuesCn),
   };
 }
@@ -100,7 +100,7 @@ export async function getWorkoutDetails(
         technicalInstructionsCn: str(e?.technicalCuesCn),
         coachingCuesCn: str(e?.coachingCuesCn),
         commonMistakesCn: str(e?.commonErrorsCn),
-        cueNotes: str(e?.coachingCues),
+        cueNotes: str(e?.coachingCues) || str(e?.technicalCues),
         cueNotesCn: str(e?.coachingCuesCn),
         order: t.exerciseOrder ?? 0,
         sets: str(t.sets),

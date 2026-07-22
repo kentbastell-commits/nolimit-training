@@ -9,7 +9,9 @@ import type { CreateClientInput } from "../repositories/clients.ts";
 type Row = typeof clients.$inferSelect;
 
 export async function listClients(): Promise<ClientDTO[]> {
-  const rows = await db.select().from(clients);
+  // Stable order: heap order reshuffles as rows update (Feishu returned grid
+  // order); same reason on every list read below.
+  const rows = await db.select().from(clients).orderBy(clients.clientId);
   return rows.map((r: Row): ClientDTO => {
     const name = r.fullName || "Unnamed Client";
     return {
@@ -216,20 +218,27 @@ export async function updateClient(i: UpdateClientInput): Promise<WriteResult> {
     .where(eq(clients.clientId, i.clientRecordId))
     .returning({ clientId: clients.clientId });
 
-  // Translate-on-write (replaces the Feishu AI formula): mirror new notes into
-  // notes_en. Fire-and-forget; only fills an EMPTY mirror column.
-  if (r.length && i.notes) {
-    void fillTranslation(i.notes, "en", (en) =>
-      db
-        .update(clients)
-        .set({ notesEn: en })
-        .where(
-          and(
-            eq(clients.clientId, i.clientRecordId),
-            or(isNull(clients.notesEn), eq(clients.notesEn, ""))
+  // Translate-on-write (replaces the Feishu AI formula): the mirror must
+  // FOLLOW the source — clear it on every notes edit, then refill. The old
+  // fill-only-empty rule left a stale translation forever after edits.
+  if (r.length && i.notes !== undefined) {
+    await db
+      .update(clients)
+      .set({ notesEn: "" })
+      .where(eq(clients.clientId, i.clientRecordId));
+    if (i.notes) {
+      void fillTranslation(i.notes, "en", (en) =>
+        db
+          .update(clients)
+          .set({ notesEn: en })
+          .where(
+            and(
+              eq(clients.clientId, i.clientRecordId),
+              or(isNull(clients.notesEn), eq(clients.notesEn, ""))
+            )
           )
-        )
-    );
+      );
+    }
   }
 
   return r.length

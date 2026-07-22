@@ -17,7 +17,13 @@ export async function listAllWorkloadLogs(): Promise<WorkloadLogDTO[]> {
     recordId: r.workloadLogId,
     logId: r.workloadLogId,
     dateKey: r.workloadLogId.slice(-10),
-    clientId: str(r.clientId),
+    // FK may be NULL (client row missing at write time); the log id embeds
+    // the code (`CL-XXXX-YYYY-MM-DD`), so recover it for per-client filters.
+    clientId:
+      str(r.clientId) ||
+      (r.workloadLogId.startsWith("CL-")
+        ? r.workloadLogId.slice(0, -11)
+        : ""),
     date: r.date ?? 0,
     techAmRpe: r.techAmRpe ?? 0,
     techAmMin: r.techAmMin ?? 0,

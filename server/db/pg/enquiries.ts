@@ -24,7 +24,7 @@ export async function listEnquiries(): Promise<EnquiryDTO[]> {
 }
 
 export async function createEnquiry(input: CreateEnquiryInput): Promise<WriteResult> {
-  const enquiryId = `ENQ-${Date.now()}`;
+  const enquiryId = `ENQ-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
   try {
     await db.insert(enquiries).values({
       enquiryId,

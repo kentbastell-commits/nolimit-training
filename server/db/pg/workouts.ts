@@ -1,6 +1,6 @@
 import { and, eq, gte, inArray, isNull, not, ilike, or, sql } from "drizzle-orm";
 import { db } from "../client.ts";
-import { assignedWorkouts } from "../schema.ts";
+import { assignedWorkouts, workoutLogs } from "../schema.ts";
 import { str } from "./_util.ts";
 import type { WorkoutDTO } from "../dto.ts";
 import type {
@@ -14,7 +14,22 @@ import type {
 type Row = typeof assignedWorkouts.$inferSelect;
 
 export async function listAllWorkouts(): Promise<WorkoutDTO[]> {
-  const rows = await db.select().from(assignedWorkouts);
+  const rows = await db
+    .select()
+    .from(assignedWorkouts)
+    .orderBy(assignedWorkouts.scheduledDate, assignedWorkouts.assignedWorkoutId);
+  // Feishu's "Workout Logs" link column told the frontend a workout has saved
+  // logs (Continue vs Start, recent-submissions list). Postgres inverts the
+  // relationship — logs point at workouts — so surface it with one grouped
+  // lookup instead of hardcoding "".
+  const logged = new Set(
+    (
+      await db
+        .selectDistinct({ awId: workoutLogs.assignedWorkoutId })
+        .from(workoutLogs)
+        .where(not(isNull(workoutLogs.assignedWorkoutId)))
+    ).map((r) => String(r.awId))
+  );
   return rows.map(
     (r: Row): WorkoutDTO => ({
       id: r.assignedWorkoutId,
@@ -34,7 +49,7 @@ export async function listAllWorkouts(): Promise<WorkoutDTO[]> {
       coachNotes: str(r.coachNotes),
       coachNotesCn: str(r.coachNotesCn),
       clientNotes: str(r.clientNotes),
-      workoutLogs: "",
+      workoutLogs: logged.has(r.assignedWorkoutId) ? "has-logs" : "",
       sessionRpe: str(r.sessionRpe),
       sessionDuration: str(r.sessionDuration),
       sessionLoad: str(r.sessionLoad),

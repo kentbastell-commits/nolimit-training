@@ -8,7 +8,7 @@ import type { UpsertCoachInput } from "../repositories/coaches.ts";
 type Row = typeof coaches.$inferSelect;
 
 export async function listCoaches(): Promise<CoachDTO[]> {
-  const rows = await db.select().from(coaches);
+  const rows = await db.select().from(coaches).orderBy(coaches.coachId);
   return rows.map(
     (r: Row): CoachDTO => ({
       recordId: r.coachId,

@@ -30,7 +30,10 @@ export async function listTestLibrary(): Promise<TestLibraryResult> {
       calculation: str(r.calculation),
       protocol: str(r.protocol),
       protocolCn: str(r.protocolCn),
-      higherIsBetter: r.higherIsBetter ?? true,
+      // Feishu parity: an unset checkbox read as false there; the seeded
+      // library relied on that, so ?? true silently inverted trend/PR
+      // direction for every never-configured test.
+      higherIsBetter: r.higherIsBetter ?? false,
       status: str(r.status) || "Active",
       linkedExerciseName: str(exerciseName) || str(r.linkedExerciseId),
       linkedExerciseRecordId: str(r.linkedExerciseId),

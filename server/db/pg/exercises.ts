@@ -14,7 +14,9 @@ import type {
 type Row = typeof exercises.$inferSelect;
 
 function rowToDto(r: Row): ExerciseDTO {
-  const notes = r.coachingCues ?? "";
+  // Feishu parity: cue text fell back to "Technical Cues" when the coaching
+  // cues column was empty — without it those exercises show no cue text.
+  const notes = r.coachingCues || r.technicalCues || "";
   return {
     recordId: r.exerciseId,
     exerciseId: r.exerciseId,

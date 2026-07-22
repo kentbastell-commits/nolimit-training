@@ -17,7 +17,7 @@ export async function listPrograms(): Promise<ProgramDTO[]> {
   // Session type lives on the program's workout rows (same as Feishu); one
   // grouped query replaces the Feishu background map.
   const [rows, typeRows] = await Promise.all([
-    db.select().from(programs),
+    db.select().from(programs).orderBy(programs.programId),
     db
       .selectDistinct({
         programId: workoutTemplates.programId,

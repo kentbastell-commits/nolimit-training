@@ -130,8 +130,11 @@ export async function createExerciseResults(
 
     // Bodyweight exercises have no weight — fall back to max reps.
     if (bestReps === undefined) bestReps = maxReps;
+    // best_reps is an integer column; a decimal (e.g. 8.5 reps avg) fails
+    // the row where Feishu accepted it — round instead.
+    if (bestReps !== undefined) bestReps = Math.round(bestReps);
 
-    const resultId = `RES-${Date.now()}-${groupIndex + 1}`;
+    const resultId = `RES-${Date.now()}-${Math.floor(Math.random() * 1e6)}-${groupIndex + 1}`;
     const values: typeof exerciseResults.$inferInsert = {
       resultId,
       clientId: clientExists ? clientCode : null,

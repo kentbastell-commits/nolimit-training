@@ -19,7 +19,11 @@ export async function listAllReviews(): Promise<ReviewDTO[]> {
   return rows.map((r): ReviewDTO => ({
     recordId: r.reviewId,
     reviewId: r.reviewId,
-    clientId: str(r.clientId),
+    // FK may be NULL (unknown client at write time); a code stored in the
+    // name column keeps the review matchable in per-client filters.
+    clientId:
+      str(r.clientId) ||
+      (/^CL-/.test(str(r.clientName)) ? str(r.clientName) : ""),
     clientName: str(r.clientName),
     programId: str(r.programId),
     programName: str(r.programName),
@@ -54,7 +58,7 @@ export async function updateReview(input: UpdateReviewInput): Promise<WriteResul
 }
 
 export async function createReview(input: CreateReviewInput): Promise<WriteResult> {
-  const reviewId = `REV-${Date.now()}`;
+  const reviewId = `REV-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
 
   const clientCode = input.clientId ? String(input.clientId) : "";
   const programCode = input.programId ? String(input.programId) : "";

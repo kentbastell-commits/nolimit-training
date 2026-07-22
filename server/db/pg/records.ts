@@ -69,8 +69,14 @@ const RESOURCE_TABLES: Record<
 // Counts are keyed by the FEISHU_*_TABLE_ID env names so the response `cascade`
 // object is shaped identically on both backends. Order matters: children with
 // plain (non-cascading) FKs onto rows we delete go first.
+// Executor type: the plain client or a transaction handle — the cascade and
+// detach run inside one transaction so a mid-sequence error can't leave a
+// half-deleted client (Feishu tolerated partial failures; Postgres shouldn't).
+type DbExec = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
+
 async function cascadeDeleteClientData(
-  clientCode: string
+  clientCode: string,
+  dbx: DbExec
 ): Promise<Record<string, number>> {
   const counts: Record<string, number> = {};
   const add = (envName: string, deleted: number) => {
@@ -80,14 +86,14 @@ async function cascadeDeleteClientData(
   // workout_logs reference assigned_workouts (no DB cascade) — delete them
   // first, then detach any log some OTHER owner left pointing at this client's
   // workouts (Feishu would simply clear that link).
-  const logs = await db
+  const logs = await dbx
     .delete(workoutLogs)
     .where(
       or(eq(workoutLogs.clientId, clientCode), eq(workoutLogs.clientCode, clientCode))
     )
     .returning();
   add("FEISHU_WORKOUT_LOGS_TABLE_ID", logs.length);
-  await db
+  await dbx
     .update(workoutLogs)
     .set({ assignedWorkoutId: null })
     .where(
@@ -99,31 +105,31 @@ async function cascadeDeleteClientData(
           .where(eq(assignedWorkouts.clientId, clientCode))
       )
     );
-  const aw = await db
+  const aw = await dbx
     .delete(assignedWorkouts)
     .where(eq(assignedWorkouts.clientId, clientCode))
     .returning();
   add("FEISHU_ASSIGNED_WORKOUTS_TABLE_ID", aw.length);
 
-  const er = await db
+  const er = await dbx
     .delete(exerciseResults)
     .where(eq(exerciseResults.clientId, clientCode))
     .returning();
   add("FEISHU_EXERCISE_RESULTS_TABLE_ID", er.length);
 
-  const ci = await db
+  const ci = await dbx
     .delete(checkIns)
     .where(eq(checkIns.clientId, clientCode))
     .returning();
   add("FEISHU_CHECKINS_TABLE_ID", ci.length);
 
   // form_responses reference assigned_forms (no DB cascade) — same pattern.
-  const fr = await db
+  const fr = await dbx
     .delete(formResponses)
     .where(eq(formResponses.clientId, clientCode))
     .returning();
   add("FEISHU_FORM_RESPONSES_TABLE_ID", fr.length);
-  await db
+  await dbx
     .update(formResponses)
     .set({ assignedFormId: null })
     .where(
@@ -140,7 +146,7 @@ async function cascadeDeleteClientData(
           )
       )
     );
-  const af = await db
+  const af = await dbx
     .delete(assignedForms)
     .where(
       or(
@@ -152,12 +158,12 @@ async function cascadeDeleteClientData(
   add("FEISHU_ASSIGNED_FORMS_TABLE_ID", af.length);
 
   // test_results reference assigned_tests (no DB cascade) — same pattern.
-  const tr = await db
+  const tr = await dbx
     .delete(testResults)
     .where(eq(testResults.clientId, clientCode))
     .returning();
   add("FEISHU_TEST_RESULTS_TABLE_ID", tr.length);
-  await db
+  await dbx
     .update(testResults)
     .set({ assignedTestId: null })
     .where(
@@ -174,7 +180,7 @@ async function cascadeDeleteClientData(
           )
       )
     );
-  const at = await db
+  const at = await dbx
     .delete(assignedTests)
     .where(
       or(
@@ -185,13 +191,13 @@ async function cascadeDeleteClientData(
     .returning();
   add("FEISHU_ASSIGNED_TESTS_TABLE_ID", at.length);
 
-  const wl = await db
+  const wl = await dbx
     .delete(workloadLogs)
     .where(eq(workloadLogs.clientId, clientCode))
     .returning();
   add("FEISHU_WORKLOAD_LOGS_TABLE_ID", wl.length);
 
-  const am = await db
+  const am = await dbx
     .delete(athleteMetrics)
     .where(eq(athleteMetrics.clientId, clientCode))
     .returning();
@@ -205,50 +211,54 @@ async function cascadeDeleteClientData(
 // deleting a record simply clears the links other rows held to it. Tables the
 // schema already cascades (set_prescriptions/exercise_alternates from
 // workout_templates, team_members from teams/clients) are NOT touched here.
-async function detachReferences(resource: DeleteResource, id: string) {
+async function detachReferences(
+  resource: DeleteResource,
+  id: string,
+  dbx: DbExec
+) {
   switch (resource) {
     case "client":
       // Financial + misc records survive a client delete (matches the Feishu
       // cascade, which intentionally leaves them); their client link dies.
-      await db
+      await dbx
         .update(subscriptions)
         .set({ clientId: null })
         .where(eq(subscriptions.clientId, id));
-      await db
+      await dbx
         .update(productOrders)
         .set({ clientId: null })
         .where(eq(productOrders.clientId, id));
-      await db
+      await dbx
         .update(notifications)
         .set({ clientId: null })
         .where(eq(notifications.clientId, id));
-      await db
+      await dbx
         .update(reviews)
         .set({ clientId: null })
         .where(eq(reviews.clientId, id));
-      await db
+      await dbx
         .update(formVideos)
         .set({ clientId: null })
         .where(eq(formVideos.clientId, id));
       break;
     case "exercise":
-      await db
+      await dbx
         .update(workoutTemplates)
         .set({ exerciseId: null })
         .where(eq(workoutTemplates.exerciseId, id));
-      await db
+      await dbx
         .update(exerciseAlternates)
         .set({ exerciseId: null })
         .where(eq(exerciseAlternates.exerciseId, id));
-      await db
+      await dbx
         .update(workoutLogs)
         .set({ exerciseId: null })
         .where(eq(workoutLogs.exerciseId, id));
-      await db
+      await dbx
         .update(exerciseResults)
         .set({ exerciseId: null })
         .where(eq(exerciseResults.exerciseId, id));
-      await db
+      await dbx
         .update(testLibrary)
         .set({ linkedExerciseId: null })
         .where(eq(testLibrary.linkedExerciseId, id));
@@ -256,42 +266,42 @@ async function detachReferences(resource: DeleteResource, id: string) {
     case "program":
       // A program's own building blocks go with it (their set_prescriptions /
       // exercise_alternates are removed by the schema's ON DELETE CASCADE)…
-      await db
+      await dbx
         .delete(workoutTemplates)
         .where(eq(workoutTemplates.programId, id));
       // …while independent records that merely point at the program keep
       // living with the link cleared, exactly like Feishu.
-      await db
+      await dbx
         .update(clients)
         .set({ programId: null })
         .where(eq(clients.programId, id));
-      await db
+      await dbx
         .update(assignedWorkouts)
         .set({ programId: null })
         .where(eq(assignedWorkouts.programId, id));
-      await db
+      await dbx
         .update(productOrders)
         .set({ programId: null })
         .where(eq(productOrders.programId, id));
-      await db
+      await dbx
         .update(reviews)
         .set({ programId: null })
         .where(eq(reviews.programId, id));
       break;
     case "workout":
-      await db
+      await dbx
         .update(workoutLogs)
         .set({ assignedWorkoutId: null })
         .where(eq(workoutLogs.assignedWorkoutId, id));
       break;
     case "assignedForm":
-      await db
+      await dbx
         .update(formResponses)
         .set({ assignedFormId: null })
         .where(eq(formResponses.assignedFormId, id));
       break;
     case "assignedTest":
-      await db
+      await dbx
         .update(testResults)
         .set({ assignedTestId: null })
         .where(eq(testResults.assignedTestId, id));
@@ -314,21 +324,25 @@ export async function deleteRecordFromTable(
     return { success: false, error: "Unsupported delete resource" };
   }
 
-  // Like Feishu, the client cascade runs BEFORE the parent delete and its
-  // deletions stand even if the parent row turns out not to exist.
+  // One transaction end to end: cascade + detach + parent delete commit or
+  // roll back together — no more half-deleted clients on a mid-sequence
+  // error. (A missing parent still doesn't throw, so like Feishu the cascade
+  // stands in that case.)
   let cascade: Record<string, number> | undefined;
-  if (resource === "client") {
-    cascade = await cascadeDeleteClientData(recordId);
-  }
+  let deletedCount = 0;
+  await db.transaction(async (tx) => {
+    if (resource === "client") {
+      cascade = await cascadeDeleteClientData(recordId, tx);
+    }
+    await detachReferences(resource, recordId, tx);
+    const deleted = await tx
+      .delete(entry.table)
+      .where(eq(entry.pk, recordId))
+      .returning();
+    deletedCount = deleted.length;
+  });
 
-  await detachReferences(resource, recordId);
-
-  const deleted = await db
-    .delete(entry.table)
-    .where(eq(entry.pk, recordId))
-    .returning();
-
-  if (deleted.length === 0) {
+  if (deletedCount === 0) {
     return { success: false, error: "Failed to delete record", cascade };
   }
 

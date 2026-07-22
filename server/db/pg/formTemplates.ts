@@ -53,7 +53,7 @@ function mapQuestion(r: QuestionRow) {
 
 export async function listFormTemplates(): Promise<FormTemplatesOpResult> {
   const [templateRows, questionRows] = await Promise.all([
-    db.select().from(formTemplates),
+    db.select().from(formTemplates).orderBy(formTemplates.formId),
     db.select().from(formQuestions),
   ]);
 

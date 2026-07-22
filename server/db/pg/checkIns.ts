@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { db } from "../client.ts";
-import { checkIns } from "../schema.ts";
+import { checkIns, clients } from "../schema.ts";
 import { epochToDate, str } from "./_util.ts";
 import type { WriteResult } from "../dto.ts";
 import type {
@@ -24,6 +24,11 @@ function toNumberOrNull(value: any): number | null {
   if (value === "" || value === undefined || value === null) return null;
   const number = Number(value);
   return Number.isFinite(number) ? number : null;
+}
+
+function toIntOrNull(value: any): number | null {
+  const n = toNumberOrNull(value);
+  return n === null ? null : Math.round(n);
 }
 
 function toTextOrNull(value: any): string | null {
@@ -92,21 +97,35 @@ export async function reviewCheckIn(input: ReviewCheckInInput): Promise<WriteRes
 }
 
 export async function createCheckIn(input: CreateCheckInInput): Promise<WriteResult> {
-  const checkinId = `CHK-${Date.now()}`;
+  const checkinId = `CHK-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+  // On Postgres the client business code IS the id; the frontend's
+  // clientRecordId carries the code in pg mode. The FK is enforced here —
+  // mirror Feishu's retry-without-link fallback (write the code into the
+  // name column, FK null) so a check-in is never lost to a stale client id;
+  // the read mapper recovers clientId from clientName for per-client views.
+  const code = String(input.clientId || input.clientRecordId);
+  const clientExists =
+    (
+      await db
+        .select({ id: clients.clientId })
+        .from(clients)
+        .where(eq(clients.clientId, code))
+    ).length > 0;
   await db.insert(checkIns).values({
     checkinId,
-    // On Postgres the client business code IS the id; the frontend's
-    // clientRecordId carries the code in pg mode.
-    clientId: String(input.clientId || input.clientRecordId),
+    clientId: clientExists ? code : null,
+    clientName: clientExists ? undefined : code,
     submittedDate: toDateMs(input.submittedDate),
     status: input.status ? String(input.status) : "Submitted",
     bodyWeight: toNumberOrNull(input.bodyWeight),
     sleepHours: toNumberOrNull(input.sleepHours),
-    sleepQuality: toNumberOrNull(input.sleepQuality),
-    energy: toNumberOrNull(input.energy),
+    // Integer columns — a decimal slider value (e.g. 7.5) failed the whole
+    // insert where Feishu accepted it; round instead.
+    sleepQuality: toIntOrNull(input.sleepQuality),
+    energy: toIntOrNull(input.energy),
     mood: toTextOrNull(input.mood),
-    stress: toNumberOrNull(input.stress),
-    soreness: toNumberOrNull(input.soreness),
+    stress: toIntOrNull(input.stress),
+    soreness: toIntOrNull(input.soreness),
     readinessScore: toNumberOrNull(input.readinessScore),
     nutritionNotes: toTextOrNull(input.nutritionNotes),
     trainingNotes: toTextOrNull(input.trainingNotes),

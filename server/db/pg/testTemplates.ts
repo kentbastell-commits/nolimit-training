@@ -51,8 +51,8 @@ function mapItem(r: ItemRow) {
 
 export async function listTestTemplates(): Promise<TestTemplatesOpResult> {
   const [templateRows, itemRows] = await Promise.all([
-    db.select().from(testTemplates),
-    db.select().from(testItems),
+    db.select().from(testTemplates).orderBy(testTemplates.testTemplateId),
+    db.select().from(testItems).orderBy(testItems.orderIndex),
   ]);
 
   const items = itemRows.map(mapItem).filter((item) => {

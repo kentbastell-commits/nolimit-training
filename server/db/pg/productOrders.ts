@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { db } from "../client.ts";
 import { productOrders } from "../schema.ts";
 import { epochToDate, str } from "./_util.ts";
@@ -13,7 +13,10 @@ type Row = typeof productOrders.$inferSelect;
 type InsertRow = typeof productOrders.$inferInsert;
 
 export async function listProductOrders(): Promise<OrderDTO[]> {
-  const rows = await db.select().from(productOrders);
+  const rows = await db
+    .select()
+    .from(productOrders)
+    .orderBy(desc(productOrders.purchasedAt), productOrders.orderId);
   return rows.map(
     (r: Row): OrderDTO => ({
       recordId: r.orderId,

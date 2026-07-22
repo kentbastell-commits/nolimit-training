@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { db } from "../client.ts";
 import { notifications } from "../schema.ts";
 import { str } from "./_util.ts";
@@ -12,8 +12,12 @@ type Row = typeof notifications.$inferSelect;
 
 export async function listNotifications(clientId?: string): Promise<NotificationDTO[]> {
   const rows: Row[] = clientId
-    ? await db.select().from(notifications).where(eq(notifications.clientId, clientId))
-    : await db.select().from(notifications);
+    ? await db
+        .select()
+        .from(notifications)
+        .where(eq(notifications.clientId, clientId))
+        .orderBy(desc(notifications.createdAt))
+    : await db.select().from(notifications).orderBy(desc(notifications.createdAt));
 
   return rows
     .map((r: Row): NotificationDTO => ({
