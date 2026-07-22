@@ -3322,65 +3322,164 @@ export default function CoachBuilderPage({
                                 {exercise.groupType}: {exercise.groupName}
                               </span>
                             )}
-                            {isCircuitGroupStart(index) && (
-                              <span className="circuitControlsRow">
-                                <label
-                                  className="circuitRoundsControl"
-                                  title="Rounds / AMRAP (max rounds in the time cap) / EMOM (every minute on the minute)"
-                                >
-                                  <select
-                                    value={exercise.groupMode || ""}
-                                    onChange={(e) =>
-                                      setCircuitGroupMode(
-                                        index,
-                                        e.target.value as "" | "AMRAP" | "EMOM"
-                                      )
-                                    }
-                                  >
-                                    <option value="">Rounds</option>
-                                    <option value="AMRAP">AMRAP</option>
-                                    <option value="EMOM">EMOM</option>
-                                  </select>
-                                </label>
-                                {!exercise.groupMode ? (
-                                  <label
-                                    className="circuitRoundsControl"
-                                    title="Rounds of this circuit — sets every member's set count"
-                                  >
-                                    <span>Rounds</span>
-                                    <input
-                                      type="number"
-                                      min={1}
-                                      max={20}
-                                      value={exercise.sets || "3"}
-                                      onChange={(e) =>
-                                        setCircuitGroupRounds(index, e.target.value)
-                                      }
-                                    />
-                                  </label>
-                                ) : (
-                                  <label
-                                    className="circuitRoundsControl"
-                                    title="Time cap in minutes"
-                                  >
-                                    <span>Min</span>
-                                    <input
-                                      type="number"
-                                      min={1}
-                                      max={90}
-                                      value={exercise.groupMinutes || "12"}
-                                      onChange={(e) =>
-                                        setCircuitGroupMode(
-                                          index,
-                                          exercise.groupMode || "AMRAP",
-                                          e.target.value
-                                        )
-                                      }
-                                    />
-                                  </label>
-                                )}
-                              </span>
-                            )}
+                            {isCircuitGroupStart(index) &&
+                              (() => {
+                                const gKey = `${exercise.groupType}:${(
+                                  exercise.groupName || ""
+                                )
+                                  .trim()
+                                  .toLowerCase()}`;
+                                const members = selectedProgramExercises.filter(
+                                  (e: any) =>
+                                    e.groupType === "Circuit" &&
+                                    `${e.groupType}:${(e.groupName || "")
+                                      .trim()
+                                      .toLowerCase()}` === gKey
+                                ).length;
+                                const mode = exercise.groupMode || "";
+                                const minutes = Number(
+                                  exercise.groupMinutes || "12"
+                                );
+                                const emomRounds =
+                                  members > 0 && minutes % members === 0
+                                    ? minutes / members
+                                    : 0;
+                                return (
+                                  <div className="circuitSettingsPanel">
+                                    <div className="circuitModeSeg">
+                                      {[
+                                        {
+                                          v: "" as const,
+                                          label: "Rounds",
+                                          hint: "Fixed rounds, self-paced",
+                                        },
+                                        {
+                                          v: "AMRAP" as const,
+                                          label: "AMRAP",
+                                          hint: "Max rounds in a time cap",
+                                        },
+                                        {
+                                          v: "EMOM" as const,
+                                          label: "EMOM",
+                                          hint: "One station per minute",
+                                        },
+                                      ].map((o) => (
+                                        <button
+                                          key={o.label}
+                                          type="button"
+                                          className={
+                                            mode === o.v ? "active" : ""
+                                          }
+                                          onClick={() =>
+                                            setCircuitGroupMode(index, o.v)
+                                          }
+                                        >
+                                          <strong>{o.label}</strong>
+                                          <small>{o.hint}</small>
+                                        </button>
+                                      ))}
+                                    </div>
+                                    <div className="circuitModeDetail">
+                                      {mode === "" && (
+                                        <>
+                                          <label>
+                                            <span>Rounds</span>
+                                            <input
+                                              type="number"
+                                              min={1}
+                                              max={20}
+                                              value={exercise.sets || "3"}
+                                              onChange={(e) =>
+                                                setCircuitGroupRounds(
+                                                  index,
+                                                  e.target.value
+                                                )
+                                              }
+                                            />
+                                          </label>
+                                          <small>
+                                            Athletes cycle through all{" "}
+                                            {members} exercise
+                                            {members === 1 ? "" : "s"} in
+                                            order, {exercise.sets || "3"}{" "}
+                                            round
+                                            {Number(exercise.sets || "3") === 1
+                                              ? ""
+                                              : "s"}{" "}
+                                            total.
+                                          </small>
+                                        </>
+                                      )}
+                                      {mode === "AMRAP" && (
+                                        <>
+                                          <label>
+                                            <span>Time cap (min)</span>
+                                            <input
+                                              type="number"
+                                              min={1}
+                                              max={90}
+                                              value={
+                                                exercise.groupMinutes || "12"
+                                              }
+                                              onChange={(e) =>
+                                                setCircuitGroupMode(
+                                                  index,
+                                                  "AMRAP",
+                                                  e.target.value
+                                                )
+                                              }
+                                            />
+                                          </label>
+                                          <small>
+                                            As many rounds of the {members}{" "}
+                                            exercise
+                                            {members === 1 ? "" : "s"} as
+                                            possible in{" "}
+                                            {exercise.groupMinutes || "12"}{" "}
+                                            min. Each exercise shows one set
+                                            row — reps are per round.
+                                          </small>
+                                        </>
+                                      )}
+                                      {mode === "EMOM" && (
+                                        <>
+                                          <label>
+                                            <span>Total (min)</span>
+                                            <input
+                                              type="number"
+                                              min={1}
+                                              max={90}
+                                              value={
+                                                exercise.groupMinutes || "12"
+                                              }
+                                              onChange={(e) =>
+                                                setCircuitGroupMode(
+                                                  index,
+                                                  "EMOM",
+                                                  e.target.value
+                                                )
+                                              }
+                                            />
+                                          </label>
+                                          <small>
+                                            Every minute on the minute: minute
+                                            1 → station 1, rotating through{" "}
+                                            {members} station
+                                            {members === 1 ? "" : "s"}
+                                            {emomRounds
+                                              ? ` (${emomRounds} round${
+                                                  emomRounds === 1 ? "" : "s"
+                                                })`
+                                              : ""}
+                                            . Reps are per minute; rest is the
+                                            remainder of each minute.
+                                          </small>
+                                        </>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })()}
                             {exercise.isAccessory && (
                               <span className="exerciseAccessoryPill">
                                 Accessory for{" "}

@@ -9643,7 +9643,16 @@ function App({ onReady }: { onReady?: () => void } = {}) {
               : mode
                 ? item.groupMinutes || "12"
                 : "",
+          // Timed schemes convert every member: one set row (the clock, not
+          // sets, drives volume) and no per-exercise rest — EMOM rest is the
+          // remainder of the minute, AMRAP rest is athlete-managed. Rest also
+          // lives per-set, and withNormalizedSetFields re-derives the top
+          // level from set 1, so clear both.
           sets: mode ? "1" : item.sets,
+          rest: mode ? "" : item.rest,
+          setPrescriptions: mode
+            ? (item.setPrescriptions || []).map((s) => ({ ...s, rest: "" }))
+            : item.setPrescriptions,
         });
       })
     );
