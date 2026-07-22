@@ -1988,9 +1988,10 @@ body {
   position: fixed;
   top: 18px;
   right: 18px;
-  /* Above EVERY overlay (builder editor sits at 3200): a validation toast
-     that renders under the overlay reads as "the button did nothing". */
-  z-index: 4000;
+  /* Above EVERY overlay (builder 3200, createProgramOverlay 4000, technical
+     cue overlay 4200, ctx menus 4201): a toast that renders under any overlay
+     reads as "the button did nothing". Keep this the HIGHEST layer. */
+  z-index: 5000;
   display: flex;
   flex-direction: column;
   gap: 10px;

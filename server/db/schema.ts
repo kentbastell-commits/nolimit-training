@@ -491,6 +491,10 @@ export const productOrders = pgTable(
     // reward units this purchase consumed (stack cap 5 = 50%).
     referrerCode: text("referrer_code"),
     referralRewardsUsed: integer("referral_rewards_used"),
+    // Buyer contact + coach notes from the manual-order form (the live
+    // Feishu table never had these — the inputs were decorative).
+    clientPhone: text("client_phone"),
+    orderNotes: text("order_notes"),
     purchasedAt: ts("purchased_at"),
     accessStartDate: ts("access_start_date"),
     intakeStatus: text("intake_status"),

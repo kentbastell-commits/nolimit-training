@@ -666,6 +666,9 @@ export type SavedProgramTemplate = {
   week: number;
   day: number;
   sessionName: string;
+  // Round-trips through the builder — dropping it here once meant every
+  // in-place edit silently wiped Chinese session names.
+  sessionNameCn?: string;
   sessionType?: string;
   sessionGoal?: string;
   sessionNotes?: string;

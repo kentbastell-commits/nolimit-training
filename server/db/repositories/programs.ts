@@ -94,14 +94,19 @@ export function hasProgramUpdateFields(i: UpdateProgramInput): boolean {
     "bundleProgramIds",
   ];
   if (definedKeys.some((key) => i[key] !== undefined)) return true;
-  const nonEmptyKeys: Array<keyof UpdateProgramInput> = [
+  const typedKeys: Array<keyof UpdateProgramInput> = [
     "season",
     "price",
     "compareAtPrice",
     "purchaseLink",
     "accessLengthDays",
   ];
-  return nonEmptyKeys.some((key) => i[key] !== undefined && i[key] !== "");
+  // On Postgres an empty string on these typed columns is a deliberate CLEAR
+  // (writes null); Feishu still omits empties (empty-write bomb, mistake 3).
+  if (DATA_BACKEND === "postgres") {
+    return typedKeys.some((key) => i[key] !== undefined);
+  }
+  return typedKeys.some((key) => i[key] !== undefined && i[key] !== "");
 }
 
 export async function createProgram(input: CreateProgramInput): Promise<HandlerResult> {

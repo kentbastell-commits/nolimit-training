@@ -141,7 +141,11 @@ export async function updateFormTemplate(
       formId,
       name: String(input.name),
       type: String(input.type || "Questionnaire"),
-      description: String(input.description || ""),
+      // Patch-style: the editor never collects description — writing "" on
+      // every edit wiped it.
+      ...(input.description !== undefined
+        ? { description: String(input.description || "") }
+        : {}),
     })
     .where(eq(formTemplates.formId, formId))
     .returning({ formId: formTemplates.formId });

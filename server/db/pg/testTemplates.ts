@@ -46,6 +46,8 @@ function mapItem(r: ItemRow) {
     inputUnit: str(r.inputUnit),
     instructions: str(r.instructions),
     instructionsCn: str(r.instructionsCn),
+    unitCn: str(r.unitCn),
+    testingMetricType: str(r.testingMetricType),
   };
 }
 
@@ -189,7 +191,11 @@ export async function updateTestTemplate(
       .set({
         testTemplateId,
         name: String(input.name),
-        description: String(input.description || ""),
+        // Patch-style: the editor never collects description — writing ""
+        // on every edit wiped it.
+        ...(input.description !== undefined
+          ? { description: String(input.description || "") }
+          : {}),
         category: String(input.category || ""),
       })
       .where(eq(testTemplates.testTemplateId, testTemplateId))

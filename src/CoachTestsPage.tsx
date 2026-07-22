@@ -94,6 +94,24 @@ export default function CoachTestsPage(props: { [key: string]: any }) {
       notify?.(t("testsCtNeedName"), "error");
       return;
     }
+    // Typed-but-not-clicked linked exercise: typing resets the id, so a coach
+    // who typed the full name and saved got an unlinked test with no warning.
+    // Resolve an exact (case-insensitive) name match; otherwise warn once.
+    let linkedExerciseRecordId = ctForm.linkedExerciseRecordId || "";
+    if (!linkedExerciseRecordId && ctExerciseQuery.trim()) {
+      const typed = ctExerciseQuery.trim().toLowerCase();
+      const match = (libraryExercises || []).find(
+        (ex: any) => String(ex.exerciseName || "").trim().toLowerCase() === typed
+      );
+      if (match) {
+        linkedExerciseRecordId = match.recordId || match.exerciseId;
+      } else {
+        notify?.(
+          "Linked exercise not matched — pick it from the suggestions. Creating the test without a link.",
+          "info"
+        );
+      }
+    }
     setCtSaving(true);
     try {
       const response = await fetch("/api/testLibrary", {
@@ -108,7 +126,7 @@ export default function CoachTestsPage(props: { [key: string]: any }) {
           higherIsBetter: ctHigher,
           protocol: ctForm.protocol || "",
           protocolCn: ctForm.protocolCn || "",
-          linkedExerciseRecordId: ctForm.linkedExerciseRecordId || "",
+          linkedExerciseRecordId,
         }),
       });
       const data = await response.json();

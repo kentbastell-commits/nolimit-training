@@ -72,13 +72,19 @@ export default function ClientOverview({
                         </span>
                         <select
                           className="portalSettingSelect"
-                          value={selectedClient.languagePreference || "English"}
+                          value={
+                            /中文|chinese|mandarin/i.test(
+                              selectedClient.languagePreference || ""
+                            )
+                              ? "中文"
+                              : "English"
+                          }
                           onChange={(event) =>
                             updateClientLanguagePreference(event.target.value)
                           }
                         >
                           <option value="English">{t("english")}</option>
-                          <option value="Mandarin">{t("mandarin")}</option>
+                          <option value="中文">{t("mandarin")}</option>
                         </select>
                       </div>
                       <div className="portalSettingRow">
@@ -216,13 +222,19 @@ export default function ClientOverview({
                       <div>
                         <span>{t("languagePreference")}</span>
                         <select
-                          value={selectedClient.languagePreference || "English"}
+                          value={
+                            /中文|chinese|mandarin/i.test(
+                              selectedClient.languagePreference || ""
+                            )
+                              ? "中文"
+                              : "English"
+                          }
                           onChange={(event) =>
                             updateClientLanguagePreference(event.target.value)
                           }
                         >
                           <option value="English">{t("english")}</option>
-                          <option value="Mandarin">{t("mandarin")}</option>
+                          <option value="中文">{t("mandarin")}</option>
                         </select>
                       </div>
                       <div>

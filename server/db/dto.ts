@@ -422,6 +422,8 @@ export type OrderDTO = {
   clientName: string;
   email: string;
   phone: string;
+  // Coach note from the manual-order form (pg column order_notes).
+  notes?: string;
   productType: string;
   programId: string;
   productName: string;

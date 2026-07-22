@@ -1790,8 +1790,11 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   );
   const canManageCoaches =
     coachScope === "All Coaches" || currentScopedCoach?.role === "Admin";
+  // Resolve against ALL coaches (not just active): a client whose coach went
+  // Inactive used to resolve to "" here, and saving any unrelated field then
+  // sent primaryCoachId "" — which the writers treat as an explicit UNLINK.
   const getCoachRecordIdByName = (name: string) =>
-    activeCoaches.find((coach) => coach.name === name)?.recordId || "";
+    allCoaches.find((coach) => coach.name === name)?.recordId || "";
   const getCoachDisplayName = (value = "") => {
     const match = activeCoaches.find(
       (coach) =>
@@ -3958,6 +3961,12 @@ function App({ onReady }: { onReady?: () => void } = {}) {
             label: question.label,
             questionType: question.questionType || "Text",
             required: Boolean(question.required),
+            // Carried through invisibly — dropping these here meant every
+            // template edit wiped options/help text/CN off all questions.
+            options: (question as any).options || "",
+            helpText: (question as any).helpText || "",
+            labelCn: (question as any).labelCn || "",
+            helpTextCn: (question as any).helpTextCn || "",
           }))
         : [
             {
@@ -4024,6 +4033,12 @@ function App({ onReady }: { onReady?: () => void } = {}) {
             metricUnit: item.metricUnit || "",
             calculationMethod: item.calculationMethod || "Direct Value",
             inputUnit: item.inputUnit || "",
+            // Carried through invisibly so an edit never wipes them.
+            instructions: (item as any).instructions || "",
+            testNameCn: (item as any).testNameCn || "",
+            unitCn: (item as any).unitCn || "",
+            instructionsCn: (item as any).instructionsCn || "",
+            testingMetricType: (item as any).testingMetricType || "",
           }))
         : [
             {
@@ -4906,6 +4921,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
             week: String(t.week),
             day: String(t.day),
             sessionName: t.sessionName,
+            sessionNameCn: t.sessionNameCn || "",
             sessionType: t.sessionType || "Strength",
             sessionGoal: t.sessionGoal || "",
             sessionNotes: (t as any).sessionNotes || "",
@@ -5856,12 +5872,27 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     }
   };
 
-  // Default the assign-selection to all members whenever the team changes.
+  // Default the assign-selection to all members when the TEAM changes.
+  // Named-mistake-16 family: keying this on `teams` too meant any loadTeams()
+  // refresh (position edit, tag sync) silently reset a curated athlete
+  // selection back to the full roster — one click from a whole-squad assign.
   useEffect(() => {
     const team = teams.find((t) => t.id === selectedTeamId);
     setTeamAssignSelectedIds(team ? team.memberIds : []);
     setTeamAssignSubgroup("All");
-  }, [selectedTeamId, teams]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedTeamId]);
+
+  // On a teams refresh, only PRUNE departed members from the selection —
+  // never expand it back to everyone.
+  useEffect(() => {
+    const team = teams.find((t) => t.id === selectedTeamId);
+    if (!team) return;
+    setTeamAssignSelectedIds((ids) =>
+      ids.filter((id) => team.memberIds.includes(id))
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [teams]);
 
   const toggleAssignAthlete = (clientRecordId: string) => {
     setTeamAssignSubgroup("All"); // manual edit no longer matches a subgroup
@@ -6324,13 +6355,20 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     if (value.trim()) positions[accountClientId] = value.trim();
     else delete positions[accountClientId];
     try {
-      await fetch("/api/upsertTeam", {
+      const res = await fetch("/api/upsertTeam", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ recordId: teamId, positions }),
       });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.success === false) {
+        notify("Could not save the position — please retry.", "error");
+      }
     } catch (error) {
       console.error(error);
+      // The local UI already shows the new position; a silent failure would
+      // look saved while being lost.
+      notify("Could not save the position — network error.", "error");
     }
   };
   const toggleAccountTeam = async (team: Team) => {
@@ -6372,6 +6410,9 @@ function App({ onReady }: { onReady?: () => void } = {}) {
         notify(`Program assigned — ${created} workouts created.`, "success");
         setAccountProgramId("");
       }
+    } catch (error) {
+      console.error(error);
+      notify("Could not assign the program — network error. Please retry.", "error");
     } finally {
       setSavingAccount(false);
     }
@@ -10779,6 +10820,9 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       .filter((s) => s.week === String(week))
       .map((s) => Number(s.day));
     const nextDay = (daysInWeek.length ? Math.max(...daysInWeek) : 0) + 1;
+    // Same rule as startSessionForCell/loadSessionForEditing: never clear the
+    // in-progress day without committing it (mobile "Add day" used to wipe it).
+    commitDraftSessionIfAny();
     setSelectedProgramExercises([]);
     setEditingProgramSessionId("");
     setSessionName("");
@@ -12306,6 +12350,9 @@ function App({ onReady }: { onReady?: () => void } = {}) {
         clearRosterSelection();
         setBulkProgramId("");
       }
+    } catch (error) {
+      console.error(error);
+      notify("Could not assign the program — network error. Please retry.", "error");
     } finally {
       setBulkBusy(false);
     }
@@ -12336,6 +12383,9 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       );
       clearRosterSelection();
       setBulkTeamId("");
+    } catch (error) {
+      console.error(error);
+      notify("Could not update the team — network error. Please retry.", "error");
     } finally {
       setBulkBusy(false);
     }
@@ -12364,17 +12414,28 @@ function App({ onReady }: { onReady?: () => void } = {}) {
             .catch(() => false);
         })
       );
-      const ok = results.filter(Boolean).length;
+      // Only paint the tag on clients whose write actually SUCCEEDED — the
+      // old version tagged everyone locally and cheered "Tagged 0 athletes".
+      const okIds = new Set(
+        targets.filter((_, i) => results[i]).map((c) => c.id)
+      );
+      const ok = okIds.size;
+      const failed = targets.length - ok;
       setClients((cur) =>
         cur.map((c) =>
-          rosterSelectedIds.includes(c.id)
+          okIds.has(c.id)
             ? { ...c, tags: Array.from(new Set([...(c.tags || []), tag])) }
             : c
         )
       );
-      notify(`Tagged ${ok} athlete(s) "${tag}".`, "success");
-      clearRosterSelection();
-      setBulkTag("");
+      if (ok > 0) notify(`Tagged ${ok} athlete(s) "${tag}".`, "success");
+      if (failed > 0) {
+        notify(`${failed} athlete(s) could not be tagged — please retry.`, "error");
+      }
+      if (ok > 0) {
+        clearRosterSelection();
+        setBulkTag("");
+      }
     } finally {
       setBulkBusy(false);
     }
@@ -12526,6 +12587,14 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       return true;
     } catch (error) {
       console.warn("Product order pipeline update failed", error);
+      // This is the money path — a silent failure made "Verify payment" look
+      // like a dead button. Every caller voids the boolean, so notify HERE.
+      notify(
+        `Order update failed: ${
+          error instanceof Error ? error.message : "network error"
+        }. Nothing was changed — please retry.`,
+        "error"
+      );
       return false;
     }
   };
@@ -15280,20 +15349,32 @@ function App({ onReady }: { onReady?: () => void } = {}) {
         return;
       }
 
-      await fetch("/api/updateClient", {
+      // program takes the PR-… CODE: on Postgres it's the program_id FK — the
+      // program NAME violated the FK and silently failed this WHOLE update
+      // (payment status + access dates included).
+      const clientUpdateRes = await fetch("/api/updateClient", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
           clientRecordId: client.id,
-          program: program.programName,
+          program: program.programId,
           purchasedProgramId: program.programId,
           paymentStatus: order.paymentStatus || client.paymentStatus || "Paid",
           accessStartDate: order.accessStartDate || getOrderStartDate(order),
           accessEndDate: order.accessEndDate || client.accessEndDate || "",
         }),
       });
+      const clientUpdateData = await clientUpdateRes.json().catch(() => ({}));
+      if (!clientUpdateRes.ok || clientUpdateData.success === false) {
+        notify(
+          `Program loaded, but updating the client record failed: ${
+            clientUpdateData.message || clientUpdateData.error || "server error"
+          }`,
+          "error"
+        );
+      }
       await updateProductOrder(order, {
         clientRecordId: client.id,
         clientCode: client.clientCode,

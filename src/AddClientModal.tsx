@@ -77,6 +77,20 @@ export default function AddClientModal({
                       });
                     }}
                   >
+                    {/* Phantom-select guard (named mistake 21): without a
+                        matching option for the initial "Kent Bastell"/""
+                        state, the select DISPLAYED the first coach while
+                        save assigned someone else. */}
+                    {!activeCoaches.some(
+                      (coach: any) =>
+                        coach.recordId ===
+                          (newClient.primaryCoachId || newClient.coach) ||
+                        coach.name === (newClient.primaryCoachId || newClient.coach)
+                    ) && (
+                      <option value={newClient.primaryCoachId || newClient.coach}>
+                        {newClient.coach || "— select coach —"}
+                      </option>
+                    )}
                     {activeCoaches.map((coach: any) => (
                       <option
                         key={coach.recordId || coach.coachId}
@@ -140,7 +154,13 @@ export default function AddClientModal({
                 <label>
                   <span>{t("languagePreference")}</span>
                   <select
-                    value={newClient.languagePreference}
+                    value={
+                      /中文|chinese|mandarin/i.test(
+                        newClient.languagePreference || ""
+                      )
+                        ? "中文"
+                        : "English"
+                    }
                     onChange={(e) =>
                       setNewClient({
                         ...newClient,

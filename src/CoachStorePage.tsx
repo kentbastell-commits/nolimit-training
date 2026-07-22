@@ -296,7 +296,13 @@ export default function CoachStorePage({
         return n;
       });
     } catch {
-      /* keep the optimistic values; the toast already warned */
+      // Drop the optimistic override on failure — keeping it made the row
+      // display unsaved values as saved after the error toast expired.
+      setOverrides((o) => {
+        const n = { ...o };
+        delete n[p.recordId];
+        return n;
+      });
     }
     setSaving(false);
     setEditId(null);

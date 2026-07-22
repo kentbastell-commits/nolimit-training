@@ -341,6 +341,19 @@ data between them, never "borrow" a table ID across products.
     Rule: toasts stack above the HIGHEST overlay, and check that on every new
     overlay layer.
 
+43. **The decorative input** — the 2026-07-23 audit found a dozen controls
+    that collected input and silently dropped it somewhere along
+    UI → payload → writer → column → reader → re-display: session notes (no
+    hop existed), session CN names (read-back dropped → re-save wiped),
+    template edits wiping description/options/help text (writers rewrite ""
+    for fields the editor never collects), manual-order phone/notes (no
+    column), program/exercise/client-date "clears" that silently no-op
+    (empty-omission), an order-assign sending a program NAME into a pg FK.
+    Rules: every new input gets its FULL chain traced before calling it done;
+    replace-style writers must carry over fields the editor doesn't collect
+    (patch-style for scalars); on Postgres an explicit "" is a CLEAR (write
+    null), never an omit — Feishu-only empty-omission stays in feishu impls.
+
 ## Quality bar — checkable, per deliverable
 
 **Any shipped code change**

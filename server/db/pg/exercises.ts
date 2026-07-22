@@ -108,15 +108,18 @@ export async function upsertExercise(
     coachingCues: archive ? archivedNotes : notes || "",
   };
 
-  const shortVideo = String(videoUrl || "").trim();
-  if (shortVideo) set.shortVideoUrl = shortVideo;
-  const longVideo = String(longVideoUrl || "").trim();
-  if (longVideo) set.longVideoUrl = longVideo;
-  if (category) set.category = category;
-  const equipmentList = makeMultiSelectField(equipment || "");
-  if (equipmentList.length > 0) set.equipment = equipmentList;
-  if (movementPattern) set.movementPattern = movementPattern;
-  if (muscleGroup) set.primaryMuscles = muscleGroup;
+  // Empty string = deliberate clear on Postgres (skip-falsy made a wrong
+  // video URL / category un-removable: the UI showed it cleared, the refetch
+  // restored it).
+  if (videoUrl !== undefined) set.shortVideoUrl = String(videoUrl).trim() || null;
+  if (longVideoUrl !== undefined) set.longVideoUrl = String(longVideoUrl).trim() || null;
+  if (category !== undefined) set.category = category || null;
+  if (equipment !== undefined) {
+    const equipmentList = makeMultiSelectField(equipment || "");
+    set.equipment = equipmentList.length > 0 ? equipmentList : null;
+  }
+  if (movementPattern !== undefined) set.movementPattern = movementPattern || null;
+  if (muscleGroup !== undefined) set.primaryMuscles = muscleGroup || null;
 
   // Mirror the old handler's required-field value check: an empty Exercise
   // Name (only reachable on archive-only requests) was a 400 there too.

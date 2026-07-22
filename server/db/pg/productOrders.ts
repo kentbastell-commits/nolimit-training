@@ -24,7 +24,8 @@ export async function listProductOrders(): Promise<OrderDTO[]> {
       clientId: str(r.clientId),
       clientName: str(r.clientName),
       email: "",
-      phone: "",
+      phone: str(r.clientPhone),
+      notes: str(r.orderNotes),
       productType: str(r.productType),
       programId: str(r.programId),
       productName: str(r.productName),
@@ -138,14 +139,16 @@ export async function createProductOrder(
   if (!skip(i.assignedCoach)) row.assignCoach = String(i.assignedCoach);
   const accessStart = toEpochMs(i.accessStartDate);
   if (accessStart !== undefined) row.accessStartDate = accessStart;
+  // Real columns since migration 0007 — these manual-order inputs were
+  // decorative (collected, then silently dropped on both backends).
+  if (!skip(i.phone)) row.clientPhone = String(i.phone);
+  if (!skip(i.notes)) row.orderNotes = String(i.notes);
 
   // No product_orders column for these (the live Feishu table lacks them too).
   omitIfProvided("Email", i.email);
-  omitIfProvided("Phone/WeChat", i.phone);
   // Handler always defaults this to "New Order", so it's always reported.
   omitIfProvided("Onboarding Status", i.onboardingStatus || "New Order");
   omitIfProvided("Access End Date", toEpochMs(i.accessEndDate));
-  omitIfProvided("Notes", i.notes);
 
   try {
     await db.insert(productOrders).values(row);

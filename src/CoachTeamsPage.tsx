@@ -135,8 +135,15 @@ export default function CoachTeamsPage(props: { [key: string]: any }) {
 
     const closeTopLayer = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
-      if (editingTeam) setEditingTeam(false);
-      else if (quickTeam) setTeamQuickAssignId("");
+      if (editingTeam) {
+        if (
+          window.confirm(
+            "Discard team changes? Anything not saved will be lost."
+          )
+        ) {
+          setEditingTeam(false);
+        }
+      } else if (quickTeam) setTeamQuickAssignId("");
       else setSelectedTeamId("");
     };
 
@@ -708,7 +715,18 @@ export default function CoachTeamsPage(props: { [key: string]: any }) {
         {editingTeam && (
           <motion.div
             className="ctpModalScrim"
-            onClick={() => setEditingTeam(false)}
+            onClick={() => {
+              // The team draft is heavy (name, groups, members, positions) and
+              // Save sits below a long scroll — one misclick on the scrim used
+              // to silently destroy it all.
+              if (
+                window.confirm(
+                  "Discard team changes? Anything not saved will be lost."
+                )
+              ) {
+                setEditingTeam(false);
+              }
+            }}
             {...fade}
             transition={{ duration: 0.18 }}
           >

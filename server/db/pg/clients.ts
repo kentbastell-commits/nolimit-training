@@ -186,14 +186,21 @@ export async function updateClient(i: UpdateClientInput): Promise<WriteResult> {
   if (i.notes !== undefined) set.notes = i.notes;
   if (i.languagePreference !== undefined) set.languagePreference = i.languagePreference;
 
-  const sd = dateMs(i.startDate);
-  if (sd) set.startDate = sd;
-  const lc = dateMs(i.lastCheckInDate);
-  if (lc) set.lastCheckinDate = lc;
-  const asd = dateMs(i.accessStartDate);
-  if (asd) set.accessStartDate = asd;
-  const aed = dateMs(i.accessEndDate);
-  if (aed) set.accessEndDate = aed;
+  // Empty string = deliberate clear on Postgres (the skip-falsy pattern made
+  // clearing an expired access date "save" and silently revert).
+  const dateSet = (value: string | undefined): number | null | undefined => {
+    if (value === undefined) return undefined;
+    if (value === "" || value === "--") return null;
+    return dateMs(value) ?? undefined;
+  };
+  const sd = dateSet(i.startDate);
+  if (sd !== undefined) set.startDate = sd;
+  const lc = dateSet(i.lastCheckInDate);
+  if (lc !== undefined) set.lastCheckinDate = lc;
+  const asd = dateSet(i.accessStartDate);
+  if (asd !== undefined) set.accessStartDate = asd;
+  const aed = dateSet(i.accessEndDate);
+  if (aed !== undefined) set.accessEndDate = aed;
 
   const overrides: Array<[keyof typeof clients.$inferInsert, unknown]> = [
     ["mas", i.masKmhOverride],

@@ -50,6 +50,13 @@
       "when": 1784734674069,
       "tag": "0006_chubby_golden_guardian",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1784739003872,
+      "tag": "0007_vengeful_kinsey_walden",
+      "breakpoints": true
     }
   ]
 }

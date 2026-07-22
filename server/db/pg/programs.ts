@@ -193,27 +193,33 @@ export async function updateProgram(i: UpdateProgramInput): Promise<HandlerResul
   if (i.sessionsPerWeek !== undefined) {
     set.sessionsPerWeek = Number(i.sessionsPerWeek) || 1;
   }
-  if (i.season !== undefined && i.season !== "") set.season = Number(i.season) || 0;
+  // Empty string = deliberate clear on Postgres (Feishu-era omission kept
+  // stale values alive forever; "save as new" honored the clear but in-place
+  // edit didn't).
+  if (i.season !== undefined) {
+    set.season = i.season === "" ? null : Number(i.season) || 0;
+  }
   if (i.coach !== undefined) set.coachId = i.coach;
   if (i.status !== undefined) set.status = i.status;
   if (i.productType !== undefined) set.productType = i.productType;
   // Same empty-string omission the Feishu impl applies to typed columns.
-  if (i.price !== undefined && i.price !== "") set.price = moneyOrNull(i.price);
-  if (i.compareAtPrice !== undefined && i.compareAtPrice !== "") {
+  if (i.price !== undefined) set.price = moneyOrNull(i.price);
+  if (i.compareAtPrice !== undefined) {
     set.compareAtPrice = moneyOrNull(i.compareAtPrice);
   }
   if (i.currency !== undefined) set.currency = i.currency;
   if (i.publicStoreVisible !== undefined) {
     set.publicStoreVisible = Boolean(i.publicStoreVisible);
   }
-  if (i.purchaseLink !== undefined && i.purchaseLink !== "") {
-    set.purchaseLink = i.purchaseLink;
+  if (i.purchaseLink !== undefined) {
+    set.purchaseLink = i.purchaseLink || null;
   }
   if (i.defaultIntakeFormId !== undefined) {
     set.defaultIntakeFormId = i.defaultIntakeFormId;
   }
-  if (i.accessLengthDays !== undefined && i.accessLengthDays !== "") {
-    set.accessLengthDays = Number(i.accessLengthDays) || 0;
+  if (i.accessLengthDays !== undefined) {
+    set.accessLengthDays =
+      i.accessLengthDays === "" ? null : Number(i.accessLengthDays) || 0;
   }
   if (i.productStatus !== undefined) set.productStatus = i.productStatus;
   if (i.salesDescription !== undefined) set.salesDescription = i.salesDescription;

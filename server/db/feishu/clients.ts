@@ -43,7 +43,7 @@ export async function listClients(): Promise<ClientDTO[]> {
       accessStartDate: formatDate(fields["Access Start Date"], "--"),
       accessEndDate: formatDate(fields["Access End Date"], "--"),
       source: fieldText(fields["Source"]),
-      paymentId: fieldText(fields["Stripe/Payment ID"]),
+      paymentId: fieldText(fields["Stripe Payment ID"]),
       email: fieldText(fields["Email"]),
       phone: fieldText(fields["Phone/WeChat"]),
       coach: fieldText(fields["Primary Coach"]) || fieldText(fields["Coach Assigned"]),
@@ -107,7 +107,7 @@ export async function createClient(i: CreateClientInput): Promise<WriteResult> {
   if (i.paymentStatus) fields["Payment Status"] = i.paymentStatus;
   if (i.purchasedProgramId) fields["Purchased Program ID"] = i.purchasedProgramId;
   if (i.source) fields.Source = i.source;
-  if (i.paymentId) fields["Stripe/Payment ID"] = i.paymentId;
+  if (i.paymentId) fields["Stripe Payment ID"] = i.paymentId;
 
   const larkStartDate = toLarkDate(i.startDate || "");
   if (larkStartDate) fields["Start Date"] = larkStartDate;
@@ -174,7 +174,7 @@ export async function updateClient(input: UpdateClientInput): Promise<WriteResul
   if (i.paymentStatus !== undefined) fields["Payment Status"] = i.paymentStatus;
   if (i.purchasedProgramId !== undefined) fields["Purchased Program ID"] = i.purchasedProgramId;
   if (i.source !== undefined) fields.Source = i.source;
-  if (i.paymentId !== undefined) fields["Stripe/Payment ID"] = i.paymentId;
+  if (i.paymentId !== undefined) fields["Stripe Payment ID"] = i.paymentId;
   if (i.notes !== undefined) fields.Notes = i.notes;
   if (i.languagePreference !== undefined) fields["Language Preference"] = i.languagePreference;
   const sd = toLarkDate(i.startDate || "");

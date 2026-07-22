@@ -257,6 +257,7 @@ export default function CoachBuilderPage({
   sessionLibProgramId,
   sessionLibSessions,
   sessionName,
+  sessionNameCn,
   sessionNotes,
   sessionSetupOpen,
   sessionType,
@@ -344,6 +345,8 @@ export default function CoachBuilderPage({
   setSessionLibProgramId,
   setSessionLibSessions,
   setSessionName,
+  setSessionNameCn,
+  setSessionEstimatedDuration,
   setSessionNotes,
   setSessionSetupOpen,
   setSessionType,
@@ -2623,6 +2626,33 @@ export default function CoachBuilderPage({
                           value={sessionName}
                           onChange={(e) => setSessionName(e.target.value)}
                           placeholder="Session Name"
+                          className="miniSearch"
+                        />
+                      </label>
+
+                      <label className="sessionNameField">
+                        <span>Session Name (中文)</span>
+                        <input
+                          value={sessionNameCn}
+                          onChange={(e) => setSessionNameCn(e.target.value)}
+                          placeholder="课次中文名（可选）"
+                          className="miniSearch"
+                        />
+                      </label>
+
+                      <label className="sessionDurationField">
+                        <span>Est. Duration (min)</span>
+                        <input
+                          type="number"
+                          min={0}
+                          max={240}
+                          value={sessionEstimatedDuration}
+                          onChange={(e) =>
+                            setSessionEstimatedDuration(e.target.value)
+                          }
+                          placeholder={String(
+                            estimateSessionMinutes(selectedProgramExercises)
+                          )}
                           className="miniSearch"
                         />
                       </label>

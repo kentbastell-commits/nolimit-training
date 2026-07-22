@@ -225,6 +225,13 @@ export default function CoachOrdersPage(props: { [key: string]: any }) {
                 <div className="copRowMid">
                   <div>{tr("Reference", "付款备注")} <strong>{order.paymentReference || "—"}</strong></div>
                   <div>{order.orderId || tr("No order ID", "无订单号")}</div>
+                  {(order.phone || order.notes) && (
+                    <div className="copRowExtra">
+                      {order.phone ? `📱 ${order.phone}` : ""}
+                      {order.phone && order.notes ? " · " : ""}
+                      {order.notes || ""}
+                    </div>
+                  )}
                 </div>
                 <div className="copRowAmt">{money(order.amount, order.currency)}</div>
                 <div className="copRowEnd">
@@ -733,9 +740,11 @@ export default function CoachOrdersPage(props: { [key: string]: any }) {
                   </button>
                   <button
                     className="copGoldBtn"
-                    disabled={
-                      orderProcessingId === orderReviewOrder.recordId ||
-                      !getOrderClient(orderReviewOrder)
+                    disabled={orderProcessingId === orderReviewOrder.recordId}
+                    title={
+                      getOrderClient(orderReviewOrder)
+                        ? undefined
+                        : "No matched client — use Create client first"
                     }
                     onClick={() =>
                       getOrderClient(orderReviewOrder)
