@@ -1,7 +1,7 @@
 import { and, eq, gte, inArray, isNull, not, ilike, or, sql } from "drizzle-orm";
 import { db } from "../client.ts";
 import { assignedWorkouts, workoutLogs } from "../schema.ts";
-import { str } from "./_util.ts";
+import { pgErrorMessage, str } from "./_util.ts";
 import type { WorkoutDTO } from "../dto.ts";
 import type {
   AssignProgramInput,
@@ -137,7 +137,11 @@ export async function assignProgram(input: AssignProgramInput): Promise<WorkoutW
     })
   );
 
-  await db.insert(assignedWorkouts).values(rows);
+  try {
+    await db.insert(assignedWorkouts).values(rows);
+  } catch (e: any) {
+    return { success: false, error: pgErrorMessage(e) };
+  }
 
   return { success: true, recordsCreated: rows.length };
 }

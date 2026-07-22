@@ -1,7 +1,7 @@
 import { desc, eq } from "drizzle-orm";
 import { db } from "../client.ts";
 import { productOrders } from "../schema.ts";
-import { epochToDate, str } from "./_util.ts";
+import { epochToDate, pgErrorMessage, str } from "./_util.ts";
 import type { OrderDTO } from "../dto.ts";
 import type {
   CreateProductOrderInput,
@@ -147,7 +147,15 @@ export async function createProductOrder(
   omitIfProvided("Access End Date", toEpochMs(i.accessEndDate));
   omitIfProvided("Notes", i.notes);
 
-  await db.insert(productOrders).values(row);
+  try {
+    await db.insert(productOrders).values(row);
+  } catch (e: any) {
+    return {
+      success: false,
+      status: 500,
+      body: { error: "Failed to create order", message: pgErrorMessage(e), omittedFields },
+    };
+  }
 
   return {
     success: true,
@@ -210,11 +218,25 @@ export async function updateProductOrder(
     };
   }
 
-  const updated = await db
-    .update(productOrders)
-    .set(set)
-    .where(eq(productOrders.orderId, i.recordId))
-    .returning({ orderId: productOrders.orderId });
+  let updated: { orderId: string }[];
+  try {
+    updated = await db
+      .update(productOrders)
+      .set(set)
+      .where(eq(productOrders.orderId, i.recordId))
+      .returning({ orderId: productOrders.orderId });
+  } catch (e: any) {
+    return {
+      success: false,
+      status: 500,
+      body: {
+        error: "Failed to update product order",
+        message: pgErrorMessage(e),
+        fieldsSent: set,
+        omittedFields,
+      },
+    };
+  }
 
   if (!updated.length) {
     return {

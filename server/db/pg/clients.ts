@@ -2,7 +2,7 @@ import { and, eq, or, isNull } from "drizzle-orm";
 import { db } from "../client.ts";
 import { clients } from "../schema.ts";
 import { fillTranslation } from "../translate.ts";
-import { epochToDate, str } from "./_util.ts";
+import { epochToDate, pgErrorMessage, str } from "./_util.ts";
 import type { ClientDTO, UpdateClientInput, WriteResult } from "../dto.ts";
 import type { CreateClientInput } from "../repositories/clients.ts";
 
@@ -128,7 +128,7 @@ export async function createClient(i: CreateClientInput): Promise<WriteResult> {
     return {
       success: false,
       error: "Failed to create client",
-      message: e?.message || String(e),
+      message: pgErrorMessage(e),
       fieldsSent: values,
     };
   }
@@ -212,11 +212,22 @@ export async function updateClient(i: UpdateClientInput): Promise<WriteResult> {
   if (i.categories !== undefined) set.categories = Array.isArray(i.categories) ? i.categories : [];
 
   if (Object.keys(set).length === 0) return { success: true, clientRecordId: i.clientRecordId };
-  const r = await db
-    .update(clients)
-    .set(set)
-    .where(eq(clients.clientId, i.clientRecordId))
-    .returning({ clientId: clients.clientId });
+  let r: { clientId: string }[];
+  try {
+    r = await db
+      .update(clients)
+      .set(set)
+      .where(eq(clients.clientId, i.clientRecordId))
+      .returning({ clientId: clients.clientId });
+  } catch (e: any) {
+    // Decoded instead of a blanket 500: e.g. an unknown program code on the
+    // program_id FK fails the whole save — say so.
+    return {
+      success: false,
+      error: "Failed to update client",
+      message: pgErrorMessage(e),
+    };
+  }
 
   // Translate-on-write (replaces the Feishu AI formula): the mirror must
   // FOLLOW the source — clear it on every notes edit, then refill. The old

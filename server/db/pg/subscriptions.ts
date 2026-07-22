@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { db } from "../client.ts";
 import { subscriptions } from "../schema.ts";
-import { epochToDate, str } from "./_util.ts";
+import { epochToDate, pgErrorMessage, str } from "./_util.ts";
 import type { SubscriptionDTO, WriteResult } from "../dto.ts";
 import type { UpsertSubscriptionInput } from "../repositories/subscriptions.ts";
 
@@ -102,6 +102,14 @@ export async function upsertSubscription(
   }
 
   const subscriptionId = makeSubscriptionId();
-  await db.insert(subscriptions).values({ subscriptionId, ...set });
+  try {
+    await db.insert(subscriptions).values({ subscriptionId, ...set });
+  } catch (e: any) {
+    return {
+      success: false,
+      error: "Failed to create subscription",
+      message: pgErrorMessage(e),
+    };
+  }
   return { success: true, recordId: subscriptionId, omittedFields: [] };
 }

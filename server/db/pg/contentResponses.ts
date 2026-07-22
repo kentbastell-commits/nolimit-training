@@ -56,7 +56,9 @@ export async function listAllResponses(): Promise<ResponseDTO[]> {
     assignmentRecordId: "",
     templateId: str(r.testTemplateId),
     itemId: str(r.testItemId),
-    label: "",
+    // The stored name renders directly (the frontend prefers label over the
+    // itemId lookup), so results outlive template edits.
+    label: str(r.testItemName),
     answer: str(r.value),
     answersJson: "",
     unit: str(r.unit),
@@ -242,6 +244,12 @@ export async function submitContentResponse(
         assignedTestId: assignedFk,
         testTemplateId: templateFk,
         testItemId: knownItems.has(responseItemId) ? responseItemId : null,
+        // Name survives template rewrites (which replace item rows and null
+        // the FK on historical results).
+        testItemName:
+          testItemMetrics.get(responseItemId)?.testName ||
+          str((responseItem as any).label) ||
+          null,
         clientId: clientFk,
         value: responseValue,
         unit: String(responseItem.unit || "") || null,

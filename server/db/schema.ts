@@ -670,6 +670,10 @@ export const testResults = pgTable(
       () => testTemplates.testTemplateId
     ),
     testItemId: text("test_item_id").references(() => testItems.testItemId),
+    // Denormalized item name: template edits replace item rows (nulling the
+    // FK above on historical results), so the display name must survive on
+    // the result itself.
+    testItemName: text("test_item_name"),
     clientId: text("client_id").references(() => clients.clientId),
     value: text("value"),
     unit: text("unit"),

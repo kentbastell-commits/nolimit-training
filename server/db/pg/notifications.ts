@@ -1,7 +1,7 @@
 import { desc, eq } from "drizzle-orm";
 import { db } from "../client.ts";
 import { notifications } from "../schema.ts";
-import { str } from "./_util.ts";
+import { pgErrorMessage, str } from "./_util.ts";
 import type { WriteResult } from "../dto.ts";
 import type {
   NotificationDTO,
@@ -42,14 +42,19 @@ export async function createNotification(
   input: CreateNotificationInput
 ): Promise<WriteResult> {
   const notificationId = `NOTIF-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
-  await db.insert(notifications).values({
-    notificationId,
-    clientId: String(input.clientId),
-    title: String(input.title),
-    body: input.body ? String(input.body) : "",
-    type: input.type ? String(input.type) : "general",
-    read: false,
-    createdAt: Date.now(),
-  });
+  try {
+    await db.insert(notifications).values({
+      notificationId,
+      clientId: String(input.clientId),
+      title: String(input.title),
+      body: input.body ? String(input.body) : "",
+      type: input.type ? String(input.type) : "general",
+      read: false,
+      createdAt: Date.now(),
+    });
+  } catch (e: any) {
+    // e.g. notification for a just-deleted client (FK) — report, don't 500.
+    return { success: false, error: pgErrorMessage(e) };
+  }
   return { success: true, recordId: notificationId };
 }
