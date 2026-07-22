@@ -334,6 +334,12 @@ data between them, never "borrow" a table ID across products.
     renders uncommitted state as if committed, every context switch must
     COMMIT it (not discard); and track day-level pill state and server-level
     dirty separately (`builderServerDirtyRef`) — a local commit is not a save.
+    Two accomplices made it unreportable: the editor's gold "Done" was a no-op
+    close identical to Cancel (primary button must do the primary thing), and
+    `.toastStack` sat at z-index 1200 under the 1500-3200 overlays, so every
+    validation toast was invisible ("the save button wasn't doing anything").
+    Rule: toasts stack above the HIGHEST overlay, and check that on every new
+    overlay layer.
 
 ## Quality bar — checkable, per deliverable
 
