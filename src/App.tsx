@@ -1731,6 +1731,12 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   // "saved" instead of "dirty". Deterministic replacement for the old
   // setTimeout(0) race that let the effect clobber a just-saved status.
   const justSavedRef = useRef(false);
+  // Separate SERVER-level dirty flag: "Save Day" commits to local state only
+  // (and flips the pill to "saved"), but the program isn't on the server until
+  // "Save Full Program" succeeds. The leave-guard reads THIS — the pill status
+  // alone would let a coach walk away from a fully built, never-persisted
+  // program without a warning.
+  const builderServerDirtyRef = useRef(false);
 
   const notify = (message: string, type: ToastType = "info") => {
     const id = Date.now() + Math.random();
@@ -5199,6 +5205,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       // dirty-tracking effect marks a freshly opened program "Unsaved" and the
       // leave guard warns despite zero changes (same ref the save path uses).
       justSavedRef.current = true;
+      builderServerDirtyRef.current = false;
 
       setBuilderMode(
         sourceProgram.productType === "Single Workout"
@@ -9739,13 +9746,16 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     </div>
   );
 
-  const buildCurrentProgramSession = (localId?: string): ProgramSession | null => {
+  const buildCurrentProgramSession = (
+    localId?: string,
+    fallbackName?: string
+  ): ProgramSession | null => {
     const singleWorkoutMode = builderMode === "Single Workout";
     const effectiveWeek = singleWorkoutMode ? "1" : programWeek;
     const effectiveDay = singleWorkoutMode ? "1" : programDay;
     const effectiveSessionName = singleWorkoutMode
       ? programName.trim() || sessionName.trim() || "Single Workout"
-      : sessionName.trim();
+      : sessionName.trim() || (fallbackName || "").trim();
 
     if (!effectiveWeek || !effectiveDay || !effectiveSessionName) {
       return null;
@@ -9836,7 +9846,9 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     if (!savedSession) return;
 
     // Mark saved BEFORE the state mutations below (they fire the dirty effect).
+    // Day-level only: the program still isn't on the server.
     justSavedRef.current = true;
+    builderServerDirtyRef.current = true;
 
     setProgramSessions((current) => {
       const hasExisting = current.some((session) => session.localId === localId);
@@ -10037,8 +10049,35 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     setBulkEditMode(false);
   };
 
+  // The in-progress session lives only in selectedProgramExercises until
+  // "Save Day" — but the grid already renders it as a card, so any switch
+  // that clears those exercises reads as "my session disappeared". Commit it
+  // into programSessions first (exactly what Save Day does, minus the
+  // drawer/notify side effects) whenever the builder moves to another
+  // day/session.
+  const commitDraftSessionIfAny = () => {
+    if (selectedProgramExercises.length === 0) return;
+    const localId = editingProgramSessionId || `${Date.now()}-${Math.random()}`;
+    // Same fallback name the draft grid card displays — a nameless draft must
+    // still be preserved, not silently skipped.
+    const savedSession = buildCurrentProgramSession(
+      localId,
+      `Week ${programWeek} Day ${programDay}`
+    );
+    if (!savedSession) return;
+    justSavedRef.current = true;
+    builderServerDirtyRef.current = true;
+    setProgramSessions((current) => {
+      const hasExisting = current.some((s) => s.localId === localId);
+      return hasExisting
+        ? current.map((s) => (s.localId === localId ? savedSession : s))
+        : [...current, savedSession];
+    });
+  };
+
   // Calendar: start building a brand-new session in a specific week/day cell.
   const startSessionForCell = (week: number, day: number) => {
+    commitDraftSessionIfAny();
     setSelectedProgramExercises([]);
     setEditingProgramSessionId("");
     setSessionName("");
@@ -10061,6 +10100,15 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   };
 
   const loadSessionForEditing = (session: ProgramSession) => {
+    // Clicking the session that's ALREADY being edited must not reload the
+    // stale stored copy over live edits — just make sure the editor is open.
+    if (editingProgramSessionId && session.localId === editingProgramSessionId) {
+      if (!session.isSingleWorkout) setSessionEditorOpen(true);
+      setIsBuilderLibraryOpen(true);
+      return;
+    }
+    // Switching to ANOTHER session: preserve the in-progress one first.
+    commitDraftSessionIfAny();
     setProgramWeek(session.week);
     setProgramDay(session.day);
     setSessionName(session.sessionName);
@@ -10416,8 +10464,10 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       );
 
       // Mark saved BEFORE these resets fire the dirty-tracking effect, so the
-      // status lands on "saved" (not "dirty") deterministically.
+      // status lands on "saved" (not "dirty") deterministically. The server
+      // now has everything — the leave-guard can stand down.
       justSavedRef.current = true;
+      builderServerDirtyRef.current = false;
       setEditProgramId("");
       setEditProgramRecordId("");
       setProgramSessions([]);
@@ -10715,18 +10765,19 @@ function App({ onReady }: { onReady?: () => void } = {}) {
         : "Saved Programs"
       : workoutPageTab;
 
-  // Unsaved work = builder open with content AND a real edit since the last
-  // save/load (builderSaveStatus tracks that; a programmatic load-for-edit
-  // baselines as "saved"). Content alone isn't enough — opening an existing
-  // program used to trip this guard with zero changes made.
+  // Unsaved work = builder open with content that hasn't reached the SERVER
+  // (builderServerDirtyRef). Content alone isn't enough — opening an existing
+  // program used to trip this guard with zero changes made; and the day-level
+  // "saved" pill isn't enough either — "Save Day" is local-only.
   const hasUnsavedBuilderWork = () =>
     workoutPageTab === "Program Builder" &&
-    builderSaveStatus === "dirty" &&
+    builderServerDirtyRef.current &&
     (selectedProgramExercises.length > 0 || programSessions.length > 0);
 
   // Clear the builder back to a blank state (used after a discard, so a
   // re-opened builder doesn't show the abandoned program).
   const resetBuilder = () => {
+    builderServerDirtyRef.current = false;
     setProgramSessions([]);
     setSelectedProgramExercises([]);
     setProgramName("");
@@ -10897,6 +10948,8 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       return;
     }
 
+    // A real edit: the builder now diverges from what the server has.
+    builderServerDirtyRef.current = true;
     setBuilderSaveStatus("dirty");
   }, [
     builderMode,

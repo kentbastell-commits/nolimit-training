@@ -324,6 +324,17 @@ data between them, never "borrow" a table ID across products.
     for optional services must accept both the unconfigured AND configured
     responses.
 
+42. **The draft that renders as saved** — the builder grid painted the
+    in-progress session as a card (live overlay of `selectedProgramExercises`)
+    while the session existed NOWHERE else until "Save Day"; any day-switch
+    (`startSessionForCell`, `loadSessionForEditing`) cleared those exercises →
+    "his last session disappears". Twin trap: "Save Day" flips the pill to
+    "saved" though nothing reached the server, so a status-driven leave-guard
+    goes silent on a fully built, never-persisted program. Rules: when UI
+    renders uncommitted state as if committed, every context switch must
+    COMMIT it (not discard); and track day-level pill state and server-level
+    dirty separately (`builderServerDirtyRef`) — a local commit is not a save.
+
 ## Quality bar — checkable, per deliverable
 
 **Any shipped code change**
