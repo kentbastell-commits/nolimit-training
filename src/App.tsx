@@ -8175,6 +8175,9 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     field: keyof Omit<ExerciseSetPrescription, "setNumber">,
     value: string
   ) => {
+    // Reps shorthand: typing just "A" expands to AMRAP (as many reps as
+    // possible) — covers every reps input, desktop and mobile.
+    if (field === "reps" && /^a$/i.test(value.trim())) value = "AMRAP";
     setSelectedProgramExercises((current) =>
       current.map((exercise, itemIndex) => {
         if (itemIndex !== exerciseIndex) return exercise;
@@ -9045,6 +9048,10 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     field: keyof ProgramExercise,
     value: string | number | boolean
   ) => {
+    // Same "A" -> AMRAP reps shorthand as updateExerciseSetPrescription.
+    if (field === "reps" && typeof value === "string" && /^a$/i.test(value.trim())) {
+      value = "AMRAP";
+    }
     const updated = [...selectedProgramExercises];
 
     const nextExercise = {
