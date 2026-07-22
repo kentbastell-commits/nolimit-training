@@ -3973,3 +3973,10 @@
   line-height: 1.45;
   color: #5d594e;
 }
+
+/* Panel wrapper inside the fullscreen editor list */
+.circuitPanelInEditor { margin: 4px 0 10px; }
+/* Explicit label color — some button resets washed the <strong> out on the
+   inactive mode cards */
+.circuitModeSeg button strong { color: #171512; }
+.circuitModeSeg button.active strong { color: #d8bd62; }
