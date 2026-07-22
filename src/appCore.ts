@@ -320,6 +320,9 @@ export type ExerciseSetPrescription = {
   // Per-set duration for holds / isometrics (e.g. "30 s"), shown when the
   // coach picks the "Time" tracking field.
   time: string;
+  // Per-set distance in meters (e.g. carries, sled pushes, throws), shown
+  // when the coach picks the "Distance" tracking field.
+  distance: string;
   tempo: string;
   rest: string;
 };
@@ -819,6 +822,7 @@ export type SetLog = {
   prescribedRpe: string;
   prescribedRir: string;
   prescribedTime?: string;
+  prescribedDistance?: string;
   trackingFields: string[];
   actualReps: string;
   actualWeight: string;
@@ -1047,6 +1051,7 @@ export function parseExerciseNotes(notes = ""): ExerciseNoteMeta {
               rpe: String(set?.rpe || ""),
               rir: String(set?.rir || ""),
               time: String(set?.time || ""),
+              distance: String(set?.distance || ""),
               tempo: String(set?.tempo || ""),
               rest: String(set?.rest || ""),
             }))
@@ -1140,7 +1145,7 @@ export function composeExerciseNotes(
 // Strength tracking fields the coach can customize (max 3). Cardio keeps its
 // own Time/Distance/Pace layout and is unaffected by this. "Time" is for
 // holds/isometrics — a per-set duration alongside (or instead of) reps.
-export const STRENGTH_TRACKING_FIELDS = ["Weight", "Reps", "Time", "RPE", "RIR"] as const;
+export const STRENGTH_TRACKING_FIELDS = ["Weight", "Reps", "Time", "Distance", "RPE", "RIR"] as const;
 
 export function effectiveTrackingFields(
   trackingType: TrackingType,

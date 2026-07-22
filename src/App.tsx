@@ -6483,6 +6483,9 @@ function App({ onReady }: { onReady?: () => void } = {}) {
           const prescribedRpe = String(setPrescription?.rpe ?? "").trim();
           const prescribedRir = String(setPrescription?.rir ?? "").trim();
           const prescribedTime = String(setPrescription?.time ?? "").trim();
+          const prescribedDistance = String(
+            setPrescription?.distance ?? ""
+          ).trim();
           const trackingFields = effectiveTrackingFields(
             meta.trackingType,
             meta.trackingFields
@@ -6506,6 +6509,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
             prescribedRpe,
             prescribedRir,
             prescribedTime,
+            prescribedDistance,
             trackingFields,
             actualReps: meta.trackingType === "Weight" ? exercise.reps : "",
             actualWeight: "",
@@ -7985,6 +7989,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       rpe: String(source?.rpe ?? ""),
       rir: String(source?.rir ?? ""),
       time: String(source?.time ?? ""),
+      distance: String(source?.distance ?? ""),
       tempo: String(source?.tempo ?? exercise.tempo ?? ""),
       rest: String(source?.rest ?? exercise.rest ?? ""),
     };
@@ -8258,6 +8263,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       Weight: "load",
       Reps: "reps",
       Time: "time",
+      Distance: "distance",
       RPE: "rpe",
       RIR: "rir",
     };
@@ -8265,6 +8271,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       Weight: "kg",
       Reps: "Reps",
       Time: "30 s",
+      Distance: "m",
       RPE: "1-10",
       RIR: "0-5",
     };
@@ -8337,7 +8344,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
             <>
               {trackFields.map((f) => (
                 <span key={f}>
-                  {f === "Weight" ? "Weight (kg)" : f}
+                  {f === "Weight" ? "Weight (kg)" : f === "Distance" ? "Distance (m)" : f}
                   <button className="fillColumnButton" type="button" title="Fill all sets with set 1 value" onClick={() => fillSetColumn(exerciseIndex, fieldKeyOf[f])}>↓</button>
                 </span>
               ))}
@@ -8742,7 +8749,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                 {trackFields.map((f) => (
                   <label className="builderSetField" key={f}>
                     <span className="builderSetFieldLabel">
-                      {f === "Weight" ? "Weight (kg)" : f}
+                      {f === "Weight" ? "Weight (kg)" : f === "Distance" ? "Distance (m)" : f}
                     </span>
                     <input
                       className="miniSearch"
@@ -18889,7 +18896,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                         onClick={() => toggleTrackingField(customizeFieldsIndex, f)}
                       >
                         {on ? `${active.indexOf(f) + 1}. ` : ""}
-                        {f === "Weight" ? "Weight (kg)" : f}
+                        {f === "Weight" ? "Weight (kg)" : f === "Distance" ? "Distance (m)" : f}
                       </button>
                     );
                   })}

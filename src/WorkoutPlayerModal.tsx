@@ -1324,6 +1324,33 @@ export default function WorkoutPlayerModal({
                                       </label>
                                     );
                                   }
+                                  if (f === "Distance") {
+                                    return (
+                                      <label className="setLogField" key="dist">
+                                        <span>
+                                          {paceZh ? "距离 (米)" : "Distance (m)"}
+                                          {log.prescribedDistance
+                                            ? ` (${log.prescribedDistance})`
+                                            : ""}
+                                        </span>
+                                        <input
+                                          inputMode="decimal"
+                                          value={log.actualDistance}
+                                          placeholder={
+                                            log.prescribedDistance ||
+                                            (paceZh ? "米" : "m")
+                                          }
+                                          onChange={(e) =>
+                                            updateSetLog(
+                                              globalIndex,
+                                              "actualDistance",
+                                              e.target.value
+                                            )
+                                          }
+                                        />
+                                      </label>
+                                    );
+                                  }
                                   if (f === "RPE") {
                                     return (
                                       <label className="setLogField" key="rpe">
