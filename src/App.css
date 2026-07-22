@@ -1988,7 +1988,9 @@ body {
   position: fixed;
   top: 18px;
   right: 18px;
-  z-index: 1200;
+  /* Above EVERY overlay (builder editor sits at 3200): a validation toast
+     that renders under the overlay reads as "the button did nothing". */
+  z-index: 4000;
   display: flex;
   flex-direction: column;
   gap: 10px;

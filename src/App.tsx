@@ -19576,6 +19576,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                 reorderProgramExercise={reorderProgramExercise}
                 reorderProgramSession={reorderProgramSession}
                 saveCurrentSessionToProgram={saveCurrentSessionToProgram}
+                commitDraftSessionIfAny={commitDraftSessionIfAny}
                 saveFormTemplate={saveFormTemplate}
                 saveFullProgram={saveFullProgram}
                 saveMobileProgramDay={saveMobileProgramDay}

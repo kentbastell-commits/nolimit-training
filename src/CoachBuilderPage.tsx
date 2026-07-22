@@ -221,6 +221,7 @@ export default function CoachBuilderPage({
   reorderProgramExercise,
   reorderProgramSession,
   saveCurrentSessionToProgram,
+  commitDraftSessionIfAny,
   saveFormTemplate,
   saveFullProgram,
   saveMobileProgramDay,
@@ -3043,11 +3044,18 @@ export default function CoachBuilderPage({
                             className="outlineButton"
                             onClick={() => setIsBuilderLibraryOpen(false)}
                           >
-                            Cancel
+                            Close
                           </button>
                           <button
                             className="goldButton"
-                            onClick={() => setIsBuilderLibraryOpen(false)}
+                            onClick={() => {
+                              // Done = keep this work: commit the in-progress
+                              // session onto the grid, then close. (It used to
+                              // be a no-op close identical to Cancel — the
+                              // primary gold button that "did nothing".)
+                              commitDraftSessionIfAny();
+                              setIsBuilderLibraryOpen(false);
+                            }}
                           >
                             Done
                           </button>
