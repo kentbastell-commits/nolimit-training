@@ -400,15 +400,49 @@ export const CATEGORY_PRESCRIPTION_DEFAULTS: Array<{
   { match: /skill|drill/i, sets: "3", reps: "20 m", tempo: "", rest: "45 sec" },
   { match: /breathing/i, sets: "1", reps: "5 min", tempo: "", rest: "30 sec" },
   { match: /core/i, sets: "3", reps: "10", tempo: "", rest: "45 sec" },
-  { match: /accessory/i, sets: "3", reps: "10", tempo: "3-1-1", rest: "60 sec" },
+  // Tempo intentionally blank everywhere (Kent 2026-07-22): prescribe a tempo
+  // only when it matters, instead of a default 3-1-1 on every strength row.
+  { match: /accessory/i, sets: "3", reps: "10", tempo: "", rest: "60 sec" },
   {
     match: /squat|hinge|push|pull|press/i,
     sets: "3",
     reps: "8",
-    tempo: "3-1-1",
+    tempo: "",
     rest: "90 sec",
   },
 ];
+
+// Display token for the "reps" slot in glance rows (builder tooltips, detail
+// panel, previews): timed / distance exercises show their time or distance
+// instead of a misleading rep count like "1 x 10".
+export function glanceRepsToken(
+  ex: {
+    reps?: string;
+    trackingFields?: string[];
+    setPrescriptions?: { time?: string; distance?: string }[];
+    coachingNotes?: string;
+  },
+  zh = false
+): string {
+  let fields = Array.isArray(ex.trackingFields) ? ex.trackingFields : [];
+  let firstSet: { time?: string; distance?: string } | undefined =
+    ex.setPrescriptions?.[0];
+  if (!fields.length && ex.coachingNotes) {
+    const meta = parseExerciseNotes(ex.coachingNotes);
+    fields = meta.trackingFields || [];
+    firstSet = firstSet || meta.setPrescriptions?.[0];
+  }
+  if (fields.length && !fields.includes("Reps")) {
+    if (fields.includes("Time")) {
+      return String(firstSet?.time || "").trim() || (zh ? "计时" : "Time");
+    }
+    if (fields.includes("Distance")) {
+      const d = String(firstSet?.distance || "").trim();
+      return d ? `${d}m` : zh ? "距离" : "Distance";
+    }
+  }
+  return String(ex.reps || "");
+}
 
 export function categoryPrescriptionDefaults(category?: string) {
   const value = String(category || "");

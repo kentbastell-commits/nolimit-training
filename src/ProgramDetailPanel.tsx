@@ -21,6 +21,7 @@ import {
   X,
   Zap,
 } from "lucide-react";
+import { glanceRepsToken } from "./appCore";
 
 // Focus (session type) → icon, matching the session library / client-mobile set.
 const focusIcon = (focus?: string) => {
@@ -239,10 +240,8 @@ export default function ProgramDetailPanel({
     const hex = it.customHex
       ? { bg: it.customHex, text: "#ffffff" }
       : sectionHex(it.colorClass);
-    const sets =
-      it.ex.sets && it.ex.reps
-        ? `${it.ex.sets} × ${it.ex.reps}`
-        : it.ex.sets || it.ex.reps || "";
+    const repTok = glanceRepsToken(it.ex);
+    const sets = it.ex.sets && repTok ? `${it.ex.sets} × ${repTok}` : it.ex.sets || repTok || "";
     return (
       <div className="pdpRow" key={`${it.ex.exerciseRecordId || it.display}-${it.ex.exerciseName}`}>
         <span

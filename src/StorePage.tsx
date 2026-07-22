@@ -30,6 +30,7 @@ import "./StorePage.css";
 import "./StorePageV3.css";
 import { reportClientEvent } from "./telemetry";
 import type { Client, Coach, Program, ProgramReview, Toast } from "./appCore";
+import { glanceRepsToken } from "./appCore";
 
 // Motion system shared with the cinematic landing page (LandingPage.tsx):
 // opacity/transform only (GPU, China-safe), collapses to static under
@@ -1910,11 +1911,11 @@ export default function StorePage({
                                 </div>
                                 <div className="glanceText">
                                   <strong>{it.ex.exerciseName}</strong>
-                                  {(it.ex.sets || it.ex.reps) && (
+                                  {(it.ex.sets || glanceRepsToken(it.ex, sZh)) && (
                                     <span>
-                                      {it.ex.sets && it.ex.reps
-                                        ? `${it.ex.sets} x ${it.ex.reps}`
-                                        : it.ex.sets || it.ex.reps}
+                                      {it.ex.sets && glanceRepsToken(it.ex, sZh)
+                                        ? `${it.ex.sets} x ${glanceRepsToken(it.ex, sZh)}`
+                                        : it.ex.sets || glanceRepsToken(it.ex, sZh)}
                                     </span>
                                   )}
                                 </div>

@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Copy, Pencil, X } from "lucide-react";
 import "./ProgramPreviewModal.css";
-import { getWorkoutColorClass } from "./appCore";
+import { getWorkoutColorClass, glanceRepsToken } from "./appCore";
 
 export default function ProgramPreviewModal({
   buildGlanceChain,
@@ -109,11 +109,11 @@ export default function ProgramPreviewModal({
                                     </div>
                                     <div className="glanceText">
                                       <strong>{it.ex.exerciseName}</strong>
-                                      {(it.ex.sets || it.ex.reps) && (
+                                      {(it.ex.sets || glanceRepsToken(it.ex)) && (
                                         <span>
-                                          {it.ex.sets && it.ex.reps
-                                            ? `${it.ex.sets} x ${it.ex.reps}`
-                                            : it.ex.sets || it.ex.reps}
+                                          {it.ex.sets && glanceRepsToken(it.ex)
+                                            ? `${it.ex.sets} x ${glanceRepsToken(it.ex)}`
+                                            : it.ex.sets || glanceRepsToken(it.ex)}
                                         </span>
                                       )}
                                     </div>

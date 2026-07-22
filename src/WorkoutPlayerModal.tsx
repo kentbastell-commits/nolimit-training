@@ -234,14 +234,36 @@ export default function WorkoutPlayerModal({
                         (!previousMeta ||
                           previousMeta.groupType !== "Circuit" ||
                           previousMeta.groupName !== meta.groupName);
+                      // Timed / distance exercises: "reps" is not what's
+                      // performed — show the prescribed time/distance token
+                      // instead of a misleading "1 x 10".
+                      const glanceFields = Array.isArray(meta.trackingFields)
+                        ? meta.trackingFields
+                        : [];
+                      const glanceFirstSet = meta.setPrescriptions?.[0];
+                      let repToken: string = exercise.reps || "";
+                      if (glanceFields.length && !glanceFields.includes("Reps")) {
+                        if (glanceFields.includes("Time")) {
+                          repToken =
+                            String(glanceFirstSet?.time || "").trim() ||
+                            (paceZh ? "计时" : "Time");
+                        } else if (glanceFields.includes("Distance")) {
+                          const d = String(glanceFirstSet?.distance || "").trim();
+                          repToken = d
+                            ? `${d}m`
+                            : paceZh
+                            ? "距离"
+                            : "Distance";
+                        }
+                      }
                       const prescription = inCircuit
-                        ? exercise.reps
+                        ? repToken
                           ? paceZh
-                            ? `每轮 ${exercise.reps}`
-                            : `${exercise.reps} / round`
+                            ? `每轮 ${repToken}`
+                            : `${repToken} / round`
                           : t("forCompletion")
-                        : exercise.sets && exercise.reps
-                          ? `${exercise.sets} x ${exercise.reps}`
+                        : exercise.sets && repToken
+                          ? `${exercise.sets} x ${repToken}`
                           : t("forCompletion");
                       const accessoryLabel = meta.accessoryParentLabel
                         ? paceZh

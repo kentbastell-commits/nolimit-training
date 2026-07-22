@@ -8877,11 +8877,13 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       load: "",
       // Cardio has no lifting tempo; categories with an explicitly empty tempo
       // (plyo, Olympic, carries, mobility…) stay tempo-free even in supersets.
+      // Tempo defaults blank everywhere — a coach types one only when it
+      // matters (was a blanket 3-1-1 on strength rows).
       tempo: isCardioCategory(exercise.category)
         ? ""
         : categoryDefaults && categoryDefaults.tempo === ""
           ? ""
-          : parent?.tempo || categoryDefaults?.tempo || "3-1-1",
+          : parent?.tempo || categoryDefaults?.tempo || "",
       rest: parent ? "45 sec" : categoryDefaults?.rest || "60 sec",
       coachingNotes: "",
       // Cardio exercises default to Distance tracking so the run/Zone layout

@@ -9,7 +9,7 @@ import ProgramDetailPanel from "./ProgramDetailPanel";
 import PortalToApp from "./PortalToApp";
 import { BookOpen, ChevronDown, ChevronLeft, ChevronUp, ChevronsLeftRight, ClipboardList, Copy, Dumbbell, Eye, Feather, FlaskConical, GripVertical, HeartPulse, Link2, MoreVertical, Pencil, Plus, RefreshCw, Save, Settings, Shuffle, Tag, Target, Trash2, Trophy, X } from "lucide-react";
 import type { Program, ProgramSession } from "./appCore";
-import { getWorkoutColorClass, normalizeDate } from "./appCore";
+import { getWorkoutColorClass, glanceRepsToken, normalizeDate } from "./appCore";
 import { TEST_CATEGORIES, testCategoryLabelKey } from "./testVisuals";
 import { useTranslation } from "react-i18next";
 
@@ -2189,13 +2189,13 @@ export default function CoachBuilderPage({
                                                     <strong>
                                                       {it.ex.exerciseName}
                                                     </strong>
-                                                    {(it.ex.sets || it.ex.reps) && (
+                                                    {(it.ex.sets || glanceRepsToken(it.ex)) && (
                                                       <span>
                                                         {it.ex.sets &&
-                                                        it.ex.reps
-                                                          ? `${it.ex.sets} x ${it.ex.reps}`
+                                                        glanceRepsToken(it.ex)
+                                                          ? `${it.ex.sets} x ${glanceRepsToken(it.ex)}`
                                                           : it.ex.sets ||
-                                                            it.ex.reps}
+                                                            glanceRepsToken(it.ex)}
                                                       </span>
                                                     )}
                                                   </div>
