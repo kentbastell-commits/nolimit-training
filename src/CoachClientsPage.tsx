@@ -76,7 +76,7 @@ export default function CoachClientsPage(props: { [key: string]: any }) {
     openNewClientForm,
     paceZh,
     programs,
-    renderCoachReviews,
+
     rosterClients,
     rosterGroupBy,
     rosterGroups,
@@ -354,10 +354,6 @@ export default function CoachClientsPage(props: { [key: string]: any }) {
           )}
         </div>
       </div>
-
-      {/* Reviews queue sits below the page heading, matching every other
-          coach page's hierarchy. */}
-      {renderCoachReviews()}
 
       {/* board */}
       <div className="crpBoard">

@@ -19383,6 +19383,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                 activationClientName={activationClientName}
                 activationPortalLink={activationPortalLink}
                 activeCoaches={activeCoaches}
+                renderCoachReviews={renderCoachReviews}
                 assignOrderIntake={assignOrderIntake}
                 assignOrderProgram={assignOrderProgram}
                 buildClientPortalLink={buildClientPortalLink}

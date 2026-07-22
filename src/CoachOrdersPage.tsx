@@ -43,6 +43,7 @@ export default function CoachOrdersPage(props: { [key: string]: any }) {
     buildClientPortalLink,
     copyToClipboard,
     createManualProductOrder,
+    renderCoachReviews,
     deleteProductOrder,
     getContentResponseLabel,
     getOrderClient,
@@ -921,6 +922,19 @@ export default function CoachOrdersPage(props: { [key: string]: any }) {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Program reviews — collapsed at the bottom (they read as revenue
+          feedback, not roster work; moved off the Clients page). */}
+      {(() => {
+        const reviewsBlock = renderCoachReviews?.();
+        if (!reviewsBlock) return null;
+        return (
+          <details className="copReviewsFold">
+            <summary>Program Reviews</summary>
+            {reviewsBlock}
+          </details>
+        );
+      })()}
     </div>
   );
 }

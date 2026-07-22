@@ -1342,3 +1342,33 @@
     min-height: 44px;
   }
 }
+
+/* Program reviews fold at the bottom of the revenue page */
+.copReviewsFold {
+  margin-top: 26px;
+  border: 1px solid #e3dfd4;
+  border-radius: 14px;
+  background: #ffffff;
+  padding: 0 16px 4px;
+}
+.copReviewsFold > summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 14px 2px;
+  font-weight: 800;
+  font-size: 14px;
+  color: #45412f;
+}
+.copReviewsFold > summary::before {
+  content: "▸ ";
+  color: #9f7a1b;
+}
+.copReviewsFold[open] > summary::before {
+  content: "▾ ";
+}
+.copReviewsFold .coachReviewsPanel {
+  margin: 0 0 12px;
+  border: none;
+  box-shadow: none;
+  padding: 0 2px 6px;
+}
