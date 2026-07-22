@@ -7629,6 +7629,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     "Power",
     "Plyometric",
     "Accessory",
+    "Circuit",
     "Conditioning",
     "Cardio",
     "Mobility",
@@ -7679,7 +7680,11 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     setPendingSectionName(cleanSectionName);
     setCustomBuilderSectionName("");
     setBuilderLibraryMode("Exercises");
-    notify(`Section set to ${cleanSectionName}.`);
+    notify(
+      /^circuit$/i.test(cleanSectionName)
+        ? "Circuit section — exercises you add are linked in sequence. Set Rounds / AMRAP / EMOM on the first one."
+        : `Section set to ${cleanSectionName}.`
+    );
   };
 
   function normalizeBuilderSection(sectionName?: string) {
@@ -8910,6 +8915,42 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       autoTarget: Boolean(exercise.usesAutoTarget),
       displayTarget: "",
     };
+
+    // "Circuit" section: exercises added here auto-link into one circuit
+    // group (same rails as "+ Link as circuit"), so the coach never has to
+    // link manually — the Rounds / AMRAP / EMOM controls render on the
+    // group's first exercise, and the player runs the members in sequence.
+    if (/^circuit$/i.test(exerciseSection)) {
+      const prevInCircuit = [...baseList]
+        .reverse()
+        .find(
+          (e) =>
+            /^circuit$/i.test(e.sectionName || "") &&
+            e.groupType === "Circuit" &&
+            e.groupName
+        );
+      if (prevInCircuit) {
+        initialExercise.groupType = "Circuit";
+        initialExercise.groupName = prevInCircuit.groupName;
+        initialExercise.groupMode = prevInCircuit.groupMode || "";
+        initialExercise.groupMinutes = prevInCircuit.groupMinutes || "";
+        // Timed schemes force one set row; plain circuits share the rounds.
+        initialExercise.sets = prevInCircuit.groupMode
+          ? "1"
+          : prevInCircuit.sets || "3";
+      } else {
+        const used = new Set(
+          baseList
+            .filter((e) => e.groupType === "Circuit")
+            .map((e) => e.groupName)
+        );
+        let letter = "A".charCodeAt(0);
+        while (used.has(`Circuit ${String.fromCharCode(letter)}`)) letter++;
+        initialExercise.groupType = "Circuit";
+        initialExercise.groupName = `Circuit ${String.fromCharCode(letter)}`;
+      }
+    }
+
     let newExercise = withNormalizedSetFields(initialExercise);
 
     // Cardio machines (bike, rower, etc.) are HR/RPE-driven, not %MAS — default

@@ -3897,3 +3897,15 @@
     animation: none;
   }
 }
+
+/* Circuit-section hint in the Sections picker */
+.builderCircuitHint {
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  border: 1px solid rgba(159, 122, 27, 0.35);
+  border-radius: 10px;
+  background: rgba(216, 189, 98, 0.1);
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #4a4638;
+}

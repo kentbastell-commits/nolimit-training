@@ -2778,6 +2778,15 @@ export default function CoachBuilderPage({
                           Active section:{" "}
                           <strong>{pendingSectionName || builderSectionOptions[0]}</strong>
                         </p>
+                        {pendingSectionName === "Circuit" &&
+                          builderLibraryMode !== "Sections" && (
+                            <p className="builderCircuitHint">
+                              Exercises you add are linked as one circuit and
+                              run in sequence. Set <strong>Rounds</strong>,{" "}
+                              <strong>AMRAP</strong> or <strong>EMOM</strong>{" "}
+                              (+ minutes) on the circuit&apos;s first exercise.
+                            </p>
+                          )}
                         {builderLibraryMode === "Sections" && (
                           <div className="builderSectionPicker builderSectionPickerInline">
                             <h3>Choose a section</h3>
@@ -2797,6 +2806,16 @@ export default function CoachBuilderPage({
                                 </button>
                               ))}
                             </div>
+                            {pendingSectionName === "Circuit" && (
+                              <p className="builderCircuitHint">
+                                Exercises you add are linked as one circuit and
+                                run in sequence. Set <strong>Rounds</strong>,{" "}
+                                <strong>AMRAP</strong> or <strong>EMOM</strong>{" "}
+                                (+ minutes) on the circuit&apos;s first
+                                exercise. Add exercises in the order athletes
+                                should perform them.
+                              </p>
+                            )}
                             <label>
                               <span>Custom section</span>
                               <div className="builderCustomSectionRow">
