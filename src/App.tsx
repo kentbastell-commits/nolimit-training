@@ -9830,8 +9830,11 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       return;
     }
 
-    if (!singleWorkoutMode && (!programWeek || !programDay || !sessionName)) {
-      notify("Please fill Week, Day, and Session Name.");
+    // Session name is optional: it defaults to "Week X Day Y" (the same name
+    // the draft grid card shows). Requiring it made "Save Day" refuse — and
+    // with the toast then hidden under the overlay, saving looked broken.
+    if (!singleWorkoutMode && (!programWeek || !programDay)) {
+      notify("Please fill Week and Day.");
       return;
     }
 
@@ -9841,7 +9844,10 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     }
 
     const localId = editingProgramSessionId || `${Date.now()}-${Math.random()}`;
-    const savedSession = buildCurrentProgramSession(localId);
+    const savedSession = buildCurrentProgramSession(
+      localId,
+      `Week ${programWeek} Day ${programDay}`
+    );
 
     if (!savedSession) return;
 
@@ -10179,13 +10185,14 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     let sessionsToSave = [...programSessions];
 
     if (selectedProgramExercises.length > 0) {
-      if (!singleWorkoutMode && (!programWeek || !programDay || !sessionName)) {
-        notify("Current session has exercises but is missing Week, Day, or Session Name.");
+      if (!singleWorkoutMode && (!programWeek || !programDay)) {
+        notify("Current session has exercises but is missing Week or Day.");
         return false;
       }
 
       const currentSession = buildCurrentProgramSession(
-        editingProgramSessionId || `${Date.now()}-${Math.random()}`
+        editingProgramSessionId || `${Date.now()}-${Math.random()}`,
+        `Week ${programWeek} Day ${programDay}`
       );
 
       if (!currentSession) {
