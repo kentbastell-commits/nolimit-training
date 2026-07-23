@@ -3980,3 +3980,11 @@
    inactive mode cards */
 .circuitModeSeg button strong { color: #171512; }
 .circuitModeSeg button.active strong { color: #d8bd62; }
+
+/* Phone width: the three mode cards stack — 3-across at 390px squeezed the
+   labels illegibly. */
+@media (max-width: 640px) {
+  .circuitModeSeg { grid-template-columns: 1fr; }
+  .circuitModeSeg button { flex-direction: row; align-items: center; gap: 8px; }
+  .circuitModeDetail small { min-width: 0; }
+}

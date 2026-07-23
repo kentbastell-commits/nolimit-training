@@ -4150,6 +4150,11 @@ export default function CoachBuilderPage({
                                         </div>
                                       )
                                     )}
+                                    {isCircuitGroupStart(index) &&
+                                      renderCircuitSettingsPanel(
+                                        exercise,
+                                        index
+                                      )}
                                     <div className="mobileExerciseCard">
                                       <div className="mobileExerciseCardHeader">
                                         <strong>

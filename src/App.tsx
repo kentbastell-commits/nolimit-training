@@ -2417,6 +2417,23 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       void loadTeams();
       void loadSubscriptions();
       void loadCoachReviews();
+      // Deep links / refreshes land here WITHOUT going through the page
+      // navigation handler — a refresh on Digital/Workouts/Library showed
+      // "0 programs" until the coach navigated away and back.
+      if (
+        activePage === "Workouts" ||
+        activePage === "Digital" ||
+        activePage === "Teams"
+      ) {
+        loadPrograms();
+      }
+      if (
+        activePage === "Library" ||
+        activePage === "Workouts" ||
+        activePage === "Digital"
+      ) {
+        loadExerciseLibrary();
+      }
     }
   }, []);
 
