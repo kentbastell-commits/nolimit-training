@@ -415,3 +415,78 @@
   line-height: 1.5;
   white-space: pre-wrap;
 }
+
+
+/* Inline per-exercise note-to-coach + skip (replaces the formNote overlay) */
+.exNoteRow { margin-top: 10px; }
+.exNoteTrigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border: 1px dashed rgba(159, 122, 27, 0.45);
+  border-radius: 999px;
+  background: transparent;
+  color: #8a6d1c;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.exNoteBox textarea {
+  width: 100%;
+  min-height: 64px;
+  padding: 10px 12px;
+  border: 1px solid #dcd8cd;
+  border-radius: 12px;
+  font: inherit;
+  font-size: 13.5px;
+  resize: vertical;
+}
+.exNoteActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 6px;
+}
+.exNoteCancel {
+  padding: 8px 12px;
+  border: 1px solid #dcd8cd;
+  border-radius: 10px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 12.5px;
+}
+.exNoteSend {
+  padding: 8px 14px;
+  border: 0;
+  border-radius: 10px;
+  background: #171512;
+  color: #d8bd62;
+  font-weight: 700;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.exNoteSend:disabled { opacity: 0.5; cursor: default; }
+.exSkipBanner {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px solid #e3dfd4;
+  border-radius: 12px;
+  background: #f6f4ee;
+  color: #6b675c;
+}
+.exSkipBanner strong { font-size: 12.5px; }
+.exSkipChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.exSkipChips button {
+  padding: 7px 11px;
+  border: 1px solid #dcd8cd;
+  border-radius: 999px;
+  background: #fff;
+  font-size: 12px;
+  cursor: pointer;
+}

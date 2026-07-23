@@ -1,5 +1,6 @@
 // Extracted from App.tsx (monolith split) — JSX verbatim; props threaded.
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { useState } from "react";
 import { stripLocalizedExerciseMeta } from "./appCore";
 import "./WorkoutPlayerModal.css";
 import { Check, ChevronLeft, ChevronRight, ClipboardList, Clock3, Film, MessageSquare, MoreVertical, Play, RefreshCw, Shuffle, Timer, Trash2, X } from "lucide-react";
@@ -16,8 +17,6 @@ export default function WorkoutPlayerModal({
   detailsLoading,
   editingWorkoutDate,
   formNoteBusy,
-  formNoteExercise,
-  formNoteText,
   formVideoBusy,
   formVideoInputRef,
   formVideoSentIds,
@@ -56,10 +55,9 @@ export default function WorkoutPlayerModal({
   selectedWorkout,
   setAlternatePickerExercise,
   setEditingWorkoutDate,
-  setFormNoteExercise,
-  setFormNoteText,
   setFormVideoExercise,
-  submitFormNote,
+  sendCoachNote,
+  skipExerciseSets,
   setHistoryExerciseName,
   setLogs,
   setOpenWorkoutActionMenuId,
@@ -97,6 +95,14 @@ export default function WorkoutPlayerModal({
   workoutSetCheckKey,
   workoutSubmissionNote,
 }: { [key: string]: any }) {
+  // Inline per-exercise note-to-coach + skip state (replaces the old kebab
+  // overlay that rendered BEHIND the z-2000 player and broke it on phones).
+  const [noteOpenFor, setNoteOpenFor] = useState<string>("");
+  const [noteDrafts, setNoteDrafts] = useState<Record<string, string>>({});
+  const [noteSentFor, setNoteSentFor] = useState<string[]>([]);
+  // occurrence id -> reason label ("" while choosing)
+  const [skippedExercises, setSkippedExercises] = useState<Record<string, string>>({});
+
   return (
     <>
           <div
@@ -1132,24 +1138,44 @@ export default function WorkoutPlayerModal({
                                   </button>
                                 )}
 
-                                {isPremiumClient() && (
-                                  <button
-                                    type="button"
-                                    disabled={formNoteBusy}
-                                    onClick={() => {
-                                      setOpenWorkoutActionMenuId("");
-                                      setFormNoteText("");
-                                      setFormNoteExercise({
-                                        exerciseName: exercise.exerciseName,
-                                      });
-                                    }}
-                                  >
-                                    <MessageSquare size={16} aria-hidden="true" />
-                                    <span>
-                                      {paceZh ? "备注给教练" : "Note to coach"}
-                                    </span>
-                                  </button>
-                                )}
+                                {isClientPortal &&
+                                  !coachReviewMode &&
+                                  !clientReviewMode && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setOpenWorkoutActionMenuId("");
+                                        if (skippedExercises[exercise.id] !== undefined) {
+                                          // Undo: un-skip (values were cleared;
+                                          // athlete re-enters what they did)
+                                          setSkippedExercises((cur) => {
+                                            const next = { ...cur };
+                                            delete next[exercise.id];
+                                            return next;
+                                          });
+                                        } else {
+                                          skipExerciseSets(
+                                            exercise.id || exercise.exerciseId
+                                          );
+                                          setSkippedExercises((cur) => ({
+                                            ...cur,
+                                            [exercise.id]: "",
+                                          }));
+                                        }
+                                      }}
+                                    >
+                                      <X size={16} aria-hidden="true" />
+                                      <span>
+                                        {skippedExercises[exercise.id] !== undefined
+                                          ? paceZh
+                                            ? "撤销跳过"
+                                            : "Undo skip"
+                                          : paceZh
+                                            ? "跳过此动作"
+                                            : "Skip exercise"}
+                                      </span>
+                                    </button>
+                                  )}
                               </div>
                             )}
                           </div>
@@ -1653,6 +1679,135 @@ export default function WorkoutPlayerModal({
                           );
                         })}
                           </div>
+
+                        {/* Skipped banner + reason chips */}
+                        {isClientPortal &&
+                          skippedExercises[exercise.id] !== undefined && (
+                            <div className="exSkipBanner">
+                              <strong>
+                                {paceZh ? "已跳过" : "Skipped"}
+                                {skippedExercises[exercise.id]
+                                  ? ` · ${skippedExercises[exercise.id]}`
+                                  : ""}
+                              </strong>
+                              {!skippedExercises[exercise.id] && (
+                                <div className="exSkipChips">
+                                  {(paceZh
+                                    ? ["疼痛/不适", "没器械", "没时间", "太疲劳"]
+                                    : [
+                                        "Pain/discomfort",
+                                        "No equipment",
+                                        "Out of time",
+                                        "Too fatigued",
+                                      ]
+                                  ).map((reason) => (
+                                    <button
+                                      key={reason}
+                                      type="button"
+                                      onClick={() => {
+                                        setSkippedExercises((cur) => ({
+                                          ...cur,
+                                          [exercise.id]: reason,
+                                        }));
+                                        void sendCoachNote(
+                                          exercise.exerciseName,
+                                          `${
+                                            paceZh ? "跳过原因" : "Skipped"
+                                          }: ${reason}`
+                                        );
+                                      }}
+                                    >
+                                      {reason}
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                        {/* Inline note to coach — one per exercise */}
+                        {isClientPortal && !coachReviewMode && (
+                          <div className="exNoteRow">
+                            {noteOpenFor === exercise.id ? (
+                              <div className="exNoteBox">
+                                <textarea
+                                  value={noteDrafts[exercise.id] || ""}
+                                  onChange={(e) =>
+                                    setNoteDrafts((cur) => ({
+                                      ...cur,
+                                      [exercise.id]: e.target.value,
+                                    }))
+                                  }
+                                  placeholder={
+                                    paceZh
+                                      ? "例如：这组感觉轻松 / 左膝有点不适…"
+                                      : "e.g. Felt easy / left knee tweaked…"
+                                  }
+                                />
+                                <div className="exNoteActions">
+                                  <button
+                                    type="button"
+                                    className="exNoteCancel"
+                                    onClick={() => setNoteOpenFor("")}
+                                  >
+                                    {paceZh ? "取消" : "Cancel"}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="exNoteSend"
+                                    disabled={
+                                      formNoteBusy ||
+                                      !(noteDrafts[exercise.id] || "").trim()
+                                    }
+                                    onClick={() => {
+                                      void (async () => {
+                                        const ok = await sendCoachNote(
+                                          exercise.exerciseName,
+                                          noteDrafts[exercise.id] || ""
+                                        );
+                                        if (ok) {
+                                          setNoteDrafts((cur) => ({
+                                            ...cur,
+                                            [exercise.id]: "",
+                                          }));
+                                          setNoteOpenFor("");
+                                          setNoteSentFor((cur) =>
+                                            cur.includes(exercise.id)
+                                              ? cur
+                                              : [...cur, exercise.id]
+                                          );
+                                        }
+                                      })();
+                                    }}
+                                  >
+                                    {formNoteBusy
+                                      ? paceZh
+                                        ? "发送中…"
+                                        : "Sending…"
+                                      : paceZh
+                                        ? "发送给教练"
+                                        : "Send to coach"}
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                className="exNoteTrigger"
+                                onClick={() => setNoteOpenFor(exercise.id)}
+                              >
+                                <MessageSquare size={14} aria-hidden="true" />
+                                {noteSentFor.includes(exercise.id)
+                                  ? paceZh
+                                    ? "备注已发送 ✓ — 再写一条"
+                                    : "Note sent ✓ — add another"
+                                  : paceZh
+                                    ? "备注给教练"
+                                    : "Note to coach"}
+                              </button>
+                            )}
+                          </div>
+                        )}
                         </div>
                         </div>
                       </div>
@@ -1889,62 +2044,7 @@ export default function WorkoutPlayerModal({
             </div>
           </div>
 
-          {/* Retrospective note-to-coach composer — rides the form-video
-              channel as a note-only submission. */}
-          {formNoteExercise && (
-            <div
-              className="formNoteOverlay"
-              onClick={() => setFormNoteExercise(null)}
-            >
-              <div
-                className="formNotePanel"
-                role="dialog"
-                aria-label={paceZh ? "备注给教练" : "Note to coach"}
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div className="formNoteHead">
-                  <strong>
-                    {paceZh ? "备注给教练" : "Note to coach"}
-                  </strong>
-                  <button
-                    type="button"
-                    className="iconActionButton"
-                    aria-label={paceZh ? "关闭" : "Close"}
-                    onClick={() => setFormNoteExercise(null)}
-                  >
-                    <X size={16} />
-                  </button>
-                </div>
-                <p className="formNoteExercise">
-                  {stripLocalizedExerciseMeta(formNoteExercise.exerciseName)}
-                </p>
-                <textarea
-                  autoFocus
-                  value={formNoteText}
-                  onChange={(e) => setFormNoteText(e.target.value)}
-                  placeholder={
-                    paceZh
-                      ? "例如：这组感觉轻松 / 左膝有点不适 / 忘了拍视频…"
-                      : "e.g. Felt easy / left knee tweaked / forgot to film this one…"
-                  }
-                />
-                <button
-                  type="button"
-                  className="goldButton"
-                  disabled={formNoteBusy || !formNoteText.trim()}
-                  onClick={() => void submitFormNote()}
-                >
-                  {formNoteBusy
-                    ? paceZh
-                      ? "发送中…"
-                      : "Sending…"
-                    : paceZh
-                      ? "发送给教练"
-                      : "Send to coach"}
-                </button>
-              </div>
-            </div>
-          )}
+
     </>
   );
 }

@@ -705,16 +705,16 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       if (formVideoInputRef.current) formVideoInputRef.current.value = "";
     }
   };
-  // Retrospective note to coach — rides the same form-video channel (a
-  // note-only submission), so it lands in the coach's review inbox next to
-  // the videos. Opened per exercise from the player's action menu.
-  const [formNoteExercise, setFormNoteExercise] = useState<{
-    exerciseName: string;
-  } | null>(null);
-  const [formNoteText, setFormNoteText] = useState("");
+  // Note to coach — rides the form-video channel (a note-only submission), so
+  // it lands in the coach's review inbox next to the videos. Sent from the
+  // inline per-exercise note row in the player (the old kebab-menu overlay
+  // rendered BEHIND the z-2000 player and "broke" it on phones).
   const [formNoteBusy, setFormNoteBusy] = useState(false);
-  const submitFormNote = async () => {
-    if (!formNoteExercise || !selectedClient || !formNoteText.trim()) return;
+  const sendCoachNote = async (
+    exerciseName: string,
+    text: string
+  ): Promise<boolean> => {
+    if (!selectedClient || !text.trim()) return false;
     setFormNoteBusy(true);
     try {
       const res = await fetch("/api/formVideos", {
@@ -723,29 +723,60 @@ function App({ onReady }: { onReady?: () => void } = {}) {
         body: JSON.stringify({
           clientId: selectedClient.clientCode || selectedClient.id,
           clientName: selectedClient.name,
-          exerciseName: formNoteExercise.exerciseName,
+          exerciseName,
           workoutName: selectedWorkout
             ? localizedWorkoutName(selectedWorkout)
             : "",
-          note: formNoteText.trim(),
+          note: text.trim(),
         }),
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
         throw new Error(data.error || "Could not send note");
       }
-      setFormNoteExercise(null);
-      setFormNoteText("");
       notify(paceZh ? "备注已发送给教练 ✓" : "Note sent to your coach ✓", "success");
+      return true;
     } catch (error) {
       console.error(error);
       notify(
         paceZh ? "备注发送失败，请重试。" : "Note failed to send — try again.",
         "error"
       );
+      return false;
     } finally {
       setFormNoteBusy(false);
     }
+  };
+
+  // Omit an exercise: clear its typed values + set checks so the submit's
+  // per-set completed flags honestly read "skipped" (untouched = skipped is
+  // the existing contract in buildWorkoutLogs/saveWorkoutLog).
+  const skipExerciseSets = (occurrenceKey: string) => {
+    const matches = (log: SetLog) =>
+      log.occurrenceId
+        ? log.occurrenceId === occurrenceKey
+        : log.exerciseId === occurrenceKey;
+    const clearedKeys = new Set(
+      setLogs.filter(matches).map((log) => workoutSetCheckKey(log))
+    );
+    setSetLogs((cur) =>
+      cur.map((log) =>
+        matches(log)
+          ? {
+              ...log,
+              actualWeight: "",
+              actualReps: "",
+              actualTime: "",
+              actualDistance: "",
+              actualRpe: "",
+              actualRir: "",
+            }
+          : log
+      )
+    );
+    setCheckedWorkoutPageItems((cur) =>
+      cur.filter((key) => !clearedKeys.has(key))
+    );
   };
   // One-time first-workout coach marks (per browser).
   const [playerTutorialOpen, setPlayerTutorialOpen] = useState(false);
@@ -5293,10 +5324,54 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       );
       setProgramSessions(sessions);
       adoptSectionColors(sessions.flatMap((s) => s.exercises));
-      setSelectedProgramExercises([]);
-      setProgramWeek("1");
-      setProgramDay("1");
-      setSessionName("");
+      const firstSession = sessions[0];
+      const sourceIsSingleWorkout =
+        sourceProgram.productType === "Single Workout";
+
+      // Re-enter saved content at the level the coach expects:
+      // a reusable session opens in its exercise editor, a multi-day program
+      // opens its overview on mobile, and desktop opens the first day in the
+      // editor drawer with the calendar still visible behind it.
+      if (firstSession && (sourceIsSingleWorkout || !useMobileWorkoutRows)) {
+        setProgramWeek(firstSession.week || "1");
+        setProgramDay(firstSession.day || "1");
+        setSessionName(firstSession.sessionName || "");
+        setSessionNameCn(firstSession.sessionNameCn || "");
+        setSessionNotes(firstSession.sessionNotes || "");
+        setSessionGoal(firstSession.sessionGoal || "");
+        setSessionEstimatedDuration(firstSession.estimatedDuration || "");
+        setSessionType(firstSession.sessionType || "Strength");
+        setSessionIntensity(firstSession.intensity || "Moderate");
+        setSelectedProgramExercises(
+          firstSession.exercises.map((exercise) => ({ ...exercise }))
+        );
+        setEditingProgramSessionId(firstSession.localId);
+        setSessionEditorOpen(!sourceIsSingleWorkout);
+        setIsBuilderLibraryOpen(false);
+      } else {
+        setSelectedProgramExercises([]);
+        setEditingProgramSessionId("");
+        setProgramWeek("1");
+        setProgramDay("1");
+        setSessionName("");
+        setSessionNameCn("");
+        setSessionNotes("");
+        setSessionGoal("");
+        setSessionEstimatedDuration("");
+        setSessionType("Strength");
+        setSessionIntensity("Moderate");
+        setSessionEditorOpen(false);
+        setIsBuilderLibraryOpen(false);
+      }
+      setMobileBuilderStep(
+        sourceIsSingleWorkout
+          ? firstSession
+            ? "editor"
+            : "details"
+          : sessions.length > 0
+          ? "overview"
+          : "details"
+      );
       setWorkoutPageTab("Program Builder");
 
       notify(
@@ -9956,12 +10031,12 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   const saveCurrentSessionToProgram = (
     closeAfterSave = false,
     advanceAfterClose = true
-  ) => {
+  ): boolean => {
     const singleWorkoutMode = builderMode === "Single Workout";
 
     if (singleWorkoutMode && !programName.trim()) {
       notify("Please fill Workout Name.");
-      return;
+      return false;
     }
 
     // Session name is optional: it defaults to "Week X Day Y" (the same name
@@ -9969,12 +10044,12 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     // with the toast then hidden under the overlay, saving looked broken.
     if (!singleWorkoutMode && (!programWeek || !programDay)) {
       notify("Please fill Week and Day.");
-      return;
+      return false;
     }
 
     if (selectedProgramExercises.length === 0) {
       notify("Please add at least one exercise to this session.");
-      return;
+      return false;
     }
 
     const localId = editingProgramSessionId || `${Date.now()}-${Math.random()}`;
@@ -9983,7 +10058,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       `Week ${programWeek} Day ${programDay}`
     );
 
-    if (!savedSession) return;
+    if (!savedSession) return false;
 
     // Mark saved BEFORE the state mutations below (they fire the dirty effect).
     // Day-level only: the program still isn't on the server.
@@ -10023,6 +10098,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
         ? "Day saved. Ready for the next day."
         : "Day saved."
     );
+    return true;
   };
 
   const reorderProgramSession = (sourceId: string, targetId: string) => {
@@ -10826,8 +10902,9 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   };
 
   const saveMobileProgramDay = () => {
-    saveCurrentSessionToProgram(true, true);
-    setMobileBuilderStep("overview");
+    if (saveCurrentSessionToProgram(true, true)) {
+      setMobileBuilderStep("overview");
+    }
   };
 
   // Mobile: start a fresh day in a given week (next open Day slot), then go to
@@ -21054,14 +21131,11 @@ function App({ onReady }: { onReady?: () => void } = {}) {
             detailsLoading={detailsLoading}
             editingWorkoutDate={editingWorkoutDate}
             formNoteBusy={formNoteBusy}
-            formNoteExercise={formNoteExercise}
-            formNoteText={formNoteText}
             formVideoBusy={formVideoBusy}
             formVideoInputRef={formVideoInputRef}
             formVideoSentIds={formVideoSentIds}
-            setFormNoteExercise={setFormNoteExercise}
-            setFormNoteText={setFormNoteText}
-            submitFormNote={submitFormNote}
+            sendCoachNote={sendCoachNote}
+            skipExerciseSets={skipExerciseSets}
             getWorkoutGroupBounds={getWorkoutGroupBounds}
             getWorkoutGroupIndexes={getWorkoutGroupIndexes}
             getWorkoutGroupRoundCount={getWorkoutGroupRoundCount}
