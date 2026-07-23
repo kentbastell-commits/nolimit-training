@@ -1,5 +1,6 @@
 import "dotenv/config";
 import express from "express";
+import compression from "compression";
 import { DATA_BACKEND } from "./db/backend.ts";
 
 // Config tripwire (post-cutover 2026-07-21): DATA_BACKEND defaults to
@@ -154,6 +155,15 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const app = express();
 const port = Number(process.env.PORT || 3001);
+
+// Compress JS/CSS/JSON at the application boundary. The production reverse
+// proxy currently forwards these responses without content encoding, which
+// makes the 500KB+ entry bundle especially painful on China/HK mobile links.
+app.use(
+  compression({
+    threshold: 1024,
+  })
+);
 
 // Video uploads: raw video body -> random filename on disk, served from
 // /uploads. Registered BEFORE express.json so large videos skip the 2mb cap.
@@ -323,7 +333,18 @@ const publicSiteUrl =
   "https://trainnolimit.com";
 
 // Keep index:false so every HTML request receives route-specific metadata.
-// Assets, robots.txt and sitemap.xml still come straight from the built dist.
+// Hashed Vite assets are immutable and can stay in the browser/CDN for a year;
+// the HTML shell remains no-cache below so every deploy discovers new hashes.
+app.use(
+  "/assets",
+  express.static(path.join(distPath, "assets"), {
+    index: false,
+    maxAge: "365d",
+    immutable: true,
+    etag: true,
+  })
+);
+// robots.txt, sitemap.xml and other public files come straight from dist.
 app.use(express.static(distPath, { index: false }));
 app.get(/.*/, (req, res) => {
   res

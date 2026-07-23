@@ -133,4 +133,33 @@ describe("PortalPrograms", () => {
     expect(screen.getByText("92%")).toBeInTheDocument();
     expect(screen.getByText("Start session")).toBeInTheDocument();
   });
+
+  it("uses the full completion experience so sharing and ratings stay available", () => {
+    render(
+      <PortalPrograms
+        {...baseProps}
+        uniqueClientPurchasedPrograms={[program]}
+        clientProgramStatuses={{
+          p1: {
+            status: "completed",
+            done: 32,
+            total: 32,
+            currentWeek: 8,
+            totalWeeks: 8,
+          },
+        }}
+        selectedClientProgram={program}
+        renderProgramHome={() => (
+          <div>
+            <button>Share my finish</button>
+            <button>Rate this program</button>
+          </div>
+        )}
+      />
+    );
+    fireEvent.click(screen.getByText("Strength Base"));
+    expect(screen.getByText("Share my finish")).toBeInTheDocument();
+    expect(screen.getByText("Rate this program")).toBeInTheDocument();
+    expect(screen.queryByText("Total volume lifted")).not.toBeInTheDocument();
+  });
 });

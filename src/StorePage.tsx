@@ -787,8 +787,8 @@ export default function StorePage({
             <h2>{sZh ? "为你编排训练的人" : "The coaches behind your training"}</h2>
             <p>
               {sZh
-                ? "每一套计划都由曾在职业与奥运层面工作的教练编排 —— 顶尖运动员使用的周期化训练，直接送到你的手机。是真正的高水平教练，而不是模板。"
-                : "Every program is built by coaches who've worked at the professional and Olympic level — periodised training used by elite athletes, brought straight to your phone. Real high-performance coaching, not a template."}
+                ? "每一套计划都由曾在职业与奥运层面工作的教练编排 —— 顶尖运动员使用的周期化训练，直接送到你的手机。是真正的高水平训练编排，而不是通用模板。"
+                : "Every program is built by coaches who've worked at the professional and Olympic level — periodised training used by elite athletes, brought straight to your phone. Real high-performance programming, not a generic template."}
             </p>
           </motion.div>
           {(() => {

@@ -49,6 +49,7 @@ export default function PortalPrograms(props: { [key: string]: any }) {
     openWorkout,
     rescheduleClientWorkout,
     restartClientProgram,
+    renderProgramHome,
     // scheduler
     clientProgramScheduleMode,
     setClientProgramScheduleMode,
@@ -558,85 +559,16 @@ export default function PortalPrograms(props: { [key: string]: any }) {
 
   // ---------------- COMPLETED recap ----------------
   if (view === "completed") {
-    const pct = st.total ? Math.round((st.done / st.total) * 100) : 0;
     return (
       <motion.div className="ppFlow ppRecap" {...screen}>
         <button type="button" className="ppBack" onClick={backToList}>
           <ChevronLeft size={16} /> {t("myPrograms")}
         </button>
-        <div className="ppRecapSeal">
-          <span>✓</span>
-        </div>
         <div className="ppRecapKicker">
           {paceZh ? "计划完成" : "PROGRAM COMPLETE"}
         </div>
         <h2 className="ppRecapName">{localizedProgramName(program)}</h2>
-        <p className="ppRecapMeta">
-          {program?.sport || (paceZh ? "训练" : "Training")}
-        </p>
-        <div className="ppRecapStats">
-          <div>
-            <strong>{st.done}</strong>
-            <span>{paceZh ? "训练节数" : "Sessions"}</span>
-          </div>
-          <div>
-            <strong>{pct}%</strong>
-            <span>{paceZh ? "完成度" : "Adherence"}</span>
-          </div>
-          <div>
-            <strong>{st.totalWeeks}</strong>
-            <span>{paceZh ? "周" : "Weeks"}</span>
-          </div>
-        </div>
-        <div className="ppRecapTableWrap">
-          <div className="ppRecapTableTitle">
-            {paceZh ? "赛季总结" : "Season summary"}
-          </div>
-          <div className="ppRecapTable">
-            <div>
-              <span>{paceZh ? "完成训练" : "Sessions completed"}</span>
-              <b>
-                {st.done} / {st.total}
-              </b>
-            </div>
-            <div>
-              <span>{paceZh ? "完成度" : "Adherence"}</span>
-              <b>{pct}%</b>
-            </div>
-            {/* TODO: wire real training time / volume / biggest gain when tracked */}
-            <div>
-              <span>{paceZh ? "训练时长" : "Training time"}</span>
-              <b>—</b>
-            </div>
-            <div>
-              <span>{paceZh ? "总训练量" : "Total volume lifted"}</span>
-              <b>—</b>
-            </div>
-          </div>
-        </div>
-        <div className="ppRecapNote">
-          {paceZh
-            ? `干得漂亮 —— ${st.totalWeeks} 周完成收官。你的训练记录已保存在历史里。`
-            : `Nice work — ${st.totalWeeks} weeks in the books. Your logged sessions and PRs stay saved in your history.`}
-        </div>
-        <button
-          type="button"
-          className="ppPrimary ppRecapCta"
-          onClick={() => {
-            setClientProgramSessions([]);
-            setClientProgramDayDates({});
-            setView("schedule");
-          }}
-        >
-          {paceZh ? "重新开始计划" : "Restart program"} <ArrowRight size={16} />
-        </button>
-        <button
-          type="button"
-          className="ppSecondary"
-          onClick={() => setClientTab("Training")}
-        >
-          {paceZh ? "查看日历" : "View full calendar"}
-        </button>
+        {renderProgramHome?.()}
       </motion.div>
     );
   }

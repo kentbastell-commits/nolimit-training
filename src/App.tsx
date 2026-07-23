@@ -14752,16 +14752,31 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       milestones.push(paceZh ? "就快完成 🔥" : "Almost there 🔥");
 
     // ----- Coach presence -----
+    const hasCoachSupport = isPremiumClient();
     const coachName = (selectedClientProgram?.coach || "Kent Bastell").trim();
     const coachInitials =
-      coachName
-        .split(/\s+/)
-        .map((s) => s[0])
-        .filter(Boolean)
-        .slice(0, 2)
-        .join("")
-        .toUpperCase() || "NL";
-    const coachMsg = allDone
+      hasCoachSupport
+        ? coachName
+            .split(/\s+/)
+            .map((s) => s[0])
+            .filter(Boolean)
+            .slice(0, 2)
+            .join("")
+            .toUpperCase() || "NL"
+        : "NL";
+    const coachMsg = !hasCoachSupport
+      ? allDone
+        ? paceZh
+          ? "计划完成。你的训练记录和个人最佳都已保存。"
+          : "Program complete. Your training history and PRs are saved."
+        : pct >= 50
+          ? paceZh
+            ? "已经过半，继续保持稳定节奏。"
+            : "Past halfway — keep the rhythm going."
+          : paceZh
+            ? "按自己的节奏训练，每一节都会推动进度。"
+            : "Train at your pace — every completed session moves the plan forward."
+      : allDone
       ? paceZh
         ? "干得漂亮，全部完成了！"
         : "Incredible work finishing this block."
@@ -14867,7 +14882,11 @@ function App({ onReady }: { onReady?: () => void } = {}) {
           <span className="programCoachAvatar">{coachInitials}</span>
           <div className="programCoachBody">
             <span className="programCoachName">
-              {coachName} · {paceZh ? "你的教练" : "your coach"}
+              {hasCoachSupport
+                ? `${coachName} · ${paceZh ? "你的教练" : "your coach"}`
+                : paceZh
+                  ? "跃燃训练 · 计划指导"
+                  : "NoLimit Training · program guidance"}
             </span>
             <strong className="programCoachMsg">{coachMsg}</strong>
           </div>
