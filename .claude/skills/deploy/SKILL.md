@@ -51,6 +51,24 @@ scp /tmp/kangfu-deploy.bundle nolimit:/tmp/kangfu.bundle
 ssh nolimit "cd /opt/kangfu-zhuanjia && git pull origin main && npm install --no-audit --no-fund && npx tsc -b --force && npx vite build && pm2 restart kangfu-zhuanjia"
 ```
 
+## Steps — NoLimit mini program
+
+Build from `c:\Users\kentb\nolimit-miniprogram`, then upload through the installed
+WeChat DevTools CLI. An upload creates a new development version; it is not the
+same as submitting for review or releasing it in the WeChat admin.
+
+```powershell
+npx tsc --noEmit
+npm run build:weapp
+& 'C:\Program Files (x86)\Tencent\微信web开发者工具\cli.bat' islogin --project 'C:\Users\kentb\nolimit-miniprogram'
+& 'C:\Program Files (x86)\Tencent\微信web开发者工具\cli.bat' upload --project 'C:\Users\kentb\nolimit-miniprogram' --version '<version>' --desc '<description>' --debug
+```
+
+DevTools can report one port from `islogin` while the already-running IDE is
+actually listening on another. If upload stalls, stop only the exact CLI upload
+process, retry with `--debug`, and use the port from “IDE server has started on
+http://127.0.0.1:<port>” as `--port <port>`. Never kill all Node/DevTools processes.
+
 ## Verify — a deploy without verification is not a deploy
 
 1. `ssh nolimit "cd <server dir> && git log --oneline -1"` — must equal the local
