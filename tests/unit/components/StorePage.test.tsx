@@ -68,7 +68,7 @@ describe("StorePage", () => {
     expect(screen.getAllByText("Enter app").length).toBeGreaterThan(0);
     expect(screen.getByRole("link", { name: "How it works" })).toBeInTheDocument();
     // The wordmark appears in both the nav and the footer.
-    expect(screen.getAllByAltText("No Limit").length).toBeGreaterThan(0);
+    expect(screen.getAllByAltText("NX LIMIT Training").length).toBeGreaterThan(0);
   });
 
   it("links straight to the portal when a portal code is remembered", () => {

@@ -250,7 +250,7 @@ export default function LandingPage({
         transition={{ duration: 0.6, ease: EASE }}
       >
         <a className="lv3Brand" href="/">
-          <img src="/nl_wordmark_black.png" alt="No Limit" />
+          <img src="/nx_limit_training_white_on_black.png" alt="NX LIMIT Training" />
         </a>
         <nav className="lv3NavLinks">
           <a href="/store">{landingCopy.navPrograms}</a>

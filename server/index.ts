@@ -354,7 +354,7 @@ app.get(/.*/, (req, res) => {
 });
 
 app.listen(port, "127.0.0.1", () => {
-  console.log(`NoLimit Training server listening on http://127.0.0.1:${port}`);
+  console.log(`NX LIMIT Training server listening on http://127.0.0.1:${port}`);
 
   // Warm the heavy read caches in the background right after boot, so the first
   // real user request (especially opening a workout, which scans the whole

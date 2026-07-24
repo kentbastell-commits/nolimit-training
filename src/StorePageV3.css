@@ -48,7 +48,7 @@
   border-bottom: 1px solid rgba(216, 189, 98, 0.16);
 }
 .storeBrandV3 { display: flex; align-items: center; }
-.storeBrandV3 img { height: 26px; width: auto; mix-blend-mode: screen; }
+.storeBrandV3 img { height: 32px; width: auto; border-radius: 3px; }
 .storeNavLinksV3 { display: flex; align-items: center; gap: 28px; }
 .storeNavLinkV3 { color: #e7e2d4; font-size: 14px; font-weight: 500; letter-spacing: 0.3px; }
 .storeNavLinkV3:hover { color: #f5f1e8; }
@@ -56,6 +56,7 @@
 .storeNavPortalLinkV3 {
   color: #d8bd62; font-size: 13px; font-weight: 600; background: none; border: 0; cursor: pointer;
 }
+.storeNavPortalMobileV3 { display: none; }
 .storeNavPortalLinkV3:hover { color: #e6c766; }
 .storeLangToggleV3 {
   display: inline-flex; align-items: center; gap: 3px; padding: 4px;
@@ -311,7 +312,7 @@
   background: #0c0b0a; padding: 38px 40px; display: flex; align-items: center; justify-content: space-between;
   flex-wrap: wrap; gap: 16px;
 }
-.storeFooterV3 img { height: 22px; opacity: 0.9; }
+.storeFooterV3 img { height: 30px; opacity: 0.95; border-radius: 3px; }
 .storeFooterLinksV3 { display: flex; gap: 26px; font-size: 13px; }
 .storeFooterLinksV3 a, .storeFooterLinksV3 button { color: #a9a394; background: none; border: 0; cursor: pointer; font-size: 13px; }
 .storeFooterLinksV3 a:hover, .storeFooterLinksV3 button:hover { color: #d8bd62; }
@@ -346,6 +347,30 @@
   .storePageV3 .storeContactV2 { grid-template-columns: 1fr; text-align: center; }
   .storePageV3 .storeContactQrV2 { margin: 0 auto; }
   .storeHeroTitleV3, .storePageV3 .storeSectionIntroV2 h2 { font-size: 46px; }
+}
+
+@media (max-width: 600px) {
+  .storePageV3 .storeNavV3 {
+    gap: 10px;
+    padding: 10px 14px;
+  }
+  .storeBrandV3 img { height: 26px; }
+  .storeNavActionsV3 { gap: 8px; }
+  .storeNavPortalDesktopV3 { display: none; }
+  .storeNavPortalMobileV3 { display: inline; }
+  .storeNavPortalLinkV3 {
+    min-width: 42px;
+    padding: 8px 2px;
+    font-size: 12px;
+  }
+  .storeLangToggleV3 span { padding: 3px 7px; }
+  .storeNavEnterV3 {
+    width: 36px;
+    height: 36px;
+    justify-content: center;
+    padding: 0;
+  }
+  .storeNavEnterV3 span { display: none; }
 }
 
 /* App.css `.storePageV2 h1/h2/h3` (and its bolder `.zh` variant) force dark ink

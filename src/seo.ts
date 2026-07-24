@@ -44,7 +44,7 @@ export function applyPageMetadata(language?: SeoLanguage) {
   setMeta('meta[property="og:type"]', "property", "og:type", page.type);
   setMeta('meta[property="og:url"]', "property", "og:url", canonical);
   setMeta('meta[property="og:image"]', "property", "og:image", image);
-  setMeta('meta[property="og:site_name"]', "property", "og:site_name", "NoLimit Training");
+  setMeta('meta[property="og:site_name"]', "property", "og:site_name", "NX LIMIT Training");
   setMeta('meta[property="og:locale"]', "property", "og:locale", page.locale);
   setMeta('meta[property="og:locale:alternate"]', "property", "og:locale:alternate", page.alternateLocale);
   setMeta('meta[name="twitter:card"]', "name", "twitter:card", "summary");

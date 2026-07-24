@@ -9,7 +9,7 @@ import { injectSeo } from "../../../server/seo.ts";
 describe("SEO metadata", () => {
   it("maps public routes to distinct canonical metadata", () => {
     expect(resolveSeoPage("/store", "en").title).toBe(
-      "Training Programs | NoLimit Training"
+      "Training Programs | NX LIMIT Training"
     );
     expect(resolveSeoPage("/?invite=client", "zh").canonicalPath).toBe(
       "/coaching"
@@ -51,7 +51,7 @@ describe("SEO metadata", () => {
       "https://train.example.cn",
       "/share-card.png",
     );
-    expect(html).toContain("Training Programs | NoLimit Training");
+    expect(html).toContain("Training Programs | NX LIMIT Training");
     expect(html).toContain('href="https://train.example.cn/store"');
     expect(html).toContain('content="https://train.example.cn/share-card.png"');
     expect(html).toContain('data-nolimit-seo="organization"');

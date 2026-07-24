@@ -4209,7 +4209,7 @@ body {
   right: 8px;
   width: 22px;
   height: 22px;
-  background-image: url("/nl_monogram_black.png");
+  background-image: url("/icon-192.png");
   background-size: contain;
   background-repeat: no-repeat;
   background-position: center;
@@ -10228,6 +10228,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   height: auto;
   object-fit: contain;
   filter: drop-shadow(0 8px 20px rgba(18, 18, 16, 0.12));
+  border-radius: 4px;
 }
 
 .brandMonogram,
@@ -10236,10 +10237,12 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 }
 
 .portalWelcomeMonogram {
-  padding: 10px;
-  border: 1px solid rgba(159, 122, 27, 0.28);
-  border-radius: 14px;
-  background: #111;
+  width: min(300px, 80vw);
+  height: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: #000;
 }
 
 .storeBrand .brandWordmark,
@@ -11851,7 +11854,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   margin-bottom: 4px;
 }
 
-/* ===== NoLimit 5-color palette ===== */
+/* ===== NX LIMIT 5-color palette ===== */
 :root {
   --pal-gold: #d4af37;
   --pal-stone: #e8e6df;
@@ -12719,7 +12722,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 }
 
 /* Everfit-inspired mobile workout player polish: media-led cards, grouped
-   supersets/circuits, and lighter set tables while preserving NoLimit colors. */
+   supersets/circuits, and lighter set tables while preserving NX LIMIT colors. */
 @media (max-width: 720px) {
   .clientPortalApp .workoutPlayerGroupHeader {
     display: grid;
@@ -13284,7 +13287,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   backdrop-filter: blur(14px);
   border-bottom: 1px solid rgba(14, 14, 13, 0.08);
 }
-.lv3Brand img { height: 26px; display: block; }
+.lv3Brand img { height: 32px; display: block; border-radius: 3px; }
 .lv3NavLinks { display: flex; gap: 28px; }
 .lv3NavLinks a { color: #44443e; font-weight: 600; font-size: 0.95rem; }
 .lv3NavLinks a:hover { color: #0e0e0d; }
@@ -13727,7 +13730,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   /* Fit brand + lang + CTA on one 320-412px row — the CTA used to clip
      off-screen (page overflowed ~37px at 390px). */
   .lv3Nav { gap: 10px; padding: 12px 14px; }
-  .lv3Brand img { height: 20px; }
+  .lv3Brand img { height: 24px; }
   .lv3Lang span { padding: 5px 9px; font-size: 0.72rem; }
   .lv3NavCta { padding: 8px 13px; font-size: 0.8rem; white-space: nowrap; }
 }
@@ -13736,7 +13739,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   /* The NØLIMIT wordmark is ~6.4:1 wide — at 20px tall it alone eats 129px
      of a 320px row, so everything steps down another notch here. */
   .lv3Nav { gap: 6px; padding: 10px 8px; }
-  .lv3Brand img { height: 16px; }
+  .lv3Brand img { height: 20px; }
   .lv3Lang span { padding: 4px 7px; font-size: 0.68rem; }
   .lv3NavCta { padding: 7px 10px; font-size: 0.74rem; }
 }
@@ -13997,7 +14000,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 
 /* ── Coach topbar cleanup ───────────────────────────────────────────
    Every redesigned coach page now carries its own header, so the shared
-   topbar's duplicate title + "NoLimit Training System" was removed. When a
+   topbar's duplicate title + "NX LIMIT Training System" was removed. When a
    page has no topbar action the bar is empty — hide it entirely (all
    viewports) so it doesn't leave a gap. Pages that keep a topbar action
    (e.g. the Program Builder's Save) still show a slim action bar. */

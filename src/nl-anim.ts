@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // ============================================================================
-// NoLimit — app-wide animation auto-layer (Tier 0)
+// NX LIMIT — app-wide animation auto-layer (Tier 0)
 //   • Staggered entrance: the primary content column's direct children fade +
 //     rise in sequence on mount / navigation.
 //   • Breathing hero glow: any element with a gold radial-gradient background

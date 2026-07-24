@@ -11,7 +11,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 /**
- * NoLimit Training — Postgres schema (Drizzle).
+ * NX LIMIT Training — Postgres schema (Drizzle).
  *
  * Reconciled against the LIVE Feishu tables (introspected 2026-06-19), so the
  * columns mirror real data, not the older reference doc.

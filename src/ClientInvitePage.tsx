@@ -38,8 +38,8 @@ export default function ClientInvitePage({
           <div>
             <div className="brandWordmark brandLogoLockup">
               <img
-                src="/nl_wordmark_black.png"
-                alt="NO LIMIT"
+                src="/nx_limit_training_white_on_black.png"
+                alt="NX LIMIT Training"
                 className="brandWordmarkImage"
               />
             </div>
@@ -395,7 +395,7 @@ export default function ClientInvitePage({
               </label>
               <label>
                 <input type="checkbox" checked={healthConsent} onChange={(e) => setHealthConsent(e.target.checked)} />
-                <span>{iZh ? "我单独同意 NoLimit Training 为安全、个性化指导处理我提供的身体数据、伤病及健康信息，并理解这不是医疗服务。" : "I separately consent to processing the body, injury, and health information I provide for safe, personalised coaching, and understand this is not medical care."}</span>
+                <span>{iZh ? "我单独同意 NX LIMIT Training 为安全、个性化指导处理我提供的身体数据、伤病及健康信息，并理解这不是医疗服务。" : "I separately consent to NX LIMIT Training processing the body, injury, and health information I provide for safe, personalised coaching, and understand this is not medical care."}</span>
               </label>
             </div>
 

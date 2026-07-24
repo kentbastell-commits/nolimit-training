@@ -224,7 +224,7 @@ export default function CoachingFlowPage() {
         {/* top bar */}
         <div className="cfpTop">
           <div className="cfpBrand">
-            <span className="cfpLogo">NOLIMIT</span>
+            <img className="cfpLogo" src="/nx_limit_training_white_on_black.png" alt="NX LIMIT Training" />
             <span className="cfpBadge">{t("1:1 COACHING", "一对一私教")}</span>
           </div>
           <div className="cfpTopRight">
@@ -622,8 +622,8 @@ export default function CoachingFlowPage() {
                     />
                     <span>
                       {t(
-                        "I separately consent to NoLimit Training processing the injury and health information I provide for safe, personalised coaching. I understand this is not medical care.",
-                        "我单独同意 NoLimit Training 为安全、个性化地提供训练指导而处理我主动提供的伤病与健康信息。我理解本服务不属于医疗服务。"
+                        "I separately consent to NX LIMIT Training processing the injury and health information I provide for safe, personalised coaching. I understand this is not medical care.",
+                        "我单独同意 NX LIMIT Training 为安全、个性化地提供训练指导而处理我主动提供的伤病与健康信息。我理解本服务不属于医疗服务。"
                       )}
                     </span>
                   </label>

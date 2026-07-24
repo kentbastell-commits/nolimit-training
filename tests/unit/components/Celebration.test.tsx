@@ -5,7 +5,7 @@ import Celebration from "../../../src/Celebration";
 describe("Celebration", () => {
   it("renders the fistbump variant with default headline/kicker and the wordmark", () => {
     render(<Celebration variant="fistbump" />);
-    expect(screen.getByAltText("NoLimit Training")).toBeInTheDocument();
+    expect(screen.getByAltText("NX LIMIT Training")).toBeInTheDocument();
     expect(screen.getByText("POUND IT")).toBeInTheDocument();
     expect(screen.getByText("WORKOUT COMPLETE")).toBeInTheDocument();
   });

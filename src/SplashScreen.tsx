@@ -91,7 +91,7 @@ export default function SplashScreen({ progress, done, onFinish }: Props) {
 
   return (
     <div className="nlSplash">
-      <img className="nlSplash__logo" src="/nl_wordmark_white.png" alt="NoLimit Training" />
+      <img className="nlSplash__logo" src="/nx_limit_training_white_on_black.png" alt="NX LIMIT Training" />
 
       <div className="nlSplash__bars">
         {bars.map((h, i) => (

@@ -17,7 +17,7 @@
   justify-content: space-between;
 }
 
-.legalBrand img { width: 108px; display: block; }
+.legalBrand img { width: 142px; display: block; border-radius: 3px; }
 .legalNavActions { display: flex; align-items: center; gap: 22px; }
 .legalNavActions a, .legalNavActions button {
   color: #ece7dc;

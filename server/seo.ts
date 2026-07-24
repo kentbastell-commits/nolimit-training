@@ -30,7 +30,7 @@ export function renderSeoHead(requestUrl: string, siteUrlValue?: string, socialI
     <meta property="og:type" content="website" />
     <meta property="og:url" content="${escapeHtml(canonical)}" />
     <meta property="og:image" content="${escapeHtml(socialImage)}" />
-    <meta property="og:site_name" content="NoLimit Training" />
+    <meta property="og:site_name" content="NX LIMIT Training" />
     <meta property="og:locale" content="en_US" />
     <meta property="og:locale:alternate" content="zh_CN" />
     <meta name="twitter:card" content="summary" />

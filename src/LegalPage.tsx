@@ -37,7 +37,7 @@ export default function LegalPage({
     <div className={`legalPage ${zh ? "zh" : "en"}`}>
       <header className="legalNav">
         <a className="legalBrand" href="/">
-          <img src="/nl_wordmark_white.png" alt="No Limit" />
+          <img src="/nx_limit_training_white_on_black.png" alt="NX LIMIT Training" />
         </a>
         <div className="legalNavActions">
           <a href="/store">{zh ? "训练计划" : "Programs"}</a>
@@ -83,8 +83,8 @@ export default function LegalPage({
           <strong>{zh ? "有问题或需要行使您的权利？" : "Questions or a privacy request?"}</strong>
           <p>
             {zh
-              ? "请通过本网站显示的 NoLimit Training 官方微信二维码联系我们，并注明“隐私请求”或“退款请求”。"
-              : "Contact NoLimit Training through the official WeChat QR shown on this website and label your message “Privacy request” or “Refund request”."}
+              ? "请通过本网站显示的 NX LIMIT Training 官方微信二维码联系我们，并注明“隐私请求”或“退款请求”。"
+              : "Contact NX LIMIT Training through the official WeChat QR shown on this website and label your message “Privacy request” or “Refund request”."}
           </p>
         </div>
       </main>
@@ -98,7 +98,7 @@ function PrivacyEn() {
       <section>
         <h2>1. Who operates this service</h2>
         <p>
-          Guangzhou Yueran Sports Information Consulting Co., Ltd. (广州跃燃体育信息咨询有限公司), trading as NoLimit Training, operates this website, coaching service, digital-program store, and athlete portal. Its unified social credit code is 91440104MAKEAJP20G. For privacy requests, contact us through the official WeChat QR shown on the website.
+          Guangzhou Yueran Sports Information Consulting Co., Ltd. (广州跃燃体育信息咨询有限公司), trading as NX LIMIT Training, operates this website, coaching service, digital-program store, and athlete portal. Its unified social credit code is 91440104MAKEAJP20G. For privacy requests, contact us through the official WeChat QR shown on the website.
         </p>
       </section>
       <section>
@@ -151,7 +151,7 @@ function PrivacyEn() {
 function PrivacyZh() {
   return (
     <article className="legalArticle">
-      <section><h2>1. 谁在运营本服务</h2><p>广州跃燃体育信息咨询有限公司（统一社会信用代码：91440104MAKEAJP20G）以 NoLimit Training 品牌运营本网站、教练服务、数字训练计划商店及学员客户端。如需提出隐私相关请求，请通过网站展示的官方微信二维码联系我们。</p></section>
+      <section><h2>1. 谁在运营本服务</h2><p>广州跃燃体育信息咨询有限公司（统一社会信用代码：91440104MAKEAJP20G）以 NX LIMIT Training 品牌运营本网站、教练服务、数字训练计划商店及学员客户端。如需提出隐私相关请求，请通过网站展示的官方微信二维码联系我们。</p></section>
       <section><h2>2. 我们收集的信息</h2><ul>
         <li><strong>身份与联系方式：</strong>姓名、邮箱、电话或微信号、语言偏好及客户端代码。</li>
         <li><strong>订单与服务信息：</strong>所选计划或指导周期、价格、付款备注与状态、开始日期及客服沟通。</li>
@@ -177,8 +177,8 @@ function PrivacyZh() {
 function TermsEn() {
   return (
     <article className="legalArticle">
-      <section><h2>1. Agreement</h2><p>By purchasing or using NoLimit Training, you agree to these Terms, the Privacy Policy, and the Refund Policy. If you do not agree, do not submit an order or use a paid service.</p></section>
-      <section><h2>2. Training service—not medical care</h2><p>NoLimit Training provides fitness coaching and educational training programs, not medical diagnosis, treatment, physiotherapy, or emergency care. Tell your coach about relevant injuries and seek a qualified medical professional when appropriate. Stop an activity that causes sharp pain, dizziness, breathing difficulty, or other concerning symptoms.</p></section>
+      <section><h2>1. Agreement</h2><p>By purchasing or using NX LIMIT Training, you agree to these Terms, the Privacy Policy, and the Refund Policy. If you do not agree, do not submit an order or use a paid service.</p></section>
+      <section><h2>2. Training service—not medical care</h2><p>NX LIMIT Training provides fitness coaching and educational training programs, not medical diagnosis, treatment, physiotherapy, or emergency care. Tell your coach about relevant injuries and seek a qualified medical professional when appropriate. Stop an activity that causes sharp pain, dizziness, breathing difficulty, or other concerning symptoms.</p></section>
       <section><h2>3. Eligibility and accurate information</h2><p>You must be at least 18, or have a parent or guardian agree and supervise your use. Provide accurate information and keep your private portal link or code secure. Do not use another athlete’s portal.</p></section>
       <section><h2>4. Programs and coaching</h2><p>Digital programs provide a personal, non-transferable right to use the purchased content for the stated access period. You may not resell, publish, copy, scrape, or distribute program content. One-to-one coaching includes the term and services shown at checkout; scheduling and adjustments depend on honest check-ins, availability, and reasonable coach response times.</p></section>
       <section><h2>5. Payments</h2><p>Prices and the full amount due are shown before payment. Current purchases use WeChat payment and do not auto-renew. A payment reference helps us match the transfer. An order may remain pending until payment is verified.</p></section>
@@ -193,8 +193,8 @@ function TermsEn() {
 function TermsZh() {
   return (
     <article className="legalArticle">
-      <section><h2>1. 同意条款</h2><p>购买或使用 NoLimit Training 即表示您同意本服务条款、隐私政策及退款政策。如您不同意，请勿提交订单或使用付费服务。</p></section>
-      <section><h2>2. 训练服务并非医疗服务</h2><p>NoLimit Training 提供健身指导及训练教育内容，不提供医疗诊断、治疗、物理治疗或急救服务。请主动告知教练相关伤病，并在需要时咨询合格的医疗专业人员。如出现锐痛、眩晕、呼吸困难或其他异常症状，请立即停止训练。</p></section>
+      <section><h2>1. 同意条款</h2><p>购买或使用 NX LIMIT Training 即表示您同意本服务条款、隐私政策及退款政策。如您不同意，请勿提交订单或使用付费服务。</p></section>
+      <section><h2>2. 训练服务并非医疗服务</h2><p>NX LIMIT Training 提供健身指导及训练教育内容，不提供医疗诊断、治疗、物理治疗或急救服务。请主动告知教练相关伤病，并在需要时咨询合格的医疗专业人员。如出现锐痛、眩晕、呼吸困难或其他异常症状，请立即停止训练。</p></section>
       <section><h2>3. 使用资格与准确信息</h2><p>您应年满 18 周岁；未满 18 周岁须由父母或监护人同意并监督使用。请提供准确信息，并妥善保管私人客户端链接或代码。请勿使用其他学员的客户端。</p></section>
       <section><h2>4. 训练计划与一对一指导</h2><p>数字训练计划仅授予购买者在标明期限内个人、不可转让的使用权。不得转售、公开、复制、抓取或传播计划内容。一对一指导所含周期与服务以结算页为准；安排和调整需基于真实打卡、双方时间及合理的教练响应时间。</p></section>
       <section><h2>5. 付款</h2><p>付款前会显示价格与应付总额。目前使用微信支付，不会自动续费。付款备注用于匹配转账；在付款核实完成前，订单可能显示为待确认。</p></section>
@@ -239,7 +239,7 @@ function BusinessEn() {
         <dl className="businessDetails">
           <div><dt>Registered name</dt><dd>广州跃燃体育信息咨询有限公司</dd></div>
           <div><dt>English rendering</dt><dd>Guangzhou Yueran Sports Information Consulting Co., Ltd.</dd></div>
-          <div><dt>Trading brand</dt><dd>NoLimit Training</dd></div>
+          <div><dt>Trading brand</dt><dd>NX LIMIT Training</dd></div>
           <div><dt>Unified social credit code</dt><dd>91440104MAKEAJP20G</dd></div>
           <div><dt>Company type</dt><dd>Limited liability company (foreign invested, non-wholly-owned)</dd></div>
           <div><dt>Legal representative</dt><dd>BASTELL KENT</dd></div>
@@ -247,7 +247,7 @@ function BusinessEn() {
           <div><dt>Established</dt><dd>5 June 2026</dd></div>
           <div><dt>Registered address</dt><dd>Room 825D, 8th Floor, No. 48 Jianshe 6th Road, Yuexiu District, Guangzhou, China</dd></div>
           <div><dt>Registration authority</dt><dd>Guangzhou Yuexiu District Administration for Market Regulation</dd></div>
-          <div><dt>Customer contact</dt><dd>Official NoLimit Training WeChat QR displayed on this website</dd></div>
+          <div><dt>Customer contact</dt><dd>Official NX LIMIT Training WeChat QR displayed on this website</dd></div>
         </dl>
       </section>
       <section>
@@ -266,7 +266,7 @@ function BusinessZh() {
         <h2>经营者登记信息</h2>
         <dl className="businessDetails">
           <div><dt>企业名称</dt><dd>广州跃燃体育信息咨询有限公司</dd></div>
-          <div><dt>运营品牌</dt><dd>NoLimit Training</dd></div>
+          <div><dt>运营品牌</dt><dd>NX LIMIT Training</dd></div>
           <div><dt>统一社会信用代码</dt><dd>91440104MAKEAJP20G</dd></div>
           <div><dt>类型</dt><dd>有限责任公司（外商投资、非独资）</dd></div>
           <div><dt>法定代表人</dt><dd>BASTELL KENT</dd></div>
@@ -274,7 +274,7 @@ function BusinessZh() {
           <div><dt>成立日期</dt><dd>2026 年 6 月 5 日</dd></div>
           <div><dt>住所</dt><dd>广州市越秀区建设六马路48号第8层825D</dd></div>
           <div><dt>登记机关</dt><dd>广州市越秀区市场监督管理局</dd></div>
-          <div><dt>客户联系方式</dt><dd>本网站展示的 NoLimit Training 官方微信二维码</dd></div>
+          <div><dt>客户联系方式</dt><dd>本网站展示的 NX LIMIT Training 官方微信二维码</dd></div>
         </dl>
       </section>
       <section>

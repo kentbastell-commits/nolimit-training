@@ -5,7 +5,7 @@ import SplashScreen from "../../../src/SplashScreen";
 describe("SplashScreen", () => {
   it("renders the wordmark, five power bars, label, and controlled percentage", () => {
     const { container } = render(<SplashScreen progress={42} />);
-    expect(screen.getByAltText("NoLimit Training")).toBeInTheDocument();
+    expect(screen.getByAltText("NX LIMIT Training")).toBeInTheDocument();
     expect(screen.getByText("POWERING UP")).toBeInTheDocument();
     expect(container.querySelectorAll(".nlSplash__bar")).toHaveLength(5);
     expect(screen.getByText("42")).toBeInTheDocument();

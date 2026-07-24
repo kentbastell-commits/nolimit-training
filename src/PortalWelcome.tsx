@@ -27,7 +27,7 @@ export default function PortalWelcome({
       </div>
       <section className="portalWelcome">
         <div className="portalWelcomeBrand">
-          <img src="/nl_monogram_white.png" alt="NL" className="portalWelcomeMonogram" />
+          <img src="/nx_limit_training_white_on_black.png" alt="NX LIMIT Training" className="portalWelcomeMonogram" />
         </div>
 
         {portalAutoLoading ? (

@@ -91,10 +91,11 @@
   gap: 11px;
 }
 .cfpLogo {
-  font-size: 20px;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  color: #f5f1e8;
+  display: block;
+  width: 132px;
+  height: auto;
+  border-radius: 3px;
+  object-fit: contain;
 }
 .cfpBadge {
   font-size: 10px;

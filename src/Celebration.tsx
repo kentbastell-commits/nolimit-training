@@ -108,7 +108,7 @@ export default function Celebration({
 
   return (
     <div className={`cel cel--${variant}`}>
-      <img className="cel__logo" src="/nl_wordmark_white.png" alt="NoLimit Training" />
+      <img className="cel__logo" src="/nx_limit_training_white_on_black.png" alt="NX LIMIT Training" />
 
       {variant === "highfive" && (
         <div className="cel__rain">

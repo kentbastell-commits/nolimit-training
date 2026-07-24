@@ -1,4 +1,4 @@
-/* NoLimit — completion celebrations (fist bump / high five / thumbs up).
+/* NX LIMIT — completion celebrations (fist bump / high five / thumbs up).
    One shared shell + per-variant stage. Each plays ONCE on mount.
    Brand: ink #121210 + gold. */
 
@@ -14,8 +14,8 @@
   background: radial-gradient(120% 68% at 50% 38%, #221e15 0%, var(--brand-ink, #121210) 60%);
 }
 
-/* White NØLIMIT wordmark on transparent background. */
-.cel__logo { width: 122px; height: auto; }
+/* NX LIMIT production lockup on its native black plate. */
+.cel__logo { width: 180px; height: auto; border-radius: 4px; }
 
 /* ---- stage ---- */
 .cel__stage {

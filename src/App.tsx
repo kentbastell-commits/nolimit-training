@@ -1791,7 +1791,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   };
 
   const coachInviteLink = buildInviteLink();
-  const coachInviteMessage = `Hi, here is your NoLimit Training onboarding link. Please fill this out before we get started: ${coachInviteLink}`;
+  const coachInviteMessage = `Hi, here is your NX LIMIT Training onboarding link. Please fill this out before we get started: ${coachInviteLink}`;
   const fallbackCoaches: Coach[] = [
     {
       recordId: "",
@@ -13926,7 +13926,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
         // Footer
         ctx.fillStyle = gold;
         ctx.font = "700 32px Georgia, serif";
-        ctx.fillText("NoLimit Training", center, H - 110);
+        ctx.fillText("NX LIMIT Training", center, H - 110);
         ctx.fillStyle = "rgba(255,255,255,0.5)";
         ctx.font = "500 24px Georgia, serif";
         ctx.fillText(
@@ -13949,7 +13949,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
         draw();
       };
       logo.onerror = () => draw();
-      logo.src = "/nl_monogram_white.png";
+      logo.src = "/nx_limit_training_white_on_black.png";
     });
 
   const openFinisherCard = async (payload: {
@@ -13981,14 +13981,14 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     if (!finisherUrl) return;
     try {
       const blob = await (await fetch(finisherUrl)).blob();
-      const file = new File([blob], "nolimit-finish.png", { type: "image/png" });
+      const file = new File([blob], "nx-limit-finish.png", { type: "image/png" });
       const nav = navigator as Navigator & {
         canShare?: (data: { files: File[] }) => boolean;
       };
       if (nav.canShare && nav.canShare({ files: [file] })) {
         await nav.share({
           files: [file],
-          title: "NoLimit Training",
+          title: "NX LIMIT Training",
         } as ShareData);
         return;
       }
@@ -13997,7 +13997,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     }
     const a = document.createElement("a");
     a.href = finisherUrl;
-    a.download = "nolimit-finish.png";
+    a.download = "nx-limit-finish.png";
     a.click();
   };
 
@@ -14980,8 +14980,8 @@ function App({ onReady }: { onReady?: () => void } = {}) {
               {hasCoachSupport
                 ? `${coachName} · ${paceZh ? "你的教练" : "your coach"}`
                 : paceZh
-                  ? "跃燃训练 · 计划指导"
-                  : "NoLimit Training · program guidance"}
+                  ? "NX LIMIT Training · 计划指导"
+                  : "NX LIMIT Training · program guidance"}
             </span>
             <strong className="programCoachMsg">{coachMsg}</strong>
           </div>
@@ -18448,8 +18448,8 @@ function App({ onReady }: { onReady?: () => void } = {}) {
         <section className="clientPortalEmpty">
           <div className="brandWordmark brandLogoLockup">
             <img
-              src="/nl_wordmark_black.png"
-              alt="NO LIMIT"
+              src="/nx_limit_training_white_on_black.png"
+              alt="NX LIMIT Training"
               className="brandWordmarkImage"
             />
           </div>
@@ -19203,15 +19203,15 @@ function App({ onReady }: { onReady?: () => void } = {}) {
         <div className="brand">
           <div className="brandPlate">
             <img
-              src="/nl_wordmark_white.png"
-              alt="NoLimit"
+              src="/nx_limit_training_white_on_black.png"
+              alt="NX LIMIT Training"
               className="brandWordmarkImg"
             />
             <span className="brandTagline">Built for Training</span>
           </div>
           <img
-            src="/nl_monogram_black.png"
-            alt="NoLimit"
+            src="/icon-192.png"
+            alt="NX LIMIT"
             className="brandCollapsedSeal"
           />
         </div>
@@ -19332,7 +19332,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
             }
           >
             <div className="avatar monogramAvatar">
-              <img src="/nl_monogram_white.png" alt="" aria-hidden="true" />
+              <img src="/icon-192.png" alt="" aria-hidden="true" />
             </div>
             <div className="coachBoxMeta">
               <strong>
@@ -21281,7 +21281,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                     ))}
                   </div>
                   <div className="workoutSummaryCrest">
-                    <img src="/nl_monogram_white.png" alt="" />
+                    <img src="/icon-192.png" alt="" />
                   </div>
                   <h2 className="workoutSummaryTitle">
                     {paceZh ? "训练完成" : "Workout Complete"}

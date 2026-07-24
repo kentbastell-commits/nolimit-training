@@ -145,7 +145,7 @@ export default function StorePage({
     activeCoaches.find((c) => /head|admin|founder|lead/i.test(c.role || "")) ||
     activeCoaches[0] ||
     null;
-  const coachInitials = (featuredCoach?.name || "NoLimit")
+  const coachInitials = (featuredCoach?.name || "NX LIMIT")
     .split(/\s+/)
     .map((part) => part[0])
     .filter(Boolean)
@@ -421,7 +421,7 @@ export default function StorePage({
 
       <nav className="storeNavV3">
         <a className="storeBrandV3" href="/">
-          <img src="/nl_wordmark_white.png" alt="No Limit" />
+          <img src="/nx_limit_training_white_on_black.png" alt="NX LIMIT Training" />
         </a>
         <div className="storeNavLinksV3">
           <a href="#featured" className="storeNavLinkV3">{sZh ? "计划" : "Programs"}</a>
@@ -436,7 +436,12 @@ export default function StorePage({
               href={`/?portal=client&client=${encodeURIComponent(rememberedPortalCode)}`}
               className="storeNavPortalLinkV3"
             >
-              {sZh ? "打开我的客户端" : "Open my portal"}
+              <span className="storeNavPortalDesktopV3">
+                {sZh ? "打开我的客户端" : "Open my portal"}
+              </span>
+              <span className="storeNavPortalMobileV3">
+                {sZh ? "客户端" : "Portal"}
+              </span>
             </a>
           ) : (
             <button
@@ -447,7 +452,12 @@ export default function StorePage({
                 setFindPortalOpen(true);
               }}
             >
-              {sZh ? "找回我的客户端" : "Find my portal"}
+              <span className="storeNavPortalDesktopV3">
+                {sZh ? "找回我的客户端" : "Find my portal"}
+              </span>
+              <span className="storeNavPortalMobileV3">
+                {sZh ? "客户端" : "Portal"}
+              </span>
             </button>
           )}
           <button
@@ -462,8 +472,10 @@ export default function StorePage({
             type="button"
             className="storeNavEnterV3"
             onClick={() => setStoreLauncherOpen(true)}
+            aria-label={sZh ? "进入 App" : "Enter app"}
           >
-            {sZh ? "进入 App" : "Enter app"} <ArrowRight size={15} />
+            <span>{sZh ? "进入 App" : "Enter app"}</span>
+            <ArrowRight size={15} />
           </button>
         </div>
       </nav>
@@ -807,7 +819,7 @@ export default function StorePage({
                 .toUpperCase() || "NL";
             const list = cards.length
               ? cards
-              : ([{ name: "NoLimit Coaching", role: "", bio: "" }] as any[]);
+              : ([{ name: "NX LIMIT Coaching", role: "", bio: "" }] as any[]);
             return (
               <div
                 className={`storeCoachGridV3${list.length === 1 ? " storeCoachGridSoloV3" : ""}`}
@@ -822,7 +834,7 @@ export default function StorePage({
                       {i === 0 ? coachInitials : initialsOf(coach?.name)}
                     </div>
                     <strong className="storeCoachNameV3">
-                      {coach?.name || "NoLimit Coaching"}
+                      {coach?.name || "NX LIMIT Coaching"}
                     </strong>
                     <span className="storeCoachRoleV3">
                       {coach?.role || (sZh ? "主教练" : "Head Coach")}
@@ -1399,7 +1411,7 @@ export default function StorePage({
                     <img src={sp.productImage} alt={spName} />
                   ) : (
                     <div className="storeModalFallbackV2">
-                      <img src="/nl_monogram_white.png" alt="" />
+                      <img src="/icon-192.png" alt="NX LIMIT" />
                     </div>
                   )}
                 </div>
@@ -1968,7 +1980,7 @@ export default function StorePage({
       })()}
 
       <footer className="storeFooterV3">
-        <img src="/nl_wordmark_white.png" alt="No Limit" />
+        <img src="/nx_limit_training_white_on_black.png" alt="NX LIMIT Training" />
         <div className="storeFooterLinksV3">
           <a href="#catalog">{sZh ? "计划" : "Programs"}</a>
           <a href="#coach">{sZh ? "教练" : "Coaching"}</a>

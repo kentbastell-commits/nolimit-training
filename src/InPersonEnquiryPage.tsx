@@ -31,8 +31,8 @@ export default function InPersonEnquiryPage({
           <div>
             <div className="brandWordmark brandLogoLockup">
               <img
-                src="/nl_wordmark_black.png"
-                alt="NO LIMIT"
+                src="/nx_limit_training_white_on_black.png"
+                alt="NX LIMIT Training"
                 className="brandWordmarkImage"
               />
             </div>
