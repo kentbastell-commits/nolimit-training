@@ -9196,10 +9196,28 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     }
     const updated = [...selectedProgramExercises];
 
-    const nextExercise = {
+    let nextExercise = {
       ...updated[index],
       [field]: field === "order" ? Number(value) : value,
     };
+
+    // The compact exercise editor's quick fields mean "apply to every set".
+    // Previously normalizeExerciseSetPrescriptions preferred the existing
+    // per-set value and immediately overwrote a newly typed reps/load/tempo/
+    // rest value, so the form looked editable but lost the change on rerender.
+    if (
+      field === "reps" ||
+      field === "load" ||
+      field === "tempo" ||
+      field === "rest"
+    ) {
+      nextExercise = {
+        ...nextExercise,
+        setPrescriptions: normalizeExerciseSetPrescriptions(nextExercise).map(
+          (set) => ({ ...set, [field]: String(value) })
+        ),
+      };
+    }
 
     const nextExercises =
       field === "sets" || field === "reps" || field === "load" || field === "tempo" || field === "rest"

@@ -426,7 +426,7 @@ describe("category helpers", () => {
     expect(categoryPrescriptionDefaults("Squat")).toMatchObject({
       sets: "3",
       reps: "8",
-      tempo: "3-1-1",
+      tempo: "",
     });
     expect(categoryPrescriptionDefaults("")).toBeNull();
     expect(categoryPrescriptionDefaults("Unknown Category")).toBeNull();

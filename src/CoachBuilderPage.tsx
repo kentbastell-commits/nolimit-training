@@ -572,7 +572,8 @@ export default function CoachBuilderPage({
   useEffect(() => {
     const closeMobileLayer = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
-      if (mobileAlternateIndex != null) setMobileAlternateIndex(null);
+      if (editExerciseIndex != null) setEditExerciseIndex(null);
+      else if (mobileAlternateIndex != null) setMobileAlternateIndex(null);
       else if (mobileDetailsIndex != null) setMobileDetailsIndex(null);
       else if (mobileMenuIndex != null) setMobileMenuIndex(null);
       else if (["picker", "arrange", "libpick"].includes(mobileBuilderStep)) {
@@ -583,6 +584,7 @@ export default function CoachBuilderPage({
     window.addEventListener("keydown", closeMobileLayer);
     return () => window.removeEventListener("keydown", closeMobileLayer);
   }, [
+    editExerciseIndex,
     mobileAlternateIndex,
     mobileBuilderStep,
     mobileDetailsIndex,
@@ -783,31 +785,22 @@ export default function CoachBuilderPage({
                                       : "All changes saved"}
                                   </span>
                                 </div>
-                                <button
-                                  type="button"
-                                  className="pbSaveExitBtn"
-                                  disabled={savingTemplate}
-                                  onClick={() => {
-                                    void (async () => {
-                                      // Only leave once the save actually
-                                      // succeeded (it resets the builder and
-                                      // returns true); skip the guard since
-                                      // there's nothing unsaved left. On
-                                      // failure the toast explains and the
-                                      // work stays put.
-                                      const ok = await saveFullProgram();
-                                      if (ok)
-                                        selectWorkoutTab(
-                                          isSingleWorkoutBuilder
-                                            ? "Sessions"
-                                            : "Saved Programs",
-                                          true
-                                        );
-                                    })();
-                                  }}
-                                >
-                                  Save + Exit
-                                </button>
+                                {isSingleWorkoutBuilder && (
+                                  <button
+                                    type="button"
+                                    className="pbSaveExitBtn"
+                                    disabled={savingTemplate}
+                                    onClick={() => {
+                                      void (async () => {
+                                        const ok = await saveFullProgram();
+                                        if (ok)
+                                          selectWorkoutTab("Sessions", true);
+                                      })();
+                                    }}
+                                  >
+                                    Save Session + Exit
+                                  </button>
+                                )}
                               </div>
                             </div>
                           )}
@@ -2415,7 +2408,9 @@ export default function CoachBuilderPage({
                             })();
                           }}
                         >
-                          {savingTemplate ? saveBusyLabel : "Save + Exit"}
+                          {savingTemplate
+                            ? saveBusyLabel
+                            : "Save Program + Exit"}
                         </button>
                       </div>
                     )}
@@ -3824,6 +3819,22 @@ export default function CoachBuilderPage({
                       )}
 
                     </div>
+                              </div>
+                              <div className="builderEditModalFooter">
+                                <span>
+                                  Changes are applied to this{" "}
+                                  {isSingleWorkoutBuilder ? "workout" : "day"}.
+                                  Save the{" "}
+                                  {isSingleWorkoutBuilder ? "workout" : "day"}{" "}
+                                  when you finish editing its exercises.
+                                </span>
+                                <button
+                                  type="button"
+                                  className="goldButton"
+                                  onClick={() => setEditExerciseIndex(null)}
+                                >
+                                  Done editing
+                                </button>
                               </div>
                             </div>
                           </div>

@@ -113,6 +113,7 @@ describe("CoachBuilderPage", () => {
         selectedProgramExercises={exercises}
         programName="Strength Block"
         programSessions={[]}
+        isCircuitGroupStart={() => false}
         isExerciseLinkedWithPrevious={() => false}
         renderMobileSetTable={() => <div>Set table</div>}
         updateProgramExercise={vi.fn()}

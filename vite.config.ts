@@ -63,6 +63,17 @@ function seoFiles(mode: string): Plugin {
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => ({
   plugins: [react(), seoFiles(mode)],
+  server: process.env.STAGING_TWIN_PROXY
+    ? {
+        proxy: {
+          "/api": {
+            target: process.env.STAGING_TWIN_PROXY,
+            changeOrigin: true,
+            secure: true,
+          },
+        },
+      }
+    : undefined,
   build: {
     // Keep previous builds' hashed chunks on disk (server/Linux only): tabs
     // opened before a deploy still lazy-load their old chunks instead of
