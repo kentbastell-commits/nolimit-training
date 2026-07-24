@@ -98,6 +98,8 @@ export default function WorkoutPlayerModal({
   // Inline per-exercise note-to-coach + skip state (replaces the old kebab
   // overlay that rendered BEHIND the z-2000 player and broke it on phones).
   const [noteOpenFor, setNoteOpenFor] = useState<string>("");
+  // "Other" skip reason in progress: the note row collects the custom text.
+  const [pendingOtherSkip, setPendingOtherSkip] = useState<string>("");
   const [noteDrafts, setNoteDrafts] = useState<Record<string, string>>({});
   const [noteSentFor, setNoteSentFor] = useState<string[]>([]);
   // occurrence id -> reason label ("" while choosing)
@@ -1720,6 +1722,17 @@ export default function WorkoutPlayerModal({
                                       {reason}
                                     </button>
                                   ))}
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      // Custom reason: collected through the
+                                      // inline note row below.
+                                      setPendingOtherSkip(exercise.id);
+                                      setNoteOpenFor(exercise.id);
+                                    }}
+                                  >
+                                    {paceZh ? "其他…" : "Other…"}
+                                  </button>
                                 </div>
                               )}
                             </div>
@@ -1739,9 +1752,13 @@ export default function WorkoutPlayerModal({
                                     }))
                                   }
                                   placeholder={
-                                    paceZh
-                                      ? "例如：这组感觉轻松 / 左膝有点不适…"
-                                      : "e.g. Felt easy / left knee tweaked…"
+                                    pendingOtherSkip === exercise.id
+                                      ? paceZh
+                                        ? "为什么跳过这个动作？"
+                                        : "Why did you skip this exercise?"
+                                      : paceZh
+                                        ? "例如：这组感觉轻松 / 左膝有点不适…"
+                                        : "e.g. Felt easy / left knee tweaked…"
                                   }
                                 />
                                 <div className="exNoteActions">
@@ -1761,11 +1778,32 @@ export default function WorkoutPlayerModal({
                                     }
                                     onClick={() => {
                                       void (async () => {
+                                        const raw = (
+                                          noteDrafts[exercise.id] || ""
+                                        ).trim();
+                                        const isOtherSkip =
+                                          pendingOtherSkip === exercise.id;
                                         const ok = await sendCoachNote(
                                           exercise.exerciseName,
-                                          noteDrafts[exercise.id] || ""
+                                          isOtherSkip
+                                            ? `${
+                                                paceZh ? "跳过原因" : "Skipped"
+                                              }: ${raw}`
+                                            : raw
                                         );
                                         if (ok) {
+                                          if (isOtherSkip) {
+                                            // Banner shows their own words
+                                            // (trimmed to fit the chip line).
+                                            setSkippedExercises((cur) => ({
+                                              ...cur,
+                                              [exercise.id]:
+                                                raw.length > 40
+                                                  ? `${raw.slice(0, 40)}…`
+                                                  : raw,
+                                            }));
+                                            setPendingOtherSkip("");
+                                          }
                                           setNoteDrafts((cur) => ({
                                             ...cur,
                                             [exercise.id]: "",
