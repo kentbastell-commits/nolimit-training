@@ -354,6 +354,20 @@ data between them, never "borrow" a table ID across products.
     (patch-style for scalars); on Postgres an explicit "" is a CLEAR (write
     null), never an omit — Feishu-only empty-omission stays in feishu impls.
 
+44. **The lifecycle-destroyed draft** — the WeChat mini program
+    (`c:\Users\kentb\nolimit-miniprogram`, a THIRD repo) held a whole 45-90
+    minute workout in React state and wrote only on "Finish", but WeChat
+    destroys a backgrounded mini program after ~5 minutes (at once under
+    memory pressure), so a phone left face-down between sets silently lost
+    every logged set with no error to report. The same lifecycle freezes
+    `setInterval`, so the rest countdown was wrong on every return. Rules:
+    any mini-program surface collecting input for longer than ~5 minutes
+    mirrors it to local storage on every edit and restores on reopen —
+    persist only the USER's input and overlay it on a freshly fetched
+    prescription, never re-serve a cached one, so a draft can't resurrect a
+    program the coach has since edited; and any timer is a stored DEADLINE
+    recomputed from `Date.now()`, never a decrementing counter.
+
 ## Quality bar — checkable, per deliverable
 
 **Any shipped code change**
