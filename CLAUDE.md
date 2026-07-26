@@ -235,6 +235,16 @@ data between them, never "borrow" a table ID across products.
     so `.app:not(.clientPortalApp)` scoped CSS keeps matching. Verify by
     injecting a hostile `transform: translateZ(0)` on `.main > *` and checking
     the overlay rect still equals the viewport.
+    RECURRED AGAIN 2026-07-26 on fixed CHROME, not an overlay: the client
+    portal's `.mobileClientBottomNav` sat correctly on load, then jumped 178px
+    up and stopped tracking scroll after the first tab switch — `.clientPage`
+    ends its entrance animation holding an IDENTITY transform
+    (`matrix(1,0,0,1,0,0)`), which still creates the containing block. Two
+    lessons: the rule covers any `position: fixed` descendant, chrome
+    included; and chrome is harder to spot because it looks right until the
+    first navigation runs the animation. When a fixed element misbehaves,
+    walk its ancestors for `transform !== "none"` — an identity matrix is
+    invisible by eye and in a screenshot.
 35. **The renumber that collapses rest days** — the builder's
     `renumberProgramSessionsByWeek` used to reassign each week's days by array
     order (1,2,3…), silently pulling a Day-4 session onto Day 3 and destroying an
