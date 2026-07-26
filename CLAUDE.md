@@ -32,12 +32,25 @@ data between them, never "borrow" a table ID across products.
 - **Backend**: `api/*.ts` are Vercel-style handlers, served self-hosted by
   `server/index.ts` (Express). **A new handler does nothing until you import it and
   add it to the `handlers` map in `server/index.ts`.**
-- **Database: nolimit is on Postgres since 2026-07-21** (`DATA_BACKEND=postgres`,
-  DB `nolimit_prod` on the HK box; Feishu is a frozen read-only mirror — never
-  write to it expecting effects). The repository layer (`server/db/repositories/`)
-  switches per `DATA_BACKEND`; **kangfu is still Feishu Bitable.** Feishu
-  reference stays in `docs/feishu-base-reference.md`; handlers keep parsing
-  defensively because kangfu + the ETL still consume Feishu shapes.
+- **Database: nolimit is Postgres ONLY** (live 2026-07-21; the Feishu backend was
+  deleted 2026-07-26). DB `nolimit_prod` on the HK box. There is no
+  `DATA_BACKEND` switch and no `server/db/feishu/` tree any more — the
+  repository layer (`server/db/repositories/`) calls `server/db/pg/` directly.
+  **kangfu is still Feishu Bitable**, so Feishu rules below still apply THERE.
+  Kept in nolimit: `server/db/etl/` plus `api/_token.ts` / `_pagination.ts` (the
+  migration path and the verified record of live Feishu column names), and
+  `docs/feishu-base-reference.md` as history. The Feishu base is a frozen
+  read-only mirror — never write to it expecting effects.
+- **Dates (nolimit pg)**: `scheduled_date` and friends are epoch-ms meaning
+  "the start of that day in China time". Convert a `YYYY-MM-DD` string with
+  `dayStartMs()` from `server/db/pg/_util.ts` — never `new Date(str)` (UTC
+  midnight) or ``new Date(`${str}T00:00:00`)`` (server-local midnight). Prod is
+  UTC+8, so the two disagree by 8h and a comparison across them silently drops
+  rows. `epochToDate()` is the inverse.
+- **Tests**: handler tests run against a REAL local Postgres (`nolimit_test`),
+  not mocks — `node --env-file=.env scripts/setupTestDb.mjs` once, then
+  `npx vitest run --project pg`. They truncate every table between cases and
+  refuse any non-localhost host, so they can never touch the dev DB or prod.
 - **Cache**: `api/_cache.ts` in-process cache makes reads fast. Every writer MUST
   call `invalidateCache(...)` for every cache key its write affects, or coaches see
   stale data for up to 10 minutes.
@@ -58,9 +71,9 @@ data between them, never "borrow" a table ID across products.
 2. **The masked build break** — local incremental `tsc` passes, server `tsc -b`
    fails on unused vars. Rule: run `npx tsc -b --force` before every commit you
    intend to ship.
-3. **The empty-field write bomb** — sending `""` to a Feishu Number/URL column fails
+3. **The empty-field write bomb** (kangfu only — nolimit has no Feishu writers) — sending `""` to a Feishu Number/URL column fails
    the ENTIRE record write. Rule: omit empty values from `fields`; never send them.
-4. **The link-field string** — writing a code like `"CL-1042"` to a DuplexLink
+4. **The link-field string** (kangfu only) — writing a code like `"CL-1042"` to a DuplexLink
    column. Rule: DuplexLink fields take `[record_id]` arrays; always check the write
    response body, Feishu often returns 200 with `code != 0`.
 5. **The stale cache** — adding a write path without invalidation. Rule: grep how
@@ -77,7 +90,7 @@ data between them, never "borrow" a table ID across products.
    leave the constant alone.
 8. **The hand-edited generated file** — editing `src/i18nGenerated.ts` directly.
    Rule: edit the scratchpad `i18n-*.json` sources and re-run `mergeI18nKeys.mjs`.
-9. **The fatal transient** — treating Feishu `code 1254607` ("Data not ready") as a
+9. **The fatal transient** (kangfu + the nolimit ETL) — treating Feishu `code 1254607` ("Data not ready") as a
    real failure. Rule: it's throttling after heavy writes; wait ~20s and re-run.
    Seed scripts must be re-runnable so retry is always safe.
 10. **The wrong-repo commit** — the shell cwd silently resets to nolimit-training
@@ -98,10 +111,12 @@ data between them, never "borrow" a table ID across products.
 15. **The phantom suite failure** — every vitest file fails at once with nonsense
     errors ("failed to find the current suite", `undefined (reading 'config')`)
     while a single file passes: that's memory exhaustion, not broken tests — and
-    it's driven by the machine's FREE RAM, not the config cap (it fired at
-    `--maxWorkers=2` with 1.2GB free; other apps eat the RAM, not node). Rule:
-    single file passes → check free RAM → step down `--maxWorkers`; `1` always
-    fits (full 98-file suite ≈75s). Never touch test code off a phantom run.
+    it is NOT reliably predicted by free RAM: it fired at `--maxWorkers=2`
+    with 1.2GB free once and again with 3.5GB free, so "check free RAM" is a
+    weak signal. Rule: single file passes → go straight to `--maxWorkers=1`,
+    which always fits (full suite ≈2min). Never touch test code off a phantom
+    run, and never conclude a config edit broke the suite until one file has
+    been run on its own.
 16. **The clobbered intent** — the store checkout has a `useEffect` keyed on
     `storeSelectedProgram?.recordId` that resets step/add-ons/paymentCode. Any
     handler that sets one of those *while also changing the selected program*
@@ -184,7 +199,7 @@ data between them, never "borrow" a table ID across products.
     scope that defines them (they now live on `.app:not(.clientPortalApp)` too);
     when adding tokens, define them for every scope that consumes them or use
     `var(--x, fallback)`.
-32. **The phantom column** — writing a field name the Feishu table doesn't have
+32. **The phantom column** (kangfu; on nolimit the pg equivalent is a wrong column name in a drizzle query) — writing a field name the Feishu table doesn't have
     (`Program` on clients; the real columns were `Program ID`/`Full Name`)
     rejects the ENTIRE record write, and an unchecked writer makes it silent —
     every digital purchase lost Intake Status + access dates for weeks. Rule:
@@ -367,6 +382,30 @@ data between them, never "borrow" a table ID across products.
     prescription, never re-serve a cached one, so a draft can't resurrect a
     program the coach has since edited; and any timer is a stored DEADLINE
     recomputed from `Date.now()`, never a decrementing counter.
+
+45. **The suite that tests the unused backend** — after the 2026-07-21 pg
+    cutover the whole unit suite kept passing while covering NOTHING that
+    production ran: 56 of 62 handler tests stubbed Feishu HTTP, no test set
+    `DATA_BACKEND`, and it defaulted to `"feishu"`. Green runs for five days
+    validated a frozen mirror, which is the likeliest reason the money-path
+    bugs (#22, #32, #37, #43) were all found by accident rather than by a
+    failing test. Rule: after ANY backend/infra switch, prove which path the
+    tests take before trusting them — run one test file under the production
+    env var and watch it fail. A config default that decides which code runs
+    must never be the permissive one; make the wrong value impossible, not
+    merely unlikely.
+46. **The two-convention column** — `assigned_workouts.scheduled_date` was
+    written by four call sites using two different `YYYY-MM-DD` → epoch
+    conversions (`new Date(str)` = UTC midnight vs ``new Date(`${str}T00:00:00`)``
+    = server-local midnight). Both round-tripped through `epochToDate`, so
+    display looked perfect and nothing failed — but prod is UTC+8, so a
+    COMPARISON across the two was off by 8h: the bulk-reschedule boundary
+    excluded the session scheduled on the from-date itself, and the mini
+    program's replan defaults to exactly that date. Rule: a column's
+    string↔epoch conversion lives in ONE named helper (`dayStartMs` /
+    `epochToDate`) that every writer and every comparison uses. Two encodings
+    that both round-trip are invisible until something compares them, so
+    grep for every writer of a date column before trusting any range query.
 
 ## Quality bar — checkable, per deliverable
 
