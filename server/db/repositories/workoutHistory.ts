@@ -1,5 +1,4 @@
-import { DATA_BACKEND } from "../backend.ts";
-import * as feishu from "../feishu/workoutLogs.ts";
+import * as pg from "../pg/workoutLogs.ts";
 import type { ExerciseHistoryDTO, LogDTO, WorkoutHistoryResult } from "../dto.ts";
 import { getCached, setCached } from "../../../api/_cache.ts";
 
@@ -16,9 +15,7 @@ export async function getWorkoutHistory(
 
   if (!clientLogs) {
     const all =
-      DATA_BACKEND === "postgres"
-        ? await (await import("../pg/workoutLogs.ts")).listAllLogs()
-        : await feishu.listAllLogs();
+      await pg.listAllLogs();
 
     // Match the plain-text Client Code, the Client ID link's resolved text,
     // or its record_ids.

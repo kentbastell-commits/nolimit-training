@@ -1,5 +1,4 @@
-import { DATA_BACKEND } from "../backend.ts";
-import * as feishu from "../feishu/workoutDetails.ts";
+import * as pg from "../pg/workoutDetails.ts";
 import type { WorkoutDetailDTO } from "../dto.ts";
 
 export async function getWorkoutDetails(
@@ -7,9 +6,5 @@ export async function getWorkoutDetails(
   week: string,
   day: string
 ): Promise<WorkoutDetailDTO[]> {
-  if (DATA_BACKEND === "postgres") {
-    const pg = await import("../pg/workoutDetails.ts");
-    return pg.getWorkoutDetails(programId, week, day);
-  }
-  return feishu.getWorkoutDetails(programId, week, day);
+  return pg.getWorkoutDetails(programId, week, day);
 }

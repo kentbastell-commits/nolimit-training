@@ -1,5 +1,4 @@
-import { DATA_BACKEND } from "../backend.ts";
-import * as feishu from "../feishu/subscriptions.ts";
+import * as pg from "../pg/subscriptions.ts";
 import type { SubscriptionDTO, WriteResult } from "../dto.ts";
 import { getCached, setCached, invalidateCache } from "../../../api/_cache.ts";
 
@@ -25,9 +24,7 @@ export async function listSubscriptions(): Promise<SubscriptionDTO[]> {
   if (cached) return cached;
 
   const subscriptions =
-    DATA_BACKEND === "postgres"
-      ? await (await import("../pg/subscriptions.ts")).listSubscriptions()
-      : await feishu.listSubscriptions();
+    await pg.listSubscriptions();
 
   setCached("subscriptions", subscriptions, 10 * 60 * 1000);
   return subscriptions;
@@ -37,9 +34,7 @@ export async function upsertSubscription(
   input: UpsertSubscriptionInput
 ): Promise<WriteResult> {
   const result =
-    DATA_BACKEND === "postgres"
-      ? await (await import("../pg/subscriptions.ts")).upsertSubscription(input)
-      : await feishu.upsertSubscription(input);
+    await pg.upsertSubscription(input);
   if (result.success) invalidateCache("subscriptions");
   return result;
 }

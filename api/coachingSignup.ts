@@ -1,6 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { notifyCoach } from "./_notify.ts";
-import { DATA_BACKEND } from "../server/db/backend.ts";
 import { coachingSignup } from "../server/db/repositories/fulfillment.ts";
 
 // 1:1 Online Coaching signup — the paid coaching flow (Commitment → qualifier →
@@ -40,14 +39,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: "clientRecordId required" });
     if (String(body.injuries || "").trim() && body.healthConsent !== true)
       return res.status(400).json({ error: "Separate health information consent required" });
-  }
-
-  // Feishu needs its base/table config; on Postgres the env vars are irrelevant.
-  if (
-    DATA_BACKEND === "feishu" &&
-    (!process.env.FEISHU_BASE_APP_TOKEN || !process.env.FEISHU_CLIENTS_TABLE_ID)
-  ) {
-    return res.status(503).json({ message: "Coaching signup is not configured." });
   }
 
   try {

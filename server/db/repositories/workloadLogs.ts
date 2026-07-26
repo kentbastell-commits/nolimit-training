@@ -1,7 +1,6 @@
 // Climbing/technical workload logs (daily sRPE diary: tech AM/PM + cardio).
 // One row per client per day, upserted by Log ID `${clientId}-YYYY-MM-DD`.
-import { DATA_BACKEND } from "../backend.ts";
-import * as feishu from "../feishu/workloadLogs.ts";
+import * as pg from "../pg/workloadLogs.ts";
 import { getCached, setCached, invalidateCache } from "../../../api/_cache.ts";
 
 export type WorkloadLogDTO = {
@@ -45,9 +44,7 @@ export async function listWorkloadLogs(clientId = ""): Promise<WorkloadLogDTO[]>
   let all = getCached<WorkloadLogDTO[]>("workloadLogs");
   if (!all) {
     all =
-      DATA_BACKEND === "postgres"
-        ? await (await import("../pg/workloadLogs.ts")).listAllWorkloadLogs()
-        : await feishu.listAllWorkloadLogs();
+      await pg.listAllWorkloadLogs();
     setCached("workloadLogs", all, 5 * 60 * 1000);
   }
   return all.filter((log) => !clientId || log.clientId.includes(clientId));
@@ -57,9 +54,7 @@ export async function saveWorkloadLog(
   input: SaveWorkloadLogInput
 ): Promise<SaveWorkloadLogResult> {
   const result =
-    DATA_BACKEND === "postgres"
-      ? await (await import("../pg/workloadLogs.ts")).saveWorkloadLog(input)
-      : await feishu.saveWorkloadLog(input);
+    await pg.saveWorkloadLog(input);
   if (result.success) invalidateCache("workloadLogs");
   return result;
 }

@@ -1,6 +1,5 @@
 // In-person training enquiries (landing-page form → coach console list).
-import { DATA_BACKEND } from "../backend.ts";
-import * as feishu from "../feishu/enquiries.ts";
+import * as pg from "../pg/enquiries.ts";
 import type { WriteResult } from "../dto.ts";
 import { getCached, setCached, invalidateCache } from "../../../api/_cache.ts";
 
@@ -31,9 +30,7 @@ export async function listEnquiries(): Promise<EnquiryDTO[]> {
   if (cached) return cached;
 
   const rows =
-    DATA_BACKEND === "postgres"
-      ? await (await import("../pg/enquiries.ts")).listEnquiries()
-      : await feishu.listEnquiries();
+    await pg.listEnquiries();
 
   setCached("enquiries", rows, 5 * 60 * 1000);
   return rows;
@@ -41,9 +38,7 @@ export async function listEnquiries(): Promise<EnquiryDTO[]> {
 
 export async function createEnquiry(input: CreateEnquiryInput): Promise<WriteResult> {
   const result =
-    DATA_BACKEND === "postgres"
-      ? await (await import("../pg/enquiries.ts")).createEnquiry(input)
-      : await feishu.createEnquiry(input);
+    await pg.createEnquiry(input);
   if (result.success) invalidateCache("enquiries");
   return result;
 }

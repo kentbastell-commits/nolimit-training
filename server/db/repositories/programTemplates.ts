@@ -1,5 +1,4 @@
-import { DATA_BACKEND } from "../backend.ts";
-import * as feishu from "../feishu/programTemplates.ts";
+import * as pg from "../pg/programTemplates.ts";
 import type { TemplateSummaryDTO } from "../dto.ts";
 import type { ProgramExerciseInput } from "../templateMeta.ts";
 import { getCached, setCached, invalidateCache } from "../../../api/_cache.ts";
@@ -41,9 +40,7 @@ export async function listProgramTemplates(
   programRecordId = ""
 ): Promise<TemplateSummaryDTO[]> {
   const all =
-    DATA_BACKEND === "postgres"
-      ? await (await import("../pg/programTemplates.ts")).listAllTemplateRows()
-      : await feishu.listAllTemplateRows();
+    await pg.listAllTemplateRows();
 
   const programSearch = String(programId || "");
   const recordIdTarget = String(programRecordId || "");
@@ -103,9 +100,7 @@ export async function createWorkoutTemplatesBulk(
   input: CreateWorkoutTemplatesBulkInput
 ): Promise<HandlerResult> {
   const result =
-    DATA_BACKEND === "postgres"
-      ? await (await import("../pg/programTemplates.ts")).createWorkoutTemplatesBulk(input)
-      : await feishu.createWorkoutTemplatesBulk(input);
+    await pg.createWorkoutTemplatesBulk(input);
 
   if (result.status === 200) {
     invalidateCache("workoutTemplatesRaw");
@@ -127,9 +122,7 @@ export async function createWorkoutTemplate(
   input: CreateWorkoutTemplateInput
 ): Promise<HandlerResult> {
   const result =
-    DATA_BACKEND === "postgres"
-      ? await (await import("../pg/programTemplates.ts")).createWorkoutTemplate(input)
-      : await feishu.createWorkoutTemplate(input);
+    await pg.createWorkoutTemplate(input);
 
   if (result.status === 200) {
     invalidateCache("workoutTemplatesRaw");

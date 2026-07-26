@@ -1,7 +1,6 @@
 // Program reviews (client star ratings/quotes; coach approves + toggles store
 // visibility). The old handler never cached reads, so neither does this.
-import { DATA_BACKEND } from "../backend.ts";
-import * as feishu from "../feishu/reviews.ts";
+import * as pg from "../pg/reviews.ts";
 import type { WriteResult } from "../dto.ts";
 
 export type ReviewDTO = {
@@ -42,9 +41,7 @@ export type UpdateReviewInput = {
 
 export async function listReviews(filter: ReviewFilter = {}): Promise<ReviewDTO[]> {
   const all =
-    DATA_BACKEND === "postgres"
-      ? await (await import("../pg/reviews.ts")).listAllReviews()
-      : await feishu.listAllReviews();
+    await pg.listAllReviews();
 
   return all
     .filter((r) => {
@@ -57,13 +54,9 @@ export async function listReviews(filter: ReviewFilter = {}): Promise<ReviewDTO[
 }
 
 export async function createReview(input: CreateReviewInput): Promise<WriteResult> {
-  return DATA_BACKEND === "postgres"
-    ? await (await import("../pg/reviews.ts")).createReview(input)
-    : await feishu.createReview(input);
+  return await pg.createReview(input);
 }
 
 export async function updateReview(input: UpdateReviewInput): Promise<WriteResult> {
-  return DATA_BACKEND === "postgres"
-    ? await (await import("../pg/reviews.ts")).updateReview(input)
-    : await feishu.updateReview(input);
+  return await pg.updateReview(input);
 }

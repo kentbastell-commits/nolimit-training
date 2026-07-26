@@ -1,12 +1,11 @@
 // Test templates + test items (child table) repository. Dispatches to the
-// Feishu or Postgres implementation based on DATA_BACKEND.
+// Postgres implementation.
 //
 // Results are HTTP-shaped ({ status, body }): the old api/testTemplates.ts
 // handler produced many distinct error bodies (missing Feishu columns, per-step
 // larkResponse echoes), so the impls build the exact response and the handler
 // forwards it verbatim — wire responses stay byte-identical.
-import { DATA_BACKEND } from "../backend.ts";
-import * as feishu from "../feishu/testTemplates.ts";
+import * as pg from "../pg/testTemplates.ts";
 import { invalidateCache } from "../../../api/_cache.ts";
 
 export type TestTemplatesOpResult = {
@@ -56,18 +55,14 @@ function invalidated(result: TestTemplatesOpResult): TestTemplatesOpResult {
 }
 
 export async function listTestTemplates(): Promise<TestTemplatesOpResult> {
-  return DATA_BACKEND === "postgres"
-    ? await (await import("../pg/testTemplates.ts")).listTestTemplates()
-    : await feishu.listTestTemplates();
+  return await pg.listTestTemplates();
 }
 
 export async function createTestTemplate(
   input: CreateTestTemplateInput
 ): Promise<TestTemplatesOpResult> {
   const result =
-    DATA_BACKEND === "postgres"
-      ? await (await import("../pg/testTemplates.ts")).createTestTemplate(input)
-      : await feishu.createTestTemplate(input);
+    await pg.createTestTemplate(input);
   return invalidated(result);
 }
 
@@ -75,9 +70,7 @@ export async function updateTestTemplate(
   input: UpdateTestTemplateInput
 ): Promise<TestTemplatesOpResult> {
   const result =
-    DATA_BACKEND === "postgres"
-      ? await (await import("../pg/testTemplates.ts")).updateTestTemplate(input)
-      : await feishu.updateTestTemplate(input);
+    await pg.updateTestTemplate(input);
   return invalidated(result);
 }
 
@@ -85,8 +78,6 @@ export async function deleteTestTemplate(
   input: DeleteTestTemplateInput
 ): Promise<TestTemplatesOpResult> {
   const result =
-    DATA_BACKEND === "postgres"
-      ? await (await import("../pg/testTemplates.ts")).deleteTestTemplate(input)
-      : await feishu.deleteTestTemplate(input);
+    await pg.deleteTestTemplate(input);
   return invalidated(result);
 }

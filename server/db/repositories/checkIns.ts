@@ -2,8 +2,7 @@
 // The full-table read is cached under "checkIns" (5 min, same key/TTL the old
 // api/checkIns.ts handler used) and filtered per request; both write paths
 // invalidate that key on success, exactly as the old handler did.
-import { DATA_BACKEND } from "../backend.ts";
-import * as feishu from "../feishu/checkIns.ts";
+import * as pg from "../pg/checkIns.ts";
 import type { WriteResult } from "../dto.ts";
 import { getCached, setCached, invalidateCache } from "../../../api/_cache.ts";
 
@@ -69,9 +68,7 @@ export async function listCheckIns(clientId = ""): Promise<CheckInDTO[]> {
   let all = getCached<CheckInDTO[]>("checkIns");
   if (!all) {
     all =
-      DATA_BACKEND === "postgres"
-        ? await (await import("../pg/checkIns.ts")).listCheckIns()
-        : await feishu.listCheckIns();
+      await pg.listCheckIns();
     setCached("checkIns", all, 5 * 60 * 1000);
   }
   return all
@@ -87,18 +84,14 @@ export async function listCheckIns(clientId = ""): Promise<CheckInDTO[]> {
 
 export async function reviewCheckIn(input: ReviewCheckInInput): Promise<WriteResult> {
   const result =
-    DATA_BACKEND === "postgres"
-      ? await (await import("../pg/checkIns.ts")).reviewCheckIn(input)
-      : await feishu.reviewCheckIn(input);
+    await pg.reviewCheckIn(input);
   if (result.success) invalidateCache("checkIns");
   return result;
 }
 
 export async function createCheckIn(input: CreateCheckInInput): Promise<WriteResult> {
   const result =
-    DATA_BACKEND === "postgres"
-      ? await (await import("../pg/checkIns.ts")).createCheckIn(input)
-      : await feishu.createCheckIn(input);
+    await pg.createCheckIn(input);
   if (result.success) invalidateCache("checkIns");
   return result;
 }

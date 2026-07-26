@@ -1,5 +1,4 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { DATA_BACKEND } from "../server/db/backend.ts";
 import { saveWorkloadLog } from "../server/db/repositories/workloadLogs.ts";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -7,11 +6,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: "Method not allowed" });
   }
   try {
-    // Feishu needs its table id; on Postgres the env var is irrelevant.
-    if (DATA_BACKEND === "feishu" && !process.env.FEISHU_WORKLOAD_LOGS_TABLE_ID) {
-      return res.status(500).json({ error: "Workload table not configured" });
-    }
-
     const { clientId } = req.body || {};
     if (!clientId) {
       return res.status(400).json({ error: "Missing clientId" });

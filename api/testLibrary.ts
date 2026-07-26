@@ -1,5 +1,4 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { DATA_BACKEND } from "../server/db/backend.ts";
 import {
   listTestLibrary,
   createLibraryTest,
@@ -10,14 +9,6 @@ import {
 // these Test IDs; calculations (e1RM, MAS, pace) key off the Calculation field.
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
-    // Feishu needs its table id; on Postgres the env var is irrelevant.
-    if (DATA_BACKEND === "feishu" && !process.env.FEISHU_TEST_LIBRARY_TABLE_ID) {
-      return res.status(503).json({
-        error: "Not configured",
-        message: "Missing FEISHU_TEST_LIBRARY_TABLE_ID",
-      });
-    }
-
     // POST: create a canonical test (the coach's "Create Test" builder).
     if (req.method === "POST") {
       const body = req.body || {};

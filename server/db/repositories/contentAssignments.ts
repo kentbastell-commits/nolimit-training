@@ -1,5 +1,4 @@
-import { DATA_BACKEND } from "../backend.ts";
-import * as feishu from "../feishu/contentAssignments.ts";
+import * as pg from "../pg/contentAssignments.ts";
 import { getCached, setCached, invalidateCache } from "../../../api/_cache.ts";
 
 // Assigned questionnaires + physical tests (Feishu: Assigned Forms / Assigned
@@ -71,9 +70,7 @@ export async function getContentAssignments(
   let all = getCached<ContentAssignmentDTO[]>("contentAssignments");
   if (!all) {
     const raw =
-      DATA_BACKEND === "postgres"
-        ? await (await import("../pg/contentAssignments.ts")).listContentAssignments()
-        : await feishu.listContentAssignments();
+      await pg.listContentAssignments();
     // Completely empty rows are dropped before caching (matches the old handler).
     all = raw.filter((assignment) =>
       Boolean(
@@ -114,9 +111,7 @@ export async function assignContent(
   input: AssignContentInput
 ): Promise<AssignContentResult> {
   const result =
-    DATA_BACKEND === "postgres"
-      ? await (await import("../pg/contentAssignments.ts")).assignContent(input)
-      : await feishu.assignContent(input);
+    await pg.assignContent(input);
   if (result.success) invalidateCache("contentAssignments");
   return result;
 }
@@ -125,11 +120,7 @@ export async function updateContentAssignmentDate(
   input: UpdateAssignmentDateInput
 ): Promise<UpdateAssignmentDateResult> {
   const result =
-    DATA_BACKEND === "postgres"
-      ? await (
-          await import("../pg/contentAssignments.ts")
-        ).updateContentAssignmentDate(input)
-      : await feishu.updateContentAssignmentDate(input);
+    await pg.updateContentAssignmentDate(input);
   if (result.success) invalidateCache("contentAssignments");
   return result;
 }

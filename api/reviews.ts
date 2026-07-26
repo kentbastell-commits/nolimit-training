@@ -1,5 +1,4 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { DATA_BACKEND } from "../server/db/backend.ts";
 import {
   listReviews,
   createReview,
@@ -7,11 +6,6 @@ import {
 } from "../server/db/repositories/reviews.ts";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // Feishu needs its table id; on Postgres the env var is irrelevant.
-  if (DATA_BACKEND === "feishu" && !process.env.FEISHU_REVIEWS_TABLE_ID) {
-    return res.status(500).json({ error: "Missing FEISHU_REVIEWS_TABLE_ID" });
-  }
-
   try {
     if (req.method === "GET") {
       const reviews = await listReviews({

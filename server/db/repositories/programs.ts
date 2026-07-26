@@ -1,5 +1,4 @@
-import { DATA_BACKEND } from "../backend.ts";
-import * as feishu from "../feishu/programs.ts";
+import * as pg from "../pg/programs.ts";
 import type { ProgramDTO } from "../dto.ts";
 import { getCached, setCached, invalidateCache } from "../../../api/_cache.ts";
 
@@ -57,9 +56,7 @@ export async function listPrograms(): Promise<ProgramDTO[]> {
   if (cached) return cached;
 
   const programs =
-    DATA_BACKEND === "postgres"
-      ? await (await import("../pg/programs.ts")).listPrograms()
-      : await feishu.listPrograms();
+    await pg.listPrograms();
 
   setCached("programs", programs, 10 * 60 * 1000);
   return programs;
@@ -101,37 +98,27 @@ export function hasProgramUpdateFields(i: UpdateProgramInput): boolean {
     "purchaseLink",
     "accessLengthDays",
   ];
-  // On Postgres an empty string on these typed columns is a deliberate CLEAR
-  // (writes null); Feishu still omits empties (empty-write bomb, mistake 3).
-  if (DATA_BACKEND === "postgres") {
-    return typedKeys.some((key) => i[key] !== undefined);
-  }
-  return typedKeys.some((key) => i[key] !== undefined && i[key] !== "");
+  // An empty string on these typed columns is a deliberate CLEAR (writes
+  // null), so "provided at all" is the test — not "provided and non-empty".
+  return typedKeys.some((key) => i[key] !== undefined);
 }
 
 export async function createProgram(input: CreateProgramInput): Promise<HandlerResult> {
-  const result =
-    DATA_BACKEND === "postgres"
-      ? await (await import("../pg/programs.ts")).createProgram(input)
-      : await feishu.createProgram(input);
+  const result = await pg.createProgram(input);
   if (result.status === 200) invalidateCache("programs");
   return result;
 }
 
 export async function updateProgram(input: UpdateProgramInput): Promise<HandlerResult> {
   const result =
-    DATA_BACKEND === "postgres"
-      ? await (await import("../pg/programs.ts")).updateProgram(input)
-      : await feishu.updateProgram(input);
+    await pg.updateProgram(input);
   if (result.status === 200) invalidateCache("programs");
   return result;
 }
 
 export async function duplicateProgram(input: DuplicateProgramInput): Promise<HandlerResult> {
   const result =
-    DATA_BACKEND === "postgres"
-      ? await (await import("../pg/programs.ts")).duplicateProgram(input)
-      : await feishu.duplicateProgram(input);
+    await pg.duplicateProgram(input);
   if (result.status === 200) {
     // Legacy keys the old handler dropped, PLUS "workoutTemplatesRaw" — the key
     // the converted read paths (programTemplates/workoutDetails) actually cache

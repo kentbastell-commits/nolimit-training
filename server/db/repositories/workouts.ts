@@ -1,5 +1,4 @@
-import { DATA_BACKEND } from "../backend.ts";
-import * as feishu from "../feishu/workouts.ts";
+import * as pg from "../pg/workouts.ts";
 import type { WorkoutDTO } from "../dto.ts";
 import { getCached, setCached, invalidateCache } from "../../../api/_cache.ts";
 
@@ -10,9 +9,7 @@ export async function listWorkouts(clientCode = ""): Promise<WorkoutDTO[]> {
   let all = getCached<WorkoutDTO[]>("workouts");
   if (!all) {
     all =
-      DATA_BACKEND === "postgres"
-        ? await (await import("../pg/workouts.ts")).listAllWorkouts()
-        : await feishu.listAllWorkouts();
+      await pg.listAllWorkouts();
     setCached("workouts", all, 2 * 60 * 1000);
   }
   if (!clientCode) return all;
@@ -69,9 +66,7 @@ export async function assignProgram(
   input: AssignProgramInput
 ): Promise<WorkoutWriteResult> {
   const result =
-    DATA_BACKEND === "postgres"
-      ? await (await import("../pg/workouts.ts")).assignProgram(input)
-      : await feishu.assignProgram(input);
+    await pg.assignProgram(input);
   if (result.success) {
     invalidateCache("workouts");
     invalidateCache("analytics");
@@ -83,9 +78,7 @@ export async function updateAssignedWorkoutDate(
   input: UpdateWorkoutDateInput
 ): Promise<WorkoutWriteResult> {
   const result =
-    DATA_BACKEND === "postgres"
-      ? await (await import("../pg/workouts.ts")).updateAssignedWorkoutDate(input)
-      : await feishu.updateAssignedWorkoutDate(input);
+    await pg.updateAssignedWorkoutDate(input);
   if (result.success) {
     invalidateCache("workouts");
     invalidateCache("analytics");
@@ -99,9 +92,7 @@ export async function shiftAssignedWorkoutDates(
   input: ShiftWorkoutDatesInput
 ): Promise<WorkoutWriteResult> {
   const result =
-    DATA_BACKEND === "postgres"
-      ? await (await import("../pg/workouts.ts")).shiftAssignedWorkoutDates(input)
-      : await feishu.shiftAssignedWorkoutDates(input);
+    await pg.shiftAssignedWorkoutDates(input);
   if (result.success) {
     invalidateCache("workouts");
     invalidateCache("analytics");
@@ -113,9 +104,7 @@ export async function duplicateAssignedWorkout(
   input: DuplicateWorkoutInput
 ): Promise<WorkoutWriteResult> {
   const result =
-    DATA_BACKEND === "postgres"
-      ? await (await import("../pg/workouts.ts")).duplicateAssignedWorkout(input)
-      : await feishu.duplicateAssignedWorkout(input);
+    await pg.duplicateAssignedWorkout(input);
   if (result.success) {
     invalidateCache("workouts");
     invalidateCache("analytics");
@@ -128,12 +117,10 @@ export async function setWorkoutReviewed(
   reviewed: unknown
 ): Promise<WorkoutWriteResult> {
   const result =
-    DATA_BACKEND === "postgres"
-      ? await (await import("../pg/workouts.ts")).setWorkoutReviewed(
+    await pg.setWorkoutReviewed(
           assignedWorkoutRecordId,
           reviewed
-        )
-      : await feishu.setWorkoutReviewed(assignedWorkoutRecordId, reviewed);
+        );
   if (result.success) invalidateCache("workouts");
   return result;
 }

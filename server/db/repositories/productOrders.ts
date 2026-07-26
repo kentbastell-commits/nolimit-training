@@ -1,5 +1,4 @@
-import { DATA_BACKEND } from "../backend.ts";
-import * as feishu from "../feishu/productOrders.ts";
+import * as pg from "../pg/productOrders.ts";
 import type { OrderDTO } from "../dto.ts";
 import { getCached, setCached, invalidateCache } from "../../../api/_cache.ts";
 
@@ -64,9 +63,7 @@ export async function listProductOrders(): Promise<OrderDTO[]> {
   if (cached) return cached;
 
   const orders =
-    DATA_BACKEND === "postgres"
-      ? await (await import("../pg/productOrders.ts")).listProductOrders()
-      : await feishu.listProductOrders();
+    await pg.listProductOrders();
 
   setCached("productOrders", orders, 10 * 60 * 1000);
   return orders;
@@ -76,9 +73,7 @@ export async function createProductOrder(
   input: CreateProductOrderInput
 ): Promise<ProductOrderWriteResult> {
   const result =
-    DATA_BACKEND === "postgres"
-      ? await (await import("../pg/productOrders.ts")).createProductOrder(input)
-      : await feishu.createProductOrder(input);
+    await pg.createProductOrder(input);
   if (result.success) invalidateCache("productOrders");
   return result;
 }
@@ -87,9 +82,7 @@ export async function updateProductOrder(
   input: UpdateProductOrderInput
 ): Promise<ProductOrderWriteResult> {
   const result =
-    DATA_BACKEND === "postgres"
-      ? await (await import("../pg/productOrders.ts")).updateProductOrder(input)
-      : await feishu.updateProductOrder(input);
+    await pg.updateProductOrder(input);
   if (result.success) invalidateCache("productOrders");
   return result;
 }

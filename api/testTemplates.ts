@@ -1,5 +1,4 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { DATA_BACKEND } from "../server/db/backend.ts";
 import {
   listTestTemplates,
   createTestTemplate,
@@ -8,16 +7,6 @@ import {
 } from "../server/db/repositories/testTemplates.ts";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // Feishu needs its table ids; on Postgres the env vars are irrelevant.
-  if (DATA_BACKEND === "feishu") {
-    if (!process.env.FEISHU_TEST_TEMPLATES_TABLE_ID) {
-      return res.status(500).json({ error: "Missing FEISHU_TEST_TEMPLATES_TABLE_ID" });
-    }
-    if (!process.env.FEISHU_TEST_ITEMS_TABLE_ID) {
-      return res.status(500).json({ error: "Missing FEISHU_TEST_ITEMS_TABLE_ID" });
-    }
-  }
-
   try {
     if (req.method === "GET") {
       const result = await listTestTemplates();

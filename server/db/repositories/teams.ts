@@ -1,5 +1,4 @@
-import { DATA_BACKEND } from "../backend.ts";
-import * as feishu from "../feishu/teams.ts";
+import * as pg from "../pg/teams.ts";
 import type { TeamDTO, WriteResult } from "../dto.ts";
 import { getCached, setCached, invalidateCache } from "../../../api/_cache.ts";
 
@@ -21,9 +20,7 @@ export async function listTeams(): Promise<TeamDTO[]> {
   if (cached) return cached;
 
   const teams =
-    DATA_BACKEND === "postgres"
-      ? await (await import("../pg/teams.ts")).listTeams()
-      : await feishu.listTeams();
+    await pg.listTeams();
 
   setCached("teams", teams, 10 * 60 * 1000);
   return teams;
@@ -31,9 +28,7 @@ export async function listTeams(): Promise<TeamDTO[]> {
 
 export async function upsertTeam(input: UpsertTeamInput): Promise<WriteResult> {
   const result =
-    DATA_BACKEND === "postgres"
-      ? await (await import("../pg/teams.ts")).upsertTeam(input)
-      : await feishu.upsertTeam(input);
+    await pg.upsertTeam(input);
   if (result.success) invalidateCache("teams");
   return result;
 }

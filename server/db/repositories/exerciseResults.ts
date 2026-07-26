@@ -3,8 +3,7 @@
 // the old api/exerciseResults.ts handler used) and filtered per request; the
 // create path invalidates that key when every row landed, exactly as the old
 // handler did (api/saveWorkoutLog.ts additionally invalidates it itself).
-import { DATA_BACKEND } from "../backend.ts";
-import * as feishu from "../feishu/exerciseResults.ts";
+import * as pg from "../pg/exerciseResults.ts";
 import { getCached, setCached, invalidateCache } from "../../../api/_cache.ts";
 
 export type ExerciseResultDTO = {
@@ -45,9 +44,7 @@ export async function listExerciseResults(
   let all = getCached<ExerciseResultDTO[]>("exerciseResults");
   if (!all) {
     all =
-      DATA_BACKEND === "postgres"
-        ? await (await import("../pg/exerciseResults.ts")).listExerciseResults()
-        : await feishu.listExerciseResults();
+      await pg.listExerciseResults();
     setCached("exerciseResults", all, 5 * 60 * 1000);
   }
 
@@ -70,9 +67,7 @@ export async function createExerciseResults(
   input: CreateExerciseResultsInput
 ): Promise<CreateExerciseResultsResult> {
   const result =
-    DATA_BACKEND === "postgres"
-      ? await (await import("../pg/exerciseResults.ts")).createExerciseResults(input)
-      : await feishu.createExerciseResults(input);
+    await pg.createExerciseResults(input);
   if (result.errors.length === 0) invalidateCache("exerciseResults");
   return result;
 }

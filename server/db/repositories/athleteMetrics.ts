@@ -1,5 +1,4 @@
-import { DATA_BACKEND } from "../backend.ts";
-import * as feishu from "../feishu/athleteMetrics.ts";
+import * as pg from "../pg/athleteMetrics.ts";
 import type { MetricDTO, MetricFilter } from "../dto.ts";
 import { getCached, setCached } from "../../../api/_cache.ts";
 
@@ -11,9 +10,7 @@ export async function listAthleteMetrics(q: MetricFilter = {}): Promise<MetricDT
   let metrics = getCached<MetricDTO[]>("athleteMetrics");
   if (!metrics) {
     metrics =
-      DATA_BACKEND === "postgres"
-        ? await (await import("../pg/athleteMetrics.ts")).listAllMetrics()
-        : await feishu.listAllMetrics();
+      await pg.listAllMetrics();
     setCached("athleteMetrics", metrics, 5 * 60 * 1000);
   }
 

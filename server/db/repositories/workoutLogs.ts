@@ -3,8 +3,7 @@
 // assigned workout marked Completed (with sRPE load), and per-exercise result
 // rows — all moved from api/saveWorkoutLog.ts. Comments are notes on log rows,
 // aggregated per workout+date+note (from api/workoutComments.ts).
-import { DATA_BACKEND } from "../backend.ts";
-import * as feishu from "../feishu/workoutLogs.ts";
+import * as pg from "../pg/workoutLogs.ts";
 import { getCached, setCached, invalidateCache } from "../../../api/_cache.ts";
 
 export type WorkoutLogWriteResult = { success: boolean; [key: string]: unknown };
@@ -68,9 +67,7 @@ export async function saveWorkoutLog(
   input: SaveWorkoutLogInput
 ): Promise<SaveWorkoutLogResult> {
   const result =
-    DATA_BACKEND === "postgres"
-      ? await (await import("../pg/workoutLogs.ts")).saveWorkoutLog(input)
-      : await feishu.saveWorkoutLog(input);
+    await pg.saveWorkoutLog(input);
   if (result.success) {
     // New logs change every history/analytics view; drop the cached scans.
     invalidateCache("workoutLogs");
@@ -91,9 +88,7 @@ export async function listWorkoutComments(
   let rows = getCached<CommentScanRow[]>("workoutComments");
   if (!rows) {
     rows =
-      DATA_BACKEND === "postgres"
-        ? await (await import("../pg/workoutLogs.ts")).scanCommentRows()
-        : await feishu.scanCommentRows();
+      await pg.scanCommentRows();
     setCached("workoutComments", rows, 5 * 60 * 1000);
   }
 
@@ -158,9 +153,7 @@ export async function reviewWorkoutComment(
   recordIds: string[]
 ): Promise<WorkoutLogWriteResult> {
   const result =
-    DATA_BACKEND === "postgres"
-      ? await (await import("../pg/workoutLogs.ts")).reviewWorkoutComment(recordIds)
-      : await feishu.reviewWorkoutComment(recordIds);
+    await pg.reviewWorkoutComment(recordIds);
   if (result.success) invalidateCache("workoutComments");
   return result;
 }

@@ -2,8 +2,7 @@
 // unloaded program orders into scheduled assigned-workouts, marks the orders
 // fulfilled, and stamps the client's program link / intake status / access
 // window. Composes several tables, so it gets its own domain.
-import { DATA_BACKEND } from "../backend.ts";
-import * as feishu from "../feishu/fulfillment.ts";
+import * as pg from "../pg/fulfillment.ts";
 import { invalidateCache } from "../../../api/_cache.ts";
 
 export type AutoLoadProgramInput = {
@@ -24,9 +23,7 @@ export async function autoLoadProgram(
   input: AutoLoadProgramInput
 ): Promise<AutoLoadProgramResult> {
   const result =
-    DATA_BACKEND === "postgres"
-      ? await (await import("../pg/fulfillment.ts")).autoLoadProgram(input)
-      : await feishu.autoLoadProgram(input);
+    await pg.autoLoadProgram(input);
 
   // Only a load that actually created workouts touches these tables — the
   // alreadyLoaded / payment-pending / failure paths never invalidate (same as
@@ -147,9 +144,7 @@ export async function activateDigitalOrder(
   }
 
   const result =
-    DATA_BACKEND === "postgres"
-      ? await (await import("../pg/fulfillment.ts")).activateDigitalOrder(input)
-      : await feishu.activateDigitalOrder(input);
+    await pg.activateDigitalOrder(input);
   if (result.status === 200) {
     invalidateCache("clients");
     invalidateCache("productOrders");
@@ -161,9 +156,7 @@ export async function activateDigitalOrder(
 
 export async function coachingSignup(input: CoachingSignupInput): Promise<SignupResult> {
   const result =
-    DATA_BACKEND === "postgres"
-      ? await (await import("../pg/fulfillment.ts")).coachingSignup(input)
-      : await feishu.coachingSignup(input);
+    await pg.coachingSignup(input);
   if (result.status === 200) {
     invalidateCache("clients");
     // Only the order stage touches orders; the intake stage only edits the client.

@@ -1,16 +1,10 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { DATA_BACKEND } from "../server/db/backend.ts";
 import {
   listExerciseResults,
   createExerciseResults,
 } from "../server/db/repositories/exerciseResults.ts";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // Feishu needs its table id; on Postgres the env var is irrelevant.
-  if (DATA_BACKEND === "feishu" && !process.env.FEISHU_EXERCISE_RESULTS_TABLE_ID) {
-    return res.status(500).json({ error: "Missing FEISHU_EXERCISE_RESULTS_TABLE_ID" });
-  }
-
   try {
     if (req.method === "GET") {
       const clientId = String(req.query.clientId || "");

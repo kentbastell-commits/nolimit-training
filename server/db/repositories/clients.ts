@@ -1,5 +1,4 @@
-import { DATA_BACKEND } from "../backend.ts";
-import * as feishu from "../feishu/clients.ts";
+import * as pg from "../pg/clients.ts";
 import type { ClientDTO, UpdateClientInput, WriteResult } from "../dto.ts";
 import { getCached, setCached, invalidateCache } from "../../../api/_cache.ts";
 
@@ -33,9 +32,7 @@ export async function listClients(): Promise<ClientDTO[]> {
   if (cached) return cached;
 
   const clients =
-    DATA_BACKEND === "postgres"
-      ? await (await import("../pg/clients.ts")).listClients()
-      : await feishu.listClients();
+    await pg.listClients();
 
   setCached("clients", clients, 10 * 60 * 1000);
   return clients;
@@ -46,18 +43,14 @@ export async function recordLogin(
   clientCode?: string
 ): Promise<WriteResult> {
   const result =
-    DATA_BACKEND === "postgres"
-      ? await (await import("../pg/clients.ts")).recordLogin(clientRecordId, clientCode)
-      : await feishu.recordLogin(clientRecordId, clientCode);
+    await pg.recordLogin(clientRecordId, clientCode);
   if (result.success) invalidateCache("clients");
   return result;
 }
 
 export async function createClient(input: CreateClientInput): Promise<WriteResult> {
   const result =
-    DATA_BACKEND === "postgres"
-      ? await (await import("../pg/clients.ts")).createClient(input)
-      : await feishu.createClient(input);
+    await pg.createClient(input);
   if (result.success) {
     invalidateCache("clients");
     invalidateCache("analytics");
@@ -71,17 +64,13 @@ export async function findClientByPhoneName(
   phone: string,
   name: string
 ): Promise<string> {
-  return DATA_BACKEND === "postgres"
-    ? await (await import("../pg/clients.ts")).findClientByPhoneName(phone, name)
-    : await feishu.findClientByPhoneName(phone, name);
+  return await pg.findClientByPhoneName(phone, name);
 }
 
 // Mini program WeChat binding: look up a client by bound openid, or bind an
 // openid after the caller has re-verified phone+name via findClientByPhoneName.
 export async function findClientByOpenid(openid: string): Promise<string> {
-  return DATA_BACKEND === "postgres"
-    ? await (await import("../pg/clients.ts")).findClientByOpenid(openid)
-    : await feishu.findClientByOpenid(openid);
+  return await pg.findClientByOpenid(openid);
 }
 
 export async function bindClientOpenid(
@@ -89,18 +78,14 @@ export async function bindClientOpenid(
   openid: string
 ): Promise<WriteResult> {
   const result =
-    DATA_BACKEND === "postgres"
-      ? await (await import("../pg/clients.ts")).bindClientOpenid(clientCode, openid)
-      : await feishu.bindClientOpenid(clientCode, openid);
+    await pg.bindClientOpenid(clientCode, openid);
   if (result.success) invalidateCache("clients");
   return result;
 }
 
 export async function updateClient(input: UpdateClientInput): Promise<WriteResult> {
   const result =
-    DATA_BACKEND === "postgres"
-      ? await (await import("../pg/clients.ts")).updateClient(input)
-      : await feishu.updateClient(input);
+    await pg.updateClient(input);
   if (result.success) {
     invalidateCache("clients");
     invalidateCache("analytics");

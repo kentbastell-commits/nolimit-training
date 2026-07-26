@@ -1,12 +1,11 @@
 // Form templates + form questions (child table) repository. Dispatches to the
-// Feishu or Postgres implementation based on DATA_BACKEND.
+// Postgres implementation.
 //
 // Results are HTTP-shaped ({ status, body }): the old api/formTemplates.ts
 // handler produced many distinct error bodies (missing Feishu columns, per-step
 // larkResponse echoes), so the impls build the exact response and the handler
 // forwards it verbatim — wire responses stay byte-identical.
-import { DATA_BACKEND } from "../backend.ts";
-import * as feishu from "../feishu/formTemplates.ts";
+import * as pg from "../pg/formTemplates.ts";
 import { invalidateCache } from "../../../api/_cache.ts";
 
 export type FormTemplatesOpResult = {
@@ -52,18 +51,14 @@ function invalidated(result: FormTemplatesOpResult): FormTemplatesOpResult {
 }
 
 export async function listFormTemplates(): Promise<FormTemplatesOpResult> {
-  return DATA_BACKEND === "postgres"
-    ? await (await import("../pg/formTemplates.ts")).listFormTemplates()
-    : await feishu.listFormTemplates();
+  return await pg.listFormTemplates();
 }
 
 export async function createFormTemplate(
   input: CreateFormTemplateInput
 ): Promise<FormTemplatesOpResult> {
   const result =
-    DATA_BACKEND === "postgres"
-      ? await (await import("../pg/formTemplates.ts")).createFormTemplate(input)
-      : await feishu.createFormTemplate(input);
+    await pg.createFormTemplate(input);
   return invalidated(result);
 }
 
@@ -71,9 +66,7 @@ export async function updateFormTemplate(
   input: UpdateFormTemplateInput
 ): Promise<FormTemplatesOpResult> {
   const result =
-    DATA_BACKEND === "postgres"
-      ? await (await import("../pg/formTemplates.ts")).updateFormTemplate(input)
-      : await feishu.updateFormTemplate(input);
+    await pg.updateFormTemplate(input);
   return invalidated(result);
 }
 
@@ -81,8 +74,6 @@ export async function deleteFormTemplate(
   input: DeleteFormTemplateInput
 ): Promise<FormTemplatesOpResult> {
   const result =
-    DATA_BACKEND === "postgres"
-      ? await (await import("../pg/formTemplates.ts")).deleteFormTemplate(input)
-      : await feishu.deleteFormTemplate(input);
+    await pg.deleteFormTemplate(input);
   return invalidated(result);
 }

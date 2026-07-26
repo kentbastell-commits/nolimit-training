@@ -1,16 +1,10 @@
-// Exercises repository — the single entry point handlers call. Dispatches to
-// the active backend. The Postgres impl is loaded lazily so the Feishu path
-// never pulls in pg/drizzle or opens a pool.
-import { DATA_BACKEND } from "../backend.ts";
-import * as feishu from "../feishu/exercises.ts";
+// Exercises repository — the single entry point handlers call.
+import * as pg from "../pg/exercises.ts";
 import type { ExerciseListResult } from "../dto.ts";
 import { getCached, setCached, invalidateCache } from "../../../api/_cache.ts";
 
-export { CUE_FIELD_CANDIDATES } from "../feishu/exercises.ts";
-
 // upsertExercise input: the raw request body of api/upsertExercise.ts.
-// recordId is the Feishu record_id on Feishu; on Postgres it carries the
-// business code (EX-...), which IS the row id there.
+// recordId carries the business code (EX-...), which IS the row id.
 export type UpsertExerciseInput = {
   recordId?: string;
   exerciseId?: string;
@@ -47,9 +41,7 @@ export async function listExercises(
   }
 
   const result =
-    DATA_BACKEND === "postgres"
-      ? await (await import("../pg/exercises.ts")).listExercises()
-      : await feishu.listExercises();
+    await pg.listExercises();
 
   if (!opts.skipCache) {
     setCached("exercises", result.exercises, 10 * 60 * 1000);
@@ -65,9 +57,7 @@ export async function upsertExercise(
   input: UpsertExerciseInput
 ): Promise<UpsertExerciseResult> {
   const result =
-    DATA_BACKEND === "postgres"
-      ? await (await import("../pg/exercises.ts")).upsertExercise(input)
-      : await feishu.upsertExercise(input);
+    await pg.upsertExercise(input);
 
   if (result.success) {
     invalidateCache("exercises");

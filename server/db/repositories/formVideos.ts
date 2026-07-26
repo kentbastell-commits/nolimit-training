@@ -1,7 +1,6 @@
 // Form-video review flow (premium tier): athlete submits a video/note,
 // coach replies and marks it reviewed.
-import { DATA_BACKEND } from "../backend.ts";
-import * as feishu from "../feishu/formVideos.ts";
+import * as pg from "../pg/formVideos.ts";
 import type { WriteResult } from "../dto.ts";
 import { getCached, setCached, invalidateCache } from "../../../api/_cache.ts";
 
@@ -41,9 +40,7 @@ export async function listFormVideos(): Promise<FormVideoDTO[]> {
   if (cached) return cached;
 
   const videos =
-    DATA_BACKEND === "postgres"
-      ? await (await import("../pg/formVideos.ts")).listFormVideos()
-      : await feishu.listFormVideos();
+    await pg.listFormVideos();
 
   setCached("formVideos", videos, 5 * 60 * 1000);
   return videos;
@@ -53,9 +50,7 @@ export async function createFormVideo(
   input: CreateFormVideoInput
 ): Promise<WriteResult> {
   const result =
-    DATA_BACKEND === "postgres"
-      ? await (await import("../pg/formVideos.ts")).createFormVideo(input)
-      : await feishu.createFormVideo(input);
+    await pg.createFormVideo(input);
   if (result.success) invalidateCache("formVideos");
   return result;
 }
@@ -64,9 +59,7 @@ export async function reviewFormVideo(
   input: ReviewFormVideoInput
 ): Promise<WriteResult> {
   const result =
-    DATA_BACKEND === "postgres"
-      ? await (await import("../pg/formVideos.ts")).reviewFormVideo(input)
-      : await feishu.reviewFormVideo(input);
+    await pg.reviewFormVideo(input);
   if (result.success) invalidateCache("formVideos");
   return result;
 }

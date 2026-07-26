@@ -1,5 +1,4 @@
-import { DATA_BACKEND } from "../backend.ts";
-import * as feishu from "../feishu/contentResponses.ts";
+import * as pg from "../pg/contentResponses.ts";
 import type { ResponseDTO } from "../dto.ts";
 import { getCached, setCached, invalidateCache } from "../../../api/_cache.ts";
 
@@ -30,9 +29,7 @@ export async function getContentResponses(clientId = "", clientName = ""): Promi
   let all = getCached<ResponseDTO[]>("contentResponses");
   if (!all) {
     all =
-      DATA_BACKEND === "postgres"
-        ? await (await import("../pg/contentResponses.ts")).listAllResponses()
-        : await feishu.listAllResponses();
+      await pg.listAllResponses();
     setCached("contentResponses", all, 5 * 60 * 1000);
   }
 
@@ -71,9 +68,7 @@ export async function submitContentResponse(
   input: SubmitContentResponseInput
 ): Promise<SubmitContentResponseResult> {
   const result =
-    DATA_BACKEND === "postgres"
-      ? await (await import("../pg/contentResponses.ts")).submitContentResponse(input)
-      : await feishu.submitContentResponse(input);
+    await pg.submitContentResponse(input);
 
   // Only a full success reaches these caches (matches the old handler, which
   // invalidated right before its 200).

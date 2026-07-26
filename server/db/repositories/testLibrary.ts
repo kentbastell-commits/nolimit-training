@@ -4,8 +4,7 @@
 //
 // Results are HTTP-shaped ({status, body}) — the legacy handler had distinct
 // 502 "Feishu error" bodies the frontend recognizes.
-import { DATA_BACKEND } from "../backend.ts";
-import * as feishu from "../feishu/testLibrary.ts";
+import * as pg from "../pg/testLibrary.ts";
 import { getCached, setCached, invalidateCache } from "../../../api/_cache.ts";
 
 export type TestLibraryResult = { status: number; body: Record<string, any> };
@@ -46,9 +45,7 @@ export async function listTestLibrary(): Promise<TestLibraryResult> {
   if (cached) return { status: 200, body: { tests: cached } };
 
   const result =
-    DATA_BACKEND === "postgres"
-      ? await (await import("../pg/testLibrary.ts")).listTestLibrary()
-      : await feishu.listTestLibrary();
+    await pg.listTestLibrary();
 
   if (result.status === 200) {
     setCached("testLibrary", result.body.tests, 10 * 60 * 1000);
@@ -60,9 +57,7 @@ export async function createLibraryTest(
   input: CreateLibraryTestInput
 ): Promise<TestLibraryResult> {
   const result =
-    DATA_BACKEND === "postgres"
-      ? await (await import("../pg/testLibrary.ts")).createLibraryTest(input)
-      : await feishu.createLibraryTest(input);
+    await pg.createLibraryTest(input);
   if (result.status === 200) invalidateCache("testLibrary");
   return result;
 }

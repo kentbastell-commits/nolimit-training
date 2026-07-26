@@ -3,8 +3,7 @@
 // clients — cascades to the training/wellness rows they own. Financial records
 // (product orders, subscriptions) are intentionally left untouched by the
 // cascade on both backends.
-import { DATA_BACKEND } from "../backend.ts";
-import * as feishu from "../feishu/records.ts";
+import * as pg from "../pg/records.ts";
 import { invalidateCache } from "../../../api/_cache.ts";
 
 // Resources the generic delete endpoint may touch. Anything else is refused
@@ -96,9 +95,7 @@ export async function deleteRecordFromTable(
   input: DeleteRecordInput
 ): Promise<DeleteRecordResult> {
   const result =
-    DATA_BACKEND === "postgres"
-      ? await (await import("../pg/records.ts")).deleteRecordFromTable(input)
-      : await feishu.deleteRecordFromTable(input);
+    await pg.deleteRecordFromTable(input);
 
   // The cascade deletes child rows BEFORE the parent record, so those caches
   // must be dropped whenever the cascade ran — even when the parent delete
