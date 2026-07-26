@@ -403,7 +403,14 @@ data between them, never "borrow" a table ID across products.
     tests take before trusting them — run one test file under the production
     env var and watch it fail. A config default that decides which code runs
     must never be the permissive one; make the wrong value impossible, not
-    merely unlikely.
+    merely unlikely. Same class, found 2026-07-26: the mini program's
+    `API_BASE` fell back to the **:8443 staging twin** when the Taro define was
+    missing, so a prod build could have served athletes from the throwaway
+    `nolimit` database (stale programs; workouts logged where nobody reads
+    them) with no error. A fallback names the environment you land in when
+    configuration fails — it must always be the one that is safe for a real
+    user, never the convenient one for a developer. Grep every
+    `process.env.X || "…"` in client code for this shape.
 46. **The two-convention column** — `assigned_workouts.scheduled_date` was
     written by four call sites using two different `YYYY-MM-DD` → epoch
     conversions (`new Date(str)` = UTC midnight vs ``new Date(`${str}T00:00:00`)``
