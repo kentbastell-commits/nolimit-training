@@ -446,6 +446,14 @@ data between them, never "borrow" a table ID across products.
     the scratchpad, not the repo) against live API data, then read the same
     numbers off the live portal with Playwright (portal metrics sit behind the
     **Metrics tab** — a bare page load renders none of them) and diff the two.
+    Also: `workout_templates.display_target` is EMPTY across the whole prod
+    DB — planned weights come from client-side resolution
+    (`resolvePrescribedLoad` in App.tsx; mirrored as `resolveTargetKg` in the
+    mini program's performance.ts) using `targetPercent` + athlete metrics.
+    Never build a feature on displayTarget without checking the column has
+    data; and note both clients share the web's quirk that an exercise with
+    no matching 1RM test falls back to the athlete's FIRST 1RM metric (a
+    bench % can resolve from a squat 1RM) — change it in both or neither.
 
 ## Quality bar — checkable, per deliverable
 
