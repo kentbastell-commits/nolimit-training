@@ -11925,8 +11925,8 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 /* Uniform Warm App Grey (#E8E6DF) on every Overview section header. */
 .overviewGrid > .profileCard .profileMetricsHeader { background: #e8e6df !important; }
 
-/* Sidebar brand: refined NX//LIMIT wordmark with the "Built for Training"
-   signature beneath. The narrow desktop rail uses the transparent NXL mark. */
+/* Sidebar brand: refined NX//LIMIT wordmark with the performance promise
+   beneath. The narrow desktop rail uses the transparent NXL mark. */
 .brandPlate {
   display: flex;
   flex-direction: column;
@@ -11949,6 +11949,14 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 
 .app:not(.clientPortalApp) .sidebar .brandTagline {
   color: #292822;
+}
+
+.brandPlate .brandTagline {
+  width: 168px;
+  font-size: 7px;
+  letter-spacing: 0.085em;
+  line-height: 1.15;
+  text-align: center;
 }
 
 /* thin gold hairline between wordmark and tagline for a sealed, premium feel */

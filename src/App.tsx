@@ -19205,7 +19205,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
               alt="NX LIMIT Training"
               className="brandWordmarkImg"
             />
-            <span className="brandTagline">Built for Training</span>
+            <span className="brandTagline">Raise the Floor. Break the Ceiling.</span>
           </div>
           <img
             src={BRAND_MONOGRAM_BLACK}
