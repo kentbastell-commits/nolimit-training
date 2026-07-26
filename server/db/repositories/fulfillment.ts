@@ -77,6 +77,9 @@ export type CoachingSignupInput = {
   clientCode?: string;
   // Feishu record_id of the client; the CL-… code on Postgres.
   clientRecordId?: string;
+  // Set by the "claim" stage: which already-created order the buyer says
+  // they have paid for.
+  orderId?: string;
   phone?: string;
   termLabel?: string;
   amount?: unknown;

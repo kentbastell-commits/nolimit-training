@@ -67,6 +67,41 @@ describe("api/coachingSignup (postgres)", () => {
     await expectNothingWritten();
   });
 
+  it("creates the order as Awaiting Payment, before any money moves", async () => {
+    const res = await post(orderBody());
+    expect(res.statusCode).toBe(200);
+    expect(res.body.orderId).toBeTruthy();
+
+    // The order now exists BEFORE the buyer is shown the QR, so a transfer can
+    // never land against a reference that matches nothing. It is not yet in
+    // the coach's action queue.
+    const [order] = await rows(
+      "select fulfillment_status, payment_status from product_orders"
+    );
+    expect(order.fulfillment_status).toBe("Awaiting Payment");
+    expect(String(order.payment_status || "")).not.toMatch(/^paid$/i);
+  });
+
+  it("moves the order into the coach's queue when the buyer claims payment", async () => {
+    const created = await post(orderBody());
+    const orderId = created.body.orderId;
+
+    const claimed = await post({ stage: "claim", orderId });
+    expect(claimed.statusCode).toBe(200);
+
+    const [order] = await rows(
+      "select fulfillment_status, payment_status from product_orders"
+    );
+    expect(order.fulfillment_status).toBe("New Order");
+    // A claim is still not verification — only the coach flips this (#22).
+    expect(String(order.payment_status || "")).not.toMatch(/^paid$/i);
+  });
+
+  it("400s a claim with no order and 404s one for an order that doesn't exist", async () => {
+    expect((await post({ stage: "claim" })).statusCode).toBe(400);
+    expect((await post({ stage: "claim", orderId: "ORD-NOPE" })).statusCode).toBe(404);
+  });
+
   it("creates the client and an unpaid order carrying the payment reference", async () => {
     const res = await post(orderBody());
     expect(res.statusCode).toBe(200);

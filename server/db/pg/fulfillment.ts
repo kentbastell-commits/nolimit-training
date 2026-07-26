@@ -686,9 +686,44 @@ function buildIntakeNotes(body: any): string {
 }
 
 export async function coachingSignup(body: CoachingSignupInput): Promise<SignupResult> {
-  const stage = body.stage === "intake" ? "intake" : "order";
+  const stage =
+    body.stage === "intake" ? "intake" : body.stage === "claim" ? "claim" : "order";
   const notices: string[] = [];
   const today = new Date(Date.now() + 8 * 3600 * 1000).toISOString().split("T")[0];
+
+  // ---- stage "claim": the buyer says they have paid ----
+  // The order already exists (created before the QR was shown), so this only
+  // moves it into the coach's queue and pings them to verify the reference.
+  // Payment Status stays Pending — a claim is not verification (#22).
+  if (stage === "claim") {
+    const orderId = String(body.orderId || "").trim();
+    const rows = await db
+      .update(productOrders)
+      .set({ fulfillmentStatus: "New Order" })
+      .where(eq(productOrders.orderId, orderId))
+      .returning({
+        id: productOrders.orderId,
+        clientId: productOrders.clientId,
+        clientName: productOrders.clientName,
+        productName: productOrders.productName,
+        amount: productOrders.amount,
+        currency: productOrders.currency,
+        reference: productOrders.paymentReference,
+      });
+    if (!rows.length) {
+      return { status: 404, body: { error: "Order not found" }, notices };
+    }
+    const o = rows[0];
+    notices.push(
+      `⭐ 1:1 coaching payment claimed\n` +
+        `Client: ${str(o.clientName)} (${str(o.clientId)})\n` +
+        `${str(o.productName)} · ${str(o.currency)} ${
+          o.amount == null ? "—" : Number(o.amount).toLocaleString()
+        }\n` +
+        `Payment: PENDING — verify code ${str(o.reference) || "(none)"} in WeChat`
+    );
+    return { status: 200, body: { success: true, orderId: o.id }, notices };
+  }
 
   // ---- stage "intake": append the post-payment questionnaire to the client ----
   if (stage === "intake") {
@@ -795,7 +830,10 @@ export async function coachingSignup(body: CoachingSignupInput): Promise<SignupR
       paymentStatus: "Pending",
       paymentReference: paymentCode || null,
       paymentProvider: "WeChat QR",
-      fulfillmentStatus: "New Order",
+      // The order now exists BEFORE the buyer is shown the QR, so this stage
+      // is not yet something the coach must action. The "claim" stage moves
+      // it to "New Order" when the buyer says they have paid.
+      fulfillmentStatus: "Awaiting Payment",
       purchasedAt: toEpochOrNow(today),
     });
     orderPersisted = true;
@@ -805,15 +843,30 @@ export async function coachingSignup(body: CoachingSignupInput): Promise<SignupR
     console.error("coachingSignup: order write threw", orderError);
   }
 
+  // Hard fail: the caller shows the payment QR only on success, so returning
+  // 200 here would put a buyer in front of a QR for an order that does not
+  // exist — money transferred against a reference matching nothing.
+  if (!orderPersisted) {
+    notices.push(
+      `⚠️ 1:1 coaching signup FAILED — no order created\n` +
+        `Client: ${clientName} (${clientCode})\n` +
+        `Reason: ${orderError || "unknown"}`
+    );
+    return {
+      status: 500,
+      body: { error: "Could not create the coaching order", orderPersisted: false },
+      notices,
+    };
+  }
+
   notices.push(
-    `⭐ New 1:1 coaching signup\n` +
+    `📝 1:1 coaching checkout started\n` +
       `Client: ${clientName} (${clientCode})\n` +
       `Term: ${termLabel} · ${currency} ${
         Number.isFinite(amountNum) ? amountNum.toLocaleString() : "—"
       }\n` +
       `Sport: ${body.sport || "—"}\n` +
-      `Payment: PENDING — verify code ${paymentCode || "(none)"} in WeChat` +
-      (orderPersisted ? "" : `\n⚠️ ORDER WRITE FAILED — check Feishu!`)
+      `Awaiting payment — reference ${paymentCode || "(none)"}`
   );
 
   return {

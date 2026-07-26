@@ -78,10 +78,7 @@ export default function CoachingFlowPage() {
   const healthConsentRequired = !!injuries.trim();
 
   useEffect(() => {
-    if (step === "payment" && !paymentCode) {
-      setPaymentCode(makePaymentCode());
-      // Funnel: reached the payment step (fires once per session — the code
-      // only generates on first entry).
+    if (step === "payment" && paymentCode) {
       reportClientEvent("funnel", "coaching_payment_step_reached");
     }
   }, [step, paymentCode]);
@@ -99,7 +96,7 @@ export default function CoachingFlowPage() {
 
   const next = () => {
     if (step === "commitment" && tierId) setStep("qualifier");
-    else if (step === "qualifier" && qualifierValid) setStep("payment");
+    else if (step === "qualifier" && qualifierValid) void createOrder();
   };
   const back = () => {
     if (step === "qualifier") setStep("commitment");
@@ -110,10 +107,14 @@ export default function CoachingFlowPage() {
     if (order.indexOf(target) <= order.indexOf(step as Step)) setStep(target);
   };
 
-  const pay = async () => {
-    if (!tier) return;
+  // Create the client + a Pending order BEFORE showing the QR. Money must
+  // never move against a reference that does not exist yet — and this is the
+  // order WeChat Pay will later attach a prepay id to.
+  const createOrder = async () => {
+    if (!tier || submitting) return;
     setSubmitting(true);
     setError("");
+    const code = paymentCode || makePaymentCode();
     try {
       const res = await fetch("/api/coachingSignup", {
         method: "POST",
@@ -129,7 +130,7 @@ export default function CoachingFlowPage() {
           months: tier.months,
           amount: tier.total,
           currency: "CNY",
-          paymentCode,
+          paymentCode: code,
           languagePreference: zh ? "Chinese" : "English",
           privacyAccepted,
           crossBorderAccepted,
@@ -139,25 +140,56 @@ export default function CoachingFlowPage() {
       const data = await res.json();
       if (!res.ok || !data.success)
         throw new Error(data.error || data.message || "Signup failed");
-      reportClientEvent("funnel", "coaching_signup_submitted", {
+      reportClientEvent("funnel", "coaching_order_created", {
         clientId: String(data.clientCode || ""),
       });
-      setOrderId(data.orderId || data.clientCode || "");
+      setPaymentCode(code);
+      setOrderId(data.orderId || "");
       setClientCode(data.clientCode || "");
       setClientRecordId(data.clientRecordId || "");
-      setStep("onboarding");
+      // Only now is there something for the buyer to pay against.
+      setStep("payment");
     } catch (err: unknown) {
-      reportClientEvent("api_fail", "coaching_signup_failed", {
+      reportClientEvent("api_fail", "coaching_order_failed", {
         message: err instanceof Error ? err.message : "Signup failed",
       });
+      // Stay on the details step: showing a QR now would invite a transfer
+      // nobody can reconcile.
       setError(
         t(
-          "Something went wrong saving your signup. Please try again or contact us on WeChat.",
-          "保存报名信息时出错，请重试或通过微信联系我们。"
+          "We couldn't start your order. Please check your details and try again, or contact us on WeChat.",
+          "无法创建订单，请检查信息后重试，或通过微信联系我们。"
         )
       );
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  // The buyer says they have paid. The order already exists, so this just
+  // moves it into the coach's queue — Payment Status stays Pending until the
+  // coach matches the reference in WeChat.
+  const claimPaid = async () => {
+    if (submitting) return;
+    setSubmitting(true);
+    setError("");
+    try {
+      const res = await fetch("/api/coachingSignup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ stage: "claim", orderId }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success)
+        throw new Error(data.error || data.message || "Could not confirm");
+      reportClientEvent("funnel", "coaching_payment_claimed", { clientId: clientCode });
+    } catch {
+      // Their order and reference are already saved, so a failure here must
+      // not trap them on the payment screen — the coach still sees the order.
+      reportClientEvent("api_fail", "coaching_claim_failed", {});
+    } finally {
+      setSubmitting(false);
+      setStep("onboarding");
     }
   };
 
@@ -195,14 +227,16 @@ export default function CoachingFlowPage() {
     ? `${window.location.origin}/?portal=client&client=${encodeURIComponent(clientCode)}`
     : "";
 
-  // stepper
-  const order: Step[] = ["commitment", "qualifier", "payment"];
-  const curIdx =
-    step === "onboarding" || step === "done" ? 3 : order.indexOf(step);
+  // Stepper. The questionnaire is a real fourth step — showing "3 of 3" and
+  // then presenting another form reads as a bait and switch. It is counted,
+  // and labelled so the buyer knows they are already signed up by then.
+  const order: Step[] = ["commitment", "qualifier", "payment", "onboarding"];
+  const curIdx = step === "done" ? 4 : order.indexOf(step);
   const stepMeta = [
     { key: "commitment" as Step, num: "1", label: t("Commitment", "指导周期") },
     { key: "qualifier" as Step, num: "2", label: t("Details", "基本信息") },
     { key: "payment" as Step, num: "3", label: t("Payment", "支付") },
+    { key: "onboarding" as Step, num: "4", label: t("Questionnaire", "训练问卷") },
   ];
 
   const showStepper = step !== "done";
@@ -506,11 +540,21 @@ export default function CoachingFlowPage() {
               </div>
 
               {error && <p className="cfpError" role="alert">{error}</p>}
-              <button className="cfpPrimary cfpPayBtn" onClick={pay} disabled={submitting}>
+              <button className="cfpPrimary cfpPayBtn" onClick={claimPaid} disabled={submitting}>
                 {submitting
                   ? t("Confirming…", "确认中…")
                   : t("I've paid — continue to questionnaire", "我已支付 — 继续填写问卷")}
               </button>
+              {/* The header's "Questions? Scan WeChat" hint is hidden under
+                  720px — the bar has no room for it — so the buyer had no
+                  visible way to ask anything before committing. This is the
+                  moment doubt peaks, and it reads on every viewport. */}
+              <p className="cfpPayHelp">
+                {t(
+                  "Not ready to pay? Your coach can add you on WeChat first using the ID you entered — talk it through before you transfer anything.",
+                  "还没准备好付款？教练可以先用你填写的微信号加你，聊清楚再转账。"
+                )}
+              </p>
               <p className="cfpPaySub">
                 {t(
                   "Tapping this confirms you've paid via WeChat. Your coach verifies the code.",
