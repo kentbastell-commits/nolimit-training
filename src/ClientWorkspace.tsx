@@ -8,6 +8,7 @@ import ClientOverview from "./ClientOverview";
 import { BookOpen, CalendarDays, Home, MoreVertical, UserCircle } from "lucide-react";
 import { normalizeDate } from "./appCore";
 import CountUp from "./CountUp";
+import PortalToApp from "./PortalToApp";
 
 export default function ClientWorkspace({
   t,
@@ -244,40 +245,47 @@ export default function ClientWorkspace({
 
               )}
 
-              <nav className="mobileClientBottomNav" aria-label="Client navigation">
-                <button
-                  className={clientTab === "Home" ? "active" : ""}
-                  onClick={() => setClientTab("Home")}
-                >
-                  <Home size={21} strokeWidth={2.2} />
-                  <span>{t("home")}</span>
-                  {isClientPortal &&
-                    coachInboxItems().some((i: any) => i.at > inboxSeenAt) && (
-                      <em className="navUnreadDot" aria-label="New coach messages" />
-                    )}
-                </button>
-                <button
-                  className={clientTab === "Training" ? "active" : ""}
-                  onClick={() => setClientTab("Training")}
-                >
-                  <CalendarDays size={21} strokeWidth={2.2} />
-                  <span>{t("calendar")}</span>
-                </button>
-                <button
-                  className={clientTab === "Programs" ? "active" : ""}
-                  onClick={() => setClientTab("Programs")}
-                >
-                  <BookOpen size={21} strokeWidth={2.2} />
-                  <span>{t("myPrograms")}</span>
-                </button>
-                <button
-                  className={clientTab === "Overview" ? "active" : ""}
-                  onClick={() => setClientTab("Overview")}
-                >
-                  <UserCircle size={21} strokeWidth={2.2} />
-                  <span>{t("profile")}</span>
-                </button>
-              </nav>
+              {/* Portalled to the .app root: .clientPage carries a finished
+                  entrance transform (identity matrix, held by fill-mode), which
+                  makes it the containing block for position:fixed children — the
+                  nav detached from the viewport and floated mid-page after the
+                  first tab switch (named mistake #34). */}
+              <PortalToApp>
+                <nav className="mobileClientBottomNav" aria-label="Client navigation">
+                  <button
+                    className={clientTab === "Home" ? "active" : ""}
+                    onClick={() => setClientTab("Home")}
+                  >
+                    <Home size={21} strokeWidth={2.2} />
+                    <span>{t("home")}</span>
+                    {isClientPortal &&
+                      coachInboxItems().some((i: any) => i.at > inboxSeenAt) && (
+                        <em className="navUnreadDot" aria-label="New coach messages" />
+                      )}
+                  </button>
+                  <button
+                    className={clientTab === "Training" ? "active" : ""}
+                    onClick={() => setClientTab("Training")}
+                  >
+                    <CalendarDays size={21} strokeWidth={2.2} />
+                    <span>{t("calendar")}</span>
+                  </button>
+                  <button
+                    className={clientTab === "Programs" ? "active" : ""}
+                    onClick={() => setClientTab("Programs")}
+                  >
+                    <BookOpen size={21} strokeWidth={2.2} />
+                    <span>{t("myPrograms")}</span>
+                  </button>
+                  <button
+                    className={clientTab === "Overview" ? "active" : ""}
+                    onClick={() => setClientTab("Overview")}
+                  >
+                    <UserCircle size={21} strokeWidth={2.2} />
+                    <span>{t("profile")}</span>
+                  </button>
+                </nav>
+              </PortalToApp>
 
               {isClientPortal &&
                 (() => {
