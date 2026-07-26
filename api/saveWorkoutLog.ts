@@ -7,7 +7,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { clientId, assignedWorkoutRecordId, logs } = req.body;
+    const { clientId, assignedWorkoutRecordId, logs } = req.body || {};
 
     if (!clientId || !assignedWorkoutRecordId) {
       return res.status(400).json({

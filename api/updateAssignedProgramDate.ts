@@ -9,7 +9,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { assignedWorkoutRecordId, assignedWorkoutId, scheduledDate } = req.body;
+    const { assignedWorkoutRecordId, assignedWorkoutId, scheduledDate } = req.body || {};
 
     if ((!assignedWorkoutRecordId && !assignedWorkoutId) || !scheduledDate) {
       return res.status(400).json({

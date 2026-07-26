@@ -6,7 +6,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST")
     return res.status(405).json({ error: "Method not allowed" });
 
-  const { clientRecordId, startDate } = req.body;
+  const { clientRecordId, startDate } = req.body || {};
   if (!clientRecordId)
     return res.status(400).json({ error: "clientRecordId required" });
 

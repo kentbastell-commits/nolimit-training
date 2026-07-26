@@ -7,7 +7,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { exerciseName, archive } = req.body;
+    const { exerciseName, archive } = req.body || {};
 
     if (!exerciseName && !archive) {
       return res.status(400).json({ error: "Missing exercise name" });

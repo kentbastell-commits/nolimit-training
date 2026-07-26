@@ -66,6 +66,15 @@ describe("api/autoLoadProgram (postgres)", () => {
     expect(res.statusCode).toBe(400);
   });
 
+  it("400s on a request with no body at all, rather than throwing", async () => {
+    // Seen in production on 2026-07-24: an empty body made the destructure
+    // throw out of the handler, so the caller got a 500 with a stack trace
+    // instead of the 400 the validation was there to give them.
+    const res = makeRes();
+    await handler(makeReq({ method: "POST", body: undefined }) as any, res as any);
+    expect(res.statusCode).toBe(400);
+  });
+
   it("404s for an unknown client", async () => {
     const res = await load({ clientRecordId: "CL-NOPE" });
     expect(res.statusCode).toBe(404);
