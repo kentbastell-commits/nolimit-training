@@ -45,6 +45,13 @@ test-results/
 # Brand source package (32MB PDF, mockups, font zips) — web-ready assets are
 # exported into public/; the package itself stays local only
 branding/
+# Vite bundles only the approved 48-degree masters below.
+!branding/
+branding/*
+!branding/Source vector files/
+branding/Source vector files/*
+!branding/Source vector files/NX LIMIT Training Lean 48 Trial.svg
+!branding/Source vector files/NX LIMIT Small-Use Lean 48 Trial.svg
 
 # Local data dumps (real client data — never commit)
 etl-data.json

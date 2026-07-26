@@ -1,5 +1,6 @@
 // Post-intake welcome / program-loading overlay. Extracted from App.tsx.
 import "./PortalWelcome.css";
+import { BRAND_LOGO_48 } from "./brandAssets";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 export default function PortalWelcome({
@@ -27,7 +28,7 @@ export default function PortalWelcome({
       </div>
       <section className="portalWelcome">
         <div className="portalWelcomeBrand">
-          <img src="/nx_limit_training_white_on_black.png" alt="NX LIMIT Training" className="portalWelcomeMonogram" />
+          <img src={BRAND_LOGO_48} alt="NX LIMIT Training" className="portalWelcomeMonogram" />
         </div>
 
         {portalAutoLoading ? (

@@ -351,7 +351,7 @@ export async function deleteTestTemplate(
     );
   });
 
-  const deletedItems = [];
+  const deletedItems: string[] = [];
 
   for (const item of childItems) {
     const data = await deleteRecord(tables.items, item.record_id);
@@ -466,7 +466,7 @@ export async function updateTestTemplate(
   }
 
   const testItems = Array.isArray(items) ? items : [];
-  const createdItems = [];
+  const createdItems: string[] = [];
 
   for (const [index, item] of testItems.entries()) {
     const { fields: itemFields, missingRequired: missingItemFields } =
@@ -569,7 +569,7 @@ export async function createTestTemplate(
   }
 
   const testItems = Array.isArray(items) ? items : [];
-  const createdItems = [];
+  const createdItems: string[] = [];
 
   for (const [index, item] of testItems.entries()) {
     const { fields: itemFields, missingRequired: missingItemFields } =

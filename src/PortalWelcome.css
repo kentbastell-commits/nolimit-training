@@ -26,6 +26,12 @@
   align-items: center;
   justify-content: center;
 }
+
+.portalWelcomeBrand .portalWelcomeMonogram {
+  background: transparent;
+  border-radius: 0;
+  filter: invert(1) drop-shadow(0 8px 24px rgba(0, 0, 0, 0.38));
+}
 .portalWelcomeCheck {
   width: 64px;
   height: 64px;

@@ -14,8 +14,12 @@
   background: radial-gradient(120% 68% at 50% 38%, #221e15 0%, var(--brand-ink, #121210) 60%);
 }
 
-/* NX LIMIT production lockup on its native black plate. */
-.cel__logo { width: 180px; height: auto; border-radius: 4px; }
+/* Transparent 48-degree lockup; the overlay supplies the dark field. */
+.cel__logo {
+  width: 180px;
+  height: auto;
+  filter: invert(1) drop-shadow(0 8px 24px rgba(0, 0, 0, 0.35));
+}
 
 /* ---- stage ---- */
 .cel__stage {

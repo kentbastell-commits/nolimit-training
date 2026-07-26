@@ -48,7 +48,7 @@
   border-bottom: 1px solid rgba(216, 189, 98, 0.16);
 }
 .storeBrandV3 { display: flex; align-items: center; }
-.storeBrandV3 img { height: 32px; width: auto; border-radius: 3px; }
+.storeBrandV3 img { height: 32px; width: auto; filter: invert(1); }
 .storeNavLinksV3 { display: flex; align-items: center; gap: 28px; }
 .storeNavLinkV3 { color: #e7e2d4; font-size: 14px; font-weight: 500; letter-spacing: 0.3px; }
 .storeNavLinkV3:hover { color: #f5f1e8; }
@@ -312,7 +312,7 @@
   background: #0c0b0a; padding: 38px 40px; display: flex; align-items: center; justify-content: space-between;
   flex-wrap: wrap; gap: 16px;
 }
-.storeFooterV3 img { height: 30px; opacity: 0.95; border-radius: 3px; }
+.storeFooterV3 img { height: 30px; opacity: 0.95; filter: invert(1); }
 .storeFooterLinksV3 { display: flex; gap: 26px; font-size: 13px; }
 .storeFooterLinksV3 a, .storeFooterLinksV3 button { color: #a9a394; background: none; border: 0; cursor: pointer; font-size: 13px; }
 .storeFooterLinksV3 a:hover, .storeFooterLinksV3 button:hover { color: #d8bd62; }

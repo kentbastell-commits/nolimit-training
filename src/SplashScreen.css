@@ -11,8 +11,12 @@
   background:
     radial-gradient(120% 78% at 50% 42%, #1c1a15 0%, var(--brand-ink, #121210) 62%);
 }
-/* NX LIMIT production lockup on its native black plate. */
-.nlSplash__logo { width: min(72vw, 300px); height: auto; border-radius: 5px; }
+/* Transparent 48-degree lockup; the splash supplies the dark field. */
+.nlSplash__logo {
+  width: min(72vw, 300px);
+  height: auto;
+  filter: invert(1) drop-shadow(0 10px 30px rgba(0, 0, 0, 0.38));
+}
 .nlSplash__bars {
   display: flex;
   align-items: flex-end;

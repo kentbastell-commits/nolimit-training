@@ -296,7 +296,7 @@ export async function deleteFormTemplate(
     );
   });
 
-  const deletedQuestions = [];
+  const deletedQuestions: string[] = [];
 
   for (const question of childQuestions) {
     const data = await deleteRecord(tables.questions, question.record_id);
@@ -420,7 +420,7 @@ export async function updateFormTemplate(
   }
 
   const questionItems = Array.isArray(questions) ? questions : [];
-  const createdQuestions = [];
+  const createdQuestions: string[] = [];
 
   for (const [index, question] of questionItems.entries()) {
     const { fields: questionFields, missingRequired: missingQuestionFields } =
@@ -526,7 +526,7 @@ export async function createFormTemplate(
   }
 
   const questionItems = Array.isArray(questions) ? questions : [];
-  const createdQuestions = [];
+  const createdQuestions: string[] = [];
 
   for (const [index, question] of questionItems.entries()) {
     const { fields: questionFields, missingRequired: missingQuestionFields } =

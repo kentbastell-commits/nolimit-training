@@ -1,5 +1,6 @@
 import { ArrowLeft, ShieldCheck } from "lucide-react";
 import "./LegalPage.css";
+import { BRAND_WORDMARK_48 } from "./brandAssets";
 
 type LegalKind = "privacy" | "terms" | "refund" | "business";
 
@@ -37,7 +38,7 @@ export default function LegalPage({
     <div className={`legalPage ${zh ? "zh" : "en"}`}>
       <header className="legalNav">
         <a className="legalBrand" href="/">
-          <img src="/nx_limit_training_white_on_black.png" alt="NX LIMIT Training" />
+          <img src={BRAND_WORDMARK_48} alt="NX LIMIT Training" />
         </a>
         <div className="legalNavActions">
           <a href="/store">{zh ? "训练计划" : "Programs"}</a>

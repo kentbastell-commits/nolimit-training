@@ -10228,7 +10228,6 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   height: auto;
   object-fit: contain;
   filter: drop-shadow(0 8px 20px rgba(18, 18, 16, 0.12));
-  border-radius: 4px;
 }
 
 .brandMonogram,
@@ -10241,8 +10240,8 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   height: auto;
   padding: 0;
   border: 0;
-  border-radius: 6px;
-  background: #000;
+  border-radius: 0;
+  background: transparent;
 }
 
 .storeBrand .brandWordmark,
@@ -11933,15 +11932,20 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   width: 100%;
   max-width: 196px;
   margin: 0 auto;
-  padding: 18px 18px 14px;
+  padding: 12px 8px 10px;
   box-sizing: border-box;
-  background: #000000;
-  border: 1px solid #2a2a2a;
-  border-radius: 14px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+}
+
+.brandPlate .brandWordmarkImg {
+  max-width: 168px;
+  filter: drop-shadow(0 5px 12px rgba(18, 18, 16, 0.1));
 }
 
 /* thin gold hairline between wordmark and tagline for a sealed, premium feel */
@@ -13287,7 +13291,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   backdrop-filter: blur(14px);
   border-bottom: 1px solid rgba(14, 14, 13, 0.08);
 }
-.lv3Brand img { height: 32px; display: block; border-radius: 3px; }
+.lv3Brand img { height: 32px; display: block; }
 .lv3NavLinks { display: flex; gap: 28px; }
 .lv3NavLinks a { color: #44443e; font-weight: 600; font-size: 0.95rem; }
 .lv3NavLinks a:hover { color: #0e0e0d; }

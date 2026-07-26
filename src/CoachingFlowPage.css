@@ -94,8 +94,8 @@
   display: block;
   width: 132px;
   height: auto;
-  border-radius: 3px;
   object-fit: contain;
+  filter: invert(1);
 }
 .cfpBadge {
   font-size: 10px;

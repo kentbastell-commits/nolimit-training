@@ -1,0 +1,20 @@
+.git
+.vercel
+.vscode
+.claude
+.env
+node_modules
+dist
+test-results
+tests
+docs
+logs
+uploads
+coaching-vault
+jv-tmp
+branding/*
+!branding/Source vector files
+branding/Source vector files/*
+!branding/Source vector files/NX LIMIT Training Lean 48 Trial.svg
+!branding/Source vector files/NX LIMIT Small-Use Lean 48 Trial.svg
+pose-series-*.json

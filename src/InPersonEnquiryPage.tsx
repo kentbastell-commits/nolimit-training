@@ -1,6 +1,7 @@
 // Extracted from App.tsx (monolith split) — JSX verbatim, props threaded.
 import "./InPersonEnquiryPage.css";
 import { useState } from "react";
+import { BRAND_LOGO_48 } from "./brandAssets";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 export default function InPersonEnquiryPage({
@@ -31,7 +32,7 @@ export default function InPersonEnquiryPage({
           <div>
             <div className="brandWordmark brandLogoLockup">
               <img
-                src="/nx_limit_training_white_on_black.png"
+                src={BRAND_LOGO_48}
                 alt="NX LIMIT Training"
                 className="brandWordmarkImage"
               />

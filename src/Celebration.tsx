@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import "./Celebration.css";
+import { BRAND_LOGO_48 } from "./brandAssets";
 
 export type CelebrationVariant = "fistbump" | "highfive" | "thumbsup";
 
@@ -108,7 +109,7 @@ export default function Celebration({
 
   return (
     <div className={`cel cel--${variant}`}>
-      <img className="cel__logo" src="/nx_limit_training_white_on_black.png" alt="NX LIMIT Training" />
+      <img className="cel__logo" src={BRAND_LOGO_48} alt="NX LIMIT Training" />
 
       {variant === "highfive" && (
         <div className="cel__rain">

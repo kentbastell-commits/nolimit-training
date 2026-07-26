@@ -39,6 +39,7 @@ import {
 } from "react";
 import { useTranslation } from "react-i18next";
 import "./App.css";
+import { BRAND_LOGO_48, BRAND_WORDMARK_48 } from "./brandAssets";
 
 // Charts are lazy-loaded so recharts stays out of the main bundle.
 const RevenueChart = lazy(() => import("./RevenueChart"));
@@ -13945,11 +13946,14 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       logo.onload = () => {
         const lw = 200;
         const lh = (logo.height / logo.width) * lw || 200;
+        ctx.save();
+        ctx.filter = "invert(1)";
         ctx.drawImage(logo, center - lw / 2, 180, lw, lh);
+        ctx.restore();
         draw();
       };
       logo.onerror = () => draw();
-      logo.src = "/nx_limit_training_white_on_black.png";
+      logo.src = BRAND_LOGO_48;
     });
 
   const openFinisherCard = async (payload: {
@@ -18448,7 +18452,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
         <section className="clientPortalEmpty">
           <div className="brandWordmark brandLogoLockup">
             <img
-              src="/nx_limit_training_white_on_black.png"
+              src={BRAND_LOGO_48}
               alt="NX LIMIT Training"
               className="brandWordmarkImage"
             />
@@ -19203,7 +19207,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
         <div className="brand">
           <div className="brandPlate">
             <img
-              src="/nx_limit_training_white_on_black.png"
+              src={BRAND_WORDMARK_48}
               alt="NX LIMIT Training"
               className="brandWordmarkImg"
             />
