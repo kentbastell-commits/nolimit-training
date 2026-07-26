@@ -182,7 +182,7 @@ export default function LandingPage({
     navInPerson: lZh ? "线下训练" : "In-Person",
     viewPrograms: lZh ? "查看训练计划" : "View Programs",
     coachLogin: lZh ? "教练登录" : "Coach Login",
-    heroEyebrow: lZh ? "为训练而生" : "Built for Training",
+    heroEyebrow: lZh ? "为训练而生" : "Raise the Floor. Break the Ceiling.",
     heroTitle: lZh ? "像职业选手一样训练，就用手机。" : "Train like a professional, from your phone.",
     heroLead: lZh
       ? "奥运与职业级的训练计划与一对一教练——围绕你的项目、赛季和时间安排，提供循证、可执行的训练。一切尽在手机。"
@@ -202,7 +202,7 @@ export default function LandingPage({
     inPersonBody: lZh
       ? "面向团队、俱乐部和个人提供线下训练服务。扫码添加微信，了解团队课程、私教和专项训练安排。"
       : "Available for teams, clubs, and individuals. Scan WeChat to ask about in-person coaching, team sessions, and custom training blocks.",
-    footer: lZh ? "为训练而生。" : "Built for Training.",
+    footer: lZh ? "为训练而生。" : "Raise the Floor. Break the Ceiling.",
   };
 
   const landingStats: [number, string][] = [
@@ -252,7 +252,9 @@ export default function LandingPage({
       >
         <a className="lv3Brand" href="/">
           <img src={BRAND_WORDMARK_BLACK} alt="NX LIMIT" />
-          <span className="lv3BrandTagline">Built for Training</span>
+          <span className="lv3BrandTagline">
+            {lZh ? "提升下限 · 突破上限" : "Raise the Floor. Break the Ceiling."}
+          </span>
         </a>
         <nav className="lv3NavLinks">
           <a href="/store">{landingCopy.navPrograms}</a>
@@ -531,7 +533,9 @@ export default function LandingPage({
         {/* Final CTA */}
         <motion.section className="lv3FinalCta" {...reveal}>
           <div className="lv3HeroGlow" aria-hidden="true" />
-          <motion.h2 variants={item}>{lZh ? "为训练而生。" : "Built for Training."}</motion.h2>
+          <motion.h2 variants={item}>
+            {lZh ? "为训练而生。" : "Raise the Floor. Break the Ceiling."}
+          </motion.h2>
           <motion.p variants={item}>
             {lZh
               ? "从数字训练计划开始，或申请一对一线上 / 线下教练服务。"

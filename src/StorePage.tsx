@@ -423,6 +423,9 @@ export default function StorePage({
       <nav className="storeNavV3">
         <a className="storeBrandV3" href="/">
           <img src={BRAND_WORDMARK_BLACK} alt="NX LIMIT Training" />
+          <span className="storeBrandTaglineV3">
+            {sZh ? "提升下限 · 突破上限" : "Raise the Floor. Break the Ceiling."}
+          </span>
         </a>
         <div className="storeNavLinksV3">
           <a href="#featured" className="storeNavLinkV3">{sZh ? "计划" : "Programs"}</a>
@@ -608,7 +611,9 @@ export default function StorePage({
               animate={reduce ? undefined : "show"}
             >
               <motion.div className="storeHeroEyebrowRowV3" variants={rise}>
-                <span className="storeEyebrowV2">{sZh ? "为训练而生" : "Built for Training"}</span>
+                <span className="storeEyebrowV2">
+                  {sZh ? "为训练而生" : "Raise the Floor. Break the Ceiling."}
+                </span>
                 <span className="storeHeroAccentLineV3" />
               </motion.div>
               <motion.h1 className="storeHeroTitleV3" variants={rise}>
@@ -1994,7 +1999,9 @@ export default function StorePage({
           <a href="/refund">{sZh ? "退款" : "Refunds"}</a>
           <a href="/business">{sZh ? "经营者信息" : "Business"}</a>
         </div>
-        <span className="storeFooterTagV3">{sZh ? "为训练而生。" : "Built for Training."}</span>
+        <span className="storeFooterTagV3">
+          {sZh ? "为训练而生。" : "Raise the Floor. Break the Ceiling."}
+        </span>
       </footer>
     </div>
   );
