@@ -4,13 +4,10 @@
 // that matters most is that a bulk shift never touches sessions the athlete
 // has already completed — that would rewrite training history.
 //
-// NOTE ON DATES: server/db/pg/workouts.ts uses two different conversions for
-// the same column. toLarkDate() (the creation path) parses "YYYY-MM-DD" as
-// LOCAL midnight, while shiftAssignedWorkoutDates and updateAssignedWorkoutDate
-// use `new Date(str)`, which is UTC midnight. On a UTC server they agree; off
-// UTC they differ by the offset. Assertions here are therefore expressed as
-// deltas wherever possible, so they test behaviour rather than the machine's
-// timezone — and the one place the convention is visible is pinned explicitly.
+// NOTE ON DATES: every writer now converts "YYYY-MM-DD" through
+// dayStartMs() — the start of that day in China time, the exact inverse of
+// epochToDate. Assertions are expressed as deltas wherever possible so they
+// test behaviour rather than the machine's timezone.
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import shiftHandler from "../../../api/shiftAssignedWorkouts.ts";
 import updateDateHandler from "../../../api/updateAssignedProgramDate.ts";
@@ -19,8 +16,10 @@ import { closeDb, makeReq, makeRes, resetDb, rows, seedClient } from "./helpers.
 import { pool } from "../../../server/db/client.ts";
 
 const DAY = 86400000;
-/** UTC midnight — matches the convention the shift/update paths compare against. */
+/** Plain UTC midnight — used only to seed rows at a known instant. */
 const utcMs = (date: string) => Date.parse(`${date}T00:00:00Z`);
+/** The canonical stored value for a date: the start of that day in China time. */
+const dayStart = (date: string) => Date.parse(`${date}T00:00:00Z`) - 8 * 3600 * 1000;
 
 beforeEach(async () => {
   await resetDb();
@@ -89,6 +88,31 @@ describe("api/shiftAssignedWorkouts (postgres)", () => {
     expect((await post(shiftHandler, { ...base, days: 0 })).statusCode).toBe(400);
     expect((await post(shiftHandler, { ...base, days: 31 })).statusCode).toBe(400);
     expect((await post(shiftHandler, { ...base, days: 1.5 })).statusCode).toBe(400);
+  });
+
+  it("moves the session on the from-date itself, however it was written", async () => {
+    // The bug this pins: writers used two different date conversions. A
+    // calendar built by autoLoadProgram stored China-midnight while the shift
+    // boundary computed UTC-midnight, which on the production (UTC+8) server
+    // put the stored value 8 hours BEFORE the boundary. "Move everything from
+    // 3 August" then silently skipped 3 August's own session — the first one
+    // the athlete was trying to move.
+    const chinaMidnight = Date.parse("2026-08-03T00:00:00Z") - 8 * 3600 * 1000;
+    const utcMidnight = Date.parse("2026-08-03T00:00:00Z");
+    await seedWorkout("AW-china", chinaMidnight);
+    await seedWorkout("AW-utc", utcMidnight);
+
+    const res = await post(shiftHandler, {
+      clientCode: "CL-9001",
+      fromDate: "2026-08-03",
+      days: 7,
+    });
+    expect(res.statusCode).toBe(200);
+
+    const after = await dates();
+    // Both representations of "3 August" must move.
+    expect(after["AW-china"] - chinaMidnight).toBe(7 * DAY);
+    expect(after["AW-utc"] - utcMidnight).toBe(7 * DAY);
   });
 
   it("moves every later session by exactly the requested number of days", async () => {
@@ -193,9 +217,9 @@ describe("api/updateAssignedProgramDate (postgres)", () => {
     expect(res.statusCode).toBe(200);
 
     const now = await dates();
-    // Pinning the convention: this path stores UTC midnight, unlike the
-    // creation path's local midnight (see the note at the top of this file).
-    expect(now["AW-1"]).toBe(utcMs("2026-08-06"));
+    // One convention now: every writer stores the start of the China day, the
+    // exact inverse of how epochToDate renders it back.
+    expect(now["AW-1"]).toBe(dayStart("2026-08-06"));
     expect(now["AW-2"]).toBe(neighbour);
   });
 });

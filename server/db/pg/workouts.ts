@@ -1,7 +1,7 @@
 import { and, eq, gte, inArray, isNull, not, ilike, or, sql } from "drizzle-orm";
 import { db } from "../client.ts";
 import { assignedWorkouts, workoutLogs } from "../schema.ts";
-import { pgErrorMessage, str } from "./_util.ts";
+import { dayStartMs, pgErrorMessage, str } from "./_util.ts";
 import type { WorkoutDTO } from "../dto.ts";
 import type {
   AssignProgramInput,
@@ -121,7 +121,7 @@ export async function assignProgram(input: AssignProgramInput): Promise<WorkoutW
         sessionGoal: workout.sessionGoal || "",
         coachNotes: workout.sessionNotes || null,
         intensity: workout.intensity || "Moderate",
-        scheduledDate: epochOrNull(new Date(workout.scheduledDate).getTime()),
+        scheduledDate: epochOrNull(toLarkDate(workout.scheduledDate)),
         completionStatus: "Scheduled",
       };
 
@@ -160,7 +160,7 @@ export async function updateAssignedWorkoutDate(
   for (const candidate of candidates) {
     const updated = await db
       .update(assignedWorkouts)
-      .set({ scheduledDate: epochOrNull(new Date(scheduledDate).getTime()) })
+      .set({ scheduledDate: epochOrNull(toLarkDate(scheduledDate)) })
       .where(eq(assignedWorkouts.assignedWorkoutId, candidate))
       .returning({ assignedWorkoutId: assignedWorkouts.assignedWorkoutId });
     if (updated.length) {
@@ -179,17 +179,14 @@ export async function updateAssignedWorkoutDate(
 function toLarkDate(value?: string) {
   if (!value) return Date.now();
   if (/^\d+$/.test(value)) return Number(value);
-  const [year, month, day] = value.split("-").map(Number);
-  if (year && month && day) {
-    return new Date(year, month - 1, day).getTime();
-  }
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return dayStartMs(value);
   return new Date(value).getTime();
 }
 
 export async function shiftAssignedWorkoutDates(
   i: ShiftWorkoutDatesInput
 ): Promise<WorkoutWriteResult> {
-  const fromMs = new Date(i.fromDate).getTime();
+  const fromMs = dayStartMs(i.fromDate);
   const deltaMs = i.days * 86400000;
   const conditions = [
     eq(assignedWorkouts.clientId, str(i.clientCode)),

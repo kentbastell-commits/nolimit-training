@@ -11,6 +11,22 @@ export function epochToDate(ms: number | null | undefined, empty = ""): string {
   return d.toISOString().split("T")[0];
 }
 
+// "YYYY-MM-DD" -> the epoch-ms that epochToDate maps back to that same date.
+// The exact inverse of epochToDate, and deliberately independent of the
+// server's local timezone.
+//
+// Writers used to reach for `new Date(d)` (UTC midnight) or
+// `new Date(`${d}T00:00:00`)` (LOCAL midnight) more or less at random. Both
+// round-trip through epochToDate, so nothing looked wrong — but a comparison
+// between the two is off by the server's offset, which is +08:00 in
+// production. That put a session stored by autoLoadProgram 8 hours BEFORE the
+// boundary a bulk reschedule computed, so "move everything from 3 August"
+// silently skipped the session on 3 August itself. Use this everywhere a date
+// string becomes an epoch.
+export function dayStartMs(dateStr: string): number {
+  return Date.parse(`${dateStr}T00:00:00Z`) - 8 * 3600 * 1000;
+}
+
 export function str(v: unknown): string {
   return v == null ? "" : String(v);
 }

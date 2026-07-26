@@ -176,7 +176,7 @@ describe("api/submitContentResponse (postgres)", () => {
     expect(assigned.completed_at).toBeTruthy();
   });
 
-  it("completion keys off assignmentRecordId specifically, not assignmentId", async () => {
+  it("completes on assignmentId alone, not just assignmentRecordId", async () => {
     await assign();
 
     await call(submitHandler, {
@@ -190,14 +190,12 @@ describe("api/submitContentResponse (postgres)", () => {
       },
     });
 
-    // Sharp edge, pinned so it can't drift unnoticed: the response link
-    // accepts either id, but the completion update reads only
-    // assignmentRecordId. Both real callers (App.tsx and the mini program's
-    // forms page) send both, so this is latent rather than live — a future
-    // caller sending only assignmentId would file the answers correctly and
-    // silently leave the athlete's intake showing as outstanding.
+    // The response link has always accepted either id; completion used to
+    // read only assignmentRecordId, so a caller sending just assignmentId
+    // filed the answers and silently left the athlete's intake outstanding —
+    // stuck on "complete your intake" with a questionnaire already done.
     const [assigned] = await rows("select status from assigned_forms");
-    expect(String(assigned.status || "").toLowerCase()).not.toContain("complet");
+    expect(String(assigned.status || "").toLowerCase()).toContain("complet");
     expect(await rows("select 1 from form_responses")).toHaveLength(1);
   });
 

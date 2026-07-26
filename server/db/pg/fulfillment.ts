@@ -14,7 +14,7 @@ import {
   formTemplates,
   assignedForms,
 } from "../schema.ts";
-import { str } from "./_util.ts";
+import { dayStartMs, str } from "./_util.ts";
 import type {
   AutoLoadProgramInput,
   AutoLoadProgramResult,
@@ -219,7 +219,7 @@ export async function autoLoadProgram(
         sessionGoal: session.sessionGoal,
         estimatedDuration: session.estimatedDuration,
         intensity: session.intensity,
-        scheduledDate: new Date(`${scheduledDate}T00:00:00`).getTime(),
+        scheduledDate: dayStartMs(scheduledDate),
         completionStatus: "Scheduled",
       };
     });

@@ -335,7 +335,12 @@ export async function submitContentResponse(
 
   // Mark the assignment completed (same best-effort semantics as Feishu).
   let assignmentUpdate: any = null;
-  const completionTarget = String(assignmentRecordId || "");
+  // Accept either id, exactly like the response link above (assignmentCode).
+  // Keying only off assignmentRecordId meant a caller sending just
+  // assignmentId filed the answers correctly and silently left the athlete's
+  // intake showing as outstanding — they sit on "complete your intake" with a
+  // questionnaire they have already filled in.
+  const completionTarget = String(assignmentRecordId || assignmentId || "");
   if (completionTarget) {
     const updated = isTest
       ? await db
