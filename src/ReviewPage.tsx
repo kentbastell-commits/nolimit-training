@@ -13,6 +13,8 @@ import { normalizeDate } from "./appCore";
 import CountUp from "./CountUp";
 
 export default function ReviewPage({
+  refreshReviewQueue,
+  coachReviewLoading,
   reviewFlashColumn,
   checkInReplyDrafts,
   checkInReplySaving,
@@ -187,7 +189,17 @@ export default function ReviewPage({
         <span className="rvEyebrow">
           <CheckSquare size={14} /> Review
         </span>
-        <h1 className="rvTitle">Review</h1>
+        <div className="rvTitleRow">
+          <h1 className="rvTitle">Review</h1>
+          <button
+            type="button"
+            className="rvRefresh"
+            onClick={refreshReviewQueue}
+            disabled={coachReviewLoading}
+          >
+            {coachReviewLoading ? "Refreshing…" : "Refresh queue"}
+          </button>
+        </div>
         <p className="rvIntro">
           Client comments, form &amp; test submissions, missed tasks, and order
           follow-ups that need a coach decision.

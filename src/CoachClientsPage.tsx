@@ -126,7 +126,11 @@ export default function CoachClientsPage(props: { [key: string]: any }) {
   const sumOnline = activeAll.filter(isOnline).length;
   const sumInPerson = activeAll.filter(isInPerson).length;
   const sumTeams = (teams as any[])?.length || 0;
-  const sumAttention = all.filter(hasAttention).length;
+  // Active roster only, like every sibling tile above. Counting `all` meant
+  // paused/archived athletes kept the number red forever — it read "5 flagged"
+  // against a roster of 5 and could never reach zero, so it stopped being a
+  // signal. The triage chips below already count the visible roster.
+  const sumAttention = activeAll.filter(hasAttention).length;
   const withPct = all
     .map((c) => clientEngagement(c).compliance)
     .filter((p: any) => p != null) as number[];

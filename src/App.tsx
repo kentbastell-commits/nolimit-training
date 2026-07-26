@@ -19376,25 +19376,10 @@ function App({ onReady }: { onReady?: () => void } = {}) {
         {!selectedClient && (
           <>
             <header className="topbar">
-              {activePage === "Orders" && (
-                <div className="topbarActions">
-                  <button className="outlineButton" onClick={loadProductOrders}>
-                    Reload Orders
-                  </button>
-                </div>
-              )}
-
-              {activePage === "Review" && (
-                <div className="topbarActions">
-                  <button
-                    className="outlineButton"
-                    onClick={() => void loadCoachReviewQueue(true)}
-                    disabled={coachReviewLoading}
-                  >
-                    {coachReviewLoading ? "Refreshing..." : "Refresh Queue"}
-                  </button>
-                </div>
-              )}
+              {/* Page actions live in each page's own header now. The topbar
+                  renders no title on coach pages, so a lone right-aligned
+                  button sat detached ABOVE the page heading — and Orders'
+                  was a duplicate of the reload the page already had. */}
 
               {/* Builder save actions moved into the Workouts hero (design
                   redesign) — the sticky bottom bar covers mobile. */}
@@ -19488,6 +19473,8 @@ function App({ onReady }: { onReady?: () => void } = {}) {
 
             {activePage === "Review" && (
               <ReviewPage
+                refreshReviewQueue={() => void loadCoachReviewQueue(true)}
+                coachReviewLoading={coachReviewLoading}
                 reviewFlashColumn={reviewFlashColumn}
                 checkInReplyDrafts={checkInReplyDrafts}
                 checkInReplySaving={checkInReplySaving}

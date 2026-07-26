@@ -177,7 +177,12 @@ export default function CoachOrdersPage(props: { [key: string]: any }) {
         <span className="copEyebrow">
           <ShoppingBag size={14} /> Orders
         </span>
-        <h1>Orders</h1>
+        <div className="copTitleRow">
+          <h1>Orders</h1>
+          <button type="button" className="copReload" onClick={loadProductOrders}>
+            Reload orders
+          </button>
+        </div>
         <p>
           Coaching relationships and in-person sales. Self-serve digital sales live
           in Digital.
@@ -569,9 +574,6 @@ export default function CoachOrdersPage(props: { [key: string]: any }) {
               ))
             )}
           </div>
-          <button type="button" className="copReload" onClick={loadProductOrders}>
-            Reload orders
-          </button>
         </div>
       )}
 
