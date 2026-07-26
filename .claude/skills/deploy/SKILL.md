@@ -25,15 +25,20 @@ SSH alias `nolimit` is preconfigured (43.132.228.109, key `~/.ssh/nolimit_deploy
    changes that belong to the deliverable get committed first; unrelated untracked
    files (e.g. `coaching-vault/`) are NEVER swept in — stage files by name, not
    `git add -A`, unless status shows only your own work.
-3. Local gate: `npx tsc -b --force` clean AND `npm run build` clean in the target
-   repo. The server build uses `tsc -b --force`, which catches unused-var errors an
-   incremental local build masks. Never deploy past a red gate.
+3. Local gate — all three must be clean in the target repo, in this order:
+   `npx tsc -b --force`, `npm run build`, and `npx vitest run --maxWorkers=1`
+   (nolimit only; ~2 min). The server build uses `tsc -b --force`, which catches
+   unused-var errors an incremental local build masks. **Tests are part of the
+   gate**: they run against a real local Postgres and are the only thing that
+   catches a broken money path or a leaked athlete read before a client does.
+   Use `--maxWorkers=1` — higher values give phantom whole-suite failures
+   (named mistake #15). Never deploy past a red gate.
 
 ## Steps — nolimit
 
 ```bash
 cd /c/Users/kentb/nolimit-training
-npx tsc -b --force && npm run build
+npx tsc -b --force && npm run build && npx vitest run --maxWorkers=1
 git push origin main
 ssh nolimit "cd /opt/nolimit-training && git pull origin main && npm install --no-audit --no-fund && npx tsc -b --force && npx vite build && pm2 restart nolimit-training"
 ```
@@ -87,6 +92,10 @@ http://127.0.0.1:<port>” as `--port <port>`. Never kill all Node/DevTools proc
 4. `ssh nolimit "pm2 list | grep <app>"` — status `online`, and the restart counter
    (`↺`) did not jump more than +1 (a climbing counter means crash-looping; check
    `pm2 logs <app> --lines 30 --nostream` immediately).
+5. nolimit only: `ssh nolimit "crontab -l | grep -c healthCheck"` must return 2 —
+   the 5-minute watchdog and the 06:00 morning report. Kent has no ops person, so
+   those two are how he learns about a problem without a client telling him; a
+   deploy that silently drops them leaves him blind.
 
 ## Failure handling
 
