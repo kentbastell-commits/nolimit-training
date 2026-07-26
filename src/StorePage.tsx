@@ -28,7 +28,7 @@ import "@fontsource/inter/600.css";
 import "@fontsource/inter/700.css";
 import "./StorePage.css";
 import "./StorePageV3.css";
-import { BRAND_WORDMARK_48 } from "./brandAssets";
+import { BRAND_MONOGRAM_WHITE, BRAND_WORDMARK_BLACK } from "./brandAssets";
 import { reportClientEvent } from "./telemetry";
 import type { Client, Coach, Program, ProgramReview, Toast } from "./appCore";
 import { glanceRepsToken } from "./appCore";
@@ -422,7 +422,7 @@ export default function StorePage({
 
       <nav className="storeNavV3">
         <a className="storeBrandV3" href="/">
-          <img src={BRAND_WORDMARK_48} alt="NX LIMIT Training" />
+          <img src={BRAND_WORDMARK_BLACK} alt="NX LIMIT Training" />
         </a>
         <div className="storeNavLinksV3">
           <a href="#featured" className="storeNavLinkV3">{sZh ? "计划" : "Programs"}</a>
@@ -1412,7 +1412,7 @@ export default function StorePage({
                     <img src={sp.productImage} alt={spName} />
                   ) : (
                     <div className="storeModalFallbackV2">
-                      <img src="/icon-192.png" alt="NX LIMIT" />
+                      <img src={BRAND_MONOGRAM_WHITE} alt="NX LIMIT" />
                     </div>
                   )}
                 </div>
@@ -1981,7 +1981,7 @@ export default function StorePage({
       })()}
 
       <footer className="storeFooterV3">
-        <img src={BRAND_WORDMARK_48} alt="NX LIMIT Training" />
+        <img src={BRAND_WORDMARK_BLACK} alt="NX LIMIT Training" />
         <div className="storeFooterLinksV3">
           <a href="#catalog">{sZh ? "计划" : "Programs"}</a>
           <a href="#coach">{sZh ? "教练" : "Coaching"}</a>

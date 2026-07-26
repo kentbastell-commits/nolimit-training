@@ -7,7 +7,7 @@
 import { useEffect, useMemo, useState } from "react";
 import "./CoachingFlowPage.css";
 import { reportClientEvent } from "./telemetry";
-import { BRAND_WORDMARK_48 } from "./brandAssets";
+import { BRAND_WORDMARK_BLACK } from "./brandAssets";
 import { makePaymentCode } from "./appCore";
 
 type Step = "commitment" | "qualifier" | "payment" | "onboarding" | "done";
@@ -252,7 +252,7 @@ export default function CoachingFlowPage() {
         {/* top bar */}
         <div className="cfpTop">
           <div className="cfpBrand">
-            <img className="cfpLogo" src={BRAND_WORDMARK_48} alt="NX LIMIT Training" />
+            <img className="cfpLogo" src={BRAND_WORDMARK_BLACK} alt="NX LIMIT Training" />
             <span className="cfpBadge">{t("1:1 COACHING", "一对一私教")}</span>
           </div>
           <div className="cfpTopRight">

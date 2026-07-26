@@ -4209,7 +4209,7 @@ body {
   right: 8px;
   width: 22px;
   height: 22px;
-  background-image: url("/icon-192.png");
+  background-image: url("/brand/nxl-monogram-black.svg");
   background-size: contain;
   background-repeat: no-repeat;
   background-position: center;
@@ -11925,9 +11925,8 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 /* Uniform Warm App Grey (#E8E6DF) on every Overview section header. */
 .overviewGrid > .profileCard .profileMetricsHeader { background: #e8e6df !important; }
 
-/* Sidebar brand: white NØLIMIT wordmark on a black plate with a hand-set
-   "Built for Training" tagline beneath. Collapses to the white NL monogram on
-   the hover-narrowed desktop rail. */
+/* Sidebar brand: refined NX//LIMIT wordmark with the "Built for Training"
+   signature beneath. The narrow desktop rail uses the transparent NXL mark. */
 .brandPlate {
   display: flex;
   flex-direction: column;
@@ -11946,6 +11945,10 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 .brandPlate .brandWordmarkImg {
   max-width: 168px;
   filter: drop-shadow(0 5px 12px rgba(18, 18, 16, 0.1));
+}
+
+.app:not(.clientPortalApp) .sidebar .brandTagline {
+  color: #292822;
 }
 
 /* thin gold hairline between wordmark and tagline for a sealed, premium feel */
@@ -13291,7 +13294,22 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   backdrop-filter: blur(14px);
   border-bottom: 1px solid rgba(14, 14, 13, 0.08);
 }
+.lv3Brand {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
 .lv3Brand img { height: 32px; display: block; }
+.lv3BrandTagline {
+  color: #5f5d56;
+  font-size: 8px;
+  font-weight: 750;
+  letter-spacing: 0.18em;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
 .lv3NavLinks { display: flex; gap: 28px; }
 .lv3NavLinks a { color: #44443e; font-weight: 600; font-size: 0.95rem; }
 .lv3NavLinks a:hover { color: #0e0e0d; }
@@ -13735,15 +13753,17 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
      off-screen (page overflowed ~37px at 390px). */
   .lv3Nav { gap: 10px; padding: 12px 14px; }
   .lv3Brand img { height: 24px; }
+  .lv3BrandTagline { font-size: 6px; letter-spacing: 0.13em; }
   .lv3Lang span { padding: 5px 9px; font-size: 0.72rem; }
   .lv3NavCta { padding: 8px 13px; font-size: 0.8rem; white-space: nowrap; }
 }
 
 @media (max-width: 374px) {
-  /* The NØLIMIT wordmark is ~6.4:1 wide — at 20px tall it alone eats 129px
-     of a 320px row, so everything steps down another notch here. */
+  /* The NX//LIMIT wordmark is wide, so compact controls step down another
+     notch here to keep the full 320px navigation row in view. */
   .lv3Nav { gap: 6px; padding: 10px 8px; }
   .lv3Brand img { height: 20px; }
+  .lv3BrandTagline { font-size: 5.5px; }
   .lv3Lang span { padding: 4px 7px; font-size: 0.68rem; }
   .lv3NavCta { padding: 7px 10px; font-size: 0.74rem; }
 }

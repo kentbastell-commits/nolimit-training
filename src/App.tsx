@@ -39,7 +39,11 @@ import {
 } from "react";
 import { useTranslation } from "react-i18next";
 import "./App.css";
-import { BRAND_LOGO_48, BRAND_WORDMARK_48 } from "./brandAssets";
+import {
+  BRAND_MONOGRAM_BLACK,
+  BRAND_MONOGRAM_WHITE,
+  BRAND_WORDMARK_BLACK,
+} from "./brandAssets";
 
 // Charts are lazy-loaded so recharts stays out of the main bundle.
 const RevenueChart = lazy(() => import("./RevenueChart"));
@@ -13943,7 +13947,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
         draw();
       };
       logo.onerror = () => draw();
-      logo.src = BRAND_LOGO_48;
+      logo.src = BRAND_MONOGRAM_BLACK;
     });
 
   const openFinisherCard = async (payload: {
@@ -18442,7 +18446,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
         <section className="clientPortalEmpty">
           <div className="brandWordmark brandLogoLockup">
             <img
-              src={BRAND_LOGO_48}
+              src={BRAND_WORDMARK_BLACK}
               alt="NX LIMIT Training"
               className="brandWordmarkImage"
             />
@@ -19197,14 +19201,14 @@ function App({ onReady }: { onReady?: () => void } = {}) {
         <div className="brand">
           <div className="brandPlate">
             <img
-              src={BRAND_WORDMARK_48}
+              src={BRAND_WORDMARK_BLACK}
               alt="NX LIMIT Training"
               className="brandWordmarkImg"
             />
             <span className="brandTagline">Built for Training</span>
           </div>
           <img
-            src="/icon-192.png"
+            src={BRAND_MONOGRAM_BLACK}
             alt="NX LIMIT"
             className="brandCollapsedSeal"
           />
@@ -19326,7 +19330,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
             }
           >
             <div className="avatar monogramAvatar">
-              <img src="/icon-192.png" alt="" aria-hidden="true" />
+              <img src={BRAND_MONOGRAM_WHITE} alt="" aria-hidden="true" />
             </div>
             <div className="coachBoxMeta">
               <strong>
@@ -21262,7 +21266,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                     ))}
                   </div>
                   <div className="workoutSummaryCrest">
-                    <img src="/icon-192.png" alt="" />
+                    <img src={BRAND_MONOGRAM_WHITE} alt="" />
                   </div>
                   <h2 className="workoutSummaryTitle">
                     {paceZh ? "训练完成" : "Workout Complete"}

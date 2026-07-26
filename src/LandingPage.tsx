@@ -19,7 +19,7 @@ import {
   type Variants,
 } from "framer-motion";
 import type { Program, Toast } from "./appCore";
-import { BRAND_WORDMARK_48 } from "./brandAssets";
+import { BRAND_WORDMARK_BLACK } from "./brandAssets";
 
 // Confident, weighty easing (ease-out-expo) — reads as strong, not bouncy.
 const EASE: [number, number, number, number] = [0.16, 1, 0.3, 1];
@@ -251,7 +251,8 @@ export default function LandingPage({
         transition={{ duration: 0.6, ease: EASE }}
       >
         <a className="lv3Brand" href="/">
-          <img src={BRAND_WORDMARK_48} alt="NX LIMIT Training" />
+          <img src={BRAND_WORDMARK_BLACK} alt="NX LIMIT" />
+          <span className="lv3BrandTagline">Built for Training</span>
         </a>
         <nav className="lv3NavLinks">
           <a href="/store">{landingCopy.navPrograms}</a>

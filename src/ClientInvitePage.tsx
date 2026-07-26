@@ -1,7 +1,7 @@
 // Extracted from App.tsx (monolith split) — JSX verbatim, props threaded.
 import "./ClientInvitePage.css";
 import { useState } from "react";
-import { BRAND_LOGO_48 } from "./brandAssets";
+import { BRAND_WORDMARK_BLACK } from "./brandAssets";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 export default function ClientInvitePage({
@@ -39,7 +39,7 @@ export default function ClientInvitePage({
           <div>
             <div className="brandWordmark brandLogoLockup">
               <img
-                src={BRAND_LOGO_48}
+                src={BRAND_WORDMARK_BLACK}
                 alt="NX LIMIT Training"
                 className="brandWordmarkImage"
               />

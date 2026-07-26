@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import "./SplashScreen.css";
-import { BRAND_LOGO_48 } from "./brandAssets";
+import { BRAND_WORDMARK_BLACK } from "./brandAssets";
 
 type Props = {
   /** Controlled 0–100 progress. Overrides both tracked and timed modes. */
@@ -92,7 +92,7 @@ export default function SplashScreen({ progress, done, onFinish }: Props) {
 
   return (
     <div className="nlSplash">
-      <img className="nlSplash__logo" src={BRAND_LOGO_48} alt="NX LIMIT Training" />
+      <img className="nlSplash__logo" src={BRAND_WORDMARK_BLACK} alt="NX LIMIT Training" />
 
       <div className="nlSplash__bars">
         {bars.map((h, i) => (

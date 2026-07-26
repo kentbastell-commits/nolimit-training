@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="25 0 1125 700" role="img" aria-labelledby="title desc" style="color:#fff">
+  <title id="title">NX LIMIT — NXL Legacy Cut monogram, white</title>
+  <desc id="desc">A heavy custom NXL monogram with one angled negative cut on the upper-left X arm, matching the break position in the NX LIMIT wordmark.</desc>
+  <defs>
+    <mask id="single-cut" maskUnits="userSpaceOnUse" x="0" y="0" width="1125" height="700">
+      <rect width="1125" height="700" fill="#fff"/>
+      <rect x="425" y="254" width="120" height="32" fill="#000" transform="rotate(-42 485 270)"/>
+    </mask>
+  </defs>
+  <g fill="none" stroke="currentColor" stroke-width="90" stroke-linecap="butt" stroke-linejoin="round">
+    <path d="M100 575V350C100 226 285 226 285 350V575C400 504 526 325 655 130"/>
+    <path d="M365 130C465 253 578 405 742 575" mask="url(#single-cut)"/>
+    <path d="M815 130V488C815 548 850 575 910 575H1075"/>
+  </g>
+</svg>

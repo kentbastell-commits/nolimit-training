@@ -1,11 +1,6 @@
-// Canonical 48-degree identity assets. Vite fingerprints these source vectors
-// for production while keeping the editable masters in the branding folder.
-export const BRAND_LOGO_48 = new URL(
-  "../branding/Source vector files/NX LIMIT Training Lean 48 Trial.svg",
-  import.meta.url,
-).href;
-
-export const BRAND_WORDMARK_48 = new URL(
-  "../branding/Source vector files/NX LIMIT Small-Use Lean 48 Trial.svg",
-  import.meta.url,
-).href;
+// Final production identity. Keep both tonal variants explicit so transparent
+// artwork can sit naturally on light and dark UI without a boxed background.
+export const BRAND_MONOGRAM_BLACK = "/brand/nxl-monogram-black.svg";
+export const BRAND_MONOGRAM_WHITE = "/brand/nxl-monogram-white.svg";
+export const BRAND_WORDMARK_BLACK = "/brand/nx-limit-wordmark-black.svg";
+export const BRAND_WORDMARK_WHITE = "/brand/nx-limit-wordmark-white.svg";

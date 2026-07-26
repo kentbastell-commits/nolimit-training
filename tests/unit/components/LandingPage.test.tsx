@@ -16,7 +16,7 @@ const baseProps = {
 describe("LandingPage", () => {
   it("renders the hero copy in English", () => {
     render(<LandingPage {...baseProps} />);
-    expect(screen.getByText("Built for Training")).toBeInTheDocument();
+    expect(screen.getAllByText("Built for Training")).toHaveLength(2);
     expect(
       screen.getByRole("heading", {
         name: "Train like a professional, from your phone.",

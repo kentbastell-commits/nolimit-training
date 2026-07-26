@@ -3,7 +3,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import Celebration from "../../../src/Celebration";
 
 describe("Celebration", () => {
-  it("renders the fistbump variant with default headline/kicker and the wordmark", () => {
+  it("renders the fistbump variant with default headline/kicker and the NXL mark", () => {
     render(<Celebration variant="fistbump" />);
     expect(screen.getByAltText("NX LIMIT Training")).toBeInTheDocument();
     expect(screen.getByText("POUND IT")).toBeInTheDocument();
