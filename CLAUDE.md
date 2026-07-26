@@ -416,6 +416,29 @@ data between them, never "borrow" a table ID across products.
     `epochToDate`) that every writer and every comparison uses. Two encodings
     that both round-trip are invisible until something compares them, so
     grep for every writer of a date column before trusting any range query.
+47. **The second opinion on the athlete's own number** — the same derived
+    figure (est 1RM, MAS pace, HR zone) is now computed in BOTH the web app
+    (`src/App.tsx`) and the mini program
+    (`nolimit-miniprogram/src/services/performance.ts`). If they disagree, the
+    athlete is told two different paces for the same prescription and trusts
+    neither. Two concrete traps found building "My Numbers": (a) the
+    `/api/workoutHistory` rows carry `bestWeight` and `bestReps` as INDEPENDENT
+    maxima from different sets — multiplying them into an Epley 1RM invents a
+    lift that never happened; compute per-set from `logs` and take the max.
+    (b) The web matches a metric on different field subsets in different places
+    (`metricType+metricName+sourceTestName` when finding the latest MAS,
+    `metricType+metricName+calculationMethod` when resolving a pace) — match on
+    the UNION or the two clients can select different source metrics. Note
+    several athletes have multiple MAS rows with the SAME `measuredAt`, so
+    "latest" is decided by a stable sort preserving API order — any change to
+    sort or filter silently repoints which metric wins. Rule: when duplicating
+    a formula into another client, verify against the live web page, not
+    against your reasoning. The procedure that works and is cheap: run the
+    ACTUAL shipped module in Node (`node --experimental-strip-types`, importing
+    the `.ts` by absolute `file:///` URL — a bare specifier resolves against
+    the scratchpad, not the repo) against live API data, then read the same
+    numbers off the live portal with Playwright (portal metrics sit behind the
+    **Metrics tab** — a bare page load renders none of them) and diff the two.
 
 ## Quality bar — checkable, per deliverable
 
