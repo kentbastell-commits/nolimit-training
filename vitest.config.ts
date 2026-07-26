@@ -19,15 +19,10 @@ export default defineConfig({
         test: {
           name: "node",
           environment: "node",
-          // TRANSITIONAL — remove when the last handler test is ported.
-          //
-          // These tests stub Feishu HTTP and assert the Feishu code path.
-          // Production has run Postgres since 2026-07-21, so until they are
-          // ported they cover a backend nobody uses. They only ever passed
-          // because DATA_BACKEND defaulted to "feishu"; now that Postgres is
-          // the default, the dependency has to be stated out loud rather than
-          // inherited by accident. Every ported file drops out of this pin.
-          env: { DATA_BACKEND: "feishu" },
+          // No DATA_BACKEND pin: every handler test now runs against real
+          // Postgres in the "pg" project. What is left here is backend-
+          // agnostic (cache, auth, notify, pagination) plus api/_token.ts,
+          // which the Feishu ETL still uses.
           include: [
             "tests/unit/api/**/*.test.ts",
             "tests/unit/logic/**/*.test.ts",
