@@ -82,6 +82,7 @@ import {
   normalizeDate,
   normalizeLookupText,
   normalizeTaskStatus,
+  makePaymentCode,
   parseExerciseCueSections,
   parseExerciseNotes,
   readPersistentCache,
@@ -11222,17 +11223,6 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     selectedProgramExercises,
     programSessions,
   ]);
-
-  // Unambiguous-alphabet payment note code (no 0/O/1/I) — buyer writes it in
-  // the WeChat transfer note; coach one-tap verifies the order against it.
-  const makePaymentCode = () => {
-    const alphabet = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
-    let code = "";
-    for (let i = 0; i < 4; i += 1) {
-      code += alphabet[Math.floor(Math.random() * alphabet.length)];
-    }
-    return `NL-${code}`;
-  };
 
   const registerForProgram = async (
     program: Program,

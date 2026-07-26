@@ -8,6 +8,7 @@ import { useEffect, useMemo, useState } from "react";
 import "./CoachingFlowPage.css";
 import { reportClientEvent } from "./telemetry";
 import { BRAND_WORDMARK_48 } from "./brandAssets";
+import { makePaymentCode } from "./appCore";
 
 type Step = "commitment" | "qualifier" | "payment" | "onboarding" | "done";
 
@@ -29,14 +30,6 @@ const TIERS: Tier[] = [
 ];
 
 const money = (n: number) => `CNY ${n.toLocaleString("en-US")}`;
-
-const CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
-function genPaymentCode() {
-  let out = "";
-  for (let i = 0; i < 6; i++)
-    out += CODE_ALPHABET[Math.floor(Math.random() * CODE_ALPHABET.length)];
-  return out;
-}
 
 export default function CoachingFlowPage() {
   const [lang, setLang] = useState<"en" | "zh">("en");
@@ -86,7 +79,7 @@ export default function CoachingFlowPage() {
 
   useEffect(() => {
     if (step === "payment" && !paymentCode) {
-      setPaymentCode(genPaymentCode());
+      setPaymentCode(makePaymentCode());
       // Funnel: reached the payment step (fires once per session — the code
       // only generates on first entry).
       reportClientEvent("funnel", "coaching_payment_step_reached");

@@ -341,6 +341,21 @@ export const RUNNING_ZONE_OPTIONS = [
 // The server rejects coach/admin endpoints without it once COACH_ACCESS_KEY
 // is set; athlete/public endpoints ignore the header entirely.
 export const nativeFetch = window.fetch.bind(window);
+
+// The buyer writes this in their WeChat transfer note and the coach verifies
+// the order against it. The server enforces /^NL-[2-9A-HJ-NP-Z]{4}$/ on EVERY
+// paid flow, so both the store checkout and the 1:1 coaching signup must mint
+// it here. The coaching page once had its own 6-character generator with no
+// NL- prefix: every signup was rejected, after the buyer had already been told
+// to pay. Alphabet excludes 0/O/1/I so a handwritten code can't be misread.
+export function makePaymentCode() {
+  const alphabet = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
+  let code = "";
+  for (let i = 0; i < 4; i += 1) {
+    code += alphabet[Math.floor(Math.random() * alphabet.length)];
+  }
+  return `NL-${code}`;
+}
 window.fetch = ((input: RequestInfo | URL, init?: RequestInit) => {
   try {
     const url =
