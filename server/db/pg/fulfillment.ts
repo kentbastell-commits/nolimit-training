@@ -3,7 +3,7 @@
 // business-code columns. One structural difference: pg clients.program_id is a
 // single FK (Feishu is a multi-link) — the client's program is set when empty
 // and never overwritten, so a second purchase can't unlink the first program.
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { db } from "../client.ts";
 import {
   clients,
@@ -526,7 +526,44 @@ export async function activateDigitalOrder(
     } catch (orderErr: unknown) {
       orderError = orderErr instanceof Error ? orderErr.message : String(orderErr);
       console.error("activateDigitalOrder: order write threw", orderError);
+      break; // no point writing the rest of the cart — this checkout is failing
     }
+  }
+
+  // A checkout that writes no order (or only part of a cart) must FAIL, not
+  // report success. Returning 200 handed the buyer a success screen and a
+  // payment reference for an order no coach could ever see: they would pay
+  // against a code that reconciles to nothing, and nothing would unlock.
+  //
+  // Atomic: any partial writes from this attempt are removed so a retry
+  // cannot leave duplicate orders behind. The client record is kept
+  // deliberately — checkout dedupes on it, so the retry reuses that identity
+  // instead of minting a second one.
+  if (orderError || orderIds.length !== cartItems.length) {
+    if (orderIds.length) {
+      try {
+        await db.delete(productOrders).where(inArray(productOrders.orderId, orderIds));
+      } catch (rollbackErr: unknown) {
+        console.error(
+          "activateDigitalOrder: rollback failed",
+          rollbackErr instanceof Error ? rollbackErr.message : String(rollbackErr)
+        );
+      }
+    }
+    const message =
+      orderError || "Could not create the order for every item in this purchase.";
+    notices.push(
+      `⚠️ Store checkout FAILED — no order created\n` +
+        `Client: ${clientName} (${clientCode})\n` +
+        `Reason: ${message}`
+    );
+    return {
+      // An unknown program id is a stale client sending a dead reference
+      // (the buyer can fix it by reloading); anything else is ours.
+      status: /^Unknown program id/.test(String(message)) ? 400 : 500,
+      body: { error: message, orderPersisted: false, clientCode },
+      notices,
+    };
   }
 
   // 4+5. Intake form assignment.

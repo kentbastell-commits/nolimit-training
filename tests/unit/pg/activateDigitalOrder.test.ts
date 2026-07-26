@@ -118,7 +118,7 @@ describe("api/activateDigitalOrder (postgres)", () => {
     expect(String(order.payment_status || "")).not.toMatch(/^paid$/i);
   });
 
-  it("does not persist an order for an unknown program (reports orderPersisted false)", async () => {
+  it("fails the checkout outright when the program is unknown", async () => {
     await seedClient({ client_id: "CL-9001", full_name: "Bob Tan", phone: "13800000001" });
     // No program seeded — this is the stale-store-tab case.
 
@@ -128,15 +128,39 @@ describe("api/activateDigitalOrder (postgres)", () => {
       res as any
     );
 
-    // Pinning existing behaviour, not endorsing it: the buyer still gets a
-    // 200 and a payment code while NO order row exists for a coach to
-    // verify, so a transfer against this code can never be reconciled. The
-    // failure is reported only in `orderError`, which the UI may not show.
-    // Worth deciding whether this should be a hard failure instead.
-    expect(res.statusCode).toBe(200);
+    // This used to return 200: the buyer got a success screen and a payment
+    // reference for an order that was never created, so they could pay
+    // against a code that reconciled to nothing. The storefront shows the
+    // error toast on a non-200 and never advances to the success screen.
+    expect(res.statusCode).toBe(400);
+    expect(res.body.error).toMatch(/Unknown program id/);
     expect(res.body.orderPersisted).toBe(false);
-    expect(res.body.orderError).toBeTruthy();
     expect(await rows("select 1 from product_orders")).toHaveLength(0);
+  });
+
+  it("leaves no partial order behind when one item of a cart fails", async () => {
+    await seedProgram({ program_id: "PR-1001", name: "Test Program" });
+    await seedClient({ client_id: "CL-9001", full_name: "Bob Tan", phone: "13800000001" });
+
+    const res = makeRes();
+    await handler(
+      makeReq({
+        method: "POST",
+        body: validBody({
+          // Main program is real; the add-on points at a program that isn't.
+          addons: [{ programId: "PR-GONE", programRecordId: "PR-GONE", programName: "Ghost" }],
+        }),
+      }) as any,
+      res as any
+    );
+
+    expect(res.statusCode).toBe(400);
+    // Atomic: the main item's order is rolled back too, so a retry can't
+    // leave the buyer with two orders for the same purchase.
+    expect(await rows("select 1 from product_orders")).toHaveLength(0);
+    // The client record survives on purpose — the retry reuses that identity
+    // rather than minting a second one (#37).
+    expect(await rows("select 1 from clients")).toHaveLength(1);
   });
 
   it("records the payment reference so a coach can match the transfer", async () => {
