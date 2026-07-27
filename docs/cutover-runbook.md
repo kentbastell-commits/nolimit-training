@@ -19,7 +19,28 @@ ETL); steps 3–9 unchanged. Off-box backup shipping (HK→CN rsync of
 /opt/backups/pg) still worth adding.
 
 **Trigger:** ICP beian approval for trainnolimit.cn (order 30178426682034412,
-Guangdong bureau, submitted 2026-07-17). Until then: do nothing here.
+Guangdong bureau, submitted 2026-07-17). **APPROVED 2026-07-27.**
+
+**⚡ 2026-07-27: PRE-FLIGHT COMPLETE — the CN box is cutover-ready.**
+Executed same day as approval: code brought current via bundle (b529949, the
+post-Feishu-retirement codebase — there is no `DATA_BACKEND` switch any more,
+so step 3's flip is obsolete); `nolimit_prod` created and restored from that
+morning's HK dump (row counts matched HK exactly: clients=5, workouts=26,
+logs=238 — this doubled as the first real restore drill of the nightly
+backups); `drizzle-kit migrate` applied 0008; twin (app 1, :3101) pinned to
+throwaway `nolimit` in its OWN pm2 env BEFORE the shared `.env` was repointed
+(mistake #41); app rebuilt + restarted; **write battery 17/17** against the
+box. NOTE the runbook's port was wrong: the CN main app serves on **:3001**
+(not 3100). Also note: the CN box's ssh drops occasionally mid-command
+(GFW/middlebox flakiness) — re-run, don't diagnose.
+
+**What remains on cutover day:** a final delta dump→restore (HK prod →
+nolimit-cn, minutes), then steps 4–9 (nginx+TLS for trainnolimit.cn — the
+uploads block needs `^~` per mistake #38 —, final uploads rsync, DNS, live
+verify, health crons on CN with HEALTH_SITE_URL=.cn). Steps 1–3 are done or
+obsolete. Kent-side prerequisites: the 备案号 text for the site footer
+(legally required on a mainland-served site, linked to beian.miit.gov.cn),
+and the DNS A record → 124.222.125.91.
 
 **Shape of the move:** Feishu stops being the database and becomes a frozen
 backup. The Shanghai CVM (`ssh nolimit-cn`, 124.222.125.91) serves
