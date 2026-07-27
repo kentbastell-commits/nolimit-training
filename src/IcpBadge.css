@@ -1,0 +1,20 @@
+/* Co-located with IcpBadge.tsx so the style ships into every chunk that
+   renders the badge — a shared class styled from one page's CSS would be
+   visit-order dependent (CLAUDE.md mistake #25). Inherits the surrounding
+   footer's color so it reads correctly on dark (landing) and light (store,
+   legal) grounds alike. */
+.icpBadge {
+  display: inline-block;
+  margin-top: 10px;
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
+  color: inherit;
+  opacity: 0.72;
+  text-decoration: none;
+}
+
+.icpBadge:hover,
+.icpBadge:focus-visible {
+  opacity: 1;
+  text-decoration: underline;
+}

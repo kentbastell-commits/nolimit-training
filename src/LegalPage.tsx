@@ -1,4 +1,5 @@
 import { ArrowLeft, ShieldCheck } from "lucide-react";
+import IcpBadge from "./IcpBadge";
 import "./LegalPage.css";
 import { BRAND_WORDMARK_BLACK } from "./brandAssets";
 
@@ -282,6 +283,13 @@ function BusinessZh() {
         <h2>登记经营范围</h2>
         <p>商务服务业。具体经营项目及依法须经批准的项目，以国家企业信用信息公示系统登记和有关部门批准为准。</p>
         <a className="businessRegistryLink" href="https://www.gsxt.gov.cn/" target="_blank" rel="noreferrer">前往国家企业信用信息公示系统查询</a>
+      </section>
+      <section>
+        <h2>ICP 备案</h2>
+        <p>
+          本网站已依法完成 ICP 备案：<IcpBadge />
+          （审核通过日期 2026-07-27，广东省通信管理局）。
+        </p>
       </section>
     </article>
   );

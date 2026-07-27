@@ -22,6 +22,11 @@ describe("LandingPage", () => {
     expect(
       screen.getAllByText("Raise the Floor. Break the Ceiling.").length
     ).toBeGreaterThan(0);
+    // ICP 备案号 — legally required in the footer of a mainland-served site,
+    // linked to the MIIT portal. If this assertion fails, the site is not
+    // compliant to serve on trainnolimit.cn.
+    const icp = screen.getByText("粤ICP备2026103091号");
+    expect(icp).toHaveAttribute("href", "https://beian.miit.gov.cn");
     expect(
       screen.getByRole("heading", {
         name: "Train like a professional, from your phone.",

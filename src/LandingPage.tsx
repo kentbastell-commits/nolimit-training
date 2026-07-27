@@ -8,6 +8,7 @@
 // China-safe) and collapses to fades under prefers-reduced-motion.
 import { Fragment, useEffect, useRef, useState, type ReactNode } from "react";
 import { ArrowRight, BookOpen, Check, Shield, Users } from "lucide-react";
+import IcpBadge from "./IcpBadge";
 import {
   animate,
   motion,
@@ -565,6 +566,7 @@ export default function LandingPage({
           <a href="/refund">{lZh ? "退款" : "Refunds"}</a>
           <a href="/business">{lZh ? "经营者信息" : "Business"}</a>
         </div>
+        <IcpBadge />
       </footer>
     </div>
   );

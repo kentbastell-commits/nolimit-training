@@ -3,6 +3,7 @@
 // mechanical move; tighten when the store gets its own state).
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from "react";
+import IcpBadge from "./IcpBadge";
 import {
   Activity,
   ArrowRight,
@@ -2002,6 +2003,7 @@ export default function StorePage({
         <span className="storeFooterTagV3">
           {sZh ? "为训练而生。" : "Raise the Floor. Break the Ceiling."}
         </span>
+        <IcpBadge />
       </footer>
     </div>
   );
