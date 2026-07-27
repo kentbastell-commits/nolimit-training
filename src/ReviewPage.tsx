@@ -19,11 +19,14 @@ export default function ReviewPage({
   checkInReplyDrafts,
   checkInReplySaving,
   clientLabel,
-  clientMessages,
-  messageReplyDrafts,
-  setMessageReplyDrafts,
-  messageReplySaving,
-  respondToClientMessage,
+  // Defaults guard the loose prop-bag idiom: a call site that misses one of
+  // these still compiles (props are `[key: string]: any`), so without a
+  // default the first render would throw, not the build.
+  clientMessages = [],
+  messageReplyDrafts = {},
+  setMessageReplyDrafts = () => {},
+  messageReplySaving = "",
+  respondToClientMessage = () => {},
   coachReviewCheckIns,
   coachReviewError,
   focusReviewColumn,

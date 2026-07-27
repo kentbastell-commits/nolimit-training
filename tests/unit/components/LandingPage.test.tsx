@@ -16,7 +16,12 @@ const baseProps = {
 describe("LandingPage", () => {
   it("renders the hero copy in English", () => {
     render(<LandingPage {...baseProps} />);
-    expect(screen.getAllByText("Built for Training")).toHaveLength(2);
+    // The brand slogan replaced "Built for Training" (identity pass,
+    // f2b9776); assert presence rather than a count so a copy re-shuffle
+    // between hero/ticker/footer doesn't re-break this test.
+    expect(
+      screen.getAllByText("Raise the Floor. Break the Ceiling.").length
+    ).toBeGreaterThan(0);
     expect(
       screen.getByRole("heading", {
         name: "Train like a professional, from your phone.",

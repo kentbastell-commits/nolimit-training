@@ -18,6 +18,11 @@ const baseProps = {
   globalUnreviewedWorkoutComments: [],
   markGlobalWorkoutCommentReviewed: vi.fn(),
   newEnquiries: [],
+  clientMessages: [],
+  messageReplyDrafts: {},
+  setMessageReplyDrafts: vi.fn(),
+  messageReplySaving: "",
+  respondToClientMessage: vi.fn(),
   openOrderReview: vi.fn(),
   openReviewClient: vi.fn(),
   openReviewSections: {
@@ -26,6 +31,7 @@ const baseProps = {
     submissions: true,
     missed: true,
     checkins: true,
+    messages: true,
   },
   openReviewWorkout: vi.fn(),
   respondToCheckIn: vi.fn(),
@@ -55,6 +61,33 @@ describe("ReviewPage", () => {
     expect(
       screen.getByText("No new in-person enquiries.")
     ).toBeInTheDocument();
+    expect(screen.getByText("No unanswered messages. 👍")).toBeInTheDocument();
+  });
+
+  it("renders an athlete message with a working reply flow", () => {
+    const respond = vi.fn();
+    render(
+      <ReviewPage
+        {...baseProps}
+        clientMessages={[
+          {
+            messageId: "MSG-1",
+            clientId: "CL-9001",
+            clientName: "Bob Tan",
+            body: "My week 3 looks empty — is that right?",
+            status: "New",
+            createdAt: 1753600000000,
+          },
+        ]}
+        messageReplyDrafts={{ "MSG-1": "Fixed — refresh and check again." }}
+        respondToClientMessage={respond}
+      />
+    );
+    expect(screen.getByText(/week 3 looks empty/)).toBeInTheDocument();
+    fireEvent.click(screen.getAllByRole("button", { name: "Send reply" })[0]);
+    expect(respond).toHaveBeenCalledWith(
+      expect.objectContaining({ messageId: "MSG-1" })
+    );
   });
 
   it("opens a check-in review by keyboard and closes it with Escape", () => {
