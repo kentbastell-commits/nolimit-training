@@ -1,6 +1,6 @@
 ---
 name: deploy
-description: Build-check, commit, and deploy nolimit-training or kangfu-zhuanjia to the Tencent HK server, then verify live. Use whenever Kent says "deploy", "ship it", "push it live", or work is finished and he has approved deployment. Handles the two repos' different deploy mechanics (GitHub pull vs git bundle).
+description: Build-check, commit, and deploy nolimit-training (Shanghai CVM via bundle) or kangfu-zhuanjia (HK via bundle), then verify live. Use whenever Kent says "deploy", "ship it", "push it live", or work is finished and he has approved deployment. Handles each target's transport — GitHub is a backup for nolimit, NOT its deploy path.
 ---
 
 # Deploy
@@ -9,12 +9,21 @@ Deploys one of the two production apps. Determine the target repo first — from
 which repo the session's changes live in, or ask if changes span both (deploy
 both, sequentially).
 
-| Target | Repo path | Deploy transport | Server dir | PM2 app | Live URL |
-|---|---|---|---|---|---|
-| nolimit | `c:\Users\kentb\nolimit-training` | GitHub (server pulls origin) | `/opt/nolimit-training` | `nolimit-training` | https://trainnolimit.com |
-| kangfu | `c:\Users\kentb\kangfu-zhuanjia` | **git bundle via scp** (server origin = `/tmp/kangfu.bundle`) | `/opt/kangfu-zhuanjia` | `kangfu-zhuanjia` | https://kangfu.trainnolimit.com |
+| Target | Repo path | Deploy transport | Server (ssh alias) | Server dir | PM2 app | Live URL |
+|---|---|---|---|---|---|---|
+| nolimit | `c:\Users\kentb\nolimit-training` | **git bundle via scp** (GitHub is blocked FROM the mainland box — a push deploys NOTHING) | `nolimit-cn` (124.222.125.91, Shanghai) | `/opt/nolimit-training` | `nolimit-training` | https://trainnolimit.cn |
+| kangfu | `c:\Users\kentb\kangfu-zhuanjia` | **git bundle via scp** (server origin = `/tmp/kangfu.bundle`) | `nolimit` (43.132.228.109, HK) | `/opt/kangfu-zhuanjia` | `kangfu-zhuanjia` | https://kangfu.trainnolimit.com |
 
-SSH alias `nolimit` is preconfigured (43.132.228.109, key `~/.ssh/nolimit_deploy`).
+**Since the 2026-07-27 cutover, nolimit production is the SHANGHAI box.**
+trainnolimit.com is only an HK nginx pass-through to trainnolimit.cn; the HK
+`nolimit-training` app on :3001 is a rollback relic — updating it deploys
+nothing a user can see (the ghost-deploy trap, now on nolimit too). The HK
+**twin** (:8443, `nolimit-training-pg`, throwaway DB) still lives on HK and
+still serves mini-program DEV builds — deploy to it separately if a dev-build
+feature needs new endpoints. Shanghai ops note: its sshd drops long-lived
+sessions — run long server commands via
+`sudo systemd-run --unit=x --collect bash -c '... > /tmp/x.log'` and poll the
+log; simply retry short commands that die with "Connection closed".
 
 ## Preconditions — abort with a clear message if any fails
 
@@ -34,14 +43,22 @@ SSH alias `nolimit` is preconfigured (43.132.228.109, key `~/.ssh/nolimit_deploy
    Use `--maxWorkers=1` — higher values give phantom whole-suite failures
    (named mistake #15). Never deploy past a red gate.
 
-## Steps — nolimit
+## Steps — nolimit (Shanghai)
+
+A GitHub push does NOT reach production. Push anyway (source-of-truth backup),
+then ship the bundle:
 
 ```bash
 cd /c/Users/kentb/nolimit-training
 npx tsc -b --force && npm run build && npx vitest run --maxWorkers=1
 git push origin main
-ssh nolimit "cd /opt/nolimit-training && git pull origin main && npm install --no-audit --no-fund && npx drizzle-kit migrate && npx tsc -b --force && npx vite build && pm2 restart nolimit-training"
+git bundle create /tmp/nolimit-deploy.bundle main
+scp /tmp/nolimit-deploy.bundle nolimit-cn:/tmp/nolimit.bundle
+ssh nolimit-cn "cd /opt/nolimit-training && git pull origin main && npm install --no-audit --no-fund && npx drizzle-kit migrate && npx tsc -b --force && npx vite build && pm2 restart nolimit-training"
 ```
+
+If the ssh step dies with "Connection closed" mid-build, re-run just that step
+— or run it detached via systemd-run and poll (see the ops note above).
 
 `drizzle-kit migrate` is idempotent (prod tracks applied migrations in
 `drizzle.__drizzle_migrations`) — safe on every deploy, and REQUIRED whenever
@@ -81,26 +98,31 @@ http://127.0.0.1:<port>” as `--port <port>`. Never kill all Node/DevTools proc
 
 ## Verify — a deploy without verification is not a deploy
 
-1. `ssh nolimit "cd <server dir> && git log --oneline -1"` — must equal the local
-   HEAD short hash. If it doesn't, the pull didn't take (for kangfu this almost
-   always means the bundle wasn't uploaded). Nolimit trap (bit once 2026-07-18):
+Use the target's own ssh alias (`nolimit-cn` for nolimit, `nolimit` for kangfu).
+
+1. `ssh <alias> "cd <server dir> && git log --oneline -1"` — must equal the local
+   HEAD short hash. If it doesn't, the pull didn't take (bundle transports: this
+   almost always means the bundle wasn't uploaded). Trap (bit once 2026-07-18):
    a file scp'd into the server worktree and LATER committed makes `git pull`
    abort on "untracked working tree files would be overwritten" — and
    `pull | tail -1` shows a healthy-looking "Updating a..b" line while HEAD
    never moves. Never scp into the server repo (use /tmp and run from there);
    if it happened, `rm` the colliding file and re-pull.
 2. `curl -s -o /dev/null -w "%{http_code}" <live URL>/` — must be 200. Give PM2
-   ~5 seconds after restart before probing.
+   ~5 seconds after restart before probing. For nolimit, probe
+   https://trainnolimit.cn AND https://trainnolimit.com — the second proves the
+   HK pass-through still forwards to the new build.
 3. Behavior check: hit ONE live endpoint or page that exercises this deploy's
    change and confirm the new behavior (e.g. a new API returns its shape, a new
    field appears in `/api/exercises`). "It's probably fine" does not pass.
-4. `ssh nolimit "pm2 list | grep <app>"` — status `online`, and the restart counter
+4. `ssh <alias> "pm2 list | grep <app>"` — status `online`, and the restart counter
    (`↺`) did not jump more than +1 (a climbing counter means crash-looping; check
    `pm2 logs <app> --lines 30 --nostream` immediately).
-5. nolimit only: `ssh nolimit "crontab -l | grep -c healthCheck"` must return 2 —
-   the 5-minute watchdog and the 06:00 morning report. Kent has no ops person, so
-   those two are how he learns about a problem without a client telling him; a
-   deploy that silently drops them leaves him blind.
+5. nolimit only: `ssh nolimit-cn "crontab -l | grep -c healthCheck"` must return
+   2 — the 5-minute watchdog and the 06:00 morning report run on the SHANGHAI
+   box now. Kent has no ops person, so those two are how he learns about a
+   problem without a client telling him; a deploy that silently drops them
+   leaves him blind.
 
 ## Failure handling
 
