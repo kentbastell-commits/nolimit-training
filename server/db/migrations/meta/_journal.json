@@ -57,6 +57,13 @@
       "when": 1784739003872,
       "tag": "0007_vengeful_kinsey_walden",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1785124152769,
+      "tag": "0008_funny_demogoblin",
+      "breakpoints": true
     }
   ]
 }

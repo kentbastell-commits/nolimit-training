@@ -1124,7 +1124,14 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   const [coachReviewError, setCoachReviewError] = useState("");
   const [openReviewSections, setOpenReviewSections] = useState<
     Record<string, boolean>
-  >({ comments: true, missed: true, submissions: true, checkins: true, enquiries: true, formVideos: true });
+  >({ comments: true, missed: true, submissions: true, checkins: true, enquiries: true, formVideos: true, messages: true });
+  // Athlete-initiated "写给教练" messages awaiting a reply (mail, not chat —
+  // the relationship conversation lives in WeChat; this is the review queue).
+  const [coachClientMessages, setCoachClientMessages] = useState<any[]>([]);
+  const [messageReplyDrafts, setMessageReplyDrafts] = useState<
+    Record<string, string>
+  >({});
+  const [messageReplySaving, setMessageReplySaving] = useState("");
   const toggleReviewSection = (key: string) =>
     setOpenReviewSections((prev) => ({ ...prev, [key]: !prev[key] }));
   const [activeContentAssignment, setActiveContentAssignment] =
@@ -3824,6 +3831,45 @@ function App({ onReady }: { onReady?: () => void } = {}) {
 
   // Coach replies to a check-in: saves the note, marks it reviewed, and the
   // athlete sees the reply in their portal.
+  // Reply to an athlete's direct message — mirrors respondToCheckIn: send,
+  // drop it from the queue, clear the draft. The athlete reads the reply on
+  // their 写给教练 page in the mini program.
+  const respondToClientMessage = async (message: any) => {
+    const text = (messageReplyDrafts[message.messageId] || "").trim();
+    if (!text) {
+      notify("Write a reply first.", "error");
+      return;
+    }
+    setMessageReplySaving(message.messageId);
+    try {
+      const response = await fetch("/api/clientMessages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messageId: message.messageId, coachReply: text }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        console.error(data);
+        notify("Could not send reply.", "error");
+        return;
+      }
+      setCoachClientMessages((cur) =>
+        cur.filter((m) => m.messageId !== message.messageId)
+      );
+      setMessageReplyDrafts((cur) => {
+        const next = { ...cur };
+        delete next[message.messageId];
+        return next;
+      });
+      notify("Reply sent.", "success");
+    } catch (error) {
+      console.error(error);
+      notify("Could not send reply.", "error");
+    } finally {
+      setMessageReplySaving("");
+    }
+  };
+
   const respondToCheckIn = async (checkIn: PortalCheckIn) => {
     const text = (checkInReplyDrafts[checkIn.recordId] || "").trim();
     if (!text) {
@@ -3873,8 +3919,15 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     // a Feishu hiccup) must not blank the whole queue and greet the coach
     // with an error toast. Failed feeds keep their previous data and get one
     // quiet retry before anything is surfaced.
+    const fetchNewClientMessages = async () => {
+      const response = await fetch("/api/clientMessages?status=New");
+      const data = await response.json();
+      if (!response.ok) throw new Error(data?.error || "clientMessages failed");
+      return data.messages || [];
+    };
+
     const attempt = async (): Promise<number> => {
-      const [, responses, comments, assignedWorkouts, checkIns, enquiryList] =
+      const [, responses, comments, assignedWorkouts, checkIns, enquiryList, messageList] =
         await Promise.allSettled([
           loadProductOrders(force),
           fetchAllContentResponses(),
@@ -3882,6 +3935,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
           fetchAllAssignedWorkouts(),
           fetchUnreviewedCheckIns(),
           fetchEnquiries(),
+          fetchNewClientMessages(),
         ]);
 
       if (responses.status === "fulfilled")
@@ -3892,6 +3946,8 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       if (checkIns.status === "fulfilled") setCoachReviewCheckIns(checkIns.value);
       if (enquiryList.status === "fulfilled")
         setCoachReviewEnquiries(enquiryList.value);
+      if (messageList.status === "fulfilled")
+        setCoachClientMessages(messageList.value);
 
       const failures = [
         responses,
@@ -3899,6 +3955,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
         assignedWorkouts,
         checkIns,
         enquiryList,
+        messageList,
       ].filter((r) => r.status === "rejected");
       failures.forEach((f) =>
         console.error("review feed failed:", (f as PromiseRejectedResult).reason)
@@ -19482,6 +19539,11 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                 reviewFlashColumn={reviewFlashColumn}
                 checkInReplyDrafts={checkInReplyDrafts}
                 checkInReplySaving={checkInReplySaving}
+                clientMessages={coachClientMessages}
+                messageReplyDrafts={messageReplyDrafts}
+                setMessageReplyDrafts={setMessageReplyDrafts}
+                messageReplySaving={messageReplySaving}
+                respondToClientMessage={respondToClientMessage}
                 clientLabel={clientLabel}
                 coachReviewCheckIns={scopedReviewCheckIns}
                 coachReviewError={coachReviewError}

@@ -462,3 +462,14 @@ export type SubscriptionDTO = {
   paymentId: string;
   notes: string;
 };
+
+export type ClientMessageDTO = {
+  messageId: string;
+  clientId: string;
+  clientName: string;
+  body: string;
+  status: string; // New | Replied
+  coachReply: string;
+  createdAt: number;
+  repliedAt: number;
+};

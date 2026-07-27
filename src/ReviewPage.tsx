@@ -19,6 +19,11 @@ export default function ReviewPage({
   checkInReplyDrafts,
   checkInReplySaving,
   clientLabel,
+  clientMessages,
+  messageReplyDrafts,
+  setMessageReplyDrafts,
+  messageReplySaving,
+  respondToClientMessage,
   coachReviewCheckIns,
   coachReviewError,
   focusReviewColumn,
@@ -81,7 +86,8 @@ export default function ReviewPage({
     globalMissedWorkouts.length +
     globalReviewOrders.length +
     coachReviewCheckIns.length +
-    newEnquiries.length;
+    newEnquiries.length +
+    clientMessages.length;
 
   const checkInChips = (c: any) => {
     const mk = (label: string, v: any) =>
@@ -154,6 +160,12 @@ export default function ReviewPage({
       target: "reviewColEnquiries",
       accent: "#b5654a", // Clay
     },
+    {
+      label: "Messages 留言",
+      count: clientMessages.length,
+      target: "reviewColMessages",
+      accent: "#d4af37", // Brand gold — the athlete's own voice
+    },
   ];
 
   const sectionHeader = (
@@ -217,7 +229,7 @@ export default function ReviewPage({
             <CountUp value={total} />
           </span>
           <span className="rvHeroSub">
-            open items across 6 queues waiting on you
+            open items across 7 queues waiting on you
           </span>
         </div>
       </div>
@@ -246,6 +258,64 @@ export default function ReviewPage({
 
       {/* board */}
       <div className="rvBoard">
+        {/* Direct athlete messages — the 写给教练 loop. First on the board:
+            an athlete who typed a message with no workout to hang it on is
+            usually confused or blocked, the costliest state to leave waiting. */}
+        <article
+          id="reviewColMessages"
+          className={`rvSection ${
+            reviewFlashColumn === "reviewColMessages" ? "rvFlash" : ""
+          }`}
+        >
+          {sectionHeader(
+            "Direct from athletes",
+            "Messages 留言",
+            clientMessages.length,
+            "messages"
+          )}
+          {openReviewSections.messages && (
+            <div className="rvGrid">
+              {clientMessages.length === 0 && (
+                <p className="rvEmpty">No unanswered messages. 👍</p>
+              )}
+              {clientMessages.map((msg: any) => (
+                <div key={msg.messageId} className="rvCard">
+                  <div className="rvCardHead">
+                    <strong>{msg.clientName || clientLabel(msg.clientId) || msg.clientId}</strong>
+                    <small>
+                      {msg.createdAt
+                        ? new Date(msg.createdAt).toLocaleString()
+                        : "—"}
+                    </small>
+                  </div>
+                  <p className="rvNote">{msg.body}</p>
+                  <textarea
+                    className="rvReply"
+                    placeholder="Write a reply to your athlete…"
+                    value={messageReplyDrafts[msg.messageId] || ""}
+                    onChange={(e) =>
+                      setMessageReplyDrafts((cur: any) => ({
+                        ...cur,
+                        [msg.messageId]: e.target.value,
+                      }))
+                    }
+                  />
+                  <button
+                    type="button"
+                    className="rvGoldBtn"
+                    disabled={messageReplySaving === msg.messageId}
+                    onClick={() => void respondToClientMessage(msg)}
+                  >
+                    {messageReplySaving === msg.messageId
+                      ? "Sending…"
+                      : "Send reply"}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </article>
+
         {/* In-Person Enquiries */}
         <article
           id="reviewColEnquiries"

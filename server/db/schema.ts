@@ -801,3 +801,23 @@ export const testLibrary = pgTable("test_library", {
   status: text("status"),
   linkedExerciseId: text("linked_exercise_id").references(() => exercises.exerciseId),
 });
+
+// Athlete-initiated "message my coach" — the one communication path with no
+// workout/check-in/video to hang itself on ("my week looks wrong", "the app
+// won't log in"). Deliberately mail, not chat: one body, one coach reply, a
+// status the review queue can drain. Relationship conversation stays in
+// WeChat; this is the professional record.
+export const clientMessages = pgTable(
+  "client_messages",
+  {
+    messageId: text("message_id").primaryKey(),
+    clientId: text("client_id").references(() => clients.clientId),
+    clientName: text("client_name"),
+    body: text("body").notNull(),
+    status: text("status").default("New"), // New | Replied
+    coachReply: text("coach_reply"),
+    createdAt: ts("created_at"),
+    repliedAt: ts("replied_at"),
+  },
+  (t) => [index("client_messages_client_idx").on(t.clientId)]
+);
