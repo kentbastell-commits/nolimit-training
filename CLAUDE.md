@@ -454,6 +454,13 @@ data between them, never "borrow" a table ID across products.
     data; and note both clients share the web's quirk that an exercise with
     no matching 1RM test falls back to the athlete's FIRST 1RM metric (a
     bench % can resolve from a squat 1RM) — change it in both or neither.
+48. **The cascade that forgets the new table** — `client_messages` (migration
+    0008) shipped with an FK to clients but was never added to
+    `cascadeDeleteClientData` (server/db/pg/records.ts), so deleting any
+    athlete who had ever messaged their coach failed whole. Rule: any new
+    table with an FK to `clients` gets a delete in the cascade (or `ON DELETE
+    CASCADE`) plus a delete-with-child-row test, in the same commit as the
+    migration.
 
 ## Quality bar — checkable, per deliverable
 
