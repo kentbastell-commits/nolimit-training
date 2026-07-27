@@ -34,6 +34,7 @@ import {
   reviews,
   formVideos,
   testLibrary,
+  clientMessages,
 } from "../schema.ts";
 import type {
   DeleteRecordInput,
@@ -202,6 +203,14 @@ async function cascadeDeleteClientData(
     .where(eq(athleteMetrics.clientId, clientCode))
     .returning();
   add("FEISHU_ATHLETE_METRICS_TABLE_ID", am.length);
+
+  // client_messages carry an FK to clients (no DB cascade) — without this the
+  // whole client delete fails for any athlete who ever wrote to their coach.
+  const cm = await dbx
+    .delete(clientMessages)
+    .where(eq(clientMessages.clientId, clientCode))
+    .returning();
+  add("CLIENT_MESSAGES", cm.length);
 
   return counts;
 }

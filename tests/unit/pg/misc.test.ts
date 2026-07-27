@@ -170,6 +170,22 @@ describe("api/deleteRecord (postgres)", () => {
     expect(res.statusCode).toBe(200);
     expect(await rows("select 1 from assigned_workouts")).toHaveLength(0);
   });
+
+  it("deletes a client who has messaged their coach (client_messages FK)", async () => {
+    await pool.query(
+      `insert into client_messages (message_id, client_id, client_name, body, status)
+       values ('MSG-1', 'CL-9001', 'Bob Tan', 'hello coach', 'new')`
+    );
+
+    const res = await post(deleteRecordHandler, {
+      resource: "client",
+      recordId: "CL-9001",
+      clientCode: "CL-9001",
+    });
+    expect(res.statusCode).toBe(200);
+    expect(await rows("select 1 from clients")).toHaveLength(0);
+    expect(await rows("select 1 from client_messages")).toHaveLength(0);
+  });
 });
 
 describe("api/athleteMetrics + exerciseResults + analytics (postgres)", () => {
