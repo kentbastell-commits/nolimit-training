@@ -48,12 +48,16 @@ AppSecret whitelist). CN ops note: sshd drops long-lived sessions — run long
 commands via `sudo systemd-run --unit=x --collect bash -c '... > /tmp/x.log'`
 and poll the log; retry short commands on "Connection closed".
 
-**⚠️ OPEN: SPLIT BRAIN between .com and .cn.** trainnolimit.com still serves
-the HK app against the HK database; trainnolimit.cn serves Shanghai. A coach
-edit made on .com does NOT reach the pilot. Until Kent approves a 301
-redirect .com→.cn on HK nginx (recommended), ALL coach/console/portal use
-must go through https://trainnolimit.cn. HK stays as rollback + backup ship
-target.
+**✅ SPLIT BRAIN CLOSED (2026-07-27, Kent-approved):** trainnolimit.com is
+now a PASS-THROUGH — HK nginx terminates .com TLS and proxies everything to
+https://trainnolimit.cn (Host+SNI rewritten to the filed domain or mainland
+ingress rejects it). Proven by planting a row directly in the Shanghai DB and
+reading it back through .com; image uploads 200 through both doors. ONE
+backend, one database (Shanghai). The HK app on :3001 still runs but nothing
+external reaches it — rollback only (config backup:
+nolimit-training.conf.bak-pre-proxy; restoring it accepts losing post-cutover
+data). Final 3.9G uploads rsync HK→CN ran at proxy time. The HK twin (:8443)
+is untouched and still serves mini-program DEV builds.
 
 **Kent-side remaining:** mp-admin request-domain whitelist
 (https://trainnolimit.cn), AppSecret IP whitelist → 124.222.125.91, decide
