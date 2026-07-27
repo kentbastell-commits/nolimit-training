@@ -64,6 +64,13 @@
       "when": 1785124152769,
       "tag": "0008_funny_demogoblin",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1785173681996,
+      "tag": "0009_faithful_wallflower",
+      "breakpoints": true
     }
   ]
 }

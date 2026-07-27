@@ -35,6 +35,7 @@ import {
   formVideos,
   testLibrary,
   clientMessages,
+  wxSubscribeCredits,
 } from "../schema.ts";
 import type {
   DeleteRecordInput,
@@ -211,6 +212,12 @@ async function cascadeDeleteClientData(
     .where(eq(clientMessages.clientId, clientCode))
     .returning();
   add("CLIENT_MESSAGES", cm.length);
+
+  const wx = await dbx
+    .delete(wxSubscribeCredits)
+    .where(eq(wxSubscribeCredits.clientId, clientCode))
+    .returning();
+  add("WX_SUBSCRIBE_CREDITS", wx.length);
 
   return counts;
 }

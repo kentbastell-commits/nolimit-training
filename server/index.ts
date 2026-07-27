@@ -102,6 +102,8 @@ import inPersonEnquiry from "../api/inPersonEnquiry.ts";
 import exerciseResults from "../api/exerciseResults.ts";
 import exercises from "../api/exercises.ts";
 import findMyPortal from "../api/findMyPortal.ts";
+import myProfile from "../api/myProfile.ts";
+import wxSubscribeBank from "../api/wxSubscribeBank.ts";
 import formVideos from "../api/formVideos.ts";
 import formTemplates from "../api/formTemplates.ts";
 import notifications from "../api/notifications.ts";
@@ -256,6 +258,8 @@ const handlers = {
   exerciseResults,
   exercises,
   findMyPortal,
+  myProfile,
+  wxSubscribeBank,
   formVideos,
   formTemplates,
   notifications,

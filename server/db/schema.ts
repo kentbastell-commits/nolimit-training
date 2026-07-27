@@ -821,3 +821,21 @@ export const clientMessages = pgTable(
   },
   (t) => [index("client_messages_client_idx").on(t.clientId)]
 );
+
+// WeChat one-time subscribe-message credits. Each row = one "allow" the
+// athlete granted in the mini program = permission for exactly ONE push.
+// The morning wellness cron consumes the oldest unused row per client; a
+// client with no unused row simply isn't pinged (WeChat's rule, not ours).
+// Remember named mistake #48: this table has a client FK, so it is in the
+// client-delete cascade from birth.
+export const wxSubscribeCredits = pgTable(
+  "wx_subscribe_credits",
+  {
+    creditId: text("credit_id").primaryKey(),
+    clientId: text("client_id").references(() => clients.clientId),
+    templateType: text("template_type").default("wellness"),
+    grantedAt: ts("granted_at"),
+    usedAt: ts("used_at"),
+  },
+  (t) => [index("wx_subscribe_credits_client_idx").on(t.clientId)]
+);

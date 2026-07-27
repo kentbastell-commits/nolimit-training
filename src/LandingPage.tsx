@@ -150,7 +150,6 @@ export default function LandingPage({
 }) {
   const lZh = storeLang === "zh";
   const landingPrograms = programs.filter((p) => p.publicStoreVisible);
-  const featuredPrograms = landingPrograms.slice(0, 3);
   const uniqueSports = new Set(
     landingPrograms.map((p) => p.sport).filter(Boolean),
   ).size;
@@ -449,48 +448,22 @@ export default function LandingPage({
           </motion.div>
         </motion.section>
 
-        {/* Featured programs */}
-        {featuredPrograms.length > 0 && (
+        {/* Digital programs — description only; the catalog lives in the
+            store. A grid of the first 3 API rows here just repeated three
+            near-identical climbing cards (Kent: "randomly laid out"). */}
+        {landingPrograms.length > 0 && (
           <motion.section className="lv3Featured" {...reveal}>
             <motion.div className="lv3SectionHead" variants={item}>
               <span className="lv3Eyebrow">{landingCopy.programsTitle}</span>
               <h2>{lZh ? "按项目、赛季和身体需求选择。" : "Built by sport, season, and body."}</h2>
             </motion.div>
-            <motion.div className="lv3FeaturedGrid" variants={staggerParent}>
-              {featuredPrograms.map((program) => (
-                <motion.div
-                  variants={item}
-                  key={program.recordId || program.programName}
-                >
-                  <a className="lv3ProgramCard" href="/store">
-                    {program.productImage ? (
-                      <div className="lv3ProgramImg">
-                        <img src={program.productImage} alt="" loading="lazy" />
-                      </div>
-                    ) : (
-                      <div className="lv3ProgramImg lv3ProgramImgEmpty">
-                        <span>{(program.sport || "NL").slice(0, 2).toUpperCase()}</span>
-                      </div>
-                    )}
-                    <div className="lv3ProgramBody">
-                      <span className="lv3ProgramTag">
-                        {program.sport || (lZh ? "专项训练" : "Performance")}
-                      </span>
-                      <h3>
-                        {lZh && program.programNameCn
-                          ? program.programNameCn
-                          : program.programName}
-                      </h3>
-                      <p>
-                        {program.durationWeeks || "4"} {lZh ? "周" : "wks"} ·{" "}
-                        {program.sessionsPerWeek || "3"}
-                        {lZh ? " 次/周" : "/wk"} ·{" "}
-                        {program.level || (lZh ? "多水平" : "All levels")}
-                      </p>
-                    </div>
-                  </a>
-                </motion.div>
-              ))}
+            <motion.div className="lv3ProgramsIntro" variants={item}>
+              <p>{landingCopy.programsBody}</p>
+              <p className="lv3ProgramsFacts">
+                {lZh
+                  ? `${landingPrograms.length} 套计划 · ${uniqueSports} 个项目 · 中英双语`
+                  : `${landingPrograms.length} programs · ${uniqueSports} sport${uniqueSports === 1 ? "" : "s"} · English & 中文`}
+              </p>
             </motion.div>
             <a className="lv3SeeAll" href="/store">
               {landingCopy.viewPrograms} <ArrowRight size={16} />

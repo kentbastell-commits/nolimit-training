@@ -12450,6 +12450,346 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   }
 }
 
+/* Client desktop workout player: use the same guided visual language as the
+   mobile player, with a contained dialog and its own scrolling body.  The
+   progress/media components used to be styled only below 720px, leaving raw
+   inline text and controls on desktop. */
+@media (min-width: 721px) {
+  .clientPortalApp .clientWorkoutPlayerOverlay {
+    padding: 28px !important;
+  }
+
+  .clientPortalApp .clientWorkoutPlayerModal {
+    display: flex !important;
+    flex-direction: column !important;
+    width: min(1180px, calc(100vw - 56px)) !important;
+    max-width: none !important;
+    height: min(900px, calc(100dvh - 56px)) !important;
+    max-height: calc(100dvh - 56px) !important;
+    overflow: hidden !important;
+    padding: 0 !important;
+    border: 1px solid #d8d3c7 !important;
+    border-radius: 24px !important;
+    background: #f8f7f3 !important;
+    box-shadow: 0 28px 90px rgba(0, 0, 0, 0.34) !important;
+  }
+
+  .clientPortalApp .clientWorkoutPlayerModal > .modal-header {
+    flex: 0 0 auto;
+    margin: 0 !important;
+    padding: 22px 28px 18px !important;
+    border-bottom: 1px solid #e2ded4 !important;
+    background: rgba(255, 255, 255, 0.98) !important;
+  }
+
+  .clientPortalApp .clientWorkoutPlayerModal > .modal-header h2 {
+    margin-bottom: 7px !important;
+    font-size: clamp(30px, 3vw, 44px) !important;
+    line-height: 1 !important;
+  }
+
+  .clientPortalApp .clientWorkoutPlayerModal > .modal-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 22px 28px 34px !important;
+    scrollbar-gutter: stable;
+  }
+
+  .clientPortalApp .clientWorkoutPlayerModal .drawerClose {
+    display: inline-grid;
+    place-items: center;
+    width: 46px;
+    height: 46px;
+    border: 1px solid #ded9cd;
+    border-radius: 14px;
+    background: #ffffff;
+    color: #8f6b12;
+    transition: border-color 150ms ease, background 150ms ease,
+      transform 150ms ease;
+  }
+
+  .clientPortalApp .clientWorkoutPlayerModal .drawerClose:hover {
+    border-color: #c9b66f;
+    background: #faf4df;
+    transform: translateY(-1px);
+  }
+
+  .clientPortalApp .clientWorkoutPlayerActive .workoutGlanceBackButton {
+    display: none !important;
+  }
+
+  .clientPortalApp .workoutPlayerProgress {
+    position: sticky;
+    top: -22px;
+    z-index: 20;
+    display: grid;
+    grid-template-columns: 46px minmax(0, 1fr);
+    align-items: center;
+    gap: 16px;
+    margin: -4px 0 22px;
+    padding: 17px 20px;
+    overflow: hidden;
+    border: 0;
+    border-radius: 18px;
+    background: #3a86ff;
+    color: #ffffff;
+    box-shadow: 0 14px 32px rgba(58, 134, 255, 0.2);
+  }
+
+  .clientPortalApp .workoutPlayerBannerBack {
+    display: inline-grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 1px solid rgba(255, 255, 255, 0.38);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.14);
+    color: #ffffff;
+    cursor: pointer;
+    transition: background 150ms ease, transform 150ms ease;
+  }
+
+  .clientPortalApp .workoutPlayerBannerBack:hover {
+    background: rgba(255, 255, 255, 0.24);
+    transform: translateX(-2px);
+  }
+
+  .clientPortalApp .workoutPlayerProgressContent {
+    display: grid;
+    gap: 9px;
+    min-width: 0;
+  }
+
+  .clientPortalApp .workoutPlayerProgressTop,
+  .clientPortalApp .workoutPlayerProgressMeta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    min-width: 0;
+  }
+
+  .clientPortalApp .workoutPlayerProgressTop span,
+  .clientPortalApp .workoutPlayerProgressMeta span {
+    color: rgba(255, 255, 255, 0.84) !important;
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+
+  .clientPortalApp .workoutPlayerProgressTop strong {
+    min-width: 0;
+    overflow: hidden;
+    color: #ffffff !important;
+    font-size: 17px;
+    font-weight: 950;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .clientPortalApp .workoutPlayerProgressMeta span:first-child {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-transform: none;
+  }
+
+  .clientPortalApp .workoutPlayerProgressTrack {
+    height: 6px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.28);
+  }
+
+  .clientPortalApp .workoutPlayerProgressTrack span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: #ffffff;
+    transition: width 180ms ease;
+  }
+
+  .clientPortalApp .clientWorkoutPlayerActive .workoutLogExerciseCard {
+    margin: 0 0 22px !important;
+    padding: 20px !important;
+    overflow: hidden;
+    border: 1px solid #dedbd2 !important;
+    border-top: 5px solid var(--sectionAccent, #111) !important;
+    border-left: 1px solid #dedbd2 !important;
+    border-radius: 18px !important;
+    background: #ffffff !important;
+    box-shadow: 0 18px 42px rgba(17, 17, 17, 0.08) !important;
+  }
+
+  .clientPortalApp .clientWorkoutPlayerActive .workoutExerciseMedia {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 100%;
+    min-height: clamp(220px, 28vw, 340px);
+    margin: 0 0 20px;
+    overflow: hidden;
+    border: 0;
+    border-radius: 14px;
+    background-color: #111;
+    background-image:
+      linear-gradient(0deg, rgba(0, 0, 0, 0.26), rgba(0, 0, 0, 0.1)),
+      var(--mediaThumb);
+    background-position: center;
+    background-size: cover;
+    color: #3a86ff;
+    cursor: pointer;
+  }
+
+  .clientPortalApp .clientWorkoutPlayerActive .workoutExerciseMediaEmpty {
+    background-image: linear-gradient(135deg, #161616, #2a2925);
+    color: #f4df8a;
+  }
+
+  .clientPortalApp .clientWorkoutPlayerActive .workoutExerciseMediaPlay {
+    display: inline-grid;
+    place-items: center;
+    width: 82px;
+    height: 82px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 16px 38px rgba(17, 17, 17, 0.24);
+    transition: transform 160ms ease;
+  }
+
+  .clientPortalApp .clientWorkoutPlayerActive .workoutExerciseMedia:hover
+    .workoutExerciseMediaPlay {
+    transform: scale(1.06);
+  }
+
+  .clientPortalApp .clientWorkoutPlayerActive .workoutExerciseMediaLabel {
+    position: absolute;
+    right: 14px;
+    bottom: 13px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(17, 17, 17, 0.78);
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .clientPortalApp .clientWorkoutPlayerActive .workoutExerciseHeader {
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .clientPortalApp .clientWorkoutPlayerActive .workoutExerciseTitle h3 {
+    font-size: clamp(26px, 2.3vw, 36px);
+    line-height: 1.06;
+  }
+
+  .clientPortalApp .clientWorkoutPlayerActive .workoutPrescriptionGrid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+
+  .clientPortalApp .clientWorkoutPlayerActive .workoutPrescriptionGrid span {
+    min-width: 0;
+    padding: 11px 12px !important;
+    border: 0 !important;
+    border-radius: 11px !important;
+    background: #f1efe9 !important;
+    color: #111 !important;
+  }
+
+  .clientPortalApp .clientWorkoutPlayerActive .workoutCoachNotes {
+    margin: 14px 0 18px !important;
+    padding: 14px 16px !important;
+    border-left: 4px solid #d4af37 !important;
+    border-radius: 12px !important;
+    background: #faf5e5 !important;
+    color: #514d44 !important;
+    font-size: 15px !important;
+    line-height: 1.5 !important;
+  }
+
+  .clientPortalApp .clientWorkoutPlayerActive .desktopWorkoutSetRow {
+    gap: 12px !important;
+    margin-bottom: 10px;
+    padding: 12px !important;
+    border: 1px solid #e0ddd4 !important;
+    border-radius: 13px !important;
+    background: #f8f7f3 !important;
+    box-shadow: none !important;
+  }
+
+  .clientPortalApp .clientWorkoutPlayerActive .desktopWorkoutSetLabel {
+    min-width: 104px;
+    min-height: 58px;
+    border: 0 !important;
+    border-radius: 10px !important;
+    background: #111 !important;
+  }
+
+  .clientPortalApp .clientWorkoutPlayerActive .desktopWorkoutSetLabel strong {
+    color: #f4df8a !important;
+    font-size: 15px;
+  }
+
+  .clientPortalApp .clientWorkoutPlayerActive .desktopWorkoutSetRow .setLogField,
+  .clientPortalApp .clientWorkoutPlayerActive .desktopWorkoutSetRow .setLogStatic {
+    min-width: 120px;
+  }
+
+  .clientPortalApp .clientWorkoutPlayerActive .desktopWorkoutSetRow input {
+    min-height: 48px;
+    border-radius: 10px !important;
+    font-size: 17px;
+    font-weight: 850;
+  }
+
+  .clientPortalApp .clientWorkoutPlayerActive .workoutFocusNav {
+    position: static;
+    z-index: 30;
+    min-height: 82px;
+    margin: 24px 0 0;
+    padding: 12px 14px;
+    border: 1px solid rgba(212, 175, 55, 0.32);
+    border-radius: 18px;
+    background: rgba(17, 17, 17, 0.97);
+    box-shadow: 0 -12px 36px rgba(17, 17, 17, 0.22);
+  }
+
+  .clientPortalApp .clientWorkoutPlayerActive .workoutFocusNavBtn {
+    min-height: 50px;
+    padding: 12px 20px;
+    border-radius: 12px;
+    white-space: nowrap;
+  }
+
+  .clientPortalApp .clientWorkoutPlayerActive .workoutFocusNavBtnPrimary,
+  .clientPortalApp .clientWorkoutPlayerActive .workoutFocusFinishBtn {
+    background: #f4df8a !important;
+    border-color: #f4df8a !important;
+    color: #111 !important;
+    font-weight: 950 !important;
+  }
+
+  .clientPortalApp .clientWorkoutPlayerActive .workoutFocusDots {
+    min-width: 100px;
+  }
+
+  .clientPortalApp .clientWorkoutPlayerActive .workoutFocusDot {
+    width: 10px;
+    height: 10px;
+  }
+}
+
 /* Client mobile workout player refresh: full-screen, guided, target-first flow. */
 @media (max-width: 720px) {
   .clientPortalApp .clientWorkoutPlayerOverlay {
@@ -13639,12 +13979,24 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 .lv3PathCardBlue li svg { color: #3a86ff; }
 .lv3PathBtn { margin-top: 26px; justify-content: center; }
 
-.lv3FeaturedGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 20px;
-  max-width: 1120px;
+.lv3ProgramsIntro {
+  max-width: 46em;
   margin: 0 auto;
+  text-align: center;
+}
+.lv3ProgramsIntro p {
+  color: #3a3a34;
+  line-height: 1.7;
+  font-size: 1.02rem;
+  margin: 0;
+}
+.lv3ProgramsFacts {
+  margin-top: 14px !important;
+  font-size: 0.82rem !important;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #8b1e2d !important;
+  font-weight: 800;
 }
 .lv3ProgramCard {
   background: #fffefa;

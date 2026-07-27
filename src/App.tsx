@@ -14398,13 +14398,13 @@ function App({ onReady }: { onReady?: () => void } = {}) {
           ) : (
             <>
               <span className="wellnessEyebrow">
-                {paceZh ? "每日状态" : "Daily readiness"}
+                {paceZh ? "每日状态" : "Daily wellness"}
               </span>
               <div className="wellnessPrompt">
                 <strong>
                   {paceZh
                     ? "记录你今天的状态，让教练了解你今天的情况。"
-                    : "Log your daily readiness and let your coach know your condition for today."}
+                    : "Log your daily wellness and let your coach know your condition for today."}
                 </strong>
               </div>
               <button type="button" className="wellnessCta" onClick={openForm}>

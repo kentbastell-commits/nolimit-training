@@ -11,6 +11,8 @@ import exerciseResultsHandler from "../../../api/exerciseResults.ts";
 import analyticsHandler from "../../../api/analytics.ts";
 import formTemplatesHandler from "../../../api/formTemplates.ts";
 import testTemplatesHandler from "../../../api/testTemplates.ts";
+import myProfileHandler from "../../../api/myProfile.ts";
+import wxSubscribeBankHandler from "../../../api/wxSubscribeBank.ts";
 import { closeDb, makeReq, makeRes, resetDb, rows, seedClient, seedProgram } from "./helpers.ts";
 import { pool } from "../../../server/db/client.ts";
 
@@ -176,6 +178,10 @@ describe("api/deleteRecord (postgres)", () => {
       `insert into client_messages (message_id, client_id, client_name, body, status)
        values ('MSG-1', 'CL-9001', 'Bob Tan', 'hello coach', 'new')`
     );
+    await pool.query(
+      `insert into wx_subscribe_credits (credit_id, client_id, template_type)
+       values ('WXC-1', 'CL-9001', 'wellness')`
+    );
 
     const res = await post(deleteRecordHandler, {
       resource: "client",
@@ -185,6 +191,51 @@ describe("api/deleteRecord (postgres)", () => {
     expect(res.statusCode).toBe(200);
     expect(await rows("select 1 from clients")).toHaveLength(0);
     expect(await rows("select 1 from client_messages")).toHaveLength(0);
+    expect(await rows("select 1 from wx_subscribe_credits")).toHaveLength(0);
+  });
+});
+
+describe("api/myProfile (postgres)", () => {
+  it("rejects a malformed client code", async () => {
+    expect((await get(myProfileHandler, { clientId: "nope" })).statusCode).toBe(400);
+  });
+
+  it("404s for an unknown client", async () => {
+    expect((await get(myProfileHandler, { clientId: "CL-0000" })).statusCode).toBe(404);
+  });
+
+  it("returns only the caller's own display fields — never the roster", async () => {
+    await seedClient({ client_id: "CL-9002", full_name: "Mei Lin", phone: "13800000009" });
+    const res = await get(myProfileHandler, { clientId: "CL-9001" });
+    expect(res.statusCode).toBe(200);
+    expect(res.body.profile.clientCode).toBe("CL-9001");
+    expect(res.body.profile.name).toBe("Bob Tan");
+    // The whole point of this endpoint: no other client, no contact data.
+    const raw = JSON.stringify(res.body);
+    expect(raw).not.toContain("CL-9002");
+    expect(raw).not.toContain("Mei Lin");
+    expect(res.body.profile.phone).toBeUndefined();
+    expect(res.body.profile.email).toBeUndefined();
+    expect(res.body.profile.notes).toBeUndefined();
+    expect(res.body.clients).toBeUndefined();
+  });
+});
+
+describe("api/wxSubscribeBank (postgres)", () => {
+  it("rejects a malformed client code", async () => {
+    expect((await post(wxSubscribeBankHandler, { clientId: "abc" })).statusCode).toBe(400);
+  });
+
+  it("banks one credit per grant", async () => {
+    const res = await post(wxSubscribeBankHandler, { clientId: "CL-9001" });
+    expect(res.statusCode).toBe(200);
+    const credits = await rows(
+      "select client_id, template_type, used_at from wx_subscribe_credits"
+    );
+    expect(credits).toHaveLength(1);
+    expect(credits[0].client_id).toBe("CL-9001");
+    expect(credits[0].template_type).toBe("wellness");
+    expect(credits[0].used_at).toBeNull();
   });
 });
 

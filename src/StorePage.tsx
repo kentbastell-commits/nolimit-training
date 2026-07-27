@@ -266,6 +266,22 @@ export default function StorePage({
     return sZh ? "灵活安排" : "Flexible schedule";
   };
 
+  // Curated catalog order — the DB returns rows in id order, which put three
+  // near-identical climbing cards first everywhere. Categories rank in this
+  // order (new ones land after, alphabetically).
+  const CATEGORY_ORDER = [
+    "rock-climbing",
+    "hyrox",
+    "snow-ski",
+    "running",
+    "general-foundation",
+    "joint-addons",
+  ];
+  const categoryRank = (p: Program) => {
+    const idx = CATEGORY_ORDER.indexOf(getProgramCategory(p));
+    return idx === -1 ? CATEGORY_ORDER.length : idx;
+  };
+
   // Known categories keep their curated bilingual labels; any new category a
   // coach assigns in the builder is added automatically.
   const baseCatLabels: Record<string, { en: string; zh: string; body: string }> = {
@@ -282,7 +298,10 @@ export default function StorePage({
   // Build the catalog from the categories actually used by main (non-add-on)
   // store programs, so adding a "Soccer" program creates a Soccer tile.
   const catMap = new Map<string, { id: string; title: string; body: string }>();
-  for (const program of storePrograms) {
+  const catOrderSource = [...storePrograms].sort(
+    (a, b) => categoryRank(a) - categoryRank(b)
+  );
+  for (const program of catOrderSource) {
     if (isAddonProgram(program)) continue;
     const id = getProgramCategory(program);
     if (catMap.has(id)) continue;
@@ -311,10 +330,19 @@ export default function StorePage({
   const priceNum = (p: Program) => parseFloat(p.price || "0") || 0;
   const seasonNum = (p: Program) =>
     Number(getProgramSeason(p).replace("season-", "")) || 1;
+  // Within a category: mains before the bundle, seasons in sequence.
+  const byCatalogOrder = (a: Program, b: Program) =>
+    categoryRank(a) - categoryRank(b) ||
+    getProgramCategory(a).localeCompare(getProgramCategory(b)) ||
+    Number(isBundleProgram(a)) - Number(isBundleProgram(b)) ||
+    seasonNum(a) - seasonNum(b) ||
+    (a.programName || "").localeCompare(b.programName || "");
   const programsForSport = (id: string) =>
-    storePrograms.filter((p) =>
-      id === "all" ? !isAddonProgram(p) : getProgramCategory(p) === id
-    );
+    storePrograms
+      .filter((p) =>
+        id === "all" ? !isAddonProgram(p) : getProgramCategory(p) === id
+      )
+      .sort(byCatalogOrder);
 
   const openSport = (id: string) => {
     setStoreCategoryFilter(id);
@@ -322,13 +350,29 @@ export default function StorePage({
     setCatalogSport(id);
   };
 
-  // The store leads with real products: the first three visible non-add-on
-  // programs (Feishu row order — reorder the Programs rows there to curate)
-  // shown as full cards with price/level/duration, so a first-time buyer sees
-  // concrete offers without opening the catalog popups first.
-  const featuredPrograms = storePrograms
-    .filter((p) => !isAddonProgram(p))
-    .slice(0, 3);
+  // The store leads with real products: one card per category (curated
+  // order) so the front row shows the range — not three near-identical
+  // cards from whichever category happens to sort first in the DB.
+  const featuredPrograms = (() => {
+    const mains = storePrograms
+      .filter((p) => !isAddonProgram(p) && !isBundleProgram(p))
+      .sort(byCatalogOrder);
+    const seen = new Set<string>();
+    const picks: Program[] = [];
+    for (const p of mains) {
+      const cat = getProgramCategory(p);
+      if (seen.has(cat)) continue;
+      seen.add(cat);
+      picks.push(p);
+      if (picks.length === 3) break;
+    }
+    // Fewer than 3 categories: fill with the next programs in curated order.
+    for (const p of mains) {
+      if (picks.length === 3) break;
+      if (!picks.includes(p)) picks.push(p);
+    }
+    return picks;
+  })();
   const levelLabel = (level?: string) => {
     const clean = String(level || "").toLowerCase();
     if (!sZh) return level || "";
