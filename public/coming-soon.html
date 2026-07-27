@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Launch gate page. Nginx on the Shanghai box rewrites every non-API,
+     non-cookie-holding request here until launch. Self-contained on purpose:
+     no JS, no external assets, system fonts only (China rule — no font CDNs),
+     and the ICP number stays visible so the filed domain always serves a
+     compliant page. -->
+<meta name="robots" content="noindex, nofollow">
+<title>NX//LIMIT — Coming Soon</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    background: radial-gradient(900px 480px at 50% -10%, #241f17, #0d0d0d 65%);
+    color: #f4f2ed;
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; padding: 32px 20px; gap: 0;
+  }
+  .mark {
+    font-weight: 900; letter-spacing: -0.02em; text-transform: uppercase;
+    font-size: clamp(40px, 9vw, 76px); line-height: 0.95; color: #ffffff;
+  }
+  .mark span { color: #d4af37; }
+  .slogan {
+    margin-top: 18px; font-weight: 800; letter-spacing: 0.24em;
+    text-transform: uppercase; font-size: clamp(10px, 2.4vw, 13px); color: #8d8571;
+  }
+  .slogan b { color: #f0dc88; font-weight: 800; }
+  .rule { width: 56px; height: 3px; background: #d4af37; margin: 34px auto 30px; }
+  .soon { font-size: clamp(17px, 3.6vw, 21px); font-weight: 700; color: #e8e2d2; }
+  .sub { margin-top: 10px; font-size: clamp(13px, 3vw, 15px); color: #9a927c; max-width: 34em; }
+  footer { position: fixed; bottom: 22px; left: 0; right: 0; font-size: 12px; }
+  footer a { color: #6f6a5c; text-decoration: none; }
+  footer a:hover { color: #f0dc88; }
+</style>
+</head>
+<body>
+  <div class="mark">NX<span>//</span>LIMIT</div>
+  <div class="slogan">Raise the floor. <b>Break the ceiling.</b></div>
+  <div class="rule"></div>
+  <div class="soon">即将上线 · Coming soon</div>
+  <div class="sub">专业运动表现训练平台正在最后打磨。<br>Professional performance training, launching shortly.</div>
+  <footer><a href="https://beian.miit.gov.cn" target="_blank" rel="noreferrer">粤ICP备2026103091号</a></footer>
+</body>
+</html>
