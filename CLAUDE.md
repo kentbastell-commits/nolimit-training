@@ -461,6 +461,13 @@ data between them, never "borrow" a table ID across products.
     table with an FK to `clients` gets a delete in the cascade (or `ON DELETE
     CASCADE`) plus a delete-with-child-row test, in the same commit as the
     migration.
+49. **The roster on every phone** — the mini program resolved "what type of
+    client am I" by fetching ALL of `/api/clients` (every athlete's phone,
+    email, coach notes) and picking one row client-side; shipped that way for
+    weeks. Rule: athlete-facing clients consume athlete-scoped endpoints only
+    (`/api/myProfile`); before wiring any coach-console endpoint into the
+    portal or mini program, check what the full response exposes — and when
+    adding one, assert the response contains no other client's data.
 
 ## Quality bar — checkable, per deliverable
 
