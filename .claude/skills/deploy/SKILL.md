@@ -40,8 +40,13 @@ SSH alias `nolimit` is preconfigured (43.132.228.109, key `~/.ssh/nolimit_deploy
 cd /c/Users/kentb/nolimit-training
 npx tsc -b --force && npm run build && npx vitest run --maxWorkers=1
 git push origin main
-ssh nolimit "cd /opt/nolimit-training && git pull origin main && npm install --no-audit --no-fund && npx tsc -b --force && npx vite build && pm2 restart nolimit-training"
+ssh nolimit "cd /opt/nolimit-training && git pull origin main && npm install --no-audit --no-fund && npx drizzle-kit migrate && npx tsc -b --force && npx vite build && pm2 restart nolimit-training"
 ```
+
+`drizzle-kit migrate` is idempotent (prod tracks applied migrations in
+`drizzle.__drizzle_migrations`) — safe on every deploy, and REQUIRED whenever
+`server/db/migrations/` gained a file. Never hand-apply migration SQL with
+psql on prod: mixing manual applies with drizzle tracking desyncs the journal.
 
 ## Steps — kangfu
 
