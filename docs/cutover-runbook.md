@@ -34,13 +34,32 @@ box. NOTE the runbook's port was wrong: the CN main app serves on **:3001**
 (not 3100). Also note: the CN box's ssh drops occasionally mid-command
 (GFW/middlebox flakiness) — re-run, don't diagnose.
 
-**What remains on cutover day:** a final delta dump→restore (HK prod →
-nolimit-cn, minutes), then steps 4–9 (nginx+TLS for trainnolimit.cn — the
-uploads block needs `^~` per mistake #38 —, final uploads rsync, DNS, live
-verify, health crons on CN with HEALTH_SITE_URL=.cn). Steps 1–3 are done or
-obsolete. Kent-side prerequisites: the 备案号 text for the site footer
-(legally required on a mainland-served site, linked to beian.miit.gov.cn),
-and the DNS A record → 124.222.125.91.
+**⚡⚡ 2026-07-27 evening: CUTOVER EXECUTED — trainnolimit.cn IS LIVE from
+the Shanghai box.** DNS (@ + www → 124.222.125.91), certbot TLS with
+http→https redirect, final delta dump→restore from HK (client_messages
+included), ICP footer (粤ICP备2026103091号) verified in the served bundle,
+live WRITE round-trip via https://trainnolimit.cn (clientMessage create →
+read-back → cleaned; bot ping fired). Monitoring live on CN: 5-min watchdog +
+06:00 report (HEALTH_SITE_URL=.cn) + nightly pg_dump; HK now PULLS CN
+backups to /opt/backups/pg-cn/ at 04:45 (CN is the live origin — backup flow
+reversed). Mini program repointed (prod API_BASE=https://trainnolimit.cn,
+uploaded 2026.07.27.2). CN egress IP confirmed 124.222.125.91 (for the
+AppSecret whitelist). CN ops note: sshd drops long-lived sessions — run long
+commands via `sudo systemd-run --unit=x --collect bash -c '... > /tmp/x.log'`
+and poll the log; retry short commands on "Connection closed".
+
+**⚠️ OPEN: SPLIT BRAIN between .com and .cn.** trainnolimit.com still serves
+the HK app against the HK database; trainnolimit.cn serves Shanghai. A coach
+edit made on .com does NOT reach the pilot. Until Kent approves a 301
+redirect .com→.cn on HK nginx (recommended), ALL coach/console/portal use
+must go through https://trainnolimit.cn. HK stays as rollback + backup ship
+target.
+
+**Kent-side remaining:** mp-admin request-domain whitelist
+(https://trainnolimit.cn), AppSecret IP whitelist → 124.222.125.91, decide
+the .com redirect, 小程序备案; 公安备案 clock (30 days) started 2026-07-27.
+Post-cutover pass below still applies (privacy policy per mistake #19, TMT
+env, WECHAT_MINI_* env on CN).
 
 **Shape of the move:** Feishu stops being the database and becomes a frozen
 backup. The Shanghai CVM (`ssh nolimit-cn`, 124.222.125.91) serves
