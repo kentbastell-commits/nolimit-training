@@ -59,6 +59,12 @@ nolimit-training.conf.bak-pre-proxy; restoring it accepts losing post-cutover
 data). Final 3.9G uploads rsync HK→CN ran at proxy time. The HK twin (:8443)
 is untouched and still serves mini-program DEV builds.
 
+**🚧 Launch gate ON (2026-07-27):** both domains serve public/coming-soon.html
+to visitors without the gate cookie; /api/ + /uploads/ exempt (mini program
+unaffected). Entry token lives in the CN nginx conf + local memory (not
+printed here). Lift at launch: restore nolimit-training.conf.bak-pre-gate on
+nolimit-cn + nginx reload.
+
 **Kent-side remaining:** mp-admin request-domain whitelist
 (https://trainnolimit.cn), AppSecret IP whitelist → 124.222.125.91, decide
 the .com redirect, 小程序备案; 公安备案 clock (30 days) started 2026-07-27.
