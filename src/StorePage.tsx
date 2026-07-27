@@ -135,7 +135,6 @@ export default function StorePage({
   const sZh = storeLang === "zh";
   const storePrograms = programs.filter((p) => p.publicStoreVisible);
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
-  const [crossBorderAccepted, setCrossBorderAccepted] = useState(false);
 
   // The coach to feature in "Meet your coach": prefer a Head/Admin coach,
   // else the first active one. Bio is editable in the coach record; until
@@ -1732,8 +1731,7 @@ export default function StorePage({
                               className="primaryButton"
                               disabled={
                                 storeRegistering ||
-                                !privacyAccepted ||
-                                !crossBorderAccepted
+                                !privacyAccepted
                               }
                               onClick={() =>
                                 void registerForProgram(
@@ -1742,8 +1740,7 @@ export default function StorePage({
                                   isBundleProgram(sp) ? bundleIncludes(sp) : [],
                                   {
                                     privacyAccepted,
-                                    crossBorderAccepted,
-                                    consentVersion: "2026-07-12",
+                                    consentVersion: "2026-07-28",
                                   }
                                 )
                               }
@@ -1790,18 +1787,6 @@ export default function StorePage({
                                     {sZh ? "退款政策" : "Refund Policy"}
                                   </a>
                                   。
-                                </span>
-                              </label>
-                              <label>
-                                <input
-                                  type="checkbox"
-                                  checked={crossBorderAccepted}
-                                  onChange={(e) => setCrossBorderAccepted(e.target.checked)}
-                                />
-                                <span>
-                                  {sZh
-                                    ? "我单独同意：在完成中国内地迁移前，为提供服务所必需的信息可能在中国内地与香港之间处理。"
-                                    : "I separately consent to necessary processing between mainland China and Hong Kong until the mainland migration is complete."}
                                 </span>
                               </label>
                             </div>

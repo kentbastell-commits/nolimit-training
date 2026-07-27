@@ -52,7 +52,6 @@ export default function CoachingFlowPage() {
   const [startDate, setStartDate] = useState("");
   const [goal, setGoal] = useState("");
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
-  const [crossBorderAccepted, setCrossBorderAccepted] = useState(false);
   // onboarding (post-payment, all optional)
   const [trainingAge, setTrainingAge] = useState("");
   const [position, setPosition] = useState("");
@@ -73,8 +72,7 @@ export default function CoachingFlowPage() {
     sport &&
     startDate &&
     goal.trim() &&
-    privacyAccepted &&
-    crossBorderAccepted;
+    privacyAccepted;
   const healthConsentRequired = !!injuries.trim();
 
   useEffect(() => {
@@ -133,8 +131,7 @@ export default function CoachingFlowPage() {
           paymentCode: code,
           languagePreference: zh ? "Chinese" : "English",
           privacyAccepted,
-          crossBorderAccepted,
-          consentVersion: "2026-07-12",
+          consentVersion: "2026-07-28",
         }),
       });
       const data = await res.json();
@@ -467,19 +464,6 @@ export default function CoachingFlowPage() {
                       {t(", and ", "及")}
                       <a href="/refund" target="_blank" rel="noreferrer">{t("Refund Policy", "《退款政策》")}</a>
                       {t(".", "。")}
-                    </span>
-                  </label>
-                  <label className="cfpConsentRow">
-                    <input
-                      type="checkbox"
-                      checked={crossBorderAccepted}
-                      onChange={(e) => setCrossBorderAccepted(e.target.checked)}
-                    />
-                    <span>
-                      {t(
-                        "I separately consent to necessary processing between mainland China and Hong Kong until the mainland migration is complete.",
-                        "我单独同意：在完成中国内地迁移前，为提供服务所必需的信息可能在中国内地与香港之间处理。"
-                      )}
                     </span>
                   </label>
                 </div>

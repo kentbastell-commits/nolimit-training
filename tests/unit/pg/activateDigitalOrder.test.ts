@@ -68,16 +68,25 @@ describe("api/activateDigitalOrder (postgres)", () => {
     expect(await rows("select 1 from clients")).toHaveLength(0);
   });
 
-  it("400s when privacy or cross-border consent is missing", async () => {
+  it("400s when privacy consent is missing; retired cross-border consent is not required", async () => {
     const res = makeRes();
     await handler(
-      makeReq({ method: "POST", body: validBody({ crossBorderAccepted: false }) }) as any,
+      makeReq({ method: "POST", body: validBody({ privacyAccepted: false }) }) as any,
       res as any
     );
 
     expect(res.statusCode).toBe(400);
-    expect(res.body.error).toBe("Privacy and cross-border consent required");
+    expect(res.body.error).toBe("Privacy consent required");
     expect(await rows("select 1 from product_orders")).toHaveLength(0);
+
+    // crossBorderAccepted absent entirely -> still succeeds (2026-07-28).
+    await seedProgram({ program_id: "PR-1001", name: "Test Program" });
+    const ok = makeRes();
+    await handler(
+      makeReq({ method: "POST", body: validBody({ crossBorderAccepted: undefined }) }) as any,
+      ok as any
+    );
+    expect(ok.statusCode).toBe(200);
   });
 
   it("attaches the order to the existing client instead of minting a duplicate", async () => {

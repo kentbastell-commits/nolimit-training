@@ -18,8 +18,7 @@ export default function ClientInvitePage({
 }: { [key: string]: any }) {
   const iZh = inviteLang === "zh";
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
-  const [crossBorderAccepted, setCrossBorderAccepted] = useState(false);
-  const [healthConsent, setHealthConsent] = useState(false);
+    const [healthConsent, setHealthConsent] = useState(false);
   const invitePortalLink = inviteClientId
     ? `${window.location.origin}/?portal=client&client=${encodeURIComponent(inviteClientId)}`
     : "";
@@ -391,10 +390,6 @@ export default function ClientInvitePage({
                 </span>
               </label>
               <label>
-                <input type="checkbox" checked={crossBorderAccepted} onChange={(e) => setCrossBorderAccepted(e.target.checked)} />
-                <span>{iZh ? "我单独同意：在完成中国内地迁移前，为提供服务所必需的信息可能在中国内地与香港之间处理。" : "I separately consent to necessary processing between mainland China and Hong Kong until the mainland migration is complete."}</span>
-              </label>
-              <label>
                 <input type="checkbox" checked={healthConsent} onChange={(e) => setHealthConsent(e.target.checked)} />
                 <span>{iZh ? "我单独同意 NX LIMIT Training 为安全、个性化指导处理我提供的身体数据、伤病及健康信息，并理解这不是医疗服务。" : "I separately consent to NX LIMIT Training processing the body, injury, and health information I provide for safe, personalised coaching, and understand this is not medical care."}</span>
               </label>
@@ -403,8 +398,8 @@ export default function ClientInvitePage({
             <div className="inviteActions">
               <button
                 className="goldButton"
-                onClick={() => void submitInviteForm({ privacyAccepted, crossBorderAccepted, healthConsent, consentVersion: "2026-07-12" })}
-                disabled={submittingInvite || !privacyAccepted || !crossBorderAccepted || !healthConsent}
+                onClick={() => void submitInviteForm({ privacyAccepted, healthConsent, consentVersion: "2026-07-28" })}
+                disabled={submittingInvite || !privacyAccepted || !healthConsent}
               >
                 {submittingInvite
                   ? iZh ? "提交中..." : "Submitting..."

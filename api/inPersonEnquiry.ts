@@ -7,7 +7,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { contactPerson, contact, privacyAccepted, crossBorderAccepted } =
+    const { contactPerson, contact, privacyAccepted } =
       req.body || {};
 
     if (!contactPerson || !contact) {
@@ -15,8 +15,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .status(400)
         .json({ error: "Please add a contact person and a way to reach you." });
     }
-    if (privacyAccepted !== true || crossBorderAccepted !== true) {
-      return res.status(400).json({ error: "Privacy and cross-border consent required" });
+    // Cross-border consent retired 2026-07-28 (mainland cutover 07-27).
+    if (privacyAccepted !== true) {
+      return res.status(400).json({ error: "Privacy consent required" });
     }
 
     const result = await createEnquiry(req.body);

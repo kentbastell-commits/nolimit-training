@@ -52,12 +52,11 @@ describe("api/inPersonEnquiry + enquiries (postgres)", () => {
     expect(await rows("select 1 from enquiries")).toHaveLength(0);
   });
 
-  it("400s without both consents and writes nothing", async () => {
+  it("400s without privacy consent and writes nothing", async () => {
     const res = await post(enquiryHandler, {
       contactPerson: "Coach Wu",
       contact: "13800000005",
-      privacyAccepted: true,
-      crossBorderAccepted: false,
+      privacyAccepted: false,
     });
     expect(res.statusCode).toBe(400);
     // Consent is collected before any personal data is stored, not after.

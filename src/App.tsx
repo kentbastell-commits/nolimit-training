@@ -1902,7 +1902,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       notify("Please add an email or phone/WeChat.", "error");
       return;
     }
-    if (!consent?.privacyAccepted || !consent.crossBorderAccepted || !consent.healthConsent) {
+    if (!consent?.privacyAccepted || !consent.healthConsent) {
       notify("Please complete the privacy and health consent choices.", "error");
       return;
     }
@@ -2000,7 +2000,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       notify("Please add a WeChat or email so we can reach you.", "error");
       return;
     }
-    if (!consent?.privacyAccepted || !consent.crossBorderAccepted) {
+    if (!consent?.privacyAccepted) {
       notify("Please complete the privacy consent choices.", "error");
       return;
     }
@@ -2019,8 +2019,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
             `Recorded: ${new Date().toISOString()}`,
           ].filter(Boolean).join("\n"),
           privacyAccepted: consent.privacyAccepted,
-          crossBorderAccepted: consent.crossBorderAccepted,
-          consentVersion: consent.consentVersion || "2026-07-12",
+          consentVersion: consent.consentVersion || "2026-07-28",
         }),
       });
       const data = await response.json();
@@ -11304,7 +11303,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       );
       return;
     }
-    if (!consent?.privacyAccepted || !consent.crossBorderAccepted) {
+    if (!consent?.privacyAccepted) {
       notify(
         storeLang === "zh"
           ? "请先完成隐私与数据处理同意选项。"
@@ -11337,7 +11336,6 @@ function App({ onReady }: { onReady?: () => void } = {}) {
           paymentCode: storePaymentCode,
           languagePreference: storeLang === "zh" ? "Chinese" : "English",
           privacyAccepted: consent.privacyAccepted,
-          crossBorderAccepted: consent.crossBorderAccepted,
           consentVersion: consent.consentVersion || "2026-07-12",
           addons: addonList.map((addon) => ({
             programId: addon.programId,

@@ -50,12 +50,12 @@ describe("ClientInvitePage", () => {
     expect(setInviteLang).toHaveBeenCalledWith("zh");
   });
 
-  it("requires the three separate consent choices before submission", () => {
+  it("requires privacy + health consent (cross-border retired 2026-07-28)", () => {
     render(<ClientInvitePage {...baseProps} />);
     const submit = screen.getByRole("button", { name: "Submit Intake" });
     expect(submit).toBeDisabled();
     const checks = screen.getAllByRole("checkbox");
-    expect(checks).toHaveLength(3);
+    expect(checks).toHaveLength(2);
     checks.forEach((check) => fireEvent.click(check));
     expect(submit).toBeEnabled();
   });

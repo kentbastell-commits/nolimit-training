@@ -53,11 +53,18 @@ describe("api/coachingSignup (postgres)", () => {
     await expectNothingWritten();
   });
 
-  it("400s and writes nothing without both consents", async () => {
+  it("400s and writes nothing without privacy consent", async () => {
     const res = await post(orderBody({ privacyAccepted: false }));
     expect(res.statusCode).toBe(400);
-    expect(res.body.error).toBe("Privacy and cross-border consent required");
+    expect(res.body.error).toBe("Privacy consent required");
     await expectNothingWritten();
+  });
+
+  it("no longer requires the retired cross-border consent (mainland cutover 2026-07-27)", async () => {
+    // Old mini program builds still send crossBorderAccepted; new clients omit
+    // it entirely. Both must succeed — the field is accepted and ignored.
+    const res = await post(orderBody({ crossBorderAccepted: undefined }));
+    expect(res.statusCode).toBe(200);
   });
 
   it("400s and writes nothing when the term is missing", async () => {

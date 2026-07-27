@@ -35,8 +35,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res
         .status(400)
         .json({ error: "clientName, phone, and termLabel required" });
-    if (body.privacyAccepted !== true || body.crossBorderAccepted !== true)
-      return res.status(400).json({ error: "Privacy and cross-border consent required" });
+    // Cross-border consent retired 2026-07-28 (mainland cutover 07-27);
+    // old clients may still send it — accepted, ignored, never required.
+    if (body.privacyAccepted !== true)
+      return res.status(400).json({ error: "Privacy consent required" });
     if (!/^NL-[2-9A-HJ-NP-Z]{4}$/.test(paymentCode))
       return res.status(400).json({ error: "A valid NL payment reference is required" });
   }
