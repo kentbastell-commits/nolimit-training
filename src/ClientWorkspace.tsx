@@ -517,44 +517,6 @@ export default function ClientWorkspace({
                     </div>
                   </header>
 
-                  <nav
-                    className="clientDesktopNav"
-                    aria-label={t("clientHeroDashboardEyebrow")}
-                  >
-                    <button
-                      type="button"
-                      className={clientTab === "Home" ? "active" : ""}
-                      onClick={() => setClientTab("Home")}
-                    >
-                      <Home size={19} strokeWidth={2.2} />
-                      <span>{t("home")}</span>
-                      {portalUnreadCount > 0 && <em>{portalUnreadCount}</em>}
-                    </button>
-                    <button
-                      type="button"
-                      className={clientTab === "Training" ? "active" : ""}
-                      onClick={() => setClientTab("Training")}
-                    >
-                      <CalendarDays size={19} strokeWidth={2.2} />
-                      <span>{t("calendar")}</span>
-                    </button>
-                    <button
-                      type="button"
-                      className={clientTab === "Programs" ? "active" : ""}
-                      onClick={() => setClientTab("Programs")}
-                    >
-                      <BookOpen size={19} strokeWidth={2.2} />
-                      <span>{t("myPrograms")}</span>
-                    </button>
-                    <button
-                      type="button"
-                      className={clientTab === "Overview" ? "active" : ""}
-                      onClick={() => setClientTab("Overview")}
-                    >
-                      <UserCircle size={19} strokeWidth={2.2} />
-                      <span>{t("profile")}</span>
-                    </button>
-                  </nav>
                 </>
               )}
               {isClientPortal ? (

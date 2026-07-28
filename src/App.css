@@ -1714,51 +1714,48 @@ body {
   grid-template-columns: 1fr;
 }
 
+/* One bottom tab bar at every width — black bar with gold active state,
+   matching the mini program (Kent 2026-07-29). Mobile: full-width bar flush
+   to the bottom edge; desktop narrows it into a centered dock (override in
+   ClientWorkspace.css). */
 .clientPortalApp .mobileClientBottomNav {
   position: fixed;
-  left: 50%;
-  right: auto;
-  bottom: 14px;
-  transform: translateX(-50%);
-  width: min(620px, calc(100vw - 32px));
+  left: 0;
+  right: 0;
+  bottom: 0;
   z-index: 1200;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 6px;
-  padding: 6px;
-  border: 1px solid rgba(22, 22, 22, 0.1);
-  border-radius: 16px;
-  background: rgba(255, 253, 248, 0.96);
-  box-shadow: 0 14px 40px rgba(18, 18, 18, 0.16);
+  gap: 4px;
+  padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+  border-top: 1px solid rgba(212, 175, 55, 0.25);
+  background: rgba(13, 13, 13, 0.98);
+  box-shadow: 0 -10px 30px rgba(13, 13, 13, 0.25);
   backdrop-filter: blur(16px);
 }
 
 .clientPortalApp .mobileClientBottomNav button {
-  min-height: 46px;
+  min-height: 52px;
   border: 0;
   border-radius: 12px;
   background: transparent;
-  color: #151515;
+  color: #8d8571;
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 8px 10px;
-  font-size: 12px;
+  gap: 3px;
+  padding: 6px 8px;
+  font-size: 11px;
+  font-weight: 700;
   line-height: 1.1;
   cursor: pointer;
   white-space: nowrap;
 }
 
 .clientPortalApp .mobileClientBottomNav button.active {
-  background: linear-gradient(
-    180deg,
-    rgba(212, 175, 55, 0.34),
-    rgba(212, 175, 55, 0.12)
-  );
-  border: 1px solid rgba(176, 137, 24, 0.42);
-  color: #151515;
+  background: rgba(212, 175, 55, 0.16);
+  color: #d4af37;
 }
 
 
@@ -9899,10 +9896,26 @@ textarea {
   grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
   gap: 6px !important;
   padding: 6px !important;
-  border: 1px solid #deded8 !important;
+  border: 1px solid rgba(212, 175, 55, 0.3) !important;
   border-radius: 16px !important;
-  background: rgba(255, 255, 255, 0.96) !important;
-  box-shadow: 0 14px 40px rgba(18, 18, 18, 0.16) !important;
+  background: rgba(13, 13, 13, 0.97) !important;
+  box-shadow: 0 18px 44px rgba(13, 13, 13, 0.35) !important;
+}
+
+/* 黑金 tab bar (matches the mini program): muted gold-grey inactive, gold
+   active on a soft gold tint. Deliberately AFTER the layout block so it wins
+   the historical sediment above. */
+.clientPortalApp .mobileClientBottomNav button {
+  color: #8d8571 !important;
+  background: transparent !important;
+  border: 0 !important;
+}
+.clientPortalApp .mobileClientBottomNav button.active {
+  color: #d4af37 !important;
+  background: rgba(212, 175, 55, 0.16) !important;
+}
+.clientPortalApp .mobileClientBottomNav button.active svg {
+  color: #d4af37 !important;
 }
 
 .clientPortalApp .mobileClientBottomNav button {
