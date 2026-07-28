@@ -468,6 +468,10 @@ data between them, never "borrow" a table ID across products.
     (`/api/myProfile`); before wiring any coach-console endpoint into the
     portal or mini program, check what the full response exposes — and when
     adding one, assert the response contains no other client's data.
+    When migrating callers off an endpoint, grep for the URL STRING
+    (`"/api/clients"`), not the helper names — the first myProfile migration
+    missed `fetchMyPerformanceOverrides` exactly this way, same day. Full
+    roster is now coach-key-gated; the portal uses `?code=` single-row mode.
 
 ## Quality bar — checkable, per deliverable
 
