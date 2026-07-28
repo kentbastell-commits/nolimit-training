@@ -22,8 +22,10 @@ nothing a user can see (the ghost-deploy trap, now on nolimit too). The HK
 still serves mini-program DEV builds — deploy to it separately if a dev-build
 feature needs new endpoints. Shanghai ops note: its sshd drops long-lived
 sessions — run long server commands via
-`sudo systemd-run --unit=x --collect bash -c '... > /tmp/x.log'` and poll the
-log; simply retry short commands that die with "Connection closed".
+`sudo systemd-run --unit=x --uid=ubuntu --gid=ubuntu --collect bash -c
+'... > /tmp/x.log'` and poll the log; the repository is owned by `ubuntu`, so
+omitting the user flags makes root Git reject it as dubious ownership. Simply
+retry short commands that die with "Connection closed".
 
 ## Preconditions — abort with a clear message if any fails
 
