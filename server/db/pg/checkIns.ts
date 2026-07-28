@@ -111,6 +111,37 @@ export async function createCheckIn(input: CreateCheckInInput): Promise<WriteRes
         .from(clients)
         .where(eq(clients.clientId, code))
     ).length > 0;
+  // Same-day resubmit = EDIT, not a duplicate. The mini program lets an
+  // athlete correct today's wellness (typo'd body weight, wrong soreness);
+  // without this the coach would see two check-ins for the same day. Status
+  // resets to Submitted so an edited check-in re-enters the review queue.
+  const dayKey = String(input.submittedDate || "").trim();
+  if (dayKey && clientExists) {
+    const existing = (
+      await db.select().from(checkIns).where(eq(checkIns.clientId, code))
+    ).find((r) => epochToDate(r.submittedDate) === dayKey);
+    if (existing) {
+      await db
+        .update(checkIns)
+        .set({
+          status: "Submitted",
+          bodyWeight: toNumberOrNull(input.bodyWeight),
+          sleepHours: toNumberOrNull(input.sleepHours),
+          sleepQuality: toIntOrNull(input.sleepQuality),
+          energy: toIntOrNull(input.energy),
+          mood: toTextOrNull(input.mood),
+          stress: toIntOrNull(input.stress),
+          soreness: toIntOrNull(input.soreness),
+          readinessScore: toNumberOrNull(input.readinessScore),
+          wins: toTextOrNull(input.wins),
+          problemsPain: toTextOrNull(input.problemsPain),
+          clientNotes: toTextOrNull(input.clientNotes),
+        })
+        .where(eq(checkIns.checkinId, existing.checkinId));
+      return { success: true, recordId: existing.checkinId };
+    }
+  }
+
   await db.insert(checkIns).values({
     checkinId,
     clientId: clientExists ? code : null,

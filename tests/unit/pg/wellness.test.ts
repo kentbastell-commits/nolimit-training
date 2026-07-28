@@ -69,6 +69,39 @@ describe("api/checkIns (postgres)", () => {
     expect(checkIn.problems_pain).toBe("left knee tight");
   });
 
+  it("same-day resubmit edits the existing check-in instead of duplicating", async () => {
+    const body = {
+      clientId: "CL-9001",
+      submittedDate: "2026-07-26",
+      sleepQuality: 8,
+      energy: 7,
+      mood: 8,
+      soreness: 3,
+      stress: 4,
+      readinessScore: 76,
+    };
+    expect((await call(checkInsHandler, { method: "POST", body })).statusCode).toBe(200);
+    // The athlete corrects their soreness a minute later.
+    const edit = await call(checkInsHandler, {
+      method: "POST",
+      body: { ...body, soreness: 7, readinessScore: 68 },
+    });
+    expect(edit.statusCode).toBe(200);
+
+    const all = await rows("select soreness, readiness_score, status from check_ins");
+    expect(all).toHaveLength(1);
+    expect(all[0].soreness).toBe(7);
+    expect(all[0].readiness_score).toBe(68);
+    expect(all[0].status).toBe("Submitted");
+
+    // A DIFFERENT day still creates a new row.
+    await call(checkInsHandler, {
+      method: "POST",
+      body: { ...body, submittedDate: "2026-07-27" },
+    });
+    expect(await rows("select 1 from check_ins")).toHaveLength(2);
+  });
+
   it("returns only the requested athlete's check-ins", async () => {
     await seedClient({ client_id: "CL-9002", full_name: "Mei Lin" });
     await call(checkInsHandler, {
