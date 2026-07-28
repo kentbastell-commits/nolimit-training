@@ -164,4 +164,46 @@ describe("api/clients list (postgres)", () => {
     expect(res.body.clients).toHaveLength(1);
     expect(res.body.clients[0].name).toBe("Bob Tan");
   });
+
+  it("?code returns only that client's row, never the roster", async () => {
+    await seedClient({ client_id: "CL-9001", full_name: "Bob Tan" });
+    await seedClient({ client_id: "CL-9002", full_name: "Mei Lin" });
+
+    const res = makeRes();
+    await listHandler(makeReq({ method: "GET", query: { code: "CL-9001" } }) as any, res as any);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.clients).toHaveLength(1);
+    expect(JSON.stringify(res.body)).not.toContain("Mei Lin");
+  });
+
+  it("full list is coach-only once COACH_ACCESS_KEY is set (mistake #49)", async () => {
+    const vi = await import("vitest").then((m) => m.vi);
+    vi.stubEnv("COACH_ACCESS_KEY", "secret-key");
+    try {
+      await seedClient({ client_id: "CL-9001", full_name: "Bob Tan" });
+
+      const noKey = makeRes();
+      await listHandler(makeReq({ method: "GET" }) as any, noKey as any);
+      expect(noKey.statusCode).toBe(401);
+
+      // ?code single-row stays open — the athlete portal depends on it.
+      const single = makeRes();
+      await listHandler(
+        makeReq({ method: "GET", query: { code: "CL-9001" } }) as any,
+        single as any
+      );
+      expect(single.statusCode).toBe(200);
+
+      const withKey = makeRes();
+      await listHandler(
+        makeReq({ method: "GET", headers: { "x-coach-key": "secret-key" } }) as any,
+        withKey as any
+      );
+      expect(withKey.statusCode).toBe(200);
+      expect(withKey.body.clients).toHaveLength(1);
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
 });

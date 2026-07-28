@@ -38,6 +38,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         purchasedProgramId: me.purchasedProgramId || "",
         coach: myCoach?.name || coachName,
         coachQrUrl: myCoach?.qrCodeUrl || "",
+        // Coach-set performance overrides (My Numbers) — carried here so the
+        // mini program never needs the roster endpoint (named mistake #49).
+        masKmhOverride: me.masKmhOverride || "",
+        hrMaxOverride: me.hrMaxOverride || "",
+        restingHrOverride: me.restingHrOverride || "",
+        zone5kPct: me.zone5kPct || "",
+        zone10kPct: me.zone10kPct || "",
+        zoneThresholdPct: me.zoneThresholdPct || "",
+        zoneEasyPct: me.zoneEasyPct || "",
       },
     });
   } catch (error: any) {

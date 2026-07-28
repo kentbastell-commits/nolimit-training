@@ -2157,7 +2157,13 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     setLoading(true);
 
     try {
-      const response = await fetch("/api/clients");
+      // Portal sessions fetch only their own row (?code=) — the full roster
+      // is coach-only once the access key is on (named mistake #49).
+      const response = await fetch(
+        isClientPortal && clientPortalCode
+          ? `/api/clients?code=${encodeURIComponent(clientPortalCode)}`
+          : "/api/clients"
+      );
       const data = await response.json();
       const nextClients = data.clients || [];
       clientsCacheRef.current = { data: nextClients, timestamp: Date.now() };
