@@ -143,6 +143,36 @@ export default function PortalTraining({
         normalizeDate(String(a.scheduledDate))
       )
     );
+  const upcomingWorkouts = [...(clientPortalUpcomingWorkouts || [])].sort(
+    (a: any, b: any) =>
+      normalizeDate(String(a.scheduledDate)).localeCompare(
+        normalizeDate(String(b.scheduledDate))
+      )
+  );
+  const completedWorkoutGroups = completedWorkouts.reduce(
+    (groups: Array<{ key: string; label: string; workouts: any[] }>, workout: any) => {
+      const date = normalizeDate(String(workout.scheduledDate || ""));
+      const key = date.slice(0, 7) || "unknown";
+      let group = groups.find((item) => item.key === key);
+      if (!group) {
+        const parsed = new Date(`${key}-01T00:00:00`);
+        group = {
+          key,
+          label: Number.isNaN(parsed.getTime())
+            ? "--"
+            : parsed.toLocaleDateString(
+                useChineseClientText ? "zh-CN" : "en-US",
+                { month: "long", year: "numeric" }
+              ),
+          workouts: [],
+        };
+        groups.push(group);
+      }
+      group.workouts.push(workout);
+      return groups;
+    },
+    []
+  );
 
   return (
     <>
@@ -291,65 +321,157 @@ export default function PortalTraining({
                           onClick={() => setTrainingScope(scope)}
                           type="button"
                         >
-                          {scope === "upcoming" ? t("upcoming") : t("completed")}
+                          <span>
+                            {scope === "upcoming" ? t("upcoming") : t("completed")}
+                          </span>
+                          <em>
+                            {scope === "upcoming"
+                              ? upcomingWorkouts.length
+                              : completedWorkouts.length}
+                          </em>
                         </button>
                       ))}
                     </div>
                   )}
 
                   {isClientPortal && trainingScope === "upcoming" && (
-                    <div className="clientCalendarViewToggle">
-                      {(["Week", "Month", "Full"] as const).map((view) => (
-                        <button
-                          key={view}
-                          className={clientCalendarStyle === view ? "active" : ""}
-                          onClick={() => setClientCalendarStyle(view)}
-                          type="button"
-                        >
-                          {t(view.toLowerCase())}
-                        </button>
-                      ))}
-                    </div>
+                    <>
+                      <section className="clientDesktopUpcomingSessions">
+                        <div className="clientCalendarSectionHeading">
+                          <div>
+                            <span>{t("upcoming")}</span>
+                            <h2>{t("nextSessions")}</h2>
+                          </div>
+                          <strong>
+                            {upcomingWorkouts.length} {t("scheduledSessions")}
+                          </strong>
+                        </div>
+                        {upcomingWorkouts.length > 0 ? (
+                          <div className="clientDesktopUpcomingGrid">
+                            {upcomingWorkouts.slice(0, 4).map((workout: any) => {
+                              const cc = getWorkoutColorClass(
+                                workout.sessionName,
+                                workout.sessionType
+                              );
+                              const Icon = catIcon(cc);
+                              return (
+                                <button
+                                  key={workout.id}
+                                  type="button"
+                                  className={`clientDesktopUpcomingCard ${cc}`}
+                                  onClick={() => openWorkout(workout)}
+                                >
+                                  <span className={`wcatBadge ${cc}`}>
+                                    <Icon size={20} aria-hidden="true" />
+                                  </span>
+                                  <span className="clientDesktopUpcomingBody">
+                                    <small>
+                                      {localizedCalendarLabel(
+                                        normalizeDate(
+                                          String(workout.scheduledDate)
+                                        )
+                                      )}
+                                    </small>
+                                    <strong>{localizedWorkoutName(workout)}</strong>
+                                    <em>
+                                      {t("week")} {workout.week} · {t("day")} {workout.day}
+                                    </em>
+                                  </span>
+                                  <span className="clientDesktopUpcomingAction">
+                                    {t("start")}
+                                    <ChevronRight size={16} aria-hidden="true" />
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <p className="homeEmptyText">{t("noUpcomingWorkouts")}</p>
+                        )}
+                      </section>
+
+                      <div className="clientCalendarModeHeader">
+                        <div className="clientCalendarSectionHeading">
+                          <div>
+                            <span>{t("program")}</span>
+                            <h2>{t("calendarSchedule")}</h2>
+                          </div>
+                        </div>
+                        <div className="clientCalendarViewToggle">
+                          {(["Week", "Month", "Full"] as const).map((view) => (
+                            <button
+                              key={view}
+                              className={clientCalendarStyle === view ? "active" : ""}
+                              onClick={() => setClientCalendarStyle(view)}
+                              type="button"
+                            >
+                              {t(view.toLowerCase())}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </>
                   )}
 
                   {isClientPortal && trainingScope === "completed" && (
                     <section className="clientPortalWorkoutList clientCompletedList">
+                      <div className="clientCalendarSectionHeading clientHistoryHeading">
+                        <div>
+                          <span>{t("completed")}</span>
+                          <h2>{t("trainingHistory")}</h2>
+                        </div>
+                        <strong>
+                          {completedWorkouts.length} {t("completedSessions")}
+                        </strong>
+                      </div>
                       {completedWorkouts.length === 0 ? (
                         <p className="homeEmptyText">{t("noCompletedWorkouts")}</p>
                       ) : (
-                        completedWorkouts.map((workout: any) => {
-                          const cc = getWorkoutColorClass(
-                            workout.sessionName,
-                            workout.sessionType
-                          );
-                          const Icon = catIcon(cc);
-                          return (
-                            <button
-                              key={workout.id}
-                              className={`selectedDayWorkout ${cc}`}
-                              onClick={() => openWorkout(workout)}
-                              type="button"
-                            >
-                              <span className={`wcatBadge ${cc}`}>
-                                <Icon size={20} aria-hidden="true" />
-                              </span>
-                              <div className="homeTaskBody">
-                                <strong>{localizedWorkoutName(workout)}</strong>
-                                <small>
-                                  {localizedCalendarLabel(
-                                    normalizeDate(String(workout.scheduledDate))
-                                  )}{" "}
-                                  · {t("week")} {workout.week} · {t("day")}{" "}
-                                  {workout.day}
-                                </small>
-                              </div>
-                              <span className="selectedDayWorkoutAction clientCompletedAction">
-                                <CheckCircle2 size={15} aria-hidden="true" />
-                                {t("review")}
-                              </span>
-                            </button>
-                          );
-                        })
+                        completedWorkoutGroups.map((group) => (
+                          <div className="clientCompletedGroup" key={group.key}>
+                            <div className="clientCompletedGroupHead">
+                              <strong>{group.label}</strong>
+                              <span>{group.workouts.length}</span>
+                            </div>
+                            <div className="clientCompletedGroupGrid">
+                              {group.workouts.map((workout: any) => {
+                                const cc = getWorkoutColorClass(
+                                  workout.sessionName,
+                                  workout.sessionType
+                                );
+                                const Icon = catIcon(cc);
+                                return (
+                                  <button
+                                    key={workout.id}
+                                    className={`selectedDayWorkout ${cc}`}
+                                    onClick={() => openWorkout(workout)}
+                                    type="button"
+                                  >
+                                    <span className={`wcatBadge ${cc}`}>
+                                      <Icon size={20} aria-hidden="true" />
+                                    </span>
+                                    <div className="homeTaskBody">
+                                      <strong>{localizedWorkoutName(workout)}</strong>
+                                      <small>
+                                        {localizedCalendarLabel(
+                                          normalizeDate(
+                                            String(workout.scheduledDate)
+                                          )
+                                        )}{" "}
+                                        · {t("week")} {workout.week} · {t("day")}{" "}
+                                        {workout.day}
+                                      </small>
+                                    </div>
+                                    <span className="selectedDayWorkoutAction clientCompletedAction">
+                                      <CheckCircle2 size={15} aria-hidden="true" />
+                                      {t("review")}
+                                    </span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ))
                       )}
                     </section>
                   )}

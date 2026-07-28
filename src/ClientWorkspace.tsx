@@ -5,7 +5,14 @@ import "./ClientWorkspace.css";
 import PortalTraining from "./PortalTraining";
 import PortalPrograms from "./PortalPrograms";
 import ClientOverview from "./ClientOverview";
-import { BookOpen, CalendarDays, Home, MoreVertical, UserCircle } from "lucide-react";
+import {
+  ArrowRight,
+  BookOpen,
+  CalendarDays,
+  Home,
+  MoreVertical,
+  UserCircle,
+} from "lucide-react";
 import { normalizeDate } from "./appCore";
 import CountUp from "./CountUp";
 import PortalToApp from "./PortalToApp";
@@ -220,6 +227,155 @@ export default function ClientWorkspace({
   workouts,
   workoutsLoading,
 }: { [key: string]: any }) {
+  const portalCompletedWorkouts = isClientPortal
+    ? (workouts || []).filter((workout: any) =>
+        /complete/i.test(String(workout.completionStatus || ""))
+      )
+    : [];
+  const portalInbox = isClientPortal ? coachInboxItems() : [];
+  const portalUnreadCount = portalInbox.filter(
+    (item: any) => item.at > inboxSeenAt
+  ).length;
+  const portalProgramStates = Object.values(
+    clientProgramStatuses || {}
+  ) as any[];
+  const portalActivePrograms = portalProgramStates.filter(
+    (status: any) => status?.status === "in-progress"
+  ).length;
+  const portalCompletedPrograms = portalProgramStates.filter(
+    (status: any) => status?.status === "completed"
+  ).length;
+  const portalFirstName =
+    (selectedClient?.name || "there").split(" ")[0] || "there";
+  const portalNextWorkout = clientPortalUpcomingWorkouts?.[0];
+  const safeCompletionRate = Number.isFinite(Number(completionRate))
+    ? Math.round(Number(completionRate))
+    : 0;
+
+  const portalHero = (() => {
+    if (clientTab === "Training") {
+      return {
+        eyebrow: t("clientHeroCalendarEyebrow"),
+        title: t("trainingCalendar"),
+        description: t("clientHeroCalendarSub"),
+        stats: [
+          {
+            label: t("upcoming"),
+            value: clientPortalUpcomingWorkouts?.length || 0,
+            sub: t("scheduledSessions"),
+          },
+          {
+            label: t("completed"),
+            value: portalCompletedWorkouts.length,
+            sub: t("completedSessions"),
+          },
+          {
+            label: t("nextWorkout"),
+            value: portalNextWorkout
+              ? localizedCalendarLabel(
+                  normalizeDate(String(portalNextWorkout.scheduledDate || ""))
+                )
+              : "--",
+            sub: portalNextWorkout
+              ? localizedWorkoutName(portalNextWorkout)
+              : t("noUpcomingWorkouts"),
+          },
+        ],
+        action: portalNextWorkout
+          ? {
+              label: t("start"),
+              onClick: () => openWorkout(portalNextWorkout),
+            }
+          : null,
+      };
+    }
+
+    if (clientTab === "Programs") {
+      return {
+        eyebrow: t("clientHeroProgramsEyebrow"),
+        title: t("myPrograms"),
+        description: t("clientHeroProgramsSub"),
+        stats: [
+          {
+            label: t("clientHeroTotalPrograms"),
+            value: uniqueClientPurchasedPrograms?.length || 0,
+            sub: t("purchasedPrograms"),
+          },
+          {
+            label: t("clientHeroActive"),
+            value: portalActivePrograms,
+            sub: t("clientHeroProgramsEyebrow"),
+          },
+          {
+            label: t("completed"),
+            value: portalCompletedPrograms,
+            sub: t("completedSessions"),
+          },
+        ],
+        action: null,
+      };
+    }
+
+    if (clientTab === "Overview") {
+      return {
+        eyebrow: t("clientHeroProfileEyebrow"),
+        title: t("profile"),
+        description: t("clientHeroProfileSub"),
+        stats: [
+          {
+            label: t("coach"),
+            value: getCoachDisplayName(
+              selectedClient?.coach || selectedClient?.primaryCoach || "--"
+            ),
+            sub: selectedClient?.clientType || "--",
+          },
+          {
+            label: t("clientHeroPlan"),
+            value:
+              selectedClient?.package ||
+              selectedClient?.program ||
+              selectedClient?.status ||
+              "--",
+            sub: selectedClient?.status || "--",
+          },
+          {
+            label: t("clientHeroAccess"),
+            value: selectedClient?.accessEndDate || "--",
+            sub: selectedClient?.email || "--",
+          },
+        ],
+        action: null,
+      };
+    }
+
+    return {
+      eyebrow: t("clientHeroDashboardEyebrow"),
+      title: t("hi", { name: portalFirstName }),
+      description: t("clientHeroDashboardSub"),
+      stats: [
+        {
+          label: t("upcomingTasks"),
+          value: clientPortalUpcomingTasks?.length || 0,
+          sub: t("clientHeroAssignedTasks", { count: totalTaskCount || 0 }),
+        },
+        {
+          label: t("clientHeroCompletion"),
+          value: `${safeCompletionRate}%`,
+          sub: `${completedTaskCount || 0}/${totalTaskCount || 0}`,
+        },
+        {
+          label: t("clientHeroMessages"),
+          value: portalUnreadCount,
+          sub: portalUnreadCount ? t("clientHeroMessages") : t("done"),
+        },
+      ],
+      action: {
+        label: t("calendar"),
+        onClick: () => setClientTab("Training"),
+      },
+    };
+  })();
+
   return (
     <>
           <div
@@ -317,6 +473,90 @@ export default function ClientWorkspace({
                     </div>
                   );
                 })()}
+              {isClientPortal && (
+                <>
+                  <header
+                    className={`clientPortalDesktopHero clientPortalDesktopHero${clientTab}`}
+                  >
+                    <div className="clientPortalDesktopHeroGlow" aria-hidden="true" />
+                    <div className="clientPortalDesktopHeroTop">
+                      <div className="clientPortalDesktopHeroCopy">
+                        <span className="clientPortalDesktopHeroEyebrow">
+                          {portalHero.eyebrow}
+                        </span>
+                        <h1>{portalHero.title}</h1>
+                        <p>{portalHero.description}</p>
+                      </div>
+                      <div className="clientPortalDesktopHeroAside">
+                        <div
+                          className="clientPortalDesktopHeroAvatar"
+                          aria-hidden="true"
+                        >
+                          {selectedClient.initials}
+                        </div>
+                        {portalHero.action && (
+                          <button
+                            type="button"
+                            className="clientPortalDesktopHeroAction"
+                            onClick={portalHero.action.onClick}
+                          >
+                            {portalHero.action.label}
+                            <ArrowRight size={18} aria-hidden="true" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <div className="clientPortalDesktopHeroStats">
+                      {portalHero.stats.map((stat: any) => (
+                        <div className="clientPortalDesktopHeroStat" key={stat.label}>
+                          <span>{stat.label}</span>
+                          <strong>{stat.value}</strong>
+                          <small>{stat.sub}</small>
+                        </div>
+                      ))}
+                    </div>
+                  </header>
+
+                  <nav
+                    className="clientDesktopNav"
+                    aria-label={t("clientHeroDashboardEyebrow")}
+                  >
+                    <button
+                      type="button"
+                      className={clientTab === "Home" ? "active" : ""}
+                      onClick={() => setClientTab("Home")}
+                    >
+                      <Home size={19} strokeWidth={2.2} />
+                      <span>{t("home")}</span>
+                      {portalUnreadCount > 0 && <em>{portalUnreadCount}</em>}
+                    </button>
+                    <button
+                      type="button"
+                      className={clientTab === "Training" ? "active" : ""}
+                      onClick={() => setClientTab("Training")}
+                    >
+                      <CalendarDays size={19} strokeWidth={2.2} />
+                      <span>{t("calendar")}</span>
+                    </button>
+                    <button
+                      type="button"
+                      className={clientTab === "Programs" ? "active" : ""}
+                      onClick={() => setClientTab("Programs")}
+                    >
+                      <BookOpen size={19} strokeWidth={2.2} />
+                      <span>{t("myPrograms")}</span>
+                    </button>
+                    <button
+                      type="button"
+                      className={clientTab === "Overview" ? "active" : ""}
+                      onClick={() => setClientTab("Overview")}
+                    >
+                      <UserCircle size={19} strokeWidth={2.2} />
+                      <span>{t("profile")}</span>
+                    </button>
+                  </nav>
+                </>
+              )}
               {isClientPortal ? (
                 clientTab === "Home" &&
                 (() => {

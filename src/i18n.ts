@@ -4,6 +4,30 @@ import { initReactI18next } from "react-i18next";
 export const resources = {
   en: {
     translation: {
+      clientHeroDashboardEyebrow: "Athlete Dashboard",
+      clientHeroDashboardSub:
+        "Your training, readiness and coaching activity in one place.",
+      clientHeroCalendarEyebrow: "Training Schedule",
+      clientHeroCalendarSub:
+        "See what is next, adjust your week and revisit completed sessions.",
+      clientHeroProgramsEyebrow: "Program Library",
+      clientHeroProgramsSub:
+        "Follow active plans, review progress and prepare the next block.",
+      clientHeroProfileEyebrow: "Athlete Account",
+      clientHeroProfileSub:
+        "Manage your coaching plan, preferences and account details.",
+      clientHeroCompletion: "Completion",
+      clientHeroMessages: "Coach Messages",
+      clientHeroAssignedTasks: "{{count}} assigned tasks",
+      clientHeroActive: "Active",
+      clientHeroTotalPrograms: "Programs",
+      clientHeroPlan: "Plan",
+      clientHeroAccess: "Access Until",
+      nextSessions: "Next Sessions",
+      calendarSchedule: "Schedule",
+      trainingHistory: "Training History",
+      scheduledSessions: "scheduled sessions",
+      completedSessions: "completed sessions",
       home: "Home",
       dashboard: "Dashboard",
       calendar: "Calendar",
@@ -262,6 +286,28 @@ export const resources = {
   },
   zh: {
     translation: {
+      clientHeroDashboardEyebrow: "运动员主页",
+      clientHeroDashboardSub: "集中查看训练、恢复状态与教练互动。",
+      clientHeroCalendarEyebrow: "训练日程",
+      clientHeroCalendarSub:
+        "查看接下来的训练、调整本周安排，并回顾已完成课程。",
+      clientHeroProgramsEyebrow: "计划库",
+      clientHeroProgramsSub:
+        "跟进正在进行的计划、查看进度，并准备下一个训练阶段。",
+      clientHeroProfileEyebrow: "运动员账户",
+      clientHeroProfileSub: "管理教练方案、使用偏好与账户信息。",
+      clientHeroCompletion: "完成率",
+      clientHeroMessages: "教练消息",
+      clientHeroAssignedTasks: "已分配 {{count}} 项任务",
+      clientHeroActive: "进行中",
+      clientHeroTotalPrograms: "训练计划",
+      clientHeroPlan: "方案",
+      clientHeroAccess: "有效期至",
+      nextSessions: "接下来的训练",
+      calendarSchedule: "日程",
+      trainingHistory: "训练记录",
+      scheduledSessions: "节待训练",
+      completedSessions: "节已完成",
       home: "首页",
       dashboard: "仪表盘",
       calendar: "日历",

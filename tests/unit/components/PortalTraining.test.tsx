@@ -117,4 +117,69 @@ describe("PortalTraining", () => {
     fireEvent.click(screen.getByText("today"));
     expect(jumpClientCalendarToToday).toHaveBeenCalledTimes(1);
   });
+
+  it("orders the desktop upcoming-session rail chronologically", () => {
+    const { container } = render(
+      <PortalTraining
+        {...baseProps}
+        clientPortalUpcomingWorkouts={[
+          {
+            id: "later",
+            sessionName: "Later Session",
+            scheduledDate: "2026-07-12",
+            week: 1,
+            day: 2,
+          },
+          {
+            id: "next",
+            sessionName: "Next Session",
+            scheduledDate: "2026-07-08",
+            week: 1,
+            day: 1,
+          },
+        ]}
+      />
+    );
+
+    const cards = Array.from(
+      container.querySelectorAll<HTMLButtonElement>(".clientDesktopUpcomingCard")
+    );
+    expect(cards).toHaveLength(2);
+    expect(cards[0]).toHaveTextContent("Next Session");
+    expect(cards[1]).toHaveTextContent("Later Session");
+  });
+
+  it("groups completed training history newest month first", () => {
+    const { container } = render(
+      <PortalTraining
+        {...baseProps}
+        workouts={[
+          {
+            id: "june",
+            sessionName: "June Session",
+            scheduledDate: "2026-06-28",
+            completionStatus: "Completed",
+            week: 1,
+            day: 1,
+          },
+          {
+            id: "july",
+            sessionName: "July Session",
+            scheduledDate: "2026-07-04",
+            completionStatus: "Completed",
+            week: 2,
+            day: 1,
+          },
+        ]}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /completed/i }));
+    const groups = Array.from(container.querySelectorAll(".clientCompletedGroup"));
+    expect(groups).toHaveLength(2);
+    expect(groups[0]).toHaveTextContent("July 2026");
+    expect(groups[0]).toHaveTextContent("July Session");
+    expect(groups[1]).toHaveTextContent("June 2026");
+    expect(groups[1]).toHaveTextContent("June Session");
+  });
 });

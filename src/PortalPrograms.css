@@ -664,3 +664,173 @@
   .ppModalScrim { align-items: center; }
   .ppModal { border-radius: 20px; }
 }
+
+/* Desktop program workspace. The parent client shell supplies the shared
+   black/gold page hero; these screens use the full canvas beneath it instead
+   of retaining the narrow mobile column. */
+@media (min-width: 721px) {
+  .clientPortalApp .ppFlow {
+    width: 100%;
+    max-width: none;
+    gap: 20px;
+    margin: 0;
+  }
+  .clientPortalApp .ppList {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    gap: 18px;
+  }
+  .clientPortalApp .ppListHead,
+  .clientPortalApp .ppBrowseStoreBtn {
+    grid-column: 1 / -1;
+  }
+  .clientPortalApp .ppListHead {
+    justify-content: flex-end;
+    margin-bottom: -4px;
+  }
+  .clientPortalApp .ppListHead > div {
+    display: none;
+  }
+  .clientPortalApp .ppStoreBtn {
+    min-height: 42px;
+    padding-inline: 17px;
+    border-radius: 12px;
+    font-weight: 800;
+  }
+  .clientPortalApp .ppGroup {
+    min-width: 0;
+    gap: 11px;
+    padding: 18px;
+    border: 1px solid #e1ddd3;
+    border-radius: 20px;
+    background: #fff;
+    box-shadow: 0 10px 28px rgba(29, 27, 22, 0.055);
+  }
+  .clientPortalApp .ppGroupHead {
+    margin: 0 0 2px;
+  }
+  .clientPortalApp .ppCard {
+    min-height: 92px;
+    padding: 16px;
+    border-radius: 14px;
+    background: #fbfaf7;
+    box-shadow: none;
+  }
+  .clientPortalApp .ppCard:hover {
+    background: #fff;
+    box-shadow: 0 10px 24px rgba(24, 22, 18, 0.08);
+  }
+  .clientPortalApp .ppCardAbbr {
+    width: 58px;
+    height: 58px;
+    border-radius: 14px;
+    font-size: 21px;
+  }
+  .clientPortalApp .ppCardBody strong {
+    font-size: 23px;
+  }
+  .clientPortalApp .ppBrowseStoreBtn {
+    min-height: 58px;
+    margin-top: 0;
+    border-radius: 16px;
+  }
+
+  .clientPortalApp .ppDash,
+  .clientPortalApp .ppOverview,
+  .clientPortalApp .ppSchedule,
+  .clientPortalApp .ppRecap,
+  .clientPortalApp .ppStore {
+    max-width: 1000px;
+    margin-inline: auto;
+  }
+  .clientPortalApp .ppDash,
+  .clientPortalApp .ppOverview,
+  .clientPortalApp .ppSchedule {
+    padding: 24px;
+    border: 1px solid #e1ddd3;
+    border-radius: 20px;
+    background: #fff;
+    box-shadow: 0 10px 28px rgba(29, 27, 22, 0.055);
+  }
+  .clientPortalApp .ppDashTitle h2,
+  .clientPortalApp .ppOvHead h2,
+  .clientPortalApp .ppSchedHead h2 {
+    font-size: 36px;
+  }
+  .clientPortalApp .ppHero {
+    padding: 24px;
+    border: 1px solid rgba(212, 175, 55, 0.18);
+    border-radius: 20px;
+    background: linear-gradient(145deg, #262219, #11110f);
+  }
+  .clientPortalApp .ppRing {
+    width: 96px;
+    height: 96px;
+  }
+  .clientPortalApp .ppHeroText > strong {
+    font-size: 32px;
+  }
+  .clientPortalApp .ppNextCard,
+  .clientPortalApp .ppOvBuild,
+  .clientPortalApp .ppStatTiles > div,
+  .clientPortalApp .ppDashStats > div,
+  .clientPortalApp .ppModeCard,
+  .clientPortalApp .ppDateRow,
+  .clientPortalApp .ppPreviewCard {
+    background: #faf9f6;
+  }
+  .clientPortalApp .ppWeekStrip {
+    gap: 10px;
+  }
+  .clientPortalApp .ppDayChip {
+    padding-block: 16px;
+  }
+  .clientPortalApp .ppOvBody {
+    gap: 18px;
+  }
+  .clientPortalApp .ppOvDesc {
+    max-width: 760px;
+    font-size: 15px;
+  }
+  .clientPortalApp .ppSessionList {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 18px;
+  }
+  .clientPortalApp .ppModeCards {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .clientPortalApp .ppRecap {
+    padding: 28px;
+    border: 1px solid #e1ddd3;
+    border-radius: 20px;
+    background: #fff;
+    box-shadow: 0 10px 28px rgba(29, 27, 22, 0.055);
+  }
+  .clientPortalApp .ppRecapStats,
+  .clientPortalApp .ppRecapTableWrap,
+  .clientPortalApp .ppRecapNote,
+  .clientPortalApp .ppRecapCta {
+    max-width: 760px;
+  }
+  .clientPortalApp .ppStickyBar {
+    display: flex;
+    justify-content: flex-end;
+  }
+  .clientPortalApp .ppStickyBar .ppWide {
+    width: auto;
+    min-width: 230px;
+  }
+}
+
+@media (min-width: 721px) and (max-width: 980px) {
+  .clientPortalApp .ppList {
+    grid-template-columns: 1fr;
+  }
+  .clientPortalApp .ppSessionList,
+  .clientPortalApp .ppModeCards {
+    grid-template-columns: 1fr;
+  }
+}

@@ -519,3 +519,641 @@
   outline-offset: -2px;
   border-radius: 12px;
 }
+
+/* Client portal desktop shell -------------------------------------------------
+   Mobile remains the compact, bottom-nav experience. Wider screens use the
+   same black/gold hierarchy as the coach workspace, with page context and
+   useful status visible before the page-specific content. */
+.clientPortalDesktopHero,
+.clientDesktopNav,
+.clientDesktopUpcomingSessions {
+  display: none;
+}
+
+.clientTrainingScopeToggle button {
+  gap: 7px;
+}
+.clientTrainingScopeToggle button em {
+  min-width: 22px;
+  height: 22px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 999px;
+  background: rgba(18, 18, 16, 0.08);
+  color: inherit;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+}
+.clientTrainingScopeToggle button.active em {
+  background: rgba(212, 175, 55, 0.2);
+}
+.clientCalendarModeHeader {
+  display: block;
+}
+.clientCalendarSectionHeading {
+  display: none;
+}
+.clientCompletedGroup {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.clientCompletedGroup:last-child {
+  margin-bottom: 0;
+}
+.clientCompletedGroupHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: #171714;
+}
+.clientCompletedGroupHead > strong {
+  font-size: 14px;
+  font-weight: 900;
+}
+.clientCompletedGroupHead > span {
+  min-width: 25px;
+  height: 25px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 999px;
+  background: #ece8de;
+  color: #6f695c;
+  font-size: 11px;
+  font-weight: 900;
+}
+.clientCompletedGroupGrid {
+  display: grid;
+  gap: 8px;
+}
+
+@media (min-width: 721px) {
+  .clientPortalApp .main {
+    padding-bottom: 40px !important;
+  }
+  .clientPortalApp .clientPage:not(.trainingFocus) .clientWorkspace,
+  .clientPortalApp .clientPage.trainingFocus .clientWorkspace,
+  .clientPortalApp .clientWorkspace {
+    width: min(100%, 1320px);
+    max-width: 1320px !important;
+    padding: 28px 30px 44px !important;
+    margin-inline: auto;
+  }
+  .clientPortalApp > .mobileClientBottomNav,
+  .clientPortalApp .mobileClientBottomNav {
+    display: none !important;
+  }
+
+  .clientPortalApp .clientPortalDesktopHero {
+    position: relative;
+    display: block;
+    overflow: hidden;
+    margin: 0 0 14px;
+    padding: 30px 32px 24px;
+    border: 1px solid rgba(212, 175, 55, 0.16);
+    border-radius: 24px;
+    color: #f6f0e4;
+    background:
+      linear-gradient(135deg, rgba(255, 255, 255, 0.035), transparent 42%),
+      linear-gradient(150deg, #28231a 0%, #171612 48%, #0d0d0c 100%);
+    box-shadow: 0 24px 60px rgba(28, 25, 19, 0.16);
+  }
+  .clientPortalApp .clientPortalDesktopHeroGlow {
+    position: absolute;
+    top: -115px;
+    right: -75px;
+    width: 360px;
+    height: 360px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(212, 175, 55, 0.34), rgba(212, 175, 55, 0.08) 40%, transparent 70%);
+    pointer-events: none;
+  }
+  .clientPortalApp .clientPortalDesktopHeroTop {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 28px;
+  }
+  .clientPortalApp .clientPortalDesktopHeroCopy {
+    min-width: 0;
+    max-width: 760px;
+  }
+  .clientPortalApp .clientPortalDesktopHeroEyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #d7b756;
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+  .clientPortalApp .clientPortalDesktopHeroEyebrow::before {
+    content: "";
+    width: 22px;
+    height: 2px;
+    border-radius: 2px;
+    background: linear-gradient(90deg, #f0d276, #a87717);
+  }
+  .clientPortalApp .clientPortalDesktopHero h1 {
+    margin: 10px 0 0 !important;
+    color: #fff !important;
+    font-family: inherit;
+    font-size: clamp(34px, 4.2vw, 52px) !important;
+    font-weight: 900 !important;
+    letter-spacing: -0.045em;
+    line-height: 0.98;
+  }
+  .clientPortalApp .clientPortalDesktopHero p {
+    max-width: 650px;
+    margin: 11px 0 0 !important;
+    color: #c8c0ad !important;
+    font-size: 15px;
+    font-weight: 650;
+    line-height: 1.55;
+  }
+  .clientPortalApp .clientPortalDesktopHeroAside {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 0 0 auto;
+  }
+  .clientPortalApp .clientPortalDesktopHeroAvatar {
+    width: 58px;
+    height: 58px;
+    display: grid;
+    place-items: center;
+    border: 1px solid rgba(236, 207, 111, 0.6);
+    border-radius: 50%;
+    background: rgba(212, 175, 55, 0.1);
+    color: #f0d87c;
+    font-size: 18px;
+    font-weight: 900;
+    letter-spacing: 0.03em;
+  }
+  .clientPortalApp .clientPortalDesktopHeroAction {
+    min-height: 48px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 0 20px;
+    border: 1px solid #d4af37;
+    border-radius: 13px;
+    background: linear-gradient(135deg, #e0c15d, #c79e2f);
+    color: #11110f;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 900;
+    cursor: pointer;
+    box-shadow: 0 12px 30px rgba(212, 175, 55, 0.17);
+    transition: transform 0.18s ease, filter 0.18s ease;
+  }
+  .clientPortalApp .clientPortalDesktopHeroAction:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.04);
+  }
+  .clientPortalApp .clientPortalDesktopHeroStats {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0;
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(240, 220, 136, 0.16);
+  }
+  .clientPortalApp .clientPortalDesktopHeroStat {
+    min-width: 0;
+    padding: 0 22px;
+    border-left: 1px solid rgba(240, 220, 136, 0.13);
+  }
+  .clientPortalApp .clientPortalDesktopHeroStat:first-child {
+    padding-left: 0;
+    border-left: 0;
+  }
+  .clientPortalApp .clientPortalDesktopHeroStat > span {
+    display: block;
+    color: #948b76;
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+  .clientPortalApp .clientPortalDesktopHeroStat > strong {
+    display: block;
+    overflow: hidden;
+    margin-top: 6px;
+    color: #f1d773;
+    font-size: clamp(22px, 2.8vw, 32px);
+    font-weight: 900;
+    line-height: 1.05;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+  .clientPortalApp .clientPortalDesktopHeroStat > small {
+    display: block;
+    overflow: hidden;
+    margin-top: 5px;
+    color: #a9a18e;
+    font-size: 11px;
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .clientPortalApp .clientDesktopNav {
+    position: sticky;
+    top: 14px;
+    z-index: 45;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+    margin: 0 0 24px;
+    padding: 6px;
+    border: 1px solid #ded9ce;
+    border-radius: 16px;
+    background: rgba(232, 230, 223, 0.93);
+    box-shadow: 0 12px 30px rgba(31, 29, 24, 0.1);
+    backdrop-filter: blur(14px);
+  }
+  .clientPortalApp .clientDesktopNav button {
+    position: relative;
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    border: 0;
+    border-radius: 11px;
+    background: transparent;
+    color: #5f5a50;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 850;
+    cursor: pointer;
+    transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+  }
+  .clientPortalApp .clientDesktopNav button:hover {
+    color: #151513;
+    background: rgba(255, 255, 255, 0.55);
+  }
+  .clientPortalApp .clientDesktopNav button.active {
+    color: #f2d46f;
+    background: #151513;
+    box-shadow: 0 7px 17px rgba(22, 21, 18, 0.19);
+  }
+  .clientPortalApp .clientDesktopNav button em {
+    min-width: 20px;
+    height: 20px;
+    display: inline-grid;
+    place-items: center;
+    border-radius: 999px;
+    background: #c83737;
+    color: #fff;
+    font-size: 10px;
+    font-style: normal;
+    font-weight: 900;
+  }
+
+  /* The desktop hero replaces each page's narrow mobile introduction. */
+  .clientPortalApp .clientHomeGreeting,
+  .clientPortalApp .clientCalendarHead,
+  .clientPortalApp .clientPortalTrainingHero,
+  .clientPortalApp .portalProfileHead,
+  .clientPortalApp .portalProfileHero {
+    display: none !important;
+  }
+  .clientPortalApp .portalAccessBanner {
+    border-radius: 14px;
+    margin-bottom: 14px;
+  }
+
+  /* Dashboard */
+  .clientPortalApp .clientHomeGrid {
+    width: 100%;
+    max-width: none;
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    align-items: start;
+    gap: 18px;
+    margin: 0;
+  }
+  .clientPortalApp .clientHomeGrid > * {
+    grid-column: 1 / -1;
+    min-width: 0;
+  }
+  .clientPortalApp .clientHomeGrid > .prHomePanel,
+  .clientPortalApp .clientHomeGrid > .trophyHomePanel {
+    grid-column: span 6;
+  }
+  .clientPortalApp .clientHomeGrid > .clientHomePanel,
+  .clientPortalApp .clientHomeGrid > .wellnessCard {
+    border: 1px solid #e1ddd3;
+    border-radius: 20px;
+    background: #fff;
+    box-shadow: 0 10px 28px rgba(29, 27, 22, 0.055);
+  }
+  .clientPortalApp .clientHomeGrid > .clientHomePanel {
+    padding: 24px;
+  }
+  .clientPortalApp .clientHomePanelHeader {
+    margin-bottom: 18px;
+  }
+  .clientPortalApp .clientHomePanelHeader h2 {
+    font-size: clamp(22px, 2.4vw, 30px);
+    letter-spacing: -0.025em;
+  }
+  .clientPortalApp .clientHomePanelHeader > div > span {
+    color: #aa781b;
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+  .clientPortalApp .portalHomeTabs {
+    justify-self: start;
+    width: auto;
+    min-width: min(100%, 540px);
+    margin: 0;
+  }
+  .clientPortalApp .homeWorkoutList,
+  .clientPortalApp .coachInboxList {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .clientPortalApp .homeWorkoutItem,
+  .clientPortalApp .coachInboxItem {
+    min-height: 92px;
+    margin: 0;
+  }
+
+  /* Calendar: status first, then upcoming chronology, then the date grid. */
+  .clientPortalApp .trainingCalendar {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    overflow: visible;
+  }
+  .clientPortalApp .clientTrainingScopeToggle {
+    width: min(100%, 420px);
+    margin: 0 0 18px;
+    padding: 6px;
+    border: 1px solid #ddd8cd;
+    border-radius: 14px;
+    background: #e8e6df;
+  }
+  .clientPortalApp .clientTrainingScopeToggle button {
+    min-height: 44px;
+    border-radius: 10px;
+  }
+  .clientPortalApp .clientTrainingScopeToggle button.active {
+    background: #fff;
+    color: #171714;
+    box-shadow: 0 2px 7px rgba(26, 24, 20, 0.1);
+  }
+  .clientPortalApp .clientTrainingScopeToggle button.active em {
+    background: #171714;
+    color: #f0d46d;
+  }
+  .clientPortalApp .clientDesktopUpcomingSessions {
+    display: block;
+    margin-bottom: 20px;
+    padding: 22px;
+    border: 1px solid #e1ddd3;
+    border-radius: 20px;
+    background: #fff;
+    box-shadow: 0 10px 28px rgba(29, 27, 22, 0.055);
+  }
+  .clientPortalApp .clientCalendarSectionHeading {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 16px;
+  }
+  .clientPortalApp .clientCalendarSectionHeading > div > span {
+    display: block;
+    color: #aa781b;
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+  .clientPortalApp .clientCalendarSectionHeading h2 {
+    margin: 4px 0 0;
+    color: #171714;
+    font-size: 25px;
+    font-weight: 900;
+    letter-spacing: -0.025em;
+  }
+  .clientPortalApp .clientCalendarSectionHeading > strong {
+    color: #746d60;
+    font-size: 12px;
+    font-weight: 800;
+  }
+  .clientPortalApp .clientDesktopUpcomingGrid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .clientPortalApp .clientDesktopUpcomingCard {
+    min-width: 0;
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    min-height: 82px;
+    padding: 13px 14px;
+    border: 1px solid #e6e1d6;
+    border-left: 4px solid var(--wcol-other);
+    border-radius: 14px;
+    background: #fbfaf7;
+    color: #171714;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+  }
+  .clientPortalApp .clientDesktopUpcomingCard:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 9px 22px rgba(26, 24, 19, 0.08);
+  }
+  .clientPortalApp .clientDesktopUpcomingCard.wcol-strength { border-left-color: var(--wcol-strength); }
+  .clientPortalApp .clientDesktopUpcomingCard.wcol-cardio { border-left-color: var(--wcol-cardio); }
+  .clientPortalApp .clientDesktopUpcomingCard.wcol-mobility { border-left-color: var(--wcol-mobility); }
+  .clientPortalApp .clientDesktopUpcomingCard.wcol-skill { border-left-color: var(--wcol-skill); }
+  .clientPortalApp .clientDesktopUpcomingCard.wcol-test { border-left-color: var(--wcol-test); }
+  .clientPortalApp .clientDesktopUpcomingBody {
+    min-width: 0;
+  }
+  .clientPortalApp .clientDesktopUpcomingBody small,
+  .clientPortalApp .clientDesktopUpcomingBody strong,
+  .clientPortalApp .clientDesktopUpcomingBody em {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .clientPortalApp .clientDesktopUpcomingBody small {
+    color: #9b711e;
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .clientPortalApp .clientDesktopUpcomingBody strong {
+    margin-top: 3px;
+    font-size: 14px;
+    font-weight: 900;
+  }
+  .clientPortalApp .clientDesktopUpcomingBody em {
+    margin-top: 3px;
+    color: #716b60;
+    font-size: 11px;
+    font-style: normal;
+    font-weight: 700;
+  }
+  .clientPortalApp .clientDesktopUpcomingAction {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    color: #9f7118;
+    font-size: 11px;
+    font-weight: 900;
+  }
+  .clientPortalApp .clientDesktopUpcomingCard .wcatBadge {
+    width: 42px;
+    height: 42px;
+    display: grid;
+    place-items: center;
+    border-radius: 12px;
+  }
+  .clientPortalApp .clientCalendarModeHeader {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 20px;
+    margin: 0 0 12px;
+  }
+  .clientPortalApp .clientCalendarModeHeader .clientCalendarSectionHeading {
+    margin: 0;
+  }
+  .clientPortalApp .clientCalendarModeHeader > .clientCalendarViewToggle {
+    flex: 0 0 auto;
+  }
+  .clientPortalApp .calendarNavigator {
+    padding: 12px 14px;
+    border: 1px solid #e1ddd3;
+    border-radius: 16px;
+    background: #fff;
+    box-shadow: 0 8px 24px rgba(29, 27, 22, 0.045);
+  }
+  .clientPortalApp .clientCompletedList {
+    display: block !important;
+    padding: 22px !important;
+    border: 1px solid #e1ddd3 !important;
+    border-radius: 20px !important;
+    background: #fff !important;
+    box-shadow: 0 10px 28px rgba(29, 27, 22, 0.055);
+  }
+  .clientPortalApp .clientHistoryHeading {
+    margin-bottom: 22px;
+  }
+  .clientPortalApp .clientCompletedGroup {
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+  .clientPortalApp .clientCompletedGroupHead {
+    padding-bottom: 8px;
+    border-bottom: 1px solid #ece8df;
+  }
+  .clientPortalApp .clientCompletedGroupHead > strong {
+    font-size: 15px;
+  }
+  .clientPortalApp .clientCompletedGroupGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .clientPortalApp .clientCompletedGroupGrid .selectedDayWorkout {
+    min-width: 0;
+    margin: 0 !important;
+    border-radius: 14px !important;
+  }
+
+  /* Profile */
+  .clientPortalApp .portalProfile {
+    width: 100%;
+    max-width: none;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: stretch;
+    gap: 18px;
+    margin: 0;
+  }
+  .clientPortalApp .portalProfileCard {
+    min-width: 0;
+    margin: 0;
+    padding: 22px;
+    border: 1px solid #e1ddd3;
+    border-radius: 20px;
+    background: #fff;
+    box-shadow: 0 10px 28px rgba(29, 27, 22, 0.055);
+  }
+  .clientPortalApp .portalProfileCardEyebrow {
+    display: block;
+    margin-bottom: 14px;
+    color: #aa781b;
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+  .clientPortalApp .portalProfileHelp {
+    grid-column: 1 / -1;
+    margin: 0;
+    padding: 16px 18px;
+    border: 1px solid #e1ddd3;
+    border-left: 4px solid #d4af37;
+    border-radius: 14px;
+    background: #fffaf0;
+    color: #5d574c;
+    font-weight: 750;
+  }
+}
+
+@media (min-width: 721px) and (max-width: 980px) {
+  .clientPortalApp .clientWorkspace {
+    padding-inline: 20px !important;
+  }
+  .clientPortalApp .clientPortalDesktopHero {
+    padding: 26px 24px 22px;
+  }
+  .clientPortalApp .clientPortalDesktopHeroTop {
+    gap: 18px;
+  }
+  .clientPortalApp .clientPortalDesktopHeroAside {
+    align-items: flex-end;
+    flex-direction: column;
+  }
+  .clientPortalApp .clientDesktopUpcomingGrid,
+  .clientPortalApp .clientCompletedGroupGrid,
+  .clientPortalApp .homeWorkoutList,
+  .clientPortalApp .coachInboxList {
+    grid-template-columns: 1fr;
+  }
+  .clientPortalApp .portalProfile {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .clientPortalApp .portalProfileHelp {
+    grid-column: 1 / -1;
+  }
+}

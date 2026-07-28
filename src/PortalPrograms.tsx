@@ -190,7 +190,7 @@ export default function PortalPrograms(props: { [key: string]: any }) {
     };
 
     return (
-      <motion.div className="ppFlow" {...screen}>
+      <motion.div className="ppFlow ppList" {...screen}>
         <div className="ppListHead">
           <div>
             <span className="ppKicker">{paceZh ? "你的训练" : "Your training"}</span>
@@ -252,7 +252,7 @@ export default function PortalPrograms(props: { [key: string]: any }) {
   // ---------------- STORE (upsell) ----------------
   if (view === "store") {
     return (
-      <motion.div className="ppFlow" {...screen}>
+      <motion.div className="ppFlow ppStore" {...screen}>
         <button type="button" className="ppBack" onClick={backToList}>
           <ChevronLeft size={16} /> {t("myPrograms")}
         </button>
@@ -586,7 +586,7 @@ export default function PortalPrograms(props: { [key: string]: any }) {
     const goal = paceZh ? program?.goalCn || program?.goal : program?.goal;
 
     return (
-      <motion.div className="ppFlow" {...screen}>
+      <motion.div className="ppFlow ppOverview" {...screen}>
         <button type="button" className="ppBack" onClick={backToList}>
           <ChevronLeft size={16} /> {t("myPrograms")}
         </button>
