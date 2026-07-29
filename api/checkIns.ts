@@ -4,11 +4,17 @@ import {
   reviewCheckIn,
   createCheckIn,
 } from "../server/db/repositories/checkIns.ts";
+import { coachKeyOk } from "./_coachAuth.ts";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     if (req.method === "GET") {
       const clientId = String(req.query.clientId || "");
+      // No clientId = every client's check-ins (health data). Coach-only,
+      // same rule as clients.ts (named mistake #49).
+      if (!clientId && !coachKeyOk(req as never)) {
+        return res.status(401).json({ error: "Coach access key required" });
+      }
       const checkIns = await listCheckIns(clientId);
       return res.status(200).json({ checkIns });
     }

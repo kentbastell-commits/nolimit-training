@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { ConfigError } from "../server/db/errors.ts";
 import { getContentAssignments } from "../server/db/repositories/contentAssignments.ts";
+import { coachKeyOk } from "./_coachAuth.ts";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "GET") {
@@ -9,6 +10,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const { clientId = "", clientCode = "", clientName = "" } = req.query;
+    // No client filter = every client's assigned forms/tests. Coach-only,
+    // same rule as clients.ts (named mistake #49).
+    if (!clientId && !clientCode && !clientName && !coachKeyOk(req as never)) {
+      return res.status(401).json({ error: "Coach access key required" });
+    }
     const assignments = await getContentAssignments(
       String(clientId),
       String(clientCode),

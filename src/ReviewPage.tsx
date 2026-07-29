@@ -164,7 +164,7 @@ export default function ReviewPage({
       accent: "#b5654a", // Clay
     },
     {
-      label: "Messages 留言",
+      label: "Messages",
       count: clientMessages.length,
       target: "reviewColMessages",
       accent: "#d4af37", // Brand gold — the athlete's own voice
@@ -272,7 +272,7 @@ export default function ReviewPage({
         >
           {sectionHeader(
             "Direct from athletes",
-            "Messages 留言",
+            "Messages",
             clientMessages.length,
             "messages"
           )}

@@ -3,11 +3,17 @@ import {
   listNotifications,
   createNotification,
 } from "../server/db/repositories/notifications.ts";
+import { coachKeyOk } from "./_coachAuth.ts";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     if (req.method === "GET") {
       const clientId = req.query.clientId ? String(req.query.clientId) : undefined;
+      // No clientId = every client's notifications. Coach-only, same rule as
+      // clients.ts (named mistake #49).
+      if (!clientId && !coachKeyOk(req as never)) {
+        return res.status(401).json({ error: "Coach access key required" });
+      }
       const notifications = await listNotifications(clientId);
       return res.status(200).json({ notifications });
     }
