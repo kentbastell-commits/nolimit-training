@@ -481,6 +481,23 @@ data between them, never "borrow" a table ID across products.
     repository under `server/db/repositories/` for `!clientId`-style "empty
     filter returns all" branches and gate every one in the same pass, not just
     the reported one.
+50. **The two-field kind** — a digital product's real "kind" (program / bundle
+    / add-on) lives in `storeListingType`; `productType` stays `"Digital
+    Program"` for bundles and add-ons too (confirmed live: all 3 real add-ons
+    and the 1 real bundle have this exact shape). The Digital library's
+    Add-ons/Bundles quick-filter tabs (App.tsx `visibleSavedPrograms`, the
+    `type:` filter) checked `productType` alone and matched ZERO real rows,
+    while the Programs tab wrongly included the add-ons/bundle too —
+    meanwhile `CoachProgramsLanding.tsx`'s own `isAddon`/`isBundle`/`kindOf`
+    helpers on the SAME page already checked `storeListingType` first and
+    were correct. Two pieces of code on one page computed the same
+    classification differently; only one was right. Rule: `storeListingType`
+    is the source of truth for digital product kind — never branch on
+    `productType` alone to detect add-on/bundle. More generally: when you
+    find a classification helper (`isX`/`kindOf`) on a page, grep that same
+    page for every OTHER place the same classification gets computed by hand
+    and diff them — a second, differently-wrong implementation is exactly how
+    this one hid for an unknown period.
 
 ## Quality bar — checkable, per deliverable
 
