@@ -44,7 +44,7 @@ Progress is stored locally in the browser under `mandarin-field-progress-v1`.
 
 ## Prepare for offline travel
 
-The production build is an installable, offline-first web app. It includes 24 lessons, 21 graded stories, 15 role-plays, 16 character families, and 96 spaced-review cards in the application bundle. Conversation simulations can show or hide pinyin, and accept prepared replies typed in either characters or pinyin.
+The production build is an installable, offline-first web app. It includes 24 lessons, 21 graded stories, 15 role-plays, 28 character families, and 96 spaced-review cards in the application bundle. Conversation simulations can show or hide pinyin, and accept prepared replies typed in either characters or pinyin.
 
 For a hosted copy on a phone or tablet:
 

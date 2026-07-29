@@ -109,4 +109,112 @@ export const extraCharacterFamilies: CharacterFamily[] = [
       { char: '狠', pinyin: 'hěn', meaning: 'fierce / ruthless', component: '犭 animal', word: '狠心', wordPinyin: 'hěnxīn', wordMeaning: 'hard-hearted' },
     ],
   },
+  {
+    id: 'xi-family', anchor: '昔', sound: 'xī / xí / jiè / cuò', idea: 'former times', hint: '昔 creates a useful sound neighborhood. The heart cherishes, people borrow, metal makes an error, and movement puts something in place.',
+    members: [
+      { char: '惜', pinyin: 'xī', meaning: 'cherish / regret', component: '忄 heart', word: '可惜', wordPinyin: 'kěxī', wordMeaning: 'what a pity' },
+      { char: '借', pinyin: 'jiè', meaning: 'borrow / lend', component: '亻 person', word: '借用', wordPinyin: 'jièyòng', wordMeaning: 'borrow / use temporarily' },
+      { char: '错', pinyin: 'cuò', meaning: 'wrong / mistake', component: '钅 metal', word: '错误', wordPinyin: 'cuòwù', wordMeaning: 'error / mistake' },
+      { char: '措', pinyin: 'cuò', meaning: 'arrange / handle', component: '扌 hand', word: '措施', wordPinyin: 'cuòshī', wordMeaning: 'measure / action' },
+    ],
+  },
+  {
+    id: 'sheng-family', anchor: '生', sound: 'shēng / xīng / xìng', idea: 'life / be born', hint: '生 anchors a common eng/ing family. The sun makes a star, a woman marks a surname, the heart shapes nature, and an animal becomes livestock.',
+    members: [
+      { char: '星', pinyin: 'xīng', meaning: 'star', component: '日 sun', word: '星期', wordPinyin: 'xīngqī', wordMeaning: 'week' },
+      { char: '姓', pinyin: 'xìng', meaning: 'surname', component: '女 woman', word: '姓名', wordPinyin: 'xìngmíng', wordMeaning: 'full name' },
+      { char: '性', pinyin: 'xìng', meaning: 'nature / property', component: '忄 heart', word: '灵活性', wordPinyin: 'línghuóxìng', wordMeaning: 'flexibility' },
+      { char: '牲', pinyin: 'shēng', meaning: 'livestock', component: '牜 animal', word: '牲畜', wordPinyin: 'shēngchù', wordMeaning: 'livestock' },
+    ],
+  },
+  {
+    id: 'jiao-family', anchor: '交', sound: 'jiāo / jiào / jiǎo', idea: 'cross / connect', hint: '交 anchors a jiao sound neighborhood. Wood marks a school, movement compares, the body becomes the thigh, and glue joins things.',
+    members: [
+      { char: '校', pinyin: 'xiào', meaning: 'school / check', component: '木 wood', word: '学校', wordPinyin: 'xuéxiào', wordMeaning: 'school' },
+      { char: '较', pinyin: 'jiào', meaning: 'compare / relatively', component: '车 vehicle', word: '比较', wordPinyin: 'bǐjiào', wordMeaning: 'compare / relatively' },
+      { char: '胶', pinyin: 'jiāo', meaning: 'glue / rubber', component: '月 body', word: '弹力胶带', wordPinyin: 'tánlì jiāodài', wordMeaning: 'elastic tape' },
+      { char: '郊', pinyin: 'jiāo', meaning: 'suburb', component: '阝 place', word: '郊外', wordPinyin: 'jiāowài', wordMeaning: 'outskirts / countryside' },
+    ],
+  },
+  {
+    id: 'cai-family', anchor: '采', sound: 'cǎi / cài', idea: 'pick / gather', hint: '采 stays close to cai. Plants become vegetables, color becomes brilliance, a foot steps, and the eye pays attention.',
+    members: [
+      { char: '菜', pinyin: 'cài', meaning: 'vegetable / dish', component: '艹 plant', word: '点菜', wordPinyin: 'diǎncài', wordMeaning: 'order dishes' },
+      { char: '彩', pinyin: 'cǎi', meaning: 'color', component: '彡 pattern', word: '精彩', wordPinyin: 'jīngcǎi', wordMeaning: 'wonderful / brilliant' },
+      { char: '踩', pinyin: 'cǎi', meaning: 'step on', component: '足 foot', word: '踩地', wordPinyin: 'cǎi dì', wordMeaning: 'press the foot into the ground' },
+      { char: '睬', pinyin: 'cǎi', meaning: 'pay attention to', component: '目 eye', word: '理睬', wordPinyin: 'lǐcǎi', wordMeaning: 'pay attention to' },
+    ],
+  },
+  {
+    id: 'si-family', anchor: '寺', sound: 'sì / shí / chí', idea: 'temple', hint: '寺 is a strong visual family with a controlled sound shift. Speech makes poetry, the hand holds, the person attends, and the sun marks time.',
+    members: [
+      { char: '时', pinyin: 'shí', meaning: 'time', component: '日 sun', word: '时间', wordPinyin: 'shíjiān', wordMeaning: 'time' },
+      { char: '持', pinyin: 'chí', meaning: 'hold / maintain', component: '扌 hand', word: '保持', wordPinyin: 'bǎochí', wordMeaning: 'maintain' },
+      { char: '诗', pinyin: 'shī', meaning: 'poem', component: '讠 speech', word: '诗歌', wordPinyin: 'shīgē', wordMeaning: 'poetry' },
+      { char: '侍', pinyin: 'shì', meaning: 'attend / serve', component: '亻 person', word: '服侍', wordPinyin: 'fúshi', wordMeaning: 'attend to / serve' },
+    ],
+  },
+  {
+    id: 'yao-family', anchor: '尧', sound: 'yáo / rào / shāo / xiǎo', idea: 'high / legendary ruler', hint: '尧 forms a memorable ao family. Silk winds around, fire burns, the sun brings dawn, and feathers lift upward.',
+    members: [
+      { char: '绕', pinyin: 'rào', meaning: 'wind around / circle', component: '纟 silk', word: '绕肩', wordPinyin: 'rào jiān', wordMeaning: 'shoulder circles' },
+      { char: '烧', pinyin: 'shāo', meaning: 'burn / cook', component: '火 fire', word: '发烧', wordPinyin: 'fāshāo', wordMeaning: 'have a fever' },
+      { char: '晓', pinyin: 'xiǎo', meaning: 'dawn / know', component: '日 sun', word: '知晓', wordPinyin: 'zhīxiǎo', wordMeaning: 'know / be aware' },
+      { char: '翘', pinyin: 'qiào', meaning: 'raise / tilt up', component: '羽 feather', word: '翘起', wordPinyin: 'qiàoqǐ', wordMeaning: 'lift / tilt upward' },
+    ],
+  },
+  {
+    id: 'he-family', anchor: '曷', sound: 'hē / hé / kě / xiē', idea: 'how / when', hint: '曷 forms a practical daily-life cluster. The mouth drinks, water becomes thirst, the hand reveals, and the body rests.',
+    members: [
+      { char: '喝', pinyin: 'hē', meaning: 'drink', component: '口 mouth', word: '喝水', wordPinyin: 'hē shuǐ', wordMeaning: 'drink water' },
+      { char: '渴', pinyin: 'kě', meaning: 'thirsty', component: '氵 water', word: '口渴', wordPinyin: 'kǒukě', wordMeaning: 'thirsty' },
+      { char: '揭', pinyin: 'jiē', meaning: 'lift / reveal', component: '扌 hand', word: '揭开', wordPinyin: 'jiēkāi', wordMeaning: 'uncover / reveal' },
+      { char: '歇', pinyin: 'xiē', meaning: 'rest', component: '欠 breath', word: '歇一会儿', wordPinyin: 'xiē yíhuìr', wordMeaning: 'rest for a while' },
+    ],
+  },
+  {
+    id: 'zhi-family', anchor: '支', sound: 'zhī / zhī / jì', idea: 'branch / support', hint: '支 gives a zhi-like shape and sound clue. Wood branches, the body has limbs, skill comes from the hand, and fabric becomes a tent.',
+    members: [
+      { char: '枝', pinyin: 'zhī', meaning: 'branch', component: '木 wood', word: '树枝', wordPinyin: 'shùzhī', wordMeaning: 'tree branch' },
+      { char: '肢', pinyin: 'zhī', meaning: 'limb', component: '月 body', word: '四肢', wordPinyin: 'sìzhī', wordMeaning: 'four limbs' },
+      { char: '技', pinyin: 'jì', meaning: 'skill / technique', component: '扌 hand', word: '技术', wordPinyin: 'jìshù', wordMeaning: 'technique / technology' },
+      { char: '歧', pinyin: 'qí', meaning: 'fork / divergent', component: '止 foot', word: '分歧', wordPinyin: 'fēnqí', wordMeaning: 'difference / disagreement' },
+    ],
+  },
+  {
+    id: 'yong-family', anchor: '甬', sound: 'yǒng / tǒng / tōng / tòng', idea: 'path / channel', hint: '甬 unlocks a highly useful ong family: movement passes through, the body feels pain, wood forms a bucket, and water surges.',
+    members: [
+      { char: '通', pinyin: 'tōng', meaning: 'pass through / connect', component: '辶 movement', word: '沟通', wordPinyin: 'gōutōng', wordMeaning: 'communicate' },
+      { char: '痛', pinyin: 'tòng', meaning: 'pain / painful', component: '疒 illness', word: '疼痛', wordPinyin: 'téngtòng', wordMeaning: 'pain' },
+      { char: '桶', pinyin: 'tǒng', meaning: 'bucket / barrel', component: '木 wood', word: '水桶', wordPinyin: 'shuǐtǒng', wordMeaning: 'bucket' },
+      { char: '涌', pinyin: 'yǒng', meaning: 'surge / well up', component: '氵 water', word: '涌出', wordPinyin: 'yǒngchū', wordMeaning: 'pour / surge out' },
+    ],
+  },
+  {
+    id: 'qiu-family', anchor: '求', sound: 'qiú / jiù', idea: 'seek / request', hint: '求 holds a strong qiu shape and sound. The sphere becomes a ball, action becomes rescue, and clothing becomes fur.',
+    members: [
+      { char: '球', pinyin: 'qiú', meaning: 'ball / sphere', component: '王 jade', word: '药球', wordPinyin: 'yàoqiú', wordMeaning: 'medicine ball' },
+      { char: '救', pinyin: 'jiù', meaning: 'save / rescue', component: '攵 action', word: '急救', wordPinyin: 'jíjiù', wordMeaning: 'first aid' },
+      { char: '裘', pinyin: 'qiú', meaning: 'fur coat', component: '衣 clothing', word: '皮裘', wordPinyin: 'píqiú', wordMeaning: 'fur garment' },
+      { char: '泅', pinyin: 'qiú', meaning: 'swim', component: '氵 water', word: '泅水', wordPinyin: 'qiúshuǐ', wordMeaning: 'swim through water' },
+    ],
+  },
+  {
+    id: 'cao-family', anchor: '曹', sound: 'cáo / cāo / zāo / zāo', idea: 'group / class', hint: '曹 creates an ao sound family. Hands perform, wood forms a trough, movement encounters, and rice can become spoiled.',
+    members: [
+      { char: '操', pinyin: 'cāo', meaning: 'operate / drill', component: '扌 hand', word: '体操', wordPinyin: 'tǐcāo', wordMeaning: 'gymnastics / physical drills' },
+      { char: '槽', pinyin: 'cáo', meaning: 'groove / trough', component: '木 wood', word: '凹槽', wordPinyin: 'āocáo', wordMeaning: 'groove / channel' },
+      { char: '遭', pinyin: 'zāo', meaning: 'encounter', component: '辶 movement', word: '遭遇', wordPinyin: 'zāoyù', wordMeaning: 'encounter' },
+      { char: '糟', pinyin: 'zāo', meaning: 'spoiled / bad', component: '米 rice', word: '糟糕', wordPinyin: 'zāogāo', wordMeaning: 'terrible / bad' },
+    ],
+  },
+  {
+    id: 'jun-family', anchor: '夋', sound: 'jùn / qùn', idea: 'quick / talented', hint: '夋 marks a compact un-sound family. A person is talented, a horse is swift, a mountain is steep, and completion is finished.',
+    members: [
+      { char: '俊', pinyin: 'jùn', meaning: 'talented / handsome', component: '亻 person', word: '英俊', wordPinyin: 'yīngjùn', wordMeaning: 'handsome' },
+      { char: '骏', pinyin: 'jùn', meaning: 'fine horse / swift', component: '马 horse', word: '骏马', wordPinyin: 'jùnmǎ', wordMeaning: 'fine horse' },
+      { char: '峻', pinyin: 'jùn', meaning: 'steep / severe', component: '山 mountain', word: '严峻', wordPinyin: 'yánjùn', wordMeaning: 'severe / challenging' },
+      { char: '竣', pinyin: 'jùn', meaning: 'complete', component: '立 stand', word: '竣工', wordPinyin: 'jùngōng', wordMeaning: 'complete construction' },
+    ],
+  },
 ]

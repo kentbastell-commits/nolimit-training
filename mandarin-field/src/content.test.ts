@@ -11,7 +11,7 @@ describe('HSK 3–4 train pack', () => {
     expect(lessons).toHaveLength(24)
     expect(stories).toHaveLength(21)
     expect(scenarios).toHaveLength(15)
-    expect(characterFamilies).toHaveLength(16)
+    expect(characterFamilies).toHaveLength(28)
     expect(reviewCards).toHaveLength(96)
 
     for (const level of fieldLevels.filter((item) => item.level === 3 || item.level === 4)) {

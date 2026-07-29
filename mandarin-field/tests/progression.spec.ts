@@ -67,7 +67,7 @@ test('the full HSK 3–4 train pack is discoverable in every library', async ({ 
   await openSection(page, 2, 'Speak')
   await expect(page.locator('.scenario-card')).toHaveCount(15)
   await openSection(page, 4, 'Characters')
-  await expect(page.locator('.family-card')).toHaveCount(16)
+  await expect(page.locator('.family-card')).toHaveCount(28)
 })
 
 test('integrated level check records listening, reading, characters, and speaking', async ({ page }) => {
