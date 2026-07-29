@@ -1,7 +1,7 @@
-@font-face { font-family: 'DM Sans'; src: url('../../node_modules/@fontsource/inter/files/inter-latin-400-normal.woff2') format('woff2'); font-style: normal; font-weight: 400; font-display: swap; }
-@font-face { font-family: 'DM Sans'; src: url('../../node_modules/@fontsource/inter/files/inter-latin-600-normal.woff2') format('woff2'); font-style: normal; font-weight: 500 700; font-display: swap; }
-@font-face { font-family: 'Oswald'; src: url('../../node_modules/@fontsource/bebas-neue/files/bebas-neue-latin-400-normal.woff2') format('woff2'); font-style: normal; font-weight: 400 700; font-display: swap; }
-@font-face { font-family: 'Noto Serif SC'; src: url('../../node_modules/@fontsource/noto-sans-sc/files/noto-sans-sc-chinese-simplified-600-normal.woff2') format('woff2'); font-style: normal; font-weight: 500 700; font-display: swap; }
+@font-face { font-family: 'DM Sans'; src: url('../node_modules/@fontsource/inter/files/inter-latin-400-normal.woff2') format('woff2'); font-style: normal; font-weight: 400; font-display: swap; }
+@font-face { font-family: 'DM Sans'; src: url('../node_modules/@fontsource/inter/files/inter-latin-600-normal.woff2') format('woff2'); font-style: normal; font-weight: 500 700; font-display: swap; }
+@font-face { font-family: 'Oswald'; src: url('../node_modules/@fontsource/bebas-neue/files/bebas-neue-latin-400-normal.woff2') format('woff2'); font-style: normal; font-weight: 400 700; font-display: swap; }
+@font-face { font-family: 'Noto Serif SC'; src: url('../node_modules/@fontsource/noto-sans-sc/files/noto-sans-sc-chinese-simplified-600-normal.woff2') format('woff2'); font-style: normal; font-weight: 500 700; font-display: swap; }
 
 :root {
   font-family: 'DM Sans', system-ui, sans-serif;
