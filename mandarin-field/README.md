@@ -84,6 +84,12 @@ Each lesson phrase now follows a compact evidence-based loop:
 
 The design favors successful, effortful retrieval and corrective feedback while keeping extra repetitions targeted at material the learner actually found difficult.
 
+### Adaptive production and pronunciation
+
+- Every lesson records phrase-level attempts, successful retrievals, average response time, and the next due date. Today’s session prioritizes weak or due phrases instead of blindly following library order.
+- Every lesson ends with a transfer check that changes the person, time, reference, or sequence. The learner must construct the changed sentence before seeing the model, preventing fixed-string memorization.
+- Speaking Studio includes a local tone lab for tones 1–4 and useful tone pairs. It records roughly three seconds from the microphone, extracts the pitch contour in the browser, and compares its direction with the target. No audio is uploaded and no AI balance is required.
+
 ## The learning system
 
 The curriculum is organized around six linked loops:

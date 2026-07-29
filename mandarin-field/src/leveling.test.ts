@@ -17,6 +17,7 @@ const progress = (overrides: Partial<ProgressState> = {}): ProgressState => ({
   levelChecks: {},
   dailyGoal: 30,
   review: {},
+  phraseMastery: {},
   ...overrides,
 })
 

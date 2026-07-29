@@ -18,6 +18,7 @@ export const defaultProgress: ProgressState = {
   levelChecks: {},
   dailyGoal: 30,
   review: {},
+  phraseMastery: {},
 }
 
 const todayKey = () => new Date().toISOString().slice(0, 10)
@@ -61,6 +62,19 @@ export function useProgress() {
         xp: current.xp + 40,
         lastStudyDate: todayKey(),
       }))
+    },
+    recordPhraseOutcome(id: string, success: boolean, responseMs: number) {
+      setProgress((current) => {
+        const previous = current.phraseMastery[id] ?? { attempts: 0, successes: 0, responseMs: 0, due: todayKey(), lastResult: 'again' as const }
+        const attempts = previous.attempts + 1
+        const successes = previous.successes + (success ? 1 : 0)
+        const averageMs = Math.round((previous.responseMs * previous.attempts + responseMs) / attempts)
+        const accuracy = successes / attempts
+        const delay = success ? (accuracy >= .8 && averageMs < 12000 ? 7 : 3) : 1
+        const due = new Date()
+        due.setDate(due.getDate() + delay)
+        return { ...current, phraseMastery: { ...current.phraseMastery, [id]: { attempts, successes, responseMs: averageMs, due: due.toISOString().slice(0, 10), lastResult: success ? 'good' : 'again' } } }
+      })
     },
     completeStory(id: string, minutes: number) {
       setProgress((current) => ({

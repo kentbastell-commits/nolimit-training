@@ -87,6 +87,7 @@ export type ProgressState = {
   dailyGoal: number
   lastStudyDate?: string
   review: Record<string, { interval: number; ease: number; due: string; repetitions: number }>
+  phraseMastery: Record<string, { attempts: number; successes: number; responseMs: number; due: string; lastResult: 'again' | 'good' }>
 }
 
 export type LevelRequirementKey = 'lessons' | 'stories' | 'scenarios' | 'families' | 'reviews'

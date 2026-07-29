@@ -10,6 +10,8 @@ import { fieldLevels, getFieldLevel, getLevelStatus, requirementLabels } from '.
 import { dueCount, useProgress } from './progress'
 import { generateStory, glossLine, storyThemes } from './reader'
 import { speakChinese, useSpeechRecognition } from './speech'
+import { createTransformation } from './transformations'
+import { contourScore, useToneRecorder } from './tone'
 import type { CharacterFamily, Lesson, Phrase, Scenario, Story, View } from './types'
 
 const navigation: Array<{ id: View; label: string; chinese: string; icon: typeof Home }> = [
@@ -124,7 +126,13 @@ function Today({ navigate, progress, openLesson, openFamily }: {
 }) {
   const percent = (progress.minutesToday / progress.dailyGoal) * 100
   const levelStatus = getLevelStatus(progress)
-  const nextLesson = lessons.find((item) => !progress.completedLessons.includes(item.id)) ?? lessons[0]
+  const today = new Date().toISOString().slice(0, 10)
+  const masteryEntries = Object.entries(progress.phraseMastery)
+  const weakPhraseIds = masteryEntries.filter(([, item]) => item.due <= today || item.successes / item.attempts < .7).map(([id]) => id)
+  const priorityLesson = lessons.find((item) => weakPhraseIds.some((id) => id.startsWith(`${item.id}-`)))
+  const nextLesson = priorityLesson ?? lessons.find((item) => !progress.completedLessons.includes(item.id)) ?? lessons[0]
+  const masteredPhrases = masteryEntries.filter(([, item]) => item.attempts >= 2 && item.successes / item.attempts >= .8).length
+  const averageAccuracy = masteryEntries.length ? Math.round(masteryEntries.reduce((sum, [, item]) => sum + item.successes / item.attempts, 0) / masteryEntries.length * 100) : 0
   const nextFamily = characterFamilies.find((item) => !progress.masteredFamilies.includes(item.id)) ?? characterFamilies[0]
   const [offlineReady, setOfflineReady] = useState(() => localStorage.getItem('mandarin-field-offline-ready') === 'true')
   useEffect(() => {
@@ -145,7 +153,7 @@ function Today({ navigate, progress, openLesson, openFamily }: {
           <ProgressRing value={percent} size={76} />
         </div>
         <div className="session-flow">
-          <button onClick={() => openLesson(nextLesson)}><span className="step-status ready"><Play size={15} /></span><div><small>{nextLesson.duration} MIN · NEXT</small><b>{nextLesson.title}</b><em>{nextLesson.phrases.length} practical phrases · {nextLesson.level}</em></div><ChevronRight /></button>
+          <button onClick={() => openLesson(nextLesson)}><span className="step-status ready"><Play size={15} /></span><div><small>{nextLesson.duration} MIN · {priorityLesson ? 'ADAPTIVE PRIORITY' : 'NEXT'}</small><b>{nextLesson.title}</b><em>{priorityLesson ? `${weakPhraseIds.filter((id) => id.startsWith(`${nextLesson.id}-`)).length} phrases need retrieval` : `${nextLesson.phrases.length} practical phrases · ${nextLesson.level}`}</em></div><ChevronRight /></button>
           <button onClick={() => openFamily(nextFamily)}><span className="step-status">{nextFamily.anchor}</span><div><small>06 MIN · PATTERN</small><b>Read the {nextFamily.anchor} family</b><em>{nextFamily.members.map((item) => item.char).join(' · ')}</em></div><ChevronRight /></button>
           <button onClick={() => navigate('speak')}><span className="step-status"><Mic size={16} /></span><div><small>10 MIN · SPEAK</small><b>The tired client</b><em>Guided role-play</em></div><ChevronRight /></button>
           <button onClick={() => navigate('review')}><span className="step-status"><BrainCircuit size={16} /></span><div><small>05 MIN · RETRIEVE</small><b>Due review</b><em>Recall, don’t reread</em></div><ChevronRight /></button>
@@ -164,8 +172,8 @@ function Today({ navigate, progress, openLesson, openFamily }: {
           <div className="mission-footer"><AudioButton text="今天身体感觉怎么样？" /><button className="secondary" onClick={() => progress.completedLessons.includes('client-check-in') || openLesson(lessons[0])}>Open phrase set</button></div>
         </section>
         <section className="paper-card compass-card">
-          <p className="eyebrow">WEEKLY COMPASS</p><div className="compass-main"><span>12</span><div><b>useful chunks</b><small>of 30 this week</small></div></div>
-          <div className="mini-bars"><span><i style={{ width: '72%' }} />Speaking</span><span><i style={{ width: '48%' }} />Listening</span><span><i style={{ width: '38%' }} />Reading</span></div>
+          <p className="eyebrow">ADAPTIVE COMPASS</p><div className="compass-main"><span>{masteredPhrases}</span><div><b>durable phrases</b><small>{weakPhraseIds.length} currently need work</small></div></div>
+          <div className="mini-bars"><span><i style={{ width: `${averageAccuracy}%` }} />Recall accuracy</span><span><i style={{ width: `${masteryEntries.length ? Math.min(100, masteryEntries.length / reviewCards.length * 100) : 0}%` }} />Phrase coverage</span><span><i style={{ width: `${Math.min(100, masteredPhrases / 20 * 100)}%` }} />Fast retrieval</span></div>
           <button className="text-link" onClick={() => navigate('progress')}>See what is getting stronger <ArrowRight size={15} /></button>
         </section>
       </div>
@@ -203,7 +211,7 @@ function Course({ progress, openLesson }: { progress: ReturnType<typeof useProgr
   )
 }
 
-function LessonModal({ lesson, close, complete }: { lesson: Lesson; close: () => void; complete: () => void }) {
+function LessonModal({ lesson, close, complete, recordPhrase }: { lesson: Lesson; close: () => void; complete: () => void; recordPhrase: (id: string, success: boolean, responseMs: number) => void }) {
   const [index, setIndex] = useState(0)
   const [showPinyin, setShowPinyin] = useState(true)
   const [phase, setPhase] = useState<'learn' | 'recall' | 'compare'>('learn')
@@ -212,11 +220,17 @@ function LessonModal({ lesson, close, complete }: { lesson: Lesson; close: () =>
   const [repairQueue, setRepairQueue] = useState<number[]>([])
   const [repairing, setRepairing] = useState(false)
   const [repairPosition, setRepairPosition] = useState(0)
+  const [recallStarted, setRecallStarted] = useState(() => Date.now())
+  const [transforming, setTransforming] = useState(false)
+  const [transformAttempt, setTransformAttempt] = useState('')
+  const [transformRevealed, setTransformRevealed] = useState(false)
   const phrase = lesson.phrases[index]
+  const transformation = createTransformation(lesson)
   const final = index === lesson.phrases.length - 1
   const tokens = glossLine(phrase.hanzi)
-  const resetAttempt = (nextPhase: 'learn' | 'recall' = 'learn') => { setPhase(nextPhase); setAttempt(''); setAnsweredAloud(false) }
+  const resetAttempt = (nextPhase: 'learn' | 'recall' = 'learn') => { setPhase(nextPhase); setAttempt(''); setAnsweredAloud(false); setRecallStarted(Date.now()) }
   const grade = (remembered: boolean) => {
+    recordPhrase(`${lesson.id}-${index}`, remembered, Math.max(500, Date.now() - recallStarted))
     if (repairing && !remembered) { resetAttempt('recall'); return }
     const nextQueue = !remembered && !repairing && !repairQueue.includes(index) ? [...repairQueue, index] : repairQueue
     setRepairQueue(nextQueue)
@@ -224,13 +238,14 @@ function LessonModal({ lesson, close, complete }: { lesson: Lesson; close: () =>
       if (repairPosition < repairQueue.length - 1) {
         const nextPosition = repairPosition + 1
         setRepairPosition(nextPosition); setIndex(repairQueue[nextPosition]); resetAttempt('recall')
-      } else { complete(); close() }
+      } else { setTransforming(true) }
     } else if (!final) {
       setIndex((value) => value + 1); resetAttempt()
     } else if (nextQueue.length) {
       setRepairing(true); setRepairPosition(0); setIndex(nextQueue[0]); resetAttempt('recall')
-    } else { complete(); close() }
+    } else { setTransforming(true) }
   }
+  if (transforming) return <div className="modal-backdrop"><div className="lesson-modal transformation-modal"><div className="modal-top"><button onClick={close}><X /></button><span>TRANSFER CHECK · BUILD A NEW SENTENCE</span><span>FINAL</span></div><main><p className="eyebrow">DON’T REPEAT—TRANSFORM</p><h2>{transformation.instruction}.</h2><div className="transformation-source"><small>STARTING SENTENCE</small><p>{transformation.source}</p><span>{transformation.sourceEnglish}</span></div><textarea value={transformAttempt} onChange={(event) => setTransformAttempt(event.target.value)} placeholder="Say it aloud, or type Chinese / pinyin…" />{transformRevealed && <div className="transformation-answer"><small>MODEL TRANSFORMATION</small><p>{transformation.target}</p><AudioButton text={transformation.target} label="Hear model" /><span>Your wording can differ if it communicates the requested change naturally.</span></div>}</main><footer className="modal-footer">{!transformRevealed ? <><button className="secondary" onClick={() => speakChinese(transformation.source)}>Hear starting sentence</button><button className="primary" disabled={!transformAttempt.trim()} onClick={() => setTransformRevealed(true)}>Reveal model <ArrowRight /></button></> : <><button className="secondary" onClick={() => { setTransformAttempt(''); setTransformRevealed(false) }}>Try again</button><button className="primary" onClick={() => { recordPhrase(`${lesson.id}-transform`, true, 10000); complete(); close() }}>Complete lesson <Check /></button></>}</footer></div></div>
   return (
     <div className="modal-backdrop"><div className="lesson-modal">
       <div className="modal-top"><button onClick={close}><X /></button><span>{repairing ? 'REPAIR ROUND · DIFFICULT PHRASES ONLY' : lesson.eyebrow}</span><span>{repairing ? `${repairPosition + 1} / ${repairQueue.length}` : `${index + 1} / ${lesson.phrases.length}`}</span></div>
@@ -246,7 +261,7 @@ function LessonModal({ lesson, close, complete }: { lesson: Lesson; close: () =>
           {phase === 'learn' && <div className="retrieval-prompt"><span>NEXT: ACTIVE RECALL</span><p>You will see only the English. Produce the Mandarin before hearing it again.</p><AudioButton text={phrase.hanzi} label="Hear native pace" /></div>}
         </>}
       </main>
-      <footer className="modal-footer">{phase === 'learn' ? <><button className="secondary" disabled={index === 0 || repairing} onClick={() => { setIndex((value) => value - 1); resetAttempt() }}><ArrowLeft /> Back</button><button className="primary" onClick={() => setPhase('recall')}>Try from memory <BrainCircuit /></button></> : phase === 'recall' ? <><button className="secondary" onClick={() => setPhase('learn')}>Review first</button><button className="primary" disabled={!attempt.trim() && !answeredAloud} onClick={() => setPhase('compare')}>Reveal & compare <ArrowRight /></button></> : <><button className="secondary" onClick={() => grade(false)}>{repairing ? 'Try this one again' : 'Again · repair later'}</button><button className="primary" onClick={() => grade(true)}>{repairing && repairPosition === repairQueue.length - 1 ? 'Finish repair' : 'Got it'} <Check /></button></>}</footer>
+      <footer className="modal-footer">{phase === 'learn' ? <><button className="secondary" disabled={index === 0 || repairing} onClick={() => { setIndex((value) => value - 1); resetAttempt() }}><ArrowLeft /> Back</button><button className="primary" onClick={() => { setRecallStarted(Date.now()); setPhase('recall') }}>Try from memory <BrainCircuit /></button></> : phase === 'recall' ? <><button className="secondary" onClick={() => setPhase('learn')}>Review first</button><button className="primary" disabled={!attempt.trim() && !answeredAloud} onClick={() => setPhase('compare')}>Reveal & compare <ArrowRight /></button></> : <><button className="secondary" onClick={() => grade(false)}>{repairing ? 'Try this one again' : 'Again · repair later'}</button><button className="primary" onClick={() => grade(true)}>{repairing && repairPosition === repairQueue.length - 1 ? 'Finish repair' : 'Got it'} <Check /></button></>}</footer>
     </div></div>
   )
 }
@@ -341,6 +356,7 @@ function SpeakView({ progress, actions }: { progress: ReturnType<typeof useProgr
   return (
     <div className="view">
       <header className="page-header"><div><p className="eyebrow">SPEAKING STUDIO</p><h1>Rehearse the real moment.</h1><p>Type or speak a reply. The AI tutor checks meaning, grammar, naturalness, and gives you a correction with pinyin.</p></div><span className={cx('speech-ready', aiStatus.available && 'ai-online')}><Sparkles /> {aiStatus.available ? 'AI FEEDBACK READY' : 'LOCAL FALLBACK READY'}</span></header>
+      <ToneLab />
       <section className="speak-hero"><div className="waveform"><i /><i /><i /><i /><i /><i /><i /><i /><i /></div><p>Today’s focus</p><h2>Ask. Listen. Adjust.</h2><span>Build the reflex to ask one clean question at a time.</span></section>
       <div className="section-heading compact-heading"><div><p className="eyebrow">{scenarios.length} REAL-WORLD SCENARIOS</p><h2>Choose the pressure you want to rehearse.</h2></div></div>
       <div className="content-filter" aria-label="Filter speaking scenarios">{(['All', 'Guided', 'Open'] as const).map((option) => <button className={scenarioFilter === option ? 'active' : ''} onClick={() => setScenarioFilter(option)} key={option}>{option}{option !== 'All' && <small>{scenarios.filter((item) => item.level === option).length}</small>}</button>)}</div>
@@ -348,6 +364,30 @@ function SpeakView({ progress, actions }: { progress: ReturnType<typeof useProgr
       <section className="paper-card language-islands"><div><p className="eyebrow">YOUR LANGUAGE ISLANDS</p><h3>Fluent where it matters first.</h3><p>These are compact topics you can already talk about without translating every word.</p></div><div className="island-map"><span className="strong">Training<small>72%</small></span><span>Climbing<small>45%</small></span><span>Business<small>31%</small></span><span>Daily life<small>28%</small></span></div></section>
     </div>
   )
+}
+
+const toneTargets = [
+  { hanzi: '妈', pinyin: 'mā · tone 1', english: 'mom', contour: [.78, .8, .79, .8, .78] },
+  { hanzi: '麻', pinyin: 'má · tone 2', english: 'hemp / numb', contour: [.18, .25, .4, .65, .9] },
+  { hanzi: '马', pinyin: 'mǎ · tone 3', english: 'horse', contour: [.55, .3, .12, .2, .62] },
+  { hanzi: '骂', pinyin: 'mà · tone 4', english: 'scold', contour: [.94, .78, .58, .32, .08] },
+  { hanzi: '可以', pinyin: 'kěyǐ · written 3–3, spoken 2–3', english: 'can / may', contour: [.15, .42, .82, .55, .14, .58] },
+  { hanzi: '调整', pinyin: 'tiáozhěng · 2–3', english: 'adjust', contour: [.15, .42, .85, .55, .15, .62] },
+]
+
+function ToneLab() {
+  const [open, setOpen] = useState(false)
+  const [selected, setSelected] = useState(0)
+  const { recording, contour, error, start } = useToneRecorder()
+  const target = toneTargets[selected]
+  const score = contourScore(contour, target.contour)
+  const points = (values: number[], raw = false) => {
+    if (!values.length) return ''
+    let normalized = values
+    if (raw) { const min = Math.min(...values); const range = Math.max(1, Math.max(...values) - min); normalized = values.map((value) => (value - min) / range) }
+    return normalized.map((value, index) => `${index / Math.max(1, normalized.length - 1) * 300},${92 - value * 72}`).join(' ')
+  }
+  return <section className={cx('tone-lab', open && 'open')}><button className="tone-lab-banner" onClick={() => setOpen((value) => !value)}><span><AudioLines /></span><div><small>LOCAL PRONUNCIATION LAB · NO AI REQUIRED</small><b>See what your tones are doing.</b><em>Record your voice and compare its pitch movement with the target.</em></div><ChevronRight /></button>{open && <div className="tone-lab-body"><div className="tone-targets">{toneTargets.map((item, index) => <button className={selected === index ? 'active' : ''} onClick={() => setSelected(index)} key={item.hanzi}><b>{item.hanzi}</b><span>{item.pinyin}</span></button>)}</div><div className="tone-workbench"><div className="tone-prompt"><small>TARGET</small><b>{target.hanzi}</b><span>{target.pinyin} · {target.english}</span><AudioButton text={target.hanzi} label="Hear target" /></div><div className="pitch-chart"><svg viewBox="0 0 300 105" preserveAspectRatio="none"><line x1="0" x2="300" y1="92" y2="92" /><line x1="0" x2="300" y1="20" y2="20" /><polyline className="target-contour" points={points(target.contour)} />{contour.length > 0 && <polyline className="recorded-contour" points={points(contour, true)} />}</svg><div><span><i className="target" /> Target</span><span><i className="recorded" /> Your voice</span></div></div><div className="tone-action"><button className={cx('primary', recording && 'recording')} disabled={recording} onClick={() => void start()}>{recording ? <Pause /> : <Mic />} {recording ? 'Recording…' : contour.length ? 'Record again' : 'Record 3 seconds'}</button>{contour.length > 0 && <div className={cx('tone-score', score >= 70 && 'good')}><b>{score}</b><span>{score >= 80 ? 'Contour matched well' : score >= 60 ? 'Direction is close—try once more' : 'Exaggerate the pitch movement'}</span></div>}</div>{error && <p className="tone-error">{error}</p>}<small className="tone-caveat">Pitch score measures the direction and shape of your voice—not whether every sound is pronounced correctly. Use it as visual feedback, then trust intelligibility in conversation.</small></div></div>}</section>
 }
 
 function StoriesView({ progress, availableStories, openStory, openGenerator }: { progress: ReturnType<typeof useProgress>['progress']; availableStories: Story[]; openStory: (story: Story) => void; openGenerator: () => void }) {
@@ -484,7 +524,7 @@ function App() {
       <div className="mobile-header"><button onClick={() => setMobileMenu(true)}><Menu /></button><div className="brand-lockup compact"><LogoMark /><strong>MANDARIN FIELD</strong></div><span>{progress.streak || 1}<Flame /></span></div>
       <main className="app-main">{renderView()}</main>
       <nav className="mobile-nav">{navigation.slice(0, 5).map((item) => { const Icon = item.icon; return <button className={view === item.id ? 'active' : ''} onClick={() => setView(item.id)} key={item.id}><Icon /><span>{item.label}</span></button> })}</nav>
-      {lesson && <LessonModal lesson={lesson} close={() => setLesson(null)} complete={() => actions.completeLesson(lesson.id, lesson.duration)} />}
+      {lesson && <LessonModal lesson={lesson} close={() => setLesson(null)} complete={() => actions.completeLesson(lesson.id, lesson.duration)} recordPhrase={actions.recordPhraseOutcome} />}
       {story && <StoryModal story={story} close={() => setStory(null)} complete={() => actions.completeStory(story.id, story.minutes)} />}
       {storyGenerator && <StoryGenerator close={() => setStoryGenerator(false)} create={(theme, level) => { const next = generateStory(theme, level); setGeneratedStories((current) => [next, ...current]); setStoryGenerator(false); setStory(next) }} />}
       {levelCheck && <LevelCheck level={progress.level} close={() => setLevelCheck(false)} record={(score) => actions.recordLevelCheck(progress.level, score)} />}
