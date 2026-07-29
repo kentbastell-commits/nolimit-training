@@ -1,0 +1,33 @@
+{
+  "name": "mandarin-field",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node server/index.mjs --dev",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "start": "node server/index.mjs",
+    "test": "vitest run && node --test server/*.test.mjs",
+    "test:e2e": "playwright test",
+    "test:offline": "playwright test --config=playwright.offline.config.ts"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "^6.0.1",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "lucide-react": "^1.17.0",
+    "openai": "^7.1.0",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
+    "typescript": "5.9.3",
+    "vite": "^8.0.12",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.60.0",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "vitest": "^4.1.10"
+  }
+}

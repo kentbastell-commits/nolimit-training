@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="96" fill="#20231f"/>
+  <rect x="74" y="74" width="364" height="364" rx="18" fill="none" stroke="#f8f4ea" stroke-width="18"/>
+  <text x="256" y="335" text-anchor="middle" font-family="serif" font-size="250" font-weight="700" fill="#f8f4ea">中</text>
+  <path d="M84 414 424 86" stroke="#d75c44" stroke-width="32" stroke-linecap="square"/>
+</svg>
