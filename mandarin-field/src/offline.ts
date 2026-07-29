@@ -2,7 +2,7 @@ export async function prepareOfflinePack() {
   if (!import.meta.env.PROD || !('serviceWorker' in navigator)) return false
 
   try {
-    const registration = await navigator.serviceWorker.register('/sw.js')
+    const registration = await navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`, { scope: import.meta.env.BASE_URL })
     await navigator.serviceWorker.ready
     const worker = registration.active ?? registration.waiting ?? registration.installing
     if (!worker) return false

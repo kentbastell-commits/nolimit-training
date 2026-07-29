@@ -7,9 +7,7 @@ import { createMandarinFeedback, createOpenAiClient, validateFeedbackRequest } f
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const isDevelopment = process.argv.includes('--dev')
 const port = Number(process.env.PORT || 4310)
-const baseURL = process.env.OPENAI_BASE_URL || process.env.AI_BASE_URL || ''
-const style = process.env.AI_API_STYLE || (baseURL ? 'chat' : 'responses')
-const model = process.env.OPENAI_MODEL || process.env.AI_MODEL || 'gpt-5.6-terra'
+const model = process.env.OPENAI_MODEL || 'gpt-5.6-terra'
 const openai = createOpenAiClient()
 const app = express()
 const windows = new Map()
@@ -23,7 +21,7 @@ app.get('/api/mandarin/status', (_request, response) => {
 
 app.post('/api/mandarin/feedback', async (request, response) => {
   response.set('Cache-Control', 'no-store')
-  if (!openai) return response.status(503).json({ error: 'AI feedback is not configured. Add OPENAI_API_KEY or AI_API_KEY on the server.' })
+  if (!openai) return response.status(503).json({ error: 'AI feedback is not configured. Add OPENAI_API_KEY on the server.' })
 
   const now = Date.now()
   const key = request.ip || 'local'
@@ -36,7 +34,7 @@ app.post('/api/mandarin/feedback', async (request, response) => {
   if (!validation.success) return response.status(400).json({ error: 'The feedback request was incomplete or too large.' })
 
   try {
-    const feedback = await createMandarinFeedback({ payload: validation.data, client: openai, model, style })
+    const feedback = await createMandarinFeedback({ payload: validation.data, client: openai, model })
     return response.json({ ...feedback, source: 'ai' })
   } catch (error) {
     console.error('Mandarin feedback error:', error instanceof Error ? error.message : 'Unknown error')
@@ -58,5 +56,5 @@ if (isDevelopment) {
 }
 
 app.listen(port, '0.0.0.0', () => {
-  console.log(`Mandarin Field listening on http://127.0.0.1:${port} (${openai ? `AI: ${model} via ${style}` : 'local feedback only'})`)
+  console.log(`Mandarin Field listening on http://127.0.0.1:${port} (${openai ? `OpenAI: ${model}` : 'local feedback only'})`)
 })

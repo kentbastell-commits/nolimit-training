@@ -51,17 +51,3 @@ test('uses structured Responses output without storage or a raw client identifie
   assert.equal(request.safety_identifier.includes(payload.clientId), false)
   assert.equal(request.text.format.type, 'json_schema')
 })
-
-test('supports a compatible chat provider through a forced structured tool call', async () => {
-  let request
-  const client = { chat: { completions: { create: async (value) => {
-    request = value
-    return { choices: [{ message: { tool_calls: [{ function: { name: 'submit_mandarin_feedback', arguments: JSON.stringify(parsedFeedback) } }] } }] }
-  } } } }
-  const feedback = await createMandarinFeedback({ payload, client, model: 'compatible-model', style: 'chat' })
-
-  assert.deepEqual(feedback, parsedFeedback)
-  assert.equal(request.model, 'compatible-model')
-  assert.equal(request.tool_choice.function.name, 'submit_mandarin_feedback')
-  assert.equal(request.tools[0].function.strict, true)
-})

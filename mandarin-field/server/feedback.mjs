@@ -1,5 +1,5 @@
 import OpenAI from 'openai'
-import { zodFunction, zodTextFormat } from 'openai/helpers/zod'
+import { zodTextFormat } from 'openai/helpers/zod'
 import { createHash } from 'node:crypto'
 import { z } from 'zod'
 
@@ -41,27 +41,9 @@ export function validateFeedbackRequest(payload) {
   return FeedbackRequest.safeParse(payload)
 }
 
-export async function createMandarinFeedback({ payload, client, model = 'gpt-5.6-terra', style = 'responses' }) {
+export async function createMandarinFeedback({ payload, client, model = 'gpt-5.6-terra' }) {
   const parsed = FeedbackRequest.parse(payload)
   const tutorInput = JSON.stringify({ learnerLevel: parsed.level, ...parsed.scenario, conversation: parsed.history, learnerAnswer: parsed.answer })
-
-  if (style === 'chat') {
-    const toolName = 'submit_mandarin_feedback'
-    const completion = await client.chat.completions.create({
-      model,
-      temperature: 0.2,
-      messages: [
-        { role: 'system', content: `${teacherPrompt}\nYou must call the ${toolName} tool exactly once with the complete assessment.` },
-        { role: 'user', content: tutorInput },
-      ],
-      tools: [zodFunction({ name: toolName, description: 'Return the complete Mandarin learner assessment.', parameters: MandarinFeedback })],
-      tool_choice: { type: 'function', function: { name: toolName } },
-    })
-    const toolCall = completion.choices[0]?.message?.tool_calls?.find((call) => call.function?.name === toolName)
-    if (!toolCall?.function?.arguments) throw new Error('The tutor did not call the structured feedback tool')
-    return MandarinFeedback.parse(JSON.parse(toolCall.function.arguments))
-  }
-
   const safetyIdentifier = `mandarin-${createHash('sha256').update(parsed.clientId).digest('hex').slice(0, 32)}`
   const response = await client.responses.parse({
     model,
@@ -80,10 +62,7 @@ export async function createMandarinFeedback({ payload, client, model = 'gpt-5.6
   return MandarinFeedback.parse(response.output_parsed)
 }
 
-export function createOpenAiClient(
-  apiKey = process.env.OPENAI_API_KEY || process.env.AI_API_KEY,
-  baseURL = process.env.OPENAI_BASE_URL || process.env.AI_BASE_URL,
-) {
+export function createOpenAiClient(apiKey = process.env.OPENAI_API_KEY) {
   if (!apiKey) return null
-  return new OpenAI({ apiKey, ...(baseURL ? { baseURL } : {}) })
+  return new OpenAI({ apiKey })
 }

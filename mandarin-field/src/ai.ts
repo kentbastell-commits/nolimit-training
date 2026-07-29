@@ -17,6 +17,7 @@ export type TutorFeedback = {
 }
 
 type ConversationMessage = { role: 'client' | 'learner'; text: string }
+const tutorApi = (path: string) => `${import.meta.env.BASE_URL}api/mandarin/${path}`
 
 function clientId() {
   const key = 'mandarin-field-client-id'
@@ -29,7 +30,7 @@ function clientId() {
 
 export async function getAiStatus() {
   try {
-    const response = await fetch('/api/mandarin/status', { headers: { Accept: 'application/json' } })
+    const response = await fetch(tutorApi('status'), { headers: { Accept: 'application/json' } })
     if (!response.ok) return { available: false, model: '' }
     const body = await response.json() as { available?: boolean; model?: string }
     return { available: Boolean(body.available), model: body.model ?? '' }
@@ -45,7 +46,7 @@ export async function requestTutorFeedback(args: {
   level: number
   signal?: AbortSignal
 }): Promise<TutorFeedback> {
-  const response = await fetch('/api/mandarin/feedback', {
+  const response = await fetch(tutorApi('feedback'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
     signal: args.signal,

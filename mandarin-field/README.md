@@ -25,7 +25,7 @@ npm run dev
 
 Never name the key `VITE_OPENAI_API_KEY` or put it in browser code. The key is read only by the private Express endpoint. AI requests send the current scenario, up to eight recent practice messages, and the learner's answer; they do not send a name or account identity, and API response storage is disabled. If Wi-Fi drops or the endpoint is not configured, the same activity automatically uses its bundled local feedback and remains usable offline.
 
-The default OpenAI model is `gpt-5.6-terra`; it can be changed through `OPENAI_MODEL`. The server also supports an existing OpenAI-compatible Chat Completions provider through `AI_API_KEY`, `AI_BASE_URL`, `AI_MODEL`, and `AI_API_STYLE=chat`. Production uses the same server:
+The default OpenAI model is `gpt-5.6-terra`; it can be changed through `OPENAI_MODEL`. Production uses the same server:
 
 ```powershell
 npm run build

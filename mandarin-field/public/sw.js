@@ -1,5 +1,6 @@
 const CACHE_NAME = 'mandarin-field-offline-v3'
-const CORE_URLS = ['/', '/index.html', '/manifest.webmanifest', '/mandarin-field-icon.svg']
+const BASE_PATH = new URL(self.registration.scope).pathname.replace(/\/$/, '')
+const CORE_URLS = [`${BASE_PATH}/`, `${BASE_PATH}/index.html`, `${BASE_PATH}/manifest.webmanifest`, `${BASE_PATH}/mandarin-field-icon.svg`]
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(CORE_URLS)).then(() => self.skipWaiting()))
@@ -29,7 +30,7 @@ self.addEventListener('message', (event) => {
 self.addEventListener('fetch', (event) => {
   const request = event.request
   const url = new URL(request.url)
-  if (request.method !== 'GET' || url.origin !== self.location.origin || url.pathname.startsWith('/api/')) return
+  if (request.method !== 'GET' || url.origin !== self.location.origin || url.pathname.startsWith(`${BASE_PATH}/api/`)) return
 
   event.respondWith(
     caches.match(request, { ignoreVary: true }).then((cached) => {
@@ -44,7 +45,7 @@ self.addEventListener('fetch', (event) => {
         event.waitUntil(network.catch(() => undefined))
         return cached
       }
-      return network.catch(() => request.mode === 'navigate' ? caches.match('/index.html', { ignoreVary: true }) : Response.error())
+      return network.catch(() => request.mode === 'navigate' ? caches.match(`${BASE_PATH}/index.html`, { ignoreVary: true }) : Response.error())
     }),
   )
 })
