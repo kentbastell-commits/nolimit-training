@@ -399,7 +399,6 @@ export default function CoachBuilderPage({
   const [sessionCategoryFilter, setSessionCategoryFilter] = useState("All");
   // Optional fields in the editor reveal on demand (matching the "+ Tempo" /
   // "+ Cue" chips) so the popup stays clean until a coach needs them.
-  const [cueOpen, setCueOpen] = useState(false);
   const [tempoOpen, setTempoOpen] = useState(false);
   // Swatch picked for the NEXT custom section (applied on "Use").
   const [customSectionColorChoice, setCustomSectionColorChoice] = useState("");
@@ -565,7 +564,6 @@ export default function CoachBuilderPage({
   };
 
   const openExerciseEditor = (i: number) => {
-    setCueOpen(false);
     setTempoOpen(false);
     setEditExerciseIndex(i);
   };
@@ -3580,15 +3578,6 @@ export default function CoachBuilderPage({
                               >
                                 + Tempo
                               </button>
-                              <button
-                                type="button"
-                                className={`exEditChip${
-                                  cueOpen || exercise.coachingNotes ? " active" : ""
-                                }`}
-                                onClick={() => setCueOpen((v) => !v)}
-                              >
-                                + Cue
-                              </button>
                               <label className="exEditChipCheck">
                                 <input
                                   type="checkbox"
@@ -3619,20 +3608,27 @@ export default function CoachBuilderPage({
                                 placeholder="Tempo — e.g. 3-1-1"
                               />
                             )}
-                            {(cueOpen || exercise.coachingNotes) && (
-                              <textarea
-                                className="exEditReveal exEditCue"
-                                value={exercise.coachingNotes || ""}
-                                onChange={(e) =>
-                                  updateProgramExercise(
-                                    index,
-                                    "coachingNotes",
-                                    e.target.value
-                                  )
-                                }
-                                placeholder="Cue for the athlete..."
-                              />
-                            )}
+                            {/* Always visible — this used to hide behind a
+                                "+ Cue" chip and coaches couldn't find it. */}
+                            <label className="exEditCueLabel">
+                              Coach comment
+                              <span className="exEditCueHint">
+                                {" "}
+                                — the athlete sees this on the exercise
+                              </span>
+                            </label>
+                            <textarea
+                              className="exEditReveal exEditCue"
+                              value={exercise.coachingNotes || ""}
+                              onChange={(e) =>
+                                updateProgramExercise(
+                                  index,
+                                  "coachingNotes",
+                                  e.target.value
+                                )
+                              }
+                              placeholder="Cue, form focus, intent — e.g. Slow eccentric, drive through the heel…"
+                            />
 
                             {/* Link this exercise with the one above it */}
                             <div className="exLinkRow">
@@ -4220,7 +4216,7 @@ export default function CoachBuilderPage({
                                             e.target.value
                                           )
                                         }
-                                        placeholder="Add note…"
+                                        placeholder="Coach comment — the athlete sees this…"
                                       />
                                     </div>
                                   </div>

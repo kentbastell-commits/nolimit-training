@@ -4015,3 +4015,20 @@
   .circuitModeSeg button { flex-direction: row; align-items: center; gap: 8px; }
   .circuitModeDetail small { min-width: 0; }
 }
+
+/* Coach comment field in the exercise editor — always visible. */
+.exEditCueLabel {
+  display: block;
+  margin: 14px 0 4px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #8a6d1f;
+}
+.exEditCueHint {
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 600;
+  color: #6b675e;
+}
