@@ -138,6 +138,23 @@ test('generated story keeps pinyin and definitions available', async ({ page }) 
   await expect(page.locator('.gloss-word > i').first()).toBeVisible()
 })
 
+test('character family explains the pattern and teaches every member in context', async ({ page }) => {
+  await seed(page)
+  await openSection(page, 4, 'Characters')
+  await page.locator('.family-card').first().click()
+  await expect(page.getByText('How this family works')).toBeVisible()
+  await expect(page.locator('.family-overview')).toContainText('SHARED CLUE')
+  await expect(page.locator('.family-overview')).toContainText('MEANING CLUE')
+  await expect(page.locator('.character-example-line')).toContainText('清楚')
+  await expect(page.locator('.character-example-pinyin')).not.toBeEmpty()
+  await expect(page.locator('.character-example-english')).toContainText('training plan')
+  await page.locator('.character-example-line button').focus()
+  await expect(page.locator('.character-example-line button > i')).toBeVisible()
+  await page.locator('.member-tabs button').nth(1).click()
+  await expect(page.locator('.character-example-line')).toContainText('情况')
+  await expect(page.locator('.character-example-english')).toContainText('condition')
+})
+
 test('two-turn role-play creates speaking evidence', async ({ page }) => {
   await seed(page)
   await openSection(page, 2, 'Speak')

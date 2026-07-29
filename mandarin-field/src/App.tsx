@@ -10,7 +10,7 @@ import { fieldLevels, getFieldLevel, getLevelStatus, requirementLabels } from '.
 import { dueCount, useProgress } from './progress'
 import { generateStory, glossLine, storyThemes } from './reader'
 import { speakChinese, useSpeechRecognition } from './speech'
-import type { CharacterFamily, Lesson, Scenario, Story, View } from './types'
+import type { CharacterFamily, Lesson, Phrase, Scenario, Story, View } from './types'
 
 const navigation: Array<{ id: View; label: string; chinese: string; icon: typeof Home }> = [
   { id: 'today', label: 'Today', chinese: '今天', icon: Home },
@@ -352,7 +352,20 @@ function CharactersView({ progress, openFamily }: { progress: ReturnType<typeof 
 function FamilyModal({ family, close, master }: { family: CharacterFamily; close: () => void; master: () => void }) {
   const [selected, setSelected] = useState(0)
   const member = family.members[selected]
-  return <div className="modal-backdrop"><div className="family-modal"><header><button onClick={close}><X /></button><div><small>PHONETIC FAMILY</small><h2>{family.anchor} · {family.sound}</h2></div><AudioButton text={member.word} /></header><div className="family-explainer"><div className="family-glyph">{member.char}<span className="component-tag">{member.component}</span></div><div><p className="eyebrow">READ THE BUILD</p><h3>{family.anchor} hints at <em>{family.sound}</em>.</h3><p><b>{member.component}</b> points toward the meaning: <strong>{member.meaning}</strong>.</p><div className="word-example"><span>{member.word}</span><div><b>{member.wordPinyin}</b><small>{member.wordMeaning}</small></div></div></div></div><div className="member-tabs">{family.members.map((item, index) => <button className={index === selected ? 'active' : ''} onClick={() => { setSelected(index); speakChinese(item.char) }} key={item.char}><span>{item.char}</span><small>{item.pinyin}</small></button>)}</div><div className="family-practice"><p>Tap each member. Say its sound before the audio. Notice what changes and what stays stable.</p><button className="primary" onClick={() => { master(); close() }}>Add family to memory <Check /></button></div></div></div>
+  const [example, setExample] = useState<Phrase>({ hanzi: `用“${member.word}”说一个句子。`, pinyin: '', english: '' })
+  useEffect(() => {
+    let active = true
+    setExample({ hanzi: `用“${member.word}”说一个句子。`, pinyin: '', english: '' })
+    void import('./content/characterExamples').then(({ characterExample }) => active && setExample(characterExample(member)))
+    return () => { active = false }
+  }, [member])
+  const [before, after = ''] = example.hanzi.split(member.word)
+  return <div className="modal-backdrop"><div className="family-modal"><header><button onClick={close}><X /></button><div><small>PHONETIC FAMILY · SOUND + MEANING</small><h2>{family.anchor} · {family.sound}</h2></div><AudioButton text={member.word} /></header>
+    <section className="family-overview"><b>How this family works</b><p>{family.hint}</p><div><span><small>SHARED CLUE</small><strong>{family.anchor}</strong><em>suggests the sound</em></span><i>+</i><span><small>MEANING CLUE</small><strong>{member.component.split(' ')[0]}</strong><em>suggests the category</em></span><i>→</i><span><small>WHOLE CHARACTER</small><strong>{member.char}</strong><em>{member.pinyin} · {member.meaning}</em></span></div><small className="sound-note">A phonetic family is a strong clue, not a perfect rule: initials and tones can drift over time. Use the component to predict, then confirm with the pinyin and audio.</small></section>
+    <div className="family-explainer"><div className="family-glyph">{member.char}<span className="component-tag">{member.component}</span></div><div><p className="eyebrow">READ THE BUILD</p><h3><em>{family.anchor}</em> points toward the sound; <em>{member.component.split(' ')[0]}</em> points toward meaning.</h3><p>Together they form <b>{member.char} · {member.pinyin}</b>, meaning <strong>{member.meaning}</strong>. The character becomes useful inside the word below.</p><div className="word-example"><span>{member.word}</span><div><b>{member.wordPinyin}</b><small>{member.wordMeaning}</small></div></div></div></div>
+    <div className="member-tabs">{family.members.map((item, index) => <button className={index === selected ? 'active' : ''} onClick={() => { setSelected(index); speakChinese(item.char) }} key={item.char}><span>{item.char}</span><small>{item.pinyin}</small></button>)}</div>
+    <section className="family-sentence"><div className="sentence-heading"><div><p className="eyebrow">SEE IT IN A REAL SENTENCE</p><h3>Meaning lives in context.</h3></div><AudioButton text={example.hanzi} label="Play sentence" /></div><p className="character-example-line">{before}<button onClick={() => speakChinese(member.word)}><ruby>{member.word}<rt>{member.wordPinyin}</rt></ruby><i><b>{member.word}</b><em>{member.wordPinyin}</em><small>{member.wordMeaning}</small></i></button>{after}</p><p className="character-example-pinyin">{example.pinyin}</p><p className="character-example-english">{example.english}</p><small>Tap the highlighted word for its meaning. Listen once, then read the full sentence aloud.</small></section>
+    <div className="family-practice"><p>Move through all four characters. Predict the sound from the shared clue, use the side component to predict the meaning category, then say the example sentence aloud.</p><button className="primary" onClick={() => { master(); close() }}>Add family to memory <Check /></button></div></div></div>
 }
 
 function ReviewView({ progress, actions }: { progress: ReturnType<typeof useProgress>['progress']; actions: ReturnType<typeof useProgress>['actions'] }) {

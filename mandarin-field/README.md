@@ -46,6 +46,8 @@ Progress is stored locally in the browser under `mandarin-field-progress-v1`.
 
 The production build is an installable, offline-first web app. It includes 24 lessons, 21 graded stories, 15 role-plays, 28 character families, and 96 spaced-review cards in the application bundle. Conversation simulations can show or hide pinyin, and accept prepared replies typed in either characters or pinyin.
 
+Each character-family member is taught as a sound clue plus a meaning component, then placed in a contextual sentence with highlighted vocabulary, tone-mark pinyin, English translation, and audio. All 112 family words have authored examples rather than placeholder sentences.
+
 For a hosted copy on a phone or tablet:
 
 1. Open the production URL while connected to the internet.

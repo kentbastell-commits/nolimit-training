@@ -478,6 +478,16 @@ button:focus-visible, textarea:focus-visible { outline: 3px solid rgba(215, 92, 
 .family-modal header div { flex: 1; margin-left: 14px; }
 .family-modal header small { color: var(--red); font: 600 9px 'Oswald'; letter-spacing: 1.5px; }
 .family-modal header h2 { margin: 3px 0; font: 600 23px 'Noto Serif SC'; }
+.family-overview { margin: 24px 60px 0; padding: 20px; border: 1px solid var(--line); background: #f4f0e7; }
+.family-overview > b { font: 600 16px 'Noto Serif SC'; }
+.family-overview > p { margin: 6px 0 16px; color: var(--muted); font-size: 11px; line-height: 1.55; }
+.family-overview > div { display: grid; grid-template-columns: 1fr auto 1fr auto 1fr; gap: 10px; align-items: center; }
+.family-overview > div > span { min-height: 88px; display: grid; place-items: center; align-content: center; border: 1px solid var(--line); background: white; }
+.family-overview > div > i { color: var(--red); font: 600 20px 'DM Sans'; font-style: normal; }
+.family-overview span small { color: var(--muted); font: 600 8px 'Oswald'; letter-spacing: 1px; }
+.family-overview span strong { margin: 3px 0; font: 600 28px 'Noto Serif SC'; }
+.family-overview span em { color: var(--jade); font-size: 9px; font-style: normal; }
+.family-overview .sound-note { display: block; margin-top: 14px; color: var(--muted); font-size: 9px; line-height: 1.5; }
 .family-explainer { display: grid; grid-template-columns: .85fr 1.15fr; gap: 40px; align-items: center; padding: 40px 60px; }
 .family-glyph { height: 290px; position: relative; display: grid; place-items: center; background: #e1dbce; font: 600 175px 'Noto Serif SC'; }
 .component-tag { position: absolute; bottom: 13px; left: 13px; padding: 6px 9px; background: var(--ink); color: white; font: 500 10px 'DM Sans'; }
@@ -493,6 +503,23 @@ button:focus-visible, textarea:focus-visible { outline: 3px solid rgba(215, 92, 
 .member-tabs button.active { background: var(--jade); color: white; }
 .member-tabs span, .member-tabs small { display: block; }
 .member-tabs span { font: 600 26px 'Noto Serif SC'; }
+.family-sentence { margin: 28px 60px 0; padding: 24px; color: white; background: var(--ink); }
+.sentence-heading { display: flex; justify-content: space-between; align-items: center; gap: 20px; }
+.sentence-heading h3 { margin: 3px 0 18px; font: 600 18px 'Noto Serif SC'; }
+.sentence-heading .audio-button { border-color: #5c574d; color: #ead9a9; }
+.character-example-line { margin: 8px 0; font: 600 23px/1.9 'Noto Serif SC'; }
+.character-example-line > button { position: relative; border: 0; border-bottom: 2px solid #e5b74f; padding: 0 2px; color: #f1c75f; background: transparent; font: inherit; cursor: pointer; }
+.character-example-line ruby { ruby-position: over; }
+.character-example-line rt { color: #e4d5ac; font: 500 9px 'DM Sans'; }
+.character-example-line button > i { display: none; position: absolute; z-index: 3; left: 50%; bottom: calc(100% + 9px); min-width: 170px; transform: translateX(-50%); padding: 10px; color: var(--ink); background: white; box-shadow: var(--shadow); font-style: normal; text-align: left; }
+.character-example-line button:hover > i, .character-example-line button:focus > i { display: grid; }
+.character-example-line button > i b, .character-example-line button > i em, .character-example-line button > i small { display: block; }
+.character-example-line button > i b { font: 600 18px 'Noto Serif SC'; }
+.character-example-line button > i em { color: var(--red); font: 500 10px 'DM Sans'; }
+.character-example-line button > i small { color: var(--muted); font: 500 10px 'DM Sans'; }
+.character-example-pinyin { margin: 5px 0; color: #e4d5ac; font-size: 12px; }
+.character-example-english { margin: 5px 0 12px; color: #bdb9b0; font-size: 11px; }
+.family-sentence > small { color: #817d74; font-size: 9px; }
 .family-practice { margin: 25px 60px 40px; display: flex; justify-content: space-between; align-items: center; gap: 20px; color: var(--muted); }
 .family-practice p { max-width: 500px; }
 
@@ -723,10 +750,16 @@ button:focus-visible, textarea:focus-visible { outline: 3px solid rgba(215, 92, 
   .family-card { grid-template-columns: 105px 1fr; min-height: 175px; }
   .family-anchor span { font-size: 53px; }
   .family-card > div:last-child { padding: 18px; }
+  .family-overview { margin: 18px 20px 0; padding: 16px; }
+  .family-overview > div { grid-template-columns: 1fr; }
+  .family-overview > div > i { transform: rotate(90deg); justify-self: center; }
   .family-explainer { grid-template-columns: 1fr; padding: 25px 20px; gap: 22px; }
   .family-glyph { height: 200px; font-size: 120px; }
   .member-tabs { margin: 0 20px; }
   .member-tabs button { padding: 8px; }
+  .family-sentence { margin: 22px 20px 0; padding: 18px; }
+  .character-example-line { font-size: 19px; }
+  .character-example-line button > i { position: fixed; left: 18px; right: 18px; bottom: 82px; min-width: 0; transform: none; }
   .family-practice { margin: 20px; flex-direction: column; align-items: stretch; }
   .review-card { min-height: 470px; padding: 22px 18px; }
   .review-side { display: none; }

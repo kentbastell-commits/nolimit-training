@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { characterFamilies, lessons, reviewCards, scenarios, stories } from './data'
+import { characterExample, hasAuthoredCharacterExample } from './content/characterExamples'
 import { fieldLevels } from './leveling'
 
 function expectUniqueIds(items: Array<{ id: string }>) {
@@ -52,6 +53,19 @@ describe('HSK 3–4 train pack', () => {
       expect(scenario.coachOpening.pinyin.trim()).not.toBe('')
       expect(scenario.suggestedReplies.length).toBeGreaterThanOrEqual(2)
       expect(scenario.targetTerms.length).toBeGreaterThanOrEqual(4)
+    }
+  })
+
+  it('gives every character-family word an authored contextual sentence', () => {
+    for (const family of characterFamilies) {
+      expect(family.hint.length).toBeGreaterThan(30)
+      for (const member of family.members) {
+        expect(hasAuthoredCharacterExample(member.word)).toBe(true)
+        const example = characterExample(member)
+        expect(example.hanzi).toContain(member.word)
+        expect(example.pinyin.trim()).not.toBe('')
+        expect(example.english.trim()).not.toBe('')
+      }
     }
   })
 })
