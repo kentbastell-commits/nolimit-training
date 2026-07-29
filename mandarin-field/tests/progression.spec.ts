@@ -89,6 +89,34 @@ test('integrated level check records listening, reading, characters, and speakin
   expect(saved.passedAt).toBeTruthy()
 })
 
+test('lesson combines vocabulary glosses, retrieval, and an adaptive repair round', async ({ page }) => {
+  await seed(page)
+  await openSection(page, 1, 'Course')
+  await page.locator('.lesson-row').first().click()
+  await expect(page.locator('.lesson-gloss-line button').first()).toBeVisible()
+  await page.locator('.lesson-gloss-line button').first().focus()
+  await expect(page.locator('.lesson-gloss-line button > i').first()).toBeVisible()
+
+  for (let phrase = 0; phrase < 4; phrase += 1) {
+    await page.getByRole('button', { name: /Try from memory/ }).click()
+    const reveal = page.getByRole('button', { name: /Reveal & compare/ })
+    await expect(reveal).toBeDisabled()
+    await page.locator('.lesson-recall textarea').fill('我的回答')
+    await reveal.click()
+    await expect(page.locator('.attempt-comparison')).toContainText('我的回答')
+    if (phrase === 0) await page.getByRole('button', { name: /Again · repair later/ }).click()
+    else await page.getByRole('button', { name: /^Got it/ }).click()
+  }
+
+  await expect(page.getByText(/REPAIR ROUND/)).toBeVisible()
+  await page.locator('.lesson-recall textarea').fill('请问，去杭州的火车在哪个站台？')
+  await page.getByRole('button', { name: /Reveal & compare/ }).click()
+  await page.getByRole('button', { name: /Finish repair/ }).click()
+  await expect(page.locator('.lesson-modal')).toHaveCount(0)
+  const completed = await page.evaluate(() => JSON.parse(localStorage.getItem('mandarin-field-progress-v1')!).completedLessons)
+  expect(completed).toHaveLength(1)
+})
+
 test('all evidence plus a passed check unlocks exactly one promotion', async ({ page }) => {
   await seed(page, {
     ...baseProgress,

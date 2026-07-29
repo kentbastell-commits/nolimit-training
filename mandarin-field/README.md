@@ -73,6 +73,17 @@ npm run test:e2e
 
 The end-to-end suite runs the critical learning and promotion flows at desktop and mobile sizes.
 
+### Core lesson loop
+
+Each lesson phrase now follows a compact evidence-based loop:
+
+1. **Understand:** read and listen with optional pinyin; tap highlighted chunks for pronunciation and meaning.
+2. **Retrieve:** see only the English intent and produce the Mandarin before replaying it. Typed characters, typed pinyin, and an answer spoken aloud are all supported.
+3. **Compare:** reveal the authored answer and compare meaning and word order with the attempt.
+4. **Repair selectively:** phrases marked **Again** return once the main lesson is complete; confidently retrieved phrases do not create redundant work.
+
+The design favors successful, effortful retrieval and corrective feedback while keeping extra repetitions targeted at material the learner actually found difficult.
+
 ## The learning system
 
 The curriculum is organized around six linked loops:

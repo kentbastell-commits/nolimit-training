@@ -206,21 +206,47 @@ function Course({ progress, openLesson }: { progress: ReturnType<typeof useProgr
 function LessonModal({ lesson, close, complete }: { lesson: Lesson; close: () => void; complete: () => void }) {
   const [index, setIndex] = useState(0)
   const [showPinyin, setShowPinyin] = useState(true)
+  const [phase, setPhase] = useState<'learn' | 'recall' | 'compare'>('learn')
+  const [attempt, setAttempt] = useState('')
+  const [answeredAloud, setAnsweredAloud] = useState(false)
+  const [repairQueue, setRepairQueue] = useState<number[]>([])
+  const [repairing, setRepairing] = useState(false)
+  const [repairPosition, setRepairPosition] = useState(0)
   const phrase = lesson.phrases[index]
   const final = index === lesson.phrases.length - 1
+  const tokens = glossLine(phrase.hanzi)
+  const resetAttempt = (nextPhase: 'learn' | 'recall' = 'learn') => { setPhase(nextPhase); setAttempt(''); setAnsweredAloud(false) }
+  const grade = (remembered: boolean) => {
+    if (repairing && !remembered) { resetAttempt('recall'); return }
+    const nextQueue = !remembered && !repairing && !repairQueue.includes(index) ? [...repairQueue, index] : repairQueue
+    setRepairQueue(nextQueue)
+    if (repairing) {
+      if (repairPosition < repairQueue.length - 1) {
+        const nextPosition = repairPosition + 1
+        setRepairPosition(nextPosition); setIndex(repairQueue[nextPosition]); resetAttempt('recall')
+      } else { complete(); close() }
+    } else if (!final) {
+      setIndex((value) => value + 1); resetAttempt()
+    } else if (nextQueue.length) {
+      setRepairing(true); setRepairPosition(0); setIndex(nextQueue[0]); resetAttempt('recall')
+    } else { complete(); close() }
+  }
   return (
     <div className="modal-backdrop"><div className="lesson-modal">
-      <div className="modal-top"><button onClick={close}><X /></button><span>{lesson.eyebrow}</span><span>{index + 1} / {lesson.phrases.length}</span></div>
+      <div className="modal-top"><button onClick={close}><X /></button><span>{repairing ? 'REPAIR ROUND · DIFFICULT PHRASES ONLY' : lesson.eyebrow}</span><span>{repairing ? `${repairPosition + 1} / ${repairQueue.length}` : `${index + 1} / ${lesson.phrases.length}`}</span></div>
       <div className="lesson-progress"><i style={{ width: `${((index + 1) / lesson.phrases.length) * 100}%` }} /></div>
       <main className="phrase-stage">
-        <div className="phrase-stage-heading"><p>{lesson.chineseTitle}</p><button onClick={() => setShowPinyin((value) => !value)}>{showPinyin ? 'Hide pinyin' : 'Show pinyin'}</button></div>
-        <button className="giant-phrase" onClick={() => speakChinese(phrase.hanzi)}>{phrase.hanzi}<Volume2 size={22} /></button>
-        <p className={cx('phrase-pinyin', !showPinyin && 'hidden')}>{phrase.pinyin}</p>
-        <p className="phrase-english">{phrase.english}</p>
-        {phrase.note && <div className="coach-note"><Sparkles size={17} /><p><b>Why it sounds natural</b>{phrase.note}</p></div>}
-        <div className="retrieval-prompt"><span>RETRIEVE IT</span><p>Look away. Say the Chinese from the English, then listen once.</p><AudioButton text={phrase.hanzi} label="Hear native pace" /></div>
+        <div className="phrase-stage-heading"><p>{repairing ? 'One more successful retrieval' : lesson.chineseTitle}</p>{phase !== 'recall' && <button onClick={() => setShowPinyin((value) => !value)}>{showPinyin ? 'Hide pinyin' : 'Show pinyin'}</button>}</div>
+        {phase === 'recall' ? <section className="lesson-recall"><p className="eyebrow">RETRIEVE BEFORE REPLAY</p><h2>{phrase.english}</h2><p>Say the Mandarin from memory. Type characters or pinyin if you want a visible comparison.</p><textarea value={attempt} onChange={(event) => setAttempt(event.target.value)} placeholder="Your Mandarin or pinyin…" /><button className={answeredAloud ? 'active' : ''} onClick={() => setAnsweredAloud((value) => !value)}><Mic size={16} /> {answeredAloud ? 'Answered aloud' : 'I’ll answer aloud'}</button></section> : <>
+          <p className="lesson-gloss-line">{tokens.map((token, tokenIndex) => token.punctuation ? <span className="punctuation" key={`${token.text}-${tokenIndex}`}>{token.text}</span> : <button onClick={() => speakChinese(token.text)} key={`${token.text}-${tokenIndex}`}><ruby>{token.text}{showPinyin && <rt>{token.fallback ? '' : token.pinyin}</rt>}</ruby><i><b>{token.text}</b><em>{token.fallback ? 'See the full-line pinyin' : token.pinyin}</em><small>{token.meaning}</small></i></button>)}</p>
+          <p className={cx('phrase-pinyin', !showPinyin && 'hidden')}>{phrase.pinyin}</p>
+          <p className="phrase-english">{phrase.english}</p>
+          {phase === 'compare' && <div className="attempt-comparison"><small>YOUR ATTEMPT</small><p>{attempt || 'Answered aloud'}</p><span>Compare meaning and word order—not just exact wording.</span></div>}
+          {phrase.note && <div className="coach-note"><Sparkles size={17} /><p><b>Why it sounds natural</b>{phrase.note}</p></div>}
+          {phase === 'learn' && <div className="retrieval-prompt"><span>NEXT: ACTIVE RECALL</span><p>You will see only the English. Produce the Mandarin before hearing it again.</p><AudioButton text={phrase.hanzi} label="Hear native pace" /></div>}
+        </>}
       </main>
-      <footer className="modal-footer"><button className="secondary" disabled={index === 0} onClick={() => setIndex((value) => value - 1)}><ArrowLeft /> Back</button><button className="primary" onClick={() => final ? (complete(), close()) : setIndex((value) => value + 1)}>{final ? 'Finish lesson' : 'Next phrase'} <ArrowRight /></button></footer>
+      <footer className="modal-footer">{phase === 'learn' ? <><button className="secondary" disabled={index === 0 || repairing} onClick={() => { setIndex((value) => value - 1); resetAttempt() }}><ArrowLeft /> Back</button><button className="primary" onClick={() => setPhase('recall')}>Try from memory <BrainCircuit /></button></> : phase === 'recall' ? <><button className="secondary" onClick={() => setPhase('learn')}>Review first</button><button className="primary" disabled={!attempt.trim() && !answeredAloud} onClick={() => setPhase('compare')}>Reveal & compare <ArrowRight /></button></> : <><button className="secondary" onClick={() => grade(false)}>{repairing ? 'Try this one again' : 'Again · repair later'}</button><button className="primary" onClick={() => grade(true)}>{repairing && repairPosition === repairQueue.length - 1 ? 'Finish repair' : 'Got it'} <Check /></button></>}</footer>
     </div></div>
   )
 }

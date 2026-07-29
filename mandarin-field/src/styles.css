@@ -235,6 +235,16 @@ button:focus-visible, textarea:focus-visible { outline: 3px solid rgba(215, 92, 
 .phrase-stage-heading button { border: 0; background: none; color: var(--red); cursor: pointer; }
 .giant-phrase { position: relative; border: 0; background: none; font: 600 clamp(36px, 6vw, 66px) 'Noto Serif SC'; margin: 45px auto 5px; cursor: pointer; }
 .giant-phrase svg { position: absolute; right: -31px; top: 5px; color: var(--red); }
+.lesson-gloss-line { margin: 42px auto 8px; font: 600 clamp(31px, 5vw, 55px)/1.65 'Noto Serif SC'; }
+.lesson-gloss-line > button { position: relative; border: 0; border-bottom: 2px solid rgba(215,92,68,.35); padding: 0 2px; background: transparent; font: inherit; cursor: pointer; }
+.lesson-gloss-line > button:hover, .lesson-gloss-line > button:focus { color: var(--red); border-color: var(--red); }
+.lesson-gloss-line rt { color: var(--red); font: 500 9px 'DM Sans'; }
+.lesson-gloss-line button > i { display: none; position: absolute; z-index: 5; left: 50%; bottom: calc(100% + 8px); min-width: 180px; transform: translateX(-50%); padding: 11px; color: var(--ink); background: white; box-shadow: var(--shadow); font-style: normal; text-align: left; }
+.lesson-gloss-line button:hover > i, .lesson-gloss-line button:focus > i { display: grid; }
+.lesson-gloss-line button > i b, .lesson-gloss-line button > i em, .lesson-gloss-line button > i small { display: block; }
+.lesson-gloss-line button > i b { font: 600 18px 'Noto Serif SC'; }
+.lesson-gloss-line button > i em { color: var(--red); font: 500 10px 'DM Sans'; }
+.lesson-gloss-line button > i small { color: var(--muted); font: 500 10px 'DM Sans'; }
 .phrase-pinyin { color: var(--red); font-size: 17px; min-height: 23px; transition: .2s; }
 .phrase-pinyin.hidden { filter: blur(7px); opacity: .25; user-select: none; }
 .phrase-english { color: var(--muted); font-size: 18px; }
@@ -244,6 +254,16 @@ button:focus-visible, textarea:focus-visible { outline: 3px solid rgba(215, 92, 
 .retrieval-prompt { text-align: left; border-left: 3px solid var(--gold); padding: 10px 0 10px 15px; margin-top: 15px; }
 .retrieval-prompt > span { color: var(--gold); font: 600 10px 'Oswald'; letter-spacing: 2px; }
 .retrieval-prompt p { color: var(--muted); margin: 5px 0 10px; }
+.lesson-recall { margin: 38px auto 20px; padding: 30px; background: white; border: 1px solid var(--line); text-align: left; }
+.lesson-recall h2 { margin: 7px 0; font: 600 clamp(24px, 4vw, 38px)/1.25 'Noto Serif SC'; }
+.lesson-recall > p:not(.eyebrow) { color: var(--muted); font-size: 12px; }
+.lesson-recall textarea { width: 100%; min-height: 82px; margin: 14px 0 9px; padding: 12px; resize: vertical; border: 1px solid var(--line); background: var(--paper); }
+.lesson-recall > button { display: flex; align-items: center; gap: 7px; border: 1px solid var(--line); padding: 9px 12px; color: var(--muted); background: transparent; cursor: pointer; }
+.lesson-recall > button.active { color: white; background: var(--jade); border-color: var(--jade); }
+.attempt-comparison { margin: 18px 0; padding: 13px; border-left: 3px solid var(--jade); background: #e8eeea; text-align: left; }
+.attempt-comparison small { color: var(--jade); font: 600 9px 'Oswald'; letter-spacing: 1px; }
+.attempt-comparison p { margin: 4px 0; font: 500 16px 'Noto Serif SC'; }
+.attempt-comparison span { color: var(--muted); font-size: 10px; }
 .modal-footer { padding: 17px 24px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; }
 
 /* Speak */
