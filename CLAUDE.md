@@ -472,6 +472,15 @@ data between them, never "borrow" a table ID across products.
     (`"/api/clients"`), not the helper names — the first myProfile migration
     missed `fetchMyPerformanceOverrides` exactly this way, same day. Full
     roster is now coach-key-gated; the portal uses `?code=` single-row mode.
+    RECURRED on 6 siblings (2026-07-29): `checkIns`, `notifications`,
+    `workoutHistory`, `exerciseResults`, `workloadLogs`, `contentAssignments`,
+    `athleteMetrics` all had the identical "no clientId filter = return every
+    client's rows" shape, unpatched, for an unknown period — same bug, never
+    generalized past the one endpoint it was first found on. Rule: this bug
+    class is per-SHAPE, not per-file — the moment you find it once, grep every
+    repository under `server/db/repositories/` for `!clientId`-style "empty
+    filter returns all" branches and gate every one in the same pass, not just
+    the reported one.
 
 ## Quality bar — checkable, per deliverable
 
