@@ -32,6 +32,29 @@ data between them, never "borrow" a table ID across products.
 - **Backend**: `api/*.ts` are Vercel-style handlers, served self-hosted by
   `server/index.ts` (Express). **A new handler does nothing until you import it and
   add it to the `handlers` map in `server/index.ts`.**
+- **Auth model (nolimit): there is no session layer for athlete-facing
+  endpoints.** A client's code (`CL-0001` style, sequential, guessable) IS the
+  athlete portal's entire credential everywhere — no password, no token. Every
+  athlete-facing write trusts whatever `clientId`/`clientCode` is in the
+  request body with no proof the caller actually is that client (a 2026-07-30
+  full-API audit found and fixed the worst cases — an unauthenticated
+  full-content paywall bypass on `programs`/`programTemplates`/
+  `workoutDetails`, an unrestricted-field `updateClient`, several IDOR writes —
+  but `shiftAssignedWorkouts` and `coachingSignup`'s claim stage still trust a
+  bare client-supplied code with no ownership check, because that's this
+  systemic gap, not a one-off bug). Coach-side protection is `coachKeyOk()` +
+  `COACH_ONLY_HANDLERS` in `api/_coachAuth.ts` (off until `COACH_ACCESS_KEY` is
+  set at pilot launch) — but a handler the athlete portal ALSO needs (dual-use,
+  like `programTemplates` or `updateClient`) can't just be coach-gated; it
+  needs a field allowlist or an entitlement check (see
+  `clientHasProgramAccess` in `server/db/pg/clients.ts` for the pattern) that
+  still works with `coachKeyOk()` unset. Before excluding any handler from
+  `COACH_ONLY_HANDLERS` "because the portal needs it," grep every real call
+  site (`src/App.tsx`) — a stale, unverified comment claiming that is exactly
+  how `subscriptions`/`teams` shipped unauthenticated for an unknown period.
+  A real fix is session tokens issued at portal entry; until that exists,
+  every new athlete-facing write/read handler should be reviewed against this
+  gap specifically, not assumed safe by precedent.
 - **Database: nolimit is Postgres ONLY** (live 2026-07-21; the Feishu backend was
   deleted 2026-07-26). DB `nolimit_prod` on the HK box. There is no
   `DATA_BACKEND` switch and no `server/db/feishu/` tree any more — the
