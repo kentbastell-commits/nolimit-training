@@ -63,7 +63,7 @@ test('the full HSK 3–4 train pack is discoverable in every library', async ({ 
   await expect(page.locator('.lesson-row')).toHaveCount(10)
 
   await openSection(page, 3, 'Stories')
-  await expect(page.locator('.story-card')).toHaveCount(15)
+  await expect(page.locator('.story-card')).toHaveCount(21)
   await openSection(page, 2, 'Speak')
   await expect(page.locator('.scenario-card')).toHaveCount(15)
   await openSection(page, 4, 'Characters')
@@ -152,6 +152,20 @@ test('two-turn role-play creates speaking evidence', async ({ page }) => {
   await page.locator('.scenario-complete .primary').click()
   const completed = await page.evaluate(() => JSON.parse(localStorage.getItem('mandarin-field-progress-v1')!).completedScenarios)
   expect(completed).toHaveLength(1)
+})
+
+test('role-play exposes pinyin support and accepts a prepared pinyin answer', async ({ page }) => {
+  await seed(page)
+  await openSection(page, 2, 'Speak')
+  await page.locator('.scenario-card').first().click()
+  await expect(page.locator('.message-pinyin').first()).toBeVisible()
+  await expect(page.locator('.reply-pinyin')).toHaveCount(2)
+  const pinyin = await page.locator('.reply-pinyin').first().textContent()
+  await page.locator('.speech-composer textarea').fill(pinyin!)
+  await page.locator('.send-button').click()
+  await expect(page.locator('.tutor-feedback.understandable')).toBeVisible()
+  await page.getByRole('button', { name: /Pinyin ON/ }).click()
+  await expect(page.locator('.message-pinyin')).toHaveCount(0)
 })
 
 test('AI feedback explains a correction and requires a retry before advancing', async ({ page }) => {

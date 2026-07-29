@@ -290,11 +290,14 @@ button:focus-visible, textarea:focus-visible { outline: 3px solid rgba(215, 92, 
 .scenario-context { display: flex; justify-content: space-between; gap: 30px; padding: 17px 20px; background: #e6e0d3; font-size: 12px; }
 .scenario-context span { font-weight: 700; }
 .scenario-context p { margin: 0; color: var(--muted); }
+.scenario-context button { border: 1px solid #bdb5a5; padding: 5px 8px; background: transparent; color: var(--muted); font: 600 9px 'DM Sans'; cursor: pointer; white-space: nowrap; }
+.scenario-context button.active { border-color: var(--jade); background: var(--jade); color: white; }
 .conversation { min-height: 320px; padding: 27px 0; display: grid; align-content: end; gap: 18px; }
 .message { max-width: 74%; display: grid; grid-template-columns: 34px 1fr; gap: 8px; }
 .message > span { width: 34px; height: 34px; border-radius: 50%; background: var(--ink); color: white; display: grid; place-items: center; font: 600 11px 'Noto Serif SC'; }
 .message > div:not(.tutor-feedback) { position: relative; background: #fff; border: 1px solid var(--line); padding: 12px 43px 12px 14px; border-radius: 2px 12px 12px 12px; }
 .message p { font: 500 17px 'Noto Serif SC'; margin: 0; }
+.message .message-pinyin { display: block; margin-top: 5px; padding-right: 4px; color: var(--muted); font: 500 11px/1.4 'DM Sans'; }
 .message > div:not(.tutor-feedback) button { position: absolute; right: 10px; top: 12px; border: 0; background: none; color: var(--red); }
 .message.learner { justify-self: end; grid-template-columns: 1fr 34px; }
 .message.learner > span { grid-column: 2; background: var(--red); }
@@ -329,6 +332,7 @@ button:focus-visible, textarea:focus-visible { outline: 3px solid rgba(215, 92, 
 .reply-coach > div { display: flex; gap: 8px; margin-top: 7px; overflow-x: auto; }
 .reply-coach button { min-width: 240px; border: 1px solid var(--line); background: white; padding: 10px; text-align: left; cursor: pointer; font-family: 'Noto Serif SC'; }
 .reply-coach small { display: block; color: var(--muted); font-family: 'DM Sans'; margin-top: 3px; }
+.reply-coach .reply-pinyin { color: var(--jade); }
 .speech-composer { display: grid; grid-template-columns: 1fr auto auto; gap: 9px; margin-top: 13px; background: #fff; border: 1px solid var(--line); padding: 9px; }
 .speech-composer textarea { border: 0; resize: none; padding: 8px; background: transparent; min-height: 52px; }
 .speech-composer textarea:focus { outline: 0; }

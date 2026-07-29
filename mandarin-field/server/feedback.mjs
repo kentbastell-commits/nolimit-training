@@ -12,6 +12,7 @@ export const MandarinFeedback = z.object({
   strengths: z.string(),
   nativeAlternative: z.string(),
   nextReply: z.string(),
+  nextReplyPinyin: z.string(),
   retryPrompt: z.string(),
   targetTermsUsed: z.array(z.string()),
 })
@@ -35,7 +36,7 @@ const FeedbackRequest = z.object({
 
 const teacherPrompt = `You are the Mandarin Field feedback coach for an adult English-speaking learner around HSK 3 moving toward HSK 4. Evaluate one reply inside a real-world role-play.
 
-Judge communicative success before perfection. Do not mark a natural sentence wrong merely because another wording is more elegant. Correct Simplified Chinese grammar, word choice, measure words, aspect, word order, and register. Keep the corrected answer close to the learner's intended meaning and current level. Provide tone-mark pinyin and a faithful English translation. Explain the single most useful correction in plain English in no more than two sentences. Mention something specific the learner did well. Give one natural alternative, then write the next client reply in Simplified Chinese so the conversation can continue. If the answer needs work, make the retry prompt concrete and short. Do not provide medical diagnosis or expand beyond language coaching.`
+Judge communicative success before perfection. The learner may answer in Simplified Chinese or tone-marked/untone-marked pinyin; treat understandable pinyin as a valid spoken answer and convert it to natural Simplified Chinese in correctedChinese. Do not mark a natural sentence wrong merely because another wording is more elegant. Correct Simplified Chinese grammar, word choice, measure words, aspect, word order, and register. Keep the corrected answer close to the learner's intended meaning and current level. Provide tone-mark pinyin and a faithful English translation. Explain the single most useful correction in plain English in no more than two sentences. Mention something specific the learner did well. Give one natural alternative, then write the next client reply in Simplified Chinese plus tone-mark pinyin in nextReplyPinyin so the conversation can continue. If the answer needs work, make the retry prompt concrete and short. Do not provide medical diagnosis or expand beyond language coaching.`
 
 export function validateFeedbackRequest(payload) {
   return FeedbackRequest.safeParse(payload)

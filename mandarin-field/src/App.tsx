@@ -23,7 +23,7 @@ const navigation: Array<{ id: View; label: string; chinese: string; icon: typeof
 ]
 
 const cx = (...values: Array<string | false | undefined>) => values.filter(Boolean).join(' ')
-type TutorMessage = { role: 'client' | 'learner'; text: string; feedback?: TutorFeedback; pending?: boolean }
+type TutorMessage = { role: 'client' | 'learner'; text: string; pinyin?: string; feedback?: TutorFeedback; pending?: boolean }
 
 function LogoMark() {
   return <div className="brand-mark" aria-hidden="true"><span>中</span><i /></div>
@@ -234,6 +234,7 @@ function SpeakView({ progress, actions }: { progress: ReturnType<typeof useProgr
   const [checking, setChecking] = useState(false)
   const [aiStatus, setAiStatus] = useState<{ available: boolean; model: string }>({ available: false, model: '' })
   const [scenarioFilter, setScenarioFilter] = useState<'All' | 'Guided' | 'Open'>('All')
+  const [showConversationPinyin, setShowConversationPinyin] = useState(true)
   const visibleScenarios = scenarioFilter === 'All' ? scenarios : scenarios.filter((item) => item.level === scenarioFilter)
 
   useEffect(() => {
@@ -243,7 +244,7 @@ function SpeakView({ progress, actions }: { progress: ReturnType<typeof useProgr
   }, [])
 
   const startScenario = (item: Scenario) => {
-    setScenario(item); setMessages([{ role: 'client', text: item.coachOpening.hanzi }]); setTurn(0); setTyped(''); speech.clear()
+    setScenario(item); setMessages([{ role: 'client', text: item.coachOpening.hanzi, pinyin: item.coachOpening.pinyin }]); setTurn(0); setTyped(''); speech.clear()
     window.setTimeout(() => speakChinese(item.coachOpening.hanzi), 250)
   }
   const send = async (raw?: string) => {
@@ -251,9 +252,9 @@ function SpeakView({ progress, actions }: { progress: ReturnType<typeof useProgr
     const text = (raw ?? speech.transcript ?? typed).trim()
     if (!text) return
     const replies = [
-      '我昨晚只睡了六个小时。我们今天可以练轻一点吗？',
-      '这样感觉好多了。这个动作要做几组？',
-      '明白了。我会注意动作，不追求速度。',
+      { hanzi: '我昨晚只睡了六个小时。我们今天可以练轻一点吗？', pinyin: 'Wǒ zuówǎn zhǐ shuì le liù ge xiǎoshí. Wǒmen jīntiān kěyǐ liàn qīng yìdiǎn ma?' },
+      { hanzi: '这样感觉好多了。这个动作要做几组？', pinyin: 'Zhèyàng gǎnjué hǎo duō le. Zhège dòngzuò yào zuò jǐ zǔ?' },
+      { hanzi: '明白了。我会注意动作，不追求速度。', pinyin: 'Míngbai le. Wǒ huì zhùyì dòngzuò, bù zhuīqiú sùdù.' },
     ]
     const fallbackReply = replies[Math.min(turn, replies.length - 1)]
     const history = messages.map(({ role, text: messageText }) => ({ role, text: messageText }))
@@ -267,7 +268,7 @@ function SpeakView({ progress, actions }: { progress: ReturnType<typeof useProgr
       feedback = await requestTutorFeedback({ scenario, answer: text, history, level: progress.level })
       setAiStatus((current) => ({ ...current, available: true }))
     } catch {
-      feedback = localTutorFeedback(scenario, text, fallbackReply)
+      feedback = localTutorFeedback(scenario, text, fallbackReply.hanzi)
       setAiStatus({ available: false, model: '' })
     }
 
@@ -281,8 +282,8 @@ function SpeakView({ progress, actions }: { progress: ReturnType<typeof useProgr
       return
     }
 
-    const reply = feedback.nextReply || fallbackReply
-    setMessages((current) => [...current, { role: 'client', text: reply }])
+    const reply = feedback.nextReply || fallbackReply.hanzi
+    setMessages((current) => [...current, { role: 'client', text: reply, pinyin: feedback.nextReplyPinyin || fallbackReply.pinyin }])
     setTurn((value) => value + 1)
     actions.addStudy(2, 12)
     setChecking(false)
@@ -293,16 +294,16 @@ function SpeakView({ progress, actions }: { progress: ReturnType<typeof useProgr
     return (
       <div className="view speak-session">
         <header className="speak-top"><button onClick={() => setScenario(null)}><ArrowLeft /></button><div><small>ROLE-PLAY · {scenario.level}</small><h2>{scenario.chineseTitle}</h2></div><span className={cx('live-pill', aiStatus.available && 'ai-online')}><i /> {aiStatus.available ? 'AI TUTOR' : 'LOCAL MODE'}</span></header>
-        <div className="scenario-context"><span>{scenario.setting}</span><p>Your goal: {scenario.description}</p></div>
+        <div className="scenario-context"><span>{scenario.setting}</span><p>Your goal: {scenario.description}</p><button className={showConversationPinyin ? 'active' : ''} onClick={() => setShowConversationPinyin((value) => !value)}>拼 Pinyin {showConversationPinyin ? 'ON' : 'OFF'}</button></div>
         <div className="conversation">
           {messages.map((message, index) => <div className={cx('message', message.role)} key={`${message.role}-${index}`}>
-            <span>{message.role === 'client' ? '客户' : '你'}</span><div><p>{message.text}</p>{message.role === 'client' && <button onClick={() => speakChinese(message.text)}><Volume2 size={15} /></button>}</div>{message.pending && <small className="ai-checking"><Sparkles size={13} /> AI tutor is checking meaning, grammar, and naturalness…</small>}{message.feedback && <div className={cx('tutor-feedback', message.feedback.verdict)}><header><span>{message.feedback.verdict === 'correct' ? 'CORRECT' : message.feedback.verdict === 'understandable' ? 'UNDERSTANDABLE' : 'TRY ONE CORRECTION'}</span><em>{message.feedback.source === 'ai' ? 'AI FEEDBACK' : 'OFFLINE FALLBACK'}</em></header><p className="feedback-strength"><Check size={14} /> {message.feedback.strengths}</p><div className="feedback-answer"><small>NATURAL ANSWER</small><b>{message.feedback.correctedChinese}</b><span>{message.feedback.pinyin}</span><em>{message.feedback.english}</em><button onClick={() => speakChinese(message.feedback!.correctedChinese)}><Volume2 size={15} /> Listen</button></div><p className="feedback-explanation"><b>Why</b>{message.feedback.explanation}</p><p className="feedback-alternative"><b>Also natural</b>{message.feedback.nativeAlternative}</p>{message.feedback.verdict === 'needs_work' && <button className="retry-button" onClick={() => { setTyped(message.feedback!.correctedChinese); speakChinese(message.feedback!.correctedChinese) }}><RotateCcw size={15} /> Put the correction in the answer box and retry</button>}</div>}
+            <span>{message.role === 'client' ? '客户' : '你'}</span><div><p>{message.text}</p>{showConversationPinyin && message.pinyin && <small className="message-pinyin">{message.pinyin}</small>}{message.role === 'client' && <button onClick={() => speakChinese(message.text)}><Volume2 size={15} /></button>}</div>{message.pending && <small className="ai-checking"><Sparkles size={13} /> AI tutor is checking meaning, grammar, and naturalness…</small>}{message.feedback && <div className={cx('tutor-feedback', message.feedback.verdict)}><header><span>{message.feedback.verdict === 'correct' ? 'CORRECT' : message.feedback.verdict === 'understandable' ? 'UNDERSTANDABLE' : 'TRY ONE CORRECTION'}</span><em>{message.feedback.source === 'ai' ? 'AI FEEDBACK' : 'OFFLINE FALLBACK'}</em></header><p className="feedback-strength"><Check size={14} /> {message.feedback.strengths}</p><div className="feedback-answer"><small>NATURAL ANSWER</small><b>{message.feedback.correctedChinese}</b><span>{message.feedback.pinyin}</span><em>{message.feedback.english}</em><button onClick={() => speakChinese(message.feedback!.correctedChinese)}><Volume2 size={15} /> Listen</button></div><p className="feedback-explanation"><b>Why</b>{message.feedback.explanation}</p><p className="feedback-alternative"><b>Also natural</b>{message.feedback.nativeAlternative}</p>{message.feedback.verdict === 'needs_work' && <button className="retry-button" onClick={() => { setTyped(message.feedback!.correctedChinese); speakChinese(message.feedback!.correctedChinese) }}><RotateCcw size={15} /> Put the correction in the answer box and retry</button>}</div>}
           </div>)}
         </div>
-        <div className="reply-coach"><span>USEFUL NEXT MOVES</span><div>{scenario.suggestedReplies.map((reply) => <button onClick={() => { setTyped(reply.hanzi); speakChinese(reply.hanzi) }} key={reply.hanzi}>{reply.hanzi}<small>{reply.english}</small></button>)}</div></div>
+        <div className="reply-coach"><span>USEFUL NEXT MOVES · TAP TO USE HANZI, OR TYPE THE PINYIN</span><div>{scenario.suggestedReplies.map((reply) => <button onClick={() => { setTyped(reply.hanzi); speakChinese(reply.hanzi) }} key={reply.hanzi}>{reply.hanzi}{showConversationPinyin && <small className="reply-pinyin">{reply.pinyin}</small>}<small>{reply.english}</small></button>)}</div></div>
         {turn >= 2 && <div className="scenario-complete"><div><Check size={18} /><p><b>You completed the conversational arc.</b><span>This counts toward your Level {progress.level} speaking evidence.</span></p></div><button className="primary" onClick={() => { actions.completeScenario(scenario.id); setScenario(null) }}>{progress.completedScenarios.includes(scenario.id) ? 'Practice recorded' : 'Complete role-play'} <ArrowRight /></button></div>}
         <div className="speech-composer">
-          <textarea disabled={checking} value={speech.transcript || typed} onChange={(event) => setTyped(event.target.value)} placeholder={checking ? 'Checking your Mandarin…' : 'Speak in Mandarin or type your reply…'} />
+          <textarea disabled={checking} value={speech.transcript || typed} onChange={(event) => setTyped(event.target.value)} placeholder={checking ? 'Checking your Mandarin…' : 'Speak, or type Chinese / pinyin…'} />
           {speech.supported ? <button disabled={checking} className={cx('mic-button', speech.listening && 'recording')} onClick={speech.listening ? speech.stop : speech.start}>{speech.listening ? <Pause /> : <Mic />}</button> : <span className="speech-fallback">Typing mode</span>}
           <button disabled={checking} className="send-button" onClick={() => void send(speech.transcript || typed)}>{checking ? <Sparkles /> : <ArrowRight />}</button>
         </div>

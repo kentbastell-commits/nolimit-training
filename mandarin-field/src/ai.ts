@@ -12,6 +12,7 @@ export type TutorFeedback = {
   strengths: string
   nativeAlternative: string
   nextReply: string
+  nextReplyPinyin: string
   retryPrompt: string
   targetTermsUsed: string[]
 }
@@ -74,8 +75,11 @@ export async function requestTutorFeedback(args: {
 }
 
 export function localTutorFeedback(scenario: Scenario, answer: string, nextReply: string): TutorFeedback {
-  const targetTermsUsed = scenario.targetTerms.filter((term) => answer.includes(term))
-  const model = scenario.suggestedReplies[0]
+  const normalizePinyin = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '')
+  const pinyinMatch = scenario.suggestedReplies.find((reply) => normalizePinyin(reply.pinyin) === normalizePinyin(answer))
+  const evaluatedAnswer = pinyinMatch?.hanzi ?? answer
+  const targetTermsUsed = scenario.targetTerms.filter((term) => evaluatedAnswer.includes(term))
+  const model = pinyinMatch ?? scenario.suggestedReplies[0]
   return {
     source: 'local',
     verdict: targetTermsUsed.length ? 'understandable' : 'needs_work',
@@ -88,6 +92,7 @@ export function localTutorFeedback(scenario: Scenario, answer: string, nextReply
     strengths: targetTermsUsed.length ? 'Your answer included useful scenario vocabulary.' : 'You responded in the target situation.',
     nativeAlternative: scenario.suggestedReplies[1]?.hanzi ?? model.hanzi,
     nextReply,
+    nextReplyPinyin: '',
     retryPrompt: 'Read the corrected answer, then say or type it once from memory.',
     targetTermsUsed,
   }

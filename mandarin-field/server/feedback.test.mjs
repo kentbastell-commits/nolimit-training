@@ -28,6 +28,7 @@ const parsedFeedback = {
   strengths: 'The sequence is clear.',
   nativeAlternative: '先热身，然后看情况调整。',
   nextReply: '好的，我们先热身。',
+  nextReplyPinyin: 'Hǎo de, wǒmen xiān rèshēn.',
   retryPrompt: 'Say it once from memory.',
   targetTermsUsed: ['热身'],
 }

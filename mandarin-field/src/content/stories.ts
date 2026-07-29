@@ -121,4 +121,64 @@ export const extraStories: Story[] = [
       { id: 'wt4', hanzi: '虽然计划变了，但是他们没有着急，反而过了一个很轻松的上午。', pinyin: 'Suīrán jìhuà biàn le, dànshì tāmen méiyǒu zháojí, fǎn’ér guò le yí ge hěn qīngsōng de shàngwǔ.', english: 'Although the plan changes, they do not rush and instead have a very relaxing morning.' },
     ], question: 'Why do they go for tea first?', answers: ['The garden is closed forever', 'The ticket line is too long', 'They miss the train'], correctAnswer: 1,
   },
+  {
+    id: 'morning-readiness', title: 'Changing the plan after check-in', chineseTitle: '先看今天的状态', level: 'HSK 3', minutes: 5,
+    description: 'A short client check-in changes the focus of a morning session.', tags: ['coaching', 'recovery', 'check-in'],
+    lines: [
+      { id: 'mr1', hanzi: '早课开始前，教练问客户昨晚睡得怎么样。', pinyin: 'Zǎokè kāishǐ qián, jiàoliàn wèn kèhù zuówǎn shuì de zěnmeyàng.', english: 'Before the morning session, the coach asks how the client slept.' },
+      { id: 'mr2', hanzi: '客户说只睡了五个小时，双腿也觉得很重。', pinyin: 'Kèhù shuō zhǐ shuì le wǔ ge xiǎoshí, shuāngtuǐ yě juéde hěn zhòng.', english: 'The client says they slept only five hours and their legs feel heavy.' },
+      { id: 'mr3', hanzi: '教练先带他做简单的热身，再观察身体的反应。', pinyin: 'Jiàoliàn xiān dài tā zuò jiǎndān de rèshēn, zài guānchá shēntǐ de fǎnyìng.', english: 'The coach first leads a simple warm-up, then observes the body’s response.' },
+      { id: 'mr4', hanzi: '他们最后降低了重量，但是保持了动作质量。', pinyin: 'Tāmen zuìhòu jiàngdī le zhòngliàng, dànshì bǎochí le dòngzuò zhìliàng.', english: 'They eventually lower the load but maintain movement quality.' },
+    ], question: 'Why does the coach change the session?', answers: ['The gym is closing', 'The client slept poorly and feels heavy', 'The client forgot their shoes'], correctAnswer: 1,
+  },
+  {
+    id: 'coffee-order', title: 'Fixing the coffee order', chineseTitle: '这杯咖啡不是我的', level: 'HSK 3', minutes: 5,
+    description: 'Solve a small mix-up politely in a busy Shanghai café.', tags: ['daily life', 'food', 'Shanghai'],
+    lines: [
+      { id: 'co1', hanzi: '早上咖啡店里人很多，肯特等了十分钟。', pinyin: 'Zǎoshang kāfēidiàn lǐ rén hěn duō, Kěntè děng le shí fēnzhōng.', english: 'The café is crowded in the morning, and Kent waits ten minutes.' },
+      { id: 'co2', hanzi: '店员给了他一杯冰咖啡，但是他点的是热咖啡。', pinyin: 'Diànyuán gěi le tā yì bēi bīng kāfēi, dànshì tā diǎn de shì rè kāfēi.', english: 'The server gives him an iced coffee, but he ordered a hot coffee.' },
+      { id: 'co3', hanzi: '他礼貌地说：“不好意思，我点的好像是热的。”', pinyin: 'Tā lǐmào de shuō: “Bù hǎoyìsi, wǒ diǎn de hǎoxiàng shì rè de.”', english: 'He politely says, “Excuse me, I think I ordered a hot one.”' },
+      { id: 'co4', hanzi: '店员看了订单，马上重新做了一杯。', pinyin: 'Diànyuán kàn le dìngdān, mǎshàng chóngxīn zuò le yì bēi.', english: 'The server checks the order and immediately makes another cup.' },
+    ], question: 'What was wrong with the first drink?', answers: ['It was cold instead of hot', 'It had no coffee', 'It was too large'], correctAnswer: 0,
+  },
+  {
+    id: 'knee-follow-up', title: 'The knee feels different today', chineseTitle: '今天膝盖不一样', level: 'HSK 3→4', minutes: 7,
+    description: 'A coach asks precise follow-up questions before choosing an exercise.', tags: ['coaching', 'knee', 'communication'],
+    lines: [
+      { id: 'kf1', hanzi: '客户热身时说，右膝今天有一点不舒服。', pinyin: 'Kèhù rèshēn shí shuō, yòu xī jīntiān yǒu yìdiǎn bù shūfu.', english: 'During the warm-up, the client says the right knee feels a little uncomfortable today.' },
+      { id: 'kf2', hanzi: '教练问这种感觉什么时候开始，走路时会不会出现。', pinyin: 'Jiàoliàn wèn zhè zhǒng gǎnjué shénme shíhou kāishǐ, zǒulù shí huì bú huì chūxiàn.', english: 'The coach asks when it began and whether it appears while walking.' },
+      { id: 'kf3', hanzi: '客户说昨天跑步以后开始紧，但是走路没有问题。', pinyin: 'Kèhù shuō zuótiān pǎobù yǐhòu kāishǐ jǐn, dànshì zǒulù méiyǒu wèntí.', english: 'The client says it began feeling tight after yesterday’s run, but walking is fine.' },
+      { id: 'kf4', hanzi: '教练选择了一个更容易控制的动作，并请客户随时报告变化。', pinyin: 'Jiàoliàn xuǎnzé le yí ge gèng róngyì kòngzhì de dòngzuò, bìng qǐng kèhù suíshí bàogào biànhuà.', english: 'The coach chooses an easier-to-control movement and asks the client to report any change.' },
+    ], question: 'What does the coach do before selecting an exercise?', answers: ['Adds more running', 'Asks when and where symptoms appear', 'Ends the session immediately'], correctAnswer: 1,
+  },
+  {
+    id: 'climbing-fear', title: 'One move above the last bolt', chineseTitle: '再试一次那个动作', level: 'HSK 3→4', minutes: 7,
+    description: 'A climber separates fear, technique, and physical effort.', tags: ['climbing', 'confidence', 'technique'],
+    lines: [
+      { id: 'cf1', hanzi: '小林每次爬到同一个位置都会停下来，因为下一步看起来很远。', pinyin: 'Xiǎolín měi cì pá dào tóng yí ge wèizhi dōu huì tíngxiàlai, yīnwèi xià yí bù kànqǐlai hěn yuǎn.', english: 'Xiaolin stops at the same place each time because the next move looks far away.' },
+      { id: 'cf2', hanzi: '朋友让他先不往上爬，只练习把重心移到右脚。', pinyin: 'Péngyou ràng tā xiān bù wǎng shàng pá, zhǐ liànxí bǎ zhòngxīn yí dào yòu jiǎo.', english: 'His friend asks him not to climb upward yet, only to practice shifting weight onto the right foot.' },
+      { id: 'cf3', hanzi: '练了三次以后，他发现手不需要那么用力。', pinyin: 'Liàn le sān cì yǐhòu, tā fāxiàn shǒu bù xūyào nàme yònglì.', english: 'After three practices, he realizes his hands do not need to work so hard.' },
+      { id: 'cf4', hanzi: '第四次，他先呼吸，再稳定地完成了那个动作。', pinyin: 'Dì-sì cì, tā xiān hūxī, zài wěndìng de wánchéng le nàge dòngzuò.', english: 'On the fourth try, he breathes first and then completes the move steadily.' },
+    ], question: 'What technical change helps Xiaolin?', answers: ['Pulling harder with the hands', 'Moving weight onto the right foot', 'Climbing faster'], correctAnswer: 1,
+  },
+  {
+    id: 'team-feedback', title: 'A useful coaching conversation', chineseTitle: '把反馈说清楚', level: 'HSK 4 bridge', minutes: 8,
+    description: 'Two coaches discuss feedback without making it personal.', tags: ['business', 'leadership', 'coaching'],
+    lines: [
+      { id: 'tf1', hanzi: '一节团体课以后，肯特发现课程的节奏有一点乱。', pinyin: 'Yì jié tuántǐ kè yǐhòu, Kěntè fāxiàn kèchéng de jiézòu yǒu yìdiǎn luàn.', english: 'After a group class, Kent notices that the session’s pacing was a little disorganized.' },
+      { id: 'tf2', hanzi: '他没有只说“今天不好”，而是先说明自己观察到的具体情况。', pinyin: 'Tā méiyǒu zhǐ shuō “jīntiān bù hǎo”, érshì xiān shuōmíng zìjǐ guānchá dào de jùtǐ qíngkuàng.', english: 'He does not just say “today was bad”; he first explains the specific situation he observed.' },
+      { id: 'tf3', hanzi: '两位教练一起讨论了指令、示范和每个环节的时间。', pinyin: 'Liǎng wèi jiàoliàn yìqǐ tǎolùn le zhǐlìng, shìfàn hé měi ge huánjié de shíjiān.', english: 'The two coaches discuss instructions, demonstrations, and the timing of each section.' },
+      { id: 'tf4', hanzi: '最后他们只选择一个重点，准备在下一节课中测试。', pinyin: 'Zuìhòu tāmen zhǐ xuǎnzé yí ge zhòngdiǎn, zhǔnbèi zài xià yì jié kè zhōng cèshì.', english: 'Finally, they choose just one priority to test in the next class.' },
+    ], question: 'Why is Kent’s feedback useful?', answers: ['It focuses on specific observations', 'It includes many complaints', 'It avoids discussing the class'], correctAnswer: 0,
+  },
+  {
+    id: 'race-recovery', title: 'The day after the race', chineseTitle: '比赛后的第二天', level: 'HSK 3→4', minutes: 7,
+    description: 'An athlete chooses recovery based on how the body responds.', tags: ['hyrox', 'recovery', 'decision making'],
+    lines: [
+      { id: 'rr1', hanzi: '比赛后的第二天，安娜全身很累，但是还是想完成原来的训练。', pinyin: 'Bǐsài hòu de dì-èr tiān, Ānnà quánshēn hěn lèi, dànshì háishi xiǎng wánchéng yuánlái de xùnliàn.', english: 'The day after the race, Anna is tired all over but still wants to complete the original workout.' },
+      { id: 'rr2', hanzi: '马里奥请她先走十分钟，然后评价双腿的感觉。', pinyin: 'Mǎlǐ’ào qǐng tā xiān zǒu shí fēnzhōng, ránhòu píngjià shuāngtuǐ de gǎnjué.', english: 'Mario asks her to walk for ten minutes, then assess how her legs feel.' },
+      { id: 'rr3', hanzi: '走完以后，身体舒服了一点，但疲劳还是很明显。', pinyin: 'Zǒuwán yǐhòu, shēntǐ shūfu le yìdiǎn, dàn píláo háishi hěn míngxiǎn.', english: 'After walking, her body feels a little better, but the fatigue is still obvious.' },
+      { id: 'rr4', hanzi: '他们决定把高强度训练改成轻松活动和早点睡觉。', pinyin: 'Tāmen juédìng bǎ gāo qiángdù xùnliàn gǎi chéng qīngsōng huódòng hé zǎodiǎn shuìjiào.', english: 'They decide to replace high-intensity training with easy activity and an early bedtime.' },
+    ], question: 'What replaces the high-intensity workout?', answers: ['Another race', 'Easy activity and more sleep', 'Heavy squats'], correctAnswer: 1,
+  },
 ]

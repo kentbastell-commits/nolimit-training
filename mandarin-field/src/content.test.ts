@@ -9,7 +9,7 @@ function expectUniqueIds(items: Array<{ id: string }>) {
 describe('HSK 3–4 train pack', () => {
   it('contains enough authored material to earn both Level 3 and Level 4', () => {
     expect(lessons).toHaveLength(24)
-    expect(stories).toHaveLength(15)
+    expect(stories).toHaveLength(21)
     expect(scenarios).toHaveLength(15)
     expect(characterFamilies).toHaveLength(16)
     expect(reviewCards).toHaveLength(96)
