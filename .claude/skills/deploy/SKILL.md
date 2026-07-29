@@ -44,6 +44,10 @@ retry short commands that die with "Connection closed".
    catches a broken money path or a leaked athlete read before a client does.
    Use `--maxWorkers=1` — higher values give phantom whole-suite failures
    (named mistake #15). Never deploy past a red gate.
+4. A standalone subtree deployed outside its parent repo must also pass `npm ci`
+   and its production build after extraction on the target. Parent `node_modules`
+   hoisting can hide missing direct dependencies locally. Apply Nginx patches
+   from the config directory with relative filenames; GNU patch rejects absolute paths.
 
 ## Steps — nolimit (Shanghai)
 

@@ -2,6 +2,8 @@
 
 A standalone personal Mandarin fluency app built for Kent's real work and life. The current baseline is HSK 3, with the main curriculum targeting the HSK 3→4 bridge and real client communication. It does not modify or share runtime code with NX Limit.
 
+Live personal installation: <https://trainnolimit.com/mandarin/>
+
 ## Run it
 
 ```powershell
