@@ -1,0 +1,11 @@
+--- /etc/nginx/conf.d/nolimit-training.conf
++++ /etc/nginx/conf.d/nolimit-training.conf
+@@ -25,6 +25,8 @@
+         proxy_send_timeout 600s;
+     }
+ 
++    include /opt/mandarin-field/deploy/trainnolimit.com.mandarin-location.conf;
++
+     location / {
+         client_max_body_size 100m;
+         proxy_pass https://trainnolimit.cn;
