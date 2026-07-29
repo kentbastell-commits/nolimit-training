@@ -12,7 +12,9 @@ import {
   ChevronRight,
   Copy,
   Dumbbell,
+  Eye,
   Layers,
+  Pencil,
   Plus,
   PlusCircle,
   RefreshCw,
@@ -47,6 +49,7 @@ export default function CoachProgramsLanding(props: { [key: string]: any }) {
     showProgramDetail,
     selectedSavedProgram,
     loadSavedProgramIntoBuilder,
+    openProgramPreview,
     duplicateSavedProgram,
     duplicatingProgramId,
     deleteSavedProgram,
@@ -189,6 +192,22 @@ export default function CoachProgramsLanding(props: { [key: string]: any }) {
           </div>
         </div>
         <div className="cplRowActions" onClick={(e) => e.stopPropagation()}>
+          <button
+            type="button"
+            className="cplIconBtn"
+            title="Preview"
+            onClick={() => openProgramPreview(p)}
+          >
+            <Eye size={15} />
+          </button>
+          <button
+            type="button"
+            className="cplIconBtn"
+            title="Edit"
+            onClick={() => loadSavedProgramIntoBuilder(p, { edit: true })}
+          >
+            <Pencil size={15} />
+          </button>
           <button
             type="button"
             className="cplIconBtn"
@@ -589,6 +608,13 @@ export default function CoachProgramsLanding(props: { [key: string]: any }) {
                     </div>
 
                     <div className="cplSlideActions">
+                      <button
+                        type="button"
+                        className="cplBtnGhost cplBtnHalf"
+                        onClick={() => openProgramPreview(d)}
+                      >
+                        <Eye size={15} /> Preview
+                      </button>
                       <button
                         type="button"
                         className="cplBtnGhost cplBtnHalf"

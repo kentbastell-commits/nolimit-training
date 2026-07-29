@@ -4471,10 +4471,27 @@ function App({ onReady }: { onReady?: () => void } = {}) {
         return !program.builtForClient && !program.builtForTeam;
       }
       if (f.startsWith("type:")) {
-        return (
-          (program.productType || "Internal Coaching Template") ===
-          f.slice(5)
-        );
+        const want = f.slice(5);
+        const listingType = (program.storeListingType || "").toLowerCase();
+        // storeListingType, not productType, is the source of truth for how a
+        // digital product is actually listed — a bundle/add-on keeps
+        // productType "Digital Program" and is only flagged via
+        // storeListingType. Without this, the Add-ons/Bundles tabs matched
+        // nothing (0 rows) while Programs wrongly included them too.
+        if (want === "Digital Add-on") {
+          return listingType === "add-on" || program.productType === "Digital Add-on";
+        }
+        if (want === "Digital Bundle") {
+          return listingType === "bundle" || program.productType === "Digital Bundle";
+        }
+        if (want === "Digital Program") {
+          return (
+            (program.productType || "Internal Coaching Template") === want &&
+            listingType !== "add-on" &&
+            listingType !== "bundle"
+          );
+        }
+        return (program.productType || "Internal Coaching Template") === want;
       }
       if (f.startsWith("team:")) return program.builtForTeam === f.slice(5);
       if (f.startsWith("client:")) {

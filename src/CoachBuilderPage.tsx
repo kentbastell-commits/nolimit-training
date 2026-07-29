@@ -173,6 +173,7 @@ export default function CoachBuilderPage({
   openMobileAlternate,
   openMobileLibPick,
   openMobilePicker,
+  openProgramPreview,
   pendingSectionName,
   programAccessLengthDays,
   programBuiltForClient,
@@ -986,6 +987,7 @@ export default function CoachBuilderPage({
                         showProgramDetail={showProgramDetail && detailIsAux}
                         selectedSavedProgram={selectedSavedProgram}
                         loadSavedProgramIntoBuilder={loadSavedProgramIntoBuilder}
+                        openProgramPreview={openProgramPreview}
                         duplicateSavedProgram={duplicateSavedProgram}
                         duplicatingProgramId={duplicatingProgramId}
                         deleteSavedProgram={deleteSavedProgram}
