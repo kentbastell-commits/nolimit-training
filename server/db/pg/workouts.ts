@@ -179,7 +179,12 @@ export async function updateAssignedWorkoutDate(
 function toLarkDate(value?: string) {
   if (!value) return Date.now();
   if (/^\d+$/.test(value)) return Number(value);
-  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return dayStartMs(value);
+  // Take just the date part so a full ISO timestamp (e.g. from
+  // `new Date().toISOString()`) still resolves via dayStartMs (China-local
+  // midnight) instead of falling through to UTC-midnight math below —
+  // named mistake #46, the two-convention date column.
+  const dateOnly = String(value).slice(0, 10);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateOnly)) return dayStartMs(dateOnly);
   return new Date(value).getTime();
 }
 
