@@ -1,5 +1,5 @@
---- /etc/nginx/conf.d/nolimit-training.conf
-+++ /etc/nginx/conf.d/nolimit-training.conf
+--- nolimit-training.conf
++++ nolimit-training.conf
 @@ -25,6 +25,8 @@
          proxy_send_timeout 600s;
      }
