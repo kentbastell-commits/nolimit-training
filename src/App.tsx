@@ -6808,7 +6808,11 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     try {
       const [detailsResponse, historyResponse] = await Promise.all([
         fetch(
-          `/api/workoutDetails?programId=${workout.programId}&week=${workout.week}&day=${workout.day}`
+          `/api/workoutDetails?programId=${workout.programId}&week=${workout.week}&day=${
+            workout.day
+          }&clientCode=${encodeURIComponent(
+            selectedClient?.clientCode || selectedClient?.id || ""
+          )}`
         ),
         fetch(
           `/api/workoutHistory?clientId=${

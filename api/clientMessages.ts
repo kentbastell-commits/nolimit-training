@@ -6,6 +6,7 @@ import {
 } from "../server/db/repositories/clientMessages.ts";
 import { ConfigError } from "../server/db/errors.ts";
 import { notifyCoach } from "./_notify.ts";
+import { coachKeyOk } from "./_coachAuth.ts";
 
 // The athlete's "写给教练" loop — mail, not chat. POST without a messageId
 // creates a new message from the athlete; POST with one records the coach's
@@ -13,8 +14,14 @@ import { notifyCoach } from "./_notify.ts";
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     if (req.method === "GET") {
+      const clientId = String(req.query.clientId || "");
+      // No clientId = every client's correspondence with their coach.
+      // Coach-only, same rule as clients.ts (named mistake #49).
+      if (!clientId && !coachKeyOk(req as never)) {
+        return res.status(401).json({ error: "Coach access key required" });
+      }
       const messages = await listClientMessages({
-        clientId: String(req.query.clientId || ""),
+        clientId,
         status: String(req.query.status || ""),
       });
       return res.status(200).json({ messages });

@@ -4,14 +4,23 @@ import {
   createReview,
   updateReview,
 } from "../server/db/repositories/reviews.ts";
+import { coachKeyOk } from "./_coachAuth.ts";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     if (req.method === "GET") {
+      const storeOnly = String(req.query.storeOnly || "") === "1";
+      const clientId = String(req.query.clientId || "");
+      // storeOnly (public store) and clientId (a client's own reviews) stay
+      // open; the fully-unscoped moderation view — every review including
+      // unapproved — is coach-only.
+      if (!storeOnly && !clientId && !coachKeyOk(req as never)) {
+        return res.status(401).json({ error: "Coach access key required" });
+      }
       const reviews = await listReviews({
         programId: String(req.query.programId || ""),
-        clientId: String(req.query.clientId || ""),
-        storeOnly: String(req.query.storeOnly || "") === "1",
+        clientId,
+        storeOnly,
       });
       return res.status(200).json({ reviews });
     }
@@ -24,6 +33,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Coach update (approve / toggle store visibility) on an existing review.
     if (recordId) {
+      if (!coachKeyOk(req as never)) {
+        return res.status(401).json({ error: "Coach access key required" });
+      }
       const result = await updateReview(req.body);
       if (!result.success && result.error === "No fields to update") {
         return res.status(400).json({ error: "No fields to update" });

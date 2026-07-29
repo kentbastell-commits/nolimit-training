@@ -83,6 +83,13 @@ export async function bindClientOpenid(
   return result;
 }
 
+export async function clientHasProgramAccess(
+  clientCode: string,
+  programId: string
+): Promise<boolean> {
+  return await pg.clientHasProgramAccess(clientCode, programId);
+}
+
 export async function updateClient(input: UpdateClientInput): Promise<WriteResult> {
   const result =
     await pg.updateClient(input);

@@ -100,6 +100,47 @@ export async function submitContentResponse(
   const clientCode = String(clientId);
   const assignmentCode = String(assignmentId || assignmentRecordId || "");
 
+  // Ownership check: without this, anyone who knows or guesses another
+  // client's assignment id could POST with their own clientId and forge
+  // that client's answers, or mark their intake/test complete. A missing
+  // assignment still soft-fails through below (matches the existing "an
+  // athlete's submit can never bounce" semantics) — only an assignment that
+  // EXISTS and belongs to someone else is rejected.
+  const assignmentLookupId = String(assignmentRecordId || assignmentId || "");
+  if (assignmentLookupId) {
+    const assignment = isTest
+      ? (
+          await db
+            .select({
+              clientCode: assignedTests.clientCode,
+              clientId: assignedTests.clientId,
+            })
+            .from(assignedTests)
+            .where(eq(assignedTests.assignedTestId, assignmentLookupId))
+            .limit(1)
+        )[0]
+      : (
+          await db
+            .select({
+              clientCode: assignedForms.clientCode,
+              clientId: assignedForms.clientId,
+            })
+            .from(assignedForms)
+            .where(eq(assignedForms.assignedFormId, assignmentLookupId))
+            .limit(1)
+        )[0];
+    if (
+      assignment &&
+      assignment.clientCode !== clientCode &&
+      assignment.clientId !== clientCode
+    ) {
+      return {
+        status: 403,
+        body: { error: "This assignment does not belong to that client" },
+      };
+    }
+  }
+
   const clientFk = (await exists(
     db.select({ id: clients.clientId }).from(clients).where(eq(clients.clientId, clientCode))
   ))

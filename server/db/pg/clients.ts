@@ -1,6 +1,6 @@
 import { and, eq, or, isNull } from "drizzle-orm";
 import { db } from "../client.ts";
-import { clients } from "../schema.ts";
+import { clients, assignedWorkouts } from "../schema.ts";
 import { fillTranslation } from "../translate.ts";
 import { epochToDate, pgErrorMessage, str } from "./_util.ts";
 import type { ClientDTO, UpdateClientInput, WriteResult } from "../dto.ts";
@@ -315,6 +315,26 @@ export async function bindClientOpenid(
   clientCode: string,
   openid: string
 ): Promise<WriteResult> {
+  // Refuse to silently rebind: without this, anyone who learns a victim's
+  // exact phone + any substring of their name (the match findClientByOpenid's
+  // caller re-verifies) could call this with THEIR OWN WeChat openid and
+  // hijack the victim's future one-tap logins — the binding is persistent,
+  // so it's an account takeover, not just a one-off read. A first-time bind
+  // (no existing openid) or a re-bind of the SAME openid still proceeds;
+  // anything that would overwrite a different existing binding requires a
+  // coach to clear it first.
+  const [existing] = await db
+    .select({ wechatOpenid: clients.wechatOpenid })
+    .from(clients)
+    .where(eq(clients.clientId, String(clientCode)))
+    .limit(1);
+  if (!existing) return { success: false, error: "Client not found" };
+  if (existing.wechatOpenid && existing.wechatOpenid !== String(openid)) {
+    return {
+      success: false,
+      error: "This client is already linked to a different WeChat account",
+    };
+  }
   const r = await db
     .update(clients)
     .set({ wechatOpenid: String(openid) })
@@ -323,4 +343,44 @@ export async function bindClientOpenid(
   return r.length
     ? { success: true, recordId: clientCode }
     : { success: false, error: "Client not found" };
+}
+
+// Entitlement check for program content (programTemplates/workoutDetails):
+// true if this client legitimately has this program — either it's their
+// current/purchased program, or a coach has assigned at least one session
+// from it. There's no session/auth layer binding a request to a specific
+// athlete (client code IS the portal's bearer credential, same as
+// everywhere else in this app), so this can't verify WHO is asking — only
+// that the programId is legitimately in play for the claimed clientCode,
+// closing the "zero identity claimed at all" version of the bug.
+export async function clientHasProgramAccess(
+  clientCode: string,
+  programId: string
+): Promise<boolean> {
+  if (!clientCode || !programId) return false;
+  const [client] = await db
+    .select({
+      programId: clients.programId,
+      purchasedProgramId: clients.purchasedProgramId,
+    })
+    .from(clients)
+    .where(eq(clients.clientId, String(clientCode)))
+    .limit(1);
+  if (
+    client &&
+    (client.programId === programId || client.purchasedProgramId === programId)
+  ) {
+    return true;
+  }
+  const [assigned] = await db
+    .select({ assignedWorkoutId: assignedWorkouts.assignedWorkoutId })
+    .from(assignedWorkouts)
+    .where(
+      and(
+        eq(assignedWorkouts.clientId, String(clientCode)),
+        eq(assignedWorkouts.programId, String(programId))
+      )
+    )
+    .limit(1);
+  return Boolean(assigned);
 }

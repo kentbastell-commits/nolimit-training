@@ -97,13 +97,15 @@ export async function saveWorkoutLog(
         .from(clients)
         .where(eq(clients.clientId, code))
     ).length > 0;
-  const workoutExists =
-    (
-      await db
-        .select({ id: assignedWorkouts.assignedWorkoutId })
-        .from(assignedWorkouts)
-        .where(eq(assignedWorkouts.assignedWorkoutId, String(assignedWorkoutRecordId)))
-    ).length > 0;
+  // Ownership, not just existence: without the clientId match, one client
+  // could submit logs against ANOTHER client's assignedWorkoutRecordId and
+  // flip that other athlete's workout to Completed / overwrite its notes.
+  const [assignedWorkoutRow] = await db
+    .select({ clientId: assignedWorkouts.clientId })
+    .from(assignedWorkouts)
+    .where(eq(assignedWorkouts.assignedWorkoutId, String(assignedWorkoutRecordId)))
+    .limit(1);
+  const workoutExists = Boolean(assignedWorkoutRow) && assignedWorkoutRow.clientId === code;
 
   // Stale-tab guard (cutover 2026-07-21): a browser tab opened pre-migration
   // still holds Feishu record ids ("rec..."). Under pg those match nothing —

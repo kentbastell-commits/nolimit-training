@@ -48,7 +48,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
       const bound = await bindClientOpenid(clientCode, openid);
       if (!bound.success) {
-        return res.status(500).json({ error: "Could not bind WeChat account" });
+        const errorMessage = String(bound.error || "Could not bind WeChat account");
+        const alreadyLinked = errorMessage.includes("already linked");
+        return res
+          .status(alreadyLinked ? 409 : 500)
+          .json({ error: errorMessage });
       }
       return res.status(200).json({ success: true, clientCode, bound: true });
     }

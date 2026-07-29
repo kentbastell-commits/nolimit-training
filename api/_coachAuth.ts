@@ -14,12 +14,26 @@ export function coachKeyOk(req: { headers: Record<string, unknown> }): boolean {
 // activateDigitalOrder, findMyPortal, inPersonEnquiry, recordLogin, workouts,
 // workoutDetails/History, saveWorkoutLog/WorkloadLog, submitContentResponse,
 // checkIns, exercises, programs, clients, updateClient (portal language
-// switch), contentAssignments/Responses, exerciseResults, athleteMetrics,
-// formTemplates, testTemplates, workoutComments, notifications, teams,
-// workloadLogs, reviews, subscriptions (portal profile), autoLoadProgram.
+// switch — field-allowlisted for non-coach callers, see updateClient.ts),
+// contentAssignments/Responses, exerciseResults, athleteMetrics,
+// formTemplates, testTemplates, workoutComments, notifications,
+// workloadLogs, reviews (storeOnly/clientId branches), autoLoadProgram.
 // Also excluded after tracing real usage: createClient (public 1:1 invite
-// funnel), coaches (public store "meet your coach"), programTemplates (public
-// store sample-week preview).
+// funnel), coaches (public store "meet your coach" — PII stripped for
+// non-coach callers, see coaches.ts), programTemplates/workoutDetails (the
+// athlete portal's own workout player — entitlement-checked per request
+// for non-coach callers, see those handlers).
+//
+// 2026-07-30 audit: `teams` and `subscriptions` were listed here as
+// deliberate exclusions, but tracing every call site (src/App.tsx) showed
+// BOTH are only ever fetched from coach-console code paths (`!isCoachView`
+// / `!isClientPortal` guards) — the portal never needed them. That stale
+// comment is exactly how they shipped unauthenticated for an unknown
+// period, leaking every athlete's client code (the portal's own bearer
+// credential) plus the coach's private roster notes via `teams`, and every
+// client's billing/payment data via `subscriptions`. Rule: before excluding
+// a handler here "because the portal needs it", grep every real call site —
+// don't trust a prior comment's claim without re-verifying it.
 export const COACH_ONLY_HANDLERS = new Set([
   "analytics",
   "assignContent",
@@ -35,6 +49,8 @@ export const COACH_ONLY_HANDLERS = new Set([
   "productOrders",
   "reviewWorkoutComment",
   "setWorkoutReviewed",
+  "subscriptions",
+  "teams",
   "updateAssignedProgramDate",
   "updateContentAssignmentDate",
   "updateProductOrder",

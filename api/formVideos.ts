@@ -14,8 +14,13 @@ import {
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     if (req.method === "GET") {
-      const videos = await listFormVideos();
       const clientId = String(req.query.clientId || "").trim().toLowerCase();
+      // No clientId = every client's videos, notes, and coach replies.
+      // Coach-only, same rule as clients.ts (named mistake #49).
+      if (!clientId && !coachKeyOk(req as never)) {
+        return res.status(401).json({ error: "Coach access key required" });
+      }
+      const videos = await listFormVideos();
       // Athlete clients request only their own queue. The unfiltered coach
       // review response remains unchanged for the authenticated coach app.
       const visible = clientId
