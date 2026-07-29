@@ -21,13 +21,19 @@ declare global {
   }
 }
 
-export function speakChinese(text: string, rate = 0.82) {
+export function getChineseVoices() {
+  if (!('speechSynthesis' in window)) return []
+  return window.speechSynthesis.getVoices().filter((candidate) => candidate.lang.toLowerCase().startsWith('zh'))
+}
+
+export function speakChinese(text: string, rate = 0.82, voiceIndex = 0) {
   if (!('speechSynthesis' in window)) return false
   window.speechSynthesis.cancel()
   const utterance = new SpeechSynthesisUtterance(text)
   utterance.lang = 'zh-CN'
   utterance.rate = rate
-  const voice = window.speechSynthesis.getVoices().find((candidate) => candidate.lang.toLowerCase().startsWith('zh'))
+  const voices = getChineseVoices()
+  const voice = voices[voiceIndex % Math.max(1, voices.length)]
   if (voice) utterance.voice = voice
   window.speechSynthesis.speak(utterance)
   return true

@@ -320,6 +320,51 @@ button:focus-visible, textarea:focus-visible { outline: 3px solid rgba(215, 92, 
 .tone-error, .tone-caveat { grid-column: 1 / -1; }
 .tone-error { color: var(--red); font-size: 10px; }
 .tone-caveat { display: block; margin-top: 12px; color: var(--muted); font-size: 9px; }
+.fluency-lab { margin: 0 0 18px; border: 1px solid var(--line); background: white; }
+.fluency-banner { width: 100%; display: grid; grid-template-columns: 48px 1fr auto; gap: 14px; align-items: center; padding: 15px 18px; border: 0; background: white; text-align: left; cursor: pointer; }
+.fluency-banner > span { width: 44px; height: 44px; display: grid; place-items: center; color: white; background: var(--jade); }
+.fluency-banner small, .fluency-banner b, .fluency-banner em { display: block; }
+.fluency-banner small { color: var(--jade); font: 600 9px 'Oswald'; letter-spacing: 1.2px; }
+.fluency-banner b { margin: 3px 0; font: 600 17px 'Noto Serif SC'; }
+.fluency-banner em { color: var(--muted); font-size: 10px; font-style: normal; }
+.fluency-lab.open .fluency-banner > svg { transform: rotate(90deg); }
+.fluency-body { display: grid; grid-template-columns: 250px 1fr; min-height: 430px; border-top: 1px solid var(--line); }
+.fluency-queue { max-height: 520px; overflow: auto; background: #ece7dc; }
+.fluency-queue > button { width: 100%; display: grid; grid-template-columns: 25px 1fr; gap: 8px; padding: 11px; border: 0; border-bottom: 1px solid var(--line); background: transparent; text-align: left; cursor: pointer; }
+.fluency-queue > button.active { background: white; box-shadow: inset 3px 0 var(--jade); }
+.fluency-queue > button > span { width: 23px; height: 23px; display: grid; place-items: center; color: white; background: var(--ink); font-size: 9px; }
+.fluency-queue b, .fluency-queue small { display: block; }
+.fluency-queue b { font-size: 10px; }
+.fluency-queue small { margin-top: 2px; color: var(--muted); font-size: 9px; }
+.fluency-work { padding: 25px; }
+.fluency-work > header { display: flex; justify-content: space-between; color: var(--jade); font: 600 9px 'Oswald'; letter-spacing: 1px; }
+.fluency-work > h3 { margin: 30px 0 16px; font: 600 24px 'Noto Serif SC'; }
+.listening-controls { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.listening-controls button { display: grid; place-items: center; gap: 3px; padding: 14px; border: 1px solid var(--line); background: white; cursor: pointer; }
+.listening-controls button svg { color: var(--red); }
+.listening-controls button small { color: var(--muted); }
+.fluency-work label { display: flex; justify-content: space-between; align-items: center; margin: 13px 0; color: var(--muted); font-size: 10px; }
+.fluency-work select { max-width: 210px; padding: 6px; border: 1px solid var(--line); }
+.fluency-work textarea { width: 100%; min-height: 82px; margin: 14px 0; padding: 12px; border: 1px solid var(--line); resize: vertical; }
+.fluency-transcript { margin: 25px 0 18px; padding: 22px; color: white; background: var(--ink); }
+.fluency-transcript > small { color: var(--gold); font: 600 9px 'Oswald'; }
+.fluency-transcript h3 { margin: 8px 0 2px; font: 600 31px 'Noto Serif SC'; }
+.fluency-transcript p { margin: 0; color: #e4d5ac; }
+.fluency-transcript > span { display: block; margin-top: 4px; color: #aaa69e; font-size: 10px; }
+.fluency-transcript > div { margin-top: 16px; padding-top: 12px; border-top: 1px solid #4e4a42; color: #ddd; font-size: 12px; }
+.fluency-transcript > div b { display: block; color: #8f8b83; font-size: 9px; }
+.shadow-prompt { position: relative; margin: 24px 0 12px; padding: 20px 115px 20px 20px; background: #ece7dc; }
+.shadow-prompt h3 { margin: 0; font: 600 28px 'Noto Serif SC'; }
+.shadow-prompt p { margin: 3px 0; color: var(--red); }
+.shadow-prompt button { position: absolute; right: 15px; top: 22px; display: flex; gap: 5px; border: 1px solid var(--line); padding: 8px; background: white; cursor: pointer; }
+.shadow-instruction { color: var(--muted); font-size: 11px; }
+.shadow-record { display: flex; align-items: center; gap: 7px; margin: 15px 0; padding: 11px 15px; border: 0; color: white; background: var(--red); cursor: pointer; }
+.shadow-record.recording { animation: pulse 1.2s infinite; }
+.shadow-result { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; margin: 13px 0; padding: 13px; color: var(--red); background: #f6e7e2; }
+.shadow-result.good { color: var(--jade); background: #e1ebe6; }
+.shadow-result b { grid-row: 1 / 3; font: 600 30px 'Bebas Neue'; }
+.shadow-result span { font-size: 11px; }
+.shadow-result small { color: var(--muted); font-size: 9px; }
 .speak-hero { padding: 38px; color: white; background: #303d3a; text-align: center; }
 .waveform { height: 55px; display: flex; align-items: center; justify-content: center; gap: 6px; margin-bottom: 15px; }
 .waveform i { display: block; width: 4px; height: 30%; background: #e8d4a1; animation: wave 1.8s ease-in-out infinite alternate; }
@@ -797,6 +842,13 @@ button:focus-visible, textarea:focus-visible { outline: 3px solid rgba(215, 92, 
   .tone-workbench { grid-template-columns: 1fr; }
   .tone-prompt { min-height: 180px; }
   .tone-action { grid-column: 1; flex-wrap: wrap; }
+  .fluency-banner { grid-template-columns: 42px 1fr auto; padding: 12px; }
+  .fluency-banner em { display: none; }
+  .fluency-body { grid-template-columns: 1fr; }
+  .fluency-queue { display: flex; max-height: none; overflow-x: auto; }
+  .fluency-queue > button { min-width: 210px; }
+  .shadow-prompt { padding: 18px; }
+  .shadow-prompt button { position: static; margin-top: 10px; }
   .transformation-answer { padding: 18px; }
   .transformation-answer .audio-button { position: static; margin-top: 12px; }
   .scenario-card { min-height: 215px; }

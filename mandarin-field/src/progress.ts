@@ -19,6 +19,7 @@ export const defaultProgress: ProgressState = {
   dailyGoal: 30,
   review: {},
   phraseMastery: {},
+  errorNotebook: {},
 }
 
 const todayKey = () => new Date().toISOString().slice(0, 10)
@@ -73,7 +74,15 @@ export function useProgress() {
         const delay = success ? (accuracy >= .8 && averageMs < 12000 ? 7 : 3) : 1
         const due = new Date()
         due.setDate(due.getDate() + delay)
-        return { ...current, phraseMastery: { ...current.phraseMastery, [id]: { attempts, successes, responseMs: averageMs, due: due.toISOString().slice(0, 10), lastResult: success ? 'good' : 'again' } } }
+        const errorNotebook = { ...current.errorNotebook }
+        if (success && errorNotebook[id]) errorNotebook[id] = { ...errorNotebook[id], resolved: true, lastSeen: new Date().toISOString() }
+        return { ...current, errorNotebook, phraseMastery: { ...current.phraseMastery, [id]: { attempts, successes, responseMs: averageMs, due: due.toISOString().slice(0, 10), lastResult: success ? 'good' : 'again' } } }
+      })
+    },
+    recordPhraseError(id: string, entry: { lessonId: string; phraseIndex: number; hanzi: string; pinyin: string; english: string; attempt: string }) {
+      setProgress((current) => {
+        const previous = current.errorNotebook[id]
+        return { ...current, errorNotebook: { ...current.errorNotebook, [id]: { ...entry, attempt: entry.attempt || 'Answered aloud', count: (previous?.count ?? 0) + 1, lastSeen: new Date().toISOString(), resolved: false } } }
       })
     },
     completeStory(id: string, minutes: number) {

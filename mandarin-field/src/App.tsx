@@ -9,7 +9,7 @@ import { getAiStatus, localTutorFeedback, requestTutorFeedback, type TutorFeedba
 import { fieldLevels, getFieldLevel, getLevelStatus, requirementLabels } from './leveling'
 import { dueCount, useProgress } from './progress'
 import { generateStory, glossLine, storyThemes } from './reader'
-import { speakChinese, useSpeechRecognition } from './speech'
+import { getChineseVoices, speakChinese, useSpeechRecognition } from './speech'
 import { createTransformation } from './transformations'
 import { contourScore, useToneRecorder } from './tone'
 import type { CharacterFamily, Lesson, Phrase, Scenario, Story, View } from './types'
@@ -211,7 +211,7 @@ function Course({ progress, openLesson }: { progress: ReturnType<typeof useProgr
   )
 }
 
-function LessonModal({ lesson, close, complete, recordPhrase }: { lesson: Lesson; close: () => void; complete: () => void; recordPhrase: (id: string, success: boolean, responseMs: number) => void }) {
+function LessonModal({ lesson, close, complete, recordPhrase, recordError }: { lesson: Lesson; close: () => void; complete: () => void; recordPhrase: (id: string, success: boolean, responseMs: number) => void; recordError: (id: string, entry: { lessonId: string; phraseIndex: number; hanzi: string; pinyin: string; english: string; attempt: string }) => void }) {
   const [index, setIndex] = useState(0)
   const [showPinyin, setShowPinyin] = useState(true)
   const [phase, setPhase] = useState<'learn' | 'recall' | 'compare'>('learn')
@@ -230,6 +230,7 @@ function LessonModal({ lesson, close, complete, recordPhrase }: { lesson: Lesson
   const tokens = glossLine(phrase.hanzi)
   const resetAttempt = (nextPhase: 'learn' | 'recall' = 'learn') => { setPhase(nextPhase); setAttempt(''); setAnsweredAloud(false); setRecallStarted(Date.now()) }
   const grade = (remembered: boolean) => {
+    if (!remembered) recordError(`${lesson.id}-${index}`, { lessonId: lesson.id, phraseIndex: index, hanzi: phrase.hanzi, pinyin: phrase.pinyin, english: phrase.english, attempt })
     recordPhrase(`${lesson.id}-${index}`, remembered, Math.max(500, Date.now() - recallStarted))
     if (repairing && !remembered) { resetAttempt('recall'); return }
     const nextQueue = !remembered && !repairing && !repairQueue.includes(index) ? [...repairQueue, index] : repairQueue
@@ -357,6 +358,7 @@ function SpeakView({ progress, actions }: { progress: ReturnType<typeof useProgr
     <div className="view">
       <header className="page-header"><div><p className="eyebrow">SPEAKING STUDIO</p><h1>Rehearse the real moment.</h1><p>Type or speak a reply. The AI tutor checks meaning, grammar, naturalness, and gives you a correction with pinyin.</p></div><span className={cx('speech-ready', aiStatus.available && 'ai-online')}><Sparkles /> {aiStatus.available ? 'AI FEEDBACK READY' : 'LOCAL FALLBACK READY'}</span></header>
       <ToneLab />
+      <FluencyLab errors={Object.values(progress.errorNotebook).filter((item) => !item.resolved)} />
       <section className="speak-hero"><div className="waveform"><i /><i /><i /><i /><i /><i /><i /><i /><i /></div><p>Today’s focus</p><h2>Ask. Listen. Adjust.</h2><span>Build the reflex to ask one clean question at a time.</span></section>
       <div className="section-heading compact-heading"><div><p className="eyebrow">{scenarios.length} REAL-WORLD SCENARIOS</p><h2>Choose the pressure you want to rehearse.</h2></div></div>
       <div className="content-filter" aria-label="Filter speaking scenarios">{(['All', 'Guided', 'Open'] as const).map((option) => <button className={scenarioFilter === option ? 'active' : ''} onClick={() => setScenarioFilter(option)} key={option}>{option}{option !== 'All' && <small>{scenarios.filter((item) => item.level === option).length}</small>}</button>)}</div>
@@ -388,6 +390,41 @@ function ToneLab() {
     return normalized.map((value, index) => `${index / Math.max(1, normalized.length - 1) * 300},${92 - value * 72}`).join(' ')
   }
   return <section className={cx('tone-lab', open && 'open')}><button className="tone-lab-banner" onClick={() => setOpen((value) => !value)}><span><AudioLines /></span><div><small>LOCAL PRONUNCIATION LAB · NO AI REQUIRED</small><b>See what your tones are doing.</b><em>Record your voice and compare its pitch movement with the target.</em></div><ChevronRight /></button>{open && <div className="tone-lab-body"><div className="tone-targets">{toneTargets.map((item, index) => <button className={selected === index ? 'active' : ''} onClick={() => setSelected(index)} key={item.hanzi}><b>{item.hanzi}</b><span>{item.pinyin}</span></button>)}</div><div className="tone-workbench"><div className="tone-prompt"><small>TARGET</small><b>{target.hanzi}</b><span>{target.pinyin} · {target.english}</span><AudioButton text={target.hanzi} label="Hear target" /></div><div className="pitch-chart"><svg viewBox="0 0 300 105" preserveAspectRatio="none"><line x1="0" x2="300" y1="92" y2="92" /><line x1="0" x2="300" y1="20" y2="20" /><polyline className="target-contour" points={points(target.contour)} />{contour.length > 0 && <polyline className="recorded-contour" points={points(contour, true)} />}</svg><div><span><i className="target" /> Target</span><span><i className="recorded" /> Your voice</span></div></div><div className="tone-action"><button className={cx('primary', recording && 'recording')} disabled={recording} onClick={() => void start()}>{recording ? <Pause /> : <Mic />} {recording ? 'Recording…' : contour.length ? 'Record again' : 'Record 3 seconds'}</button>{contour.length > 0 && <div className={cx('tone-score', score >= 70 && 'good')}><b>{score}</b><span>{score >= 80 ? 'Contour matched well' : score >= 60 ? 'Direction is close—try once more' : 'Exaggerate the pitch movement'}</span></div>}</div>{error && <p className="tone-error">{error}</p>}<small className="tone-caveat">Pitch score measures the direction and shape of your voice—not whether every sound is pronounced correctly. Use it as visual feedback, then trust intelligibility in conversation.</small></div></div>}</section>
+}
+
+function textSimilarity(answer: string, target: string) {
+  const clean = (value: string) => value.replace(/[\s，。？！、,.?!]/g, '')
+  const a = [...clean(answer)]
+  const b = [...clean(target)]
+  if (!a.length || !b.length) return 0
+  const matrix = Array.from({ length: a.length + 1 }, (_, row) => Array.from({ length: b.length + 1 }, (_, column) => row ? column ? 0 : row : column))
+  for (let row = 1; row <= a.length; row += 1) for (let column = 1; column <= b.length; column += 1) matrix[row][column] = Math.min(matrix[row - 1][column] + 1, matrix[row][column - 1] + 1, matrix[row - 1][column - 1] + (a[row - 1] === b[column - 1] ? 0 : 1))
+  return Math.max(0, Math.round((1 - matrix[a.length][b.length] / Math.max(a.length, b.length)) * 100))
+}
+
+function FluencyLab({ errors }: { errors: Array<{ hanzi: string; pinyin: string; english: string; count: number }> }) {
+  const [open, setOpen] = useState(false)
+  const [selected, setSelected] = useState(0)
+  const [stage, setStage] = useState<'listen' | 'reveal' | 'shadow'>('listen')
+  const [dictation, setDictation] = useState('')
+  const [voiceIndex, setVoiceIndex] = useState(0)
+  const [voices, setVoices] = useState(() => getChineseVoices())
+  const shadow = useSpeechRecognition()
+  const candidates = useMemo(() => {
+    const weak = errors.map((item, index) => ({ ...item, id: `error-${index}`, context: `Error notebook · seen ${item.count}×` }))
+    const fallback = reviewCards.slice(0, 10).map((item) => ({ ...item, count: 0 }))
+    return [...weak, ...fallback].filter((item, index, all) => all.findIndex((candidate) => candidate.hanzi === item.hanzi) === index).slice(0, 12)
+  }, [errors])
+  const phrase = candidates[selected] ?? reviewCards[0]
+  useEffect(() => {
+    const refresh = () => setVoices(getChineseVoices())
+    window.speechSynthesis?.addEventListener('voiceschanged', refresh)
+    return () => window.speechSynthesis?.removeEventListener('voiceschanged', refresh)
+  }, [])
+  const reset = (index = selected) => { setSelected(index); setStage('listen'); setDictation(''); shadow.clear() }
+  const dictationScore = stage !== 'listen' ? textSimilarity(dictation, phrase.hanzi) : 0
+  const shadowScore = textSimilarity(shadow.transcript, phrase.hanzi)
+  return <section className={cx('fluency-lab', open && 'open')}><button className="fluency-banner" onClick={() => setOpen((value) => !value)}><span><Headphones /></span><div><small>LISTENING LADDER · DICTATION + SHADOWING</small><b>Hear it, catch it, then match it.</b><em>{errors.length ? `${errors.length} notebook phrase${errors.length === 1 ? '' : 's'} prioritized` : 'Built from your lesson phrases'}</em></div><ChevronRight /></button>{open && <div className="fluency-body"><div className="fluency-queue">{candidates.map((item, index) => <button className={selected === index ? 'active' : ''} onClick={() => reset(index)} key={`${item.hanzi}-${index}`}><span>{index + 1}</span><div><b>{item.context}</b><small>{item.english}</small></div></button>)}</div><div className="fluency-work"><header><small>PASS {stage === 'listen' ? '1 · LISTEN BLIND' : stage === 'reveal' ? '2 · NOTICE THE GAP' : '3 · SHADOW THE MODEL'}</small><span>{selected + 1} / {candidates.length}</span></header>{stage === 'listen' && <><h3>Play without looking at the text.</h3><div className="listening-controls">{[[.72, 'Clear'], [.88, 'Natural'], [1.02, 'Fast']].map(([rate, label]) => <button onClick={() => speakChinese(phrase.hanzi, Number(rate), voiceIndex)} key={String(label)}><Play /> <b>{label}</b><small>{Number(rate).toFixed(2)}×</small></button>)}</div>{voices.length > 1 && <label>Voice variation<select value={voiceIndex} onChange={(event) => setVoiceIndex(Number(event.target.value))}>{voices.map((voice, index) => <option value={index} key={`${voice.name}-${index}`}>{voice.name}</option>)}</select></label>}<textarea value={dictation} onChange={(event) => setDictation(event.target.value)} placeholder="Type what you heard in characters…" /><button className="primary" disabled={!dictation.trim()} onClick={() => setStage('reveal')}>Reveal transcript <ArrowRight /></button></>}{stage === 'reveal' && <><div className="fluency-transcript"><small>TRANSCRIPT · {dictationScore}% CHARACTER MATCH</small><h3>{phrase.hanzi}</h3><p>{phrase.pinyin}</p><span>{phrase.english}</span><div><b>Your dictation</b>{dictation}</div></div><button className="primary" onClick={() => { setStage('shadow'); shadow.clear(); speakChinese(phrase.hanzi, .88, voiceIndex) }}>Start shadowing <Mic /></button></>}{stage === 'shadow' && <><div className="shadow-prompt"><h3>{phrase.hanzi}</h3><p>{phrase.pinyin}</p><button onClick={() => speakChinese(phrase.hanzi, .88, voiceIndex)}><Volume2 /> Play model</button></div><p className="shadow-instruction">Listen once, then repeat immediately with the same rhythm and tone movement.</p>{shadow.supported ? <button className={cx('shadow-record', shadow.listening && 'recording')} onClick={shadow.listening ? shadow.stop : shadow.start}>{shadow.listening ? <Pause /> : <Mic />} {shadow.listening ? 'Listening…' : shadow.transcript ? 'Try again' : 'Shadow now'}</button> : <textarea value={shadow.transcript} onChange={(event) => shadow.setTranscript(event.target.value)} placeholder="Speech recognition unavailable—type what you said." />}{shadow.transcript && <div className={cx('shadow-result', shadowScore >= 75 && 'good')}><b>{shadowScore}%</b><span>Speech recognition heard: {shadow.transcript}</span><small>This checks intelligible words; use the Tone Lab for pitch shape.</small></div>}<button className="secondary" onClick={() => reset((selected + 1) % candidates.length)}>Next phrase <ArrowRight /></button></>}</div></div>}</section>
 }
 
 function StoriesView({ progress, availableStories, openStory, openGenerator }: { progress: ReturnType<typeof useProgress>['progress']; availableStories: Story[]; openStory: (story: Story) => void; openGenerator: () => void }) {
@@ -524,7 +561,7 @@ function App() {
       <div className="mobile-header"><button onClick={() => setMobileMenu(true)}><Menu /></button><div className="brand-lockup compact"><LogoMark /><strong>MANDARIN FIELD</strong></div><span>{progress.streak || 1}<Flame /></span></div>
       <main className="app-main">{renderView()}</main>
       <nav className="mobile-nav">{navigation.slice(0, 5).map((item) => { const Icon = item.icon; return <button className={view === item.id ? 'active' : ''} onClick={() => setView(item.id)} key={item.id}><Icon /><span>{item.label}</span></button> })}</nav>
-      {lesson && <LessonModal lesson={lesson} close={() => setLesson(null)} complete={() => actions.completeLesson(lesson.id, lesson.duration)} recordPhrase={actions.recordPhraseOutcome} />}
+      {lesson && <LessonModal lesson={lesson} close={() => setLesson(null)} complete={() => actions.completeLesson(lesson.id, lesson.duration)} recordPhrase={actions.recordPhraseOutcome} recordError={actions.recordPhraseError} />}
       {story && <StoryModal story={story} close={() => setStory(null)} complete={() => actions.completeStory(story.id, story.minutes)} />}
       {storyGenerator && <StoryGenerator close={() => setStoryGenerator(false)} create={(theme, level) => { const next = generateStory(theme, level); setGeneratedStories((current) => [next, ...current]); setStoryGenerator(false); setStory(next) }} />}
       {levelCheck && <LevelCheck level={progress.level} close={() => setLevelCheck(false)} record={(score) => actions.recordLevelCheck(progress.level, score)} />}

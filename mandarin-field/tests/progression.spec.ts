@@ -15,6 +15,8 @@ const baseProgress = {
   levelChecks: {},
   dailyGoal: 30,
   review: {},
+  phraseMastery: {},
+  errorNotebook: {},
 }
 
 async function seed(page: Page, progress = baseProgress) {
@@ -229,6 +231,20 @@ test('role-play exposes pinyin support and accepts a prepared pinyin answer', as
   await expect(page.locator('.tutor-feedback.understandable')).toBeVisible()
   await page.getByRole('button', { name: /Pinyin ON/ }).click()
   await expect(page.locator('.message-pinyin')).toHaveCount(0)
+})
+
+test('fluency lab moves from blind listening through dictation into shadowing', async ({ page }) => {
+  await seed(page)
+  await openSection(page, 2, 'Speak')
+  await page.locator('.fluency-banner').click()
+  await expect(page.getByText('Play without looking at the text.')).toBeVisible()
+  await expect(page.locator('.listening-controls button')).toHaveCount(3)
+  await page.locator('.fluency-work textarea').fill('听写练习')
+  await page.getByRole('button', { name: /Reveal transcript/ }).click()
+  await expect(page.locator('.fluency-transcript')).toContainText('CHARACTER MATCH')
+  await page.getByRole('button', { name: /Start shadowing/ }).click()
+  await expect(page.getByText(/same rhythm and tone movement/)).toBeVisible()
+  await expect(page.getByRole('button', { name: /Next phrase/ })).toBeVisible()
 })
 
 test('AI feedback explains a correction and requires a retry before advancing', async ({ page }) => {
