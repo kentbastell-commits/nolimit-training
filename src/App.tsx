@@ -9290,6 +9290,26 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       [field]: field === "order" ? Number(value) : value,
     };
 
+    // Moving out of the "Circuit" section: exercises added there auto-link
+    // into a circuit group (see buildProgramExerciseFromLibrary), and the
+    // Rounds/AMRAP/EMOM panel renders off groupType alone. Changing the
+    // section elsewhere left groupType stuck on "Circuit" — the panel had
+    // no way to know the exercise left — so it kept showing for a section
+    // that was no longer Circuit at all.
+    if (
+      field === "sectionName" &&
+      nextExercise.groupType === "Circuit" &&
+      !/^circuit$/i.test(String(value))
+    ) {
+      nextExercise = {
+        ...nextExercise,
+        groupType: "Straight",
+        groupName: "",
+        groupMode: "",
+        groupMinutes: "",
+      };
+    }
+
     // The compact exercise editor's quick fields mean "apply to every set".
     // Previously normalizeExerciseSetPrescriptions preferred the existing
     // per-set value and immediately overwrote a newly typed reps/load/tempo/
