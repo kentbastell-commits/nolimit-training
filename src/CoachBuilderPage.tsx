@@ -2705,16 +2705,6 @@ export default function CoachBuilderPage({
 
                 </div>
 
-                <label className="builderSessionNotesField">
-                  <span>Session Notes</span>
-                  <textarea
-                    value={sessionNotes}
-                    onChange={(e) => setSessionNotes(e.target.value)}
-                    placeholder="Coach notes for this session, intensity cues, warm-up instructions..."
-                    rows={3}
-                  />
-                </label>
-
                 <div className="builderInsertSavedRow">
                   <span>Insert saved session</span>
                   <select
@@ -3410,6 +3400,18 @@ export default function CoachBuilderPage({
                   </div>
                 )}
 
+                {selectedProgramExercises.length > 0 && (
+                  <label className="builderSessionNotesField builderSessionNotesFieldInline">
+                    <span>Session Notes</span>
+                    <textarea
+                      value={sessionNotes}
+                      onChange={(e) => setSessionNotes(e.target.value)}
+                      placeholder="Coach notes for this session, intensity cues, warm-up instructions..."
+                      rows={2}
+                    />
+                  </label>
+                )}
+
                 {selectedProgramExercises.map((exercise: any, index: any) => {
                   const currentSection = normalizeBuilderSection(exercise.sectionName);
                   const previousSection = normalizeBuilderSection(
@@ -3531,15 +3533,8 @@ export default function CoachBuilderPage({
                         {renderAlternateExerciseEditor(exercise, index)}
 
                         {editExerciseIndex === index && (
-                          <div
-                            className="builderEditModalOverlay"
-                            onClick={() => setEditExerciseIndex(null)}
-                          >
-                            <div
-                              className="builderEditModal"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <div className="builderEditModalHead">
+                          <div className="builderEditModalInline">
+                            <div className="builderEditModalHead">
                                 <div className="builderEditModalTitle">
                                   <span className="exerciseSectionName">
                                     {exercise.sectionName || "Main"}
@@ -3835,8 +3830,7 @@ export default function CoachBuilderPage({
                                 </button>
                               </div>
                             </div>
-                          </div>
-                        )}
+                          )}
                       </div>
                     </Fragment>
                   );

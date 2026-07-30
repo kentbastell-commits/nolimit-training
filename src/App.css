@@ -1043,6 +1043,18 @@
   resize: vertical;
 }
 
+/* Kept visible in the main builder canvas (not just the collapsible Session
+   Settings panel above it) so a coach never has to leave the exercise list
+   to jot a note. */
+.builderSessionNotesFieldInline {
+  margin: 0 0 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e7e2d6;
+}
+.builderSessionNotesFieldInline textarea {
+  min-height: 52px;
+}
+
 @media (max-width: 820px) {
   .builderWorkspaceCanvas {
     grid-template-columns: 1fr;
