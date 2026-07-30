@@ -17,4 +17,10 @@ describe('graded reader support', () => {
       expect(generateStory(theme.id, 'HSK 3→4').level).toBe('HSK 3→4')
     }
   })
+
+  it('keeps coaching vocabulary together as words instead of character fallbacks', () => {
+    const tokens = glossLine('这种疲劳是全身的，还是某个部位的？').filter((token) => !token.punctuation)
+    expect(tokens.map((token) => token.text)).toEqual(expect.arrayContaining(['疲劳', '全身', '某个', '部位']))
+    expect(tokens.every((token) => token.pinyin && token.meaning)).toBe(true)
+  })
 })

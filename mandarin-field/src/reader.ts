@@ -1,8 +1,9 @@
 import type { Story } from './types'
+import { OutputFormat, pinyin, segment } from 'pinyin-pro'
 
 export type GlossToken = { text: string; pinyin: string; meaning: string; punctuation?: boolean; fallback?: boolean }
 
-const entries: Array<[string, string, string]> = [
+export const dictionaryEntries: Array<[string, string, string]> = [
   ['二十四小时', 'èrshísì xiǎoshí', 'twenty-four hours'], ['高强度', 'gāo qiángdù', 'high intensity'],
   ['身体感觉', 'shēntǐ gǎnjué', 'how the body feels'], ['力量训练', 'lìliàng xùnliàn', 'strength training'],
   ['活动度', 'huódòngdù', 'mobility / range of motion'], ['训练质量', 'xùnliàn zhìliàng', 'training quality'],
@@ -62,9 +63,18 @@ const entries: Array<[string, string, string]> = [
   ['把', 'bǎ', 'disposal construction marker'], ['比', 'bǐ', 'compared with'], ['后', 'hòu', 'after'],
   ['前', 'qián', 'before'], ['和', 'hé', 'and'], ['也要', 'yě yào', 'also need to'], ['可以', 'kěyǐ', 'can / may'],
   ['我', 'wǒ', 'I / me'], ['你', 'nǐ', 'you'], ['他', 'tā', 'he / him'], ['我们', 'wǒmen', 'we / us'],
+  ['睡眠', 'shuìmián', 'sleep'], ['影响', 'yǐngxiǎng', 'affect / influence'], ['疲劳', 'píláo', 'fatigue'],
+  ['全身', 'quánshēn', 'the whole body'], ['某个', 'mǒu ge', 'a certain / a particular'], ['部位', 'bùwèi', 'body part / area'],
+  ['十分', 'shí fēn', 'ten points / very'], ['打分', 'dǎfēn', 'give a score'], ['分数', 'fēnshù', 'score'],
+  ['强度', 'qiángdù', 'intensity'], ['降低', 'jiàngdī', 'lower / reduce'], ['增加', 'zēngjiā', 'increase'],
+  ['控制', 'kòngzhì', 'control'], ['吸气', 'xīqì', 'inhale'], ['呼气', 'hūqì', 'exhale'], ['放松', 'fàngsōng', 'relax'],
+  ['膝盖', 'xīgài', 'knee'], ['脚尖', 'jiǎojiān', 'toes'], ['背部', 'bèibù', 'back'], ['腰部', 'yāobù', 'lower back / waist'],
+  ['疼痛感', 'téngtòng gǎn', 'sensation of pain'], ['不舒服', 'bù shūfu', 'uncomfortable'], ['范围', 'fànwéi', 'range / scope'],
+  ['动作质量', 'dòngzuò zhìliàng', 'movement quality'], ['训练计划', 'xùnliàn jìhuà', 'training plan'],
+  ['热身时', 'rèshēn shí', 'during the warm-up'], ['准备好', 'zhǔnbèi hǎo', 'be ready'], ['继续', 'jìxù', 'continue'],
 ]
 
-const lexicon = new Map(entries.map(([text, pinyin, meaning]) => [text, { text, pinyin, meaning }]))
+const lexicon = new Map(dictionaryEntries.map(([text, pinyin, meaning]) => [text, { text, pinyin, meaning }]))
 const orderedTerms = [...lexicon.keys()].sort((a, b) => b.length - a.length)
 const punctuation = new Set('，。？！：“”、；…（）'.split(''))
 
@@ -83,8 +93,10 @@ export function glossLine(line: string): GlossToken[] {
       tokens.push(lexicon.get(match)!)
       cursor += match.length
     } else {
-      tokens.push({ text: char, pinyin: 'full line', meaning: 'Use the complete pinyin and translation shown below this line', fallback: true })
-      cursor += 1
+      const remaining = line.slice(cursor).split(/[，。？！：“”、；…（）\s]/)[0]
+      const word = segment(remaining, { format: OutputFormat.ZhSegment })[0] || char
+      tokens.push({ text: word, pinyin: pinyin(word, { toneType: 'symbol' }), meaning: 'Tap to explore this word in the dictionary' })
+      cursor += word.length
     }
   }
   return tokens

@@ -126,6 +126,21 @@ test('lesson combines vocabulary glosses, retrieval, and an adaptive repair roun
   expect(Object.keys(saved.phraseMastery).length).toBeGreaterThanOrEqual(5)
 })
 
+test('lesson words open a linked word and character dictionary', async ({ page }) => {
+  await seed(page)
+  await openSection(page, 1, 'Course')
+  await page.locator('.lesson-row').first().click()
+  await page.locator('.lesson-gloss-line > button').first().click()
+  await expect(page.locator('.dictionary-modal')).toBeVisible()
+  await expect(page.getByText('HOW THE WORD IS BUILT')).toBeVisible()
+  await expect(page.locator('.dictionary-examples article').first()).toBeVisible()
+  await page.locator('.word-build button').first().click()
+  await expect(page.getByText(/WORDS CONTAINING/)).toBeVisible()
+  await expect(page.locator('.character-word-network button').first()).toBeVisible()
+  await page.locator('.character-word-network button').first().click()
+  await expect(page.getByText('HOW THE WORD IS BUILT')).toBeVisible()
+})
+
 test('tone lab exposes local contour targets without requiring AI', async ({ page }) => {
   await seed(page)
   await openSection(page, 2, 'Speak')
@@ -184,6 +199,8 @@ test('generated story keeps pinyin and definitions available', async ({ page }) 
   await expect(page.locator('.gloss-word rt')).toHaveCount(wordCount)
   await page.locator('.gloss-word').first().focus()
   await expect(page.locator('.gloss-word > i').first()).toBeVisible()
+  await page.locator('.gloss-word').first().click()
+  await expect(page.locator('.dictionary-modal')).toBeVisible()
 })
 
 test('character family explains the pattern and teaches every member in context', async ({ page }) => {

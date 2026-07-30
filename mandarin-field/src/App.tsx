@@ -8,7 +8,7 @@ import { characterFamilies, lessons, placementQuestions, reviewCards, scenarios,
 import { getAiStatus, localTutorFeedback, requestTutorFeedback, type TutorFeedback } from './ai'
 import { fieldLevels, getFieldLevel, getLevelStatus, requirementLabels } from './leveling'
 import { dueCount, useProgress } from './progress'
-import { generateStory, glossLine, storyThemes } from './reader'
+import { dictionaryEntries, generateStory, glossLine, storyThemes, type GlossToken } from './reader'
 import { getChineseVoices, speakChinese, useSpeechRecognition } from './speech'
 import { createTransformation } from './transformations'
 import { contourScore, useToneRecorder } from './tone'
@@ -37,6 +37,11 @@ function AudioButton({ text, label = 'Listen', subtle = false }: { text: string;
       <Volume2 size={16} /> <span>{label}</span>
     </button>
   )
+}
+
+function DictionaryToken({ token, showPinyin, className }: { token: GlossToken; showPinyin: boolean; className?: string }) {
+  if (token.punctuation) return <span className="punctuation">{token.text}</span>
+  return <button className={className} onClick={() => window.dispatchEvent(new CustomEvent('mandarin-dictionary', { detail: token.text }))}><ruby>{token.text}{showPinyin && <rt>{token.pinyin}</rt>}</ruby><i><b>{token.text}</b><em>{token.pinyin}</em><small>{token.meaning}</small><strong>Open dictionary →</strong></i></button>
 }
 
 function ProgressRing({ value, size = 54 }: { value: number; size?: number }) {
@@ -254,7 +259,7 @@ function LessonModal({ lesson, close, complete, recordPhrase, recordError }: { l
       <main className="phrase-stage">
         <div className="phrase-stage-heading"><p>{repairing ? 'One more successful retrieval' : lesson.chineseTitle}</p>{phase !== 'recall' && <button onClick={() => setShowPinyin((value) => !value)}>{showPinyin ? 'Hide pinyin' : 'Show pinyin'}</button>}</div>
         {phase === 'recall' ? <section className="lesson-recall"><p className="eyebrow">RETRIEVE BEFORE REPLAY</p><h2>{phrase.english}</h2><p>Say the Mandarin from memory. Type characters or pinyin if you want a visible comparison.</p><textarea value={attempt} onChange={(event) => setAttempt(event.target.value)} placeholder="Your Mandarin or pinyin…" /><button className={answeredAloud ? 'active' : ''} onClick={() => setAnsweredAloud((value) => !value)}><Mic size={16} /> {answeredAloud ? 'Answered aloud' : 'I’ll answer aloud'}</button></section> : <>
-          <p className="lesson-gloss-line">{tokens.map((token, tokenIndex) => token.punctuation ? <span className="punctuation" key={`${token.text}-${tokenIndex}`}>{token.text}</span> : <button onClick={() => speakChinese(token.text)} key={`${token.text}-${tokenIndex}`}><ruby>{token.text}{showPinyin && <rt>{token.fallback ? '' : token.pinyin}</rt>}</ruby><i><b>{token.text}</b><em>{token.fallback ? 'See the full-line pinyin' : token.pinyin}</em><small>{token.meaning}</small></i></button>)}</p>
+          <p className="lesson-gloss-line">{tokens.map((token, tokenIndex) => <DictionaryToken token={token} showPinyin={showPinyin} key={`${token.text}-${tokenIndex}`} />)}</p>
           <p className={cx('phrase-pinyin', !showPinyin && 'hidden')}>{phrase.pinyin}</p>
           <p className="phrase-english">{phrase.english}</p>
           {phase === 'compare' && <div className="attempt-comparison"><small>YOUR ATTEMPT</small><p>{attempt || 'Answered aloud'}</p><span>Compare meaning and word order—not just exact wording.</span></div>}
@@ -527,6 +532,29 @@ function ProgressView({ progress, actions, openLevelCheck }: { progress: ReturnT
   return <div className="view"><header className="page-header"><div><p className="eyebrow">YOUR FLUENCY ROADMAP</p><h1>A level means something you can do.</h1><p>Promotion requires durable practice across five strands plus an integrated proof—not XP, streaks, or time alone.</p></div><button className="icon-button"><Settings2 /></button></header><section className="progress-hero level-hero"><div><small>FIELD LEVEL</small><b>{progress.level}</b><span>{status.definition.name.toUpperCase()}<br />{status.definition.chineseName}</span></div><div><p>Your level proof</p><h2>{status.definition.proof}</h2><span><i style={{ width: `${status.evidenceRatio * 100}%` }} /></span><small>{Math.round(status.evidenceRatio * 100)}% of practice evidence · level check {status.checkPassed ? 'passed' : 'still required'}</small></div></section><section className="promotion-panel"><div className="promotion-heading"><div><p className="eyebrow">{isFinalLevel ? 'MASTERY STANDARD' : 'PROMOTION GATES'}</p><h2>{isFinalLevel ? 'Level 6 · ongoing proof' : `Level ${progress.level} → ${progress.level + 1}`}</h2><p>{isFinalLevel ? 'Keep every strand active and periodically re-verify the integrated proof.' : 'Complete every strand, then pass the integrated check with 75% or better.'}</p></div><div className="promotion-percent"><b>{Math.round(status.evidenceRatio * 100)}%</b><span>evidence</span></div></div><div className="gate-grid">{status.items.map((item) => { const label = requirementLabels[item.key]; return <article className={item.complete ? 'complete' : ''} key={item.key}><span>{item.complete ? <Check /> : label.chinese}</span><div><b>{label.label}</b><small>{item.current} / {item.required}</small><i><em style={{ width: `${item.ratio * 100}%` }} /></i></div></article> })}<article className={status.checkPassed ? 'complete' : ''}><span>{status.checkPassed ? <Check /> : '验'}</span><div><b>Integrated level check</b><small>{status.checkPassed ? `Passed · best ${status.bestScore}%` : status.bestScore ? `Best ${status.bestScore}% · need 75%` : 'Not attempted'}</small><button className="text-link" onClick={openLevelCheck}>{status.checkPassed ? 'Retake check' : 'Take level check'} <ArrowRight /></button></div></article></div>{status.ready && !isFinalLevel ? <button className="promote-button" onClick={actions.promoteLevel}><span><Trophy /></span><div><small>ALL EVIDENCE VERIFIED</small><b>Advance to Level {progress.level + 1} · {nextLevel.name}</b></div><ArrowRight /></button> : <div className="promotion-note"><Target /><p><b>{isFinalLevel && status.ready ? 'Mastery verified' : 'Next best action'}</b>{isFinalLevel && status.ready ? 'Maintain your range through real workshops, native media, and periodic reassessment.' : status.items.find((item) => !item.complete) ? `Complete more ${requirementLabels[status.items.find((item) => !item.complete)!.key].label.toLowerCase()}.` : 'Your practice evidence is ready. Take the integrated level check.'}</p></div>}</section><section className="roadmap-section"><div className="section-heading"><div><p className="eyebrow">THE FULL PATH</p><h2>From HSK 3 knowledge to professional fluency.</h2></div></div><div className="level-roadmap">{fieldLevels.filter((item) => item.level >= 3).map((item) => <article className={cx(item.level === progress.level && 'current', item.level < progress.level && 'passed', item.level > progress.level && 'future')} key={item.level}><div className="roadmap-number">{item.level < progress.level ? <Check /> : item.level}</div><div><small>{item.hskReference} · {item.chineseName}</small><h3>{item.name}</h3><p>{item.promise}</p><strong>PROOF: {item.proof}</strong></div>{item.level > progress.level && <LockKeyhole />}</article>)}</div></section><div className="progress-columns"><section className="paper-card settings-card"><p className="eyebrow">TRAINING DOSE</p><h3>{progress.dailyGoal} minutes a day</h3><div>{[15, 30, 45].map((goal) => <button className={progress.dailyGoal === goal ? 'active' : ''} onClick={() => actions.setDailyGoal(goal)} key={goal}>{goal} min</button>)}</div><p>Thirty minutes balances input, output, characters, and review without creating an unsustainable backlog.</p></section><section className="paper-card settings-card"><p className="eyebrow">LOCAL PROFILE</p><h3>Your evidence stays on this device.</h3><p>Reset only if you want to repeat placement and rebuild the progression record from zero.</p><button className="text-link danger" onClick={() => window.confirm('Reset all Mandarin Field progress?') && actions.reset()}><RotateCcw /> Reset local progress</button></section></div></div>
 }
 
+const dictionaryCorpus: Phrase[] = [
+  ...lessons.flatMap((item) => item.phrases),
+  ...stories.flatMap((item) => item.lines),
+  ...scenarios.flatMap((item) => [item.coachOpening, ...item.suggestedReplies]),
+  ...reviewCards,
+]
+const dictionaryMap = new Map([
+  ...dictionaryCorpus.flatMap((phrase) => glossLine(phrase.hanzi)).filter((token) => !token.punctuation).map((token) => [token.text, { text: token.text, pinyin: token.pinyin, meaning: token.meaning }] as const),
+  ...dictionaryEntries.map(([text, pinyin, meaning]) => [text, { text, pinyin, meaning }] as const),
+])
+
+function DictionaryModal({ initial, close }: { initial: string; close: () => void }) {
+  const [history, setHistory] = useState<string[]>([initial])
+  const selected = history[history.length - 1]
+  const isCharacter = [...selected].length === 1
+  const token = dictionaryMap.get(selected) ?? glossLine(selected).find((item) => !item.punctuation) ?? { text: selected, pinyin: '', meaning: 'Vocabulary used in the course' }
+  const examples = dictionaryCorpus.filter((phrase, index, all) => phrase.hanzi.includes(selected) && all.findIndex((item) => item.hanzi === phrase.hanzi) === index).slice(0, 5)
+  const characterMeaning = (character: string) => dictionaryMap.get(character)?.meaning ?? characterFamilies.flatMap((family) => family.members).find((member) => member.char === character)?.meaning ?? `a component of ${selected}`
+  const relatedWords = [...dictionaryMap.values()].filter(({ text }) => text.length > 1 && text.includes(selected)).sort((a, b) => a.text.length - b.text.length).slice(0, 24).map(({ text, pinyin, meaning }) => [text, pinyin, meaning] as const)
+  const open = (term: string) => setHistory((current) => [...current, term])
+  return <div className="modal-backdrop dictionary-backdrop"><div className="dictionary-modal"><header><button onClick={history.length > 1 ? () => setHistory((current) => current.slice(0, -1)) : close}>{history.length > 1 ? <ArrowLeft /> : <X />}</button><div><small>MANDARIN FIELD DICTIONARY · {isCharacter ? 'CHARACTER' : 'WORD'}</small><b>{isCharacter ? 'Character network' : 'Word detail'}</b></div><button className="dictionary-close" onClick={close}><X /></button></header><main><section className="dictionary-head"><div className="dictionary-hanzi">{selected}</div><div><p className="eyebrow">{isCharacter ? 'CHARACTER' : 'VOCABULARY'}</p><h2>{token.pinyin}</h2><p>{token.meaning}</p><button className="audio-button" onClick={() => speakChinese(selected)}><Volume2 /> Hear pronunciation</button></div></section>{!isCharacter && <section className="word-build"><p className="eyebrow">HOW THE WORD IS BUILT</p><div>{[...selected].map((character, index) => <button onClick={() => open(character)} key={`${character}-${index}`}><span>{character}</span><div><b>{characterMeaning(character)}</b><small>Open character page <ArrowRight /></small></div></button>)}</div><p>These character meanings are clues to how the complete word is understood. The word’s meaning is learned as a whole.</p></section>}<section className="dictionary-examples"><p className="eyebrow">EXAMPLES IN YOUR COURSE</p><h3>{examples.length ? `See ${selected} in context.` : 'This entry is ready for new examples.'}</h3>{examples.map((example) => <article key={example.hanzi}><button onClick={() => speakChinese(example.hanzi)}><Volume2 /></button><div><p>{example.hanzi}</p><span>{example.pinyin}</span><small>{example.english}</small></div></article>)}</section>{isCharacter && <section className="character-word-network"><p className="eyebrow">WORDS CONTAINING {selected}</p><h3>{relatedWords.length} connected words</h3><div>{relatedWords.map(([word, wordPinyin, meaning]) => <button onClick={() => open(word)} key={word}><b>{word}</b><span>{wordPinyin}</span><small>{meaning}</small><ArrowRight /></button>)}</div></section>}</main></div></div>
+}
+
 function App() {
   const { progress, actions } = useProgress()
   const [view, setView] = useState<View>('today')
@@ -537,7 +565,23 @@ function App() {
   const [storyGenerator, setStoryGenerator] = useState(false)
   const [levelCheck, setLevelCheck] = useState(false)
   const [family, setFamily] = useState<CharacterFamily | null>(null)
+  const [dictionaryTerm, setDictionaryTerm] = useState<string | null>(null)
   const due = dueCount(progress, reviewCards.map((card) => card.id))
+
+  useEffect(() => {
+    const openDictionary = (event: Event) => setDictionaryTerm((event as CustomEvent<string>).detail)
+    const openReaderWord = (event: MouseEvent) => {
+      const button = (event.target as HTMLElement).closest<HTMLButtonElement>('.gloss-word')
+      const term = button?.querySelector('ruby')?.childNodes[0]?.textContent
+      if (!button || !term) return
+      event.preventDefault()
+      event.stopPropagation()
+      setDictionaryTerm(term)
+    }
+    window.addEventListener('mandarin-dictionary', openDictionary)
+    document.addEventListener('click', openReaderWord, true)
+    return () => { window.removeEventListener('mandarin-dictionary', openDictionary); document.removeEventListener('click', openReaderWord, true) }
+  }, [])
 
   if (!progress.onboarded) return <Placement onComplete={actions.finishPlacement} />
 
@@ -566,6 +610,7 @@ function App() {
       {storyGenerator && <StoryGenerator close={() => setStoryGenerator(false)} create={(theme, level) => { const next = generateStory(theme, level); setGeneratedStories((current) => [next, ...current]); setStoryGenerator(false); setStory(next) }} />}
       {levelCheck && <LevelCheck level={progress.level} close={() => setLevelCheck(false)} record={(score) => actions.recordLevelCheck(progress.level, score)} />}
       {family && <FamilyModal family={family} close={() => setFamily(null)} master={() => actions.masterFamily(family.id)} />}
+      {dictionaryTerm && <DictionaryModal initial={dictionaryTerm} close={() => setDictionaryTerm(null)} />}
     </div>
   )
 }
