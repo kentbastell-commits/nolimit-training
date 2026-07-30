@@ -11144,6 +11144,12 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     setProgramDetailsOpen(true);
     setBuilderSaveStatus("saved");
     setCopiedSession(null);
+    // Also land back on the list, not a blank builder — a nav click away
+    // from an in-progress program should return to the library, not leave
+    // an empty "Program Builder" tab sitting open.
+    setShowProgramDetail(false);
+    setSelectedSavedProgramId("");
+    setWorkoutPageTab("Saved Programs");
   };
 
   const confirmLeaveBuilder = () => {
@@ -11681,14 +11687,24 @@ function App({ onReady }: { onReady?: () => void } = {}) {
 
   // Navigate to a top-level page and trigger any data the page needs. Shared by
   // the grouped sidebar menu and any other in-app navigation.
+  //
+  // Deliberately does NOT skip this check when `page === activePage` — a
+  // sidebar click on the section you're already in is exactly how coaches
+  // back out of a loaded program (e.g. clicking "Digital" while deep in
+  // editing one) to its list, and previously that click was a total no-op
+  // (the whole guard, and the reset, were gated on the page actually
+  // changing), leaving the builder frozen on the abandoned program with no
+  // exit prompt. Always resolve the guard, and once past it, always drop
+  // back to that section's list — otherwise a non-dirty builder (nothing
+  // edited since it loaded) leaves the exact same stale program on screen
+  // since confirmLeaveBuilder() only resets on a confirmed dirty discard.
   const goToPage = (page: Page) => {
-    if (
-      page !== activePage &&
-      (activePage === "Workouts" ||
-        (activePage === "Digital" && digitalSubTab === "program")) &&
-      !confirmLeaveBuilder()
-    )
-      return;
+    const inBuilder =
+      activePage === "Workouts" || (activePage === "Digital" && digitalSubTab === "program");
+    if (inBuilder) {
+      if (!confirmLeaveBuilder()) return;
+      resetBuilder();
+    }
     setSelectedClient(null);
     setSelectedWorkout(null);
     setWorkoutDetails([]);
