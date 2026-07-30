@@ -1,6 +1,5 @@
 // Extracted from App.tsx (monolith split) — JSX verbatim; props threaded.
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type { ProgramExercise } from "./appCore";
 import "./CoachBuilderPage.css";
 import { isCardioCategory } from "./appCore";
 import { Fragment, useEffect, useState } from "react";
@@ -150,7 +149,6 @@ export default function CoachBuilderPage({
   latestBuilderExerciseRef,
   libraryExercises,
   libraryLoading,
-  linkExerciseWithPrevious,
   loadFormTemplates,
   loadPrograms,
   loadSavedFormIntoBuilder,
@@ -170,6 +168,8 @@ export default function CoachBuilderPage({
   moveSessionToCell,
   normalizeBuilderSection,
   openBuilderLibrary,
+  scrollLatestBuilderExerciseIntoView,
+  setLatestBuilderExerciseIndex,
   openMobileAlternate,
   openMobileLibPick,
   openMobilePicker,
@@ -336,7 +336,6 @@ export default function CoachBuilderPage({
   setSavedProgramProductFilter,
   setSavedProgramSearch,
   setSavedTestSearch,
-  setSelectedProgramExercises,
   setSelectedSavedFormId,
   setSelectedSavedProgramId,
   setSelectedSavedTestId,
@@ -372,7 +371,6 @@ export default function CoachBuilderPage({
   toggleMobilePick,
   toggleUsePercent,
   unlinkExerciseGroup,
-  updateExerciseGrouping,
   updateFormQuestion,
   updateProgramExercise,
   updateSavedAssignableWorkoutDate,
@@ -390,17 +388,9 @@ export default function CoachBuilderPage({
   workoutTabsMenuOpen,
 }: { [key: string]: any }) {
   const { t } = useTranslation();
-  // Which built-session exercise is open in the edit popup (null = none).
-  // Editing moved off the row (rows are now compact + drag-only) into a modal.
-  const [editExerciseIndex, setEditExerciseIndex] = useState<number | null>(
-    null
-  );
   // Sessions library: filter the list by session category (Focus column —
   // Strength / Cardio / Mobility…). "All" shows everything.
   const [sessionCategoryFilter, setSessionCategoryFilter] = useState("All");
-  // Optional fields in the editor reveal on demand (matching the "+ Tempo" /
-  // "+ Cue" chips) so the popup stays clean until a coach needs them.
-  const [tempoOpen, setTempoOpen] = useState(false);
   // Swatch picked for the NEXT custom section (applied on "Use").
   const [customSectionColorChoice, setCustomSectionColorChoice] = useState("");
   // Circuit group settings — mode cards (Rounds / AMRAP / EMOM) + inputs.
@@ -565,14 +555,14 @@ export default function CoachBuilderPage({
   };
 
   const openExerciseEditor = (i: number) => {
-    setTempoOpen(false);
-    setEditExerciseIndex(i);
+    setLatestBuilderExerciseIndex(i);
+    openBuilderLibrary("Exercises");
+    scrollLatestBuilderExerciseIntoView();
   };
   useEffect(() => {
     const closeMobileLayer = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
-      if (editExerciseIndex != null) setEditExerciseIndex(null);
-      else if (mobileAlternateIndex != null) setMobileAlternateIndex(null);
+      if (mobileAlternateIndex != null) setMobileAlternateIndex(null);
       else if (mobileDetailsIndex != null) setMobileDetailsIndex(null);
       else if (mobileMenuIndex != null) setMobileMenuIndex(null);
       else if (["picker", "arrange", "libpick"].includes(mobileBuilderStep)) {
@@ -583,7 +573,6 @@ export default function CoachBuilderPage({
     window.addEventListener("keydown", closeMobileLayer);
     return () => window.removeEventListener("keydown", closeMobileLayer);
   }, [
-    editExerciseIndex,
     mobileAlternateIndex,
     mobileBuilderStep,
     mobileDetailsIndex,
@@ -3231,6 +3220,26 @@ export default function CoachBuilderPage({
                                     </label>
                                   </div>
 
+                                  <label className="exEditCueLabel">
+                                    Coach comment
+                                    <span className="exEditCueHint">
+                                      {" "}
+                                      — the athlete sees this on the exercise
+                                    </span>
+                                    <textarea
+                                      className="exEditReveal exEditCue"
+                                      value={exercise.coachingNotes || ""}
+                                      onChange={(e) =>
+                                        updateProgramExercise(
+                                          index,
+                                          "coachingNotes",
+                                          e.target.value
+                                        )
+                                      }
+                                      placeholder="Cue, form focus, intent — e.g. Slow eccentric, drive through the heel…"
+                                    />
+                                  </label>
+
                                   {renderAlternateExerciseEditor(exercise, index)}
 
                                   {renderSetPrescriptionTable(exercise, index)}
@@ -3532,305 +3541,6 @@ export default function CoachBuilderPage({
 
                         {renderAlternateExerciseEditor(exercise, index)}
 
-                        {editExerciseIndex === index && (
-                          <div className="builderEditModalInline">
-                            <div className="builderEditModalHead">
-                                <div className="builderEditModalTitle">
-                                  <span className="exerciseSectionName">
-                                    {exercise.sectionName || "Main"}
-                                  </span>
-                                  <h3>{exercise.exerciseName}</h3>
-                                </div>
-                                <button
-                                  type="button"
-                                  className={`builderUsePercentToggle${
-                                    usePercentExerciseIndexes.has(index)
-                                      ? " active"
-                                      : ""
-                                  }`}
-                                  onClick={() => toggleUsePercent(index)}
-                                  title="Show the %1RM field for this exercise"
-                                >
-                                  Use %
-                                </button>
-                                {renderBuilderExerciseOptionsMenu(exercise, index)}
-                                <button
-                                  type="button"
-                                  className="builderEditModalClose"
-                                  onClick={() => setEditExerciseIndex(null)}
-                                  aria-label="Close"
-                                >
-                                  <X size={18} />
-                                </button>
-                              </div>
-                              <div className="builderEditModalBody">
-                            {/* Quick optional fields — reveal on demand */}
-                            <div className="exEditChipRow">
-                              <button
-                                type="button"
-                                className={`exEditChip${
-                                  tempoOpen || exercise.tempo ? " active" : ""
-                                }`}
-                                onClick={() => setTempoOpen((v) => !v)}
-                              >
-                                + Tempo
-                              </button>
-                              <label className="exEditChipCheck">
-                                <input
-                                  type="checkbox"
-                                  checked={Boolean(exercise.isUnilateral)}
-                                  onChange={(e) =>
-                                    updateProgramExercise(
-                                      index,
-                                      "isUnilateral",
-                                      e.target.checked
-                                    )
-                                  }
-                                />
-                                Each side
-                              </label>
-                            </div>
-
-                            {(tempoOpen || exercise.tempo) && (
-                              <input
-                                className="miniSearch exEditReveal"
-                                value={exercise.tempo || ""}
-                                onChange={(e) =>
-                                  updateProgramExercise(
-                                    index,
-                                    "tempo",
-                                    e.target.value
-                                  )
-                                }
-                                placeholder="Tempo — e.g. 3-1-1"
-                              />
-                            )}
-                            {/* Always visible — this used to hide behind a
-                                "+ Cue" chip and coaches couldn't find it. */}
-                            <label className="exEditCueLabel">
-                              Coach comment
-                              <span className="exEditCueHint">
-                                {" "}
-                                — the athlete sees this on the exercise
-                              </span>
-                            </label>
-                            <textarea
-                              className="exEditReveal exEditCue"
-                              value={exercise.coachingNotes || ""}
-                              onChange={(e) =>
-                                updateProgramExercise(
-                                  index,
-                                  "coachingNotes",
-                                  e.target.value
-                                )
-                              }
-                              placeholder="Cue, form focus, intent — e.g. Slow eccentric, drive through the heel…"
-                            />
-
-                            {/* Link this exercise with the one above it */}
-                            <div className="exLinkRow">
-                              <span className="exLinkLabel">link with above:</span>
-                              <button
-                                type="button"
-                                className="exLinkPill exLinkSuperset"
-                                onClick={() =>
-                                  linkExerciseWithPrevious(index, "Superset")
-                                }
-                              >
-                                + Superset
-                              </button>
-                              <button
-                                type="button"
-                                className="exLinkPill exLinkCircuit"
-                                onClick={() =>
-                                  linkExerciseWithPrevious(index, "Circuit")
-                                }
-                              >
-                                + Circuit
-                              </button>
-                              <button
-                                type="button"
-                                className={`exLinkPill exLinkAccessory${
-                                  exercise.isAccessory ? " active" : ""
-                                }`}
-                                onClick={() => {
-                                  const makeAccessory = !exercise.isAccessory;
-                                  setSelectedProgramExercises((current: any) =>
-                                    current.map((item: any, itemIndex: any) =>
-                                      itemIndex === index
-                                        ? {
-                                            ...item,
-                                            isAccessory: makeAccessory,
-                                            accessoryParentLabel: makeAccessory
-                                              ? item.accessoryParentLabel ||
-                                                selectedProgramExercises[
-                                                  index - 1
-                                                ]?.exerciseLabel ||
-                                                ""
-                                              : "",
-                                            accessoryColor: makeAccessory
-                                              ? item.accessoryColor || "Green"
-                                              : item.accessoryColor,
-                                          }
-                                        : item
-                                    )
-                                  );
-                                }}
-                              >
-                                + Accessory
-                              </button>
-                            </div>
-
-                    <div className="builderPrescriptionGrid">
-                      <label>
-                        <span>Label</span>
-                        <input
-                          className="miniSearch"
-                          value={exercise.exerciseLabel}
-                          onChange={(e) =>
-                            updateProgramExercise(
-                              index,
-                              "exerciseLabel",
-                              e.target.value
-                            )
-                          }
-                          placeholder="A1"
-                        />
-                      </label>
-
-                      <label>
-                        <span>Section</span>
-                        <select
-                          className="miniSearch"
-                          value={exercise.sectionName}
-                          onChange={(e) =>
-                            updateProgramExercise(
-                              index,
-                              "sectionName",
-                              e.target.value
-                            )
-                          }
-                        >
-                          {getBuilderSectionSelectOptions(exercise.sectionName).map(
-                            (section: any) => (
-                              <option key={section} value={section}>
-                                {section}
-                              </option>
-                            )
-                          )}
-                        </select>
-                      </label>
-
-                      <label>
-                        <span>Order</span>
-                        <input
-                          className="miniSearch"
-                          value={exercise.order}
-                          onChange={(e) =>
-                            updateProgramExercise(index, "order", e.target.value)
-                          }
-                          placeholder="Order"
-                        />
-                      </label>
-                    </div>
-
-                    {renderSetPrescriptionTable(exercise, index)}
-
-                    <div className="builderGroupGrid">
-                      <label>
-                        <span>Structure</span>
-                        <select
-                          className="miniSearch"
-                          value={exercise.groupType}
-                          onChange={(e) =>
-                            updateExerciseGrouping(
-                              index,
-                              e.target.value as ProgramExercise["groupType"],
-                              exercise.groupName || "Group A"
-                            )
-                          }
-                        >
-                          <option>Straight</option>
-                          <option>Superset</option>
-                          <option>Circuit</option>
-                        </select>
-                      </label>
-
-                      <label>
-                        <span>Group Label</span>
-                        <input
-                          className="miniSearch"
-                          value={exercise.groupName}
-                          onChange={(e) =>
-                            updateProgramExercise(index, "groupName", e.target.value)
-                          }
-                          placeholder="A, B, Upper Circuit..."
-                          disabled={exercise.groupType === "Straight"}
-                        />
-                      </label>
-
-                      {exercise.isAccessory && (
-                        <>
-                          <label>
-                            <span>Accessory Parent</span>
-                            <input
-                              className="miniSearch"
-                              value={exercise.accessoryParentLabel || ""}
-                              onChange={(e) =>
-                                updateProgramExercise(
-                                  index,
-                                  "accessoryParentLabel",
-                                  e.target.value
-                                )
-                              }
-                              placeholder="A1"
-                            />
-                          </label>
-
-                          <label>
-                            <span>Accessory Color</span>
-                            <select
-                              className="miniSearch"
-                              value={exercise.accessoryColor || "Green"}
-                              onChange={(e) =>
-                                updateProgramExercise(
-                                  index,
-                                  "accessoryColor",
-                                  e.target.value
-                                )
-                              }
-                            >
-                              <option>Green</option>
-                              <option>Gold</option>
-                              <option>Blue</option>
-                              <option>Grey</option>
-                              <option>Red</option>
-                              <option>Purple</option>
-                            </select>
-                          </label>
-                        </>
-                      )}
-
-                    </div>
-                              </div>
-                              <div className="builderEditModalFooter">
-                                <span>
-                                  Changes are applied to this{" "}
-                                  {isSingleWorkoutBuilder ? "workout" : "day"}.
-                                  Save the{" "}
-                                  {isSingleWorkoutBuilder ? "workout" : "day"}{" "}
-                                  when you finish editing its exercises.
-                                </span>
-                                <button
-                                  type="button"
-                                  className="goldButton"
-                                  onClick={() => setEditExerciseIndex(null)}
-                                >
-                                  Done editing
-                                </button>
-                              </div>
-                            </div>
-                          )}
                       </div>
                     </Fragment>
                   );

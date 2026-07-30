@@ -19778,6 +19778,10 @@ function App({ onReady }: { onReady?: () => void } = {}) {
               (activePage === "Digital" && digitalSubTab === "program")) && (
               <CoachBuilderPage
                 builderScope={builderScope}
+                setLatestBuilderExerciseIndex={setLatestBuilderExerciseIndex}
+                scrollLatestBuilderExerciseIntoView={
+                  scrollLatestBuilderExerciseIntoView
+                }
                 usePercentExerciseIndexes={usePercentExerciseIndexes}
                 selectedSavedTestId={selectedSavedTestId}
                 selectedSavedProgramId={selectedSavedProgramId}
