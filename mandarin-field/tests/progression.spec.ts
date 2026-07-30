@@ -141,6 +141,18 @@ test('lesson words open a linked word and character dictionary', async ({ page }
   await expect(page.getByText('HOW THE WORD IS BUILT')).toBeVisible()
 })
 
+test('completed lessons leave the active path and remain in the review archive', async ({ page }) => {
+  await seed(page, { ...baseProgress, completedLessons: ['client-check-in'] })
+  await openSection(page, 1, 'Course')
+  const activeCount = await page.locator('.lesson-row').count()
+  await expect(page.locator('.archive-toggle')).toContainText('Completed archive · 1')
+  await page.locator('.archive-toggle').click()
+  await expect(page.locator('.lesson-row')).toHaveCount(1)
+  await expect(page.locator('.lesson-state')).toContainText('REVISIT')
+  await page.locator('.archive-toggle').click()
+  await expect(page.locator('.lesson-row')).toHaveCount(activeCount)
+})
+
 test('tone lab exposes local contour targets without requiring AI', async ({ page }) => {
   await seed(page)
   await openSection(page, 2, 'Speak')
@@ -210,6 +222,13 @@ test('character family explains the pattern and teaches every member in context'
   await expect(page.getByText('How this family works')).toBeVisible()
   await expect(page.locator('.family-overview')).toContainText('SHARED CLUE')
   await expect(page.locator('.family-overview')).toContainText('MEANING CLUE')
+  await expect(page.locator('.family-overview')).toContainText('means')
+  await page.locator('.radical-link').click()
+  await expect(page.locator('.radical-modal')).toBeVisible()
+  await expect(page.getByText('WHAT IT CONTRIBUTES')).toBeVisible()
+  await expect(page.locator('.radical-method article')).toHaveCount(3)
+  await expect(page.locator('.radical-examples article').first()).toBeVisible()
+  await page.locator('.radical-modal header > button').first().click()
   await expect(page.locator('.character-example-line')).toContainText('清楚')
   await expect(page.locator('.character-example-pinyin')).not.toBeEmpty()
   await expect(page.locator('.character-example-english')).toContainText('training plan')

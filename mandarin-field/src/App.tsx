@@ -189,19 +189,21 @@ function Today({ navigate, progress, openLesson, openFamily }: {
 
 function Course({ progress, openLesson }: { progress: ReturnType<typeof useProgress>['progress']; openLesson: (lesson: Lesson) => void }) {
   const [filter, setFilter] = useState<'All' | 'HSK 3' | 'HSK 4'>('All')
+  const [archive, setArchive] = useState(false)
   const currentLevel = getFieldLevel(progress.level)
   const currentUnitIndex = Math.min(currentLevel.units.length - 1, Math.floor(progress.completedLessons.length / 2))
   const currentUnit = currentLevel.units[currentUnitIndex]
   const lessonBand = (lesson: Lesson) => lesson.level.includes('4') ? 'HSK 4' : 'HSK 3'
-  const visibleLessons = filter === 'All' ? lessons : lessons.filter((lesson) => lessonBand(lesson) === filter)
+  const visibleLessons = lessons.filter((lesson) => progress.completedLessons.includes(lesson.id) === archive && (filter === 'All' || lessonBand(lesson) === filter))
   return (
     <div className="view">
       <header className="page-header"><div><p className="eyebrow">YOUR COURSE · PERSONALIZED</p><h1>Build usable Mandarin.</h1><p>Sequenced by what you need to say—not by disconnected vocabulary lists.</p></div><div className="level-chip">FIELD LEVEL <b>{progress.level}</b></div></header>
       <section className="path-banner"><div><span>FIELD LEVEL {progress.level} · {currentLevel.hskReference}</span><h2>{currentLevel.name}</h2><p>{currentLevel.promise}</p></div><div className="path-art">教<small>练</small></div></section>
       <div className="unit-track">{currentLevel.units.map((unit, index) => <div className={cx(index === currentUnitIndex && 'active', index < currentUnitIndex && 'complete', index > currentUnitIndex && 'upcoming')} key={unit.code}><span>{unit.code}</span><b>{unit.title}</b><small>{unit.chinese}</small><p>{unit.outcome}</p></div>)}</div>
       <div className="section-heading"><div><p className="eyebrow">CURRENT UNIT · {currentUnit.code}</p><h2>{currentUnit.title} · {currentUnit.chinese}</h2></div><span>{progress.completedLessons.length} / {lessons.length} core lessons</span></div>
-      <div className="content-filter" aria-label="Filter course by level">{(['All', 'HSK 3', 'HSK 4'] as const).map((option) => <button className={filter === option ? 'active' : ''} onClick={() => setFilter(option)} key={option}>{option}{option !== 'All' && <small>{lessons.filter((lesson) => lessonBand(lesson) === option).length}</small>}</button>)}</div>
+      <div className="library-controls"><div className="content-filter" aria-label="Filter course by level">{(['All', 'HSK 3', 'HSK 4'] as const).map((option) => <button className={filter === option ? 'active' : ''} onClick={() => setFilter(option)} key={option}>{option}</button>)}</div><button className={cx('archive-toggle', archive && 'active')} onClick={() => setArchive((value) => !value)}>{archive ? 'Back to active lessons' : `Completed archive · ${progress.completedLessons.length}`}</button></div>
       <div className="lesson-list">
+        {!visibleLessons.length && <div className="empty-library"><Check /><h3>{archive ? 'Nothing archived at this level yet.' : 'You completed this active path.'}</h3><p>{archive ? 'Finished lessons will move here automatically.' : 'Open the completed archive whenever you want to review.'}</p></div>}
         {visibleLessons.map((lesson) => {
           const index = lessons.indexOf(lesson)
           const complete = progress.completedLessons.includes(lesson.id)
@@ -457,6 +459,11 @@ function CharactersView({ progress, openFamily }: { progress: ReturnType<typeof 
   return <div className="view"><header className="page-header"><div><p className="eyebrow">THE CHARACTER ENGINE</p><h1>See the system, not the strokes.</h1><p>Attach written patterns to words you can say. Pinyin fades as recognition strengthens.</p></div><div className="character-stat"><b>{progress.masteredFamilies.length * 4 + 26}</b><span>characters<br />recognized</span></div></header><section className="character-method"><div><span>01</span><b>Anchor the sound</b><p>Start with a familiar spoken word.</p></div><i /><div><span>02</span><b>Read the components</b><p>One hints at sound; one narrows meaning.</p></div><i /><div><span>03</span><b>Meet it in a word</b><p>Characters live inside useful chunks.</p></div><i /><div><span>04</span><b>Retrieve it later</b><p>Pinyin disappears over time.</p></div></section><div className="section-heading"><div><p className="eyebrow">PHONETIC FAMILIES</p><h2>One pattern unlocks a neighborhood.</h2></div><span>{characterFamilies.length} families ready</span></div><div className="family-grid">{characterFamilies.map((family) => <button className="family-card" onClick={() => openFamily(family)} key={family.id}><div className="family-anchor"><span>{family.anchor}</span><small>{family.sound}</small></div><div><small>SOUND FAMILY</small><h3>{family.members.map((member) => member.char).join(' · ')}</h3><p>{family.hint}</p><em>{progress.masteredFamilies.includes(family.id) ? 'MASTERED · REVIEW' : 'LEARN FAMILY'} <ArrowRight /></em></div></button>)}</div><section className="pinyin-fade paper-card"><div><p className="eyebrow">PINYIN FADE</p><h3>Support should disappear.</h3><p>New phrases begin with pinyin. After two successful recalls it becomes tap-to-reveal; after four, characters stand alone.</p></div><div><span>今天身体感觉怎么样？</span><i>Jīntiān shēntǐ gǎnjué zěnmeyàng?</i><em>2 recalls until fade</em></div></section></div>
 }
 
+function RadicalButton({ component }: { component: string }) {
+  const [radical, ...meaningParts] = component.split(' ')
+  return <button className="radical-link" onClick={() => window.dispatchEvent(new CustomEvent('mandarin-radical', { detail: component }))}><small>MEANING CLUE</small><strong>{radical}</strong><span>{meaningParts.join(' ') || 'component'} · explore</span></button>
+}
+
 function FamilyModal({ family, close, master }: { family: CharacterFamily; close: () => void; master: () => void }) {
   const [selected, setSelected] = useState(0)
   const member = family.members[selected]
@@ -469,8 +476,8 @@ function FamilyModal({ family, close, master }: { family: CharacterFamily; close
   }, [member])
   const [before, after = ''] = example.hanzi.split(member.word)
   return <div className="modal-backdrop"><div className="family-modal"><header><button onClick={close}><X /></button><div><small>PHONETIC FAMILY · SOUND + MEANING</small><h2>{family.anchor} · {family.sound}</h2></div><AudioButton text={member.word} /></header>
-    <section className="family-overview"><b>How this family works</b><p>{family.hint}</p><div><span><small>SHARED CLUE</small><strong>{family.anchor}</strong><em>suggests the sound</em></span><i>+</i><span><small>MEANING CLUE</small><strong>{member.component.split(' ')[0]}</strong><em>suggests the category</em></span><i>→</i><span><small>WHOLE CHARACTER</small><strong>{member.char}</strong><em>{member.pinyin} · {member.meaning}</em></span></div><small className="sound-note">A phonetic family is a strong clue, not a perfect rule: initials and tones can drift over time. Use the component to predict, then confirm with the pinyin and audio.</small></section>
-    <div className="family-explainer"><div className="family-glyph">{member.char}<span className="component-tag">{member.component}</span></div><div><p className="eyebrow">READ THE BUILD</p><h3><em>{family.anchor}</em> points toward the sound; <em>{member.component.split(' ')[0]}</em> points toward meaning.</h3><p>Together they form <b>{member.char} · {member.pinyin}</b>, meaning <strong>{member.meaning}</strong>. The character becomes useful inside the word below.</p><div className="word-example"><span>{member.word}</span><div><b>{member.wordPinyin}</b><small>{member.wordMeaning}</small></div></div></div></div>
+    <section className="family-overview"><b>How this family works</b><p>{family.hint}</p><div><span><small>SHARED CLUE</small><strong>{family.anchor}</strong><em>suggests the sound</em></span><i>+</i><RadicalButton component={member.component} /><i>→</i><span><small>WHOLE CHARACTER</small><strong>{member.char}</strong><em>{member.pinyin} · {member.meaning}</em></span></div><small className="sound-note">The radical <b>{member.component.split(' ')[0]}</b> means “{member.component.split(' ').slice(1).join(' ')}” here and points toward the meaning category. Tap it for a complete explanation and more examples. The phonetic component predicts sound, but initials and tones can drift.</small></section>
+    <div className="family-explainer"><div className="family-glyph">{member.char}<span className="component-tag">{member.component}</span></div><div><p className="eyebrow">READ THE BUILD</p><h3><em>{family.anchor}</em> points toward the sound; <button className="inline-radical" onClick={() => window.dispatchEvent(new CustomEvent('mandarin-radical', { detail: member.component }))}>{member.component.split(' ')[0]} · {member.component.split(' ').slice(1).join(' ')}</button> points toward meaning.</h3><p>Together they form <b>{member.char} · {member.pinyin}</b>, meaning <strong>{member.meaning}</strong>. The character becomes useful inside the word below.</p><div className="word-example"><span>{member.word}</span><div><b>{member.wordPinyin}</b><small>{member.wordMeaning}</small></div></div></div></div>
     <div className="member-tabs">{family.members.map((item, index) => <button className={index === selected ? 'active' : ''} onClick={() => { setSelected(index); speakChinese(item.char) }} key={item.char}><span>{item.char}</span><small>{item.pinyin}</small></button>)}</div>
     <section className="family-sentence"><div className="sentence-heading"><div><p className="eyebrow">SEE IT IN A REAL SENTENCE</p><h3>Meaning lives in context.</h3></div><AudioButton text={example.hanzi} label="Play sentence" /></div><p className="character-example-line">{before}<button onClick={() => speakChinese(member.word)}><ruby>{member.word}<rt>{member.wordPinyin}</rt></ruby><i><b>{member.word}</b><em>{member.wordPinyin}</em><small>{member.wordMeaning}</small></i></button>{after}</p><p className="character-example-pinyin">{example.pinyin}</p><p className="character-example-english">{example.english}</p><small>Tap the highlighted word for its meaning. Listen once, then read the full sentence aloud.</small></section>
     <div className="family-practice"><p>Move through all four characters. Predict the sound from the shared clue, use the side component to predict the meaning category, then say the example sentence aloud.</p><button className="primary" onClick={() => { master(); close() }}>Add family to memory <Check /></button></div></div></div>
@@ -555,6 +562,13 @@ function DictionaryModal({ initial, close }: { initial: string; close: () => voi
   return <div className="modal-backdrop dictionary-backdrop"><div className="dictionary-modal"><header><button onClick={history.length > 1 ? () => setHistory((current) => current.slice(0, -1)) : close}>{history.length > 1 ? <ArrowLeft /> : <X />}</button><div><small>MANDARIN FIELD DICTIONARY · {isCharacter ? 'CHARACTER' : 'WORD'}</small><b>{isCharacter ? 'Character network' : 'Word detail'}</b></div><button className="dictionary-close" onClick={close}><X /></button></header><main><section className="dictionary-head"><div className="dictionary-hanzi">{selected}</div><div><p className="eyebrow">{isCharacter ? 'CHARACTER' : 'VOCABULARY'}</p><h2>{token.pinyin}</h2><p>{token.meaning}</p><button className="audio-button" onClick={() => speakChinese(selected)}><Volume2 /> Hear pronunciation</button></div></section>{!isCharacter && <section className="word-build"><p className="eyebrow">HOW THE WORD IS BUILT</p><div>{[...selected].map((character, index) => <button onClick={() => open(character)} key={`${character}-${index}`}><span>{character}</span><div><b>{characterMeaning(character)}</b><small>Open character page <ArrowRight /></small></div></button>)}</div><p>These character meanings are clues to how the complete word is understood. The word’s meaning is learned as a whole.</p></section>}<section className="dictionary-examples"><p className="eyebrow">EXAMPLES IN YOUR COURSE</p><h3>{examples.length ? `See ${selected} in context.` : 'This entry is ready for new examples.'}</h3>{examples.map((example) => <article key={example.hanzi}><button onClick={() => speakChinese(example.hanzi)}><Volume2 /></button><div><p>{example.hanzi}</p><span>{example.pinyin}</span><small>{example.english}</small></div></article>)}</section>{isCharacter && <section className="character-word-network"><p className="eyebrow">WORDS CONTAINING {selected}</p><h3>{relatedWords.length} connected words</h3><div>{relatedWords.map(([word, wordPinyin, meaning]) => <button onClick={() => open(word)} key={word}><b>{word}</b><span>{wordPinyin}</span><small>{meaning}</small><ArrowRight /></button>)}</div></section>}</main></div></div>
 }
 
+function RadicalModal({ component, close }: { component: string; close: () => void }) {
+  const [radical, ...meaningParts] = component.split(' ')
+  const meaning = meaningParts.join(' ') || 'meaning component'
+  const examples = characterFamilies.flatMap((family) => family.members.map((member) => ({ ...member, family: family.anchor }))).filter((member) => member.component.split(' ')[0] === radical)
+  return <div className="modal-backdrop"><div className="radical-modal"><header><button onClick={close}><X /></button><div><small>RADICAL MINI-LESSON · MEANING CLUE</small><h2>{radical} · {meaning}</h2></div><AudioButton text={radical} /></header><main><section className="radical-hero"><span>{radical}</span><div><p className="eyebrow">WHAT IT CONTRIBUTES</p><h3>A clue connected to {meaning}.</h3><p>When {radical} appears inside a larger character, it often points toward a broad meaning category. It does not define the whole character by itself; combine it with the phonetic component and the complete word.</p></div></section><section className="radical-method"><article><b>1</b><div><strong>Spot the shape</strong><p>Find {radical} inside the complete character.</p></div></article><article><b>2</b><div><strong>Predict the category</strong><p>Ask whether “{meaning}” could relate to the character’s meaning.</p></div></article><article><b>3</b><div><strong>Confirm in a word</strong><p>Use pinyin, pronunciation, and a real word before trusting the clue.</p></div></article></section><section className="radical-examples"><p className="eyebrow">EXAMPLES USING {radical}</p>{examples.map((member) => <article key={member.char}><button onClick={() => speakChinese(member.word)}>{member.char}</button><div><b>{member.char} · {member.pinyin}</b><span>{member.meaning}</span><small>{member.word} · {member.wordPinyin} · {member.wordMeaning}</small></div></article>)}</section><small className="radical-note">Technical note: learners often call every visible component a radical. Strictly, a dictionary radical is an indexing component; here we label the semantic component that helps you infer meaning.</small></main></div></div>
+}
+
 function App() {
   const { progress, actions } = useProgress()
   const [view, setView] = useState<View>('today')
@@ -566,10 +580,12 @@ function App() {
   const [levelCheck, setLevelCheck] = useState(false)
   const [family, setFamily] = useState<CharacterFamily | null>(null)
   const [dictionaryTerm, setDictionaryTerm] = useState<string | null>(null)
+  const [radical, setRadical] = useState<string | null>(null)
   const due = dueCount(progress, reviewCards.map((card) => card.id))
 
   useEffect(() => {
     const openDictionary = (event: Event) => setDictionaryTerm((event as CustomEvent<string>).detail)
+    const openRadical = (event: Event) => setRadical((event as CustomEvent<string>).detail)
     const openReaderWord = (event: MouseEvent) => {
       const button = (event.target as HTMLElement).closest<HTMLButtonElement>('.gloss-word')
       const term = button?.querySelector('ruby')?.childNodes[0]?.textContent
@@ -579,8 +595,9 @@ function App() {
       setDictionaryTerm(term)
     }
     window.addEventListener('mandarin-dictionary', openDictionary)
+    window.addEventListener('mandarin-radical', openRadical)
     document.addEventListener('click', openReaderWord, true)
-    return () => { window.removeEventListener('mandarin-dictionary', openDictionary); document.removeEventListener('click', openReaderWord, true) }
+    return () => { window.removeEventListener('mandarin-dictionary', openDictionary); window.removeEventListener('mandarin-radical', openRadical); document.removeEventListener('click', openReaderWord, true) }
   }, [])
 
   if (!progress.onboarded) return <Placement onComplete={actions.finishPlacement} />
@@ -611,6 +628,7 @@ function App() {
       {levelCheck && <LevelCheck level={progress.level} close={() => setLevelCheck(false)} record={(score) => actions.recordLevelCheck(progress.level, score)} />}
       {family && <FamilyModal family={family} close={() => setFamily(null)} master={() => actions.masterFamily(family.id)} />}
       {dictionaryTerm && <DictionaryModal initial={dictionaryTerm} close={() => setDictionaryTerm(null)} />}
+      {radical && <RadicalModal component={radical} close={() => setRadical(null)} />}
     </div>
   )
 }
