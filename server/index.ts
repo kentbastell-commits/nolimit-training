@@ -145,6 +145,22 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const port = Number(process.env.PORT || 3001);
 
+// Safety net for anything outside the per-handler try/catch below (Express
+// middleware, a bug in server startup, a truly synchronous throw). Without
+// this, Node's default behavior is to crash the process on either of these —
+// in cluster mode that's just this one worker restarting, but running as a
+// single fork-mode instance (the previous setup) it was the entire site.
+// Log first so the cause isn't lost, then exit for uncaughtException — the
+// process state after a genuinely uncaught synchronous error can't be
+// trusted, and PM2 (cluster or fork) restarts it clean.
+process.on("unhandledRejection", (reason) => {
+  console.error("Unhandled promise rejection:", reason);
+});
+process.on("uncaughtException", (error) => {
+  console.error("Uncaught exception:", error);
+  process.exit(1);
+});
+
 // Compress JS/CSS/JSON at the application boundary. The production reverse
 // proxy currently forwards these responses without content encoding, which
 // makes the 500KB+ entry bundle especially painful on China/HK mobile links.
