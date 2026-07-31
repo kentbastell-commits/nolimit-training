@@ -3706,6 +3706,17 @@
   padding: 15px 15px 17px;
   box-shadow: 0 4px 14px rgba(20, 18, 14, 0.06);
 }
+/* Draft cards (the day currently open in the editor, not yet committed) look
+   near-identical to a saved one otherwise — the only difference was a 10px
+   "Unsaved" label swapped in for the edit/duplicate/delete icons, easy to
+   miss entirely. They're also not draggable (nothing saved yet to
+   reposition), which reads as a bug rather than "this isn't saved" without
+   a visible reason. */
+.programGrid .programGridCard.gridCardDraft {
+  border: 1px dashed rgba(212, 175, 55, 0.6) !important;
+  background: rgba(212, 175, 55, 0.05) !important;
+  cursor: default;
+}
 .programGrid .programGridCardName {
   font-size: 15px;
   font-weight: 800;
