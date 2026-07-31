@@ -1,13 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  BODY_BASE,
-  BODY_VIEWBOX,
-  BACK_SHAPES,
-  FRONT_SHAPES,
-  MUSCLE_LABELS,
-  type BodyShape,
-} from "./muscleGroups";
+import Model, { type IExerciseData, type IMuscleStats } from "react-body-highlighter";
+import { MUSCLE_LABELS } from "./muscleGroups";
 import "./MuscleDiagram.css";
 
 interface MuscleDiagramProps {
@@ -18,86 +12,54 @@ interface MuscleDiagramProps {
   className?: string;
 }
 
-function renderShape(
-  shape: BodyShape,
-  isSelected: boolean,
-  isBase: boolean,
-  interactive: boolean,
-  onClick?: () => void
-) {
-  const className = isBase
-    ? "muscleDiagramBase"
-    : `muscleDiagramRegion${isSelected ? " isSelected" : ""}${
-        interactive ? " isInteractive" : ""
-      }`;
-  const props =
-    shape.type === "ellipse"
-      ? { cx: shape.cx, cy: shape.cy, rx: shape.rx, ry: shape.ry }
-      : {
-          x: shape.x,
-          y: shape.y,
-          width: shape.width,
-          height: shape.height,
-          rx: shape.rx,
-        };
-  const Tag = shape.type;
-  return (
-    <Tag
-      key={`${shape.key}-${JSON.stringify(props)}`}
-      className={className}
-      onClick={isBase ? undefined : onClick}
-      {...(props as any)}
-    />
-  );
-}
-
 export default function MuscleDiagram({
   selected,
   onToggle,
   className,
 }: MuscleDiagramProps) {
   const { t, i18n } = useTranslation();
-  const [view, setView] = useState<"front" | "back">("front");
+  const [view, setView] = useState<"anterior" | "posterior">("anterior");
   const interactive = Boolean(onToggle);
   const isZh = i18n.language?.startsWith("zh");
-  const shapes = view === "front" ? FRONT_SHAPES : BACK_SHAPES;
-  const selectedSet = new Set(selected);
+
+  // The library is built around "exercises worked these muscles" (with a
+  // frequency-based color ramp) rather than a plain multi-select — a single
+  // synthetic entry with every selected muscle at frequency 1 gets the same
+  // toggle-picker behavior we need, using only highlightedColors[0].
+  const data: IExerciseData[] = [
+    { name: "target-muscles", muscles: selected as IExerciseData["muscles"] },
+  ];
 
   return (
-    <div className={`muscleDiagram ${className || ""}`}>
+    <div className={`muscleDiagram ${interactive ? "" : "readOnly"} ${className || ""}`}>
       <div className="muscleDiagramViewToggle">
         <button
           type="button"
-          className={view === "front" ? "active" : ""}
-          onClick={() => setView("front")}
+          className={view === "anterior" ? "active" : ""}
+          onClick={() => setView("anterior")}
         >
           {t("muscleDiagramFront")}
         </button>
         <button
           type="button"
-          className={view === "back" ? "active" : ""}
-          onClick={() => setView("back")}
+          className={view === "posterior" ? "active" : ""}
+          onClick={() => setView("posterior")}
         >
           {t("muscleDiagramBack")}
         </button>
       </div>
-      <svg
-        className="muscleDiagramSvg"
-        viewBox={BODY_VIEWBOX}
-        role="img"
-        aria-label={t("muscleDiagramAriaLabel")}
-      >
-        {BODY_BASE.map((shape) => renderShape(shape, false, true, false))}
-        {shapes.map((shape) =>
-          renderShape(
-            shape,
-            selectedSet.has(shape.key),
-            false,
-            interactive,
-            () => onToggle?.(shape.key)
-          )
-        )}
-      </svg>
+      <Model
+        type={view}
+        data={data}
+        bodyColor="#d9d3c2"
+        highlightedColors={["#d4af37"]}
+        style={{ width: "100%", maxWidth: 190, margin: "0 auto" }}
+        onClick={
+          interactive
+            ? ({ muscle }: IMuscleStats) => onToggle?.(muscle)
+            : undefined
+        }
+      />
       {interactive && (
         <p className="muscleDiagramHint">{t("muscleDiagramHint")}</p>
       )}

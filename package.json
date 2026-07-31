@@ -36,6 +36,7 @@
     "lucide-react": "^1.17.0",
     "pg": "^8.22.0",
     "react": "^19.2.6",
+    "react-body-highlighter": "^2.0.5",
     "react-dom": "^19.2.6",
     "react-i18next": "^17.0.8",
     "recharts": "^3.8.1"
