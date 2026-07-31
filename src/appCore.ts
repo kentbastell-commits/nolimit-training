@@ -243,6 +243,7 @@ export type ExerciseDetail = {
   commonMistakesCn?: string;
   cueNotes?: string;
   cueNotesCn?: string;
+  targetMuscles?: string[];
   order: number;
   sets: string;
   reps: string;
@@ -281,6 +282,7 @@ export type AlternateExerciseDetail = {
   commonMistakesCn?: string;
   cueNotes?: string;
   cueNotesCn?: string;
+  targetMuscles?: string[];
 };
 
 export type ExerciseNoteMeta = {
@@ -568,6 +570,7 @@ export type LibraryExercise = {
   movementPatternCn?: string;
   primaryMuscles?: string;
   primaryMusclesCn?: string;
+  targetMuscles?: string[];
   technicalInstructionsCn?: string;
   coachingCuesCn?: string;
   commonMistakesCn?: string;

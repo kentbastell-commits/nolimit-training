@@ -43,6 +43,7 @@ function buildLibraryDetail(e?: ExRow) {
     commonMistakesCn: str(e?.commonErrorsCn),
     cueNotes: str(e?.coachingCues) || str(e?.technicalCues),
     cueNotesCn: str(e?.coachingCuesCn),
+    targetMuscles: e?.targetMuscles ?? [],
   };
 }
 
@@ -102,6 +103,7 @@ export async function getWorkoutDetails(
         commonMistakesCn: str(e?.commonErrorsCn),
         cueNotes: str(e?.coachingCues) || str(e?.technicalCues),
         cueNotesCn: str(e?.coachingCuesCn),
+        targetMuscles: e?.targetMuscles ?? [],
         order: t.exerciseOrder ?? 0,
         sets: str(t.sets),
         reps: str(t.reps),

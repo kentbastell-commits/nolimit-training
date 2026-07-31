@@ -963,6 +963,7 @@ export default function WorkoutPlayerModal({
                                   commonMistakesCn: exercise.commonMistakesCn,
                                   notes: exercise.cueNotes || "",
                                   notesCn: exercise.cueNotesCn,
+                                  targetMuscles: exercise.targetMuscles || [],
                                   status: "Active",
                                 })
                               }

@@ -44,6 +44,7 @@ import {
   BRAND_MONOGRAM_WHITE,
   BRAND_WORDMARK_BLACK,
 } from "./brandAssets";
+import MuscleDiagram from "./MuscleDiagram";
 
 // Charts are lazy-loaded so recharts stays out of the main bundle.
 const RevenueChart = lazy(() => import("./RevenueChart"));
@@ -1298,6 +1299,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     longVideoUrl: "",
     category: "",
     muscleGroup: "",
+    targetMuscles: [] as string[],
     movementPattern: "",
     equipment: "",
     notes: "",
@@ -3017,6 +3019,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       longVideoUrl: "",
       category: "",
       muscleGroup: "",
+      targetMuscles: [],
       movementPattern: "",
       equipment: "",
       notes: "",
@@ -3042,6 +3045,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       longVideoUrl: exercise.longVideoUrl || "",
       category: exercise.category || "",
       muscleGroup: exercise.primaryMuscles || "",
+      targetMuscles: exercise.targetMuscles || [],
       movementPattern: exercise.movementPattern || "",
       equipment: exercise.equipment || "",
       notes: meta.coachingNotes || "",
@@ -3187,6 +3191,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
         equipment: exerciseForm.equipment,
         movementPattern: exerciseForm.movementPattern,
         primaryMuscles: exerciseForm.muscleGroup,
+        targetMuscles: exerciseForm.targetMuscles,
         notes: archive ? `[Archived]\n${composedNotes}`.trim() : composedNotes,
         status: archive ? "Archived" : "Active",
       };
@@ -20593,6 +20598,13 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                       : "Bilateral"}
                   </span>
                 </div>
+
+                {technicalCueExercise.targetMuscles &&
+                  technicalCueExercise.targetMuscles.length > 0 && (
+                    <MuscleDiagram
+                      selected={technicalCueExercise.targetMuscles}
+                    />
+                  )}
 
                 {parseExerciseCueSections(
                   localizedExerciseNotes(technicalCueExercise)

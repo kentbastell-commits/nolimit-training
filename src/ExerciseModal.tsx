@@ -5,6 +5,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useRef, useState } from "react";
 import type { TrackingType } from "./appCore";
+import MuscleDiagram from "./MuscleDiagram";
 import "./ExerciseModal.css";
 import {
   Check,
@@ -304,6 +305,20 @@ export default function ExerciseModal({
               <span>Trains one side at a time</span>
             </span>
           </button>
+
+          {/* target muscles */}
+          <span className="axLabel axSectionLabel">Target Muscles</span>
+          <MuscleDiagram
+            selected={exerciseForm.targetMuscles || []}
+            onToggle={(key) =>
+              setExerciseForm({
+                ...exerciseForm,
+                targetMuscles: (exerciseForm.targetMuscles || []).includes(key)
+                  ? exerciseForm.targetMuscles.filter((m: string) => m !== key)
+                  : [...(exerciseForm.targetMuscles || []), key],
+              })
+            }
+          />
 
           {/* demo videos */}
           <span className="axLabel axSectionLabel">Demo Videos</span>

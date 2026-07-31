@@ -18,6 +18,7 @@ export type ExerciseDTO = {
   movementPatternCn: string;
   primaryMuscles: string;
   primaryMusclesCn: string;
+  targetMuscles: string[];
   technicalInstructionsCn: string;
   coachingCuesCn: string;
   commonMistakesCn: string;
@@ -251,6 +252,7 @@ export type WorkoutDetailDTO = {
   commonMistakesCn: string;
   cueNotes: string;
   cueNotesCn: string;
+  targetMuscles: string[];
   order: number;
   sets: string;
   reps: string;
@@ -289,6 +291,7 @@ export type AlternateExerciseDTO = {
   commonMistakesCn: string;
   cueNotes: string;
   cueNotesCn: string;
+  targetMuscles: string[];
 };
 
 export type TemplateSummaryDTO = {

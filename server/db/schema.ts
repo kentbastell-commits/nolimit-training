@@ -59,6 +59,10 @@ export const exercises = pgTable(
     movementPattern: text("movement_pattern"),
     primaryMuscles: text("primary_muscles"),
     primaryMusclesCn: text("primary_muscles_cn"),
+    // Structured muscle-group keys for the anatomy diagram (e.g. "chest",
+    // "front_delts") — separate from primaryMuscles, which stays a free-text
+    // taxonomy string used for search/filtering and isn't a fixed key set.
+    targetMuscles: text("target_muscles").array(),
     equipment: text("equipment").array(),
     difficulty: text("difficulty"),
     trainingQuality: text("training_quality"),

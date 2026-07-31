@@ -33,6 +33,7 @@ function rowToDto(r: Row): ExerciseDTO {
     movementPatternCn: "",
     primaryMuscles: r.primaryMuscles ?? "",
     primaryMusclesCn: r.primaryMusclesCn ?? "",
+    targetMuscles: r.targetMuscles ?? [],
     technicalInstructionsCn: r.technicalCuesCn ?? "",
     coachingCuesCn: r.coachingCuesCn ?? "",
     commonMistakesCn: r.commonErrorsCn ?? "",
@@ -89,6 +90,7 @@ export async function upsertExercise(
     equipment,
     movementPattern,
     muscleGroup,
+    targetMuscles,
     notes,
     archive,
   } = input;
@@ -120,6 +122,11 @@ export async function upsertExercise(
   }
   if (movementPattern !== undefined) set.movementPattern = movementPattern || null;
   if (muscleGroup !== undefined) set.primaryMuscles = muscleGroup || null;
+  // Explicit [] clears it (the coach unchecked every region) — only a truly
+  // omitted field should leave existing muscles untouched.
+  if (targetMuscles !== undefined) {
+    set.targetMuscles = targetMuscles.length > 0 ? targetMuscles : null;
+  }
 
   // Mirror the old handler's required-field value check: an empty Exercise
   // Name (only reachable on archive-only requests) was a 400 there too.

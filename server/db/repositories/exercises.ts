@@ -15,6 +15,7 @@ export type UpsertExerciseInput = {
   equipment?: string;
   movementPattern?: string;
   muscleGroup?: string;
+  targetMuscles?: string[];
   notes?: string;
   archive?: boolean;
 };
