@@ -60,23 +60,30 @@ npx tsc -b --force && npm run build && npx vitest run --maxWorkers=1
 git push origin main
 git bundle create /tmp/nolimit-deploy.bundle main
 scp /tmp/nolimit-deploy.bundle nolimit-cn:/tmp/nolimit.bundle
-ssh nolimit-cn "cd /opt/nolimit-training && git pull origin main && npm install --no-audit --no-fund && npx drizzle-kit migrate && npx tsc -b --force && npx vite build && pm2 reload ecosystem.config.cjs --only nolimit-training"
+ssh nolimit-cn "cd /opt/nolimit-training && git pull origin main && npm install --no-audit --no-fund && npx drizzle-kit migrate && npx tsc -b --force && npx vite build && pm2 reload ecosystem.config.cjs"
 ```
 
 If the ssh step dies with "Connection closed" mid-build, re-run just that step
 — or run it detached via systemd-run and poll (see the ops note above).
 
-**Cluster mode (since 2026-07-30):** nolimit-training runs as 2 PM2 cluster
-workers via `ecosystem.config.cjs` in the repo root (a crash in one worker no
-longer takes the whole site down, and it spreads load across 2 CPU cores).
-`pm2 reload` (not `restart`) does a rolling reload — one worker at a time, so
-there's no full-outage gap during a deploy. `pm2 list` now shows 2 rows for
-`nolimit-training`; the restart-counter check in Verify below applies to
-EACH row. Never change `pm2 restart nolimit-training` back to a bare
-single-process command — that silently drops back to one instance with no
-redundancy. If `ecosystem.config.cjs` itself changes (e.g. instance count,
-`PG_POOL_MAX`), `pm2 reload` picks up the new file automatically since it's
-referenced by path each deploy.
+**Redundancy (since 2026-07-30/31):** nolimit-training runs as TWO independent
+PM2 apps — `nolimit-training` (port 3001) and `nolimit-training-2` (port
+3002), both defined in `ecosystem.config.cjs` in the repo root — with nginx's
+`nolimit_backend` upstream (in `/etc/nginx/conf.d/nolimit-training.conf`)
+load-balancing between them. A crash in one is invisible to users (nginx's
+default `proxy_next_upstream` retries the other backend transparently) and
+load spreads across 2 CPU cores. `pm2 reload ecosystem.config.cjs` (no
+`--only`, so it reloads BOTH apps) does a rolling reload — one at a time, so
+there's no full-outage gap during a deploy. `pm2 list` now shows 2
+`nolimit-training*` rows; the restart-counter check in Verify below applies
+to both.
+
+PM2's own CLUSTER mode (`instances: 2, exec_mode: "cluster"` in one app) was
+tried first and crash-loops this app instantly with no logged error — a real
+incompatibility with running server/index.ts live via `node --import tsx`
+rather than a pre-built script. Don't reintroduce it without solving that
+first; the two-independent-processes-behind-nginx shape above is what's
+actually deployed and verified working.
 
 `drizzle-kit migrate` is idempotent (prod tracks applied migrations in
 `drizzle.__drizzle_migrations`) — safe on every deploy, and REQUIRED whenever
@@ -136,7 +143,8 @@ Use the target's own ssh alias (`nolimit-cn` for nolimit, `nolimit` for kangfu).
 4. `ssh <alias> "pm2 list | grep <app>"` — status `online`, and the restart counter
    (`↺`) did not jump more than +1 (a climbing counter means crash-looping; check
    `pm2 logs <app> --lines 30 --nostream` immediately). nolimit-training runs as
-   2 cluster workers, so this shows 2 rows — check both.
+   2 independent apps (`nolimit-training`, `nolimit-training-2`), so this shows
+   2 rows — check both by name (`pm2 list | grep nolimit-training`).
 5. nolimit only: `ssh nolimit-cn "crontab -l | grep -c healthCheck"` must return
    2 — the 5-minute watchdog and the 06:00 morning report run on the SHANGHAI
    box now. Kent has no ops person, so those two are how he learns about a
@@ -150,9 +158,9 @@ Use the target's own ssh alias (`nolimit-cn` for nolimit, `nolimit` for kangfu).
 - Crash loop after restart: `pm2 logs <app> --lines 50 --nostream`, diagnose; if
   the fix isn't in hand within a few minutes, roll back:
   `ssh nolimit "cd <server dir> && git reset --hard HEAD~1 && npx vite build && pm2 restart <app>"`
-  (nolimit-training: `pm2 reload ecosystem.config.cjs --only nolimit-training`
-  instead of `restart`, same reason as the deploy step) then tell Kent exactly
-  what happened and what's rolled back.
+  (nolimit-training: `pm2 reload ecosystem.config.cjs` instead of `restart`,
+  same reason as the deploy step) then tell Kent exactly what happened and
+  what's rolled back.
 - Feishu API errors on first probe: `code 1254607` is transient throttling — wait
   20s and re-probe before suspecting the deploy.
 
