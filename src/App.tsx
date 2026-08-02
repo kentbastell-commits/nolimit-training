@@ -18909,6 +18909,12 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                     onClick={() => {
                       setLibPickSearch("");
                       setLibPickMode("tests");
+                      // The test library only loads lazily elsewhere (drawer,
+                      // client view) — the builder must fetch it itself or
+                      // this list is empty until the coach visits Tests.
+                      if (savedTestTemplates.length === 0 && !testTemplatesLoading) {
+                        void loadTestTemplates();
+                      }
                     }}
                   >
                     <Activity size={22} />
@@ -18944,7 +18950,10 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                         autoFocus
                       />
                       <div className="libPickList">
-                        {pool.length === 0 && (
+                        {pool.length === 0 && testTemplatesLoading && (
+                          <p className="mbHint">Loading tests…</p>
+                        )}
+                        {pool.length === 0 && !testTemplatesLoading && (
                           <p className="mbHint">
                             No test batteries yet. Create one in the Tests tab.
                           </p>
