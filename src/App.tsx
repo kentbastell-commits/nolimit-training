@@ -20599,13 +20599,6 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                   </span>
                 </div>
 
-                {technicalCueExercise.targetMuscles &&
-                  technicalCueExercise.targetMuscles.length > 0 && (
-                    <MuscleDiagram
-                      selected={technicalCueExercise.targetMuscles}
-                    />
-                  )}
-
                 {parseExerciseCueSections(
                   localizedExerciseNotes(technicalCueExercise)
                 ).length > 0 ? (
@@ -20626,6 +20619,13 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                 ) : (
                   <p>{t("noTechnicalCues")}</p>
                 )}
+
+                {technicalCueExercise.targetMuscles &&
+                  technicalCueExercise.targetMuscles.length > 0 && (
+                    <MuscleDiagram
+                      selected={technicalCueExercise.targetMuscles}
+                    />
+                  )}
               </div>
 
               <div className="modalActions">
