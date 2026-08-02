@@ -64,6 +64,14 @@ data between them, never "borrow" a table ID across products.
   migration path and the verified record of live Feishu column names), and
   `docs/feishu-base-reference.md` as history. The Feishu base is a frozen
   read-only mirror — never write to it expecting effects.
+- **Test days in programs (nolimit, since 2026-08-02)**: a placed test is ONE
+  `workout_templates` row with `test_template_id` set and NO exercise fields —
+  so never assume every template row has an exercise, and never validate
+  "session must have exercises" without excepting `testTemplateId` (both save
+  handlers already do). On assign, every `/api/assignProgram` path splits these
+  into `assigned_tests` rows (the content-assignments stream), not assigned
+  workouts — a new assign path must carry `testTemplateId` through or test days
+  silently vanish for that path.
 - **Dates (nolimit pg)**: `scheduled_date` and friends are epoch-ms meaning
   "the start of that day in China time". Convert a `YYYY-MM-DD` string with
   `dayStartMs()` from `server/db/pg/_util.ts` — never `new Date(str)` (UTC
@@ -563,8 +571,10 @@ Ask Kent first, always:
 - deleting or renaming existing Feishu tables/columns, or bulk-deleting records
 - anything that messages real clients/patients (WeChat, email, notifications)
 - anything that spends money or touches payments/Stripe/orders
-- deploying to production — **only deploy when he says deploy**; otherwise commit
-  and end with the deploy command
+- ~~deploying to production~~ — Kent granted standing auto-deploy permission
+  2026-08-02 ("deploy automatically from now on"): after the full local gate
+  passes, run the /deploy flow without asking and report what went live.
+  Never deploy past a red gate; kangfu still requires an explicit ask.
 - schema/architecture pivots (e.g. starting the Postgres cutover, merging
   `postgres-migration`)
 - anything touching the other product's data or credentials
