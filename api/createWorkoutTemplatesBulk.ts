@@ -30,11 +30,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           error: "Each session needs week, day, and sessionName",
         });
       }
-      if (!Array.isArray(s.exercises) || s.exercises.length === 0) {
+      // A test day is a valid exercise-less session — it links a test battery
+      // instead of exercises. Everything else still needs at least one.
+      if (
+        (!Array.isArray(s.exercises) || s.exercises.length === 0) &&
+        !s.testTemplateId
+      ) {
         return res.status(400).json({
           error: `Session "${s.sessionName}" has no exercises`,
         });
       }
+      if (!Array.isArray(s.exercises)) s.exercises = [];
     }
 
     const result = await createWorkoutTemplatesBulk(req.body);

@@ -3717,6 +3717,19 @@
   background: rgba(212, 175, 55, 0.05) !important;
   cursor: default;
 }
+/* Test-day card: a placed physical test (no exercises). Distinct violet
+   accent so it never reads as an empty workout session. */
+.programGrid .programGridCard.gridCardTest {
+  border-left: 3px solid #7c5cd6 !important;
+  background: #f6f3fc !important;
+}
+.programGrid .gridCardTestMeta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #6a4fc0;
+  font-weight: 700;
+}
 .programGrid .programGridCardName {
   font-size: 15px;
   font-weight: 800;

@@ -145,6 +145,66 @@ describe("api/assignProgram (postgres)", () => {
     expect(assigned).toHaveLength(2);
     expect(new Set(assigned.map((a) => a.client_id))).toEqual(new Set(["CL-9001", "CL-9002"]));
   });
+
+  it("turns a program's test days into assigned tests, not workouts", async () => {
+    await pool.query(
+      "insert into test_templates (test_template_id, name) values ('TEST-100', '2000m Row Erg')"
+    );
+
+    const res = await post(assignProgramHandler, {
+      clientRecordId: "CL-9001",
+      programRecordId: "PR-1001",
+      scheduledWorkouts: [
+        workout(1, 1),
+        {
+          week: 1,
+          day: 3,
+          sessionName: "2000m Row Erg",
+          sessionType: "Test",
+          scheduledDate: "2026-08-05",
+          testTemplateId: "TEST-100",
+        },
+      ],
+    });
+    expect(res.statusCode).toBe(200);
+
+    // The workout stream gets exactly the real session…
+    const workouts = await rows("select session_name from assigned_workouts");
+    expect(workouts).toHaveLength(1);
+    expect(workouts[0].session_name).toBe("W1D1");
+    // …and the test day lands in the stream the portal's test flow reads.
+    const tests = await rows(
+      "select test_template_id, client_id, client_code, assigned_date from assigned_tests"
+    );
+    expect(tests).toHaveLength(1);
+    expect(tests[0].test_template_id).toBe("TEST-100");
+    expect(tests[0].client_id).toBe("CL-9001");
+    expect(tests[0].client_code).toBe("CL-9001");
+    expect(Number(tests[0].assigned_date)).toBeGreaterThan(0);
+  });
+
+  it("assigns a tests-only program without inserting zero workout rows", async () => {
+    await pool.query(
+      "insert into test_templates (test_template_id, name) values ('TEST-100', '2000m Row Erg')"
+    );
+
+    const res = await post(assignProgramHandler, {
+      clientRecordId: "CL-9001",
+      programRecordId: "PR-1001",
+      scheduledWorkouts: [
+        {
+          week: 1,
+          day: 1,
+          sessionName: "2000m Row Erg",
+          scheduledDate: "2026-08-05",
+          testTemplateId: "TEST-100",
+        },
+      ],
+    });
+    expect(res.statusCode).toBe(200);
+    expect(await rows("select 1 from assigned_workouts")).toHaveLength(0);
+    expect(await rows("select 1 from assigned_tests")).toHaveLength(1);
+  });
 });
 
 describe("api/deleteRecord (postgres)", () => {

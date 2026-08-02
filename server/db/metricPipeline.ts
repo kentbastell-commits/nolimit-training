@@ -52,6 +52,21 @@ export function calculateMetric(params: {
     return Math.round((weight * (1 + reps / 30)) * 10) / 10;
   }
 
+  // Rowing-erg split: average pace per 500 m from a distance + time result
+  // (e.g. "2000 m in 7:24" → 1.85 min/500m). Must run BEFORE the generic
+  // pace branch — the method name "Row Pace (min/500m)" contains "pace" too.
+  if (method.includes("500")) {
+    const seconds = parseDurationSeconds(sourceText);
+    if (!seconds) return null;
+
+    const mMatch = sourceText.match(/(\d+(?:\.\d+)?)\s*m(?![a-z/])/i);
+    const distanceMeters = mMatch ? Number(mMatch[1]) : 2000;
+    if (!distanceMeters) return null;
+
+    const minutesPer500 = seconds / 60 / (distanceMeters / 500);
+    return Math.round(minutesPer500 * 100) / 100;
+  }
+
   if (method.includes("pace") || method.includes("min/km")) {
     const seconds = parseDurationSeconds(sourceText);
     if (!seconds) return null;
@@ -190,7 +205,10 @@ export function calculateMetric(params: {
 // Metrics table has no calc-method column.
 export function deriveMetricKind(calculationMethod?: string): string {
   const methodLower = String(calculationMethod || "").toLowerCase();
-  return methodLower.includes("epley") || methodLower.includes("brzycki")
+  // "500" before "pace": the rowing method name contains both.
+  return methodLower.includes("500")
+    ? "Row Pace"
+    : methodLower.includes("epley") || methodLower.includes("brzycki")
     ? "Predicted 1RM"
     : methodLower.includes("pace") || methodLower.includes("min/km")
       ? "Pace"
@@ -246,6 +264,8 @@ export function deriveMetricUnit(params: {
     ? wantsMetersPerSecond
       ? "m/s"
       : "km/h"
+    : metricKind === "Row Pace"
+      ? "min/500m"
     : metricKind === "Pace"
       ? "min/km"
       : metricKind === "VO2max"

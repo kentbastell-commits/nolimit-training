@@ -1,0 +1,1 @@
+ALTER TABLE "workout_templates" ADD COLUMN "test_template_id" text;

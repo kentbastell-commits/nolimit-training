@@ -306,6 +306,9 @@ export type TemplateSummaryDTO = {
   estimatedDuration: string;
   intensity: string;
   isSingleWorkout: boolean;
+  // Set on a test-day marker row (no exercise fields) — links the session to
+  // a test_templates battery instead of exercises.
+  testTemplateId?: string;
   exerciseName: string;
   exerciseId: string;
   // The linked library record id, so the builder can re-save without a

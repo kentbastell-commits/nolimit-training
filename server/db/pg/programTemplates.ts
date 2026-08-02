@@ -34,6 +34,7 @@ export async function listAllTemplateRows(): Promise<TemplateRow[]> {
       estimatedDuration: str(r.estimatedDuration),
       intensity: str(r.intensity),
       isSingleWorkout: r.isSingleWorkout ?? false,
+      testTemplateId: str(r.testTemplateId),
       exerciseName: str(r.exerciseName),
       exerciseId: str(r.exerciseId),
       // No record ids on Postgres — the business code IS the identifier.
@@ -89,6 +90,41 @@ async function extendKnownWithAlternates(
   for (const r of rows) knownSet.add(r.id);
 }
 
+// A test day carries no exercises — it is stored as ONE marker row whose
+// test_template_id links the session to a test battery. Readers already
+// tolerate exercise-less rows (they create the session and skip the exercise).
+function buildTestMarkerRow(
+  input: Pick<
+    CreateWorkoutTemplateInput,
+    | "programRecordId"
+    | "week"
+    | "day"
+    | "sessionName"
+    | "sessionNameCn"
+    | "sessionType"
+    | "sessionGoal"
+    | "sessionNotes"
+    | "intensity"
+    | "isSingleWorkout"
+  > & { testTemplateId: string }
+): Insert {
+  return {
+    templateId: mintId("WT"),
+    programId: input.programRecordId,
+    testTemplateId: input.testTemplateId,
+    week: Number(input.week),
+    day: Number(input.day),
+    sessionName: input.sessionName,
+    sessionNameCn: String(input.sessionNameCn || ""),
+    sessionType: String(input.sessionType || "Test"),
+    sessionGoal: String(input.sessionGoal || ""),
+    sessionNotes: String(input.sessionNotes || ""),
+    intensity: String(input.intensity || "Moderate"),
+    isSingleWorkout: Boolean(input.isSingleWorkout),
+    status: "Active",
+  };
+}
+
 export async function createWorkoutTemplate(
   input: CreateWorkoutTemplateInput
 ): Promise<HandlerResult> {
@@ -105,8 +141,46 @@ export async function createWorkoutTemplate(
     estimatedDuration,
     intensity,
     isSingleWorkout,
+    testTemplateId,
     exercises: exerciseInputs,
   } = input;
+
+  if (testTemplateId && exerciseInputs.length === 0) {
+    const markerRow = buildTestMarkerRow({
+      programRecordId,
+      week,
+      day,
+      sessionName,
+      sessionNameCn,
+      sessionType,
+      sessionGoal,
+      sessionNotes,
+      intensity,
+      isSingleWorkout,
+      testTemplateId: String(testTemplateId),
+    });
+    try {
+      await db.insert(workoutTemplates).values([markerRow]);
+    } catch (e: any) {
+      return {
+        status: 500,
+        body: {
+          error: "Failed to create workout template records",
+          message: e?.message || String(e),
+        },
+      };
+    }
+    return {
+      status: 200,
+      body: {
+        success: true,
+        recordsCreated: 1,
+        programId,
+        programRecordId,
+        childWrites: {},
+      },
+    };
+  }
 
   // Validate every exercise reference against the library in one query. The
   // FK is enforced here, and the Feishu impl throws the same message when a
@@ -314,6 +388,27 @@ export async function createWorkoutTemplatesBulk(input: {
   const metas: ParsedMeta[] = [];
   const templateRows: Insert[] = [];
   for (const session of sessions) {
+    if (session.testTemplateId && session.exercises.length === 0) {
+      // Test day: single marker row, no exercise/meta processing. metas stays
+      // aligned with templateRows for the child-table pass below.
+      templateRows.push(
+        buildTestMarkerRow({
+          programRecordId,
+          week: session.week,
+          day: session.day,
+          sessionName: session.sessionName,
+          sessionNameCn: session.sessionNameCn,
+          sessionType: session.sessionType,
+          sessionGoal: session.sessionGoal,
+          sessionNotes: session.sessionNotes,
+          intensity: session.intensity,
+          isSingleWorkout: session.isSingleWorkout,
+          testTemplateId: String(session.testTemplateId),
+        })
+      );
+      metas.push(parseTemplateMeta(""));
+      continue;
+    }
     session.exercises.forEach((exercise: ProgramExerciseInput, index: number) => {
       const exerciseLinkId =
         (exercise.exerciseRecordId && known.has(String(exercise.exerciseRecordId))

@@ -1,6 +1,6 @@
 import { and, eq, gte, inArray, isNull, not, ilike, or, sql } from "drizzle-orm";
 import { db } from "../client.ts";
-import { assignedWorkouts, workoutLogs } from "../schema.ts";
+import { assignedTests, assignedWorkouts, workoutLogs } from "../schema.ts";
 import { dayStartMs, pgErrorMessage, str } from "./_util.ts";
 import type { WorkoutDTO } from "../dto.ts";
 import type {
@@ -103,13 +103,18 @@ function epochOrNull(ms: number): number | null {
 export async function assignProgram(input: AssignProgramInput): Promise<WorkoutWriteResult> {
   const { targetClientIds, programRecordId, scheduledWorkouts } = input;
 
+  // Test days in the program become assigned_tests rows (the parallel calendar
+  // stream the portal's test-taking flow already reads) — never workouts.
+  const testEntries = scheduledWorkouts.filter((w) => w.testTemplateId);
+  const workoutEntries = scheduledWorkouts.filter((w) => !w.testTemplateId);
+
   const mintedIds = await mintAssignedWorkoutIds(
-    targetClientIds.length * scheduledWorkouts.length
+    targetClientIds.length * workoutEntries.length
   );
   let mintIndex = 0;
 
   const rows: Insert[] = targetClientIds.flatMap((cid) =>
-    scheduledWorkouts.map((workout) => {
+    workoutEntries.map((workout) => {
       const row: Insert = {
         assignedWorkoutId: mintedIds[mintIndex++],
         clientId: cid,
@@ -139,12 +144,41 @@ export async function assignProgram(input: AssignProgramInput): Promise<WorkoutW
   );
 
   try {
-    await db.insert(assignedWorkouts).values(rows);
+    if (rows.length > 0) await db.insert(assignedWorkouts).values(rows);
   } catch (e: any) {
     return { success: false, error: pgErrorMessage(e) };
   }
 
-  return { success: true, recordsCreated: rows.length };
+  let testsCreated = 0;
+  if (testEntries.length > 0) {
+    let testCounter = 0;
+    const testRows = targetClientIds.flatMap((cid) =>
+      testEntries.map((workout) => ({
+        assignedTestId: `AT-${Date.now()}-${++testCounter}`,
+        testTemplateId: String(workout.testTemplateId),
+        // On Postgres the CL-… code is both the clients PK and the code column
+        // (mirrors assignContent in pg/contentAssignments.ts).
+        clientId: cid,
+        clientCode: cid,
+        assignedDate: epochOrNull(toLarkDate(workout.scheduledDate)),
+      }))
+    );
+    try {
+      await db.insert(assignedTests).values(testRows);
+      testsCreated = testRows.length;
+    } catch (e: any) {
+      // The workouts are already in; report the partial failure rather than
+      // pretending the whole assign failed.
+      return {
+        success: true,
+        recordsCreated: rows.length,
+        testsCreated: 0,
+        warning: `Workouts assigned but test days failed: ${pgErrorMessage(e)}`,
+      };
+    }
+  }
+
+  return { success: true, recordsCreated: rows.length + testsCreated, testsCreated };
 }
 
 export async function updateAssignedWorkoutDate(

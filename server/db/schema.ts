@@ -247,6 +247,10 @@ export const workoutTemplates = pgTable(
     estimatedDuration: integer("estimated_duration"),
     intensity: text("intensity"),
     isSingleWorkout: boolean("is_single_workout"),
+    // A test day: one marker row per placed test (no exercise rows). Points at
+    // test_templates.test_template_id as plain text — no FK, so deleting a
+    // test battery never blocks on old program placements.
+    testTemplateId: text("test_template_id"),
     exerciseId: text("exercise_id").references(() => exercises.exerciseId),
     exerciseName: text("exercise_name"),
     exerciseOrder: integer("exercise_order"),

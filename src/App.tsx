@@ -1,4 +1,5 @@
 import {
+  Activity,
   BookOpen,
   CalendarDays,
   ChevronDown,
@@ -1720,7 +1721,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   // "Add from Library" flow: choose a single session, or import whole days
   // from another program (week/day checkboxes → placement week).
   const [libPickMode, setLibPickMode] = useState<
-    "choice" | "sessions" | "programs" | "days" | "place"
+    "choice" | "sessions" | "programs" | "days" | "place" | "tests"
   >("choice");
   const [libPickProgram, setLibPickProgram] = useState<Program | null>(null);
   const [libPickSessions, setLibPickSessions] = useState<ProgramSession[]>([]);
@@ -4950,6 +4951,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
             estimatedDuration: template.estimatedDuration || "",
             intensity: template.intensity || "Moderate",
             scheduledDate: addDays(savedAssignStartDate, offsetDays),
+            testTemplateId: template.testTemplateId || "",
           });
         }
       });
@@ -5009,6 +5011,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
             estimatedDuration: workout.estimatedDuration,
             intensity: workout.intensity,
             scheduledDate: workout.scheduledDate,
+            testTemplateId: workout.testTemplateId || "",
           })),
         }),
       });
@@ -5066,6 +5069,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
             estimatedDuration: t.estimatedDuration || "",
             intensity: t.intensity || "Moderate",
             isSingleWorkout: Boolean(t.isSingleWorkout),
+            testTemplateId: t.testTemplateId || "",
             exercises: [],
           });
         }
@@ -5314,6 +5318,35 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     } finally {
       setLibPickLoadingId("");
     }
+  };
+
+  // "Add from Library" → "Add Test": place a test battery on the target day.
+  // A test day is a session with no exercises and a testTemplateId — on
+  // assign it becomes an assigned test on the athlete's calendar.
+  const insertTestFromLibrary = (test: SavedTestTemplate) => {
+    if (!libPickTarget) return;
+    const { w, d } = libPickTarget;
+    setProgramSessions((current) => [
+      ...current,
+      {
+        localId: `${Date.now()}-${Math.random()}`,
+        week: String(w),
+        day: String(d),
+        sessionName: test.name,
+        sessionNameCn: test.nameCn || "",
+        sessionType: "Test",
+        sessionGoal: "",
+        sessionNotes: "",
+        estimatedDuration: "",
+        intensity: "Moderate",
+        isSingleWorkout: false,
+        testTemplateId: test.testTemplateId,
+        exercises: [],
+      },
+    ]);
+    setBuilderSaveStatus("dirty");
+    notify(`Placed test "${test.name}" on Week ${w}, Day ${d}.`);
+    setLibPickTarget(null);
   };
 
   const loadSavedProgramIntoBuilder = async (
@@ -5687,6 +5720,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
             estimatedDuration: template.estimatedDuration || "",
             intensity: template.intensity || "Moderate",
             scheduledDate: addDays(assignStartDate, offsetDays),
+            testTemplateId: template.testTemplateId || "",
           });
         }
       });
@@ -6009,6 +6043,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
             estimatedDuration: tpl.estimatedDuration || "",
             intensity: tpl.intensity || "Moderate",
             scheduledDate: addDays(teamAssignStartDate, offsetDays),
+            testTemplateId: tpl.testTemplateId || "",
           });
         }
       });
@@ -6033,6 +6068,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
             estimatedDuration: w.estimatedDuration,
             intensity: w.intensity,
             scheduledDate: w.scheduledDate,
+            testTemplateId: w.testTemplateId || "",
           })),
         }),
       });
@@ -6168,6 +6204,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
           estimatedDuration: tpl.estimatedDuration || "",
           intensity: tpl.intensity || "Moderate",
           scheduledDate: addDays(startDate, offsetDays),
+          testTemplateId: tpl.testTemplateId || "",
         });
       }
     });
@@ -6192,6 +6229,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
           estimatedDuration: w.estimatedDuration,
           intensity: w.intensity,
           scheduledDate: w.scheduledDate,
+          testTemplateId: w.testTemplateId || "",
         })),
       }),
     });
@@ -6657,6 +6695,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
             estimatedDuration: workout.estimatedDuration,
             intensity: workout.intensity,
             scheduledDate: workout.scheduledDate,
+            testTemplateId: workout.testTemplateId || "",
           })),
         }),
       });
@@ -10684,6 +10723,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                 estimatedDuration: session.estimatedDuration,
                 intensity: session.intensity,
                 isSingleWorkout: session.isSingleWorkout,
+                testTemplateId: session.testTemplateId || "",
                 exercises: session.exercises.map((exercise, index) => ({
                   ...exercise,
                   order: Number(exercise.order) || index + 1,
@@ -10730,6 +10770,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                 estimatedDuration: session.estimatedDuration,
                 intensity: session.intensity,
                 isSingleWorkout: session.isSingleWorkout,
+                testTemplateId: session.testTemplateId || "",
                 exercises: session.exercises.map((exercise, index) => ({
                   ...exercise,
                   order: Number(exercise.order) || index + 1,
@@ -13423,6 +13464,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
           estimatedDuration: template.estimatedDuration || "",
           intensity: template.intensity || "Moderate",
           scheduledDate: addDays(startDate, offsetDays),
+          testTemplateId: template.testTemplateId || "",
         });
       }
     });
@@ -13795,6 +13837,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
             sessionName: workout.sessionName,
             sessionNameCn: workout.sessionNameCn,
             scheduledDate: workout.scheduledDate,
+            testTemplateId: workout.testTemplateId || "",
           })),
         }),
       });
@@ -16464,6 +16507,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     if (
       descriptor.includes("2km") ||
       descriptor.includes("2000") ||
+      descriptor.includes("min/500") ||
       descriptor.includes("aerobic") ||
       descriptor.includes("mas") ||
       descriptor.includes("threshold") ||
@@ -18809,6 +18853,8 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                   {libPickMode === "choice" && "What do you want to add?"}
                   {libPickMode === "sessions" &&
                     `Session → Week ${libPickTarget.w} · Day ${libPickTarget.d}`}
+                  {libPickMode === "tests" &&
+                    `Test → Week ${libPickTarget.w} · Day ${libPickTarget.d}`}
                   {libPickMode === "programs" && "Pick a program to import from"}
                   {libPickMode === "days" &&
                     (libPickProgram?.programName || "Pick the days")}
@@ -18857,8 +18903,86 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                       Ankle series into this one.
                     </small>
                   </button>
+                  <button
+                    type="button"
+                    className="libPickChoiceCard"
+                    onClick={() => {
+                      setLibPickSearch("");
+                      setLibPickMode("tests");
+                    }}
+                  >
+                    <Activity size={22} />
+                    <strong>Add Test</strong>
+                    <small>
+                      Schedule a physical test (e.g. 2000m Row Erg) on Week{" "}
+                      {libPickTarget.w}, Day {libPickTarget.d}.
+                    </small>
+                  </button>
                 </div>
               )}
+
+              {libPickMode === "tests" &&
+                (() => {
+                  const pool = savedTestTemplates.filter(
+                    (test) => test.status !== "Archived"
+                  );
+                  const q = libPickSearch.trim().toLowerCase();
+                  const shown = q
+                    ? pool.filter((test) =>
+                        `${test.name} ${test.category || ""}`
+                          .toLowerCase()
+                          .includes(q)
+                      )
+                    : pool;
+                  return (
+                    <>
+                      <input
+                        className="libPickSearch"
+                        placeholder="Search tests…"
+                        value={libPickSearch}
+                        onChange={(e) => setLibPickSearch(e.target.value)}
+                        autoFocus
+                      />
+                      <div className="libPickList">
+                        {pool.length === 0 && (
+                          <p className="mbHint">
+                            No test batteries yet. Create one in the Tests tab.
+                          </p>
+                        )}
+                        {pool.length > 0 && shown.length === 0 && (
+                          <p className="mbHint">
+                            Nothing matches “{libPickSearch.trim()}”.
+                          </p>
+                        )}
+                        {shown.map((test) => (
+                          <button
+                            key={test.testTemplateId}
+                            type="button"
+                            className="libPickCard"
+                            onClick={() => insertTestFromLibrary(test)}
+                          >
+                            <span className="libPickCardIcon">
+                              <Activity size={19} />
+                            </span>
+                            <span className="libPickCardInfo">
+                              <strong>{test.name}</strong>
+                              <small>
+                                {[
+                                  test.category,
+                                  `${test.items.length} item${
+                                    test.items.length === 1 ? "" : "s"
+                                  }`,
+                                ]
+                                  .filter(Boolean)
+                                  .join(" · ")}
+                              </small>
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  );
+                })()}
 
               {(libPickMode === "sessions" || libPickMode === "programs") &&
                 (() => {

@@ -6,7 +6,7 @@ import { Fragment, useEffect, useState } from "react";
 import CoachProgramsLanding from "./CoachProgramsLanding";
 import ProgramDetailPanel from "./ProgramDetailPanel";
 import PortalToApp from "./PortalToApp";
-import { BookOpen, ChevronDown, ChevronLeft, ChevronUp, ChevronsLeftRight, ClipboardList, Copy, Dumbbell, Eye, Feather, FlaskConical, GripVertical, HeartPulse, Link2, MoreVertical, Pencil, Plus, RefreshCw, Save, Settings, Shuffle, Tag, Target, Trash2, Trophy, X } from "lucide-react";
+import { Activity, BookOpen, ChevronDown, ChevronLeft, ChevronUp, ChevronsLeftRight, ClipboardList, Copy, Dumbbell, Eye, Feather, FlaskConical, GripVertical, HeartPulse, Link2, MoreVertical, Pencil, Plus, RefreshCw, Save, Settings, Shuffle, Tag, Target, Trash2, Trophy, X } from "lucide-react";
 import type { Program, ProgramSession } from "./appCore";
 import { getWorkoutColorClass, glanceRepsToken, normalizeDate } from "./appCore";
 import { TEST_CATEGORIES, testCategoryLabelKey } from "./testVisuals";
@@ -2203,7 +2203,7 @@ export default function CoachBuilderPage({
                                           !s.__draft
                                             ? " calCardEditing"
                                             : ""
-                                        }${s.__draft ? " gridCardDraft" : ""}${
+                                        }${s.testTemplateId ? " gridCardTest" : ""}${s.__draft ? " gridCardDraft" : ""}${
                                           copiedSession?.mode === "cut" &&
                                           copiedSession.session.localId ===
                                             s.localId
@@ -2234,6 +2234,10 @@ export default function CoachBuilderPage({
                                           setProgramGridDrop(null);
                                         }}
                                         onClick={() => {
+                                          // A test day has no exercises to
+                                          // edit — the session editor would
+                                          // open empty and confuse.
+                                          if (s.testTemplateId) return;
                                           if (s.__draft) {
                                             setSessionEditorOpen(true);
                                           } else {
@@ -2253,6 +2257,7 @@ export default function CoachBuilderPage({
                                             </span>
                                           ) : (
                                             <div className="programGridCardActions">
+                                              {!s.testTemplateId && (
                                               <button
                                                 type="button"
                                                 className="iconActionButton"
@@ -2264,6 +2269,7 @@ export default function CoachBuilderPage({
                                               >
                                                 <Pencil size={13} />
                                               </button>
+                                              )}
                                               <button
                                                 type="button"
                                                 className="iconActionButton"
@@ -2290,7 +2296,11 @@ export default function CoachBuilderPage({
                                           )}
                                         </div>
 
-                                        {s.exercises.length === 0 ? (
+                                        {s.testTemplateId ? (
+                                          <span className="programGridCardMeta gridCardTestMeta">
+                                            <Activity size={12} /> Physical Test
+                                          </span>
+                                        ) : s.exercises.length === 0 ? (
                                           <span className="programGridCardMeta">
                                             No exercises yet
                                           </span>
@@ -5288,6 +5298,7 @@ export default function CoachBuilderPage({
                                       <option>Max Aerobic Speed (m/s)</option>
                                       <option>30-15 IFT (VIFT)</option>
                                       <option>Run Pace (min/km)</option>
+                                      <option>Row Pace (min/500m)</option>
                                       <option>Lactate Threshold</option>
                                       <option>VO2max (Cooper 12-min)</option>
                                       <option>VO2max (Yo-Yo IR1)</option>

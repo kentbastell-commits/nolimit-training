@@ -26,11 +26,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
-    if (!Array.isArray(exercises) || exercises.length === 0) {
+    // A test day is a valid exercise-less session (linked test battery).
+    if (
+      (!Array.isArray(exercises) || exercises.length === 0) &&
+      !req.body.testTemplateId
+    ) {
       return res.status(400).json({
         error: "No exercises provided",
       });
     }
+    if (!Array.isArray(req.body.exercises)) req.body.exercises = [];
 
     const result = await createWorkoutTemplate(req.body);
     return res.status(result.status).json(result.body);

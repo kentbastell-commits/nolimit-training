@@ -631,6 +631,9 @@ export type ProgramSession = {
   estimatedDuration?: string;
   intensity?: string;
   isSingleWorkout?: boolean;
+  // Set when this "session" is a placed test day — links the test battery the
+  // athlete takes; such sessions carry no exercises.
+  testTemplateId?: string;
   exercises: ProgramExercise[];
 };
 
@@ -646,6 +649,8 @@ export type AssignableWorkout = {
   estimatedDuration?: string;
   intensity?: string;
   scheduledDate: string;
+  // Test day → assign creates an assigned test, not an assigned workout.
+  testTemplateId?: string;
 };
 
 export type Subscription = {
@@ -693,6 +698,8 @@ export type SavedProgramTemplate = {
   estimatedDuration?: string;
   intensity?: string;
   isSingleWorkout?: boolean;
+  // Test-day marker row: the linked test battery (no exercise fields).
+  testTemplateId?: string;
   exerciseName: string;
   exerciseId: string;
   exerciseRecordId?: string;

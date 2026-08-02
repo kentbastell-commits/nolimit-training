@@ -34,6 +34,9 @@ export type ScheduledWorkoutInput = {
   estimatedDuration?: string;
   intensity?: string;
   scheduledDate: string;
+  // Present on a program's test days: assign creates an assigned_tests row
+  // (the portal's test-taking stream) instead of an assigned workout.
+  testTemplateId?: string;
 };
 
 export type AssignProgramInput = {
@@ -70,6 +73,11 @@ export async function assignProgram(
   if (result.success) {
     invalidateCache("workouts");
     invalidateCache("analytics");
+    // Test days land in assigned_tests, which the calendar reads through the
+    // content-assignments cache.
+    if (input.scheduledWorkouts.some((w) => w.testTemplateId)) {
+      invalidateCache("contentAssignments");
+    }
   }
   return result;
 }

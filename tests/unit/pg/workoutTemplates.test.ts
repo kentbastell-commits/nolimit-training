@@ -261,6 +261,41 @@ describe("api/createWorkoutTemplatesBulk (postgres)", () => {
     expect(row.coaching_notes).toContain("Easy pace");
   });
 
+  it("saves a test day as a single marker row with no exercises", async () => {
+    const res = await post(
+      bulkHandler,
+      bulkBody([
+        session(1, 1),
+        {
+          week: 1,
+          day: 3,
+          sessionName: "2000m Row Erg",
+          sessionType: "Test",
+          testTemplateId: "TEST-100",
+          exercises: [],
+        },
+      ])
+    );
+    expect(res.statusCode).toBe(200);
+
+    const marker = await rows(
+      "select session_name, test_template_id, exercise_id from workout_templates where day = 3"
+    );
+    expect(marker).toHaveLength(1);
+    expect(marker[0].test_template_id).toBe("TEST-100");
+    expect(marker[0].exercise_id).toBeNull();
+    // The real session on day 1 is untouched.
+    expect(await rows("select 1 from workout_templates")).toHaveLength(2);
+  });
+
+  it("still 400s an empty session that is NOT a test day", async () => {
+    const res = await post(
+      bulkHandler,
+      bulkBody([{ week: 1, day: 2, sessionName: "Empty", exercises: [] }])
+    );
+    expect(res.statusCode).toBe(400);
+  });
+
   it("reports zero written for an empty exercise set rather than failing", async () => {
     // Handler-level validation catches the empty case, so the repository's
     // own zero-row path is only reachable directly; assert the handler's

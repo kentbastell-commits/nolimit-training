@@ -19,6 +19,8 @@ export type CreateWorkoutTemplateInput = {
   estimatedDuration?: any;
   intensity?: any;
   isSingleWorkout?: any;
+  // Marks a test day (no exercises) — the TT-… battery this session runs.
+  testTemplateId?: string;
   exercises: ProgramExerciseInput[];
 };
 
@@ -66,6 +68,7 @@ export async function listProgramTemplates(
         estimatedDuration: row.estimatedDuration,
         intensity: row.intensity,
         isSingleWorkout: row.isSingleWorkout,
+        testTemplateId: row.testTemplateId || "",
         exerciseName: row.exerciseName,
         exerciseId: row.exerciseId,
         exerciseRecordId: row.exerciseRecordId,
