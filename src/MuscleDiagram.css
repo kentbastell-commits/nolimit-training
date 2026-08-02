@@ -29,19 +29,31 @@
   color: #f5f1e8;
 }
 
-/* react-body-highlighter renders its own polygons with inline fill/cursor
-   styles — .rbh/.rbh-wrapper are its class names, not ours. It always sets
-   cursor:pointer inline regardless of whether onClick is wired up, so the
-   read-only view (no onToggle passed) needs an !important override or every
-   region looks clickable when nothing happens on click. */
-.muscleDiagram .rbh-wrapper {
-  margin: 0 auto;
+.muscleDiagramSvg {
+  width: 100%;
+  max-width: 168px;
+  height: auto;
 }
-.muscleDiagram .rbh polygon {
-  transition: fill 0.15s ease;
+.muscleDiagramOutline {
+  pointer-events: none;
 }
-.muscleDiagram.readOnly .rbh polygon {
-  cursor: default !important;
+.muscleDiagramRegion {
+  fill: #d4af37;
+  fill-opacity: 0;
+  stroke: none;
+  transition: fill-opacity 0.15s ease;
+}
+.muscleDiagramRegion.isInteractive {
+  cursor: pointer;
+}
+.muscleDiagramRegion.isInteractive:hover {
+  fill-opacity: 0.35;
+}
+.muscleDiagramRegion.isSelected {
+  fill-opacity: 0.72;
+}
+.muscleDiagramRegion.isSelected.isInteractive:hover {
+  fill-opacity: 0.85;
 }
 
 .muscleDiagramHint {

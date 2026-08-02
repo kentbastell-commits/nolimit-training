@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import Model, { type IExerciseData, type IMuscleStats } from "react-body-highlighter";
-import { MUSCLE_LABELS } from "./muscleGroups";
+import { ANTERIOR, POSTERIOR, MUSCLE_LABELS, BODY_VIEWBOX } from "./muscleGroups";
+import outlineFront from "./assets/muscleOutlineFront.png";
+import outlineBack from "./assets/muscleOutlineBack.png";
 import "./MuscleDiagram.css";
 
 interface MuscleDiagramProps {
@@ -18,48 +19,74 @@ export default function MuscleDiagram({
   className,
 }: MuscleDiagramProps) {
   const { t, i18n } = useTranslation();
-  const [view, setView] = useState<"anterior" | "posterior">("anterior");
+  const [view, setView] = useState<"front" | "back">("front");
   const interactive = Boolean(onToggle);
   const isZh = i18n.language?.startsWith("zh");
-
-  // The library is built around "exercises worked these muscles" (with a
-  // frequency-based color ramp) rather than a plain multi-select — a single
-  // synthetic entry with every selected muscle at frequency 1 gets the same
-  // toggle-picker behavior we need, using only highlightedColors[0].
-  const data: IExerciseData[] = [
-    { name: "target-muscles", muscles: selected as IExerciseData["muscles"] },
-  ];
+  const selectedSet = new Set(selected);
+  const regions = view === "front" ? ANTERIOR : POSTERIOR;
+  const outline = view === "front" ? outlineFront : outlineBack;
 
   return (
     <div className={`muscleDiagram ${interactive ? "" : "readOnly"} ${className || ""}`}>
       <div className="muscleDiagramViewToggle">
         <button
           type="button"
-          className={view === "anterior" ? "active" : ""}
-          onClick={() => setView("anterior")}
+          className={view === "front" ? "active" : ""}
+          onClick={() => setView("front")}
         >
           {t("muscleDiagramFront")}
         </button>
         <button
           type="button"
-          className={view === "posterior" ? "active" : ""}
-          onClick={() => setView("posterior")}
+          className={view === "back" ? "active" : ""}
+          onClick={() => setView("back")}
         >
           {t("muscleDiagramBack")}
         </button>
       </div>
-      <Model
-        type={view}
-        data={data}
-        bodyColor="#d9d3c2"
-        highlightedColors={["#d4af37"]}
-        style={{ width: "100%", maxWidth: 190, margin: "0 auto" }}
-        onClick={
-          interactive
-            ? ({ muscle }: IMuscleStats) => onToggle?.(muscle)
-            : undefined
-        }
-      />
+      <svg
+        className="muscleDiagramSvg"
+        viewBox={BODY_VIEWBOX}
+        role="img"
+        aria-label={t("muscleDiagramAriaLabel")}
+      >
+        <image
+          href={outline}
+          x="0"
+          y="0"
+          width="100"
+          height="290"
+          preserveAspectRatio="none"
+          className="muscleDiagramOutline"
+        />
+        {regions.map((region) =>
+          region.svgPoints.map((points, i) => {
+            const isSelected = selectedSet.has(region.muscle);
+            const cls =
+              "muscleDiagramRegion" +
+              (isSelected ? " isSelected" : "") +
+              (interactive ? " isInteractive" : "");
+            return (
+              <polygon
+                key={`${region.muscle}-${i}`}
+                points={points}
+                className={cls}
+                onClick={
+                  interactive ? () => onToggle?.(region.muscle) : undefined
+                }
+              >
+                <title>
+                  {MUSCLE_LABELS[region.muscle]
+                    ? isZh
+                      ? MUSCLE_LABELS[region.muscle].cn
+                      : MUSCLE_LABELS[region.muscle].en
+                    : region.muscle}
+                </title>
+              </polygon>
+            );
+          })
+        )}
+      </svg>
       {interactive && (
         <p className="muscleDiagramHint">{t("muscleDiagramHint")}</p>
       )}

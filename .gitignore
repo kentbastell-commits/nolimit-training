@@ -57,5 +57,11 @@ branding/Source vector files/*
 etl-data.json
 *.dump.json
 public/pose/
+
+# Purchased anatomy vector pack (33MB, licensed to Kent personally) — the
+# muscle diagram's shape/coordinate data was extracted from this into
+# src/muscleGroups.ts and src/assets/muscleOutline{Front,Back}.png; those
+# processed outputs ship, this source package stays local only.
+Anatomy Vectors/
 jv-tmp/
 pose-series-*.json
