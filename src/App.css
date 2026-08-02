@@ -9527,6 +9527,15 @@ textarea {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .technicalCueBody {
+    flex-direction: column;
+  }
+
+  .technicalCueDiagramCol {
+    flex-basis: auto;
+    width: 100%;
+  }
+
   .cueDraftActions .outlineButton {
     flex: 1 1 160px;
   }

@@ -20565,66 +20565,70 @@ function App({ onReady }: { onReady?: () => void } = {}) {
               </div>
 
               <div className="technicalCueBody">
-                <div className="exerciseDetailMeta">
-                  <span>
-                    <strong>Category</strong>
-                    {localizeText(
-                      technicalCueExercise.category || "--",
-                      technicalCueExercise.categoryCn || ""
-                    )}
-                  </span>
-                  <span>
-                    <strong>Equipment</strong>
-                    {localizeText(
-                      technicalCueExercise.equipment || "--",
-                      technicalCueExercise.equipmentCn || ""
-                    )}
-                  </span>
-                  <span>
-                    <strong>Pattern</strong>
-                    {localizeText(
-                      technicalCueExercise.movementPattern || "--",
-                      technicalCueExercise.movementPatternCn || ""
-                    )}
-                  </span>
-                  <span>
-                    <strong>Record</strong>
-                    {parseExerciseNotes(technicalCueExercise.notes || "").trackingType}
-                  </span>
-                  <span>
-                    <strong>Limb</strong>
-                    {parseExerciseNotes(technicalCueExercise.notes || "").isUnilateral
-                      ? "Unilateral"
-                      : "Bilateral"}
-                  </span>
-                </div>
-
-                {parseExerciseCueSections(
-                  localizedExerciseNotes(technicalCueExercise)
-                ).length > 0 ? (
-                  <div className="exerciseCueSections">
-                    {parseExerciseCueSections(
-                      localizedExerciseNotes(technicalCueExercise)
-                    ).map((section) => (
-                      <section key={section.title}>
-                        <h3>{section.title}</h3>
-                        <ul>
-                          {section.lines.map((line, index) => (
-                            <li key={`${section.title}-${index}`}>{line}</li>
-                          ))}
-                        </ul>
-                      </section>
-                    ))}
+                <div className="technicalCueMain">
+                  <div className="exerciseDetailMeta">
+                    <span>
+                      <strong>Category</strong>
+                      {localizeText(
+                        technicalCueExercise.category || "--",
+                        technicalCueExercise.categoryCn || ""
+                      )}
+                    </span>
+                    <span>
+                      <strong>Equipment</strong>
+                      {localizeText(
+                        technicalCueExercise.equipment || "--",
+                        technicalCueExercise.equipmentCn || ""
+                      )}
+                    </span>
+                    <span>
+                      <strong>Pattern</strong>
+                      {localizeText(
+                        technicalCueExercise.movementPattern || "--",
+                        technicalCueExercise.movementPatternCn || ""
+                      )}
+                    </span>
+                    <span>
+                      <strong>Record</strong>
+                      {parseExerciseNotes(technicalCueExercise.notes || "").trackingType}
+                    </span>
+                    <span>
+                      <strong>Limb</strong>
+                      {parseExerciseNotes(technicalCueExercise.notes || "").isUnilateral
+                        ? "Unilateral"
+                        : "Bilateral"}
+                    </span>
                   </div>
-                ) : (
-                  <p>{t("noTechnicalCues")}</p>
-                )}
+
+                  {parseExerciseCueSections(
+                    localizedExerciseNotes(technicalCueExercise)
+                  ).length > 0 ? (
+                    <div className="exerciseCueSections">
+                      {parseExerciseCueSections(
+                        localizedExerciseNotes(technicalCueExercise)
+                      ).map((section) => (
+                        <section key={section.title}>
+                          <h3>{section.title}</h3>
+                          <ul>
+                            {section.lines.map((line, index) => (
+                              <li key={`${section.title}-${index}`}>{line}</li>
+                            ))}
+                          </ul>
+                        </section>
+                      ))}
+                    </div>
+                  ) : (
+                    <p>{t("noTechnicalCues")}</p>
+                  )}
+                </div>
 
                 {technicalCueExercise.targetMuscles &&
                   technicalCueExercise.targetMuscles.length > 0 && (
-                    <MuscleDiagram
-                      selected={technicalCueExercise.targetMuscles}
-                    />
+                    <div className="technicalCueDiagramCol">
+                      <MuscleDiagram
+                        selected={technicalCueExercise.targetMuscles}
+                      />
+                    </div>
                   )}
               </div>
 
