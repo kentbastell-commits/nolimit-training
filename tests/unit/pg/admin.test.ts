@@ -60,22 +60,39 @@ describe("api/exercises + upsertExercise (postgres)", () => {
     expect(exercise.coaching_cues).toBe("Brace, knees out");
   });
 
-  it("takes no Chinese input — CN content is filled by translation, not the editor", async () => {
+  it("accepts CN name/category patches; cues stay translation-filled only", async () => {
     await post(upsertExerciseHandler, {
       exerciseName: "Back Squat",
-      exerciseNameCn: "深蹲",
+      exerciseNameCn: "杠铃后深蹲",
+      categoryCn: "深蹲",
       coachingCuesCn: "收紧核心，膝盖外推",
     });
 
-    // Pinned deliberately: the console's exercise form has no CN inputs and
-    // the endpoint accepts none, so these are ignored rather than dropped
-    // from a field a coach filled in. The nameCn/coachingCuesCn columns are
-    // written by the translation pass, which only fills empties. If a CN
-    // input is ever added to the editor, this test fails and points at the
-    // writer that needs to accept it.
-    const [exercise] = await rows("select name_cn, coaching_cues_cn from exercises");
-    expect(exercise.name_cn).toBeNull();
+    // exerciseNameCn/categoryCn became patch-style inputs (2026-08-03, the
+    // bulk bilingual fill). coachingCuesCn still has no input — that column
+    // is written by the translation pass only.
+    const [exercise] = await rows(
+      "select name_cn, category_cn, coaching_cues_cn from exercises"
+    );
+    expect(exercise.name_cn).toBe("杠铃后深蹲");
+    expect(exercise.category_cn).toBe("深蹲");
     expect(exercise.coaching_cues_cn).toBeNull();
+  });
+
+  it("leaves CN fields untouched when the payload omits them", async () => {
+    const created = await post(upsertExerciseHandler, {
+      exerciseName: "Back Squat",
+      exerciseNameCn: "杠铃后深蹲",
+    });
+    await post(upsertExerciseHandler, {
+      recordId: created.body.recordId,
+      exerciseName: "Back Squat",
+      notes: "Brace hard",
+    });
+
+    // An editor that doesn't collect CN fields must never wipe them (#43).
+    const [exercise] = await rows("select name_cn from exercises");
+    expect(exercise.name_cn).toBe("杠铃后深蹲");
   });
 
   it("treats an explicit empty video URL as a clear", async () => {

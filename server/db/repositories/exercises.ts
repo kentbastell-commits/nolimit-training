@@ -9,9 +9,13 @@ export type UpsertExerciseInput = {
   recordId?: string;
   exerciseId?: string;
   exerciseName?: string;
+  // Patch-style like the other optional fields: undefined leaves the CN
+  // column untouched; explicit "" clears it.
+  exerciseNameCn?: string;
   videoUrl?: string;
   longVideoUrl?: string;
   category?: string;
+  categoryCn?: string;
   equipment?: string;
   movementPattern?: string;
   muscleGroup?: string;

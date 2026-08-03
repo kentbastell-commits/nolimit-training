@@ -122,6 +122,12 @@ export async function upsertExercise(
   }
   if (movementPattern !== undefined) set.movementPattern = movementPattern || null;
   if (muscleGroup !== undefined) set.primaryMuscles = muscleGroup || null;
+  if (input.exerciseNameCn !== undefined) {
+    set.nameCn = String(input.exerciseNameCn).trim() || null;
+  }
+  if (input.categoryCn !== undefined) {
+    set.categoryCn = String(input.categoryCn).trim() || null;
+  }
   // Explicit [] clears it (the coach unchecked every region) — only a truly
   // omitted field should leave existing muscles untouched.
   if (targetMuscles !== undefined) {
