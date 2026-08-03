@@ -6864,14 +6864,19 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     setWorkoutSubmissionNote("");
 
     try {
+      // Legacy workouts that predate the program system have no programId —
+      // skip the guaranteed-400 details fetch and open with no exercise list
+      // (was the top recurring api_fail in client telemetry).
       const [detailsResponse, historyResponse] = await Promise.all([
-        fetch(
-          `/api/workoutDetails?programId=${workout.programId}&week=${workout.week}&day=${
-            workout.day
-          }&clientCode=${encodeURIComponent(
-            selectedClient?.clientCode || selectedClient?.id || ""
-          )}`
-        ),
+        workout.programId
+          ? fetch(
+              `/api/workoutDetails?programId=${workout.programId}&week=${workout.week}&day=${
+                workout.day
+              }&clientCode=${encodeURIComponent(
+                selectedClient?.clientCode || selectedClient?.id || ""
+              )}`
+            )
+          : null,
         fetch(
           `/api/workoutHistory?clientId=${
             selectedClient?.id || ""
@@ -6879,7 +6884,9 @@ function App({ onReady }: { onReady?: () => void } = {}) {
         ),
       ]);
 
-      const data = await detailsResponse.json();
+      const data = detailsResponse
+        ? await detailsResponse.json()
+        : { exercises: [] };
       const exercises = data.exercises || [];
       const historyData = await historyResponse.json();
       const baseLogs = buildSetLogs(exercises);
