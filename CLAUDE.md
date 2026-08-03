@@ -109,15 +109,13 @@ data between them, never "borrow" a table ID across products.
    response body, Feishu often returns 200 with `code != 0`.
 5. **The stale cache** — adding a write path without invalidation. Rule: grep how
    sibling writers invalidate (`invalidateCache`) and mirror it, same keys.
-   SINCE THE 2-PROCESS SETUP (2026-07-30) invalidation is also PER-PROCESS:
-   a write invalidates only the fork that handled it, so the sibling serves
-   stale reads for up to the TTL (confirmed live 2026-08-03: updateClient
-   200'd, the next read returned the old value). Nothing is broken by a
-   single write-then-refetch from the same browser only by luck. UNSOLVED —
-   any fix (shared invalidation via pg NOTIFY, short TTLs on hot keys,
-   nginx ip_hash stickiness) needs Kent's sign-off; until then don't chase
-   "my write didn't take" ghosts — retry the write/read once and suspect
-   the sibling's cache first.
+   Under the 2-fork setup invalidation is per-process; SOLVED 2026-08-03 by
+   the Postgres LISTEN/NOTIFY bus (`server/db/cacheBus.ts`, started in
+   server/index.ts): invalidateCache broadcasts, each fork LISTENs and drops
+   the prefix locally. It's best-effort — a downed bus degrades to
+   TTL-staleness — so if "my write didn't take" ghosts reappear, check the
+   bus's LISTEN connection before anything else, and never remove the bus
+   start from server/index.ts.
 6. **The hardcoded string** — new UI text in English only, or "English 中文" jammed
    in one string. Rule: every user-visible string goes through `t()` with both an
    `en` and a `zh` key. Chinese must be natural clinical Chinese (患者 not 客户,
