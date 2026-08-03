@@ -114,6 +114,8 @@ export type ProgramDTO = {
   storeListingType: string;
   bundleProgramIds: string;
   productType: string;
+  // false = one-off calendar session, hidden from library pickers.
+  libraryVisible: boolean;
   price: string;
   compareAtPrice: string;
   currency: string;

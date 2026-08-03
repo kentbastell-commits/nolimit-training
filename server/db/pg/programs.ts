@@ -60,6 +60,8 @@ export async function listPrograms(): Promise<ProgramDTO[]> {
       compareAtPrice: r.compareAtPrice == null ? "" : String(Number(r.compareAtPrice)),
       currency: str(r.currency),
       publicStoreVisible: r.publicStoreVisible ?? false,
+      // NULL (pre-flag rows) means visible; only an explicit false hides.
+      libraryVisible: r.libraryVisible !== false,
       purchaseLink: str(r.purchaseLink),
       defaultIntakeFormId: str(r.defaultIntakeFormId),
       accessLengthDays: str(r.accessLengthDays),
@@ -119,6 +121,8 @@ export async function createProgram(i: CreateProgramInput): Promise<HandlerResul
     coachId: i.coach || "Kent Bastell",
     status: i.status || "Active",
     productType: i.productType || "Digital Program",
+    // Only an explicit false hides a program from library pickers.
+    libraryVisible: i.libraryVisible === false ? false : true,
     price: moneyOrNull(i.price),
     compareAtPrice: moneyOrNull(i.compareAtPrice),
     currency: i.currency || "CNY",
@@ -202,6 +206,7 @@ export async function updateProgram(i: UpdateProgramInput): Promise<HandlerResul
   if (i.coach !== undefined) set.coachId = i.coach;
   if (i.status !== undefined) set.status = i.status;
   if (i.productType !== undefined) set.productType = i.productType;
+  if (i.libraryVisible !== undefined) set.libraryVisible = i.libraryVisible !== false;
   // Same empty-string omission the Feishu impl applies to typed columns.
   if (i.price !== undefined) set.price = moneyOrNull(i.price);
   if (i.compareAtPrice !== undefined) {

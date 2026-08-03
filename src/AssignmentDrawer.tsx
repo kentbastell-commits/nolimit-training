@@ -43,12 +43,15 @@ export default function AssignmentDrawer({
   const [sessionTypeFilter, setSessionTypeFilter] = useState("All");
 
   // The list the Saved Session/Program select shows, after kind + type filters.
-  const assignList = (programs || []).filter((p: any) =>
-    assignProgramKind === "session"
-      ? p.productType === "Single Workout" &&
-        (sessionTypeFilter === "All" ||
-          (p.sessionType || "").trim() === sessionTypeFilter)
-      : p.productType !== "Single Workout"
+  const assignList = (programs || []).filter(
+    (p: any) =>
+      // One-off calendar sessions never appear in library pickers.
+      p.libraryVisible !== false &&
+      (assignProgramKind === "session"
+        ? p.productType === "Single Workout" &&
+          (sessionTypeFilter === "All" ||
+            (p.sessionType || "").trim() === sessionTypeFilter)
+        : p.productType !== "Single Workout")
   );
 
   // Keep the selection honest: with value="" (or a value filtered out of the

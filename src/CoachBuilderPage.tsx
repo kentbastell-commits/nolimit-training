@@ -6,7 +6,7 @@ import { Fragment, useEffect, useState } from "react";
 import CoachProgramsLanding from "./CoachProgramsLanding";
 import ProgramDetailPanel from "./ProgramDetailPanel";
 import PortalToApp from "./PortalToApp";
-import { Activity, BookOpen, ChevronDown, ChevronLeft, ChevronUp, ChevronsLeftRight, ClipboardList, Copy, Dumbbell, Eye, Feather, FlaskConical, GripVertical, HeartPulse, Link2, MoreVertical, Pencil, Plus, RefreshCw, Save, Settings, Shuffle, Tag, Target, Trash2, Trophy, X } from "lucide-react";
+import { Activity, BookOpen, CalendarDays, ChevronDown, ChevronLeft, ChevronUp, ChevronsLeftRight, ClipboardList, Copy, Dumbbell, Eye, Feather, FlaskConical, GripVertical, HeartPulse, Link2, MoreVertical, Pencil, Plus, RefreshCw, Save, Settings, Shuffle, Tag, Target, Trash2, Trophy, X } from "lucide-react";
 import type { Program, ProgramSession } from "./appCore";
 import { getWorkoutColorClass, glanceRepsToken, normalizeDate } from "./appCore";
 import { TEST_CATEGORIES, testCategoryLabelKey } from "./testVisuals";
@@ -225,6 +225,9 @@ export default function CoachBuilderPage({
   commitDraftSessionIfAny,
   saveFormTemplate,
   saveFullProgram,
+  oneOffAssignTarget,
+  oneOffSaveToLibrary,
+  setOneOffSaveToLibrary,
   saveMobileProgramDay,
   saveMobileWorkout,
   saveTestTemplate,
@@ -2518,6 +2521,25 @@ export default function CoachBuilderPage({
                     isSingleWorkoutBuilder ? "singleWorkoutSessionGrid" : ""
                   }`}
                 >
+                  {isSingleWorkoutBuilder && oneOffAssignTarget && (
+                    <div className="oneOffAssignBanner">
+                      <span className="oneOffAssignText">
+                        <CalendarDays size={15} /> Saving assigns this session
+                        to <strong>{oneOffAssignTarget.clientName}</strong> on{" "}
+                        <strong>{oneOffAssignTarget.date}</strong>.
+                      </span>
+                      <label className="oneOffAssignToggle">
+                        <input
+                          type="checkbox"
+                          checked={Boolean(oneOffSaveToLibrary)}
+                          onChange={(e) =>
+                            setOneOffSaveToLibrary(e.target.checked)
+                          }
+                        />
+                        Also save to Session Library
+                      </label>
+                    </div>
+                  )}
                   {isSingleWorkoutBuilder && (
                     <label className="sessionNameField">
                       <span>Workout Name</span>

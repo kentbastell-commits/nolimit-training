@@ -21,6 +21,8 @@ export type CreateProgramInput = {
   coach?: any;
   status?: any;
   productType?: any;
+  // false = one-off calendar session hidden from library pickers.
+  libraryVisible?: any;
   price?: any;
   compareAtPrice?: any;
   currency?: any;
@@ -77,6 +79,7 @@ export function hasProgramUpdateFields(i: UpdateProgramInput): boolean {
     "coach",
     "status",
     "productType",
+    "libraryVisible",
     "currency",
     "publicStoreVisible",
     "defaultIntakeFormId",

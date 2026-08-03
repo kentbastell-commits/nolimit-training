@@ -1,7 +1,6 @@
 import {
   Activity,
   BookOpen,
-  CalendarDays,
   ChevronDown,
   Check,
   ClipboardList,
@@ -1753,6 +1752,24 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     x: number;
     y: number;
   } | null>(null);
+  // One-off calendar session: "New session" on a client's calendar day sends
+  // the coach into the single-workout builder; on save the session is
+  // auto-assigned to this client + date. saveToLibrary decides whether it
+  // ALSO stays visible in the Sessions library (default: one-off, hidden).
+  const [oneOffAssignTarget, setOneOffAssignTarget] = useState<{
+    clientRecordId: string;
+    clientName: string;
+    date: string;
+  } | null>(null);
+  const [oneOffSaveToLibrary, setOneOffSaveToLibrary] = useState(false);
+  // Calendar "Add from Library": builder-style picker that drops a saved
+  // session / program / test onto a specific calendar date.
+  const [calLibPick, setCalLibPick] = useState<{ date: string } | null>(null);
+  const [calLibPickMode, setCalLibPickMode] = useState<
+    "choice" | "sessions" | "programs" | "tests"
+  >("choice");
+  const [calLibPickSearch, setCalLibPickSearch] = useState("");
+  const [calLibPickBusyId, setCalLibPickBusyId] = useState("");
   const [assignProgramKind, setAssignProgramKind] = useState<
     "program" | "session"
   >("program");
@@ -4478,6 +4495,8 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     activePage === "Digital" ? "digital" : "coached";
   const visibleSavedPrograms = programs
     .filter((program) => program.status !== "Archived")
+    // One-off calendar sessions stay off every library surface.
+    .filter((program) => program.libraryVisible !== false)
     .filter((program) =>
       builderScope === "digital"
         ? isDigitalProduct(program)
@@ -5363,6 +5382,123 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     setLibPickTarget(null);
   };
 
+  // ---- Calendar "+ Add" (builder-style) ------------------------------------
+
+  // "New session" on a client's calendar day → fresh single-workout builder,
+  // tagged so the save auto-assigns to this client + date.
+  const startOneOffSessionForDate = (date: string) => {
+    if (!selectedClient) return;
+    setCalAddMenu(null);
+    startNewSession();
+    setOneOffAssignTarget({
+      clientRecordId: selectedClient.id,
+      clientName: selectedClient.name,
+      date,
+    });
+    setOneOffSaveToLibrary(false);
+    // Pre-name it so a quick build can save without a naming stop; the coach
+    // can overwrite. This is also the session name the athlete sees.
+    setProgramName(`${selectedClient.name} · ${formatCalendarLabel(date)}`);
+    setActivePage("Workouts");
+  };
+
+  // Calendar library picker: drop ONE saved session onto the date.
+  const assignLibrarySessionToDate = async (program: Program, date: string) => {
+    if (!selectedClient) return;
+    setCalLibPickBusyId(program.programId);
+    try {
+      const sessions = await fetchProgramSessions(
+        program.programId,
+        program.recordId || ""
+      );
+      const session = sessions[0];
+      if (!session) {
+        notify("That session has no exercises yet.");
+        return;
+      }
+      const response = await fetch("/api/assignProgram", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clientRecordId: selectedClient.id,
+          programRecordId: program.recordId,
+          scheduledWorkouts: [
+            {
+              week: 1,
+              day: 1,
+              sessionName: session.sessionName,
+              sessionNameCn: session.sessionNameCn || "",
+              sessionType: session.sessionType,
+              sessionGoal: session.sessionGoal,
+              sessionNotes: session.sessionNotes || "",
+              estimatedDuration: session.estimatedDuration,
+              intensity: session.intensity,
+              scheduledDate: date,
+              testTemplateId: session.testTemplateId || "",
+            },
+          ],
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        console.error(data);
+        notify("Could not add that session. Check API response.", "error");
+        return;
+      }
+      notify(`"${session.sessionName}" added to ${formatCalendarLabel(date)}.`, "success");
+      setCalLibPick(null);
+      await loadClientWorkouts(selectedClient, true);
+    } catch (error) {
+      console.error(error);
+      notify("Could not add that session.", "error");
+    } finally {
+      setCalLibPickBusyId("");
+    }
+  };
+
+  // Calendar library picker: assign a whole program starting at the date.
+  const assignLibraryProgramToDate = async (program: Program, date: string) => {
+    if (!selectedClient) return;
+    setCalLibPickBusyId(program.programId);
+    try {
+      const created = await assignProgramByIds(
+        [selectedClient.id],
+        program.programId,
+        date
+      );
+      if (created > 0) {
+        notify(
+          `"${program.programName}" assigned from ${formatCalendarLabel(date)}.`,
+          "success"
+        );
+        setCalLibPick(null);
+        await loadClientWorkouts(selectedClient, true);
+      }
+    } finally {
+      setCalLibPickBusyId("");
+    }
+  };
+
+  // Calendar library picker: schedule a test battery on the date.
+  const assignLibraryTestToDate = async (
+    test: SavedTestTemplate,
+    date: string
+  ) => {
+    if (!selectedClient) return;
+    setCalLibPickBusyId(test.testTemplateId);
+    try {
+      await createContentAssignment({
+        assignmentType: "Physical Test",
+        assignmentTemplateId: test.testTemplateId,
+        assignmentClientId: selectedClient.id,
+        assignmentDueDate: date,
+      });
+      setCalLibPick(null);
+    } finally {
+      setCalLibPickBusyId("");
+    }
+  };
+
   const loadSavedProgramIntoBuilder = async (
     programArg?: Program,
     opts?: { edit?: boolean; asCopy?: boolean }
@@ -5372,6 +5508,8 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       notify("Please select a program.");
       return;
     }
+    // Editing a library program is never a calendar one-off.
+    setOneOffAssignTarget(null);
     // Edit = update this record on save; Duplicate/open = create a new one.
     if (opts?.edit) {
       setEditProgramId(sourceProgram.programId);
@@ -5582,6 +5720,9 @@ function App({ onReady }: { onReady?: () => void } = {}) {
 
   // Sessions tab "Create Session" → a fresh single-workout builder.
   const startNewSession = () => {
+    // A fresh session is NOT a calendar one-off unless the calendar flow
+    // re-tags it right after this call (startOneOffSessionForDate does).
+    setOneOffAssignTarget(null);
     setEditProgramId("");
     setEditProgramRecordId("");
     setProgramName("");
@@ -10629,6 +10770,10 @@ function App({ onReady }: { onReady?: () => void } = {}) {
         coach: programCoach,
         status: "Active",
         productType: singleWorkoutMode ? "Single Workout" : programProductType,
+        // One-off calendar sessions stay out of the library unless the coach
+        // ticked "save to library" in the builder banner.
+        libraryVisible:
+          singleWorkoutMode && oneOffAssignTarget ? oneOffSaveToLibrary : true,
         price: digitalProductProgram ? programPrice : "",
         compareAtPrice: digitalProductProgram ? programCompareAtPrice : "",
         currency: digitalProductProgram ? programCurrency : "",
@@ -10908,6 +11053,61 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       setProgramWeek("1");
       setProgramDay("1");
       void loadPrograms(true);
+
+      // One-off calendar session: auto-assign the just-saved session to the
+      // client + date the coach started from, then land back on their
+      // calendar. A failed assign degrades to "saved but unassigned" with a
+      // clear message — never a silent loss.
+      if (singleWorkoutMode && oneOffAssignTarget) {
+        const target = oneOffAssignTarget;
+        setOneOffAssignTarget(null);
+        const savedSession = sessionsToSave[0];
+        try {
+          const assignRes = await fetch("/api/assignProgram", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              clientRecordId: target.clientRecordId,
+              programRecordId: programData.programRecordId,
+              scheduledWorkouts: [
+                {
+                  week: 1,
+                  day: 1,
+                  sessionName: savedSession?.sessionName || programName,
+                  sessionNameCn: savedSession?.sessionNameCn || "",
+                  sessionType: savedSession?.sessionType,
+                  sessionGoal: savedSession?.sessionGoal,
+                  sessionNotes: savedSession?.sessionNotes || "",
+                  estimatedDuration: savedSession?.estimatedDuration,
+                  intensity: savedSession?.intensity,
+                  scheduledDate: target.date,
+                },
+              ],
+            }),
+          });
+          const assignData = await assignRes.json();
+          if (assignRes.ok && assignData.success) {
+            notify(
+              `Session assigned to ${target.clientName} on ${formatCalendarLabel(target.date)}.`,
+              "success"
+            );
+          } else {
+            console.error(assignData);
+            notify(
+              `Saved, but assigning to ${target.clientName} failed — assign it from their calendar.`,
+              "error"
+            );
+          }
+        } catch (assignError) {
+          console.error(assignError);
+          notify(
+            `Saved, but assigning to ${target.clientName} failed — assign it from their calendar.`,
+            "error"
+          );
+        }
+        setActivePage("Clients");
+        if (selectedClient) void loadClientWorkouts(selectedClient, true);
+      }
       return true;
     } catch (error) {
       console.error(error);
@@ -16085,19 +16285,8 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     selectClientCalendarDate(today);
   };
 
-  // Client calendar "+" → add a full program or a single session to a day.
-  const openAddAssign = (kind: "program" | "session", date: string) => {
-    setCalAddMenu(null);
-    setAssignProgramKind(kind);
-    const first = programs.find((p) =>
-      kind === "session"
-        ? p.productType === "Single Workout"
-        : p.productType !== "Single Workout"
-    );
-    setSelectedAssignProgramId(first ? first.programId : "");
-    setAssignableWorkouts([]);
-    openAssignmentHubFromCalendar("Program", date);
-  };
+  // The calendar "+" menu now goes through startOneOffSessionForDate /
+  // calLibPick instead of the old assignment drawer preselect.
 
   const openAssignmentHubFromCalendar = (
     type: "Program" | "Check-in" | "Questionnaire" | "Physical Test" = "Program",
@@ -18744,18 +18933,273 @@ function App({ onReady }: { onReady?: () => void } = {}) {
           >
             <button
               type="button"
-              onClick={() => openAddAssign("program", calAddMenu.date)}
+              onClick={() => startOneOffSessionForDate(calAddMenu.date)}
             >
-              <CalendarDays size={15} /> Add program
+              <Plus size={15} /> New session
             </button>
             <button
               type="button"
-              onClick={() => openAddAssign("session", calAddMenu.date)}
+              onClick={() => {
+                const date = calAddMenu.date;
+                setCalAddMenu(null);
+                setCalLibPickMode("choice");
+                setCalLibPickSearch("");
+                setCalLibPick({ date });
+                // The test library loads lazily elsewhere — fetch it now so
+                // the Add Test list isn't empty on first open.
+                if (savedTestTemplates.length === 0 && !testTemplatesLoading) {
+                  void loadTestTemplates();
+                }
+              }}
             >
-              <BookOpen size={15} /> Add session
+              <BookOpen size={15} /> Add from Library
             </button>
           </div>
         </>
+      )}
+
+      {calLibPick && (
+        <div
+          className="createProgramOverlay"
+          onClick={() => setCalLibPick(null)}
+        >
+          <div
+            className="createProgramModal libPickModal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="createProgramHeader">
+              <div>
+                <span className="eyebrow">Add to calendar</span>
+                <h3>
+                  {calLibPickMode === "choice" && "What do you want to add?"}
+                  {calLibPickMode === "sessions" &&
+                    `Session → ${formatCalendarLabel(calLibPick.date)}`}
+                  {calLibPickMode === "programs" &&
+                    `Program starting ${formatCalendarLabel(calLibPick.date)}`}
+                  {calLibPickMode === "tests" &&
+                    `Test → ${formatCalendarLabel(calLibPick.date)}`}
+                </h3>
+              </div>
+              <button
+                type="button"
+                className="iconActionButton"
+                title="Close"
+                onClick={() => setCalLibPick(null)}
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="createProgramBody">
+              {calLibPickMode === "choice" && (
+                <div className="libPickChoiceGrid">
+                  <button
+                    type="button"
+                    className="libPickChoiceCard"
+                    onClick={() => {
+                      setCalLibPickSearch("");
+                      setCalLibPickMode("sessions");
+                    }}
+                  >
+                    <Dumbbell size={22} />
+                    <strong>Add Session</strong>
+                    <small>
+                      Drop one saved session onto{" "}
+                      {formatCalendarLabel(calLibPick.date)}.
+                    </small>
+                  </button>
+                  <button
+                    type="button"
+                    className="libPickChoiceCard"
+                    onClick={() => {
+                      setCalLibPickSearch("");
+                      setCalLibPickMode("programs");
+                    }}
+                  >
+                    <ClipboardList size={22} />
+                    <strong>Add Program</strong>
+                    <small>
+                      Assign a whole program starting{" "}
+                      {formatCalendarLabel(calLibPick.date)}.
+                    </small>
+                  </button>
+                  <button
+                    type="button"
+                    className="libPickChoiceCard"
+                    onClick={() => {
+                      setCalLibPickSearch("");
+                      setCalLibPickMode("tests");
+                    }}
+                  >
+                    <Activity size={22} />
+                    <strong>Add Test</strong>
+                    <small>
+                      Schedule a physical test on{" "}
+                      {formatCalendarLabel(calLibPick.date)}.
+                    </small>
+                  </button>
+                </div>
+              )}
+
+              {(calLibPickMode === "sessions" ||
+                calLibPickMode === "programs") &&
+                (() => {
+                  const isPrograms = calLibPickMode === "programs";
+                  const pool = programs.filter(
+                    (pp) =>
+                      pp.libraryVisible !== false &&
+                      pp.status !== "Archived" &&
+                      (isPrograms
+                        ? pp.productType !== "Single Workout"
+                        : pp.productType === "Single Workout")
+                  );
+                  const q = calLibPickSearch.trim().toLowerCase();
+                  const shown = q
+                    ? pool.filter((pp) =>
+                        `${pp.programName} ${pp.goal || ""} ${pp.sport || ""}`
+                          .toLowerCase()
+                          .includes(q)
+                      )
+                    : pool;
+                  return (
+                    <>
+                      <input
+                        className="libPickSearch"
+                        placeholder={
+                          isPrograms ? "Search programs…" : "Search sessions…"
+                        }
+                        value={calLibPickSearch}
+                        onChange={(e) => setCalLibPickSearch(e.target.value)}
+                        autoFocus
+                      />
+                      <div className="libPickList">
+                        {pool.length === 0 && (
+                          <p className="mbHint">
+                            {isPrograms
+                              ? "No saved programs yet."
+                              : "No saved sessions yet. Create one in the Sessions tab."}
+                          </p>
+                        )}
+                        {pool.length > 0 && shown.length === 0 && (
+                          <p className="mbHint">
+                            Nothing matches “{calLibPickSearch.trim()}”.
+                          </p>
+                        )}
+                        {shown.map((pp) => (
+                          <button
+                            key={pp.recordId}
+                            type="button"
+                            className="libPickCard"
+                            disabled={Boolean(calLibPickBusyId)}
+                            onClick={() =>
+                              isPrograms
+                                ? void assignLibraryProgramToDate(
+                                    pp,
+                                    calLibPick.date
+                                  )
+                                : void assignLibrarySessionToDate(
+                                    pp,
+                                    calLibPick.date
+                                  )
+                            }
+                          >
+                            <span className="libPickCardIcon">
+                              {isPrograms ? (
+                                <ClipboardList size={19} />
+                              ) : (
+                                <Dumbbell size={19} />
+                              )}
+                            </span>
+                            <span className="libPickCardInfo">
+                              <strong>{pp.programName}</strong>
+                              <small>
+                                {calLibPickBusyId === pp.programId
+                                  ? "Adding…"
+                                  : [pp.sport, pp.goal || pp.phase]
+                                      .filter(Boolean)
+                                      .join(" · ") ||
+                                    (isPrograms ? "Program" : "Session")}
+                              </small>
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  );
+                })()}
+
+              {calLibPickMode === "tests" &&
+                (() => {
+                  const pool = savedTestTemplates.filter(
+                    (test) => test.status !== "Archived"
+                  );
+                  const q = calLibPickSearch.trim().toLowerCase();
+                  const shown = q
+                    ? pool.filter((test) =>
+                        `${test.name} ${test.category || ""}`
+                          .toLowerCase()
+                          .includes(q)
+                      )
+                    : pool;
+                  return (
+                    <>
+                      <input
+                        className="libPickSearch"
+                        placeholder="Search tests…"
+                        value={calLibPickSearch}
+                        onChange={(e) => setCalLibPickSearch(e.target.value)}
+                        autoFocus
+                      />
+                      <div className="libPickList">
+                        {pool.length === 0 && testTemplatesLoading && (
+                          <p className="mbHint">Loading tests…</p>
+                        )}
+                        {pool.length === 0 && !testTemplatesLoading && (
+                          <p className="mbHint">
+                            No test batteries yet. Create one in the Tests tab.
+                          </p>
+                        )}
+                        {pool.length > 0 && shown.length === 0 && (
+                          <p className="mbHint">
+                            Nothing matches “{calLibPickSearch.trim()}”.
+                          </p>
+                        )}
+                        {shown.map((test) => (
+                          <button
+                            key={test.testTemplateId}
+                            type="button"
+                            className="libPickCard"
+                            disabled={Boolean(calLibPickBusyId)}
+                            onClick={() =>
+                              void assignLibraryTestToDate(test, calLibPick.date)
+                            }
+                          >
+                            <span className="libPickCardIcon">
+                              <Activity size={19} />
+                            </span>
+                            <span className="libPickCardInfo">
+                              <strong>{test.name}</strong>
+                              <small>
+                                {calLibPickBusyId === test.testTemplateId
+                                  ? "Adding…"
+                                  : [
+                                      test.category,
+                                      `${test.items.length} item${
+                                        test.items.length === 1 ? "" : "s"
+                                      }`,
+                                    ]
+                                      .filter(Boolean)
+                                      .join(" · ")}
+                              </small>
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  );
+                })()}
+            </div>
+          </div>
+        </div>
       )}
 
       {cellMenu && (
@@ -19017,12 +19461,14 @@ function App({ onReady }: { onReady?: () => void } = {}) {
               {(libPickMode === "sessions" || libPickMode === "programs") &&
                 (() => {
                   const isPrograms = libPickMode === "programs";
-                  const pool = programs.filter((pp) =>
-                    isPrograms
-                      ? pp.productType !== "Single Workout" &&
-                        pp.status !== "Archived"
-                      : pp.productType === "Single Workout" &&
-                        pp.status !== "Archived"
+                  const pool = programs.filter(
+                    (pp) =>
+                      pp.libraryVisible !== false &&
+                      (isPrograms
+                        ? pp.productType !== "Single Workout" &&
+                          pp.status !== "Archived"
+                        : pp.productType === "Single Workout" &&
+                          pp.status !== "Archived")
                   );
                   const q = libPickSearch.trim().toLowerCase();
                   const shown = q
@@ -20149,6 +20595,9 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                 commitDraftSessionIfAny={commitDraftSessionIfAny}
                 saveFormTemplate={saveFormTemplate}
                 saveFullProgram={saveFullProgram}
+                oneOffAssignTarget={oneOffAssignTarget}
+                oneOffSaveToLibrary={oneOffSaveToLibrary}
+                setOneOffSaveToLibrary={setOneOffSaveToLibrary}
                 saveMobileProgramDay={saveMobileProgramDay}
                 saveMobileWorkout={saveMobileWorkout}
                 saveTestTemplate={saveTestTemplate}

@@ -3717,6 +3717,40 @@
   background: rgba(212, 175, 55, 0.05) !important;
   cursor: default;
 }
+/* One-off calendar session banner: the save's destination must be unmissable
+   so a coach never wonders where the session went. */
+.oneOffAssignBanner {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(212, 175, 55, 0.45);
+  background: rgba(212, 175, 55, 0.1);
+}
+.oneOffAssignText {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  color: #4f4636;
+}
+.oneOffAssignText strong {
+  color: #1a1712;
+}
+.oneOffAssignToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #6b5b23;
+  cursor: pointer;
+}
+
 /* Test-day card: a placed physical test (no exercises). Distinct violet
    accent so it never reads as an empty workout session. */
 .programGrid .programGridCard.gridCardTest {

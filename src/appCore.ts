@@ -176,6 +176,8 @@ export type Program = {
   storeListingType?: string;
   bundleProgramIds?: string;
   productType?: string;
+  // false = one-off calendar session, hidden from library pickers.
+  libraryVisible?: boolean;
   sessionType?: string;
   price?: string;
   compareAtPrice?: string;

@@ -125,6 +125,10 @@ export const programs = pgTable(
     compareAtPrice: money("compare_at_price"),
     currency: text("currency"),
     publicStoreVisible: boolean("public_store_visible").default(false),
+    // false = a one-off calendar session: assignable/playable like any
+    // program, but hidden from every Sessions/library picker so ad-hoc
+    // days don't crowd the library. NULL means visible (pre-flag rows).
+    libraryVisible: boolean("library_visible"),
     purchaseLink: text("purchase_link"),
     storeUrl: text("store_url"),
     storeDescription: text("store_description"),

@@ -55,6 +55,22 @@ describe("api/createProgram (postgres)", () => {
     expect(program.name).toBe("Season 1 Base");
   });
 
+  it("stays library-visible by default; one-offs opt out explicitly", async () => {
+    await post(createHandler, { programName: "Normal Session" });
+    await post(createHandler, {
+      programName: "One-off Calendar Session",
+      libraryVisible: false,
+    });
+
+    const saved = await rows(
+      "select name, library_visible from programs order by name"
+    );
+    // A one-off calendar session must never surface in library pickers…
+    expect(saved.find((p) => p.name === "One-off Calendar Session")?.library_visible).toBe(false);
+    // …while a normal save stays visible.
+    expect(saved.find((p) => p.name === "Normal Session")?.library_visible).toBe(true);
+  });
+
   it("is not on the storefront unless asked", async () => {
     await post(createHandler, { programName: "Draft Program" });
 
