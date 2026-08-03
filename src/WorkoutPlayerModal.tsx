@@ -584,7 +584,9 @@ export default function WorkoutPlayerModal({
                       swappedOriginal.exerciseId !== exercise.exerciseId;
                     const coachingNotes = isSwappedAlternate
                       ? localizeText(
-                          exercise.cueNotes || "",
+                          // Strip EN meta lines too — the alternate's library
+                          // cues can carry "Tracking:/Unilateral:" headers.
+                          stripLocalizedExerciseMeta(exercise.cueNotes || ""),
                           stripLocalizedExerciseMeta(exercise.cueNotesCn || "")
                         )
                       : localizeText(

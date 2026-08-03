@@ -91,6 +91,7 @@ import {
   makePaymentCode,
   parseExerciseCueSections,
   parseExerciseNotes,
+  stripLocalizedExerciseMeta,
   readPersistentCache,
   toYoutubeEmbed,
   writePersistentCache,
@@ -2637,11 +2638,17 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     >
   ) => {
     const englishNotes = exercise.notes || "";
+    // notesCn/coachingCuesCn carry translated builder meta ("追踪：体重",
+    // "单侧：否") that must never reach the athlete; the instruction/mistake
+    // fields are pure content whose section headings must survive, so they
+    // are NOT run through the generic label stripper.
+    const cleanNotesCn = stripLocalizedExerciseMeta(exercise.notesCn || "");
+    const cleanCuesCn = stripLocalizedExerciseMeta(exercise.coachingCuesCn || "");
     const chineseNotes = [
-      exercise.notesCn,
+      cleanNotesCn,
       exercise.technicalInstructionsCn &&
         `动作说明:\n${exercise.technicalInstructionsCn}`,
-      exercise.coachingCuesCn && `技术提示:\n${exercise.coachingCuesCn}`,
+      cleanCuesCn && `技术提示:\n${cleanCuesCn}`,
       exercise.commonMistakesCn && `常见错误:\n${exercise.commonMistakesCn}`,
     ]
       .filter(Boolean)
