@@ -26,6 +26,8 @@ export type CheckInDTO = {
   problemsPain: string;
   clientNotes: string;
   coachResponse: string;
+  // Translate-on-write mirror for zh athletes (may be empty).
+  coachResponseCn: string;
   coachReviewed: boolean;
   reviewedDate: string;
   status: string;

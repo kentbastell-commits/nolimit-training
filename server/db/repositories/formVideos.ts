@@ -16,6 +16,8 @@ export type FormVideoDTO = {
   submittedAt: number;
   status: string;
   coachReply: string;
+  // Translate-on-write mirror for zh athletes (may be empty).
+  coachReplyCn: string;
 };
 
 export type CreateFormVideoInput = {

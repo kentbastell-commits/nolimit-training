@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import { db } from "../client.ts";
 import { checkIns, clients } from "../schema.ts";
+import { fillTranslation } from "../translate.ts";
 import { epochToDate, str } from "./_util.ts";
 import type { WriteResult } from "../dto.ts";
 import type {
@@ -65,6 +66,7 @@ export async function listCheckIns(): Promise<CheckInDTO[]> {
       problemsPain: str(r.problemsPain),
       clientNotes: str(r.clientNotes),
       coachResponse,
+      coachResponseCn: str(r.coachNotesCn),
       // No "Coach Reviewed" column on Postgres: a review always stamps
       // reviewed_date (and usually coach_notes), so derive from those.
       coachReviewed: Boolean(coachResponse.trim()) || r.reviewedDate != null,
@@ -82,6 +84,8 @@ export async function reviewCheckIn(input: ReviewCheckInInput): Promise<WriteRes
   };
   if (input.coachResponse !== undefined && input.coachResponse !== null) {
     set.coachNotes = String(input.coachResponse);
+    // A new reply replaces the old mirror; the fill below rebuilds it.
+    set.coachNotesCn = null;
   }
 
   const r = await db
@@ -92,6 +96,17 @@ export async function reviewCheckIn(input: ReviewCheckInInput): Promise<WriteRes
 
   if (!r.length) {
     return { success: false, error: "Could not update check-in" };
+  }
+
+  // Best-effort zh mirror of the coach's reply (skip text already Chinese).
+  const reply = String(input.coachResponse || "");
+  if (reply && !/[一-鿿]/.test(reply)) {
+    void fillTranslation(reply, "zh", (zh) =>
+      db
+        .update(checkIns)
+        .set({ coachNotesCn: zh })
+        .where(eq(checkIns.checkinId, String(input.recordId)))
+    );
   }
   return { success: true, recordId: input.recordId };
 }

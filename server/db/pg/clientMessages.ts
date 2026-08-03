@@ -2,6 +2,7 @@ import { desc, eq } from "drizzle-orm";
 import { db } from "../client.ts";
 import { clientMessages } from "../schema.ts";
 import { str } from "./_util.ts";
+import { fillTranslation } from "../translate.ts";
 import type { ClientMessageDTO } from "../dto.ts";
 
 type Row = typeof clientMessages.$inferSelect;
@@ -13,6 +14,7 @@ const toDTO = (r: Row): ClientMessageDTO => ({
   body: str(r.body),
   status: str(r.status) || "New",
   coachReply: str(r.coachReply),
+  coachReplyCn: str(r.coachReplyCn),
   createdAt: r.createdAt ?? 0,
   repliedAt: r.repliedAt ?? 0,
 });
@@ -47,8 +49,19 @@ export async function replyToMessage(
 ): Promise<boolean> {
   const updated = await db
     .update(clientMessages)
-    .set({ coachReply, status: "Replied", repliedAt: Date.now() })
+    // A new reply replaces the old mirror; the fill below rebuilds it.
+    .set({ coachReply, coachReplyCn: null, status: "Replied", repliedAt: Date.now() })
     .where(eq(clientMessages.messageId, messageId))
     .returning({ messageId: clientMessages.messageId });
+
+  // Best-effort zh mirror of the coach's reply (skip text already Chinese).
+  if (updated.length > 0 && coachReply && !/[一-鿿]/.test(coachReply)) {
+    void fillTranslation(coachReply, "zh", (zh) =>
+      db
+        .update(clientMessages)
+        .set({ coachReplyCn: zh })
+        .where(eq(clientMessages.messageId, messageId))
+    );
+  }
   return updated.length > 0;
 }

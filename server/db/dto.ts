@@ -476,6 +476,8 @@ export type ClientMessageDTO = {
   body: string;
   status: string; // New | Replied
   coachReply: string;
+  // Translate-on-write mirror for zh athletes (may be empty).
+  coachReplyCn: string;
   createdAt: number;
   repliedAt: number;
 };

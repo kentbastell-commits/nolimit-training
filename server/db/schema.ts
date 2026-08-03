@@ -539,6 +539,8 @@ export const checkIns = pgTable(
     problemsPain: text("problems_pain"),
     clientNotes: text("client_notes"),
     coachNotes: text("coach_notes"),
+    // Translate-on-write mirror (LLM/TMT best-effort) for zh athletes.
+    coachNotesCn: text("coach_notes_cn"),
     reviewedDate: ts("reviewed_date"),
   },
   (t) => [
@@ -788,6 +790,8 @@ export const formVideos = pgTable(
     submittedAt: ts("submitted_at"),
     status: text("status"), // New | Reviewed
     coachReply: text("coach_reply"),
+    // Translate-on-write mirror (LLM/TMT best-effort) for zh athletes.
+    coachReplyCn: text("coach_reply_cn"),
     reviewedAt: ts("reviewed_at"),
   },
   (t) => [index("form_videos_client_idx").on(t.clientId)]
@@ -824,6 +828,8 @@ export const clientMessages = pgTable(
     body: text("body").notNull(),
     status: text("status").default("New"), // New | Replied
     coachReply: text("coach_reply"),
+    // Translate-on-write mirror (LLM/TMT best-effort) for zh athletes.
+    coachReplyCn: text("coach_reply_cn"),
     createdAt: ts("created_at"),
     repliedAt: ts("replied_at"),
   },

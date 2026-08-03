@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { db } from "../client.ts";
 import { formVideos, clients } from "../schema.ts";
 import { str } from "./_util.ts";
+import { fillTranslation } from "../translate.ts";
 import type {
   FormVideoDTO,
   CreateFormVideoInput,
@@ -27,6 +28,7 @@ export async function listFormVideos(): Promise<FormVideoDTO[]> {
       submittedAt: r.submittedAt ?? 0,
       status: str(r.status) || "New",
       coachReply: str(r.coachReply),
+      coachReplyCn: str(r.coachReplyCn),
     }))
     .sort((a, b) => b.submittedAt - a.submittedAt);
 }
@@ -73,7 +75,11 @@ export async function reviewFormVideo(
     status: String(input.status || "Reviewed"),
     reviewedAt: Date.now(),
   };
-  if (input.coachReply !== undefined) set.coachReply = String(input.coachReply);
+  if (input.coachReply !== undefined) {
+    set.coachReply = String(input.coachReply);
+    // A new reply replaces the old mirror; the fill below rebuilds it.
+    set.coachReplyCn = null;
+  }
 
   const updated = await db
     .update(formVideos)
@@ -82,6 +88,17 @@ export async function reviewFormVideo(
     .returning({ videoId: formVideos.videoId });
   if (!updated.length) {
     return { success: false, error: "Could not update video", message: "Video not found" };
+  }
+
+  // Best-effort zh mirror of the coach's reply (skip text already Chinese).
+  const reply = String(input.coachReply || "");
+  if (reply && !/[一-鿿]/.test(reply)) {
+    void fillTranslation(reply, "zh", (zh) =>
+      db
+        .update(formVideos)
+        .set({ coachReplyCn: zh })
+        .where(eq(formVideos.videoId, input.recordId))
+    );
   }
   return { success: true };
 }

@@ -33,9 +33,85 @@ const sha256Hex = (msg: string) =>
 const cache = new Map<string, string>();
 const CACHE_MAX = 500;
 
+// ---- LLM path (preferred): domain-aware translation ----------------------
+// Generic MT renders coaching language literally ("out of the hole" → 冲出洞).
+// When AI_API_KEY is set (DeepSeek, same convention as kangfu), translate
+// through a chat model with an S&C/physiology-tuned prompt instead; TMT
+// stays as the fallback so translation still works if the LLM is down or
+// the DeepSeek balance runs dry.
+function llmConfig() {
+  const key = process.env.AI_API_KEY;
+  if (!key) return null;
+  return {
+    key,
+    base: (process.env.AI_BASE_URL || "https://api.deepseek.com").replace(/\/+$/, ""),
+    model: process.env.AI_MODEL || "deepseek-chat",
+  };
+}
+
+const LLM_PROMPTS: Record<"zh" | "en", string> = {
+  zh: [
+    "You translate messages on a strength & conditioning coaching platform from English into Chinese.",
+    "Audience: Chinese athletes reading their coach's instructions, feedback and chat messages.",
+    "Rules:",
+    "- Write natural, native coaching Chinese — the register a Chinese S&C coach or physio uses with an athlete (口令式提示 where the source is a cue), never literal word-by-word translation.",
+    "- Use standard Chinese training/anatomy terminology: 深蹲, 髋关节铰链, 离心/向心, 等长收缩, 腘绳肌, 臀肌, 核心稳定, 触底反弹 for 'out of the hole', 充分休息, etc.",
+    "- Keep ALL numbers, sets×reps, weights, percentages, distances and times exactly as written.",
+    "- Keep common training abbreviations untranslated: RPE, RIR, 1RM, MAS, HR, ISO, CMJ, RSI, EQI, PAILs, AMRAP, EMOM, Tabata.",
+    "- Translate exercise names to their standard Chinese gym names (Bulgarian Split Squat → 保加利亚分腿蹲, RDL → 罗马尼亚硬拉).",
+    "- Keep the coach's warm, direct tone. Preserve line breaks.",
+    "- Output ONLY the translation — no explanations, no quotes, no notes.",
+  ].join("\n"),
+  en: [
+    "You translate messages on a strength & conditioning coaching platform from Chinese into English.",
+    "Audience: an English-speaking coach reading an athlete's message or notes.",
+    "Rules:",
+    "- Natural, concise English with standard S&C terminology; never stiff literal translation.",
+    "- Keep ALL numbers, sets×reps, weights, percentages, distances and times exactly as written.",
+    "- Keep training abbreviations as-is: RPE, RIR, 1RM, MAS, HR, ISO, CMJ, RSI.",
+    "- Preserve line breaks. Output ONLY the translation — no explanations, no quotes, no notes.",
+  ].join("\n"),
+};
+
+async function llmTranslate(
+  text: string,
+  target: "en" | "zh"
+): Promise<string | null> {
+  const cfg = llmConfig();
+  if (!cfg) return null;
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 15000);
+    const res = await fetch(`${cfg.base}/chat/completions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${cfg.key}`,
+      },
+      body: JSON.stringify({
+        model: cfg.model,
+        temperature: 0.2,
+        max_tokens: 2000,
+        messages: [
+          { role: "system", content: LLM_PROMPTS[target] },
+          { role: "user", content: text.slice(0, 4000) },
+        ],
+      }),
+      signal: controller.signal,
+    }).finally(() => clearTimeout(timer));
+    if (!res.ok) return null;
+    const data: any = await res.json();
+    const out = data?.choices?.[0]?.message?.content?.trim();
+    return out && typeof out === "string" ? out : null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Translate `text` into `target` ("en" | "zh"). Source language is
- * auto-detected. Returns null when translation is unavailable for any reason.
+ * auto-detected. Prefers the domain-prompted LLM, falls back to TMT.
+ * Returns null when translation is unavailable for any reason.
  */
 export async function translateText(
   text: string,
@@ -43,12 +119,23 @@ export async function translateText(
 ): Promise<string | null> {
   const clean = String(text || "").trim();
   if (!clean) return null;
-  const c = creds();
-  if (!c) return null; // no key configured — silently disabled
 
   const cacheKey = `${target}:${clean}`;
   const hit = cache.get(cacheKey);
   if (hit !== undefined) return hit;
+
+  const fromLlm = await llmTranslate(clean, target);
+  if (fromLlm) {
+    if (cache.size >= CACHE_MAX) {
+      const first = cache.keys().next().value;
+      if (first !== undefined) cache.delete(first);
+    }
+    cache.set(cacheKey, fromLlm);
+    return fromLlm;
+  }
+
+  const c = creds();
+  if (!c) return null; // no TMT key either — silently disabled
 
   try {
     const timestamp = Math.floor(Date.now() / 1000);

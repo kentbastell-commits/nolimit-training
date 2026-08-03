@@ -895,7 +895,9 @@ function App({ onReady }: { onReady?: () => void } = {}) {
         id: `ci-${c.recordId}`,
         kind: "checkin",
         title: paceZh ? "打卡回复" : "Check-in reply",
-        body: c.coachResponse,
+        body: paceZh
+          ? (c as any).coachResponseCn || c.coachResponse
+          : c.coachResponse,
         at,
       });
     }
@@ -929,7 +931,10 @@ function App({ onReady }: { onReady?: () => void } = {}) {
           .map((v: any) => ({
             id: v.recordId,
             exerciseName: v.exerciseName || "Exercise",
-            coachReply: v.coachReply,
+            coachReply:
+              languagePreferenceToCode(selectedClient.languagePreference) === "zh"
+                ? v.coachReplyCn || v.coachReply
+                : v.coachReply,
             at: Number(v.submittedAt) || 0,
           }));
         setPortalVideoReplies(mine);
