@@ -14138,7 +14138,15 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     const dayNames = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
     const weekChips = cal
       .filter((w) => Number(w.week) === currentWeek)
-      .sort((a, b) => Number(a.day) - Number(b.day))
+      // Chips are labeled by the real scheduled weekday, so order by the real
+      // date too — sorting by program day-number read as shuffled ("TUE THU
+      // TUE WED") once anything was rescheduled.
+      .sort(
+        (a, b) =>
+          normalizeDate(String(a.scheduledDate || "")).localeCompare(
+            normalizeDate(String(b.scheduledDate || ""))
+          ) || Number(a.day) - Number(b.day)
+      )
       .map((w) => {
         const key = normalizeDate(String(w.scheduledDate || ""));
         const d = new Date(`${key}T00:00:00`);
