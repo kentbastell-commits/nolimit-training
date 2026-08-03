@@ -9,6 +9,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { injectSeo } from "./seo.ts";
+import { startCacheBus } from "./db/cacheBus.ts";
 
 // ---------------------------------------------------------------------------
 // Process-wide Feishu tenant-token cache.
@@ -363,6 +364,12 @@ app.get(/.*/, (req, res) => {
 
 app.listen(port, "127.0.0.1", () => {
   console.log(`NX LIMIT Training server listening on http://127.0.0.1:${port}`);
+
+  // Cross-process cache invalidation: the 2 PM2 forks each cache in-process,
+  // so without the bus a write on one fork left the other stale for the
+  // whole TTL (named mistake #5). Best-effort — a bus failure only degrades
+  // to TTL-staleness.
+  void startCacheBus().catch(() => {});
 
   // Warm the heavy read caches in the background right after boot, so the first
   // real user request (especially opening a workout, which scans the whole

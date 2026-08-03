@@ -22,10 +22,34 @@ export function setCached(key: string, data: any, ttlMs: number) {
   store.set(key, { data, expiry: Date.now() + ttlMs });
 }
 
-// Drop every cache entry whose key starts with the prefix (e.g. "exercises").
-export function invalidateCache(prefix: string) {
+// Since the 2-fork setup, a second process serves the same traffic with its
+// OWN Map — a local invalidation alone leaves the sibling stale for the full
+// TTL (named mistake #5). server/index.ts wires this broadcaster to a
+// Postgres NOTIFY bus at boot so every invalidation reaches both processes;
+// in tests and one-off scripts it stays unset and everything is local-only.
+let broadcaster: ((prefix: string) => void) | null = null;
+
+export function setCacheBroadcaster(fn: (prefix: string) => void) {
+  broadcaster = fn;
+}
+
+// Local-only invalidation — used when applying a REMOTE notification, so a
+// received invalidation can never re-broadcast and loop.
+export function invalidateCacheLocal(prefix: string) {
   for (const key of store.keys()) {
     if (key.startsWith(prefix)) store.delete(key);
+  }
+}
+
+// Drop every cache entry whose key starts with the prefix (e.g. "exercises"),
+// here and (via the bus) in the sibling process.
+export function invalidateCache(prefix: string) {
+  invalidateCacheLocal(prefix);
+  try {
+    broadcaster?.(prefix);
+  } catch {
+    // Broadcast is best-effort: a bus failure degrades to the old
+    // TTL-staleness behavior, never to a failed write.
   }
 }
 
