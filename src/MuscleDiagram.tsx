@@ -58,6 +58,8 @@ export default function MuscleDiagram({
           aria-label={t("muscleDiagramAriaLabel")}
         >
           <defs>
+            {/* Classic anatomy-app look: white ground, light-grey striations
+                on resting muscles, red on the worked ones. */}
             <pattern
               id={dimPattern}
               patternUnits="userSpaceOnUse"
@@ -65,8 +67,8 @@ export default function MuscleDiagram({
               height="3"
               patternTransform="rotate(45)"
             >
-              <rect width="3" height="3" fill="#4a4330" />
-              <line x1="0" y1="0" x2="0" y2="3" stroke="#6b6247" strokeWidth="1" />
+              <rect width="3" height="3" fill="#f1f0ec" />
+              <line x1="0" y1="0" x2="0" y2="3" stroke="#dddad2" strokeWidth="1" />
             </pattern>
             <pattern
               id={goldPattern}
@@ -75,8 +77,8 @@ export default function MuscleDiagram({
               height="3"
               patternTransform="rotate(45)"
             >
-              <rect width="3" height="3" fill="#c99a2e" />
-              <line x1="0" y1="0" x2="0" y2="3" stroke="#ffe08a" strokeWidth="1" />
+              <rect width="3" height="3" fill="#d94840" />
+              <line x1="0" y1="0" x2="0" y2="3" stroke="#e96f68" strokeWidth="1" />
             </pattern>
           </defs>
           <image
@@ -121,7 +123,9 @@ export default function MuscleDiagram({
       {interactive && (
         <p className="muscleDiagramHint">{t("muscleDiagramHint")}</p>
       )}
-      {selected.length > 0 && (
+      {/* Read-only (athlete) view relies on hover/tap titles for names — no
+          chip list. The editor keeps chips as the remove affordance. */}
+      {interactive && selected.length > 0 && (
         <div className="muscleDiagramChips">
           {selected.map((key) => {
             const label = MUSCLE_LABELS[key];

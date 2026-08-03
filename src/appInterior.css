@@ -1074,7 +1074,7 @@
   min-width: 0;
 }
 .technicalCueDiagramCol {
-  flex: 0 0 220px;
+  flex: 0 0 180px;
 }
 .exerciseCueSections {
   display: grid;

@@ -4352,7 +4352,9 @@ body {
 
 .exerciseDetailMeta {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  /* Auto-fit: in the narrow cues column beside the diagram, 5 fixed tracks
+     squeezed each chip to a sliver and truncated the labels. */
+  grid-template-columns: repeat(auto-fit, minmax(108px, 1fr));
   gap: 10px;
   margin-bottom: 16px;
 }
