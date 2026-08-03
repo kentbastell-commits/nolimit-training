@@ -481,6 +481,12 @@ data between them, never "borrow" a table ID across products.
     DB — planned weights come from client-side resolution
     (`resolvePrescribedLoad` in App.tsx; mirrored as `resolveTargetKg` in the
     mini program's performance.ts) using `targetPercent` + athlete metrics.
+    This rule covers SANITIZATION too, not just formulas: exercise-note meta
+    labels are translated inconsistently (跟踪/追踪/单侧…), so any exact-label
+    filter eventually leaks one to an athlete — both clients must use the
+    generic short-CJK-label strip (web `stripLocalizedExerciseMeta`, mini
+    `cleanNotes`), and a strip fix in one client is unfinished until the
+    same field's every render path in the OTHER client is swept.
     Never build a feature on displayTarget without checking the column has
     data; and note both clients share the web's quirk that an exercise with
     no matching 1RM test falls back to the athlete's FIRST 1RM metric (a
