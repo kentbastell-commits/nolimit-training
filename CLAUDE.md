@@ -543,6 +543,15 @@ data between them, never "borrow" a table ID across products.
     and diff them — a second, differently-wrong implementation is exactly how
     this one hid for an unknown period.
 
+51. **The client overlay that eats navigation** — the client-detail view
+    renders on top of EVERY coach page while `selectedClient` is set, so a
+    raw `setActivePage(...)` from inside a client context looks like a dead
+    click (the target page mounts underneath, invisible; cost: calendar "New
+    session" appeared broken). Rule: navigation out of a client context
+    either goes through `goToPage()` (which clears selectedClient) or must
+    clear/stash `selectedClient` itself and restore it on the way back
+    (see `oneOffReturnClientRef`).
+
 ## Quality bar — checkable, per deliverable
 
 **Any shipped code change**
