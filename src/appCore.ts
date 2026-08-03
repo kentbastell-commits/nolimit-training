@@ -1175,6 +1175,86 @@ export const CN_META_LINE = /^\s*[一-鿿][一-鿿0-9]{0,11}[:：]/;
 export const META_JSON_FRAGMENT =
   /^\s*[[\]{}]|"(?:setNumber|reps|load|percent|percentMas|intensityMode|intensityValue|rpe|rir|time|tempo|rest|exerciseRecordId|exerciseId|exerciseName)"\s*:/;
 
+// Render-time zh labels for the fixed exercise vocabularies (#7: translate
+// the DISPLAYED text only — the stored EN values never change). Postgres has
+// no CN columns for equipment/movement pattern, so a map keeps every current
+// AND future exercise consistent with zero data migration.
+export const EQUIPMENT_ZH: Record<string, string> = {
+  "Agility Ladder": "敏捷梯",
+  "Air Bike": "风阻单车",
+  "Back Extension Bench": "罗马椅",
+  Bands: "弹力带",
+  Barbell: "杠铃",
+  "Battle Rope": "战绳",
+  Bike: "单车",
+  Bodyweight: "徒手",
+  Box: "跳箱",
+  Cable: "绳索",
+  "Campus Board": "Campus板",
+  Cones: "标志锥",
+  Dumbbell: "哑铃",
+  "EZ Bar": "曲杆",
+  Elliptical: "椭圆机",
+  Hangboard: "指力板",
+  Hurdles: "跨栏架",
+  "Jump Rope": "跳绳",
+  Kettlebell: "壶铃",
+  Landmine: "地雷架",
+  Machine: "器械",
+  "Medicine Ball": "药球",
+  "Pinch Block": "捏力块",
+  Plate: "杠铃片",
+  Pool: "泳池",
+  "Pull-Up Bar": "单杠",
+  Rings: "吊环",
+  "Row Ergometer": "划船机",
+  "Run - Track, Outdoor": "跑道/户外",
+  Sandbag: "沙袋",
+  "Ski Ergometer": "滑雪机",
+  Sled: "雪橇",
+  "Smith Machine": "史密斯机",
+  "Stability Ball": "瑞士球",
+  Stairmaster: "爬楼机",
+  "Trap Bar": "六角杠",
+  Treadmill: "跑步机",
+  Wall: "墙面",
+};
+
+// Multi-equipment values are comma-separated ("Dumbbell, Kettlebell") —
+// except "Run - Track, Outdoor", which contains a literal comma and must be
+// looked up whole before splitting.
+export function equipmentLabelZh(equipment = ""): string {
+  const raw = String(equipment).trim();
+  if (!raw) return "";
+  if (EQUIPMENT_ZH[raw]) return EQUIPMENT_ZH[raw];
+  return raw
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .map((part) => EQUIPMENT_ZH[part] || part)
+    .join("/");
+}
+
+export const MOVEMENT_PATTERN_ZH: Record<string, string> = {
+  "Carry / Loaded Carry": "负重行走",
+  Core: "核心",
+  "Core / Anti-Rotation": "核心/抗旋转",
+  Locomotion: "移动",
+  "Locomotion / Cardio": "移动/有氧",
+  "Lower Body Hinge": "下肢铰链",
+  "Lower Body Lunge": "下肢弓步",
+  "Lower Body Squat": "下肢深蹲",
+  Mobility: "活动度",
+  "Mobility / Flexibility": "活动度/柔韧性",
+  "Olympic / Power": "奥林匹克举重/爆发力",
+  Plyometric: "增强式",
+  Power: "爆发力",
+  "Upper Body Horizontal Pull": "上肢水平拉",
+  "Upper Body Horizontal Push": "上肢水平推",
+  "Upper Body Vertical Pull": "上肢垂直拉",
+  "Upper Body Vertical Push": "上肢垂直推",
+};
+
 export function stripLocalizedExerciseMeta(note = ""): string {
   return note
     .split(/\r?\n/)

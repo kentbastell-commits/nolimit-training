@@ -92,6 +92,8 @@ import {
   parseExerciseCueSections,
   parseExerciseNotes,
   stripLocalizedExerciseMeta,
+  equipmentLabelZh,
+  MOVEMENT_PATTERN_ZH,
   readPersistentCache,
   toYoutubeEmbed,
   writePersistentCache,
@@ -20708,35 +20710,50 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                 <div className="technicalCueMain">
                   <div className="exerciseDetailMeta">
                     <span>
-                      <strong>Category</strong>
+                      <strong>{t("cueMetaCategory")}</strong>
                       {localizeText(
                         technicalCueExercise.category || "--",
                         technicalCueExercise.categoryCn || ""
                       )}
                     </span>
                     <span>
-                      <strong>Equipment</strong>
+                      <strong>{t("cueMetaEquipment")}</strong>
                       {localizeText(
                         technicalCueExercise.equipment || "--",
-                        technicalCueExercise.equipmentCn || ""
+                        technicalCueExercise.equipmentCn ||
+                          equipmentLabelZh(technicalCueExercise.equipment)
                       )}
                     </span>
                     <span>
-                      <strong>Pattern</strong>
+                      <strong>{t("cueMetaPattern")}</strong>
                       {localizeText(
                         technicalCueExercise.movementPattern || "--",
-                        technicalCueExercise.movementPatternCn || ""
+                        technicalCueExercise.movementPatternCn ||
+                          MOVEMENT_PATTERN_ZH[
+                            (technicalCueExercise.movementPattern || "").trim()
+                          ] ||
+                          ""
                       )}
                     </span>
                     <span>
-                      <strong>Record</strong>
-                      {parseExerciseNotes(technicalCueExercise.notes || "").trackingType}
+                      <strong>{t("cueMetaRecord")}</strong>
+                      {(() => {
+                        const tracking = parseExerciseNotes(
+                          technicalCueExercise.notes || ""
+                        ).trackingType;
+                        return localizeText(
+                          tracking,
+                          { Weight: "重量", Time: "时间", Distance: "距离" }[
+                            tracking
+                          ] || ""
+                        );
+                      })()}
                     </span>
                     <span>
-                      <strong>Limb</strong>
+                      <strong>{t("cueMetaLimb")}</strong>
                       {parseExerciseNotes(technicalCueExercise.notes || "").isUnilateral
-                        ? "Unilateral"
-                        : "Bilateral"}
+                        ? localizeText("Unilateral", "单侧")
+                        : localizeText("Bilateral", "双侧")}
                     </span>
                   </div>
 
