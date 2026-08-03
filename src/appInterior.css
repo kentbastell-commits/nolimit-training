@@ -1610,6 +1610,9 @@
   font-size: 13px;
   font-weight: 800;
   color: #9b7a21;
+  /* Value sits inline right after the label text — without this it renders
+     as "Sleep duration8 h". */
+  margin-left: 8px;
 }
 .wellnessScale10 {
   display: flex;
