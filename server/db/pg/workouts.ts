@@ -1,6 +1,7 @@
 import { and, eq, gte, inArray, isNull, not, ilike, or, sql } from "drizzle-orm";
 import { db } from "../client.ts";
 import { assignedTests, assignedWorkouts, workoutLogs } from "../schema.ts";
+import { fillTranslation } from "../translate.ts";
 import { dayStartMs, pgErrorMessage, str } from "./_util.ts";
 import type { WorkoutDTO } from "../dto.ts";
 import type {
@@ -147,6 +148,43 @@ export async function assignProgram(input: AssignProgramInput): Promise<WorkoutW
     if (rows.length > 0) await db.insert(assignedWorkouts).values(rows);
   } catch (e: any) {
     return { success: false, error: pgErrorMessage(e) };
+  }
+
+  // Best-effort after commit: mirror the coach's English note and session
+  // name into the CN columns so a Chinese athlete's calendar/player isn't
+  // silently English. Fills empty columns only; text already containing
+  // Chinese is the coach's own wording — leave it.
+  const emptyOnly = (col: any) => or(isNull(col), eq(col, ""));
+  const hasCjk = (text: string) => /[一-鿿]/.test(text);
+  for (const row of rows) {
+    const note = String(row.coachNotes || "");
+    if (note && !hasCjk(note)) {
+      void fillTranslation(note, "zh", (zh) =>
+        db
+          .update(assignedWorkouts)
+          .set({ coachNotesCn: zh })
+          .where(
+            and(
+              eq(assignedWorkouts.assignedWorkoutId, row.assignedWorkoutId),
+              emptyOnly(assignedWorkouts.coachNotesCn)
+            )
+          )
+      );
+    }
+    const sessionName = String(row.sessionName || "");
+    if (sessionName && !row.sessionNameCn && !hasCjk(sessionName)) {
+      void fillTranslation(sessionName, "zh", (zh) =>
+        db
+          .update(assignedWorkouts)
+          .set({ sessionNameCn: zh })
+          .where(
+            and(
+              eq(assignedWorkouts.assignedWorkoutId, row.assignedWorkoutId),
+              emptyOnly(assignedWorkouts.sessionNameCn)
+            )
+          )
+      );
+    }
   }
 
   let testsCreated = 0;
