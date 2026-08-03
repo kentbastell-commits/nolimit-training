@@ -1762,6 +1762,10 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     date: string;
   } | null>(null);
   const [oneOffSaveToLibrary, setOneOffSaveToLibrary] = useState(false);
+  // The client object to restore after the one-off save — the client-detail
+  // view overlays every page while selectedClient is set, so entering the
+  // builder must clear it and finishing must put it back.
+  const oneOffReturnClientRef = useRef<Client | null>(null);
   // Calendar "Add from Library": builder-style picker that drops a saved
   // session / program / test onto a specific calendar date.
   const [calLibPick, setCalLibPick] = useState<{ date: string } | null>(null);
@@ -5399,6 +5403,10 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     // Pre-name it so a quick build can save without a naming stop; the coach
     // can overwrite. This is also the session name the athlete sees.
     setProgramName(`${selectedClient.name} · ${formatCalendarLabel(date)}`);
+    // The client-detail view overlays every page while a client is selected —
+    // clear it so the builder actually shows; the ref restores it on save.
+    oneOffReturnClientRef.current = selectedClient;
+    setSelectedClient(null);
     setActivePage("Workouts");
   };
 
@@ -11105,8 +11113,15 @@ function App({ onReady }: { onReady?: () => void } = {}) {
             "error"
           );
         }
+        // Land back INSIDE the client's calendar, not the roster.
+        const returnClient = oneOffReturnClientRef.current;
+        oneOffReturnClientRef.current = null;
         setActivePage("Clients");
-        if (selectedClient) void loadClientWorkouts(selectedClient, true);
+        if (returnClient) {
+          setSelectedClient(returnClient);
+          setClientTab("Training");
+          void loadClientWorkouts(returnClient, true);
+        }
       }
       return true;
     } catch (error) {
