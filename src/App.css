@@ -9223,7 +9223,7 @@ body {
   border-color: #8f6b12 !important;
 }
 
-.app:not(.clientPortalApp) .workoutBlock span {
+.app:not(.clientPortalApp) .workoutBlock span:not(.exerciseLabelBadge) {
   color: #dcd8cd !important;
 }
 
@@ -12064,9 +12064,25 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 .clientPortalApp .calendarDay .workoutBlock .workoutBlockMain {
   color: #1a1a1a !important;
 }
-.app:not(.clientPortalApp) .calendarDay .workoutBlock span,
-.clientPortalApp .calendarDay .workoutBlock span {
+/* Grey the plain-text spans only — glance label badges (A1/B1 circles)
+   define their own section ink (white on color, brown on warmup beige);
+   greying them made every badge label illegible on the calendar cards. */
+.app:not(.clientPortalApp) .calendarDay .workoutBlock span:not(.exerciseLabelBadge),
+.clientPortalApp .calendarDay .workoutBlock span:not(.exerciseLabelBadge) {
   color: #5c5c5c !important;
+}
+
+/* Restore glance badge ink on calendar cards. Several stacked theme rules
+   grey every `.workoutBlock span` (9226, 8186, 12070…) and outgun the label
+   classes' own (0,2,0) !important inks — so re-assert them here at higher
+   specificity: white on every colored fill, brown on the warmup beige. */
+.app:not(.clientPortalApp) .calendarDay .workoutBlock .glanceChain span.exerciseLabelBadge,
+.clientPortalApp .calendarDay .workoutBlock .glanceChain span.exerciseLabelBadge {
+  color: #ffffff !important;
+}
+.app:not(.clientPortalApp) .calendarDay .workoutBlock .glanceChain span.exerciseLabelBadge.exerciseLabelBadgeWarmup,
+.clientPortalApp .calendarDay .workoutBlock .glanceChain span.exerciseLabelBadge.exerciseLabelBadgeWarmup {
+  color: #9a531a !important;
 }
 
 /* Coach calendar glance chains sit on LIGHT tinted tabs — the builder's
