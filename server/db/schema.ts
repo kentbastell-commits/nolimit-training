@@ -347,6 +347,9 @@ export const assignedWorkouts = pgTable(
     intensity: text("intensity"),
     estimatedDuration: integer("estimated_duration"),
     scheduledDate: ts("scheduled_date"),
+    // Position within a day when several workouts share a date (coach drags
+    // Warmup above Activation). NULL = unordered; sorts after ordered rows.
+    dayOrder: integer("day_order"),
     completionStatus: text("completion_status"),
     coachNotes: text("coach_notes"),
     coachNotesCn: text("coach_notes_cn"),

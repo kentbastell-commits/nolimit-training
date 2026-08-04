@@ -12069,6 +12069,19 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   color: #5c5c5c !important;
 }
 
+/* Coach calendar glance chains sit on LIGHT tinted tabs — the builder's
+   dark-card glance ink (white exercise names) would be invisible here. */
+.calendarDay .workoutBlock .calCardGlance {
+  margin-top: 6px;
+}
+.calendarDay .workoutBlock .calCardGlance .glanceText {
+  padding: 2px 0;
+}
+.calendarDay .workoutBlock .calCardGlance .glanceText strong {
+  color: #1a1a1a;
+  font-size: 11.5px;
+}
+
 /* Tab background tint BY TASK TYPE — same selectors cover the grid calendar
    tabs (.calendarDay .workoutBlock) and the day-detail cards in the other
    views (.selectedDayWorkout). */

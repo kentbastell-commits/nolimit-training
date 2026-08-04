@@ -16,7 +16,7 @@ const CAT_ICON: Record<string, any> = {
 const catIcon = (cc: string) => CAT_ICON[cc] || Dumbbell;
 import PortalToApp from "./PortalToApp";
 import type { CalendarView } from "./appCore";
-import { dateToInputValue, formatCalendarLabel, formatMonthTitle, getAssignmentColorClass, getDisplayTaskStatus, getMonthDates, getSessionTypeClass, getStatusClass, getWorkoutColorClass, normalizeDate } from "./appCore";
+import { dateToInputValue, formatCalendarLabel, formatMonthTitle, getAssignmentColorClass, getDisplayTaskStatus, getMonthDates, getSessionTypeClass, getStatusClass, getWorkoutColorClass, glanceRepsToken, normalizeDate } from "./appCore";
 
 export default function PortalTraining({
   calendarDropWorkoutId,
@@ -58,6 +58,8 @@ export default function PortalTraining({
   getAssignmentsForDate,
   getCalendarItemCountForDate,
   getWorkoutsForDate,
+  getCalendarGlanceExercises,
+  buildGlanceChain,
   handleClientCalendarWorkoutDrop,
   handleOpenContentAssignment,
   isClientPortal,
@@ -1059,7 +1061,6 @@ export default function PortalTraining({
                               }}
                               onDragOver={(event) => {
                                 if (
-                                  !isClientPortal ||
                                   !draggingWorkoutId ||
                                   draggingWorkoutId === workout.id
                                 ) {
@@ -1166,6 +1167,73 @@ export default function PortalTraining({
                                 </span>
                               </div>
 
+                              {/* Coach view: builder-style glance chain — the
+                                  same colors and superset/circuit links the
+                                  Program Builder grid cards show. */}
+                              {!isClientPortal &&
+                                buildGlanceChain &&
+                                (() => {
+                                  const glanceExercises =
+                                    getCalendarGlanceExercises?.(workout);
+                                  if (!glanceExercises) return null;
+                                  return (
+                                    <div className="glanceChain calCardGlance">
+                                      {buildGlanceChain(glanceExercises).map(
+                                        (it: any, gi: number) => (
+                                          <div
+                                            className="glanceRow"
+                                            key={`${it.ex.exerciseRecordId}-${gi}`}
+                                          >
+                                            <div className="glanceBadgeWrap">
+                                              {it.linked && !it.isFirst && (
+                                                <span
+                                                  className={`glanceLineUp line-${it.lineUpColor}`}
+                                                />
+                                              )}
+                                              {it.linked && !it.isLast && (
+                                                <span
+                                                  className={`glanceLineDown line-${it.lineDownColor}`}
+                                                />
+                                              )}
+                                              <span
+                                                className={`exerciseLabelBadge glanceBadge ${it.colorClass}${
+                                                  it.customHex
+                                                    ? " labelCustomHex"
+                                                    : ""
+                                                }`}
+                                                style={
+                                                  it.customHex
+                                                    ? ({
+                                                        "--section-custom":
+                                                          it.customHex,
+                                                      } as any)
+                                                    : undefined
+                                                }
+                                              >
+                                                {it.display}
+                                              </span>
+                                            </div>
+                                            <div className="glanceText">
+                                              <strong>
+                                                {it.ex.exerciseName}
+                                              </strong>
+                                              {(it.ex.sets ||
+                                                glanceRepsToken(it.ex)) && (
+                                                <span>
+                                                  {it.ex.sets &&
+                                                  glanceRepsToken(it.ex)
+                                                    ? `${it.ex.sets} x ${glanceRepsToken(it.ex)}`
+                                                    : it.ex.sets ||
+                                                      glanceRepsToken(it.ex)}
+                                                </span>
+                                              )}
+                                            </div>
+                                          </div>
+                                        )
+                                      )}
+                                    </div>
+                                  );
+                                })()}
                             </div>
                           ))}
 

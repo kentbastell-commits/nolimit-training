@@ -18,7 +18,13 @@ export async function listAllWorkouts(): Promise<WorkoutDTO[]> {
   const rows = await db
     .select()
     .from(assignedWorkouts)
-    .orderBy(assignedWorkouts.scheduledDate, assignedWorkouts.assignedWorkoutId);
+    .orderBy(
+      assignedWorkouts.scheduledDate,
+      // Coach-chosen position within a day; unordered rows sort after so a
+      // fresh assignment lands below deliberately placed sessions.
+      sql`${assignedWorkouts.dayOrder} asc nulls last`,
+      assignedWorkouts.assignedWorkoutId
+    );
   // Feishu's "Workout Logs" link column told the frontend a workout has saved
   // logs (Continue vs Start, recent-submissions list). Postgres inverts the
   // relationship — logs point at workouts — so surface it with one grouped
@@ -46,6 +52,7 @@ export async function listAllWorkouts(): Promise<WorkoutDTO[]> {
       estimatedDuration: str(r.estimatedDuration),
       intensity: str(r.intensity),
       scheduledDate: str(r.scheduledDate), // epoch-ms as text, matching Feishu
+      dayOrder: r.dayOrder ?? null,
       completionStatus: str(r.completionStatus),
       coachNotes: str(r.coachNotes),
       coachNotesCn: str(r.coachNotesCn),
@@ -217,6 +224,28 @@ export async function assignProgram(input: AssignProgramInput): Promise<WorkoutW
   }
 
   return { success: true, recordsCreated: rows.length + testsCreated, testsCreated };
+}
+
+// Coach drag-reorder within one calendar day: persist each workout's
+// position so every client (coach view, portal, mini program) shows the
+// same order. Written as one transaction — a half-applied order is worse
+// than the old order.
+export async function reorderAssignedWorkouts(
+  orders: Array<{ assignedWorkoutId: string; dayOrder: number }>
+): Promise<WorkoutWriteResult> {
+  try {
+    await db.transaction(async (tx) => {
+      for (const o of orders) {
+        await tx
+          .update(assignedWorkouts)
+          .set({ dayOrder: Math.trunc(o.dayOrder) })
+          .where(eq(assignedWorkouts.assignedWorkoutId, String(o.assignedWorkoutId)));
+      }
+    });
+    return { success: true };
+  } catch (e) {
+    return { success: false, error: pgErrorMessage(e) };
+  }
 }
 
 export async function updateAssignedWorkoutDate(

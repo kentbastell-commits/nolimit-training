@@ -128,6 +128,7 @@ import upsertSubscription from "../api/upsertSubscription.ts";
 import teams from "../api/teams.ts";
 import testTemplates from "../api/testTemplates.ts";
 import updateAssignedProgramDate from "../api/updateAssignedProgramDate.ts";
+import reorderAssignedWorkouts from "../api/reorderAssignedWorkouts.ts";
 import updateContentAssignmentDate from "../api/updateContentAssignmentDate.ts";
 import updateClient from "../api/updateClient.ts";
 import updateProductOrder from "../api/updateProductOrder.ts";
@@ -301,6 +302,7 @@ const handlers = {
   teams,
   testTemplates,
   updateAssignedProgramDate,
+  reorderAssignedWorkouts,
   updateContentAssignmentDate,
   updateClient,
   updateProductOrder,

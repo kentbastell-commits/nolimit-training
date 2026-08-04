@@ -211,6 +211,8 @@ export type Workout = {
   estimatedDuration?: string;
   intensity?: string;
   scheduledDate: string;
+  // Coach-set position within a shared date; null/undefined = unordered.
+  dayOrder?: number | null;
   completionStatus: string;
   coachNotes: string;
   coachNotesCn?: string;

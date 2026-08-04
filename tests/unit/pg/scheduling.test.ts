@@ -12,6 +12,8 @@ import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import shiftHandler from "../../../api/shiftAssignedWorkouts.ts";
 import updateDateHandler from "../../../api/updateAssignedProgramDate.ts";
 import duplicateHandler from "../../../api/duplicateAssignedWorkout.ts";
+import reorderHandler from "../../../api/reorderAssignedWorkouts.ts";
+import workoutsHandler from "../../../api/workouts.ts";
 import { closeDb, makeReq, makeRes, resetDb, rows, seedClient } from "./helpers.ts";
 import { pool } from "../../../server/db/client.ts";
 
@@ -60,6 +62,67 @@ async function dates(): Promise<Record<string, number>> {
   const found = await rows("select assigned_workout_id, scheduled_date from assigned_workouts");
   return Object.fromEntries(found.map((r) => [r.assigned_workout_id, Number(r.scheduled_date)]));
 }
+
+describe("api/reorderAssignedWorkouts (postgres)", () => {
+  async function get(handler: any, query: Record<string, any>) {
+    const res = makeRes();
+    await handler(makeReq({ method: "GET", query }) as any, res as any);
+    return res;
+  }
+
+  it("rejects non-POST with 405 and 400s on empty/malformed orders", async () => {
+    const res = makeRes();
+    await reorderHandler(makeReq({ method: "GET" }) as any, res as any);
+    expect(res.statusCode).toBe(405);
+    expect((await post(reorderHandler, {})).statusCode).toBe(400);
+    expect((await post(reorderHandler, { orders: [] })).statusCode).toBe(400);
+    expect(
+      (await post(reorderHandler, { orders: [{ assignedWorkoutId: "AW-1" }] }))
+        .statusCode
+    ).toBe(400);
+  });
+
+  it("persists the coach's within-day order and the list honors it", async () => {
+    // Two workouts on the same date; API order starts as AW id order.
+    const at = dayStart("2026-08-06");
+    await seedWorkout("AW-1", at, { session_name: "Activation" });
+    await seedWorkout("AW-2", at, { session_name: "Warmup" });
+
+    // Coach drags Warmup above Activation.
+    const res = await post(reorderHandler, {
+      orders: [
+        { assignedWorkoutId: "AW-2", dayOrder: 1 },
+        { assignedWorkoutId: "AW-1", dayOrder: 2 },
+      ],
+    });
+    expect(res.statusCode).toBe(200);
+
+    // The workouts list — what the portal and mini program consume — must
+    // return the coach's order, Warmup first.
+    const list = await get(workoutsHandler, { clientCode: "CL-9001" });
+    expect(
+      list.body.workouts.map((w: any) => w.assignedWorkoutId)
+    ).toEqual(["AW-2", "AW-1"]);
+  });
+
+  it("sorts unordered rows after deliberately placed ones", async () => {
+    const at = dayStart("2026-08-06");
+    await seedWorkout("AW-1", at, { session_name: "Placed", day_order: 1 });
+    await seedWorkout("AW-0", at, { session_name: "Fresh assign" }); // no order
+
+    const list = await (async () => {
+      const res = makeRes();
+      await workoutsHandler(
+        makeReq({ method: "GET", query: { clientCode: "CL-9001" } }) as any,
+        res as any
+      );
+      return res;
+    })();
+    expect(
+      list.body.workouts.map((w: any) => w.assignedWorkoutId)
+    ).toEqual(["AW-1", "AW-0"]);
+  });
+});
 
 describe("api/shiftAssignedWorkouts (postgres)", () => {
   it("rejects non-POST with 405", async () => {

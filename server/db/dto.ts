@@ -186,6 +186,8 @@ export type WorkoutDTO = {
   estimatedDuration: string;
   intensity: string;
   scheduledDate: string;
+  // Position within a shared date (coach-set); null = unordered.
+  dayOrder: number | null;
   completionStatus: string;
   coachNotes: string;
   coachNotesCn: string;

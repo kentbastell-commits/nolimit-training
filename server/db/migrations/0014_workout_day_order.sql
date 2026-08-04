@@ -1,0 +1,1 @@
+ALTER TABLE "assigned_workouts" ADD COLUMN "day_order" integer;

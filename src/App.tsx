@@ -5193,6 +5193,50 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     return buildSessionsFromTemplates(templateData.templates || []);
   };
 
+  // Rich calendar cards: cache each program's sessions so the coach's client
+  // calendar renders builder-style glance chains (colors + exercise chains)
+  // on every workout card. Keyed by programId; fetched once per program.
+  const [calGlanceSessions, setCalGlanceSessions] = useState<
+    Record<string, ProgramSession[]>
+  >({});
+  const calGlanceFetching = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (isClientPortal || !selectedClient) return;
+    const missing = Array.from(
+      new Set(workouts.map((w) => String(w.programId || "")).filter(Boolean))
+    ).filter(
+      (pid) => !(pid in calGlanceSessions) && !calGlanceFetching.current.has(pid)
+    );
+    missing.forEach((pid) => {
+      calGlanceFetching.current.add(pid);
+      void fetchProgramSessions(pid, pid)
+        .then((sessions) => {
+          setCalGlanceSessions((prev) => ({ ...prev, [pid]: sessions }));
+        })
+        .finally(() => {
+          calGlanceFetching.current.delete(pid);
+        });
+    });
+  }, [workouts, selectedClient, isClientPortal]);
+
+  const getCalendarGlanceExercises = (
+    workout: Workout
+  ): ProgramExercise[] | null => {
+    const sessions = calGlanceSessions[String(workout.programId || "")];
+    if (!sessions) return null;
+    const wk = Number(workout.week) || 1;
+    const dy = Number(workout.day) || 1;
+    const matches = sessions.filter(
+      (s) => (Number(s.week) || 1) === wk && (Number(s.day) || 1) === dy
+    );
+    // Two sessions can share a week/day (Warmup + Power on Day 1) — the
+    // session NAME disambiguates which card gets which chain.
+    const named = matches.find((s) => s.sessionName === workout.sessionName);
+    const session = named || matches[0];
+    return session && session.exercises.length > 0 ? session.exercises : null;
+  };
+
   // Read-only at-a-glance preview of a saved program (right-click → Preview).
   const openProgramPreview = async (program: Program) => {
     setProgramMenu(null);
@@ -16494,6 +16538,17 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     dayWorkouts: Workout[],
     orderMap: Record<string, string[]> = clientCalendarWorkoutOrder
   ) {
+    // Coach view: the server-persisted day_order is the truth (stable sort —
+    // unordered rows keep API order, after ordered ones). The localStorage
+    // layer below is the athlete portal's own per-device preference.
+    if (!isClientPortal) {
+      return [...dayWorkouts].sort(
+        (a, b) =>
+          (a.dayOrder ?? Number.MAX_SAFE_INTEGER) -
+          (b.dayOrder ?? Number.MAX_SAFE_INTEGER)
+      );
+    }
+
     const savedOrder = orderMap[dateString] || [];
 
     return dayWorkouts
@@ -16564,13 +16619,63 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     });
   }
 
+  // Coach same-day drag: persist the new order server-side (day_order), so
+  // the athlete's portal and mini program show the coach's chosen order —
+  // unlike the portal's localStorage layer, which is per-device preference.
+  async function reorderCoachWorkoutDay(
+    dateString: string,
+    sourceWorkoutId: string,
+    targetWorkoutId: string
+  ) {
+    if (!selectedClient || sourceWorkoutId === targetWorkoutId) return;
+
+    const dayWorkouts = getWorkoutsForDate(dateString);
+    const from = dayWorkouts.findIndex((w) => w.id === sourceWorkoutId);
+    const to = dayWorkouts.findIndex((w) => w.id === targetWorkoutId);
+    if (from === -1 || to === -1) return;
+
+    const next = [...dayWorkouts];
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
+    const orderById = new Map(next.map((w, index) => [w.id, index + 1]));
+
+    const previousWorkouts = workouts;
+    setWorkouts((prev) => {
+      const nextWorkouts = prev.map((item) =>
+        orderById.has(item.id)
+          ? { ...item, dayOrder: orderById.get(item.id)! }
+          : item
+      );
+      cacheClientWorkouts(selectedClient.clientCode, nextWorkouts);
+      return nextWorkouts;
+    });
+
+    try {
+      const res = await fetch("/api/reorderAssignedWorkouts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orders: next.map((w, index) => ({
+            assignedWorkoutId: w.assignedWorkoutId || w.id,
+            dayOrder: index + 1,
+          })),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || String(res.status));
+    } catch (error) {
+      console.error(error);
+      setWorkouts(previousWorkouts);
+      cacheClientWorkouts(selectedClient.clientCode, previousWorkouts);
+      notify("Could not save the new order. The calendar has been restored.");
+    }
+  }
+
   function handleClientCalendarWorkoutDrop(
     event: DragEvent<HTMLElement>,
     targetWorkout: Workout,
     targetDate: string
   ) {
-    if (!isClientPortal) return;
-
     const sourceWorkoutId =
       event.dataTransfer.getData("text/plain") || draggingWorkoutId;
 
@@ -16588,7 +16693,11 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       return;
     }
 
-    reorderClientCalendarWorkout(targetDate, sourceWorkoutId, targetWorkout.id);
+    if (isClientPortal) {
+      reorderClientCalendarWorkout(targetDate, sourceWorkoutId, targetWorkout.id);
+    } else {
+      void reorderCoachWorkoutDay(targetDate, sourceWorkoutId, targetWorkout.id);
+    }
     setDraggingWorkoutId("");
   }
 
@@ -21040,6 +21149,8 @@ function App({ onReady }: { onReady?: () => void } = {}) {
             getTaskActionLabel={getTaskActionLabel}
             getTaskTone={getTaskTone}
             getWorkoutsForDate={getWorkoutsForDate}
+            getCalendarGlanceExercises={getCalendarGlanceExercises}
+            buildGlanceChain={buildGlanceChain}
             handleClientCalendarWorkoutDrop={handleClientCalendarWorkoutDrop}
             handleHomeTouchEnd={handleHomeTouchEnd}
             handleHomeTouchStart={handleHomeTouchStart}

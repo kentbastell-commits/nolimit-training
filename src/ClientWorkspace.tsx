@@ -91,6 +91,8 @@ export default function ClientWorkspace({
   getTaskActionLabel,
   getTaskTone,
   getWorkoutsForDate,
+  getCalendarGlanceExercises,
+  buildGlanceChain,
   handleClientCalendarWorkoutDrop,
   handleHomeTouchEnd,
   handleHomeTouchStart,
@@ -836,6 +838,8 @@ export default function ClientWorkspace({
                   getAssignmentsForDate={getAssignmentsForDate}
                   getCalendarItemCountForDate={getCalendarItemCountForDate}
                   getWorkoutsForDate={getWorkoutsForDate}
+                  getCalendarGlanceExercises={getCalendarGlanceExercises}
+                  buildGlanceChain={buildGlanceChain}
                   handleClientCalendarWorkoutDrop={handleClientCalendarWorkoutDrop}
                   handleOpenContentAssignment={handleOpenContentAssignment}
                   isClientPortal={isClientPortal}

@@ -52,6 +52,7 @@ export const COACH_ONLY_HANDLERS = new Set([
   "subscriptions",
   "teams",
   "updateAssignedProgramDate",
+  "reorderAssignedWorkouts",
   "updateContentAssignmentDate",
   "updateProductOrder",
   "updateProgram",

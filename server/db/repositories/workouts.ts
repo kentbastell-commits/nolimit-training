@@ -94,6 +94,15 @@ export async function updateAssignedWorkoutDate(
   return result;
 }
 
+// Coach-set position of workouts sharing one calendar day.
+export async function reorderAssignedWorkouts(
+  orders: Array<{ assignedWorkoutId: string; dayOrder: number }>
+): Promise<WorkoutWriteResult> {
+  const result = await pg.reorderAssignedWorkouts(orders);
+  if (result.success) invalidateCache("workouts");
+  return result;
+}
+
 // Bulk reschedule: the client-facing "shift my plan" action. Moves every
 // not-yet-completed workout scheduled on/after fromDate by N days.
 export async function shiftAssignedWorkoutDates(
