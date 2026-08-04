@@ -52,6 +52,9 @@
   gap: 10px;
   overflow-y: auto;
   padding-right: 4px;
+  /* Rows keep their natural height — the default stretch ballooned every
+     card to fill the panel when a search left only a few results. */
+  align-content: start;
 }
 .builderExercisePickCard {
   display: grid;
