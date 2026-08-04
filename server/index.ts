@@ -84,6 +84,7 @@ import assignProgram from "../api/assignProgram.ts";
 import athleteMetrics from "../api/athleteMetrics.ts";
 import checkIns from "../api/checkIns.ts";
 import clientLog from "../api/clientLog.ts";
+import programExport from "../api/programExport.ts";
 import clientMessages from "../api/clientMessages.ts";
 import clients from "../api/clients.ts";
 import coaches from "../api/coaches.ts";
@@ -256,6 +257,7 @@ const handlers = {
   athleteMetrics,
   checkIns,
   clientLog,
+  programExport,
   clientMessages,
   clients,
   coaches,

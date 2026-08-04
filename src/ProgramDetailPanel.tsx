@@ -20,6 +20,7 @@ import {
   Users,
   X,
   Zap,
+  FileDown,
 } from "lucide-react";
 import { glanceRepsToken } from "./appCore";
 
@@ -293,6 +294,21 @@ export default function ProgramDetailPanel({
               onClick={() => loadSavedProgramIntoBuilder(p, { asCopy: true })}
             >
               <Copy size={15} /> Duplicate
+            </button>
+            <button
+              type="button"
+              className="pdpBtnGhost"
+              title="Self-contained HTML with QR-coded videos — print or send as the app-down fallback"
+              onClick={() =>
+                window.open(
+                  `/api/programExport?programId=${encodeURIComponent(
+                    p.programId
+                  )}&programRecordId=${encodeURIComponent(p.recordId || "")}`,
+                  "_blank"
+                )
+              }
+            >
+              <FileDown size={15} /> Offline copy
             </button>
             <button
               type="button"
