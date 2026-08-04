@@ -928,8 +928,10 @@
   }
   .ctpHead {
     align-items: stretch;
-    margin-bottom: 20px;
+    margin-bottom: 14px;
   }
+  .ctpHead h1 { margin-top: 5px; font-size: 28px; }
+  .ctpHead > div > p { font-size: 13px; line-height: 1.4; }
   .ctpHead > div,
   .ctpNewBtn {
     width: 100%;
@@ -953,7 +955,7 @@
     border-radius: 14px;
   }
   .ctpBoardBig > span {
-    font-size: 34px;
+    font-size: 30px;
   }
   .ctpBoardBreak {
     flex-wrap: wrap;

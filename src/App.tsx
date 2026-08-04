@@ -318,6 +318,10 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   // the program builder directly). Falls back to Clients.
   const [activePage, setActivePage] = useState<Page>(() => {
     const requested = inviteSearchParams.get("page");
+    // Check-ins are handled inside the Review queue. Old links should land on
+    // that operational surface instead of silently falling back to Clients or
+    // exposing the retired standalone page.
+    if (requested === "Check-ins") return "Review";
     const coachPages: Page[] = [
       "Clients",
       "Teams",

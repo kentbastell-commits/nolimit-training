@@ -797,7 +797,9 @@
 
 @media (max-width: 640px) {
   .coachClientsPage { padding-inline: 0; }
-  .crpHead { margin-bottom: 18px; }
+  .crpHead { margin-bottom: 14px; }
+  .crpHead h1 { margin-top: 5px; font-size: 28px; }
+  .crpHead > div > p { font-size: 13px; line-height: 1.4; }
   .crpHeadActions { width: 100%; }
   .crpHeadActions > button {
     flex: 1;
@@ -820,7 +822,7 @@
     border-radius: 14px;
   }
   .crpBoardBig > span {
-    font-size: 34px;
+    font-size: 30px;
   }
   .crpBoardBreak {
     flex-wrap: wrap;

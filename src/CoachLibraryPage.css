@@ -666,6 +666,9 @@
   .coachLibraryPage {
     padding-top: 0;
   }
+  .clHead { margin-bottom: 14px; }
+  .clHead h1 { margin-top: 5px; font-size: 28px; }
+  .clHead > div > p { font-size: 13px; line-height: 1.4; }
   .clHead {
     align-items: stretch;
   }
@@ -693,7 +696,7 @@
     border-radius: 14px;
   }
   .clBoardBig > span {
-    font-size: 34px;
+    font-size: 30px;
   }
   .clBoardBreak {
     flex-wrap: wrap;

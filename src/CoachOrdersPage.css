@@ -1121,6 +1121,9 @@
   .copPage {
     padding-top: 0;
   }
+  .copHead { margin-bottom: 14px; }
+  .copHead h1 { margin-top: 5px; font-size: 28px; }
+  .copHead p { font-size: 13px; line-height: 1.4; }
   .copDigital {
     display: grid;
     grid-template-columns: 42px minmax(0, 1fr);
@@ -1154,11 +1157,17 @@
     flex-direction: column;
   }
   .copBoard {
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
   }
-  .copBoard {
-    gap: 12px;
+  .copBoardDark,
+  .copBoardLight {
+    min-width: 0;
+    padding: 14px 16px;
+    border-radius: 14px;
   }
+  .copBoardBig > span { font-size: 30px; }
   .copFilters,
   .copToolbar {
     align-items: stretch;

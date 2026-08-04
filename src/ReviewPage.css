@@ -728,14 +728,16 @@ button.rvItem:focus-visible {
   }
   .rvHero {
     border-radius: 18px;
-    padding: 22px 24px;
+    padding: 17px 20px;
   }
+  .rvTitle { font-size: 28px; }
+  .rvIntro { font-size: 13px; line-height: 1.4; }
   .rvHeroRow {
     display: grid;
     gap: 7px;
   }
   .rvHeroNum {
-    font-size: 46px;
+    font-size: 40px;
   }
   .rvHeroSub {
     max-width: 250px;
@@ -747,7 +749,7 @@ button.rvItem:focus-visible {
     margin-bottom: 4px;
   }
   .rvSummaryCard {
-    min-height: 88px;
+    min-height: 78px;
     padding: 12px 12px 12px 15px;
     border-radius: 14px;
   }
