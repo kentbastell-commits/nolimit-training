@@ -3074,6 +3074,15 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     setShowExerciseModal(true);
   };
 
+  // "Create Exercise" from inside the session builder's picker: same modal,
+  // but on save the new exercise is ALSO dropped straight into the session
+  // being built (library + program in one step).
+  const addToBuilderAfterSaveRef = useRef(false);
+  const openCreateExerciseFromBuilder = () => {
+    addToBuilderAfterSaveRef.current = true;
+    openNewExerciseForm();
+  };
+
   const openEditExerciseForm = (exercise: LibraryExercise) => {
     const meta = parseExerciseNotes(exercise.notes || "");
 
@@ -3181,6 +3190,8 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     setShowExerciseModal(false);
     setEditingExercise(null);
     resetExerciseForm();
+    // A cancelled create must not add anything to the session later.
+    addToBuilderAfterSaveRef.current = false;
   };
 
   const saveExerciseForm = async (archive = false) => {
@@ -3264,10 +3275,19 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       window.setTimeout(() => {
         void loadExerciseLibrary(true);
       }, 2000);
+
+      // Builder-launched create: drop the new exercise straight into the
+      // session being built. Read BEFORE closeExerciseForm clears the flag.
+      const addToBuilder = addToBuilderAfterSaveRef.current && !archive;
       closeExerciseForm();
+      if (addToBuilder) {
+        addExerciseToProgram(savedExercise);
+      }
       notify(
         archive
           ? "Exercise archived."
+          : addToBuilder
+          ? `Exercise created and added to this session: ${savedExercise.exerciseName}`
           : editingExercise
           ? data.cueFieldName
             ? `Exercise updated. Cues saved to ${data.cueFieldName}.`
@@ -20622,6 +20642,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                 commitDraftSessionIfAny={commitDraftSessionIfAny}
                 saveFormTemplate={saveFormTemplate}
                 saveFullProgram={saveFullProgram}
+                openCreateExerciseFromBuilder={openCreateExerciseFromBuilder}
                 oneOffAssignTarget={oneOffAssignTarget}
                 oneOffSaveToLibrary={oneOffSaveToLibrary}
                 setOneOffSaveToLibrary={setOneOffSaveToLibrary}

@@ -20,7 +20,10 @@
 .axScrim {
   position: fixed;
   inset: 0;
-  z-index: 2000;
+  /* Above the builder's session editor + mobile sheets (3200) and the
+     createProgram overlay (4000) — "Create Exercise" opens from INSIDE
+     those; below toasts (5000). */
+  z-index: 4300;
   background: rgba(13, 12, 10, 0.55);
   backdrop-filter: blur(3px);
   display: flex;

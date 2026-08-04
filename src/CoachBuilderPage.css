@@ -3717,6 +3717,35 @@
   background: rgba(212, 175, 55, 0.05) !important;
   cursor: default;
 }
+/* "Create Exercise" card at the top of the builder's picker — the escape
+   hatch when the next exercise doesn't exist yet. */
+.builderCreateExerciseCard {
+  border: 1.5px dashed rgba(212, 175, 55, 0.65) !important;
+  background: rgba(212, 175, 55, 0.07) !important;
+}
+.builderCreateExerciseCard span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #8a6d1c;
+  font-weight: 800;
+}
+.builderCreateExerciseCard small {
+  color: #9b8a5c;
+}
+.mbCreateExercise {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 12px;
+  border-radius: 12px;
+  font-weight: 800;
+  color: #8a6d1c;
+  margin-bottom: 8px;
+}
+
 /* One-off calendar session banner: the save's destination must be unmissable
    so a coach never wonders where the session went. */
 .oneOffAssignBanner {

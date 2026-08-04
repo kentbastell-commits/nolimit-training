@@ -225,6 +225,7 @@ export default function CoachBuilderPage({
   commitDraftSessionIfAny,
   saveFormTemplate,
   saveFullProgram,
+  openCreateExerciseFromBuilder,
   oneOffAssignTarget,
   oneOffSaveToLibrary,
   setOneOffSaveToLibrary,
@@ -2906,6 +2907,18 @@ export default function CoachBuilderPage({
                         </div>
 
                         <div className="builderDrawerExerciseGrid">
+                          <button
+                            className="builderExercisePickCard builderCreateExerciseCard"
+                            onClick={openCreateExerciseFromBuilder}
+                          >
+                            <span>
+                              <Plus size={14} /> Create Exercise
+                            </span>
+                            <small>
+                              New to the library — saved AND added to this
+                              session
+                            </small>
+                          </button>
                           {libraryLoading && builderExercises.length === 0 && (
                             <div className="builderLibraryEmpty">
                               Loading exercises...
@@ -4051,6 +4064,13 @@ export default function CoachBuilderPage({
                             onChange={(e) => setBuilderSearch(e.target.value)}
                             placeholder="Search exercise…"
                           />
+                          <button
+                            type="button"
+                            className="builderCreateExerciseCard mbCreateExercise"
+                            onClick={openCreateExerciseFromBuilder}
+                          >
+                            <Plus size={14} /> Create Exercise
+                          </button>
                           {libraryLoading && builderExercises.length === 0 && (
                             <p className="mbHint">Loading exercises…</p>
                           )}
