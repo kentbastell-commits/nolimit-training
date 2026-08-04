@@ -79,8 +79,10 @@ data between them, never "borrow" a table ID across products.
   UTC+8, so the two disagree by 8h and a comparison across them silently drops
   rows. `epochToDate()` is the inverse.
 - **Tests**: handler tests run against a REAL local Postgres (`nolimit_test`),
-  not mocks — `node --env-file=.env scripts/setupTestDb.mjs` once, then
-  `npx vitest run --project pg`. They truncate every table between cases and
+  not mocks — `node --env-file=.env scripts/setupTestDb.mjs` once, AND again
+  after every new migration (a handful of files failing on "column does not
+  exist" right after a schema change means exactly this, not broken tests),
+  then `npx vitest run --project pg`. They truncate every table between cases and
   refuse any non-localhost host, so they can never touch the dev DB or prod.
 - **Cache**: `api/_cache.ts` in-process cache makes reads fast. Every writer MUST
   call `invalidateCache(...)` for every cache key its write affects, or coaches see
