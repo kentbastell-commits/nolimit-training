@@ -654,7 +654,11 @@ invented procedure is not.
 ## Environment
 
 - Windows 11; Bash tool = Git Bash. The shell cwd resets between commands — always
-  `cd` explicitly in compound commands. Python needs `PYTHONIOENCODING=utf-8` for
+  `cd` explicitly in compound commands. PowerShell 5.1 silently shreds
+  multi-line `git commit -m @'…'@` here-strings containing quotes/dashes (the
+  commit "succeeds" as a pathspec error you can miss mid-pipeline, and a
+  deploy then ships the OLD commit) — always write the message to a temp file
+  and `git commit -F <file>`, and check the commit hash actually advanced. Python needs `PYTHONIOENCODING=utf-8` for
   CJK output. `curl -d "…中文…"` from Git Bash mangles CJK to literal `?` — send
   Chinese payloads with `--data-binary @file` (write the file server-side or via
   printf \x escapes), never inline in the command.
