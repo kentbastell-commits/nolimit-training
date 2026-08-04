@@ -572,7 +572,10 @@ data between them, never "borrow" a table ID across products.
     loader unconditionally and let the loader's own TTL cache throttle
     (fresh → serve memory, stale → refetch); an emptiness guard is a
     never-refresh bug, not an optimization. This class is per-SHAPE: grep
-    `length === 0 && !.*[Ll]oading` when you find one instance.
+    `length === 0 && !.*[Ll]oading` when you find one instance. Corollary:
+    any HANDLER that searches a lazily-loaded list (`programs.find(...)`)
+    must await the loader itself when the list is empty — reachable pages
+    (a client's calendar via Clients) may never have triggered the load.
 
 ## Quality bar — checkable, per deliverable
 
