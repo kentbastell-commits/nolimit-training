@@ -12154,6 +12154,20 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   border-left-color: #c0392b !important;
 }
 
+/* Coach calendar cards: WHITE like the Program Builder grid cards — the
+   type tints above stay for the athlete portal, but on the coach side the
+   fill read as a heavy blue wash behind the glance chains. Left status bar
+   (dark / red-when-missed) is deliberately untouched. */
+.app:not(.clientPortalApp) .calendarDay .workoutBlock.workoutBlock {
+  background: #ffffff !important;
+  border-top-color: #e2ddd0 !important;
+  border-right-color: #e2ddd0 !important;
+  border-bottom-color: #e2ddd0 !important;
+}
+.app:not(.clientPortalApp) .calendarDay .workoutBlock.workoutBlock:hover {
+  background: #faf8f3 !important;
+}
+
 .exerciseLibraryTable > .libraryCategoryGroupHeader:first-of-type {
   border-top: 0;
   padding-top: 10px;

@@ -1152,19 +1152,26 @@ export default function PortalTraining({
                                 })()}
                               <div className="workoutBlockMain">
                                 {localizedWorkoutName(workout)}
-                                <span>
-                                  {workout.sessionType
-                                    ? `${workout.sessionType} - `
-                                    : ""}
-                                  {movingWorkoutId === workout.id
-                                    ? t("moving")
-                                    : localizeTaskStatus(
-                                        getDisplayTaskStatus(
-                                          workout.completionStatus,
-                                          workout.scheduledDate
-                                        )
-                                      )}
-                                </span>
+                                {/* Coach cards drop the "Type - Status" line
+                                    (status lives in the left bar; the chain
+                                    below says the rest) — except while a
+                                    move is in flight. Portal keeps it. */}
+                                {(isClientPortal ||
+                                  movingWorkoutId === workout.id) && (
+                                  <span>
+                                    {workout.sessionType
+                                      ? `${workout.sessionType} - `
+                                      : ""}
+                                    {movingWorkoutId === workout.id
+                                      ? t("moving")
+                                      : localizeTaskStatus(
+                                          getDisplayTaskStatus(
+                                            workout.completionStatus,
+                                            workout.scheduledDate
+                                          )
+                                        )}
+                                  </span>
+                                )}
                               </div>
 
                               {/* Coach view: builder-style glance chain — the
