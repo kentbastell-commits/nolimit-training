@@ -185,7 +185,13 @@ data between them, never "borrow" a table ID across products.
     App.css; verify against the *served/built* CSS or `getComputedStyle`, never
     assume your edit took. (Cost hours on the sidebar identity box: a stray
     `.coachBoxWrap { position:absolute }` in appInterior.css pinned it out of
-    flow and made the nav overlap it — invisible from App.css.)
+    flow and made the nav overlap it — invisible from App.css.) Corollary
+    (cost the calendar glance badges): REUSING a styled component on a new
+    surface inherits that surface's broad themed descendant rules — App.css
+    has 6+ stacked `.workoutBlock span { color: … !important }` rules that
+    repainted the builder's badge ink illegible. When moving/reusing a
+    component, check getComputedStyle in the new context, and out-specific
+    the theme rules rather than patching them one by one.
 19. **The future-state privacy promise** — writing the privacy policy as if a
     planned mainland/Postgres migration is already complete. Rule: disclose the
     live data path until migration is verified, record temporary cross-border
