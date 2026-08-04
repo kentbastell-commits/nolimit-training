@@ -10270,6 +10270,19 @@ function App({ onReady }: { onReady?: () => void } = {}) {
             <Eye size={16} />
             View exercise
           </button>
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              setBuilderExerciseOptionsIndex(null);
+              const lib = findLibraryExerciseForProgramExercise(exercise);
+              if (lib) openEditExerciseForm(lib);
+              else notify("Exercise not found in the library.", "error");
+            }}
+          >
+            <Pencil size={16} />
+            Edit exercise
+          </button>
           {exercise.trackingType === "Weight" && (
             <button
               type="button"
