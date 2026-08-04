@@ -977,7 +977,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   });
   // Coach client "Dashboard" sub-tabs: Sport Science (load + wellness) vs Activity.
   const [coachDashTab, setCoachDashTab] = useState<"science" | "activity">(
-    "science"
+    "activity"
   );
   // Replay the app-wide entrance animation (nl-anim) on navigation — a short
   // delay lets React commit the new page's DOM before the stagger re-runs.
@@ -1778,6 +1778,13 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   >("choice");
   const [calLibPickSearch, setCalLibPickSearch] = useState("");
   const [calLibPickBusyId, setCalLibPickBusyId] = useState("");
+  const [calLibPickPreviewLoading, setCalLibPickPreviewLoading] = useState("");
+  const [calLibPickPreview, setCalLibPickPreview] = useState<{
+    kind: "session" | "program" | "test";
+    item: Program | SavedTestTemplate;
+    sessions: ProgramSession[];
+    date: string;
+  } | null>(null);
   const [assignProgramKind, setAssignProgramKind] = useState<
     "program" | "session"
   >("program");
@@ -5514,6 +5521,38 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     }
     setActivePage("Workouts");
     void loadSavedProgramIntoBuilder(program, { edit: true });
+  };
+
+  // Calendar library picker: drop ONE saved session onto the date.
+  const previewCalendarLibraryItem = async (
+    kind: "session" | "program" | "test",
+    item: Program | SavedTestTemplate,
+    date: string
+  ) => {
+    const itemId =
+      kind === "test"
+        ? (item as SavedTestTemplate).testTemplateId
+        : (item as Program).programId;
+    setCalLibPickPreviewLoading(itemId);
+    try {
+      const sessions =
+        kind === "test"
+          ? []
+          : await fetchProgramSessions(
+              (item as Program).programId,
+              (item as Program).recordId || ""
+            );
+      if (kind === "session" && sessions.length === 0) {
+        notify("That session has no exercises yet.");
+        return;
+      }
+      setCalLibPickPreview({ kind, item, sessions, date });
+    } catch (error) {
+      console.error(error);
+      notify("Could not load that item for preview.", "error");
+    } finally {
+      setCalLibPickPreviewLoading("");
+    }
   };
 
   // Calendar library picker: drop ONE saved session onto the date.
@@ -12847,7 +12886,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   };
   const triageDefs: { key: Exclude<typeof rosterTriage, "">; label: string }[] =
     [
-      { key: "needsProgram", label: "Needs program" },
+      { key: "needsProgram", label: t("noScheduledPlan") },
       { key: "needsContact", label: "No contact" },
       { key: "needsCheckIn", label: "Needs check-in" },
       { key: "inactive", label: "Inactive 7d+" },
@@ -19183,6 +19222,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                 setCalAddMenu(null);
                 setCalLibPickMode("choice");
                 setCalLibPickSearch("");
+                setCalLibPickPreview(null);
                 setCalLibPick({ date });
                 // The test library loads lazily elsewhere — fetch it now so
                 // the Add Test list isn't empty on first open.
@@ -19229,7 +19269,86 @@ function App({ onReady }: { onReady?: () => void } = {}) {
               </button>
             </div>
             <div className="createProgramBody">
-              {calLibPickMode === "choice" && (
+              {calLibPickPreview &&
+                (() => {
+                  const { kind, item, sessions, date } = calLibPickPreview;
+                  const isTest = kind === "test";
+                  const program = isTest ? null : (item as Program);
+                  const test = isTest ? (item as SavedTestTemplate) : null;
+                  const title = test?.name || program?.programName || t("untitled");
+                  const exercises = sessions.flatMap((session) => session.exercises || []);
+                  return (
+                    <div className="calendarAssignPreview">
+                      <div className="calendarAssignPreviewTop">
+                        <span className="calendarAssignPreviewIcon">
+                          {kind === "session" ? <Dumbbell size={22} /> : kind === "program" ? <ClipboardList size={22} /> : <Activity size={22} />}
+                        </span>
+                        <div>
+                          <span className="eyebrow">{t("reviewBeforeAssigning")}</span>
+                          <h4>{title}</h4>
+                          <p>{selectedClient?.name} · {formatCalendarLabel(date)}</p>
+                        </div>
+                      </div>
+                      <div className="calendarAssignPreviewFacts">
+                        <span>
+                          <strong>{kind === "program" ? sessions.length : isTest ? test?.items.length || 0 : 1}</strong>
+                          {kind === "program" ? t("sessions") : kind === "test" ? t("testItems") : t("session")}
+                        </span>
+                        <span>
+                          <strong>{isTest ? test?.category || "—" : program?.sport || "—"}</strong>
+                          {isTest ? t("category") : t("sport")}
+                        </span>
+                      </div>
+                      <div className="calendarAssignPreviewContents">
+                        <span>{isTest ? t("testContents") : t("sessionContents")}</span>
+                        {isTest ? (
+                          <div className="calendarAssignPreviewList">
+                            {(test?.items || []).map((entry: any) => (
+                              <div key={entry.id || entry.testName}>
+                                <strong>{entry.testName}</strong>
+                                <small>{[entry.metricType, entry.unit].filter(Boolean).join(" · ")}</small>
+                              </div>
+                            ))}
+                          </div>
+                        ) : exercises.length > 0 ? (
+                          <div className="calendarAssignPreviewList">
+                            {exercises.slice(0, 12).map((exercise: any, index: number) => (
+                              <div key={`${exercise.exerciseRecordId || exercise.exerciseName}-${index}`}>
+                                <strong>{exercise.exerciseName}</strong>
+                                <small>
+                                  {[exercise.sets && `${exercise.sets} ${t("sets")}`, exercise.reps && `${exercise.reps} ${t("reps")}`]
+                                    .filter(Boolean)
+                                    .join(" · ")}
+                                </small>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="mbHint">{t("noExercisesInItem")}</p>
+                        )}
+                      </div>
+                      <div className="calendarAssignPreviewActions">
+                        <button type="button" className="outlineButton" onClick={() => setCalLibPickPreview(null)}>
+                          {t("backToLibrary")}
+                        </button>
+                        <button
+                          type="button"
+                          className="goldButton"
+                          disabled={Boolean(calLibPickBusyId)}
+                          onClick={() => {
+                            if (kind === "session") void assignLibrarySessionToDate(program as Program, date);
+                            else if (kind === "program") void assignLibraryProgramToDate(program as Program, date);
+                            else void assignLibraryTestToDate(test as SavedTestTemplate, date);
+                          }}
+                        >
+                          {calLibPickBusyId ? t("assigning") : t("confirmAndAssign")}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+              {!calLibPickPreview && calLibPickMode === "choice" && (
                 <div className="libPickChoiceGrid">
                   <button
                     type="button"
@@ -19279,7 +19398,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                 </div>
               )}
 
-              {(calLibPickMode === "sessions" ||
+              {!calLibPickPreview && (calLibPickMode === "sessions" ||
                 calLibPickMode === "programs") &&
                 (() => {
                   const isPrograms = calLibPickMode === "programs";
@@ -19328,17 +19447,13 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                             key={pp.recordId}
                             type="button"
                             className="libPickCard"
-                            disabled={Boolean(calLibPickBusyId)}
+                            disabled={Boolean(calLibPickPreviewLoading)}
                             onClick={() =>
-                              isPrograms
-                                ? void assignLibraryProgramToDate(
-                                    pp,
-                                    calLibPick.date
-                                  )
-                                : void assignLibrarySessionToDate(
-                                    pp,
-                                    calLibPick.date
-                                  )
+                              void previewCalendarLibraryItem(
+                                isPrograms ? "program" : "session",
+                                pp,
+                                calLibPick.date
+                              )
                             }
                           >
                             <span className="libPickCardIcon">
@@ -19351,7 +19466,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                             <span className="libPickCardInfo">
                               <strong>{pp.programName}</strong>
                               <small>
-                                {calLibPickBusyId === pp.programId
+                                {calLibPickPreviewLoading === pp.programId
                                   ? "Adding…"
                                   : [pp.sport, pp.goal || pp.phase]
                                       .filter(Boolean)
@@ -19366,7 +19481,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                   );
                 })()}
 
-              {calLibPickMode === "tests" &&
+              {!calLibPickPreview && calLibPickMode === "tests" &&
                 (() => {
                   const pool = savedTestTemplates.filter(
                     (test) => test.status !== "Archived"
@@ -19407,9 +19522,13 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                             key={test.testTemplateId}
                             type="button"
                             className="libPickCard"
-                            disabled={Boolean(calLibPickBusyId)}
+                            disabled={Boolean(calLibPickPreviewLoading)}
                             onClick={() =>
-                              void assignLibraryTestToDate(test, calLibPick.date)
+                              void previewCalendarLibraryItem(
+                                "test",
+                                test,
+                                calLibPick.date
+                              )
                             }
                           >
                             <span className="libPickCardIcon">
@@ -19418,7 +19537,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                             <span className="libPickCardInfo">
                               <strong>{test.name}</strong>
                               <small>
-                                {calLibPickBusyId === test.testTemplateId
+                                {calLibPickPreviewLoading === test.testTemplateId
                                   ? "Adding…"
                                   : [
                                       test.category,

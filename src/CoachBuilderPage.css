@@ -4020,3 +4020,9 @@
   font-weight: 600;
   color: #6b675e;
 }
+.oneOffBuilderLibraryCopy {
+  display: none;
+}
+.wkHeadLeft .oneOffBuilderContextCopy {
+  max-width: 660px;
+}

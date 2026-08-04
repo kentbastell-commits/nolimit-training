@@ -93,9 +93,7 @@ describe("CoachClientsPage", () => {
   });
 
   it("renders a roster row and opens the client on click", () => {
-    // Redesign: clicking a row now opens a peek slide-over (looked up in the
-    // full `clients` list by id); "Open client home" inside it routes into the
-    // client's Home tab — the same destination the old row click had.
+    // Row click is the primary route into the full client workspace.
     const setSelectedClient = vi.fn();
     const setClientTab = vi.fn();
     render(
@@ -109,9 +107,6 @@ describe("CoachClientsPage", () => {
       />
     );
     fireEvent.click(screen.getByText("Ada Lovelace"));
-    fireEvent.click(
-      screen.getByRole("button", { name: /Open client home/ })
-    );
     expect(setSelectedClient).toHaveBeenCalledWith(client);
     expect(setClientTab).toHaveBeenCalledWith("Home");
   });
@@ -123,7 +118,7 @@ describe("CoachClientsPage", () => {
     expect(loadClients).toHaveBeenCalledWith(true);
   });
 
-  it("opens and closes the client preview from the keyboard", async () => {
+  it("opens and closes the optional client quick view", async () => {
     render(
       <CoachClientsPage
         {...baseProps}
@@ -132,10 +127,7 @@ describe("CoachClientsPage", () => {
       />
     );
 
-    fireEvent.keyDown(
-      screen.getByRole("button", { name: "Preview Ada Lovelace" }),
-      { key: "Enter" }
-    );
+    fireEvent.click(screen.getByRole("button", { name: "quickView" }));
     const dialog = screen.getByRole("dialog", { name: "Ada Lovelace" });
     expect(dialog).toBeInTheDocument();
     fireEvent.keyDown(dialog, { key: "Escape" });

@@ -500,12 +500,17 @@ export default function PortalTraining({
                       <div className="calendarAddMenuWrap">
                         <button
                           className="iconActionButton calendarAddButton"
-                          onClick={() =>
-                            setShowCalendarActionMenu((current: any) => !current)
-                          }
+                          onClick={(event) => {
+                            setShowCalendarActionMenu(false);
+                            setCalAddMenu({
+                              date: calendarAnchorDate,
+                              x: event.clientX - 150,
+                              y: event.clientY + 10,
+                            });
+                          }}
                           type="button"
-                          title="Add to calendar"
-                          aria-label="Add to calendar"
+                          title={t("addToSelectedDate")}
+                          aria-label={t("addToSelectedDate")}
                         >
                           <Plus size={19} aria-hidden="true" />
                         </button>

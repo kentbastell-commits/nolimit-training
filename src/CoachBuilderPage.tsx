@@ -731,13 +731,15 @@ export default function CoachBuilderPage({
                           <h1>
                             {workoutPageTab === "Program Builder"
                               ? isSingleWorkoutBuilder
-                                ? "Create Session"
+                                ? oneOffAssignTarget
+                                  ? `New session for ${oneOffAssignTarget.clientName}`
+                                  : "Create Session"
                                 : editProgramRecordId
                                 ? "Edit Program"
                                 : "Create Program"
                               : "Workouts"}
                           </h1>
-                          <p>
+                          <p className={oneOffAssignTarget ? "oneOffBuilderLibraryCopy" : ""}>
                             {workoutPageTab === "Program Builder"
                               ? isSingleWorkoutBuilder
                                 ? "Build a reusable session once — drop it into any program, anytime."
@@ -746,6 +748,14 @@ export default function CoachBuilderPage({
                                 : "Build a full phase of programming — sessions, weeks, and progressions in one place."
                               : "Your programs, reusable sessions, and intake forms — build once, assign anywhere."}
                           </p>
+                          {oneOffAssignTarget && (
+                            <p className="oneOffBuilderContextCopy">
+                              {t("oneOffBuilderSub", {
+                                name: oneOffAssignTarget.clientName,
+                                date: oneOffAssignTarget.date,
+                              })}
+                            </p>
+                          )}
                         </div>
                         <div className="wkHeadRight">
                           {isListTab && (
@@ -764,7 +774,11 @@ export default function CoachBuilderPage({
                                     onClick={saveFullProgram}
                                   >
                                     <Save size={17} strokeWidth={2.2} />
-                                    {savingTemplate ? saveBusyLabel : "Save"}
+                                    {savingTemplate
+                                      ? saveBusyLabel
+                                      : oneOffAssignTarget
+                                        ? t("assignSession")
+                                        : "Save"}
                                   </button>
                                   <span
                                     className={`pbSaveStatus${
@@ -777,7 +791,7 @@ export default function CoachBuilderPage({
                                       : "All changes saved"}
                                   </span>
                                 </div>
-                                {isSingleWorkoutBuilder && (
+                                {isSingleWorkoutBuilder && !oneOffAssignTarget && (
                                   <button
                                     type="button"
                                     className="pbSaveExitBtn"
@@ -2552,7 +2566,7 @@ export default function CoachBuilderPage({
                       />
                     </label>
                   )}
-                  {isSingleWorkoutBuilder && (
+                  {isSingleWorkoutBuilder && !oneOffAssignTarget && (
                     <label>
                       <span>Assign to</span>
                       <select

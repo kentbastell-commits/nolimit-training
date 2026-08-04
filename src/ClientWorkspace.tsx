@@ -6,9 +6,12 @@ import PortalTraining from "./PortalTraining";
 import PortalPrograms from "./PortalPrograms";
 import ClientOverview from "./ClientOverview";
 import {
+  Activity,
+  ArrowLeft,
   ArrowRight,
   BookOpen,
   CalendarDays,
+  ExternalLink,
   Home,
   MoreVertical,
   UserCircle,
@@ -253,6 +256,36 @@ export default function ClientWorkspace({
   const safeCompletionRate = Number.isFinite(Number(completionRate))
     ? Math.round(Number(completionRate))
     : 0;
+  const coachSection =
+    clientTab === "Training"
+      ? {
+          eyebrow: t("coachWorkspaceCalendarEyebrow"),
+          title: t("calendar"),
+          description: t("coachWorkspaceCalendarSub"),
+        }
+      : clientTab === "Programs"
+        ? {
+            eyebrow: t("coachWorkspaceProgramsEyebrow"),
+            title: t("programs"),
+            description: t("coachWorkspaceProgramsSub"),
+          }
+        : clientTab === "Overview"
+          ? {
+              eyebrow: t("coachWorkspaceProfileEyebrow"),
+              title: t("coachWorkspaceProfileTitle"),
+              description: t("coachWorkspaceProfileSub"),
+            }
+          : coachDashTab === "science"
+            ? {
+                eyebrow: t("coachWorkspaceProgressEyebrow"),
+                title: t("progress"),
+                description: t("coachWorkspaceProgressSub"),
+              }
+            : {
+                eyebrow: t("coachWorkspaceOverviewEyebrow"),
+                title: t("overview"),
+                description: t("coachWorkspaceOverviewSub"),
+              };
 
   const portalHero = (() => {
     if (clientTab === "Training") {
@@ -387,7 +420,7 @@ export default function ClientWorkspace({
           >
 
             <section className="clientWorkspace">
-              {!isClientPortal && (
+              {false && !isClientPortal && (
               <button
                 className="outlineButton"
                 onClick={() => {
@@ -519,6 +552,25 @@ export default function ClientWorkspace({
                     </div>
                   </header>
 
+                  <nav className="clientDesktopNav" aria-label={t("clientNavigation")}>
+                    {[
+                      ["Home", Home, t("home")],
+                      ["Training", CalendarDays, t("calendar")],
+                      ["Programs", BookOpen, t("myPrograms")],
+                      ["Overview", UserCircle, t("profile")],
+                    ].map(([key, Icon, label]: any) => (
+                      <button
+                        type="button"
+                        key={key}
+                        className={clientTab === key ? "active" : ""}
+                        onClick={() => setClientTab(key)}
+                      >
+                        <Icon size={17} aria-hidden="true" />
+                        {label}
+                      </button>
+                    ))}
+                  </nav>
+
                 </>
               )}
               {isClientPortal ? (
@@ -548,7 +600,107 @@ export default function ClientWorkspace({
                 })()
               ) : (
                 <>
-                  <div className="cdHeaderIntro">
+                  <header className="coachClientContext">
+                    <button
+                      type="button"
+                      className="coachClientBack"
+                      onClick={() => {
+                        setSelectedClient(null);
+                        setSelectedWorkout(null);
+                        setWorkoutDetails([]);
+                        setSetLogs([]);
+                        setSavedExerciseDraftIds([]);
+                      }}
+                    >
+                      <ArrowLeft size={18} aria-hidden="true" />
+                      <span>{t("clients")}</span>
+                    </button>
+                    <div className="coachClientAvatar" aria-hidden="true">
+                      {selectedClient.initials}
+                    </div>
+                    <div className="coachClientIdentity">
+                      <span>{coachSection.eyebrow}</span>
+                      <h1>{selectedClient.name}</h1>
+                      <p>
+                        {selectedClient.clientType || t("client")} ·{" "}
+                        {getCoachDisplayName(
+                          selectedClient.coach ||
+                            selectedClient.primaryCoach ||
+                            t("coachView")
+                        )}
+                      </p>
+                    </div>
+                    <div className="coachClientContextActions">
+                      <a
+                        className="coachClientPortalButton"
+                        href={buildClientPortalLink(selectedClient)}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        <ExternalLink size={16} aria-hidden="true" />
+                        {t("viewAsClient")}
+                      </a>
+                      <details className="clientActionMenu">
+                        <summary
+                          className="iconActionButton"
+                          aria-label={t("clientActions")}
+                        >
+                          <MoreVertical size={18} aria-hidden="true" />
+                        </summary>
+                        <div className="clientActionDropdown">
+                          <button
+                            onClick={() =>
+                              copyToClipboard(
+                                buildClientPortalLink(selectedClient),
+                                t("clientPortalLink")
+                              )
+                            }
+                          >
+                            {t("copyPortalLink")}
+                          </button>
+                          <button onClick={() => openEditClientForm(selectedClient)}>
+                            {t("editAssignCoach")}
+                          </button>
+                          <button
+                            onClick={() =>
+                              updateClientPackage(selectedClient, "Archived")
+                            }
+                            disabled={updatingClientStatus}
+                          >
+                            {t("archiveClient")}
+                          </button>
+                          <button
+                            className="dangerMenuItem"
+                            onClick={() => deleteClient(selectedClient)}
+                          >
+                            {t("deleteClient")}
+                          </button>
+                        </div>
+                      </details>
+                    </div>
+                  </header>
+                  <div className="coachClientPageHeading">
+                    <div>
+                      <span>{coachSection.eyebrow}</span>
+                      <h2>{coachSection.title}</h2>
+                      <p>{coachSection.description}</p>
+                    </div>
+                    {Array.isArray(clientHeroKpis) && clientHeroKpis.length > 0 && (
+                      <div className="coachClientKpiStrip">
+                        {clientHeroKpis.slice(0, 4).map((k: any) => (
+                          <div className="coachClientKpi" key={k.label}>
+                            <span>{k.label}</span>
+                            <strong>
+                              <CountUp value={k.value} />
+                              {k.unit ? <em>{k.unit}</em> : null}
+                            </strong>
+                            <small>{k.sub}</small>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div className="cdHeaderIntro" aria-hidden="true">
                     <span className="cdEyebrow">
                       <UserCircle size={14} aria-hidden="true" /> Client Dashboard
                     </span>
@@ -557,7 +709,7 @@ export default function ClientWorkspace({
                       activity for this athlete — at a glance.
                     </p>
                   </div>
-                  <header className="cdHero">
+                  <header className="cdHero" aria-hidden="true">
                     <div className="cdHeroGlow" aria-hidden="true" />
                     <div className="cdHeroTop">
                       <div className="cdHeroAvatar">{selectedClient.initials}</div>
@@ -638,34 +790,48 @@ export default function ClientWorkspace({
                 </>
               )}
 
-              <div
-                className={
-                  isClientPortal
-                    ? "clientTabs portalHidden"
-                    : "clientTabs"
-                }
-              >
+              {!isClientPortal && <div className="clientTabs coachClientTabs">
                 <button
-                  className={clientTab === "Home" ? "tab activeTab" : "tab"}
-                  onClick={() => setClientTab("Home")}
+                  className={clientTab === "Home" && coachDashTab === "activity" ? "tab activeTab" : "tab"}
+                  onClick={() => {
+                    setClientTab("Home");
+                    setCoachDashTab("activity");
+                  }}
                 >
-                  {t("dashboard")}
+                  <Home size={16} aria-hidden="true" /> {t("overview")}
                 </button>
 
                 <button
                   className={clientTab === "Training" ? "tab activeTab" : "tab"}
                   onClick={() => setClientTab("Training")}
                 >
-                  {t("calendar")}
+                  <CalendarDays size={16} aria-hidden="true" /> {t("calendar")}
+                </button>
+
+                <button
+                  className={clientTab === "Programs" ? "tab activeTab" : "tab"}
+                  onClick={() => setClientTab("Programs")}
+                >
+                  <BookOpen size={16} aria-hidden="true" /> {t("programs")}
+                </button>
+
+                <button
+                  className={clientTab === "Home" && coachDashTab === "science" ? "tab activeTab" : "tab"}
+                  onClick={() => {
+                    setClientTab("Home");
+                    setCoachDashTab("science");
+                  }}
+                >
+                  <Activity size={16} aria-hidden="true" /> {t("progress")}
                 </button>
 
                 <button
                   className={clientTab === "Overview" ? "tab activeTab" : "tab"}
                   onClick={() => setClientTab("Overview")}
                 >
-                  {t("clientOverview")}
+                  <UserCircle size={16} aria-hidden="true" /> {t("coachWorkspaceProfileTitle")}
                 </button>
-              </div>
+              </div>}
 
               {clientTab === "Home" && (
                 <PortalHome

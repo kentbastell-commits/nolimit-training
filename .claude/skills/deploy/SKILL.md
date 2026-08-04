@@ -44,6 +44,11 @@ retry short commands that die with "Connection closed".
    catches a broken money path or a leaked athlete read before a client does.
    Use `--maxWorkers=1` — higher values give phantom whole-suite failures
    (named mistake #15). Never deploy past a red gate.
+   On Windows under Codex, start the full suite as
+   `node node_modules/vitest/vitest.mjs run --maxWorkers=1` in a PTY with a
+   short initial yield, then poll that same session to its final summary.
+   `npx vitest` can return control while its child is still running, which can
+   accidentally start duplicate suites and makes an early empty result unsafe.
 4. A standalone subtree deployed outside its parent repo must also pass `npm ci`
    and its production build after extraction on the target. Parent `node_modules`
    hoisting can hide missing direct dependencies locally. Apply Nginx patches

@@ -1,15 +1,16 @@
 // Coach Clients roster — redesigned to match the Store / Digital Program pages
-// (dark board, segmented filters, grouped rows, peek slide-over). Restyle only:
-// row click still routes into the existing client Home; every control is wired
-// to the handlers already threaded in from App.tsx.
+// (dark board, segmented filters, grouped rows, optional quick-view slide-over).
+// Row click opens the full client workspace; the eye action opens quick view.
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import "./CoachClientsPage.css";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   CalendarDays,
   Check,
   ChevronRight,
+  Eye,
   Link2,
   Plus,
   RefreshCw,
@@ -40,6 +41,7 @@ const CIRC = 94.2;
 const EASE = [0.16, 1, 0.3, 1] as const;
 
 export default function CoachClientsPage(props: { [key: string]: any }) {
+  const { t } = useTranslation();
   const {
     loading,
     todayValue,
@@ -181,7 +183,7 @@ export default function CoachClientsPage(props: { [key: string]: any }) {
 
   const flagsFor = (c: any) => {
     const out: Array<{ label: string; cls: string }> = [];
-    if (clientNeedsProgramming(c)) out.push({ label: "Needs program", cls: "crpFlagProgram" });
+    if (clientNeedsProgramming(c)) out.push({ label: t("noScheduledPlan"), cls: "crpFlagProgram" });
     if (clientNeedsContact(c)) out.push({ label: "Needs contact", cls: "crpFlagContact" });
     const lz = clientWeekLoadZone(c);
     if (lz && (lz.cls === "loadZoneWarn" || lz.cls === "loadZoneRisk")) {
@@ -225,7 +227,14 @@ export default function CoachClientsPage(props: { [key: string]: any }) {
     const selected = rosterSelectedIds.includes(c.id);
     const flags = flagsFor(c);
     return (
-      <div className="crpRow" key={c.id} onClick={() => setPeekId(c.id)}>
+      <div
+        className="crpRow"
+        key={c.id}
+        onClick={() => {
+          setSelectedClient(c);
+          setClientTab("Home");
+        }}
+      >
         <button
           type="button"
           className={`crpCheck${selected ? " on" : ""}`}
@@ -244,11 +253,12 @@ export default function CoachClientsPage(props: { [key: string]: any }) {
           className="crpRowMain"
           role="button"
           tabIndex={0}
-          aria-label={`Preview ${c.name}`}
+          aria-label={t("openClientWorkspace", { name: c.name })}
           onKeyDown={(event) => {
             if (event.key === "Enter" || event.key === " ") {
               event.preventDefault();
-              setPeekId(c.id);
+              setSelectedClient(c);
+              setClientTab("Home");
             }
           }}
         >
@@ -308,6 +318,14 @@ export default function CoachClientsPage(props: { [key: string]: any }) {
           ))}
         </div>
         <div className="crpRowActions" onClick={(e) => e.stopPropagation()}>
+          <button
+            type="button"
+            className="crpIconBtn"
+            title={t("quickView")}
+            onClick={() => setPeekId(c.id)}
+          >
+            <Eye size={16} />
+          </button>
           <button
             type="button"
             className="crpIconBtn"

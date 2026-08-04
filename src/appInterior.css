@@ -682,6 +682,114 @@
   color: #6d6a60;
   line-height: 1.35;
 }
+.calendarAssignPreview {
+  display: grid;
+  gap: 16px;
+  min-height: 0;
+}
+.calendarAssignPreviewTop {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 15px;
+  border: 1px solid #e5dfd2;
+  border-radius: 15px;
+  background: #fbfaf6;
+}
+.calendarAssignPreviewIcon {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: 13px;
+  background: #171714;
+  color: #e6ca68;
+}
+.calendarAssignPreviewTop h4 {
+  margin: 3px 0 0;
+  color: #171714;
+  font-size: 20px;
+  font-weight: 900;
+  letter-spacing: -0.025em;
+}
+.calendarAssignPreviewTop p {
+  margin: 4px 0 0;
+  color: #777064;
+  font-size: 12px;
+  font-weight: 750;
+}
+.calendarAssignPreviewFacts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.calendarAssignPreviewFacts > span {
+  display: grid;
+  gap: 2px;
+  padding: 12px 14px;
+  border: 1px solid #e5dfd2;
+  border-radius: 12px;
+  color: #777064;
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.calendarAssignPreviewFacts strong {
+  overflow: hidden;
+  color: #171714;
+  font-size: 16px;
+  letter-spacing: 0;
+  text-overflow: ellipsis;
+  text-transform: none;
+  white-space: nowrap;
+}
+.calendarAssignPreviewContents {
+  min-height: 0;
+  display: grid;
+  gap: 8px;
+}
+.calendarAssignPreviewContents > span {
+  color: #9b6e17;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.calendarAssignPreviewList {
+  max-height: 260px;
+  display: grid;
+  gap: 7px;
+  overflow-y: auto;
+  padding-right: 3px;
+}
+.calendarAssignPreviewList > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid #ebe6dc;
+  border-radius: 10px;
+  background: #fff;
+}
+.calendarAssignPreviewList strong {
+  color: #171714;
+  font-size: 13px;
+  font-weight: 850;
+}
+.calendarAssignPreviewList small {
+  color: #817a6e;
+  font-size: 11px;
+  font-weight: 750;
+}
+.calendarAssignPreviewActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 4px;
+}
 .libPickDays {
   flex: 1;
   min-height: 0;

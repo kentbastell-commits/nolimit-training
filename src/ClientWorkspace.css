@@ -142,6 +142,216 @@
   background: #d4453a; border: 2px solid #fff;
 }
 
+.app:not(.clientPortalApp) .clientWorkspace > .outlineButton,
+.app:not(.clientPortalApp) .cdHeaderIntro,
+.app:not(.clientPortalApp) .cdHero,
+.app:not(.clientPortalApp) .coachDashTabs {
+  display: none !important;
+}
+.app:not(.clientPortalApp) .coachClientContext {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  margin: 0 0 18px;
+  padding: 13px 16px;
+  border: 1px solid #ded8ca;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(28, 26, 20, 0.055);
+}
+.app:not(.clientPortalApp) .coachClientBack {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 11px 0 8px;
+  border: 0;
+  border-right: 1px solid #e5e0d6;
+  background: transparent;
+  color: #625d52;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 850;
+  cursor: pointer;
+}
+.app:not(.clientPortalApp) .coachClientBack:hover { color: #9a6a12; }
+.app:not(.clientPortalApp) .coachClientAvatar {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(180, 126, 22, 0.3);
+  border-radius: 50%;
+  background: #f8f0dc;
+  color: #8d6214;
+  font-size: 15px;
+  font-weight: 900;
+}
+.app:not(.clientPortalApp) .coachClientIdentity { min-width: 0; }
+.app:not(.clientPortalApp) .coachClientIdentity > span,
+.app:not(.clientPortalApp) .coachClientPageHeading > div > span {
+  display: block;
+  color: #a77117;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+.app:not(.clientPortalApp) .coachClientIdentity h1 {
+  overflow: hidden;
+  margin: 2px 0 0 !important;
+  color: #171714 !important;
+  font-size: 21px !important;
+  font-weight: 900 !important;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.app:not(.clientPortalApp) .coachClientIdentity p {
+  overflow: hidden;
+  margin: 4px 0 0 !important;
+  color: #767064 !important;
+  font-size: 11.5px;
+  font-weight: 750;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.app:not(.clientPortalApp) .coachClientContextActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.app:not(.clientPortalApp) .coachClientPortalButton {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 14px;
+  border: 1px solid #d8c99d;
+  border-radius: 10px;
+  background: #fffaf0;
+  color: #6f5117;
+  font-size: 12.5px;
+  font-weight: 900;
+  text-decoration: none;
+}
+.app:not(.clientPortalApp) .coachClientPortalButton:hover {
+  border-color: #bd8a27;
+  background: #fbf1da;
+}
+.app:not(.clientPortalApp) .coachClientPageHeading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 28px;
+  margin: 0 0 14px;
+}
+.app:not(.clientPortalApp) .coachClientPageHeading > div:first-child { max-width: 570px; }
+.app:not(.clientPortalApp) .coachClientPageHeading h2 {
+  margin: 4px 0 0;
+  color: #171714;
+  font-size: clamp(28px, 3vw, 38px);
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+.app:not(.clientPortalApp) .coachClientPageHeading p {
+  margin: 8px 0 0 !important;
+  color: #6e695e !important;
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.45;
+}
+.app:not(.clientPortalApp) .coachClientKpiStrip {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  flex: 0 0 auto;
+}
+.app:not(.clientPortalApp) .coachClientKpi {
+  min-width: 92px;
+  padding: 0 13px;
+  border-left: 1px solid #e4dfd5;
+}
+.app:not(.clientPortalApp) .coachClientKpi > span,
+.app:not(.clientPortalApp) .coachClientKpi > small {
+  display: block;
+  max-width: 110px;
+  overflow: hidden;
+  color: #8a8376;
+  font-size: 9px;
+  font-weight: 850;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.app:not(.clientPortalApp) .coachClientKpi > span {
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+.app:not(.clientPortalApp) .coachClientKpi > strong {
+  display: block;
+  margin: 4px 0 3px;
+  color: #171714;
+  font-size: 19px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+}
+.app:not(.clientPortalApp) .coachClientKpi > strong em {
+  margin-left: 2px;
+  color: #8a8376;
+  font-size: 9px;
+  font-style: normal;
+}
+.app:not(.clientPortalApp) .coachClientTabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0 0 20px;
+  padding: 5px;
+  overflow-x: auto;
+  border: 1px solid #dfd9ce;
+  border-radius: 13px;
+  background: #e9e6df;
+}
+.app:not(.clientPortalApp) .coachClientTabs .tab {
+  min-height: 39px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  flex: 1 0 auto;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: #5d584e;
+  font-size: 12.5px;
+  font-weight: 850;
+  white-space: nowrap;
+}
+.app:not(.clientPortalApp) .coachClientTabs .tab.activeTab {
+  background: #fff;
+  color: #171714;
+  box-shadow: 0 2px 7px rgba(26, 24, 20, 0.1);
+}
+@media (max-width: 980px) {
+  .app:not(.clientPortalApp) .coachClientKpiStrip { display: none; }
+}
+@media (max-width: 680px) {
+  .app:not(.clientPortalApp) .coachClientContext {
+    gap: 9px;
+    padding: 10px;
+  }
+  .app:not(.clientPortalApp) .coachClientBack span,
+  .app:not(.clientPortalApp) .coachClientPortalButton { display: none; }
+  .app:not(.clientPortalApp) .coachClientBack { padding: 0 8px; }
+  .app:not(.clientPortalApp) .coachClientAvatar { width: 42px; height: 42px; }
+  .app:not(.clientPortalApp) .coachClientPageHeading { align-items: flex-start; }
+}
+
 /* ── Coach client-detail: black/gold KPI hero ──────────────────────────
    Selectors are scoped .app:not(.clientPortalApp) .cdHero … so they out-
    specify the coach light-theme's !important h1/p color rules. */
@@ -594,17 +804,19 @@
   .clientPortalApp .main {
     padding-bottom: 40px !important;
   }
+  .clientPortalApp .mobileClientBottomNav {
+    display: none !important;
+  }
   .clientPortalApp .clientPage:not(.trainingFocus) .clientWorkspace,
   .clientPortalApp .clientPage.trainingFocus .clientWorkspace,
   .clientPortalApp .clientWorkspace {
     width: min(100%, 1320px);
     max-width: 1320px !important;
-    padding: 28px 30px 120px !important; /* room for the bottom dock */
+    padding: 28px 30px 48px !important;
     margin-inline: auto;
   }
-  /* The bottom dock stays visible on desktop (Kent wants app-style tabs
-     at the bottom everywhere); layout + colors live in App.css's final
-     .mobileClientBottomNav block. */
+  /* Desktop uses the context tabs below the hero; the mobile dock stays
+     reserved for narrow screens where thumb reach matters most. */
 
   .clientPortalApp .clientPortalDesktopHero {
     position: relative;
@@ -620,6 +832,38 @@
       linear-gradient(150deg, #28231a 0%, #171612 48%, #0d0d0c 100%);
     box-shadow: 0 24px 60px rgba(28, 25, 19, 0.16);
   }
+  .clientPortalApp .clientDesktopNav {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin: 0 0 18px;
+    padding: 5px;
+    border: 1px solid #ddd8cd;
+    border-radius: 14px;
+    background: #e8e6df;
+  }
+  .clientPortalApp .clientDesktopNav button {
+    min-height: 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    flex: 1;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: #5d584e;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 850;
+    cursor: pointer;
+  }
+  .clientPortalApp .clientDesktopNav button.active {
+    background: #fff;
+    color: #171714;
+    box-shadow: 0 2px 7px rgba(26, 24, 20, 0.1);
+  }
+  .clientPortalApp .clientDesktopNav button.active svg { color: #a87318; }
   .clientPortalApp .clientPortalDesktopHeroGlow {
     position: absolute;
     top: -115px;

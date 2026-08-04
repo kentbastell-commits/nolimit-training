@@ -88,7 +88,7 @@ describe("ClientWorkspace", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("Online Coaching")).toBeInTheDocument();
     expect(screen.getByText("Coach Notes")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "← Back" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "clients" })).toBeInTheDocument();
   });
 
   it("clears selection when Back is clicked", () => {
@@ -96,14 +96,16 @@ describe("ClientWorkspace", () => {
     render(
       <ClientWorkspace {...baseProps} setSelectedClient={setSelectedClient} />
     );
-    fireEvent.click(screen.getByRole("button", { name: "← Back" }));
+    fireEvent.click(screen.getByRole("button", { name: "clients" }));
     expect(setSelectedClient).toHaveBeenCalledWith(null);
   });
 
   it("switches tabs via the client tab bar", () => {
     const setClientTab = vi.fn();
     render(<ClientWorkspace {...baseProps} setClientTab={setClientTab} />);
-    fireEvent.click(screen.getByRole("button", { name: "clientOverview" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "coachWorkspaceProfileTitle" })
+    );
     expect(setClientTab).toHaveBeenCalledWith("Overview");
   });
 });
