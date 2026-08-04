@@ -127,6 +127,84 @@ function telemetrySince(sinceMs) {
   return { crashes: top(crashes), failures: top(failures), funnel, total };
 }
 
+/**
+ * Per-athlete pilot digest: for every coached athlete, what happened
+ * yesterday — trained or skipped, wellness submitted, readiness. Reads the
+ * public API on this box; every failure degrades to an empty section rather
+ * than breaking the report.
+ */
+async function athleteDigest() {
+  const get = async (p) => {
+    const res = await fetch(`${SITE}${p}`, { signal: AbortSignal.timeout(20000) });
+    if (!res.ok) throw new Error(`${p} -> ${res.status}`);
+    return res.json();
+  };
+  // "Yesterday" in China time — scheduled_date epochs are China midnights.
+  const chinaNow = new Date(
+    new Date().toLocaleString("en-US", { timeZone: "Asia/Shanghai" })
+  );
+  const y = new Date(chinaNow.getTime() - 24 * 3600 * 1000);
+  const pad = (n) => String(n).padStart(2, "0");
+  const yKey = `${y.getFullYear()}-${pad(y.getMonth() + 1)}-${pad(y.getDate())}`;
+
+  try {
+    const { clients = [] } = await get("/api/clients");
+    const coached = clients
+      .filter((c) =>
+        /online coaching|in[-\s]?person/i.test(String(c.clientType || ""))
+      )
+      .slice(0, 8);
+    const lines = [];
+    for (const c of coached) {
+      const code = c.clientCode || c.id;
+      try {
+        const [{ workouts = [] }, { checkIns = [] }] = await Promise.all([
+          get(`/api/workouts?clientId=${encodeURIComponent(code)}`),
+          get(`/api/checkIns?clientId=${encodeURIComponent(code)}`),
+        ]);
+        const toKey = (ms) => {
+          const d = new Date(Number(ms));
+          const cn = new Date(
+            d.toLocaleString("en-US", { timeZone: "Asia/Shanghai" })
+          );
+          return `${cn.getFullYear()}-${pad(cn.getMonth() + 1)}-${pad(cn.getDate())}`;
+        };
+        const yesterdays = workouts.filter(
+          (w) => w.scheduledDate && toKey(w.scheduledDate) === yKey
+        );
+        const doneCount = yesterdays.filter((w) =>
+          /complete/i.test(String(w.completionStatus || ""))
+        ).length;
+        const wellness = checkIns.find((ci) => ci.submittedDate === yKey);
+
+        const parts = [];
+        if (yesterdays.length === 0) parts.push("rest day");
+        else if (doneCount === yesterdays.length)
+          parts.push(
+            `trained ✓ (${yesterdays.map((w) => w.sessionName).join(", ")})`
+          );
+        else
+          parts.push(
+            `⚠️ ${doneCount}/${yesterdays.length} sessions logged (${yesterdays
+              .map((w) => w.sessionName)
+              .join(", ")})`
+          );
+        parts.push(
+          wellness
+            ? `wellness ${wellness.readinessScore || "✓"}`
+            : "no wellness check-in"
+        );
+        lines.push(`  • ${c.name || code}: ${parts.join(" · ")}`);
+      } catch {
+        lines.push(`  • ${c.name || code}: (could not load)`);
+      }
+    }
+    return lines;
+  } catch {
+    return [];
+  }
+}
+
 function backupStatus() {
   try {
     // Newest by MTIME, not by name: a one-off like "nolimit_prod-preflight"
@@ -221,6 +299,13 @@ async function report() {
   lines.push(`Disk: ${sys.disk}`);
   lines.push(`Memory: ${sys.mem}`);
   lines.push("");
+
+  const athletes = await athleteDigest();
+  if (athletes.length) {
+    lines.push("Your athletes yesterday:");
+    lines.push(...athletes);
+    lines.push("");
+  }
 
   if (tel.crashes.length) {
     lines.push("App crashes reported by clients (last 24h):");
