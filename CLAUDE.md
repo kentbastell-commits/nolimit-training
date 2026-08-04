@@ -564,6 +564,16 @@ data between them, never "borrow" a table ID across products.
     never a client-orchestrated capture→insert→delete sequence, which
     duplicates under every race and half-completes under every failure.
 
+53. **The list that only loads when empty** — every cached client-side list
+    (exercises, programs, form/test templates) was fetched only `if
+    (list.length === 0)`, so an open app tab NEVER saw records created on
+    another device ("created exercises on my phone, they don't show up in
+    the library") until a hard reload. Rule: page-visit effects call the
+    loader unconditionally and let the loader's own TTL cache throttle
+    (fresh → serve memory, stale → refetch); an emptiness guard is a
+    never-refresh bug, not an optimization. This class is per-SHAPE: grep
+    `length === 0 && !.*[Ll]oading` when you find one instance.
+
 ## Quality bar — checkable, per deliverable
 
 **Any shipped code change**
