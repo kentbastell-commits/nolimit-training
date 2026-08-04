@@ -169,12 +169,13 @@ export default function WorkoutPlayerModal({
                 <div className="modalHeaderActions">
                   {!isClientPortal && selectedWorkout.programId && (
                   <button
-                    className="iconActionButton"
+                    className="iconActionButton wpmBuilderBtn"
                     onClick={() => openWorkoutProgramInBuilder(selectedWorkout)}
                     title={t("editInBuilder")}
                     aria-label={t("editInBuilder")}
                   >
-                    <SquarePen size={18} aria-hidden="true" />
+                    <SquarePen size={16} aria-hidden="true" />
+                    <span>{t("editInBuilderShort")}</span>
                   </button>
                   )}
                   {!isClientPortal && (

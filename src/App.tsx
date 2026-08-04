@@ -5444,11 +5444,19 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   // Coach opened an assigned workout and wants to change the programming:
   // jump into the Program Builder editing the workout's underlying program
   // (the workout modal itself is a viewer, not a builder).
-  const openWorkoutProgramInBuilder = (workout: Workout) => {
+  const openWorkoutProgramInBuilder = async (workout: Workout) => {
     const pid = String(workout.programId || "");
-    const program = programs.find(
+    let program = programs.find(
       (p) => p.programId === pid || p.recordId === pid
     );
+    if (!program) {
+      // Straight into a client's calendar without visiting Workouts/Digital,
+      // the programs list may not be loaded yet — fetch before giving up.
+      const loaded = (await loadPrograms()) || [];
+      program = loaded.find(
+        (p: Program) => p.programId === pid || p.recordId === pid
+      );
+    }
     if (!program) {
       notify("This workout isn't linked to a saved program.");
       return;
