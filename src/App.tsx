@@ -3044,9 +3044,18 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   };
 
   useEffect(() => {
-    if (activePage !== "Library") return;
+    if (
+      activePage !== "Library" &&
+      activePage !== "Workouts" &&
+      activePage !== "Digital"
+    )
+      return;
 
-    if (libraryExercises.length === 0 && !libraryLoading) {
+    // Unforced, so this self-throttles to the 5-min cache TTL — but past it,
+    // visiting the page re-fetches. The old `length === 0` guard meant an
+    // open app NEVER saw exercises created on another device (Kent: "created
+    // on my phone, they don't show up in the library") until a hard reload.
+    if (!libraryLoading) {
       void loadExerciseLibrary();
     }
   }, [activePage]);
@@ -3373,7 +3382,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   useEffect(() => {
     if (activePage !== "Workouts") return;
 
-    if (programs.length === 0 && !programsLoading) {
+    if (!programsLoading) {
       void loadPrograms();
     }
   }, [activePage, workoutPageTab]);
@@ -4066,13 +4075,13 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     if (assignmentType === "Program") return;
 
     if (assignmentType === "Physical Test") {
-      if (savedTestTemplates.length === 0 && !testTemplatesLoading) {
+      if (!testTemplatesLoading) {
         void loadTestTemplates();
       }
       return;
     }
 
-    if (savedFormTemplates.length === 0 && !formTemplatesLoading) {
+    if (!formTemplatesLoading) {
       void loadFormTemplates();
     }
   }, [assignmentType, workoutPageTab, activePage, selectedClient]);
@@ -4080,11 +4089,9 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   useEffect(() => {
     if (activePage !== "Orders" && activePage !== "Review") return;
 
-    if (programs.length === 0) {
-      void loadPrograms();
-    }
+    void loadPrograms();
 
-    if (savedFormTemplates.length === 0 && !formTemplatesLoading) {
+    if (!formTemplatesLoading) {
       void loadFormTemplates();
     }
   }, [activePage]);
@@ -4096,10 +4103,10 @@ function App({ onReady }: { onReady?: () => void } = {}) {
 
   useEffect(() => {
     if (!selectedClient) return;
-    if (savedFormTemplates.length === 0 && !formTemplatesLoading) {
+    if (!formTemplatesLoading) {
       void loadFormTemplates();
     }
-    if (savedTestTemplates.length === 0 && !testTemplatesLoading) {
+    if (!testTemplatesLoading) {
       void loadTestTemplates();
     }
   }, [selectedClient]);
@@ -8149,7 +8156,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     setBuilderLibraryMode(mode);
     setIsBuilderLibraryOpen(true);
 
-    if (mode === "Exercises" && libraryExercises.length === 0 && !libraryLoading) {
+    if (mode === "Exercises" && !libraryLoading) {
       void loadExerciseLibrary();
     }
   };
@@ -8157,7 +8164,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   const setBuilderLibraryModeAndLoad = (mode: BuilderLibraryMode) => {
     setBuilderLibraryMode(mode);
 
-    if (mode === "Exercises" && libraryExercises.length === 0 && !libraryLoading) {
+    if (mode === "Exercises" && !libraryLoading) {
       void loadExerciseLibrary();
     }
   };
@@ -10711,7 +10718,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     setSessionEditorOpen(true);
     setIsBuilderLibraryOpen(true);
     setBuilderLibraryMode("Exercises");
-    if (libraryExercises.length === 0 && !libraryLoading) {
+    if (!libraryLoading) {
       void loadExerciseLibrary();
     }
   };
@@ -10745,7 +10752,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     if (!session.isSingleWorkout) setSessionEditorOpen(true);
     setIsBuilderLibraryOpen(true);
     setBuilderLibraryMode("Exercises");
-    if (libraryExercises.length === 0 && !libraryLoading) {
+    if (!libraryLoading) {
       void loadExerciseLibrary();
     }
   };
@@ -11308,7 +11315,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   // ---- Mobile builder helpers (only used by the mobile render branch) ----
   const openMobilePicker = () => {
     setAccessoryTargetIndex(null);
-    if (libraryExercises.length === 0 && !libraryLoading) {
+    if (!libraryLoading) {
       void loadExerciseLibrary();
     }
     setMobilePickerSelected(new Set());
@@ -11461,7 +11468,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   };
 
   const openMobileAlternate = (index: number) => {
-    if (libraryExercises.length === 0 && !libraryLoading) {
+    if (!libraryLoading) {
       void loadExerciseLibrary();
     }
     setAlternateSearch("");
@@ -13635,7 +13642,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   };
 
   const assignOrderIntake = async (order: ProductOrder) => {
-    if (savedFormTemplates.length === 0 && !formTemplatesLoading) {
+    if (!formTemplatesLoading) {
       await loadFormTemplates();
     }
 
@@ -19062,7 +19069,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                 setCalLibPick({ date });
                 // The test library loads lazily elsewhere — fetch it now so
                 // the Add Test list isn't empty on first open.
-                if (savedTestTemplates.length === 0 && !testTemplatesLoading) {
+                if (!testTemplatesLoading) {
                   void loadTestTemplates();
                 }
               }}
@@ -19492,7 +19499,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                       // The test library only loads lazily elsewhere (drawer,
                       // client view) — the builder must fetch it itself or
                       // this list is empty until the coach visits Tests.
-                      if (savedTestTemplates.length === 0 && !testTemplatesLoading) {
+                      if (!testTemplatesLoading) {
                         void loadTestTemplates();
                       }
                     }}
