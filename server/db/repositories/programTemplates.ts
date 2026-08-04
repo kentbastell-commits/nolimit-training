@@ -93,6 +93,9 @@ export type BulkSessionInput = Omit<
 export type CreateWorkoutTemplatesBulkInput = {
   programId: string;
   programRecordId: string;
+  // In-place edit: atomically replace the program's existing template rows
+  // in the same transaction as the insert (children follow via cascade).
+  replaceExisting?: boolean;
   sessions: BulkSessionInput[];
 };
 

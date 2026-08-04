@@ -206,6 +206,52 @@ describe("api/createWorkoutTemplatesBulk (postgres)", () => {
     expect(sets.map((s) => s.load)).toEqual(["60", "65", "70"]);
   });
 
+  it("replaceExisting swaps the program's old rows for the new set atomically", async () => {
+    // The duplication bug (PR-1759 live): an in-place edit that INSERTS new
+    // rows and separately deletes the old ones duplicates the whole program
+    // when two saves overlap. replaceExisting does delete+insert in one
+    // transaction, so a re-save can only ever leave exactly the new set.
+    await post(bulkHandler, bulkBody([session(1, 1), session(1, 3)]));
+    expect(await rows("select 1 from workout_templates")).toHaveLength(2);
+
+    const res = await post(bulkHandler, {
+      ...bulkBody([session(1, 1), session(1, 4), session(2, 1)]),
+      replaceExisting: true,
+    });
+    expect(res.statusCode).toBe(200);
+
+    const after = await rows(
+      "select week, day from workout_templates order by week, day"
+    );
+    expect(after.map((r) => `${r.week}-${r.day}`)).toEqual(["1-1", "1-4", "2-1"]);
+
+    // Re-saving the same edit again (a double-click's second run) must not
+    // add a second copy of anything.
+    await post(bulkHandler, {
+      ...bulkBody([session(1, 1), session(1, 4), session(2, 1)]),
+      replaceExisting: true,
+    });
+    expect(await rows("select 1 from workout_templates")).toHaveLength(3);
+  });
+
+  it("replaceExisting rolls back the delete when the insert fails", async () => {
+    await post(bulkHandler, bulkBody([session(1, 1)]));
+
+    const res = await post(bulkHandler, {
+      ...bulkBody([
+        session(1, 1, {
+          exercises: [exercise({ exerciseId: "EX-GHOST", exerciseRecordId: "EX-GHOST" })],
+        }),
+      ]),
+      replaceExisting: true,
+    });
+    expect(res.statusCode).toBe(500);
+
+    // A failed edit must leave the coach's existing program untouched —
+    // losing the old rows AND the new ones is the worst possible outcome.
+    expect(await rows("select 1 from workout_templates")).toHaveLength(1);
+  });
+
   it("stores the coach's alternate exercises", async () => {
     const alternates = JSON.stringify([
       { exerciseId: "EX-2", exerciseRecordId: "EX-2", exerciseName: "Romanian Deadlift" },

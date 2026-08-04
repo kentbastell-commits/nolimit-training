@@ -5434,6 +5434,29 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     setActivePage("Workouts");
   };
 
+  // Coach opened an assigned workout and wants to change the programming:
+  // jump into the Program Builder editing the workout's underlying program
+  // (the workout modal itself is a viewer, not a builder).
+  const openWorkoutProgramInBuilder = (workout: Workout) => {
+    const pid = String(workout.programId || "");
+    const program = programs.find(
+      (p) => p.programId === pid || p.recordId === pid
+    );
+    if (!program) {
+      notify("This workout isn't linked to a saved program.");
+      return;
+    }
+    setSelectedWorkout(null);
+    // #51: the client-detail view overlays every page while a client is
+    // selected — clear it so the builder shows; restored after save.
+    if (selectedClient) {
+      oneOffReturnClientRef.current = selectedClient;
+      setSelectedClient(null);
+    }
+    setActivePage("Workouts");
+    void loadSavedProgramIntoBuilder(program, { edit: true });
+  };
+
   // Calendar library picker: drop ONE saved session onto the date.
   const assignLibrarySessionToDate = async (program: Program, date: string) => {
     if (!selectedClient) return;
@@ -10742,7 +10765,23 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     );
   };
 
+  // Re-entrancy guard: state-based `savingTemplate` re-renders too late to
+  // stop a double-click, and two overlapping saves each wrote a full copy of
+  // every session while deleting the same ORIGINAL rows — a triple-click
+  // stored the whole program in triplicate (found live on PR-1759).
+  const saveInFlightRef = useRef(false);
+
   const saveFullProgram = async (): Promise<boolean> => {
+    if (saveInFlightRef.current) return false;
+    saveInFlightRef.current = true;
+    try {
+      return await saveFullProgramInner();
+    } finally {
+      saveInFlightRef.current = false;
+    }
+  };
+
+  const saveFullProgramInner = async (): Promise<boolean> => {
     const singleWorkoutMode = builderMode === "Single Workout";
     const digitalProductProgram =
       !singleWorkoutMode &&
@@ -10923,6 +10962,10 @@ function App({ onReady }: { onReady?: () => void } = {}) {
             body: JSON.stringify({
               programId: programData.programId,
               programRecordId: programData.programRecordId,
+              // In-place edit: the server swaps old rows for new in ONE
+              // transaction — duplicates are impossible even if two saves
+              // overlap, and the client-side delete below is skipped.
+              replaceExisting: inPlaceEdit,
               sessions: sessionsToSave.map((session) => ({
                 week: Number(session.week),
                 day: Number(session.day),
@@ -11044,8 +11087,11 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       );
       }
 
-      // In-place edit: the new sessions are written, so remove the old ones.
-      if (inPlaceEdit && oldTemplateRecordIds.length > 0) {
+      // In-place edit via the FALLBACK loop only: the new sessions are
+      // written, so remove the old ones. The bulk path already replaced them
+      // atomically server-side (replaceExisting) — deleting here again would
+      // remove rows the bulk just wrote.
+      if (!bulkOk && inPlaceEdit && oldTemplateRecordIds.length > 0) {
         await mapWithConcurrency(oldTemplateRecordIds, 8, (recordId) =>
           fetch("/api/deleteRecord", {
             method: "POST",
@@ -11159,6 +11205,15 @@ function App({ onReady }: { onReady?: () => void } = {}) {
           setClientTab("Training");
           void loadClientWorkouts(returnClient, true);
         }
+      } else if (oneOffReturnClientRef.current) {
+        // Program edit opened FROM a client's workout modal (#51 stash):
+        // land back inside that client's calendar, refreshed.
+        const returnClient = oneOffReturnClientRef.current;
+        oneOffReturnClientRef.current = null;
+        setActivePage("Clients");
+        setSelectedClient(returnClient);
+        setClientTab("Training");
+        void loadClientWorkouts(returnClient, true);
       }
       return true;
     } catch (error) {
@@ -21982,6 +22037,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
             localizedWorkoutName={localizedWorkoutName}
             openWorkoutActionMenuId={openWorkoutActionMenuId}
             openWorkoutExerciseFromGlance={openWorkoutExerciseFromGlance}
+            openWorkoutProgramInBuilder={openWorkoutProgramInBuilder}
             openWorkoutFinish={openWorkoutFinish}
             originalExercisesRef={originalExercisesRef}
             paceZh={paceZh}

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { stripLocalizedExerciseMeta } from "./appCore";
 import "./WorkoutPlayerModal.css";
-import { Check, ChevronLeft, ChevronRight, ClipboardList, Clock3, Film, MessageSquare, MoreVertical, Play, RefreshCw, Shuffle, Timer, Trash2, X } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, ClipboardList, Clock3, Film, MessageSquare, MoreVertical, Play, RefreshCw, Shuffle, SquarePen, Timer, Trash2, X } from "lucide-react";
 import { getDisplayTaskStatus, makeExerciseLabel, parseExerciseNotes, videoThumbnail } from "./appCore";
 
 export default function WorkoutPlayerModal({
@@ -41,6 +41,7 @@ export default function WorkoutPlayerModal({
   localizedWorkoutName,
   openWorkoutActionMenuId,
   openWorkoutExerciseFromGlance,
+  openWorkoutProgramInBuilder,
   openWorkoutFinish,
   originalExercisesRef,
   paceZh,
@@ -166,6 +167,16 @@ export default function WorkoutPlayerModal({
                 </div>
 
                 <div className="modalHeaderActions">
+                  {!isClientPortal && selectedWorkout.programId && (
+                  <button
+                    className="iconActionButton"
+                    onClick={() => openWorkoutProgramInBuilder(selectedWorkout)}
+                    title={t("editInBuilder")}
+                    aria-label={t("editInBuilder")}
+                  >
+                    <SquarePen size={18} aria-hidden="true" />
+                  </button>
+                  )}
                   {!isClientPortal && (
                   <button
                     className="iconActionButton dangerIconButton"

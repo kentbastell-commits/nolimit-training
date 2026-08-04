@@ -421,6 +421,12 @@ export async function createWorkoutTemplate(
 export async function createWorkoutTemplatesBulk(input: {
   programId: string;
   programRecordId: string;
+  // In-place edit: atomically swap the program's existing template rows for
+  // the new set in one transaction. Children go with them via ON DELETE
+  // CASCADE. This replaces the client-orchestrated capture-then-delete dance,
+  // which duplicated the whole program when two saves overlapped (each wrote
+  // a fresh copy while both deleted only the ORIGINAL rows — PR-1759 live).
+  replaceExisting?: boolean;
   sessions: Array<Omit<CreateWorkoutTemplateInput, "programId" | "programRecordId">>;
 }): Promise<HandlerResult> {
   const { programRecordId, sessions } = input;
@@ -526,7 +532,16 @@ export async function createWorkoutTemplatesBulk(input: {
   }
 
   try {
-    await db.insert(workoutTemplates).values(templateRows);
+    if (input.replaceExisting) {
+      await db.transaction(async (tx) => {
+        await tx
+          .delete(workoutTemplates)
+          .where(eq(workoutTemplates.programId, programRecordId));
+        await tx.insert(workoutTemplates).values(templateRows);
+      });
+    } else {
+      await db.insert(workoutTemplates).values(templateRows);
+    }
   } catch (e: any) {
     return {
       status: 500,
