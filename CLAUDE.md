@@ -552,6 +552,18 @@ data between them, never "borrow" a table ID across products.
     clear/stash `selectedClient` itself and restore it on the way back
     (see `oneOffReturnClientRef`).
 
+52. **The overlapping save that doubles the program** — builder saves wrote
+    new template rows then deleted the OLD ones from a list captured at save
+    start; two saves racing (double-click beats the `disabled={savingTemplate}`
+    re-render) each wrote a full copy while both deleted only the originals —
+    PR-1759 stored every exercise in triplicate, rendering as phantom circuit
+    rounds. Rules: async save handlers get a REF re-entrancy guard
+    (`saveInFlightRef`) — state-based disabling re-renders too late to stop a
+    double-click; and any replace-style write is delete+insert in ONE
+    server-side transaction (`replaceExisting` in createWorkoutTemplatesBulk),
+    never a client-orchestrated capture→insert→delete sequence, which
+    duplicates under every race and half-completes under every failure.
+
 ## Quality bar — checkable, per deliverable
 
 **Any shipped code change**
