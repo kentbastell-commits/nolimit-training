@@ -4026,3 +4026,11 @@
 .wkHeadLeft .oneOffBuilderContextCopy {
   max-width: 660px;
 }
+
+/* Derived Label field: read-only — letter/colour come from the Section,
+   the number from order (typing here used to be silently recomputed away). */
+.builderLabelDerived {
+  opacity: 0.72;
+  cursor: default;
+  background: #f4f2ed;
+}

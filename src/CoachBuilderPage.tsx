@@ -3217,15 +3217,16 @@ export default function CoachBuilderPage({
                                   <div className="builderModalEditGrid">
                                     <label>
                                       <span>Label</span>
+                                      {/* Labels + badge colours are DERIVED:
+                                          letter/colour from the Section, the
+                                          number from order. A typed label was
+                                          silently recomputed away on the next
+                                          edit — honest read-only instead. */}
                                       <input
                                         value={exercise.exerciseLabel}
-                                        onChange={(e) =>
-                                          updateProgramExercise(
-                                            index,
-                                            "exerciseLabel",
-                                            e.target.value
-                                          )
-                                        }
+                                        readOnly
+                                        className="builderLabelDerived"
+                                        title="Set automatically — the letter and colour come from the Section, the number from order. Change the Section to change the letter/colour."
                                       />
                                     </label>
                                     <label>
