@@ -12,6 +12,7 @@ import {
   MoreVertical,
   Pencil,
   Plus,
+  RefreshCw,
   Shuffle,
   Scissors,
   Settings,
@@ -9856,6 +9857,32 @@ function App({ onReady }: { onReady?: () => void } = {}) {
         item.exerciseName === exercise.exerciseName
     );
 
+  // "Change exercise": swap the slot's movement for another library exercise
+  // while KEEPING the whole prescription — sets, reps, rest, tempo, per-set
+  // detail, section, label, grouping and coach notes stay put.
+  const [swapExerciseIndex, setSwapExerciseIndex] = useState<number | null>(
+    null
+  );
+
+  const replaceProgramExerciseWith = (library: LibraryExercise) => {
+    if (swapExerciseIndex === null) return;
+    const index = swapExerciseIndex;
+    setSelectedProgramExercises((prev) => {
+      const target = prev[index];
+      if (!target) return prev;
+      const updated = [...prev];
+      updated[index] = {
+        ...target,
+        exerciseRecordId: library.recordId || library.exerciseId || "",
+        exerciseId: library.exerciseId,
+        exerciseName: library.exerciseName,
+      };
+      return updated;
+    });
+    setSwapExerciseIndex(null);
+    notify(`Swapped to ${library.exerciseName}.`, "success");
+  };
+
   const viewProgramExercise = (exercise: ProgramExercise) => {
     const libraryExercise = findLibraryExerciseForProgramExercise(exercise);
 
@@ -10403,6 +10430,19 @@ function App({ onReady }: { onReady?: () => void } = {}) {
           >
             <Pencil size={16} />
             Edit exercise
+          </button>
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              setBuilderExerciseOptionsIndex(null);
+              setSwapExerciseIndex(index);
+              setBuilderLibraryMode("Exercises");
+              setIsBuilderLibraryOpen(true);
+            }}
+          >
+            <RefreshCw size={16} />
+            Change exercise
           </button>
           {exercise.trackingType === "Weight" && (
             <button
@@ -20954,6 +20994,9 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                 saveFormTemplate={saveFormTemplate}
                 saveFullProgram={saveFullProgram}
                 openCreateExerciseFromBuilder={openCreateExerciseFromBuilder}
+                swapExerciseIndex={swapExerciseIndex}
+                setSwapExerciseIndex={setSwapExerciseIndex}
+                replaceProgramExerciseWith={replaceProgramExerciseWith}
                 viewProgramExercise={viewProgramExercise}
                 editProgramExerciseInLibrary={(exercise: ProgramExercise) => {
                   const lib = findLibraryExerciseForProgramExercise(exercise);

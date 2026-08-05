@@ -6,7 +6,7 @@ import { Fragment, useEffect, useState } from "react";
 import CoachProgramsLanding from "./CoachProgramsLanding";
 import ProgramDetailPanel from "./ProgramDetailPanel";
 import PortalToApp from "./PortalToApp";
-import { Activity, BookOpen, CalendarDays, ChevronDown, ChevronLeft, ChevronUp, ChevronsLeftRight, ClipboardList, Copy, Dumbbell, Eye, Feather, Film, FlaskConical, GripVertical, HeartPulse, Link2, MoreVertical, Pencil, Plus, RefreshCw, Save, Settings, Shuffle, Tag, Target, Trash2, Trophy, X } from "lucide-react";
+import { Activity, BookOpen, CalendarDays, ChevronDown, ChevronLeft, ChevronUp, ChevronsLeftRight, ClipboardList, Copy, Dumbbell, Feather, Film, FlaskConical, GripVertical, HeartPulse, Link2, MoreVertical, Pencil, Plus, RefreshCw, Save, Settings, Shuffle, Tag, Target, Trash2, Trophy, X } from "lucide-react";
 import type { Program, ProgramSession } from "./appCore";
 import { getWorkoutColorClass, glanceRepsToken, normalizeDate } from "./appCore";
 import { TEST_CATEGORIES, testCategoryLabelKey } from "./testVisuals";
@@ -226,6 +226,9 @@ export default function CoachBuilderPage({
   saveFormTemplate,
   saveFullProgram,
   openCreateExerciseFromBuilder,
+  swapExerciseIndex,
+  setSwapExerciseIndex,
+  replaceProgramExerciseWith,
   viewProgramExercise,
   editProgramExerciseInLibrary,
   oneOffAssignTarget,
@@ -2922,6 +2925,27 @@ export default function CoachBuilderPage({
                           </select>
                         </div>
 
+                        {swapExerciseIndex !== null &&
+                          selectedProgramExercises[swapExerciseIndex] && (
+                            <div className="builderSwapBanner">
+                              <span>
+                                Choosing a replacement for{" "}
+                                <strong>
+                                  {
+                                    selectedProgramExercises[swapExerciseIndex]
+                                      .exerciseName
+                                  }
+                                </strong>{" "}
+                                — sets &amp; reps stay.
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => setSwapExerciseIndex(null)}
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          )}
                         <div className="builderDrawerExerciseGrid">
                           <button
                             className="builderExercisePickCard builderCreateExerciseCard"
@@ -2945,7 +2969,11 @@ export default function CoachBuilderPage({
                               className="builderExercisePickCard"
                               key={exercise.recordId || exercise.exerciseId}
                               onClick={() => {
-                                addExerciseToProgram(exercise);
+                                if (swapExerciseIndex !== null) {
+                                  replaceProgramExerciseWith(exercise);
+                                } else {
+                                  addExerciseToProgram(exercise);
+                                }
                               }}
                             >
                               <span>{exercise.exerciseName}</span>
@@ -2971,7 +2999,10 @@ export default function CoachBuilderPage({
                       <section className="builderLibraryPreview">
                         <button
                           className="builderDrawerClose"
-                          onClick={() => setIsBuilderLibraryOpen(false)}
+                          onClick={() => {
+                            setSwapExerciseIndex(null);
+                            setIsBuilderLibraryOpen(false);
+                          }}
                           aria-label="Close builder library"
                         >
                           <X size={22} />
@@ -3972,6 +4003,14 @@ export default function CoachBuilderPage({
                                         >
                                           + Add Set
                                         </button>
+                                        <button
+                                          className="mbAddSet mbSetDetailLink"
+                                          onClick={() =>
+                                            setMobileDetailsIndex(index)
+                                          }
+                                        >
+                                          % / tempo
+                                        </button>
                                       </div>
 
                                       <textarea
@@ -4043,22 +4082,30 @@ export default function CoachBuilderPage({
                             className="mbHeaderBack"
                             onClick={() => {
                               setMobilePickerSelected(new Set());
+                              setSwapExerciseIndex(null);
                               setMobileBuilderStep("editor");
                             }}
                             aria-label="Back"
                           >
                             ‹
                           </button>
-                          <h2>Select exercises</h2>
-                          <button
-                            className="mbHeaderAction"
-                            disabled={mobilePickerSelected.size === 0}
-                            onClick={commitMobilePicker}
-                          >
-                            {mobilePickerSelected.size > 0
-                              ? `Add ${mobilePickerSelected.size}`
-                              : "Add"}
-                          </button>
+                          <h2>
+                            {swapExerciseIndex !== null &&
+                            selectedProgramExercises[swapExerciseIndex]
+                              ? `Replace ${selectedProgramExercises[swapExerciseIndex].exerciseName}`
+                              : "Select exercises"}
+                          </h2>
+                          {swapExerciseIndex === null && (
+                            <button
+                              className="mbHeaderAction"
+                              disabled={mobilePickerSelected.size === 0}
+                              onClick={commitMobilePicker}
+                            >
+                              {mobilePickerSelected.size > 0
+                                ? `Add ${mobilePickerSelected.size}`
+                                : "Add"}
+                            </button>
+                          )}
                         </header>
                         <div className="mobileBuilderBody">
                           <div className="mbField">
@@ -4102,7 +4149,16 @@ export default function CoachBuilderPage({
                                 className={`mobilePickerRow ${
                                   checked ? "mobilePickerRowSelected" : ""
                                 }`}
-                                onClick={() => toggleMobilePick(key)}
+                                onClick={() => {
+                                  // Swap mode: one tap replaces the movement
+                                  // in place and returns to the editor.
+                                  if (swapExerciseIndex !== null) {
+                                    replaceProgramExerciseWith(exercise);
+                                    setMobileBuilderStep("editor");
+                                    return;
+                                  }
+                                  toggleMobilePick(key);
+                                }}
                               >
                                 <span
                                   className={`mobilePickerCheck ${
@@ -4440,16 +4496,20 @@ export default function CoachBuilderPage({
                             <div className="mobileSheetHandle" />
                             <h3 className="mobileOptionsTitle">Exercise options</h3>
                             <div className="mobileOptionsGrid">
+                              {/* "Details" (the per-set % / tempo table) moved
+                                  to an inline link on the card — this slot now
+                                  swaps the movement, keeping the prescription. */}
                               <button
                                 onClick={() => {
-                                  setMobileDetailsIndex(mobileMenuIndex);
+                                  setSwapExerciseIndex(mobileMenuIndex);
                                   setMobileMenuIndex(null);
+                                  openMobilePicker();
                                 }}
                               >
                                 <span className="mbOptIcon">
-                                  <Eye size={22} />
+                                  <RefreshCw size={22} />
                                 </span>
-                                Details
+                                Change
                               </button>
                               <button
                                 onClick={() => {
