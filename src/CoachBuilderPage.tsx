@@ -6,7 +6,7 @@ import { Fragment, useEffect, useState } from "react";
 import CoachProgramsLanding from "./CoachProgramsLanding";
 import ProgramDetailPanel from "./ProgramDetailPanel";
 import PortalToApp from "./PortalToApp";
-import { Activity, BookOpen, CalendarDays, ChevronDown, ChevronLeft, ChevronUp, ChevronsLeftRight, ClipboardList, Copy, Dumbbell, Eye, Feather, FlaskConical, GripVertical, HeartPulse, Link2, MoreVertical, Pencil, Plus, RefreshCw, Save, Settings, Shuffle, Tag, Target, Trash2, Trophy, X } from "lucide-react";
+import { Activity, BookOpen, CalendarDays, ChevronDown, ChevronLeft, ChevronUp, ChevronsLeftRight, ClipboardList, Copy, Dumbbell, Eye, Feather, Film, FlaskConical, GripVertical, HeartPulse, Link2, MoreVertical, Pencil, Plus, RefreshCw, Save, Settings, Shuffle, Tag, Target, Trash2, Trophy, X } from "lucide-react";
 import type { Program, ProgramSession } from "./appCore";
 import { getWorkoutColorClass, glanceRepsToken, normalizeDate } from "./appCore";
 import { TEST_CATEGORIES, testCategoryLabelKey } from "./testVisuals";
@@ -226,6 +226,8 @@ export default function CoachBuilderPage({
   saveFormTemplate,
   saveFullProgram,
   openCreateExerciseFromBuilder,
+  viewProgramExercise,
+  editProgramExerciseInLibrary,
   oneOffAssignTarget,
   oneOffSaveToLibrary,
   setOneOffSaveToLibrary,
@@ -4448,6 +4450,35 @@ export default function CoachBuilderPage({
                                   <Eye size={22} />
                                 </span>
                                 Details
+                              </button>
+                              <button
+                                onClick={() => {
+                                  viewProgramExercise(
+                                    selectedProgramExercises[mobileMenuIndex]
+                                  );
+                                  setMobileMenuIndex(null);
+                                }}
+                              >
+                                <span className="mbOptIcon">
+                                  <Film size={22} />
+                                </span>
+                                View exercise
+                              </button>
+                              {/* Edit-on-the-fly: same library editor the
+                                  desktop builder kebab opens — fix a video or
+                                  name without leaving the session. */}
+                              <button
+                                onClick={() => {
+                                  editProgramExerciseInLibrary(
+                                    selectedProgramExercises[mobileMenuIndex]
+                                  );
+                                  setMobileMenuIndex(null);
+                                }}
+                              >
+                                <span className="mbOptIcon">
+                                  <Pencil size={22} />
+                                </span>
+                                Edit exercise
                               </button>
                               <button
                                 onClick={() =>

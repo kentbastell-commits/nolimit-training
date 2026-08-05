@@ -20954,6 +20954,12 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                 saveFormTemplate={saveFormTemplate}
                 saveFullProgram={saveFullProgram}
                 openCreateExerciseFromBuilder={openCreateExerciseFromBuilder}
+                viewProgramExercise={viewProgramExercise}
+                editProgramExerciseInLibrary={(exercise: ProgramExercise) => {
+                  const lib = findLibraryExerciseForProgramExercise(exercise);
+                  if (lib) openEditExerciseForm(lib);
+                  else notify("Exercise not found in the library.", "error");
+                }}
                 oneOffAssignTarget={oneOffAssignTarget}
                 oneOffSaveToLibrary={oneOffSaveToLibrary}
                 setOneOffSaveToLibrary={setOneOffSaveToLibrary}
