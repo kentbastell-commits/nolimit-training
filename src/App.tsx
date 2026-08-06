@@ -12223,7 +12223,17 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     );
   };
 
-  const coachVisibleClients = clients.filter(clientBelongsToCoachScope);
+  // Active athletes first, newest first — so the current pilot tops every
+  // client dropdown/list instead of the oldest test account (was: Claire,
+  // CL-0001, purely because she was row one).
+  const coachVisibleClients = clients
+    .filter(clientBelongsToCoachScope)
+    .sort(
+      (a, b) =>
+        (/^active$/i.test(String(a.status || "")) ? 0 : 1) -
+          (/^active$/i.test(String(b.status || "")) ? 0 : 1) ||
+        String(b.clientCode || "").localeCompare(String(a.clientCode || ""))
+    );
 
   // Resolve a client id / client code / record id to a readable name; never
   // surface a raw Feishu record id (recXXXX) in the UI.
