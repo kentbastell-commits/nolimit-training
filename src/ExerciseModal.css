@@ -529,3 +529,34 @@
     animation-iteration-count: 1 !important;
   }
 }
+
+/* Context tag chips (Climbing Specific / Accessory / ...) */
+.axTagRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.axTagChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 13px;
+  border-radius: 999px;
+  border: 1px solid #dcd8cd;
+  background: #faf9f5;
+  color: #55503f;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.axTagChip.on {
+  border-color: rgba(212, 175, 55, 0.65);
+  background: rgba(212, 175, 55, 0.14);
+  color: #6b5411;
+}
+
+/* "Add muscle from list" dropdown above the diagram */
+.axMusclePickField {
+  margin-bottom: 8px;
+  max-width: 340px;
+}

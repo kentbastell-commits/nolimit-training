@@ -5,7 +5,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useRef, useState } from "react";
 import type { TrackingType } from "./appCore";
+import { EXERCISE_TAG_OPTIONS } from "./appCore";
 import MuscleDiagram from "./MuscleDiagram";
+import { MUSCLE_LABELS } from "./muscleGroups";
 import "./ExerciseModal.css";
 import {
   Check,
@@ -32,7 +34,6 @@ export default function ExerciseModal({
   equipmentOptions,
   exerciseForm,
   movementPatternOptions,
-  muscleGroupOptions,
   renderVideoPreview,
   saveExerciseForm,
   savingExercise,
@@ -261,8 +262,11 @@ export default function ExerciseModal({
                 placeholder="Back Squat"
               />
             </label>
-            {taxonomyField("Category", "category", categoryOptions)}
-            {taxonomyField("Muscle Group", "muscleGroup", muscleGroupOptions)}
+            {/* Four clean axes (2026-08-06 reorg): Type = why it's
+                programmed, Pattern = how the body moves, Equipment, and the
+                diagram below for muscles. The free-text Muscle Group field is
+                gone — muscles have one source of truth now. */}
+            {taxonomyField("Type", "category", categoryOptions)}
             {taxonomyField(
               "Movement Pattern",
               "movementPattern",
@@ -314,8 +318,69 @@ export default function ExerciseModal({
             </span>
           </button>
 
+          {/* context tags */}
+          <span className="axLabel axSectionLabel">Tags</span>
+          <div className="axTagRow">
+            {EXERCISE_TAG_OPTIONS.map((tag: string) => {
+              const on = (exerciseForm.tags || []).includes(tag);
+              return (
+                <button
+                  key={tag}
+                  type="button"
+                  className={`axTagChip${on ? " on" : ""}`}
+                  aria-pressed={on}
+                  onClick={() =>
+                    setExerciseForm({
+                      ...exerciseForm,
+                      tags: on
+                        ? (exerciseForm.tags || []).filter((t: string) => t !== tag)
+                        : [...(exerciseForm.tags || []), tag],
+                    })
+                  }
+                >
+                  {on && <Check size={13} strokeWidth={3} />}
+                  {tag}
+                </button>
+              );
+            })}
+          </div>
+
           {/* target muscles */}
           <span className="axLabel axSectionLabel">Target Muscles</span>
+          {/* Dropdown alternative to clicking regions — same list, adds on
+              pick; remove by clicking the region or the chip below. */}
+          <label className="axField axMusclePickField">
+            <div className="axSelectWrap">
+              <select
+                className="axSelect"
+                value=""
+                onChange={(e) => {
+                  const key = e.target.value;
+                  if (!key) return;
+                  if (!(exerciseForm.targetMuscles || []).includes(key)) {
+                    setExerciseForm({
+                      ...exerciseForm,
+                      targetMuscles: [
+                        ...(exerciseForm.targetMuscles || []),
+                        key,
+                      ],
+                    });
+                  }
+                }}
+              >
+                <option value="">+ Add muscle from list…</option>
+                {Object.entries(MUSCLE_LABELS)
+                  .filter(([key]) => !(exerciseForm.targetMuscles || []).includes(key))
+                  .sort((a, b) => a[1].en.localeCompare(b[1].en))
+                  .map(([key, label]) => (
+                    <option key={key} value={key}>
+                      {label.en} · {label.cn}
+                    </option>
+                  ))}
+              </select>
+              <ChevronDown size={15} className="axCaret" />
+            </div>
+          </label>
           <MuscleDiagram
             selected={exerciseForm.targetMuscles || []}
             onToggle={(key) =>

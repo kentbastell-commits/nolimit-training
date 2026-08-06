@@ -56,6 +56,7 @@ import {
   mapWithConcurrency,
   CACHE_KEYS,
   CATEGORY_OPTIONS,
+  EQUIPMENT_ZH,
   MOVEMENT_PATTERN_OPTIONS,
   RUNNING_ZONE_OPTIONS,
   STRENGTH_TRACKING_FIELDS,
@@ -1313,6 +1314,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     category: "",
     muscleGroup: "",
     targetMuscles: [] as string[],
+    tags: [] as string[],
     movementPattern: "",
     equipment: "",
     notes: "",
@@ -3077,6 +3079,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       category: "",
       muscleGroup: "",
       targetMuscles: [],
+      tags: [],
       movementPattern: "",
       equipment: "",
       notes: "",
@@ -3112,6 +3115,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       category: exercise.category || "",
       muscleGroup: exercise.primaryMuscles || "",
       targetMuscles: exercise.targetMuscles || [],
+      tags: (exercise as any).tags || [],
       movementPattern: exercise.movementPattern || "",
       equipment: exercise.equipment || "",
       notes: meta.coachingNotes || "",
@@ -3121,28 +3125,15 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     setShowExerciseModal(true);
   };
 
-  // Datalist suggestions for the exercise editor, drawn from the real library so
-  // the vocab stays consistent (multi-value fields split on comma/slash).
-  const distinctLibraryValues = (key: keyof LibraryExercise) =>
-    Array.from(
-      new Set(
-        libraryExercises
-          .flatMap((ex) =>
-            String((ex[key] as string) || "")
-              .split(/[,/]/)
-              .map((part) => part.trim())
-          )
-          .filter(Boolean)
-      )
-    ).sort((a, b) => a.localeCompare(b));
-  const categoryOptions = Array.from(
-    new Set([...CATEGORY_OPTIONS, ...distinctLibraryValues("category")])
-  ).sort((a, b) => a.localeCompare(b));
-  const equipmentOptions = distinctLibraryValues("equipment");
-  const muscleGroupOptions = distinctLibraryValues("primaryMuscles");
-  const movementPatternOptions = Array.from(
-    new Set([...MOVEMENT_PATTERN_OPTIONS, ...distinctLibraryValues("movementPattern")])
+  // Fixed lists only (taxonomy reorg 2026-08-06): feeding every historical
+  // library value back into the dropdowns made typos and old naming
+  // conventions permanent options. distinctLibraryValues stays for search
+  // datalists elsewhere, never for the filing dropdowns.
+  const categoryOptions = CATEGORY_OPTIONS;
+  const equipmentOptions = Object.keys(EQUIPMENT_ZH).sort((a, b) =>
+    a.localeCompare(b)
   );
+  const movementPatternOptions = MOVEMENT_PATTERN_OPTIONS;
 
   const renderVideoPreview = (url: string) => {
     const clean = String(url || "").trim();
@@ -3281,6 +3272,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
         movementPattern: exerciseForm.movementPattern,
         primaryMuscles: exerciseForm.muscleGroup,
         targetMuscles: exerciseForm.targetMuscles,
+        tags: exerciseForm.tags,
         notes: archive ? `[Archived]\n${composedNotes}`.trim() : composedNotes,
         status: archive ? "Archived" : "Active",
       };
@@ -21853,7 +21845,6 @@ function App({ onReady }: { onReady?: () => void } = {}) {
             equipmentOptions={equipmentOptions}
             exerciseForm={exerciseForm}
             movementPatternOptions={movementPatternOptions}
-            muscleGroupOptions={muscleGroupOptions}
             renderVideoPreview={renderVideoPreview}
             saveExerciseForm={saveExerciseForm}
             savingExercise={savingExercise}

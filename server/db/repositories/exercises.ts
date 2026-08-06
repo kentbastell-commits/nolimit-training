@@ -20,6 +20,8 @@ export type UpsertExerciseInput = {
   movementPattern?: string;
   muscleGroup?: string;
   targetMuscles?: string[];
+  // Context labels (Climbing Specific / Accessory / Rehab/Prehab / Finger/Grip).
+  tags?: string[];
   notes?: string;
   archive?: boolean;
 };

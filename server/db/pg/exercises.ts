@@ -34,6 +34,7 @@ function rowToDto(r: Row): ExerciseDTO {
     primaryMuscles: r.primaryMuscles ?? "",
     primaryMusclesCn: r.primaryMusclesCn ?? "",
     targetMuscles: r.targetMuscles ?? [],
+    tags: r.tags ?? [],
     technicalInstructionsCn: r.technicalCuesCn ?? "",
     coachingCuesCn: r.coachingCuesCn ?? "",
     commonMistakesCn: r.commonErrorsCn ?? "",
@@ -132,6 +133,9 @@ export async function upsertExercise(
   // omitted field should leave existing muscles untouched.
   if (targetMuscles !== undefined) {
     set.targetMuscles = targetMuscles.length > 0 ? targetMuscles : null;
+  }
+  if (input.tags !== undefined) {
+    set.tags = input.tags.length > 0 ? input.tags : null;
   }
 
   // Mirror the old handler's required-field value check: an empty Exercise

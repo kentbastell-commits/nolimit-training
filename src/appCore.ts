@@ -575,6 +575,8 @@ export type LibraryExercise = {
   primaryMuscles?: string;
   primaryMusclesCn?: string;
   targetMuscles?: string[];
+  // Context labels (Climbing Specific / Accessory / Rehab⁄Prehab / Finger⁄Grip).
+  tags?: string[];
   technicalInstructionsCn?: string;
   coachingCuesCn?: string;
   commonMistakesCn?: string;
@@ -947,43 +949,46 @@ export function labelColor(label: string): { bg: string; fg: string; bd: string 
   return GROUP_LABEL_COLORS[Math.abs(hash) % GROUP_LABEL_COLORS.length];
 }
 
+// 2026-08-06 taxonomy reorg — four clean axes, fixed lists only (the old
+// dropdowns self-polluted with every historical value/typo):
+//   PATTERN = how the body moves; TYPE (stored in `category`) = why it's
+//   programmed; TAGS = context; muscles = the anatomy diagram alone.
 export const MOVEMENT_PATTERN_OPTIONS = [
-  "Lower Body Squat",
-  "Lower Body Hinge",
-  "Lower Body Lunge",
-  "Upper Body Horizontal Push",
-  "Upper Body Vertical Push",
-  "Upper Body Horizontal Pull",
-  "Upper Body Vertical Pull",
-  "Core / Anti-Rotation",
-  "Carry / Loaded Carry",
-  "Olympic / Power",
-  "Plyometric",
-  "Locomotion / Cardio",
-  "Mobility / Flexibility",
-];
-
-// Canonical exercise-library categories offered in the editor (even before any
-// exercise uses them). Colors live in App.css as .cat-<slug> rules.
-export const CATEGORY_OPTIONS = [
   "Squat",
   "Hinge",
+  "Lunge",
   "Horizontal Push",
   "Vertical Push",
   "Horizontal Pull",
   "Vertical Pull",
-  "Core",
-  "Olympic/Power",
-  "Plyometric",
   "Carry",
-  "Mobility",
-  "Cardio",
-  "Climbing Specific",
+  "Jump",
+  "Rotation/Anti-Rotation",
+  "Locomotion",
+];
+
+// TYPE — stored in the `category` column; label shown in the editor is "Type".
+export const CATEGORY_OPTIONS = [
+  "Strength",
+  "Power",
+  "Plyometric",
   "Conditioning",
-  "Accessory",
-  "Skills / Drills",
+  "Core",
+  "Mobility",
+  "Skill/Drill",
+  "Test",
   "Breathing",
 ];
+
+export const EXERCISE_TAG_OPTIONS = [
+  "Climbing Specific",
+  "Accessory",
+  "Rehab/Prehab",
+  "Finger/Grip",
+];
+
+// Canonical equipment list = the keys of EQUIPMENT_ZH (single source with the
+// Chinese labels; adding equipment means adding it THERE so zh never lags).
 
 export function normalizeDate(value: string) {
   if (!value) return "";
@@ -1243,14 +1248,21 @@ export function equipmentLabelZh(equipment = ""): string {
 
 export const MOVEMENT_PATTERN_ZH: Record<string, string> = {
   "Anti-Rotation": "抗旋转",
+  Carry: "负重行走",
   "Carry / Loaded Carry": "负重行走",
   Core: "核心",
   "Core / Anti-Rotation": "核心/抗旋转",
   Flexibility: "柔韧性",
+  Hinge: "髋铰链",
   "Horizontal Pull": "水平拉",
   "Horizontal Push": "水平推",
   Jump: "跳跃",
   Locomotion: "移动",
+  Lunge: "弓步",
+  "Rotation/Anti-Rotation": "旋转/抗旋转",
+  Squat: "深蹲",
+  "Vertical Pull": "垂直拉",
+  "Vertical Push": "垂直推",
   "Locomotion / Cardio": "移动/有氧",
   "Lower Body Hinge": "下肢铰链",
   "Lower Body Lunge": "下肢弓步",

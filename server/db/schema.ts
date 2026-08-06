@@ -63,6 +63,9 @@ export const exercises = pgTable(
     // "front_delts") — separate from primaryMuscles, which stays a free-text
     // taxonomy string used for search/filtering and isn't a fixed key set.
     targetMuscles: text("target_muscles").array(),
+    // Context labels (Climbing Specific, Accessory, Rehab/Prehab, Finger/
+    // Grip) — the third taxonomy axis; they used to pollute `category`.
+    tags: text("tags").array(),
     equipment: text("equipment").array(),
     difficulty: text("difficulty"),
     trainingQuality: text("training_quality"),

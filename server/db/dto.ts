@@ -19,6 +19,8 @@ export type ExerciseDTO = {
   primaryMuscles: string;
   primaryMusclesCn: string;
   targetMuscles: string[];
+  // Context labels (Climbing Specific / Accessory / Rehab/Prehab / Finger/Grip).
+  tags: string[];
   technicalInstructionsCn: string;
   coachingCuesCn: string;
   commonMistakesCn: string;
