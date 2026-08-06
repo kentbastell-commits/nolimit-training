@@ -108,8 +108,13 @@ export async function upsertExercise(
   const set: Partial<typeof exercises.$inferInsert> = {
     name,
     status: archive ? "Archived" : "Active",
-    coachingCues: archive ? archivedNotes : notes || "",
   };
+  // Patch-style like every other field — an upsert that only changes e.g.
+  // the video or muscles must NOT blank the cues (it silently did: any
+  // caller omitting `notes` wiped coaching_cues). The editor always sends
+  // notes, so edit-form saves behave exactly as before.
+  if (archive) set.coachingCues = archivedNotes;
+  else if (notes !== undefined) set.coachingCues = notes || "";
 
   // Empty string = deliberate clear on Postgres (skip-falsy made a wrong
   // video URL / category un-removable: the UI showed it cleared, the refetch
