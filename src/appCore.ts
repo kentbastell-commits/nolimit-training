@@ -1188,7 +1188,9 @@ export const EQUIPMENT_ZH: Record<string, string> = {
   "Air Bike": "风阻单车",
   "Back Extension Bench": "罗马椅",
   Bands: "弹力带",
+  Bar: "横杆",
   Barbell: "杠铃",
+  Bench: "卧推凳",
   "Battle Rope": "战绳",
   Bike: "单车",
   Bodyweight: "徒手",
@@ -1240,9 +1242,14 @@ export function equipmentLabelZh(equipment = ""): string {
 }
 
 export const MOVEMENT_PATTERN_ZH: Record<string, string> = {
+  "Anti-Rotation": "抗旋转",
   "Carry / Loaded Carry": "负重行走",
   Core: "核心",
   "Core / Anti-Rotation": "核心/抗旋转",
+  Flexibility: "柔韧性",
+  "Horizontal Pull": "水平拉",
+  "Horizontal Push": "水平推",
+  Jump: "跳跃",
   Locomotion: "移动",
   "Locomotion / Cardio": "移动/有氧",
   "Lower Body Hinge": "下肢铰链",

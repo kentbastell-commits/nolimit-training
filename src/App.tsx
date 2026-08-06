@@ -7071,6 +7071,13 @@ function App({ onReady }: { onReady?: () => void } = {}) {
             meta.trackingFields
           );
 
+          // Per-set reps win over the exercise-level string: a French-contrast
+          // main lift prescribes "15-30s iso hold" for round 1 and "4-6" for
+          // round 2 — the top-level "15-30s hold / 4-6" is a summary, not a
+          // loggable value.
+          const prescribedRepsForSet =
+            String(setPrescription?.reps ?? "").trim() || exercise.reps;
+
           logs.push({
             exerciseId: exercise.exerciseId,
             occurrenceId: exercise.id,
@@ -7080,7 +7087,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
             side,
             trackingType: meta.trackingType,
             prescribedSets: exercise.sets,
-            prescribedReps: exercise.reps,
+            prescribedReps: prescribedRepsForSet,
             prescribedLoad,
             prescribedPercent,
             prescribedPercentMas,
@@ -7091,7 +7098,8 @@ function App({ onReady }: { onReady?: () => void } = {}) {
             prescribedTime,
             prescribedDistance,
             trackingFields,
-            actualReps: meta.trackingType === "Weight" ? exercise.reps : "",
+            actualReps:
+              meta.trackingType === "Weight" ? prescribedRepsForSet : "",
             actualWeight: "",
             actualTime: "",
             actualDistance: "",
