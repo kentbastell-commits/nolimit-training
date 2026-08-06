@@ -97,6 +97,8 @@ import {
   MOVEMENT_PATTERN_ZH,
   readPersistentCache,
   toYoutubeEmbed,
+  toMediaCdnUrl,
+  isDirectMediaUrl,
   writePersistentCache,
 } from "./appCore";
 import type {
@@ -3152,7 +3154,13 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       );
     }
     if (/\.(mp4|webm|mov)(\?|#|$)/i.test(clean)) {
-      return <video className="exerciseVideoPreview" src={clean} controls />;
+      return (
+        <video
+          className="exerciseVideoPreview"
+          src={toMediaCdnUrl(clean)}
+          controls
+        />
+      );
     }
     return (
       <a
@@ -22421,6 +22429,10 @@ function App({ onReady }: { onReady?: () => void } = {}) {
         {workoutVideoOverlay &&
           (() => {
             const embedUrl = toYoutubeEmbed(workoutVideoOverlay.url);
+            const mediaUrl = toMediaCdnUrl(workoutVideoOverlay.url);
+            // Direct media files get a NATIVE player — an iframe made mobile
+            // Chrome/Safari interrupt or download .mov clips (Codex QA find).
+            const nativeFile = !embedUrl && isDirectMediaUrl(mediaUrl);
             return (
               <div className="workoutVideoModalOverlay">
                 <div className="workoutVideoModal">
@@ -22436,16 +22448,26 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                     </button>
                   </div>
                   <div className="workoutVideoFrame">
-                    <iframe
-                      src={embedUrl || workoutVideoOverlay.url}
-                      title={workoutVideoOverlay.title}
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                    />
+                    {nativeFile ? (
+                      <video
+                        src={mediaUrl}
+                        controls
+                        autoPlay
+                        playsInline
+                        preload="metadata"
+                      />
+                    ) : (
+                      <iframe
+                        src={embedUrl || workoutVideoOverlay.url}
+                        title={workoutVideoOverlay.title}
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                      />
+                    )}
                   </div>
                   <a
                     className="workoutVideoExternalLink"
-                    href={workoutVideoOverlay.url}
+                    href={mediaUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                   >

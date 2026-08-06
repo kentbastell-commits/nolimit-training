@@ -4503,11 +4503,17 @@
   aspect-ratio: 16 / 9;
   background: #000;
 }
-.workoutVideoFrame iframe {
+.workoutVideoFrame iframe,
+.workoutVideoFrame video {
   display: block;
   width: 100%;
   height: 100%;
   border: 0;
+}
+/* Square DJI exports letterbox inside the 16:9 frame instead of cropping. */
+.workoutVideoFrame video {
+  object-fit: contain;
+  background: #000;
 }
 .workoutVideoExternalLink {
   display: block;

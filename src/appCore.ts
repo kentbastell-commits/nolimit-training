@@ -990,6 +990,22 @@ export const EXERCISE_TAG_OPTIONS = [
 // Canonical equipment list = the keys of EQUIPMENT_ZH (single source with the
 // Chinese labels; adding equipment means adding it THERE so zh never lags).
 
+// Self-hosted uploads are served through the CDN media domain on the WEB
+// (edge-cached across mainland China). The mini program keeps direct URLs
+// until its WeChat request-domain whitelist gains media.trainnolimit.cn.
+export function toMediaCdnUrl(url = ""): string {
+  return String(url || "").replace(
+    /^https?:\/\/(?:www\.)?trainnolimit\.(?:cn|com)\/uploads\//i,
+    "https://media.trainnolimit.cn/uploads/"
+  );
+}
+
+// A URL the browser's <video> element can play directly — these must NEVER
+// go into an iframe (mobile Chrome/Safari interrupt or download instead).
+export function isDirectMediaUrl(url = ""): boolean {
+  return /\.(mp4|m4v|mov|webm)([?#]|$)/i.test(String(url || ""));
+}
+
 export function normalizeDate(value: string) {
   if (!value) return "";
 

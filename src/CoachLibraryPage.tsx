@@ -16,7 +16,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { parseExerciseCueSections, videoThumbnail } from "./appCore";
+import { parseExerciseCueSections, toMediaCdnUrl, videoThumbnail } from "./appCore";
 
 const BATCH = 60;
 const CAP = 8;
@@ -28,8 +28,12 @@ const EASE = [0.16, 1, 0.3, 1] as const;
 const isDirectVideo = (url: string) =>
   /\.(mp4|mov|webm|m4v)(\?|#|$)/i.test(String(url || ""));
 // #t=0.5 tells the browser to show the frame at 0.5s as the poster (no play).
-const videoPosterSrc = (url: string) =>
-  `${String(url || "")}${String(url || "").includes("#") ? "" : "#t=0.5"}`;
+// Poster frames pull through the CDN — a library page of 600 cards otherwise
+// hits the origin server for every thumbnail.
+const videoPosterSrc = (url: string) => {
+  const cdn = toMediaCdnUrl(String(url || ""));
+  return `${cdn}${cdn.includes("#") ? "" : "#t=0.5"}`;
+};
 
 const CAT_COLORS: Record<string, { fg: string; bg: string; bd: string }> = {
   Squat: { fg: "#1f5fd6", bg: "#e8f0ff", bd: "#bcd3ff" },

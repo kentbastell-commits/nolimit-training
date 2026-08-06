@@ -9,7 +9,7 @@
 import { useEffect, useState } from "react";
 import { CheckSquare, ChevronDown, X } from "lucide-react";
 import "./ReviewPage.css";
-import { normalizeDate } from "./appCore";
+import { normalizeDate, toMediaCdnUrl } from "./appCore";
 import CountUp from "./CountUp";
 
 export default function ReviewPage({
@@ -393,7 +393,7 @@ export default function ReviewPage({
                   {video.videoUrl && (
                     <video
                       className="rvVideo"
-                      src={video.videoUrl}
+                      src={toMediaCdnUrl(video.videoUrl)}
                       controls
                       playsInline
                       preload="metadata"
