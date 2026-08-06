@@ -560,7 +560,11 @@ data between them, never "borrow" a table ID across products.
     clear/stash `selectedClient` itself and restore it on the way back
     (see `oneOffReturnClientRef`).
 
-52. **The overlapping save that doubles the program** — builder saves wrote
+52. **The overlapping save that doubles the program** — (second cause, fixed
+    2026-08-05: `inPlaceEdit` was gated `&& !singleWorkoutMode`, so every
+    calendar-session edit CREATED a new library program per save — 5 live
+    copies of one session. A save path that forks on mode must keep edit
+    semantics in every mode.) Original cause: builder saves wrote
     new template rows then deleted the OLD ones from a list captured at save
     start; two saves racing (double-click beats the `disabled={savingTemplate}`
     re-render) each wrote a full copy while both deleted only the originals —
