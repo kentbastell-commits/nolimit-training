@@ -3203,7 +3203,28 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     }
   };
 
+  // Set by the save path so its own close skips the unsaved-upload guard.
+  const skipCloseGuardRef = useRef(false);
+
   const closeExerciseForm = () => {
+    // Guard the exact mistake that orphaned two uploads (2026-08-06): video
+    // uploaded, editor closed without Save — file on server, exercise never
+    // updated. Uploading does NOT save; the Save button does.
+    const uploadedUnsaved =
+      (/\/uploads\//.test(exerciseForm.videoUrl) &&
+        exerciseForm.videoUrl !== (editingExercise?.videoUrl || "")) ||
+      (/\/uploads\//.test(exerciseForm.longVideoUrl) &&
+        exerciseForm.longVideoUrl !== (editingExercise?.longVideoUrl || ""));
+    if (
+      !skipCloseGuardRef.current &&
+      uploadedUnsaved &&
+      !window.confirm(
+        "You uploaded a video but haven't saved this exercise — close without saving it?"
+      )
+    ) {
+      return;
+    }
+    skipCloseGuardRef.current = false;
     setShowExerciseModal(false);
     setEditingExercise(null);
     resetExerciseForm();
@@ -3296,6 +3317,8 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       // Builder-launched create: drop the new exercise straight into the
       // session being built. Read BEFORE closeExerciseForm clears the flag.
       const addToBuilder = addToBuilderAfterSaveRef.current && !archive;
+      // This close follows a successful save — nothing is unsaved.
+      skipCloseGuardRef.current = true;
       closeExerciseForm();
       if (addToBuilder) {
         addExerciseToProgram(savedExercise);

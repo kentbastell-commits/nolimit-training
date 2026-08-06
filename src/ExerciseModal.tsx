@@ -105,6 +105,14 @@ export default function ExerciseModal({
       }
     };
     xhr.onerror = () => fail("Upload failed — check your connection and try again.");
+    // A stalled transfer used to sit at "Uploading 0%" forever with both
+    // buttons disabled (cost Kent an evening's uploads). 10 min is generous
+    // for a 500MB cap on any workable connection.
+    xhr.timeout = 10 * 60 * 1000;
+    xhr.ontimeout = () =>
+      fail(
+        "Upload timed out — the file may still be exporting/syncing. Check it plays on this device, then try again."
+      );
     xhr.send(file);
   };
 
