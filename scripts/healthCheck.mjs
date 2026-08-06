@@ -276,6 +276,23 @@ async function watch() {
   );
 }
 
+// The CDN media domain runs on a FREE 90-day certificate (renewed manually
+// in the Tencent SSL console). Warn Kent in the morning report starting two
+// weeks out so playback never breaks on a surprise expiry.
+function mediaCertDaysLeft() {
+  try {
+    const out = execSync(
+      "echo | openssl s_client -connect media.trainnolimit.cn:443 -servername media.trainnolimit.cn 2>/dev/null | openssl x509 -noout -enddate",
+      { encoding: "utf8", timeout: 20000 }
+    );
+    const m = out.match(/notAfter=(.+)/);
+    if (!m) return null;
+    return Math.floor((new Date(m[1]).getTime() - Date.now()) / 86400000);
+  } catch {
+    return null;
+  }
+}
+
 async function report() {
   const since = Date.now() - 24 * 3600 * 1000;
   const site = await probe(SITE + "/");
@@ -304,6 +321,17 @@ async function report() {
   if (athletes.length) {
     lines.push("Your athletes yesterday:");
     lines.push(...athletes);
+    lines.push("");
+  }
+
+  const certDays = mediaCertDaysLeft();
+  if (certDays !== null && certDays <= 14) {
+    lines.push(
+      `⚠️ The video CDN certificate (media.trainnolimit.cn) expires in ${certDays} day${certDays === 1 ? "" : "s"}.`
+    );
+    lines.push(
+      "  Renew: Tencent console → SSL 证书 → Apply free certificate → deploy to CDN (3 minutes)."
+    );
     lines.push("");
   }
 
