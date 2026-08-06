@@ -302,6 +302,19 @@ export async function findClientByPhoneName(
   return match?.clientId || "";
 }
 
+// Pilot-stage easy login: one short code per athlete (clients.login_pin,
+// unique when set). Exact match only — no fuzz, no enumeration help.
+export async function findClientByPin(pin: string): Promise<string> {
+  const clean = String(pin || "").trim();
+  if (!clean) return "";
+  const rows = await db
+    .select({ clientId: clients.clientId })
+    .from(clients)
+    .where(eq(clients.loginPin, clean))
+    .limit(1);
+  return rows[0]?.clientId || "";
+}
+
 export async function findClientByOpenid(openid: string): Promise<string> {
   const rows = await db
     .select({ clientId: clients.clientId })

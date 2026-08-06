@@ -32,6 +32,22 @@ describe("api/findMyPortal (postgres)", () => {
     expect((await lookup({ name: "Bob Tan" })).statusCode).toBe(400);
   });
 
+  it("logs in with the simple per-athlete pin", async () => {
+    await seedClient({
+      client_id: "CL-9001",
+      full_name: "Bob Tan",
+      phone: "13800000001",
+      login_pin: "111111",
+    });
+
+    const res = await lookup({ pin: "111111" });
+    expect(res.statusCode).toBe(200);
+    expect(res.body.clientCode).toBe("CL-9001");
+    // Whitespace tolerated; wrong pin is a generic 404.
+    expect((await lookup({ pin: " 111111 " })).body.clientCode).toBe("CL-9001");
+    expect((await lookup({ pin: "222222" })).statusCode).toBe(404);
+  });
+
   it("returns the client code on a phone + name match", async () => {
     await seedClient({ client_id: "CL-9001", full_name: "Bob Tan", phone: "13800000001" });
 

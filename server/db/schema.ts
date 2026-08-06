@@ -163,6 +163,9 @@ export const clients = pgTable(
     // Mini program one-tap login: set when the athlete binds their WeChat
     // account after a verified phone+name login. Never sent to the client.
     wechatOpenid: text("wechat_openid"),
+    // Simple per-athlete login code (e.g. "111111") — the pilot-stage
+    // "make login easy" credential; unique when set (partial index).
+    loginPin: text("login_pin"),
     clientType: text("client_type"),
     // Coach fields hold names in Feishu (not codes), so no FK to coaches.
     primaryCoachId: text("primary_coach_id"),

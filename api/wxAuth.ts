@@ -3,6 +3,7 @@ import {
   findClientByOpenid,
   bindClientOpenid,
   findClientByPhoneName,
+  findClientByPin,
 } from "../server/db/repositories/clients.ts";
 
 // Mini program WeChat auth.
@@ -10,6 +11,8 @@ import {
 //   POST { code, phone, name }  -> bind this WeChat to the client that phone+name
 //                                  resolves to (same verification as findMyPortal,
 //                                  so a leaked client code alone can't bind).
+//   POST { code, pin }          -> bind via the simple login code (same
+//                                  verification findMyPortal's pin path uses).
 // The openid never leaves the server; the mini program only ever sees the
 // client code it already uses as its session.
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -23,7 +26,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(503).json({ error: "WeChat auth not configured" });
   }
 
-  const { code, phone, name } = req.body || {};
+  const { code, phone, name, pin } = req.body || {};
   if (!code) {
     return res.status(400).json({ error: "code required" });
   }
@@ -41,10 +44,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
     const openid = String(session.openid);
 
-    if (phone && name) {
-      const clientCode = await findClientByPhoneName(String(phone), String(name));
+    if (pin || (phone && name)) {
+      const clientCode = pin
+        ? await findClientByPin(String(pin))
+        : await findClientByPhoneName(String(phone), String(name));
       if (!clientCode) {
-        return res.status(404).json({ error: "No portal found for that phone and name" });
+        return res.status(404).json({ error: "No portal found for that login" });
       }
       const bound = await bindClientOpenid(clientCode, openid);
       if (!bound.success) {

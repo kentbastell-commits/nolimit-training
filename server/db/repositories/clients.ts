@@ -67,6 +67,11 @@ export async function findClientByPhoneName(
   return await pg.findClientByPhoneName(phone, name);
 }
 
+// Pilot-stage easy login: one short code per athlete.
+export async function findClientByPin(pin: string): Promise<string> {
+  return await pg.findClientByPin(pin);
+}
+
 // Mini program WeChat binding: look up a client by bound openid, or bind an
 // openid after the caller has re-verified phone+name via findClientByPhoneName.
 export async function findClientByOpenid(openid: string): Promise<string> {
