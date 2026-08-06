@@ -10978,7 +10978,10 @@ function App({ onReady }: { onReady?: () => void } = {}) {
 
     setSavingTemplate(true);
 
-    const inPlaceEdit = Boolean(editProgramRecordId) && !singleWorkoutMode;
+    // Editing = update the record, for SESSIONS (Single Workout) too — the
+    // old `&& !singleWorkoutMode` made every calendar-session edit create a
+    // brand-new library program on each save (5 copies of "Activation" live).
+    const inPlaceEdit = Boolean(editProgramRecordId);
 
     try {
       const programPayload = {
@@ -10993,9 +10996,15 @@ function App({ onReady }: { onReady?: () => void } = {}) {
         status: "Active",
         productType: singleWorkoutMode ? "Single Workout" : programProductType,
         // One-off calendar sessions stay out of the library unless the coach
-        // ticked "save to library" in the builder banner.
+        // ticked "save to library" in the builder banner. In-place edits send
+        // undefined so a hidden one-off doesn't surface just because it was
+        // edited (updateProgram is patch-style: undefined = leave unchanged).
         libraryVisible:
-          singleWorkoutMode && oneOffAssignTarget ? oneOffSaveToLibrary : true,
+          singleWorkoutMode && oneOffAssignTarget
+            ? oneOffSaveToLibrary
+            : inPlaceEdit
+            ? undefined
+            : true,
         price: digitalProductProgram ? programPrice : "",
         compareAtPrice: digitalProductProgram ? programCompareAtPrice : "",
         currency: digitalProductProgram ? programCurrency : "",
