@@ -662,7 +662,13 @@ invented procedure is not.
   multi-line `git commit -m @'…'@` here-strings containing quotes/dashes (the
   commit "succeeds" as a pathspec error you can miss mid-pipeline, and a
   deploy then ships the OLD commit) — always write the message to a temp file
-  and `git commit -F <file>`, and check the commit hash actually advanced. Python needs `PYTHONIOENCODING=utf-8` for
+  and `git commit -F <file>`, and check the commit hash actually advanced.
+  Never edit source files with a PowerShell `Get-Content -Raw | -replace |
+  Set-Content` roundtrip: PS5.1 reads UTF-8 as ANSI and mangles EVERY
+  non-ASCII char (em-dashes → â€", CJK too) with no error — cost App.css a
+  145-line mojibake diff, caught only by `git diff --stat` looking too big.
+  Use the Edit tool; after any scripted file rewrite, sanity-check the diff
+  size and grep the diff for `â€|Â` before committing. Python needs `PYTHONIOENCODING=utf-8` for
   CJK output. `curl -d "…中文…"` from Git Bash mangles CJK to literal `?` — send
   Chinese payloads with `--data-binary @file` (write the file server-side or via
   printf \x escapes), never inline in the command.
