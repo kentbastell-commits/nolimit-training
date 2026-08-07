@@ -12723,7 +12723,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
       var(--mediaThumb);
     background-position: center;
     background-size: cover;
-    color: #3a86ff;
+    color: #f4df8a;
     cursor: pointer;
   }
 
@@ -13200,7 +13200,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
       var(--mediaThumb);
     background-position: center;
     background-size: cover;
-    color: #1f5bff;
+    color: #f4df8a;
     text-decoration: none;
   }
 
@@ -13484,9 +13484,9 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
     padding: calc(14px + env(safe-area-inset-top)) 16px 15px !important;
     border: 0 !important;
     border-radius: 0 0 18px 18px !important;
-    background: #1f5bff !important;
+    background: #17140e !important;
     color: #ffffff !important;
-    box-shadow: 0 14px 32px rgba(31, 91, 255, 0.24) !important;
+    box-shadow: 0 14px 32px rgba(17, 17, 17, 0.3) !important;
   }
 
   .clientPortalApp .workoutPlayerBannerBack {
@@ -13580,9 +13580,10 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 }
 
 @media (max-width: 720px) {
+  /* Brand ink, matching the desktop banner rule (the blue Kent vetoed). */
   .clientPortalApp .workoutPlayerProgress {
-    background: #3a86ff !important;
-    box-shadow: 0 14px 32px rgba(58, 134, 255, 0.28) !important;
+    background: #17140e !important;
+    box-shadow: 0 14px 32px rgba(17, 17, 17, 0.28) !important;
   }
 
   .clientPortalApp .workoutPlayerBannerBack {
@@ -13595,7 +13596,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
     min-height: clamp(205px, 52vw, 265px) !important;
     aspect-ratio: 16 / 9;
     margin: 0 0 16px !important;
-    color: #3a86ff !important;
+    color: #f4df8a !important;
   }
 
   .clientPortalApp .clientWorkoutPlayerActive .workoutExerciseHeader {
