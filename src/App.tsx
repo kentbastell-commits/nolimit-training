@@ -3159,6 +3159,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
           className="exerciseVideoPreview"
           src={toMediaCdnUrl(clean)}
           controls
+          muted
         />
       );
     }
@@ -22463,6 +22464,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                         src={mediaUrl}
                         controls
                         autoPlay
+                        muted
                         playsInline
                         preload="metadata"
                       />

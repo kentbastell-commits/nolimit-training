@@ -424,6 +424,7 @@ export default function CoachLibraryPage(props: { [key: string]: any }) {
                         className="clSlideHeroVideo"
                         src={videoPosterSrc(e.videoUrl)}
                         controls
+                        muted
                         playsInline
                         preload="metadata"
                       />
