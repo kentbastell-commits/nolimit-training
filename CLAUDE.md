@@ -589,6 +589,22 @@ data between them, never "borrow" a table ID across products.
     must await the loader itself when the list is empty — reachable pages
     (a client's calendar via Clients) may never have triggered the load.
 
+54. **The stash that ate the uploads** — on the SERVER, the repo worktree
+    (`/opt/nolimit-training`) contains untracked PRODUCTION DATA (`uploads/`,
+    `uploads-originals/`). A deploy-blocked pull "fixed" with
+    `git stash --include-untracked` + `git stash drop` deleted 6GB of
+    exercise videos: stash -u swept the untracked dirs, and `git stash show`
+    LIES by omission (it lists tracked changes only — the stash looked like
+    one script file). Recovered because dropped stashes linger until gc:
+    `git fsck --unreachable` → the "untracked files on main" commit →
+    `git archive <sha> | tar -x`. Rules: NEVER `stash -u` or `git clean` in
+    a server worktree; if a pull is blocked by an untracked file, move that
+    one file aside by name. Production data dirs live in .gitignore (ignored
+    files are untouchable by stash/clean) — keep them there. After ANY
+    server file mishap, check the CDN too: edges cache the SPA-fallback HTML
+    for missing media URLs (200 text/html, ~4KB) and keep serving it for 30
+    days until a directory purge.
+
 ## Quality bar — checkable, per deliverable
 
 **Any shipped code change**

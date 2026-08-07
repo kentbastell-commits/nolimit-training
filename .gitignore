@@ -53,6 +53,14 @@ branding/Source vector files/*
 !branding/Source vector files/NX LIMIT Training Lean 48 Trial.svg
 !branding/Source vector files/NX LIMIT Small-Use Lean 48 Trial.svg
 
+# Production media on the SERVER worktree (served by nginx from the repo
+# dir). MUST stay ignored: `git stash --include-untracked` once swept these
+# into a stash that was then dropped — 6GB of exercise videos vanished
+# (recovered from the dangling stash commit via git fsck). Ignored files are
+# untouchable by stash/clean; this line is the structural fix.
+uploads/
+uploads-originals/
+
 # Local data dumps (real client data — never commit)
 etl-data.json
 *.dump.json
