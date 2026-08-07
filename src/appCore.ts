@@ -1006,6 +1006,15 @@ export function isDirectMediaUrl(url = ""): boolean {
   return /\.(mp4|m4v|mov|webm)([?#]|$)/i.test(String(url || ""));
 }
 
+// Poster frame for a self-hosted video (optimizeVideos.sh emits
+// /uploads/thumbs/<name>.jpg for every upload). Empty for external URLs.
+export function uploadThumbUrl(videoUrl = ""): string {
+  const m = String(videoUrl || "").match(
+    /^https?:\/\/(?:www\.)?(?:media\.)?trainnolimit\.(?:cn|com)\/uploads\/([^/?#]+)\.(?:mov|mp4|m4v|webm)(?:[?#]|$)/i
+  );
+  return m ? `https://media.trainnolimit.cn/uploads/thumbs/${m[1]}.jpg` : "";
+}
+
 export function normalizeDate(value: string) {
   if (!value) return "";
 

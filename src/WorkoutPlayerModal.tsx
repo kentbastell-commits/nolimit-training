@@ -4,7 +4,7 @@ import { useState } from "react";
 import { stripLocalizedExerciseMeta } from "./appCore";
 import "./WorkoutPlayerModal.css";
 import { Check, ChevronLeft, ChevronRight, ClipboardList, Clock3, Film, MessageSquare, MoreVertical, Play, RefreshCw, Shuffle, SquarePen, Timer, Trash2, X } from "lucide-react";
-import { getDisplayTaskStatus, makeExerciseLabel, parseExerciseNotes, videoThumbnail } from "./appCore";
+import { getDisplayTaskStatus, isDirectMediaUrl, makeExerciseLabel, parseExerciseNotes, toMediaCdnUrl, uploadThumbUrl, videoThumbnail } from "./appCore";
 
 export default function WorkoutPlayerModal({
   getLabelColorClass,
@@ -99,6 +99,9 @@ export default function WorkoutPlayerModal({
   // Inline per-exercise note-to-coach + skip state (replaces the old kebab
   // overlay that rendered BEHIND the z-2000 player and broke it on phones).
   const [noteOpenFor, setNoteOpenFor] = useState<string>("");
+  // Self-hosted videos play INLINE in the focus card (Kent: no popup);
+  // keyed by exercise index so navigating exercises collapses the player.
+  const [inlineVideoIndex, setInlineVideoIndex] = useState<number | null>(null);
   // "Other" skip reason in progress: the note row collects the custom text.
   const [pendingOtherSkip, setPendingOtherSkip] = useState<string>("");
   const [noteDrafts, setNoteDrafts] = useState<Record<string, string>>({});
@@ -609,7 +612,9 @@ export default function WorkoutPlayerModal({
                       exercise.videoUrl || "",
                       exercise.videoUrlCn || ""
                     );
-                    const exerciseThumb = videoThumbnail(exerciseVideoUrl);
+                    const exerciseThumb =
+                      videoThumbnail(exerciseVideoUrl) ||
+                      uploadThumbUrl(exerciseVideoUrl);
                     const isTimedCircuit =
                       meta.groupType === "Circuit" && !!meta.groupMode;
                     const rawFocusGroupTitle =
@@ -838,16 +843,31 @@ export default function WorkoutPlayerModal({
                           id={`workout-exercise-${index}`}
                         >
                         {isClientPortal && workoutFocusMode && exerciseVideoUrl && (
+                          inlineVideoIndex === index &&
+                          isDirectMediaUrl(exerciseVideoUrl) ? (
+                            <video
+                              className="workoutExerciseInlineVideo"
+                              src={toMediaCdnUrl(exerciseVideoUrl)}
+                              poster={exerciseThumb || undefined}
+                              controls
+                              autoPlay
+                              muted
+                              playsInline
+                              preload="metadata"
+                            />
+                          ) : (
                           <button
                             type="button"
                             className={`workoutExerciseMedia${
                               exerciseThumb ? "" : " workoutExerciseMediaEmpty"
                             }`}
                             onClick={() =>
-                              setWorkoutVideoOverlay({
-                                url: exerciseVideoUrl,
-                                title: localizedExerciseName(exercise),
-                              })
+                              isDirectMediaUrl(exerciseVideoUrl)
+                                ? setInlineVideoIndex(index)
+                                : setWorkoutVideoOverlay({
+                                    url: exerciseVideoUrl,
+                                    title: localizedExerciseName(exercise),
+                                  })
                             }
                             style={
                               exerciseThumb
@@ -865,7 +885,36 @@ export default function WorkoutPlayerModal({
                               {paceZh ? "播放视频" : "Watch video"}
                             </span>
                           </button>
+                          )
                         )}
+                        {/* Surfaced from the ⋮ menu — Kent couldn't find it
+                            there. Premium (coached) athletes only. */}
+                        {isClientPortal &&
+                          workoutFocusMode &&
+                          isPremiumClient() &&
+                          !clientReviewMode && (
+                            <button
+                              type="button"
+                              className="wpmFilmBtn"
+                              disabled={formVideoBusy}
+                              onClick={() => {
+                                setFormVideoExercise({
+                                  exerciseId: exercise.exerciseId,
+                                  exerciseName: exercise.exerciseName,
+                                });
+                                formVideoInputRef.current?.click();
+                              }}
+                            >
+                              <Film size={15} aria-hidden="true" />
+                              {formVideoSentIds.includes(exercise.exerciseId)
+                                ? paceZh
+                                  ? "已发送给教练 ✓"
+                                  : "Sent to coach ✓"
+                                : paceZh
+                                  ? "拍一组给教练点评"
+                                  : "Film a set for coach review"}
+                            </button>
+                          )}
                         <div className="exerciseTitleRow workoutExerciseHeader">
                           <div className="workoutExerciseTitle">
                             <span

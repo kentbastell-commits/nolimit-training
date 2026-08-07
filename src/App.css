@@ -12612,9 +12612,10 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
     overflow: hidden;
     border: 0;
     border-radius: 18px;
-    background: #3a86ff;
+    /* Brand ink + gold (was a loud #3a86ff blue Kent wanted gone). */
+    background: #17140e;
     color: #ffffff;
-    box-shadow: 0 14px 32px rgba(58, 134, 255, 0.2);
+    box-shadow: 0 14px 32px rgba(17, 17, 17, 0.28);
   }
 
   .clientPortalApp .workoutPlayerBannerBack {
@@ -12683,14 +12684,14 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
     height: 6px;
     overflow: hidden;
     border-radius: 999px;
-    background: rgba(255, 255, 255, 0.28);
+    background: rgba(255, 255, 255, 0.18);
   }
 
   .clientPortalApp .workoutPlayerProgressTrack span {
     display: block;
     height: 100%;
     border-radius: inherit;
-    background: #ffffff;
+    background: #f4df8a;
     transition: width 180ms ease;
   }
 

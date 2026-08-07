@@ -501,3 +501,34 @@
   font-size: 12px;
   cursor: pointer;
 }
+
+/* Inline video in the focus card (replaces the popup for self-hosted clips). */
+.workoutExerciseInlineVideo {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: contain;
+  background: #000;
+  border-radius: 14px;
+  margin-bottom: 14px;
+}
+
+/* Visible film-for-coach pill under the video (coached athletes). */
+.wpmFilmBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 12px;
+  padding: 9px 14px;
+  border-radius: 999px;
+  border: 1.5px dashed rgba(17, 17, 17, 0.35);
+  background: transparent;
+  color: #111;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.wpmFilmBtn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}

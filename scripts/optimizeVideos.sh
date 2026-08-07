@@ -10,10 +10,19 @@ LOG=/tmp/optimizeVideos.log
 mkdir -p "$BAK"
 cd "$UP" || exit 1
 
+mkdir -p "$UP/thumbs"
+
 done_n=0; skip_n=0; fail_n=0
 for f in ex-*; do
   [ -f "$f" ] || continue
   case "$f" in *.mov|*.mp4|*.m4v) ;; *) continue;; esac
+
+  # Poster frame for the players (web tile + mini <Video poster>), keyed by
+  # basename: ex-abc.mov -> thumbs/ex-abc.jpg. Cheap, so ensure it always.
+  thumb="$UP/thumbs/${f%.*}.jpg"
+  if [ ! -f "$thumb" ]; then
+    nice -n 15 ffmpeg -y -v error -ss 0.5 -i "$f" -frames:v 1 -vf "scale=480:-2" "$thumb" 2>>"$LOG"
+  fi
 
   # Already optimized?
   tag=$(ffprobe -v error -show_entries format_tags=comment -of default=nw=1:nk=1 "$f" 2>/dev/null | head -1)
