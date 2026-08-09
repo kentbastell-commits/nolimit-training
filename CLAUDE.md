@@ -605,6 +605,19 @@ data between them, never "borrow" a table ID across products.
     for missing media URLs (200 text/html, ~4KB) and keep serving it for 30
     days until a directory purge.
 
+55. **The auto-margin that cancels flex stretch** — the store's V3 page reuses
+    V2's `.storeMainV2` wrapper, which App.css makes `display: flex; column`;
+    every section carries `margin: 0 auto`, and an auto CROSS-AXIS margin on a
+    flex item disables `align-items: stretch` — each section silently sized to
+    its intrinsic content (the mobile card carousel's ~1064px), pushing the
+    centered headings past a 390px viewport where `overflow-x: clip` cut them
+    off. Desktop looked perfect (content fit), so it shipped unseen. Rule: a
+    centered child of a flex column gets `width: 100%` + its own `max-width`,
+    never bare `margin: 0 auto`; and when reskinning a page over an old
+    wrapper class (`*V2` under `*V3`), diff the wrapper's inherited layout
+    properties (display/flex rules), not just the visual ones — same family
+    as #18/#25, found only by measuring `getBoundingClientRect` at 390px.
+
 ## Quality bar — checkable, per deliverable
 
 **Any shipped code change**
