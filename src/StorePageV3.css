@@ -15,7 +15,13 @@
   font-size: 12px; letter-spacing: 4px; color: #9f7a1b;
   font-weight: 600; text-transform: uppercase;
 }
-.storePageV3 .storeSectionIntroV2 { text-align: center; margin: 0 auto 44px; max-width: 720px; }
+/* V2's base rule leaves display:flex + space-between on section intros, which
+   pushes the eyebrow beside the centered heading on desktop; V3 wants a
+   centered stack. */
+.storePageV3 .storeSectionIntroV2 {
+  text-align: center; margin: 0 auto 44px; max-width: 720px;
+  flex-direction: column; align-items: center; justify-content: flex-start;
+}
 .storePageV3 .storeSectionIntroV2 h2 {
   font-family: "Bebas Neue", Impact, sans-serif;
   font-size: 52px; line-height: 1; letter-spacing: 0.5px; margin-top: 8px; color: #121210;
@@ -155,6 +161,12 @@
 
 /* ---- catalog ---- */
 .storePageV3 .storeMainV2 { max-width: none; padding: 0; }
+/* .storeMainV2 is a flex column (App.css) and every section carries
+   margin: 0 auto — auto cross-axis margins cancel flex stretch, so a section
+   sizes to its content (the mobile card carousel's intrinsic width) and its
+   centered headings get clipped off-screen at phone widths. Full width +
+   each section's own max-width restores normal centering. */
+.storePageV3 .storeMainV2 > * { width: 100%; min-width: 0; }
 .storePageV3 #catalog { max-width: 1200px; margin: 0 auto; padding: 56px 40px 40px; }
 .storePageV3 .storeCatalogueGridV2 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
 .storePageV3 .storeCategoryCardV2 {
