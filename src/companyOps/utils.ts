@@ -52,6 +52,7 @@ export function defaultQuickActions(user: CompanyOpsUser): QuickActionKey[] {
       "weekly_report",
     );
   }
+  if (user.role === "founder") actions.push("goal");
   actions.push("internal_request", "support_issue");
   if (capabilities.has("submit_expense")) actions.push("expense");
   if (user.role !== "founder") actions.push("founder_decision");

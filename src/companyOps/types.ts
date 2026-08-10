@@ -40,6 +40,9 @@ export type CompanyOpsActionName =
   | "request_access"
   | "submit_internal_request"
   | "update_status"
+  | "create_goal"
+  | "update_goal"
+  | "respond_goal"
   | "generate_onboarding"
   | "acknowledge_compensation"
   | "dispute_compensation"
@@ -63,6 +66,7 @@ export type QuickActionKey =
   | "weekly_report"
   | "expense"
   | "internal_request"
+  | "goal"
   | "founder_decision";
 
 export type Tone =
@@ -301,6 +305,20 @@ export interface OpsOnboardingCandidate {
   startDate?: string;
 }
 
+export interface OpsGoalItem {
+  id: string;
+  title: string;
+  goalType?: string;
+  status?: string;
+  measure?: string;
+  priority?: string;
+  dueAt?: string;
+  creator?: string;
+  response?: string;
+  respondedBy?: string;
+  notes?: string;
+}
+
 export interface OpsCompensationSummary {
   compensationId?: string;
   payPeriod: string;
@@ -391,6 +409,7 @@ export interface CompanyOpsDashboard {
   growth?: OpsGrowthDashboard;
   decisions?: OpsDecisionItem[];
   finance?: OpsFinanceSummary;
+  goals?: OpsGoalItem[];
   myCompensation?: OpsCompensationSummary;
   myExpenses?: Array<{
     id: string;

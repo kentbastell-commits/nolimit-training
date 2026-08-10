@@ -9,6 +9,7 @@ import {
   Lightbulb,
   Megaphone,
   MessageSquareMore,
+  Target,
   UserPlus,
   X,
 } from "lucide-react";
@@ -131,6 +132,7 @@ const actionIcons = {
   weekly_report: FileText,
   expense: Banknote,
   internal_request: ClipboardList,
+  goal: Target,
   founder_decision: MessageSquareMore,
 } satisfies Record<QuickActionKey, typeof Lightbulb>;
 
@@ -242,6 +244,9 @@ function initialState(action: QuickActionKey): FormState {
       startDate: "",
     };
   }
+  if (action === "goal") {
+    return { title: "", goalType: "", measure: "", priority: "", due: "" };
+  }
   if (action === "internal_request") {
     return { title: "", requestType: "", details: "", neededBy: "" };
   }
@@ -352,6 +357,7 @@ const requiredByAction: Record<QuickActionKey, string[]> = {
     "businessPurpose",
     "receiptUrl",
   ],
+  goal: ["title", "goalType"],
   internal_request: ["title", "requestType", "details"],
   founder_decision: ["title", "category", "context", "neededBy"],
 };
@@ -380,6 +386,8 @@ function actionCopy(action: QuickActionKey) {
     return ["expenseFormTitle", "expenseFormIntro"] as const;
   if (action === "internal_request")
     return ["requestFormTitle", "requestFormIntro"] as const;
+  if (action === "goal")
+    return ["goalFormTitle", "goalFormIntro"] as const;
   return ["decisionFormTitle", "decisionFormIntro"] as const;
 }
 
@@ -986,6 +994,53 @@ export default function QuickActionDrawer({
                   "receiptNote",
                   opsText(language, "receiptNote"),
                   input("receiptNote"),
+                )}
+              </>
+            ) : null}
+
+            {action === "goal" ? (
+              <>
+                {field(
+                  "title",
+                  opsText(language, "goalTitleField"),
+                  input("title"),
+                  "fopsFieldWide",
+                )}
+                {field(
+                  "goalType",
+                  opsText(language, "goalTypeField"),
+                  <select
+                    name="goalType"
+                    value={String(values.goalType)}
+                    aria-invalid={invalid.has("goalType")}
+                    onChange={(event) => set("goalType", event.target.value)}
+                  >
+                    <option value="">{opsText(language, "selectOne")}</option>
+                    <option value="季度目标 Quarterly">季度目标 Quarterly</option>
+                    <option value="月度目标 Monthly">月度目标 Monthly</option>
+                    <option value="创始人想法 Founder Idea">创始人想法 Founder Idea</option>
+                  </select>,
+                )}
+                {field(
+                  "priority",
+                  opsText(language, "goalPriorityField"),
+                  <select
+                    name="priority"
+                    value={String(values.priority)}
+                    onChange={(event) => set("priority", event.target.value)}
+                  >
+                    <option value="">{opsText(language, "selectOne")}</option>
+                    <option value="高 High">高 High</option>
+                    <option value="中 Medium">中 Medium</option>
+                    <option value="低 Low">低 Low</option>
+                  </select>,
+                )}
+                {field("due", opsText(language, "goalDueField"), input("due", "date"))}
+                {field(
+                  "measure",
+                  opsText(language, "goalMeasureField"),
+                  textarea("measure", 3),
+                  "fopsFieldWide",
                 )}
               </>
             ) : null}

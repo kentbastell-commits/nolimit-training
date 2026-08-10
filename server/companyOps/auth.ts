@@ -37,6 +37,12 @@ export type CompanyOpsActionName =
   | "weeklyReport.submit"
   | "metrics.submit"
   | "expense.submit"
+  | "goal.create"
+  | "goal.update"
+  | "goal.respond"
+  | "create_goal"
+  | "update_goal"
+  | "respond_goal"
   | "internalRequest.submit"
   | "onboarding.generate"
   | "access.request"
@@ -104,6 +110,12 @@ const ACTIONS_BY_ROLE: Record<CompanyOpsRole, ReadonlySet<CompanyOpsActionName>>
     "submit_expense",
     "submit_internal_request",
     "request_founder_decision",
+    "goal.create",
+    "goal.update",
+    "goal.respond",
+    "create_goal",
+    "update_goal",
+    "respond_goal",
     "generate_onboarding",
     "request_access",
     "approve_access",
@@ -139,6 +151,8 @@ const ACTIONS_BY_ROLE: Record<CompanyOpsRole, ReadonlySet<CompanyOpsActionName>>
     "request_founder_decision",
     "complete_onboarding_task",
     "acknowledge_policy",
+    "goal.respond",
+    "respond_goal",
     "create_support_issue",
     "acknowledge_commission",
     "raise_commission_dispute",
@@ -171,6 +185,8 @@ const ACTIONS_BY_ROLE: Record<CompanyOpsRole, ReadonlySet<CompanyOpsActionName>>
     "request_founder_decision",
     "complete_onboarding_task",
     "acknowledge_policy",
+    "goal.respond",
+    "respond_goal",
     "submit_platform_metrics",
     "create_support_issue",
     "acknowledge_commission",
@@ -190,6 +206,8 @@ const ACTIONS_BY_ROLE: Record<CompanyOpsRole, ReadonlySet<CompanyOpsActionName>>
     "request_founder_decision",
     "complete_onboarding_task",
     "acknowledge_policy",
+    "goal.respond",
+    "respond_goal",
     "create_support_issue",
     "acknowledge_commission",
     "raise_commission_dispute",

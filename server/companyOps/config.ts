@@ -14,6 +14,7 @@ export type CompanyOpsResource =
   | "experiment"
   | "weeklyReport"
   | "metrics"
+  | "goal"
   | "expense"
   | "payroll"
   | "commission"
@@ -236,6 +237,11 @@ export function getCompanyOpsConfig(env: Env = process.env): CompanyOpsConfig {
         base: "growth",
         id: optional(env.FEISHU_ADMIN_METRICS_TABLE_ID),
         names: ["平台数据 Platform Metrics", "Platform Metrics", "平台数据"],
+      },
+      goal: {
+        base: "growth",
+        id: optional(env.FEISHU_ADMIN_GOALS_TABLE_ID),
+        names: ["公司目标 Company Goals", "Company Goals", "公司目标"],
       },
       expense: {
         base: "confidential",

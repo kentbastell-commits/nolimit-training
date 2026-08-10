@@ -135,6 +135,20 @@ export interface CompanyOpsDashboard {
     startDate?: string;
     confidentialDetailsComplete?: boolean;
   };
+  /** Founder goals & ideas — visible to every active role. */
+  goals?: Array<{
+    id: string;
+    title: string;
+    goalType?: string;
+    status?: string;
+    measure?: string;
+    priority?: string;
+    dueAt?: string;
+    creator?: string;
+    response?: string;
+    respondedBy?: string;
+    notes?: string;
+  }>;
   performance?: {
     cycles: CompanyOpsPerformanceCycle[];
     staff?: CompanyOpsPerformanceStaffOption[];
@@ -487,6 +501,36 @@ const EXPENSE_SPECS: readonly InputFieldSpec[] = [
   { key: "status", aliases: FIELD.status, kind: "string", maximum: 50 },
 ];
 
+const GOAL_SPECS: readonly InputFieldSpec[] = [
+  { key: "title", aliases: ["目标 Goal", "Goal", "目标"], kind: "string", required: true, primary: true, maximum: 200 },
+  { key: "goalType", aliases: ["类型 Type", "Type", "类型"], kind: "string", required: true, maximum: 50 },
+  { key: "measure", aliases: ["衡量标准 Measure", "Measure", "衡量标准"], kind: "string", maximum: 1_000 },
+  { key: "priority", aliases: ["优先级 Priority", "Priority", "优先级"], kind: "string", maximum: 50 },
+  { key: "due", aliases: ["截止 Due", "Due", "截止"], kind: "date" },
+  { key: "notes", aliases: ["备注 Notes", "Notes", "备注"], kind: "string", maximum: 3_000 },
+  { key: "status", aliases: FIELD.status, kind: "string", maximum: 50 },
+];
+
+// choice() keys are normalize()d input → stored option value.
+const GOAL_TYPE_OPTIONS: Record<string, string> = {
+  quarterly: "季度目标 Quarterly",
+  "季度目标 quarterly": "季度目标 Quarterly",
+  monthly: "月度目标 Monthly",
+  "月度目标 monthly": "月度目标 Monthly",
+  "founder idea": "创始人想法 Founder Idea",
+  idea: "创始人想法 Founder Idea",
+  "创始人想法 founder idea": "创始人想法 Founder Idea",
+};
+
+const GOAL_PRIORITY_OPTIONS: Record<string, string> = {
+  high: "高 High",
+  "高 high": "高 High",
+  medium: "中 Medium",
+  "中 medium": "中 Medium",
+  low: "低 Low",
+  "低 low": "低 Low",
+};
+
 const REQUEST_SPECS: readonly InputFieldSpec[] = [
   { key: "title", aliases: ["请求 Request", "Request", "Title", "Request Title", "申请标题"], kind: "string", required: true, primary: true, maximum: 200 },
   { key: "requestType", aliases: ["类别 Category", "Request Type", "Type", "申请类型"], kind: "string", required: true, maximum: 100 },
@@ -557,6 +601,12 @@ const STATUS_BY_RESOURCE: Partial<
     Active: "进行中 Active",
     Ended: "已结束 Ended",
     Reviewed: "已复盘 Reviewed",
+  },
+  goal: {
+    New: "新想法 New",
+    Active: "进行中 Active",
+    Done: "已完成 Done",
+    Parked: "搁置 Parked",
   },
   experiment: {
     Idea: "想法 Idea",
@@ -2019,6 +2069,30 @@ export class CompanyOpsRepository {
       dashboard.growthMetrics = [...byPlatform.values()].slice(0, 6);
     }
 
+    // Founder goals & ideas: shared direction, visible to the whole team.
+    const goalRecords = await this.listOptional("goal", 100);
+    dashboard.goals = goalRecords
+      .map((record) => ({
+        id: record.record_id,
+        title: textValue(recordField(record.fields, ["目标 Goal", "Goal"])) || "Untitled",
+        goalType: textValue(recordField(record.fields, ["类型 Type", "Type"])) || undefined,
+        status: decodeStatus("goal", recordField(record.fields, FIELD.status)),
+        measure: textValue(recordField(record.fields, ["衡量标准 Measure"])) || undefined,
+        priority: textValue(recordField(record.fields, ["优先级 Priority"])) || undefined,
+        dueAt: isoDate(recordField(record.fields, ["截止 Due"])),
+        creator: textValue(recordField(record.fields, [
+          "提出人（飞书） Requested By (Feishu)",
+        ])) || undefined,
+        response: textValue(recordField(record.fields, ["回应 Response"])) || undefined,
+        respondedBy: textValue(recordField(record.fields, ["回应人 Responded By"])) || undefined,
+        notes: textValue(recordField(record.fields, ["备注 Notes"])) || undefined,
+      }))
+      .sort((left, right) =>
+        (left.status === "Done" ? 1 : 0) - (right.status === "Done" ? 1 : 0) ||
+        (left.dueAt || "9999").localeCompare(right.dueAt || "9999")
+      )
+      .slice(0, 20);
+
     // Onboarding case data: the founder watches every active case; everyone
     // else gets their own case's role/start date/confidential status.
     const caseRecords = await this.listOptional("onboardingCase", 100);
@@ -2264,6 +2338,80 @@ export class CompanyOpsRepository {
         return { success: true, message: "Expense submitted for review", recordId: record.record_id };
       }
       case "internalRequest.submit":
+      case "goal.create":
+      case "create_goal": {
+        if (principal.role !== "founder") {
+          throw new CompanyOpsHttpError(403, "Only founders set company goals");
+        }
+        const normalizedPayload = {
+          ...payload,
+          goalType: choice(payload.goalType, "goalType", GOAL_TYPE_OPTIONS),
+          priority: choice(payload.priority, "priority", GOAL_PRIORITY_OPTIONS, { optional: true }),
+        };
+        const record = await this.createMapped("goal", normalizedPayload, GOAL_SPECS, principal, {
+          status: textValue(payload.goalType).includes("想法") ? "新想法 New" : "进行中 Active",
+        });
+        return { success: true, message: "Goal shared with the team", recordId: record.record_id };
+      }
+      case "goal.update":
+      case "update_goal": {
+        if (principal.role !== "founder") {
+          throw new CompanyOpsHttpError(403, "Only founders update company goals");
+        }
+        const allowed = new Set(["goalId", "status", "measure", "priority", "due", "notes"]);
+        const unknown = Object.keys(payload).filter((key) => !allowed.has(key));
+        if (unknown.length) throw new CompanyOpsHttpError(400, `Unknown fields: ${unknown.join(", ")}`);
+        const goalId = validRecordId(payload.goalId);
+        const target = await this.target("goal");
+        await this.client.getRecord(target.appToken, target.tableId, goalId);
+        const updates: FeishuFields = {};
+        if (payload.status !== undefined) {
+          const statusField = requiredField(target, FIELD.status);
+          updates[statusField.field_name] = encodeStatus("goal", textValue(payload.status));
+        }
+        if (payload.measure !== undefined) {
+          const field = requiredField(target, ["衡量标准 Measure"]);
+          updates[field.field_name] = textValue(payload.measure).slice(0, 1_000);
+        }
+        if (payload.priority !== undefined) {
+          const field = requiredField(target, ["优先级 Priority"]);
+          updates[field.field_name] = choice(payload.priority, "priority", GOAL_PRIORITY_OPTIONS);
+        }
+        if (payload.due !== undefined) {
+          const field = requiredField(target, ["截止 Due"]);
+          const due = dateValue(payload.due);
+          if (due === undefined) throw new CompanyOpsHttpError(400, "due must be a date");
+          updates[field.field_name] = due;
+        }
+        if (payload.notes !== undefined) {
+          const field = requiredField(target, ["备注 Notes"]);
+          updates[field.field_name] = textValue(payload.notes).slice(0, 3_000);
+        }
+        if (!Object.keys(updates).length) {
+          throw new CompanyOpsHttpError(400, "Nothing to update");
+        }
+        await this.client.updateRecord(target.appToken, target.tableId, goalId, updates);
+        return { success: true, message: "Goal updated", recordId: goalId };
+      }
+      case "goal.respond":
+      case "respond_goal": {
+        const allowed = new Set(["goalId", "response"]);
+        const unknown = Object.keys(payload).filter((key) => !allowed.has(key));
+        if (unknown.length) throw new CompanyOpsHttpError(400, `Unknown fields: ${unknown.join(", ")}`);
+        const goalId = validRecordId(payload.goalId);
+        const response = textValue(payload.response).trim();
+        if (!response) throw new CompanyOpsHttpError(400, "response is required");
+        if (response.length > 3_000) throw new CompanyOpsHttpError(400, "response is too long");
+        assertNoHealthData({ response });
+        const target = await this.target("goal");
+        await this.client.getRecord(target.appToken, target.tableId, goalId);
+        const responseField = requiredField(target, ["回应 Response"]);
+        const byField = fieldByAlias(target.fields, ["回应人 Responded By"]);
+        const updates: FeishuFields = { [responseField.field_name]: response };
+        if (byField) updates[byField.field_name] = principal.name;
+        await this.client.updateRecord(target.appToken, target.tableId, goalId, updates);
+        return { success: true, message: "Response saved", recordId: goalId };
+      }
       case "submit_internal_request": {
         const record = await this.createMapped("internalRequest", payload, REQUEST_SPECS, principal, { status: "待处理 Open" });
         return { success: true, message: "Internal request submitted", recordId: record.record_id };

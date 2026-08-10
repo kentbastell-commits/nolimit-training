@@ -12,7 +12,10 @@ import {
   Lightbulb,
   Megaphone,
   MessageSquareMore,
+  Plus,
   Receipt,
+  Send,
+  Target,
   UserPlus,
 } from "lucide-react";
 import {
@@ -25,11 +28,13 @@ import {
 } from "./components";
 import { opsText, quickActionLabel, roleLabel, statusLabel } from "./copy";
 import { TranslatableText } from "./TranslatableText";
+import { useState } from "react";
 import type {
   CompanyOpsDashboard,
   CompanyOpsLanguage,
   CompanyOpsPage,
   CompanyOpsUser,
+  OpsGoalItem,
   OpsQueueItem,
   QuickActionKey,
 } from "./types";
@@ -48,8 +53,43 @@ const quickActionIcons = {
   weekly_report: FileText,
   expense: Banknote,
   internal_request: ClipboardList,
+  goal: Target,
   founder_decision: MessageSquareMore,
 } satisfies Record<QuickActionKey, typeof Lightbulb>;
+
+function GoalRespondBox({
+  goal,
+  language,
+  onRespond,
+}: {
+  goal: OpsGoalItem;
+  language: CompanyOpsLanguage;
+  onRespond: (goal: OpsGoalItem, response: string) => void;
+}) {
+  const [text, setText] = useState("");
+  return (
+    <div className="fopsGoalRespond">
+      <textarea
+        rows={2}
+        value={text}
+        placeholder={opsText(language, "goalRespondPlaceholder")}
+        onChange={(event) => setText(event.target.value)}
+      />
+      <button
+        type="button"
+        className="fopsButton fopsButton--compact"
+        disabled={!text.trim()}
+        onClick={() => {
+          onRespond(goal, text.trim());
+          setText("");
+        }}
+      >
+        <Send size={14} />
+        {opsText(language, "goalRespondSend")}
+      </button>
+    </div>
+  );
+}
 
 export default function CompanyOpsHome({
   user,
@@ -60,6 +100,8 @@ export default function CompanyOpsHome({
   onOpenItem,
   onAcknowledgeCompensation,
   onDisputeCompensation,
+  onRespondGoal,
+  onUpdateGoalStatus,
   compensationBusy,
 }: {
   user: CompanyOpsUser;
@@ -70,6 +112,8 @@ export default function CompanyOpsHome({
   onOpenItem: (item: OpsQueueItem) => void;
   onAcknowledgeCompensation: () => void;
   onDisputeCompensation: () => void;
+  onRespondGoal?: (goal: OpsGoalItem, response: string) => void;
+  onUpdateGoalStatus?: (goal: OpsGoalItem, status: string) => void;
   compensationBusy: boolean;
 }) {
   const configured = dashboard.quickActions?.filter(
@@ -263,6 +307,106 @@ export default function CompanyOpsHome({
                 {opsText(language, "disputePay")}
               </button>
             </footer>
+          )}
+        </section>
+      ) : null}
+
+      {dashboard.goals?.length || user.role === "founder" ? (
+        <section className="fopsSection fopsGoals">
+          <SectionHeading
+            title={opsText(language, "goalsTitle")}
+            hint={opsText(language, "goalsHint")}
+            action={
+              user.role === "founder" ? (
+                <button
+                  type="button"
+                  className="fopsButton fopsButton--compact"
+                  onClick={() => onQuickAction("goal")}
+                >
+                  <Plus size={15} />
+                  {opsText(language, "goalAction")}
+                </button>
+              ) : undefined
+            }
+          />
+          {dashboard.goals?.length ? (
+            <div className="fopsGoalGrid">
+              {dashboard.goals.map((goal) => (
+                <article className="fopsGoalCard" key={goal.id}>
+                  <header>
+                    <span className="fopsGoalIcon" aria-hidden="true">
+                      <Target size={16} />
+                    </span>
+                    {goal.goalType ? (
+                      <TonePill tone={/想法|idea/i.test(goal.goalType) ? "purple" : "gold"}>
+                        {goal.goalType}
+                      </TonePill>
+                    ) : null}
+                    {goal.status ? (
+                      <TonePill
+                        tone={
+                          goal.status === "Done"
+                            ? "success"
+                            : goal.status === "Parked"
+                              ? "neutral"
+                              : "blue"
+                        }
+                      >
+                        {statusLabel(language, goal.status)}
+                      </TonePill>
+                    ) : null}
+                    {goal.priority ? (
+                      <TonePill tone="warning">{goal.priority}</TonePill>
+                    ) : null}
+                  </header>
+                  <h3>{goal.title}</h3>
+                  {goal.creator ? (
+                    <small className="fopsGoalCreator">
+                      {opsText(language, "goalFrom", { name: goal.creator })}
+                    </small>
+                  ) : null}
+                  <TranslatableText text={goal.measure} language={language} />
+                  {goal.dueAt ? (
+                    <small className="fopsGoalDue">
+                      {formatOpsDate(goal.dueAt, language)}
+                    </small>
+                  ) : null}
+                  {goal.response ? (
+                    <div className="fopsGoalResponse">
+                      <strong>{goal.respondedBy || ""}</strong>
+                      <TranslatableText text={goal.response} language={language} />
+                    </div>
+                  ) : null}
+                  {user.role === "founder" && onUpdateGoalStatus ? (
+                    <select
+                      className="fopsStatusSelect"
+                      value={goal.status || "Active"}
+                      aria-label={opsText(language, "moveStatus")}
+                      onChange={(event) =>
+                        onUpdateGoalStatus(goal, event.target.value)
+                      }
+                    >
+                      {["New", "Active", "Done", "Parked"].map((status) => (
+                        <option value={status} key={status}>
+                          {statusLabel(language, status)}
+                        </option>
+                      ))}
+                    </select>
+                  ) : onRespondGoal ? (
+                    <GoalRespondBox
+                      goal={goal}
+                      language={language}
+                      onRespond={onRespondGoal}
+                    />
+                  ) : null}
+                </article>
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              title={opsText(language, "noGoalsTitle")}
+              body={opsText(language, "noGoalsBody")}
+            />
           )}
         </section>
       ) : null}

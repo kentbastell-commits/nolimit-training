@@ -696,6 +696,36 @@ export default function CompanyOpsApp({
               onDisputeCompensation={() =>
                 setDrawerAction("compensation_dispute")
               }
+              onRespondGoal={async (goal, response) => {
+                try {
+                  await runRecordAction("respond_goal", {
+                    goalId: goal.id,
+                    response,
+                  });
+                } catch (error) {
+                  showToast(
+                    error instanceof Error
+                      ? error.message
+                      : opsText(language, "actionFailed"),
+                    "error",
+                  );
+                }
+              }}
+              onUpdateGoalStatus={async (goal, status) => {
+                try {
+                  await runRecordAction("update_goal", {
+                    goalId: goal.id,
+                    status,
+                  });
+                } catch (error) {
+                  showToast(
+                    error instanceof Error
+                      ? error.message
+                      : opsText(language, "actionFailed"),
+                    "error",
+                  );
+                }
+              }}
               compensationBusy={compensationBusy}
             />
           ) : null}

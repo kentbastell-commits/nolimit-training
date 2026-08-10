@@ -1,6 +1,10 @@
 .companyOpsApp {
   --fops-ink: #171713;
   --fops-ink-soft: #56564e;
+  /* Forced-light surface owns its foreground (named mistake #24): the global
+     index.css paints h1/h2 with --text-h, which flips near-white under OS
+     dark mode and made every section heading invisible on this cream page. */
+  color: var(--fops-ink);
   --fops-paper: #f6f3eb;
   --fops-surface: #fffdf8;
   --fops-surface-strong: #ffffff;
@@ -3541,4 +3545,86 @@ a.fopsOnboardingTaskLink:hover strong {
 .fopsMyExpenseIcon {
   display: inline-flex;
   opacity: 0.7;
+}
+
+/* Mistake #24 guard: headings inside the ops app never inherit the global
+   dark-mode heading token — the page is deliberately light in both themes. */
+.companyOpsApp h1,
+.companyOpsApp h2,
+.companyOpsApp h3,
+.companyOpsApp h4 {
+  color: var(--fops-ink);
+}
+.companyOpsApp .fopsFounderHero h1,
+.companyOpsApp .fopsFounderHero h2,
+.companyOpsApp .fopsFocus h2,
+.companyOpsApp .fopsOnboardingHero h1,
+.companyOpsApp .fopsOnboardingHero h2,
+.companyOpsApp .fopsSecureCard h2,
+.companyOpsApp .fopsRhythmCard h2 {
+  color: inherit;
+}
+
+/* Company goals & founder ideas */
+.fopsGoalGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 14px;
+}
+.fopsGoalCard {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 18px;
+  border: 1px solid var(--fops-line);
+  border-radius: 15px;
+  background: var(--fops-surface);
+}
+.fopsGoalCard header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+}
+.fopsGoalCard h3 {
+  margin: 2px 0 0;
+  font-size: 1.02rem;
+  line-height: 1.3;
+}
+.fopsGoalIcon {
+  display: inline-flex;
+  color: var(--fops-gold-dark);
+}
+.fopsGoalCreator,
+.fopsGoalDue {
+  color: var(--fops-ink-soft);
+  font-size: 0.74rem;
+}
+.fopsGoalResponse {
+  padding: 9px 12px;
+  border-left: 3px solid var(--fops-gold);
+  border-radius: 6px;
+  background: rgb(201 168 76 / 9%);
+  font-size: 0.85rem;
+}
+.fopsGoalResponse strong {
+  display: block;
+  font-size: 0.74rem;
+  opacity: 0.75;
+}
+.fopsGoalRespond {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+}
+.fopsGoalRespond textarea {
+  flex: 1;
+  padding: 8px 11px;
+  border: 1px solid var(--fops-line);
+  border-radius: 9px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.85rem;
+  resize: vertical;
 }

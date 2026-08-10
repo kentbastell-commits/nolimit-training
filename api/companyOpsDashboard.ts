@@ -207,7 +207,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             : []),
           // Founders don't ask themselves for decisions.
           ...(principal.role === "founder" ? [] : ["founder_decision"]),
-          ...(principal.role === "founder" ? ["onboarding_setup"] : []),
+          ...(principal.role === "founder" ? ["goal", "onboarding_setup"] : []),
           "internal_request",
           "support_issue",
           "expense",
@@ -360,6 +360,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       campaigns,
       partners,
       experiments,
+      goals: data.goals || [],
       onboarding,
       onboardingCases: data.founder?.onboardingCases || [],
       onboardingCandidates: data.founder?.onboardingCandidates || [],
