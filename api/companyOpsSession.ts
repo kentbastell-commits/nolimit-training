@@ -32,7 +32,9 @@ const capabilities = (role: CompanyOpsRole): string[] => {
     ];
   }
   if (role === "growth") {
-    return ["view_growth", "edit_growth", "view_decisions", "submit_expense"];
+    // No view_decisions: the decisions inbox is populated only for
+    // finance-visible roles, so for growth it would render permanently empty.
+    return ["view_growth", "edit_growth", "submit_expense"];
   }
   if (role === "finance") {
     return ["view_finance", "view_decisions", "submit_expense"];

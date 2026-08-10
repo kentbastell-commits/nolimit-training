@@ -2,6 +2,7 @@ import {
   Banknote,
   BarChart3,
   Bug,
+  ClipboardList,
   FileText,
   FlaskConical,
   Handshake,
@@ -129,6 +130,7 @@ const actionIcons = {
   compensation_dispute: Banknote,
   weekly_report: FileText,
   expense: Banknote,
+  internal_request: ClipboardList,
   founder_decision: MessageSquareMore,
 } satisfies Record<QuickActionKey, typeof Lightbulb>;
 
@@ -240,6 +242,9 @@ function initialState(action: QuickActionKey): FormState {
       startDate: "",
     };
   }
+  if (action === "internal_request") {
+    return { title: "", requestType: "", details: "", neededBy: "" };
+  }
   if (action === "compensation_dispute") return { reason: "" };
   if (action === "weekly_report") {
     return {
@@ -347,6 +352,7 @@ const requiredByAction: Record<QuickActionKey, string[]> = {
     "businessPurpose",
     "receiptUrl",
   ],
+  internal_request: ["title", "requestType", "details"],
   founder_decision: ["title", "category", "context", "neededBy"],
 };
 
@@ -372,6 +378,8 @@ function actionCopy(action: QuickActionKey) {
     return ["reportFormTitle", "reportFormIntro"] as const;
   if (action === "expense")
     return ["expenseFormTitle", "expenseFormIntro"] as const;
+  if (action === "internal_request")
+    return ["requestFormTitle", "requestFormIntro"] as const;
   return ["decisionFormTitle", "decisionFormIntro"] as const;
 }
 
@@ -978,6 +986,33 @@ export default function QuickActionDrawer({
                   "receiptNote",
                   opsText(language, "receiptNote"),
                   input("receiptNote"),
+                )}
+              </>
+            ) : null}
+
+            {action === "internal_request" ? (
+              <>
+                {field(
+                  "title",
+                  opsText(language, "requestTitle"),
+                  input("title"),
+                  "fopsFieldWide",
+                )}
+                {field(
+                  "requestType",
+                  opsText(language, "requestCategory"),
+                  input("requestType"),
+                )}
+                {field(
+                  "neededBy",
+                  opsText(language, "requestNeededBy"),
+                  input("neededBy", "date"),
+                )}
+                {field(
+                  "details",
+                  opsText(language, "requestDetails"),
+                  textarea("details", 4),
+                  "fopsFieldWide",
                 )}
               </>
             ) : null}

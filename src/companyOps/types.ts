@@ -38,6 +38,8 @@ export type CompanyOpsActionName =
   | "approve_decision"
   | "request_decision_changes"
   | "request_access"
+  | "submit_internal_request"
+  | "update_status"
   | "generate_onboarding"
   | "acknowledge_compensation"
   | "dispute_compensation"
@@ -60,6 +62,7 @@ export type QuickActionKey =
   | "compensation_dispute"
   | "weekly_report"
   | "expense"
+  | "internal_request"
   | "founder_decision";
 
 export type Tone =
@@ -302,6 +305,11 @@ export interface OpsCompensationSummary {
   compensationId?: string;
   payPeriod: string;
   payrollStatus?: string;
+  baseSalary?: string;
+  performanceBonus?: string;
+  reimbursements?: string;
+  deductions?: string;
+  netPay?: string;
   commissionAmount?: string;
   commissionStatus?: string;
   disputeDeadline?: string;
@@ -384,6 +392,13 @@ export interface CompanyOpsDashboard {
   decisions?: OpsDecisionItem[];
   finance?: OpsFinanceSummary;
   myCompensation?: OpsCompensationSummary;
+  myExpenses?: Array<{
+    id: string;
+    title: string;
+    status?: string;
+    amount?: string;
+    submittedAt?: string;
+  }>;
   myPerformance?: OpsPerformanceDashboard;
   performance?: OpsPerformanceDashboard;
   onboarding?: OpsOnboardingDashboard;

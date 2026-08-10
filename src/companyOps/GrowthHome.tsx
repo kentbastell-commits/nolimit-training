@@ -10,7 +10,8 @@ import {
   UserRoundSearch,
 } from "lucide-react";
 import { EmptyState, MetricGrid, SectionHeading, TonePill } from "./components";
-import { opsText } from "./copy";
+import { opsText, statusLabel } from "./copy";
+import { TranslatableText } from "./TranslatableText";
 import type {
   CompanyOpsLanguage,
   OpsContentItem,
@@ -19,12 +20,31 @@ import type {
 } from "./types";
 import { formatOpsDate } from "./utils";
 
+// Canonical content statuses (decode names) the server's update_status
+// accepts for the content resource — the pipeline's drag-equivalent.
+const CONTENT_STATUSES = [
+  "Idea",
+  "Research",
+  "Script",
+  "Ready to Film",
+  "Filmed",
+  "Editing",
+  "Review",
+  "Approved",
+  "Scheduled",
+  "Published",
+  "Analyzed",
+  "Archived",
+] as const;
+
 function ContentCard({
   item,
   language,
+  onUpdateStatus,
 }: {
   item: OpsContentItem;
   language: CompanyOpsLanguage;
+  onUpdateStatus?: (contentId: string, status: string) => void;
 }) {
   const inner = (
     <>
@@ -38,12 +58,12 @@ function ContentCard({
                 : "warning"
             }
           >
-            {item.approvalStatus}
+            {statusLabel(language, item.approvalStatus)}
           </TonePill>
         ) : null}
       </div>
       <strong>{item.title}</strong>
-      {item.objective ? <p>{item.objective}</p> : null}
+      <TranslatableText text={item.objective} language={language} />
       <div className="fopsContentMeta">
         {item.publishAt ? (
           <span>
@@ -57,6 +77,25 @@ function ContentCard({
         ) : null}
         {item.ownerName ? <span>{item.ownerName}</span> : null}
       </div>
+      {onUpdateStatus ? (
+        <select
+          className="fopsStatusSelect"
+          value={item.status}
+          aria-label={opsText(language, "moveStatus")}
+          onClick={(event) => event.stopPropagation()}
+          onChange={(event) => {
+            if (event.target.value !== item.status) {
+              onUpdateStatus(item.id, event.target.value);
+            }
+          }}
+        >
+          {CONTENT_STATUSES.map((status) => (
+            <option value={status} key={status}>
+              {statusLabel(language, status)}
+            </option>
+          ))}
+        </select>
+      ) : null}
     </>
   );
   return item.href ? (
@@ -72,10 +111,12 @@ export default function GrowthHome({
   growth,
   language,
   onQuickAction,
+  onUpdateContentStatus,
 }: {
   growth?: OpsGrowthDashboard;
   language: CompanyOpsLanguage;
   onQuickAction: (action: QuickActionKey) => void;
+  onUpdateContentStatus?: (contentId: string, status: string) => void;
 }) {
   const pipeline = growth?.pipeline || [];
   const upcoming = growth?.upcomingContent || [];
@@ -173,7 +214,7 @@ export default function GrowthHome({
                 <div className="fopsPipelineCards">
                   {phase.items?.length ? (
                     phase.items.slice(0, 3).map((item) => (
-                      <ContentCard item={item} language={language} key={item.id} />
+                      <ContentCard item={item} language={language} onUpdateStatus={onUpdateContentStatus} key={item.id} />
                     ))
                   ) : (
                     <p>{opsText(language, "noContentTitle")}</p>
@@ -209,7 +250,7 @@ export default function GrowthHome({
           <div className="fopsScheduleList">
             {upcoming.length ? (
               upcoming.slice(0, 6).map((item) => (
-                <ContentCard item={item} language={language} key={item.id} />
+                <ContentCard item={item} language={language} onUpdateStatus={onUpdateContentStatus} key={item.id} />
               ))
             ) : (
               <EmptyState title={opsText(language, "noUpcomingContent")} />
@@ -347,7 +388,7 @@ export default function GrowthHome({
                     {campaign.objective ? <p>{campaign.objective}</p> : null}
                     <div>
                       {campaign.status ? (
-                        <TonePill tone="blue">{campaign.status}</TonePill>
+                        <TonePill tone="blue">{statusLabel(language, campaign.status)}</TonePill>
                       ) : null}
                       {campaign.leads != null ? (
                         <span>
@@ -394,7 +435,7 @@ export default function GrowthHome({
                     {experiment.hypothesis ? <p>{experiment.hypothesis}</p> : null}
                     <div>
                       {experiment.status ? (
-                        <TonePill tone="purple">{experiment.status}</TonePill>
+                        <TonePill tone="purple">{statusLabel(language, experiment.status)}</TonePill>
                       ) : null}
                       {experiment.decision ? (
                         <TonePill

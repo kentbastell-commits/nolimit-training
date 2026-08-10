@@ -135,12 +135,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         ? undefined
         : `${item.currency || "CNY"} ${item.amount.toLocaleString()}`,
       status: item.status,
+      // The reviewer's evidence: an expense's receipt URL, when present.
+      href: item.link,
     }));
+    // Timeline phase: derived from the onboarding case's start date and each
+    // task's due date. Without a case/start date the task keeps its Feishu
+    // category text and the UI groups those dynamically.
+    const caseStart = data.myOnboardingCase?.startDate
+      ? Date.parse(data.myOnboardingCase.startDate)
+      : undefined;
+    const phaseFor = (dueAt?: string): string | undefined => {
+      if (!caseStart || !dueAt) return undefined;
+      const due = Date.parse(dueAt);
+      if (!Number.isFinite(due)) return undefined;
+      const days = Math.round((due - caseStart) / 86_400_000);
+      if (days <= 0) return "before_start";
+      if (days <= 7) return "week_one";
+      if (days <= 30) return "day_30";
+      if (days <= 60) return "day_60";
+      return "day_90";
+    };
     const onboardingTasks = data.onboarding.map((item) => ({
       id: item.id,
       title: item.title,
       description: item.subtitle,
-      phase: item.subtitle || "onboarding",
+      phase: phaseFor(item.dueAt) || item.subtitle || "onboarding",
       dueAt: item.dueAt,
       ownerName: item.owner,
       completed: item.status === "Done",
@@ -165,8 +184,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               tone: "warning",
             },
           ],
-          payrollStatus: financeSource.payroll[0]?.status,
-          commissionStatus: financeSource.commissions[0]?.status,
+          // Whole-table status glances are founder-only: for a finance user
+          // the first row of the payroll table is an arbitrary employee's.
+          payrollStatus: principal.role === "founder" ? financeSource.payroll[0]?.status : undefined,
+          commissionStatus: principal.role === "founder" ? financeSource.commissions[0]?.status : undefined,
           expenseStatus: financeSource.expenses[0]?.status,
         }
       : undefined;
@@ -182,10 +203,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 "experiment",
                 "platform_metrics",
                 "weekly_report",
-                "founder_decision",
               ]
-            : ["founder_decision"]),
+            : []),
+          // Founders don't ask themselves for decisions.
+          ...(principal.role === "founder" ? [] : ["founder_decision"]),
           ...(principal.role === "founder" ? ["onboarding_setup"] : []),
+          "internal_request",
           "support_issue",
           "expense",
         ].map((key) => ({
@@ -239,8 +262,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         acknowledged: acknowledgedPolicies.has("commission-structure"),
       });
     }
+    if (config.links.employeeHandbook) {
+      policies.push({
+        id: "employee-handbook",
+        title: "Employee Handbook / 员工手册",
+        description: "Working hours, leave, pay, discipline and every company rule in one document.",
+        url: config.links.employeeHandbook,
+        required: true,
+        acknowledged: acknowledgedPolicies.has("employee-handbook"),
+      });
+    }
+    if (config.links.dataRules) {
+      policies.push({
+        id: "confidentiality-data-rules",
+        title: "Confidentiality & Data Rules / 保密与数据规则",
+        description: "Account security, client data handling and what must never leave company systems.",
+        url: config.links.dataRules,
+        required: true,
+        acknowledged: acknowledgedPolicies.has("confidentiality-data-rules"),
+      });
+    }
     const onboarding = {
       employeeName: principal.name,
+      roleTitle: data.myOnboardingCase?.roleTitle,
+      startDate: data.myOnboardingCase?.startDate,
+      confidentialDetailsComplete: data.myOnboardingCase?.confidentialDetailsComplete,
       progress: onboardingTasks.length
         ? Math.round((completed / onboardingTasks.length) * 100)
         : 0,
@@ -263,6 +309,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       contentCalendar: data.links.contentCalendar,
     };
 
+    const cny = (value?: number) =>
+      value == null ? undefined : `CNY ${value.toLocaleString()}`;
     const compensationSource = data.myCompensation;
     const compensation = compensationSource
       ? {
@@ -272,6 +320,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             compensationSource.payroll?.period ||
             "Current period",
           payrollStatus: compensationSource.payroll?.status,
+          baseSalary: cny(compensationSource.payroll?.baseSalary),
+          performanceBonus: cny(compensationSource.payroll?.performance),
+          reimbursements: cny(compensationSource.payroll?.reimbursements),
+          deductions: cny(compensationSource.payroll?.deductions),
+          netPay: cny(compensationSource.payroll?.netPay),
           commissionAmount:
             compensationSource.commission?.amount == null
               ? undefined
@@ -308,6 +361,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       partners,
       experiments,
       onboarding,
+      onboardingCases: data.founder?.onboardingCases || [],
       onboardingCandidates: data.founder?.onboardingCandidates || [],
       policies,
       approvals: decisions,
@@ -316,14 +370,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       links,
       growth: principal.role === "growth" || principal.role === "founder"
         ? {
-            metrics: [],
+            metrics: (data.growthMetrics || []).map((row) => ({
+              id: `platform-${row.platform}`,
+              label: row.platform,
+              value: row.followers == null ? "—" : row.followers.toLocaleString(),
+              helper: [row.period, row.views == null ? "" : `${row.views.toLocaleString()} views`]
+                .filter(Boolean)
+                .join(" · ") || undefined,
+              tone: "blue",
+            })),
             pipeline,
             upcomingContent: contentItems.slice(0, 12),
             leadsToFollowUp: leads,
             partnersToFollowUp: partners,
             activeCampaigns: campaigns,
             experiments,
-            weeklyReportDue: true,
+            weeklyReportDue: data.weeklyReportDue ?? false,
           }
         : undefined,
       finance,
@@ -332,12 +394,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       myPerformance: {
         cycles: principal.role === "founder" ? [] : performance.cycles,
       },
+      myExpenses: (data.myExpenses || []).map((item) => ({
+        id: item.id,
+        title: item.title,
+        status: item.status,
+        submittedAt: item.dueAt,
+        amount: item.amount == null
+          ? undefined
+          : `${item.currency || "CNY"} ${item.amount.toLocaleString()}`,
+      })),
       founder: data.founder
         ? {
             decisions,
             finance,
             onboarding,
-            onboardingCases: [],
+            onboardingCases: data.founder.onboardingCases || [],
             onboardingCandidates: data.founder.onboardingCandidates,
             performanceCycles: data.founder.performanceCycles,
           }

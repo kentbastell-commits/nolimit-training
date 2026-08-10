@@ -424,6 +424,7 @@ export default function CompanyOpsApp({
   const handleDecision = async (
     decision: OpsDecisionItem,
     outcome: "approve" | "changes",
+    feedback?: string,
   ) => {
     setBusyDecisionId(decision.id);
     try {
@@ -431,7 +432,11 @@ export default function CompanyOpsApp({
         outcome === "approve"
           ? "approve_decision"
           : "request_decision_changes",
-        { decisionId: decision.id, actionType: decision.actionType },
+        {
+          decisionId: decision.id,
+          actionType: decision.actionType,
+          ...(feedback ? { feedback } : {}),
+        },
       );
     } catch (error) {
       showToast(
@@ -699,6 +704,22 @@ export default function CompanyOpsApp({
               growth={dashboard.growth}
               language={language}
               onQuickAction={setDrawerAction}
+              onUpdateContentStatus={async (contentId, status) => {
+                try {
+                  await runRecordAction("update_status", {
+                    resource: "content",
+                    recordId: contentId,
+                    status,
+                  });
+                } catch (error) {
+                  showToast(
+                    error instanceof Error
+                      ? error.message
+                      : opsText(language, "actionFailed"),
+                    "error",
+                  );
+                }
+              }}
             />
           ) : null}
           {activePage === "performance" ? (

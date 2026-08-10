@@ -33,31 +33,31 @@ function performanceCycle(
     goals: [
       {
         index: 1,
-        title: "Content & Delivery",
+        title: "内容规划与交付 Content & Delivery",
         measure: "Publish 12 approved videos",
         weight: 25,
       },
       {
         index: 2,
-        title: "Quality & Optimization",
+        title: "内容质量与优化 Quality & Optimization",
         measure: "Improve qualified-view rate by 10%",
         weight: 20,
       },
       {
         index: 3,
-        title: "Campaigns & Partners",
+        title: "活动与合作 Campaigns & Partners",
         measure: "Launch two partner campaigns",
         weight: 20,
       },
       {
         index: 4,
-        title: "Community & Leads",
+        title: "社群线索转化 Community & Leads",
         measure: "Generate 30 qualified leads",
         weight: 15,
       },
       {
         index: 5,
-        title: "Organization & Ownership",
+        title: "组织与主人翁 Organization & Ownership",
         measure: "Submit weekly reporting on time",
         weight: 20,
       },

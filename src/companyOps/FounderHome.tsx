@@ -3,12 +3,14 @@ import {
   Check,
   ChevronRight,
   CircleDollarSign,
+  ExternalLink,
   FileCheck2,
   MessageSquareWarning,
   ShieldCheck,
   UserRoundCheck,
   X,
 } from "lucide-react";
+import { useState } from "react";
 import {
   EmptyState,
   MetricGrid,
@@ -17,6 +19,7 @@ import {
   TonePill,
 } from "./components";
 import { opsText } from "./copy";
+import { TranslatableText } from "./TranslatableText";
 import type {
   CompanyOpsLanguage,
   OpsDecisionItem,
@@ -56,12 +59,20 @@ export default function FounderHome({
   onDecision: (
     decision: OpsDecisionItem,
     outcome: "approve" | "changes",
+    feedback?: string,
   ) => void;
 }) {
+  const [feedbackById, setFeedbackById] = useState<Record<string, string>>({});
   const categoryCounts = decisions.reduce<Record<string, number>>((all, item) => {
     all[item.category] = (all[item.category] || 0) + 1;
     return all;
   }, {});
+  const categoryLabel = (category: string) =>
+    category === "finance"
+      ? opsText(language, "categoryFinance")
+      : category === "people"
+        ? opsText(language, "categoryPeople")
+        : opsText(language, "categoryOther");
 
   return (
     <div className="fopsPage fopsFounderPage">
@@ -89,7 +100,7 @@ export default function FounderHome({
             return (
               <div className="fopsDecisionSummaryItem" key={category}>
                 <Icon size={17} />
-                <span>{category}</span>
+                <span>{categoryLabel(category)}</span>
                 <strong>{count}</strong>
               </div>
             );
@@ -114,11 +125,11 @@ export default function FounderHome({
                       <Icon size={19} />
                     </span>
                     <div>
-                      <TonePill tone="warning">{decision.category}</TonePill>
+                      <TonePill tone="warning">{categoryLabel(decision.category)}</TonePill>
                       <h3>{decision.title}</h3>
                     </div>
                   </header>
-                  {decision.summary ? <p>{decision.summary}</p> : null}
+                  <TranslatableText text={decision.summary} language={language} />
                   {decision.context?.length ? (
                     <ul>
                       {decision.context.map((context) => (
@@ -137,10 +148,35 @@ export default function FounderHome({
                     ) : null}
                     {decision.amount ? <strong>{decision.amount}</strong> : null}
                   </div>
+                  {canResolve ? (
+                    <textarea
+                      className="fopsDecisionFeedback"
+                      rows={2}
+                      value={feedbackById[decision.id] || ""}
+                      placeholder={opsText(language, "decisionFeedbackPlaceholder")}
+                      aria-label={opsText(language, "decisionFeedback")}
+                      onChange={(event) =>
+                        setFeedbackById((all) => ({
+                          ...all,
+                          [decision.id]: event.target.value,
+                        }))
+                      }
+                    />
+                  ) : null}
                   <footer>
                     {decision.href ? (
-                      <a href={decision.href} className="fopsButton fopsButton--ghost">
-                        {opsText(language, "viewContext")}
+                      <a
+                        href={decision.href}
+                        className="fopsButton fopsButton--ghost"
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        {decision.actionType === "expense" ? (
+                          <ExternalLink size={15} />
+                        ) : null}
+                        {decision.actionType === "expense"
+                          ? opsText(language, "openReceipt")
+                          : opsText(language, "viewContext")}
                         <ChevronRight size={16} />
                       </a>
                     ) : null}
@@ -149,7 +185,9 @@ export default function FounderHome({
                         <button
                           type="button"
                           className="fopsButton fopsButton--ghost"
-                          onClick={() => onDecision(decision, "changes")}
+                          onClick={() =>
+                            onDecision(decision, "changes", feedbackById[decision.id]?.trim() || undefined)
+                          }
                           disabled={Boolean(busyDecisionId)}
                         >
                           <X size={16} />
@@ -158,7 +196,9 @@ export default function FounderHome({
                         <button
                           type="button"
                           className="fopsButton fopsButton--primary"
-                          onClick={() => onDecision(decision, "approve")}
+                          onClick={() =>
+                            onDecision(decision, "approve", feedbackById[decision.id]?.trim() || undefined)
+                          }
                           disabled={Boolean(busyDecisionId)}
                         >
                           <Check size={16} />

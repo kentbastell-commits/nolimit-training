@@ -43,10 +43,16 @@ describe("server/index.ts handler registration", () => {
   it.each(handlerNames)("registers %s in the handlers map", (name) => {
     const block = handlersBlockMatch![1];
     const registered = new RegExp(`(^|[\\s{,])${name}\\s*[,:}]`).test(block);
+    // Raw-body handlers (uploads) are mounted as dedicated Express routes
+    // BEFORE express.json instead of going through the handlers map — a
+    // direct `handlerName(req` call in a route body serves the endpoint
+    // just as well, so either registration style passes.
+    const dedicatedRoute = new RegExp(`\\b${name}\\(req`).test(serverSource);
     expect(
-      registered,
-      `api/${name}.ts is imported but not listed in the handlers map — ` +
-        `the endpoint /api/${name} will 404 on the self-hosted server`
+      registered || dedicatedRoute,
+      `api/${name}.ts is imported but neither listed in the handlers map ` +
+        `nor mounted as a dedicated route — the endpoint /api/${name} ` +
+        `will 404 on the self-hosted server`
     ).toBe(true);
   });
 

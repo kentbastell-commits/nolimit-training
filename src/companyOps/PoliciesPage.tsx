@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { EmptyState, TonePill } from "./components";
 import { opsText } from "./copy";
+import { TranslatableText } from "./TranslatableText";
 import type { CompanyOpsLanguage, OpsPolicyItem } from "./types";
 import { isExternalUrl } from "./utils";
 
@@ -61,7 +62,7 @@ export default function PoliciesPage({
                   ) : null}
                 </div>
                 <h2>{policy.title}</h2>
-                {policy.description ? <p>{policy.description}</p> : null}
+                <TranslatableText text={policy.description} language={language} />
               </div>
               <footer>
                 <a

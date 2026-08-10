@@ -25,6 +25,7 @@ import {
   type FormEvent,
 } from "react";
 import { EmptyState, SectionHeading, TonePill } from "./components";
+import { statusLabel } from "./copy";
 import type {
   CompanyOpsActionName,
   CompanyOpsLanguage,
@@ -37,12 +38,15 @@ import type {
 import { formatOpsDate } from "./utils";
 
 const MAX_ASSET_BYTES = 500 * 1024 * 1024;
+// Bilingual titles: the goal text is STORED in Feishu and read by the
+// employee, so it carries both languages regardless of the founder's UI
+// language (mirrors the handbook's五大类).
 const DEFAULT_GOALS: Array<Pick<OpsPerformanceGoal, "title" | "weight">> = [
-  { title: "Content & Delivery", weight: 25 },
-  { title: "Quality & Optimization", weight: 20 },
-  { title: "Campaigns & Partners", weight: 20 },
-  { title: "Community & Leads", weight: 15 },
-  { title: "Organization & Ownership", weight: 20 },
+  { title: "内容规划与交付 Content & Delivery", weight: 25 },
+  { title: "内容质量与优化 Quality & Optimization", weight: 20 },
+  { title: "活动与合作 Campaigns & Partners", weight: 20 },
+  { title: "社群线索转化 Community & Leads", weight: 15 },
+  { title: "组织与主人翁 Organization & Ownership", weight: 20 },
 ];
 
 function text(language: CompanyOpsLanguage, en: string, zh: string) {
@@ -689,7 +693,7 @@ function CycleSummary({ cycle, language }: { cycle: OpsPerformanceCycle; languag
     <section className="fopsPerformanceHero">
       <div className="fopsPerformanceHeroTop">
         <div><span>{monthLabel(cycle.month, language)}</span><h2>{cycle.employee.name}</h2></div>
-        <TonePill tone={statusTone(cycle.status)}>{cycle.status}</TonePill>
+        <TonePill tone={statusTone(cycle.status)}>{statusLabel(language, cycle.status)}</TonePill>
       </div>
       <div className="fopsPerformanceHeroMetrics">
         <div><span>{text(language, "Bonus scale", "奖金档位")}</span><strong>¥0–¥2,000</strong></div>

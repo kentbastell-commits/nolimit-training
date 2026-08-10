@@ -9,7 +9,7 @@ import {
   UserRound,
 } from "lucide-react";
 import type { ReactNode } from "react";
-import { opsText } from "./copy";
+import { opsText, statusLabel } from "./copy";
 import type {
   CompanyOpsLanguage,
   OpsMetric,
@@ -102,7 +102,9 @@ export function QueueCard({
               {urgency}
             </TonePill>
           ) : null}
-          {item.status ? <TonePill tone={item.tone}>{item.status}</TonePill> : null}
+          {item.status ? (
+            <TonePill tone={item.tone}>{statusLabel(language, item.status)}</TonePill>
+          ) : null}
         </div>
         <strong>{item.title}</strong>
         {item.description ? <p>{item.description}</p> : null}

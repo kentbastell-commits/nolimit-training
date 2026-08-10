@@ -42,6 +42,8 @@ export interface CompanyOpsDashboardItem {
   currency?: string;
   priority?: string;
   actionType?: "founder_decision" | "access_request" | "expense" | "weekly_report";
+  /** Supporting link (e.g. an expense's receipt URL) for the reviewer. */
+  link?: string;
 }
 
 export interface CompanyOpsPerformanceGoal {
@@ -115,6 +117,24 @@ export interface CompanyOpsDashboard {
   supportIssues: CompanyOpsDashboardItem[];
   links: Record<string, string>;
   acknowledgedPolicyIds?: string[];
+  /** The principal's own expense claims (non-finance roles), newest first. */
+  myExpenses?: CompanyOpsDashboardItem[];
+  /** growth role only: has this week's report (Shanghai Monday) been filed? */
+  weeklyReportDue?: boolean;
+  /** Latest platform-metrics rows, one per platform (growth-visible roles). */
+  growthMetrics?: Array<{
+    platform: string;
+    period?: string;
+    followers?: number;
+    views?: number;
+    leads?: number;
+  }>;
+  /** The principal's own onboarding case, when one exists. */
+  myOnboardingCase?: {
+    roleTitle?: string;
+    startDate?: string;
+    confidentialDetailsComplete?: boolean;
+  };
   performance?: {
     cycles: CompanyOpsPerformanceCycle[];
     staff?: CompanyOpsPerformanceStaffOption[];
@@ -127,6 +147,13 @@ export interface CompanyOpsDashboard {
     commissions: CompanyOpsDashboardItem[];
     weeklyReports: CompanyOpsDashboardItem[];
     performanceCycles: CompanyOpsPerformanceCycle[];
+    onboardingCases?: Array<{
+      id: string;
+      employeeName: string;
+      progress: number;
+      nextDueAt?: string;
+      blocker?: string;
+    }>;
     onboardingCandidates: Array<{
       openId: string;
       name: string;
@@ -891,6 +918,20 @@ const ONBOARDING_OWNER_ROLES = new Set([
 ]);
 
 const healthDataPattern = /diagnos|medical history|injur|disease|medication|病史|诊断|伤病|疾病|用药/i;
+
+// Client/athlete health data must never land in company-ops records — the
+// coaching app is its only home. Applied to every free-text create action,
+// not just leads (the data-minimization rule is per-shape, not per-table).
+const assertNoHealthData = (payload: Record<string, unknown>): void => {
+  if (
+    Object.values(payload).some((value) => healthDataPattern.test(textValue(value)))
+  ) {
+    throw new CompanyOpsHttpError(
+      400,
+      "Do not put health or medical information in company operations records"
+    );
+  }
+};
 
 const choice = (
   value: unknown,
@@ -1766,15 +1807,23 @@ export class CompanyOpsRepository {
         this.listOptional("payroll", 100),
         this.listOptional("commission", 100),
       ]);
-      const expenses = expenseRecords.map((record) => this.project(record, {
-        resource: "expense",
-        title: ["事项 Item", "Expense", "Title", "费用名称"],
-        status: FIELD.status,
-        subtitle: ["业务目的 Business Purpose", "Business Purpose", "Purpose", "业务用途"],
-        due: ["日期 Date", "提交时间 Submitted At", "Expense Date", "Submitted At", "费用日期"],
-        owner: ["员工 Employee", "提交人 Submitted By", "Employee", "Submitted By", "员工", "提交人"],
-        amount: ["金额 Amount", "Amount", "金额"],
-        currency: ["币种 Currency", "Currency", "币种"],
+      const expenses = expenseRecords.map((record) => ({
+        ...this.project(record, {
+          resource: "expense",
+          title: ["事项 Item", "Expense", "Title", "费用名称"],
+          status: FIELD.status,
+          subtitle: ["业务目的 Business Purpose", "Business Purpose", "Purpose", "业务用途"],
+          due: ["日期 Date", "提交时间 Submitted At", "Expense Date", "Submitted At", "费用日期"],
+          owner: ["员工 Employee", "提交人 Submitted By", "Employee", "Submitted By", "员工", "提交人"],
+          amount: ["金额 Amount", "Amount", "金额"],
+          currency: ["币种 Currency", "Currency", "币种"],
+        }),
+        // The reviewer must be able to open the receipt before approving.
+        link: textValue(recordField(record.fields, [
+          "票据链接 Receipt URL",
+          "Receipt URL",
+          "票据 Receipt",
+        ])) || undefined,
       }));
       const payroll = payrollRecords.map((record) => this.project(record, {
         resource: "payroll",
@@ -1908,6 +1957,113 @@ export class CompanyOpsRepository {
     dashboard.acknowledgedPolicyIds = acknowledgedPolicyIds;
     dashboard.performance = performance;
     if (dashboard.founder) dashboard.founder.performanceCycles = performance.cycles;
+
+    // Submitters can see where their own claims stand (finance-visible roles
+    // already see the full ledger above).
+    if (!financeVisible) {
+      const ownExpenseRecords = await this.listOptional("expense", 100);
+      dashboard.myExpenses = ownExpenseRecords
+        .filter((record) => this.belongsTo(record, principal))
+        .map((record) => this.project(record, {
+          resource: "expense",
+          title: ["事项 Item", "Expense", "Title", "费用名称"],
+          status: FIELD.status,
+          due: ["日期 Date", "提交时间 Submitted At", "Expense Date", "Submitted At", "费用日期"],
+          amount: ["金额 Amount", "Amount", "金额"],
+          currency: ["币种 Currency", "Currency", "币种"],
+        }))
+        .sort((left, right) => (right.dueAt || "").localeCompare(left.dueAt || ""))
+        .slice(0, 8);
+    }
+
+    // "Weekly report due" reflects reality: due until a report of the
+    // current Shanghai week (Monday-keyed) has been submitted by this person.
+    if (principal.role === "growth") {
+      const shanghaiNow = new Date(Date.now() + 8 * 3_600_000);
+      const monday = new Date(shanghaiNow);
+      monday.setUTCDate(monday.getUTCDate() - ((monday.getUTCDay() + 6) % 7));
+      const mondayKey = monday.toISOString().slice(0, 10);
+      const reportRecords = await this.listOptional("weeklyReport", 60);
+      const filedThisWeek = reportRecords.some((record) => {
+        if (!this.belongsTo(record, principal)) return false;
+        const week = isoDate(recordField(record.fields, [
+          "报告周 Reporting Week", "Reporting Week", "Week",
+        ]))?.slice(0, 10);
+        const submitted = isoDate(recordField(record.fields, [
+          "提交时间 Submitted At", "Submitted At", "Created At",
+        ]))?.slice(0, 10);
+        return Boolean((week && week >= mondayKey) || (submitted && submitted >= mondayKey));
+      });
+      dashboard.weeklyReportDue = !filedThisWeek;
+    }
+
+    // Latest platform metrics, one row per platform, for the growth pulse.
+    if (growthVisible) {
+      const metricRecords = await this.listOptional("metrics", 80);
+      const byPlatform = new Map<string, NonNullable<CompanyOpsDashboard["growthMetrics"]>[number]>();
+      const rows = metricRecords
+        .map((record) => ({
+          platform: textValue(recordField(record.fields, ["平台 Platform", "Platform", "平台"])),
+          period: textValue(recordField(record.fields, ["周期 Period", "Period", "周期"])) || undefined,
+          followers: numberValue(recordField(record.fields, [
+            "期末粉丝 End Followers", "End Followers", "Followers",
+          ])),
+          views: numberValue(recordField(record.fields, [
+            "总播放/曝光 Views", "总播放 Views", "Views",
+          ])),
+          leads: numberValue(recordField(record.fields, ["线索 Leads", "Leads"])),
+        }))
+        .filter((row) => row.platform)
+        .sort((left, right) => (left.period || "").localeCompare(right.period || ""));
+      for (const row of rows) byPlatform.set(row.platform, row);
+      dashboard.growthMetrics = [...byPlatform.values()].slice(0, 6);
+    }
+
+    // Onboarding case data: the founder watches every active case; everyone
+    // else gets their own case's role/start date/confidential status.
+    const caseRecords = await this.listOptional("onboardingCase", 100);
+    const caseField = (record: FeishuRecord, alias: string) =>
+      recordField(record.fields, [alias]);
+    const myCase = caseRecords.find((record) =>
+      idsFromValue(caseField(record, "飞书用户 Feishu User")).includes(principal.openId)
+    );
+    if (myCase) {
+      const confidential = textValue(caseField(myCase, "保密资料 Confidential Details"));
+      dashboard.myOnboardingCase = {
+        roleTitle: textValue(caseField(myCase, "岗位 Role")) || undefined,
+        startDate: isoDate(caseField(myCase, "入职日期 Start Date")),
+        confidentialDetailsComplete: Boolean(
+          confidential && !/未提交|missing/i.test(confidential)
+        ),
+      };
+    }
+    if (dashboard.founder) {
+      const today = new Date().toISOString().slice(0, 10);
+      dashboard.founder.onboardingCases = caseRecords
+        .filter((record) => /进行中|active/i.test(
+          textValue(caseField(record, "状态 Status"))
+        ))
+        .map((record) => {
+          const reviews = [
+            isoDate(caseField(record, "30天复盘 Day 30 Review")),
+            isoDate(caseField(record, "60天复盘 Day 60 Review")),
+            isoDate(caseField(record, "90天复盘 Day 90 Review")),
+          ].filter((value): value is string => Boolean(value));
+          const confidential = textValue(caseField(record, "保密资料 Confidential Details"));
+          const policy = textValue(caseField(record, "制度确认 Policy Acknowledgement"));
+          const blockers = [
+            /未提交|missing/i.test(confidential) ? "保密资料未提交 Confidential details missing" : "",
+            /未完成|missing/i.test(policy) ? "制度确认未完成 Policies not acknowledged" : "",
+          ].filter(Boolean);
+          return {
+            id: record.record_id,
+            employeeName: textValue(caseField(record, "员工姓名 Employee Name")) || "Employee",
+            progress: Math.round(numberValue(caseField(record, "完成率 Progress %")) ?? 0),
+            nextDueAt: reviews.filter((value) => value.slice(0, 10) >= today).sort()[0],
+            blocker: blockers.join(" · ") || undefined,
+          };
+        });
+    }
     return dashboard;
   }
 
@@ -1944,6 +2100,20 @@ export class CompanyOpsRepository {
   ): Promise<CompanyOpsActionResult> {
     requireActionPermission(principal.role, request.action);
     const payload = objectInput(request.payload);
+    // Free-text create/submit actions all get the health-data guard; the
+    // lead case keeps its own (more specific) message below.
+    const freeTextCreates = new Set([
+      "content.create", "create_content_idea",
+      "partner.create", "create_partner",
+      "campaign.create", "create_campaign",
+      "experiment.create", "create_experiment",
+      "support.create", "create_support_issue",
+      "expense.submit", "submit_expense",
+      "report.weekly.submit", "submit_weekly_report",
+      "request.internal.submit", "submit_internal_request",
+      "decision.request", "request_founder_decision",
+    ]);
+    if (freeTextCreates.has(request.action)) assertNoHealthData(payload);
     switch (request.action) {
       case "content.create":
       case "create_content_idea": {

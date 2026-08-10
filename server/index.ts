@@ -46,6 +46,7 @@ import companyOpsDashboard from "../api/companyOpsDashboard.ts";
 import companyOpsLogin from "../api/companyOpsLogin.ts";
 import companyOpsLogout from "../api/companyOpsLogout.ts";
 import companyOpsSession from "../api/companyOpsSession.ts";
+import companyOpsTranslate from "../api/companyOpsTranslate.ts";
 import contentResponses from "../api/contentResponses.ts";
 import contentAssignments from "../api/contentAssignments.ts";
 import createClient from "../api/createClient.ts";
@@ -242,6 +243,7 @@ const handlers = {
   companyOpsLogin,
   companyOpsLogout,
   companyOpsSession,
+  companyOpsTranslate,
   contentResponses,
   contentAssignments,
   createClient,

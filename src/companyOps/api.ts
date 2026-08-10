@@ -360,6 +360,7 @@ export const quickActionApiNames: Record<
   partner: "create_partner",
   weekly_report: "submit_weekly_report",
   expense: "submit_expense",
+  internal_request: "submit_internal_request",
   founder_decision: "request_founder_decision",
   campaign: "create_campaign",
   experiment: "create_experiment",

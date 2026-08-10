@@ -55,6 +55,8 @@ export interface CompanyOpsConfig {
     startHere?: string;
     expensePolicy?: string;
     commissionPolicy?: string;
+    employeeHandbook?: string;
+    dataRules?: string;
     onboardingGuide?: string;
     confidentialForm?: string;
     expenseForm?: string;
@@ -294,6 +296,8 @@ export function getCompanyOpsConfig(env: Env = process.env): CompanyOpsConfig {
       startHere: safeLink(env.FEISHU_ADMIN_START_HERE_URL),
       expensePolicy: safeLink(env.FEISHU_ADMIN_EXPENSE_POLICY_URL),
       commissionPolicy: safeLink(env.FEISHU_ADMIN_COMMISSION_POLICY_URL),
+      employeeHandbook: safeLink(env.FEISHU_ADMIN_HANDBOOK_URL),
+      dataRules: safeLink(env.FEISHU_ADMIN_DATA_RULES_URL),
       onboardingGuide: safeLink(env.FEISHU_ADMIN_ONBOARDING_GUIDE_URL),
       confidentialForm: safeLink(env.FEISHU_ADMIN_CONFIDENTIAL_FORM_URL),
       expenseForm: safeLink(env.FEISHU_ADMIN_EXPENSE_FORM_URL),

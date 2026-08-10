@@ -5,12 +5,14 @@ import {
   BookOpenCheck,
   Bug,
   CalendarClock,
+  ClipboardList,
   FileText,
   FlaskConical,
   Handshake,
   Lightbulb,
   Megaphone,
   MessageSquareMore,
+  Receipt,
   UserPlus,
 } from "lucide-react";
 import {
@@ -21,7 +23,8 @@ import {
   SectionHeading,
   TonePill,
 } from "./components";
-import { opsText, quickActionLabel, roleLabel } from "./copy";
+import { opsText, quickActionLabel, roleLabel, statusLabel } from "./copy";
+import { TranslatableText } from "./TranslatableText";
 import type {
   CompanyOpsDashboard,
   CompanyOpsLanguage,
@@ -44,6 +47,7 @@ const quickActionIcons = {
   compensation_dispute: Banknote,
   weekly_report: FileText,
   expense: Banknote,
+  internal_request: ClipboardList,
   founder_decision: MessageSquareMore,
 } satisfies Record<QuickActionKey, typeof Lightbulb>;
 
@@ -117,11 +121,11 @@ export default function CompanyOpsHome({
                   </TonePill>
                 ) : null}
                 {focus.status ? (
-                  <TonePill tone={focus.tone}>{focus.status}</TonePill>
+                  <TonePill tone={focus.tone}>{statusLabel(language, focus.status)}</TonePill>
                 ) : null}
               </div>
               <h2>{focus.title}</h2>
-              {focus.description ? <p>{focus.description}</p> : null}
+              <TranslatableText text={focus.description} language={language} />
               <div className="fopsFocusMeta">
                 {focus.dueAt ? (
                   <span>
@@ -179,15 +183,45 @@ export default function CompanyOpsHome({
           <div className="fopsMyPayGrid">
             <div>
               <span>{opsText(language, "payrollStatus")}</span>
-              <strong>{dashboard.myCompensation.payrollStatus || "—"}</strong>
+              <strong>{statusLabel(language, dashboard.myCompensation.payrollStatus) || "—"}</strong>
             </div>
+            {dashboard.myCompensation.baseSalary ? (
+              <div>
+                <span>{opsText(language, "payBase")}</span>
+                <strong>{dashboard.myCompensation.baseSalary}</strong>
+              </div>
+            ) : null}
+            {dashboard.myCompensation.performanceBonus ? (
+              <div>
+                <span>{opsText(language, "payPerformanceBonus")}</span>
+                <strong>{dashboard.myCompensation.performanceBonus}</strong>
+              </div>
+            ) : null}
+            {dashboard.myCompensation.reimbursements ? (
+              <div>
+                <span>{opsText(language, "payReimbursements")}</span>
+                <strong>{dashboard.myCompensation.reimbursements}</strong>
+              </div>
+            ) : null}
+            {dashboard.myCompensation.deductions ? (
+              <div>
+                <span>{opsText(language, "payDeductions")}</span>
+                <strong>{dashboard.myCompensation.deductions}</strong>
+              </div>
+            ) : null}
+            {dashboard.myCompensation.netPay ? (
+              <div>
+                <span>{opsText(language, "payNet")}</span>
+                <strong>{dashboard.myCompensation.netPay}</strong>
+              </div>
+            ) : null}
             <div>
               <span>{opsText(language, "commissionAmount")}</span>
               <strong>{dashboard.myCompensation.commissionAmount || "—"}</strong>
             </div>
             <div>
               <span>{opsText(language, "commissionStatus")}</span>
-              <strong>{dashboard.myCompensation.commissionStatus || "—"}</strong>
+              <strong>{statusLabel(language, dashboard.myCompensation.commissionStatus) || "—"}</strong>
             </div>
             <div>
               <span>{opsText(language, "disputeDeadline")}</span>
@@ -230,6 +264,42 @@ export default function CompanyOpsHome({
               </button>
             </footer>
           )}
+        </section>
+      ) : null}
+
+      {dashboard.myExpenses?.length ? (
+        <section className="fopsSection fopsMyExpenses">
+          <SectionHeading
+            title={opsText(language, "myExpensesTitle")}
+            hint={opsText(language, "myExpensesHint")}
+          />
+          <div className="fopsMyExpenseList">
+            {dashboard.myExpenses.slice(0, 5).map((expense) => (
+              <article className="fopsMyExpenseRow" key={expense.id}>
+                <span className="fopsMyExpenseIcon" aria-hidden="true">
+                  <Receipt size={16} />
+                </span>
+                <strong>{expense.title}</strong>
+                {expense.amount ? <span>{expense.amount}</span> : null}
+                {expense.status ? (
+                  <TonePill
+                    tone={
+                      /approved|reimbursed/i.test(expense.status)
+                        ? "success"
+                        : /rejected/i.test(expense.status)
+                          ? "danger"
+                          : "warning"
+                    }
+                  >
+                    {statusLabel(language, expense.status)}
+                  </TonePill>
+                ) : null}
+                {expense.submittedAt ? (
+                  <small>{formatOpsDate(expense.submittedAt, language)}</small>
+                ) : null}
+              </article>
+            ))}
+          </div>
         </section>
       ) : null}
 

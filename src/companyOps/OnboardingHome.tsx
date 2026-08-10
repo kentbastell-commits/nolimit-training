@@ -12,6 +12,7 @@ import {
 import type { CSSProperties } from "react";
 import { EmptyState, SectionHeading, TonePill } from "./components";
 import { opsText } from "./copy";
+import { TranslatableText } from "./TranslatableText";
 import type {
   CompanyOpsLanguage,
   OpsOnboardingDashboard,
@@ -24,13 +25,27 @@ import {
   onboardingPhaseLabelKey,
 } from "./utils";
 
-const onboardingPhases: OpsOnboardingTask["phase"][] = [
+const knownPhases: OpsOnboardingTask["phase"][] = [
   "before_start",
   "week_one",
   "day_30",
   "day_60",
   "day_90",
 ];
+
+// Tasks may carry a computed timeline phase (when the onboarding case has a
+// start date) or a raw bilingual Feishu category — group by whatever is
+// actually present so the timeline never renders empty.
+function phasesIn(tasks: OpsOnboardingTask[]): OpsOnboardingTask["phase"][] {
+  const present = new Set(tasks.map((task) => task.phase));
+  const ordered: OpsOnboardingTask["phase"][] = knownPhases.filter((phase) =>
+    present.has(phase),
+  );
+  for (const task of tasks) {
+    if (!ordered.includes(task.phase)) ordered.push(task.phase);
+  }
+  return ordered;
+}
 
 function TaskRow({
   task,
@@ -53,7 +68,7 @@ function TaskRow({
       </span>
       <span className="fopsOnboardingTaskBody">
         <strong>{task.title}</strong>
-        {task.description ? <p>{task.description}</p> : null}
+        <TranslatableText text={task.description} language={language} />
         <span className="fopsTaskMeta">
           {task.dueAt ? formatOpsDate(task.dueAt, language) : null}
           {task.ownerName ? task.ownerName : null}
@@ -116,7 +131,7 @@ function PolicyRow({
       </span>
       <div>
         <strong>{policy.title}</strong>
-        {policy.description ? <p>{policy.description}</p> : null}
+        <TranslatableText text={policy.description} language={language} />
         {policy.required ? (
           <TonePill tone="warning">
             {opsText(language, "policyRequired")}
@@ -271,7 +286,7 @@ export default function OnboardingHome({
       <section className="fopsSection">
         <SectionHeading title={opsText(language, "onboardingTimeline")} />
         <div className="fopsTimeline">
-          {onboardingPhases.map((phase) => {
+          {phasesIn(tasks).map((phase) => {
             const phaseTasks = tasks.filter((task) => task.phase === phase);
             if (!phaseTasks.length) return null;
             const completedCount = phaseTasks.filter(
@@ -283,7 +298,9 @@ export default function OnboardingHome({
                   <span className="fopsTimelineDot" aria-hidden="true" />
                   <div>
                     <h3>
-                      {opsText(language, onboardingPhaseLabelKey(phase))}
+                      {knownPhases.includes(phase)
+                        ? opsText(language, onboardingPhaseLabelKey(phase))
+                        : phase}
                     </h3>
                     <span>
                       {completedCount}/{phaseTasks.length}
