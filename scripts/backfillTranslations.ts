@@ -50,17 +50,20 @@ const needs = (en: unknown, cn: unknown) => {
 // ---- exercises
 const exRows = await db.select().from(exercises).where(ne(exercises.status, "Archived"));
 for (const r of exRows) {
-  const fields: Array<[string, string | null, string | null, keyof typeof r]> = [
-    ["name", r.name, r.nameCn, "nameCn"],
-    ["coachingCues", r.coachingCues, r.coachingCuesCn, "coachingCuesCn"],
-    ["technicalCues", r.technicalCues, r.technicalCuesCn, "technicalCuesCn"],
-    ["commonErrors", r.commonErrors, r.commonErrorsCn, "commonErrorsCn"],
+  // Cue-style fields can carry builder meta lines ("Tracking: Weight",
+  // "Unilateral: No") — translate only the human lines, like template notes.
+  const fields: Array<[string, string | null, string | null, keyof typeof r, boolean]> = [
+    ["name", r.name, r.nameCn, "nameCn", false],
+    ["coachingCues", r.coachingCues, r.coachingCuesCn, "coachingCuesCn", true],
+    ["technicalCues", r.technicalCues, r.technicalCuesCn, "technicalCuesCn", true],
+    ["commonErrors", r.commonErrors, r.commonErrorsCn, "commonErrorsCn", true],
   ];
-  for (const [f, en, cn, col] of fields) {
-    if (!needs(en, cn)) continue;
+  for (const [f, en, cn, col, stripMeta] of fields) {
+    const source = stripMeta ? humanNoteText(String(en || "")) : String(en || "").trim();
+    if (!source || !needs(source, cn)) continue;
     jobs.push({
       label: `exercise ${r.exerciseId} ${f}`,
-      source: String(en),
+      source,
       current: String(cn || ""),
       apply: (zh) => db.update(exercises).set({ [col]: zh } as any).where(eq(exercises.exerciseId, r.exerciseId)),
     });
