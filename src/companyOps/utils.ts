@@ -35,6 +35,7 @@ export function canOpenPage(user: CompanyOpsUser, page: CompanyOpsPage) {
   if (page === "performance") return user.accessStatus !== "pending";
   if (page === "growth") return capabilities.has("view_growth");
   if (page === "calendar") return capabilities.has("view_growth");
+  if (page === "articles") return capabilities.has("view_growth");
   if (page === "decisions") return capabilities.has("view_decisions");
   return true;
 }

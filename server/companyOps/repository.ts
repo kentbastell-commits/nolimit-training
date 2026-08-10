@@ -155,6 +155,8 @@ export interface CompanyOpsDashboard {
     objective?: string;
     format?: string;
     featured?: string;
+    footageStatus?: string;
+    filmingNotes?: string;
     owner?: string;
     needsFounderReview?: boolean;
     publishedUrl?: string;
@@ -188,6 +190,16 @@ export interface CompanyOpsDashboard {
     response?: string;
     respondedBy?: string;
     notes?: string;
+  }>;
+  /** Long-form articles built in the block editor (growth-visible). */
+  articles?: Array<{
+    id: string;
+    title: string;
+    status?: string;
+    summary?: string;
+    blocks?: string;
+    author?: string;
+    updatedAt?: string;
   }>;
   performance?: {
     cycles: CompanyOpsPerformanceCycle[];
@@ -404,6 +416,28 @@ const POLICY_ID_BY_DOCUMENT = new Map<string, string>(
   Object.entries(POLICY_DOCUMENT_BY_ID).map(([id, document]) => [document, id])
 );
 
+// Keys are normalize()d: lowercase, separators collapsed to single spaces.
+const FOOTAGE_STATUS_OPTIONS: Record<string, string> = {
+  "to film": "需拍摄 To Film",
+  "需拍摄": "需拍摄 To Film",
+  "需拍摄 to film": "需拍摄 To Film",
+  "filming": "拍摄中 Filming",
+  "拍摄中": "拍摄中 Filming",
+  "拍摄中 filming": "拍摄中 Filming",
+  "footage ready": "已有素材 Footage Ready",
+  "已有素材": "已有素材 Footage Ready",
+  "已有素材 footage ready": "已有素材 Footage Ready",
+  "no filming needed": "无需拍摄 No Filming Needed",
+  "无需拍摄": "无需拍摄 No Filming Needed",
+  "无需拍摄 no filming needed": "无需拍摄 No Filming Needed",
+};
+
+const ARTICLE_SPECS: readonly InputFieldSpec[] = [
+  { key: "title", aliases: ["标题 Title", "Title", "标题"], kind: "string", required: true, primary: true, maximum: 200 },
+  { key: "summary", aliases: ["摘要 Summary", "Summary", "摘要"], kind: "string", maximum: 1_000 },
+  { key: "blocks", aliases: ["内容块 Blocks", "Blocks", "内容块"], kind: "string", maximum: 300_000 },
+];
+
 const CONTENT_SPECS: readonly InputFieldSpec[] = [
   { key: "title", aliases: ["内容 Content", "Title", "Content Title", "内容标题"], kind: "string", required: true, primary: true, maximum: 200 },
   { key: "platform", aliases: ["平台 Platform", "Platform", "平台"], kind: "string", required: true, maximum: 50 },
@@ -418,6 +452,8 @@ const CONTENT_SPECS: readonly InputFieldSpec[] = [
   { key: "hashtags", aliases: ["话题标签 Hashtags", "Hashtags", "话题标签"], kind: "string", maximum: 1_000 },
   { key: "ideaNotes", aliases: ["创意备注 Idea Notes", "Idea Notes", "创意备注"], kind: "string", maximum: 5_000 },
   { key: "shootDate", aliases: ["拍摄日期 Shoot Date", "Shoot Date", "拍摄日期"], kind: "date" },
+  { key: "footageStatus", aliases: ["素材状态 Footage Status", "Footage Status", "素材状态"], kind: "string", maximum: 50 },
+  { key: "filmingNotes", aliases: ["拍摄需求 Filming Notes", "Filming Notes", "拍摄需求"], kind: "string", maximum: 2_000 },
   { key: "funnel", aliases: ["漏斗阶段 Funnel", "Funnel", "漏斗阶段"], kind: "string", maximum: 80 },
   { key: "featured", aliases: ["出镜 Featured", "Featured", "出镜"], kind: "string", maximum: 200 },
   { key: "pillar", aliases: ["内容支柱分类 Pillar Category", "内容支柱 Pillar", "Content Pillar", "Pillar", "内容支柱"], kind: "string", maximum: 100 },
@@ -657,6 +693,11 @@ const STATUS_BY_RESOURCE: Partial<
     Active: "进行中 Active",
     Done: "已完成 Done",
     Parked: "搁置 Parked",
+  },
+  article: {
+    Draft: "草稿 Draft",
+    Published: "已发布 Published",
+    Archived: "已归档 Archived",
   },
   experiment: {
     Idea: "想法 Idea",
@@ -1031,6 +1072,45 @@ const assertNoHealthData = (payload: Record<string, unknown>): void => {
       "Do not put health or medical information in company operations records"
     );
   }
+};
+
+// Article blocks arrive as JSON from the block editor. Validate the shape and
+// strip unknown keys so arbitrary payloads can't be smuggled into the Base.
+// Deliberately NOT health-data guarded: marketing articles legitimately write
+// about training around injury; that guard protects client records, not prose.
+const ARTICLE_BLOCK_TYPES = new Set(["heading", "text", "image", "video", "quote", "divider"]);
+const normalizeArticleBlocks = (value: unknown): string | undefined => {
+  if (value === undefined || value === null || value === "") return undefined;
+  const raw = typeof value === "string" ? value : JSON.stringify(value);
+  if (raw.length > 300_000) {
+    throw new CompanyOpsHttpError(400, "The article is too large to save");
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    throw new CompanyOpsHttpError(400, "blocks must be valid JSON");
+  }
+  if (!Array.isArray(parsed) || parsed.length > 300) {
+    throw new CompanyOpsHttpError(400, "blocks must be a list of at most 300 blocks");
+  }
+  const cleaned = parsed.map((entry) => {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+      throw new CompanyOpsHttpError(400, "each block must be an object");
+    }
+    const block = entry as Record<string, unknown>;
+    const type = typeof block.type === "string" ? block.type : "";
+    if (!ARTICLE_BLOCK_TYPES.has(type)) {
+      throw new CompanyOpsHttpError(400, `Unsupported block type: ${type || "(none)"}`);
+    }
+    const keep: Record<string, string> = { type };
+    for (const key of ["text", "url", "caption", "alt", "level"] as const) {
+      const item = block[key];
+      if (typeof item === "string" && item) keep[key] = item.slice(0, 30_000);
+    }
+    return keep;
+  });
+  return JSON.stringify(cleaned);
 };
 
 const choice = (
@@ -2141,6 +2221,8 @@ export class CompanyOpsRepository {
         objective: text(record, "目标 Objective"),
         format: text(record, "形式 Format"),
         featured: text(record, "出镜 Featured"),
+        footageStatus: text(record, "素材状态 Footage Status"),
+        filmingNotes: text(record, "拍摄需求 Filming Notes"),
         owner: text(record, "负责人 Owner (Feishu)") || text(record, "Owner"),
         needsFounderReview: boolValue(recordField(record.fields, ["需创始人审批 Needs Founder OK"])) === true,
         publishedUrl: text(record, "发布链接 Published URL"),
@@ -2151,6 +2233,23 @@ export class CompanyOpsRepository {
         revenue: numberValue(recordField(record.fields, ["归因收入 Revenue"])),
         learnings: text(record, "学习/下一步 Learnings"),
       }));
+    }
+
+    if (growthVisible) {
+      const articleRecords = await this.listOptional("article", 100);
+      dashboard.articles = articleRecords
+        .map((record) => ({
+          id: record.record_id,
+          title: textValue(recordField(record.fields, ["标题 Title", "Title"])) || "Untitled",
+          status: decodeStatus("article", recordField(record.fields, FIELD.status)),
+          summary: textValue(recordField(record.fields, ["摘要 Summary"])) || undefined,
+          blocks: textValue(recordField(record.fields, ["内容块 Blocks"])) || undefined,
+          author: textValue(recordField(record.fields, ["提交人 Author"])) || undefined,
+          updatedAt:
+            isoDate(recordField(record.fields, ["更新时间 Updated At"])) ||
+            isoDate(recordField(record.fields, ["Submitted At"])),
+        }))
+        .sort((left, right) => (right.updatedAt || "").localeCompare(left.updatedAt || ""));
     }
 
     if (principal.role === "founder") {
@@ -2525,7 +2624,7 @@ export class CompanyOpsRepository {
           "contentId", "title", "platform", "contentType", "status",
           "publishDate", "shootDate", "hook", "copy", "keywords", "hashtags",
           "cta", "ideaNotes", "pillar", "audience", "funnel", "objective",
-          "featured", "notes",
+          "featured", "footageStatus", "filmingNotes", "notes",
         ]);
         const unknownContentEdits = Object.keys(payload).filter(
           (key) => !allowedContentEdits.has(key)
@@ -2565,6 +2664,12 @@ export class CompanyOpsRepository {
         setText("funnel", ["漏斗阶段 Funnel", "Funnel"], 80);
         setText("objective", ["目标 Objective", "Objective"], 200);
         setText("featured", ["出镜 Featured", "Featured"], 200);
+        setText("filmingNotes", ["拍摄需求 Filming Notes", "Filming Notes"], 2_000);
+        if (payload.footageStatus !== undefined) {
+          const footageField = requiredField(target, ["素材状态 Footage Status", "Footage Status"]);
+          const footage = choice(payload.footageStatus, "footageStatus", FOOTAGE_STATUS_OPTIONS);
+          if (footage) updates[footageField.field_name] = footage;
+        }
         setText("notes", ["学习/下一步 Learnings", "Notes", "备注"], 5_000);
         setDate("publishDate", ["发布日期 Publish Date", "Publish Date"]);
         setDate("shootDate", ["拍摄日期 Shoot Date", "Shoot Date"]);
@@ -2628,6 +2733,8 @@ export class CompanyOpsRepository {
           ["漏斗阶段 Funnel", "Funnel"],
           ["目标 Objective", "Objective"],
           ["出镜 Featured", "Featured"],
+          ["素材状态 Footage Status", "Footage Status"],
+          ["拍摄需求 Filming Notes", "Filming Notes"],
         ] as const) {
           carry(aliases);
         }
@@ -2642,6 +2749,77 @@ export class CompanyOpsRepository {
         this.addActorFields(copyFields, target.fields, principal);
         const record = await this.client.createRecord(target.appToken, target.tableId, copyFields);
         return { success: true, message: "Content duplicated", recordId: record.record_id };
+      }
+      case "article.create":
+      case "create_article": {
+        const allowedArticle = new Set(["title", "summary", "blocks"]);
+        const unknownArticle = Object.keys(payload).filter((key) => !allowedArticle.has(key));
+        if (unknownArticle.length) {
+          throw new CompanyOpsHttpError(400, `Unknown fields: ${unknownArticle.join(", ")}`);
+        }
+        const blocks = normalizeArticleBlocks(payload.blocks);
+        const record = await this.createMapped(
+          "article",
+          {
+            title: payload.title,
+            ...(payload.summary === undefined ? {} : { summary: payload.summary }),
+            ...(blocks ? { blocks } : {}),
+          },
+          ARTICLE_SPECS,
+          principal,
+          { status: "草稿 Draft" }
+        );
+        return { success: true, message: "Article created", recordId: record.record_id };
+      }
+      case "article.update":
+      case "update_article": {
+        const allowedArticle = new Set(["articleId", "title", "summary", "blocks", "status"]);
+        const unknownArticle = Object.keys(payload).filter((key) => !allowedArticle.has(key));
+        if (unknownArticle.length) {
+          throw new CompanyOpsHttpError(400, `Unknown fields: ${unknownArticle.join(", ")}`);
+        }
+        const articleId = validRecordId(payload.articleId);
+        const target = await this.target("article");
+        await this.client.getRecord(target.appToken, target.tableId, articleId);
+        const updates: FeishuFields = {};
+        if (payload.title !== undefined) {
+          const field = requiredField(target, ["标题 Title", "Title"]);
+          const title = textValue(payload.title).trim();
+          if (!title) throw new CompanyOpsHttpError(400, "title is required");
+          updates[field.field_name] = title.slice(0, 200);
+        }
+        if (payload.summary !== undefined) {
+          const field = requiredField(target, ["摘要 Summary", "Summary"]);
+          updates[field.field_name] = textValue(payload.summary).slice(0, 1_000);
+        }
+        if (payload.blocks !== undefined) {
+          const field = requiredField(target, ["内容块 Blocks", "Blocks"]);
+          updates[field.field_name] = normalizeArticleBlocks(payload.blocks) || "[]";
+        }
+        if (payload.status !== undefined) {
+          const statusField = requiredField(target, FIELD.status);
+          updates[statusField.field_name] = encodeStatus("article", textValue(payload.status));
+        }
+        if (!Object.keys(updates).length) {
+          throw new CompanyOpsHttpError(400, "Nothing to update");
+        }
+        const updatedAtField = fieldByAlias(target.fields, ["更新时间 Updated At", "Updated At"]);
+        if (updatedAtField) updates[updatedAtField.field_name] = Date.now();
+        await this.client.updateRecord(target.appToken, target.tableId, articleId, updates);
+        return { success: true, message: "Article saved", recordId: articleId };
+      }
+      case "article.delete":
+      case "delete_article": {
+        const allowedArticle = new Set(["articleId"]);
+        const unknownArticle = Object.keys(payload).filter((key) => !allowedArticle.has(key));
+        if (unknownArticle.length) {
+          throw new CompanyOpsHttpError(400, `Unknown fields: ${unknownArticle.join(", ")}`);
+        }
+        const articleId = validRecordId(payload.articleId);
+        const target = await this.target("article");
+        await this.client.getRecord(target.appToken, target.tableId, articleId);
+        await this.client.deleteRecord(target.appToken, target.tableId, articleId);
+        return { success: true, message: "Article deleted", recordId: articleId };
       }
       case "submit_internal_request": {
         const record = await this.createMapped("internalRequest", payload, REQUEST_SPECS, principal, { status: "待处理 Open" });

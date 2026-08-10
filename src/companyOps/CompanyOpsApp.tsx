@@ -5,6 +5,7 @@ import {
   Home,
   Languages,
   LogOut,
+  Newspaper,
   RefreshCw,
   Target,
   TrendingUp,
@@ -20,6 +21,7 @@ import {
 import { BRAND_MONOGRAM_BLACK, BRAND_WORDMARK_BLACK } from "../brandAssets";
 import { CompanyOpsApiError, companyOpsApi, quickActionApiNames } from "./api";
 import CompanyOpsHome from "./CompanyOpsHome";
+import ArticleBuilderPage from "./ArticleBuilderPage";
 import ContentCalendarPage from "./ContentCalendarPage";
 import { SkeletonPage } from "./components";
 import { opsText, roleLabel, type OpsCopyKey } from "./copy";
@@ -58,6 +60,7 @@ const navItems: Array<{
   { page: "performance", label: "navPerformance", icon: Target },
   { page: "growth", label: "navGrowth", icon: TrendingUp },
   { page: "calendar", label: "navCalendar", icon: CalendarDays },
+  { page: "articles", label: "navArticles", icon: Newspaper },
   { page: "decisions", label: "navDecisions", icon: Gavel },
   { page: "onboarding", label: "navOnboarding", icon: UserRoundCheck },
   { page: "policies", label: "navPolicies", icon: BookOpenCheck },
@@ -778,6 +781,49 @@ export default function CompanyOpsApp({
                     "error",
                   );
                   throw error;
+                }
+              }}
+            />
+          ) : null}
+          {activePage === "articles" && capabilities.has("view_growth") ? (
+            <ArticleBuilderPage
+              articles={dashboard.articles || []}
+              language={language}
+              onCreate={async (title) => {
+                try {
+                  await runRecordAction("create_article", { title });
+                } catch (error) {
+                  showToast(
+                    error instanceof Error
+                      ? error.message
+                      : opsText(language, "actionFailed"),
+                    "error",
+                  );
+                }
+              }}
+              onSave={async (articleId, patch) => {
+                try {
+                  await runRecordAction("update_article", { articleId, ...patch });
+                } catch (error) {
+                  showToast(
+                    error instanceof Error
+                      ? error.message
+                      : opsText(language, "actionFailed"),
+                    "error",
+                  );
+                  throw error;
+                }
+              }}
+              onDelete={async (articleId) => {
+                try {
+                  await runRecordAction("delete_article", { articleId });
+                } catch (error) {
+                  showToast(
+                    error instanceof Error
+                      ? error.message
+                      : opsText(language, "actionFailed"),
+                    "error",
+                  );
                 }
               }}
             />

@@ -43,6 +43,12 @@ export type CompanyOpsActionName =
   | "delete_content"
   | "content.duplicate"
   | "duplicate_content"
+  | "article.create"
+  | "create_article"
+  | "article.update"
+  | "update_article"
+  | "article.delete"
+  | "delete_article"
   | "goal.create"
   | "goal.update"
   | "goal.respond"
@@ -113,6 +119,12 @@ const ACTIONS_BY_ROLE: Record<CompanyOpsRole, ReadonlySet<CompanyOpsActionName>>
     "delete_content",
     "content.duplicate",
     "duplicate_content",
+    "article.create",
+    "create_article",
+    "article.update",
+    "update_article",
+    "article.delete",
+    "delete_article",
     "create_lead",
     "create_partner",
     "create_campaign",
@@ -183,6 +195,12 @@ const ACTIONS_BY_ROLE: Record<CompanyOpsRole, ReadonlySet<CompanyOpsActionName>>
     "delete_content",
     "content.duplicate",
     "duplicate_content",
+    "article.create",
+    "create_article",
+    "article.update",
+    "update_article",
+    "article.delete",
+    "delete_article",
     "lead.create",
     "partner.create",
     "campaign.create",

@@ -4423,3 +4423,393 @@ a.fopsOnboardingTaskLink:hover strong {
   color: #fff;
   cursor: pointer;
 }
+
+/* ============ Plan-ahead filming board ============ */
+.fopsCalPlan {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.fopsCalPlanIntro {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--fops-ink-soft);
+  font-size: 0.88rem;
+}
+.fopsCalPlanIntro svg {
+  flex: none;
+  color: var(--fops-gold-dark);
+}
+.fopsCalPlanWeek {
+  border: 1px solid var(--fops-line);
+  border-radius: 16px;
+  background: var(--fops-surface);
+  overflow: hidden;
+}
+.fopsCalPlanWeek > header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--fops-line);
+  background: rgb(201 168 76 / 7%);
+}
+.fopsCalPlanWeek > header strong {
+  font-size: 0.95rem;
+}
+.fopsCalPlanNow {
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: #191915;
+  color: #e2c365;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.fopsCalPlanCount {
+  margin-left: auto;
+  color: var(--fops-ink-soft);
+  font-size: 0.8rem;
+}
+.fopsCalPlanRows {
+  display: flex;
+  flex-direction: column;
+}
+.fopsCalPlanRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 18px;
+}
+.fopsCalPlanRow + .fopsCalPlanRow {
+  border-top: 1px solid var(--fops-line);
+}
+.fopsCalPlanMain {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.fopsCalPlanMain strong {
+  font-size: 0.93rem;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.fopsCalPlanMain > span {
+  color: var(--fops-ink-soft);
+  font-size: 0.78rem;
+}
+.fopsCalPlanMain p {
+  margin: 4px 0 0;
+  padding: 6px 10px;
+  border-left: 3px solid var(--fops-gold);
+  border-radius: 0 8px 8px 0;
+  background: rgb(201 168 76 / 8%);
+  color: var(--fops-ink);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.fopsFootagePill {
+  flex: none;
+  padding: 6px 13px;
+  border: 1.5px solid var(--fops-line-dark);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--fops-ink-soft);
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.fopsFootagePill.is-tofilm {
+  border-color: #c04532;
+  background: rgb(192 69 50 / 10%);
+  color: #a12c22;
+}
+.fopsFootagePill.is-filming {
+  border-color: var(--fops-gold-dark);
+  background: rgb(201 168 76 / 14%);
+  color: var(--fops-gold-dark);
+}
+.fopsFootagePill.is-ready {
+  border-color: #107a4a;
+  background: rgb(16 122 74 / 10%);
+  color: #107a4a;
+}
+.fopsFootagePill.is-skip {
+  opacity: 0.65;
+}
+
+/* ============ Article builder ============ */
+.fopsArtNewRow {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.fopsArtNewRow input {
+  flex: 1;
+  min-width: 0;
+}
+.fopsArtList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+}
+.fopsArtCard {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 18px;
+  border: 1px solid var(--fops-line);
+  border-radius: 15px;
+  background: var(--fops-surface);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.fopsArtCard:hover {
+  border-color: var(--fops-gold);
+}
+.fopsArtCardTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.fopsArtCardTop strong {
+  font-size: 0.98rem;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.fopsArtCard p {
+  margin: 0;
+  color: var(--fops-ink-soft);
+  font-size: 0.83rem;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.fopsArtCard footer {
+  display: flex;
+  gap: 12px;
+  color: var(--fops-ink-soft);
+  font-size: 0.76rem;
+}
+
+.fopsArtEditorHeader h1 {
+  margin-top: 6px;
+}
+.fopsArtEditorHeader p {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.fopsArtDirty {
+  color: #a12c22;
+  font-size: 0.8rem;
+  font-weight: 650;
+}
+.fopsArtHeaderActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.fopsArtEditor {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 760px;
+}
+.fopsArtBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px;
+  border: 1px solid var(--fops-line);
+  border-radius: 13px;
+  background: var(--fops-surface);
+}
+.fopsArtBlock > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.fopsArtBlockType {
+  color: var(--fops-ink-soft);
+  font-size: 0.72rem;
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.fopsArtBlockTools {
+  display: flex;
+  gap: 4px;
+}
+.fopsArtBlockTools button {
+  display: inline-flex;
+  padding: 5px;
+  border: 1px solid var(--fops-line);
+  border-radius: 7px;
+  background: transparent;
+  color: var(--fops-ink-soft);
+  cursor: pointer;
+}
+.fopsArtBlockTools button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.fopsArtBlockTools button.is-danger {
+  color: #a12c22;
+}
+.fopsArtHeadingInput {
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+.fopsArtImagePreview {
+  max-width: 100%;
+  max-height: 320px;
+  object-fit: contain;
+  border-radius: 10px;
+  background: #191915;
+}
+.fopsArtMediaRow {
+  display: flex;
+  gap: 8px;
+}
+.fopsArtMediaRow input {
+  flex: 1;
+  min-width: 0;
+}
+.fopsArtUploadError {
+  margin: 0;
+  color: #a12c22;
+  font-size: 0.8rem;
+}
+.fopsSpin {
+  animation: fopsSpin 0.9s linear infinite;
+}
+@keyframes fopsSpin {
+  to { transform: rotate(360deg); }
+}
+
+.fopsArtAddRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1.5px dashed var(--fops-line-dark);
+  border-radius: 13px;
+}
+.fopsArtAddRow > span {
+  color: var(--fops-ink-soft);
+  font-size: 0.83rem;
+  font-weight: 650;
+}
+.fopsArtAddRow button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid var(--fops-line-dark);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--fops-ink);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.fopsArtAddRow button:hover {
+  border-color: var(--fops-gold);
+  background: rgb(201 168 76 / 10%);
+}
+.fopsArtFooterActions {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 8px;
+}
+.fopsArtDelete {
+  color: #a12c22;
+}
+
+.fopsArtPreview {
+  max-width: 680px;
+  padding: 28px 30px;
+  border: 1px solid var(--fops-line);
+  border-radius: 16px;
+  background: var(--fops-surface);
+}
+.fopsArtPreview h1 {
+  margin: 0 0 8px;
+  font-size: 1.65rem;
+  line-height: 1.3;
+}
+.fopsArtPreviewSummary {
+  color: var(--fops-ink-soft);
+  font-size: 0.9rem;
+}
+.fopsArtPreview h2 {
+  margin: 26px 0 10px;
+  font-size: 1.22rem;
+}
+.fopsArtPreview p {
+  margin: 0 0 13px;
+  font-size: 0.95rem;
+  line-height: 1.8;
+}
+.fopsArtPreview blockquote {
+  margin: 16px 0;
+  padding: 10px 18px;
+  border-left: 4px solid var(--fops-gold);
+  border-radius: 0 10px 10px 0;
+  background: rgb(201 168 76 / 9%);
+}
+.fopsArtPreview hr {
+  margin: 24px 0;
+  border: 0;
+  border-top: 1px solid var(--fops-line);
+}
+.fopsArtPreview figure {
+  margin: 18px 0;
+  text-align: center;
+}
+.fopsArtPreview img,
+.fopsArtPreview video {
+  max-width: 100%;
+  border-radius: 10px;
+}
+.fopsArtPreview figcaption {
+  margin-top: 6px;
+  color: var(--fops-ink-soft);
+  font-size: 0.78rem;
+}
+
+@media (max-width: 700px) {
+  .fopsCalPlanRow {
+    flex-wrap: wrap;
+  }
+  .fopsCalPlanMain {
+    flex-basis: calc(100% - 60px);
+  }
+  .fopsFootagePill {
+    margin-left: 29px;
+  }
+  .fopsArtHeaderActions {
+    width: 100%;
+  }
+  .fopsArtHeaderActions .fopsButton {
+    flex: 1;
+    justify-content: center;
+  }
+}

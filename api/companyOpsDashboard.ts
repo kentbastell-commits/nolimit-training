@@ -362,6 +362,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       experiments,
       goals: data.goals || [],
       contentCalendar: data.contentFull || [],
+      articles: data.articles || [],
       keyDates: data.keyDates || [],
       onboarding,
       onboardingCases: data.founder?.onboardingCases || [],

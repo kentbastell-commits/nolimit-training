@@ -8,6 +8,7 @@ export type CompanyOpsPage =
   | "growth"
   | "decisions"
   | "calendar"
+  | "articles"
   | "onboarding"
   | "policies";
 
@@ -44,6 +45,9 @@ export type CompanyOpsActionName =
   | "update_content"
   | "delete_content"
   | "duplicate_content"
+  | "create_article"
+  | "update_article"
+  | "delete_article"
   | "create_goal"
   | "update_goal"
   | "respond_goal"
@@ -328,6 +332,8 @@ export interface OpsContentFullItem {
   objective?: string;
   format?: string;
   featured?: string;
+  footageStatus?: string;
+  filmingNotes?: string;
   owner?: string;
   needsFounderReview?: boolean;
   publishedUrl?: string;
@@ -337,6 +343,16 @@ export interface OpsContentFullItem {
   leads?: number;
   revenue?: number;
   learnings?: string;
+}
+
+export interface OpsArticleItem {
+  id: string;
+  title: string;
+  status?: string;
+  summary?: string;
+  blocks?: string;
+  author?: string;
+  updatedAt?: string;
 }
 
 export interface OpsKeyDateItem {
@@ -455,6 +471,7 @@ export interface CompanyOpsDashboard {
   finance?: OpsFinanceSummary;
   goals?: OpsGoalItem[];
   contentCalendar?: OpsContentFullItem[];
+  articles?: OpsArticleItem[];
   keyDates?: OpsKeyDateItem[];
   myCompensation?: OpsCompensationSummary;
   myExpenses?: Array<{

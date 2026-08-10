@@ -6,6 +6,7 @@
 import {
   Archive,
   CalendarDays,
+  Clapperboard,
   Check,
   ChevronLeft,
   ChevronRight,
@@ -144,6 +145,30 @@ const FUNNEL_CHOICES = [
   "复购/留存 Retention",
 ] as const;
 
+const FOOTAGE_CHOICES = [
+  "需拍摄 To Film",
+  "拍摄中 Filming",
+  "已有素材 Footage Ready",
+  "无需拍摄 No Filming Needed",
+] as const;
+
+const footageClass = (value?: string): string =>
+  !value
+    ? "is-unset"
+    : value.includes("需拍摄")
+      ? "is-tofilm"
+      : value.includes("拍摄中")
+        ? "is-filming"
+        : value.includes("已有素材")
+          ? "is-ready"
+          : "is-skip";
+
+const footageDisplay = (language: CompanyOpsLanguage, value?: string): string => {
+  if (!value) return language === "zh" ? "定素材状态" : "Set footage";
+  const [zh, ...rest] = value.split(" ");
+  return language === "zh" ? zh : rest.join(" ") || value;
+};
+
 const LIVE_STATUSES = new Set(["Published", "Analyzed", "Archived"]);
 
 const dayKey = (value: string | number | Date): string => {
@@ -165,7 +190,7 @@ const withDay = (day: string, existingIso?: string): string => {
   return time ? `${day}T${time}` : day;
 };
 
-type CalendarView = "month" | "week" | "day";
+type CalendarView = "month" | "week" | "day" | "plan";
 
 type EditorPatch = Record<string, string>;
 
@@ -333,6 +358,10 @@ function Editor({
             </label>
           </div>
           {fieldRow("shootDate", "Shoot date", "拍摄日期", "date")}
+          <div className="fopsCalFieldRow">
+            {selectRow("footageStatus", "Footage status", "素材状态", FOOTAGE_CHOICES)}
+            {fieldRow("filmingNotes", "Filming notes — what to shoot", "拍摄需求——要拍什么", "textarea", 2)}
+          </div>
           {fieldRow("hook", "Hook / opening line", "钩子/开头", "input", 3, "The first 3 seconds…", "前3秒抓住人的那句话…")}
           {fieldRow("copy", "Copy / caption", "文案", "textarea", 6, "Full caption or script", "完整文案或脚本")}
           <div className="fopsCalFieldRow">
@@ -499,6 +528,29 @@ export default function ContentCalendarPage({
     [items],
   );
 
+  // The plan-ahead board: everything not yet live from this week forward,
+  // grouped by week, so Yumei can flag what the coaches need to film.
+  const planWeeks = useMemo(() => {
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    start.setDate(start.getDate() - ((start.getDay() + 6) % 7));
+    const groups = new Map<string, OpsContentFullItem[]>();
+    for (const item of items) {
+      if (!item.publishDate || LIVE_STATUSES.has(item.status || "")) continue;
+      const date = new Date(item.publishDate);
+      if (date < start) continue;
+      const monday = new Date(date);
+      monday.setHours(0, 0, 0, 0);
+      monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+      const key = dayKey(monday);
+      groups.set(key, [...(groups.get(key) || []), item]);
+    }
+    for (const list of groups.values()) {
+      list.sort((left, right) => (left.publishDate || "").localeCompare(right.publishDate || ""));
+    }
+    return [...groups.entries()].sort((left, right) => left[0].localeCompare(right[0]));
+  }, [items]);
+
   const save = async (contentId: string, patch: Record<string, unknown>) => {
     setBusy(true);
     try {
@@ -507,6 +559,11 @@ export default function ContentCalendarPage({
     } finally {
       setBusy(false);
     }
+  };
+
+  const cycleFootage = (item: OpsContentFullItem) => {
+    const index = FOOTAGE_CHOICES.findIndex((choice) => choice === item.footageStatus);
+    void save(item.id, { footageStatus: FOOTAGE_CHOICES[(index + 1) % FOOTAGE_CHOICES.length] });
   };
 
   const markLive = (item: OpsContentFullItem) =>
@@ -617,7 +674,7 @@ export default function ContentCalendarPage({
 
       <div className="fopsCalToolbar">
         <div className="fopsCalViews" role="tablist">
-          {(["day", "week", "month"] as CalendarView[]).map((entry) => (
+          {(["day", "week", "month", "plan"] as CalendarView[]).map((entry) => (
             <button
               key={entry}
               type="button"
@@ -630,10 +687,13 @@ export default function ContentCalendarPage({
                 ? text(language, "Day", "日")
                 : entry === "week"
                   ? text(language, "Week", "周")
-                  : text(language, "Month", "月")}
+                  : entry === "month"
+                    ? text(language, "Month", "月")
+                    : text(language, "Plan ahead", "拍摄计划")}
             </button>
           ))}
         </div>
+        {view !== "plan" ? (
         <div className="fopsCalNav">
           <button type="button" className="fopsCalIconBtn" onClick={() => shift(-1)} aria-label={text(language, "Previous", "上一个")}>
             <ChevronLeft size={17} />
@@ -646,6 +706,7 @@ export default function ContentCalendarPage({
             {text(language, "Today", "今天")}
           </button>
         </div>
+        ) : null}
       </div>
 
       {view === "month" ? (
@@ -824,6 +885,96 @@ export default function ContentCalendarPage({
               </p>
             )}
           </div>
+        </div>
+      ) : null}
+
+      {view === "plan" ? (
+        <div className="fopsCalPlan">
+          <p className="fopsCalPlanIntro">
+            <Clapperboard size={15} aria-hidden="true" />
+            {text(
+              language,
+              "Flag what the coaches need to film in the coming weeks — tap the pill to change footage status, open a card to describe the shots.",
+              "标记未来几周需要教练拍摄的内容——点状态胶囊切换素材状态，打开卡片写清楚要拍什么。",
+            )}
+          </p>
+          {planWeeks.length ? (
+            planWeeks.map(([weekKey, weekItems]) => {
+              const weekStart = new Date(`${weekKey}T00:00:00`);
+              const weekEnd = new Date(weekStart);
+              weekEnd.setDate(weekStart.getDate() + 6);
+              const isThisWeek = weekKey === dayKey(new Date(new Date().setDate(new Date().getDate() - ((new Date().getDay() + 6) % 7))));
+              const needsFilming = weekItems.filter(
+                (item) => !item.footageStatus || item.footageStatus.includes("需拍摄") || item.footageStatus.includes("拍摄中"),
+              ).length;
+              return (
+                <section className="fopsCalPlanWeek" key={weekKey}>
+                  <header>
+                    <strong>
+                      {weekStart.toLocaleDateString(locale, { month: "short", day: "numeric" })} – {weekEnd.toLocaleDateString(locale, { month: "short", day: "numeric" })}
+                    </strong>
+                    {isThisWeek ? (
+                      <span className="fopsCalPlanNow">{text(language, "This week", "本周")}</span>
+                    ) : null}
+                    <span className="fopsCalPlanCount">
+                      {needsFilming
+                        ? `${needsFilming} ${text(language, "need footage", "待解决素材")}`
+                        : text(language, "footage sorted", "素材已就绪")}
+                    </span>
+                  </header>
+                  <div className="fopsCalPlanRows">
+                    {weekItems.map((item) => (
+                      <div className="fopsCalPlanRow" key={item.id}>
+                        <PlatformBadge platform={item.platform} size={17} />
+                        <div className="fopsCalPlanMain">
+                          <strong>{item.title}</strong>
+                          <span>
+                            {[
+                              item.format,
+                              item.publishDate
+                                ? new Date(item.publishDate).toLocaleDateString(locale, { weekday: "short", month: "short", day: "numeric" })
+                                : "",
+                              item.shootDate
+                                ? `${text(language, "shoot", "拍摄")} ${new Date(item.shootDate).toLocaleDateString(locale, { month: "short", day: "numeric" })}`
+                                : "",
+                            ]
+                              .filter(Boolean)
+                              .join(" · ")}
+                          </span>
+                          {item.filmingNotes ? <p>{item.filmingNotes}</p> : null}
+                        </div>
+                        <button
+                          type="button"
+                          className={`fopsFootagePill ${footageClass(item.footageStatus)}`}
+                          disabled={busy}
+                          title={text(language, "Click to change footage status", "点击切换素材状态")}
+                          onClick={() => cycleFootage(item)}
+                        >
+                          {footageDisplay(language, item.footageStatus)}
+                        </button>
+                        <button
+                          type="button"
+                          className="fopsCalIconBtn"
+                          onClick={() => setEditing(item)}
+                          aria-label={text(language, "Open & edit", "打开编辑")}
+                        >
+                          <Pencil size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              );
+            })
+          ) : (
+            <p className="fopsQuietText">
+              {text(
+                language,
+                "Nothing scheduled in the coming weeks yet — plan content on the calendar first.",
+                "未来几周还没有排期内容——先在日历上安排内容。",
+              )}
+            </p>
+          )}
         </div>
       ) : null}
 
