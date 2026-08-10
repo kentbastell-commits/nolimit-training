@@ -39,6 +39,10 @@ export type CompanyOpsActionName =
   | "expense.submit"
   | "content.update"
   | "update_content"
+  | "content.delete"
+  | "delete_content"
+  | "content.duplicate"
+  | "duplicate_content"
   | "goal.create"
   | "goal.update"
   | "goal.respond"
@@ -105,6 +109,10 @@ const ACTIONS_BY_ROLE: Record<CompanyOpsRole, ReadonlySet<CompanyOpsActionName>>
     "create_content_idea",
     "content.update",
     "update_content",
+    "content.delete",
+    "delete_content",
+    "content.duplicate",
+    "duplicate_content",
     "create_lead",
     "create_partner",
     "create_campaign",
@@ -171,6 +179,10 @@ const ACTIONS_BY_ROLE: Record<CompanyOpsRole, ReadonlySet<CompanyOpsActionName>>
     "content.create",
     "content.update",
     "update_content",
+    "content.delete",
+    "delete_content",
+    "content.duplicate",
+    "duplicate_content",
     "lead.create",
     "partner.create",
     "campaign.create",

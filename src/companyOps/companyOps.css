@@ -4053,3 +4053,373 @@ a.fopsOnboardingTaskLink:hover strong {
     grid-template-columns: 1fr;
   }
 }
+
+/* ============ Calendar v2: platform badges, big-date day view, live toggles ============ */
+.fopsPlatBadge {
+  flex: none;
+  border-radius: 5px;
+}
+.fopsCalChipTime {
+  flex: none;
+  color: var(--fops-ink-soft);
+  font-size: 0.7rem;
+  font-variant-numeric: tabular-nums;
+}
+.fopsCalChip.is-live {
+  border-color: rgb(16 122 74 / 45%);
+  background: rgb(16 165 74 / 7%);
+}
+.fopsCalChipLive {
+  flex: none;
+  color: #107a4a;
+}
+
+.fopsCalWeekItem {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.fopsCalWeekItem .fopsCalChip {
+  flex: 1;
+}
+.fopsCalLiveDot {
+  display: inline-flex;
+  flex: none;
+  padding: 4px;
+  border: 1px solid var(--fops-line);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--fops-line-dark);
+  cursor: pointer;
+}
+.fopsCalLiveDot.is-live {
+  border-color: #107a4a;
+  background: #107a4a;
+  color: #fff;
+}
+.fopsCalWeekDay {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+.fopsCalWeekDay span {
+  color: var(--fops-ink-soft);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+/* Day view: hero date + timeline rail */
+.fopsCalDayLayout {
+  display: grid;
+  grid-template-columns: 230px 1fr;
+  gap: 22px;
+  align-items: start;
+}
+.fopsCalDayHero {
+  position: sticky;
+  top: 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 26px 24px 22px;
+  border-radius: 20px;
+  color: #fff;
+  background: #191915;
+  overflow: hidden;
+}
+.fopsCalDayHero::after {
+  content: "";
+  position: absolute;
+  right: -70px;
+  bottom: -110px;
+  width: 260px;
+  height: 260px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgb(201 168 76 / 40%), transparent 68%);
+  pointer-events: none;
+}
+.fopsCalDayWeekday {
+  color: #e2c365;
+  font-size: 0.78rem;
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+.fopsCalDayNumber {
+  font-size: clamp(4.4rem, 9vw, 6.8rem);
+  font-weight: 800;
+  line-height: 0.95;
+  letter-spacing: -0.05em;
+}
+.fopsCalDayMonth {
+  color: rgb(255 255 255 / 72%);
+  font-size: 0.92rem;
+}
+.fopsCalDaySummary {
+  display: flex;
+  gap: 14px;
+  margin-top: 14px;
+  color: rgb(255 255 255 / 82%);
+  font-size: 0.82rem;
+}
+.fopsCalDayPlatforms {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.fopsCalDayRail {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.fopsCalRailCard {
+  display: grid;
+  grid-template-columns: 74px 1fr;
+  gap: 14px;
+}
+.fopsCalRailTime {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  padding: 20px 0 0;
+}
+.fopsCalRailTime span {
+  color: var(--fops-ink-soft);
+  font-size: 0.8rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.fopsCalRailTime i {
+  position: absolute;
+  top: 26px;
+  right: -21px;
+  width: 11px;
+  height: 11px;
+  border: 2px solid var(--fops-gold);
+  border-radius: 50%;
+  background: var(--fops-paper);
+  z-index: 1;
+}
+.fopsCalRailBody {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 10px 0;
+  padding: 18px 20px;
+  border: 1px solid var(--fops-line);
+  border-left: 3px solid var(--fops-gold);
+  border-radius: 15px;
+  background: var(--fops-surface);
+}
+.fopsCalRailCard.is-live .fopsCalRailBody {
+  border-left-color: #107a4a;
+}
+.fopsCalRailCard.is-live .fopsCalRailTime i {
+  border-color: #107a4a;
+  background: #107a4a;
+}
+.fopsCalRailBody header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.fopsCalRailPlatform {
+  color: var(--fops-ink-soft);
+  font-size: 0.8rem;
+  font-weight: 650;
+}
+.fopsCalRailBody h3 {
+  margin: 0;
+  font-size: 1.12rem;
+  line-height: 1.3;
+}
+.fopsCalRailBody footer {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 4px;
+}
+.fopsCalTagRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.fopsCalTag {
+  padding: 2px 9px;
+  border: 1px solid var(--fops-line);
+  border-radius: 999px;
+  color: var(--fops-ink-soft);
+  font-size: 0.72rem;
+}
+.fopsCalTag--hash {
+  color: var(--fops-gold-dark);
+  border-color: rgb(201 168 76 / 45%);
+}
+
+.fopsCalLiveToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  align-self: flex-start;
+  padding: 8px 14px;
+  border: 1.5px solid var(--fops-line-dark);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--fops-ink-soft);
+  font-size: 0.86rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+.fopsCalLiveToggle.is-live {
+  border-color: #107a4a;
+  background: #107a4a;
+  color: #fff;
+}
+.fopsCalLiveToggle--small {
+  padding: 5px 11px;
+  font-size: 0.78rem;
+}
+
+.fopsCalArchiveToggleRow {
+  margin-top: 20px;
+  display: flex;
+  justify-content: center;
+}
+.fopsCalArchiveToggleRow .fopsTextButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  opacity: 0.75;
+}
+.fopsCalArchivePlat {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border: 1px solid var(--fops-line);
+  border-radius: 999px;
+  font-size: 0.78rem;
+}
+
+@media (max-width: 900px) {
+  .fopsCalDayLayout {
+    grid-template-columns: 1fr;
+  }
+  .fopsCalDayHero {
+    position: static;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 10px;
+  }
+  .fopsCalDayNumber {
+    font-size: 3.4rem;
+  }
+  .fopsCalRailCard {
+    grid-template-columns: 56px 1fr;
+  }
+}
+
+/* ============ Calendar context menu + clipboard bar ============ */
+.fopsCalMenuScrim {
+  position: fixed;
+  inset: 0;
+  z-index: 3400;
+  background: transparent;
+}
+.fopsCalMenu {
+  position: fixed;
+  z-index: 3401;
+  display: flex;
+  flex-direction: column;
+  min-width: 172px;
+  padding: 6px;
+  border: 1px solid var(--fops-line-dark);
+  border-radius: 12px;
+  background: var(--fops-paper);
+  box-shadow: 0 14px 38px rgb(20 18 10 / 18%);
+}
+.fopsCalMenu button {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 8px 11px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--fops-ink);
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+.fopsCalMenu button:hover {
+  background: rgb(201 168 76 / 14%);
+}
+.fopsCalMenu button.is-danger {
+  color: #a12c22;
+}
+.fopsCalMenu button.is-danger:hover {
+  background: rgb(161 44 34 / 10%);
+}
+.fopsCalMenu hr {
+  margin: 5px 4px;
+  border: 0;
+  border-top: 1px solid var(--fops-line);
+}
+
+.fopsCalClipboardBar {
+  position: fixed;
+  bottom: 22px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3390;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  max-width: min(92vw, 560px);
+  padding: 9px 14px;
+  border: 1px solid var(--fops-line-dark);
+  border-radius: 999px;
+  background: #191915;
+  color: #fff;
+  font-size: 0.84rem;
+  box-shadow: 0 12px 30px rgb(20 18 10 / 28%);
+}
+.fopsCalClipboardBar svg {
+  flex: none;
+  color: #e2c365;
+}
+.fopsCalClipboardBar span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.fopsCalClipboardBar em {
+  flex: none;
+  color: rgb(255 255 255 / 60%);
+  font-style: normal;
+  font-size: 0.76rem;
+}
+.fopsCalClipboardBar button {
+  display: inline-flex;
+  flex: none;
+  padding: 4px;
+  border: 0;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 12%);
+  color: #fff;
+  cursor: pointer;
+}

@@ -737,6 +737,33 @@ export default function CompanyOpsApp({
               items={dashboard.contentCalendar || []}
               language={language}
               onQuickAction={setDrawerAction}
+              onDuplicate={async (contentId, publishDate) => {
+                try {
+                  await runRecordAction("duplicate_content", {
+                    contentId,
+                    ...(publishDate ? { publishDate } : {}),
+                  });
+                } catch (error) {
+                  showToast(
+                    error instanceof Error
+                      ? error.message
+                      : opsText(language, "actionFailed"),
+                    "error",
+                  );
+                }
+              }}
+              onDelete={async (contentId) => {
+                try {
+                  await runRecordAction("delete_content", { contentId });
+                } catch (error) {
+                  showToast(
+                    error instanceof Error
+                      ? error.message
+                      : opsText(language, "actionFailed"),
+                    "error",
+                  );
+                }
+              }}
               onUpdate={async (contentId, patch) => {
                 try {
                   await runRecordAction("update_content", {

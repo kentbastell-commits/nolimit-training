@@ -42,6 +42,8 @@ export type CompanyOpsActionName =
   | "submit_internal_request"
   | "update_status"
   | "update_content"
+  | "delete_content"
+  | "duplicate_content"
   | "create_goal"
   | "update_goal"
   | "respond_goal"

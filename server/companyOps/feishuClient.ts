@@ -561,6 +561,18 @@ export class FeishuClient {
     };
   }
 
+  async deleteRecord(
+    appToken: string,
+    tableId: string,
+    recordId: string
+  ): Promise<void> {
+    await this.tenantRequest(
+      `/open-apis/bitable/v1/apps/${encodeURIComponent(appToken)}` +
+        `/tables/${encodeURIComponent(tableId)}/records/${encodeURIComponent(recordId)}`,
+      { method: "DELETE" }
+    );
+  }
+
   async updateRecord(
     appToken: string,
     tableId: string,

@@ -2578,6 +2578,71 @@ export class CompanyOpsRepository {
         await this.client.updateRecord(target.appToken, target.tableId, contentId, updates);
         return { success: true, message: "Content updated", recordId: contentId };
       }
+      case "content.delete":
+      case "delete_content": {
+        const allowedDelete = new Set(["contentId"]);
+        const unknownDelete = Object.keys(payload).filter((key) => !allowedDelete.has(key));
+        if (unknownDelete.length) {
+          throw new CompanyOpsHttpError(400, `Unknown fields: ${unknownDelete.join(", ")}`);
+        }
+        const contentId = validRecordId(payload.contentId);
+        const target = await this.target("content");
+        await this.client.getRecord(target.appToken, target.tableId, contentId);
+        await this.client.deleteRecord(target.appToken, target.tableId, contentId);
+        return { success: true, message: "Content deleted", recordId: contentId };
+      }
+      case "content.duplicate":
+      case "duplicate_content": {
+        const allowedDup = new Set(["contentId", "publishDate"]);
+        const unknownDup = Object.keys(payload).filter((key) => !allowedDup.has(key));
+        if (unknownDup.length) {
+          throw new CompanyOpsHttpError(400, `Unknown fields: ${unknownDup.join(", ")}`);
+        }
+        const contentId = validRecordId(payload.contentId);
+        const target = await this.target("content");
+        const source = await this.client.getRecord(target.appToken, target.tableId, contentId);
+        const copyFields: FeishuFields = {};
+        const carry = (aliases: readonly string[]) => {
+          const field = fieldByAlias(target.fields, aliases);
+          if (!field) return;
+          const raw = recordField(source.fields, aliases);
+          const value = textValue(raw);
+          if (value) copyFields[field.field_name] = value;
+        };
+        const titleField = fieldByAlias(target.fields, ["内容 Content", "Title"], true);
+        if (titleField) {
+          const title = textValue(recordField(source.fields, ["内容 Content", "Title"])) || "Untitled";
+          copyFields[titleField.field_name] = `${title} (copy)`.slice(0, 200);
+        }
+        for (const aliases of [
+          ["平台 Platform", "Platform"],
+          ["形式 Format", "Content Type"],
+          ["钩子/标题 Hook", "Hook"],
+          ["文案 Copy", "Script / Caption"],
+          ["关键词 SEO Keywords", "SEO Keywords"],
+          ["话题标签 Hashtags", "Hashtags"],
+          ["行动号召 CTA", "CTA"],
+          ["创意备注 Idea Notes", "Idea Notes"],
+          ["内容支柱 Pillar", "Content Pillar"],
+          ["受众 Audience", "Audience"],
+          ["漏斗阶段 Funnel", "Funnel"],
+          ["目标 Objective", "Objective"],
+          ["出镜 Featured", "Featured"],
+        ] as const) {
+          carry(aliases);
+        }
+        const statusField = fieldByAlias(target.fields, FIELD.status);
+        if (statusField) copyFields[statusField.field_name] = "想法 Idea";
+        if (payload.publishDate !== undefined) {
+          const publishField = fieldByAlias(target.fields, ["发布日期 Publish Date", "Publish Date"]);
+          const when = dateValue(payload.publishDate);
+          if (when === undefined) throw new CompanyOpsHttpError(400, "publishDate must be a date");
+          if (publishField) copyFields[publishField.field_name] = when;
+        }
+        this.addActorFields(copyFields, target.fields, principal);
+        const record = await this.client.createRecord(target.appToken, target.tableId, copyFields);
+        return { success: true, message: "Content duplicated", recordId: record.record_id };
+      }
       case "submit_internal_request": {
         const record = await this.createMapped("internalRequest", payload, REQUEST_SPECS, principal, { status: "待处理 Open" });
         return { success: true, message: "Internal request submitted", recordId: record.record_id };
