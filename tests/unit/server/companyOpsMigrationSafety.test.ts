@@ -9,6 +9,21 @@ const verifySource = readFileSync(
   new URL("../../../scripts/company-ops/verify.mjs", import.meta.url),
   "utf8",
 );
+const attributionRepairSource = readFileSync(
+  new URL(
+    "../../../server/db/migrations/0018_marketing_attribution_repair.sql",
+    import.meta.url,
+  ),
+  "utf8",
+);
+const migrationJournal = JSON.parse(
+  readFileSync(
+    new URL("../../../server/db/migrations/meta/_journal.json", import.meta.url),
+    "utf8",
+  ),
+) as {
+  entries: Array<{ idx: number; when: number; tag: string }>;
+};
 
 describe("Company Ops migration safety contract", () => {
   it("hardens every Base before the first schema mutation", () => {
@@ -88,5 +103,22 @@ describe("Company Ops migration safety contract", () => {
     expect(verifySource).toContain(
       "administratorLookupError && config.founderOpenIds.length",
     );
+  });
+
+  it("repairs skipped attribution migrations idempotently after every prior migration", () => {
+    const repair = migrationJournal.entries.find(
+      ({ tag }) => tag === "0018_marketing_attribution_repair",
+    );
+
+    expect(repair).toBeDefined();
+    const latestPriorTimestamp = Math.max(
+      ...migrationJournal.entries
+        .filter(({ idx }) => idx < repair!.idx)
+        .map(({ when }) => when),
+    );
+    expect(repair!.when).toBeGreaterThan(latestPriorTimestamp);
+    expect(attributionRepairSource.match(/ADD COLUMN IF NOT EXISTS/g)).toHaveLength(6);
+    expect(attributionRepairSource.match(/CREATE INDEX IF NOT EXISTS/g)).toHaveLength(2);
+    expect(attributionRepairSource).not.toMatch(/\bDROP\b|\bDELETE\b|\bTRUNCATE\b/i);
   });
 });
