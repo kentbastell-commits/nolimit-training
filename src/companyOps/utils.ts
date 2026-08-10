@@ -10,6 +10,8 @@ import type {
 
 const roleCapabilities: Record<CompanyOpsRole, CompanyOpsCapability[]> = {
   founder: [
+    "view_performance",
+    "manage_performance",
     "view_growth",
     "edit_growth",
     "review_content",
@@ -19,9 +21,9 @@ const roleCapabilities: Record<CompanyOpsRole, CompanyOpsCapability[]> = {
     "manage_onboarding",
     "submit_expense",
   ],
-  growth: ["view_growth", "edit_growth", "submit_expense"],
-  finance: ["view_finance", "view_decisions", "submit_expense"],
-  employee: ["submit_expense"],
+  growth: ["view_performance", "view_growth", "edit_growth", "submit_expense"],
+  finance: ["view_performance", "view_finance", "view_decisions", "submit_expense"],
+  employee: ["view_performance", "submit_expense"],
 };
 
 export function capabilitiesFor(user: CompanyOpsUser) {
@@ -30,6 +32,7 @@ export function capabilitiesFor(user: CompanyOpsUser) {
 
 export function canOpenPage(user: CompanyOpsUser, page: CompanyOpsPage) {
   const capabilities = capabilitiesFor(user);
+  if (page === "performance") return user.accessStatus !== "pending";
   if (page === "growth") return capabilities.has("view_growth");
   if (page === "decisions") return capabilities.has("view_decisions");
   return true;

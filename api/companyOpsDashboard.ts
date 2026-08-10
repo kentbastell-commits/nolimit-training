@@ -285,6 +285,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             !compensationSource.commission?.locked,
         }
       : undefined;
+    const performance = data.performance
+      ? {
+          cycles: data.performance.cycles,
+          staff: principal.role === "founder" ? data.performance.staff : undefined,
+          canManage: data.performance.canManage,
+        }
+      : { cycles: [], canManage: false };
 
     return res.status(200).json({
       generatedAt: new Date().toISOString(),
@@ -321,6 +328,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         : undefined,
       finance,
       myCompensation: compensation,
+      performance,
+      myPerformance: {
+        cycles: principal.role === "founder" ? [] : performance.cycles,
+      },
       founder: data.founder
         ? {
             decisions,
@@ -328,6 +339,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             onboarding,
             onboardingCases: [],
             onboardingCandidates: data.founder.onboardingCandidates,
+            performanceCycles: data.founder.performanceCycles,
           }
         : undefined,
     });

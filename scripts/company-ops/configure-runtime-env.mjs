@@ -68,6 +68,7 @@ const tablePins = [
   ["confidential", "报销记录 Expenses", "FEISHU_ADMIN_EXPENSES_TABLE_ID"],
   ["confidential", "工资台账 Payroll", "FEISHU_ADMIN_PAYROLL_TABLE_ID"],
   ["confidential", "提成月结 Commission Statements", "FEISHU_ADMIN_COMMISSION_TABLE_ID"],
+  ["confidential", "月度绩效 Monthly Performance", "FEISHU_ADMIN_PERFORMANCE_TABLE_ID"],
   ["confidential", "制度确认 Policy Acknowledgements", "FEISHU_ADMIN_POLICY_ACKNOWLEDGEMENTS_TABLE_ID"],
   ["teamOps", "内部请求 Internal Requests", "FEISHU_ADMIN_INTERNAL_REQUESTS_TABLE_ID"],
   ["teamOps", "产品与应用支持 Product & App Support", "FEISHU_ADMIN_SUPPORT_TABLE_ID"],

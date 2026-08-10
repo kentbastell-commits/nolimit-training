@@ -17,6 +17,7 @@ export type CompanyOpsResource =
   | "expense"
   | "payroll"
   | "commission"
+  | "performance"
   | "policyAcknowledgement"
   | "support"
   | "internalRequest"
@@ -102,13 +103,19 @@ const booleanValue = (value: string | undefined, fallback: boolean): boolean => 
   return fallback;
 };
 
+const hasUnsafeInternalPathCharacters = (value: string): boolean =>
+  Array.from(value).some((character) => {
+    const code = character.codePointAt(0) || 0;
+    return code <= 0x1f || code === 0x7f || character === "\\";
+  });
+
 const safeInternalPath = (value: string | undefined): string => {
   const path = clean(value) || "/company-ops";
   if (
     path.length > 4_096 ||
     !path.startsWith("/") ||
     path.startsWith("//") ||
-    /[\u0000-\u001f\u007f\\]/.test(path) ||
+    hasUnsafeInternalPathCharacters(path) ||
     /%(?:2f|5c|0[0-9a-f]|1[0-9a-f]|7f)/i.test(path)
   ) {
     return "/company-ops";
@@ -242,6 +249,11 @@ export function getCompanyOpsConfig(env: Env = process.env): CompanyOpsConfig {
         base: "confidential",
         id: optional(env.FEISHU_ADMIN_COMMISSION_TABLE_ID),
         names: ["提成月结 Commission Statements", "Commission Statements", "Commission Statement", "提成结算单"],
+      },
+      performance: {
+        base: "confidential",
+        id: optional(env.FEISHU_ADMIN_PERFORMANCE_TABLE_ID),
+        names: ["月度绩效 Monthly Performance", "Monthly Performance", "月度绩效"],
       },
       policyAcknowledgement: {
         base: "confidential",

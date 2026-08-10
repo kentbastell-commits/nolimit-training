@@ -5,6 +5,7 @@ import {
   Languages,
   LogOut,
   RefreshCw,
+  Target,
   TrendingUp,
   UserRoundCheck,
 } from "lucide-react";
@@ -23,6 +24,7 @@ import { opsText, roleLabel, type OpsCopyKey } from "./copy";
 import FounderHome from "./FounderHome";
 import GrowthHome from "./GrowthHome";
 import OnboardingHome from "./OnboardingHome";
+import PerformanceHome from "./PerformanceHome";
 import PoliciesPage from "./PoliciesPage";
 import QuickActionDrawer from "./QuickActionDrawer";
 import type {
@@ -51,6 +53,7 @@ const navItems: Array<{
   icon: ComponentType<{ size?: number; "aria-hidden"?: boolean }>;
 }> = [
   { page: "home", label: "navHome", icon: Home },
+  { page: "performance", label: "navPerformance", icon: Target },
   { page: "growth", label: "navGrowth", icon: TrendingUp },
   { page: "decisions", label: "navDecisions", icon: Gavel },
   { page: "onboarding", label: "navOnboarding", icon: UserRoundCheck },
@@ -83,6 +86,8 @@ function safeDashboardForUser(
     ...dashboard,
     user,
     growth: capabilities.has("view_growth") ? dashboard.growth : undefined,
+    myPerformance: dashboard.myPerformance,
+    performance: user.role === "founder" ? dashboard.performance : undefined,
     decisions: capabilities.has("view_decisions")
       ? dashboard.decisions
       : undefined,
@@ -121,10 +126,11 @@ function StatusScreen({
   language: CompanyOpsLanguage;
   loginUrl?: string;
   onRetry?: () => void;
-  onRequestAccess?: () => void;
+  onRequestAccess?: (requestedRole: "growth" | "staff" | "finance") => void;
   requestingAccess?: boolean;
   requestMessage?: string;
 }) {
+  const [requestedRole, setRequestedRole] = useState<"growth" | "staff" | "finance">("growth");
   const title =
     kind === "unauthenticated"
       ? opsText(language, "loginTitle")
@@ -172,16 +178,30 @@ function StatusScreen({
             {opsText(language, "retry")}
           </button>
         ) : kind === "denied" && onRequestAccess ? (
-          <button
-            className="fopsButton fopsButton--primary"
-            type="button"
-            onClick={onRequestAccess}
-            disabled={requestingAccess}
-          >
-            {requestingAccess
-              ? opsText(language, "requestingAccess")
-              : requestMessage || opsText(language, "requestAccess")}
-          </button>
+          <div className="fopsAccessRequestControls">
+            <label>
+              <span>{language === "zh" ? "申请岗位权限" : "Access needed"}</span>
+              <select
+                value={requestedRole}
+                onChange={(event) => setRequestedRole(event.target.value as typeof requestedRole)}
+                disabled={requestingAccess}
+              >
+                <option value="growth">{language === "zh" ? "品牌与增长" : "Brand & Growth"}</option>
+                <option value="staff">{language === "zh" ? "普通员工" : "Staff"}</option>
+                <option value="finance">{language === "zh" ? "财务" : "Finance"}</option>
+              </select>
+            </label>
+            <button
+              className="fopsButton fopsButton--primary"
+              type="button"
+              onClick={() => onRequestAccess(requestedRole)}
+              disabled={requestingAccess}
+            >
+              {requestingAccess
+                ? opsText(language, "requestingAccess")
+                : requestMessage || opsText(language, "requestAccess")}
+            </button>
+          </div>
         ) : null}
         {requestMessage ? <p role="status">{requestMessage}</p> : null}
         <small>{opsText(language, "loginPrivacy")}</small>
@@ -495,14 +515,14 @@ export default function CompanyOpsApp({
     }
   };
 
-  const handleRequestAccess = async () => {
+  const handleRequestAccess = async (requestedRole: "growth" | "staff" | "finance") => {
     if (!session?.authenticated || !session.csrfToken) return;
     setRequestingAccess(true);
     setAccessRequestMessage(undefined);
     try {
       const result = await api.submitAction(
         "request_access",
-        { requestedRole: "staff" },
+        { requestedRole },
         session.csrfToken,
       );
       setAccessRequestMessage(
@@ -549,7 +569,7 @@ export default function CompanyOpsApp({
           loginUrl={loginHref(session)}
           onRetry={() => void loadWorkspace()}
           onRequestAccess={
-            loadState === "denied" ? () => void handleRequestAccess() : undefined
+            loadState === "denied" ? (requestedRole) => void handleRequestAccess(requestedRole) : undefined
           }
           requestingAccess={requestingAccess}
           requestMessage={accessRequestMessage}
@@ -679,6 +699,21 @@ export default function CompanyOpsApp({
               growth={dashboard.growth}
               language={language}
               onQuickAction={setDrawerAction}
+            />
+          ) : null}
+          {activePage === "performance" ? (
+            <PerformanceHome
+              user={user}
+              language={language}
+              myPerformance={dashboard.myPerformance}
+              performance={dashboard.performance}
+              sharedAssetsUrl={dashboard.links?.sharedAssets}
+              onAction={runRecordAction}
+              onUploadAsset={
+                (user.role === "founder" || user.role === "growth") && api.uploadAsset
+                  ? (file) => api.uploadAsset!(file, session?.csrfToken)
+                  : undefined
+              }
             />
           ) : null}
           {activePage === "decisions" && capabilities.has("view_decisions") ? (

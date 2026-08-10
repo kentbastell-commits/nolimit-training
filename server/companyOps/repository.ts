@@ -44,6 +44,53 @@ export interface CompanyOpsDashboardItem {
   actionType?: "founder_decision" | "access_request" | "expense" | "weekly_report";
 }
 
+export interface CompanyOpsPerformanceGoal {
+  index: number;
+  title: string;
+  measure: string;
+  weight: number;
+  result?: string;
+  score?: number;
+}
+
+export interface CompanyOpsPerformanceCycle {
+  id: string;
+  month: string;
+  employee: {
+    staffRecordId: string;
+    name: string;
+  };
+  managerName?: string;
+  status: string;
+  goals: CompanyOpsPerformanceGoal[];
+  weightedScore?: number;
+  approvedBonus?: number;
+  personalFactor?: number;
+  reportDue?: string;
+  prioritiesConfirmedAt?: string;
+  selfReview?: string;
+  evidenceLinks?: string[];
+  context?: string;
+  reportSubmittedAt?: string;
+  founderReview?: string;
+  scoredAt?: string;
+  employeeResponse?: string;
+  employeeRespondedAt?: string;
+  disputeStatus?: string;
+  finalizedAt?: string;
+  payrollStagedAt?: string;
+  canSubmitReport: boolean;
+  canRespond: boolean;
+  canManage: boolean;
+  canFinalize: boolean;
+}
+
+export interface CompanyOpsPerformanceStaffOption {
+  staffRecordId: string;
+  name: string;
+  role: CompanyOpsRole;
+}
+
 export interface CompanyOpsDashboard {
   user: {
     name: string;
@@ -68,12 +115,18 @@ export interface CompanyOpsDashboard {
   supportIssues: CompanyOpsDashboardItem[];
   links: Record<string, string>;
   acknowledgedPolicyIds?: string[];
+  performance?: {
+    cycles: CompanyOpsPerformanceCycle[];
+    staff?: CompanyOpsPerformanceStaffOption[];
+    canManage: boolean;
+  };
   founder?: {
     accessRequests: CompanyOpsDashboardItem[];
     expenses: CompanyOpsDashboardItem[];
     payroll: CompanyOpsDashboardItem[];
     commissions: CompanyOpsDashboardItem[];
     weeklyReports: CompanyOpsDashboardItem[];
+    performanceCycles: CompanyOpsPerformanceCycle[];
     onboardingCandidates: Array<{
       openId: string;
       name: string;
@@ -198,6 +251,7 @@ const CONFIDENTIAL_FIELD = {
     deductions: "扣款 Deductions",
     netPay: "实发 Net Pay",
     status: "状态 Status",
+    locked: "已锁定 Locked",
   },
   commission: {
     month: "月份 Month",
@@ -219,7 +273,44 @@ const CONFIDENTIAL_FIELD = {
     version: "文件版本 Document Version",
     readAndAcknowledged: "已阅读并确认 Read & Acknowledged",
   },
+  performance: {
+    record: "记录 Record",
+    month: "月份 Month",
+    manager: "直属负责人 Manager",
+    status: "状态 Status",
+    reportDue: "报告截止 Report Due",
+    prioritiesConfirmedAt: "目标确认时间 Priorities Confirmed At",
+    selfReview: "员工自评 Self Review",
+    evidenceLinks: "证据链接 Evidence Links",
+    context: "问题与背景 Context",
+    reportSubmittedAt: "报告提交时间 Report Submitted At",
+    founderReview: "创始人评语 Founder Review",
+    total: "总分 Total",
+    bonus: "奖金 Bonus (税前)",
+    personalFactor: "个人系数 Personal Factor",
+    bonusFormula: "奖金计算规则 Bonus Formula",
+    scoredAt: "初评时间 Scored At",
+    employeeResponse: "员工异议/说明 Employee Response",
+    employeeRespondedAt: "员工回应时间 Employee Responded At",
+    disputeStatus: "异议状态 Dispute Status",
+    finalizedAt: "定稿时间 Finalized At",
+    payrollStagedAt: "工资入账时间 Payroll Staged At",
+  },
 } as const;
+
+const performanceGoalField = (index: number): string => `目标 ${index} Goal ${index}`;
+const performanceMeasureField = (index: number): string => `衡量标准 ${index} Measure ${index}`;
+const performanceResultField = (index: number): string => `成果 ${index} Result ${index}`;
+
+const PERFORMANCE_CATEGORIES = [
+  { index: 1, weight: 25, scoreField: "内容规划与交付(25) Content & Delivery" },
+  { index: 2, weight: 20, scoreField: "内容质量与优化(20) Quality" },
+  { index: 3, weight: 20, scoreField: "活动与合作(20) Campaigns & Partners" },
+  { index: 4, weight: 15, scoreField: "社群线索转化(15) Community & Leads" },
+  { index: 5, weight: 20, scoreField: "组织与主人翁(20) Ownership" },
+] as const;
+
+const PERFORMANCE_FORMULA_VERSION = "handbook_v2_fixed_categories_thresholds_v1";
 
 const POLICY_DOCUMENT_BY_ID = {
   "employee-handbook": "员工手册 Employee Handbook",
@@ -465,6 +556,15 @@ const STATUS_BY_RESOURCE: Partial<
     Confirmed: "已确认 Confirmed",
     Paid: "已支付 Paid",
   },
+  performance: {
+    "Goals Set": "目标已确认 Goals Set",
+    "Report Submitted": "报告已提交 Report Submitted",
+    "Changes Requested": "需补充 Changes Requested",
+    Scoring: "评分中 Scoring",
+    "Employee Review": "员工确认中 Employee Review",
+    Confirmed: "已确认 Confirmed",
+    Paid: "已随工资支付 Paid",
+  },
   internalRequest: {
     Open: "待处理 Open",
     "In Progress": "进行中 Doing",
@@ -527,7 +627,11 @@ const isTerminalWorkStatus = (status: string | undefined): boolean =>
   ]).has(status || "");
 
 const STATUS_RESOURCES_BY_ROLE: Record<CompanyOpsRole, ReadonlySet<CompanyOpsResource>> = {
-  founder: new Set(Object.keys(STATUS_BY_RESOURCE) as CompanyOpsResource[]),
+  founder: new Set(
+    (Object.keys(STATUS_BY_RESOURCE) as CompanyOpsResource[]).filter(
+      (resource) => resource !== "performance"
+    )
+  ),
   finance: new Set(["expense", "payroll", "commission", "internalRequest", "support"]),
   growth: new Set(["content", "lead", "partner", "campaign", "experiment", "weeklyReport", "internalRequest", "support"]),
   staff: new Set(["internalRequest", "onboarding", "support"]),
@@ -591,6 +695,21 @@ const fieldByAlias = (
   const names = new Set(aliases.map(normalize));
   return fields.find((field) => names.has(normalize(field.field_name))) ||
     (primary ? fields.find((field) => field.is_primary) : undefined);
+};
+
+const requiredField = (
+  target: ResolvedTarget,
+  aliases: readonly string[],
+  allowedTypes?: readonly number[],
+  primary = false
+): FeishuField => {
+  const result = fieldByAlias(target.fields, aliases, primary);
+  if (!result || (allowedTypes && !allowedTypes.includes(result.type))) {
+    throw new CompanyOpsConfigurationError(
+      `The ${target.resource} table is missing required field ${aliases[0]}`
+    );
+  }
+  return result;
 };
 
 const recordField = (fields: FeishuFields, aliases: readonly string[]): unknown => {
@@ -682,6 +801,36 @@ const shanghaiDateKey = (timestamp: number): string =>
     month: "2-digit",
     day: "2-digit",
   }).format(new Date(timestamp));
+
+const monthKey = (value: unknown, fieldName = "month"): string => {
+  const raw = textValue(value);
+  if (/^(?:20|21)\d{2}-(?:0[1-9]|1[0-2])$/.test(raw)) return raw;
+  const timestamp = dateValue(value);
+  if (timestamp !== undefined) return shanghaiDateKey(timestamp).slice(0, 7);
+  throw new CompanyOpsHttpError(400, `${fieldName} must use YYYY-MM`);
+};
+
+const storedMonthValue = (month: string, field: FeishuField): string | number => {
+  if (field.type !== 5) return month;
+  const [year, monthNumber] = month.split("-").map(Number);
+  return Date.UTC(year, monthNumber - 1, 1);
+};
+
+const rounded = (value: number): number => Math.round((value + Number.EPSILON) * 100) / 100;
+
+const boundedText = (
+  value: unknown,
+  fieldName: string,
+  maximum: number,
+  required = false
+): string => {
+  const result = textValue(value);
+  if (required && !result) throw new CompanyOpsHttpError(400, `${fieldName} is required`);
+  if (result.length > maximum) {
+    throw new CompanyOpsHttpError(400, `${fieldName} is too long`);
+  }
+  return result;
+};
 
 const selectionValues = (value: unknown): string[] => {
   if (Array.isArray(value)) return value.flatMap(selectionValues);
@@ -1283,6 +1432,179 @@ export class CompanyOpsRepository {
     };
   }
 
+  private projectPerformanceCycle(
+    record: FeishuRecord,
+    principal: CompanyOpsPrincipal,
+    staffNames: ReadonlyMap<string, string>
+  ): CompanyOpsPerformanceCycle | undefined {
+    const staffIds = linkedRecordIds(
+      recordField(record.fields, [CONFIDENTIAL_FIELD.employee, "Employee"])
+    );
+    if (staffIds.length !== 1) return undefined;
+    let month: string;
+    try {
+      month = monthKey(
+        recordField(record.fields, [CONFIDENTIAL_FIELD.performance.month, "Month"])
+      );
+    } catch {
+      return undefined;
+    }
+    const goals: CompanyOpsPerformanceGoal[] = [];
+    for (const category of PERFORMANCE_CATEGORIES) {
+      const { index } = category;
+      const title = textValue(recordField(record.fields, [performanceGoalField(index)]));
+      if (!title) continue;
+      goals.push({
+        index,
+        title,
+        measure: textValue(recordField(record.fields, [performanceMeasureField(index)])),
+        weight: category.weight,
+        result: textValue(recordField(record.fields, [performanceResultField(index)])) || undefined,
+        score: numberValue(recordField(record.fields, [category.scoreField])),
+      });
+    }
+    const status = decodeStatus(
+      "performance",
+      recordField(record.fields, [CONFIDENTIAL_FIELD.performance.status, "Status"])
+    ) || "Goals Set";
+    const scoredAtValue = dateValue(
+      recordField(record.fields, [CONFIDENTIAL_FIELD.performance.scoredAt])
+    );
+    const respondedAtValue = dateValue(
+      recordField(record.fields, [CONFIDENTIAL_FIELD.performance.employeeRespondedAt])
+    );
+    const evidenceText = textValue(
+      recordField(record.fields, [CONFIDENTIAL_FIELD.performance.evidenceLinks])
+    );
+    const selfLinked = Boolean(
+      principal.staffRecordId && staffIds[0] === principal.staffRecordId
+    );
+    const employeeResponse = textValue(
+      recordField(record.fields, [CONFIDENTIAL_FIELD.performance.employeeResponse])
+    );
+    const payrollStagedAt = dateValue(
+      recordField(record.fields, [CONFIDENTIAL_FIELD.performance.payrollStagedAt])
+    );
+    return {
+      id: record.record_id,
+      month,
+      employee: {
+        staffRecordId: staffIds[0],
+        name: staffNames.get(staffIds[0]) || (selfLinked ? principal.name : "Employee"),
+      },
+      managerName: textValue(
+        recordField(record.fields, [CONFIDENTIAL_FIELD.performance.manager])
+      ) || undefined,
+      status,
+      goals,
+      weightedScore: numberValue(
+        recordField(record.fields, [CONFIDENTIAL_FIELD.performance.total])
+      ),
+      approvedBonus: numberValue(
+        recordField(record.fields, [CONFIDENTIAL_FIELD.performance.bonus])
+      ),
+      personalFactor: numberValue(
+        recordField(record.fields, [CONFIDENTIAL_FIELD.performance.personalFactor])
+      ),
+      reportDue: isoDate(
+        recordField(record.fields, [CONFIDENTIAL_FIELD.performance.reportDue])
+      ),
+      prioritiesConfirmedAt: isoDate(
+        recordField(record.fields, [CONFIDENTIAL_FIELD.performance.prioritiesConfirmedAt])
+      ),
+      selfReview: textValue(
+        recordField(record.fields, [CONFIDENTIAL_FIELD.performance.selfReview])
+      ) || undefined,
+      evidenceLinks: evidenceText
+        ? evidenceText.split(/\r?\n/).map((item) => item.trim()).filter(Boolean)
+        : undefined,
+      context: textValue(
+        recordField(record.fields, [CONFIDENTIAL_FIELD.performance.context])
+      ) || undefined,
+      reportSubmittedAt: isoDate(
+        recordField(record.fields, [CONFIDENTIAL_FIELD.performance.reportSubmittedAt])
+      ),
+      founderReview: textValue(
+        recordField(record.fields, [CONFIDENTIAL_FIELD.performance.founderReview])
+      ) || undefined,
+      scoredAt: scoredAtValue === undefined ? undefined : new Date(scoredAtValue).toISOString(),
+      employeeResponse: employeeResponse || undefined,
+      employeeRespondedAt: respondedAtValue === undefined
+        ? undefined
+        : new Date(respondedAtValue).toISOString(),
+      disputeStatus: textValue(
+        recordField(record.fields, [CONFIDENTIAL_FIELD.performance.disputeStatus])
+      ) || undefined,
+      finalizedAt: isoDate(
+        recordField(record.fields, [CONFIDENTIAL_FIELD.performance.finalizedAt])
+      ),
+      payrollStagedAt: payrollStagedAt === undefined
+        ? undefined
+        : new Date(payrollStagedAt).toISOString(),
+      canSubmitReport: selfLinked && new Set(["Goals Set", "Changes Requested"]).has(status),
+      canRespond:
+        selfLinked &&
+        status === "Employee Review" &&
+        scoredAtValue !== undefined &&
+        (respondedAtValue === undefined || respondedAtValue < scoredAtValue),
+      canManage: principal.role === "founder",
+      canFinalize:
+        principal.role === "founder" &&
+        new Set(["Employee Review", "Confirmed"]).has(status) &&
+        scoredAtValue !== undefined &&
+        respondedAtValue !== undefined &&
+        respondedAtValue >= scoredAtValue &&
+        employeeResponse.startsWith("[Accepted]") &&
+        payrollStagedAt === undefined,
+    };
+  }
+
+  private async getPerformanceDashboard(
+    principal: CompanyOpsPrincipal
+  ): Promise<NonNullable<CompanyOpsDashboard["performance"]>> {
+    const [records, staffRecords] = await Promise.all([
+      principal.role === "founder" || principal.staffRecordId
+        ? this.listOptional("performance", 500)
+        : Promise.resolve([]),
+      principal.role === "founder"
+        ? this.listOptional("staff", 500)
+        : Promise.resolve([]),
+    ]);
+    const activeStaff = staffRecords.filter(isActiveStaff);
+    const staffNames = new Map<string, string>();
+    for (const record of activeStaff) {
+      const name = textValue(
+        recordField(record.fields, ["姓名 Name", "Name", "Employee", "姓名"])
+      );
+      if (name) staffNames.set(record.record_id, name);
+    }
+    if (principal.staffRecordId) staffNames.set(principal.staffRecordId, principal.name);
+    const visible = principal.role === "founder"
+      ? records
+      : records.filter((record) => this.linkedToStaff(record, principal.staffRecordId || ""));
+    const cycles = visible
+      .map((record) => this.projectPerformanceCycle(record, principal, staffNames))
+      .filter((cycle): cycle is CompanyOpsPerformanceCycle => Boolean(cycle))
+      .sort((left, right) =>
+        right.month.localeCompare(left.month) || left.employee.name.localeCompare(right.employee.name)
+      );
+    return {
+      cycles,
+      canManage: principal.role === "founder",
+      staff: principal.role === "founder"
+        ? activeStaff
+            .map((record) => ({
+              staffRecordId: record.record_id,
+              name: staffNames.get(record.record_id) || "Employee",
+              role: normalizeRole(
+                recordField(record.fields, ["应用角色 App Role", "职位 Role", "App Role", "Role"])
+              ),
+            }))
+            .sort((left, right) => left.name.localeCompare(right.name))
+        : undefined,
+    };
+  }
+
   async getDashboard(principal: CompanyOpsPrincipal): Promise<CompanyOpsDashboard> {
     if (principal.role === "pending") {
       return {
@@ -1565,6 +1887,7 @@ export class CompanyOpsRepository {
           payroll,
           commissions,
           weeklyReports,
+          performanceCycles: [],
           onboardingCandidates,
           revenue: await this.currentMonthRevenue(),
         };
@@ -1576,12 +1899,15 @@ export class CompanyOpsRepository {
         ];
       }
     }
-    const [myCompensation, acknowledgedPolicyIds] = await Promise.all([
+    const [myCompensation, acknowledgedPolicyIds, performance] = await Promise.all([
       this.getMyCompensation(principal),
       this.getAcknowledgedPolicyIds(principal),
+      this.getPerformanceDashboard(principal),
     ]);
     dashboard.myCompensation = myCompensation;
     dashboard.acknowledgedPolicyIds = acknowledgedPolicyIds;
+    dashboard.performance = performance;
+    if (dashboard.founder) dashboard.founder.performanceCycles = performance.cycles;
     return dashboard;
   }
 
@@ -1825,9 +2151,683 @@ export class CompanyOpsRepository {
       case "raise_commission_dispute":
       case "dispute_compensation":
         return this.updateOwnCompensation(principal, payload, "dispute");
+      case "performance.goals.set":
+      case "set_performance_goals":
+        return this.setPerformanceGoals(principal, payload);
+      case "performance.report.submit":
+      case "submit_performance_report":
+        return this.submitPerformanceReport(principal, payload);
+      case "performance.review.request_changes":
+      case "request_performance_changes":
+        return this.requestPerformanceChanges(principal, payload);
+      case "performance.review.score":
+      case "score_performance_review":
+        return this.scorePerformanceReview(principal, payload);
+      case "performance.review.respond":
+      case "respond_performance_review":
+        return this.respondPerformanceReview(principal, payload);
+      case "performance.finalize":
+      case "finalize_performance":
+        return this.finalizePerformance(principal, payload);
       default:
         throw new CompanyOpsHttpError(400, "Unknown Company Operations action");
     }
+  }
+
+  private performanceStatus(record: FeishuRecord): string {
+    return decodeStatus(
+      "performance",
+      recordField(record.fields, [CONFIDENTIAL_FIELD.performance.status, "Status"])
+    ) || "Goals Set";
+  }
+
+  private performanceMonth(record: FeishuRecord): string | undefined {
+    try {
+      return monthKey(
+        recordField(record.fields, [CONFIDENTIAL_FIELD.performance.month, "Month"])
+      );
+    } catch {
+      return undefined;
+    }
+  }
+
+  private async performanceRecord(
+    principal: CompanyOpsPrincipal,
+    performanceIdValue: unknown,
+    founderOnly = false
+  ): Promise<{ target: ResolvedTarget; record: FeishuRecord }> {
+    if (founderOnly && principal.role !== "founder") {
+      throw new CompanyOpsHttpError(403, "Only the founder can manage performance reviews");
+    }
+    const performanceId = validRecordId(performanceIdValue);
+    const target = await this.target("performance");
+    const record = await this.client.getRecord(
+      target.appToken,
+      target.tableId,
+      performanceId
+    );
+    if (
+      principal.role !== "founder" &&
+      (!principal.staffRecordId || !this.linkedToStaff(record, principal.staffRecordId))
+    ) {
+      throw new CompanyOpsHttpError(403, "You can access only your own performance cycle");
+    }
+    return { target, record };
+  }
+
+  private parsePerformanceGoals(value: unknown): Array<{
+    index: number;
+    title: string;
+    measure: string;
+  }> {
+    if (!Array.isArray(value) || value.length !== PERFORMANCE_CATEGORIES.length) {
+      throw new CompanyOpsHttpError(400, "Exactly five fixed-category goals are required");
+    }
+    const goals = value.map((raw) => {
+      const goal = objectInput(raw);
+      const allowed = new Set(["index", "title", "measure"]);
+      const unknown = Object.keys(goal).filter((key) => !allowed.has(key));
+      if (unknown.length) {
+        throw new CompanyOpsHttpError(400, `Unknown goal fields: ${unknown.join(", ")}`);
+      }
+      const index = numberValue(goal.index);
+      if (!Number.isInteger(index) || index! < 1 || index! > 5) {
+        throw new CompanyOpsHttpError(400, "Each goal requires a unique index from 1 to 5");
+      }
+      return {
+        index: index!,
+        title: boundedText(goal.title, `goal ${index} title`, 1_000, true),
+        measure: boundedText(goal.measure, `goal ${index} measure`, 3_000, true),
+      };
+    });
+    if (new Set(goals.map((goal) => goal.index)).size !== PERFORMANCE_CATEGORIES.length) {
+      throw new CompanyOpsHttpError(400, "Goal indexes must include each fixed category once");
+    }
+    return goals.sort((left, right) => left.index - right.index);
+  }
+
+  private parsePerformanceScores(value: unknown): Array<{
+    index: number;
+    score: number;
+  }> {
+    if (!Array.isArray(value) || value.length !== PERFORMANCE_CATEGORIES.length) {
+      throw new CompanyOpsHttpError(400, "A score is required for all five categories");
+    }
+    const scores = value.map((raw) => {
+      const item = objectInput(raw);
+      const allowed = new Set(["index", "score"]);
+      const unknown = Object.keys(item).filter((key) => !allowed.has(key));
+      if (unknown.length) {
+        throw new CompanyOpsHttpError(400, `Unknown score fields: ${unknown.join(", ")}`);
+      }
+      const index = numberValue(item.index);
+      const score = numberValue(item.score);
+      if (!Number.isInteger(index) || index! < 1 || index! > 5) {
+        throw new CompanyOpsHttpError(400, "Each score requires a unique index from 1 to 5");
+      }
+      if (score === undefined || score < 0 || score > 100) {
+        throw new CompanyOpsHttpError(400, `score ${index} must be between 0 and 100`);
+      }
+      return { index: index!, score: rounded(score) };
+    });
+    if (new Set(scores.map((item) => item.index)).size !== PERFORMANCE_CATEGORIES.length) {
+      throw new CompanyOpsHttpError(400, "Score indexes must include each fixed category once");
+    }
+    return scores.sort((left, right) => left.index - right.index);
+  }
+
+  private async setPerformanceGoals(
+    principal: CompanyOpsPrincipal,
+    input: Record<string, unknown>
+  ): Promise<CompanyOpsActionResult> {
+    if (principal.role !== "founder") {
+      throw new CompanyOpsHttpError(403, "Only the founder can set monthly performance goals");
+    }
+    const allowed = new Set([
+      "employeeStaffRecordId",
+      "staffRecordId",
+      "month",
+      "goals",
+      "reportDue",
+    ]);
+    const unknown = Object.keys(input).filter((key) => !allowed.has(key));
+    if (unknown.length) throw new CompanyOpsHttpError(400, `Unknown fields: ${unknown.join(", ")}`);
+    const employeeStaffRecordId = validRecordId(
+      input.employeeStaffRecordId ?? input.staffRecordId
+    );
+    const month = monthKey(input.month);
+    const goals = this.parsePerformanceGoals(input.goals);
+    const reportDue = dateValue(input.reportDue);
+    if (reportDue === undefined) {
+      throw new CompanyOpsHttpError(400, "reportDue must be a valid date");
+    }
+
+    const staffTarget = await this.target("staff");
+    const staff = await this.client.getRecord(
+      staffTarget.appToken,
+      staffTarget.tableId,
+      employeeStaffRecordId
+    );
+    if (!isActiveStaff(staff)) {
+      throw new CompanyOpsHttpError(409, "Performance goals can be set only for active staff");
+    }
+    const employeeName = boundedText(
+      recordField(staff.fields, ["姓名 Name", "Name", "Employee", "姓名"]),
+      "employee name",
+      200,
+      true
+    );
+    const target = await this.target("performance");
+    const existing = (await this.client.listRecords(target.appToken, target.tableId, {
+      maxRecords: 500,
+    })).filter((record) =>
+      this.linkedToStaff(record, employeeStaffRecordId) &&
+      this.performanceMonth(record) === month
+    );
+    if (existing.length > 1) {
+      throw new CompanyOpsHttpError(409, "Duplicate performance cycles exist for this employee and month");
+    }
+    if (existing[0] && this.performanceStatus(existing[0]) !== "Goals Set") {
+      throw new CompanyOpsHttpError(409, "Goals are locked after the employee submits the monthly report");
+    }
+
+    const primary = requiredField(target, [CONFIDENTIAL_FIELD.performance.record], [1], true);
+    const employee = requiredField(target, [CONFIDENTIAL_FIELD.employee], [18]);
+    const monthField = requiredField(target, [CONFIDENTIAL_FIELD.performance.month], [1, 5]);
+    const manager = requiredField(target, [CONFIDENTIAL_FIELD.performance.manager], [11]);
+    const status = requiredField(target, [CONFIDENTIAL_FIELD.performance.status], [3]);
+    const due = requiredField(target, [CONFIDENTIAL_FIELD.performance.reportDue], [5]);
+    const confirmedAt = requiredField(
+      target,
+      [CONFIDENTIAL_FIELD.performance.prioritiesConfirmedAt],
+      [5]
+    );
+    const formula = requiredField(
+      target,
+      [CONFIDENTIAL_FIELD.performance.bonusFormula],
+      [1]
+    );
+    const fields: FeishuFields = {
+      [primary.field_name]: `${month} · ${employeeName}`,
+      [employee.field_name]: [employeeStaffRecordId],
+      [monthField.field_name]: storedMonthValue(month, monthField),
+      [manager.field_name]: [{ id: principal.openId }],
+      [status.field_name]: encodeStatus("performance", "Goals Set"),
+      [due.field_name]: reportDue,
+      [confirmedAt.field_name]: Date.now(),
+      [formula.field_name]: PERFORMANCE_FORMULA_VERSION,
+    };
+    for (const goal of goals) {
+      const title = requiredField(target, [performanceGoalField(goal.index)], [1]);
+      const measure = requiredField(target, [performanceMeasureField(goal.index)], [1]);
+      fields[title.field_name] = goal.title;
+      fields[measure.field_name] = goal.measure;
+    }
+    const disputeStatus = fieldByAlias(target.fields, [
+      CONFIDENTIAL_FIELD.performance.disputeStatus,
+    ]);
+    if (disputeStatus?.type === 3) fields[disputeStatus.field_name] = "无异议 None";
+    const record = existing[0]
+      ? await this.client.updateRecord(
+          target.appToken,
+          target.tableId,
+          existing[0].record_id,
+          fields
+        )
+      : await this.client.createRecord(target.appToken, target.tableId, fields);
+    return {
+      success: true,
+      message: existing[0]
+        ? `${employeeName}'s ${month} goals were updated`
+        : `${employeeName}'s ${month} goals were confirmed`,
+      recordId: record.record_id,
+    };
+  }
+
+  private async submitPerformanceReport(
+    principal: CompanyOpsPrincipal,
+    input: Record<string, unknown>
+  ): Promise<CompanyOpsActionResult> {
+    const allowed = new Set([
+      "performanceId",
+      "selfReview",
+      "results",
+      "evidenceLinks",
+      "context",
+    ]);
+    const unknown = Object.keys(input).filter((key) => !allowed.has(key));
+    if (unknown.length) throw new CompanyOpsHttpError(400, `Unknown fields: ${unknown.join(", ")}`);
+    if (!principal.staffRecordId) {
+      throw new CompanyOpsHttpError(403, "Your staff identity is not linked unambiguously");
+    }
+    const { target, record } = await this.performanceRecord(
+      principal,
+      input.performanceId
+    );
+    const currentStatus = this.performanceStatus(record);
+    if (!new Set(["Goals Set", "Changes Requested"]).has(currentStatus)) {
+      throw new CompanyOpsHttpError(409, "This performance report is not open for submission");
+    }
+    const selfReview = boundedText(input.selfReview, "selfReview", 12_000, true);
+    if (!Array.isArray(input.results) || input.results.length !== 5) {
+      throw new CompanyOpsHttpError(400, "A result is required for all five goals");
+    }
+    const results = input.results.map((raw) => {
+      const item = objectInput(raw);
+      const allowedResult = new Set(["index", "result"]);
+      const unknownResult = Object.keys(item).filter((key) => !allowedResult.has(key));
+      if (unknownResult.length) {
+        throw new CompanyOpsHttpError(400, `Unknown result fields: ${unknownResult.join(", ")}`);
+      }
+      const index = numberValue(item.index);
+      if (!Number.isInteger(index) || index! < 1 || index! > 5) {
+        throw new CompanyOpsHttpError(400, "Each result requires a unique index from 1 to 5");
+      }
+      return {
+        index: index!,
+        result: boundedText(item.result, `result ${index}`, 6_000, true),
+      };
+    });
+    if (new Set(results.map((item) => item.index)).size !== 5) {
+      throw new CompanyOpsHttpError(400, "Result indexes must include each fixed category once");
+    }
+    const evidenceValues = input.evidenceLinks === undefined
+      ? []
+      : Array.isArray(input.evidenceLinks)
+        ? input.evidenceLinks
+        : (() => { throw new CompanyOpsHttpError(400, "evidenceLinks must be a list"); })();
+    if (evidenceValues.length > 20) {
+      throw new CompanyOpsHttpError(400, "No more than 20 evidence links may be submitted");
+    }
+    const evidenceLinks = evidenceValues.map((value, index) => {
+      const link = boundedText(value, `evidence link ${index + 1}`, 1_000, true);
+      try {
+        const parsed = new URL(link);
+        if (parsed.protocol !== "https:") throw new Error("HTTPS required");
+        return parsed.toString();
+      } catch {
+        throw new CompanyOpsHttpError(400, `evidence link ${index + 1} must be a valid HTTPS URL`);
+      }
+    });
+    const context = boundedText(input.context, "context", 6_000);
+    const status = requiredField(target, [CONFIDENTIAL_FIELD.performance.status], [3]);
+    const selfReviewField = requiredField(
+      target,
+      [CONFIDENTIAL_FIELD.performance.selfReview],
+      [1]
+    );
+    const submittedAt = requiredField(
+      target,
+      [CONFIDENTIAL_FIELD.performance.reportSubmittedAt],
+      [5]
+    );
+    const fields: FeishuFields = {
+      [status.field_name]: encodeStatus("performance", "Report Submitted"),
+      [selfReviewField.field_name]: selfReview,
+      [submittedAt.field_name]: Date.now(),
+    };
+    for (const result of results) {
+      const resultField = requiredField(target, [performanceResultField(result.index)], [1]);
+      fields[resultField.field_name] = result.result;
+    }
+    const evidenceField = requiredField(
+      target,
+      [CONFIDENTIAL_FIELD.performance.evidenceLinks],
+      [1]
+    );
+    const contextField = requiredField(
+      target,
+      [CONFIDENTIAL_FIELD.performance.context],
+      [1]
+    );
+    fields[evidenceField.field_name] = evidenceLinks.join("\n");
+    fields[contextField.field_name] = context;
+    await this.client.updateRecord(target.appToken, target.tableId, record.record_id, fields);
+    return {
+      success: true,
+      message: "Monthly performance report submitted for founder review",
+      recordId: record.record_id,
+    };
+  }
+
+  private async requestPerformanceChanges(
+    principal: CompanyOpsPrincipal,
+    input: Record<string, unknown>
+  ): Promise<CompanyOpsActionResult> {
+    const allowed = new Set(["performanceId", "feedback"]);
+    const unknown = Object.keys(input).filter((key) => !allowed.has(key));
+    if (unknown.length) throw new CompanyOpsHttpError(400, `Unknown fields: ${unknown.join(", ")}`);
+    const feedback = boundedText(input.feedback, "feedback", 6_000, true);
+    const { target, record } = await this.performanceRecord(
+      principal,
+      input.performanceId,
+      true
+    );
+    if (this.performanceStatus(record) !== "Report Submitted") {
+      throw new CompanyOpsHttpError(409, "Changes can be requested only for a submitted report");
+    }
+    const status = requiredField(target, [CONFIDENTIAL_FIELD.performance.status], [3]);
+    const review = requiredField(
+      target,
+      [CONFIDENTIAL_FIELD.performance.founderReview],
+      [1]
+    );
+    await this.client.updateRecord(target.appToken, target.tableId, record.record_id, {
+      [status.field_name]: encodeStatus("performance", "Changes Requested"),
+      [review.field_name]: feedback,
+    });
+    return { success: true, message: "Changes requested from the employee", recordId: record.record_id };
+  }
+
+  private async scorePerformanceReview(
+    principal: CompanyOpsPrincipal,
+    input: Record<string, unknown>
+  ): Promise<CompanyOpsActionResult> {
+    const allowed = new Set(["performanceId", "scores", "feedback"]);
+    const unknown = Object.keys(input).filter((key) => !allowed.has(key));
+    if (unknown.length) throw new CompanyOpsHttpError(400, `Unknown fields: ${unknown.join(", ")}`);
+    const scores = this.parsePerformanceScores(input.scores);
+    const feedback = boundedText(input.feedback, "feedback", 6_000, true);
+    const { target, record } = await this.performanceRecord(
+      principal,
+      input.performanceId,
+      true
+    );
+    const currentStatus = this.performanceStatus(record);
+    if (!new Set(["Report Submitted", "Scoring"]).has(currentStatus)) {
+      throw new CompanyOpsHttpError(409, "This report is not ready for scoring");
+    }
+    const weightedScore = rounded(scores.reduce((total, item) => {
+      const category = PERFORMANCE_CATEGORIES.find((entry) => entry.index === item.index)!;
+      return total + item.score * category.weight / 100;
+    }, 0));
+    const bonus = weightedScore >= 90
+      ? 2_000
+      : weightedScore >= 80
+        ? 1_500
+        : weightedScore >= 70
+          ? 1_000
+          : weightedScore >= 60
+            ? 500
+            : 0;
+    const personalFactor = weightedScore >= 90
+      ? 1
+      : weightedScore >= 80
+        ? 0.8
+        : weightedScore >= 70
+          ? 0.5
+          : 0;
+    const fields: FeishuFields = {};
+    for (const item of scores) {
+      const category = PERFORMANCE_CATEGORIES.find((entry) => entry.index === item.index)!;
+      const scoreField = requiredField(target, [category.scoreField], [2]);
+      fields[scoreField.field_name] = item.score;
+    }
+    const totalField = requiredField(target, [CONFIDENTIAL_FIELD.performance.total], [2]);
+    const bonusField = requiredField(target, [CONFIDENTIAL_FIELD.performance.bonus], [2]);
+    const factorField = requiredField(
+      target,
+      [CONFIDENTIAL_FIELD.performance.personalFactor],
+      [2]
+    );
+    const formulaField = requiredField(
+      target,
+      [CONFIDENTIAL_FIELD.performance.bonusFormula],
+      [1]
+    );
+    const scoredAt = requiredField(target, [CONFIDENTIAL_FIELD.performance.scoredAt], [5]);
+    const review = requiredField(target, [CONFIDENTIAL_FIELD.performance.founderReview], [1]);
+    const status = requiredField(target, [CONFIDENTIAL_FIELD.performance.status], [3]);
+    fields[totalField.field_name] = weightedScore;
+    fields[bonusField.field_name] = bonus;
+    fields[factorField.field_name] = personalFactor;
+    fields[formulaField.field_name] = PERFORMANCE_FORMULA_VERSION;
+    fields[scoredAt.field_name] = Date.now();
+    fields[review.field_name] = feedback;
+    fields[status.field_name] = encodeStatus("performance", "Employee Review");
+    const dispute = fieldByAlias(target.fields, [CONFIDENTIAL_FIELD.performance.disputeStatus]);
+    if (dispute?.type === 3) {
+      fields[dispute.field_name] = currentStatus === "Scoring"
+        ? "复核中 Reviewing"
+        : "无异议 None";
+    }
+    await this.client.updateRecord(target.appToken, target.tableId, record.record_id, fields);
+    return {
+      success: true,
+      message: `Performance scored ${weightedScore}; handbook bonus CNY ${bonus}`,
+      recordId: record.record_id,
+    };
+  }
+
+  private async respondPerformanceReview(
+    principal: CompanyOpsPrincipal,
+    input: Record<string, unknown>
+  ): Promise<CompanyOpsActionResult> {
+    const allowed = new Set(["performanceId", "response", "comment"]);
+    const unknown = Object.keys(input).filter((key) => !allowed.has(key));
+    if (unknown.length) throw new CompanyOpsHttpError(400, `Unknown fields: ${unknown.join(", ")}`);
+    const response = textValue(input.response).toLowerCase();
+    if (!new Set(["accept", "challenge"]).has(response)) {
+      throw new CompanyOpsHttpError(400, "response must be accept or challenge");
+    }
+    const comment = boundedText(input.comment, "comment", 3_000, response === "challenge");
+    const { target, record } = await this.performanceRecord(principal, input.performanceId);
+    if (this.performanceStatus(record) !== "Employee Review") {
+      throw new CompanyOpsHttpError(409, "This score is not awaiting employee review");
+    }
+    const scoredAtValue = dateValue(
+      recordField(record.fields, [CONFIDENTIAL_FIELD.performance.scoredAt])
+    );
+    const respondedAtValue = dateValue(
+      recordField(record.fields, [CONFIDENTIAL_FIELD.performance.employeeRespondedAt])
+    );
+    if (scoredAtValue === undefined) {
+      throw new CompanyOpsConfigurationError("The performance score is missing its review timestamp");
+    }
+    if (respondedAtValue !== undefined && respondedAtValue >= scoredAtValue) {
+      throw new CompanyOpsHttpError(409, "You have already responded to this score");
+    }
+    const responseField = requiredField(
+      target,
+      [CONFIDENTIAL_FIELD.performance.employeeResponse],
+      [1]
+    );
+    const respondedAt = requiredField(
+      target,
+      [CONFIDENTIAL_FIELD.performance.employeeRespondedAt],
+      [5]
+    );
+    const dispute = requiredField(
+      target,
+      [CONFIDENTIAL_FIELD.performance.disputeStatus],
+      [3]
+    );
+    const fields: FeishuFields = {
+      [responseField.field_name]: response === "accept"
+        ? `[Accepted]${comment ? ` ${comment}` : ""}`
+        : `[Challenged] ${comment}`,
+      [respondedAt.field_name]: Date.now(),
+      [dispute.field_name]: response === "accept"
+        ? "无异议 None"
+        : "员工说明 Submitted",
+    };
+    if (response === "challenge") {
+      const status = requiredField(target, [CONFIDENTIAL_FIELD.performance.status], [3]);
+      fields[status.field_name] = encodeStatus("performance", "Scoring");
+    }
+    await this.client.updateRecord(target.appToken, target.tableId, record.record_id, fields);
+    return {
+      success: true,
+      message: response === "accept"
+        ? "Performance score accepted"
+        : "Performance challenge sent to the founder",
+      recordId: record.record_id,
+    };
+  }
+
+  private async stagePerformanceBonusInPayroll(
+    target: ResolvedTarget,
+    performanceRecord: FeishuRecord,
+    bonus: number
+  ): Promise<string> {
+    const staffIds = linkedRecordIds(
+      recordField(performanceRecord.fields, [CONFIDENTIAL_FIELD.employee])
+    );
+    if (staffIds.length !== 1) {
+      throw new CompanyOpsConfigurationError("The performance cycle must link exactly one employee");
+    }
+    const month = this.performanceMonth(performanceRecord);
+    if (!month) throw new CompanyOpsConfigurationError("The performance cycle has an invalid month");
+    const payrollTarget = await this.target("payroll");
+    const employee = requiredField(payrollTarget, [CONFIDENTIAL_FIELD.employee], [18]);
+    const monthField = requiredField(payrollTarget, [CONFIDENTIAL_FIELD.payroll.month], [1, 5]);
+    const bonusField = requiredField(
+      payrollTarget,
+      [CONFIDENTIAL_FIELD.payroll.performanceBonus],
+      [2]
+    );
+    const statusField = requiredField(payrollTarget, [CONFIDENTIAL_FIELD.payroll.status], [3]);
+    const payrollRecords = (await this.client.listRecords(
+      payrollTarget.appToken,
+      payrollTarget.tableId,
+      { maxRecords: 1_000 }
+    )).filter((record) =>
+      this.linkedToStaff(record, staffIds[0]) && this.compensationPeriod(record).slice(0, 7) === month
+    );
+    if (payrollRecords.length > 1) {
+      throw new CompanyOpsHttpError(409, "Duplicate payroll records exist for this employee and month");
+    }
+    const existing = payrollRecords[0];
+    if (existing) {
+      const locked = boolValue(
+        recordField(existing.fields, [CONFIDENTIAL_FIELD.payroll.locked])
+      );
+      const status = normalize(
+        textValue(recordField(existing.fields, [CONFIDENTIAL_FIELD.payroll.status]))
+      );
+      if (locked === true || /paid|已发|已支付|已打款/.test(status)) {
+        throw new CompanyOpsHttpError(409, "The matching payroll record is already locked or paid");
+      }
+      const fields: FeishuFields = { [bonusField.field_name]: bonus };
+      if (!status) fields[statusField.field_name] = "待发 Pending";
+      await this.client.updateRecord(
+        payrollTarget.appToken,
+        payrollTarget.tableId,
+        existing.record_id,
+        fields
+      );
+      return existing.record_id;
+    }
+    const primary = requiredField(payrollTarget, ["记录 Record"], [1], true);
+    const employeeName = textValue(
+      recordField(performanceRecord.fields, [CONFIDENTIAL_FIELD.employee])
+    ) || staffIds[0];
+    const payroll = await this.client.createRecord(
+      payrollTarget.appToken,
+      payrollTarget.tableId,
+      {
+        [primary.field_name]: `${month} · ${employeeName}`,
+        [employee.field_name]: [staffIds[0]],
+        [monthField.field_name]: storedMonthValue(month, monthField),
+        [bonusField.field_name]: bonus,
+        [statusField.field_name]: "待发 Pending",
+      }
+    );
+    if (!payroll.record_id) throw new FeishuApiError("Feishu did not return a payroll record ID");
+    // `target` is intentionally part of the signature so the caller cannot
+    // accidentally stage a bonus detached from the resolved performance table.
+    void target;
+    return payroll.record_id;
+  }
+
+  private async finalizePerformance(
+    principal: CompanyOpsPrincipal,
+    input: Record<string, unknown>
+  ): Promise<CompanyOpsActionResult> {
+    const allowed = new Set(["performanceId", "resolutionNote"]);
+    const unknown = Object.keys(input).filter((key) => !allowed.has(key));
+    if (unknown.length) throw new CompanyOpsHttpError(400, `Unknown fields: ${unknown.join(", ")}`);
+    const resolutionNote = boundedText(input.resolutionNote, "resolutionNote", 3_000);
+    const { target, record } = await this.performanceRecord(
+      principal,
+      input.performanceId,
+      true
+    );
+    const statusValue = this.performanceStatus(record);
+    const stagedAtValue = dateValue(
+      recordField(record.fields, [CONFIDENTIAL_FIELD.performance.payrollStagedAt])
+    );
+    if (statusValue === "Paid") {
+      return { success: true, message: "Performance bonus was already paid", recordId: record.record_id };
+    }
+    if (statusValue === "Confirmed" && stagedAtValue !== undefined) {
+      return { success: true, message: "Performance bonus was already staged in payroll", recordId: record.record_id };
+    }
+    if (!new Set(["Employee Review", "Confirmed"]).has(statusValue)) {
+      throw new CompanyOpsHttpError(409, "This performance cycle is not ready to finalize");
+    }
+    const scoredAtValue = dateValue(
+      recordField(record.fields, [CONFIDENTIAL_FIELD.performance.scoredAt])
+    );
+    const respondedAtValue = dateValue(
+      recordField(record.fields, [CONFIDENTIAL_FIELD.performance.employeeRespondedAt])
+    );
+    const response = textValue(
+      recordField(record.fields, [CONFIDENTIAL_FIELD.performance.employeeResponse])
+    );
+    if (
+      scoredAtValue === undefined ||
+      respondedAtValue === undefined ||
+      respondedAtValue < scoredAtValue ||
+      !response.startsWith("[Accepted]")
+    ) {
+      throw new CompanyOpsHttpError(409, "The employee must accept the latest score before finalization");
+    }
+    const bonus = numberValue(
+      recordField(record.fields, [CONFIDENTIAL_FIELD.performance.bonus])
+    );
+    if (bonus === undefined || bonus < 0) {
+      throw new CompanyOpsConfigurationError("The performance cycle is missing its calculated bonus");
+    }
+    const payrollId = await this.stagePerformanceBonusInPayroll(target, record, bonus);
+    const status = requiredField(target, [CONFIDENTIAL_FIELD.performance.status], [3]);
+    const finalizedAt = requiredField(
+      target,
+      [CONFIDENTIAL_FIELD.performance.finalizedAt],
+      [5]
+    );
+    const stagedAt = requiredField(
+      target,
+      [CONFIDENTIAL_FIELD.performance.payrollStagedAt],
+      [5]
+    );
+    const fields: FeishuFields = {
+      [status.field_name]: encodeStatus("performance", "Confirmed"),
+      [finalizedAt.field_name]: Date.now(),
+      [stagedAt.field_name]: Date.now(),
+    };
+    const dispute = fieldByAlias(target.fields, [CONFIDENTIAL_FIELD.performance.disputeStatus]);
+    if (dispute?.type === 3) fields[dispute.field_name] = "已解决 Resolved";
+    if (resolutionNote) {
+      const review = requiredField(
+        target,
+        [CONFIDENTIAL_FIELD.performance.founderReview],
+        [1]
+      );
+      const existingReview = textValue(
+        recordField(record.fields, [CONFIDENTIAL_FIELD.performance.founderReview])
+      );
+      fields[review.field_name] = [existingReview, `Final resolution: ${resolutionNote}`]
+        .filter(Boolean)
+        .join("\n\n");
+    }
+    await this.client.updateRecord(target.appToken, target.tableId, record.record_id, fields);
+    return {
+      success: true,
+      message: `Performance finalized; CNY ${bonus} staged in pending payroll`,
+      recordId: record.record_id,
+      recordIds: [record.record_id, payrollId],
+    };
   }
 
   private linkedToStaff(record: FeishuRecord, staffRecordId: string): boolean {
@@ -2708,7 +3708,7 @@ export class CompanyOpsRepository {
           this.config.sharedAssetsFolderToken,
           "folder",
           openId,
-          "view"
+          role === "growth" ? "edit" : "view"
         );
       } catch {
         warning = "Access was approved, but the private shared-assets folder could not be added automatically";

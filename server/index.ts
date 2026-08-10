@@ -40,6 +40,7 @@ import clients from "../api/clients.ts";
 import coaches from "../api/coaches.ts";
 import coachingSignup from "../api/coachingSignup.ts";
 import companyOpsActions from "../api/companyOpsActions.ts";
+import companyOpsAssetUpload from "../api/companyOpsAssetUpload.ts";
 import companyOpsAuthCallback from "../api/companyOpsAuthCallback.ts";
 import companyOpsDashboard from "../api/companyOpsDashboard.ts";
 import companyOpsLogin from "../api/companyOpsLogin.ts";
@@ -196,6 +197,22 @@ app.post("/api/uploadFormVideoFile", (req, res) => {
       }
       res.status(200).json({ success: true, url: `/uploads/${name}` });
     })
+  );
+});
+
+// Authenticated Company Operations assets go directly to the dedicated
+// Feishu Drive folder. This is intentionally registered before express.json:
+// the endpoint accepts a raw file body, streams larger files through Feishu's
+// multipart flow, and applies its own 500 MiB bound plus session, role, origin,
+// CSRF, filename and content checks.
+app.post("/api/company-ops/assets/upload", (req, res) => {
+  void Promise.resolve(companyOpsAssetUpload(req as never, res as never)).catch(
+    (error) => {
+      console.error("API handler failed: companyOpsAssetUpload", error);
+      if (!res.headersSent) {
+        res.status(500).json({ error: "Server error" });
+      }
+    }
   );
 });
 app.use(

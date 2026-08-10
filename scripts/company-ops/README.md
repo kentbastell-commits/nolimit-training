@@ -34,6 +34,12 @@ node --env-file=.env.local scripts/company-ops/configure-runtime-env.mjs --dry -
 node --env-file=.env.local scripts/company-ops/configure-runtime-env.mjs --apply --env=.env.local
 ```
 
+The migration must run before runtime discovery. It adds the private Monthly
+Performance workflow fields/status options and creates the Company Shared
+Assets folder tree. Runtime discovery then records the exact table and folder
+IDs used by the web portal. Restart the application server after applying the
+runtime env file.
+
 Verify the resulting schema, forms, folder structure, and sharing policy:
 
 ```powershell
@@ -68,6 +74,19 @@ FEISHU_TEAMOPS_BASE_APP_TOKEN=
 FEISHU_GROWTH_BASE_APP_TOKEN=
 ```
 
+The runtime configurator manages the derived values, including:
+
+```dotenv
+FEISHU_ADMIN_PERFORMANCE_TABLE_ID=
+FEISHU_ADMIN_SHARED_ASSETS_FOLDER_TOKEN=
+FEISHU_ADMIN_SHARED_ASSETS_FOLDER_URL=
+```
+
+Do not hand-copy these into browser code. They are server-only identifiers and
+must be rediscovered after replacing a Base/table/folder. The upload route is
+unavailable until both shared-assets values are present; the performance page
+cannot read/write cycles until the performance table ID is present.
+
 Optional least-privilege collaborators:
 
 ```dotenv
@@ -80,10 +99,75 @@ Supported aliases are `FEISHU_ADMIN_TEAMOPS_BASE_APP_TOKEN` for `FEISHU_TEAMOPS_
 
 The founder list is also derived from explicit `full_access` members of the Confidential Base. Add Yumei's Open ID to `FEISHU_GROWTH_EDITOR_OPEN_IDS` only if she needs raw Growth Base editing; the authenticated company workspace can remain her normal interface.
 
+## Monthly performance and bonus workflow
+
+The authoritative records stay in the founder-only `月度绩效 Monthly
+Performance` table. Employees use `/company-ops` → **Performance / 月度绩效**;
+they do not receive the raw Confidential Base. Server-side identity linking
+filters non-founders to their own Staff record and rejects client-supplied
+weights, bonus amounts, statuses or a different employee identity.
+
+The monthly sequence is:
+
+1. Founder selects an active employee, month and report deadline, then writes
+   a measurable success standard for each fixed category. Weights are always
+   25/20/20/15/20.
+2. Employee sees **My Month** and submits an overall summary, a result for all
+   five goals, optional context and private HTTPS evidence links.
+3. Founder requests changes or scores each category 0–100. The server derives
+   the weighted score and pre-tax bonus: ≥90 ¥2,000; ≥80 ¥1,500; ≥70 ¥1,000;
+   ≥60 ¥500; below 60 ¥0.
+4. Employee accepts the latest score or challenges it with a comment.
+5. Founder may finalise only after acceptance. Finalisation stages only
+   `月度绩效奖金 Perf Bonus` in the matching payroll row and refuses to alter a
+   locked or paid payroll record.
+
+Role boundary:
+
+- founders see/manage every cycle and the safe active-staff selector;
+- Growth, Staff and Finance users see only their own linked cycles and can
+  submit/respond when the current workflow status permits;
+- Growth users and founders can upload shared video evidence; other approved
+  users have read-only shared-assets access;
+- pending users can request a role but cannot read Company Operations records.
+
+### Set up Yumei
+
+1. Ask Yumei to sign in with her own company Feishu account.
+2. On the denied screen, keep **Brand & Growth / 品牌与增长** selected and send
+   the access request.
+3. A founder approves it in Company Operations. Do not assign founder,
+   finance, super-admin or Confidential Base access.
+4. Confirm the approval linked one active Staff record and granted `edit` on
+   Company Shared Assets. If Feishu rejects the automatic folder grant, add
+   her explicitly in Drive and keep link sharing closed.
+5. Sign in as Yumei and verify that she sees only **My Month**. Then sign in as
+   founder and create her first monthly goal cycle.
+
+## Feishu Drive video upload
+
+The Performance page provides Growth users and founders with a video drop
+zone. Uploads go through the authenticated Company Operations server, not
+directly from the browser to an exposed folder token. The server enforces
+session, CSRF/origin, role, file-type/signature, rate/concurrency and size
+checks, uploads to `公司共享资料 Company Shared Assets`, and returns a private
+Feishu link that can be attached to the monthly report.
+
+Feishu's one-shot file endpoint caps a request at 20 MiB, so the portal
+automatically switches larger files to Feishu's official multipart upload flow.
+The Company Operations safety cap is **500 MiB per file**; the tenant's current
+storage-plan quota still applies. Store only non-sensitive Brand/Growth working
+media here—never identity documents, bank details, payroll, legal files or
+health information.
+
 ## Safety and access model
 
 - Raw Team Ops and Growth Base links are closed. Founders retain explicit `full_access`; configured growth editors receive `edit` only.
-- Confidential HR and finance data remains founder-only. The only shared Base form is the tenant-only confidential employee-details intake form, whose visible questions are explicitly allowlisted.
+- Confidential HR, finance and performance tables remain founder-only. The
+  portal exposes a server-filtered employee view of the signed-in person's own
+  performance cycle; it never exposes the raw Base or another employee's row.
+  The only shared Base form is the tenant-only confidential employee-details
+  intake form, whose visible questions are explicitly allowlisted.
 - Legacy operational forms are unshared. Staff should use the authenticated workspace or reviewed Feishu approval flows instead of raw Base links.
 - The migration creates an app-owned `公司共享资料 Company Shared Assets` root and only non-sensitive Brand, Content, Campaign, Testimonial, KOL, Template, and Archive subfolders. HR, Finance, and Legal files do not belong in this broadly shared root.
 - Folder sharing is never made public. If Feishu rejects folder-member management through the API, the scripts warn and require manual founder access verification in Drive.

@@ -4,12 +4,15 @@ export type CompanyOpsRole = "founder" | "growth" | "employee" | "finance";
 
 export type CompanyOpsPage =
   | "home"
+  | "performance"
   | "growth"
   | "decisions"
   | "onboarding"
   | "policies";
 
 export type CompanyOpsCapability =
+  | "view_performance"
+  | "manage_performance"
   | "view_growth"
   | "edit_growth"
   | "review_content"
@@ -37,7 +40,13 @@ export type CompanyOpsActionName =
   | "request_access"
   | "generate_onboarding"
   | "acknowledge_compensation"
-  | "dispute_compensation";
+  | "dispute_compensation"
+  | "performance.goals.set"
+  | "performance.report.submit"
+  | "performance.review.request_changes"
+  | "performance.review.score"
+  | "performance.review.respond"
+  | "performance.finalize";
 
 export type QuickActionKey =
   | "content"
@@ -301,6 +310,62 @@ export interface OpsCompensationSummary {
   locked?: boolean;
 }
 
+export interface OpsPerformanceGoal {
+  index: number;
+  title: string;
+  measure: string;
+  weight: number;
+  result?: string;
+  score?: number;
+}
+
+export interface OpsPerformanceEmployee {
+  staffRecordId: string;
+  name: string;
+  role?: string;
+}
+
+export interface OpsPerformanceCycle {
+  id: string;
+  month: string;
+  employee: OpsPerformanceEmployee;
+  managerName?: string;
+  status: string;
+  goals: OpsPerformanceGoal[];
+  personalFactor?: number;
+  weightedScore?: number;
+  approvedBonus?: number;
+  reportDue?: string;
+  prioritiesConfirmedAt?: string;
+  selfReview?: string;
+  evidenceLinks?: string[];
+  context?: string;
+  reportSubmittedAt?: string;
+  founderReview?: string;
+  scoredAt?: string;
+  employeeResponse?: string;
+  employeeRespondedAt?: string;
+  disputeStatus?: string;
+  finalizedAt?: string;
+  payrollStagedAt?: string;
+  canSubmitReport?: boolean;
+  canRespond?: boolean;
+  canManage?: boolean;
+  canFinalize?: boolean;
+}
+
+export interface OpsPerformanceDashboard {
+  cycles: OpsPerformanceCycle[];
+  canManage?: boolean;
+  staff?: OpsPerformanceEmployee[];
+}
+
+export interface OpsAssetUploadResult extends CompanyOpsActionResult {
+  fileToken?: string;
+  fileName?: string;
+  url?: string;
+}
+
 export interface OpsQuickActionConfig {
   key: QuickActionKey;
   enabled?: boolean;
@@ -319,6 +384,8 @@ export interface CompanyOpsDashboard {
   decisions?: OpsDecisionItem[];
   finance?: OpsFinanceSummary;
   myCompensation?: OpsCompensationSummary;
+  myPerformance?: OpsPerformanceDashboard;
+  performance?: OpsPerformanceDashboard;
   onboarding?: OpsOnboardingDashboard;
   onboardingCases?: OpsOnboardingCaseSummary[];
   onboardingCandidates?: OpsOnboardingCandidate[];
@@ -333,6 +400,9 @@ export interface CompanyOpsDashboard {
     expenseApproval?: string;
     weeklyReportForm?: string;
     tasks?: string;
+    sharedAssets?: string;
+    companyCalendar?: string;
+    contentCalendar?: string;
   };
 }
 
@@ -352,5 +422,9 @@ export interface CompanyOpsApi {
     payload: Record<string, unknown>,
     csrfToken?: string,
   ) => Promise<CompanyOpsActionResult>;
+  uploadAsset?: (
+    file: File,
+    csrfToken?: string,
+  ) => Promise<OpsAssetUploadResult>;
   logout: (csrfToken?: string) => Promise<void>;
 }

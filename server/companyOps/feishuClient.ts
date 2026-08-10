@@ -37,6 +37,16 @@ export interface FeishuAppAdminIds {
   userIds: ReadonlySet<string>;
 }
 
+export interface FeishuDriveUpload {
+  fileToken: string;
+}
+
+export interface FeishuDriveUploadPreparation {
+  uploadId: string;
+  blockSize: number;
+  blockCount: number;
+}
+
 export class FeishuApiError extends Error {
   readonly status: number;
   readonly code?: number | string;
@@ -284,6 +294,135 @@ export class FeishuClient {
         }),
       }
     );
+  }
+
+  async uploadDriveFile(options: {
+    fileName: string;
+    parentNode: string;
+    bytes: Uint8Array;
+    mimeType: string;
+    signal?: AbortSignal;
+  }): Promise<FeishuDriveUpload> {
+    const token = await this.getTenantAccessToken();
+    const form = new FormData();
+    form.set("file_name", options.fileName);
+    form.set("parent_type", "explorer");
+    form.set("parent_node", options.parentNode);
+    form.set("size", String(options.bytes.byteLength));
+    // Copy into an ArrayBuffer-backed view so this remains a valid BlobPart
+    // even when the caller supplied a Node Buffer backed by pooled memory.
+    const fileBytes = new Uint8Array(options.bytes);
+    form.set(
+      "file",
+      new Blob([fileBytes], { type: options.mimeType }),
+      options.fileName
+    );
+
+    const response = await this.fetcher(
+      "https://open.feishu.cn/open-apis/drive/v1/files/upload_all",
+      {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: form,
+        signal: options.signal,
+      }
+    );
+    const body = assertFeishuSuccess(response, await parseJson(response));
+    const fileToken = asString(jsonObject(body.data).file_token);
+    if (!fileToken) {
+      throw new FeishuApiError("Feishu did not return an uploaded file token", {
+        requestId: response.headers.get("x-tt-logid") || undefined,
+      });
+    }
+    return { fileToken };
+  }
+
+  async prepareDriveFileUpload(options: {
+    fileName: string;
+    parentNode: string;
+    size: number;
+    signal?: AbortSignal;
+  }): Promise<FeishuDriveUploadPreparation> {
+    const body = await this.tenantRequest(
+      "/open-apis/drive/v1/files/upload_prepare",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          file_name: options.fileName,
+          parent_type: "explorer",
+          parent_node: options.parentNode,
+          size: options.size,
+        }),
+        signal: options.signal,
+      }
+    );
+    const data = jsonObject(body.data);
+    const uploadId = asString(data.upload_id);
+    const blockSize = asNumber(data.block_size);
+    const blockCount = asNumber(data.block_num);
+    if (
+      !uploadId ||
+      !Number.isSafeInteger(blockSize) ||
+      !Number.isSafeInteger(blockCount) ||
+      !blockSize ||
+      !blockCount
+    ) {
+      throw new FeishuApiError("Feishu returned an invalid multipart upload plan");
+    }
+    return { uploadId, blockSize, blockCount };
+  }
+
+  async uploadDriveFilePart(options: {
+    uploadId: string;
+    sequence: number;
+    bytes: Uint8Array;
+    mimeType: string;
+    signal?: AbortSignal;
+  }): Promise<void> {
+    const token = await this.getTenantAccessToken();
+    const form = new FormData();
+    form.set("upload_id", options.uploadId);
+    form.set("seq", String(options.sequence));
+    form.set("size", String(options.bytes.byteLength));
+    const partBytes = new Uint8Array(options.bytes);
+    form.set(
+      "file",
+      new Blob([partBytes], { type: options.mimeType }),
+      `part-${options.sequence}`
+    );
+    const response = await this.fetcher(
+      "https://open.feishu.cn/open-apis/drive/v1/files/upload_part",
+      {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: form,
+        signal: options.signal,
+      }
+    );
+    assertFeishuSuccess(response, await parseJson(response));
+  }
+
+  async finishDriveFileUpload(options: {
+    uploadId: string;
+    blockCount: number;
+    signal?: AbortSignal;
+  }): Promise<FeishuDriveUpload> {
+    const body = await this.tenantRequest(
+      "/open-apis/drive/v1/files/upload_finish",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          upload_id: options.uploadId,
+          block_num: options.blockCount,
+        }),
+        signal: options.signal,
+      }
+    );
+    const fileToken = asString(jsonObject(body.data).file_token);
+    if (!fileToken) {
+      throw new FeishuApiError("Feishu did not return an uploaded file token");
+    }
+    return { fileToken };
   }
 
   async listTables(appToken: string): Promise<FeishuTable[]> {

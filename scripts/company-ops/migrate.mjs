@@ -178,17 +178,16 @@ async function ensureField(
         field_name: existing.field_name,
         type: existing.type,
         property: {
-          ...(existing.property || {}),
           options: [
             ...(existing.property?.options || []),
             ...missing.map((name) => ({ name })),
           ],
         },
       };
-      if (existing.ui_type) payload.ui_type = existing.ui_type;
-      if (existing.description || fieldSpec.description) {
-        payload.description = existing.description || fieldSpec.description;
-      }
+      // The field-update endpoint is a full replacement, but Feishu rejects
+      // response-only `ui_type` and unrelated metadata on some older select
+      // fields. Send the documented minimal shape while preserving every
+      // existing option ID/color so no value or formatting is lost.
       await write(
         "UPDATE",
         scope,

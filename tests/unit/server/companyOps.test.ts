@@ -88,9 +88,12 @@ const tableIds: Record<CompanyOpsResource, string> = {
   expense: "tblExpense",
   payroll: "tblPayroll",
   commission: "tblCommission",
+  performance: "tblPerformance",
   policyAcknowledgement: "tblPolicy",
   support: "tblSupport",
   internalRequest: "tblRequest",
+  onboardingCase: "tblOnboardingCase",
+  onboardingTemplate: "tblOnboardingTemplate",
   onboarding: "tblOnboarding",
 };
 
@@ -132,7 +135,82 @@ const payrollFields: FeishuField[] = [
   field("扣款 Deductions", 2),
   field("实发 Net Pay", 2),
   field("状态 Status", 3),
+  field("已锁定 Locked", 7),
 ];
+
+const performanceCategoryFields = [
+  "内容规划与交付(25) Content & Delivery",
+  "内容质量与优化(20) Quality",
+  "活动与合作(20) Campaigns & Partners",
+  "社群线索转化(15) Community & Leads",
+  "组织与主人翁(20) Ownership",
+] as const;
+
+const performanceFields: FeishuField[] = [
+  field("记录 Record", 1, true),
+  field("员工 Employee", 18),
+  field("月份 Month", 1),
+  field("直属负责人 Manager", 11),
+  field("状态 Status", 3),
+  field("报告截止 Report Due", 5),
+  field("目标确认时间 Priorities Confirmed At", 5),
+  ...Array.from({ length: 5 }, (_, offset) => field(`目标 ${offset + 1} Goal ${offset + 1}`, 1)),
+  ...Array.from({ length: 5 }, (_, offset) => field(`衡量标准 ${offset + 1} Measure ${offset + 1}`, 1)),
+  ...Array.from({ length: 5 }, (_, offset) => field(`成果 ${offset + 1} Result ${offset + 1}`, 1)),
+  ...performanceCategoryFields.map((name) => field(name, 2)),
+  field("总分 Total", 2),
+  field("奖金 Bonus (税前)", 2),
+  field("个人系数 Personal Factor", 2),
+  field("员工自评 Self Review", 1),
+  field("证据链接 Evidence Links", 1),
+  field("问题与背景 Context", 1),
+  field("报告提交时间 Report Submitted At", 5),
+  field("创始人评语 Founder Review", 1),
+  field("奖金计算规则 Bonus Formula", 1),
+  field("初评时间 Scored At", 5),
+  field("员工异议/说明 Employee Response", 1),
+  field("员工回应时间 Employee Responded At", 5),
+  field("异议状态 Dispute Status", 3),
+  field("定稿时间 Finalized At", 5),
+  field("工资入账时间 Payroll Staged At", 5),
+];
+
+const fixedPerformanceGoals = Array.from({ length: 5 }, (_, offset) => ({
+  index: offset + 1,
+  title: `Goal ${offset + 1}`,
+  measure: `Measurable result ${offset + 1}`,
+}));
+
+const fixedPerformanceResults = Array.from({ length: 5 }, (_, offset) => ({
+  index: offset + 1,
+  result: `Completed result ${offset + 1}`,
+}));
+
+const fixedPerformanceScores = (score: number) =>
+  Array.from({ length: 5 }, (_, offset) => ({ index: offset + 1, score }));
+
+const performanceRecord = (
+  fields: Record<string, unknown> = {},
+  employeeStaffRecordId = "recStaff",
+  recordId = "recPerformance"
+): FeishuRecord => ({
+  record_id: recordId,
+  fields: {
+    "记录 Record": `2026-08 · ${employeeStaffRecordId}`,
+    "员工 Employee": [employeeStaffRecordId],
+    "月份 Month": "2026-08",
+    "直属负责人 Manager": [{ id: "ou_founder", name: "Founder" }],
+    "状态 Status": "目标已确认 Goals Set",
+    "报告截止 Report Due": Date.parse("2026-08-31"),
+    ...Object.fromEntries(
+      fixedPerformanceGoals.flatMap((goal) => [
+        [`目标 ${goal.index} Goal ${goal.index}`, goal.title],
+        [`衡量标准 ${goal.index} Measure ${goal.index}`, goal.measure],
+      ])
+    ),
+    ...fields,
+  },
+});
 
 const contentFields: FeishuField[] = [
   field("内容 Content", 1, true),
@@ -1314,5 +1392,420 @@ describe("Company Operations confidential self-service contracts", () => {
       },
     ]);
     expect(updated[0].fields).not.toHaveProperty("状态 Status");
+  });
+});
+
+describe("Company Operations monthly performance contracts", () => {
+  it("allows only the founder to set five fixed-category goals and keeps weights server-authoritative", async () => {
+    const records = {
+      tblStaff: [{
+        record_id: "recYumei",
+        fields: {
+          "姓名 Name": "Yumei",
+          "状态 Status": "在职 Active",
+        },
+      }],
+      tblPerformance: [],
+    };
+    const fields = {
+      tblStaff: staffAccessFields,
+      tblPerformance: performanceFields,
+    };
+    const founderHarness = repositoryHarness(records, fields);
+
+    await founderHarness.repository.performAction(founderPrincipal, {
+      action: "performance.goals.set",
+      payload: {
+        employeeStaffRecordId: "recYumei",
+        month: "2026-08",
+        reportDue: "2026-08-28",
+        goals: fixedPerformanceGoals,
+      },
+    });
+
+    expect(founderHarness.created).toHaveLength(1);
+    expect(founderHarness.created[0]).toEqual({
+      tableId: "tblPerformance",
+      fields: expect.objectContaining({
+        "记录 Record": "2026-08 · Yumei",
+        "员工 Employee": ["recYumei"],
+        "月份 Month": "2026-08",
+        "直属负责人 Manager": [{ id: "ou_founder" }],
+        "状态 Status": "目标已确认 Goals Set",
+        "报告截止 Report Due": Date.parse("2026-08-28"),
+        "目标 1 Goal 1": "Goal 1",
+        "衡量标准 1 Measure 1": "Measurable result 1",
+        "目标 5 Goal 5": "Goal 5",
+        "衡量标准 5 Measure 5": "Measurable result 5",
+        "奖金计算规则 Bonus Formula": "handbook_v2_fixed_categories_thresholds_v1",
+        "异议状态 Dispute Status": "无异议 None",
+      }),
+    });
+    expect(founderHarness.created[0].fields).not.toHaveProperty("weight");
+    expect(founderHarness.created[0].fields).not.toHaveProperty("weights");
+    expect(founderHarness.created[0].fields).not.toHaveProperty("奖金 Bonus (税前)");
+
+    const employeeHarness = repositoryHarness(records, fields);
+    await expect(employeeHarness.repository.performAction(growthPrincipal, {
+      action: "performance.goals.set",
+      payload: {
+        employeeStaffRecordId: "recYumei",
+        month: "2026-08",
+        reportDue: "2026-08-28",
+        goals: fixedPerformanceGoals,
+      },
+    })).rejects.toMatchObject({ status: 403 });
+    expect(employeeHarness.created).toHaveLength(0);
+
+    const craftedHarness = repositoryHarness(records, fields);
+    await expect(craftedHarness.repository.performAction(founderPrincipal, {
+      action: "performance.goals.set",
+      payload: {
+        employeeStaffRecordId: "recYumei",
+        month: "2026-08",
+        reportDue: "2026-08-28",
+        goals: fixedPerformanceGoals.map((goal) => ({ ...goal, weight: 100 })),
+      },
+    })).rejects.toMatchObject({ status: 400, message: "Unknown goal fields: weight" });
+    expect(craftedHarness.created).toHaveLength(0);
+  });
+
+  it("lets an employee submit only their own report and writes only report evidence fields", async () => {
+    const ownRecord = performanceRecord();
+    const ownHarness = repositoryHarness(
+      { tblPerformance: [ownRecord] },
+      { tblPerformance: performanceFields }
+    );
+
+    await ownHarness.repository.performAction(staffPrincipal, {
+      action: "performance.report.submit",
+      payload: {
+        performanceId: ownRecord.record_id,
+        selfReview: "I delivered the agreed monthly goals and documented the results.",
+        results: fixedPerformanceResults,
+        evidenceLinks: ["https://example.feishu.cn/file/video-1"],
+        context: "One shoot moved by two days because the venue was unavailable.",
+      },
+    });
+
+    expect(ownHarness.updated).toHaveLength(1);
+    expect(ownHarness.updated[0]).toEqual({
+      tableId: "tblPerformance",
+      recordId: "recPerformance",
+      fields: expect.objectContaining({
+        "状态 Status": "报告已提交 Report Submitted",
+        "员工自评 Self Review": "I delivered the agreed monthly goals and documented the results.",
+        "成果 1 Result 1": "Completed result 1",
+        "成果 5 Result 5": "Completed result 5",
+        "证据链接 Evidence Links": "https://example.feishu.cn/file/video-1",
+        "问题与背景 Context": "One shoot moved by two days because the venue was unavailable.",
+        "报告提交时间 Report Submitted At": expect.any(Number),
+      }),
+    });
+    expect(ownHarness.updated[0].fields).not.toHaveProperty("总分 Total");
+    expect(ownHarness.updated[0].fields).not.toHaveProperty("奖金 Bonus (税前)");
+
+    const otherRecord = performanceRecord({}, "recOther", "recOtherPerformance");
+    const crossEmployeeHarness = repositoryHarness(
+      { tblPerformance: [otherRecord] },
+      { tblPerformance: performanceFields }
+    );
+    await expect(crossEmployeeHarness.repository.performAction(staffPrincipal, {
+      action: "performance.report.submit",
+      payload: {
+        performanceId: otherRecord.record_id,
+        selfReview: "Attempt to edit another employee's report.",
+        results: fixedPerformanceResults,
+      },
+    })).rejects.toMatchObject({
+      status: 403,
+      message: "You can access only your own performance cycle",
+    });
+    expect(crossEmployeeHarness.updated).toHaveLength(0);
+  });
+
+  it("exposes only the employee's own cycles with immutable category weights", async () => {
+    const { repository } = repositoryHarness(
+      {
+        tblPerformance: [
+          performanceRecord({}, "recStaff", "recMine"),
+          performanceRecord({}, "recOther", "recOther"),
+        ],
+      },
+      {
+        tblPerformance: performanceFields,
+        tblPolicy: policyFields,
+        tblCommission: commissionFields,
+        tblPayroll: payrollFields,
+      }
+    );
+
+    const dashboard = await repository.getDashboard(staffPrincipal);
+    expect(dashboard.performance?.cycles).toHaveLength(1);
+    expect(dashboard.performance?.cycles[0].id).toBe("recMine");
+    expect(dashboard.performance?.cycles[0].goals.map((goal) => goal.weight)).toEqual([
+      25,
+      20,
+      20,
+      15,
+      20,
+    ]);
+    expect(dashboard.performance?.staff).toBeUndefined();
+    expect(dashboard.performance?.canManage).toBe(false);
+  });
+
+  it.each([
+    [90, 2_000, 1],
+    [80, 1_500, 0.8],
+    [70, 1_000, 0.5],
+    [60, 500, 0],
+    [59, 0, 0],
+  ])(
+    "calculates a %i score as the correct CNY %i bonus and %s personal factor",
+    async (score, expectedBonus, expectedFactor) => {
+      const record = performanceRecord({
+        "状态 Status": "报告已提交 Report Submitted",
+      });
+      const { repository, updated } = repositoryHarness(
+        { tblPerformance: [record] },
+        { tblPerformance: performanceFields }
+      );
+
+      await repository.performAction(founderPrincipal, {
+        action: "performance.review.score",
+        payload: {
+          performanceId: record.record_id,
+          scores: fixedPerformanceScores(score),
+          feedback: "Founder scoring notes.",
+        },
+      });
+
+      expect(updated).toHaveLength(1);
+      expect(updated[0]).toEqual({
+        tableId: "tblPerformance",
+        recordId: "recPerformance",
+        fields: expect.objectContaining({
+          "总分 Total": score,
+          "奖金 Bonus (税前)": expectedBonus,
+          "个人系数 Personal Factor": expectedFactor,
+          "奖金计算规则 Bonus Formula": "handbook_v2_fixed_categories_thresholds_v1",
+          "创始人评语 Founder Review": "Founder scoring notes.",
+          "初评时间 Scored At": expect.any(Number),
+          "状态 Status": "员工确认中 Employee Review",
+        }),
+      });
+      expect(performanceCategoryFields.map((name) => updated[0].fields[name])).toEqual([
+        score,
+        score,
+        score,
+        score,
+        score,
+      ]);
+    }
+  );
+
+  it("rejects invalid scores and client-authored bonus, status, or weighting fields", async () => {
+    const record = performanceRecord({
+      "状态 Status": "报告已提交 Report Submitted",
+    });
+    const { repository, updated } = repositoryHarness(
+      { tblPerformance: [record] },
+      { tblPerformance: performanceFields }
+    );
+
+    await expect(repository.performAction(founderPrincipal, {
+      action: "performance.review.score",
+      payload: {
+        performanceId: record.record_id,
+        scores: fixedPerformanceScores(90).map((item, index) =>
+          index === 0 ? { ...item, score: 101 } : item
+        ),
+        feedback: "Invalid score.",
+      },
+    })).rejects.toMatchObject({ status: 400, message: "score 1 must be between 0 and 100" });
+
+    await expect(repository.performAction(founderPrincipal, {
+      action: "performance.review.score",
+      payload: {
+        performanceId: record.record_id,
+        scores: fixedPerformanceScores(90),
+        feedback: "Attempt to bypass server calculation.",
+        bonus: 99_999,
+        status: "Paid",
+      },
+    })).rejects.toMatchObject({ status: 400, message: "Unknown fields: bonus, status" });
+
+    await expect(repository.performAction(founderPrincipal, {
+      action: "performance.review.score",
+      payload: {
+        performanceId: record.record_id,
+        scores: fixedPerformanceScores(90).map((item) => ({ ...item, weight: 100 })),
+        feedback: "Attempt to replace fixed category weights.",
+      },
+    })).rejects.toMatchObject({ status: 400, message: "Unknown score fields: weight" });
+    expect(updated).toHaveLength(0);
+  });
+
+  it.each([
+    ["accept", "Looks correct.", "[Accepted] Looks correct.", "无异议 None", undefined],
+    ["challenge", "Please review the lead count.", "[Challenged] Please review the lead count.", "员工说明 Submitted", "评分中 Scoring"],
+  ] as const)(
+    "records an employee %s response without allowing a second employee to act",
+    async (response, comment, expectedResponse, expectedDispute, expectedStatus) => {
+      const scoredAt = Date.now() - 5_000;
+      const record = performanceRecord({
+        "状态 Status": "员工确认中 Employee Review",
+        "初评时间 Scored At": scoredAt,
+        "奖金 Bonus (税前)": 1_500,
+      });
+      const { repository, updated } = repositoryHarness(
+        { tblPerformance: [record] },
+        { tblPerformance: performanceFields }
+      );
+
+      await repository.performAction(staffPrincipal, {
+        action: "performance.review.respond",
+        payload: { performanceId: record.record_id, response, comment },
+      });
+
+      expect(updated).toHaveLength(1);
+      expect(updated[0].fields).toEqual(expect.objectContaining({
+        "员工异议/说明 Employee Response": expectedResponse,
+        "员工回应时间 Employee Responded At": expect.any(Number),
+        "异议状态 Dispute Status": expectedDispute,
+      }));
+      if (expectedStatus) {
+        expect(updated[0].fields["状态 Status"]).toBe(expectedStatus);
+      } else {
+        expect(updated[0].fields).not.toHaveProperty("状态 Status");
+      }
+    }
+  );
+
+  it("finalizes only an accepted latest score and stages only Perf Bonus on an open payroll record", async () => {
+    const scoredAt = Date.now() - 10_000;
+    const respondedAt = scoredAt + 5_000;
+    const record = performanceRecord({
+      "状态 Status": "员工确认中 Employee Review",
+      "初评时间 Scored At": scoredAt,
+      "员工回应时间 Employee Responded At": respondedAt,
+      "员工异议/说明 Employee Response": "[Accepted] Looks correct.",
+      "奖金 Bonus (税前)": 1_500,
+      "创始人评语 Founder Review": "Strong month.",
+    });
+    const payroll = {
+      record_id: "recPayroll",
+      fields: {
+        "记录 Record": "2026-08 · Staff Member",
+        "员工 Employee": ["recStaff"],
+        "月份 Month": "2026-08",
+        "基本工资 Base": 20_000,
+        "月度绩效奖金 Perf Bonus": 0,
+        "提成 Commission": 1_200,
+        "状态 Status": "待发 Pending",
+        "已锁定 Locked": false,
+      },
+    };
+    const { repository, updated } = repositoryHarness(
+      { tblPerformance: [record], tblPayroll: [payroll] },
+      { tblPerformance: performanceFields, tblPayroll: payrollFields }
+    );
+
+    await repository.performAction(founderPrincipal, {
+      action: "performance.finalize",
+      payload: {
+        performanceId: record.record_id,
+        resolutionNote: "Employee accepted the final score.",
+      },
+    });
+
+    expect(updated).toHaveLength(2);
+    expect(updated[0]).toEqual({
+      tableId: "tblPayroll",
+      recordId: "recPayroll",
+      fields: {
+        "月度绩效奖金 Perf Bonus": 1_500,
+      },
+    });
+    expect(updated[0].fields).not.toHaveProperty("基本工资 Base");
+    expect(updated[0].fields).not.toHaveProperty("提成 Commission");
+    expect(updated[0].fields).not.toHaveProperty("状态 Status");
+    expect(updated[1]).toEqual({
+      tableId: "tblPerformance",
+      recordId: "recPerformance",
+      fields: expect.objectContaining({
+        "状态 Status": "已确认 Confirmed",
+        "定稿时间 Finalized At": expect.any(Number),
+        "工资入账时间 Payroll Staged At": expect.any(Number),
+        "异议状态 Dispute Status": "已解决 Resolved",
+        "创始人评语 Founder Review":
+          "Strong month.\n\nFinal resolution: Employee accepted the final score.",
+      }),
+    });
+  });
+
+  it.each([
+    ["locked", true, "待发 Pending"],
+    ["paid", false, "已发 Paid"],
+  ])("does not overwrite a %s payroll record during finalization", async (_label, locked, status) => {
+    const scoredAt = Date.now() - 10_000;
+    const record = performanceRecord({
+      "状态 Status": "员工确认中 Employee Review",
+      "初评时间 Scored At": scoredAt,
+      "员工回应时间 Employee Responded At": scoredAt + 5_000,
+      "员工异议/说明 Employee Response": "[Accepted]",
+      "奖金 Bonus (税前)": 2_000,
+    });
+    const payroll = {
+      record_id: "recProtectedPayroll",
+      fields: {
+        "员工 Employee": ["recStaff"],
+        "月份 Month": "2026-08",
+        "基本工资 Base": 20_000,
+        "月度绩效奖金 Perf Bonus": 700,
+        "提成 Commission": 1_200,
+        "状态 Status": status,
+        "已锁定 Locked": locked,
+      },
+    };
+    const { repository, created, updated } = repositoryHarness(
+      { tblPerformance: [record], tblPayroll: [payroll] },
+      { tblPerformance: performanceFields, tblPayroll: payrollFields }
+    );
+
+    await expect(repository.performAction(founderPrincipal, {
+      action: "performance.finalize",
+      payload: { performanceId: record.record_id },
+    })).rejects.toMatchObject({
+      status: 409,
+      message: "The matching payroll record is already locked or paid",
+    });
+    expect(created).toHaveLength(0);
+    expect(updated).toHaveLength(0);
+  });
+
+  it("refuses finalization when acceptance predates the latest founder score", async () => {
+    const scoredAt = Date.now() - 1_000;
+    const record = performanceRecord({
+      "状态 Status": "员工确认中 Employee Review",
+      "初评时间 Scored At": scoredAt,
+      "员工回应时间 Employee Responded At": scoredAt - 1_000,
+      "员工异议/说明 Employee Response": "[Accepted] Previous score.",
+      "奖金 Bonus (税前)": 2_000,
+    });
+    const { repository, created, updated } = repositoryHarness(
+      { tblPerformance: [record], tblPayroll: [] },
+      { tblPerformance: performanceFields, tblPayroll: payrollFields }
+    );
+
+    await expect(repository.performAction(founderPrincipal, {
+      action: "performance.finalize",
+      payload: { performanceId: record.record_id },
+    })).rejects.toMatchObject({
+      status: 409,
+      message: "The employee must accept the latest score before finalization",
+    });
+    expect(created).toHaveLength(0);
+    expect(updated).toHaveLength(0);
   });
 });

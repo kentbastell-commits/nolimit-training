@@ -5,7 +5,10 @@ import type {
   CompanyOpsDashboard,
   CompanyOpsSession,
   CompanyOpsUser,
+  OpsAssetUploadResult,
   OpsGrowthDashboard,
+  OpsPerformanceCycle,
+  OpsPerformanceDashboard,
   OpsPipelinePhase,
 } from "./types";
 
@@ -100,6 +103,112 @@ function normalizeUser(value: unknown): CompanyOpsUser | undefined {
   };
 }
 
+function optionalNumber(value: unknown) {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return undefined;
+}
+
+function normalizePerformanceCycle(value: unknown): OpsPerformanceCycle | undefined {
+  const raw = object(value);
+  const employee = object(raw.employee);
+  const id = String(raw.id || raw.recordId || "").trim();
+  const month = String(raw.month || "").trim();
+  if (!id || !month) return undefined;
+  const employeeName = String(employee.name || raw.employeeName || "").trim();
+  const staffRecordId = String(
+    employee.staffRecordId || raw.employeeStaffRecordId || "",
+  ).trim();
+  return {
+    id,
+    month,
+    employee: { staffRecordId, name: employeeName || "Team member" },
+    managerName:
+      typeof raw.managerName === "string" ? raw.managerName : undefined,
+    status: typeof raw.status === "string" ? raw.status : "Goals Set",
+    goals: array(raw.goals).map((entry, position) => {
+      const goal = object(entry);
+      return {
+        index: optionalNumber(goal.index) ?? position + 1,
+        title: String(goal.title || `Goal ${position + 1}`),
+        measure: String(goal.measure || ""),
+        weight: optionalNumber(goal.weight) ?? 0,
+        result: typeof goal.result === "string" ? goal.result : undefined,
+        score: optionalNumber(goal.score),
+      };
+    }),
+    personalFactor: optionalNumber(raw.personalFactor),
+    weightedScore: optionalNumber(raw.weightedScore),
+    approvedBonus: optionalNumber(raw.approvedBonus),
+    reportDue: typeof raw.reportDue === "string" ? raw.reportDue : undefined,
+    prioritiesConfirmedAt:
+      typeof raw.prioritiesConfirmedAt === "string"
+        ? raw.prioritiesConfirmedAt
+        : undefined,
+    selfReview: typeof raw.selfReview === "string" ? raw.selfReview : undefined,
+    evidenceLinks: array<string>(raw.evidenceLinks).filter(
+      (entry) => typeof entry === "string",
+    ),
+    context: typeof raw.context === "string" ? raw.context : undefined,
+    reportSubmittedAt:
+      typeof raw.reportSubmittedAt === "string"
+        ? raw.reportSubmittedAt
+        : undefined,
+    founderReview:
+      typeof raw.founderReview === "string" ? raw.founderReview : undefined,
+    scoredAt: typeof raw.scoredAt === "string" ? raw.scoredAt : undefined,
+    employeeResponse:
+      typeof raw.employeeResponse === "string"
+        ? raw.employeeResponse
+        : undefined,
+    employeeRespondedAt:
+      typeof raw.employeeRespondedAt === "string"
+        ? raw.employeeRespondedAt
+        : undefined,
+    disputeStatus:
+      typeof raw.disputeStatus === "string" ? raw.disputeStatus : undefined,
+    finalizedAt:
+      typeof raw.finalizedAt === "string" ? raw.finalizedAt : undefined,
+    payrollStagedAt:
+      typeof raw.payrollStagedAt === "string" ? raw.payrollStagedAt : undefined,
+    canSubmitReport: raw.canSubmitReport === true,
+    canRespond: raw.canRespond === true,
+    canManage: raw.canManage === true,
+    canFinalize: raw.canFinalize === true,
+  };
+}
+
+function normalizePerformance(value: unknown): OpsPerformanceDashboard | undefined {
+  const raw = object(value);
+  if (!Object.keys(raw).length && !Array.isArray(value)) return undefined;
+  const cycleValues = Array.isArray(value) ? value : array(raw.cycles);
+  const cycles = cycleValues
+    .map(normalizePerformanceCycle)
+    .filter((cycle): cycle is OpsPerformanceCycle => Boolean(cycle));
+  const staff = array(raw.staff)
+    .map((entry) => {
+      const person = object(entry);
+      const staffRecordId = String(person.staffRecordId || person.id || "").trim();
+      const name = String(person.name || "").trim();
+      return staffRecordId && name
+        ? {
+            staffRecordId,
+            name,
+            role: typeof person.role === "string" ? person.role : undefined,
+          }
+        : undefined;
+    })
+    .filter((person): person is NonNullable<typeof person> => Boolean(person));
+  return {
+    cycles,
+    canManage: raw.canManage === true,
+    staff: staff.length ? staff : undefined,
+  };
+}
+
 // The server intentionally returns domain-shaped sections instead of a raw
 // Bitable response. Keep this normalizer tolerant while the live schema is
 // being rolled out: an absent section becomes an empty, intentional state and
@@ -160,6 +269,8 @@ function normalizeDashboard(value: unknown): CompanyOpsDashboard {
     decisions: array(raw.decisions || raw.approvals || founder.decisions),
     finance: (raw.finance || founder.finance) as CompanyOpsDashboard["finance"],
     myCompensation: (raw.myCompensation || summary.myCompensation) as CompanyOpsDashboard["myCompensation"],
+    myPerformance: normalizePerformance(raw.myPerformance),
+    performance: normalizePerformance(raw.performance || founder.performanceCycles),
     onboarding: (raw.onboarding || founder.onboarding) as CompanyOpsDashboard["onboarding"],
     onboardingCases: array(raw.onboardingCases || founder.onboardingCases),
     onboardingCandidates: array(
@@ -202,6 +313,33 @@ export const companyOpsApi: CompanyOpsApi = {
         ((result as CompanyOpsActionResult & { recordId?: string }).recordId ??
           undefined),
     };
+  },
+
+  async uploadAsset(file, csrfToken) {
+    const url = new URL("/api/company-ops/assets/upload", window.location.origin);
+    url.searchParams.set("fileName", file.name);
+    const response = await fetch(`${url.pathname}${url.search}`, {
+      method: "POST",
+      credentials: "same-origin",
+      cache: "no-store",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": file.type || "application/octet-stream",
+        ...(csrfToken ? { "x-csrf-token": csrfToken } : {}),
+      },
+      body: file,
+    });
+    const data = await readJson(response);
+    if (!response.ok) {
+      throw new CompanyOpsApiError(
+        String(data.message || data.error || "The file could not be uploaded"),
+        {
+          status: response.status,
+          code: typeof data.code === "string" ? data.code : undefined,
+        },
+      );
+    }
+    return (data.result || data) as OpsAssetUploadResult;
   },
 
   async logout(csrfToken) {

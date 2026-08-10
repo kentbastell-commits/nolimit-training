@@ -10,9 +10,11 @@ renaming, or "improving" anything in the ops tenant.
 - App: 自建应用 `cli_aaf3251ae8389bcb` ("company operations" app).
   Credentials in `.env.local` (git-ignored) — `FEISHU_ADMIN_APP_ID`,
   `FEISHU_ADMIN_APP_SECRET`, plus the three base-token environment variables
-  listed below. Their values must remain in local/server environment files. These creds
-  are SEPARATE from both products' Feishu creds (nolimit prod has none
-  locally; kangfu's are its own). Never cross them (PIPL separation).
+  listed below. The migration/runtime scripts also discover the private table,
+  form, calendar and Drive IDs used by the portal. Their values must remain in
+  local/server environment files. These creds are SEPARATE from both products'
+  Feishu creds (nolimit prod has none locally; kangfu's are its own). Never
+  cross them (PIPL separation).
 - Run pattern: `node --env-file=c:\Users\kentb\nolimit-training\.env.local <script.mjs>`
   (allowlisted in `.claude/settings.local.json`).
 - Granted scopes: `bitable:app`, `drive:drive`, `wiki:wiki`, `docx:document`,
@@ -33,14 +35,15 @@ renaming, or "improving" anything in the ops tenant.
 | 周报 / 平台数据 forms | managed inside their Growth tables | unshared; staff submit through the authenticated workspace |
 | 公司日历 Company calendar | managed tenant calendar | tenant-visible; founder = writer; recurring Monday 10:00 growth meeting |
 | 内容与拍摄 Content & Shoot calendar | managed tenant calendar | tenant-visible; founder = writer |
-| 品牌与营销 footage folder | in KENT'S OWN Drive (not app space) | Kent shares to staff manually |
+| 公司共享资料 Company Shared Assets | dedicated Company Operations Drive folder | private; founder = full access; approved Growth users = edit; other approved staff = view |
 
 ### Confidential base tables
 Staff register · Payroll ledger (payday = 10th; + perf-bonus column) ·
 Commission Rules (REAL rates from Employee Handbook V2.0 Appendix A-1 — see
 below) · Commission Statements (+Quarter/Growth Bonus/Factor) · Monthly
-Performance (contract Appendix 1: five categories 25/20/20/15/20 → bonus
-2000/1500/1000/500/0 at 90/80/70/60; employee 3-working-day response field) ·
+Performance (private source of truth for the portal workflow described below:
+five categories 25/20/20/15/20 → bonus 2000/1500/1000/500/0 at
+90/80/70/60; employee 3-working-day response field) ·
 Expenses ledger (+city-tier hotel caps 500/400/300, pre-approved flag,
 approval kanban; fed by the shared form).
 
@@ -55,6 +58,72 @@ review kanban).
 ### Team Ops tables
 Assets · Onboarding (11 generic checklist tasks + Yumei's contract 90-day
 milestones) · Internal Requests (kanban + form).
+
+## Private monthly performance and bonus workflow
+
+The user-facing workflow lives at `/company-ops` under **Performance / 月度绩效**.
+The `月度绩效 Monthly Performance` table remains inside the Confidential Base;
+staff never receive its raw Base link. The server resolves the signed-in Feishu
+account to one Staff record and returns only that employee's cycles. A client
+payload cannot choose another employee, set a score, change a weight, write a
+bonus, or advance the workflow status.
+
+| Role | What the person sees and can do |
+|---|---|
+| Founder | All active employees and all monthly cycles; set the month, report deadline and measurable success standard for each fixed category; request additions; score; review challenges; finalise and stage the accepted performance bonus to payroll. |
+| Growth (Yumei) | **My Month** only: her five agreed goals, weights, deadline and status; submit one summary plus a result for every goal; add evidence links or upload a small video; see the founder's score/feedback; accept it or ask for review. She cannot see another employee's cycle, raw payroll, identity/bank details or the Confidential Base. |
+| Staff / Finance | Their own linked performance cycles and employee response actions. They can view Company Shared Assets; direct portal upload is reserved for Growth and founders. Finance access does not reveal other employees' performance cycles. |
+| Pending | The access-request screen only; no Company Operations records. |
+
+The lifecycle is deliberately explicit:
+
+1. The founder opens Performance before the month, selects an active employee,
+   and confirms the month, report deadline and success measure for all five
+   fixed categories: Content & Delivery (25%), Quality & Optimization (20%),
+   Campaigns & Partners (20%), Community & Leads (15%), and Ownership (20%).
+2. The employee submits a monthly report containing a short overall summary,
+   one result per category, optional context, and private Feishu evidence links.
+3. The founder either requests more information or scores every category from
+   0–100. The server calculates the weighted total, the pre-tax monthly bonus
+   (≥90 = ¥2,000; ≥80 = ¥1,500; ≥70 = ¥1,000; ≥60 = ¥500; below 60 = ¥0),
+   and the applicable personal factor (1.0 / 0.8 / 0.5 / 0).
+4. The employee accepts the latest assessment or submits a reasoned challenge.
+   A challenge returns the cycle for review and scoring; it cannot silently
+   overwrite the founder's assessment.
+5. Only after the employee accepts the latest score can the founder finalise.
+   Finalisation writes only `月度绩效奖金 Perf Bonus` into the matching payroll
+   month. It does not alter base salary, commissions, reimbursements or an
+   already locked/paid payroll record.
+
+### Yumei's first-time setup
+
+1. Yumei signs in at `/company-ops` with her own company Feishu account.
+2. If access is denied, she leaves **Brand & Growth / 品牌与增长** selected and
+   submits the access request. Do not make her a founder, finance user,
+   super-admin or Confidential Base collaborator.
+3. A founder approves the request in Company Operations. This links her Feishu
+   identity to an active Staff record and attempts to grant `edit` on the
+   private Company Shared Assets folder. If the folder grant warns, verify and
+   add her manually in Feishu Drive; do not enable public sharing.
+4. After approval, she signs in again. The founder can then select her in the
+   Performance goal setter. Until the Staff link exists, no employee cycle is
+   exposed and she will not appear in the selector.
+
+## Feishu Drive video evidence
+
+Growth users and founders have a drag-and-drop video area on the Performance
+page. The browser sends the file to the authenticated Company Operations upload
+endpoint, which validates the session, CSRF token, role, content type, file
+signature and size before uploading it into `公司共享资料 Company Shared Assets`.
+The returned private Feishu file link is inserted into the employee's evidence
+list. Other approved roles get a read-only link to the folder rather than an
+upload control.
+
+Feishu's one-shot file endpoint caps a request at 20 MiB, so the portal
+automatically switches larger files to Feishu's official multipart upload flow.
+The Company Operations safety cap is **500 MiB per file**; the tenant's current
+storage-plan quota still applies. Keep raw social-video working files in the
+shared assets tree; keep identity, bank, payroll, legal and health data out of it.
 
 ## Commission rules seeded (source: Employee Handbook V2.0, Appendix A-1)
 Digital programs 4/5/6% tiered at ¥25k/¥50k monthly attributable net
@@ -75,11 +144,13 @@ back from unpaid variable comp only.
    duplicate staff lists. Two bases give the same confidentiality boundary
    (founders vs staff) with working links. The third base is Yumei's
    workspace, separate because its audience and lifecycle differ.
-2. **Confidentiality via base boundary, not row permissions.** Bitable
+2. **Confidentiality via base boundary plus a server-filtered portal, not row
+   permissions.** Bitable
    row-level/advanced permissions are a paid tier; the free boundary is the
    base. Hence: anything staff must not see lives in the Confidential base;
-   anything staff submit into it goes through a FORM (form fillers never see
-   the table).
+   staff submit approved workflows through an allowlisted form or authenticated
+   server action. Performance reads are linked to the signed-in Staff record,
+   so the employee never receives the table or another employee's rows.
 3. **Native Approval app (审批) deliberately NOT created via API.** Feishu
    warns API-created approval definitions are hard/impossible to delete.
    If/when formal approval chains are wanted (esp. leave with balances),
@@ -104,8 +175,9 @@ back from unpaid variable comp only.
   in the app's space; humans see them only via link shares or explicit
   membership. Bases/docs: `PATCH /drive/v1/permissions/{token}/public` works.
   **Folders: NO public-share API at all** (`type=folder` rejected) → folders
-  humans need must be created by a human (hence the footage folder lives in
-  Kent's Drive).
+  stay private and people must receive explicit membership. The migration
+  creates the Company Shared Assets folder, grants founders explicitly, and
+  the access-approval flow attempts the role-appropriate member grant.
 - **Member grants need a real user id.** `member_type: "email"` fails
   (1063001) unless the email is the person's actual Feishu login. Resolve
   the authorised account through the Contact API or the application's
@@ -128,10 +200,32 @@ back from unpaid variable comp only.
 - Kent verifying 营业执照 vs handbook draft: credit code `MAKEAFD20G`
   (filings, passed Tencent verification) vs `MAKAFPTD20G` (handbook), and
   address 825室 vs 825D. Whichever is wrong gets corrected everywhere.
-- When Yumei's Feishu account exists: share Growth OS + Team Ops + footage
-  folder + the three form links + Start Here; subscribe her to both
-  calendars; she must NOT get Confidential access or any super-admin role.
+- Complete Yumei's first sign-in and approve her **Brand & Growth** request;
+  then verify that she sees only **My Month**, can edit Company Shared Assets,
+  and remains unable to open the Confidential Base or other employees' cycles.
 - Admin-UI work (Kent, optional): Approval templates (请假/差旅), attendance
   schedule 09:30–18:30 matching the handbook.
 - Future build: Postgres → Commission Statements monthly sync (trigger:
   first real sales); per-staff attribution codes in the store.
+
+## Migration and runtime requirements
+
+Run the migration and runtime configuration in this order whenever this schema
+is first deployed or the managed Feishu resources change:
+
+```powershell
+node --env-file=.env.local scripts/company-ops/migrate.mjs --dry
+node --env-file=.env.local scripts/company-ops/migrate.mjs --apply
+node --env-file=.env.local scripts/company-ops/configure-runtime-env.mjs --dry --env=.env.local
+node --env-file=.env.local scripts/company-ops/configure-runtime-env.mjs --apply --env=.env.local
+node --env-file=.env.local scripts/company-ops/verify.mjs
+```
+
+The performance migration is additive: it creates/merges the workflow fields
+and status options and does not delete records. The runtime step must discover
+and write at least `FEISHU_ADMIN_PERFORMANCE_TABLE_ID`,
+`FEISHU_ADMIN_SHARED_ASSETS_FOLDER_TOKEN`, and
+`FEISHU_ADMIN_SHARED_ASSETS_FOLDER_URL` to the server-only environment. Do not
+copy these values into client code, commit them, or reuse the retired training
+app's storage credentials. Restart the server after the managed env file is
+updated, then verify employee self-only access and one test upload before use.

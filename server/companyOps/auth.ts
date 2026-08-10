@@ -65,7 +65,19 @@ export type CompanyOpsActionName =
   | "acknowledge_commission"
   | "raise_commission_dispute"
   | "acknowledge_compensation"
-  | "dispute_compensation";
+  | "dispute_compensation"
+  | "performance.goals.set"
+  | "performance.report.submit"
+  | "performance.review.request_changes"
+  | "performance.review.score"
+  | "performance.review.respond"
+  | "performance.finalize"
+  | "set_performance_goals"
+  | "submit_performance_report"
+  | "request_performance_changes"
+  | "score_performance_review"
+  | "respond_performance_review"
+  | "finalize_performance";
 
 const ACTIONS_BY_ROLE: Record<CompanyOpsRole, ReadonlySet<CompanyOpsActionName>> = {
   founder: new Set<CompanyOpsActionName>([
@@ -106,6 +118,18 @@ const ACTIONS_BY_ROLE: Record<CompanyOpsRole, ReadonlySet<CompanyOpsActionName>>
     "raise_commission_dispute",
     "acknowledge_compensation",
     "dispute_compensation",
+    "performance.goals.set",
+    "performance.report.submit",
+    "performance.review.request_changes",
+    "performance.review.score",
+    "performance.review.respond",
+    "performance.finalize",
+    "set_performance_goals",
+    "submit_performance_report",
+    "request_performance_changes",
+    "score_performance_review",
+    "respond_performance_review",
+    "finalize_performance",
   ]),
   finance: new Set<CompanyOpsActionName>([
     "expense.submit",
@@ -120,6 +144,10 @@ const ACTIONS_BY_ROLE: Record<CompanyOpsRole, ReadonlySet<CompanyOpsActionName>>
     "raise_commission_dispute",
     "acknowledge_compensation",
     "dispute_compensation",
+    "performance.report.submit",
+    "performance.review.respond",
+    "submit_performance_report",
+    "respond_performance_review",
   ]),
   growth: new Set<CompanyOpsActionName>([
     "content.create",
@@ -149,6 +177,10 @@ const ACTIONS_BY_ROLE: Record<CompanyOpsRole, ReadonlySet<CompanyOpsActionName>>
     "raise_commission_dispute",
     "acknowledge_compensation",
     "dispute_compensation",
+    "performance.report.submit",
+    "performance.review.respond",
+    "submit_performance_report",
+    "respond_performance_review",
   ]),
   staff: new Set<CompanyOpsActionName>([
     "expense.submit",
@@ -163,6 +195,10 @@ const ACTIONS_BY_ROLE: Record<CompanyOpsRole, ReadonlySet<CompanyOpsActionName>>
     "raise_commission_dispute",
     "acknowledge_compensation",
     "dispute_compensation",
+    "performance.report.submit",
+    "performance.review.respond",
+    "submit_performance_report",
+    "respond_performance_review",
   ]),
   pending: new Set<CompanyOpsActionName>(["access.request", "request_access"]),
 };
@@ -182,10 +218,15 @@ const randomToken = (bytes = 24): string => randomBytes(bytes).toString("base64u
 
 const DEFAULT_RETURN_TO = "/company-ops";
 const RETURN_TO_BASE = new URL("https://company-ops.invalid");
+const hasUnsafeReturnToCharacters = (value: string): boolean =>
+  Array.from(value).some((character) => {
+    const code = character.codePointAt(0) || 0;
+    return code <= 0x1f || code === 0x7f || character === "\\";
+  });
 
 const isSafeInternalReturnTo = (value: unknown): value is string => {
   if (typeof value !== "string" || value.length > 4_096) return false;
-  if (/[\u0000-\u001f\u007f\\]/.test(value)) return false;
+  if (hasUnsafeReturnToCharacters(value)) return false;
 
   const trimmed = value.trim();
   if (!trimmed.startsWith("/") || trimmed.startsWith("//")) return false;
@@ -197,7 +238,7 @@ const isSafeInternalReturnTo = (value: unknown): value is string => {
   let stable = false;
   for (let depth = 0; depth < 8; depth += 1) {
     if (/%(?:2f|5c|0[0-9a-f]|1[0-9a-f]|7f)/i.test(decoded)) return false;
-    if (/[\u0000-\u001f\u007f\\]/.test(decoded)) return false;
+    if (hasUnsafeReturnToCharacters(decoded)) return false;
     let next: string;
     try {
       next = decodeURIComponent(decoded);

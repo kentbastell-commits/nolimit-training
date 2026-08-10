@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import CompanyOpsApp from "../../../src/companyOps/CompanyOpsApp";
@@ -6,6 +6,7 @@ import type {
   CompanyOpsApi,
   CompanyOpsDashboard,
   CompanyOpsUser,
+  OpsPerformanceCycle,
 } from "../../../src/companyOps/types";
 
 const growthUser: CompanyOpsUser = {
@@ -13,6 +14,57 @@ const growthUser: CompanyOpsUser = {
   name: "Yumei",
   role: "growth",
 };
+
+function performanceCycle(
+  overrides: Partial<OpsPerformanceCycle> = {},
+): OpsPerformanceCycle {
+  return {
+    id: "performance-2026-08-yumei",
+    month: "2026-08",
+    employee: {
+      staffRecordId: "staff-1",
+      name: "Yumei",
+      role: "Brand & Growth",
+    },
+    status: "Goals confirmed",
+    reportDue: "2026-08-31",
+    prioritiesConfirmedAt: "2026-08-01T08:00:00.000Z",
+    canSubmitReport: true,
+    goals: [
+      {
+        index: 1,
+        title: "Content & Delivery",
+        measure: "Publish 12 approved videos",
+        weight: 25,
+      },
+      {
+        index: 2,
+        title: "Quality & Optimization",
+        measure: "Improve qualified-view rate by 10%",
+        weight: 20,
+      },
+      {
+        index: 3,
+        title: "Campaigns & Partners",
+        measure: "Launch two partner campaigns",
+        weight: 20,
+      },
+      {
+        index: 4,
+        title: "Community & Leads",
+        measure: "Generate 30 qualified leads",
+        weight: 15,
+      },
+      {
+        index: 5,
+        title: "Organization & Ownership",
+        measure: "Submit weekly reporting on time",
+        weight: 20,
+      },
+    ],
+    ...overrides,
+  };
+}
 
 function dashboard(
   user: CompanyOpsUser,
@@ -125,6 +177,69 @@ describe("CompanyOpsApp", () => {
     );
   });
 
+  it("lets Yumei submit her own monthly performance report with per-goal evidence", async () => {
+    const cycle = performanceCycle();
+    const api = fakeApi(
+      growthUser,
+      dashboard(growthUser, {
+        myPerformance: { cycles: [cycle] },
+        links: { sharedAssets: "https://example.feishu.cn/drive/folder/company-ops" },
+      }),
+    );
+    const user = userEvent.setup();
+    render(<CompanyOpsApp api={api} />);
+
+    await screen.findByText("Hello, Yumei");
+    await user.click(screen.getAllByRole("button", { name: "Performance" })[0]);
+
+    expect(
+      screen.getByRole("heading", { name: "Submit your monthly report" }),
+    ).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Month in one paragraph"), {
+      target: {
+        value: "This month delivered stronger reach and a repeatable campaign process.",
+      },
+    });
+
+    const reportedResults = [
+      "Published 13 approved videos.",
+      "Qualified-view rate improved by 12%.",
+      "Launched two partner campaigns.",
+      "Generated 34 qualified leads.",
+      "Submitted every weekly report on time.",
+    ];
+    for (const [index, goal] of cycle.goals.entries()) {
+      fireEvent.change(screen.getByLabelText(new RegExp(goal.title)), {
+        target: { value: reportedResults[index] },
+      });
+    }
+    fireEvent.change(screen.getByLabelText(/Evidence links/), {
+      target: { value: "https://example.feishu.cn/file/video-evidence" },
+    });
+    fireEvent.change(screen.getByLabelText(/Context, constraints or support needed/), {
+      target: { value: "One filming day was moved because of weather." },
+    });
+    await user.click(screen.getByRole("button", { name: "Submit report" }));
+
+    await waitFor(() =>
+      expect(api.submitAction).toHaveBeenCalledWith(
+        "performance.report.submit",
+        {
+          performanceId: cycle.id,
+          selfReview:
+            "This month delivered stronger reach and a repeatable campaign process.",
+          results: cycle.goals.map((goal, index) => ({
+            index: goal.index,
+            result: reportedResults[index],
+          })),
+          evidenceLinks: ["https://example.feishu.cn/file/video-evidence"],
+          context: "One filming day was moved because of weather.",
+        },
+        "csrf-test",
+      ),
+    );
+  });
+
   it("shows self-only compensation without exposing founder finance controls", async () => {
     const employee: CompanyOpsUser = {
       id: "staff-2",
@@ -206,7 +321,7 @@ describe("CompanyOpsApp", () => {
     );
   });
 
-  it("lets a pending staff account request access without loading private data", async () => {
+  it("defaults a pending teammate's access request to Brand & Growth", async () => {
     const pending: CompanyOpsUser = {
       id: "pending-1",
       name: "New teammate",
@@ -228,10 +343,102 @@ describe("CompanyOpsApp", () => {
     await waitFor(() =>
       expect(api.submitAction).toHaveBeenCalledWith(
         "request_access",
-        { requestedRole: "staff" },
+        { requestedRole: "growth" },
         "csrf-test",
       ),
     );
     expect(api.getDashboard).not.toHaveBeenCalled();
+  });
+
+  it("lets a pending teammate select a different access role", async () => {
+    const pending: CompanyOpsUser = {
+      id: "pending-2",
+      name: "Finance teammate",
+      role: "employee",
+      accessStatus: "pending",
+      capabilities: [],
+    };
+    const api = fakeApi(pending);
+    const user = userEvent.setup();
+    render(<CompanyOpsApp api={api} />);
+
+    await screen.findByRole("heading", {
+      name: "This account does not have access",
+    });
+    await user.selectOptions(
+      screen.getByRole("combobox", { name: "Access needed" }),
+      "finance",
+    );
+    await user.click(screen.getByRole("button", { name: "Request access" }));
+
+    await waitFor(() =>
+      expect(api.submitAction).toHaveBeenCalledWith(
+        "request_access",
+        { requestedRole: "finance" },
+        "csrf-test",
+      ),
+    );
+    expect(api.getDashboard).not.toHaveBeenCalled();
+  });
+
+  it("lets the founder define Yumei's five fixed monthly bonus goals", async () => {
+    const founder: CompanyOpsUser = {
+      id: "founder-1",
+      name: "Kent",
+      role: "founder",
+    };
+    const cycle = performanceCycle({ canSubmitReport: false });
+    const api = fakeApi(
+      founder,
+      dashboard(founder, {
+        performance: {
+          canManage: true,
+          cycles: [cycle],
+          staff: [cycle.employee],
+        },
+      }),
+    );
+    const user = userEvent.setup();
+    render(<CompanyOpsApp api={api} />);
+
+    await screen.findByText("Hello, Kent");
+    await user.click(screen.getAllByRole("button", { name: "Performance" })[0]);
+    expect(
+      screen.getByRole("heading", { name: "Set five clear bonus goals" }),
+    ).toBeInTheDocument();
+
+    await user.clear(screen.getByLabelText("Month"));
+    await user.type(screen.getByLabelText("Month"), "2026-09");
+    await user.type(screen.getByLabelText("Report due"), "2026-09-30");
+
+    const measures = [
+      "Publish 14 approved videos",
+      "Improve qualified-view rate by 15%",
+      "Launch three partner campaigns",
+      "Generate 40 qualified leads",
+      "Submit every weekly report by Friday",
+    ];
+    const measureInputs = screen.getAllByLabelText("Success measure");
+    for (const [index, input] of measureInputs.entries()) {
+      await user.type(input, measures[index]);
+    }
+    await user.click(screen.getByRole("button", { name: "Confirm goals" }));
+
+    await waitFor(() =>
+      expect(api.submitAction).toHaveBeenCalledWith(
+        "performance.goals.set",
+        {
+          employeeStaffRecordId: "staff-1",
+          month: "2026-09",
+          goals: cycle.goals.map((goal, index) => ({
+            index: goal.index,
+            title: goal.title,
+            measure: measures[index],
+          })),
+          reportDue: "2026-09-30",
+        },
+        "csrf-test",
+      ),
+    );
   });
 });
