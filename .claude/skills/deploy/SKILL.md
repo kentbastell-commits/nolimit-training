@@ -44,6 +44,14 @@ retry short commands that die with "Connection closed".
    catches a broken money path or a leaked athlete read before a client does.
    Use `--maxWorkers=1` — higher values give phantom whole-suite failures
    (named mistake #15). Never deploy past a red gate.
+   **Scoped fast lane (company-ops only):** when `git diff --name-only`
+   against the server HEAD touches ONLY `src/companyOps/`, `api/companyOps*`,
+   and/or `server/companyOps/`, the vitest step may be scoped to
+   `tests/unit/server/companyOps*.test.ts tests/unit/server/index.test.ts
+   tests/unit/components/CompanyOpsApp.test.tsx` (~40s instead of ~3min);
+   tsc + vite build still run in full. Any file outside those paths — even
+   one — means the full suite. Athlete-facing money paths are never in the
+   scoped set, which is exactly why the shortcut is safe.
    On Windows under Codex, start the full suite as
    `node node_modules/vitest/vitest.mjs run --maxWorkers=1` in a PTY with a
    short initial yield, then poll that same session to its final summary.
