@@ -311,6 +311,56 @@ export default function CompanyOpsHome({
         </section>
       ) : null}
 
+      {user.role === "founder" && dashboard.keyDates?.length ? (
+        <section className="fopsSection fopsKeyDates">
+          <SectionHeading
+            title={opsText(language, "keyDatesTitle")}
+            hint={opsText(language, "keyDatesHint")}
+          />
+          <div className="fopsKeyDateList">
+            {dashboard.keyDates
+              .filter((entry) => {
+                if (!entry.date) return true;
+                const days = Math.round(
+                  (Date.parse(entry.date) - Date.now()) / 86_400_000,
+                );
+                return days <= (entry.warnDays ?? 30) + 30;
+              })
+              .slice(0, 6)
+              .map((entry) => {
+                const days = entry.date
+                  ? Math.round((Date.parse(entry.date) - Date.now()) / 86_400_000)
+                  : undefined;
+                const urgent = days != null && days <= (entry.warnDays ?? 30);
+                return (
+                  <article
+                    className={`fopsKeyDateRow${urgent ? " is-urgent" : ""}`}
+                    key={entry.id}
+                  >
+                    <CalendarClock size={15} aria-hidden="true" />
+                    <strong>{entry.item}</strong>
+                    {entry.category ? <span>{entry.category}</span> : null}
+                    {entry.date ? (
+                      <TonePill
+                        tone={
+                          days != null && days < 0
+                            ? "danger"
+                            : urgent
+                              ? "warning"
+                              : "neutral"
+                        }
+                      >
+                        {formatOpsDate(entry.date, language)}
+                        {days != null ? ` · ${days}d` : ""}
+                      </TonePill>
+                    ) : null}
+                  </article>
+                );
+              })}
+          </div>
+        </section>
+      ) : null}
+
       {dashboard.goals?.length || user.role === "founder" ? (
         <section className="fopsSection fopsGoals">
           <SectionHeading

@@ -160,6 +160,12 @@ function initialState(action: QuickActionKey): FormState {
       contentPillar: "",
       objective: "",
       plannedPublishDate: "",
+          hook: "",
+      copyText: "",
+      keywords: "",
+      hashtags: "",
+      cta: "",
+      ideaNotes: "",
     };
   }
   if (action === "lead") {
@@ -602,6 +608,38 @@ export default function QuickActionDrawer({
                   "plannedPublishDate",
                   opsText(language, "plannedPublishDate"),
                   input("plannedPublishDate", "date"),
+                )}
+                {field(
+                  "hook",
+                  opsText(language, "contentHookField"),
+                  input("hook", "text", ""),
+                )}
+                {field(
+                  "copyText",
+                  opsText(language, "contentCopyField"),
+                  textarea("copyText", 4),
+                  "fopsFieldWide",
+                )}
+                {field(
+                  "keywords",
+                  opsText(language, "contentKeywordsField"),
+                  input("keywords"),
+                )}
+                {field(
+                  "hashtags",
+                  opsText(language, "contentHashtagsField"),
+                  input("hashtags"),
+                )}
+                {field(
+                  "cta",
+                  opsText(language, "contentCtaField"),
+                  input("cta"),
+                )}
+                {field(
+                  "ideaNotes",
+                  opsText(language, "contentIdeaNotesField"),
+                  textarea("ideaNotes", 3),
+                  "fopsFieldWide",
                 )}
                 {field(
                   "contentPillar",

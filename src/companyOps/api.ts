@@ -271,6 +271,8 @@ function normalizeDashboard(value: unknown): CompanyOpsDashboard {
     myCompensation: (raw.myCompensation || summary.myCompensation) as CompanyOpsDashboard["myCompensation"],
     myExpenses: array(raw.myExpenses),
     goals: array(raw.goals),
+    contentCalendar: array(raw.contentCalendar),
+    keyDates: array(raw.keyDates),
     myPerformance: normalizePerformance(raw.myPerformance),
     performance: normalizePerformance(raw.performance || founder.performanceCycles),
     onboarding: (raw.onboarding || founder.onboarding) as CompanyOpsDashboard["onboarding"],

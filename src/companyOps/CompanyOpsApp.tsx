@@ -1,5 +1,6 @@
 import {
   BookOpenCheck,
+  CalendarDays,
   Gavel,
   Home,
   Languages,
@@ -19,6 +20,7 @@ import {
 import { BRAND_MONOGRAM_BLACK, BRAND_WORDMARK_BLACK } from "../brandAssets";
 import { CompanyOpsApiError, companyOpsApi, quickActionApiNames } from "./api";
 import CompanyOpsHome from "./CompanyOpsHome";
+import ContentCalendarPage from "./ContentCalendarPage";
 import { SkeletonPage } from "./components";
 import { opsText, roleLabel, type OpsCopyKey } from "./copy";
 import FounderHome from "./FounderHome";
@@ -55,6 +57,7 @@ const navItems: Array<{
   { page: "home", label: "navHome", icon: Home },
   { page: "performance", label: "navPerformance", icon: Target },
   { page: "growth", label: "navGrowth", icon: TrendingUp },
+  { page: "calendar", label: "navCalendar", icon: CalendarDays },
   { page: "decisions", label: "navDecisions", icon: Gavel },
   { page: "onboarding", label: "navOnboarding", icon: UserRoundCheck },
   { page: "policies", label: "navPolicies", icon: BookOpenCheck },
@@ -727,6 +730,29 @@ export default function CompanyOpsApp({
                 }
               }}
               compensationBusy={compensationBusy}
+            />
+          ) : null}
+          {activePage === "calendar" && capabilities.has("view_growth") ? (
+            <ContentCalendarPage
+              items={dashboard.contentCalendar || []}
+              language={language}
+              onQuickAction={setDrawerAction}
+              onUpdate={async (contentId, patch) => {
+                try {
+                  await runRecordAction("update_content", {
+                    contentId,
+                    ...patch,
+                  });
+                } catch (error) {
+                  showToast(
+                    error instanceof Error
+                      ? error.message
+                      : opsText(language, "actionFailed"),
+                    "error",
+                  );
+                  throw error;
+                }
+              }}
             />
           ) : null}
           {activePage === "growth" && capabilities.has("view_growth") ? (

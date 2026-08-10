@@ -7,6 +7,7 @@ export type CompanyOpsPage =
   | "performance"
   | "growth"
   | "decisions"
+  | "calendar"
   | "onboarding"
   | "policies";
 
@@ -40,6 +41,7 @@ export type CompanyOpsActionName =
   | "request_access"
   | "submit_internal_request"
   | "update_status"
+  | "update_content"
   | "create_goal"
   | "update_goal"
   | "respond_goal"
@@ -305,6 +307,46 @@ export interface OpsOnboardingCandidate {
   startDate?: string;
 }
 
+export interface OpsContentFullItem {
+  id: string;
+  title: string;
+  platform?: string;
+  status?: string;
+  publishDate?: string;
+  shootDate?: string;
+  hook?: string;
+  copy?: string;
+  keywords?: string;
+  hashtags?: string;
+  cta?: string;
+  ideaNotes?: string;
+  pillar?: string;
+  audience?: string;
+  funnel?: string;
+  objective?: string;
+  format?: string;
+  featured?: string;
+  owner?: string;
+  needsFounderReview?: boolean;
+  publishedUrl?: string;
+  views?: number;
+  saves?: number;
+  comments?: number;
+  leads?: number;
+  revenue?: number;
+  learnings?: string;
+}
+
+export interface OpsKeyDateItem {
+  id: string;
+  item: string;
+  date?: string;
+  category?: string;
+  owner?: string;
+  warnDays?: number;
+  notes?: string;
+}
+
 export interface OpsGoalItem {
   id: string;
   title: string;
@@ -410,6 +452,8 @@ export interface CompanyOpsDashboard {
   decisions?: OpsDecisionItem[];
   finance?: OpsFinanceSummary;
   goals?: OpsGoalItem[];
+  contentCalendar?: OpsContentFullItem[];
+  keyDates?: OpsKeyDateItem[];
   myCompensation?: OpsCompensationSummary;
   myExpenses?: Array<{
     id: string;

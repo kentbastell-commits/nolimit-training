@@ -37,6 +37,8 @@ export type CompanyOpsActionName =
   | "weeklyReport.submit"
   | "metrics.submit"
   | "expense.submit"
+  | "content.update"
+  | "update_content"
   | "goal.create"
   | "goal.update"
   | "goal.respond"
@@ -101,6 +103,8 @@ const ACTIONS_BY_ROLE: Record<CompanyOpsRole, ReadonlySet<CompanyOpsActionName>>
     "access.approve",
     "record.status.update",
     "create_content_idea",
+    "content.update",
+    "update_content",
     "create_lead",
     "create_partner",
     "create_campaign",
@@ -165,6 +169,8 @@ const ACTIONS_BY_ROLE: Record<CompanyOpsRole, ReadonlySet<CompanyOpsActionName>>
   ]),
   growth: new Set<CompanyOpsActionName>([
     "content.create",
+    "content.update",
+    "update_content",
     "lead.create",
     "partner.create",
     "campaign.create",

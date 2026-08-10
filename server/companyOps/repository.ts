@@ -135,6 +135,46 @@ export interface CompanyOpsDashboard {
     startDate?: string;
     confidentialDetailsComplete?: boolean;
   };
+  /** Full content records for the editorial calendar (growth-visible). */
+  contentFull?: Array<{
+    id: string;
+    title: string;
+    platform?: string;
+    status?: string;
+    publishDate?: string;
+    shootDate?: string;
+    hook?: string;
+    copy?: string;
+    keywords?: string;
+    hashtags?: string;
+    cta?: string;
+    ideaNotes?: string;
+    pillar?: string;
+    audience?: string;
+    funnel?: string;
+    objective?: string;
+    format?: string;
+    featured?: string;
+    owner?: string;
+    needsFounderReview?: boolean;
+    publishedUrl?: string;
+    views?: number;
+    saves?: number;
+    comments?: number;
+    leads?: number;
+    revenue?: number;
+    learnings?: string;
+  }>;
+  /** Dates that bite - licences, probation, renewals (founders only). */
+  keyDates?: Array<{
+    id: string;
+    item: string;
+    date?: string;
+    category?: string;
+    owner?: string;
+    warnDays?: number;
+    notes?: string;
+  }>;
   /** Founder goals & ideas — visible to every active role. */
   goals?: Array<{
     id: string;
@@ -371,9 +411,15 @@ const CONTENT_SPECS: readonly InputFieldSpec[] = [
   { key: "status", aliases: FIELD.status, kind: "string", maximum: 50 },
   { key: "publishDate", aliases: ["发布日期 Publish Date", "Publish Date", "Planned Publish Date", "发布日期"], kind: "date" },
   { key: "draftDue", aliases: ["草稿截止 Draft Due", "Draft Due", "Draft Due Date", "初稿截止"], kind: "date" },
-  { key: "hook", aliases: ["Hook / Title", "Hook", "开头钩子"], kind: "string", maximum: 500 },
-  { key: "script", aliases: ["Script / Caption", "Script", "Caption", "脚本 / 文案"], kind: "string", maximum: 20_000 },
-  { key: "cta", aliases: ["CTA", "Call to Action", "行动号召"], kind: "string", maximum: 500 },
+  { key: "hook", aliases: ["钩子/标题 Hook", "Hook / Title", "Hook", "开头钩子"], kind: "string", maximum: 500 },
+  { key: "script", aliases: ["文案 Copy", "Script / Caption", "Script", "Caption", "脚本 / 文案"], kind: "string", maximum: 20_000 },
+  { key: "cta", aliases: ["行动号召 CTA", "CTA", "Call to Action", "行动号召"], kind: "string", maximum: 500 },
+  { key: "keywords", aliases: ["关键词 SEO Keywords", "SEO Keywords", "Keywords", "关键词"], kind: "string", maximum: 1_000 },
+  { key: "hashtags", aliases: ["话题标签 Hashtags", "Hashtags", "话题标签"], kind: "string", maximum: 1_000 },
+  { key: "ideaNotes", aliases: ["创意备注 Idea Notes", "Idea Notes", "创意备注"], kind: "string", maximum: 5_000 },
+  { key: "shootDate", aliases: ["拍摄日期 Shoot Date", "Shoot Date", "拍摄日期"], kind: "date" },
+  { key: "funnel", aliases: ["漏斗阶段 Funnel", "Funnel", "漏斗阶段"], kind: "string", maximum: 80 },
+  { key: "featured", aliases: ["出镜 Featured", "Featured", "出镜"], kind: "string", maximum: 200 },
   { key: "pillar", aliases: ["内容支柱分类 Pillar Category", "内容支柱 Pillar", "Content Pillar", "Pillar", "内容支柱"], kind: "string", maximum: 100 },
   { key: "audience", aliases: ["受众分类 Audience Segment", "受众 Audience", "Audience", "Target Audience", "目标人群"], kind: "string", maximum: 200 },
   { key: "objective", aliases: ["目标 Objective", "目标类型 Objective Type", "Objective", "目标"], kind: "string", maximum: 200 },
@@ -434,6 +480,10 @@ const CAMPAIGN_SPECS: readonly InputFieldSpec[] = [
   { key: "clicks", aliases: ["Clicks", "点击"], kind: "number" },
   { key: "consultations", aliases: ["Consultations", "咨询数"], kind: "number" },
   { key: "revenue", aliases: ["回款 Revenue", "Revenue", "Attributed Revenue", "归因收入"], kind: "number" },
+  { key: "brief", aliases: ["活动简报 Brief", "Brief", "活动简报"], kind: "string", maximum: 10_000 },
+  { key: "keyMessage", aliases: ["核心信息 Key Message", "Key Message", "核心信息"], kind: "string", maximum: 1_000 },
+  { key: "audienceInsight", aliases: ["人群洞察 Audience Insight", "Audience Insight", "人群洞察"], kind: "string", maximum: 3_000 },
+  { key: "successCriteria", aliases: ["成功标准 Success Criteria", "Success Criteria", "成功标准"], kind: "string", maximum: 1_000 },
   { key: "nextDecision", aliases: ["Next Decision", "Next Step", "下一决策"], kind: "string", maximum: 1_000 },
   { key: "notes", aliases: ["Notes", "备注"], kind: "string", maximum: 5_000 },
 ];
@@ -2069,6 +2119,56 @@ export class CompanyOpsRepository {
       dashboard.growthMetrics = [...byPlatform.values()].slice(0, 6);
     }
 
+    if (growthVisible) {
+      const text = (record: FeishuRecord, alias: string) =>
+        textValue(recordField(record.fields, [alias])) || undefined;
+      dashboard.contentFull = contentRecords.map((record) => ({
+        id: record.record_id,
+        title: textValue(recordField(record.fields, ["内容 Content", "Title"])) || "Untitled",
+        platform: text(record, "平台 Platform"),
+        status: decodeStatus("content", recordField(record.fields, FIELD.status)),
+        publishDate: isoDate(recordField(record.fields, ["发布日期 Publish Date"])),
+        shootDate: isoDate(recordField(record.fields, ["拍摄日期 Shoot Date"])),
+        hook: text(record, "钩子/标题 Hook"),
+        copy: text(record, "文案 Copy"),
+        keywords: text(record, "关键词 SEO Keywords"),
+        hashtags: text(record, "话题标签 Hashtags"),
+        cta: text(record, "行动号召 CTA"),
+        ideaNotes: text(record, "创意备注 Idea Notes"),
+        pillar: text(record, "内容支柱 Pillar"),
+        audience: text(record, "受众 Audience"),
+        funnel: text(record, "漏斗阶段 Funnel"),
+        objective: text(record, "目标 Objective"),
+        format: text(record, "形式 Format"),
+        featured: text(record, "出镜 Featured"),
+        owner: text(record, "负责人 Owner (Feishu)") || text(record, "Owner"),
+        needsFounderReview: boolValue(recordField(record.fields, ["需创始人审批 Needs Founder OK"])) === true,
+        publishedUrl: text(record, "发布链接 Published URL"),
+        views: numberValue(recordField(record.fields, ["播放/曝光 Views"])),
+        saves: numberValue(recordField(record.fields, ["收藏/点赞 Saves"])),
+        comments: numberValue(recordField(record.fields, ["评论 Comments"])),
+        leads: numberValue(recordField(record.fields, ["线索数 Leads"])),
+        revenue: numberValue(recordField(record.fields, ["归因收入 Revenue"])),
+        learnings: text(record, "学习/下一步 Learnings"),
+      }));
+    }
+
+    if (principal.role === "founder") {
+      const keyDateRecords = await this.listOptional("keyDate", 200);
+      dashboard.keyDates = keyDateRecords
+        .filter((record) => boolValue(recordField(record.fields, ["已处理 Resolved"])) !== true)
+        .map((record) => ({
+          id: record.record_id,
+          item: textValue(recordField(record.fields, ["事项 Item"])) || "Untitled",
+          date: isoDate(recordField(record.fields, ["日期 Date"])),
+          category: textValue(recordField(record.fields, ["类别 Category"])) || undefined,
+          owner: textValue(recordField(record.fields, ["负责人 Owner"])) || undefined,
+          warnDays: numberValue(recordField(record.fields, ["提前提醒天数 Warn Days"])),
+          notes: textValue(recordField(record.fields, ["备注 Notes"])) || undefined,
+        }))
+        .sort((left, right) => (left.date || "9999").localeCompare(right.date || "9999"));
+    }
+
     // Founder goals & ideas: shared direction, visible to the whole team.
     const goalRecords = await this.listOptional("goal", 100);
     dashboard.goals = goalRecords
@@ -2198,6 +2298,13 @@ export class CompanyOpsRepository {
               pillar: choice(payload.contentPillar, "contentPillar", CONTENT_PILLAR_OPTIONS),
               objective: choice(payload.objective, "objective", CONTENT_OBJECTIVE_OPTIONS),
               publishDate: payload.plannedPublishDate,
+              // Depth fields from the richer idea form — all optional.
+              hook: payload.hook,
+              script: payload.copyText,
+              keywords: payload.keywords,
+              hashtags: payload.hashtags,
+              cta: payload.cta,
+              ideaNotes: payload.ideaNotes,
             }
           : payload;
         const record = await this.createMapped("content", normalizedPayload, CONTENT_SPECS, principal, { status: "想法 Idea" });
@@ -2411,6 +2518,65 @@ export class CompanyOpsRepository {
         if (byField) updates[byField.field_name] = principal.name;
         await this.client.updateRecord(target.appToken, target.tableId, goalId, updates);
         return { success: true, message: "Response saved", recordId: goalId };
+      }
+      case "content.update":
+      case "update_content": {
+        const allowedContentEdits = new Set([
+          "contentId", "title", "platform", "contentType", "status",
+          "publishDate", "shootDate", "hook", "copy", "keywords", "hashtags",
+          "cta", "ideaNotes", "pillar", "audience", "funnel", "objective",
+          "featured", "notes",
+        ]);
+        const unknownContentEdits = Object.keys(payload).filter(
+          (key) => !allowedContentEdits.has(key)
+        );
+        if (unknownContentEdits.length) {
+          throw new CompanyOpsHttpError(400, `Unknown fields: ${unknownContentEdits.join(", ")}`);
+        }
+        assertNoHealthData(payload);
+        const contentId = validRecordId(payload.contentId);
+        const target = await this.target("content");
+        await this.client.getRecord(target.appToken, target.tableId, contentId);
+        const updates: FeishuFields = {};
+        const setText = (key: string, aliases: readonly string[], maximum: number) => {
+          if (payload[key] === undefined) return;
+          const field = fieldByAlias(target.fields, aliases);
+          if (field) updates[field.field_name] = textValue(payload[key]).slice(0, maximum);
+        };
+        const setDate = (key: string, aliases: readonly string[]) => {
+          if (payload[key] === undefined) return;
+          const field = fieldByAlias(target.fields, aliases);
+          if (!field) return;
+          const value = dateValue(payload[key]);
+          if (value === undefined) throw new CompanyOpsHttpError(400, `${key} must be a date`);
+          updates[field.field_name] = value;
+        };
+        setText("title", ["内容 Content", "Title", "Content Title"], 200);
+        setText("platform", ["平台 Platform", "Platform"], 50);
+        setText("contentType", ["形式 Format", "Content Type"], 80);
+        setText("hook", ["钩子/标题 Hook", "Hook"], 500);
+        setText("copy", ["文案 Copy", "Script / Caption", "Caption"], 20_000);
+        setText("keywords", ["关键词 SEO Keywords", "SEO Keywords", "Keywords"], 1_000);
+        setText("hashtags", ["话题标签 Hashtags", "Hashtags"], 1_000);
+        setText("cta", ["行动号召 CTA", "CTA"], 500);
+        setText("ideaNotes", ["创意备注 Idea Notes", "Idea Notes"], 5_000);
+        setText("pillar", ["内容支柱 Pillar", "内容支柱分类 Pillar Category", "Content Pillar", "Pillar"], 100);
+        setText("audience", ["受众 Audience", "受众分类 Audience Segment", "Audience"], 200);
+        setText("funnel", ["漏斗阶段 Funnel", "Funnel"], 80);
+        setText("objective", ["目标 Objective", "Objective"], 200);
+        setText("featured", ["出镜 Featured", "Featured"], 200);
+        setText("notes", ["学习/下一步 Learnings", "Notes", "备注"], 5_000);
+        setDate("publishDate", ["发布日期 Publish Date", "Publish Date"]);
+        setDate("shootDate", ["拍摄日期 Shoot Date", "Shoot Date"]);
+        if (payload.status !== undefined) {
+          const statusField = requiredField(target, FIELD.status);
+          updates[statusField.field_name] = encodeStatus("content", textValue(payload.status));
+        }
+        if (!Object.keys(updates).length) {
+          throw new CompanyOpsHttpError(400, "Nothing to update");
+        }
+        await this.client.updateRecord(target.appToken, target.tableId, contentId, updates);
+        return { success: true, message: "Content updated", recordId: contentId };
       }
       case "submit_internal_request": {
         const record = await this.createMapped("internalRequest", payload, REQUEST_SPECS, principal, { status: "待处理 Open" });
