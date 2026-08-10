@@ -128,6 +128,26 @@ describe("api/coachingSignup (postgres)", () => {
     expect(orders[0].client_id).toBe(clients[0].client_id);
   });
 
+  it("retains campaign attribution on a coaching order", async () => {
+    const res = await post(
+      orderBody({
+        marketingSource: "xiaohongshu",
+        campaignCode: "COACHING-AUG",
+        staffAttributionCode: "BG-01",
+      }),
+    );
+    expect(res.statusCode).toBe(200);
+
+    const [order] = await rows(
+      "select marketing_source, campaign_code, staff_attribution_code from product_orders",
+    );
+    expect(order).toMatchObject({
+      marketing_source: "xiaohongshu",
+      campaign_code: "COACHING-AUG",
+      staff_attribution_code: "BG-01",
+    });
+  });
+
   it("reuses the existing client on a second signup from the same phone", async () => {
     const first = await post(orderBody());
     expect(first.statusCode).toBe(200);

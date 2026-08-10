@@ -113,6 +113,7 @@ export default function CoachingFlowPage() {
     setSubmitting(true);
     setError("");
     const code = paymentCode || makePaymentCode();
+    const attributionParams = new URLSearchParams(window.location.search);
     try {
       const res = await fetch("/api/coachingSignup", {
         method: "POST",
@@ -132,6 +133,24 @@ export default function CoachingFlowPage() {
           languagePreference: zh ? "Chinese" : "English",
           privacyAccepted,
           consentVersion: "2026-07-28",
+          marketingSource: attributionParams.get("utm_source") || undefined,
+          marketingMedium: attributionParams.get("utm_medium") || undefined,
+          campaignCode:
+            attributionParams.get("campaign") ||
+            attributionParams.get("utm_campaign") ||
+            undefined,
+          partnerCode:
+            attributionParams.get("partner") ||
+            attributionParams.get("kol") ||
+            undefined,
+          staffAttributionCode:
+            attributionParams.get("staff") ||
+            attributionParams.get("owner") ||
+            undefined,
+          marketingAttributionCode:
+            attributionParams.get("attribution") ||
+            attributionParams.get("utm_content") ||
+            undefined,
         }),
       });
       const data = await res.json();

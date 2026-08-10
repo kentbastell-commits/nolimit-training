@@ -9,7 +9,8 @@ renaming, or "improving" anything in the ops tenant.
 
 - App: 自建应用 `cli_aaf3251ae8389bcb` ("company operations" app).
   Credentials in `.env.local` (git-ignored) — `FEISHU_ADMIN_APP_ID`,
-  `FEISHU_ADMIN_APP_SECRET`, plus the three base tokens below. These creds
+  `FEISHU_ADMIN_APP_SECRET`, plus the three base-token environment variables
+  listed below. Their values must remain in local/server environment files. These creds
   are SEPARATE from both products' Feishu creds (nolimit prod has none
   locally; kangfu's are its own). Never cross them (PIPL separation).
 - Run pattern: `node --env-file=c:\Users\kentb\nolimit-training\.env.local <script.mjs>`
@@ -23,15 +24,15 @@ renaming, or "improving" anything in the ops tenant.
 
 | Thing | Token/ID | Sharing |
 |---|---|---|
-| 🔒 HR·财务 Confidential base | `FEISHU_ADMIN_BASE_APP_TOKEN` = OyCubtmyfaz6RyssKIxcmb6MnDd | **LOCKED**: link share closed; Kent explicit full_access member |
-| 👥 团队运营 Team Ops base | `FEISHU_TEAMOPS_BASE_APP_TOKEN` = ABvrb409GaveQRsmgFscjR5LnjE | tenant_editable link |
-| 📈 增长与内容 Growth & Content OS base | `FEISHU_GROWTH_BASE_APP_TOKEN` = T2HcbJjJ4a5XhFsKzFVcINFPnjd | tenant_editable link |
-| Start Here hub doc | docx `NLFJdDHZUo3W0cx9MGEcwv3Nnhe` | tenant_editable |
-| Policy docs (报销/提成/入职) | docx `LUzAdjsb…` / `TtnEdR8h…` / `IVIwdYiY…` | tenant_editable; carry a "Handbook prevails" banner |
-| 报销申请 expense form | share/base/shrcnr1fxtOtnivPXuRgQuU9JLb | form-level share (independent of base lock) |
-| 周报 / 平台数据 forms | shrcnFqwVQIVEpowtQ8Q7Kq2vHg / shrcnXwWUEFz1fiUCw1DtNOAUVh | form-level share |
-| 公司日历 Company calendar | feishu.cn_YEIRLwQ6JJuk0tlE940Cdd@group.calendar.feishu.cn | public (tenant); Kent = writer; recurring Monday 10:00 growth meeting |
-| 内容与拍摄 Content & Shoot calendar | feishu.cn_Xi7UsChug28usEosnnBgRa@group.calendar.feishu.cn | public (tenant); Kent = writer |
+| 🔒 HR·财务 Confidential base | `FEISHU_ADMIN_BASE_APP_TOKEN` | **LOCKED**: link share closed; founder explicit full_access member |
+| 👥 团队运营 Team Ops base | `FEISHU_TEAMOPS_BASE_APP_TOKEN` | link closed; only explicit collaborators/app; staff use the authenticated workspace/forms |
+| 📈 增长与内容 Growth & Content OS base | `FEISHU_GROWTH_BASE_APP_TOKEN` | link closed; only explicit collaborators/app; staff use the authenticated workspace/forms |
+| Start Here hub doc | managed app-owned document | tenant-readable; editing restricted |
+| Policy docs (报销/提成/入职) | managed app-owned documents | tenant-readable; editing restricted; carry a "Handbook prevails" banner |
+| 报销申请 expense form | managed inside the Expenses table | unshared; staff submit through the authenticated workspace |
+| 周报 / 平台数据 forms | managed inside their Growth tables | unshared; staff submit through the authenticated workspace |
+| 公司日历 Company calendar | managed tenant calendar | tenant-visible; founder = writer; recurring Monday 10:00 growth meeting |
+| 内容与拍摄 Content & Shoot calendar | managed tenant calendar | tenant-visible; founder = writer |
 | 品牌与营销 footage folder | in KENT'S OWN Drive (not app space) | Kent shares to staff manually |
 
 ### Confidential base tables
@@ -107,8 +108,8 @@ back from unpaid variable comp only.
   Kent's Drive).
 - **Member grants need a real user id.** `member_type: "email"` fails
   (1063001) unless the email is the person's actual Feishu login. Resolve
-  via `POST /contact/v3/users/batch_get_id` — **Kent's Feishu login is
-  mobile +8617606523711** (not his gmail, not 15651989261).
+  the authorised account through the Contact API or the application's
+  `creator_id`; never commit personal login identifiers to this document.
 - **Form sharing is independent** of the base's public link setting:
   `PATCH .../forms/{view_id} {shared: true, shared_limit: "tenant_editable"}`
   then GET returns `shared_url`. Works even on the locked base.

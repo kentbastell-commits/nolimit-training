@@ -512,6 +512,15 @@ export const productOrders = pgTable(
     // reward units this purchase consumed (stack cap 5 = 50%).
     referrerCode: text("referrer_code"),
     referralRewardsUsed: integer("referral_rewards_used"),
+    // Marketing attribution stays on the commercial order so Company Ops can
+    // report revenue by source without copying customer/coaching data into
+    // Feishu. Codes are deliberately opaque business identifiers, not PII.
+    marketingSource: text("marketing_source"),
+    marketingMedium: text("marketing_medium"),
+    campaignCode: text("campaign_code"),
+    partnerCode: text("partner_code"),
+    staffAttributionCode: text("staff_attribution_code"),
+    marketingAttributionCode: text("marketing_attribution_code"),
     // Buyer contact + coach notes from the manual-order form (the live
     // Feishu table never had these — the inputs were decorative).
     clientPhone: text("client_phone"),
@@ -526,6 +535,8 @@ export const productOrders = pgTable(
     index("product_orders_client_idx").on(t.clientId),
     index("product_orders_program_idx").on(t.programId),
     index("product_orders_payment_status_idx").on(t.paymentStatus),
+    index("product_orders_campaign_code_idx").on(t.campaignCode),
+    index("product_orders_staff_attribution_idx").on(t.staffAttributionCode),
   ]
 );
 

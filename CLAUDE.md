@@ -618,6 +618,11 @@ data between them, never "borrow" a table ID across products.
     properties (display/flex rules), not just the visual ones — same family
     as #18/#25, found only by measuring `getBoundingClientRect` at 390px.
 
+56. **The one serializer Feishu does not share** — Bitable's current create-field
+    API expects `description: { text, disable_sync }`, while a field nested in
+    create-table accepts a narrower shape and create-table has no `client_token`.
+    Keep table creation minimal, then reconcile full fields through their own API.
+
 ## Quality bar — checkable, per deliverable
 
 **Any shipped code change**

@@ -11943,6 +11943,29 @@ function App({ onReady }: { onReady?: () => void } = {}) {
           languagePreference: storeLang === "zh" ? "Chinese" : "English",
           privacyAccepted: consent.privacyAccepted,
           consentVersion: consent.consentVersion || "2026-07-12",
+          // Preserve opaque campaign/partner/staff codes on the order. These
+          // are commercial attribution identifiers only; customer health and
+          // coaching data never flows into the Company Ops workspace.
+          marketingSource: inviteSearchParams.get("utm_source") || undefined,
+          marketingMedium: inviteSearchParams.get("utm_medium") || undefined,
+          campaignCode:
+            inviteSearchParams.get("campaign") ||
+            inviteSearchParams.get("utm_campaign") ||
+            undefined,
+          partnerCode:
+            inviteSearchParams.get("partner") ||
+            inviteSearchParams.get("kol") ||
+            undefined,
+          staffAttributionCode:
+            inviteSearchParams.get("staff") ||
+            inviteSearchParams.get("owner") ||
+            undefined,
+          marketingAttributionCode:
+            inviteSearchParams.get("attribution") ||
+            inviteSearchParams.get("utm_content") ||
+            undefined,
+          referrerCode: inviteSearchParams.get("ref") || undefined,
+          buyerClientCode: rememberedPortalCode || undefined,
           addons: addonList.map((addon) => ({
             programId: addon.programId,
             programRecordId: addon.recordId,

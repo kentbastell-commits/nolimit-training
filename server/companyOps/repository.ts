@@ -1,0 +1,2792 @@
+import {
+  CompanyOpsConfigurationError,
+  baseTokenFor,
+  type CompanyOpsConfig,
+  type CompanyOpsResource,
+  type CompanyOpsRole,
+} from "./config.ts";
+import {
+  CompanyOpsHttpError,
+  requireActionPermission,
+  type CompanyOpsActionName,
+  type CompanyOpsSession,
+} from "./auth.ts";
+import {
+  FeishuApiError,
+  FeishuClient,
+  type FeishuField,
+  type FeishuFields,
+  type FeishuOAuthUser,
+  type FeishuRecord,
+} from "./feishuClient.ts";
+
+export interface CompanyOpsPrincipal {
+  openId: string;
+  userId?: string;
+  name: string;
+  avatarUrl?: string;
+  tenantKey?: string;
+  role: CompanyOpsRole;
+  staffRecordId?: string;
+}
+
+export interface CompanyOpsDashboardItem {
+  id: string;
+  title: string;
+  status?: string;
+  subtitle?: string;
+  dueAt?: string;
+  owner?: string;
+  platform?: string;
+  amount?: number;
+  currency?: string;
+  priority?: string;
+  actionType?: "founder_decision" | "access_request" | "expense" | "weekly_report";
+}
+
+export interface CompanyOpsDashboard {
+  user: {
+    name: string;
+    avatarUrl?: string;
+    role: CompanyOpsRole;
+    accessPending: boolean;
+  };
+  summary: {
+    headline: string;
+    todayCount: number;
+    waitingCount: number;
+    overdueCount: number;
+  };
+  workQueue: CompanyOpsDashboardItem[];
+  contentPipeline: CompanyOpsDashboardItem[];
+  leads: CompanyOpsDashboardItem[];
+  campaigns: CompanyOpsDashboardItem[];
+  partners: CompanyOpsDashboardItem[];
+  experiments: CompanyOpsDashboardItem[];
+  onboarding: CompanyOpsDashboardItem[];
+  approvals: CompanyOpsDashboardItem[];
+  supportIssues: CompanyOpsDashboardItem[];
+  links: Record<string, string>;
+  acknowledgedPolicyIds?: string[];
+  founder?: {
+    accessRequests: CompanyOpsDashboardItem[];
+    expenses: CompanyOpsDashboardItem[];
+    payroll: CompanyOpsDashboardItem[];
+    commissions: CompanyOpsDashboardItem[];
+    weeklyReports: CompanyOpsDashboardItem[];
+    onboardingCandidates: Array<{
+      openId: string;
+      name: string;
+      role: string;
+      startDate?: string;
+    }>;
+    revenue: Array<{
+      productType: string;
+      currency: string;
+      grossCollected: number;
+      orderCount: number;
+    }>;
+  };
+  finance?: {
+    expenses: CompanyOpsDashboardItem[];
+    payroll: CompanyOpsDashboardItem[];
+    commissions: CompanyOpsDashboardItem[];
+  };
+  myCompensation?: {
+    payroll?: {
+      period: string;
+      baseSalary?: number;
+      performance?: number;
+      commission?: number;
+      bonus?: number;
+      reimbursements?: number;
+      deductions?: number;
+      netPay?: number;
+      status?: string;
+    };
+    commission?: {
+      id: string;
+      period: string;
+      attributedRevenue?: number;
+      rate?: number;
+      amount?: number;
+      growthBonus?: number;
+      status?: string;
+      acknowledged?: boolean;
+      disputeDeadline?: string;
+      locked?: boolean;
+    };
+  };
+}
+
+export interface CompanyOpsActionRequest {
+  action: CompanyOpsActionName;
+  payload: Record<string, unknown>;
+}
+
+export interface CompanyOpsActionResult {
+  success: true;
+  message: string;
+  recordId?: string;
+  recordIds?: string[];
+  caseId?: string;
+  taskIds?: string[];
+  warning?: string;
+}
+
+interface ResolvedTarget {
+  resource: CompanyOpsResource;
+  appToken: string;
+  tableId: string;
+  fields: FeishuField[];
+}
+
+type ValueKind = "string" | "number" | "boolean" | "date" | "strings";
+
+interface InputFieldSpec {
+  key: string;
+  aliases: readonly string[];
+  kind: ValueKind;
+  required?: boolean;
+  primary?: boolean;
+  minimum?: number;
+  maximum?: number;
+}
+
+const FIELD = {
+  title: ["Title", "Name", "名称", "标题"],
+  status: ["状态 Status", "阶段 Stage", "Status", "Stage", "状态", "阶段"],
+  createdByOpenId: [
+    "Created By Open ID",
+    "Submitted By Open ID",
+    "Owner Open ID",
+    "创建人 Open ID",
+    "提交人 Open ID",
+  ],
+  submittedBy: [
+    "员工 Employee",
+    "负责人 Owner",
+    "负责人 Owner (Feishu)",
+    "负责人（飞书） Owner (Feishu)",
+    "提出人（飞书） Requested By (Feishu)",
+    "报告人 Reporter",
+    "提交人 Author",
+    "Submitted By",
+    "Created By",
+    "Owner",
+    "提交人",
+    "负责人",
+  ],
+  newHireOpenId: [
+    "飞书用户 Feishu User",
+    "负责人 Assignee",
+    "New Hire Open ID",
+    "Employee Open ID",
+    "新员工 Open ID",
+  ],
+} as const;
+
+const CONFIDENTIAL_FIELD = {
+  employee: "员工 Employee",
+  payroll: {
+    month: "月份 Month",
+    base: "基本工资 Base",
+    performanceBonus: "月度绩效奖金 Perf Bonus",
+    commission: "提成 Commission",
+    bonus: "奖金 Bonus",
+    reimbursements: "报销 Reimbursements",
+    deductions: "扣款 Deductions",
+    netPay: "实发 Net Pay",
+    status: "状态 Status",
+  },
+  commission: {
+    month: "月份 Month",
+    attributedRevenue: "归属销售额 Attributed Revenue",
+    rate: "比例% Rate",
+    amount: "提成金额 Amount",
+    growthBonus: "季度增长奖金 Growth Bonus",
+    status: "状态 Status",
+    acknowledgedAt: "员工确认时间 Acknowledged At",
+    disputeDeadline: "异议截止 Dispute Deadline",
+    disputeStatus: "异议状态 Dispute Status",
+    disputeNotes: "异议说明 Dispute Notes",
+    locked: "已锁定 Locked",
+  },
+  policy: {
+    acknowledgement: "确认记录 Acknowledgement",
+    acknowledgedBy: "确认人 Acknowledged By",
+    document: "文件 Document",
+    version: "文件版本 Document Version",
+    readAndAcknowledged: "已阅读并确认 Read & Acknowledged",
+  },
+} as const;
+
+const POLICY_DOCUMENT_BY_ID = {
+  "employee-handbook": "员工手册 Employee Handbook",
+  "expense-policy": "报销制度 Expense Policy",
+  "commission-structure": "提成制度 Commission Structure",
+  "confidentiality-data-rules": "保密与数据规则 Confidentiality & Data Rules",
+} as const;
+
+const POLICY_ID_BY_DOCUMENT = new Map<string, string>(
+  Object.entries(POLICY_DOCUMENT_BY_ID).map(([id, document]) => [document, id])
+);
+
+const CONTENT_SPECS: readonly InputFieldSpec[] = [
+  { key: "title", aliases: ["内容 Content", "Title", "Content Title", "内容标题"], kind: "string", required: true, primary: true, maximum: 200 },
+  { key: "platform", aliases: ["平台 Platform", "Platform", "平台"], kind: "string", required: true, maximum: 50 },
+  { key: "contentType", aliases: ["形式 Format", "Content Type", "内容类型"], kind: "string", maximum: 80 },
+  { key: "status", aliases: FIELD.status, kind: "string", maximum: 50 },
+  { key: "publishDate", aliases: ["发布日期 Publish Date", "Publish Date", "Planned Publish Date", "发布日期"], kind: "date" },
+  { key: "draftDue", aliases: ["草稿截止 Draft Due", "Draft Due", "Draft Due Date", "初稿截止"], kind: "date" },
+  { key: "hook", aliases: ["Hook / Title", "Hook", "开头钩子"], kind: "string", maximum: 500 },
+  { key: "script", aliases: ["Script / Caption", "Script", "Caption", "脚本 / 文案"], kind: "string", maximum: 20_000 },
+  { key: "cta", aliases: ["CTA", "Call to Action", "行动号召"], kind: "string", maximum: 500 },
+  { key: "pillar", aliases: ["内容支柱分类 Pillar Category", "内容支柱 Pillar", "Content Pillar", "Pillar", "内容支柱"], kind: "string", maximum: 100 },
+  { key: "audience", aliases: ["受众分类 Audience Segment", "受众 Audience", "Audience", "Target Audience", "目标人群"], kind: "string", maximum: 200 },
+  { key: "objective", aliases: ["目标 Objective", "目标类型 Objective Type", "Objective", "目标"], kind: "string", maximum: 200 },
+  { key: "approvalStatus", aliases: ["审核状态 Approval Status", "Approval Status", "Review Status", "审批状态"], kind: "string", maximum: 50 },
+  { key: "needsFounderReview", aliases: ["需创始人审批 Needs Founder OK", "Needs Founder OK?", "Needs Founder Review", "需要创始人审核"], kind: "boolean" },
+  { key: "notes", aliases: ["学习/下一步 Learnings", "Notes", "备注"], kind: "string", maximum: 5_000 },
+];
+
+const LEAD_SPECS: readonly InputFieldSpec[] = [
+  { key: "name", aliases: ["线索 Lead", "Lead", "Lead / Contact", "Name", "Contact Name", "潜客姓名"], kind: "string", required: true, primary: true, maximum: 150 },
+  { key: "source", aliases: ["来源 Source", "Source", "Lead Source", "来源"], kind: "string", maximum: 100 },
+  { key: "platform", aliases: ["平台 Platform", "Platform", "平台"], kind: "string", maximum: 50 },
+  { key: "contact", aliases: ["微信/联系 Contact", "Contact", "Contact Details", "联系方式"], kind: "string", required: true, maximum: 500 },
+  { key: "stage", aliases: ["阶段 Stage", "Stage", "Status", "阶段"], kind: "string", maximum: 50 },
+  { key: "nextFollowUp", aliases: ["Next Follow-up", "Next Follow Up", "下次跟进"], kind: "date" },
+  { key: "consultationDate", aliases: ["Consultation Date", "咨询日期"], kind: "date" },
+  { key: "consultationOutcome", aliases: ["Consultation Outcome", "咨询结果"], kind: "string", maximum: 1_000 },
+  { key: "amountCollected", aliases: ["Amount Collected", "Collected Revenue", "实收金额"], kind: "number" },
+  { key: "conversionDate", aliases: ["Conversion Date", "转化日期"], kind: "date" },
+  { key: "lostReason", aliases: ["Lost Reason", "流失原因"], kind: "string", maximum: 1_000 },
+  { key: "productInterest", aliases: ["意向产品 Interest", "Product Interest", "Interest", "意向产品"], kind: "string", maximum: 500 },
+  { key: "nextAction", aliases: ["下一步 Next Action", "Next Action", "Next Step", "下一步"], kind: "string", maximum: 1_000 },
+  { key: "notes", aliases: ["备注 Notes (无健康信息 no health data)", "Notes (no health data)", "Notes", "备注（禁止健康数据）"], kind: "string", maximum: 3_000 },
+];
+
+const PARTNER_SPECS: readonly InputFieldSpec[] = [
+  { key: "name", aliases: ["伙伴 Partner", "Partner", "Name", "KOL / Partner", "合作伙伴"], kind: "string", required: true, primary: true, maximum: 200 },
+  { key: "type", aliases: ["Type", "Partner Type", "类型"], kind: "string", maximum: 80 },
+  { key: "platform", aliases: ["Platform", "平台"], kind: "string", maximum: 50 },
+  { key: "platformHandle", aliases: ["平台/账号 Platform & Handle"], kind: "string", maximum: 300 },
+  { key: "profileUrl", aliases: ["Profile URL", "URL", "主页链接"], kind: "string", maximum: 1_000 },
+  { key: "handle", aliases: ["Handle", "Account", "账号"], kind: "string", maximum: 200 },
+  { key: "stage", aliases: ["阶段 Stage", "Stage", "Status", "阶段"], kind: "string", maximum: 50 },
+  { key: "audienceFit", aliases: ["受众匹配 Audience Fit", "Audience Fit", "受众匹配"], kind: "string", maximum: 1_000 },
+  { key: "source", aliases: ["来源 Source", "Source", "来源"], kind: "string", maximum: 100 },
+  { key: "lastContact", aliases: ["Last Contact", "最近联系"], kind: "date" },
+  { key: "nextFollowUp", aliases: ["下次跟进 Next Follow-up", "Next Follow-up", "Next Follow Up", "下次跟进"], kind: "date" },
+  { key: "commercialModel", aliases: ["Commercial Model", "Paid / Barter / Affiliate", "合作模式"], kind: "string", maximum: 100 },
+  { key: "proposedCollaboration", aliases: ["交付物与期限 Deliverables", "Proposed Collaboration", "Collaboration Idea", "拟议合作"], kind: "string", maximum: 2_000 },
+  { key: "budget", aliases: ["Approved Budget", "Budget", "预算"], kind: "number" },
+  { key: "dueDate", aliases: ["Due Date", "截止日期"], kind: "date" },
+  { key: "notes", aliases: ["Notes", "备注"], kind: "string", maximum: 5_000 },
+];
+
+const CAMPAIGN_SPECS: readonly InputFieldSpec[] = [
+  { key: "name", aliases: ["活动 Campaign", "Campaign", "Campaign Name", "Name", "活动名称"], kind: "string", required: true, primary: true, maximum: 200 },
+  { key: "status", aliases: FIELD.status, kind: "string", maximum: 50 },
+  { key: "objective", aliases: ["目标 Objective", "Objective", "目标"], kind: "string", required: true, maximum: 500 },
+  { key: "audience", aliases: ["目标受众 Target Audience", "Target Audience", "Audience", "目标人群"], kind: "strings", maximum: 500 },
+  { key: "offer", aliases: ["核心卖点 Offer", "Offer", "Value Proposition", "活动方案"], kind: "string", maximum: 2_000 },
+  { key: "product", aliases: ["产品 Product"], kind: "string", required: true, maximum: 100 },
+  { key: "channels", aliases: ["渠道 Channels"], kind: "strings", required: true, maximum: 300 },
+  { key: "startDate", aliases: ["开始 Start", "Start Date", "开始日期"], kind: "date", required: true },
+  { key: "endDate", aliases: ["结束 End", "End Date", "结束日期"], kind: "date", required: true },
+  { key: "budget", aliases: ["预算 Budget", "Budget", "预算"], kind: "number", required: true, minimum: 0, maximum: 10_000_000 },
+  { key: "reach", aliases: ["Reach", "触达"], kind: "number" },
+  { key: "impressions", aliases: ["Impressions", "曝光"], kind: "number" },
+  { key: "clicks", aliases: ["Clicks", "点击"], kind: "number" },
+  { key: "consultations", aliases: ["Consultations", "咨询数"], kind: "number" },
+  { key: "revenue", aliases: ["回款 Revenue", "Revenue", "Attributed Revenue", "归因收入"], kind: "number" },
+  { key: "nextDecision", aliases: ["Next Decision", "Next Step", "下一决策"], kind: "string", maximum: 1_000 },
+  { key: "notes", aliases: ["Notes", "备注"], kind: "string", maximum: 5_000 },
+];
+
+const EXPERIMENT_SPECS: readonly InputFieldSpec[] = [
+  { key: "name", aliases: ["实验 Experiment", "Experiment", "Experiment Name", "Name", "实验名称"], kind: "string", required: true, primary: true, maximum: 200 },
+  { key: "hypothesis", aliases: ["假设 Hypothesis", "Hypothesis", "假设"], kind: "string", required: true, maximum: 2_000 },
+  { key: "variable", aliases: ["变量 Variable"], kind: "string", required: true, maximum: 500 },
+  { key: "channel", aliases: ["渠道 Channel"], kind: "strings", maximum: 300 },
+  { key: "metric", aliases: ["成功指标 Success Metric", "Primary Metric", "Metric", "核心指标"], kind: "string", required: true, maximum: 200 },
+  { key: "baseline", aliases: ["基线 Baseline", "Baseline", "基线"], kind: "number", required: true, minimum: 0, maximum: 1_000_000_000 },
+  { key: "target", aliases: ["目标 Target", "Target", "目标值"], kind: "number", required: true, minimum: 0, maximum: 1_000_000_000 },
+  { key: "startDate", aliases: ["开始 Start", "Start Date", "开始日期"], kind: "date", required: true },
+  { key: "endDate", aliases: ["结束 End", "End Date", "结束日期"], kind: "date", required: true },
+  { key: "status", aliases: FIELD.status, kind: "string", maximum: 50 },
+  { key: "result", aliases: ["Result", "结果"], kind: "string", maximum: 2_000 },
+  { key: "decision", aliases: ["Decision", "Decision / Next Step", "结论 / 下一步"], kind: "string", maximum: 2_000 },
+  { key: "notes", aliases: ["Notes", "备注"], kind: "string", maximum: 5_000 },
+];
+
+const WEEKLY_SPECS: readonly InputFieldSpec[] = [
+  { key: "reportingWeek", aliases: ["报告 Report", "Reporting Week", "Week", "报告周"], kind: "string", required: true, primary: true, maximum: 100 },
+  { key: "wins", aliases: ["A 完成事项 Completed", "A. Wins", "A — Wins", "A. 本周成果"], kind: "string", required: true, maximum: 5_000 },
+  { key: "metrics", aliases: ["B 主要成果 Results", "B. Metrics", "B — Metrics", "B. 核心数据"], kind: "string", required: true, maximum: 5_000 },
+  { key: "blockers", aliases: ["C 问题 Problems", "C. Problems", "D. Blockers", "D — Blockers", "D. 阻碍"], kind: "string", maximum: 5_000 },
+  { key: "learning", aliases: ["D 学习 Learnings", "C. Learning", "C — Learning", "C. 学习与洞察"], kind: "string", required: true, maximum: 5_000 },
+  { key: "decisionsNeeded", aliases: ["E 需要决策 Decisions Needed", "F. Founder Decisions Needed", "F — Decisions Needed", "F. 需要创始人决策"], kind: "string", maximum: 5_000 },
+  { key: "nextWeek", aliases: ["F 下周优先级 Next Priorities", "E. Next Week", "E — Next Week", "E. 下周计划"], kind: "string", required: true, maximum: 5_000 },
+  { key: "status", aliases: FIELD.status, kind: "string", maximum: 50 },
+];
+
+const METRICS_SPECS: readonly InputFieldSpec[] = [
+  { key: "period", aliases: ["记录 Record", "Reporting Period", "Week", "Period", "统计周期"], kind: "string", required: true, primary: true, maximum: 100 },
+  { key: "platform", aliases: ["平台 Platform", "Platform", "平台"], kind: "string", required: true, maximum: 50 },
+  { key: "followersStart", aliases: ["期初粉丝 Start Followers", "Followers Start", "Opening Followers", "期初粉丝"], kind: "number", minimum: 0, maximum: 1_000_000_000 },
+  { key: "followersEnd", aliases: ["期末粉丝 End Followers", "Followers End", "Closing Followers", "期末粉丝"], kind: "number", minimum: 0, maximum: 1_000_000_000 },
+  { key: "posts", aliases: ["发布数 Posts"], kind: "number", minimum: 0, maximum: 1_000_000 },
+  { key: "views", aliases: ["总播放/曝光 Views", "Views", "播放"], kind: "number", minimum: 0, maximum: 1_000_000_000 },
+  { key: "engagement", aliases: ["互动 Engagement"], kind: "number", minimum: 0, maximum: 1_000_000_000 },
+  { key: "profileVisits", aliases: ["主页访问 Profile Visits", "Profile Visits", "主页访问"], kind: "number", minimum: 0, maximum: 1_000_000_000 },
+  { key: "clicks", aliases: ["点击 Clicks", "Clicks", "点击"], kind: "number", minimum: 0, maximum: 1_000_000_000 },
+  { key: "leads", aliases: ["线索 Leads", "Leads", "潜客"], kind: "number", minimum: 0, maximum: 1_000_000_000 },
+  { key: "consultations", aliases: ["Consultations", "咨询"], kind: "number", minimum: 0, maximum: 1_000_000_000 },
+  { key: "purchases", aliases: ["Attributed Purchases", "Purchases", "归因购买"], kind: "number", minimum: 0, maximum: 1_000_000_000 },
+  { key: "revenue", aliases: ["归因收入 Revenue", "Revenue", "Attributed Revenue", "归因收入"], kind: "number", minimum: 0, maximum: 1_000_000_000 },
+  { key: "bestContent", aliases: ["最佳内容与原因 Best Content & Why", "Best Content", "最佳内容"], kind: "string", maximum: 1_000 },
+  { key: "worstContent", aliases: ["最弱内容与原因 Weakest Content & Why", "Worst Content", "待改进内容"], kind: "string", maximum: 1_000 },
+  { key: "learning", aliases: ["学习 Learning", "Learning", "Key Learning", "关键洞察"], kind: "string", maximum: 2_000 },
+];
+
+const EXPENSE_SPECS: readonly InputFieldSpec[] = [
+  { key: "title", aliases: ["事项 Item", "Expense", "Title", "Expense Title", "费用名称"], kind: "string", required: true, primary: true, maximum: 200 },
+  { key: "expenseDate", aliases: ["日期 Date", "Expense Date", "Date", "费用日期"], kind: "date", required: true },
+  { key: "category", aliases: ["类别 Category", "Category", "费用类别"], kind: "string", required: true, maximum: 100 },
+  { key: "amount", aliases: ["金额 Amount", "Amount", "金额"], kind: "number", required: true, minimum: 0.01, maximum: 10_000_000 },
+  { key: "currency", aliases: ["币种 Currency", "Currency", "币种"], kind: "string", maximum: 10 },
+  { key: "businessPurpose", aliases: ["业务目的 Business Purpose", "Business Purpose", "Purpose", "业务用途"], kind: "string", required: true, maximum: 2_000 },
+  { key: "preapproved", aliases: ["事先审批 Pre-approved", "Pre-approved?", "Pre-approved", "已预批准"], kind: "boolean", required: true },
+  { key: "vendor", aliases: ["供应商 Vendor", "Vendor", "Merchant", "商户"], kind: "string", maximum: 300 },
+  { key: "receiptUrl", aliases: ["票据链接 Receipt URL", "Receipt URL", "Receipt Link", "票据链接"], kind: "string", required: true, maximum: 1_000 },
+  { key: "relatedProject", aliases: ["关联项目 Related Project", "Related Project", "Project", "关联项目"], kind: "string", maximum: 300 },
+  { key: "priorApprovalReference", aliases: ["事前审批参考 Pre-approval Ref", "Prior Approval Reference", "Approval Reference", "预批准凭证"], kind: "string", maximum: 500 },
+  { key: "receiptNote", aliases: ["票据说明 Receipt Note", "备注 Notes", "Receipt Note", "Receipt Details", "票据说明"], kind: "string", maximum: 1_000 },
+  { key: "notes", aliases: ["备注 Notes", "Notes", "备注"], kind: "string", maximum: 3_000 },
+  { key: "status", aliases: FIELD.status, kind: "string", maximum: 50 },
+];
+
+const REQUEST_SPECS: readonly InputFieldSpec[] = [
+  { key: "title", aliases: ["请求 Request", "Request", "Title", "Request Title", "申请标题"], kind: "string", required: true, primary: true, maximum: 200 },
+  { key: "requestType", aliases: ["类别 Category", "Request Type", "Type", "申请类型"], kind: "string", required: true, maximum: 100 },
+  { key: "details", aliases: ["备注 Notes", "Details", "Description", "申请详情"], kind: "string", required: true, maximum: 5_000 },
+  { key: "priority", aliases: ["优先级 Priority", "Priority", "优先级"], kind: "string", maximum: 50 },
+  { key: "neededBy", aliases: ["截止 Due", "Needed By", "Due Date", "需要日期"], kind: "date" },
+  { key: "status", aliases: FIELD.status, kind: "string", maximum: 50 },
+];
+
+const SUPPORT_SPECS: readonly InputFieldSpec[] = [
+  { key: "title", aliases: ["问题编号/标题 Issue ID / Title", "Issue", "Issue Title", "Title", "问题标题"], kind: "string", required: true, primary: true, maximum: 200 },
+  { key: "category", aliases: ["问题类型 Issue Type", "Category", "Issue Type", "问题类型"], kind: "string", required: true, maximum: 100 },
+  { key: "description", aliases: ["问题描述 Description", "Description", "Details", "问题描述"], kind: "string", required: true, maximum: 5_000 },
+  { key: "severity", aliases: ["严重级别 Severity", "Severity", "Priority", "严重程度"], kind: "string", maximum: 50 },
+  { key: "area", aliases: ["功能模块 Feature", "Product Area", "Area", "产品模块"], kind: "string", maximum: 100 },
+  { key: "device", aliases: ["设备/系统 Device / OS", "Device", "设备"], kind: "string", maximum: 200 },
+  { key: "appVersion", aliases: ["App Version", "Version", "应用版本"], kind: "string", maximum: 100 },
+  { key: "steps", aliases: ["复现步骤 Repro Steps", "Steps to Reproduce", "Reproduction Steps", "复现步骤"], kind: "string", maximum: 5_000 },
+  { key: "expected", aliases: ["Expected Result", "期望结果"], kind: "string", maximum: 2_000 },
+  { key: "affectedCount", aliases: ["受影响数量 Affected Count"], kind: "number", minimum: 0, maximum: 1_000_000 },
+  { key: "workaround", aliases: ["临时方案 Workaround"], kind: "string", maximum: 2_000 },
+  { key: "status", aliases: FIELD.status, kind: "string", maximum: 50 },
+];
+
+const STATUS_BY_RESOURCE: Partial<
+  Record<CompanyOpsResource, Readonly<Record<string, string>>>
+> = {
+  content: {
+    Idea: "想法 Idea",
+    Research: "调研 Research",
+    Script: "脚本 Script",
+    "Ready to Film": "待拍摄 Ready to Film",
+    Filmed: "已拍摄 Filmed",
+    Editing: "剪辑中 Editing",
+    Review: "待审核 Review",
+    Approved: "已批准 Approved",
+    Scheduled: "已排期 Scheduled",
+    Published: "已发布 Published",
+    Analyzed: "已复盘 Analyzed",
+    Archived: "存档 Archived",
+  },
+  lead: {
+    New: "新 New",
+    Contacted: "已联系 Contacted",
+    Qualified: "已确认意向 Qualified",
+    "Consultation Booked": "已约咨询 Consult Booked",
+    Consulted: "咨询完成 Consult Done",
+    Deciding: "待决定 Deciding",
+    Won: "成交 Won",
+    Lost: "流失 Lost",
+    Nurture: "培育 Nurture",
+  },
+  partner: {
+    Research: "调研 Research",
+    Priority: "优先 Priority",
+    Contacted: "已联系 Contacted",
+    Replied: "已回复 Replied",
+    Negotiating: "洽谈中 Negotiating",
+    Approved: "已批准 Approved",
+    Active: "合作中 Active",
+    Completed: "已完成 Completed",
+    "Long-term": "长期伙伴 Long-term",
+    "Not Fit": "不合适 Not Fit",
+  },
+  campaign: {
+    Planning: "计划中 Planning",
+    "Pending Approval": "待批准 Pending Approval",
+    Active: "进行中 Active",
+    Ended: "已结束 Ended",
+    Reviewed: "已复盘 Reviewed",
+  },
+  experiment: {
+    Idea: "想法 Idea",
+    "Pending Approval": "待批准 Pending Approval",
+    Running: "运行中 Running",
+    Analyzing: "分析中 Analyzing",
+    Completed: "已完成 Completed",
+    Cancelled: "已取消 Cancelled",
+  },
+  weeklyReport: {
+    Submitted: "已提交 Submitted",
+    Reviewed: "创始人已阅 Reviewed",
+    Archived: "已归档 Archived",
+  },
+  expense: {
+    Pending: "待审批 Pending",
+    Approved: "已批准 Approved",
+    Reimbursed: "已打款 Reimbursed",
+    Rejected: "已拒绝 Rejected",
+  },
+  payroll: { Pending: "待发 Pending", Paid: "已发 Paid" },
+  commission: {
+    "To Review": "待审核 To Review",
+    Confirmed: "已确认 Confirmed",
+    Paid: "已支付 Paid",
+  },
+  internalRequest: {
+    Open: "待处理 Open",
+    "In Progress": "进行中 Doing",
+    Done: "完成 Done",
+    Rejected: "拒绝 Declined",
+  },
+  onboarding: {
+    Todo: "未开始 Todo",
+    "In Progress": "进行中 Doing",
+    Blocked: "受阻 Blocked",
+    Review: "待复核 Review",
+    Done: "已完成 Done",
+    "N/A": "不适用 N/A",
+  },
+  support: {
+    New: "新建 New",
+    Triage: "待确认 Triage",
+    "In Progress": "处理中 In Progress",
+    "Ready to Verify": "待验证 Ready to Verify",
+    Resolved: "已解决 Resolved",
+    Closed: "已关闭 Closed",
+    "Won't Fix": "不处理 Won't Fix",
+  },
+};
+
+const decodeStatus = (
+  resource: CompanyOpsResource,
+  value: unknown
+): string | undefined => {
+  const raw = textValue(value);
+  if (!raw) return undefined;
+  const entries = Object.entries(STATUS_BY_RESOURCE[resource] || {});
+  return entries.find(
+    ([canonical, stored]) =>
+      normalize(canonical) === normalize(raw) || normalize(stored) === normalize(raw)
+  )?.[0] || raw;
+};
+
+const encodeStatus = (resource: CompanyOpsResource, value: unknown): string => {
+  const decoded = decodeStatus(resource, value);
+  const stored = decoded && STATUS_BY_RESOURCE[resource]?.[decoded];
+  if (!stored) throw new CompanyOpsHttpError(400, "That status is not valid for this record");
+  return stored;
+};
+
+const isTerminalWorkStatus = (status: string | undefined): boolean =>
+  new Set([
+    "Done",
+    "N/A",
+    "Completed",
+    "Archived",
+    "Analyzed",
+    "Reviewed",
+    "Resolved",
+    "Closed",
+    "Won",
+    "Lost",
+    "Not Fit",
+    "Cancelled",
+  ]).has(status || "");
+
+const STATUS_RESOURCES_BY_ROLE: Record<CompanyOpsRole, ReadonlySet<CompanyOpsResource>> = {
+  founder: new Set(Object.keys(STATUS_BY_RESOURCE) as CompanyOpsResource[]),
+  finance: new Set(["expense", "payroll", "commission", "internalRequest", "support"]),
+  growth: new Set(["content", "lead", "partner", "campaign", "experiment", "weeklyReport", "internalRequest", "support"]),
+  staff: new Set(["internalRequest", "onboarding", "support"]),
+  pending: new Set(),
+};
+
+const objectInput = (value: unknown): Record<string, unknown> => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new CompanyOpsHttpError(400, "Action payload must be an object");
+  }
+  return value as Record<string, unknown>;
+};
+
+const textValue = (value: unknown): string => {
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "number" && Number.isFinite(value)) return String(value);
+  if (Array.isArray(value)) return value.map(textValue).filter(Boolean).join(", ");
+  if (value && typeof value === "object") {
+    const item = value as Record<string, unknown>;
+    return textValue(item.text ?? item.name ?? item.value ?? item.id);
+  }
+  return "";
+};
+
+const numberValue = (value: unknown): number | undefined => {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : undefined;
+  }
+  return undefined;
+};
+
+const dateValue = (value: unknown): number | undefined => {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value < 10_000_000_000 ? value * 1_000 : value;
+  }
+  if (typeof value !== "string" || !value.trim()) return undefined;
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
+};
+
+const boolValue = (value: unknown): boolean | undefined => {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (["true", "yes", "1"].includes(normalized)) return true;
+    if (["false", "no", "0"].includes(normalized)) return false;
+  }
+  return undefined;
+};
+
+const normalize = (value: string): string =>
+  value.trim().toLocaleLowerCase().replace(/[\s_&/·-]+/g, " ");
+
+const fieldByAlias = (
+  fields: readonly FeishuField[],
+  aliases: readonly string[],
+  primary = false
+): FeishuField | undefined => {
+  const names = new Set(aliases.map(normalize));
+  return fields.find((field) => names.has(normalize(field.field_name))) ||
+    (primary ? fields.find((field) => field.is_primary) : undefined);
+};
+
+const recordField = (fields: FeishuFields, aliases: readonly string[]): unknown => {
+  const names = new Set(aliases.map(normalize));
+  const entry = Object.entries(fields).find(([name]) => names.has(normalize(name)));
+  return entry?.[1];
+};
+
+const idsFromValue = (value: unknown): string[] => {
+  const results: string[] = [];
+  const visit = (item: unknown): void => {
+    if (typeof item === "string") {
+      for (const match of item.matchAll(/ou_[A-Za-z0-9_-]+/g)) results.push(match[0]);
+      return;
+    }
+    if (Array.isArray(item)) {
+      item.forEach(visit);
+      return;
+    }
+    if (item && typeof item === "object") {
+      const object = item as Record<string, unknown>;
+      visit(object.id ?? object.open_id ?? object.openId ?? object.value);
+    }
+  };
+  visit(value);
+  return [...new Set(results)];
+};
+
+const linkedRecordIds = (value: unknown): string[] => {
+  const results: string[] = [];
+  const visit = (item: unknown): void => {
+    if (typeof item === "string") {
+      for (const match of item.matchAll(/rec[A-Za-z0-9_-]+/g)) results.push(match[0]);
+      return;
+    }
+    if (Array.isArray(item)) {
+      item.forEach(visit);
+      return;
+    }
+    if (item && typeof item === "object") {
+      const object = item as Record<string, unknown>;
+      visit(
+        object.record_id ??
+          object.recordId ??
+          object.record_ids ??
+          object.linked_record_ids ??
+          object.value
+      );
+    }
+  };
+  visit(value);
+  return [...new Set(results)];
+};
+
+const normalizeRole = (value: unknown): CompanyOpsRole => {
+  const role = normalize(textValue(value));
+  if (/finance|account|payroll|财务|会计|薪酬/.test(role)) return "finance";
+  if (/growth|content|brand|marketing|social|增长|内容|品牌|市场|运营/.test(role)) return "growth";
+  return "staff";
+};
+
+const isActiveStaff = (record: FeishuRecord): boolean => {
+  const status = normalize(textValue(recordField(record.fields, ["状态 Status", "Status", "Employment Status", "状态", "在职状态"])));
+  return /^(在职 active|试用期 probation|active|probation)$/.test(status);
+};
+
+const validRecordId = (value: unknown): string => {
+  const recordId = textValue(value);
+  if (!/^[A-Za-z0-9_-]{3,128}$/.test(recordId)) {
+    throw new CompanyOpsHttpError(400, "Invalid record identifier");
+  }
+  return recordId;
+};
+
+const isoDate = (value: unknown): string | undefined => {
+  const timestamp = dateValue(value);
+  if (!timestamp) return undefined;
+  try {
+    return new Date(timestamp).toISOString();
+  } catch {
+    return undefined;
+  }
+};
+
+const shanghaiDateKey = (timestamp: number): string =>
+  new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Shanghai",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date(timestamp));
+
+const selectionValues = (value: unknown): string[] => {
+  if (Array.isArray(value)) return value.flatMap(selectionValues);
+  if (typeof value === "string") return value.trim() ? [value.trim()] : [];
+  if (value && typeof value === "object") {
+    const item = value as Record<string, unknown>;
+    return selectionValues(item.name ?? item.text ?? item.value);
+  }
+  return [];
+};
+
+const ONBOARDING_ROLES = [
+  "品牌增长 Brand & Growth",
+  "教练 Coach",
+  "运营 Operations",
+  "行政 Admin",
+  "其他 Other",
+] as const;
+
+type OnboardingRole = (typeof ONBOARDING_ROLES)[number];
+
+const onboardingRole = (value: unknown): OnboardingRole => {
+  const role = normalize(textValue(value));
+  if (/^(品牌增长 brand growth|brand growth|growth|品牌增长)$/.test(role)) {
+    return "品牌增长 Brand & Growth";
+  }
+  if (/^(教练 coach|coach|coaching|教练)$/.test(role)) return "教练 Coach";
+  if (/^(运营 operations|operations|operation|ops|运营)$/.test(role)) {
+    return "运营 Operations";
+  }
+  if (/^(行政 admin|admin|administration|finance|行政)$/.test(role)) {
+    return "行政 Admin";
+  }
+  if (/^(其他 other|other|其他)$/.test(role)) return "其他 Other";
+  throw new CompanyOpsHttpError(
+    400,
+    `role must be one of: ${ONBOARDING_ROLES.join(", ")}`
+  );
+};
+
+const ONBOARDING_CATEGORIES = new Set([
+  "合同 Contract",
+  "保密资料 Confidential",
+  "制度 Policies",
+  "账号 Accounts",
+  "设备 Equipment",
+  "培训 Training",
+  "绩效 Performance",
+  "行政 Admin",
+]);
+
+const ONBOARDING_OWNER_ROLES = new Set([
+  "新员工 New Hire",
+  "创始人 Founder",
+  "行政 Admin",
+  "直属负责人 Manager",
+  "共同 Joint",
+]);
+
+const healthDataPattern = /diagnos|medical history|injur|disease|medication|病史|诊断|伤病|疾病|用药/i;
+
+const choice = (
+  value: unknown,
+  field: string,
+  options: Record<string, string>,
+  { optional = false }: { optional?: boolean } = {}
+): string | undefined => {
+  const raw = textValue(value);
+  if (!raw && optional) return undefined;
+  const selected = options[normalize(raw)];
+  if (!selected) {
+    throw new CompanyOpsHttpError(400, `${field} is not a supported option`);
+  }
+  return selected;
+};
+
+const PLATFORM_OPTIONS: Record<string, string> = {
+  xiaohongshu: "小红书 XHS",
+  xhs: "小红书 XHS",
+  "小红书 xhs": "小红书 XHS",
+  douyin: "抖音 Douyin",
+  "抖音 douyin": "抖音 Douyin",
+  "wechat official account": "公众号 WeChat OA",
+  "wechat oa": "公众号 WeChat OA",
+  wechat: "公众号 WeChat OA",
+  "公众号 wechat oa": "公众号 WeChat OA",
+  channels: "视频号 Channels",
+  "wechat channels": "视频号 Channels",
+  "视频号 channels": "视频号 Channels",
+  website: "网站 Website",
+  "网站 website": "网站 Website",
+  "multi-platform": "多平台 Multi",
+  multi: "多平台 Multi",
+  "多平台 multi": "多平台 Multi",
+};
+
+const CAMPAIGN_PRODUCT_OPTIONS: Record<string, string> = {
+  digital: "数字计划 Digital",
+  "digital program": "数字计划 Digital",
+  "digital training program": "数字计划 Digital",
+  "数字计划 digital": "数字计划 Digital",
+  "online coaching": "线上1:1 Online Coaching",
+  "online 1:1 coaching": "线上1:1 Online Coaching",
+  "线上1:1 online coaching": "线上1:1 Online Coaching",
+  "in-person": "线下训练 In-person",
+  "in-person coaching": "线下训练 In-person",
+  "线下训练 in-person": "线下训练 In-person",
+  brand: "品牌 Brand",
+  "品牌 brand": "品牌 Brand",
+};
+
+const CHANNEL_OPTIONS: Record<string, string> = {
+  ...PLATFORM_OPTIONS,
+  offline: "线下 Offline",
+  "线下 offline": "线下 Offline",
+  kol: "KOL",
+  other: "其他 Other",
+  "其他 other": "其他 Other",
+};
+
+const SUPPORT_TYPE_OPTIONS: Record<string, string> = {
+  bug: "故障 Bug",
+  playback: "故障 Bug",
+  "故障 bug": "故障 Bug",
+  data: "数据问题 Data",
+  "data issue": "数据问题 Data",
+  access: "账号/权限 Access",
+  account: "账号/权限 Access",
+  performance: "性能 Performance",
+  ux: "易用性 UX",
+  usability: "易用性 UX",
+  "feature request": "功能建议 Feature Request",
+  feature: "功能建议 Feature Request",
+  other: "其他 Other",
+};
+
+const SUPPORT_SEVERITY_OPTIONS: Record<string, string> = {
+  p0: "P0 紧急 Critical",
+  "p0 紧急 critical": "P0 紧急 Critical",
+  p1: "P1 高 High",
+  "p1 高 high": "P1 高 High",
+  p2: "P2 中 Medium",
+  "p2 中 medium": "P2 中 Medium",
+  p3: "P3 低 Low",
+  "p3 低 low": "P3 低 Low",
+};
+
+const EXPENSE_CATEGORY_OPTIONS: Record<string, string> = {
+  transport: "交通 Transport",
+  travel: "交通 Transport",
+  "交通 transport": "交通 Transport",
+  meals: "餐饮 Meals",
+  meal: "餐饮 Meals",
+  "餐饮 meals": "餐饮 Meals",
+  equipment: "设备 Equipment",
+  "设备 equipment": "设备 Equipment",
+  marketing: "营销投放 Marketing",
+  "marketing spend": "营销投放 Marketing",
+  "营销投放 marketing": "营销投放 Marketing",
+  venue: "场地 Venue",
+  "场地 venue": "场地 Venue",
+  software: "软件订阅 Software",
+  "software subscription": "软件订阅 Software",
+  "软件订阅 software": "软件订阅 Software",
+  other: "其他 Other",
+  "其他 other": "其他 Other",
+};
+
+const LEAD_SOURCE_OPTIONS: Record<string, string> = {
+  ...PLATFORM_OPTIONS,
+  referral: "转介绍 Referral",
+  "转介绍 referral": "转介绍 Referral",
+  partner: "KOL/伙伴 Partner",
+  kol: "KOL/伙伴 Partner",
+  "kol/伙伴 partner": "KOL/伙伴 Partner",
+  offline: "线下 Offline",
+  "线下 offline": "线下 Offline",
+  organic: "自然流量 Organic",
+  "自然流量 organic": "自然流量 Organic",
+  other: "其他 Other",
+  "其他 other": "其他 Other",
+};
+
+const PRODUCT_INTEREST_OPTIONS: Record<string, string> = {
+  digital: "数字计划 Digital",
+  "digital program": "数字计划 Digital",
+  "数字计划 digital": "数字计划 Digital",
+  "online coaching": "线上1:1 Online Coaching",
+  "online 1:1 coaching": "线上1:1 Online Coaching",
+  "线上1:1 online coaching": "线上1:1 Online Coaching",
+  "in-person": "线下个训 In-person",
+  "in-person coaching": "线下个训 In-person",
+  "线下个训 in-person": "线下个训 In-person",
+  team: "团队/机构 Team",
+  institution: "团队/机构 Team",
+  "团队/机构 team": "团队/机构 Team",
+  unsure: "未定 Unsure",
+  "未定 unsure": "未定 Unsure",
+};
+
+const AUDIENCE_OPTIONS: Record<string, string> = {
+  climbers: "攀岩者 Climbers",
+  "攀岩者 climbers": "攀岩者 Climbers",
+  "youth parents": "青少年家长 Youth Parents",
+  parents: "青少年家长 Youth Parents",
+  "青少年家长 youth parents": "青少年家长 Youth Parents",
+  "general fitness": "大众健身 General Fitness",
+  "大众健身 general fitness": "大众健身 General Fitness",
+  coaches: "教练 Coaches",
+  "教练 coaches": "教练 Coaches",
+  institutions: "机构/团队 Institutions",
+  teams: "机构/团队 Institutions",
+  "机构/团队 institutions": "机构/团队 Institutions",
+  "existing clients": "现有客户 Existing Clients",
+  clients: "现有客户 Existing Clients",
+  "现有客户 existing clients": "现有客户 Existing Clients",
+};
+
+const CONTENT_PILLAR_OPTIONS: Record<string, string> = {
+  education: "专业教育 Education",
+  "professional education": "专业教育 Education",
+  "专业教育 education": "专业教育 Education",
+  founder: "创始人/品牌 Founder & Brand",
+  brand: "创始人/品牌 Founder & Brand",
+  "founder & brand": "创始人/品牌 Founder & Brand",
+  "创始人/品牌 founder & brand": "创始人/品牌 Founder & Brand",
+  community: "客户/社群 Client & Community",
+  client: "客户/社群 Client & Community",
+  "client & community": "客户/社群 Client & Community",
+  "客户/社群 client & community": "客户/社群 Client & Community",
+  product: "产品/服务 Product & Offer",
+  offer: "产品/服务 Product & Offer",
+  "product & offer": "产品/服务 Product & Offer",
+  "产品/服务 product & offer": "产品/服务 Product & Offer",
+  partner: "伙伴/KOL Partner & KOL",
+  kol: "伙伴/KOL Partner & KOL",
+  "partner & kol": "伙伴/KOL Partner & KOL",
+  "伙伴/kol partner & kol": "伙伴/KOL Partner & KOL",
+  campaign: "活动 Campaign",
+  "活动 campaign": "活动 Campaign",
+};
+
+const CONTENT_OBJECTIVE_OPTIONS: Record<string, string> = {
+  reach: "触达 Reach",
+  "触达 reach": "触达 Reach",
+  educate: "教育 Educate",
+  education: "教育 Educate",
+  "教育 educate": "教育 Educate",
+  engage: "互动 Engage",
+  engagement: "互动 Engage",
+  "互动 engage": "互动 Engage",
+  leads: "获取线索 Generate Leads",
+  "generate leads": "获取线索 Generate Leads",
+  "获取线索 generate leads": "获取线索 Generate Leads",
+  convert: "转化 Convert",
+  conversion: "转化 Convert",
+  "转化 convert": "转化 Convert",
+  retain: "留存 Retain",
+  retention: "留存 Retain",
+  "留存 retain": "留存 Retain",
+};
+
+const PARTNER_FIT_OPTIONS: Record<string, string> = {
+  high: "高 High",
+  "高 high": "高 High",
+  medium: "中 Medium",
+  "中 medium": "中 Medium",
+  low: "低 Low",
+  "低 low": "低 Low",
+  tbd: "待评估 TBD",
+  unknown: "待评估 TBD",
+  "待评估 tbd": "待评估 TBD",
+};
+
+export class CompanyOpsRepository {
+  private readonly config: CompanyOpsConfig;
+  private readonly client: FeishuClient;
+  private readonly targetCache = new Map<CompanyOpsResource, Promise<ResolvedTarget>>();
+  private appAdminCache?: {
+    expiresAt: number;
+    openIds: ReadonlySet<string>;
+    userIds: ReadonlySet<string>;
+  };
+
+  constructor(config: CompanyOpsConfig, client = new FeishuClient(config)) {
+    this.config = config;
+    this.client = client;
+  }
+
+  private target(resource: CompanyOpsResource): Promise<ResolvedTarget> {
+    const cached = this.targetCache.get(resource);
+    if (cached) return cached;
+    const promise = this.resolveTarget(resource).catch((error) => {
+      this.targetCache.delete(resource);
+      throw error;
+    });
+    this.targetCache.set(resource, promise);
+    return promise;
+  }
+
+  private async resolveTarget(resource: CompanyOpsResource): Promise<ResolvedTarget> {
+    const appToken = baseTokenFor(this.config, resource);
+    if (!appToken) {
+      throw new CompanyOpsConfigurationError(
+        `The ${this.config.tables[resource].base} Company Operations Base is not configured`
+      );
+    }
+    let tableId = this.config.tables[resource].id || "";
+    if (!tableId) {
+      const names = new Set(this.config.tables[resource].names.map(normalize));
+      const tables = await this.client.listTables(appToken);
+      tableId = tables.find((table) => names.has(normalize(table.name)))?.table_id || "";
+    }
+    if (!tableId) {
+      throw new CompanyOpsConfigurationError(
+        `The ${resource} table is not configured in Company Operations`
+      );
+    }
+    return {
+      resource,
+      appToken,
+      tableId,
+      fields: await this.client.listFields(appToken, tableId),
+    };
+  }
+
+  private async appAdminIds(): Promise<{
+    openIds: ReadonlySet<string>;
+    userIds: ReadonlySet<string>;
+  }> {
+    if (!this.config.appAdminsAreFounders) {
+      return { openIds: new Set(), userIds: new Set() };
+    }
+    if (this.appAdminCache && this.appAdminCache.expiresAt > Date.now()) {
+      return this.appAdminCache;
+    }
+    try {
+      const ids = await this.client.listApplicationAdminIds();
+      this.appAdminCache = {
+        expiresAt: Date.now() + 5 * 60_000,
+        openIds: ids.openIds,
+        userIds: ids.userIds,
+      };
+      return ids;
+    } catch {
+      return { openIds: new Set(), userIds: new Set() };
+    }
+  }
+
+  async resolvePrincipal(
+    identity: FeishuOAuthUser | CompanyOpsSession | CompanyOpsPrincipal
+  ): Promise<CompanyOpsPrincipal> {
+    const base: CompanyOpsPrincipal = {
+      openId: identity.openId,
+      userId: identity.userId,
+      name: identity.name,
+      avatarUrl: identity.avatarUrl,
+      tenantKey: identity.tenantKey,
+      role: "pending",
+    };
+    const appAdmins = await this.appAdminIds();
+    const trustedFounder =
+      this.config.founderOpenIds.has(identity.openId) ||
+      appAdmins.openIds.has(identity.openId) ||
+      Boolean(identity.userId && appAdmins.userIds.has(identity.userId));
+
+    let records: FeishuRecord[];
+    try {
+      const target = await this.target("staff");
+      records = await this.client.listRecords(target.appToken, target.tableId, {
+        maxRecords: 500,
+      });
+    } catch (error) {
+      if (error instanceof CompanyOpsConfigurationError) {
+        return trustedFounder ? { ...base, role: "founder" } : base;
+      }
+      throw error;
+    }
+    const staffMatches = records.filter((record) =>
+      idsFromValue(
+        recordField(record.fields, [
+          "飞书用户 Feishu User",
+          "Feishu Open ID",
+          "Feishu OpenID",
+          "飞书 Open ID",
+          "飞书OpenID",
+        ])
+      ).includes(identity.openId)
+    );
+    const staff = staffMatches.length === 1 ? staffMatches[0] : undefined;
+    if (!staff || !isActiveStaff(staff)) {
+      return trustedFounder ? { ...base, role: "founder" } : base;
+    }
+    return {
+      ...base,
+      name: textValue(recordField(staff.fields, ["姓名 Name", "Name", "Employee", "姓名"])) || base.name,
+      role: trustedFounder
+        ? "founder"
+        : normalizeRole(recordField(staff.fields, ["应用角色 App Role", "职位 Role", "App Role", "Role", "角色", "岗位"])),
+      staffRecordId: staff.record_id,
+    };
+  }
+
+  private serializeInput(
+    value: unknown,
+    spec: InputFieldSpec,
+    field: FeishuField
+  ): unknown {
+    if (spec.kind === "string") {
+      const result = textValue(value);
+      if (result.length > (spec.maximum || 20_000)) {
+        throw new CompanyOpsHttpError(400, `${spec.key} is too long`);
+      }
+      if (field.type === 15) {
+        let parsed: URL;
+        try {
+          parsed = new URL(result);
+        } catch {
+          throw new CompanyOpsHttpError(400, `${spec.key} must be a valid link`);
+        }
+        if (parsed.protocol !== "https:") {
+          throw new CompanyOpsHttpError(400, `${spec.key} must use HTTPS`);
+        }
+        return { link: parsed.toString(), text: parsed.toString() };
+      }
+      return result;
+    }
+    if (spec.kind === "number") {
+      const result = numberValue(value);
+      if (result === undefined) throw new CompanyOpsHttpError(400, `${spec.key} must be a number`);
+      if (spec.minimum !== undefined && result < spec.minimum) {
+        throw new CompanyOpsHttpError(400, `${spec.key} must be at least ${spec.minimum}`);
+      }
+      if (spec.maximum !== undefined && result > spec.maximum) {
+        throw new CompanyOpsHttpError(400, `${spec.key} must be at most ${spec.maximum}`);
+      }
+      return result;
+    }
+    if (spec.kind === "boolean") {
+      const result = boolValue(value);
+      if (result === undefined) throw new CompanyOpsHttpError(400, `${spec.key} must be yes or no`);
+      return result;
+    }
+    if (spec.kind === "date") {
+      const result = dateValue(value);
+      if (result === undefined) throw new CompanyOpsHttpError(400, `${spec.key} must be a valid date`);
+      return result;
+    }
+    const values = Array.isArray(value)
+      ? value.map(textValue).filter(Boolean)
+      : textValue(value).split(",").map((item) => item.trim()).filter(Boolean);
+    return field.type === 4 ? values : values.join(", ");
+  }
+
+  private mappedFields(
+    inputValue: unknown,
+    specs: readonly InputFieldSpec[],
+    target: ResolvedTarget,
+    principal: CompanyOpsPrincipal,
+    defaults: Record<string, unknown> = {},
+    allowedExtraKeys: readonly string[] = []
+  ): FeishuFields {
+    const input = objectInput(inputValue);
+    const allowed = new Set([...specs.map((spec) => spec.key), ...allowedExtraKeys]);
+    const unknown = Object.keys(input).filter((key) => !allowed.has(key));
+    if (unknown.length) {
+      throw new CompanyOpsHttpError(400, `Unknown fields: ${unknown.join(", ")}`);
+    }
+    // Server defaults are authoritative workflow state. A crafted client must
+    // never promote its own expense, request, campaign or content record.
+    const values = { ...input, ...defaults };
+    const result: FeishuFields = {};
+    for (const spec of specs) {
+      const value = values[spec.key];
+      const empty = value === undefined || value === null || value === "";
+      if (empty) {
+        if (spec.required) throw new CompanyOpsHttpError(400, `${spec.key} is required`);
+        continue;
+      }
+      const field = fieldByAlias(target.fields, spec.aliases, spec.primary);
+      if (!field) {
+        if (spec.primary || spec.required) {
+          throw new CompanyOpsConfigurationError(
+            `The ${target.resource} table is missing the required ${spec.key} field`
+          );
+        }
+        continue;
+      }
+      result[field.field_name] = this.serializeInput(value, spec, field);
+    }
+    this.addActorFields(result, target.fields, principal);
+    return result;
+  }
+
+  private addActorFields(
+    output: FeishuFields,
+    fields: readonly FeishuField[],
+    principal: CompanyOpsPrincipal
+  ): void {
+    const openIdField = fieldByAlias(fields, FIELD.createdByOpenId);
+    if (openIdField) output[openIdField.field_name] = principal.openId;
+    const personField = fieldByAlias(fields, FIELD.submittedBy);
+    if (personField) {
+      if (personField.type === 11) {
+        output[personField.field_name] = [{ id: principal.openId }];
+      } else if (personField.type === 18 && principal.staffRecordId) {
+        output[personField.field_name] = [principal.staffRecordId];
+      } else if (personField.type === 1) {
+        output[personField.field_name] = principal.name;
+      }
+    }
+    const submittedAt = fieldByAlias(fields, ["Submitted At", "Created At", "提交时间"]);
+    if (submittedAt && submittedAt.type < 1_000) {
+      output[submittedAt.field_name] = Date.now();
+    }
+  }
+
+  private async createMapped(
+    resource: CompanyOpsResource,
+    payload: unknown,
+    specs: readonly InputFieldSpec[],
+    principal: CompanyOpsPrincipal,
+    defaults: Record<string, unknown> = {},
+    allowedExtraKeys: readonly string[] = []
+  ): Promise<FeishuRecord> {
+    const target = await this.target(resource);
+    const fields = this.mappedFields(
+      payload,
+      specs,
+      target,
+      principal,
+      defaults,
+      allowedExtraKeys
+    );
+    return this.client.createRecord(target.appToken, target.tableId, fields);
+  }
+
+  private async list(resource: CompanyOpsResource, maximum = 100): Promise<FeishuRecord[]> {
+    const target = await this.target(resource);
+    return this.client.listRecords(target.appToken, target.tableId, {
+      maxRecords: maximum,
+    });
+  }
+
+  private async listOptional(
+    resource: CompanyOpsResource,
+    maximum = 100
+  ): Promise<FeishuRecord[]> {
+    try {
+      return await this.list(resource, maximum);
+    } catch (error) {
+      if (error instanceof CompanyOpsConfigurationError) return [];
+      throw error;
+    }
+  }
+
+  private belongsTo(record: FeishuRecord, principal: CompanyOpsPrincipal): boolean {
+    const aliases = [
+      ...FIELD.createdByOpenId,
+      ...FIELD.newHireOpenId,
+      ...FIELD.submittedBy,
+      "飞书账号 Feishu User",
+      "Feishu Open ID",
+    ];
+    const ids = idsFromValue(recordField(record.fields, aliases));
+    return ids.length > 0 && ids.includes(principal.openId);
+  }
+
+  private project(
+    record: FeishuRecord,
+    options: {
+      resource?: CompanyOpsResource;
+      title: readonly string[];
+      status?: readonly string[];
+      subtitle?: readonly string[];
+      due?: readonly string[];
+      owner?: readonly string[];
+      platform?: readonly string[];
+      amount?: readonly string[];
+      currency?: readonly string[];
+      priority?: readonly string[];
+    }
+  ): CompanyOpsDashboardItem {
+    return {
+      id: record.record_id,
+      title: textValue(recordField(record.fields, options.title)) || "Untitled",
+      status: options.status
+        ? options.resource
+          ? decodeStatus(options.resource, recordField(record.fields, options.status))
+          : textValue(recordField(record.fields, options.status)) || undefined
+        : undefined,
+      subtitle: options.subtitle ? textValue(recordField(record.fields, options.subtitle)) || undefined : undefined,
+      dueAt: options.due ? isoDate(recordField(record.fields, options.due)) : undefined,
+      owner: options.owner ? textValue(recordField(record.fields, options.owner)) || undefined : undefined,
+      platform: options.platform ? textValue(recordField(record.fields, options.platform)) || undefined : undefined,
+      amount: options.amount ? numberValue(recordField(record.fields, options.amount)) : undefined,
+      currency: options.currency ? textValue(recordField(record.fields, options.currency)) || undefined : undefined,
+      priority: options.priority ? textValue(recordField(record.fields, options.priority)) || undefined : undefined,
+    };
+  }
+
+  async getDashboard(principal: CompanyOpsPrincipal): Promise<CompanyOpsDashboard> {
+    if (principal.role === "pending") {
+      return {
+        user: { name: principal.name, avatarUrl: principal.avatarUrl, role: "pending", accessPending: true },
+        summary: {
+          headline: "Your Company Operations access is waiting for approval",
+          todayCount: 0,
+          waitingCount: 1,
+          overdueCount: 0,
+        },
+        workQueue: [],
+        contentPipeline: [],
+        leads: [],
+        campaigns: [],
+        partners: [],
+        experiments: [],
+        onboarding: [],
+        approvals: [],
+        supportIssues: [],
+        links: {},
+      };
+    }
+
+    const growthVisible = principal.role === "founder" || principal.role === "growth";
+    const financeVisible = principal.role === "founder" || principal.role === "finance";
+    const [contentRecords, leadRecords, campaignRecords, partnerRecords, experimentRecords, onboardingAll, supportAll] = await Promise.all([
+      growthVisible ? this.listOptional("content", 150) : Promise.resolve([]),
+      growthVisible ? this.listOptional("lead", 100) : Promise.resolve([]),
+      growthVisible ? this.listOptional("campaign", 100) : Promise.resolve([]),
+      growthVisible ? this.listOptional("partner", 100) : Promise.resolve([]),
+      growthVisible ? this.listOptional("experiment", 100) : Promise.resolve([]),
+      this.listOptional("onboarding", 150),
+      this.listOptional("support", 150),
+    ]);
+
+    const onboardingRecords = principal.role === "founder"
+      ? onboardingAll
+      : onboardingAll.filter((record) => this.belongsTo(record, principal));
+    const supportRecords = (principal.role === "founder"
+      ? supportAll
+      : supportAll.filter((record) => this.belongsTo(record, principal)))
+      .filter((record) => !/(resolved|closed|已解决|已关闭)/.test(
+        normalize(textValue(recordField(record.fields, FIELD.status)))
+      ));
+    const contentPipeline = contentRecords.map((record) => this.project(record, {
+      resource: "content",
+      title: ["内容 Content", "Title", "Content Title", "内容标题"],
+      status: FIELD.status,
+      due: ["发布日期 Publish Date", "草稿截止 Draft Due", "Publish Date", "Draft Due", "发布日期"],
+      owner: ["负责人 Owner (Feishu)", "Owner", "Submitted By", "负责人"],
+      platform: ["平台 Platform", "Platform", "平台"],
+    }));
+    const leads = leadRecords.map((record) => this.project(record, {
+      resource: "lead",
+      title: ["线索 Lead", "Lead", "Lead / Contact", "Name", "潜客姓名"],
+      status: FIELD.status,
+      subtitle: ["来源 Source", "Source", "Lead Source", "来源"],
+      due: ["下次跟进 Next Date", "Next Follow-up", "Next Follow Up", "下次跟进"],
+      owner: ["负责人（飞书） Owner (Feishu)", "Owner", "Submitted By", "负责人"],
+      platform: ["平台 Platform", "Platform", "平台"],
+    }));
+    const campaigns = campaignRecords.map((record) => this.project(record, {
+      resource: "campaign",
+      title: ["活动 Campaign", "Campaign", "Campaign Name", "Name", "活动名称"],
+      status: FIELD.status,
+      subtitle: ["目标 Objective", "Objective", "目标"],
+      due: ["结束 End", "下次决策/复盘 Next Review", "End Date", "Next Decision Date", "结束日期"],
+      owner: ["负责人 Owner", "Owner", "负责人"],
+      amount: ["预算 Budget"],
+      currency: ["币种 Currency"],
+    }));
+    const partners = partnerRecords.map((record) => this.project(record, {
+      resource: "partner",
+      title: ["伙伴 Partner", "Partner", "Name", "KOL / Partner", "合作伙伴"],
+      status: ["Stage", "Status", "阶段"],
+      subtitle: ["受众匹配 Audience Fit", "Audience Fit", "受众匹配"],
+      due: ["下次跟进 Next Follow-up", "Next Follow-up", "Due Date", "下次跟进"],
+      owner: ["负责人 Owner", "Owner", "负责人"],
+      platform: ["平台/账号 Platform & Handle", "Platform", "平台"],
+    }));
+    const experiments = experimentRecords.map((record) => this.project(record, {
+      resource: "experiment",
+      title: ["实验 Experiment", "Experiment", "Experiment Name", "Name", "实验名称"],
+      status: FIELD.status,
+      subtitle: ["假设 Hypothesis", "Hypothesis", "假设"],
+      due: ["结束 End", "End Date", "结束日期"],
+      owner: ["负责人 Owner", "Owner", "负责人"],
+    }));
+    const onboarding = onboardingRecords.map((record) => this.project(record, {
+      resource: "onboarding",
+      title: ["任务 Task", "Task", "Onboarding Task", "入职任务"],
+      status: FIELD.status,
+      subtitle: ["类别 Category", "Category", "类别"],
+      due: ["截止日期 Due", "Due Date", "截止日期"],
+      owner: ["负责人 Assignee", "New Hire", "Owner", "新员工"],
+    }));
+    const supportIssues = supportRecords.map((record) => this.project(record, {
+      resource: "support",
+      title: ["问题编号/标题 Issue ID / Title", "Issue", "Issue Title", "Title", "问题标题"],
+      status: FIELD.status,
+      subtitle: ["问题描述 Description", "Description", "Details", "问题描述"],
+      due: ["Target Date", "Due Date", "目标日期"],
+      owner: ["报告人 Reporter", "Submitted By", "Reporter", "提交人"],
+      priority: ["严重级别 Severity", "Severity", "Priority", "严重程度"],
+    }));
+
+    const workQueue = [...contentPipeline, ...leads, ...partners, ...experiments, ...onboarding, ...supportIssues]
+      .filter((item) => !isTerminalWorkStatus(item.status))
+      .sort((left, right) => (left.dueAt || "9999").localeCompare(right.dueAt || "9999"))
+      .slice(0, 20);
+    const now = Date.now();
+    const overdueCount = workQueue.filter((item) => item.dueAt && Date.parse(item.dueAt) < now).length;
+
+    const links: Record<string, string> = {};
+    if (this.config.links.startHere) links.startHere = this.config.links.startHere;
+    if (this.config.links.expensePolicy) links.expensePolicy = this.config.links.expensePolicy;
+    if (this.config.links.commissionPolicy) links.commissionPolicy = this.config.links.commissionPolicy;
+    if (this.config.links.onboardingGuide) links.onboardingGuide = this.config.links.onboardingGuide;
+    if (this.config.links.confidentialForm) links.confidentialForm = this.config.links.confidentialForm;
+    if (this.config.links.expenseForm) links.expense = this.config.links.expenseForm;
+    if (this.config.links.internalRequestForm) links.internalRequest = this.config.links.internalRequestForm;
+    if (this.config.links.sharedAssets) links.sharedAssets = this.config.links.sharedAssets;
+    if (growthVisible) {
+      if (this.config.links.weeklyReportForm) links.weeklyReport = this.config.links.weeklyReportForm;
+      if (this.config.links.metricsForm) links.metrics = this.config.links.metricsForm;
+      if (this.config.links.companyCalendar) links.companyCalendar = this.config.links.companyCalendar;
+      if (this.config.links.contentCalendar) links.contentCalendar = this.config.links.contentCalendar;
+    }
+
+    const dashboard: CompanyOpsDashboard = {
+      user: { name: principal.name, avatarUrl: principal.avatarUrl, role: principal.role, accessPending: false },
+      summary: {
+        headline: principal.role === "founder"
+          ? "Decisions and exceptions needing your attention"
+          : principal.role === "finance"
+            ? "Finance items ready for review"
+            : principal.role === "growth"
+              ? "Your growth priorities for today"
+              : "Your company tasks and requests",
+        todayCount: workQueue.filter((item) => item.dueAt?.slice(0, 10) === new Date().toISOString().slice(0, 10)).length,
+        waitingCount: workQueue.length,
+        overdueCount,
+      },
+      workQueue,
+      contentPipeline,
+      leads,
+      campaigns,
+      partners,
+      experiments,
+      onboarding,
+      approvals: [],
+      supportIssues,
+      links,
+    };
+
+    if (financeVisible) {
+      const [expenseRecords, payrollRecords, commissionRecords] = await Promise.all([
+        this.listOptional("expense", 100),
+        this.listOptional("payroll", 100),
+        this.listOptional("commission", 100),
+      ]);
+      const expenses = expenseRecords.map((record) => this.project(record, {
+        resource: "expense",
+        title: ["事项 Item", "Expense", "Title", "费用名称"],
+        status: FIELD.status,
+        subtitle: ["业务目的 Business Purpose", "Business Purpose", "Purpose", "业务用途"],
+        due: ["日期 Date", "提交时间 Submitted At", "Expense Date", "Submitted At", "费用日期"],
+        owner: ["员工 Employee", "提交人 Submitted By", "Employee", "Submitted By", "员工", "提交人"],
+        amount: ["金额 Amount", "Amount", "金额"],
+        currency: ["币种 Currency", "Currency", "币种"],
+      }));
+      const payroll = payrollRecords.map((record) => this.project(record, {
+        resource: "payroll",
+        title: ["月份 Month", "Month", "Payroll Month", "月份"],
+        status: FIELD.status,
+        subtitle: ["员工 Employee", "Employee", "员工"],
+        due: ["发放日期 Paid Date", "Paid Date", "Payment Date", "发薪日期"],
+        owner: ["员工 Employee", "Employee", "员工"],
+        amount: ["实发 Net Pay", "Net Pay", "Net Payment", "实发工资"],
+        currency: ["币种 Currency", "Currency", "币种"],
+      }));
+      const commissions = commissionRecords.map((record) => this.project(record, {
+        resource: "commission",
+        title: ["月份 Month", "季度 Quarter", "Quarter", "Month", "结算期"],
+        status: FIELD.status,
+        subtitle: ["员工 Employee", "Employee", "员工"],
+        due: ["Paid Date", "Payment Date", "支付日期"],
+        owner: ["员工 Employee", "Employee", "员工"],
+        amount: ["提成金额 Amount", "Amount", "Commission Amount", "提成金额"],
+        currency: ["Currency", "币种"],
+      }));
+      dashboard.approvals = expenses
+        .filter((item) => item.status === "Pending")
+        .map((item) => ({ ...item, actionType: "expense" as const }));
+      if (principal.role === "finance") {
+        dashboard.finance = { expenses, payroll, commissions };
+      } else {
+        const [requestRecords, weeklyRecords, staffRecords] = await Promise.all([
+          this.listOptional("internalRequest", 150),
+          this.listOptional("weeklyReport", 100),
+          this.listOptional("staff", 500),
+        ]);
+        const accessRequests = requestRecords
+          .filter((record) => /company operations access|权限/.test(
+            normalize(textValue(recordField(record.fields, ["请求 Request", "Request", "Title"])))
+          ))
+          .map((record) => ({ ...this.project(record, {
+            resource: "internalRequest",
+            title: ["请求 Request", "Request", "Title", "申请标题"],
+            status: FIELD.status,
+            subtitle: ["备注 Notes", "Details", "Description", "申请详情"],
+            due: ["提交时间 Submitted At", "Submitted At", "Created At", "提交时间"],
+            owner: ["提出人（飞书） Requested By (Feishu)", "Submitted By", "提交人"],
+          }), actionType: "access_request" as const }));
+        const founderDecisionRequests = requestRecords
+          .filter((record) => /\[founder decision:/.test(
+            normalize(textValue(recordField(record.fields, ["备注 Notes", "Details", "Description"])))
+          ))
+          .map((record) => ({ ...this.project(record, {
+            resource: "internalRequest",
+            title: ["请求 Request", "Request", "Title", "申请标题"],
+            status: FIELD.status,
+            subtitle: ["备注 Notes", "Details", "Description", "申请详情"],
+            due: ["截止 Due", "提交时间 Submitted At", "Submitted At", "Created At"],
+            owner: ["提出人（飞书） Requested By (Feishu)", "Submitted By", "提交人"],
+          }), actionType: "founder_decision" as const }));
+        const weeklyReports = weeklyRecords.map((record) => ({ ...this.project(record, {
+          resource: "weeklyReport",
+          title: ["报告 Report", "报告周 Reporting Week", "Reporting Week", "Week", "报告周"],
+          status: FIELD.status,
+          subtitle: ["E 需要决策 Decisions Needed", "F. Founder Decisions Needed", "F — Decisions Needed", "F. 需要创始人决策"],
+          due: ["提交时间 Submitted At", "Submitted At", "Created At", "提交时间"],
+          owner: ["提交人 Author", "Author", "Submitted By", "作者", "提交人"],
+        }), actionType: "weekly_report" as const }));
+        const onboardingCandidates = staffRecords.flatMap((record) => {
+          if (!isActiveStaff(record)) return [];
+          const openIds = idsFromValue(recordField(record.fields, [
+            "飞书用户 Feishu User",
+            "Feishu Open ID",
+            "飞书 Open ID",
+          ]));
+          if (openIds.length !== 1) return [];
+          const name = textValue(recordField(record.fields, [
+            "姓名 Name",
+            "Name",
+            "姓名",
+          ]));
+          if (!name) return [];
+          const roleText = textValue(recordField(record.fields, [
+            "职位 Position",
+            "职务 Title",
+            "应用角色 App Role",
+            "Position",
+            "Role",
+          ]));
+          const normalizedRole = normalize(roleText);
+          const role = /增长|growth|brand|marketing/.test(normalizedRole)
+            ? "品牌增长 Brand & Growth"
+            : /教练|coach/.test(normalizedRole)
+              ? "教练 Coach"
+              : /行政|admin/.test(normalizedRole)
+                ? "行政 Admin"
+                : /运营|operation/.test(normalizedRole)
+                  ? "运营 Operations"
+                  : "其他 Other";
+          return [{
+            openId: openIds[0],
+            name,
+            role,
+            startDate: isoDate(recordField(record.fields, [
+              "入职日期 Start Date",
+              "Start Date",
+              "入职日期",
+            ]))?.slice(0, 10),
+          }];
+        });
+        dashboard.founder = {
+          accessRequests,
+          expenses,
+          payroll,
+          commissions,
+          weeklyReports,
+          onboardingCandidates,
+          revenue: await this.currentMonthRevenue(),
+        };
+        dashboard.approvals = [
+          ...dashboard.approvals,
+          ...accessRequests.filter((item) => ["Open", "In Progress"].includes(item.status || "")),
+          ...founderDecisionRequests.filter((item) => ["Open", "In Progress"].includes(item.status || "")),
+          ...weeklyReports.filter((item) => item.status === "Submitted"),
+        ];
+      }
+    }
+    const [myCompensation, acknowledgedPolicyIds] = await Promise.all([
+      this.getMyCompensation(principal),
+      this.getAcknowledgedPolicyIds(principal),
+    ]);
+    dashboard.myCompensation = myCompensation;
+    dashboard.acknowledgedPolicyIds = acknowledgedPolicyIds;
+    return dashboard;
+  }
+
+  private async currentMonthRevenue(): Promise<
+    NonNullable<CompanyOpsDashboard["founder"]>["revenue"]
+  > {
+    try {
+      const { paidRevenueBetween } = await import(
+        "../db/repositories/productOrders.ts"
+      );
+      const parts = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Asia/Shanghai",
+        year: "numeric",
+        month: "2-digit",
+      }).formatToParts(new Date());
+      const year = Number(parts.find((part) => part.type === "year")?.value);
+      const month = Number(parts.find((part) => part.type === "month")?.value);
+      if (!year || !month) return [];
+      const shanghaiOffset = 8 * 60 * 60 * 1_000;
+      const start = new Date(Date.UTC(year, month - 1, 1) - shanghaiOffset);
+      const end = new Date(Date.UTC(year, month, 1) - shanghaiOffset);
+      const revenue = await paidRevenueBetween(start, end);
+      return revenue.sort((left, right) =>
+        right.grossCollected - left.grossCollected
+      );
+    } catch {
+      return [];
+    }
+  }
+
+  async performAction(
+    principal: CompanyOpsPrincipal,
+    request: CompanyOpsActionRequest
+  ): Promise<CompanyOpsActionResult> {
+    requireActionPermission(principal.role, request.action);
+    const payload = objectInput(request.payload);
+    switch (request.action) {
+      case "content.create":
+      case "create_content_idea": {
+        const normalizedPayload = request.action === "create_content_idea"
+          ? {
+              title: payload.workingTitle,
+              platform: choice(payload.platform, "platform", PLATFORM_OPTIONS),
+              pillar: choice(payload.contentPillar, "contentPillar", CONTENT_PILLAR_OPTIONS),
+              objective: choice(payload.objective, "objective", CONTENT_OBJECTIVE_OPTIONS),
+              publishDate: payload.plannedPublishDate,
+            }
+          : payload;
+        const record = await this.createMapped("content", normalizedPayload, CONTENT_SPECS, principal, { status: "想法 Idea" });
+        return { success: true, message: "Content idea added to the pipeline", recordId: record.record_id };
+      }
+      case "lead.create":
+      case "create_lead": {
+        if (
+          Object.values(payload).some((value) =>
+            healthDataPattern.test(textValue(value)),
+          )
+        ) {
+          throw new CompanyOpsHttpError(400, "Do not put health or medical information in the leads CRM");
+        }
+        const normalizedPayload = request.action === "create_lead"
+          ? {
+              ...payload,
+              source: choice(payload.source, "source", LEAD_SOURCE_OPTIONS, { optional: true }),
+              productInterest: choice(
+                payload.productInterest,
+                "productInterest",
+                PRODUCT_INTEREST_OPTIONS,
+                { optional: true }
+              ),
+            }
+          : payload;
+        const record = await this.createMapped("lead", normalizedPayload, LEAD_SPECS, principal, { stage: "新 New" });
+        return { success: true, message: "Lead captured and ready for follow-up", recordId: record.record_id };
+      }
+      case "partner.create":
+      case "create_partner": {
+        const normalizedPayload = request.action === "create_partner"
+          ? {
+              name: payload.name,
+              platformHandle: [textValue(payload.platform), textValue(payload.handle)]
+                .filter(Boolean)
+                .join(" · "),
+              audienceFit: choice(payload.audienceFit, "audienceFit", PARTNER_FIT_OPTIONS),
+              proposedCollaboration: payload.proposedCollaboration,
+              nextFollowUp: payload.nextFollowUpAt,
+            }
+          : payload;
+        const record = await this.createMapped("partner", normalizedPayload, PARTNER_SPECS, principal, { stage: "调研 Research" });
+        return { success: true, message: "Partner added to the outreach pipeline", recordId: record.record_id };
+      }
+      case "campaign.create":
+      case "create_campaign": {
+        const normalizedPayload = request.action === "create_campaign"
+          ? {
+              name: payload.name,
+              objective: payload.objective,
+              audience: textValue(payload.targetAudience)
+                .split(/[,，/]+/)
+                .map((item) => choice(item, "targetAudience", AUDIENCE_OPTIONS)),
+              offer: payload.offer,
+              product: choice(payload.product, "product", CAMPAIGN_PRODUCT_OPTIONS),
+              channels: textValue(payload.channels)
+                .split(/[,，/]+/)
+                .map((item) => choice(item, "channels", CHANNEL_OPTIONS)),
+              budget: payload.budget,
+              startDate: payload.start,
+              endDate: payload.end,
+            }
+          : payload;
+        const record = await this.createMapped("campaign", normalizedPayload, CAMPAIGN_SPECS, principal, { status: "计划中 Planning" });
+        return { success: true, message: "Campaign brief created", recordId: record.record_id };
+      }
+      case "experiment.create":
+      case "create_experiment": {
+        const normalizedPayload = request.action === "create_experiment"
+          ? {
+              name: payload.name,
+              hypothesis: payload.hypothesis,
+              variable: payload.variable,
+              channel: textValue(payload.channel)
+                ? textValue(payload.channel)
+                    .split(/[,，/]+/)
+                    .map((item) => choice(item, "channel", CHANNEL_OPTIONS))
+                : undefined,
+              metric: payload.successMetric,
+              baseline: payload.baseline,
+              target: payload.target,
+              startDate: payload.start,
+              endDate: payload.end,
+            }
+          : payload;
+        const record = await this.createMapped("experiment", normalizedPayload, EXPERIMENT_SPECS, principal, { status: "想法 Idea" });
+        return { success: true, message: "Growth experiment created", recordId: record.record_id };
+      }
+      case "weeklyReport.submit":
+      case "submit_weekly_report": {
+        const normalizedPayload = request.action === "submit_weekly_report"
+          ? {
+              reportingWeek: payload.reportingWeek,
+              wins: payload.completed,
+              metrics: payload.results,
+              blockers: payload.problems,
+              learning: payload.learnings,
+              decisionsNeeded: payload.decisionsNeeded,
+              nextWeek: payload.nextWeek,
+            }
+          : payload;
+        const record = await this.createMapped("weeklyReport", normalizedPayload, WEEKLY_SPECS, principal, { status: "已提交 Submitted" });
+        return { success: true, message: "Weekly report submitted for founder review", recordId: record.record_id };
+      }
+      case "metrics.submit":
+      case "submit_metrics":
+      case "submit_platform_metrics": {
+        const normalizedPayload = request.action === "submit_platform_metrics"
+          ? {
+              period: payload.period,
+              platform: choice(payload.platform, "platform", PLATFORM_OPTIONS),
+              followersStart: payload.startFollowers,
+              followersEnd: payload.endFollowers,
+              posts: payload.posts,
+              views: payload.views,
+              engagement: payload.engagement,
+              profileVisits: payload.profileVisits,
+              clicks: payload.clicks,
+              leads: payload.leads,
+              revenue: payload.revenue,
+              learning: payload.learning,
+            }
+          : payload;
+        const record = await this.createMapped("metrics", normalizedPayload, METRICS_SPECS, principal);
+        return { success: true, message: "Platform metrics saved", recordId: record.record_id };
+      }
+      case "expense.submit":
+      case "submit_expense": {
+        const normalizedPayload = request.action === "submit_expense"
+          ? {
+              ...payload,
+              category: choice(payload.category, "category", EXPENSE_CATEGORY_OPTIONS),
+              title: `${textValue(payload.category) || "Expense"} — ${textValue(payload.expenseDate) || new Date().toISOString().slice(0, 10)}`,
+            }
+          : payload;
+        const record = await this.createMapped("expense", normalizedPayload, EXPENSE_SPECS, principal, { status: "待审批 Pending" });
+        return { success: true, message: "Expense submitted for review", recordId: record.record_id };
+      }
+      case "internalRequest.submit":
+      case "submit_internal_request": {
+        const record = await this.createMapped("internalRequest", payload, REQUEST_SPECS, principal, { status: "待处理 Open" });
+        return { success: true, message: "Internal request submitted", recordId: record.record_id };
+      }
+      case "request_founder_decision":
+        return this.requestFounderDecision(principal, payload);
+      case "onboarding.generate":
+      case "generate_onboarding":
+        return this.generateOnboarding(principal, payload);
+      case "access.request":
+      case "request_access":
+        return this.requestAccess(principal, payload);
+      case "access.approve":
+      case "approve_access":
+        return this.approveAccess(principal, payload);
+      case "record.status.update":
+      case "update_status":
+        return this.updateStatus(principal, payload);
+      case "complete_onboarding_task":
+        return this.completeOnboardingTask(principal, payload);
+      case "acknowledge_policy":
+        return this.acknowledgePolicy(principal, payload);
+      case "approve_decision":
+        return this.resolveDecision(principal, payload, "Approved");
+      case "request_decision_changes":
+        return this.resolveDecision(principal, payload, "Changes Requested");
+      case "create_support_issue": {
+        const normalizedPayload = {
+          title: payload.title,
+          severity: choice(payload.severity, "severity", SUPPORT_SEVERITY_OPTIONS),
+          category: choice(payload.issueType, "issueType", SUPPORT_TYPE_OPTIONS),
+          area: payload.feature,
+          device: payload.deviceOs,
+          description: payload.description,
+          steps: payload.reproductionSteps,
+          affectedCount: payload.affectedCount,
+          workaround: payload.workaround,
+        };
+        const record = await this.createMapped(
+          "support",
+          normalizedPayload,
+          SUPPORT_SPECS,
+          principal,
+          { status: "新建 New" }
+        );
+        return {
+          success: true,
+          message: "Support issue submitted",
+          recordId: record.record_id,
+        };
+      }
+      case "acknowledge_commission":
+      case "acknowledge_compensation":
+        return this.updateOwnCompensation(principal, payload, "acknowledge");
+      case "raise_commission_dispute":
+      case "dispute_compensation":
+        return this.updateOwnCompensation(principal, payload, "dispute");
+      default:
+        throw new CompanyOpsHttpError(400, "Unknown Company Operations action");
+    }
+  }
+
+  private linkedToStaff(record: FeishuRecord, staffRecordId: string): boolean {
+    const employeeValue = recordField(record.fields, [CONFIDENTIAL_FIELD.employee]);
+    const links = linkedRecordIds(employeeValue);
+    return links.length === 1 && links[0] === staffRecordId;
+  }
+
+  private compensationPeriod(record: FeishuRecord): string {
+    const value = recordField(record.fields, [
+      CONFIDENTIAL_FIELD.commission.month,
+      CONFIDENTIAL_FIELD.payroll.month,
+    ]);
+    if (typeof value === "string") return textValue(value);
+    const asDate = isoDate(value);
+    return asDate?.slice(0, 10) || textValue(value);
+  }
+
+  private async getAcknowledgedPolicyIds(
+    principal: CompanyOpsPrincipal
+  ): Promise<string[] | undefined> {
+    if (!principal.staffRecordId) return undefined;
+    const records = await this.listOptional("policyAcknowledgement", 500);
+    const acknowledged = new Set<string>();
+    for (const record of records) {
+      if (!this.linkedToStaff(record, principal.staffRecordId)) continue;
+      const acknowledgedBy = idsFromValue(recordField(record.fields, [
+        CONFIDENTIAL_FIELD.policy.acknowledgedBy,
+      ]));
+      if (acknowledgedBy.length !== 1 || acknowledgedBy[0] !== principal.openId) continue;
+      if (boolValue(recordField(record.fields, [
+        CONFIDENTIAL_FIELD.policy.readAndAcknowledged,
+      ])) !== true) continue;
+      const document = textValue(recordField(record.fields, [
+        CONFIDENTIAL_FIELD.policy.document,
+      ]));
+      const policyId = POLICY_ID_BY_DOCUMENT.get(document);
+      if (policyId) acknowledged.add(policyId);
+    }
+    return [...acknowledged];
+  }
+
+  private async getMyCompensation(
+    principal: CompanyOpsPrincipal
+  ): Promise<CompanyOpsDashboard["myCompensation"]> {
+    if (!principal.staffRecordId) return undefined;
+    const [payrollRecords, commissionRecords] = await Promise.all([
+      this.listOptional("payroll", 200),
+      this.listOptional("commission", 200),
+    ]);
+    const payroll = payrollRecords
+      .filter((record) => this.linkedToStaff(record, principal.staffRecordId!))
+      .sort((left, right) => this.compensationPeriod(right).localeCompare(this.compensationPeriod(left)))[0];
+    const commission = commissionRecords
+      .filter((record) => this.linkedToStaff(record, principal.staffRecordId!))
+      .sort((left, right) => this.compensationPeriod(right).localeCompare(this.compensationPeriod(left)))[0];
+    if (!payroll && !commission) return undefined;
+    return {
+      payroll: payroll
+        ? {
+            period: this.compensationPeriod(payroll),
+            baseSalary: numberValue(recordField(payroll.fields, [CONFIDENTIAL_FIELD.payroll.base])),
+            performance: numberValue(recordField(payroll.fields, [CONFIDENTIAL_FIELD.payroll.performanceBonus])),
+            commission: numberValue(recordField(payroll.fields, [CONFIDENTIAL_FIELD.payroll.commission])),
+            bonus: numberValue(recordField(payroll.fields, [CONFIDENTIAL_FIELD.payroll.bonus])),
+            reimbursements: numberValue(recordField(payroll.fields, [CONFIDENTIAL_FIELD.payroll.reimbursements])),
+            deductions: numberValue(recordField(payroll.fields, [CONFIDENTIAL_FIELD.payroll.deductions])),
+            netPay: numberValue(recordField(payroll.fields, [CONFIDENTIAL_FIELD.payroll.netPay])),
+            status: textValue(recordField(payroll.fields, [CONFIDENTIAL_FIELD.payroll.status])) || undefined,
+          }
+        : undefined,
+      commission: commission
+        ? {
+            id: commission.record_id,
+            period: this.compensationPeriod(commission),
+            attributedRevenue: numberValue(recordField(commission.fields, [CONFIDENTIAL_FIELD.commission.attributedRevenue])),
+            rate: numberValue(recordField(commission.fields, [CONFIDENTIAL_FIELD.commission.rate])),
+            amount: numberValue(recordField(commission.fields, [CONFIDENTIAL_FIELD.commission.amount])),
+            growthBonus: numberValue(recordField(commission.fields, [CONFIDENTIAL_FIELD.commission.growthBonus])),
+            status: textValue(recordField(commission.fields, [CONFIDENTIAL_FIELD.commission.status])) || undefined,
+            acknowledged: dateValue(recordField(commission.fields, [
+              CONFIDENTIAL_FIELD.commission.acknowledgedAt,
+            ])) !== undefined,
+            disputeDeadline: isoDate(recordField(commission.fields, [
+              CONFIDENTIAL_FIELD.commission.disputeDeadline,
+            ])),
+            locked: boolValue(recordField(commission.fields, [
+              CONFIDENTIAL_FIELD.commission.locked,
+            ])),
+          }
+        : undefined,
+    };
+  }
+
+  private async updateOwnCompensation(
+    principal: CompanyOpsPrincipal,
+    input: Record<string, unknown>,
+    mode: "acknowledge" | "dispute"
+  ): Promise<CompanyOpsActionResult> {
+    if (!principal.staffRecordId) {
+      throw new CompanyOpsHttpError(403, "Your staff identity is not linked unambiguously");
+    }
+    const allowed = new Set([
+      "payPeriod",
+      "compensationId",
+      "statementId",
+      "reason",
+    ]);
+    const unknown = Object.keys(input).filter((key) => !allowed.has(key));
+    if (unknown.length) throw new CompanyOpsHttpError(400, `Unknown fields: ${unknown.join(", ")}`);
+    const payPeriod = textValue(input.payPeriod);
+    const suppliedId = textValue(input.compensationId ?? input.statementId);
+    if (!payPeriod && !suppliedId) {
+      throw new CompanyOpsHttpError(400, "payPeriod or compensationId is required");
+    }
+    const target = await this.target("commission");
+    const records = await this.client.listRecords(target.appToken, target.tableId, { maxRecords: 500 });
+    const own = records.filter((record) => this.linkedToStaff(record, principal.staffRecordId!));
+    const matches = own.filter((record) => {
+      if (suppliedId && record.record_id !== suppliedId) return false;
+      if (payPeriod && normalize(this.compensationPeriod(record)) !== normalize(payPeriod)) return false;
+      return true;
+    });
+    if (matches.length !== 1) {
+      throw new CompanyOpsHttpError(404, "A unique compensation statement could not be found");
+    }
+    const statement = matches[0];
+    const fields: FeishuFields = {};
+    if (mode === "acknowledge") {
+      const acknowledgedAt = fieldByAlias(target.fields, [
+        CONFIDENTIAL_FIELD.commission.acknowledgedAt,
+      ]);
+      if (!acknowledgedAt) {
+        throw new CompanyOpsConfigurationError(
+          `Commission Statements requires ${CONFIDENTIAL_FIELD.commission.acknowledgedAt}`
+        );
+      }
+      if (dateValue(recordField(statement.fields, [acknowledgedAt.field_name])) !== undefined) {
+        return {
+          success: true,
+          message: "Compensation statement already acknowledged",
+          recordId: statement.record_id,
+        };
+      }
+      fields[acknowledgedAt.field_name] = Date.now();
+    } else {
+      const reason = textValue(input.reason);
+      if (!reason) throw new CompanyOpsHttpError(400, "reason is required");
+      if (reason.length > 3_000) throw new CompanyOpsHttpError(400, "reason is too long");
+      const disputeNotes = fieldByAlias(target.fields, [
+        CONFIDENTIAL_FIELD.commission.disputeNotes,
+      ]);
+      const disputeStatus = fieldByAlias(target.fields, [
+        CONFIDENTIAL_FIELD.commission.disputeStatus,
+      ]);
+      const disputeDeadline = fieldByAlias(target.fields, [
+        CONFIDENTIAL_FIELD.commission.disputeDeadline,
+      ]);
+      const locked = fieldByAlias(target.fields, [
+        CONFIDENTIAL_FIELD.commission.locked,
+      ]);
+      if (!disputeNotes || !disputeStatus || !disputeDeadline || !locked) {
+        throw new CompanyOpsConfigurationError(
+          "Commission Statements requires the exact dispute notes, status, deadline, and locked fields"
+        );
+      }
+      if (boolValue(recordField(statement.fields, [locked.field_name])) === true) {
+        throw new CompanyOpsHttpError(409, "This compensation statement is locked");
+      }
+      const deadlineValue = dateValue(recordField(statement.fields, [disputeDeadline.field_name]));
+      if (deadlineValue !== undefined && shanghaiDateKey(deadlineValue) < shanghaiDateKey(Date.now())) {
+        throw new CompanyOpsHttpError(409, "The dispute deadline has passed");
+      }
+      fields[disputeNotes.field_name] = reason;
+      fields[disputeStatus.field_name] = "待处理 Raised";
+    }
+    await this.client.updateRecord(target.appToken, target.tableId, statement.record_id, fields);
+    return {
+      success: true,
+      message: mode === "acknowledge"
+        ? "Compensation statement acknowledged"
+        : "Compensation dispute submitted",
+      recordId: statement.record_id,
+    };
+  }
+
+  private async requestFounderDecision(
+    principal: CompanyOpsPrincipal,
+    input: Record<string, unknown>
+  ): Promise<CompanyOpsActionResult> {
+    const allowed = new Set(["title", "category", "context", "neededBy"]);
+    const unknown = Object.keys(input).filter((key) => !allowed.has(key));
+    if (unknown.length) throw new CompanyOpsHttpError(400, `Unknown fields: ${unknown.join(", ")}`);
+    const title = textValue(input.title);
+    const category = textValue(input.category) || "Other";
+    const context = textValue(input.context);
+    if (!title) throw new CompanyOpsHttpError(400, "title is required");
+    if (!context) throw new CompanyOpsHttpError(400, "context is required");
+    const record = await this.createMapped(
+      "internalRequest",
+      {
+        title,
+        requestType: "其他 Other",
+        details: `[Founder Decision: ${category}]\n${context}`,
+        neededBy: input.neededBy,
+        priority: "高 High",
+      },
+      REQUEST_SPECS,
+      principal,
+      { status: "待处理 Open" }
+    );
+    return {
+      success: true,
+      message: "Founder decision requested",
+      recordId: record.record_id,
+    };
+  }
+
+  private async completeOnboardingTask(
+    principal: CompanyOpsPrincipal,
+    input: Record<string, unknown>
+  ): Promise<CompanyOpsActionResult> {
+    const allowed = new Set(["taskId"]);
+    const unknown = Object.keys(input).filter((key) => !allowed.has(key));
+    if (unknown.length) throw new CompanyOpsHttpError(400, `Unknown fields: ${unknown.join(", ")}`);
+    const taskId = validRecordId(input.taskId);
+    const target = await this.target("onboarding");
+    const record = await this.client.getRecord(target.appToken, target.tableId, taskId);
+    if (principal.role !== "founder" && !this.belongsTo(record, principal)) {
+      throw new CompanyOpsHttpError(403, "You can complete only your own onboarding tasks");
+    }
+    const status = fieldByAlias(target.fields, FIELD.status);
+    if (!status) throw new CompanyOpsConfigurationError("The Onboarding table is missing its status field");
+    const fields: FeishuFields = { [status.field_name]: "已完成 Done" };
+    const completedAt = fieldByAlias(target.fields, ["完成时间 Completed At", "Completed At", "Completion Date", "完成时间"]);
+    const completedBy = fieldByAlias(target.fields, ["Completed By", "完成人"]);
+    if (completedAt) fields[completedAt.field_name] = Date.now();
+    if (completedBy) {
+      fields[completedBy.field_name] = completedBy.type === 11
+        ? [{ id: principal.openId }]
+        : principal.name;
+    }
+    await this.client.updateRecord(target.appToken, target.tableId, taskId, fields);
+    return { success: true, message: "Onboarding task completed", recordId: taskId };
+  }
+
+  private async acknowledgePolicy(
+    principal: CompanyOpsPrincipal,
+    input: Record<string, unknown>
+  ): Promise<CompanyOpsActionResult> {
+    const allowed = new Set(["policyId", "version"]);
+    const unknown = Object.keys(input).filter((key) => !allowed.has(key));
+    if (unknown.length) throw new CompanyOpsHttpError(400, `Unknown fields: ${unknown.join(", ")}`);
+    const policyId = textValue(input.policyId);
+    const version = textValue(input.version);
+    const document = POLICY_DOCUMENT_BY_ID[policyId as keyof typeof POLICY_DOCUMENT_BY_ID];
+    if (!document) {
+      throw new CompanyOpsHttpError(400, "Unsupported policy identifier");
+    }
+    if (version.length > 160) {
+      throw new CompanyOpsHttpError(400, "version is too long");
+    }
+    if (!principal.staffRecordId) {
+      throw new CompanyOpsHttpError(403, "Your staff identity is not linked unambiguously");
+    }
+    const target = await this.target("policyAcknowledgement");
+    const acknowledgementField = fieldByAlias(target.fields, [
+      CONFIDENTIAL_FIELD.policy.acknowledgement,
+    ]);
+    const employeeField = fieldByAlias(target.fields, [CONFIDENTIAL_FIELD.employee]);
+    const acknowledgedByField = fieldByAlias(target.fields, [
+      CONFIDENTIAL_FIELD.policy.acknowledgedBy,
+    ]);
+    const documentField = fieldByAlias(target.fields, [
+      CONFIDENTIAL_FIELD.policy.document,
+    ]);
+    const versionField = fieldByAlias(target.fields, [
+      CONFIDENTIAL_FIELD.policy.version,
+    ]);
+    const readField = fieldByAlias(target.fields, [
+      CONFIDENTIAL_FIELD.policy.readAndAcknowledged,
+    ]);
+    if (
+      !acknowledgementField ||
+      !employeeField ||
+      !acknowledgedByField ||
+      !documentField ||
+      !versionField ||
+      !readField
+    ) {
+      throw new CompanyOpsConfigurationError(
+        "The Policy Acknowledgements table does not match the required acknowledgement schema"
+      );
+    }
+    const existing = (await this.client.listRecords(target.appToken, target.tableId, { maxRecords: 500 }))
+      .find((record) =>
+        this.linkedToStaff(record, principal.staffRecordId!) &&
+        idsFromValue(recordField(record.fields, [acknowledgedByField.field_name])).includes(principal.openId) &&
+        textValue(recordField(record.fields, [documentField.field_name])) === document &&
+        boolValue(recordField(record.fields, [readField.field_name])) === true &&
+        (!version || textValue(recordField(record.fields, [versionField.field_name])) === version)
+      );
+    if (existing) {
+      return { success: true, message: "Policy acknowledgement already recorded", recordId: existing.record_id };
+    }
+    const fields: FeishuFields = {
+      [acknowledgementField.field_name]: [
+        principal.name,
+        document,
+        version,
+      ].filter(Boolean).join(" · "),
+      [employeeField.field_name]: [principal.staffRecordId],
+      [acknowledgedByField.field_name]: [{ id: principal.openId }],
+      [documentField.field_name]: document,
+      [readField.field_name]: true,
+    };
+    if (versionField && version) fields[versionField.field_name] = version;
+    const record = await this.client.createRecord(target.appToken, target.tableId, fields);
+    return { success: true, message: "Policy acknowledgement recorded", recordId: record.record_id };
+  }
+
+  private async resolveDecision(
+    principal: CompanyOpsPrincipal,
+    input: Record<string, unknown>,
+    outcome: "Approved" | "Changes Requested"
+  ): Promise<CompanyOpsActionResult> {
+    if (principal.role !== "founder") {
+      throw new CompanyOpsHttpError(403, "Only the founder can resolve decisions");
+    }
+    const allowed = new Set(["decisionId", "feedback", "actionType"]);
+    const unknown = Object.keys(input).filter((key) => !allowed.has(key));
+    if (unknown.length) throw new CompanyOpsHttpError(400, `Unknown fields: ${unknown.join(", ")}`);
+    const decisionId = validRecordId(input.decisionId);
+    const feedback = textValue(input.feedback);
+    const actionType = textValue(input.actionType) || "founder_decision";
+    if (feedback.length > 3_000) throw new CompanyOpsHttpError(400, "feedback is too long");
+    if (actionType === "access_request") {
+      if (outcome === "Approved") {
+        return this.approveAccess(principal, { requestRecordId: decisionId });
+      }
+      const target = await this.target("internalRequest");
+      const record = await this.client.getRecord(target.appToken, target.tableId, decisionId);
+      if (!/company operations access|权限/.test(
+        normalize(textValue(recordField(record.fields, ["请求 Request", "Request", "Title"])))
+      )) {
+        throw new CompanyOpsHttpError(400, "That record is not an access request");
+      }
+      const status = fieldByAlias(target.fields, FIELD.status);
+      if (!status) throw new CompanyOpsConfigurationError("Internal Requests is missing its status field");
+      await this.client.updateRecord(target.appToken, target.tableId, decisionId, {
+        [status.field_name]: "拒绝 Declined",
+      });
+      return { success: true, message: "Access request declined", recordId: decisionId };
+    }
+
+    if (actionType === "expense") {
+      const target = await this.target("expense");
+      await this.client.getRecord(target.appToken, target.tableId, decisionId);
+      const status = fieldByAlias(target.fields, FIELD.status);
+      if (!status) throw new CompanyOpsConfigurationError("Expenses is missing its status field");
+      await this.client.updateRecord(target.appToken, target.tableId, decisionId, {
+        [status.field_name]: outcome === "Approved" ? "已批准 Approved" : "已拒绝 Rejected",
+      });
+      return {
+        success: true,
+        message: outcome === "Approved" ? "Expense approved" : "Expense rejected",
+        recordId: decisionId,
+      };
+    }
+
+    if (actionType === "weekly_report") {
+      const target = await this.target("weeklyReport");
+      await this.client.getRecord(target.appToken, target.tableId, decisionId);
+      const status = fieldByAlias(target.fields, FIELD.status);
+      if (!status) throw new CompanyOpsConfigurationError("Weekly Reports is missing its status field");
+      const fields: FeishuFields = {
+        [status.field_name]: outcome === "Approved" ? "创始人已阅 Reviewed" : "已提交 Submitted",
+      };
+      const founderFeedback = fieldByAlias(target.fields, ["创始人反馈 Founder Feedback", "Founder Feedback"]);
+      if (founderFeedback) {
+        fields[founderFeedback.field_name] = feedback ||
+          (outcome === "Approved" ? "Reviewed" : "Changes requested");
+      }
+      await this.client.updateRecord(target.appToken, target.tableId, decisionId, fields);
+      return {
+        success: true,
+        message: outcome === "Approved" ? "Weekly report reviewed" : "Changes requested",
+        recordId: decisionId,
+      };
+    }
+
+    if (actionType !== "founder_decision") {
+      throw new CompanyOpsHttpError(400, "Unknown decision type");
+    }
+    const target = await this.target("internalRequest");
+    const record = await this.client.getRecord(target.appToken, target.tableId, decisionId);
+    const details = normalize(
+      textValue(recordField(record.fields, ["备注 Notes", "Details", "Description", "申请详情"]))
+    );
+    if (!/\[founder decision:/.test(details)) {
+      throw new CompanyOpsHttpError(400, "That record is not a founder decision request");
+    }
+    const status = fieldByAlias(target.fields, FIELD.status);
+    if (!status) throw new CompanyOpsConfigurationError("Internal Requests is missing its status field");
+    const fields: FeishuFields = {
+      [status.field_name]: outcome === "Approved" ? "完成 Done" : "进行中 Doing",
+    };
+    const founderFeedback = fieldByAlias(target.fields, ["处理结果 Resolution", "Founder Feedback", "Decision Feedback", "创始人反馈"]);
+    const reviewedBy = fieldByAlias(target.fields, ["Reviewed By", "Decision By", "审核人"]);
+    const reviewedAt = fieldByAlias(target.fields, ["Reviewed At", "Decision Date", "审核时间"]);
+    if (founderFeedback && feedback) fields[founderFeedback.field_name] = feedback;
+    if (reviewedBy) {
+      fields[reviewedBy.field_name] = reviewedBy.type === 11
+        ? [{ id: principal.openId }]
+        : principal.name;
+    }
+    if (reviewedAt) fields[reviewedAt.field_name] = Date.now();
+    await this.client.updateRecord(target.appToken, target.tableId, decisionId, fields);
+    return {
+      success: true,
+      message: outcome === "Approved" ? "Decision approved" : "Changes requested",
+      recordId: decisionId,
+    };
+  }
+
+  private async generateOnboarding(
+    principal: CompanyOpsPrincipal,
+    input: Record<string, unknown>
+  ): Promise<CompanyOpsActionResult> {
+    const allowed = new Set(["newHireOpenId", "newHireName", "role", "startDate"]);
+    const unknown = Object.keys(input).filter((key) => !allowed.has(key));
+    if (unknown.length) throw new CompanyOpsHttpError(400, `Unknown fields: ${unknown.join(", ")}`);
+    const newHireOpenId = textValue(input.newHireOpenId);
+    const newHireName = textValue(input.newHireName);
+    const role = onboardingRole(input.role);
+    const inputStartDate = dateValue(input.startDate);
+    if (!/^ou_[A-Za-z0-9_-]+$/.test(newHireOpenId)) throw new CompanyOpsHttpError(400, "A valid new-hire Feishu Open ID is required");
+    if (!newHireName) throw new CompanyOpsHttpError(400, "newHireName is required");
+    if (newHireName.length > 200) throw new CompanyOpsHttpError(400, "newHireName is too long");
+    if (inputStartDate === undefined) {
+      throw new CompanyOpsHttpError(400, "startDate must be a valid date");
+    }
+    const startDateKey = shanghaiDateKey(inputStartDate);
+    const startDate = Date.parse(`${startDateKey}T00:00:00+08:00`);
+
+    const [caseTarget, templateTarget, taskTarget] = await Promise.all([
+      this.target("onboardingCase"),
+      this.target("onboardingTemplate"),
+      this.target("onboarding"),
+    ]);
+    const exactField = (
+      target: ResolvedTarget,
+      fieldName: string,
+      expectedType: number
+    ): FeishuField => {
+      const result = target.fields.find((field) => field.field_name === fieldName);
+      if (!result || result.type !== expectedType) {
+        throw new CompanyOpsConfigurationError(
+          `${this.config.tables[target.resource].names[0]} requires ${fieldName}`
+        );
+      }
+      return result;
+    };
+
+    const templateKeyField = exactField(templateTarget, "模板编号 Template Key", 1);
+    const templateTaskField = exactField(templateTarget, "任务 Task", 1);
+    const templateRolesField = exactField(templateTarget, "适用岗位 Roles", 4);
+    const templateCategoryField = exactField(templateTarget, "类别 Category", 3);
+    const templateRelativeDayField = exactField(templateTarget, "相对天数 Relative Day", 2);
+    const templateOwnerRoleField = exactField(templateTarget, "负责人角色 Owner Role", 3);
+    const templateRequiredField = exactField(templateTarget, "必做 Required", 7);
+    const templateInstructionsField = exactField(templateTarget, "说明 Instructions", 1);
+    const templateResourceField = exactField(templateTarget, "资料链接 Resource URL", 15);
+    const templateActiveField = exactField(templateTarget, "启用 Active", 7);
+    const templateSortField = exactField(templateTarget, "排序 Sort Order", 2);
+
+    type SelectedTemplate = {
+      recordId: string;
+      key: string;
+      task: string;
+      category: string;
+      relativeDay: number;
+      ownerRole: string;
+      required: boolean;
+      instructions: string;
+      resourceUrl?: string;
+      sortOrder: number;
+    };
+    const templateRecords = await this.client.listRecords(
+      templateTarget.appToken,
+      templateTarget.tableId,
+      { maxRecords: 1_000 }
+    );
+    const selectedTemplates: SelectedTemplate[] = [];
+    const selectedKeys = new Set<string>();
+    for (const template of templateRecords) {
+      if (boolValue(template.fields[templateActiveField.field_name]) !== true) continue;
+      const roles = selectionValues(template.fields[templateRolesField.field_name]);
+      const applies = roles.some((candidate) => {
+        const normalized = normalize(candidate);
+        return normalized === normalize("全员 All") || normalized === normalize(role);
+      });
+      if (!applies) continue;
+
+      const key = textValue(template.fields[templateKeyField.field_name]);
+      const task = textValue(template.fields[templateTaskField.field_name]);
+      const category = textValue(template.fields[templateCategoryField.field_name]);
+      const relativeDay = numberValue(template.fields[templateRelativeDayField.field_name]);
+      const ownerRole = textValue(template.fields[templateOwnerRoleField.field_name]);
+      const required = boolValue(template.fields[templateRequiredField.field_name]);
+      const instructions = textValue(template.fields[templateInstructionsField.field_name]);
+      const resourceUrl = textValue(template.fields[templateResourceField.field_name]) || undefined;
+      const sortOrder = numberValue(template.fields[templateSortField.field_name]) ?? 0;
+      if (!key || !task) {
+        throw new CompanyOpsConfigurationError(
+          "Every active onboarding template requires a Template Key and Task"
+        );
+      }
+      if (selectedKeys.has(normalize(key))) {
+        throw new CompanyOpsConfigurationError(
+          `Active onboarding template keys must be unique: ${key}`
+        );
+      }
+      selectedKeys.add(normalize(key));
+      if (!ONBOARDING_CATEGORIES.has(category)) {
+        throw new CompanyOpsConfigurationError(
+          `Onboarding template ${key} has an unsupported category`
+        );
+      }
+      if (!Number.isInteger(relativeDay) || relativeDay! < -365 || relativeDay! > 3_650) {
+        throw new CompanyOpsConfigurationError(
+          `Onboarding template ${key} requires a valid Relative Day`
+        );
+      }
+      if (!ONBOARDING_OWNER_ROLES.has(ownerRole)) {
+        throw new CompanyOpsConfigurationError(
+          `Onboarding template ${key} has an unsupported Owner Role`
+        );
+      }
+      if (required === undefined) {
+        throw new CompanyOpsConfigurationError(
+          `Onboarding template ${key} requires the Required checkbox`
+        );
+      }
+      if (resourceUrl) {
+        try {
+          if (new URL(resourceUrl).protocol !== "https:") throw new Error("HTTPS required");
+        } catch {
+          throw new CompanyOpsConfigurationError(
+            `Onboarding template ${key} has an invalid Resource URL`
+          );
+        }
+      }
+      selectedTemplates.push({
+        recordId: template.record_id,
+        key,
+        task,
+        category,
+        relativeDay: relativeDay!,
+        ownerRole,
+        required,
+        instructions,
+        resourceUrl,
+        sortOrder,
+      });
+    }
+    selectedTemplates.sort(
+      (left, right) => left.sortOrder - right.sortOrder || left.key.localeCompare(right.key)
+    );
+    if (!selectedTemplates.length) {
+      throw new CompanyOpsHttpError(
+        409,
+        `No active onboarding templates match 全员 All or ${role}`
+      );
+    }
+
+    const casePrimary = exactField(caseTarget, "入职案例 Case", 1);
+    const caseEmployeeName = exactField(caseTarget, "员工姓名 Employee Name", 1);
+    const caseUser = exactField(caseTarget, "飞书用户 Feishu User", 11);
+    const caseRole = exactField(caseTarget, "岗位 Role", 3);
+    const caseStartDate = exactField(caseTarget, "入职日期 Start Date", 5);
+    const caseStatus = exactField(caseTarget, "状态 Status", 3);
+    const caseProgress = exactField(caseTarget, "完成率 Progress %", 2);
+    const caseConfidential = exactField(caseTarget, "保密资料 Confidential Details", 3);
+    const casePolicy = exactField(caseTarget, "制度确认 Policy Acknowledgement", 3);
+    const caseDay30 = exactField(caseTarget, "30天复盘 Day 30 Review", 5);
+    const caseDay60 = exactField(caseTarget, "60天复盘 Day 60 Review", 5);
+    const caseDay90 = exactField(caseTarget, "90天复盘 Day 90 Review", 5);
+    const cases = await this.client.listRecords(caseTarget.appToken, caseTarget.tableId, {
+      maxRecords: 1_000,
+    });
+    const matchingCases = cases.filter((record) => {
+      if (!idsFromValue(record.fields[caseUser.field_name]).includes(newHireOpenId)) {
+        return false;
+      }
+      const storedStartDate = dateValue(record.fields[caseStartDate.field_name]);
+      return storedStartDate !== undefined && shanghaiDateKey(storedStartDate) === startDateKey;
+    });
+    if (matchingCases.length > 1) {
+      throw new CompanyOpsHttpError(
+        409,
+        "More than one onboarding case exists for this employee and start date"
+      );
+    }
+    const existingCase = matchingCases[0];
+    if (
+      existingCase &&
+      normalize(textValue(existingCase.fields[caseRole.field_name])) !== normalize(role)
+    ) {
+      throw new CompanyOpsHttpError(
+        409,
+        "The existing onboarding case has a different role"
+      );
+    }
+    const caseRecord = existingCase || await this.client.createRecord(
+      caseTarget.appToken,
+      caseTarget.tableId,
+      {
+        [casePrimary.field_name]: `${newHireName} · ${startDateKey}`,
+        [caseEmployeeName.field_name]: newHireName,
+        [caseUser.field_name]: [{ id: newHireOpenId }],
+        [caseRole.field_name]: role,
+        [caseStartDate.field_name]: startDate,
+        [caseStatus.field_name]: "进行中 Active",
+        [caseProgress.field_name]: 0,
+        [caseConfidential.field_name]: "未提交 Missing",
+        [casePolicy.field_name]: "未完成 Missing",
+        [caseDay30.field_name]: startDate + 30 * 86_400_000,
+        [caseDay60.field_name]: startDate + 60 * 86_400_000,
+        [caseDay90.field_name]: startDate + 90 * 86_400_000,
+      }
+    );
+    const caseId = caseRecord.record_id;
+    if (!caseId) throw new FeishuApiError("Feishu did not return an onboarding case ID");
+
+    const taskPrimary = exactField(taskTarget, "任务 Task", 1);
+    const taskCase = exactField(taskTarget, "入职案例 Case", 18);
+    const taskTemplate = exactField(taskTarget, "任务模板 Template", 18);
+    const taskCategory = exactField(taskTarget, "类别 Category", 3);
+    const taskAssignee = exactField(taskTarget, "负责人 Assignee", 11);
+    const taskDue = exactField(taskTarget, "截止日期 Due", 5);
+    const taskStatus = exactField(taskTarget, "状态 Status", 3);
+    const taskRequired = exactField(taskTarget, "必做 Required", 7);
+    const taskInstructions = exactField(taskTarget, "说明 Instructions", 1);
+    const taskResource = exactField(taskTarget, "资料链接 Resource URL", 15);
+    const taskNotes = exactField(taskTarget, "备注 Notes", 1);
+    const existingTasks = await this.client.listRecords(taskTarget.appToken, taskTarget.tableId, {
+      maxRecords: 2_000,
+    });
+    const taskIdByTemplate = new Map<string, string>();
+    for (const task of existingTasks) {
+      if (!linkedRecordIds(task.fields[taskCase.field_name]).includes(caseId)) continue;
+      const templateIds = linkedRecordIds(task.fields[taskTemplate.field_name]);
+      if (templateIds.length !== 1) continue;
+      const templateId = templateIds[0];
+      if (taskIdByTemplate.has(templateId)) {
+        throw new CompanyOpsHttpError(
+          409,
+          "Duplicate onboarding tasks exist for one case and template"
+        );
+      }
+      taskIdByTemplate.set(templateId, task.record_id);
+    }
+
+    const createdTaskIds: string[] = [];
+    const fallbackCounts = new Map<string, number>();
+    for (const template of selectedTemplates) {
+      if (taskIdByTemplate.has(template.recordId)) continue;
+      const directOwner = template.ownerRole === "新员工 New Hire"
+        ? newHireOpenId
+        : principal.openId;
+      const isFallback = !new Set(["新员工 New Hire", "创始人 Founder"]).has(
+        template.ownerRole
+      );
+      const fields: FeishuFields = {
+        [taskPrimary.field_name]: template.task,
+        [taskCase.field_name]: [caseId],
+        [taskTemplate.field_name]: [template.recordId],
+        [taskCategory.field_name]: template.category,
+        [taskAssignee.field_name]: [{ id: directOwner }],
+        [taskDue.field_name]: startDate + template.relativeDay * 86_400_000,
+        [taskStatus.field_name]: "未开始 Todo",
+        [taskRequired.field_name]: template.required,
+      };
+      if (template.instructions) {
+        fields[taskInstructions.field_name] = template.instructions;
+      }
+      if (template.resourceUrl) {
+        fields[taskResource.field_name] = {
+          link: template.resourceUrl,
+          text: template.resourceUrl,
+        };
+      }
+      if (isFallback) {
+        fallbackCounts.set(
+          template.ownerRole,
+          (fallbackCounts.get(template.ownerRole) || 0) + 1
+        );
+        fields[taskNotes.field_name] =
+          `负责人回退 Owner fallback: ${template.ownerRole} is not mapped to a specific ` +
+          `Feishu user, so this task is temporarily assigned to founder ${principal.name}. ` +
+          "Reassign it in Feishu; the new hire assignment was not overwritten.";
+      }
+      const task = await this.client.createRecord(
+        taskTarget.appToken,
+        taskTarget.tableId,
+        fields
+      );
+      if (!task.record_id) throw new FeishuApiError("Feishu did not return an onboarding task ID");
+      createdTaskIds.push(task.record_id);
+      taskIdByTemplate.set(template.recordId, task.record_id);
+    }
+    const taskIds = selectedTemplates
+      .map((template) => taskIdByTemplate.get(template.recordId))
+      .filter((recordId): recordId is string => Boolean(recordId));
+    const warning = fallbackCounts.size
+      ? `Temporary founder assignment used for ${[...fallbackCounts.entries()]
+          .map(([owner, count]) => `${count} ${owner}`)
+          .join(", ")} task(s). Reassign these in Feishu when the responsible ` +
+        "Manager/Admin owner is known; new-hire assignments were not overwritten."
+      : undefined;
+    return {
+      success: true,
+      message: createdTaskIds.length
+        ? `${existingCase ? "Reused" : "Created"} ${newHireName}'s onboarding case and created ${createdTaskIds.length} task(s)`
+        : `${newHireName}'s onboarding case and tasks were already present`,
+      recordId: caseId,
+      recordIds: taskIds,
+      caseId,
+      taskIds,
+      warning,
+    };
+  }
+
+  private async requestAccess(
+    principal: CompanyOpsPrincipal,
+    input: Record<string, unknown>
+  ): Promise<CompanyOpsActionResult> {
+    const allowed = new Set(["requestedRole", "reason"]);
+    const unknown = Object.keys(input).filter((key) => !allowed.has(key));
+    if (unknown.length) throw new CompanyOpsHttpError(400, `Unknown fields: ${unknown.join(", ")}`);
+    const requestedRole = textValue(input.requestedRole) || "staff";
+    if (!new Set(["growth", "staff", "finance"]).has(requestedRole)) {
+      throw new CompanyOpsHttpError(400, "requestedRole must be growth, finance, or staff");
+    }
+    const reason = textValue(input.reason);
+    if (reason.length > 1_000) throw new CompanyOpsHttpError(400, "reason is too long");
+
+    const target = await this.target("internalRequest");
+    const records = await this.client.listRecords(target.appToken, target.tableId, { maxRecords: 200 });
+    const existing = records.find((record) =>
+      this.belongsTo(record, principal) &&
+      /company operations access|权限/.test(
+        normalize(textValue(recordField(record.fields, ["请求 Request", "Request", "Title"])))
+      ) &&
+      !new Set(["Done", "Rejected"]).has(
+        decodeStatus("internalRequest", recordField(record.fields, FIELD.status)) || ""
+      )
+    );
+    if (existing) {
+      return { success: true, message: "Your access request is already awaiting review", recordId: existing.record_id };
+    }
+    const record = await this.createMapped(
+      "internalRequest",
+      {
+        title: `Company Operations access — ${principal.name}`,
+        requestType: "IT/账号 IT & Accounts",
+        details: `Requested role: ${requestedRole}${reason ? `\nReason: ${reason}` : ""}`,
+        priority: "高 High",
+      },
+      REQUEST_SPECS,
+      principal,
+      { status: "待处理 Open" }
+    );
+    return { success: true, message: "Access request sent to the founder", recordId: record.record_id };
+  }
+
+  private async approveAccess(
+    principal: CompanyOpsPrincipal,
+    input: Record<string, unknown>
+  ): Promise<CompanyOpsActionResult> {
+    if (principal.role !== "founder") {
+      throw new CompanyOpsHttpError(403, "Only the founder can approve access");
+    }
+    const allowed = new Set(["requestRecordId", "openId", "name", "role", "jobTitle"]);
+    const unknown = Object.keys(input).filter((key) => !allowed.has(key));
+    if (unknown.length) throw new CompanyOpsHttpError(400, `Unknown fields: ${unknown.join(", ")}`);
+    const requestRecordId = validRecordId(input.requestRecordId);
+
+    const requestTarget = await this.target("internalRequest");
+    const request = await this.client.getRecord(
+      requestTarget.appToken,
+      requestTarget.tableId,
+      requestRecordId
+    );
+    const requestTitle = textValue(
+      recordField(request.fields, ["请求 Request", "Request", "Title"])
+    );
+    if (!/company operations access|权限/i.test(requestTitle)) {
+      throw new CompanyOpsHttpError(400, "That record is not an access request");
+    }
+    const requesterValue = recordField(request.fields, [
+      "提出人（飞书） Requested By (Feishu)",
+      "Requested By",
+      "Submitted By",
+    ]);
+    const requesterIds = idsFromValue(requesterValue);
+    if (requesterIds.length !== 1) {
+      throw new CompanyOpsConfigurationError(
+        "The access request must contain one unambiguous Feishu requester"
+      );
+    }
+    const openId = requesterIds[0];
+    if (input.openId && textValue(input.openId) !== openId) {
+      throw new CompanyOpsHttpError(400, "The requested identity does not match the access request");
+    }
+    const details = textValue(
+      recordField(request.fields, ["备注 Notes", "Details", "Description"])
+    );
+    const requestedRole = details.match(/Requested role:\s*(growth|finance|staff)/i)?.[1]?.toLowerCase();
+    const roleValue = textValue(input.role) || requestedRole;
+    if (!new Set(["growth", "finance", "staff"]).has(roleValue || "")) {
+      throw new CompanyOpsHttpError(400, "role must be growth, finance, or staff");
+    }
+    const role = roleValue as "growth" | "finance" | "staff";
+    const name = textValue(input.name) || textValue(requesterValue);
+    if (!name || name === openId) {
+      throw new CompanyOpsConfigurationError("The access request is missing the employee name");
+    }
+
+    const staffTarget = await this.target("staff");
+    const openIdField = fieldByAlias(staffTarget.fields, [
+      "飞书用户 Feishu User",
+      "Feishu Open ID",
+      "Feishu OpenID",
+      "飞书 Open ID",
+      "飞书OpenID",
+    ]);
+    if (!openIdField) {
+      throw new CompanyOpsConfigurationError("The Staff register requires a Feishu User field before access can be approved");
+    }
+    const staffRecords = await this.client.listRecords(staffTarget.appToken, staffTarget.tableId, { maxRecords: 500 });
+    const existing = staffRecords.find((record) =>
+      idsFromValue(recordField(record.fields, [openIdField.field_name])).includes(openId)
+    );
+    const primary = fieldByAlias(staffTarget.fields, ["姓名 Name", "Name", "Employee", "姓名"], true);
+    if (!primary) throw new CompanyOpsConfigurationError("The Staff register is missing its employee-name field");
+    const fields: FeishuFields = {
+      [primary.field_name]: name,
+      [openIdField.field_name]: openIdField.type === 11 ? [{ id: openId }] : openId,
+    };
+    const roleField = fieldByAlias(staffTarget.fields, ["应用角色 App Role", "App Role"]);
+    const statusField = fieldByAlias(staffTarget.fields, ["状态 Status", "Status", "Employment Status", "状态"]);
+    if (!roleField || !statusField) {
+      throw new CompanyOpsConfigurationError("The Staff register requires App Role and Status fields");
+    }
+    fields[roleField.field_name] = {
+      growth: "增长 Growth",
+      finance: "财务 Finance",
+      staff: "员工 Staff",
+    }[role];
+    fields[statusField.field_name] = "在职 Active";
+    const staffRecord = existing
+      ? await this.client.updateRecord(staffTarget.appToken, staffTarget.tableId, existing.record_id, fields)
+      : await this.client.createRecord(staffTarget.appToken, staffTarget.tableId, fields);
+
+    const requestStatus = fieldByAlias(requestTarget.fields, FIELD.status);
+    if (requestStatus) {
+      await this.client.updateRecord(requestTarget.appToken, requestTarget.tableId, requestRecordId, {
+        [requestStatus.field_name]: "完成 Done",
+      });
+    }
+
+    let warning: string | undefined;
+    if (this.config.sharedAssetsFolderToken) {
+      try {
+        await this.client.addDriveMember(
+          this.config.sharedAssetsFolderToken,
+          "folder",
+          openId,
+          "view"
+        );
+      } catch {
+        warning = "Access was approved, but the private shared-assets folder could not be added automatically";
+      }
+    }
+    return {
+      success: true,
+      message: `${name} now has ${role} access`,
+      recordId: staffRecord.record_id,
+      warning,
+    };
+  }
+
+  private async updateStatus(
+    principal: CompanyOpsPrincipal,
+    input: Record<string, unknown>
+  ): Promise<CompanyOpsActionResult> {
+    const allowed = new Set(["resource", "recordId", "status"]);
+    const unknown = Object.keys(input).filter((key) => !allowed.has(key));
+    if (unknown.length) throw new CompanyOpsHttpError(400, `Unknown fields: ${unknown.join(", ")}`);
+    const resource = textValue(input.resource) as CompanyOpsResource;
+    const recordId = validRecordId(input.recordId);
+    const status = textValue(input.status);
+    if (!STATUS_RESOURCES_BY_ROLE[principal.role].has(resource)) {
+      throw new CompanyOpsHttpError(403, "You cannot update that type of record");
+    }
+    const storedStatus = encodeStatus(resource, status);
+    const target = await this.target(resource);
+    const record = await this.client.getRecord(target.appToken, target.tableId, recordId);
+    const roleWideAccess =
+      principal.role === "founder" ||
+      (principal.role === "finance" &&
+        new Set<CompanyOpsResource>(["expense", "payroll", "commission"]).has(resource)) ||
+      (principal.role === "growth" &&
+        new Set<CompanyOpsResource>([
+          "content",
+          "lead",
+          "partner",
+          "campaign",
+          "experiment",
+          "weeklyReport",
+        ]).has(resource));
+    if (!roleWideAccess && !this.belongsTo(record, principal)) {
+      throw new CompanyOpsHttpError(403, "You can update only your own records");
+    }
+    const statusField = fieldByAlias(target.fields, FIELD.status);
+    if (!statusField) throw new CompanyOpsConfigurationError(`The ${resource} table does not have a status field`);
+    await this.client.updateRecord(target.appToken, target.tableId, recordId, {
+      [statusField.field_name]: storedStatus,
+    });
+    return { success: true, message: `Status updated to ${decodeStatus(resource, storedStatus)}`, recordId };
+  }
+}
+
+export function createCompanyOpsRepository(
+  config: CompanyOpsConfig,
+  client?: FeishuClient
+): CompanyOpsRepository {
+  return new CompanyOpsRepository(config, client);
+}
+
+export function publicCompanyOpsError(error: unknown): {
+  status: number;
+  message: string;
+} {
+  if (error instanceof CompanyOpsHttpError) {
+    return { status: error.status, message: error.message };
+  }
+  if (error instanceof CompanyOpsConfigurationError) {
+    return { status: error.status, message: error.message };
+  }
+  if (error instanceof FeishuApiError) {
+    return {
+      status: error.status,
+      message: error.status === 401 || error.status === 403
+        ? "Feishu denied the Company Operations request"
+        : "Company Operations could not reach Feishu",
+    };
+  }
+  return { status: 500, message: "Company Operations request failed" };
+}

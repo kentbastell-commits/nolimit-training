@@ -189,4 +189,38 @@ describe("api/activateDigitalOrder (postgres)", () => {
     // transfer to this order — the whole manual-payment flow depends on it.
     expect(stored).toContain("NL-7H8J");
   });
+
+  it("stores opaque campaign attribution without customer marketing data leaving Postgres", async () => {
+    await seedProgram({ program_id: "PR-1001", name: "Test Program" });
+    await seedClient({ client_id: "CL-9001", full_name: "Bob Tan", phone: "13800000001" });
+
+    const res = makeRes();
+    await handler(
+      makeReq({
+        method: "POST",
+        body: validBody({
+          marketingSource: "douyin",
+          marketingMedium: "organic-video",
+          campaignCode: "AUG-LAUNCH",
+          partnerCode: "KOL-021",
+          staffAttributionCode: "BG-01",
+          marketingAttributionCode: "VIDEO-007",
+        }),
+      }) as any,
+      res as any,
+    );
+    expect(res.statusCode).toBe(200);
+
+    const [order] = await rows(
+      "select marketing_source, marketing_medium, campaign_code, partner_code, staff_attribution_code, marketing_attribution_code from product_orders",
+    );
+    expect(order).toMatchObject({
+      marketing_source: "douyin",
+      marketing_medium: "organic-video",
+      campaign_code: "AUG-LAUNCH",
+      partner_code: "KOL-021",
+      staff_attribution_code: "BG-01",
+      marketing_attribution_code: "VIDEO-007",
+    });
+  });
 });

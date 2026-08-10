@@ -67,6 +67,12 @@ export type ActivateDigitalOrderInput = {
   // own client code when logged in (unlocks earned reward units).
   referrerCode?: string;
   buyerClientCode?: string;
+  marketingSource?: string;
+  marketingMedium?: string;
+  campaignCode?: string;
+  partnerCode?: string;
+  staffAttributionCode?: string;
+  marketingAttributionCode?: string;
   // Set by the wrapper after server-side validation — impls just store it.
   referralMeta?: { referrerCode: string; rewardsUsed: number };
 };

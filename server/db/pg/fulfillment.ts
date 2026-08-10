@@ -31,6 +31,14 @@ function normText(v?: string) {
   return String(v || "").toLowerCase().replace(/[^a-z0-9一-鿿]+/gi, " ").trim();
 }
 
+function cleanAttribution(value: unknown): string | null {
+  const cleaned = String(value || "")
+    .replace(/[\u0000-\u001f\u007f]/g, " ")
+    .trim()
+    .slice(0, 120);
+  return cleaned || null;
+}
+
 function textMatches(a?: string, b?: string) {
   const na = normText(a);
   const nb = normText(b);
@@ -515,6 +523,12 @@ export async function activateDigitalOrder(
           item === cartItems[0] && input.referralMeta && input.referralMeta.rewardsUsed > 0
             ? input.referralMeta.rewardsUsed
             : null,
+        marketingSource: cleanAttribution(input.marketingSource),
+        marketingMedium: cleanAttribution(input.marketingMedium),
+        campaignCode: cleanAttribution(input.campaignCode),
+        partnerCode: cleanAttribution(input.partnerCode),
+        staffAttributionCode: cleanAttribution(input.staffAttributionCode),
+        marketingAttributionCode: cleanAttribution(input.marketingAttributionCode),
         intakeStatus: "Not Sent",
         fulfillmentStatus: "New Order",
         purchasedAt: toEpochOrNow(today),
@@ -830,6 +844,12 @@ export async function coachingSignup(body: CoachingSignupInput): Promise<SignupR
       paymentStatus: "Pending",
       paymentReference: paymentCode || null,
       paymentProvider: "WeChat QR",
+      marketingSource: cleanAttribution(body.marketingSource),
+      marketingMedium: cleanAttribution(body.marketingMedium),
+      campaignCode: cleanAttribution(body.campaignCode),
+      partnerCode: cleanAttribution(body.partnerCode),
+      staffAttributionCode: cleanAttribution(body.staffAttributionCode),
+      marketingAttributionCode: cleanAttribution(body.marketingAttributionCode),
       // The order now exists BEFORE the buyer is shown the QR, so this stage
       // is not yet something the coach must action. The "claim" stage moves
       // it to "New Order" when the buyer says they have paid.

@@ -25,6 +25,12 @@ export type CreateProductOrderInput = {
   paymentReference?: string;
   referrerCode?: string;
   referralRewardsUsed?: number;
+  marketingSource?: string;
+  marketingMedium?: string;
+  campaignCode?: string;
+  partnerCode?: string;
+  staffAttributionCode?: string;
+  marketingAttributionCode?: string;
   notes?: string;
 };
 
@@ -40,6 +46,12 @@ export type UpdateProductOrderInput = {
   onboardingStatus?: string;
   fulfillmentStatus?: string;
   paymentStatus?: string;
+  marketingSource?: string;
+  marketingMedium?: string;
+  campaignCode?: string;
+  partnerCode?: string;
+  staffAttributionCode?: string;
+  marketingAttributionCode?: string;
   accessStartDate?: string;
   accessEndDate?: string;
   fulfilledAt?: string;
@@ -67,6 +79,10 @@ export async function listProductOrders(): Promise<OrderDTO[]> {
 
   setCached("productOrders", orders, 10 * 60 * 1000);
   return orders;
+}
+
+export async function paidRevenueBetween(start: Date, end: Date) {
+  return pg.paidRevenueBetween(start, end);
 }
 
 export async function createProductOrder(

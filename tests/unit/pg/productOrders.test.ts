@@ -105,6 +105,27 @@ describe("api/createProductOrder (postgres)", () => {
     const [order] = await rows("select program_id from product_orders");
     expect(order.program_id).toBe("PR-1001");
   });
+
+  it("stores and returns commercial attribution codes", async () => {
+    const res = await createOrder({
+      clientName: "Bob Tan",
+      productName: "Program A",
+      marketingSource: "wechat",
+      campaignCode: "AUG-LAUNCH",
+      partnerCode: "KOL-021",
+      staffAttributionCode: "BG-01",
+    });
+    expect(res.statusCode).toBe(200);
+
+    const listed = makeRes();
+    await listHandler(makeReq({ method: "GET" }) as any, listed as any);
+    expect(listed.body.orders[0]).toMatchObject({
+      marketingSource: "wechat",
+      campaignCode: "AUG-LAUNCH",
+      partnerCode: "KOL-021",
+      staffAttributionCode: "BG-01",
+    });
+  });
 });
 
 describe("api/updateProductOrder (postgres)", () => {

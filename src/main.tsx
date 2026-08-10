@@ -1,4 +1,4 @@
-import { StrictMode, useEffect, useState } from 'react'
+import { lazy, StrictMode, Suspense, useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import './nl-anim.css'
@@ -10,6 +10,8 @@ import SplashScreen from './SplashScreen.tsx'
 import ErrorBoundary from './ErrorBoundary.tsx'
 import { applyPageMetadata } from './seo.ts'
 import { initTelemetry } from './telemetry.ts'
+
+const CompanyOpsApp = lazy(() => import('./companyOps/CompanyOpsApp.tsx'))
 
 applyPageMetadata()
 initTelemetry()
@@ -38,6 +40,17 @@ function bootShowsSplash() {
 }
 
 function Root() {
+  const isCompanyOps = window.location.pathname.startsWith('/company-ops')
+  if (isCompanyOps) {
+    return (
+      <ErrorBoundary label="company-ops">
+        <Suspense fallback={<div className="companyOpsBoot" aria-hidden="true" />}>
+          <CompanyOpsApp />
+        </Suspense>
+      </ErrorBoundary>
+    )
+  }
+
   const wantsSplash = bootShowsSplash()
   // App mounts immediately and loads underneath the splash; `booted` flips when
   // App signals its real boot data is ready, which drives the bars to 100%.

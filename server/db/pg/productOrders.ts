@@ -1,4 +1,4 @@
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, gte, lt, sql } from "drizzle-orm";
 import { db } from "../client.ts";
 import { productOrders } from "../schema.ts";
 import { epochToDate, pgErrorMessage, str } from "./_util.ts";
@@ -35,6 +35,12 @@ export async function listProductOrders(): Promise<OrderDTO[]> {
       paymentReference: str(r.paymentReference),
       referrerCode: str(r.referrerCode),
       referralRewardsUsed: Number(r.referralRewardsUsed) || 0,
+      marketingSource: str(r.marketingSource),
+      marketingMedium: str(r.marketingMedium),
+      campaignCode: str(r.campaignCode),
+      partnerCode: str(r.partnerCode),
+      staffAttributionCode: str(r.staffAttributionCode),
+      marketingAttributionCode: str(r.marketingAttributionCode),
       paymentProvider: str(r.paymentProvider),
       purchasedAt: epochToDate(r.purchasedAt),
       accessStartDate: epochToDate(r.accessStartDate),
@@ -47,6 +53,42 @@ export async function listProductOrders(): Promise<OrderDTO[]> {
       fulfilledAt: "",
     })
   );
+}
+
+export type PaidRevenueAggregate = {
+  productType: string;
+  currency: string;
+  grossCollected: number;
+  orderCount: number;
+};
+
+/** Aggregate-only finance read for Company Operations; no customer PII leaves SQL. */
+export async function paidRevenueBetween(
+  start: Date,
+  end: Date,
+): Promise<PaidRevenueAggregate[]> {
+  const rows = await db
+    .select({
+      productType: productOrders.productType,
+      currency: productOrders.currency,
+      grossCollected: sql<string>`coalesce(sum(${productOrders.amount}), 0)`,
+      orderCount: sql<number>`count(*)::int`,
+    })
+    .from(productOrders)
+    .where(
+      and(
+        sql`lower(coalesce(${productOrders.paymentStatus}, '')) = 'paid'`,
+        gte(productOrders.purchasedAt, start.getTime()),
+        lt(productOrders.purchasedAt, end.getTime()),
+      ),
+    )
+    .groupBy(productOrders.productType, productOrders.currency);
+  return rows.map((row) => ({
+    productType: row.productType || "Other",
+    currency: row.currency || "CNY",
+    grossCollected: Number(row.grossCollected) || 0,
+    orderCount: Number(row.orderCount) || 0,
+  }));
 }
 
 /* --------------------------------- writes --------------------------------- */
@@ -72,6 +114,12 @@ const PG_AVAILABLE_FIELDS = [
   "Payment Status",
   "Payment Provider",
   "Payment Reference",
+  "Marketing Source",
+  "Marketing Medium",
+  "Campaign Code",
+  "Partner Code",
+  "Staff Attribution Code",
+  "Marketing Attribution Code",
   "Purchased At",
   "Access Start Date",
   "Intake Status",
@@ -107,6 +155,15 @@ function toAmount(value: unknown): string | undefined {
   return Number.isFinite(n) ? String(n) : undefined;
 }
 
+function toAttribution(value: unknown): string | undefined {
+  if (value === undefined || value === null || value === "") return undefined;
+  const cleaned = String(value)
+    .replace(/[\u0000-\u001f\u007f]/g, " ")
+    .trim()
+    .slice(0, 120);
+  return cleaned || undefined;
+}
+
 export async function createProductOrder(
   i: CreateProductOrderInput
 ): Promise<ProductOrderWriteResult> {
@@ -136,6 +193,12 @@ export async function createProductOrder(
   const amount = toAmount(i.amount);
   if (amount !== undefined) row.amount = amount;
   if (!skip(i.paymentReference)) row.paymentReference = String(i.paymentReference);
+  row.marketingSource = toAttribution(i.marketingSource);
+  row.marketingMedium = toAttribution(i.marketingMedium);
+  row.campaignCode = toAttribution(i.campaignCode);
+  row.partnerCode = toAttribution(i.partnerCode);
+  row.staffAttributionCode = toAttribution(i.staffAttributionCode);
+  row.marketingAttributionCode = toAttribution(i.marketingAttributionCode);
   if (!skip(i.assignedCoach)) row.assignCoach = String(i.assignedCoach);
   const accessStart = toEpochMs(i.accessStartDate);
   if (accessStart !== undefined) row.accessStartDate = accessStart;
@@ -196,6 +259,18 @@ export async function updateProductOrder(
     set.fulfillmentStatus = i.fulfillmentStatus;
   if (i.paymentStatus !== undefined && i.paymentStatus !== null)
     set.paymentStatus = i.paymentStatus;
+  if (i.marketingSource !== undefined && i.marketingSource !== null)
+    set.marketingSource = toAttribution(i.marketingSource) || null;
+  if (i.marketingMedium !== undefined && i.marketingMedium !== null)
+    set.marketingMedium = toAttribution(i.marketingMedium) || null;
+  if (i.campaignCode !== undefined && i.campaignCode !== null)
+    set.campaignCode = toAttribution(i.campaignCode) || null;
+  if (i.partnerCode !== undefined && i.partnerCode !== null)
+    set.partnerCode = toAttribution(i.partnerCode) || null;
+  if (i.staffAttributionCode !== undefined && i.staffAttributionCode !== null)
+    set.staffAttributionCode = toAttribution(i.staffAttributionCode) || null;
+  if (i.marketingAttributionCode !== undefined && i.marketingAttributionCode !== null)
+    set.marketingAttributionCode = toAttribution(i.marketingAttributionCode) || null;
   // Feishu only writes the coach when the name is provided (the record id
   // alone does nothing there); mirror that exactly.
   if (i.coach !== undefined && i.coach !== null) set.assignCoach = i.coach;

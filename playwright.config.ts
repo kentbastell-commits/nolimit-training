@@ -29,7 +29,7 @@ export default defineConfig({
     {
       name: "mobile",
       use: { ...devices["iPhone 13"] },
-      testMatch: /portal\.spec\.ts|public\.spec\.ts/,
+      testMatch: /portal\.spec\.ts|public\.spec\.ts|companyOps\.spec\.ts/,
     },
   ],
 });

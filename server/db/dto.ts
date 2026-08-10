@@ -445,6 +445,12 @@ export type OrderDTO = {
   paymentReference: string;
   referrerCode?: string;
   referralRewardsUsed?: number;
+  marketingSource?: string;
+  marketingMedium?: string;
+  campaignCode?: string;
+  partnerCode?: string;
+  staffAttributionCode?: string;
+  marketingAttributionCode?: string;
   paymentProvider: string;
   purchasedAt: string;
   accessStartDate: string;

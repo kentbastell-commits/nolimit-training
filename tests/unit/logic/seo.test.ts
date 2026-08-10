@@ -27,6 +27,9 @@ describe("SEO metadata", () => {
     expect(resolveSeoPage("/?view=coach&page=Clients").robots).toContain(
       "noindex"
     );
+    const companyOps = resolveSeoPage("/company-ops", "en");
+    expect(companyOps.robots).toContain("noindex");
+    expect(companyOps.title).toBe("Company Operations | NX LIMIT Training");
   });
 
   it("normalizes a future mainland domain from one configuration value", () => {

@@ -141,6 +141,14 @@ export type ProductOrder = {
   currency: string;
   paymentStatus: string;
   paymentReference?: string;
+  referrerCode?: string;
+  referralRewardsUsed?: number;
+  marketingSource?: string;
+  marketingMedium?: string;
+  campaignCode?: string;
+  partnerCode?: string;
+  staffAttributionCode?: string;
+  marketingAttributionCode?: string;
   paymentProvider: string;
   purchasedAt: string;
   accessStartDate: string;
@@ -1827,4 +1835,3 @@ export function clearPersistentCache(key: string) {
     // Ignore storage cleanup failures.
   }
 }
-

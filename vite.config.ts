@@ -15,6 +15,10 @@ const publicSeoRoutes = [
   '/business',
 ]
 
+// Private SPA entry points are emitted for Nginx/static hosting but excluded
+// from the sitemap and marked noindex by seoConfig.
+const privateSpaRoutes = ['/company-ops']
+
 function seoFiles(mode: string): Plugin {
   const env = loadEnv(mode, process.cwd(), '')
   const siteUrl = (env.VITE_PUBLIC_SITE_URL || 'https://trainnolimit.com').replace(/\/+$/, '')
@@ -48,7 +52,7 @@ function seoFiles(mode: string): Plugin {
       // Rewrite the root too, so a domain change updates static metadata even
       // when nginx serves dist/index.html without involving Node.
       fs.writeFileSync(indexPath, injectSeo(template, '/', siteUrl, socialImage))
-      for (const route of publicSeoRoutes.filter((item) => item !== '/')) {
+      for (const route of [...publicSeoRoutes, ...privateSpaRoutes].filter((item) => item !== '/')) {
         const routeDirectory = path.join(outputDirectory, route.replace(/^\//, ''))
         fs.mkdirSync(routeDirectory, { recursive: true })
         fs.writeFileSync(

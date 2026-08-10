@@ -67,6 +67,16 @@ const copy = {
     en: ["Business Information | NX LIMIT Training", "Registered operator and company information for NX LIMIT Training."],
     zh: ["经营者信息｜NX LIMIT Training", "NX LIMIT Training 运营主体广州跃燃体育信息咨询有限公司的登记信息。"],
   },
+  companyOps: {
+    en: [
+      "Company Operations | NX LIMIT Training",
+      "Private company operations workspace for authorised NX LIMIT Training staff.",
+    ],
+    zh: [
+      "公司运营中心｜NX LIMIT Training",
+      "仅供获授权的 NX LIMIT Training 员工使用的公司运营工作台。",
+    ],
+  },
 } as const;
 
 type CopyKey = keyof typeof copy;
@@ -86,7 +96,11 @@ export function resolveSeoPage(
 ): SeoPage {
   const url = new URL(requestUrl, "https://trainnolimit.com");
   const path = url.pathname.replace(/\/+$/, "") || "/";
-  const isPrivate = url.searchParams.get("portal") === "client" || url.searchParams.get("view") === "coach";
+  const isCompanyOps = path === "/company-ops" || path.startsWith("/company-ops/");
+  const isPrivate =
+    isCompanyOps ||
+    url.searchParams.get("portal") === "client" ||
+    url.searchParams.get("view") === "coach";
 
   let key: CopyKey = "home";
   let canonicalPath = path;
@@ -101,10 +115,18 @@ export function resolveSeoPage(
   else if (path === "/terms") key = "terms";
   else if (path === "/refund") key = "refund";
   else if (path === "/business") key = "business";
+  else if (isCompanyOps) {
+    key = "companyOps";
+    canonicalPath = "/company-ops";
+  }
 
   const [title, description] = pageCopy(key, language);
   return {
-    title: isPrivate ? `Private Training Portal | NX LIMIT Training` : title,
+    title: isCompanyOps
+      ? title
+      : isPrivate
+        ? `Private Training Portal | NX LIMIT Training`
+        : title,
     description,
     canonicalPath,
     robots: isPrivate ? "noindex, nofollow, noarchive" : "index, follow, max-image-preview:large",
