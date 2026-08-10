@@ -71,6 +71,19 @@ ssh nolimit-cn "cd /opt/nolimit-training && git pull origin main && npm install 
 If the ssh step dies with "Connection closed" mid-build, re-run just that step
 — or run it detached via systemd-run and poll (see the ops note above).
 
+**Prefer an INCREMENTAL bundle whenever the server already has an earlier
+HEAD** (always, except a first deploy): `git bundle create /tmp/inc.bundle
+<serverHEAD>..main` is a few hundred KB vs ~24MB — the full bundle takes
+30+ min on the cross-border link and has corrupted in transit. Server side:
+`git pull /tmp/inc.bundle main` (an explicit bundle path works even though
+origin points at /tmp/nolimit.bundle). If a pull fails with "pack has bad
+object / junk at the end": (1) never start the pull until scp has fully
+exited — a still-flushing file fails exactly this way; (2) a bundle created
+while ANOTHER AGENT is committing in the same repo can be corrupt at the
+source with a healthy-looking size — recreate when the repo is quiet, run
+`git bundle verify` on BOTH ends, and `git fsck` the server repo after any
+failed pull before retrying.
+
 **Redundancy (since 2026-07-30/31):** nolimit-training runs as TWO independent
 PM2 apps — `nolimit-training` (port 3001) and `nolimit-training-2` (port
 3002), both defined in `ecosystem.config.cjs` in the repo root — with nginx's
