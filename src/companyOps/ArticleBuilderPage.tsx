@@ -2,6 +2,7 @@
 // as stacked blocks (text, headings, photos, videos, quotes, dividers), saved
 // to the growth Base, and exported as a Word document (.doc, MHTML with the
 // images embedded) or copied as rich HTML straight into the WeChat editor.
+import { TranslatableText } from "./TranslatableText";
 import {
   ArrowDown,
   ArrowUp,
@@ -797,7 +798,9 @@ export default function ArticleBuilderPage({
             return (
               <button type="button" className="fopsArtCard" key={article.id} onClick={() => openArticle(article)}>
                 <div className="fopsArtCardTop">
-                  <strong>{article.title}</strong>
+                  <strong>
+                    <TranslatableText text={article.title} language={language} as="span" bare />
+                  </strong>
                   <TonePill tone={article.status === "Published" ? "success" : "gold"}>
                     {article.status === "Published"
                       ? text(language, "Published", "已发布")
@@ -806,7 +809,7 @@ export default function ArticleBuilderPage({
                         : text(language, "Draft", "草稿")}
                   </TonePill>
                 </div>
-                {article.summary ? <p>{article.summary}</p> : null}
+                {article.summary ? <TranslatableText text={article.summary} language={language} bare /> : null}
                 <footer>
                   <span>
                     {blockCount} {text(language, "blocks", "个区块")}

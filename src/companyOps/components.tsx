@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { opsText, statusLabel } from "./copy";
+import { TranslatableText } from "./TranslatableText";
 import type {
   CompanyOpsLanguage,
   OpsMetric,
@@ -106,8 +107,12 @@ export function QueueCard({
             <TonePill tone={item.tone}>{statusLabel(language, item.status)}</TonePill>
           ) : null}
         </div>
-        <strong>{item.title}</strong>
-        {item.description ? <p>{item.description}</p> : null}
+        <strong>
+          <TranslatableText text={item.title} language={language} as="span" bare />
+        </strong>
+        {item.description ? (
+          <TranslatableText text={item.description} language={language} bare />
+        ) : null}
         <div className="fopsQueueMeta">
           {item.dueAt ? (
             <span>

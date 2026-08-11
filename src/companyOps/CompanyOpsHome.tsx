@@ -139,7 +139,9 @@ function GoalRow({
           }`}
           aria-hidden="true"
         />
-        <strong className="fopsGoalRowTitle">{goal.title}</strong>
+        <strong className="fopsGoalRowTitle">
+          <TranslatableText text={goal.title} language={language} as="span" bare />
+        </strong>
         {isIdea ? (
           <TonePill tone="purple">{goal.goalType}</TonePill>
         ) : goal.priority ? (

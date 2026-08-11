@@ -22,6 +22,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { TonePill } from "./components";
 import { statusLabel } from "./copy";
+import { TranslatableText } from "./TranslatableText";
 import type {
   CompanyOpsLanguage,
   OpsContentFullItem,
@@ -223,7 +224,7 @@ function ItemChip({
     >
       <PlatformBadge platform={item.platform} size={compact ? 14 : 16} />
       {time ? <span className="fopsCalChipTime">{time}</span> : null}
-      <span className="fopsCalChipTitle">{item.title}</span>
+      <TranslatableText text={item.title} language={language} as="span" className="fopsCalChipTitle" bare />
       {live ? (
         <Check size={12} className="fopsCalChipLive" aria-hidden="true" />
       ) : !compact ? (
@@ -336,7 +337,9 @@ function Editor({
             <span className="fopsEyebrow">
               {text(language, "Content detail", "内容详情")}
             </span>
-            <h2>{item.title}</h2>
+            <h2>
+              <TranslatableText text={item.title} language={language} as="span" />
+            </h2>
           </div>
           <button type="button" className="fopsCalIconBtn" onClick={requestClose} aria-label={text(language, "Close", "关闭")}>
             <X size={18} />
@@ -855,9 +858,15 @@ export default function ContentCalendarPage({
                         </TonePill>
                         {item.funnel ? <TonePill tone="purple">{item.funnel}</TonePill> : null}
                       </header>
-                      <h3>{item.title}</h3>
-                      {item.hook ? <p className="fopsCalHook">{item.hook}</p> : null}
-                      {item.copy ? <p className="fopsCalCopy">{item.copy.slice(0, 300)}</p> : null}
+                      <h3>
+                        <TranslatableText text={item.title} language={language} as="span" />
+                      </h3>
+                      {item.hook ? (
+                        <TranslatableText text={item.hook} language={language} className="fopsCalHook" />
+                      ) : null}
+                      {item.copy ? (
+                        <TranslatableText text={item.copy.slice(0, 300)} language={language} className="fopsCalCopy" />
+                      ) : null}
                       {item.keywords || item.hashtags ? (
                         <div className="fopsCalTagRow">
                           {(item.keywords || "").split(/[,，]/).filter(Boolean).slice(0, 6).map((keyword) => (
@@ -939,7 +948,9 @@ export default function ContentCalendarPage({
                       <div className="fopsCalPlanRow" key={item.id}>
                         <PlatformBadge platform={item.platform} size={17} />
                         <div className="fopsCalPlanMain">
-                          <strong>{item.title}</strong>
+                          <strong>
+                            <TranslatableText text={item.title} language={language} as="span" />
+                          </strong>
                           <span>
                             {[
                               item.format,
@@ -953,7 +964,9 @@ export default function ContentCalendarPage({
                               .filter(Boolean)
                               .join(" · ")}
                           </span>
-                          {item.filmingNotes ? <p>{item.filmingNotes}</p> : null}
+                          {item.filmingNotes ? (
+                            <TranslatableText text={item.filmingNotes} language={language} />
+                          ) : null}
                         </div>
                         <button
                           type="button"
@@ -1067,12 +1080,14 @@ export default function ContentCalendarPage({
                           key={item.id}
                         >
                           <PlatformBadge platform={item.platform} size={15} />
-                          <strong>{item.title}</strong>
+                          <strong>
+                            <TranslatableText text={item.title} language={language} as="span" bare />
+                          </strong>
                           {item.publishDate ? (
                             <span>{new Date(item.publishDate).toLocaleDateString(locale, { month: "short", day: "numeric" })}</span>
                           ) : null}
                           {item.views != null ? <em>{item.views.toLocaleString()}</em> : null}
-                          {item.learnings ? <small>{item.learnings.slice(0, 90)}</small> : null}
+                          {item.learnings ? <small><TranslatableText text={item.learnings.slice(0, 90)} language={language} as="span" bare /></small> : null}
                         </button>
                       ))}
                   </div>

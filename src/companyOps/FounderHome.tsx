@@ -126,14 +126,16 @@ export default function FounderHome({
                     </span>
                     <div>
                       <TonePill tone="warning">{categoryLabel(decision.category)}</TonePill>
-                      <h3>{decision.title}</h3>
+                      <h3>
+                        <TranslatableText text={decision.title} language={language} as="span" />
+                      </h3>
                     </div>
                   </header>
                   <TranslatableText text={decision.summary} language={language} />
                   {decision.context?.length ? (
                     <ul>
                       {decision.context.map((context) => (
-                        <li key={context}>{context}</li>
+                        <li key={context}><TranslatableText text={context} language={language} as="span" /></li>
                       ))}
                     </ul>
                   ) : null}

@@ -75,9 +75,35 @@ const LLM_PROMPTS: Record<"zh" | "en", string> = {
   ].join("\n"),
 };
 
+// Company-operations register: goals, content plans, brand copy, feedback
+// between founders and staff — business Chinese/English, not coaching cues.
+const OPS_PROMPTS: Record<"zh" | "en", string> = {
+  zh: [
+    "You translate internal company content for a sports-training startup from English into Chinese.",
+    "Content includes company goals, marketing/content plans, brand copy, performance feedback and operational notes.",
+    "Rules:",
+    "- Natural, professional workplace Chinese — the register used inside a Chinese startup (目标/复盘/投放/转化/涨粉/种草 where appropriate), never literal word-by-word translation.",
+    "- Keep platform names as commonly written in China: 小红书, 抖音, 视频号, 公众号, B站; keep brand names (NX LIMIT), URLs, hashtags and @handles untouched.",
+    "- Keep ALL numbers, dates, percentages, currency amounts and KPIs exactly as written.",
+    "- Marketing/business terms use standard Chinese equivalents: engagement → 互动, conversion → 转化, lead → 潜在客户/线索, campaign → 推广活动, retention → 留存, funnel → 转化漏斗, KPI/ROI stay as-is.",
+    "- Sports terms that appear use standard Chinese training vocabulary (力量训练, 体能, 私教课).",
+    "- Preserve line breaks and list structure. Output ONLY the translation — no explanations, no quotes, no notes.",
+  ].join("\n"),
+  en: [
+    "You translate internal company content for a sports-training startup from Chinese into English.",
+    "Content includes company goals, marketing/content plans, brand copy, performance feedback and operational notes; the reader is an English-speaking founder.",
+    "Rules:",
+    "- Natural, concise business English; never stiff literal translation.",
+    "- Keep Chinese platform names in their common English forms: 小红书 → Xiaohongshu (RED), 抖音 → Douyin, 视频号 → WeChat Channels, 公众号 → WeChat Official Account, B站 → Bilibili.",
+    "- Keep ALL numbers, dates, percentages, currency amounts (¥ stays ¥) and KPIs exactly as written; 涨粉 → follower growth, 种草 → seeding/product recommendation content, 复盘 → review/retro, 投放 → ad placement.",
+    "- Preserve line breaks and list structure. Output ONLY the translation — no explanations, no quotes, no notes.",
+  ].join("\n"),
+};
+
 async function llmTranslate(
   text: string,
-  target: "en" | "zh"
+  target: "en" | "zh",
+  domain: "coaching" | "ops" = "coaching"
 ): Promise<string | null> {
   const cfg = llmConfig();
   if (!cfg) return null;
@@ -95,7 +121,7 @@ async function llmTranslate(
         temperature: 0.2,
         max_tokens: 2000,
         messages: [
-          { role: "system", content: LLM_PROMPTS[target] },
+          { role: "system", content: (domain === "ops" ? OPS_PROMPTS : LLM_PROMPTS)[target] },
           { role: "user", content: text.slice(0, 4000) },
         ],
       }),
@@ -117,16 +143,17 @@ async function llmTranslate(
  */
 export async function translateText(
   text: string,
-  target: "en" | "zh"
+  target: "en" | "zh",
+  domain: "coaching" | "ops" = "coaching"
 ): Promise<string | null> {
   const clean = String(text || "").trim();
   if (!clean) return null;
 
-  const cacheKey = `${target}:${clean}`;
+  const cacheKey = `${domain}:${target}:${clean}`;
   const hit = cache.get(cacheKey);
   if (hit !== undefined) return hit;
 
-  const fromLlm = await llmTranslate(clean, target);
+  const fromLlm = await llmTranslate(clean, target, domain);
   if (fromLlm) {
     if (cache.size >= CACHE_MAX) {
       const first = cache.keys().next().value;

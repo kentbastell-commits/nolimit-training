@@ -63,8 +63,10 @@ function ContentCard({
           </TonePill>
         ) : null}
       </div>
-      <strong>{item.title}</strong>
-      <TranslatableText text={item.objective} language={language} />
+      <strong>
+        <TranslatableText text={item.title} language={language} as="span" bare />
+      </strong>
+      <TranslatableText text={item.objective} language={language} bare />
       <div className="fopsContentMeta">
         {item.publishAt ? (
           <span>
@@ -279,7 +281,7 @@ export default function GrowthHome({
                         {lead.nextAction ? (
                           <p>
                             <b>{opsText(language, "nextAction")}:</b>{" "}
-                            {lead.nextAction}
+                            <TranslatableText text={lead.nextAction} language={language} as="span" bare />
                           </p>
                         ) : null}
                         {lead.nextActionAt ? (
@@ -413,8 +415,12 @@ export default function GrowthHome({
                     <Megaphone size={18} />
                   </span>
                   <div>
-                    <strong>{campaign.name}</strong>
-                    {campaign.objective ? <p>{campaign.objective}</p> : null}
+                    <strong>
+                      <TranslatableText text={campaign.name} language={language} as="span" />
+                    </strong>
+                    {campaign.objective ? (
+                      <TranslatableText text={campaign.objective} language={language} />
+                    ) : null}
                     <div>
                       {campaign.status ? (
                         <TonePill tone="blue">{statusLabel(language, campaign.status)}</TonePill>
@@ -469,8 +475,12 @@ export default function GrowthHome({
                     <FlaskConical size={18} />
                   </span>
                   <div>
-                    <strong>{experiment.name}</strong>
-                    {experiment.hypothesis ? <p>{experiment.hypothesis}</p> : null}
+                    <strong>
+                      <TranslatableText text={experiment.name} language={language} as="span" />
+                    </strong>
+                    {experiment.hypothesis ? (
+                      <TranslatableText text={experiment.hypothesis} language={language} />
+                    ) : null}
                     <div>
                       {experiment.status ? (
                         <TonePill tone="purple">{statusLabel(language, experiment.status)}</TonePill>

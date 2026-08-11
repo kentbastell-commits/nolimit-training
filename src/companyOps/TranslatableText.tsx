@@ -43,11 +43,14 @@ export function TranslatableText({
   language,
   as: Tag = "p",
   className,
+  bare = false,
 }: {
   text?: string | null;
   language: CompanyOpsLanguage;
   as?: "p" | "span" | "div";
   className?: string;
+  /** Text only, no toggle button — required inside interactive elements. */
+  bare?: boolean;
 }) {
   const clean = String(text || "").trim();
   const target: "en" | "zh" | null =
@@ -77,6 +80,9 @@ export function TranslatableText({
   }, [clean, target]);
 
   if (!clean) return null;
+  if (bare) {
+    return <Tag className={className}>{target && translated ? translated : clean}</Tag>;
+  }
   if (!target || !translated || showOriginal) {
     return (
       <Tag className={className}>

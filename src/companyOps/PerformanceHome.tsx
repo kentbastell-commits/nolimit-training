@@ -176,7 +176,9 @@ function GoalCards({
             <span>{String(goal.index).padStart(2, "0")}</span>
             <TonePill tone="gold">{goal.weight}%</TonePill>
           </header>
-          <h3>{goal.title}</h3>
+          <h3>
+            <TranslatableText text={goal.title} language={language} as="span" />
+          </h3>
           <div className="fopsPerformanceMeasure">
             <Flag size={16} aria-hidden="true" />
             <div>
@@ -191,7 +193,7 @@ function GoalCards({
           {goal.result ? (
             <div className="fopsPerformanceResult">
               <small>{text(language, "Reported result", "汇报结果")}</small>
-              <p>{goal.result}</p>
+              <TranslatableText text={goal.result} language={language} />
             </div>
           ) : null}
           {goal.score != null ? (
@@ -410,8 +412,8 @@ function EmployeeReportForm({
         <div className="fopsPerformanceResultFields">
           {cycle.goals.map((goal) => (
             <label className="fopsPerformanceField" key={goal.index}>
-              <span><em>{goal.index}</em>{goal.title}</span>
-              <small>{goal.measure}</small>
+              <span><em>{goal.index}</em><TranslatableText text={goal.title} language={language} as="span" bare /></span>
+              <small><TranslatableText text={goal.measure} language={language} as="span" bare /></small>
               <textarea value={results[goal.index] || ""} onChange={(event) => setResults((current) => ({ ...current, [goal.index]: event.target.value }))} rows={4} placeholder={text(language, "Result, metric and your contribution", "结果、数据和你的贡献")} />
             </label>
           ))}
@@ -670,7 +672,7 @@ function GoalSetter({
           {goals.map((goal, index) => (
             <article className="fopsGoalEditor" key={index}>
               <span className="fopsGoalNumber">{index + 1}</span>
-              <div className="fopsGoalFixedCategory"><span>{text(language, "Category", "类别")}</span><strong>{goal.title}</strong></div>
+              <div className="fopsGoalFixedCategory"><span>{text(language, "Category", "类别")}</span><strong><TranslatableText text={goal.title} language={language} as="span" /></strong></div>
               <label className="fopsGoalMeasureInput"><span>{text(language, "Success measure", "成功标准")}</span><input value={goal.measure} onChange={(event) => updateMeasure(index, event.target.value)} placeholder={text(language, "Specific number, deliverable or observable result", "明确数据、交付物或可验证结果")} /></label>
               <div className="fopsGoalFixedWeight"><span>{text(language, "Fixed weight", "固定权重")}</span><strong>{goal.weight}%</strong></div>
             </article>
@@ -749,8 +751,8 @@ function FounderReview({
           <div className="fopsFounderScoreList">
             {cycle.goals.map((goal) => (
               <article key={goal.index}>
-                <div><span>{goal.index}</span><div><strong>{goal.title}</strong><small>{goal.weight}% · {goal.measure}</small></div></div>
-                {goal.result ? <p>{goal.result}</p> : null}
+                <div><span>{goal.index}</span><div><strong><TranslatableText text={goal.title} language={language} as="span" /></strong><small>{goal.weight}% · <TranslatableText text={goal.measure} language={language} as="span" /></small></div></div>
+                {goal.result ? <TranslatableText text={goal.result} language={language} /> : null}
                 <label><span>{text(language, "Score / 100", "得分 / 100")}</span><input type="number" min="0" max="100" value={scores[goal.index] ?? 0} onChange={(event) => setScores((current) => ({ ...current, [goal.index]: Math.max(0, Math.min(100, Number(event.target.value))) }))} /></label>
               </article>
             ))}
@@ -762,7 +764,7 @@ function FounderReview({
           </div>
           <label className="fopsPerformanceField"><span>{text(language, "Assessment and specific feedback", "评审与具体反馈")}</span><textarea value={feedback} onChange={(event) => setFeedback(event.target.value)} rows={4} /></label>
           {cycle.evidenceLinks?.length ? <div className="fopsEvidenceLinks"><strong>{text(language, "Evidence", "证明")}</strong>{cycle.evidenceLinks.map((link) => <a href={link} target="_blank" rel="noreferrer" key={link}><Link2 size={14} />{link}<ExternalLink size={13} /></a>)}</div> : null}
-          {cycle.employeeResponse ? <div className="fopsEmployeeResponseNote"><strong>{text(language, "Employee response", "员工回应")}</strong><p>{cycle.employeeResponse}</p></div> : null}
+          {cycle.employeeResponse ? <div className="fopsEmployeeResponseNote"><strong>{text(language, "Employee response", "员工回应")}</strong><TranslatableText text={cycle.employeeResponse} language={language} /></div> : null}
           <label className="fopsPerformanceField"><span>{text(language, "Resolution note (optional when finalising)", "定稿说明（选填）")}</span><textarea value={resolutionNote} onChange={(event) => setResolutionNote(event.target.value)} rows={2} /></label>
           {error ? <p className="fopsInlineNotice fopsInlineNotice--error" role="alert">{error}</p> : null}
           <div className="fopsFounderReviewActions">
@@ -865,7 +867,9 @@ export default function PerformanceHome({
               {!founder && selected.reportSubmittedAt && !selected.canSubmitReport ? (
                 <section className="fopsSection fopsSubmittedReport">
                   <SectionHeading eyebrow={text(language, "Submitted", "已提交")} title={text(language, "Your monthly report", "你的月度报告")} hint={selected.reportSubmittedAt ? `${text(language, "Sent", "提交于")} ${formatOpsDate(selected.reportSubmittedAt, language)}` : undefined}/>
-                  {selected.selfReview ? <p>{selected.selfReview}</p> : null}
+                  {selected.selfReview ? (
+                    <TranslatableText text={selected.selfReview} language={language} />
+                  ) : null}
                   {selected.evidenceLinks?.length ? <div className="fopsEvidenceLinks">{selected.evidenceLinks.map((link) => <a href={link} target="_blank" rel="noreferrer" key={link}><Link2 size={14}/>{link}<ExternalLink size={13}/></a>)}</div> : null}
                 </section>
               ) : null}
