@@ -1246,3 +1246,39 @@
 .storeDetailPayScan--wxpay .storeDetailScanText p {
   margin: 4px 0 0;
 }
+
+/* WeChat scan-to-login block inside the find-portal modal */
+.wxLoginQr {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+.wxLoginQrDivider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  color: #8a8577;
+  font-size: 12px;
+}
+.wxLoginQrDivider::before,
+.wxLoginQrDivider::after {
+  content: "";
+  flex: 1;
+  border-top: 1px solid rgba(120, 110, 80, 0.25);
+}
+.wxLoginQr img {
+  width: 150px;
+  border-radius: 10px;
+  border: 1px solid rgba(120, 110, 80, 0.25);
+  background: #fff;
+  padding: 6px;
+}
+.wxLoginQrHint {
+  margin: 0;
+  font-size: 12px;
+  color: #8a8577;
+  text-align: center;
+}

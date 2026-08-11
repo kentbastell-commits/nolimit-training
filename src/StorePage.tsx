@@ -32,6 +32,7 @@ import "./StorePageV3.css";
 import { BRAND_MONOGRAM_WHITE, BRAND_WORDMARK_BLACK } from "./brandAssets";
 import { reportClientEvent } from "./telemetry";
 import WxPayPanel, { useWxpayEnabled } from "./WxPayPanel";
+import WxLoginQr from "./WxLoginQr";
 import type { Client, Coach, Program, ProgramReview, Toast } from "./appCore";
 import { glanceRepsToken } from "./appCore";
 
@@ -564,6 +565,7 @@ export default function StorePage({
             {findPortalError && (
               <p className="findPortalError" role="alert">{findPortalError}</p>
             )}
+            <WxLoginQr zh={sZh} />
             <div className="findPortalActions">
               <button
                 type="button"
