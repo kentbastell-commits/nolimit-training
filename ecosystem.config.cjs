@@ -33,15 +33,18 @@ const shared = {
 
 module.exports = {
   apps: [
+    // WXPAY_ENABLED lives HERE, not in the shared .env, so real WeChat Pay
+    // is on for the two production apps only — the pg twin (which shares
+    // /opt/nolimit-training/.env) stays payment-dead by construction.
     {
       ...shared,
       name: "nolimit-training",
-      env: { PORT: "3001", PG_POOL_MAX: "20" },
+      env: { PORT: "3001", PG_POOL_MAX: "20", WXPAY_ENABLED: "1" },
     },
     {
       ...shared,
       name: "nolimit-training-2",
-      env: { PORT: "3002", PG_POOL_MAX: "20" },
+      env: { PORT: "3002", PG_POOL_MAX: "20", WXPAY_ENABLED: "1" },
     },
   ],
 };
