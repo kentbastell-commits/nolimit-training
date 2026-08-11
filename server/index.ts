@@ -99,6 +99,10 @@ import workoutHistory from "../api/workoutHistory.ts";
 import workoutComments from "../api/workoutComments.ts";
 import warmCache from "../api/warmCache.ts";
 import wxAuth from "../api/wxAuth.ts";
+import wxpayConfig from "../api/wxpayConfig.ts";
+import wxpayCreate from "../api/wxpayCreate.ts";
+import wxpayNotify from "../api/wxpayNotify.ts";
+import wxpayStatus from "../api/wxpayStatus.ts";
 import workouts from "../api/workouts.ts";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -221,6 +225,19 @@ app.use(
   express.static(uploadsDir, { maxAge: "365d", immutable: true })
 );
 
+// WeChat Pay callback: the APIv3 signature covers the exact raw bytes, so
+// this must be a dedicated raw-body route registered BEFORE express.json.
+app.post("/api/wxpayNotify", (req, res) => {
+  void Promise.resolve(wxpayNotify(req, res)).catch((error) => {
+    console.error("API handler failed: wxpayNotify", error);
+    if (!res.headersSent) {
+      res.statusCode = 500;
+      res.setHeader("Content-Type", "application/json");
+      res.end(JSON.stringify({ code: "FAIL", message: "internal error" }));
+    }
+  });
+});
+
 app.use(express.json({ limit: "2mb" }));
 
 const handlers = {
@@ -293,6 +310,9 @@ const handlers = {
   upsertTeam,
   warmCache,
   wxAuth,
+  wxpayConfig,
+  wxpayCreate,
+  wxpayStatus,
   workoutDetails,
   workoutHistory,
   workoutComments,

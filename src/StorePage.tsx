@@ -31,6 +31,7 @@ import "./StorePage.css";
 import "./StorePageV3.css";
 import { BRAND_MONOGRAM_WHITE, BRAND_WORDMARK_BLACK } from "./brandAssets";
 import { reportClientEvent } from "./telemetry";
+import WxPayPanel, { useWxpayEnabled } from "./WxPayPanel";
 import type { Client, Coach, Program, ProgramReview, Toast } from "./appCore";
 import { glanceRepsToken } from "./appCore";
 
@@ -133,6 +134,7 @@ export default function StorePage({
   [key: string]: any;
 }) {
   const sZh = storeLang === "zh";
+  const wxpayOn = useWxpayEnabled();
   const storePrograms = programs.filter((p) => p.publicStoreVisible);
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
 
@@ -1363,19 +1365,32 @@ export default function StorePage({
                           ))}
                         </div>
                       )}
-                      <div className="storeDetailPayScan">
-                        <div className="storeDetailQr">
-                          <img src="/wechat-pay-qr.jpg" alt="WeChat QR" />
+                      {wxpayOn ? (
+                        <div className="storeDetailPayScan storeDetailPayScan--wxpay">
+                          <div className="storeDetailScanText">
+                            <strong>{sZh ? "微信支付" : "WeChat Pay"}</strong>
+                            <p>
+                              {sZh
+                                ? "提交订单后会出现微信支付二维码，付款成功训练计划立即解锁。"
+                                : "After you submit the order, a WeChat Pay QR appears — pay and your program unlocks instantly."}
+                            </p>
+                          </div>
                         </div>
-                        <div className="storeDetailScanText">
-                          <strong>{sZh ? "扫码支付" : "Scan to pay"}</strong>
-                          <p>
-                            {sZh
-                              ? "打开微信扫码付款，然后把姓名发给我们解锁你的客户端。"
-                              : "Open WeChat → Scan, complete payment, then message us your name to unlock your portal."}
-                          </p>
+                      ) : (
+                        <div className="storeDetailPayScan">
+                          <div className="storeDetailQr">
+                            <img src="/wechat-pay-qr.jpg" alt="WeChat QR" />
+                          </div>
+                          <div className="storeDetailScanText">
+                            <strong>{sZh ? "扫码支付" : "Scan to pay"}</strong>
+                            <p>
+                              {sZh
+                                ? "打开微信扫码付款，然后把姓名发给我们解锁你的客户端。"
+                                : "Open WeChat → Scan, complete payment, then message us your name to unlock your portal."}
+                            </p>
+                          </div>
                         </div>
-                      </div>
+                      )}
                       <button
                         type="button"
                         className="storeBtnPrimaryV3 storeDetailCta"
@@ -1680,10 +1695,20 @@ export default function StorePage({
                             {sZh ? "订单已提交！" : "Order received!"}
                           </strong>
                           <p className="storeConfirmSubV2">
-                            {sZh
-                              ? `${spName} 已为你保留。你可以先完成问卷，教练核对微信付款后训练计划会自动解锁。`
-                              : `${spName} is reserved for you. Complete the intake while your coach verifies the WeChat payment; the program unlocks after confirmation.`}
+                            {wxpayOn
+                              ? sZh
+                                ? `${spName} 已为你保留。使用下方微信支付完成付款，训练计划立即解锁。`
+                                : `${spName} is reserved for you. Complete the WeChat payment below and the program unlocks instantly.`
+                              : sZh
+                                ? `${spName} 已为你保留。你可以先完成问卷，教练核对微信付款后训练计划会自动解锁。`
+                                : `${spName} is reserved for you. Complete the intake while your coach verifies the WeChat payment; the program unlocks after confirmation.`}
                           </p>
+                          {wxpayOn && storeRegisteredOrderId ? (
+                            <WxPayPanel
+                              orderId={storeRegisteredOrderId}
+                              lang={sZh ? "zh" : "en"}
+                            />
+                          ) : null}
                           <div className="storeConfirmMetaV2">
                             {storeRegisteredOrderId && (
                               <div>
@@ -1697,9 +1722,13 @@ export default function StorePage({
                             </div>
                           </div>
                           <p className="storeConfirmNoteV2">
-                            {sZh
-                              ? `请保存好登录代码——以后用它进入客户端。我们会用付款备注代码 ${storePaymentCode || ""} 核对微信付款；付款确认前不会加载训练计划。`
-                              : `Save your login code — you'll use it to open your portal. We'll match the WeChat payment using reference ${storePaymentCode || ""}; the training program stays locked until verification.`}
+                            {wxpayOn
+                              ? sZh
+                                ? "请保存好登录代码——以后用它进入客户端。"
+                                : "Save your login code — you'll use it to open your portal."
+                              : sZh
+                                ? `请保存好登录代码——以后用它进入客户端。我们会用付款备注代码 ${storePaymentCode || ""} 核对微信付款；付款确认前不会加载训练计划。`
+                                : `Save your login code — you'll use it to open your portal. We'll match the WeChat payment using reference ${storePaymentCode || ""}; the training program stays locked until verification.`}
                           </p>
                           <a
                             className="primaryButton storeConfirmCtaV2"
@@ -1712,23 +1741,47 @@ export default function StorePage({
                       ) : (
                         <>
                           <ol className="storeCheckoutStepsV2">
-                            <li>
-                              <span>1</span>
-                              {sZh ? "用微信扫码付款" : "Scan & pay with WeChat"}
-                            </li>
-                            <li>
-                              <span>2</span>
-                              {sZh ? "填写姓名和微信号" : "Enter your name + WeChat"}
-                            </li>
-                            <li>
-                              <span>3</span>
-                              {sZh ? "我们为你创建客户端" : "We open your private portal"}
-                            </li>
-                            <li>
-                              <span>4</span>
-                              {sZh ? "完成问卷并核款，计划自动加载" : "Finish intake + verify payment → plan loads"}
-                            </li>
+                            {wxpayOn ? (
+                              <>
+                                <li>
+                                  <span>1</span>
+                                  {sZh ? "填写姓名和微信号" : "Enter your name + WeChat"}
+                                </li>
+                                <li>
+                                  <span>2</span>
+                                  {sZh ? "提交订单，出现微信支付二维码" : "Submit — a WeChat Pay QR appears"}
+                                </li>
+                                <li>
+                                  <span>3</span>
+                                  {sZh ? "扫码付款，计划立即解锁" : "Pay and the program unlocks instantly"}
+                                </li>
+                                <li>
+                                  <span>4</span>
+                                  {sZh ? "打开客户端完成问卷" : "Open your portal + finish intake"}
+                                </li>
+                              </>
+                            ) : (
+                              <>
+                                <li>
+                                  <span>1</span>
+                                  {sZh ? "用微信扫码付款" : "Scan & pay with WeChat"}
+                                </li>
+                                <li>
+                                  <span>2</span>
+                                  {sZh ? "填写姓名和微信号" : "Enter your name + WeChat"}
+                                </li>
+                                <li>
+                                  <span>3</span>
+                                  {sZh ? "我们为你创建客户端" : "We open your private portal"}
+                                </li>
+                                <li>
+                                  <span>4</span>
+                                  {sZh ? "完成问卷并核款，计划自动加载" : "Finish intake + verify payment → plan loads"}
+                                </li>
+                              </>
+                            )}
                           </ol>
+                          {wxpayOn ? null : (
                           <div className="storePayNowV2">
                             <div className="storePayNowHead">
                               <strong>{sZh ? "微信支付" : "WeChat Pay"}</strong>
@@ -1739,7 +1792,8 @@ export default function StorePage({
                             </div>
                             <img src="/wechat-pay-qr.jpg" alt="WeChat QR" />
                           </div>
-                          {storePaymentCode && (
+                          )}
+                          {!wxpayOn && storePaymentCode && (
                             <div className="storePaymentCodeV2">
                               <span>
                                 {sZh

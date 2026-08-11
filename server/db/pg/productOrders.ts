@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, lt, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, lt, ne, sql } from "drizzle-orm";
 import { db } from "../client.ts";
 import { productOrders } from "../schema.ts";
 import { epochToDate, pgErrorMessage, str } from "./_util.ts";
@@ -339,4 +339,108 @@ export async function updateProductOrder(
       omittedFields,
     },
   };
+}
+
+/* ---------------------------------------------------- WeChat Pay support */
+
+export type WxpayOrderRow = {
+  orderId: string;
+  clientId: string;
+  clientName: string;
+  productName: string;
+  amount: number;
+  currency: string;
+  paymentStatus: string;
+  paymentReference: string;
+  wxpayTradeNo: string;
+};
+
+const toWxpayRow = (r: Row): WxpayOrderRow => ({
+  orderId: r.orderId,
+  clientId: str(r.clientId),
+  clientName: str(r.clientName),
+  productName: str(r.productName),
+  amount: r.amount == null ? 0 : Number(r.amount),
+  currency: str(r.currency),
+  paymentStatus: str(r.paymentStatus),
+  paymentReference: str(r.paymentReference),
+  wxpayTradeNo: str(r.wxpayTradeNo),
+});
+
+/**
+ * Every order of the same checkout: same non-empty payment reference and
+ * client. Falls back to just the anchor order when the reference is empty.
+ */
+export async function wxpayOrderGroup(orderId: string): Promise<WxpayOrderRow[]> {
+  const anchorRows = await db
+    .select()
+    .from(productOrders)
+    .where(eq(productOrders.orderId, orderId))
+    .limit(1);
+  if (!anchorRows.length) return [];
+  const anchor = anchorRows[0];
+  const reference = str(anchor.paymentReference);
+  if (!reference) return anchorRows.map(toWxpayRow);
+  const rows = await db
+    .select()
+    .from(productOrders)
+    .where(
+      and(
+        eq(productOrders.paymentReference, reference),
+        anchor.clientId
+          ? eq(productOrders.clientId, anchor.clientId)
+          : sql`true`
+      )
+    );
+  return rows.map(toWxpayRow);
+}
+
+export async function attachWxpayTradeNo(
+  orderIds: string[],
+  tradeNo: string
+): Promise<number> {
+  if (!orderIds.length) return 0;
+  const updated = await db
+    .update(productOrders)
+    .set({ wxpayTradeNo: tradeNo, paymentProvider: "WeChat Pay" })
+    .where(
+      and(
+        inArray(productOrders.orderId, orderIds),
+        ne(productOrders.paymentStatus, "Paid")
+      )
+    )
+    .returning({ orderId: productOrders.orderId });
+  return updated.length;
+}
+
+export async function ordersByWxpayTradeNo(
+  tradeNo: string
+): Promise<WxpayOrderRow[]> {
+  const rows = await db
+    .select()
+    .from(productOrders)
+    .where(eq(productOrders.wxpayTradeNo, tradeNo));
+  return rows.map(toWxpayRow);
+}
+
+/** Marks the whole trade-no group Paid; idempotent. Returns updated ids. */
+export async function markOrdersPaidByWxpay(
+  tradeNo: string,
+  transactionId: string
+): Promise<string[]> {
+  const updated = await db
+    .update(productOrders)
+    .set({
+      paymentStatus: "Paid",
+      paymentProvider: "WeChat Pay",
+      wxpayTransactionId: transactionId,
+    })
+    .where(
+      and(
+        eq(productOrders.wxpayTradeNo, tradeNo),
+        ne(productOrders.paymentStatus, "Paid")
+      )
+    )
+    .returning({ orderId: productOrders.orderId });
+  return updated.map((row: { orderId: string }) => row.orderId);
 }

@@ -1158,3 +1158,91 @@
   color: #1a1712;
   filter: brightness(1.04);
 }
+
+/* ============ Real WeChat Pay panel (checkout confirm step) ============ */
+.wxpayPanel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  margin: 14px 0 4px;
+  padding: 18px 16px;
+  border: 1.5px solid #10a54a;
+  border-radius: 14px;
+  background: #f2fbf5;
+  color: #10241a;
+  text-align: center;
+}
+.wxpayPanelHead {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+.wxpayPanelHead strong {
+  font-size: 1.02rem;
+}
+.wxpayAmount {
+  color: #0b7a38;
+  font-size: 1.15rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.wxpayQr {
+  width: 210px;
+  max-width: 74vw;
+  border-radius: 10px;
+  border: 1px solid #d6e9dc;
+  background: #fff;
+  padding: 8px;
+}
+.wxpayHint {
+  margin: 0;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+.wxpayAuto {
+  margin: 0;
+  color: #4c6a58;
+  font-size: 0.78rem;
+}
+.wxpayPanel--loading {
+  flex-direction: row;
+  justify-content: center;
+  font-size: 0.88rem;
+}
+.wxpaySpinner {
+  width: 15px;
+  height: 15px;
+  border: 2px solid #bcd9c6;
+  border-top-color: #10a54a;
+  border-radius: 50%;
+  animation: wxpaySpin 0.85s linear infinite;
+}
+@keyframes wxpaySpin {
+  to { transform: rotate(360deg); }
+}
+.wxpayPanel--paid {
+  border-color: #0b7a38;
+  background: #0b7a38;
+  color: #fff;
+}
+.wxpayPanel--paid p {
+  margin: 0;
+  color: rgb(255 255 255 / 85%);
+  font-size: 0.86rem;
+}
+.wxpayPaidMark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 18%);
+  font-size: 1.3rem;
+  font-weight: 800;
+}
+.storeDetailPayScan--wxpay .storeDetailScanText p {
+  margin: 4px 0 0;
+}

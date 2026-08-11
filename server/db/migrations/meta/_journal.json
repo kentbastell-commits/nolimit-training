@@ -134,6 +134,13 @@
       "when": 1786480000000,
       "tag": "0018_marketing_attribution_repair",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1786421398069,
+      "tag": "0019_wxpay_columns",
+      "breakpoints": true
     }
   ]
 }

@@ -530,6 +530,10 @@ export const productOrders = pgTable(
     intakeStatus: text("intake_status"),
     assignCoach: text("assign_coach"),
     fulfillmentStatus: text("fulfillment_status"), // New Order | Program Loaded
+    // Real WeChat Pay (APIv3): our out_trade_no groups every order in one
+    // checkout under a single transaction; the transaction id is WeChat's.
+    wxpayTradeNo: text("wxpay_trade_no"),
+    wxpayTransactionId: text("wxpay_transaction_id"),
   },
   (t) => [
     index("product_orders_client_idx").on(t.clientId),
@@ -537,6 +541,7 @@ export const productOrders = pgTable(
     index("product_orders_payment_status_idx").on(t.paymentStatus),
     index("product_orders_campaign_code_idx").on(t.campaignCode),
     index("product_orders_staff_attribution_idx").on(t.staffAttributionCode),
+    index("product_orders_wxpay_trade_no_idx").on(t.wxpayTradeNo),
   ]
 );
 

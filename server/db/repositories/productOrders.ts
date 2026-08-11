@@ -102,3 +102,28 @@ export async function updateProductOrder(
   if (result.success) invalidateCache("productOrders");
   return result;
 }
+
+export type { WxpayOrderRow } from "../pg/productOrders.ts";
+
+export async function wxpayOrderGroup(orderId: string) {
+  return pg.wxpayOrderGroup(orderId);
+}
+
+export async function attachWxpayTradeNo(orderIds: string[], tradeNo: string) {
+  const count = await pg.attachWxpayTradeNo(orderIds, tradeNo);
+  if (count) invalidateCache("productOrders");
+  return count;
+}
+
+export async function ordersByWxpayTradeNo(tradeNo: string) {
+  return pg.ordersByWxpayTradeNo(tradeNo);
+}
+
+export async function markOrdersPaidByWxpay(
+  tradeNo: string,
+  transactionId: string
+) {
+  const updated = await pg.markOrdersPaidByWxpay(tradeNo, transactionId);
+  if (updated.length) invalidateCache("productOrders");
+  return updated;
+}
