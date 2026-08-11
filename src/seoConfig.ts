@@ -14,11 +14,11 @@ const copy = {
   home: {
     en: [
       "NX LIMIT Training | Elite Strength & Performance Coaching",
-      "Bilingual, periodised strength and performance coaching for climbing, HYROX, running and serious athletes.",
+      "Raise the Floor. Break the Ceiling. Bilingual, periodised strength and performance coaching for climbing, HYROX, running and serious athletes.",
     ],
     zh: [
       "NX LIMIT Training｜专业体能训练与运动表现指导",
-      "面向攀岩、HYROX、跑步及高水平运动员的双语周期化力量与运动表现训练。",
+      "Raise the Floor. Break the Ceiling. 面向攀岩、HYROX、跑步及高水平运动员的双语周期化力量与运动表现训练。",
     ],
   },
   store: {
