@@ -9,9 +9,8 @@ export type CompanyOpsPage =
   | "decisions"
   | "calendar"
   | "articles"
-  | "guide"
-  | "onboarding"
-  | "policies";
+  | "resources"
+  | "onboarding";
 
 export type CompanyOpsCapability =
   | "view_performance"

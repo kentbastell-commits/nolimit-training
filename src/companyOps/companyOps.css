@@ -2678,6 +2678,8 @@ a.fopsOnboardingTaskLink:hover strong {
 }
 
 .fopsPerformanceHeroTop h2 {
+  /* The #24 heading-ink guard would paint this dark-on-dark. */
+  color: #fff;
   margin: 5px 0 0;
   font-size: clamp(1.55rem, 3vw, 2.5rem);
   line-height: 1.08;
@@ -5123,3 +5125,68 @@ a.fopsOnboardingTaskLink:hover strong {
   font-weight: 650;
   cursor: pointer;
 }
+
+.fopsResourcesTabs {
+  display: inline-flex;
+  gap: 4px;
+  margin: 18px 0 0 clamp(16px, 4vw, 42px);
+  padding: 4px;
+  border: 1px solid var(--fops-line);
+  border-radius: 999px;
+  background: var(--fops-surface);
+}
+.fopsResourcesTabs button {
+  padding: 7px 18px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--fops-ink-soft);
+  font-size: 0.88rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+.fopsResourcesTabs button.is-active {
+  background: #191915;
+  color: #f4f2ed;
+}
+
+.fopsNextGoalsWarn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding: 11px 16px;
+  border: 1.5px solid #c08a2d;
+  border-radius: 12px;
+  background: rgb(192 138 45 / 10%);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+.fopsNextGoalsWarn svg { color: #c08a2d; flex: none; }
+.fopsNextGoalsWarn span { flex: 1; }
+.fopsGoalSetterDone {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  border: 1px solid rgb(16 122 74 / 40%);
+  border-radius: 12px;
+  background: rgb(16 122 74 / 7%);
+  font-size: 0.9rem;
+}
+.fopsGoalSetterCheck {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  flex: none;
+  border-radius: 50%;
+  background: #107a4a;
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+.fopsGoalSetterDone span:nth-child(2) { flex: 1; }
+.fopsGoalSetterCollapse { margin: 4px 0 14px; text-align: right; }

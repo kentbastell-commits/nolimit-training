@@ -26,6 +26,7 @@ import {
 } from "react";
 import { EmptyState, SectionHeading, TonePill } from "./components";
 import { statusLabel } from "./copy";
+import { TranslatableText } from "./TranslatableText";
 import type {
   CompanyOpsActionName,
   CompanyOpsLanguage,
@@ -180,7 +181,11 @@ function GoalCards({
             <Flag size={16} aria-hidden="true" />
             <div>
               <small>{text(language, "Success measure", "成功标准")}</small>
-              <p>{goal.measure || text(language, "To be confirmed", "待确认")}</p>
+              {goal.measure ? (
+                <TranslatableText text={goal.measure} language={language} />
+              ) : (
+                <p>{text(language, "To be confirmed", "待确认")}</p>
+              )}
             </div>
           </div>
           {goal.result ? (
@@ -475,7 +480,11 @@ function EmployeeResponse({
         <div><span>{text(language, "Weighted score", "加权得分")}</span><strong>{cycle.weightedScore == null ? "—" : `${cycle.weightedScore}/100`}</strong></div>
         <div><span>{text(language, "Approved bonus", "核准奖金")}</span><strong>{money(cycle.approvedBonus, language)}</strong></div>
       </div>
-      {cycle.founderReview ? <blockquote>{cycle.founderReview}</blockquote> : null}
+      {cycle.founderReview ? (
+        <blockquote>
+          <TranslatableText text={cycle.founderReview} language={language} />
+        </blockquote>
+      ) : null}
       <label className="fopsPerformanceField">
         <span>{text(language, "Comment (required only for a challenge)", "说明（提出异议时必填）")}</span>
         <textarea value={comment} onChange={(event) => setComment(event.target.value)} rows={3} />
@@ -495,18 +504,97 @@ function EmployeeResponse({
   );
 }
 
-function GoalSetter({
+/** Wraps GoalSetter: collapses to a one-line confirmation once the current
+ *  month is set, and raises a reminder from the 24th when next month's goals
+ *  are still missing. */
+function GoalSetterSection({
   language,
   staff,
+  cycles,
   onAction,
 }: {
   language: CompanyOpsLanguage;
   staff: OpsPerformanceDashboard["staff"];
+  cycles: OpsPerformanceCycle[];
+  onAction: (action: CompanyOpsActionName, payload: Record<string, unknown>) => Promise<void>;
+}) {
+  const now = new Date();
+  const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const next = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  const nextKey = `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, "0")}`;
+  const currentCycles = cycles.filter((cycle) => cycle.month === monthKey);
+  const nextMissing = now.getDate() >= 24 && !cycles.some((cycle) => cycle.month === nextKey);
+  const [openMonth, setOpenMonth] = useState<string>(currentCycles.length ? "" : monthKey);
+
+  return (
+    <>
+      {nextMissing ? (
+        <div className="fopsNextGoalsWarn" role="alert">
+          <CalendarDays size={16} aria-hidden="true" />
+          <span>
+            {text(
+              language,
+              `${nextKey} goals are not set yet — confirm them before the month starts.`,
+              `${nextKey} 的月度目标还未设置——请在月初前确认。`,
+            )}
+          </span>
+          <button type="button" className="fopsButton fopsButton--compact" onClick={() => setOpenMonth(nextKey)}>
+            {text(language, "Set them now", "现在设置")}
+          </button>
+        </div>
+      ) : null}
+      {openMonth ? (
+        <>
+          <GoalSetter
+            language={language}
+            staff={staff}
+            initialMonth={openMonth}
+            onAction={onAction}
+            key={openMonth}
+          />
+          {currentCycles.length ? (
+            <p className="fopsGoalSetterCollapse">
+              <button type="button" className="fopsTextButton" onClick={() => setOpenMonth("")}>
+                {text(language, "Hide the goal form", "收起目标设置")}
+              </button>
+            </p>
+          ) : null}
+        </>
+      ) : (
+        <div className="fopsGoalSetterDone">
+          <span className="fopsGoalSetterCheck" aria-hidden="true">✓</span>
+          <span>
+            {text(
+              language,
+              `${monthKey} goals confirmed for ${currentCycles.length} ${currentCycles.length === 1 ? "person" : "people"}.`,
+              `${monthKey} 月度目标已确认（${currentCycles.length} 人）。`,
+            )}
+          </span>
+          <button type="button" className="fopsTextButton" onClick={() => setOpenMonth(monthKey)}>
+            {text(language, "Set more / adjust", "新增或调整")}
+          </button>
+        </div>
+      )}
+    </>
+  );
+}
+
+function GoalSetter({
+  language,
+  staff,
+  initialMonth,
+  onAction,
+}: {
+  language: CompanyOpsLanguage;
+  staff: OpsPerformanceDashboard["staff"];
+  initialMonth?: string;
   onAction: (action: CompanyOpsActionName, payload: Record<string, unknown>) => Promise<void>;
 }) {
   const now = new Date();
   const [employeeId, setEmployeeId] = useState(staff?.[0]?.staffRecordId || "");
-  const [month, setMonth] = useState(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`);
+  const [month, setMonth] = useState(
+    initialMonth || `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`,
+  );
   const [reportDue, setReportDue] = useState("");
   const [goals, setGoals] = useState(
     DEFAULT_GOALS.map((goal) => ({ ...goal, measure: "" })),
@@ -746,7 +834,14 @@ export default function PerformanceHome({
         </div>
       </header>
 
-      {founder ? <GoalSetter language={language} staff={performance?.staff} onAction={onAction} /> : null}
+      {founder ? (
+        <GoalSetterSection
+          language={language}
+          staff={performance?.staff}
+          cycles={performance?.cycles || []}
+          onAction={onAction}
+        />
+      ) : null}
 
       {sortedCycles.length ? (
         <>

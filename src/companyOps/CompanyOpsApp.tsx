@@ -63,14 +63,14 @@ const navItems: Array<{
   { page: "growth", label: "navGrowth", icon: TrendingUp },
   { page: "calendar", label: "navCalendar", icon: CalendarDays },
   { page: "articles", label: "navArticles", icon: Newspaper },
-  { page: "guide", label: "navGuide", icon: BookOpenCheck },
   { page: "decisions", label: "navDecisions", icon: Gavel },
   { page: "onboarding", label: "navOnboarding", icon: UserRoundCheck },
-  { page: "policies", label: "navPolicies", icon: BookOpenCheck },
+  { page: "resources", label: "navResources", icon: BookOpenCheck },
 ];
 
 function readInitialPage(): CompanyOpsPage {
   const page = new URLSearchParams(window.location.search).get("page");
+  if (page === "guide" || page === "policies") return "resources";
   return navItems.some((item) => item.page === page)
     ? (page as CompanyOpsPage)
     : "home";
@@ -246,6 +246,7 @@ export default function CompanyOpsApp({
   // Set by editors with unsaved work (articles today); navigate() and the
   // browser's beforeunload both consult it.
   const unsavedRef = useRef(false);
+  const [resourcesTab, setResourcesTab] = useState<"guide" | "policies">("guide");
   const [busyDecisionId, setBusyDecisionId] = useState<string>();
   const [busyTaskId, setBusyTaskId] = useState<string>();
   const [busyPolicyId, setBusyPolicyId] = useState<string>();
@@ -358,7 +359,21 @@ export default function CompanyOpsApp({
   }, [toast]);
 
   const visibleNav = useMemo(
-    () => (user ? navItems.filter((item) => canOpenPage(user, item.page)) : []),
+    () =>
+      user
+        ? navItems.filter((item) => {
+            if (!canOpenPage(user, item.page)) return false;
+            // Once a staff member's onboarding is done (or was handled
+            // outside the app), the tab disappears; founders keep it to
+            // manage future hires.
+            if (item.page === "onboarding" && user.role !== "founder") {
+              const tasks = dashboard?.onboarding?.tasks || [];
+              const openTasks = tasks.filter((task) => !task.completed);
+              return openTasks.length > 0;
+            }
+            return true;
+          })
+        : [],
     [user],
   );
 
@@ -920,18 +935,41 @@ export default function CompanyOpsApp({
               }
             />
           ) : null}
-          {activePage === "guide" ? (
-            <GuidePage language={language} onNavigate={navigate} />
-          ) : null}
-          {activePage === "policies" ? (
-            <PoliciesPage
-              language={language}
-              policies={policies}
-              busyPolicyId={busyPolicyId}
-              onAcknowledge={(policy) =>
-                void handleAcknowledgePolicy(policy)
-              }
-            />
+          {activePage === "resources" ? (
+            <div className="fopsResourcesPage">
+              <div className="fopsResourcesTabs" role="tablist">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={resourcesTab === "guide"}
+                  className={resourcesTab === "guide" ? "is-active" : ""}
+                  onClick={() => setResourcesTab("guide")}
+                >
+                  {opsText(language, "navGuide")}
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={resourcesTab === "policies"}
+                  className={resourcesTab === "policies" ? "is-active" : ""}
+                  onClick={() => setResourcesTab("policies")}
+                >
+                  {opsText(language, "navPolicies")}
+                </button>
+              </div>
+              {resourcesTab === "guide" ? (
+                <GuidePage language={language} onNavigate={navigate} />
+              ) : (
+                <PoliciesPage
+                  language={language}
+                  policies={policies}
+                  busyPolicyId={busyPolicyId}
+                  onAcknowledge={(policy) =>
+                    void handleAcknowledgePolicy(policy)
+                  }
+                />
+              )}
+            </div>
           ) : null}
         </main>
       </div>

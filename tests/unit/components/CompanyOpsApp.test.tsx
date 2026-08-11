@@ -403,6 +403,10 @@ describe("CompanyOpsApp", () => {
 
     await screen.findByText("Hello, Kent");
     await user.click(screen.getAllByRole("button", { name: "Performance" })[0]);
+    // When the current month already has confirmed goals the setter collapses
+    // to a summary row - expand it first.
+    const expandSetter = screen.queryByRole("button", { name: "Set more / adjust" });
+    if (expandSetter) await user.click(expandSetter);
     expect(
       screen.getByRole("heading", { name: "Set five clear bonus goals" }),
     ).toBeInTheDocument();

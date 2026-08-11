@@ -219,7 +219,7 @@ const SECTIONS: GuideSection[] = [
   {
     id: "policies",
     icon: ShieldCheck,
-    page: "policies",
+    page: "resources",
     title: { en: "Policies, brand assets & one hard rule", zh: "制度、品牌资产与一条硬规则" },
     intro: {
       en: "Read and acknowledge each policy once — the app tracks which ones you've confirmed.",

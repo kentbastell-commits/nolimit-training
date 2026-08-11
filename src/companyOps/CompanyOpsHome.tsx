@@ -167,14 +167,16 @@ function GoalRow({
             <TranslatableText text={goal.measure} language={language} />
           ) : null}
           {goal.notes ? (
-            <p className="fopsGoalNotes">{goal.notes}</p>
+            <div className="fopsGoalNotes">
+              <TranslatableText text={goal.notes} language={language} />
+            </div>
           ) : null}
           {thread.length ? (
             <div className="fopsGoalThread">
               {thread.map((entry, index) => (
                 <div className="fopsGoalThreadEntry" key={index}>
                   <small>{entry.meta}</small>
-                  <p>{entry.body}</p>
+                  <TranslatableText text={entry.body} language={language} />
                 </div>
               ))}
             </div>
@@ -656,7 +658,7 @@ export default function CompanyOpsHome({
                 <button
                   className="fopsResourceButton"
                   type="button"
-                  onClick={() => onNavigate("policies")}
+                  onClick={() => onNavigate("resources")}
                 >
                   <span className="fopsResourceIcon">
                     <BookOpenCheck size={18} />
