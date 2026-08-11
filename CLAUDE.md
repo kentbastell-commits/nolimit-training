@@ -662,6 +662,18 @@ data between them, never "borrow" a table ID across products.
     slow" gets MEASURED server-side (time the assembly on the box) before
     blaming the network.
 
+59. **The commit that imports a ghost** — committing a SHARED file by name
+    while another agent is mid-feature in it swept their `import ...
+    "./CampaignsPage"` into the commit while the imported file stayed
+    untracked: local gates pass (the file exists on disk), main is
+    unbuildable everywhere else, and the server deploy dies on TS2307 —
+    discovered one deploy LATER, when the breakage looked unrelated to the
+    commit being shipped. Rule: staging by file name is not enough in shared
+    files — before committing, grep the STAGED diff for `^\+import` and
+    check every referenced local module is tracked (`git ls-files`); if it
+    belongs to another agent's WIP, either leave the whole file out or
+    commit their completed work as its own gate-passed commit.
+
 ## Quality bar — checkable, per deliverable
 
 **Any shipped code change**

@@ -22,10 +22,17 @@ nothing a user can see (the ghost-deploy trap, now on nolimit too). The HK
 still serves mini-program DEV builds — deploy to it separately if a dev-build
 feature needs new endpoints. Shanghai ops note: its sshd drops long-lived
 sessions — run long server commands via
-`sudo systemd-run --unit=x --uid=ubuntu --gid=ubuntu --collect bash -c
-'... > /tmp/x.log'` and poll the log; the repository is owned by `ubuntu`, so
-omitting the user flags makes root Git reject it as dubious ownership. Simply
-retry short commands that die with "Connection closed".
+`sudo systemd-run --unit=x --uid=ubuntu --gid=ubuntu bash -c
+'{ cmd1 && cmd2; } > /tmp/x.log 2>&1'` and poll the log; the repository is
+owned by `ubuntu`, so omitting the user flags makes root Git reject it as
+dubious ownership. Simply retry short commands that die with "Connection
+closed". Two traps (both bit 2026-08-12): NEVER pass `--collect` when you
+need the outcome — it garbage-collects the finished unit and `systemctl
+show` then returns the DEFAULTS `Result=success ExecMainStatus=0` for the
+nonexistent unit, reporting a failed build as green; and redirect the WHOLE
+`{ ...; }` chain to the log, not just the last command, or a failing middle
+step leaves no log file and no evidence. Trust only the log's contents plus
+an effect check (pm2 uptime reset to seconds, dist chunk grep).
 
 ## Preconditions — abort with a clear message if any fails
 
