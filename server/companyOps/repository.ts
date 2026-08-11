@@ -1507,6 +1507,18 @@ const PARTNER_FIT_OPTIONS: Record<string, string> = {
   "待评估 tbd": "待评估 TBD",
 };
 
+// Feishu-user column on the staff register — the one place a staff
+// member's open_id lives (same aliases resolvePrincipal matches on).
+const STAFF_FEISHU_USER_ALIASES = [
+  "飞书用户 Feishu User",
+  "Feishu Open ID",
+  "Feishu OpenID",
+  "飞书 Open ID",
+  "飞书OpenID",
+] as const;
+
+const OPS_APP_URL = "https://trainnolimit.cn/company-ops";
+
 export class CompanyOpsRepository {
   private readonly config: CompanyOpsConfig;
   private readonly client: FeishuClient;
@@ -1601,6 +1613,150 @@ export class CompanyOpsRepository {
       return ids;
     } catch {
       return { openIds: new Set(), userIds: new Set() };
+    }
+  }
+
+  // ---- Feishu DM pings ----------------------------------------------------
+  // A submission or comment nobody sees is a silent drop, so the people who
+  // must act on it get a bot DM. STRICTLY best-effort: callers fire-and-forget
+  // (void this.ping...), every failure is swallowed — the app may lack the
+  // im:message scope, a recipient may sit outside its availability range —
+  // and a ping can never block or fail the write it announces.
+  private async sendPings(
+    recipients: Iterable<string>,
+    actorOpenId: string,
+    message: string
+  ): Promise<void> {
+    try {
+      const unique = [...new Set(recipients)]
+        .filter((id) => id && id.startsWith("ou_") && id !== actorOpenId)
+        .slice(0, 10);
+      await Promise.all(
+        unique.map((id) =>
+          this.client
+            .sendTextMessage(id, `${message}\n${OPS_APP_URL}`)
+            .catch((error) => {
+              console.warn(
+                "[companyOps] ping failed:",
+                error instanceof Error ? error.message : error
+              );
+            })
+        )
+      );
+    } catch (error) {
+      console.warn(
+        "[companyOps] ping batch failed:",
+        error instanceof Error ? error.message : error
+      );
+    }
+  }
+
+  private async pingFounders(
+    principal: CompanyOpsPrincipal,
+    message: string
+  ): Promise<void> {
+    try {
+      const admins = await this.appAdminIds();
+      await this.sendPings(
+        [...this.config.founderOpenIds, ...admins.openIds],
+        principal.openId,
+        message
+      );
+    } catch {
+      /* best-effort */
+    }
+  }
+
+  private async staffOpenIdsFromRecordIds(
+    staffRecordIds: readonly string[]
+  ): Promise<string[]> {
+    const target = await this.target("staff");
+    const ids: string[] = [];
+    for (const staffRecordId of staffRecordIds.slice(0, 5)) {
+      try {
+        const record = await this.client.getRecord(
+          target.appToken,
+          target.tableId,
+          staffRecordId
+        );
+        ids.push(
+          ...idsFromValue(
+            recordField(record.fields, STAFF_FEISHU_USER_ALIASES)
+          ).filter((id) => id.startsWith("ou_"))
+        );
+      } catch {
+        /* skip unresolvable rows */
+      }
+    }
+    return ids;
+  }
+
+  private async pingStaffRecord(
+    staffRecordId: string,
+    principal: CompanyOpsPrincipal,
+    message: string
+  ): Promise<void> {
+    try {
+      const ids = await this.staffOpenIdsFromRecordIds([staffRecordId]);
+      await this.sendPings(ids, principal.openId, message);
+    } catch {
+      /* best-effort */
+    }
+  }
+
+  private async activeStaffOpenIds(): Promise<string[]> {
+    const target = await this.target("staff");
+    const records = await this.client.listRecords(target.appToken, target.tableId, {
+      maxRecords: 500,
+    });
+    return records
+      .filter(isActiveStaff)
+      .flatMap((record) =>
+        idsFromValue(recordField(record.fields, STAFF_FEISHU_USER_ALIASES))
+      )
+      .filter((id) => id.startsWith("ou_"));
+  }
+
+  // Founder commented on a goal/thread: the reply's audience is the goal's
+  // stored owner ids plus every active staff member (threads don't store
+  // participant ids, and at this team size staff are the non-founder party).
+  private async pingGoalAudience(
+    ownerIds: readonly string[],
+    principal: CompanyOpsPrincipal,
+    message: string
+  ): Promise<void> {
+    try {
+      const staff = await this.activeStaffOpenIds().catch(() => [] as string[]);
+      await this.sendPings([...ownerIds, ...staff], principal.openId, message);
+    } catch {
+      /* best-effort */
+    }
+  }
+
+  // Resolve the employee behind a performance cycle row and DM them.
+  // The employee column may hold person values (ou_...) or a link to the
+  // staff register (rec...); handle both.
+  private async pingPerformanceEmployee(
+    performanceId: string,
+    principal: CompanyOpsPrincipal,
+    message: string
+  ): Promise<void> {
+    try {
+      const target = await this.target("performance");
+      const record = await this.client.getRecord(
+        target.appToken,
+        target.tableId,
+        performanceId
+      );
+      const raw = idsFromValue(recordField(record.fields, FIELD.submittedBy));
+      const direct = raw.filter((id) => id.startsWith("ou_"));
+      const linked = raw.filter((id) => id.startsWith("rec"));
+      const resolved = linked.length
+        ? await this.staffOpenIdsFromRecordIds(linked)
+        : [];
+      await this.sendPings([...direct, ...resolved], principal.openId, message);
+    } catch {
+      /* best-effort */
     }
   }
 
@@ -2724,6 +2880,10 @@ export class CompanyOpsRepository {
             }
           : payload;
         const record = await this.createMapped("content", normalizedPayload, CONTENT_SPECS, principal, { status: "想法 Idea" });
+        void this.pingFounders(
+          principal,
+          `📝 ${principal.name} 提交了新内容想法 New content idea: “${textValue(normalizedPayload.title).slice(0, 80)}”`
+        );
         return { success: true, message: "Content idea added to the pipeline", recordId: record.record_id };
       }
       case "lead.create":
@@ -2861,6 +3021,7 @@ export class CompanyOpsRepository {
             }
           : payload;
         const record = await this.createMapped("weeklyReport", normalizedPayload, WEEKLY_SPECS, principal, { status: "已提交 Submitted" });
+        void this.pingFounders(principal, `🗓 ${principal.name} 提交了周报 Weekly report submitted`);
         return { success: true, message: "Weekly report submitted for founder review", recordId: record.record_id };
       }
       case "metrics.submit":
@@ -2996,6 +3157,26 @@ ${entry}` : entry;
         const updates: FeishuFields = { [responseField.field_name]: combined };
         if (byField) updates[byField.field_name] = principal.name;
         await this.client.updateRecord(target.appToken, target.tableId, goalId, updates);
+        {
+          const goalTitle =
+            textValue(
+              recordField(record.fields, ["目标 Goal", "Goal", ...FIELD.title])
+            ).slice(0, 60) || "goal";
+          const pingMessage = `💬 ${principal.name} 在「${goalTitle}」留言 commented: ${response.slice(0, 120)}`;
+          if (principal.role === "founder") {
+            const ownerIds = idsFromValue(
+              recordField(record.fields, [
+                ...FIELD.createdByOpenId,
+                ...FIELD.submittedBy,
+                "飞书账号 Feishu User",
+                "Feishu Open ID",
+              ])
+            );
+            void this.pingGoalAudience(ownerIds, principal, pingMessage);
+          } else {
+            void this.pingFounders(principal, pingMessage);
+          }
+        }
         return { success: true, message: "Comment added", recordId: goalId };
       }
       case "content.update":
@@ -3149,6 +3330,12 @@ ${entry}` : entry;
           principal,
           { status: "草稿 Draft" }
         );
+        if (principal.role !== "founder") {
+          void this.pingFounders(
+            principal,
+            `✍️ ${principal.name} 创建了新文章草稿 New article draft: “${textValue(payload.title).slice(0, 80)}”`
+          );
+        }
         return { success: true, message: "Article created", recordId: record.record_id };
       }
       case "article.update":
@@ -3234,10 +3421,17 @@ ${entry}` : entry;
       }
       case "submit_internal_request": {
         const record = await this.createMapped("internalRequest", payload, REQUEST_SPECS, principal, { status: "待处理 Open" });
+        void this.pingFounders(principal, `📮 ${principal.name} 提交了内部请求 Internal request submitted`);
         return { success: true, message: "Internal request submitted", recordId: record.record_id };
       }
-      case "request_founder_decision":
-        return this.requestFounderDecision(principal, payload);
+      case "request_founder_decision": {
+        const result = await this.requestFounderDecision(principal, payload);
+        void this.pingFounders(
+          principal,
+          `🧭 ${principal.name} 请求创始人决策 Requested a founder decision: “${textValue(payload.title).slice(0, 80)}”`
+        );
+        return result;
+      }
       case "onboarding.generate":
       case "generate_onboarding":
         return this.generateOnboarding(principal, payload);
@@ -3277,6 +3471,10 @@ ${entry}` : entry;
           principal,
           { status: "新建 New" }
         );
+        void this.pingFounders(
+          principal,
+          `🛠 ${principal.name} 提交了支持问题 Support issue: “${textValue(payload.title).slice(0, 80)}”`
+        );
         return {
           success: true,
           message: "Support issue submitted",
@@ -3287,26 +3485,66 @@ ${entry}` : entry;
       case "acknowledge_compensation":
         return this.updateOwnCompensation(principal, payload, "acknowledge");
       case "raise_commission_dispute":
-      case "dispute_compensation":
-        return this.updateOwnCompensation(principal, payload, "dispute");
+      case "dispute_compensation": {
+        const result = await this.updateOwnCompensation(principal, payload, "dispute");
+        void this.pingFounders(principal, `⚠️ ${principal.name} 对薪酬提出异议 Raised a compensation dispute`);
+        return result;
+      }
       case "performance.goals.set":
-      case "set_performance_goals":
-        return this.setPerformanceGoals(principal, payload);
+      case "set_performance_goals": {
+        const result = await this.setPerformanceGoals(principal, payload);
+        const employeeRecordId = textValue(payload.employeeStaffRecordId ?? payload.staffRecordId);
+        if (employeeRecordId) {
+          void this.pingStaffRecord(
+            employeeRecordId,
+            principal,
+            `🎯 你的月度目标已发布，请查看并确认 Your monthly goals are ready — please review and confirm`
+          );
+        }
+        return result;
+      }
       case "performance.report.submit":
-      case "submit_performance_report":
-        return this.submitPerformanceReport(principal, payload);
+      case "submit_performance_report": {
+        const result = await this.submitPerformanceReport(principal, payload);
+        void this.pingFounders(principal, `📊 ${principal.name} 提交了月度绩效报告 Monthly performance report submitted`);
+        return result;
+      }
       case "performance.review.request_changes":
-      case "request_performance_changes":
-        return this.requestPerformanceChanges(principal, payload);
+      case "request_performance_changes": {
+        const result = await this.requestPerformanceChanges(principal, payload);
+        void this.pingPerformanceEmployee(
+          textValue(payload.performanceId),
+          principal,
+          `✏️ 你的月度报告需要修改，请查看反馈 Changes requested on your monthly report — please check the feedback`
+        );
+        return result;
+      }
       case "performance.review.score":
-      case "score_performance_review":
-        return this.scorePerformanceReview(principal, payload);
+      case "score_performance_review": {
+        const result = await this.scorePerformanceReview(principal, payload);
+        void this.pingPerformanceEmployee(
+          textValue(payload.performanceId),
+          principal,
+          `🏁 你的月度评分已完成 Your monthly review has been scored`
+        );
+        return result;
+      }
       case "performance.review.respond":
-      case "respond_performance_review":
-        return this.respondPerformanceReview(principal, payload);
+      case "respond_performance_review": {
+        const result = await this.respondPerformanceReview(principal, payload);
+        void this.pingFounders(principal, `💬 ${principal.name} 回应了绩效评审 Responded to their performance review`);
+        return result;
+      }
       case "performance.finalize":
-      case "finalize_performance":
-        return this.finalizePerformance(principal, payload);
+      case "finalize_performance": {
+        const result = await this.finalizePerformance(principal, payload);
+        void this.pingPerformanceEmployee(
+          textValue(payload.performanceId),
+          principal,
+          `✅ 你的月度绩效已定稿 Your monthly review is finalized`
+        );
+        return result;
+      }
       default:
         throw new CompanyOpsHttpError(400, "Unknown Company Operations action");
     }

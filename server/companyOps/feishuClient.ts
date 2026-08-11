@@ -425,6 +425,20 @@ export class FeishuClient {
     return { fileToken };
   }
 
+  // Bot DM to one user. Requires the app to hold the im:message send
+  // scope and the recipient to be inside the app's availability range —
+  // callers treat any failure as non-fatal.
+  async sendTextMessage(openId: string, text: string): Promise<void> {
+    await this.tenantRequest("/open-apis/im/v1/messages?receive_id_type=open_id", {
+      method: "POST",
+      body: JSON.stringify({
+        receive_id: openId,
+        msg_type: "text",
+        content: JSON.stringify({ text: text.slice(0, 2000) }),
+      }),
+    });
+  }
+
   async listTables(appToken: string): Promise<FeishuTable[]> {
     const items: FeishuTable[] = [];
     let pageToken = "";

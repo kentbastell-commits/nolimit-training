@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   getCompanyOpsConfig,
   type CompanyOpsConfig,
@@ -78,6 +78,7 @@ const pendingPrincipal: CompanyOpsPrincipal = {
 
 const tableIds: Record<CompanyOpsResource, string> = {
   staff: "tblStaff",
+  goal: "tblGoal",
   content: "tblContent",
   lead: "tblLead",
   partner: "tblPartner",
@@ -373,15 +374,20 @@ interface RepositoryHarness {
   repository: CompanyOpsRepository;
   created: Array<{ tableId: string; fields: Record<string, unknown> }>;
   updated: Array<{ tableId: string; recordId: string; fields: Record<string, unknown> }>;
+  sent: Array<{ openId: string; text: string }>;
 }
 
 const repositoryHarness = (
   recordsByTable: Record<string, FeishuRecord[]> = {},
-  fieldsByTable: Record<string, FeishuField[]> = {}
+  fieldsByTable: Record<string, FeishuField[]> = {},
+  envOverrides: Record<string, string> = {}
 ): RepositoryHarness => {
   const created: RepositoryHarness["created"] = [];
   const updated: RepositoryHarness["updated"] = [];
-  const value = config();
+  const sent: RepositoryHarness["sent"] = [];
+  const value = Object.keys(envOverrides).length
+    ? getCompanyOpsConfig({ ...env, ...envOverrides })
+    : config();
   for (const [resource, tableId] of Object.entries(tableIds)) {
     value.tables[resource as CompanyOpsResource].id = tableId;
   }
@@ -419,11 +425,15 @@ const repositoryHarness = (
       updated.push({ tableId, recordId, fields });
       return { record_id: recordId, fields };
     },
+    sendTextMessage: async (openId: string, text: string) => {
+      sent.push({ openId, text });
+    },
   } as unknown as FeishuClient;
   return {
     repository: new CompanyOpsRepository(value, fakeClient),
     created,
     updated,
+    sent,
   };
 };
 
@@ -2031,5 +2041,86 @@ describe("Company Operations monthly performance contracts", () => {
     });
     expect(created).toHaveLength(0);
     expect(updated).toHaveLength(0);
+  });
+});
+
+describe("Feishu DM pings", () => {
+  const goalFields: FeishuField[] = [
+    field("目标 Goal", 1, true),
+    field("回应 Response", 1),
+    field("回应人 Responded By", 1),
+    field("Created By Open ID", 1),
+  ];
+  const goalRecord: FeishuRecord = {
+    record_id: "recGoal1",
+    fields: {
+      "目标 Goal": "August content plan",
+      "Created By Open ID": "ou_founder",
+    },
+  };
+  const staffTable: FeishuRecord[] = [
+    {
+      record_id: "recStaff",
+      fields: {
+        "姓名 Name": "Staff Member",
+        "状态 Status": "在职 Active",
+        "飞书用户 Feishu User": [{ id: "ou_staff" }],
+      },
+    },
+  ];
+
+  it("staff goal comments DM the founders without blocking the save", async () => {
+    const harness = repositoryHarness(
+      { tblGoal: [goalRecord], tblStaff: staffTable },
+      { tblGoal: goalFields, tblStaff: staffAccessFields },
+      { FEISHU_ADMIN_FOUNDER_OPEN_IDS: "ou_founder" }
+    );
+    const result = await harness.repository.performAction(staffPrincipal, {
+      action: "respond_goal",
+      payload: { goalId: "recGoal1", response: "Done — draft is in the calendar" },
+    });
+    expect(result.success).toBe(true);
+    await vi.waitFor(() => {
+      expect(harness.sent.some((message) => message.openId === "ou_founder")).toBe(true);
+    });
+    const ping = harness.sent.find((message) => message.openId === "ou_founder")!;
+    expect(ping.text).toContain("August content plan");
+    expect(ping.text).toContain("/company-ops");
+    expect(harness.sent.some((message) => message.openId === "ou_staff")).toBe(false);
+  });
+
+  it("founder goal comments DM active staff, never the founder themself", async () => {
+    const harness = repositoryHarness(
+      { tblGoal: [goalRecord], tblStaff: staffTable },
+      { tblGoal: goalFields, tblStaff: staffAccessFields },
+      { FEISHU_ADMIN_FOUNDER_OPEN_IDS: "ou_founder" }
+    );
+    const result = await harness.repository.performAction(founderPrincipal, {
+      action: "respond_goal",
+      payload: { goalId: "recGoal1", response: "Looks great, ship it" },
+    });
+    expect(result.success).toBe(true);
+    await vi.waitFor(() => {
+      expect(harness.sent.some((message) => message.openId === "ou_staff")).toBe(true);
+    });
+    expect(harness.sent.some((message) => message.openId === "ou_founder")).toBe(false);
+  });
+
+  it("a failing DM send never fails the action", async () => {
+    const harness = repositoryHarness(
+      { tblGoal: [goalRecord], tblStaff: staffTable },
+      { tblGoal: goalFields, tblStaff: staffAccessFields },
+      { FEISHU_ADMIN_FOUNDER_OPEN_IDS: "ou_founder" }
+    );
+    (harness.repository as unknown as { client: { sendTextMessage: () => Promise<void> } })
+      .client.sendTextMessage = async () => {
+        throw new Error("permission denied: im:message scope missing");
+      };
+    const result = await harness.repository.performAction(staffPrincipal, {
+      action: "respond_goal",
+      payload: { goalId: "recGoal1", response: "Testing resilience" },
+    });
+    expect(result.success).toBe(true);
+    expect(harness.updated).toHaveLength(1);
   });
 });
