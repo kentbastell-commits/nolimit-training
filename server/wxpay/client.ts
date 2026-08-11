@@ -286,3 +286,64 @@ export function makeOutTradeNo(): string {
     .toString("hex")
     .toUpperCase()}`;
 }
+
+/* -------------------- Service-account OAuth (web, in-WeChat) -------------------- */
+
+/**
+ * Exchanges a webpage-authorization code (snsapi_base) for the visitor's
+ * openid via the service account. Returns null when OA creds are missing.
+ */
+export async function exchangeOaCodeForOpenid(code: string): Promise<string | null> {
+  const appId = process.env.WECHAT_OA_APPID;
+  const secret = process.env.WECHAT_OA_SECRET;
+  if (!appId || !secret) return null;
+  const response = await fetch(
+    `https://api.weixin.qq.com/sns/oauth2/access_token?appid=${appId}&secret=${secret}&code=${encodeURIComponent(code)}&grant_type=authorization_code`
+  );
+  const body: any = await response.json();
+  return body?.openid ? String(body.openid) : null;
+}
+
+/**
+ * Opaque signed token carrying an openid to the browser and back — the
+ * client never sees or forges a raw openid. HMAC key derives from the APIv3
+ * key (already secret, already on this server).
+ */
+export function makeOpenidToken(openid: string, ttlMs = 2 * 3600_000): string {
+  const config = wxpayConfig();
+  if (!config) throw new Error("WeChat Pay is not configured");
+  const expires = Date.now() + ttlMs;
+  const payload = `${Buffer.from(openid, "utf8").toString("base64url")}.${expires}`;
+  const mac = crypto
+    .createHmac("sha256", `openid:${config.apiV3Key}`)
+    .update(payload)
+    .digest("base64url");
+  return `${payload}.${mac}`;
+}
+
+export function verifyOpenidToken(token: string): string | null {
+  const config = wxpayConfig();
+  if (!config) return null;
+  const parts = String(token || "").split(".");
+  if (parts.length !== 3) return null;
+  const [encoded, expires, mac] = parts;
+  const payload = `${encoded}.${expires}`;
+  const expected = crypto
+    .createHmac("sha256", `openid:${config.apiV3Key}`)
+    .update(payload)
+    .digest("base64url");
+  const macBuffer = Buffer.from(mac);
+  const expectedBuffer = Buffer.from(expected);
+  if (
+    macBuffer.length !== expectedBuffer.length ||
+    !crypto.timingSafeEqual(macBuffer, expectedBuffer)
+  ) {
+    return null;
+  }
+  if (Number(expires) < Date.now()) return null;
+  try {
+    return Buffer.from(encoded, "base64url").toString("utf8");
+  } catch {
+    return null;
+  }
+}

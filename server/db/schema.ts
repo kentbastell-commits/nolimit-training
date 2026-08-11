@@ -882,3 +882,18 @@ export const wxSubscribeCredits = pgTable(
   },
   (t) => [index("wx_subscribe_credits_client_idx").on(t.clientId)]
 );
+
+// Website "scan with WeChat to log in" handshake tokens. Desktop mints a
+// token and polls; the phone (inside WeChat) authorizes and marks it ok.
+// Short-lived working data, cleaned opportunistically; NO client FK on
+// purpose - rows expire in minutes and must never block a client delete.
+export const wxLoginTokens = pgTable(
+  "wx_login_tokens",
+  {
+    token: text("token").primaryKey(),
+    status: text("status").default("pending"), // pending | ok
+    clientCode: text("client_code"),
+    createdAt: ts("created_at"),
+  },
+  (t) => [index("wx_login_tokens_created_idx").on(t.createdAt)]
+);

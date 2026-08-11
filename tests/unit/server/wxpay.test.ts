@@ -2,13 +2,19 @@
 // resource decryption, exercised against a locally generated keypair so the
 // exact byte formats WeChat specifies are pinned by tests.
 import crypto from "node:crypto";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  __resetWxpayConfigCache,
   buildAuthorization,
   decryptCallbackResource,
+  makeOpenidToken,
   makeOutTradeNo,
   signJsapiInvoke,
   verifyCallbackSignature,
+  verifyOpenidToken,
   type WxpayConfig,
 } from "../../../server/wxpay/client.ts";
 
@@ -163,5 +169,33 @@ describe("makeOutTradeNo", () => {
       seen.add(id);
     }
     expect(seen.size).toBe(200);
+  });
+});
+
+describe("openid tokens", () => {
+  it("round-trips and rejects tampering/expiry", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "wxpay-oid-"));
+    fs.writeFileSync(path.join(dir, "key.pem"), privateKeyPem);
+    process.env.WXPAY_MCH_ID = "1749290194";
+    process.env.WXPAY_APIV3_KEY = API_V3_KEY;
+    process.env.WXPAY_CERT_SERIAL = "TESTSERIAL01";
+    process.env.WXPAY_PRIVATE_KEY_PATH = path.join(dir, "key.pem");
+    __resetWxpayConfigCache();
+    try {
+      const token = makeOpenidToken("openid-abc-123");
+      expect(verifyOpenidToken(token)).toBe("openid-abc-123");
+      expect(verifyOpenidToken(token + "x")).toBeNull();
+      expect(verifyOpenidToken("a.b")).toBeNull();
+      const expired = makeOpenidToken("openid-abc-123", -1_000);
+      expect(verifyOpenidToken(expired)).toBeNull();
+    } finally {
+      for (const name of [
+        "WXPAY_MCH_ID", "WXPAY_APIV3_KEY", "WXPAY_CERT_SERIAL", "WXPAY_PRIVATE_KEY_PATH",
+      ]) {
+        delete process.env[name];
+      }
+      __resetWxpayConfigCache();
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
   });
 });

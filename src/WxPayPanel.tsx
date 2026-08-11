@@ -11,6 +11,68 @@ import { useEffect, useRef, useState } from "react";
 let enabledCache: boolean | null = null;
 let enabledPromise: Promise<boolean> | null = null;
 
+const IS_WECHAT = /MicroMessenger/i.test(navigator.userAgent);
+const OPENID_TOKEN_KEY = "nl-wx-openid-token";
+const OAUTH_ATTEMPT_KEY = "nl-wx-oauth-attempted";
+const OA_APPID = "wxdf181d0891ae7ed1";
+
+function stashedOpenidToken(): string {
+  try {
+    return sessionStorage.getItem(OPENID_TOKEN_KEY) || "";
+  } catch {
+    return "";
+  }
+}
+
+// Inside the WeChat browser: silently round-trip through the service
+// account's snsapi_base authorize page once per session so the checkout can
+// open the NATIVE payment sheet instead of a long-press QR. Invisible to the
+// user (base scope shows no consent screen); any failure just leaves the QR
+// fallback in place.
+async function bootstrapWechatOpenid(): Promise<void> {
+  if (!IS_WECHAT || stashedOpenidToken()) return;
+  const url = new URL(window.location.href);
+  const code = url.searchParams.get("code");
+  const state = url.searchParams.get("state");
+  if (code && state === "wxstore") {
+    url.searchParams.delete("code");
+    url.searchParams.delete("state");
+    window.history.replaceState(null, "", url.toString());
+    try {
+      const res = await fetch("/api/wxAuthWeb", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code }),
+      });
+      const data = await res.json().catch(() => null);
+      if (res.ok && data?.openidToken) {
+        try {
+          sessionStorage.setItem(OPENID_TOKEN_KEY, String(data.openidToken));
+        } catch {
+          // Storage blocked — the QR fallback still works.
+        }
+      }
+    } catch {
+      // Network failure — QR fallback stands.
+    }
+    return;
+  }
+  try {
+    if (sessionStorage.getItem(OAUTH_ATTEMPT_KEY)) return;
+    sessionStorage.setItem(OAUTH_ATTEMPT_KEY, "1");
+  } catch {
+    return; // No storage means we can't stop a redirect loop — don't start one.
+  }
+  const redirect = new URL(window.location.href);
+  redirect.searchParams.delete("code");
+  redirect.searchParams.delete("state");
+  window.location.replace(
+    "https://open.weixin.qq.com/connect/oauth2/authorize" +
+      `?appid=${OA_APPID}&redirect_uri=${encodeURIComponent(redirect.toString())}` +
+      "&response_type=code&scope=snsapi_base&state=wxstore#wechat_redirect"
+  );
+}
+
 /** Module-cached probe of /api/wxpayConfig — one fetch per page load. */
 export function useWxpayEnabled(): boolean {
   const [enabled, setEnabled] = useState(enabledCache === true);
@@ -24,6 +86,7 @@ export function useWxpayEnabled(): boolean {
         .then((res) => (res.ok ? res.json() : { enabled: false }))
         .then((data) => {
           enabledCache = data?.enabled === true;
+          if (enabledCache) void bootstrapWechatOpenid();
           return enabledCache;
         })
         .catch(() => {
@@ -97,7 +160,47 @@ export default function WxPayPanel({
       }, 4_000);
     };
 
+    // Inside WeChat with an authorized session: open the NATIVE payment
+    // sheet. Falls through to the QR path on any failure.
+    const tryJsapi = async (): Promise<boolean> => {
+      const openidToken = stashedOpenidToken();
+      if (!IS_WECHAT || !openidToken) return false;
+      try {
+        const res = await fetch("/api/wxpayCreateJsapi", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ orderId, openidToken }),
+        });
+        const data = await res.json().catch(() => null);
+        if (cancelled) return true;
+        if (res.ok && data?.alreadyPaid) {
+          setState({ phase: "paid" });
+          onPaidRef.current?.();
+          return true;
+        }
+        if (!res.ok || !data?.payment) return false;
+        const bridge = (window as unknown as { WeixinJSBridge?: any }).WeixinJSBridge;
+        if (!bridge?.invoke) return false;
+        const outcome = await new Promise<string>((resolve) => {
+          bridge.invoke("getBrandWCPayRequest", data.payment, (result: any) =>
+            resolve(String(result?.err_msg || ""))
+          );
+        });
+        if (cancelled) return true;
+        if (outcome === "get_brand_wcpay_request:ok") {
+          setState({ phase: "paid" });
+          onPaidRef.current?.();
+          return true;
+        }
+        // Cancelled/failed sheet: keep the panel useful with the QR path.
+        return false;
+      } catch {
+        return false;
+      }
+    };
+
     (async () => {
+      if (await tryJsapi()) return;
       try {
         const res = await fetch("/api/wxpayCreate", {
           method: "POST",
