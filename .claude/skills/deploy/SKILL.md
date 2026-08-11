@@ -115,6 +115,11 @@ actually deployed and verified working.
 `drizzle.__drizzle_migrations`) — safe on every deploy, and REQUIRED whenever
 `server/db/migrations/` gained a file. Never hand-apply migration SQL with
 psql on prod: mixing manual applies with drizzle tracking desyncs the journal.
+**Its success output is NOT verification** (mistake #57: an out-of-order
+journal timestamp made it skip a migration while printing "applied
+successfully"). When the deploy includes a migration, verify the schema
+landed by querying prod's information_schema for the new column/table:
+`ssh nolimit-cn "cd /opt/nolimit-training && node --env-file=.env -e \"...select column_name from information_schema.columns...\""`
 
 ## Steps — kangfu
 

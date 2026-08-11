@@ -630,6 +630,18 @@ data between them, never "borrow" a table ID across products.
     create-table accepts a narrower shape and create-table has no `client_token`.
     Keep table creation minimal, then reconcile full fields through their own API.
 
+57. **The migration the journal skipped** — drizzle-kit migrate applies only
+    migrations whose `when` timestamp in `meta/_journal.json` is NEWER than
+    the last applied one. An earlier entry with a hand-rounded FUTURE
+    timestamp (0018 carried 1786480000000) made a freshly generated 0019
+    silently skip on deploy while `migrate` printed "applied successfully" —
+    prod inserts then failed on the missing wxpay columns during a live
+    payment test. Rules: never hand-edit journal `when` values (and be
+    suspicious of round ones — sort-check the journal when a migration
+    misbehaves); and a deploy that includes a migration is verified by
+    querying information_schema for the new column/table on PROD, never by
+    the migrate step's exit code or its success line.
+
 ## Quality bar — checkable, per deliverable
 
 **Any shipped code change**
