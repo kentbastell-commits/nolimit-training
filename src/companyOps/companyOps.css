@@ -4983,3 +4983,120 @@ a.fopsOnboardingTaskLink:hover strong {
     padding-left: 18px;
   }
 }
+
+/* ============ Compact collapsible goal rows + comment threads ============ */
+.fopsGoalList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.fopsGoalRow {
+  border: 1px solid var(--fops-line);
+  border-radius: 13px;
+  background: var(--fops-surface);
+  overflow: hidden;
+}
+.fopsGoalRow.is-open {
+  border-color: rgb(201 168 76 / 55%);
+}
+.fopsGoalRowHead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 16px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.fopsGoalDot {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #2f6fdd;
+}
+.fopsGoalDot.is-done { background: #107a4a; }
+.fopsGoalDot.is-parked { background: var(--fops-line-dark); }
+.fopsGoalRowTitle {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 0.95rem;
+}
+.fopsGoalCommentCount {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+  color: var(--fops-ink-soft);
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
+.fopsGoalChevron {
+  flex: none;
+  color: var(--fops-ink-soft);
+  transition: transform 180ms ease;
+}
+.fopsGoalRow.is-open .fopsGoalChevron { transform: rotate(180deg); }
+.fopsGoalRowBody {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0 16px 14px 35px;
+}
+.fopsGoalMetaRow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  color: var(--fops-ink-soft);
+  font-size: 0.8rem;
+}
+.fopsGoalStatusSelect { margin-left: auto; }
+.fopsGoalNotes {
+  margin: 0;
+  color: var(--fops-ink-soft);
+  font-size: 0.86rem;
+  line-height: 1.55;
+}
+.fopsGoalThread {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.fopsGoalThreadEntry {
+  padding: 8px 12px;
+  border-left: 3px solid rgb(201 168 76 / 55%);
+  border-radius: 0 10px 10px 0;
+  background: rgb(201 168 76 / 7%);
+}
+.fopsGoalThreadEntry small {
+  display: block;
+  margin-bottom: 2px;
+  color: var(--fops-ink-soft);
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+}
+.fopsGoalThreadEntry p {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.55;
+}
+.fopsGoalRespond {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+}
+.fopsGoalRespond textarea {
+  flex: 1;
+  min-width: 0;
+  resize: vertical;
+}
+@media (max-width: 640px) {
+  .fopsGoalRowBody { padding-left: 16px; }
+  .fopsGoalRowHead .fopsPill { display: none; }
+}

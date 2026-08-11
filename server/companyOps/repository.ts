@@ -2663,13 +2663,33 @@ export class CompanyOpsRepository {
         if (response.length > 3_000) throw new CompanyOpsHttpError(400, "response is too long");
         assertNoHealthData({ response });
         const target = await this.target("goal");
-        await this.client.getRecord(target.appToken, target.tableId, goalId);
+        const record = await this.client.getRecord(target.appToken, target.tableId, goalId);
         const responseField = requiredField(target, ["回应 Response"]);
         const byField = fieldByAlias(target.fields, ["回应人 Responded By"]);
-        const updates: FeishuFields = { [responseField.field_name]: response };
+        // Comment THREAD, not a single reply: each entry is prefixed
+        // "[yyyy-mm-dd hh:mm Name]" and appended, so founders and staff can
+        // go back and forth on a goal. The client renders the prefix lines
+        // as a chat-style list.
+        const existingThread = textValue(
+          recordField(record.fields, ["回应 Response", "Response"])
+        ).trim();
+        const stamp = new Date(Date.now() + 8 * 3_600_000)
+          .toISOString()
+          .slice(0, 16)
+          .replace("T", " ");
+        const entry = `[${stamp} ${principal.name}] ${response}`;
+        const combined = existingThread ? `${existingThread}
+${entry}` : entry;
+        if (combined.length > 6_000) {
+          throw new CompanyOpsHttpError(
+            400,
+            "This goal's comment thread is full — start a new goal or trim it in the Base"
+          );
+        }
+        const updates: FeishuFields = { [responseField.field_name]: combined };
         if (byField) updates[byField.field_name] = principal.name;
         await this.client.updateRecord(target.appToken, target.tableId, goalId, updates);
-        return { success: true, message: "Response saved", recordId: goalId };
+        return { success: true, message: "Comment added", recordId: goalId };
       }
       case "content.update":
       case "update_content": {

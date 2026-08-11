@@ -1,4 +1,5 @@
 import {
+  ChevronDown,
   ArrowRight,
   BarChart3,
   Banknote,
@@ -57,37 +58,152 @@ const quickActionIcons = {
   founder_decision: MessageSquareMore,
 } satisfies Record<QuickActionKey, typeof Lightbulb>;
 
-function GoalRespondBox({
+/** Parses the goal's response column into a comment thread. Entries are
+ *  "[yyyy-mm-dd hh:mm Name] text"; anything before the first prefix is a
+ *  legacy single response. */
+function parseGoalThread(goal: OpsGoalItem): Array<{ meta: string; body: string }> {
+  const raw = (goal.response || "").trim();
+  if (!raw) return [];
+  return raw
+    .split(/\n(?=\[\d{4}-)/)
+    .map((chunk) => {
+      const match = chunk.match(/^\[([^\]]+)\]\s*([\s\S]*)$/);
+      if (match) return { meta: match[1], body: match[2].trim() };
+      return { meta: goal.respondedBy || "", body: chunk.trim() };
+    })
+    .filter((entry) => entry.body);
+}
+
+function GoalRow({
   goal,
   language,
+  isFounder,
+  open,
+  onToggle,
   onRespond,
+  onUpdateStatus,
 }: {
   goal: OpsGoalItem;
   language: CompanyOpsLanguage;
-  onRespond: (goal: OpsGoalItem, response: string) => void;
+  isFounder: boolean;
+  open: boolean;
+  onToggle: () => void;
+  onRespond?: (goal: OpsGoalItem, response: string) => void;
+  onUpdateStatus?: (goal: OpsGoalItem, status: string) => void;
 }) {
   const [text, setText] = useState("");
+  const thread = parseGoalThread(goal);
+  const isIdea = /想法|idea/i.test(goal.goalType || "");
   return (
-    <div className="fopsGoalRespond">
-      <textarea
-        rows={2}
-        value={text}
-        placeholder={opsText(language, "goalRespondPlaceholder")}
-        onChange={(event) => setText(event.target.value)}
-      />
+    <article className={`fopsGoalRow${open ? " is-open" : ""}`}>
       <button
         type="button"
-        className="fopsButton fopsButton--compact"
-        disabled={!text.trim()}
-        onClick={() => {
-          onRespond(goal, text.trim());
-          setText("");
-        }}
+        className="fopsGoalRowHead"
+        aria-expanded={open}
+        onClick={onToggle}
       >
-        <Send size={14} />
-        {opsText(language, "goalRespondSend")}
+        <span
+          className={`fopsGoalDot${
+            goal.status === "Done"
+              ? " is-done"
+              : goal.status === "Parked"
+                ? " is-parked"
+                : ""
+          }`}
+          aria-hidden="true"
+        />
+        <strong className="fopsGoalRowTitle">{goal.title}</strong>
+        {isIdea ? (
+          <TonePill tone="purple">{goal.goalType}</TonePill>
+        ) : goal.priority ? (
+          <TonePill tone="warning">{goal.priority}</TonePill>
+        ) : null}
+        {goal.status ? (
+          <TonePill
+            tone={
+              goal.status === "Done"
+                ? "success"
+                : goal.status === "Parked"
+                  ? "neutral"
+                  : "blue"
+            }
+          >
+            {statusLabel(language, goal.status)}
+          </TonePill>
+        ) : null}
+        {thread.length ? (
+          <span className="fopsGoalCommentCount">
+            <MessageSquareMore size={13} aria-hidden="true" />
+            {thread.length}
+          </span>
+        ) : null}
+        <ChevronDown size={16} className="fopsGoalChevron" aria-hidden="true" />
       </button>
-    </div>
+      {open ? (
+        <div className="fopsGoalRowBody">
+          <div className="fopsGoalMetaRow">
+            {goal.creator ? (
+              <small>{opsText(language, "goalFrom", { name: goal.creator })}</small>
+            ) : null}
+            {goal.dueAt ? (
+              <small className="fopsGoalDue">{formatOpsDate(goal.dueAt, language)}</small>
+            ) : null}
+            {isFounder && onUpdateStatus ? (
+              <select
+                className="fopsStatusSelect fopsGoalStatusSelect"
+                value={goal.status || "Active"}
+                aria-label={opsText(language, "moveStatus")}
+                onChange={(event) => onUpdateStatus(goal, event.target.value)}
+              >
+                {["New", "Active", "Done", "Parked"].map((status) => (
+                  <option value={status} key={status}>
+                    {statusLabel(language, status)}
+                  </option>
+                ))}
+              </select>
+            ) : null}
+          </div>
+          {goal.measure ? (
+            <TranslatableText text={goal.measure} language={language} />
+          ) : null}
+          {goal.notes ? (
+            <p className="fopsGoalNotes">{goal.notes}</p>
+          ) : null}
+          {thread.length ? (
+            <div className="fopsGoalThread">
+              {thread.map((entry, index) => (
+                <div className="fopsGoalThreadEntry" key={index}>
+                  <small>{entry.meta}</small>
+                  <p>{entry.body}</p>
+                </div>
+              ))}
+            </div>
+          ) : null}
+          {onRespond ? (
+            <div className="fopsGoalRespond">
+              <textarea
+                rows={1}
+                value={text}
+                placeholder={opsText(language, "goalRespondPlaceholder")}
+                onChange={(event) => setText(event.target.value)}
+              />
+              <button
+                type="button"
+                className="fopsButton fopsButton--compact"
+                disabled={!text.trim()}
+                onClick={() => {
+                  onRespond(goal, text.trim());
+                  setText("");
+                }}
+              >
+                <Send size={14} />
+                {opsText(language, "goalRespondSend")}
+              </button>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+    </article>
   );
 }
 
@@ -116,6 +232,7 @@ export default function CompanyOpsHome({
   onUpdateGoalStatus?: (goal: OpsGoalItem, status: string) => void;
   compensationBusy: boolean;
 }) {
+  const [openGoalId, setOpenGoalId] = useState("");
   const configured = dashboard.quickActions?.filter(
     (action) => action.enabled !== false,
   );
@@ -380,76 +497,20 @@ export default function CompanyOpsHome({
             }
           />
           {dashboard.goals?.length ? (
-            <div className="fopsGoalGrid">
+            <div className="fopsGoalList">
               {dashboard.goals.map((goal) => (
-                <article className="fopsGoalCard" key={goal.id}>
-                  <header>
-                    <span className="fopsGoalIcon" aria-hidden="true">
-                      <Target size={16} />
-                    </span>
-                    {goal.goalType ? (
-                      <TonePill tone={/想法|idea/i.test(goal.goalType) ? "purple" : "gold"}>
-                        {goal.goalType}
-                      </TonePill>
-                    ) : null}
-                    {goal.status ? (
-                      <TonePill
-                        tone={
-                          goal.status === "Done"
-                            ? "success"
-                            : goal.status === "Parked"
-                              ? "neutral"
-                              : "blue"
-                        }
-                      >
-                        {statusLabel(language, goal.status)}
-                      </TonePill>
-                    ) : null}
-                    {goal.priority ? (
-                      <TonePill tone="warning">{goal.priority}</TonePill>
-                    ) : null}
-                  </header>
-                  <h3>{goal.title}</h3>
-                  {goal.creator ? (
-                    <small className="fopsGoalCreator">
-                      {opsText(language, "goalFrom", { name: goal.creator })}
-                    </small>
-                  ) : null}
-                  <TranslatableText text={goal.measure} language={language} />
-                  {goal.dueAt ? (
-                    <small className="fopsGoalDue">
-                      {formatOpsDate(goal.dueAt, language)}
-                    </small>
-                  ) : null}
-                  {goal.response ? (
-                    <div className="fopsGoalResponse">
-                      <strong>{goal.respondedBy || ""}</strong>
-                      <TranslatableText text={goal.response} language={language} />
-                    </div>
-                  ) : null}
-                  {user.role === "founder" && onUpdateGoalStatus ? (
-                    <select
-                      className="fopsStatusSelect"
-                      value={goal.status || "Active"}
-                      aria-label={opsText(language, "moveStatus")}
-                      onChange={(event) =>
-                        onUpdateGoalStatus(goal, event.target.value)
-                      }
-                    >
-                      {["New", "Active", "Done", "Parked"].map((status) => (
-                        <option value={status} key={status}>
-                          {statusLabel(language, status)}
-                        </option>
-                      ))}
-                    </select>
-                  ) : onRespondGoal ? (
-                    <GoalRespondBox
-                      goal={goal}
-                      language={language}
-                      onRespond={onRespondGoal}
-                    />
-                  ) : null}
-                </article>
+                <GoalRow
+                  goal={goal}
+                  language={language}
+                  isFounder={user.role === "founder"}
+                  open={openGoalId === goal.id}
+                  onToggle={() =>
+                    setOpenGoalId((current) => (current === goal.id ? "" : goal.id))
+                  }
+                  onRespond={onRespondGoal}
+                  onUpdateStatus={onUpdateGoalStatus}
+                  key={goal.id}
+                />
               ))}
             </div>
           ) : (
