@@ -1400,3 +1400,18 @@
   gap: 14px;
   flex-wrap: wrap;
 }
+
+.copCollectBtn {
+  margin-left: 8px;
+  padding: 8px 14px;
+  border: 1.5px solid #10a54a;
+  border-radius: 999px;
+  background: rgba(16, 165, 74, 0.08);
+  color: #0b7a38;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.copCollectBtn:hover {
+  background: rgba(16, 165, 74, 0.16);
+}

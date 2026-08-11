@@ -102,6 +102,7 @@ import wxAuth from "../api/wxAuth.ts";
 import wxpayConfig from "../api/wxpayConfig.ts";
 import wxpayCreate from "../api/wxpayCreate.ts";
 import wxpayCreateMini from "../api/wxpayCreateMini.ts";
+import wxpayCollect from "../api/wxpayCollect.ts";
 import wxpayNotify from "../api/wxpayNotify.ts";
 import wxpayStatus from "../api/wxpayStatus.ts";
 import workouts from "../api/workouts.ts";
@@ -311,6 +312,7 @@ const handlers = {
   upsertTeam,
   warmCache,
   wxAuth,
+  wxpayCollect,
   wxpayConfig,
   wxpayCreate,
   wxpayCreateMini,

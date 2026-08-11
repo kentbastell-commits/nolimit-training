@@ -60,4 +60,5 @@ export const COACH_ONLY_HANDLERS = new Set([
   "upsertExercise",
   "upsertSubscription",
   "upsertTeam",
+  "wxpayCollect",
 ]);

@@ -1,0 +1,136 @@
+/* 收款码 Collect-payment modal (coach console). Fixed overlay portaled to
+   .app via PortalToApp (mistake #34 — never anchor fixed chrome under an
+   animated shell). Toasts sit at 3600+; keep this below them. */
+.collectPayScrim {
+  position: fixed;
+  inset: 0;
+  z-index: 3300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  background: rgba(10, 10, 8, 0.55);
+}
+.collectPayModal {
+  width: min(420px, 100%);
+  max-height: min(88vh, 640px);
+  overflow-y: auto;
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  border-radius: 16px;
+  background: var(--nl-surface, #fffdf7);
+  color: var(--nl-ink, #171512);
+  box-shadow: 0 24px 60px rgba(10, 10, 8, 0.35);
+}
+.collectPayModal > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid rgba(120, 110, 80, 0.18);
+}
+.collectPayModal > header strong {
+  font-size: 1.02rem;
+}
+.collectPayModal > header button {
+  display: inline-flex;
+  padding: 6px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.collectPayBody {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 18px 20px;
+}
+.collectPayIntro {
+  margin: 0;
+  font-size: 0.85rem;
+  opacity: 0.75;
+}
+.collectPayBody label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 0.83rem;
+  font-weight: 650;
+}
+.collectPayBody input {
+  padding: 9px 11px;
+  border: 1px solid rgba(120, 110, 80, 0.35);
+  border-radius: 9px;
+  background: #fff;
+  color: #171512;
+  font-size: 0.95rem;
+}
+.collectPayError {
+  margin: 0;
+  color: #a12c22;
+  font-size: 0.84rem;
+}
+.collectPayCta {
+  padding: 11px 16px;
+  border: 0;
+  border-radius: 10px;
+  background: #10a54a;
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.collectPayCta:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.collectPayBody--qr,
+.collectPayBody--paid {
+  align-items: center;
+  text-align: center;
+}
+.collectPayAmount {
+  color: #0b7a38;
+  font-size: 1.5rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.collectPayLabel {
+  font-size: 0.9rem;
+  opacity: 0.8;
+}
+.collectPayBody--qr img {
+  width: 240px;
+  max-width: 80%;
+  padding: 10px;
+  border: 1px solid rgba(120, 110, 80, 0.25);
+  border-radius: 12px;
+  background: #fff;
+}
+.collectPayHint {
+  margin: 0;
+  font-size: 0.8rem;
+  opacity: 0.7;
+}
+.collectPayBody--paid {
+  padding-top: 28px;
+  padding-bottom: 28px;
+}
+.collectPayPaidMark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: #0b7a38;
+  color: #fff;
+  font-size: 1.6rem;
+  font-weight: 800;
+}
+.collectPayBody--paid p {
+  margin: 0;
+  font-size: 0.85rem;
+  opacity: 0.75;
+}

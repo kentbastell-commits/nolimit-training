@@ -4,6 +4,7 @@
 // ledger). View-layer restructure wired to the existing handlers.
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from "react";
+import CollectPaymentModal from "./CollectPaymentModal";
 import "./CoachOrdersPage.css";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
@@ -38,6 +39,7 @@ const initialsOf = (name: string) =>
 const COACH_CAP = 12; // FLAG: coach capacity isn't in the Coach record — default.
 
 export default function CoachOrdersPage(props: { [key: string]: any }) {
+  const [collectOpen, setCollectOpen] = useState(false);
   const {
     activeCoaches,
     buildClientPortalLink,
@@ -181,6 +183,13 @@ export default function CoachOrdersPage(props: { [key: string]: any }) {
           <h1>Orders</h1>
           <button type="button" className="copReload" onClick={loadProductOrders}>
             Reload orders
+          </button>
+          <button
+            type="button"
+            className="copCollectBtn"
+            onClick={() => setCollectOpen(true)}
+          >
+            {tr("Collect payment", "收款码")}
           </button>
         </div>
         <p>
@@ -946,6 +955,13 @@ export default function CoachOrdersPage(props: { [key: string]: any }) {
           </details>
         );
       })()}
+      {collectOpen ? (
+        <CollectPaymentModal
+          isChinese={isChinese}
+          onClose={() => setCollectOpen(false)}
+          onCollected={loadProductOrders}
+        />
+      ) : null}
     </div>
   );
 }
