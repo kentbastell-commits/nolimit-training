@@ -27,6 +27,7 @@ import { SkeletonPage } from "./components";
 import { opsText, roleLabel, type OpsCopyKey } from "./copy";
 import FounderHome from "./FounderHome";
 import GrowthHome from "./GrowthHome";
+import GuidePage from "./GuidePage";
 import OnboardingHome from "./OnboardingHome";
 import PerformanceHome from "./PerformanceHome";
 import PoliciesPage from "./PoliciesPage";
@@ -61,6 +62,7 @@ const navItems: Array<{
   { page: "growth", label: "navGrowth", icon: TrendingUp },
   { page: "calendar", label: "navCalendar", icon: CalendarDays },
   { page: "articles", label: "navArticles", icon: Newspaper },
+  { page: "guide", label: "navGuide", icon: BookOpenCheck },
   { page: "decisions", label: "navDecisions", icon: Gavel },
   { page: "onboarding", label: "navOnboarding", icon: UserRoundCheck },
   { page: "policies", label: "navPolicies", icon: BookOpenCheck },
@@ -893,6 +895,9 @@ export default function CompanyOpsApp({
                 void handleAcknowledgePolicy(policy)
               }
             />
+          ) : null}
+          {activePage === "guide" ? (
+            <GuidePage language={language} onNavigate={navigate} />
           ) : null}
           {activePage === "policies" ? (
             <PoliciesPage

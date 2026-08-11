@@ -9,6 +9,7 @@ export type CompanyOpsPage =
   | "decisions"
   | "calendar"
   | "articles"
+  | "guide"
   | "onboarding"
   | "policies";
 
