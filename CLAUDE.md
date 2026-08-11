@@ -653,6 +653,15 @@ data between them, never "borrow" a table ID across products.
     querying information_schema for the new column/table on PROD, never by
     the migrate step's exit code or its success line.
 
+58. **The dashboard that summed its round-trips** — company-ops dashboard
+    sections were each added as another sequential `await listOptional(...)`
+    (by several agents over time), quietly growing to 7 serial Feishu
+    round-trips = 15-23s loads, misread as "Thailand internet". Rule: a new
+    dashboard/aggregate section joins the up-front parallel `prefetch` block
+    (guards mirroring its use site), never a standalone await; and "page is
+    slow" gets MEASURED server-side (time the assembly on the box) before
+    blaming the network.
+
 ## Quality bar — checkable, per deliverable
 
 **Any shipped code change**
