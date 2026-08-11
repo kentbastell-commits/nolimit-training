@@ -200,6 +200,13 @@ data between them, never "borrow" a table ID across products.
 20. **The invisible crawler head** — adding runtime or Express SEO metadata when
     production Nginx serves `dist` directly. Rule: inspect the live delivery path,
     emit static route HTML at build time, and verify raw HTML rather than the DOM.
+    Corollary (bit Kimi 2026-08-11): hand-editing `index.html`'s
+    `<!-- SEO:START -->` block is a dead edit — the build regenerates it from
+    `src/seoConfig.ts` (via `server/seo.ts`); change titles/descriptions THERE.
+    And when verifying the live page pre-launch, remember the nginx launch gate
+    serves coming-soon.html to cookie-less requests — curl with the `nl_gate`
+    cookie (see `/etc/nginx/conf.d/nolimit-training.conf`) or you're grepping
+    the wrong page.
 
 21. **The phantom select value** — a `<select value={state}>` whose state is ""
     (or filtered out of the options) DISPLAYS the first option while state holds
