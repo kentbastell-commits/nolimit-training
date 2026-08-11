@@ -420,6 +420,19 @@ export async function activateDigitalOrder(
     existing = (
       await db.select().from(clients).where(eq(clients.clientId, buyerCode))
     )[0];
+    // Guard: the remembered portal code is only trusted when the typed name
+    // matches that account. Kent's own devices stay logged into ATHLETES'
+    // portals for support/testing, and a checkout from such a browser once
+    // attached his purchase (and its intake) to the athlete's account. A
+    // real rebuy types their own name; a mismatch means "buying as someone
+    // else" — fall back to the phone-dedupe/create path instead.
+    if (existing) {
+      const normalize = (value: string) =>
+        value.toLowerCase().replace(/\s+/g, "");
+      if (normalize(str(existing.fullName)) !== normalize(clientName)) {
+        existing = undefined;
+      }
+    }
   }
   if (!existing) {
     existing = (

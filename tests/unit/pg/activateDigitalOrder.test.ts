@@ -113,6 +113,45 @@ describe("api/activateDigitalOrder (postgres)", () => {
     expect(orders[0].program_id).toBe("PR-1001");
   });
 
+  it("adopts buyerClientCode only when the typed name matches that account", async () => {
+    await seedProgram({ program_id: "PR-1001", name: "Test Program" });
+    // The remembered portal belongs to a DIFFERENT person (a coach's test
+    // device stays logged into athletes' portals) — the purchase must NOT
+    // attach to it when the typed name doesn't match.
+    await seedClient({ client_id: "CL-9001", full_name: "Pan Yufei", phone: "139999" });
+
+    const res = makeRes();
+    await handler(
+      makeReq({
+        method: "POST",
+        body: validBody({ buyerClientCode: "CL-9001" }),
+      }) as any,
+      res as any
+    );
+    expect(res.statusCode).toBe(200);
+    expect(res.body.clientCode).not.toBe("CL-9001");
+
+    const orders = await rows("select client_id from product_orders");
+    expect(orders).toHaveLength(1);
+    expect(orders[0].client_id).not.toBe("CL-9001");
+
+    // Same request but with the matching name: the logged-in identity wins
+    // (the rebuy rule from #37 stays intact).
+    await resetDb();
+    await seedProgram({ program_id: "PR-1001", name: "Test Program" });
+    await seedClient({ client_id: "CL-9001", full_name: "Bob Tan", phone: "139999" });
+    const res2 = makeRes();
+    await handler(
+      makeReq({
+        method: "POST",
+        body: validBody({ buyerClientCode: "CL-9001" }),
+      }) as any,
+      res2 as any
+    );
+    expect(res2.statusCode).toBe(200);
+    expect(res2.body.clientCode).toBe("CL-9001");
+  });
+
   it("creates the order as unpaid — a buyer's claim never unlocks access", async () => {
     await seedProgram({ program_id: "PR-1001", name: "Test Program" });
     await seedClient({ client_id: "CL-9001", full_name: "Bob Tan", phone: "13800000001" });

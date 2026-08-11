@@ -155,17 +155,22 @@ export async function createNativeTransaction(input: {
   return { codeUrl: String(body.code_url) };
 }
 
-/** Creates a JSAPI transaction (inside the WeChat browser); needs an openid. */
+/**
+ * Creates a JSAPI transaction; needs the payer's openid. The appId must be
+ * the one the openid came from (service account for the WeChat browser,
+ * mini program AppID for wx.login) — both are bound to this merchant.
+ */
 export async function createJsapiTransaction(input: {
   outTradeNo: string;
   description: string;
   totalFen: number;
   openid: string;
+  appId?: string;
 }): Promise<{ prepayId: string }> {
   const config = wxpayConfig();
   if (!config) throw new Error("WeChat Pay is not configured");
   const { status, body } = await apiRequest(config, "POST", "/v3/pay/transactions/jsapi", {
-    appid: config.appId,
+    appid: input.appId || config.appId,
     mchid: config.mchId,
     description: input.description.slice(0, 127),
     out_trade_no: input.outTradeNo,
@@ -181,16 +186,18 @@ export async function createJsapiTransaction(input: {
   return { prepayId: String(body.prepay_id) };
 }
 
-/** Client-side invoke params for WeixinJSBridge, signed with our key. */
-export function signJsapiInvoke(config: WxpayConfig, prepayId: string) {
+/** Client-side invoke params (WeixinJSBridge / wx.requestPayment), signed
+ *  with our key over the SAME appId the prepay was created under. */
+export function signJsapiInvoke(config: WxpayConfig, prepayId: string, appId?: string) {
+  const invokeAppId = appId || config.appId;
   const timeStamp = String(Math.floor(Date.now() / 1000));
   const nonceStr = nonce();
   const pkg = `prepay_id=${prepayId}`;
   const paySign = crypto
     .createSign("RSA-SHA256")
-    .update(`${config.appId}\n${timeStamp}\n${nonceStr}\n${pkg}\n`)
+    .update(`${invokeAppId}\n${timeStamp}\n${nonceStr}\n${pkg}\n`)
     .sign(config.privateKeyPem, "base64");
-  return { appId: config.appId, timeStamp, nonceStr, package: pkg, signType: "RSA", paySign };
+  return { appId: invokeAppId, timeStamp, nonceStr, package: pkg, signType: "RSA", paySign };
 }
 
 export type WxpayTransactionState = {
