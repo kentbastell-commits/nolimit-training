@@ -20,7 +20,7 @@ import {
   Upload,
   Video,
 } from "lucide-react";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { TonePill } from "./components";
 import type { CompanyOpsLanguage, OpsArticleItem } from "./types";
 
@@ -386,6 +386,7 @@ export default function ArticleBuilderPage({
   onCreate,
   onSave,
   onDelete,
+  onDirtyChange,
 }: {
   articles: OpsArticleItem[];
   language: CompanyOpsLanguage;
@@ -395,6 +396,7 @@ export default function ArticleBuilderPage({
     patch: { title?: string; summary?: string; blocks?: string; status?: string },
   ) => Promise<void>;
   onDelete: (articleId: string) => Promise<void>;
+  onDirtyChange?: (dirty: boolean) => void;
 }) {
   const [openId, setOpenId] = useState<string | null>(null);
   const [newTitle, setNewTitle] = useState("");
@@ -403,6 +405,7 @@ export default function ArticleBuilderPage({
   const [summary, setSummary] = useState("");
   const [blocks, setBlocks] = useState<ArticleBlock[]>([]);
   const [dirty, setDirty] = useState(false);
+  const [restoredDraft, setRestoredDraft] = useState(false);
   const [saving, setSaving] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [copied, setCopied] = useState<null | boolean>(null);
@@ -413,14 +416,69 @@ export default function ArticleBuilderPage({
     [articles, openId],
   );
 
+  const draftKey = (articleId: string) => `nl_ops_article_draft_${articleId}`;
+
+  // Wifi-drop protection: mirror the in-progress draft to localStorage on
+  // every edit (debounced) and restore it on reopen. Only the WRITER's input
+  // is mirrored; the article list itself always comes fresh from the server.
+  useEffect(() => {
+    if (!openId || !dirty) return;
+    const timer = window.setTimeout(() => {
+      try {
+        window.localStorage.setItem(
+          draftKey(openId),
+          JSON.stringify({ title, summary, blocks, at: Date.now() }),
+        );
+      } catch {
+        // Storage full/blocked - the exit prompt still protects the draft.
+      }
+    }, 400);
+    return () => window.clearTimeout(timer);
+  }, [openId, dirty, title, summary, blocks]);
+
+  // Let the app shell guard in-app navigation + tab close while dirty.
+  useEffect(() => {
+    onDirtyChange?.(dirty);
+    return () => onDirtyChange?.(false);
+  }, [dirty, onDirtyChange]);
+
   const openArticle = (article: OpsArticleItem) => {
     setOpenId(article.id);
+    setPreview(false);
+    setCopied(null);
+    try {
+      const saved = window.localStorage.getItem(draftKey(article.id));
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        setTitle(String(parsed.title ?? article.title));
+        setSummary(String(parsed.summary ?? article.summary ?? ""));
+        setBlocks(Array.isArray(parsed.blocks) ? parsed.blocks : parseBlocks(article.blocks));
+        setDirty(true);
+        setRestoredDraft(true);
+        return;
+      }
+    } catch {
+      // Corrupt local draft - fall through to the server copy.
+    }
     setTitle(article.title);
     setSummary(article.summary || "");
     setBlocks(parseBlocks(article.blocks));
     setDirty(false);
-    setPreview(false);
-    setCopied(null);
+    setRestoredDraft(false);
+  };
+
+  const discardLocalDraft = () => {
+    if (!open) return;
+    try {
+      window.localStorage.removeItem(draftKey(open.id));
+    } catch {
+      // Non-fatal.
+    }
+    setTitle(open.title);
+    setSummary(open.summary || "");
+    setBlocks(parseBlocks(open.blocks));
+    setDirty(false);
+    setRestoredDraft(false);
   };
 
   const closeEditor = () => {
@@ -450,6 +508,12 @@ export default function ArticleBuilderPage({
         ...(statusOverride ? { status: statusOverride } : {}),
       });
       setDirty(false);
+      setRestoredDraft(false);
+      try {
+        window.localStorage.removeItem(draftKey(open.id));
+      } catch {
+        // Non-fatal.
+      }
     } catch {
       // The app shell already showed the failure toast; stay dirty.
     } finally {
@@ -469,6 +533,11 @@ export default function ArticleBuilderPage({
       )
     ) {
       return;
+    }
+    try {
+      window.localStorage.removeItem(draftKey(open.id));
+    } catch {
+      // Non-fatal.
     }
     await onDelete(open.id);
     setOpenId(null);
@@ -578,6 +647,20 @@ export default function ArticleBuilderPage({
           </article>
         ) : (
           <div className="fopsArtEditor">
+            {restoredDraft ? (
+              <div className="fopsArtRestored" role="status">
+                <span>
+                  {text(
+                    language,
+                    "Restored your unsaved draft from this device.",
+                    "已恢复此设备上未保存的草稿。",
+                  )}
+                </span>
+                <button type="button" onClick={discardLocalDraft}>
+                  {text(language, "Discard it", "丢弃草稿")}
+                </button>
+              </div>
+            ) : null}
             <label className="fopsCalField">
               <span>{text(language, "Title", "标题")}</span>
               <input

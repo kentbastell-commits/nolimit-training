@@ -15,6 +15,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ComponentType,
 } from "react";
@@ -242,6 +243,9 @@ export default function CompanyOpsApp({
   const [drawerAction, setDrawerAction] = useState<QuickActionKey | null>(null);
   const [actionBusy, setActionBusy] = useState(false);
   const [actionError, setActionError] = useState<string>();
+  // Set by editors with unsaved work (articles today); navigate() and the
+  // browser's beforeunload both consult it.
+  const unsavedRef = useRef(false);
   const [busyDecisionId, setBusyDecisionId] = useState<string>();
   const [busyTaskId, setBusyTaskId] = useState<string>();
   const [busyPolicyId, setBusyPolicyId] = useState<string>();
@@ -328,6 +332,16 @@ export default function CompanyOpsApp({
   }, [loadWorkspace]);
 
   useEffect(() => {
+    const onBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (!unsavedRef.current) return;
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, []);
+
+  useEffect(() => {
     try {
       window.localStorage.setItem("nl_company_ops_language", language);
     } catch {
@@ -369,6 +383,13 @@ export default function CompanyOpsApp({
   const navigate = useCallback(
     (nextPage: CompanyOpsPage) => {
       if (user && !canOpenPage(user, nextPage)) return;
+      if (
+        unsavedRef.current &&
+        !window.confirm(opsText(language, "unsavedConfirm"))
+      ) {
+        return;
+      }
+      unsavedRef.current = false;
       setPage(nextPage);
       const url = new URL(window.location.href);
       if (nextPage === "home") url.searchParams.delete("page");
@@ -791,6 +812,9 @@ export default function CompanyOpsApp({
             <ArticleBuilderPage
               articles={dashboard.articles || []}
               language={language}
+              onDirtyChange={(value) => {
+                unsavedRef.current = value;
+              }}
               onCreate={async (title) => {
                 try {
                   await runRecordAction("create_article", { title });

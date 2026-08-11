@@ -316,6 +316,18 @@ function Editor({
 
   const isLive = LIVE_STATUSES.has((draft.status ?? item.status) || "");
 
+  const requestClose = () => {
+    if (
+      dirty &&
+      !window.confirm(
+        text(language, "You have unsaved changes. Close without saving?", "有未保存的修改，确定不保存就关闭吗？"),
+      )
+    ) {
+      return;
+    }
+    onClose();
+  };
+
   return (
     <div className="fopsCalEditorScrim" role="dialog" aria-modal="true">
       <aside className="fopsCalEditor">
@@ -326,7 +338,7 @@ function Editor({
             </span>
             <h2>{item.title}</h2>
           </div>
-          <button type="button" className="fopsCalIconBtn" onClick={onClose} aria-label={text(language, "Close", "关闭")}>
+          <button type="button" className="fopsCalIconBtn" onClick={requestClose} aria-label={text(language, "Close", "关闭")}>
             <X size={18} />
           </button>
         </header>
@@ -402,7 +414,7 @@ function Editor({
           ) : null}
         </div>
         <footer>
-          <button type="button" className="fopsButton fopsButton--ghost" onClick={onClose}>
+          <button type="button" className="fopsButton fopsButton--ghost" onClick={requestClose}>
             {text(language, "Close", "关闭")}
           </button>
           <button

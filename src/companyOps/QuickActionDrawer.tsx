@@ -417,12 +417,20 @@ export default function QuickActionDrawer({
   const [values, setValues] = useState<FormState>(() => initialState(action));
   const [invalid, setInvalid] = useState<Set<string>>(new Set());
   const dialogRef = useRef<HTMLElement>(null);
+  // Exit guard: typed-but-unsubmitted input needs an explicit "discard".
+  const requestClose = () => {
+    const pristine = JSON.stringify(values) === JSON.stringify(initialState(action));
+    if (!pristine && !window.confirm(opsText(language, "discardFormConfirm"))) return;
+    onClose();
+  };
+  const requestCloseRef = useRef(requestClose);
+  requestCloseRef.current = requestClose;
   const [titleKey, introKey] = actionCopy(action);
   const Icon = actionIcons[action];
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && !busy) onClose();
+      if (event.key === "Escape" && !busy) requestCloseRef.current();
     };
     window.addEventListener("keydown", onKeyDown);
     const frame = window.requestAnimationFrame(() => {
@@ -556,7 +564,7 @@ export default function QuickActionDrawer({
     <div
       className="fopsDrawerScrim"
       onMouseDown={(event) => {
-        if (event.target === event.currentTarget && !busy) onClose();
+        if (event.target === event.currentTarget && !busy) requestCloseRef.current();
       }}
     >
       <aside
@@ -578,7 +586,7 @@ export default function QuickActionDrawer({
             type="button"
             className="fopsIconButton"
             aria-label={opsText(language, "close")}
-            onClick={onClose}
+            onClick={requestClose}
             disabled={busy}
           >
             <X size={20} />
@@ -1161,7 +1169,7 @@ export default function QuickActionDrawer({
             <button
               type="button"
               className="fopsButton fopsButton--ghost"
-              onClick={onClose}
+              onClick={requestClose}
               disabled={busy}
             >
               {opsText(language, "cancel")}

@@ -5100,3 +5100,26 @@ a.fopsOnboardingTaskLink:hover strong {
   .fopsGoalRowBody { padding-left: 16px; }
   .fopsGoalRowHead .fopsPill { display: none; }
 }
+
+.fopsArtRestored {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border: 1px solid rgb(201 168 76 / 55%);
+  border-radius: 11px;
+  background: rgb(201 168 76 / 10%);
+  font-size: 0.86rem;
+}
+.fopsArtRestored button {
+  flex: none;
+  padding: 5px 12px;
+  border: 1px solid var(--fops-line-dark);
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font-size: 0.8rem;
+  font-weight: 650;
+  cursor: pointer;
+}
