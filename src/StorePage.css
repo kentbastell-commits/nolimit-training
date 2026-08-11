@@ -1282,3 +1282,48 @@
   color: #8a8577;
   text-align: center;
 }
+
+.wxpayFollow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding-top: 12px;
+  border-top: 1px solid rgb(255 255 255 / 25%);
+}
+.wxpayFollow img {
+  width: 130px;
+  border-radius: 10px;
+  background: #fff;
+  padding: 6px;
+}
+.wxpayFollow p {
+  margin: 0;
+  color: rgb(255 255 255 / 85%);
+  font-size: 0.78rem;
+}
+
+.storeContactQrPair {
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
+}
+.storeContactQrPair figure {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+}
+.storeContactQrPair figcaption {
+  font-size: 12px;
+  color: #5f625e;
+  font-weight: 650;
+}
+@media (max-width: 640px) {
+  .storeContactQrPair {
+    justify-content: center;
+    width: 100%;
+  }
+}

@@ -1040,11 +1040,24 @@ export default function StorePage({
                 : "We can help match a program or add-on to your sport, injury history, and available training time."}
             </p>
           </div>
-          <img
-            src="/wechat-contact-qr.jpg"
-            alt="WeChat QR"
-            className="storeContactQrV2"
-          />
+          <div className="storeContactQrPair">
+            <figure>
+              <img
+                src="/wechat-contact-qr.jpg"
+                alt="WeChat QR"
+                className="storeContactQrV2"
+              />
+              <figcaption>{sZh ? "咨询教练" : "Ask a coach"}</figcaption>
+            </figure>
+            <figure>
+              <img
+                src="/oa-follow-qr.jpg"
+                alt={sZh ? "公众号二维码" : "Official account QR"}
+                className="storeContactQrV2"
+              />
+              <figcaption>{sZh ? "关注公众号" : "Follow our official account"}</figcaption>
+            </figure>
+          </div>
         </section>
       </main>
 

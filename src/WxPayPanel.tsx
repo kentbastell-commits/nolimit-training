@@ -260,6 +260,18 @@ export default function WxPayPanel({
             ? "训练计划已自动解锁——打开客户端即可开始。"
             : "Your program is unlocked — open your portal to get started."}
         </p>
+        <div className="wxpayFollow">
+          <img src="/oa-follow-qr.jpg" alt={zh ? "公众号二维码" : "Official account QR"} />
+          <p>
+            {isWeChat
+              ? zh
+                ? "长按二维码关注公众号，获取训练提醒与内容更新。"
+                : "Long-press to follow our official account for training reminders."
+              : zh
+                ? "微信扫码关注公众号，获取训练提醒与内容更新。"
+                : "Scan with WeChat to follow us for training reminders."}
+          </p>
+        </div>
       </div>
     );
   }
