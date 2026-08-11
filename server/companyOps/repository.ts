@@ -1063,6 +1063,12 @@ const healthDataPattern = /diagnos|medical history|injur|disease|medication|病�
 // Client/athlete health data must never land in company-ops records — the
 // coaching app is its only home. Applied to every free-text create action,
 // not just leads (the data-minimization rule is per-shape, not per-table).
+const sharedTargetCache = new Map<
+  string,
+  { promise: Promise<ResolvedTarget>; expiresAt: number }
+>();
+const TARGET_CACHE_TTL_MS = 10 * 60_000;
+
 const assertNoHealthData = (payload: Record<string, unknown>): void => {
   if (
     Object.values(payload).some((value) => healthDataPattern.test(textValue(value)))
@@ -1344,11 +1350,33 @@ export class CompanyOpsRepository {
   private target(resource: CompanyOpsResource): Promise<ResolvedTarget> {
     const cached = this.targetCache.get(resource);
     if (cached) return cached;
+    // Cross-request cache: the handler builds a fresh repository per request,
+    // so without this every dashboard re-resolves ~15 tables' ids + field
+    // schemas against Feishu (measured +3-9s per request). Table schemas
+    // change rarely; 10 minutes staleness is fine. Off under vitest so
+    // mock-client tests keep per-instance resolution.
+    const shareable = !process.env.VITEST;
+    const appToken = baseTokenFor(this.config, resource) || "";
+    const sharedKey = `${appToken}:${resource}`;
+    if (shareable) {
+      const shared = sharedTargetCache.get(sharedKey);
+      if (shared && shared.expiresAt > Date.now()) {
+        this.targetCache.set(resource, shared.promise);
+        return shared.promise;
+      }
+    }
     const promise = this.resolveTarget(resource).catch((error) => {
       this.targetCache.delete(resource);
+      sharedTargetCache.delete(sharedKey);
       throw error;
     });
     this.targetCache.set(resource, promise);
+    if (shareable) {
+      sharedTargetCache.set(sharedKey, {
+        promise,
+        expiresAt: Date.now() + TARGET_CACHE_TTL_MS,
+      });
+    }
     return promise;
   }
 
@@ -1861,6 +1889,31 @@ export class CompanyOpsRepository {
       this.listOptional("support", 150),
     ]);
 
+    // Kick off every remaining table read NOW. These used to be awaited one
+    // by one further down, which made the dashboard the SUM of ~7 sequential
+    // Feishu round-trips (measured 13-23s). Guards mirror the use sites
+    // exactly, so each started promise is always awaited (no floating
+    // rejections for skipped sections).
+    const prefetch = {
+      expense: !financeVisible
+        ? this.listOptional("expense", 100)
+        : Promise.resolve<FeishuRecord[]>([]),
+      weeklyReport: principal.role === "growth"
+        ? this.listOptional("weeklyReport", 60)
+        : Promise.resolve<FeishuRecord[]>([]),
+      metrics: growthVisible
+        ? this.listOptional("metrics", 80)
+        : Promise.resolve<FeishuRecord[]>([]),
+      article: growthVisible
+        ? this.listOptional("article", 100)
+        : Promise.resolve<FeishuRecord[]>([]),
+      keyDate: principal.role === "founder"
+        ? this.listOptional("keyDate", 200)
+        : Promise.resolve<FeishuRecord[]>([]),
+      goal: this.listOptional("goal", 100),
+      onboardingCase: this.listOptional("onboardingCase", 100),
+    };
+
     const onboardingRecords = principal.role === "founder"
       ? onboardingAll
       : onboardingAll.filter((record) => this.belongsTo(record, principal));
@@ -2141,7 +2194,7 @@ export class CompanyOpsRepository {
     // Submitters can see where their own claims stand (finance-visible roles
     // already see the full ledger above).
     if (!financeVisible) {
-      const ownExpenseRecords = await this.listOptional("expense", 100);
+      const ownExpenseRecords = await prefetch.expense;
       dashboard.myExpenses = ownExpenseRecords
         .filter((record) => this.belongsTo(record, principal))
         .map((record) => this.project(record, {
@@ -2163,7 +2216,7 @@ export class CompanyOpsRepository {
       const monday = new Date(shanghaiNow);
       monday.setUTCDate(monday.getUTCDate() - ((monday.getUTCDay() + 6) % 7));
       const mondayKey = monday.toISOString().slice(0, 10);
-      const reportRecords = await this.listOptional("weeklyReport", 60);
+      const reportRecords = await prefetch.weeklyReport;
       const filedThisWeek = reportRecords.some((record) => {
         if (!this.belongsTo(record, principal)) return false;
         const week = isoDate(recordField(record.fields, [
@@ -2179,7 +2232,7 @@ export class CompanyOpsRepository {
 
     // Latest platform metrics, one row per platform, for the growth pulse.
     if (growthVisible) {
-      const metricRecords = await this.listOptional("metrics", 80);
+      const metricRecords = await prefetch.metrics;
       const byPlatform = new Map<string, NonNullable<CompanyOpsDashboard["growthMetrics"]>[number]>();
       const rows = metricRecords
         .map((record) => ({
@@ -2236,7 +2289,7 @@ export class CompanyOpsRepository {
     }
 
     if (growthVisible) {
-      const articleRecords = await this.listOptional("article", 100);
+      const articleRecords = await prefetch.article;
       dashboard.articles = articleRecords
         .map((record) => ({
           id: record.record_id,
@@ -2253,7 +2306,7 @@ export class CompanyOpsRepository {
     }
 
     if (principal.role === "founder") {
-      const keyDateRecords = await this.listOptional("keyDate", 200);
+      const keyDateRecords = await prefetch.keyDate;
       dashboard.keyDates = keyDateRecords
         .filter((record) => boolValue(recordField(record.fields, ["已处理 Resolved"])) !== true)
         .map((record) => ({
@@ -2269,7 +2322,7 @@ export class CompanyOpsRepository {
     }
 
     // Founder goals & ideas: shared direction, visible to the whole team.
-    const goalRecords = await this.listOptional("goal", 100);
+    const goalRecords = await prefetch.goal;
     dashboard.goals = goalRecords
       .map((record) => ({
         id: record.record_id,
@@ -2294,7 +2347,7 @@ export class CompanyOpsRepository {
 
     // Onboarding case data: the founder watches every active case; everyone
     // else gets their own case's role/start date/confidential status.
-    const caseRecords = await this.listOptional("onboardingCase", 100);
+    const caseRecords = await prefetch.onboardingCase;
     const caseField = (record: FeishuRecord, alias: string) =>
       recordField(record.fields, [alias]);
     const myCase = caseRecords.find((record) =>
