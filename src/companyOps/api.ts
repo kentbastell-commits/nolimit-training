@@ -272,6 +272,7 @@ function normalizeDashboard(value: unknown): CompanyOpsDashboard {
     myExpenses: array(raw.myExpenses),
     goals: array(raw.goals),
     contentCalendar: array(raw.contentCalendar),
+    articles: array(raw.articles),
     keyDates: array(raw.keyDates),
     myPerformance: normalizePerformance(raw.myPerformance),
     performance: normalizePerformance(raw.performance || founder.performanceCycles),

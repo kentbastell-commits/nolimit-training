@@ -505,6 +505,9 @@ export default function CompanyOpsHome({
         <div className="fopsQuickGrid">
           {actions.map((action) => {
             const Icon = quickActionIcons[action];
+            // A key this build doesn't know (newer server, older chunk) must
+            // degrade to a missing tile, never crash the whole app.
+            if (!Icon) return null;
             const config = configured?.find((item) => item.key === action);
             if (config?.href) {
               return (

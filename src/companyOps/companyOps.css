@@ -3784,7 +3784,7 @@ a.fopsOnboardingTaskLink:hover strong {
 
 .fopsCalWeek {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 8px;
 }
 .fopsCalWeekCol {
@@ -4081,6 +4081,12 @@ a.fopsOnboardingTaskLink:hover strong {
 }
 .fopsCalWeekItem .fopsCalChip {
   flex: 1;
+  min-width: 0;
+}
+/* In 7-up week columns the title is the payload; the textual status pill is
+   redundant (color + live check carry it) and just crushes CJK titles. */
+.fopsCalWeekItem .fopsCalChipStatus {
+  display: none;
 }
 .fopsCalLiveDot {
   display: inline-flex;
@@ -4179,6 +4185,13 @@ a.fopsOnboardingTaskLink:hover strong {
   display: flex;
   flex-direction: column;
   gap: 0;
+}
+.fopsCalDayRail > .fopsQuietText {
+  margin: 26px 0 0;
+  padding: 22px;
+  border: 1.5px dashed var(--fops-line-dark);
+  border-radius: 14px;
+  text-align: center;
 }
 .fopsCalRailCard {
   display: grid;
@@ -4621,7 +4634,10 @@ a.fopsOnboardingTaskLink:hover strong {
 .fopsArtHeaderActions {
   display: flex;
   flex-wrap: wrap;
+  justify-content: flex-end;
+  align-content: flex-start;
   gap: 8px;
+  max-width: 420px;
 }
 
 .fopsArtEditor {
