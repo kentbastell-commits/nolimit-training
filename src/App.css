@@ -58,6 +58,33 @@
   font-weight: 950;
 }
 
+/* CJK readability: Chinese characters need more breathing room than Latin.
+   Disable uppercase transforms and loose letter-spacing on Chinese blocks,
+   and raise line-height so multi-line body copy stays readable on phones. */
+.landingPageBilingual.zh,
+.storePageV2.zh,
+.landingPageBilingual.zh p,
+.landingPageBilingual.zh li,
+.storePageV2.zh p,
+.storePageV2.zh li,
+.landingPageBilingual.zh span,
+.storePageV2.zh span {
+  text-transform: none;
+  letter-spacing: 0;
+  line-height: 1.65;
+}
+.landingPageBilingual.zh h1,
+.landingPageBilingual.zh h2,
+.landingPageBilingual.zh h3,
+.storePageV2.zh h1,
+.storePageV2.zh h2,
+.storePageV2.zh h3 {
+  line-height: 1.25;
+}
+html[lang="zh-CN"] body {
+  line-height: 1.6;
+}
+
 .landingLangToggle,
 .storeLangToggleV2 {
   display: inline-flex;
@@ -1556,6 +1583,12 @@ body {
   transition: transform 150ms ease;
 }
 
+/* The compact phone shell has its own More group. Desktop retains the full
+   rail, while mobile gets four clear destinations instead of six tiny ones. */
+.navGroupMobileOnly {
+  display: none;
+}
+
 .navGroupOpen .navGroupCaret {
   transform: rotate(180deg);
 }
@@ -1647,6 +1680,14 @@ body {
 
 /* Phone bottom bar: flyout becomes a sheet above the bar. */
 @media (max-width: 720px) {
+  .app:not(.clientPortalApp) .navGroupDesktopOnly {
+    display: none !important;
+  }
+
+  .app:not(.clientPortalApp) .navGroupMobileOnly {
+    display: block !important;
+  }
+
   .navFlyout {
     position: fixed;
     left: 10px;
@@ -1737,7 +1778,7 @@ body {
   bottom: 0;
   z-index: 1200;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 4px;
   padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
   border-top: 1px solid rgba(212, 175, 55, 0.25);
@@ -2005,6 +2046,7 @@ body {
   flex-direction: column;
   gap: 10px;
   width: min(380px, calc(100vw - 36px));
+  pointer-events: none;
 }
 
 .toast {
@@ -2026,6 +2068,23 @@ body {
 
 .toast-info {
   border-color: rgba(212, 175, 55, 0.45);
+}
+
+@media (max-width: 720px) {
+  .toastStack {
+    top: auto;
+    right: 12px;
+    bottom: calc(82px + env(safe-area-inset-bottom));
+    left: 12px;
+    width: auto;
+    flex-direction: column-reverse;
+  }
+
+  .toast {
+    padding: 11px 13px;
+    font-size: 14px;
+    line-height: 1.35;
+  }
 }
 
 .topbar {
@@ -5812,7 +5871,7 @@ body {
     bottom: 0;
     transform: none;
     width: auto;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 4px;
     padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
     border-right: 0;
@@ -11509,7 +11568,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
     bottom: 0 !important;
     z-index: 1200 !important;
     display: grid !important;
-    grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
     grid-auto-flow: initial !important;
     grid-auto-columns: initial !important;
     gap: 2px !important;
@@ -11530,7 +11589,7 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
     padding: 6px 2px !important;
     border-radius: 13px !important;
     color: #111 !important;
-    font-size: clamp(8px, 2.25vw, 10px) !important;
+    font-size: 11px !important;
     line-height: 1.05 !important;
   }
 
@@ -15508,6 +15567,26 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   font-weight: 600;
   line-height: 1.5;
   text-align: center;
+}
+.clientPortalApp .portalCoachQr {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;}
+.clientPortalApp .portalCoachQr img {
+  width: 180px;
+  height: 180px;
+  object-fit: contain;
+  border: 1px solid #e4dfd3;
+  border-radius: 12px;  background: #fff;
+  padding: 8px;}
+.clientPortalApp .portalCoachQr span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #5c574b;
+  font-size: 12.5px;
+  font-weight: 700;
 }
 
 /* =========================================================================

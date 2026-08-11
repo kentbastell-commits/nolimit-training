@@ -781,6 +781,36 @@
     border-radius: 14px;
   }
   .cplBoardBig > span { font-size: 30px; }
+  .cplBoardBig {
+    display: block;
+    min-width: 0;
+  }
+  .cplBoardBig small {
+    display: block;
+    margin-top: 5px;
+    font-size: 11px;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+  }
+  .cplBoardBreak {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 4px;
+    margin-top: 12px;
+  }
+  .cplBoardBreak > span {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    font-size: 10px;
+    line-height: 1.15;
+    text-align: center;
+  }
+  .cplBoardBreak strong {
+    font-size: 14px;
+  }
   .cplRow {
     flex-wrap: wrap;
   }
@@ -792,5 +822,20 @@
   }
   .cplSearch input {
     width: 100%;
+    min-height: 44px;
+  }
+  .cplTypeTabs button,
+  .cplRefresh {
+    min-height: 44px;
+  }
+  .cplRefresh {
+    width: 44px;
+    min-width: 44px;
+  }
+}
+
+@media (max-width: 420px) {
+  .cplBoard {
+    grid-template-columns: minmax(0, 1fr);
   }
 }

@@ -836,29 +836,30 @@
     width: 100%;
   }
   .crpBucketTabs button {
-    min-height: 40px;
+    min-height: 44px;
     padding-inline: 8px;
   }
   .crpFilterRight {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 42px;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 44px;
     width: 100%;
   }
   .crpSearch { grid-column: 1 / -1; }
   .crpSearch input {
     width: 100%;
-    min-height: 42px;
+    min-height: 44px;
   }
   .crpSelect {
     width: 100%;
     min-width: 0;
-    min-height: 42px;
+    min-height: 44px;
   }
   .crpCoachSelect { grid-column: 1 / 3; }
   .crpRefresh {
     grid-column: 3;
-    width: 42px;
-    height: 42px;
+    width: 44px;
+    min-height: 44px;
+    height: 44px;
   }
   .crpTriage {
     flex-wrap: nowrap;

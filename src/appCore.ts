@@ -15,7 +15,7 @@ export type Page =
   | "Review"
   | "Revenue"
   | "Coaches";
-export type ClientTab = "Home" | "Programs" | "Overview" | "Training";
+export type ClientTab = "Home" | "Programs" | "Overview" | "Training" | "Store";
 export type CalendarView = "Week" | "Month" | "Full";
 export type CalendarDisplayMode = CalendarView;
 export type ClientProgramScheduleMode = "Month" | "Week" | "Day";
@@ -101,6 +101,7 @@ export type Client = {
   notesEn?: string;
   startDate?: string;
   languagePreference?: string;
+  coachQrUrl?: string;
   // Manual performance-metric overrides (per client, optional).
   masKmhOverride?: string;
   hrMaxOverride?: string;

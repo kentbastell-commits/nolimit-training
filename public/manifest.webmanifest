@@ -1,7 +1,7 @@
 {
   "name": "NX LIMIT Training",
   "short_name": "NX LIMIT",
-  "description": "Built for Training — coaching, programs, and workout logging.",
+  "description": "Raise the Floor. Break the Ceiling. — bilingual coaching, programs, and workout logging.",
   "start_url": "/?portal=client",
   "scope": "/",
   "display": "standalone",

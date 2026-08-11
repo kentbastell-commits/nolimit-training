@@ -9,6 +9,7 @@ import {
   Dumbbell,
   Eye,
   GripVertical,
+  MoreHorizontal,
   MoreVertical,
   Pencil,
   Plus,
@@ -1831,9 +1832,18 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   const builderServerDirtyRef = useRef(false);
 
   const notify = (message: string, type: ToastType = "info") => {
+    const cleaned = message.trim();
+    if (!cleaned) return;
     const id = Date.now() + Math.random();
 
-    setToasts((prev) => [...prev, { id, type, message }]);
+    // Network failures can arrive from several feeds at once. Keep one copy of
+    // the same message and cap the stack so feedback never buries the page.
+    setToasts((prev) => [
+      ...prev.filter(
+        (toast) => toast.message !== cleaned || toast.type !== type
+      ),
+      { id, type, message: cleaned },
+    ].slice(-3));
     window.setTimeout(() => {
       setToasts((prev) => prev.filter((toast) => toast.id !== id));
     }, 4200);
@@ -2507,10 +2517,9 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       if (!isClientPortal) fireBootReady();
     });
     void loadNotifications();
-    // Coaches / teams / subscriptions / coach reviews are coach-only — don't
-    // make the client portal wait on (or fetch) them.
+    // Coaches are needed in the client portal too (assigned coach QR code).
+    loadCoaches();
     if (!isClientPortal) {
-      loadCoaches();
       void loadTeams();
       void loadSubscriptions();
       void loadCoachReviews();
@@ -2595,6 +2604,23 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       void i18n.changeLanguage(nextLanguage);
     }
   }, [i18n, isClientPortal, selectedClient]);
+
+  // Attach the assigned coach's WeChat QR code to the portal client so the
+  // Overview tab can surface it for quick contact.
+  useEffect(() => {
+    if (!selectedClient || selectedClient.coachQrUrl) return;
+    const coachName = selectedClient.coach || selectedClient.primaryCoach;
+    if (!coachName || coaches.length === 0) return;
+    const match = coaches.find(
+      (c) =>
+        c.name === coachName ||
+        coachName.toLowerCase().includes(c.name.toLowerCase()) ||
+        c.name.toLowerCase().includes(coachName.toLowerCase())
+    );
+    if (match?.qrCodeUrl) {
+      setSelectedClient({ ...selectedClient, coachQrUrl: match.qrCodeUrl });
+    }
+  }, [selectedClient?.id, coaches]);
 
   useEffect(() => {
     if (!selectedClient) {
@@ -12367,6 +12393,8 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     label: string;
     icon: LucideIcon;
     items: NavLeaf[];
+    mobileOnly?: boolean;
+    desktopOnly?: boolean;
   };
 
   // Single-item entries render as direct nav buttons; multi-item entries get a
@@ -12389,6 +12417,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       key: "teams",
       label: "Teams",
       icon: Shield,
+      desktopOnly: true,
       items: [
         {
           name: "Teams",
@@ -12429,6 +12458,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       key: "digital",
       label: "Digital",
       icon: ShoppingBag,
+      desktopOnly: true,
       items: [
         {
           name: "Digital",
@@ -12456,7 +12486,51 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       key: "admin",
       label: "Admin",
       icon: canManageCoaches ? UserCog : ClipboardList,
+      desktopOnly: true,
       items: [
+        ...(canManageCoaches
+          ? [
+              {
+                name: "Coaches" as Page,
+                label: "Coaches",
+                count: allCoaches.length,
+                icon: UserCog,
+              },
+            ]
+          : []),
+        {
+          name: "Orders",
+          label: "Orders",
+          count: productOrders.length,
+          icon: ClipboardList,
+          attention: true,
+        },
+        {
+          name: "Revenue",
+          label: "Revenue",
+          count: 0,
+          icon: TrendingUp,
+        },
+      ],
+    },
+    {
+      key: "more",
+      label: "More",
+      icon: MoreHorizontal,
+      mobileOnly: true,
+      items: [
+        {
+          name: "Teams",
+          label: "Teams",
+          count: teams.length,
+          icon: Shield,
+        },
+        {
+          name: "Digital",
+          label: "Digital",
+          count: programs.filter((p) => p.publicStoreVisible).length,
+          icon: ShoppingBag,
+        },
         ...(canManageCoaches
           ? [
               {
@@ -20433,6 +20507,8 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                   key={group.key}
                   className={`navGroup ${
                     isActiveGroup ? "navGroupActive" : ""
+                  } ${group.mobileOnly ? "navGroupMobileOnly" : ""} ${
+                    group.desktopOnly ? "navGroupDesktopOnly" : ""
                   }`}
                 >
                   <button
@@ -20460,6 +20536,8 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                 key={group.key}
                 className={`navGroup ${isActiveGroup ? "navGroupActive" : ""} ${
                   isOpen ? "navGroupOpen" : ""
+                } ${group.mobileOnly ? "navGroupMobileOnly" : ""} ${
+                  group.desktopOnly ? "navGroupDesktopOnly" : ""
                 }`}
               >
                 <button

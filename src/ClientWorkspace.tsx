@@ -14,6 +14,7 @@ import {
   ExternalLink,
   Home,
   MoreVertical,
+  ShoppingBag,
   UserCircle,
 } from "lucide-react";
 import { normalizeDate } from "./appCore";
@@ -383,6 +384,34 @@ export default function ClientWorkspace({
       };
     }
 
+    if (clientTab === "Store") {
+      return {
+        eyebrow: paceZh ? "探索" : "Explore",
+        title: paceZh ? "训练商店" : "Training Store",
+        description: paceZh
+          ? "浏览计划、课程和训练产品。"
+          : "Browse programs, courses and training products.",
+        stats: [
+          {
+            label: paceZh ? "已购" : "Purchased",
+            value: uniqueClientPurchasedPrograms?.length || 0,
+            sub: paceZh ? "我的计划" : "my programs",
+          },
+          {
+            label: paceZh ? "进行中" : "Active",
+            value: portalActivePrograms,
+            sub: paceZh ? "当前计划" : "current programs",
+          },
+          {
+            label: paceZh ? "已完成" : "Completed",
+            value: portalCompletedPrograms,
+            sub: paceZh ? "计划" : "programs",
+          },
+        ],
+        action: null,
+      };
+    }
+
     return {
       eyebrow: t("clientHeroDashboardEyebrow"),
       title: t("hi", { name: portalFirstName }),
@@ -467,6 +496,13 @@ export default function ClientWorkspace({
                   >
                     <BookOpen size={21} strokeWidth={2.2} />
                     <span>{t("myPrograms")}</span>
+                  </button>
+                  <button
+                    className={clientTab === "Store" ? "active" : ""}
+                    onClick={() => setClientTab("Store")}
+                  >
+                    <ShoppingBag size={21} strokeWidth={2.2} />
+                    <span>{paceZh ? "商店" : "Store"}</span>
                   </button>
                   <button
                     className={clientTab === "Overview" ? "active" : ""}
@@ -557,6 +593,7 @@ export default function ClientWorkspace({
                       ["Home", Home, t("home")],
                       ["Training", CalendarDays, t("calendar")],
                       ["Programs", BookOpen, t("myPrograms")],
+                      ["Store", ShoppingBag, paceZh ? "商店" : "Store"],
                       ["Overview", UserCircle, t("profile")],
                     ].map(([key, Icon, label]: any) => (
                       <button
@@ -1068,6 +1105,8 @@ export default function ClientWorkspace({
                   workoutsLoading={workoutsLoading}
                 />
               )}
+
+              {clientTab === "Store" && renderProgramStore()}
             </section>
           </div>
     </>

@@ -7,7 +7,7 @@
     "predev": "node scripts/copy-pose-assets.mjs",
     "dev": "vite",
     "prebuild": "node scripts/copy-pose-assets.mjs",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b --force && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
     "start": "tsx server/index.ts",

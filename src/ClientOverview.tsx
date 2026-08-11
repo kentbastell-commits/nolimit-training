@@ -1,6 +1,6 @@
 // Extracted from App.tsx (monolith split) — JSX verbatim; props threaded.
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { X } from "lucide-react";
+import { QrCode, X } from "lucide-react";
 
 export default function ClientOverview({
   t,
@@ -145,6 +145,38 @@ export default function ClientOverview({
                         <strong>{selectedClient.accessEndDate || "--"}</strong>
                       </div>
                     </section>
+
+                    {selectedClient.coachQrUrl ? (
+                      <section className="portalProfileCard">
+                        <span className="portalProfileCardEyebrow">
+                          {paceZh ? "联系教练" : "Coach Contact"}
+                        </span>
+                        <div className="portalCoachQr">
+                          <img
+                            src={selectedClient.coachQrUrl}
+                            alt={paceZh ? "教练微信二维码" : "Coach WeChat QR"}
+                            loading="lazy"
+                          />
+                          <span>
+                            <QrCode size={16} aria-hidden="true" />
+                            {paceZh
+                              ? "微信扫码联系教练"
+                              : "Scan with WeChat to message your coach"}
+                          </span>
+                        </div>
+                      </section>
+                    ) : (
+                      <section className="portalProfileCard">
+                        <span className="portalProfileCardEyebrow">
+                          {paceZh ? "联系教练" : "Coach Contact"}
+                        </span>
+                        <p className="portalProfileHelp">
+                          {paceZh
+                            ? "教练二维码加载中，或联系客服获取。"
+                            : "Coach QR code loading, or contact support to get connected."}
+                        </p>
+                      </section>
+                    )}
 
                     <section className="portalProfileCard">
                       <span className="portalProfileCardEyebrow">
