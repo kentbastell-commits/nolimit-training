@@ -78,7 +78,7 @@ const productOptions: readonly SelectOption[] = [
 ];
 
 const campaignProductOptions = productOptions.filter(
-  ([value]) => value !== "team" && value !== "unsure",
+  ([value]) => value !== "unsure",
 );
 const channelOptions: readonly SelectOption[] = [
   ...platformOptions.filter(([value]) => value !== "multi-platform"),
@@ -195,7 +195,9 @@ function initialState(action: QuickActionKey): FormState {
       offer: "",
       product: "",
       channels: "",
-      budget: "",
+      budget: "2500",
+      revenueTarget: "25000",
+      successCriteria: "CNY 25,000 collected revenue and at least 30 qualified leads within the campaign window.",
       start: "",
       end: "",
     };
@@ -308,6 +310,8 @@ const requiredByAction: Record<QuickActionKey, string[]> = {
     "product",
     "channels",
     "budget",
+    "revenueTarget",
+    "successCriteria",
     "start",
     "end",
   ],
@@ -746,6 +750,17 @@ export default function QuickActionDrawer({
                   selectInput("channels", channelOptions),
                 )}
                 {field("budget", opsText(language, "budget"), input("budget", "number"))}
+                {field(
+                  "revenueTarget",
+                  opsText(language, "revenueTarget"),
+                  input("revenueTarget", "number"),
+                )}
+                {field(
+                  "successCriteria",
+                  opsText(language, "campaignSuccessCriteria"),
+                  textarea("successCriteria", 3),
+                  "fopsFieldWide",
+                )}
                 {field("start", opsText(language, "startDate"), input("start", "date"))}
                 {field("end", opsText(language, "endDate"), input("end", "date"))}
               </>

@@ -254,6 +254,30 @@ const campaignFields: FeishuField[] = [
   field("结束 End", 5),
   field("状态 Status", 3),
   field("负责人 Owner", 11),
+  field("目标回款 Revenue Target", 2),
+  field("成功标准 Success Criteria", 1),
+  field("提交时间 Submitted At", 5),
+  field("审批人 Approver", 11),
+  field("批准时间 Approved At", 5),
+  field("审核意见 Review Note", 1),
+  field("活动代码 Campaign Code", 1),
+  field("员工归因代码 Staff Attribution Code", 1),
+  field("跟踪包 Tracking Kit", 1),
+  field("员工归因比例% Attribution Share", 2),
+  field("批准提成比例% Commission Rate", 2),
+  field("提成规则快照 Commission Rule", 1),
+  field("线下申报回款 Reported Offline Revenue", 2),
+  field("退款与调整 Refunds & Adjustments", 2),
+  field("核准归因回款 Eligible Revenue", 2),
+  field("活动提成金额 Campaign Commission", 2),
+  field("结果总结 Results Summary", 1),
+  field("证据链接 Evidence Links", 1),
+  field("结果提交时间 Results Submitted At", 5),
+  field("核对时间 Reconciled At", 5),
+  field("核对说明 Reconciliation Note", 1),
+  field("触达/曝光 Reach", 2),
+  field("点击 Clicks", 2),
+  field("咨询 Consultations", 2),
 ];
 
 const experimentFields: FeishuField[] = [
@@ -674,7 +698,7 @@ describe("Company Operations quick-action Feishu contracts", () => {
     } }]);
   });
 
-  it("stores a campaign with exact multi-select values and Planning state", async () => {
+  it("submits a complete campaign proposal in Pending Approval state", async () => {
     const { repository, created } = repositoryHarness({}, {
       tblCampaign: campaignFields,
     });
@@ -689,9 +713,10 @@ describe("Company Operations quick-action Feishu contracts", () => {
         product: "digital",
         channels: "xiaohongshu",
         budget: "2500",
+        revenueTarget: "25000",
+        successCriteria: "CNY 25,000 collected and 30 qualified leads",
         start: "2026-09-01",
         end: "2026-09-30",
-        status: "Active",
       },
     });
 
@@ -703,11 +728,210 @@ describe("Company Operations quick-action Feishu contracts", () => {
       "产品 Product": "数字计划 Digital",
       "渠道 Channels": ["小红书 XHS"],
       "预算 Budget": 2500,
+      "目标回款 Revenue Target": 25000,
+      "成功标准 Success Criteria": "CNY 25,000 collected and 30 qualified leads",
       "开始 Start": Date.parse("2026-09-01"),
       "结束 End": Date.parse("2026-09-30"),
-      "状态 Status": "计划中 Planning",
+      "状态 Status": "待批准 Pending Approval",
+      "提交时间 Submitted At": expect.any(Number),
       "负责人 Owner": [{ id: "ou_growth" }],
     } }]);
+  });
+
+  it("rejects client-supplied campaign workflow fields", async () => {
+    const { repository, created } = repositoryHarness({}, {
+      tblCampaign: campaignFields,
+    });
+    await expect(repository.performAction(growthPrincipal, {
+      action: "create_campaign",
+      payload: {
+        name: "Crafted campaign",
+        objective: "Promote itself",
+        targetAudience: "climbers",
+        offer: "Offer",
+        product: "digital",
+        channels: "xiaohongshu",
+        budget: 0,
+        revenueTarget: 10_000,
+        successCriteria: "Ten paid orders",
+        start: "2026-09-01",
+        end: "2026-09-30",
+        campaignCode: "CLIENT-CODE",
+      },
+    })).rejects.toThrow("Unknown fields: campaignCode");
+    expect(created).toHaveLength(0);
+  });
+
+  it("lets only the founder approve a submitted campaign and generates stable attribution links", async () => {
+    const record: FeishuRecord = {
+      record_id: "recCampaignApproval",
+      fields: {
+        "活动 Campaign": "Autumn strength launch",
+        "产品 Product": "数字计划 Digital",
+        "渠道 Channels": ["小红书 XHS", "抖音 Douyin"],
+        "目标回款 Revenue Target": 50_000,
+        "状态 Status": "待批准 Pending Approval",
+        "负责人 Owner": [{ id: "ou_growth", name: "Growth Owner" }],
+      },
+    };
+    const { repository, updated } = repositoryHarness(
+      { tblCampaign: [record] },
+      { tblCampaign: campaignFields },
+    );
+
+    await expect(repository.performAction(growthPrincipal, {
+      action: "campaign.review",
+      payload: { campaignId: record.record_id, decision: "approve" },
+    })).rejects.toThrow("do not have permission");
+
+    await repository.performAction(founderPrincipal, {
+      action: "campaign.review",
+      payload: {
+        campaignId: record.record_id,
+        decision: "approve",
+        feedback: "Approved for launch",
+        attributionSharePercent: 100,
+      },
+    });
+
+    expect(updated).toHaveLength(1);
+    expect(updated[0].recordId).toBe(record.record_id);
+    expect(updated[0].fields).toMatchObject({
+      "状态 Status": "已批准 Approved",
+      "审核意见 Review Note": "Approved for launch",
+      "审批人 Approver": [{ id: "ou_founder" }],
+      "员工归因比例% Attribution Share": 100,
+      "批准提成比例% Commission Rate": 4,
+      "提成规则快照 Commission Rule": expect.stringContaining("4% / 5% / 6%"),
+      "活动代码 Campaign Code": expect.stringMatching(/^CMP-\d{6}-[A-F0-9]{6}$/),
+      "员工归因代码 Staff Attribution Code": expect.stringMatching(/^STF-[A-F0-9]{7}$/),
+      "批准时间 Approved At": expect.any(Number),
+    });
+    const tracking = JSON.parse(String(updated[0].fields["跟踪包 Tracking Kit"]));
+    expect(tracking).toHaveLength(2);
+    expect(tracking[0].url).toContain("utm_campaign=CMP-");
+    expect(tracking[0].url).toContain("staff=STF-");
+    expect(tracking[0].url).not.toContain("Growth+Owner");
+  });
+
+  it("prevents bypassing the campaign workflow through generic status updates", async () => {
+    const record: FeishuRecord = {
+      record_id: "recCampaignStatus",
+      fields: {
+        "活动 Campaign": "Protected campaign",
+        "状态 Status": "待批准 Pending Approval",
+        "负责人 Owner": [{ id: "ou_growth" }],
+      },
+    };
+    const { repository, updated } = repositoryHarness(
+      { tblCampaign: [record] },
+      { tblCampaign: campaignFields },
+    );
+    await expect(repository.performAction(founderPrincipal, {
+      action: "update_status",
+      payload: { resource: "campaign", recordId: record.record_id, status: "Active" },
+    })).rejects.toThrow("approval and reconciliation workflow");
+    expect(updated).toHaveLength(0);
+  });
+
+  it("moves an owner through activation and evidence-backed results submission", async () => {
+    const approved: FeishuRecord = {
+      record_id: "recCampaignApproved",
+      fields: {
+        "活动 Campaign": "Approved owner campaign",
+        "状态 Status": "已批准 Approved",
+        "负责人 Owner": [{ id: "ou_growth", name: "Growth Owner" }],
+        "活动代码 Campaign Code": "CMP-202608-D4E5F6",
+      },
+    };
+    const active: FeishuRecord = {
+      record_id: "recCampaignActive",
+      fields: {
+        "活动 Campaign": "Active owner campaign",
+        "状态 Status": "进行中 Active",
+        "负责人 Owner": [{ id: "ou_growth", name: "Growth Owner" }],
+      },
+    };
+    const { repository, updated } = repositoryHarness(
+      { tblCampaign: [approved, active] },
+      { tblCampaign: campaignFields },
+    );
+
+    await repository.performAction(growthPrincipal, {
+      action: "campaign.activate",
+      payload: { campaignId: approved.record_id },
+    });
+    await repository.performAction(growthPrincipal, {
+      action: "campaign.results.submit",
+      payload: {
+        campaignId: active.record_id,
+        resultsSummary: "Collected the contracted amount and documented the campaign outcome.",
+        evidenceLinks: "https://example.feishu.cn/file/campaign-evidence",
+        manualRevenue: 1000,
+        adjustments: 200,
+        reach: 5000,
+        clicks: 250,
+        consultations: 20,
+      },
+    });
+
+    expect(updated[0].fields).toMatchObject({ "状态 Status": "进行中 Active" });
+    expect(updated[1].fields).toMatchObject({
+      "状态 Status": "待核对 Reconciliation",
+      "线下申报回款 Reported Offline Revenue": 1000,
+      "退款与调整 Refunds & Adjustments": 200,
+      "证据链接 Evidence Links": "https://example.feishu.cn/file/campaign-evidence",
+      "结果提交时间 Results Submitted At": expect.any(Number),
+    });
+  });
+
+  it("subtracts refunds from the maximum reconciled revenue and stages no automatic payout", async () => {
+    const record: FeishuRecord = {
+      record_id: "recCampaignReconcile",
+      fields: {
+        "活动 Campaign": "Campaign ready to reconcile",
+        "产品 Product": "数字计划 Digital",
+        "目标回款 Revenue Target": 25_000,
+        "状态 Status": "待核对 Reconciliation",
+        "负责人 Owner": [{ id: "ou_growth", name: "Growth Owner" }],
+        "活动代码 Campaign Code": "CMP-202608-A1B2C3",
+        "员工归因比例% Attribution Share": 100,
+        "批准提成比例% Commission Rate": 4,
+        "线下申报回款 Reported Offline Revenue": 1000,
+        "退款与调整 Refunds & Adjustments": 200,
+      },
+    };
+    const { repository, updated } = repositoryHarness(
+      { tblCampaign: [record] },
+      { tblCampaign: campaignFields },
+    );
+
+    await expect(repository.performAction(founderPrincipal, {
+      action: "campaign.reconcile",
+      payload: {
+        campaignId: record.record_id,
+        eligibleRevenue: 801,
+        reconciliationNote: "Reviewed offline collection and refund evidence.",
+      },
+    })).rejects.toThrow("after refunds and adjustments (CNY 800.00)");
+
+    await repository.performAction(founderPrincipal, {
+      action: "campaign.reconcile",
+      payload: {
+        campaignId: record.record_id,
+        eligibleRevenue: 800,
+        reconciliationNote: "Reviewed offline collection and refund evidence.",
+      },
+    });
+    expect(updated).toHaveLength(1);
+    expect(updated[0].fields).toMatchObject({
+      "状态 Status": "已核对 Reconciled",
+      "核准归因回款 Eligible Revenue": 800,
+      "活动提成金额 Campaign Commission": 32,
+      "核对说明 Reconciliation Note": "Reviewed offline collection and refund evidence.",
+      "核对时间 Reconciled At": expect.any(Number),
+    });
+    expect(updated[0].fields).not.toHaveProperty("支付状态 Payment Status");
   });
 
   it("stores a growth experiment with exact fields and Idea state", async () => {

@@ -15,6 +15,12 @@ const growthUser: CompanyOpsUser = {
   role: "growth",
 };
 
+const founderUser: CompanyOpsUser = {
+  id: "founder-1",
+  name: "Kent",
+  role: "founder",
+};
+
 function performanceCycle(
   overrides: Partial<OpsPerformanceCycle> = {},
 ): OpsPerformanceCycle {
@@ -175,6 +181,61 @@ describe("CompanyOpsApp", () => {
         "csrf-test",
       ),
     );
+  });
+
+  it("gives the founder a guided campaign approval with an attribution snapshot", async () => {
+    const api = fakeApi(founderUser, dashboard(founderUser, {
+      campaigns: [{
+        id: "rec-campaign-1",
+        name: "Autumn strength launch",
+        status: "Pending Approval",
+        objective: "Sell the digital strength program",
+        audience: ["攀岩者 Climbers"],
+        offer: "Four-week assessment and plan",
+        product: "数字计划 Digital",
+        channels: ["小红书 XHS"],
+        budget: 2_500,
+        revenueTarget: 25_000,
+        successCriteria: "CNY 25,000 collected and 30 qualified leads",
+        startAt: "2026-09-01",
+        endAt: "2026-09-30",
+        ownerName: "Yumei",
+        trackingLinks: [],
+        trackedCollectedRevenue: 0,
+        trackedOrderCount: 0,
+        currency: "CNY",
+        canEdit: false,
+        canReview: true,
+        canActivate: false,
+        canSubmitResults: false,
+        canReconcile: false,
+      }],
+      decisions: [],
+      onboardingCases: [],
+    }));
+    const user = userEvent.setup();
+    render(<CompanyOpsApp api={api} />);
+
+    await screen.findByText("Hello, Kent");
+    expect(screen.queryByRole("button", { name: "Campaigns" })).not.toBeInTheDocument();
+    await user.click(screen.getAllByRole("button", { name: "Performance" })[0]);
+    expect(screen.getByRole("tab", { name: /^Monthly Goals/ })).toHaveAttribute("aria-selected", "true");
+    await user.click(screen.getByRole("tab", { name: /^Campaigns/ }));
+    expect(screen.getByRole("heading", { name: "Campaigns & attribution" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Review proposal" }));
+    expect(screen.getByRole("dialog", { name: "Autumn strength launch" })).toBeInTheDocument();
+    expect(screen.getByText(/Originator 40%/)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Approve & generate codes" }));
+
+    await waitFor(() => expect(api.submitAction).toHaveBeenCalledWith(
+      "campaign.review",
+      expect.objectContaining({
+        campaignId: "rec-campaign-1",
+        decision: "approve",
+        attributionSharePercent: "100",
+      }),
+      "csrf-test",
+    ));
   });
 
   it("lets Yumei submit her own monthly performance report with per-goal evidence", async () => {

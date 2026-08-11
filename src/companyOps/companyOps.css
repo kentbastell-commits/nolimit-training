@@ -3099,6 +3099,71 @@ a.fopsOnboardingTaskLink:hover strong {
   --fops-performance-soft: #f1eee5;
 }
 
+.fopsPerformanceSwitch {
+  margin-bottom: clamp(24px, 3vw, 36px);
+}
+
+.fopsPerformanceSwitch > div {
+  display: grid;
+  max-width: 760px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  border: 1px solid var(--fops-line);
+  border-radius: 16px;
+  padding: 6px;
+  background: #ebe8df;
+  box-shadow: inset 0 1px 2px rgb(26 25 21 / 5%);
+}
+
+.fopsPerformanceSwitch button {
+  display: flex;
+  min-width: 0;
+  min-height: 66px;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid transparent;
+  border-radius: 11px;
+  padding: 10px 14px;
+  color: var(--fops-ink-soft);
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  transition: background 150ms ease, border-color 150ms ease, color 150ms ease, box-shadow 150ms ease;
+}
+
+.fopsPerformanceSwitch button:hover {
+  border-color: rgb(28 27 23 / 12%);
+  color: var(--fops-ink);
+  background: rgb(255 255 255 / 54%);
+}
+
+.fopsPerformanceSwitch button.is-active {
+  border-color: var(--fops-ink);
+  color: #fff;
+  background: var(--fops-ink);
+  box-shadow: 0 8px 18px rgb(29 28 23 / 15%);
+}
+
+.fopsPerformanceSwitch button > span {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.fopsPerformanceSwitch button strong {
+  font-size: 0.9rem;
+  line-height: 1.15;
+}
+
+.fopsPerformanceSwitch button small {
+  overflow: hidden;
+  font-size: 0.7rem;
+  line-height: 1.25;
+  opacity: 0.76;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .fopsPerformanceHero {
   position: relative;
   overflow: hidden;
@@ -3868,6 +3933,20 @@ a.fopsOnboardingTaskLink:hover strong {
 }
 
 @media (max-width: 620px) {
+  .fopsPerformanceSwitch > div {
+    width: 100%;
+  }
+
+  .fopsPerformanceSwitch button {
+    min-height: 58px;
+    gap: 8px;
+    padding: 9px 10px;
+  }
+
+  .fopsPerformanceSwitch button small {
+    display: none;
+  }
+
   .fopsPerformanceHeroMetrics,
   .fopsPerformanceGoals,
   .fopsPerformanceReportForm,

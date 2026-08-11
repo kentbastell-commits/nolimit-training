@@ -27,6 +27,55 @@ Keep codes stable and record them on the matching Campaign, Partner and Content
 records. Do not place phone numbers, names, health details, bank details or other
 personal information in these parameters.
 
+The Company Operations campaign workflow creates these values at founder
+approval. Staff must use the generated tracking link or QR code rather than
+inventing a code. Each approved channel gets its own opaque attribution code,
+which makes the campaign and channel auditable without exposing an employee's
+name or Feishu identity in a public URL.
+
+## Campaign workflow
+
+1. Growth submits a guided brief with objective, audience, offer, product,
+   channels, budget, revenue target, success criteria and dates.
+2. The founder approves, requests changes or rejects. Approval snapshots the
+   attribution share and applicable commission rule; campaigns over CNY
+   300,000 require an explicit written custom rate before approval.
+3. Approval generates a campaign code, staff code and channel-specific links
+   and QR codes. Growth activates the campaign only after checking each link.
+4. At completion, Growth submits a narrative result, HTTPS evidence links,
+   offline/manual revenue and refunds or adjustments. Manual revenue requires
+   evidence.
+5. The founder reconciles against paid Postgres orders. Eligible revenue cannot
+   exceed paid tracked revenue plus evidenced manual revenue, less refunds and
+   adjustments.
+6. Reconciliation calculates the commission preview and freezes the campaign
+   record. It does not pay payroll automatically; the amount is staged for the
+   reviewed monthly commission statement.
+
+Status sequence:
+
+```text
+Pending Approval -> Approved -> Active -> Reconciliation -> Reconciled
+        |
+        +-> Changes Requested -> Pending Approval
+        +-> Rejected
+```
+
+The current handbook rules used by the calculator are:
+
+| Product | Eligible commission rule | Default attribution share |
+|---|---:|---:|
+| Digital programs | 4% below CNY 25,000; 5% at CNY 25,000; 6% at CNY 50,000 | 100% |
+| Online 1:1 coaching | 8% of the first three paid months | 80% |
+| In-person coaching | 3% of the first paid package | 80% |
+| Team/institution contract | 2% of the first paid contract | 80% |
+
+For shared work, the recommended evidence model is originator 40%, campaign
+manager 40% and closer 20%, with an unassigned role redistributed among the
+documented contributors. The founder-approved staff share is the amount used
+for the campaign calculation. The signed contract and Employee Handbook remain
+authoritative if policy changes.
+
 ## Money controls
 
 - Postgres product orders are the source of truth for collected product revenue.

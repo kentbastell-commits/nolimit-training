@@ -157,10 +157,11 @@ back from unpaid variable comp only.
    Kent builds them from templates in the admin UI. The expense FORM +
    kanban covers claims at 4-person scale meanwhile.
 4. **Postgres stays authoritative for sales/commissions.** The platform's
-   orders/referral codes are the attribution source. A future monthly sync
-   script computes attributable net collected revenue per the rules above and
-   writes Commission Statements rows; staff never edit earned amounts.
-   Not built yet — nothing is sold yet.
+   paid orders and approved campaign codes are the attribution source. The
+   Company Operations campaign page aggregates paid CNY orders without copying
+   customer PII into Feishu. Growth reports evidence and adjustments; only a
+   founder can reconcile eligible revenue and calculate the commission preview.
+   Reconciliation never triggers an automatic payout.
 5. **Policy numbers live in ONE place.** The signed contract + Employee
    Handbook prevail; the three Feishu policy docs are summaries and carry a
    banner saying so (they briefly contradicted the handbook — 10% flat vs
@@ -205,8 +206,8 @@ back from unpaid variable comp only.
   and remains unable to open the Confidential Base or other employees' cycles.
 - Admin-UI work (Kent, optional): Approval templates (请假/差旅), attendance
   schedule 09:30–18:30 matching the handbook.
-- Future build: Postgres → Commission Statements monthly sync (trigger:
-  first real sales); per-staff attribution codes in the store.
+- After the first reconciled campaign, verify that its staged amount appears in
+  the reviewed monthly commission-statement process before payroll is locked.
 
 ## Migration and runtime requirements
 

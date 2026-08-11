@@ -63,7 +63,6 @@ const navItems: Array<{
   { page: "home", label: "navHome", icon: Home },
   { page: "performance", label: "navPerformance", icon: Target },
   { page: "growth", label: "navGrowth", icon: TrendingUp },
-  { page: "campaigns", label: "navCampaigns", icon: Megaphone },
   { page: "calendar", label: "navCalendar", icon: CalendarDays },
   { page: "articles", label: "navArticles", icon: Newspaper },
   { page: "decisions", label: "navDecisions", icon: Gavel },
@@ -74,9 +73,19 @@ const navItems: Array<{
 function readInitialPage(): CompanyOpsPage {
   const page = new URLSearchParams(window.location.search).get("page");
   if (page === "guide" || page === "policies") return "resources";
+  if (page === "campaigns") return "performance";
   return navItems.some((item) => item.page === page)
     ? (page as CompanyOpsPage)
     : "home";
+}
+
+type PerformanceView = "goals" | "campaigns";
+
+function readInitialPerformanceView(): PerformanceView {
+  const search = new URLSearchParams(window.location.search);
+  return search.get("page") === "campaigns" || search.get("view") === "campaigns"
+    ? "campaigns"
+    : "goals";
 }
 
 function readInitialLanguage(): CompanyOpsLanguage {
@@ -240,6 +249,9 @@ export default function CompanyOpsApp({
     readInitialLanguage,
   );
   const [page, setPage] = useState<CompanyOpsPage>(readInitialPage);
+  const [performanceView, setPerformanceView] = useState<PerformanceView>(
+    readInitialPerformanceView,
+  );
   const [loadState, setLoadState] = useState<LoadState>("loading");
   const [session, setSession] = useState<CompanyOpsSession | null>(null);
   const [dashboard, setDashboard] = useState<CompanyOpsDashboard | null>(null);
@@ -394,6 +406,7 @@ export default function CompanyOpsApp({
     const onPopState = () => {
       const next = readInitialPage();
       setPage(user && !canOpenPage(user, next) ? "home" : next);
+      setPerformanceView(readInitialPerformanceView());
     };
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
@@ -410,9 +423,36 @@ export default function CompanyOpsApp({
       }
       unsavedRef.current = false;
       setPage(nextPage);
+      if (nextPage === "performance") setPerformanceView("goals");
       const url = new URL(window.location.href);
       if (nextPage === "home") url.searchParams.delete("page");
       else url.searchParams.set("page", nextPage);
+      url.searchParams.delete("view");
+      url.searchParams.delete("campaign");
+      window.history.pushState({}, "", `${url.pathname}${url.search}${url.hash}`);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    },
+    [language, user],
+  );
+
+  const openPerformanceView = useCallback(
+    (nextView: PerformanceView, campaignId?: string) => {
+      if (nextView === "campaigns" && user && !canOpenPage(user, "campaigns")) return;
+      if (
+        unsavedRef.current &&
+        !window.confirm(opsText(language, "unsavedConfirm"))
+      ) {
+        return;
+      }
+      unsavedRef.current = false;
+      setPage("performance");
+      setPerformanceView(nextView);
+      const url = new URL(window.location.href);
+      url.searchParams.set("page", "performance");
+      if (nextView === "campaigns") url.searchParams.set("view", "campaigns");
+      else url.searchParams.delete("view");
+      if (nextView === "campaigns" && campaignId) url.searchParams.set("campaign", campaignId);
+      else url.searchParams.delete("campaign");
       window.history.pushState({}, "", `${url.pathname}${url.search}${url.hash}`);
       window.scrollTo({ top: 0, behavior: "smooth" });
     },
@@ -548,7 +588,7 @@ export default function CompanyOpsApp({
     } else if (item.kind === "onboarding") {
       navigate("onboarding");
     } else if (item.kind === "campaign" && user && canOpenPage(user, "campaigns")) {
-      navigate("campaigns");
+      openPerformanceView("campaigns", item.id);
     } else if (
       ["content", "lead", "partner", "report"].includes(
         item.kind,
@@ -634,6 +674,9 @@ export default function CompanyOpsApp({
   }
 
   const capabilities = capabilitiesFor(user);
+  const activePerformanceView: PerformanceView = capabilities.has("view_growth")
+    ? performanceView
+    : "goals";
   const policies = mergePolicies(dashboard);
 
   return (
@@ -930,29 +973,58 @@ export default function CompanyOpsApp({
               }}
             />
           ) : null}
-          {activePage === "campaigns" && capabilities.has("view_growth") ? (
-            <CampaignsPage
-              campaigns={dashboard.campaigns || []}
-              language={language}
-              user={user}
-              onCreate={() => setDrawerAction("campaign")}
-              onAction={runRecordAction}
-            />
-          ) : null}
           {activePage === "performance" ? (
-            <PerformanceHome
-              user={user}
-              language={language}
-              myPerformance={dashboard.myPerformance}
-              performance={dashboard.performance}
-              sharedAssetsUrl={dashboard.links?.sharedAssets}
-              onAction={runRecordAction}
-              onUploadAsset={
-                (user.role === "founder" || user.role === "growth") && api.uploadAsset
-                  ? (file) => api.uploadAsset!(file, session?.csrfToken)
-                  : undefined
-              }
-            />
+            <>
+              <section className="fopsPerformanceSwitch" aria-label={language === "zh" ? "绩效工作区" : "Performance workspace"}>
+                <div role="tablist" aria-label={language === "zh" ? "选择绩效区域" : "Choose a performance area"}>
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={activePerformanceView === "goals"}
+                    className={activePerformanceView === "goals" ? "is-active" : ""}
+                    onClick={() => openPerformanceView("goals")}
+                  >
+                    <Target size={20} aria-hidden={true} />
+                    <span><strong>{language === "zh" ? "月度目标" : "Monthly Goals"}</strong><small>{language === "zh" ? "目标、月报与奖金评审" : "Goals, reports and bonus review"}</small></span>
+                  </button>
+                  {capabilities.has("view_growth") ? (
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={activePerformanceView === "campaigns"}
+                      className={activePerformanceView === "campaigns" ? "is-active" : ""}
+                      onClick={() => openPerformanceView("campaigns")}
+                    >
+                      <Megaphone size={20} aria-hidden={true} />
+                      <span><strong>{language === "zh" ? "活动" : "Campaigns"}</strong><small>{language === "zh" ? "方案、归因与提成核对" : "Proposals, attribution and reconciliation"}</small></span>
+                    </button>
+                  ) : null}
+                </div>
+              </section>
+              {activePerformanceView === "campaigns" ? (
+                <CampaignsPage
+                  campaigns={dashboard.campaigns || []}
+                  language={language}
+                  user={user}
+                  onCreate={() => setDrawerAction("campaign")}
+                  onAction={runRecordAction}
+                />
+              ) : (
+                <PerformanceHome
+                  user={user}
+                  language={language}
+                  myPerformance={dashboard.myPerformance}
+                  performance={dashboard.performance}
+                  sharedAssetsUrl={dashboard.links?.sharedAssets}
+                  onAction={runRecordAction}
+                  onUploadAsset={
+                    (user.role === "founder" || user.role === "growth") && api.uploadAsset
+                      ? (file) => api.uploadAsset!(file, session?.csrfToken)
+                      : undefined
+                  }
+                />
+              )}
+            </>
           ) : null}
           {activePage === "decisions" && capabilities.has("view_decisions") ? (
             <FounderHome

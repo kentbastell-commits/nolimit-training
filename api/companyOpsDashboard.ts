@@ -358,6 +358,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       contentPipeline: { phases: pipeline, upcoming: contentItems.slice(0, 12), experiments },
       leads,
       campaigns,
+      campaignWorkflow: data.campaignWorkflow || [],
       partners,
       experiments,
       goals: data.goals || [],

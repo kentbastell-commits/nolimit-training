@@ -266,6 +266,7 @@ function normalizeDashboard(value: unknown): CompanyOpsDashboard {
     weekRhythm: (raw.weekRhythm || summary.weekRhythm) as CompanyOpsDashboard["weekRhythm"],
     quickActions: array(raw.quickActions || summary.quickActions),
     growth,
+    campaigns: array(raw.campaignWorkflow),
     decisions: array(raw.decisions || raw.approvals || founder.decisions),
     finance: (raw.finance || founder.finance) as CompanyOpsDashboard["finance"],
     myCompensation: (raw.myCompensation || summary.myCompensation) as CompanyOpsDashboard["myCompensation"],

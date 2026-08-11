@@ -160,6 +160,27 @@ storage-plan quota still applies. Store only non-sensitive Brand/Growth working
 media here—never identity documents, bank details, payroll, legal files or
 health information.
 
+## Campaign approval and revenue workflow
+
+Growth staff use `/company-ops?page=campaigns`; they do not edit calculated
+revenue or commission fields in the raw Growth Base. A new brief is submitted
+directly to **Pending Approval**. Only a founder can approve it, request changes
+or reject it. Approval snapshots the staff attribution share and handbook rule,
+then creates opaque campaign/staff codes plus channel-specific tracking links
+and QR codes.
+
+After Growth activates and completes the campaign, the results form shows the
+paid revenue tracked in Postgres. Any offline/manual amount requires private
+HTTPS evidence. Refunds and adjustments reduce the maximum reconcilable amount.
+Only a founder can reconcile, and campaigns at or above CNY 300,000 cannot be
+approved without an explicit written custom rate. A reconciled amount is a
+commission preview for the reviewed monthly statement, never an automatic
+payout instruction.
+
+The workflow is additive to the existing `活动 Campaigns` table. Re-run the
+migration plan/apply/verify sequence after deploying this version so the new
+fields and status options exist before staff use the page.
+
 ## Safety and access model
 
 - Raw Team Ops and Growth Base links are closed. Founders retain explicit `full_access`; configured growth editors receive `edit` only.
