@@ -1415,3 +1415,17 @@
 .copCollectBtn:hover {
   background: rgba(16, 165, 74, 0.16);
 }
+
+.copStatusPill {
+  padding: 5px 12px;
+  border: 1px solid rgba(120, 110, 80, 0.35);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #6a6455;
+}
+.copStatusPill.is-paid {
+  border-color: #107a4a;
+  background: rgba(16, 122, 74, 0.09);
+  color: #107a4a;
+}

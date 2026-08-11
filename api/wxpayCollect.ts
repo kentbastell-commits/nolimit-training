@@ -25,6 +25,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const amount = Number(req.body?.amount);
   const label = String(req.body?.label || "").trim();
   const clientName = String(req.body?.clientName || "").trim();
+  const productTypeRaw = String(req.body?.productType || "").trim();
+  const COLLECT_TYPES = new Set([
+    "Online Coaching",
+    "In-Person Training",
+    "Digital Program",
+    "Other",
+  ]);
+  const productType = COLLECT_TYPES.has(productTypeRaw) ? productTypeRaw : "Other";
+  const assignCoach = String(req.body?.assignCoach || "").trim().slice(0, 80);
   if (!Number.isFinite(amount) || amount < 0.01 || amount > 100_000) {
     return res.status(400).json({ error: "amount must be between 0.01 and 100000 CNY" });
   }
@@ -36,12 +45,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const created = await createProductOrder({
       clientName: clientName || label,
       productName: label.slice(0, 120),
-      productType: "Manual Collection",
+      productType,
       amount,
       currency: "CNY",
       paymentStatus: "Pending",
       paymentProvider: "WeChat Pay",
       intakeStatus: "Not Needed",
+      ...(assignCoach ? { assignedCoach: assignCoach } : {}),
     });
     if (!created.success) {
       return res.status(created.status).json(created.body);

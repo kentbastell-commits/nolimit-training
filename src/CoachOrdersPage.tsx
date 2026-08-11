@@ -95,6 +95,12 @@ export default function CoachOrdersPage(props: { [key: string]: any }) {
   const online = orders.filter((o) => /online coaching/i.test(o.productType || ""));
   const inperson = orders.filter((o) => /in.?person/i.test(o.productType || ""));
   const digital = orders.filter((o) => /digital/i.test(o.productType || ""));
+  // Anything the three streams don't claim (manual collections, one-offs)
+  // must still be VISIBLE — a floating invisible order hid a real ¥16.8k
+  // payment on collect-payment's first day.
+  const otherOrders = orders.filter(
+    (o) => !/online coaching|in.?person|digital/i.test(o.productType || "")
+  );
 
   // ---- digital roll-up ----
   const digSales = digital.length;
@@ -217,6 +223,40 @@ export default function CoachOrdersPage(props: { [key: string]: any }) {
           View in Digital <ChevronRight size={16} />
         </span>
       </a>
+
+      {otherOrders.length > 0 && (
+        <section className="copDigitalPayments" aria-label={tr("Other collected payments", "其他收款")}>
+          <div className="copSectionHead">
+            <div>
+              <span className="copEyebrow">{tr("Collect payment & one-offs", "收款码与其他")}</span>
+              <h2>{tr("Payments outside the three streams", "三大业务之外的收款")}</h2>
+            </div>
+            <span className="copPendChip">
+              {otherOrders.length} {tr("orders", "笔")}
+            </span>
+          </div>
+          <div className="copLedger">
+            {otherOrders.map((order) => (
+              <div className="copRow" key={order.recordId || order.orderId}>
+                <div className="copRowMain">
+                  <div className="copRowLabel">{order.clientName || tr("Unnamed payer", "未命名付款人")}</div>
+                  <div className="copRowItem">{order.productName || "—"}</div>
+                </div>
+                <div className="copRowMid">
+                  <div>{order.productType || tr("Uncategorised", "未分类")}</div>
+                  <div>{order.orderId}{order.assignedCoach ? ` · ${order.assignedCoach}` : ""}</div>
+                </div>
+                <div className="copRowAmt">{money(order.amount, order.currency)}</div>
+                <div className="copRowEnd">
+                  <span className={`copStatusPill ${isPaid(order) ? "is-paid" : ""}`}>
+                    {order.paymentStatus || tr("No status", "无状态")}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {digitalPending.length > 0 && (
         <section className="copDigitalPayments" aria-label={tr("Digital payment verification", "数字计划付款核对")}>

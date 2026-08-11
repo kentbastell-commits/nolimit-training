@@ -149,6 +149,9 @@ export default function CoachRevenuePage(props: { [key: string]: any }) {
       noun: "sales",
     },
   ];
+  const matchedByStream = (o: any) =>
+    streamDefs.some((def) => def.match.test(o.productType || ""));
+  const otherRows = paidOrders.filter((o: any) => !matchedByStream(o));
   const streamStats = streamDefs.map((def) => {
     const rows = paidOrders.filter((o: any) =>
       def.match.test(o.productType || ""),
@@ -302,6 +305,25 @@ export default function CoachRevenuePage(props: { [key: string]: any }) {
             </div>
           );
         })}
+        {otherRows.length > 0 && (() => {
+          const amount = otherRows.reduce((sum: number, o: any) => sum + parseAmount(o), 0);
+          const pct = Math.round((amount / streamTotal) * 100);
+          return (
+            <div className="crpStream" style={{ borderLeftColor: "#8352c9" }}>
+              <div className="crpStreamTop">
+                <span className="crpStreamK" style={{ color: "#8352c9" }}>Other</span>
+                <span className="crpStreamPct">{pct}%</span>
+              </div>
+              <div className="crpStreamV">{formatCurrency(amount)}</div>
+              <div className="crpStreamSub">
+                {otherRows.length} {otherRows.length === 1 ? "payment" : "payments"} · collect-payment & one-offs
+              </div>
+              <div className="crpStreamBar">
+                <div style={{ width: `${pct}%`, background: "#8352c9" }} />
+              </div>
+            </div>
+          );
+        })()}
       </div>
 
       {/* outstanding */}

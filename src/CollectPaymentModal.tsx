@@ -27,6 +27,9 @@ export default function CollectPaymentModal({
   const [amount, setAmount] = useState("");
   const [label, setLabel] = useState("");
   const [clientName, setClientName] = useState("");
+  const [productType, setProductType] = useState("Online Coaching");
+  const [assignCoach, setAssignCoach] = useState("");
+  const [coaches, setCoaches] = useState<string[]>([]);
   const [error, setError] = useState("");
   const [phase, setPhase] = useState<Phase>({ step: "form" });
   const pollRef = useRef<number | null>(null);
@@ -37,6 +40,23 @@ export default function CollectPaymentModal({
     return () => {
       if (pollRef.current !== null) window.clearInterval(pollRef.current);
     };
+  }, []);
+
+  useEffect(() => {
+    // Coach attribution so collections land in the right person's revenue.
+    fetch("/api/coaches")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        const list = Array.isArray(data) ? data : data?.coaches || data?.data || [];
+        const names = list
+          .map((coach: { name?: string }) => String(coach?.name || ""))
+          .filter(Boolean);
+        setCoaches(names);
+        setAssignCoach((current) => current || names[0] || "");
+      })
+      .catch(() => {
+        // Attribution stays unassigned if the list is unreachable.
+      });
   }, []);
 
   const startPolling = (tradeNo: string, amountLabel: string, doneLabel: string) => {
@@ -81,6 +101,8 @@ export default function CollectPaymentModal({
           amount: value,
           label: label.trim(),
           clientName: clientName.trim() || undefined,
+          productType,
+          assignCoach: assignCoach || undefined,
         }),
       });
       const data = await res.json().catch(() => null);
@@ -148,6 +170,26 @@ export default function CollectPaymentModal({
                   onChange={(event) => setClientName(event.target.value)}
                 />
               </label>
+              <div className="collectPayRow">
+                <label>
+                  <span>{tr("Type", "类型")}</span>
+                  <select value={productType} onChange={(event) => setProductType(event.target.value)}>
+                    <option value="Online Coaching">{tr("Online coaching", "线上私教")}</option>
+                    <option value="In-Person Training">{tr("In-person training", "线下训练")}</option>
+                    <option value="Digital Program">{tr("Digital program", "数字计划")}</option>
+                    <option value="Other">{tr("Other", "其他")}</option>
+                  </select>
+                </label>
+                <label>
+                  <span>{tr("Coach", "教练")}</span>
+                  <select value={assignCoach} onChange={(event) => setAssignCoach(event.target.value)}>
+                    {coaches.map((name) => (
+                      <option value={name} key={name}>{name}</option>
+                    ))}
+                    <option value="">{tr("Unassigned", "未指定")}</option>
+                  </select>
+                </label>
+              </div>
               {error ? <p className="collectPayError">{error}</p> : null}
               <button
                 type="button"

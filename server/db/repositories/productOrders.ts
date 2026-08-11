@@ -39,6 +39,7 @@ export type UpdateProductOrderInput = {
   clientRecordId?: string;
   clientCode?: string;
   clientName?: string;
+  productType?: string;
   programId?: string;
   programName?: string;
   intakeAssignmentId?: string;
@@ -83,6 +84,10 @@ export async function listProductOrders(): Promise<OrderDTO[]> {
 
 export async function paidRevenueBetween(start: Date, end: Date) {
   return pg.paidRevenueBetween(start, end);
+}
+
+export async function paidRevenueByCampaignCodes(campaignCodes: readonly string[]) {
+  return pg.paidRevenueByCampaignCodes(campaignCodes);
 }
 
 export async function createProductOrder(

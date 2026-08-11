@@ -91,6 +91,50 @@ export async function paidRevenueBetween(
   }));
 }
 
+export type PaidCampaignRevenueAggregate = {
+  campaignCode: string;
+  currency: string;
+  grossCollected: number;
+  orderCount: number;
+};
+
+/**
+ * Aggregate-only attribution read for Company Operations. Customer identities,
+ * contact details and coaching data never leave SQL.
+ */
+export async function paidRevenueByCampaignCodes(
+  campaignCodes: readonly string[],
+): Promise<PaidCampaignRevenueAggregate[]> {
+  const codes = [...new Set(campaignCodes.map((value) => value.trim()).filter(Boolean))];
+  if (!codes.length) return [];
+  const rows = await db
+    .select({
+      campaignCode: productOrders.campaignCode,
+      currency: productOrders.currency,
+      grossCollected: sql<string>`coalesce(sum(${productOrders.amount}), 0)`,
+      orderCount: sql<number>`count(*)::int`,
+    })
+    .from(productOrders)
+    .where(
+      and(
+        sql`lower(coalesce(${productOrders.paymentStatus}, '')) = 'paid'`,
+        sql`lower(coalesce(${productOrders.currency}, 'cny')) = 'cny'`,
+        inArray(productOrders.campaignCode, codes),
+      ),
+    )
+    .groupBy(productOrders.campaignCode, productOrders.currency);
+  return rows.flatMap((row) =>
+    row.campaignCode
+      ? [{
+          campaignCode: row.campaignCode,
+          currency: row.currency || "CNY",
+          grossCollected: Number(row.grossCollected) || 0,
+          orderCount: Number(row.orderCount) || 0,
+        }]
+      : [],
+  );
+}
+
 /* --------------------------------- writes --------------------------------- */
 // Same operations as server/db/feishu/productOrders.ts, same result shapes.
 // On Postgres the ORD-… business code IS the id (no Feishu record_ids), and
@@ -257,6 +301,8 @@ export async function updateProductOrder(
   if (i.intakeStatus !== undefined && i.intakeStatus !== null) set.intakeStatus = i.intakeStatus;
   if (i.fulfillmentStatus !== undefined && i.fulfillmentStatus !== null)
     set.fulfillmentStatus = i.fulfillmentStatus;
+  if (i.productType !== undefined && i.productType !== null)
+    set.productType = i.productType;
   if (i.paymentStatus !== undefined && i.paymentStatus !== null)
     set.paymentStatus = i.paymentStatus;
   if (i.marketingSource !== undefined && i.marketingSource !== null)
