@@ -437,6 +437,11 @@ data between them, never "borrow" a table ID across products.
     replace-style writers must carry over fields the editor doesn't collect
     (patch-style for scalars); on Postgres an explicit "" is a CLEAR (write
     null), never an omit — Feishu-only empty-omission stays in feishu impls.
+    Corollary (cost the Article Builder its list, 2026-08-11): company-ops
+    has an extra hop the trace must include — `normalizeDashboard` in
+    src/companyOps/api.ts is an explicit field WHITELIST, so a new dashboard
+    field the server emits is silently dropped client-side until it's added
+    there too. Server payload + client types + page are not enough.
 
 44. **The lifecycle-destroyed draft** — the WeChat mini program
     (`c:\Users\kentb\nolimit-miniprogram`, a THIRD repo) held a whole 45-90
