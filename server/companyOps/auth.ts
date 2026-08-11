@@ -33,6 +33,11 @@ export type CompanyOpsActionName =
   | "lead.create"
   | "partner.create"
   | "campaign.create"
+  | "campaign.update"
+  | "campaign.review"
+  | "campaign.activate"
+  | "campaign.results.submit"
+  | "campaign.reconcile"
   | "experiment.create"
   | "weeklyReport.submit"
   | "metrics.submit"
@@ -43,6 +48,8 @@ export type CompanyOpsActionName =
   | "delete_content"
   | "content.duplicate"
   | "duplicate_content"
+  | "record.delete"
+  | "delete_record"
   | "article.create"
   | "create_article"
   | "article.update"
@@ -103,6 +110,10 @@ const ACTIONS_BY_ROLE: Record<CompanyOpsRole, ReadonlySet<CompanyOpsActionName>>
     "lead.create",
     "partner.create",
     "campaign.create",
+    "campaign.review",
+    "campaign.activate",
+    "campaign.results.submit",
+    "campaign.reconcile",
     "experiment.create",
     "weeklyReport.submit",
     "metrics.submit",
@@ -119,6 +130,8 @@ const ACTIONS_BY_ROLE: Record<CompanyOpsRole, ReadonlySet<CompanyOpsActionName>>
     "delete_content",
     "content.duplicate",
     "duplicate_content",
+    "record.delete",
+    "delete_record",
     "article.create",
     "create_article",
     "article.update",
@@ -195,6 +208,8 @@ const ACTIONS_BY_ROLE: Record<CompanyOpsRole, ReadonlySet<CompanyOpsActionName>>
     "delete_content",
     "content.duplicate",
     "duplicate_content",
+    "record.delete",
+    "delete_record",
     "article.create",
     "create_article",
     "article.update",
@@ -204,6 +219,9 @@ const ACTIONS_BY_ROLE: Record<CompanyOpsRole, ReadonlySet<CompanyOpsActionName>>
     "lead.create",
     "partner.create",
     "campaign.create",
+    "campaign.update",
+    "campaign.activate",
+    "campaign.results.submit",
     "experiment.create",
     "weeklyReport.submit",
     "metrics.submit",

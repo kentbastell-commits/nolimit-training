@@ -82,6 +82,8 @@ function GoalRow({
   onToggle,
   onRespond,
   onUpdateStatus,
+  onEdit,
+  onDelete,
 }: {
   goal: OpsGoalItem;
   language: CompanyOpsLanguage;
@@ -90,8 +92,33 @@ function GoalRow({
   onToggle: () => void;
   onRespond?: (goal: OpsGoalItem, response: string) => void;
   onUpdateStatus?: (goal: OpsGoalItem, status: string) => void;
+  onEdit?: (goal: OpsGoalItem, patch: Record<string, string>) => void;
+  onDelete?: (goal: OpsGoalItem) => void;
 }) {
   const [text, setText] = useState("");
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState({ title: "", measure: "", priority: "", due: "", notes: "" });
+  const beginEdit = () => {
+    setDraft({
+      title: goal.title || "",
+      measure: goal.measure || "",
+      priority: goal.priority || "",
+      due: (goal.dueAt || "").slice(0, 10),
+      notes: goal.notes || "",
+    });
+    setEditing(true);
+  };
+  const saveEdit = () => {
+    if (!onEdit) return;
+    const patch: Record<string, string> = {};
+    if (draft.title.trim() && draft.title.trim() !== (goal.title || "")) patch.title = draft.title.trim();
+    if (draft.measure !== (goal.measure || "")) patch.measure = draft.measure;
+    if (draft.priority && draft.priority !== (goal.priority || "")) patch.priority = draft.priority;
+    if (draft.due && draft.due !== (goal.dueAt || "").slice(0, 10)) patch.due = draft.due;
+    if (draft.notes !== (goal.notes || "")) patch.notes = draft.notes;
+    if (Object.keys(patch).length) onEdit(goal, patch);
+    setEditing(false);
+  };
   const thread = parseGoalThread(goal);
   const isIdea = /想法|idea/i.test(goal.goalType || "");
   return (
@@ -148,6 +175,20 @@ function GoalRow({
             {goal.dueAt ? (
               <small className="fopsGoalDue">{formatOpsDate(goal.dueAt, language)}</small>
             ) : null}
+            {isFounder && onEdit && !editing ? (
+              <button type="button" className="fopsGoalToolBtn" onClick={beginEdit}>
+                {opsText(language, "goalEdit")}
+              </button>
+            ) : null}
+            {isFounder && onDelete ? (
+              <button
+                type="button"
+                className="fopsGoalToolBtn is-danger"
+                onClick={() => onDelete(goal)}
+              >
+                {opsText(language, "goalDelete")}
+              </button>
+            ) : null}
             {isFounder && onUpdateStatus ? (
               <select
                 className="fopsStatusSelect fopsGoalStatusSelect"
@@ -163,14 +204,56 @@ function GoalRow({
               </select>
             ) : null}
           </div>
-          {goal.measure ? (
-            <TranslatableText text={goal.measure} language={language} />
-          ) : null}
-          {goal.notes ? (
-            <div className="fopsGoalNotes">
-              <TranslatableText text={goal.notes} language={language} />
+          {editing ? (
+            <div className="fopsGoalEditForm">
+              <label>
+                <span>{opsText(language, "goalEditTitle")}</span>
+                <input value={draft.title} onChange={(event) => setDraft({ ...draft, title: event.target.value })} />
+              </label>
+              <label>
+                <span>{opsText(language, "goalEditMeasure")}</span>
+                <input value={draft.measure} onChange={(event) => setDraft({ ...draft, measure: event.target.value })} />
+              </label>
+              <div className="fopsGoalEditRow">
+                <label>
+                  <span>{opsText(language, "goalEditPriority")}</span>
+                  <select value={draft.priority} onChange={(event) => setDraft({ ...draft, priority: event.target.value })}>
+                    <option value="">—</option>
+                    {["高 High", "中 Medium", "低 Low"].map((option) => (
+                      <option value={option} key={option}>{option}</option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  <span>{opsText(language, "goalEditDue")}</span>
+                  <input type="date" value={draft.due} onChange={(event) => setDraft({ ...draft, due: event.target.value })} />
+                </label>
+              </div>
+              <label>
+                <span>{opsText(language, "goalEditNotes")}</span>
+                <textarea rows={2} value={draft.notes} onChange={(event) => setDraft({ ...draft, notes: event.target.value })} />
+              </label>
+              <div className="fopsGoalEditActions">
+                <button type="button" className="fopsButton fopsButton--compact fopsButton--ghost" onClick={() => setEditing(false)}>
+                  {opsText(language, "cancel")}
+                </button>
+                <button type="button" className="fopsButton fopsButton--compact" onClick={saveEdit}>
+                  {opsText(language, "goalEditSave")}
+                </button>
+              </div>
             </div>
-          ) : null}
+          ) : (
+            <>
+              {goal.measure ? (
+                <TranslatableText text={goal.measure} language={language} />
+              ) : null}
+              {goal.notes ? (
+                <div className="fopsGoalNotes">
+                  <TranslatableText text={goal.notes} language={language} />
+                </div>
+              ) : null}
+            </>
+          )}
           {thread.length ? (
             <div className="fopsGoalThread">
               {thread.map((entry, index) => (
@@ -220,6 +303,8 @@ export default function CompanyOpsHome({
   onDisputeCompensation,
   onRespondGoal,
   onUpdateGoalStatus,
+  onEditGoal,
+  onDeleteGoal,
   compensationBusy,
 }: {
   user: CompanyOpsUser;
@@ -232,6 +317,8 @@ export default function CompanyOpsHome({
   onDisputeCompensation: () => void;
   onRespondGoal?: (goal: OpsGoalItem, response: string) => void;
   onUpdateGoalStatus?: (goal: OpsGoalItem, status: string) => void;
+  onEditGoal?: (goal: OpsGoalItem, patch: Record<string, string>) => void;
+  onDeleteGoal?: (goal: OpsGoalItem) => void;
   compensationBusy: boolean;
 }) {
   const [openGoalId, setOpenGoalId] = useState("");
@@ -511,6 +598,8 @@ export default function CompanyOpsHome({
                   }
                   onRespond={onRespondGoal}
                   onUpdateStatus={onUpdateGoalStatus}
+                  onEdit={onEditGoal}
+                  onDelete={onDeleteGoal}
                   key={goal.id}
                 />
               ))}

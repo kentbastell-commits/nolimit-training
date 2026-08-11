@@ -19,6 +19,11 @@ import {
   type FeishuOAuthUser,
   type FeishuRecord,
 } from "./feishuClient.ts";
+import {
+  campaignCommissionAmount,
+  campaignCommissionRule,
+} from "./campaignPolicy.ts";
+import { createHash } from "node:crypto";
 
 export interface CompanyOpsPrincipal {
   openId: string;
@@ -44,6 +49,60 @@ export interface CompanyOpsDashboardItem {
   actionType?: "founder_decision" | "access_request" | "expense" | "weekly_report";
   /** Supporting link (e.g. an expense's receipt URL) for the reviewer. */
   link?: string;
+}
+
+export interface CompanyOpsCampaignTrackingLink {
+  channel: string;
+  source: string;
+  attributionCode: string;
+  url: string;
+}
+
+export interface CompanyOpsCampaign {
+  id: string;
+  name: string;
+  status: string;
+  objective?: string;
+  audience?: string[];
+  offer?: string;
+  product?: string;
+  channels?: string[];
+  budget?: number;
+  startAt?: string;
+  endAt?: string;
+  ownerName?: string;
+  campaignCode?: string;
+  staffAttributionCode?: string;
+  trackingLinks: CompanyOpsCampaignTrackingLink[];
+  submittedAt?: string;
+  approverName?: string;
+  approvedAt?: string;
+  reviewNote?: string;
+  revenueTarget?: number;
+  successCriteria?: string;
+  attributionSharePercent?: number;
+  commissionRatePercent?: number;
+  commissionRule?: string;
+  trackedCollectedRevenue: number;
+  trackedOrderCount: number;
+  currency: string;
+  reportedManualRevenue?: number;
+  reportedAdjustments?: number;
+  eligibleRevenue?: number;
+  commissionAmount?: number;
+  resultsSummary?: string;
+  evidenceLinks?: string[];
+  resultsSubmittedAt?: string;
+  reconciledAt?: string;
+  reconciliationNote?: string;
+  reach?: number;
+  clicks?: number;
+  consultations?: number;
+  canEdit: boolean;
+  canReview: boolean;
+  canActivate: boolean;
+  canSubmitResults: boolean;
+  canReconcile: boolean;
 }
 
 export interface CompanyOpsPerformanceGoal {
@@ -110,6 +169,7 @@ export interface CompanyOpsDashboard {
   contentPipeline: CompanyOpsDashboardItem[];
   leads: CompanyOpsDashboardItem[];
   campaigns: CompanyOpsDashboardItem[];
+  campaignWorkflow?: CompanyOpsCampaign[];
   partners: CompanyOpsDashboardItem[];
   experiments: CompanyOpsDashboardItem[];
   onboarding: CompanyOpsDashboardItem[];
@@ -519,8 +579,28 @@ const CAMPAIGN_SPECS: readonly InputFieldSpec[] = [
   { key: "brief", aliases: ["活动简报 Brief", "Brief", "活动简报"], kind: "string", maximum: 10_000 },
   { key: "keyMessage", aliases: ["核心信息 Key Message", "Key Message", "核心信息"], kind: "string", maximum: 1_000 },
   { key: "audienceInsight", aliases: ["人群洞察 Audience Insight", "Audience Insight", "人群洞察"], kind: "string", maximum: 3_000 },
-  { key: "successCriteria", aliases: ["成功标准 Success Criteria", "Success Criteria", "成功标准"], kind: "string", maximum: 1_000 },
+  { key: "successCriteria", aliases: ["成功标准 Success Criteria", "Success Criteria", "成功标准"], kind: "string", required: true, maximum: 1_000 },
   { key: "nextDecision", aliases: ["Next Decision", "Next Step", "下一决策"], kind: "string", maximum: 1_000 },
+  { key: "revenueTarget", aliases: ["目标回款 Revenue Target", "Revenue Target", "目标回款"], kind: "number", required: true, minimum: 0, maximum: 1_000_000_000 },
+  { key: "campaignCode", aliases: ["活动代码 Campaign Code", "Campaign Code", "活动代码"], kind: "string", maximum: 80 },
+  { key: "staffAttributionCode", aliases: ["员工归因代码 Staff Attribution Code", "Staff Attribution Code", "员工归因代码"], kind: "string", maximum: 80 },
+  { key: "trackingKit", aliases: ["跟踪包 Tracking Kit", "Tracking Kit", "跟踪包"], kind: "string", maximum: 20_000 },
+  { key: "submittedAt", aliases: ["提交时间 Submitted At", "Submitted At", "提交时间"], kind: "date" },
+  { key: "approver", aliases: ["审批人 Approver", "Approver", "审批人"], kind: "string", maximum: 200 },
+  { key: "approvedAt", aliases: ["批准时间 Approved At", "Approved At", "批准时间"], kind: "date" },
+  { key: "reviewNote", aliases: ["审核意见 Review Note", "Review Note", "审核意见"], kind: "string", maximum: 3_000 },
+  { key: "attributionSharePercent", aliases: ["员工归因比例% Attribution Share", "Attribution Share %", "员工归因比例"], kind: "number", minimum: 0, maximum: 100 },
+  { key: "commissionRatePercent", aliases: ["批准提成比例% Commission Rate", "Commission Rate %", "批准提成比例"], kind: "number", minimum: 0, maximum: 100 },
+  { key: "commissionRule", aliases: ["提成规则快照 Commission Rule", "Commission Rule", "提成规则快照"], kind: "string", maximum: 2_000 },
+  { key: "manualRevenue", aliases: ["线下申报回款 Reported Offline Revenue", "Reported Offline Revenue", "线下申报回款"], kind: "number", minimum: 0, maximum: 1_000_000_000 },
+  { key: "adjustments", aliases: ["退款与调整 Refunds & Adjustments", "Refunds & Adjustments", "退款与调整"], kind: "number", minimum: 0, maximum: 1_000_000_000 },
+  { key: "eligibleRevenue", aliases: ["核准归因回款 Eligible Revenue", "Eligible Revenue", "核准归因回款"], kind: "number", minimum: 0, maximum: 1_000_000_000 },
+  { key: "commissionAmount", aliases: ["活动提成金额 Campaign Commission", "Campaign Commission", "活动提成金额"], kind: "number", minimum: 0, maximum: 1_000_000_000 },
+  { key: "resultsSummary", aliases: ["结果总结 Results Summary", "Results Summary", "结果总结"], kind: "string", maximum: 10_000 },
+  { key: "evidenceLinks", aliases: ["证据链接 Evidence Links", "Evidence Links", "证据链接"], kind: "string", maximum: 10_000 },
+  { key: "resultsSubmittedAt", aliases: ["结果提交时间 Results Submitted At", "Results Submitted At", "结果提交时间"], kind: "date" },
+  { key: "reconciledAt", aliases: ["核对时间 Reconciled At", "Reconciled At", "核对时间"], kind: "date" },
+  { key: "reconciliationNote", aliases: ["核对说明 Reconciliation Note", "Reconciliation Note", "核对说明"], kind: "string", maximum: 5_000 },
   { key: "notes", aliases: ["Notes", "备注"], kind: "string", maximum: 5_000 },
 ];
 
@@ -684,9 +764,16 @@ const STATUS_BY_RESOURCE: Partial<
   campaign: {
     Planning: "计划中 Planning",
     "Pending Approval": "待批准 Pending Approval",
+    "Changes Requested": "需修改 Changes Requested",
+    Approved: "已批准 Approved",
     Active: "进行中 Active",
-    Ended: "已结束 Ended",
-    Reviewed: "已复盘 Reviewed",
+    Completed: "已完成 Completed",
+    Reconciliation: "待核对 Reconciliation",
+    Reconciled: "已核对 Reconciled",
+    Rejected: "已拒绝 Rejected",
+    Cancelled: "已取消 Cancelled",
+    Ended: "已完成 Completed",
+    Reviewed: "已核对 Reconciled",
   },
   goal: {
     New: "新想法 New",
@@ -801,7 +888,7 @@ const STATUS_RESOURCES_BY_ROLE: Record<CompanyOpsRole, ReadonlySet<CompanyOpsRes
     )
   ),
   finance: new Set(["expense", "payroll", "commission", "internalRequest", "support"]),
-  growth: new Set(["content", "lead", "partner", "campaign", "experiment", "weeklyReport", "internalRequest", "support"]),
+  growth: new Set(["content", "lead", "partner", "experiment", "weeklyReport", "internalRequest", "support"]),
   staff: new Set(["internalRequest", "onboarding", "support"]),
   pending: new Set(),
 };
@@ -884,6 +971,90 @@ const recordField = (fields: FeishuFields, aliases: readonly string[]): unknown 
   const names = new Set(aliases.map(normalize));
   const entry = Object.entries(fields).find(([name]) => names.has(normalize(name)));
   return entry?.[1];
+};
+
+const stringListValue = (value: unknown): string[] => {
+  if (Array.isArray(value)) return value.map(textValue).filter(Boolean);
+  const text = textValue(value);
+  return text
+    ? text.split(/[,，\n]+/).map((item) => item.trim()).filter(Boolean)
+    : [];
+};
+
+const stableOpaqueCode = (prefix: string, value: string, length = 8): string =>
+  `${prefix}-${createHash("sha256").update(value).digest("hex").slice(0, length).toUpperCase()}`;
+
+const campaignMonthCode = (timestamp = Date.now()): string => {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Shanghai",
+    year: "numeric",
+    month: "2-digit",
+  }).formatToParts(new Date(timestamp));
+  const year = parts.find((part) => part.type === "year")?.value || "0000";
+  const month = parts.find((part) => part.type === "month")?.value || "00";
+  return `${year}${month}`;
+};
+
+const campaignSource = (channel: string): string => {
+  const value = normalize(channel);
+  if (/xiaohongshu|xhs|小红书/.test(value)) return "xiaohongshu";
+  if (/douyin|抖音/.test(value)) return "douyin";
+  if (/official account|公众号/.test(value)) return "wechat-oa";
+  if (/channels|视频号/.test(value)) return "wechat-channels";
+  if (/website|网站/.test(value)) return "website";
+  if (/offline|线下/.test(value)) return "offline";
+  if (/kol/.test(value)) return "kol";
+  return "other";
+};
+
+const campaignLandingPath = (product: string): string => {
+  try {
+    const kind = campaignCommissionRule({ product }).product;
+    if (kind === "digital") return "/store";
+    if (kind === "team") return "/business";
+    return "/coaching";
+  } catch {
+    return "/";
+  }
+};
+
+const campaignTrackingLinks = (input: {
+  campaignCode: string;
+  staffAttributionCode: string;
+  channels: readonly string[];
+  product: string;
+}): CompanyOpsCampaignTrackingLink[] =>
+  input.channels.map((channel, index) => {
+    const source = campaignSource(channel);
+    const attributionCode = `${input.campaignCode}-${source.toUpperCase().replace(/[^A-Z0-9]+/g, "-")}-${index + 1}`;
+    const url = new URL(campaignLandingPath(input.product), "https://trainnolimit.cn");
+    url.searchParams.set("utm_source", source);
+    url.searchParams.set("utm_medium", source === "offline" ? "offline-campaign" : "campaign");
+    url.searchParams.set("utm_campaign", input.campaignCode);
+    url.searchParams.set("staff", input.staffAttributionCode);
+    url.searchParams.set("attribution", attributionCode);
+    return { channel, source, attributionCode, url: url.toString() };
+  });
+
+const parseTrackingKit = (value: unknown): CompanyOpsCampaignTrackingLink[] => {
+  const text = textValue(value);
+  if (!text) return [];
+  try {
+    const parsed = JSON.parse(text);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.flatMap((item) => {
+      if (!item || typeof item !== "object" || Array.isArray(item)) return [];
+      const row = item as Record<string, unknown>;
+      const channel = textValue(row.channel);
+      const source = textValue(row.source);
+      const attributionCode = textValue(row.attributionCode);
+      const url = textValue(row.url);
+      if (!channel || !source || !attributionCode || !/^https:\/\//.test(url)) return [];
+      return [{ channel, source, attributionCode, url }];
+    });
+  } catch {
+    return [];
+  }
 };
 
 const idsFromValue = (value: unknown): string[] => {
@@ -1165,6 +1336,10 @@ const CAMPAIGN_PRODUCT_OPTIONS: Record<string, string> = {
   "in-person": "线下训练 In-person",
   "in-person coaching": "线下训练 In-person",
   "线下训练 in-person": "线下训练 In-person",
+  team: "团队/机构 Team",
+  institution: "团队/机构 Team",
+  "team institution": "团队/机构 Team",
+  "团队/机构 team": "团队/机构 Team",
   brand: "品牌 Brand",
   "品牌 brand": "品牌 Brand",
 };
@@ -1681,6 +1856,82 @@ export class CompanyOpsRepository {
     };
   }
 
+  private projectCampaignWorkflow(
+    record: FeishuRecord,
+    principal: CompanyOpsPrincipal,
+    tracked: { grossCollected: number; orderCount: number; currency: string } | undefined,
+  ): CompanyOpsCampaign {
+    const status = this.campaignStatus(record);
+    const product = textValue(recordField(record.fields, ["产品 Product", "Product"])) || undefined;
+    const channels = stringListValue(recordField(record.fields, ["渠道 Channels", "Channels"]));
+    const campaignCode = textValue(recordField(record.fields, [
+      "活动代码 Campaign Code", "Campaign Code",
+    ])) || undefined;
+    const staffAttributionCode = textValue(recordField(record.fields, [
+      "员工归因代码 Staff Attribution Code", "Staff Attribution Code",
+    ])) || undefined;
+    let trackingLinks = parseTrackingKit(recordField(record.fields, [
+      "跟踪包 Tracking Kit", "Tracking Kit",
+    ]));
+    if (!trackingLinks.length && campaignCode && staffAttributionCode && product) {
+      trackingLinks = campaignTrackingLinks({
+        campaignCode,
+        staffAttributionCode,
+        channels,
+        product,
+      });
+    }
+    const ownsCampaign = this.belongsTo(record, principal);
+    return {
+      id: record.record_id,
+      name: textValue(recordField(record.fields, [
+        "活动 Campaign", "Campaign", "Campaign Name", "Name",
+      ])) || "Untitled campaign",
+      status,
+      objective: textValue(recordField(record.fields, ["目标 Objective", "Objective"])) || undefined,
+      audience: stringListValue(recordField(record.fields, ["目标受众 Target Audience", "Target Audience"])),
+      offer: textValue(recordField(record.fields, ["核心卖点 Offer", "Offer"])) || undefined,
+      product,
+      channels,
+      budget: numberValue(recordField(record.fields, ["预算 Budget", "Budget"])),
+      startAt: isoDate(recordField(record.fields, ["开始 Start", "Start Date"])),
+      endAt: isoDate(recordField(record.fields, ["结束 End", "End Date"])),
+      ownerName: textValue(recordField(record.fields, ["负责人 Owner", "Owner"])) || undefined,
+      campaignCode,
+      staffAttributionCode,
+      trackingLinks,
+      submittedAt: isoDate(recordField(record.fields, ["提交时间 Submitted At", "Submitted At"])),
+      approverName: textValue(recordField(record.fields, ["审批人 Approver", "Approver"])) || undefined,
+      approvedAt: isoDate(recordField(record.fields, ["批准时间 Approved At", "Approved At"])),
+      reviewNote: textValue(recordField(record.fields, ["审核意见 Review Note", "Review Note"])) || undefined,
+      revenueTarget: numberValue(recordField(record.fields, ["目标回款 Revenue Target", "Revenue Target"])),
+      successCriteria: textValue(recordField(record.fields, ["成功标准 Success Criteria", "Success Criteria"])) || undefined,
+      attributionSharePercent: numberValue(recordField(record.fields, ["员工归因比例% Attribution Share", "Attribution Share %"])),
+      commissionRatePercent: numberValue(recordField(record.fields, ["批准提成比例% Commission Rate", "Commission Rate %"])),
+      commissionRule: textValue(recordField(record.fields, ["提成规则快照 Commission Rule", "Commission Rule"])) || undefined,
+      trackedCollectedRevenue: tracked?.grossCollected || 0,
+      trackedOrderCount: tracked?.orderCount || 0,
+      currency: tracked?.currency || "CNY",
+      reportedManualRevenue: numberValue(recordField(record.fields, ["线下申报回款 Reported Offline Revenue", "Reported Offline Revenue"])),
+      reportedAdjustments: numberValue(recordField(record.fields, ["退款与调整 Refunds & Adjustments", "Refunds & Adjustments"])),
+      eligibleRevenue: numberValue(recordField(record.fields, ["核准归因回款 Eligible Revenue", "Eligible Revenue"])),
+      commissionAmount: numberValue(recordField(record.fields, ["活动提成金额 Campaign Commission", "Campaign Commission"])),
+      resultsSummary: textValue(recordField(record.fields, ["结果总结 Results Summary", "Results Summary"])) || undefined,
+      evidenceLinks: stringListValue(recordField(record.fields, ["证据链接 Evidence Links", "Evidence Links"])),
+      resultsSubmittedAt: isoDate(recordField(record.fields, ["结果提交时间 Results Submitted At", "Results Submitted At"])),
+      reconciledAt: isoDate(recordField(record.fields, ["核对时间 Reconciled At", "Reconciled At"])),
+      reconciliationNote: textValue(recordField(record.fields, ["核对说明 Reconciliation Note", "Reconciliation Note"])) || undefined,
+      reach: numberValue(recordField(record.fields, ["触达/曝光 Reach", "Reach"])),
+      clicks: numberValue(recordField(record.fields, ["点击 Clicks", "Clicks"])),
+      consultations: numberValue(recordField(record.fields, ["咨询 Consultations", "Consultations"])),
+      canEdit: principal.role === "growth" && ownsCampaign && ["Planning", "Changes Requested"].includes(status),
+      canReview: principal.role === "founder" && status === "Pending Approval",
+      canActivate: (principal.role === "founder" || ownsCampaign) && status === "Approved",
+      canSubmitResults: (principal.role === "founder" || ownsCampaign) && status === "Active",
+      canReconcile: principal.role === "founder" && status === "Reconciliation",
+    };
+  }
+
   private projectPerformanceCycle(
     record: FeishuRecord,
     principal: CompanyOpsPrincipal,
@@ -1950,6 +2201,18 @@ export class CompanyOpsRepository {
       amount: ["预算 Budget"],
       currency: ["币种 Currency"],
     }));
+    const campaignCodes = campaignRecords
+      .map((record) => textValue(recordField(record.fields, [
+        "活动代码 Campaign Code", "Campaign Code",
+      ])))
+      .filter(Boolean);
+    const campaignRevenue = await this.campaignRevenues(campaignCodes);
+    const campaignWorkflow = campaignRecords.map((record) => {
+      const code = textValue(recordField(record.fields, [
+        "活动代码 Campaign Code", "Campaign Code",
+      ]));
+      return this.projectCampaignWorkflow(record, principal, campaignRevenue.get(code));
+    });
     const partners = partnerRecords.map((record) => this.project(record, {
       resource: "partner",
       title: ["伙伴 Partner", "Partner", "Name", "KOL / Partner", "合作伙伴"],
@@ -2026,6 +2289,7 @@ export class CompanyOpsRepository {
       contentPipeline,
       leads,
       campaigns,
+      campaignWorkflow,
       partners,
       experiments,
       onboarding,
@@ -2504,26 +2768,63 @@ export class CompanyOpsRepository {
       }
       case "campaign.create":
       case "create_campaign": {
-        const normalizedPayload = request.action === "create_campaign"
-          ? {
-              name: payload.name,
-              objective: payload.objective,
-              audience: textValue(payload.targetAudience)
-                .split(/[,，/]+/)
-                .map((item) => choice(item, "targetAudience", AUDIENCE_OPTIONS)),
-              offer: payload.offer,
-              product: choice(payload.product, "product", CAMPAIGN_PRODUCT_OPTIONS),
-              channels: textValue(payload.channels)
-                .split(/[,，/]+/)
-                .map((item) => choice(item, "channels", CHANNEL_OPTIONS)),
-              budget: payload.budget,
-              startDate: payload.start,
-              endDate: payload.end,
-            }
-          : payload;
-        const record = await this.createMapped("campaign", normalizedPayload, CAMPAIGN_SPECS, principal, { status: "计划中 Planning" });
-        return { success: true, message: "Campaign brief created", recordId: record.record_id };
+        const allowedCampaignCreate = new Set([
+          "name", "objective", "targetAudience", "audience", "offer", "product",
+          "channels", "budget", "start", "startDate", "end", "endDate",
+          "revenueTarget", "successCriteria",
+        ]);
+        const unknownCampaignCreate = Object.keys(payload).filter(
+          (key) => !allowedCampaignCreate.has(key),
+        );
+        if (unknownCampaignCreate.length) {
+          throw new CompanyOpsHttpError(
+            400,
+            `Unknown fields: ${unknownCampaignCreate.join(", ")}`,
+          );
+        }
+        const campaignStart = dateValue(payload.start ?? payload.startDate);
+        const campaignEnd = dateValue(payload.end ?? payload.endDate);
+        if (
+          campaignStart === undefined ||
+          campaignEnd === undefined ||
+          campaignEnd < campaignStart
+        ) {
+          throw new CompanyOpsHttpError(
+            400,
+            "The campaign end date must be on or after its start date",
+          );
+        }
+        const normalizedPayload = {
+          name: payload.name,
+          objective: payload.objective,
+          audience: textValue(payload.targetAudience ?? payload.audience)
+            .split(/[,，/]+/)
+            .map((item) => choice(item, "targetAudience", AUDIENCE_OPTIONS)),
+          offer: payload.offer,
+          product: choice(payload.product, "product", CAMPAIGN_PRODUCT_OPTIONS),
+          channels: textValue(payload.channels)
+            .split(/[,，/]+/)
+            .map((item) => choice(item, "channels", CHANNEL_OPTIONS)),
+          budget: payload.budget,
+          startDate: payload.start ?? payload.startDate,
+          endDate: payload.end ?? payload.endDate,
+          revenueTarget: payload.revenueTarget,
+          successCriteria: payload.successCriteria,
+          submittedAt: Date.now(),
+        };
+        const record = await this.createMapped("campaign", normalizedPayload, CAMPAIGN_SPECS, principal, { status: "待批准 Pending Approval" });
+        return { success: true, message: "Campaign proposal submitted for founder review", recordId: record.record_id };
       }
+      case "campaign.update":
+        return this.updateCampaignProposal(principal, payload);
+      case "campaign.review":
+        return this.reviewCampaign(principal, payload);
+      case "campaign.activate":
+        return this.activateCampaign(principal, payload);
+      case "campaign.results.submit":
+        return this.submitCampaignResults(principal, payload);
+      case "campaign.reconcile":
+        return this.reconcileCampaign(principal, payload);
       case "experiment.create":
       case "create_experiment": {
         const normalizedPayload = request.action === "create_experiment"
@@ -2617,13 +2918,19 @@ export class CompanyOpsRepository {
         if (principal.role !== "founder") {
           throw new CompanyOpsHttpError(403, "Only founders update company goals");
         }
-        const allowed = new Set(["goalId", "status", "measure", "priority", "due", "notes"]);
+        const allowed = new Set(["goalId", "title", "status", "measure", "priority", "due", "notes"]);
         const unknown = Object.keys(payload).filter((key) => !allowed.has(key));
         if (unknown.length) throw new CompanyOpsHttpError(400, `Unknown fields: ${unknown.join(", ")}`);
         const goalId = validRecordId(payload.goalId);
         const target = await this.target("goal");
         await this.client.getRecord(target.appToken, target.tableId, goalId);
         const updates: FeishuFields = {};
+        if (payload.title !== undefined) {
+          const titleValue = textValue(payload.title).trim();
+          if (!titleValue) throw new CompanyOpsHttpError(400, "title cannot be empty");
+          const field = requiredField(target, ["目标 Goal", "Goal", "Title"]);
+          updates[field.field_name] = titleValue.slice(0, 300);
+        }
         if (payload.status !== undefined) {
           const statusField = requiredField(target, FIELD.status);
           updates[statusField.field_name] = encodeStatus("goal", textValue(payload.status));
@@ -2893,6 +3200,37 @@ ${entry}` : entry;
         await this.client.getRecord(target.appToken, target.tableId, articleId);
         await this.client.deleteRecord(target.appToken, target.tableId, articleId);
         return { success: true, message: "Article deleted", recordId: articleId };
+      }
+      case "record.delete":
+      case "delete_record": {
+        const allowedDelete = new Set(["resource", "recordId"]);
+        const unknownDelete = Object.keys(payload).filter((key) => !allowedDelete.has(key));
+        if (unknownDelete.length) {
+          throw new CompanyOpsHttpError(400, `Unknown fields: ${unknownDelete.join(", ")}`);
+        }
+        const resourceName = textValue(payload.resource);
+        // Which submissions can be deleted at all, and by whom: founders can
+        // remove anything on this list; staff only their OWN rows, and never
+        // goals (founder direction) or money/HR records (not listed).
+        const DELETABLE: ReadonlySet<CompanyOpsResource> = new Set([
+          "goal", "lead", "partner", "campaign", "experiment", "support",
+          "internalRequest", "metrics", "weeklyReport",
+        ] as CompanyOpsResource[]);
+        if (!DELETABLE.has(resourceName as CompanyOpsResource)) {
+          throw new CompanyOpsHttpError(400, "This record type cannot be deleted here");
+        }
+        const resource = resourceName as CompanyOpsResource;
+        if (resource === "goal" && principal.role !== "founder") {
+          throw new CompanyOpsHttpError(403, "Only founders delete company goals");
+        }
+        const recordId = validRecordId(payload.recordId);
+        const target = await this.target(resource);
+        const record = await this.client.getRecord(target.appToken, target.tableId, recordId);
+        if (principal.role !== "founder" && !this.belongsTo(record, principal)) {
+          throw new CompanyOpsHttpError(403, "You can delete only your own submissions");
+        }
+        await this.client.deleteRecord(target.appToken, target.tableId, recordId);
+        return { success: true, message: "Deleted", recordId };
       }
       case "submit_internal_request": {
         const record = await this.createMapped("internalRequest", payload, REQUEST_SPECS, principal, { status: "待处理 Open" });
@@ -4522,6 +4860,397 @@ ${entry}` : entry;
     };
   }
 
+  private campaignStatus(record: FeishuRecord): string {
+    return decodeStatus("campaign", recordField(record.fields, FIELD.status)) || "Planning";
+  }
+
+  private campaignField(
+    target: ResolvedTarget,
+    key: string,
+    required = true,
+  ): FeishuField | undefined {
+    const spec = CAMPAIGN_SPECS.find((item) => item.key === key);
+    if (!spec) throw new CompanyOpsConfigurationError(`Unknown campaign field ${key}`);
+    const field = fieldByAlias(target.fields, spec.aliases, spec.primary);
+    if (!field && required) {
+      throw new CompanyOpsConfigurationError(
+        `The campaign table is missing required workflow field ${spec.aliases[0]}`,
+      );
+    }
+    return field;
+  }
+
+  private setCampaignValue(
+    output: FeishuFields,
+    target: ResolvedTarget,
+    key: string,
+    value: unknown,
+    required = true,
+  ): void {
+    const spec = CAMPAIGN_SPECS.find((item) => item.key === key)!;
+    const field = this.campaignField(target, key, required);
+    if (!field) return;
+    output[field.field_name] = this.serializeInput(value, spec, field);
+  }
+
+  private async campaignRevenue(campaignCode: string): Promise<{
+    grossCollected: number;
+    orderCount: number;
+    currency: string;
+  }> {
+    if (!campaignCode) return { grossCollected: 0, orderCount: 0, currency: "CNY" };
+    const rows = await this.campaignRevenues([campaignCode]);
+    return rows.get(campaignCode) || { grossCollected: 0, orderCount: 0, currency: "CNY" };
+  }
+
+  private async campaignRevenues(campaignCodes: readonly string[]): Promise<Map<string, {
+    grossCollected: number;
+    orderCount: number;
+    currency: string;
+  }>> {
+    const result = new Map<string, { grossCollected: number; orderCount: number; currency: string }>();
+    if (!campaignCodes.length) return result;
+    try {
+      const { paidRevenueByCampaignCodes } = await import(
+        "../db/repositories/productOrders.ts"
+      );
+      const rows = await paidRevenueByCampaignCodes(campaignCodes);
+      for (const row of rows) {
+        const current = result.get(row.campaignCode) || {
+          grossCollected: 0,
+          orderCount: 0,
+          currency: row.currency || "CNY",
+        };
+        current.grossCollected += row.grossCollected;
+        current.orderCount += row.orderCount;
+        current.currency = row.currency || current.currency;
+        result.set(row.campaignCode, current);
+      }
+    } catch {
+      return result;
+    }
+    return result;
+  }
+
+  private async updateCampaignProposal(
+    principal: CompanyOpsPrincipal,
+    input: Record<string, unknown>,
+  ): Promise<CompanyOpsActionResult> {
+    const allowed = new Set([
+      "campaignId", "name", "objective", "targetAudience", "offer", "product",
+      "channels", "budget", "start", "end", "revenueTarget", "successCriteria",
+    ]);
+    const unknown = Object.keys(input).filter((key) => !allowed.has(key));
+    if (unknown.length) throw new CompanyOpsHttpError(400, `Unknown fields: ${unknown.join(", ")}`);
+    assertNoHealthData(input);
+    const campaignId = validRecordId(input.campaignId);
+    const target = await this.target("campaign");
+    const record = await this.client.getRecord(target.appToken, target.tableId, campaignId);
+    if (principal.role !== "growth" || !this.belongsTo(record, principal)) {
+      throw new CompanyOpsHttpError(403, "Only the campaign owner can revise this proposal");
+    }
+    if (!["Planning", "Changes Requested"].includes(this.campaignStatus(record))) {
+      throw new CompanyOpsHttpError(409, "Only a draft or change-requested campaign can be revised");
+    }
+    const start = dateValue(input.start);
+    const end = dateValue(input.end);
+    if (start === undefined || end === undefined || end < start) {
+      throw new CompanyOpsHttpError(400, "The campaign end date must be on or after its start date");
+    }
+    const normalized = {
+      name: input.name,
+      objective: input.objective,
+      audience: textValue(input.targetAudience)
+        .split(/[,，/]+/)
+        .map((item) => choice(item, "targetAudience", AUDIENCE_OPTIONS)),
+      offer: input.offer,
+      product: choice(input.product, "product", CAMPAIGN_PRODUCT_OPTIONS),
+      channels: textValue(input.channels)
+        .split(/[,，/]+/)
+        .map((item) => choice(item, "channels", CHANNEL_OPTIONS)),
+      budget: input.budget,
+      startDate: input.start,
+      endDate: input.end,
+      revenueTarget: input.revenueTarget,
+      successCriteria: input.successCriteria,
+    };
+    const fields = this.mappedFields(normalized, CAMPAIGN_SPECS, target, principal, {
+      status: "待批准 Pending Approval",
+      submittedAt: Date.now(),
+    });
+    await this.client.updateRecord(target.appToken, target.tableId, campaignId, fields);
+    return { success: true, message: "Campaign proposal updated and resubmitted", recordId: campaignId };
+  }
+
+  private async reviewCampaign(
+    principal: CompanyOpsPrincipal,
+    input: Record<string, unknown>,
+  ): Promise<CompanyOpsActionResult> {
+    if (principal.role !== "founder") {
+      throw new CompanyOpsHttpError(403, "Only the founder can review campaigns");
+    }
+    const allowed = new Set([
+      "campaignId", "decision", "feedback", "attributionSharePercent", "customRatePercent",
+    ]);
+    const unknown = Object.keys(input).filter((key) => !allowed.has(key));
+    if (unknown.length) throw new CompanyOpsHttpError(400, `Unknown fields: ${unknown.join(", ")}`);
+    const campaignId = validRecordId(input.campaignId);
+    const decision = textValue(input.decision).toLowerCase();
+    if (!["approve", "changes", "reject"].includes(decision)) {
+      throw new CompanyOpsHttpError(400, "decision must be approve, changes or reject");
+    }
+    const feedback = textValue(input.feedback);
+    if ((decision === "changes" || decision === "reject") && !feedback) {
+      throw new CompanyOpsHttpError(400, "Feedback is required when requesting changes or rejecting a campaign");
+    }
+    if (feedback.length > 3_000) throw new CompanyOpsHttpError(400, "feedback is too long");
+    const target = await this.target("campaign");
+    const record = await this.client.getRecord(target.appToken, target.tableId, campaignId);
+    if (this.campaignStatus(record) !== "Pending Approval") {
+      throw new CompanyOpsHttpError(409, "This campaign is not awaiting approval");
+    }
+    const fields: FeishuFields = {};
+    this.setCampaignValue(fields, target, "status", decision === "approve"
+      ? "已批准 Approved"
+      : decision === "changes"
+        ? "需修改 Changes Requested"
+        : "已拒绝 Rejected");
+    this.setCampaignValue(fields, target, "reviewNote", feedback || "Approved");
+    const approver = this.campaignField(target, "approver");
+    if (approver) {
+      fields[approver.field_name] = approver.type === 11
+        ? [{ id: principal.openId }]
+        : principal.name;
+    }
+    if (decision !== "approve") {
+      await this.client.updateRecord(target.appToken, target.tableId, campaignId, fields);
+      return {
+        success: true,
+        message: decision === "changes" ? "Campaign returned for changes" : "Campaign rejected",
+        recordId: campaignId,
+      };
+    }
+
+    const product = textValue(recordField(record.fields, ["产品 Product", "Product"]));
+    const projectedRevenue = numberValue(recordField(record.fields, [
+      "目标回款 Revenue Target", "Revenue Target",
+    ])) || 0;
+    const customRate = input.customRatePercent === undefined || input.customRatePercent === ""
+      ? undefined
+      : numberValue(input.customRatePercent);
+    const requestedShare = input.attributionSharePercent === undefined || input.attributionSharePercent === ""
+      ? undefined
+      : numberValue(input.attributionSharePercent);
+    if (
+      (input.customRatePercent !== undefined && input.customRatePercent !== "" && customRate === undefined) ||
+      (customRate !== undefined && (customRate < 0 || customRate > 100))
+    ) {
+      throw new CompanyOpsHttpError(400, "customRatePercent must be between 0 and 100");
+    }
+    if (
+      (input.attributionSharePercent !== undefined && input.attributionSharePercent !== "" && requestedShare === undefined) ||
+      (requestedShare !== undefined && (requestedShare < 0 || requestedShare > 100))
+    ) {
+      throw new CompanyOpsHttpError(400, "attributionSharePercent must be between 0 and 100");
+    }
+    const rule = campaignCommissionRule({
+      product,
+      projectedRevenue,
+      customRatePercent: customRate,
+      attributionSharePercent: requestedShare,
+    });
+    if (rule.requiresCustomRate && customRate === undefined) {
+      throw new CompanyOpsHttpError(
+        400,
+        "A team/institution campaign above CNY 300,000 needs a written pre-signing commission rate",
+      );
+    }
+    const ownerIds = idsFromValue(recordField(record.fields, [
+      "负责人 Owner", "Owner", ...FIELD.createdByOpenId,
+    ]));
+    if (ownerIds.length !== 1) {
+      throw new CompanyOpsConfigurationError("The campaign must have exactly one Feishu owner before approval");
+    }
+    const campaignCode = textValue(recordField(record.fields, [
+      "活动代码 Campaign Code", "Campaign Code",
+    ])) || `CMP-${campaignMonthCode()}-${stableOpaqueCode("", campaignId, 6).replace(/^-/, "")}`;
+    const staffCode = textValue(recordField(record.fields, [
+      "员工归因代码 Staff Attribution Code", "Staff Attribution Code",
+    ])) || stableOpaqueCode("STF", ownerIds[0], 7);
+    const channels = stringListValue(recordField(record.fields, ["渠道 Channels", "Channels"]));
+    const trackingLinks = campaignTrackingLinks({
+      campaignCode,
+      staffAttributionCode: staffCode,
+      channels,
+      product,
+    });
+    this.setCampaignValue(fields, target, "approvedAt", Date.now());
+    this.setCampaignValue(fields, target, "campaignCode", campaignCode);
+    this.setCampaignValue(fields, target, "staffAttributionCode", staffCode);
+    this.setCampaignValue(fields, target, "trackingKit", JSON.stringify(trackingLinks));
+    this.setCampaignValue(fields, target, "attributionSharePercent", rule.attributionSharePercent);
+    this.setCampaignValue(fields, target, "commissionRatePercent", rule.ratePercent);
+    this.setCampaignValue(fields, target, "commissionRule", rule.label);
+    await this.client.updateRecord(target.appToken, target.tableId, campaignId, fields);
+    return {
+      success: true,
+      message: `Campaign approved and ${trackingLinks.length} tracking link${trackingLinks.length === 1 ? "" : "s"} generated`,
+      recordId: campaignId,
+    };
+  }
+
+  private async activateCampaign(
+    principal: CompanyOpsPrincipal,
+    input: Record<string, unknown>,
+  ): Promise<CompanyOpsActionResult> {
+    const allowed = new Set(["campaignId"]);
+    const unknown = Object.keys(input).filter((key) => !allowed.has(key));
+    if (unknown.length) throw new CompanyOpsHttpError(400, `Unknown fields: ${unknown.join(", ")}`);
+    const campaignId = validRecordId(input.campaignId);
+    const target = await this.target("campaign");
+    const record = await this.client.getRecord(target.appToken, target.tableId, campaignId);
+    if (principal.role !== "founder" && !this.belongsTo(record, principal)) {
+      throw new CompanyOpsHttpError(403, "Only the campaign owner can start this campaign");
+    }
+    if (this.campaignStatus(record) !== "Approved") {
+      throw new CompanyOpsHttpError(409, "Only an approved campaign can be started");
+    }
+    const campaignCode = textValue(recordField(record.fields, ["活动代码 Campaign Code", "Campaign Code"]));
+    if (!campaignCode) throw new CompanyOpsConfigurationError("Approved campaign is missing its tracking code");
+    const fields: FeishuFields = {};
+    this.setCampaignValue(fields, target, "status", "进行中 Active");
+    await this.client.updateRecord(target.appToken, target.tableId, campaignId, fields);
+    return { success: true, message: "Campaign is now active", recordId: campaignId };
+  }
+
+  private async submitCampaignResults(
+    principal: CompanyOpsPrincipal,
+    input: Record<string, unknown>,
+  ): Promise<CompanyOpsActionResult> {
+    const allowed = new Set([
+      "campaignId", "resultsSummary", "evidenceLinks", "manualRevenue", "adjustments",
+      "reach", "clicks", "consultations",
+    ]);
+    const unknown = Object.keys(input).filter((key) => !allowed.has(key));
+    if (unknown.length) throw new CompanyOpsHttpError(400, `Unknown fields: ${unknown.join(", ")}`);
+    assertNoHealthData(input);
+    const campaignId = validRecordId(input.campaignId);
+    const target = await this.target("campaign");
+    const record = await this.client.getRecord(target.appToken, target.tableId, campaignId);
+    if (principal.role !== "founder" && !this.belongsTo(record, principal)) {
+      throw new CompanyOpsHttpError(403, "Only the campaign owner can submit results");
+    }
+    if (this.campaignStatus(record) !== "Active") {
+      throw new CompanyOpsHttpError(409, "Results can be submitted only for an active campaign");
+    }
+    const resultsSummary = textValue(input.resultsSummary);
+    if (!resultsSummary) throw new CompanyOpsHttpError(400, "A results summary is required");
+    const evidenceLinks = textValue(input.evidenceLinks)
+      .split(/[\n,]+/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+    if (evidenceLinks.some((item) => {
+      try { return new URL(item).protocol !== "https:"; } catch { return true; }
+    })) {
+      throw new CompanyOpsHttpError(400, "Every evidence link must be a valid HTTPS URL");
+    }
+    const manualRevenue = numberValue(input.manualRevenue) || 0;
+    if (manualRevenue > 0 && !evidenceLinks.length) {
+      throw new CompanyOpsHttpError(400, "Offline or contract revenue needs at least one evidence link");
+    }
+    const fields: FeishuFields = {};
+    this.setCampaignValue(fields, target, "resultsSummary", resultsSummary);
+    this.setCampaignValue(fields, target, "evidenceLinks", evidenceLinks.join("\n"), false);
+    this.setCampaignValue(fields, target, "manualRevenue", manualRevenue);
+    this.setCampaignValue(fields, target, "adjustments", numberValue(input.adjustments) || 0);
+    this.setCampaignValue(fields, target, "reach", numberValue(input.reach) || 0, false);
+    this.setCampaignValue(fields, target, "clicks", numberValue(input.clicks) || 0, false);
+    this.setCampaignValue(fields, target, "consultations", numberValue(input.consultations) || 0, false);
+    this.setCampaignValue(fields, target, "resultsSubmittedAt", Date.now());
+    this.setCampaignValue(fields, target, "status", "待核对 Reconciliation");
+    await this.client.updateRecord(target.appToken, target.tableId, campaignId, fields);
+    return { success: true, message: "Campaign results submitted for reconciliation", recordId: campaignId };
+  }
+
+  private async reconcileCampaign(
+    principal: CompanyOpsPrincipal,
+    input: Record<string, unknown>,
+  ): Promise<CompanyOpsActionResult> {
+    if (principal.role !== "founder") {
+      throw new CompanyOpsHttpError(403, "Only the founder can reconcile campaign revenue");
+    }
+    const allowed = new Set(["campaignId", "eligibleRevenue", "reconciliationNote"]);
+    const unknown = Object.keys(input).filter((key) => !allowed.has(key));
+    if (unknown.length) throw new CompanyOpsHttpError(400, `Unknown fields: ${unknown.join(", ")}`);
+    const campaignId = validRecordId(input.campaignId);
+    const eligibleRevenue = numberValue(input.eligibleRevenue);
+    if (eligibleRevenue === undefined || eligibleRevenue < 0) {
+      throw new CompanyOpsHttpError(400, "eligibleRevenue must be zero or greater");
+    }
+    const note = textValue(input.reconciliationNote);
+    if (!note) throw new CompanyOpsHttpError(400, "A reconciliation note is required");
+    const target = await this.target("campaign");
+    const record = await this.client.getRecord(target.appToken, target.tableId, campaignId);
+    if (this.campaignStatus(record) !== "Reconciliation") {
+      throw new CompanyOpsHttpError(409, "This campaign is not awaiting reconciliation");
+    }
+    const campaignCode = textValue(recordField(record.fields, ["活动代码 Campaign Code", "Campaign Code"]));
+    const tracked = await this.campaignRevenue(campaignCode);
+    const manualRevenue = numberValue(recordField(record.fields, [
+      "线下申报回款 Reported Offline Revenue", "Reported Offline Revenue",
+    ])) || 0;
+    const adjustments = numberValue(recordField(record.fields, [
+      "退款与调整 Refunds & Adjustments", "Refunds & Adjustments",
+    ])) || 0;
+    const maximumEligible = Math.max(0, tracked.grossCollected + manualRevenue - adjustments);
+    if (eligibleRevenue > maximumEligible + 0.01) {
+      throw new CompanyOpsHttpError(
+        400,
+        `Eligible revenue cannot exceed tracked plus reported revenue after refunds and adjustments (CNY ${maximumEligible.toFixed(2)})`,
+      );
+    }
+    const product = textValue(recordField(record.fields, ["产品 Product", "Product"]));
+    const projectedRevenue = numberValue(recordField(record.fields, [
+      "目标回款 Revenue Target", "Revenue Target",
+    ])) || 0;
+    const approvedShare = numberValue(recordField(record.fields, [
+      "员工归因比例% Attribution Share", "Attribution Share %",
+    ]));
+    const approvedRate = numberValue(recordField(record.fields, [
+      "批准提成比例% Commission Rate", "Commission Rate %",
+    ]));
+    const storedRule = textValue(recordField(record.fields, [
+      "提成规则快照 Commission Rule", "Commission Rule",
+    ]));
+    const rule = campaignCommissionRule({
+      product,
+      projectedRevenue,
+      collectedRevenue: eligibleRevenue,
+      attributionSharePercent: approvedShare,
+      customRatePercent: /^Written pre-approval rate:/.test(storedRule)
+        ? approvedRate
+        : undefined,
+    });
+    const commissionAmount = campaignCommissionAmount({
+      eligibleRevenue,
+      ratePercent: rule.ratePercent,
+      attributionSharePercent: rule.attributionSharePercent,
+    });
+    const fields: FeishuFields = {};
+    this.setCampaignValue(fields, target, "eligibleRevenue", eligibleRevenue);
+    this.setCampaignValue(fields, target, "commissionRatePercent", rule.ratePercent);
+    this.setCampaignValue(fields, target, "commissionAmount", commissionAmount);
+    this.setCampaignValue(fields, target, "reconciliationNote", note);
+    this.setCampaignValue(fields, target, "reconciledAt", Date.now());
+    this.setCampaignValue(fields, target, "status", "已核对 Reconciled");
+    await this.client.updateRecord(target.appToken, target.tableId, campaignId, fields);
+    return {
+      success: true,
+      message: `Campaign reconciled; CNY ${commissionAmount.toFixed(2)} is ready for the monthly commission statement`,
+      recordId: campaignId,
+    };
+  }
+
   private async updateStatus(
     principal: CompanyOpsPrincipal,
     input: Record<string, unknown>
@@ -4532,6 +5261,9 @@ ${entry}` : entry;
     const resource = textValue(input.resource) as CompanyOpsResource;
     const recordId = validRecordId(input.recordId);
     const status = textValue(input.status);
+    if (resource === "campaign") {
+      throw new CompanyOpsHttpError(400, "Campaign status must use the approval and reconciliation workflow");
+    }
     if (!STATUS_RESOURCES_BY_ROLE[principal.role].has(resource)) {
       throw new CompanyOpsHttpError(403, "You cannot update that type of record");
     }

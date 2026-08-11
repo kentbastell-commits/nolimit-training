@@ -6,6 +6,7 @@ export type CompanyOpsPage =
   | "home"
   | "performance"
   | "growth"
+  | "campaigns"
   | "decisions"
   | "calendar"
   | "articles"
@@ -29,6 +30,11 @@ export type CompanyOpsActionName =
   | "create_lead"
   | "create_partner"
   | "create_campaign"
+  | "campaign.update"
+  | "campaign.review"
+  | "campaign.activate"
+  | "campaign.results.submit"
+  | "campaign.reconcile"
   | "create_experiment"
   | "submit_platform_metrics"
   | "create_support_issue"
@@ -48,6 +54,7 @@ export type CompanyOpsActionName =
   | "create_article"
   | "update_article"
   | "delete_article"
+  | "delete_record"
   | "create_goal"
   | "update_goal"
   | "respond_goal"
@@ -208,6 +215,60 @@ export interface OpsCampaignItem {
   collectedRevenue?: string;
   nextDecision?: string;
   href?: string;
+}
+
+export interface OpsCampaignTrackingLink {
+  channel: string;
+  source: string;
+  attributionCode: string;
+  url: string;
+}
+
+export interface OpsCampaignWorkflowItem {
+  id: string;
+  name: string;
+  status: string;
+  objective?: string;
+  budget?: number;
+  startAt?: string;
+  endAt?: string;
+  audience?: string[];
+  offer?: string;
+  product?: string;
+  channels?: string[];
+  ownerName?: string;
+  campaignCode?: string;
+  staffAttributionCode?: string;
+  trackingLinks: OpsCampaignTrackingLink[];
+  submittedAt?: string;
+  approverName?: string;
+  approvedAt?: string;
+  reviewNote?: string;
+  revenueTarget?: number;
+  successCriteria?: string;
+  attributionSharePercent?: number;
+  commissionRatePercent?: number;
+  commissionRule?: string;
+  trackedCollectedRevenue: number;
+  trackedOrderCount: number;
+  currency: string;
+  reportedManualRevenue?: number;
+  reportedAdjustments?: number;
+  eligibleRevenue?: number;
+  commissionAmount?: number;
+  resultsSummary?: string;
+  evidenceLinks?: string[];
+  resultsSubmittedAt?: string;
+  reconciledAt?: string;
+  reconciliationNote?: string;
+  reach?: number;
+  clicks?: number;
+  consultations?: number;
+  canEdit: boolean;
+  canReview: boolean;
+  canActivate: boolean;
+  canSubmitResults: boolean;
+  canReconcile: boolean;
 }
 
 export interface OpsExperimentItem {
@@ -467,6 +528,7 @@ export interface CompanyOpsDashboard {
   weekRhythm?: OpsWeekRhythm;
   quickActions?: OpsQuickActionConfig[];
   growth?: OpsGrowthDashboard;
+  campaigns?: OpsCampaignWorkflowItem[];
   decisions?: OpsDecisionItem[];
   finance?: OpsFinanceSummary;
   goals?: OpsGoalItem[];

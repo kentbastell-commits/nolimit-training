@@ -5,6 +5,7 @@ import {
   Home,
   Languages,
   LogOut,
+  Megaphone,
   Newspaper,
   RefreshCw,
   Target,
@@ -23,6 +24,7 @@ import { BRAND_MONOGRAM_BLACK, BRAND_WORDMARK_BLACK } from "../brandAssets";
 import { CompanyOpsApiError, companyOpsApi, quickActionApiNames } from "./api";
 import CompanyOpsHome from "./CompanyOpsHome";
 import ArticleBuilderPage from "./ArticleBuilderPage";
+import CampaignsPage from "./CampaignsPage";
 import ContentCalendarPage from "./ContentCalendarPage";
 import { SkeletonPage } from "./components";
 import { opsText, roleLabel, type OpsCopyKey } from "./copy";
@@ -61,6 +63,7 @@ const navItems: Array<{
   { page: "home", label: "navHome", icon: Home },
   { page: "performance", label: "navPerformance", icon: Target },
   { page: "growth", label: "navGrowth", icon: TrendingUp },
+  { page: "campaigns", label: "navCampaigns", icon: Megaphone },
   { page: "calendar", label: "navCalendar", icon: CalendarDays },
   { page: "articles", label: "navArticles", icon: Newspaper },
   { page: "decisions", label: "navDecisions", icon: Gavel },
@@ -95,6 +98,7 @@ function safeDashboardForUser(
     ...dashboard,
     user,
     growth: capabilities.has("view_growth") ? dashboard.growth : undefined,
+    campaigns: capabilities.has("view_growth") ? dashboard.campaigns : undefined,
     myPerformance: dashboard.myPerformance,
     performance: user.role === "founder" ? dashboard.performance : undefined,
     decisions: capabilities.has("view_decisions")
@@ -374,7 +378,7 @@ export default function CompanyOpsApp({
             return true;
           })
         : [],
-    [user],
+    [dashboard?.onboarding?.tasks, user],
   );
 
   const activePage = user && !canOpenPage(user, page) ? "home" : page;
@@ -412,7 +416,7 @@ export default function CompanyOpsApp({
       window.history.pushState({}, "", `${url.pathname}${url.search}${url.hash}`);
       window.scrollTo({ top: 0, behavior: "smooth" });
     },
-    [user],
+    [language, user],
   );
 
   const submitQuickAction = async (payload: Record<string, unknown>) => {
@@ -543,8 +547,10 @@ export default function CompanyOpsApp({
       navigate("decisions");
     } else if (item.kind === "onboarding") {
       navigate("onboarding");
+    } else if (item.kind === "campaign" && user && canOpenPage(user, "campaigns")) {
+      navigate("campaigns");
     } else if (
-      ["content", "lead", "partner", "campaign", "report"].includes(
+      ["content", "lead", "partner", "report"].includes(
         item.kind,
       ) &&
       user &&
@@ -755,6 +761,27 @@ export default function CompanyOpsApp({
                   );
                 }
               }}
+              onEditGoal={async (goal, patch) => {
+                try {
+                  await runRecordAction("update_goal", { goalId: goal.id, ...patch });
+                } catch (error) {
+                  showToast(
+                    error instanceof Error ? error.message : opsText(language, "actionFailed"),
+                    "error",
+                  );
+                }
+              }}
+              onDeleteGoal={async (goal) => {
+                if (!window.confirm(opsText(language, "deleteConfirmGeneric"))) return;
+                try {
+                  await runRecordAction("delete_record", { resource: "goal", recordId: goal.id });
+                } catch (error) {
+                  showToast(
+                    error instanceof Error ? error.message : opsText(language, "actionFailed"),
+                    "error",
+                  );
+                }
+              }}
               onUpdateGoalStatus={async (goal, status) => {
                 try {
                   await runRecordAction("update_goal", {
@@ -874,6 +901,17 @@ export default function CompanyOpsApp({
               growth={dashboard.growth}
               language={language}
               onQuickAction={setDrawerAction}
+              onDeleteRecord={async (resource, recordId) => {
+                if (!window.confirm(opsText(language, "deleteConfirmGeneric"))) return;
+                try {
+                  await runRecordAction("delete_record", { resource, recordId });
+                } catch (error) {
+                  showToast(
+                    error instanceof Error ? error.message : opsText(language, "actionFailed"),
+                    "error",
+                  );
+                }
+              }}
               onUpdateContentStatus={async (contentId, status) => {
                 try {
                   await runRecordAction("update_status", {
@@ -890,6 +928,15 @@ export default function CompanyOpsApp({
                   );
                 }
               }}
+            />
+          ) : null}
+          {activePage === "campaigns" && capabilities.has("view_growth") ? (
+            <CampaignsPage
+              campaigns={dashboard.campaigns || []}
+              language={language}
+              user={user}
+              onCreate={() => setDrawerAction("campaign")}
+              onAction={runRecordAction}
             />
           ) : null}
           {activePage === "performance" ? (
@@ -918,8 +965,8 @@ export default function CompanyOpsApp({
               growthMetrics={dashboard.growth?.metrics || []}
               canResolve={capabilities.has("resolve_decisions")}
               busyDecisionId={busyDecisionId}
-              onDecision={(decision, outcome) =>
-                void handleDecision(decision, outcome)
+              onDecision={(decision, outcome, feedback) =>
+                void handleDecision(decision, outcome, feedback)
               }
             />
           ) : null}

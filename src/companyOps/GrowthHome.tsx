@@ -1,4 +1,5 @@
 import {
+  Trash2,
   ArrowRight,
   BarChart3,
   CalendarDays,
@@ -112,11 +113,13 @@ export default function GrowthHome({
   language,
   onQuickAction,
   onUpdateContentStatus,
+  onDeleteRecord,
 }: {
   growth?: OpsGrowthDashboard;
   language: CompanyOpsLanguage;
   onQuickAction: (action: QuickActionKey) => void;
   onUpdateContentStatus?: (contentId: string, status: string) => void;
+  onDeleteRecord?: (resource: string, recordId: string) => void;
 }) {
   const pipeline = growth?.pipeline || [];
   const upcoming = growth?.upcomingContent || [];
@@ -282,6 +285,19 @@ export default function GrowthHome({
                         {lead.nextActionAt ? (
                           <small>{formatOpsDate(lead.nextActionAt, language)}</small>
                         ) : null}
+                        {onDeleteRecord ? (
+                          <button
+                            type="button"
+                            className="fopsMiniDelete"
+                            onClick={(event) => {
+                              event.preventDefault();
+                              event.stopPropagation();
+                              onDeleteRecord("lead", lead.id);
+                            }}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        ) : null}
                       </>
                     );
                     return lead.href ? (
@@ -329,6 +345,19 @@ export default function GrowthHome({
                             {opsText(language, "nextFollowUp")}: {" "}
                             {formatOpsDate(partner.nextFollowUpAt, language)}
                           </small>
+                        ) : null}
+                        {onDeleteRecord ? (
+                          <button
+                            type="button"
+                            className="fopsMiniDelete"
+                            onClick={(event) => {
+                              event.preventDefault();
+                              event.stopPropagation();
+                              onDeleteRecord("partner", partner.id);
+                            }}
+                          >
+                            <Trash2 size={13} />
+                          </button>
                         ) : null}
                       </>
                     );
@@ -400,6 +429,15 @@ export default function GrowthHome({
                       ) : null}
                     </div>
                   </div>
+                  {onDeleteRecord ? (
+                    <button
+                      type="button"
+                      className="fopsMiniDelete fopsMiniDelete--corner"
+                      onClick={() => onDeleteRecord("campaign", campaign.id)}
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  ) : null}
                 </article>
               ))
             ) : (
@@ -452,6 +490,15 @@ export default function GrowthHome({
                       ) : null}
                     </div>
                   </div>
+                  {onDeleteRecord ? (
+                    <button
+                      type="button"
+                      className="fopsMiniDelete fopsMiniDelete--corner"
+                      onClick={() => onDeleteRecord("experiment", experiment.id)}
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  ) : null}
                 </article>
               ))
             ) : (

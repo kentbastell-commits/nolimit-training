@@ -2555,6 +2555,458 @@ a.fopsOnboardingTaskLink:hover strong {
   }
 }
 
+/* Campaign approval, attribution and reconciliation workspace */
+.fopsCampaignWorkspace {
+  --campaign-ink: #181711;
+  --campaign-gold: #b98b24;
+  --campaign-paper: #fffdf8;
+}
+
+.fopsCampaignWorkflowRail {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0 0 22px;
+  padding: 14px;
+  border: 1px solid #e7e1d3;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #fffdf8 0%, #f7f2e6 100%);
+}
+
+.fopsCampaignWorkflowRail > div {
+  display: grid;
+  grid-template-columns: 30px 1fr auto;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  color: #5d594f;
+  font-size: 13px;
+}
+
+.fopsCampaignWorkflowRail span {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border-radius: 50%;
+  background: #181711;
+  color: white;
+  font-weight: 800;
+}
+
+.fopsCampaignWorkflowRail strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fopsCampaignWorkflowRail svg { color: #b8ad96; }
+
+.fopsCampaignMetricGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 22px;
+}
+
+.fopsCampaignMetricGrid article {
+  display: grid;
+  grid-template-columns: 36px 1fr;
+  align-items: center;
+  gap: 2px 10px;
+  padding: 18px;
+  border: 1px solid #e7e3da;
+  border-radius: 16px;
+  background: white;
+  box-shadow: 0 10px 28px rgba(39, 32, 18, 0.05);
+}
+
+.fopsCampaignMetricGrid svg {
+  grid-row: 1 / 3;
+  padding: 8px;
+  width: 36px;
+  height: 36px;
+  border-radius: 11px;
+  color: #8a6415;
+  background: #f7edcf;
+}
+
+.fopsCampaignMetricGrid span { color: #716d64; font-size: 12px; }
+.fopsCampaignMetricGrid strong { color: #181711; font-size: 21px; }
+
+.fopsCampaignFilters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 16px 0 18px;
+}
+
+.fopsCampaignFilters button {
+  border: 1px solid #ded9cd;
+  border-radius: 999px;
+  padding: 8px 13px;
+  color: #5c584f;
+  background: #fff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.fopsCampaignFilters button.is-active {
+  border-color: #181711;
+  color: #fff;
+  background: #181711;
+}
+
+.fopsCampaignWorkspaceGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 15px;
+}
+
+.fopsCampaignWorkspaceCard {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid #e3ded3;
+  border-radius: 18px;
+  background: #fff;
+}
+
+.fopsCampaignWorkspaceCard > header {
+  display: grid;
+  grid-template-columns: 42px 1fr;
+  gap: 12px;
+}
+
+.fopsCampaignCardIcon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border-radius: 13px;
+  color: #8a6415;
+  background: #f7edcf;
+}
+
+.fopsCampaignWorkspaceCard h3 {
+  margin: 8px 0 4px;
+  color: #1b1a16;
+  font-size: 18px;
+}
+
+.fopsCampaignWorkspaceCard header p {
+  margin: 0;
+  color: #68645c;
+  line-height: 1.45;
+}
+
+.fopsCampaignStepDots {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 5px;
+}
+
+.fopsCampaignStepDots span {
+  height: 5px;
+  border-radius: 99px;
+  background: #ece8df;
+}
+
+.fopsCampaignStepDots span.is-done { background: #c59836; }
+
+.fopsCampaignWorkspaceCard dl,
+.fopsCampaignPanel dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+.fopsCampaignWorkspaceCard dl > div,
+.fopsCampaignPanel dl > div {
+  min-width: 0;
+  padding: 10px;
+  border-radius: 11px;
+  background: #f8f7f3;
+}
+
+.fopsCampaignWorkspaceCard dt,
+.fopsCampaignPanel dt {
+  margin-bottom: 3px;
+  color: #807a6e;
+  font-size: 11px;
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.fopsCampaignWorkspaceCard dd,
+.fopsCampaignPanel dd {
+  overflow-wrap: anywhere;
+  margin: 0;
+  color: #222018;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.fopsCampaignWorkspaceCard > .fopsButton { align-self: flex-start; }
+
+.fopsCampaignReviewNote {
+  margin: 0;
+  padding: 11px 12px;
+  border-left: 3px solid #c49225;
+  border-radius: 0 9px 9px 0;
+  color: #664d1c;
+  background: #fff7df;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.fopsCampaignDialogBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  justify-content: flex-end;
+  background: rgba(17, 16, 13, 0.48);
+  backdrop-filter: blur(3px);
+}
+
+.fopsCampaignDialog {
+  width: min(880px, 94vw);
+  height: 100%;
+  overflow-y: auto;
+  background: #f7f5ef;
+  box-shadow: -24px 0 70px rgba(0, 0, 0, 0.2);
+}
+
+.fopsCampaignDialogHeader {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 24px 28px 20px;
+  border-bottom: 1px solid #e0dbcf;
+  background: rgba(255, 253, 248, 0.96);
+  backdrop-filter: blur(12px);
+}
+
+.fopsCampaignDialogHeader h2 { margin: 9px 0 5px; font-size: 27px; }
+.fopsCampaignDialogHeader p { margin: 0; color: #666157; }
+.fopsCampaignDialogHeader > button {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  flex: none;
+  place-items: center;
+  border: 1px solid #ddd7cb;
+  border-radius: 50%;
+  background: white;
+  cursor: pointer;
+}
+
+.fopsCampaignDialogBody { display: grid; gap: 16px; padding: 22px 28px 42px; }
+
+.fopsCampaignAuditBanner {
+  display: grid;
+  grid-template-columns: 42px 1fr;
+  gap: 13px;
+  padding: 16px;
+  border: 1px solid #e0d1a7;
+  border-radius: 15px;
+  background: linear-gradient(135deg, #fffaf0, #f7edcf);
+}
+
+.fopsCampaignAuditBanner > svg {
+  padding: 9px;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  color: #8f6919;
+  background: #fff;
+}
+
+.fopsCampaignAuditBanner strong { color: #2a2519; }
+.fopsCampaignAuditBanner p { margin: 4px 0 0; color: #685d46; font-size: 13px; line-height: 1.5; }
+
+.fopsCampaignDetailGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.fopsCampaignPanel,
+.fopsCampaignActionPanel,
+.fopsCampaignReconciled {
+  padding: 18px;
+  border: 1px solid #e0dcd2;
+  border-radius: 17px;
+  background: #fff;
+}
+
+.fopsCampaignPanel h3,
+.fopsCampaignActionPanel h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 14px;
+  color: #211f19;
+  font-size: 17px;
+}
+
+.fopsCampaignDlWide { grid-column: 1 / -1; }
+
+.fopsCampaignActionPanel { border-color: #d7c48e; }
+.fopsCampaignActionPanel--review { background: linear-gradient(160deg, #fffdf8, #fbf4e2); }
+.fopsCampaignActionPanel > p { color: #6e685d; font-size: 13px; line-height: 1.55; }
+
+.fopsCampaignActionFields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 14px 0;
+}
+
+.fopsCampaignActionFields label { display: grid; gap: 6px; min-width: 0; }
+.fopsCampaignActionFields label > span { color: #554f44; font-size: 12px; font-weight: 700; }
+.fopsCampaignActionFields input,
+.fopsCampaignActionFields textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #d7d1c5;
+  border-radius: 10px;
+  padding: 10px 11px;
+  color: #1e1c17;
+  background: white;
+  font: inherit;
+  font-size: 14px;
+}
+
+.fopsCampaignActionFields input:focus,
+.fopsCampaignActionFields textarea:focus {
+  outline: 2px solid rgba(190, 145, 44, 0.22);
+  border-color: #b98b24;
+}
+
+.fopsCampaignActionFields .fopsFieldWide { grid-column: 1 / -1; }
+.fopsCampaignActionButtons { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 9px; }
+
+.fopsCampaignPanelHeading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+.fopsCampaignPanelHeading h3 { margin-bottom: 4px; }
+.fopsCampaignPanelHeading p { margin: 0; color: #746e62; font-size: 12px; }
+
+.fopsTrackingIdentity {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.fopsTrackingIdentity div {
+  display: grid;
+  gap: 3px;
+  padding: 11px;
+  border-radius: 11px;
+  background: #181711;
+  color: white;
+}
+.fopsTrackingIdentity span { color: #d5cfc2; font-size: 11px; }
+.fopsTrackingIdentity strong { overflow-wrap: anywhere; font-family: ui-monospace, monospace; font-size: 13px; }
+
+.fopsTrackingLinkGrid { display: grid; gap: 11px; margin-bottom: 14px; }
+.fopsTrackingLinkGrid article {
+  display: grid;
+  grid-template-columns: 94px 1fr auto;
+  gap: 13px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid #e2ddd2;
+  border-radius: 13px;
+  background: #fbfaf7;
+}
+.fopsTrackingLinkGrid img { display: block; width: 94px; height: 94px; border-radius: 8px; }
+.fopsTrackingLinkGrid code { display: block; margin-top: 4px; color: #8b681b; font-size: 11px; }
+.fopsTrackingLinkGrid p { overflow: hidden; margin: 6px 0 0; color: #777064; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.fopsTrackingLinkGrid article > div:last-child { display: grid; gap: 7px; }
+.fopsTrackingLinkGrid button,
+.fopsTrackingLinkGrid a {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  border: 0;
+  padding: 5px;
+  color: #66501e;
+  background: none;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.fopsCampaignLiveRevenue {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 12px;
+  padding: 13px;
+  border-radius: 12px;
+  background: #edf7ef;
+}
+.fopsCampaignLiveRevenue span,
+.fopsCampaignLiveRevenue small { color: #4d6851; font-size: 12px; }
+.fopsCampaignLiveRevenue strong { grid-row: 1 / 3; grid-column: 2; align-self: center; color: #24582e; font-size: 20px; }
+
+.fopsReconciliationMath { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 12px 0; }
+.fopsReconciliationMath span { padding: 8px 10px; border-radius: 9px; background: #f6f3ec; color: #524c40; font-size: 12px; }
+
+.fopsCampaignReconciled {
+  display: grid;
+  grid-template-columns: 44px 1fr auto;
+  align-items: center;
+  gap: 13px;
+  border-color: #bcd4c0;
+  background: #f3faf4;
+}
+.fopsCampaignReconciled > svg { color: #2b7438; }
+.fopsCampaignReconciled p { margin: 4px 0 0; color: #55705a; font-size: 13px; }
+.fopsCampaignReconciled dl { display: flex; gap: 18px; margin: 0; }
+.fopsCampaignReconciled dt { color: #607163; font-size: 11px; }
+.fopsCampaignReconciled dd { margin: 2px 0 0; color: #21532a; font-weight: 800; }
+
+@media (max-width: 900px) {
+  .fopsCampaignMetricGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .fopsCampaignWorkspaceGrid,
+  .fopsCampaignDetailGrid { grid-template-columns: 1fr; }
+  .fopsCampaignWorkflowRail { overflow-x: auto; grid-template-columns: repeat(5, minmax(145px, 1fr)); }
+}
+
+@media (max-width: 620px) {
+  .fopsCampaignMetricGrid { grid-template-columns: 1fr; }
+  .fopsCampaignDialog { width: 100%; }
+  .fopsCampaignDialogHeader { padding: 18px; }
+  .fopsCampaignDialogBody { padding: 16px 14px 32px; }
+  .fopsCampaignActionFields,
+  .fopsTrackingIdentity { grid-template-columns: 1fr; }
+  .fopsCampaignActionFields .fopsFieldWide { grid-column: auto; }
+  .fopsTrackingLinkGrid article { grid-template-columns: 72px 1fr; }
+  .fopsTrackingLinkGrid img { width: 72px; height: 72px; }
+  .fopsTrackingLinkGrid article > div:last-child { grid-column: 1 / -1; grid-template-columns: repeat(2, auto); justify-content: start; }
+  .fopsCampaignReconciled { grid-template-columns: 38px 1fr; }
+  .fopsCampaignReconciled dl { grid-column: 1 / -1; }
+}
+
 @media (forced-colors: active) {
   .fopsSidebar nav button.is-active,
   .fopsButton--primary,
@@ -5190,3 +5642,73 @@ a.fopsOnboardingTaskLink:hover strong {
 }
 .fopsGoalSetterDone span:nth-child(2) { flex: 1; }
 .fopsGoalSetterCollapse { margin: 4px 0 14px; text-align: right; }
+
+.fopsGoalToolBtn {
+  padding: 3px 11px;
+  border: 1px solid var(--fops-line-dark);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--fops-ink-soft);
+  font-size: 0.76rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+.fopsGoalToolBtn.is-danger { color: #a12c22; border-color: rgb(161 44 34 / 45%); }
+.fopsGoalEditForm {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 12px;
+  border: 1px dashed var(--fops-line-dark);
+  border-radius: 11px;
+}
+.fopsGoalEditForm label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.78rem;
+  font-weight: 650;
+  color: var(--fops-ink-soft);
+}
+.fopsGoalEditForm input,
+.fopsGoalEditForm select,
+.fopsGoalEditForm textarea {
+  font-size: 0.9rem;
+}
+.fopsGoalEditRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px;
+}
+.fopsGoalEditActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.fopsMiniCardTools {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.fopsMiniDelete {
+  display: inline-flex;
+  align-self: flex-start;
+  margin-top: 6px;
+  padding: 4px 9px;
+  border: 1px solid rgb(161 44 34 / 40%);
+  border-radius: 999px;
+  background: transparent;
+  color: #a12c22;
+  cursor: pointer;
+}
+.fopsMiniDelete--corner {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  margin: 0;
+}
+.fopsCampaignCard,
+.fopsExperimentCard {
+  position: relative;
+}
