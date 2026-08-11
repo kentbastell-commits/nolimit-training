@@ -347,6 +347,12 @@ data between them, never "borrow" a table ID across products.
     writes to THAT record first, form fields second; and any balance computed
     as earned−spent must be E2E-tested with a spend followed by a re-quote
     (balance must visibly drop), not just a successful write.
+    Corollary (bit Kent live 2026-08-11): the remembered identity must be
+    VERIFIED against the typed fields before adoption — Kent's devices stay
+    logged into athletes' portals for support, and his own purchase attached
+    to Pan Yufei's account (order + intake) because buyerClientCode was
+    trusted blindly. Fulfillment now adopts it only when the typed name
+    matches that account; a mismatch falls back to phone-dedupe/create.
 38. **The uploads path that only worked for video** — prod's nginx has a
     late `location ~* \.(?:js|css|...|png|jpe?g|...)$ { try_files $uri =404; }`
     block (for caching hashed `dist/assets/*`) that, by file-extension regex,
