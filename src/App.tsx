@@ -473,6 +473,19 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   useEffect(() => {
     localStorage.setItem("nl_public_lang", storeLang);
   }, [storeLang]);
+  // Keep the public pages' language in sync with the global i18n instance (so
+  // switching language in the portal/invite also flips the store, and toggling
+  // the store toggle also updates the global language for the rest of the app).
+  useEffect(() => {
+    if ((isStorePage || isPublicLandingPage) && i18n.language !== storeLang) {
+      void i18n.changeLanguage(storeLang);
+    }
+  }, [storeLang, i18n, isStorePage, isPublicLandingPage]);
+  useEffect(() => {
+    if (!isClientPortal) return;
+    const next = i18n.language === "zh" ? "zh" : "en";
+    if (next !== storeLang) setStoreLang(next);
+  }, [i18n.language, isClientPortal, storeLang]);
   const [storeLauncherOpen, setStoreLauncherOpen] = useState(false);
   const [storeLauncherClient, setStoreLauncherClient] = useState("");
   const [programsLoading, setProgramsLoading] = useState(false);

@@ -15687,6 +15687,18 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
 .clientPortalApp .wcatIcon.wcol-purple,
 .clientPortalApp .wcatBadge.wcol-purple { background: color-mix(in srgb, var(--wcol-other) 15%, #fff); color: var(--wcol-other); }
 
+/* workout player header badge: smaller than task cards, inline with title */
+.clientPortalApp .clientWorkoutPlayerModal > .modal-header h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.clientPortalApp .clientWorkoutPlayerModal > .modal-header .wcatBadge {
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+}
+
 /* home task card → leading badge · content · action */
 .clientPortalApp .homeWorkoutItem {
   display: flex !important;

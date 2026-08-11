@@ -3,8 +3,19 @@
 import { useState } from "react";
 import { stripLocalizedExerciseMeta } from "./appCore";
 import "./WorkoutPlayerModal.css";
-import { Check, ChevronLeft, ChevronRight, ClipboardList, Clock3, Film, MessageSquare, MoreVertical, Play, RefreshCw, Shuffle, SquarePen, Timer, Trash2, X } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, ClipboardList, Clock3, Dumbbell, Film, HeartPulse, MessageSquare, MoreVertical, Play, RefreshCw, Shuffle, SquarePen, Target, Timer, Trash2, Trophy, Waves, X } from "lucide-react";
 import { getDisplayTaskStatus, isDirectMediaUrl, makeExerciseLabel, parseExerciseNotes, toMediaCdnUrl, uploadThumbUrl, videoThumbnail } from "./appCore";
+
+// Category → colourful icon for the player header (mirrors PortalHome).
+const CAT_ICON: Record<string, any> = {
+  "wcol-strength": Dumbbell,
+  "wcol-cardio": HeartPulse,
+  "wcol-mobility": Waves,
+  "wcol-skill": Target,
+  "wcol-test": Trophy,
+  "wcol-purple": ClipboardList,
+};
+const catIcon = (cc?: string) => CAT_ICON[cc || ""] || Dumbbell;
 
 export default function WorkoutPlayerModal({
   getLabelColorClass,
@@ -130,7 +141,20 @@ export default function WorkoutPlayerModal({
             >
               <div className="modal-header">
                 <div>
-                  <h2>{localizedWorkoutName(selectedWorkout)}</h2>
+                  <h2>
+                    {isClientPortal && selectedWorkout?.colorClass && (
+                      <span
+                        className={`wcatBadge ${selectedWorkout.colorClass}`}
+                        aria-hidden="true"
+                      >
+                        {(() => {
+                          const Icon = catIcon(selectedWorkout.colorClass);
+                          return <Icon size={22} aria-hidden="true" />;
+                        })()}
+                      </span>
+                    )}
+                    {localizedWorkoutName(selectedWorkout)}
+                  </h2>
                   {coachReviewMode && (
                     <span className="coachReviewBadge">
                       {paceZh ? "审阅模式" : "Review mode"}

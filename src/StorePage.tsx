@@ -658,7 +658,7 @@ export default function StorePage({
             >
               <motion.div className="storeHeroEyebrowRowV3" variants={rise}>
                 <span className="storeEyebrowV2">
-                  {sZh ? "为训练而生" : "Raise the Floor. Break the Ceiling."}
+                  {sZh ? "提升下限 · 突破上限" : "Raise the Floor. Break the Ceiling."}
                 </span>
                 <span className="storeHeroAccentLineV3" />
               </motion.div>

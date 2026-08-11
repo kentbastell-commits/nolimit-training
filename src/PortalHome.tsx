@@ -10,7 +10,7 @@ import {
   Trophy,
   Waves,
 } from "lucide-react";
-import { Suspense, lazy, useEffect, useState } from "react";
+import { Suspense, lazy, useState } from "react";
 import { normalizeDate } from "./appCore";
 
 const JumpLabModal = lazy(() => import("./JumpLabModal"));
@@ -73,17 +73,6 @@ export default function PortalHome({
   // Jump Lab (video jump testing) — self-contained, lazy-loaded on open.
   const [jumpLabOpen, setJumpLabOpen] = useState(false);
 
-  // On narrow/mobile viewports, stack Home sections instead of using sub-tabs.
-  const [isNarrow, setIsNarrow] = useState(
-    typeof window !== "undefined" ? window.innerWidth <= 640 : false
-  );
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const handleResize = () => setIsNarrow(window.innerWidth <= 640);
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
   return (
                 <div
                   className="clientHomeGrid"
@@ -97,7 +86,9 @@ export default function PortalHome({
                       String(selectedClient?.clientType || "")
                     ) &&
                     renderDailyCheckIn()}
-                  {isClientPortal && !isNarrow && (
+                  {/* Sub-tabs keep the mobile home from turning into an endless
+                      scroll of sections; swipe gestures still switch tabs. */}
+                  {isClientPortal && (
                     <div
                       className="portalHomeTabs"
                       role="tablist"
@@ -182,7 +173,7 @@ export default function PortalHome({
 
 
                   {isClientPortal &&
-                    (isNarrow || portalHomeTab === "tasks") &&
+                    portalHomeTab === "tasks" &&
                     (() => {
                       const items = coachInboxItems();
                       if (items.length === 0) return null;
@@ -228,7 +219,7 @@ export default function PortalHome({
                       );
                     })()}
 
-                  {isClientPortal && (isNarrow || portalHomeTab === "tasks") && (
+                  {isClientPortal && portalHomeTab === "tasks" && (
                     <button
                       className="jlbCard"
                       onClick={() => setJumpLabOpen(true)}
@@ -252,7 +243,7 @@ export default function PortalHome({
                     </Suspense>
                   )}
 
-                  {((isClientPortal && (isNarrow || portalHomeTab === "tasks")) ||
+                  {((isClientPortal && portalHomeTab === "tasks") ||
                     (!isClientPortal && coachDashTab === "activity")) && (
                   <section className="clientHomePanel upcomingHomePanel">
                     <div className="clientHomePanelHeader">
@@ -341,7 +332,7 @@ export default function PortalHome({
                   </section>
                   )}
 
-                  {isClientPortal && (isNarrow || portalHomeTab === "metrics") && (
+                  {isClientPortal && portalHomeTab === "metrics" && (
                     <section className="clientHomePanel focusHomePanel">
                       <div className="clientHomePanelHeader">
                         <div>
@@ -353,7 +344,7 @@ export default function PortalHome({
                     </section>
                   )}
 
-                  {isClientPortal && (isNarrow || portalHomeTab === "records") && (
+                  {isClientPortal && portalHomeTab === "records" && (
                     <section className="clientHomePanel prHomePanel">
                       <div className="clientHomePanelHeader">
                         <div>
@@ -365,7 +356,7 @@ export default function PortalHome({
                     </section>
                   )}
 
-                  {isClientPortal && (isNarrow || portalHomeTab === "records") && (
+                  {isClientPortal && portalHomeTab === "records" && (
                     <section className="clientHomePanel trophyHomePanel">
                       <div className="clientHomePanelHeader">
                         <div>
@@ -377,7 +368,7 @@ export default function PortalHome({
                     </section>
                   )}
 
-                  {isClientPortal && (isNarrow || portalHomeTab === "records") && (
+                  {isClientPortal && portalHomeTab === "records" && (
                     <section className="clientHomePanel progressHomePanel">
                       <div className="clientHomePanelHeader">
                         <div>
@@ -390,7 +381,7 @@ export default function PortalHome({
                   )}
 
                   {isClientPortal &&
-                    (isNarrow || portalHomeTab === "workload") &&
+                    portalHomeTab === "workload" &&
                     isWorkloadMonitored &&
                     renderWorkloadTab()}
 
