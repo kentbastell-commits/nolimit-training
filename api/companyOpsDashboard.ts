@@ -252,16 +252,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         acknowledged: acknowledgedPolicies.has("expense-policy"),
       });
     }
-    if (config.links.commissionPolicy) {
-      policies.push({
-        id: "commission-structure",
-        title: "Commission Structure / 提成制度",
-        description: "Attribution rules, rates, monthly statements and the dispute window.",
-        url: config.links.commissionPolicy,
-        required: principal.role === "growth",
-        acknowledged: acknowledgedPolicies.has("commission-structure"),
-      });
-    }
     if (config.links.employeeHandbook) {
       policies.push({
         id: "employee-handbook",
@@ -300,7 +290,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       onboardingGuide: data.links.onboardingGuide,
       confidentialForm: data.links.confidentialForm,
       expensePolicy: data.links.expensePolicy,
-      commissionPolicy: data.links.commissionPolicy,
       expenseApproval: data.links.expense,
       weeklyReportForm: data.links.weeklyReport,
       tasks: data.links.internalRequest,
