@@ -526,7 +526,12 @@ export default function CompanyOpsApp({
         .filter(Boolean)
         .join(" · "),
     );
-    await refreshDashboard();
+    // Deliberately NOT awaited: the write already succeeded and cost ~3.6s
+    // (Feishu Bitable's floor), and a full dashboard reload stacks another
+    // 2-3s of table reads on top. Awaiting it made a finished save read as
+    // an 8s hang. The toast already confirms success; the fresh data lands
+    // a moment later. See CLAUDE.md #58.
+    void refreshDashboard();
   };
 
   const handleDecision = async (
