@@ -23,6 +23,7 @@ import {
 import { BRAND_MONOGRAM_BLACK, BRAND_WORDMARK_BLACK } from "../brandAssets";
 import { CompanyOpsApiError, companyOpsApi, quickActionApiNames } from "./api";
 import CompanyOpsHome from "./CompanyOpsHome";
+import CompanyBriefPage from "./CompanyBriefPage";
 import ArticleBuilderPage from "./ArticleBuilderPage";
 import CampaignsPage from "./CampaignsPage";
 import ContentCalendarPage from "./ContentCalendarPage";
@@ -262,7 +263,7 @@ export default function CompanyOpsApp({
   // Set by editors with unsaved work (articles today); navigate() and the
   // browser's beforeunload both consult it.
   const unsavedRef = useRef(false);
-  const [resourcesTab, setResourcesTab] = useState<"guide" | "policies">("guide");
+  const [resourcesTab, setResourcesTab] = useState<"company" | "guide" | "policies">("company");
   const [busyDecisionId, setBusyDecisionId] = useState<string>();
   const [busyTaskId, setBusyTaskId] = useState<string>();
   const [busyPolicyId, setBusyPolicyId] = useState<string>();
@@ -1057,6 +1058,9 @@ export default function CompanyOpsApp({
           {activePage === "resources" ? (
             <div className="fopsResourcesPage">
               <div className="fopsResourcesTabs" role="tablist">
+                <button type="button" role="tab" aria-selected={resourcesTab === "company"} className={resourcesTab === "company" ? "is-active" : ""} onClick={() => setResourcesTab("company")}>
+                  {language === "zh" ? "公司与产品" : "Company & products"}
+                </button>
                 <button
                   type="button"
                   role="tab"
@@ -1076,7 +1080,9 @@ export default function CompanyOpsApp({
                   {opsText(language, "navPolicies")}
                 </button>
               </div>
-              {resourcesTab === "guide" ? (
+              {resourcesTab === "company" ? (
+                <CompanyBriefPage language={language} />
+              ) : resourcesTab === "guide" ? (
                 <GuidePage language={language} onNavigate={navigate} />
               ) : (
                 <PoliciesPage
