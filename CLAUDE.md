@@ -660,7 +660,19 @@ data between them, never "borrow" a table ID across products.
     dashboard/aggregate section joins the up-front parallel `prefetch` block
     (guards mirroring its use site), never a standalone await; and "page is
     slow" gets MEASURED server-side (time the assembly on the box) before
-    blaming the network.
+    blaming the network. MEASURED FLOOR (Shanghai box, 2026-08-12, so stop
+    re-deriving it): one Bitable table read ≈1.3s, create one record 3.6s,
+    delete one record 6.3s, tenant token 0.2s. So ~16 tables even fully
+    parallel ≈2-3s, and resolvePrincipal is ANOTHER staff-table read paid on
+    every request. Two consequences: (a) company-ops reads go through
+    `server/companyOps/cache.ts` (wraps api/_cache.ts, so invalidation rides
+    the LISTEN/NOTIFY bus to both forks) — dashboard 60s, principal 5min,
+    cleared on every mutation, off under VITEST; (b) NEVER `await` a full
+    dashboard refresh after a write in the client — the write already cost
+    3.6s and the refresh stacks 2-3s more on top, so a save that finished
+    reads as an 8s hang. Refresh in the background or update optimistically.
+    The real cure for write latency is the Postgres migration; while the
+    backend is Bitable, 3.6s per write is the floor, not a bug to hunt.
 
 59. **The commit that imports a ghost** — committing a SHARED file by name
     while another agent is mid-feature in it swept their `import ...
