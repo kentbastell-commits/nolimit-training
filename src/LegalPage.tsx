@@ -288,10 +288,11 @@ function BusinessZh() {
         <a className="businessRegistryLink" href="https://www.gsxt.gov.cn/" target="_blank" rel="noreferrer">前往国家企业信用信息公示系统查询</a>
       </section>
       <section>
-        <h2>ICP 备案</h2>
+        <h2>网站备案</h2>
         <p>
-          本网站已依法完成 ICP 备案：<IcpBadge />
-          （审核通过日期 2026-07-27，广东省通信管理局）。
+          本网站已依法完成 ICP 备案（审核通过日期 2026-07-27，广东省通信管理局）
+          及公安联网备案（审核通过日期 2026-08-12，广州市公安局越秀区分局）：
+          <IcpBadge />
         </p>
       </section>
     </article>

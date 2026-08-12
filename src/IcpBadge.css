@@ -3,6 +3,13 @@
    visit-order dependent (CLAUDE.md mistake #25). Inherits the surrounding
    footer's color so it reads correctly on dark (landing) and light (store,
    legal) grounds alike. */
+.icpBadgeRow {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0 14px;
+  justify-content: center;
+}
+
 .icpBadge {
   display: inline-block;
   margin-top: 10px;
