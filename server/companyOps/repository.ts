@@ -21,7 +21,11 @@ import {
 } from "./feishuClient.ts";
 import {
   campaignCommissionAmount,
+  campaignCommissionFromOrders,
   campaignCommissionRule,
+  campaignProductKind,
+  type CampaignCommissionRule,
+  type PaidOrderRow,
 } from "./campaignPolicy.ts";
 import { createHash } from "node:crypto";
 
@@ -83,11 +87,23 @@ export interface CompanyOpsCampaign {
   attributionSharePercent?: number;
   commissionRatePercent?: number;
   commissionRule?: string;
+  commissionType?: "rate" | "flat_fee";
+  flatFeeAmount?: number;
+  ratePercentAboveThreshold?: number;
+  thresholdAmount?: number;
+  originatorName?: string;
+  managerName?: string;
+  closerName?: string;
   trackedCollectedRevenue: number;
   trackedOrderCount: number;
   currency: string;
   reportedManualRevenue?: number;
+  reportedDiscounts?: number;
+  reportedRefunds?: number;
+  reportedChargebacks?: number;
+  reportedVat?: number;
   reportedAdjustments?: number;
+  netCollectedRevenue?: number;
   eligibleRevenue?: number;
   commissionAmount?: number;
   resultsSummary?: string;
@@ -591,9 +607,21 @@ const CAMPAIGN_SPECS: readonly InputFieldSpec[] = [
   { key: "reviewNote", aliases: ["审核意见 Review Note", "Review Note", "审核意见"], kind: "string", maximum: 3_000 },
   { key: "attributionSharePercent", aliases: ["员工归因比例% Attribution Share", "Attribution Share %", "员工归因比例"], kind: "number", minimum: 0, maximum: 100 },
   { key: "commissionRatePercent", aliases: ["批准提成比例% Commission Rate", "Commission Rate %", "批准提成比例"], kind: "number", minimum: 0, maximum: 100 },
+  { key: "commissionType", aliases: ["提成类型 Commission Type", "Commission Type", "提成类型"], kind: "string", maximum: 50 },
   { key: "commissionRule", aliases: ["提成规则快照 Commission Rule", "Commission Rule", "提成规则快照"], kind: "string", maximum: 2_000 },
+  { key: "ratePercentAboveThreshold", aliases: ["超出区间提成比例% Rate Above Threshold", "Rate Above Threshold %", "超出区间提成比例"], kind: "number", minimum: 0, maximum: 100 },
+  { key: "thresholdAmount", aliases: ["提成加速阈值 Threshold Amount", "Threshold Amount", "提成加速阈值"], kind: "number", minimum: 0, maximum: 1_000_000_000 },
+  { key: "flatFeeAmount", aliases: ["固定费用金额 Flat Fee Amount", "Flat Fee Amount", "固定费用金额"], kind: "number", minimum: 0, maximum: 1_000_000_000 },
+  { key: "originatorName", aliases: ["方案提出人 Originator", "Originator", "方案提出人"], kind: "string", maximum: 200 },
+  { key: "managerName", aliases: ["活动负责人 Manager", "Manager", "活动负责人"], kind: "string", maximum: 200 },
+  { key: "closerName", aliases: ["成交人 Closer", "Closer", "成交人"], kind: "string", maximum: 200 },
   { key: "manualRevenue", aliases: ["线下申报回款 Reported Offline Revenue", "Reported Offline Revenue", "线下申报回款"], kind: "number", minimum: 0, maximum: 1_000_000_000 },
+  { key: "reportedDiscounts", aliases: ["申报折扣 Reported Discounts", "Reported Discounts", "申报折扣"], kind: "number", minimum: 0, maximum: 1_000_000_000 },
+  { key: "reportedRefunds", aliases: ["申报退款 Reported Refunds", "Reported Refunds", "申报退款"], kind: "number", minimum: 0, maximum: 1_000_000_000 },
+  { key: "reportedChargebacks", aliases: ["申报拒付 Reported Chargebacks", "Reported Chargebacks", "申报拒付"], kind: "number", minimum: 0, maximum: 1_000_000_000 },
+  { key: "reportedVat", aliases: ["申报增值税 Reported VAT", "Reported VAT", "申报增值税"], kind: "number", minimum: 0, maximum: 1_000_000_000 },
   { key: "adjustments", aliases: ["退款与调整 Refunds & Adjustments", "Refunds & Adjustments", "退款与调整"], kind: "number", minimum: 0, maximum: 1_000_000_000 },
+  { key: "netCollectedRevenue", aliases: ["净回款 Net Collected Revenue", "Net Collected Revenue", "净回款"], kind: "number", minimum: 0, maximum: 1_000_000_000 },
   { key: "eligibleRevenue", aliases: ["核准归因回款 Eligible Revenue", "Eligible Revenue", "核准归因回款"], kind: "number", minimum: 0, maximum: 1_000_000_000 },
   { key: "commissionAmount", aliases: ["活动提成金额 Campaign Commission", "Campaign Commission", "活动提成金额"], kind: "number", minimum: 0, maximum: 1_000_000_000 },
   { key: "resultsSummary", aliases: ["结果总结 Results Summary", "Results Summary", "结果总结"], kind: "string", maximum: 10_000 },
@@ -1340,6 +1368,15 @@ const CAMPAIGN_PRODUCT_OPTIONS: Record<string, string> = {
   institution: "团队/机构 Team",
   "team institution": "团队/机构 Team",
   "团队/机构 team": "团队/机构 Team",
+  presentation: "演讲/分享 Presentation",
+  "演讲/分享 presentation": "演讲/分享 Presentation",
+  workshop: "工作坊 Workshop",
+  "工作坊 workshop": "工作坊 Workshop",
+  "small camp": "短期训练营 Small Camp",
+  "small training camp": "短期训练营 Small Camp",
+  "短期训练营 small camp": "短期训练营 Small Camp",
+  "training camp": "训练营 Training Camp",
+  "训练营 training camp": "训练营 Training Camp",
   brand: "品牌 Brand",
   "品牌 brand": "品牌 Brand",
 };
@@ -2064,12 +2101,24 @@ export class CompanyOpsRepository {
       successCriteria: textValue(recordField(record.fields, ["成功标准 Success Criteria", "Success Criteria"])) || undefined,
       attributionSharePercent: numberValue(recordField(record.fields, ["员工归因比例% Attribution Share", "Attribution Share %"])),
       commissionRatePercent: numberValue(recordField(record.fields, ["批准提成比例% Commission Rate", "Commission Rate %"])),
+      commissionType: (textValue(recordField(record.fields, ["提成类型 Commission Type", "Commission Type"])) as "rate" | "flat_fee") || undefined,
       commissionRule: textValue(recordField(record.fields, ["提成规则快照 Commission Rule", "Commission Rule"])) || undefined,
+      ratePercentAboveThreshold: numberValue(recordField(record.fields, ["超出区间提成比例% Rate Above Threshold", "Rate Above Threshold %"])),
+      thresholdAmount: numberValue(recordField(record.fields, ["提成加速阈值 Threshold Amount", "Threshold Amount"])),
+      flatFeeAmount: numberValue(recordField(record.fields, ["固定费用金额 Flat Fee Amount", "Flat Fee Amount"])),
+      originatorName: textValue(recordField(record.fields, ["方案提出人 Originator", "Originator"])) || undefined,
+      managerName: textValue(recordField(record.fields, ["活动负责人 Manager", "Manager"])) || undefined,
+      closerName: textValue(recordField(record.fields, ["成交人 Closer", "Closer"])) || undefined,
       trackedCollectedRevenue: tracked?.grossCollected || 0,
       trackedOrderCount: tracked?.orderCount || 0,
       currency: tracked?.currency || "CNY",
       reportedManualRevenue: numberValue(recordField(record.fields, ["线下申报回款 Reported Offline Revenue", "Reported Offline Revenue"])),
+      reportedDiscounts: numberValue(recordField(record.fields, ["申报折扣 Reported Discounts", "Reported Discounts"])),
+      reportedRefunds: numberValue(recordField(record.fields, ["申报退款 Reported Refunds", "Reported Refunds"])),
+      reportedChargebacks: numberValue(recordField(record.fields, ["申报拒付 Reported Chargebacks", "Reported Chargebacks"])),
+      reportedVat: numberValue(recordField(record.fields, ["申报增值税 Reported VAT", "Reported VAT"])),
       reportedAdjustments: numberValue(recordField(record.fields, ["退款与调整 Refunds & Adjustments", "Refunds & Adjustments"])),
+      netCollectedRevenue: numberValue(recordField(record.fields, ["净回款 Net Collected Revenue", "Net Collected Revenue"])),
       eligibleRevenue: numberValue(recordField(record.fields, ["核准归因回款 Eligible Revenue", "Eligible Revenue"])),
       commissionAmount: numberValue(recordField(record.fields, ["活动提成金额 Campaign Commission", "Campaign Commission"])),
       resultsSummary: textValue(recordField(record.fields, ["结果总结 Results Summary", "Results Summary"])) || undefined,
@@ -2931,7 +2980,7 @@ export class CompanyOpsRepository {
         const allowedCampaignCreate = new Set([
           "name", "objective", "targetAudience", "audience", "offer", "product",
           "channels", "budget", "start", "startDate", "end", "endDate",
-          "revenueTarget", "successCriteria",
+          "revenueTarget", "successCriteria", "flatFeeAmount",
         ]);
         const unknownCampaignCreate = Object.keys(payload).filter(
           (key) => !allowedCampaignCreate.has(key),
@@ -2970,6 +3019,7 @@ export class CompanyOpsRepository {
           endDate: payload.end ?? payload.endDate,
           revenueTarget: payload.revenueTarget,
           successCriteria: payload.successCriteria,
+          flatFeeAmount: payload.flatFeeAmount,
           submittedAt: Date.now(),
         };
         const record = await this.createMapped("campaign", normalizedPayload, CAMPAIGN_SPECS, principal, { status: "待批准 Pending Approval" });
@@ -5131,16 +5181,6 @@ ${entry}` : entry;
     output[field.field_name] = this.serializeInput(value, spec, field);
   }
 
-  private async campaignRevenue(campaignCode: string): Promise<{
-    grossCollected: number;
-    orderCount: number;
-    currency: string;
-  }> {
-    if (!campaignCode) return { grossCollected: 0, orderCount: 0, currency: "CNY" };
-    const rows = await this.campaignRevenues([campaignCode]);
-    return rows.get(campaignCode) || { grossCollected: 0, orderCount: 0, currency: "CNY" };
-  }
-
   private async campaignRevenues(campaignCodes: readonly string[]): Promise<Map<string, {
     grossCollected: number;
     orderCount: number;
@@ -5168,6 +5208,18 @@ ${entry}` : entry;
       return result;
     }
     return result;
+  }
+
+  private async campaignOrderRows(campaignCode: string): Promise<PaidOrderRow[]> {
+    if (!campaignCode) return [];
+    try {
+      const { paidOrderRowsByCampaignCode } = await import(
+        "../db/repositories/productOrders.ts"
+      );
+      return await paidOrderRowsByCampaignCode(campaignCode);
+    } catch {
+      return [];
+    }
   }
 
   private async updateCampaignProposal(
@@ -5228,7 +5280,8 @@ ${entry}` : entry;
       throw new CompanyOpsHttpError(403, "Only the founder can review campaigns");
     }
     const allowed = new Set([
-      "campaignId", "decision", "feedback", "attributionSharePercent", "customRatePercent",
+      "campaignId", "decision", "feedback", "attributionSharePercent",
+      "flatFeeAmount", "originatorName", "managerName", "closerName",
     ]);
     const unknown = Object.keys(input).filter((key) => !allowed.has(key));
     if (unknown.length) throw new CompanyOpsHttpError(400, `Unknown fields: ${unknown.join(", ")}`);
@@ -5270,37 +5323,27 @@ ${entry}` : entry;
     }
 
     const product = textValue(recordField(record.fields, ["产品 Product", "Product"]));
-    const projectedRevenue = numberValue(recordField(record.fields, [
-      "目标回款 Revenue Target", "Revenue Target",
-    ])) || 0;
-    const customRate = input.customRatePercent === undefined || input.customRatePercent === ""
-      ? undefined
-      : numberValue(input.customRatePercent);
     const requestedShare = input.attributionSharePercent === undefined || input.attributionSharePercent === ""
-      ? undefined
+      ? 100
       : numberValue(input.attributionSharePercent);
-    if (
-      (input.customRatePercent !== undefined && input.customRatePercent !== "" && customRate === undefined) ||
-      (customRate !== undefined && (customRate < 0 || customRate > 100))
-    ) {
-      throw new CompanyOpsHttpError(400, "customRatePercent must be between 0 and 100");
-    }
-    if (
-      (input.attributionSharePercent !== undefined && input.attributionSharePercent !== "" && requestedShare === undefined) ||
-      (requestedShare !== undefined && (requestedShare < 0 || requestedShare > 100))
-    ) {
+    if (requestedShare === undefined || requestedShare < 0 || requestedShare > 100) {
       throw new CompanyOpsHttpError(400, "attributionSharePercent must be between 0 and 100");
+    }
+    const flatFeeAmount = input.flatFeeAmount === undefined || input.flatFeeAmount === ""
+      ? undefined
+      : numberValue(input.flatFeeAmount);
+    if (flatFeeAmount !== undefined && flatFeeAmount < 0) {
+      throw new CompanyOpsHttpError(400, "flatFeeAmount must be zero or greater");
     }
     const rule = campaignCommissionRule({
       product,
-      projectedRevenue,
-      customRatePercent: customRate,
+      flatFeeAmount,
       attributionSharePercent: requestedShare,
     });
-    if (rule.requiresCustomRate && customRate === undefined) {
+    if (rule.requiresWrittenFee && !flatFeeAmount) {
       throw new CompanyOpsHttpError(
         400,
-        "A team/institution campaign above CNY 300,000 needs a written pre-signing commission rate",
+        "Team/institution, presentation, workshop and camp campaigns need a pre-approved written flat fee",
       );
     }
     const ownerIds = idsFromValue(recordField(record.fields, [
@@ -5328,7 +5371,20 @@ ${entry}` : entry;
     this.setCampaignValue(fields, target, "trackingKit", JSON.stringify(trackingLinks));
     this.setCampaignValue(fields, target, "attributionSharePercent", rule.attributionSharePercent);
     this.setCampaignValue(fields, target, "commissionRatePercent", rule.ratePercent);
+    this.setCampaignValue(fields, target, "commissionType", rule.commissionType);
+    if (rule.ratePercentAboveThreshold !== undefined) {
+      this.setCampaignValue(fields, target, "ratePercentAboveThreshold", rule.ratePercentAboveThreshold);
+    }
+    if (rule.thresholdAmount !== undefined) {
+      this.setCampaignValue(fields, target, "thresholdAmount", rule.thresholdAmount);
+    }
+    if (rule.flatFeeAmount !== undefined) {
+      this.setCampaignValue(fields, target, "flatFeeAmount", rule.flatFeeAmount);
+    }
     this.setCampaignValue(fields, target, "commissionRule", rule.label);
+    this.setCampaignValue(fields, target, "originatorName", textValue(input.originatorName) || undefined);
+    this.setCampaignValue(fields, target, "managerName", textValue(input.managerName) || undefined);
+    this.setCampaignValue(fields, target, "closerName", textValue(input.closerName) || undefined);
     await this.client.updateRecord(target.appToken, target.tableId, campaignId, fields);
     return {
       success: true,
@@ -5367,6 +5423,7 @@ ${entry}` : entry;
   ): Promise<CompanyOpsActionResult> {
     const allowed = new Set([
       "campaignId", "resultsSummary", "evidenceLinks", "manualRevenue", "adjustments",
+      "reportedDiscounts", "reportedRefunds", "reportedChargebacks", "reportedVat",
       "reach", "clicks", "consultations",
     ]);
     const unknown = Object.keys(input).filter((key) => !allowed.has(key));
@@ -5400,6 +5457,10 @@ ${entry}` : entry;
     this.setCampaignValue(fields, target, "resultsSummary", resultsSummary);
     this.setCampaignValue(fields, target, "evidenceLinks", evidenceLinks.join("\n"), false);
     this.setCampaignValue(fields, target, "manualRevenue", manualRevenue);
+    this.setCampaignValue(fields, target, "reportedDiscounts", numberValue(input.reportedDiscounts) || 0);
+    this.setCampaignValue(fields, target, "reportedRefunds", numberValue(input.reportedRefunds) || 0);
+    this.setCampaignValue(fields, target, "reportedChargebacks", numberValue(input.reportedChargebacks) || 0);
+    this.setCampaignValue(fields, target, "reportedVat", numberValue(input.reportedVat) || 0);
     this.setCampaignValue(fields, target, "adjustments", numberValue(input.adjustments) || 0);
     this.setCampaignValue(fields, target, "reach", numberValue(input.reach) || 0, false);
     this.setCampaignValue(fields, target, "clicks", numberValue(input.clicks) || 0, false);
@@ -5421,8 +5482,10 @@ ${entry}` : entry;
     const unknown = Object.keys(input).filter((key) => !allowed.has(key));
     if (unknown.length) throw new CompanyOpsHttpError(400, `Unknown fields: ${unknown.join(", ")}`);
     const campaignId = validRecordId(input.campaignId);
-    const eligibleRevenue = numberValue(input.eligibleRevenue);
-    if (eligibleRevenue === undefined || eligibleRevenue < 0) {
+    const requestedEligibleRevenue = input.eligibleRevenue === undefined || input.eligibleRevenue === ""
+      ? undefined
+      : numberValue(input.eligibleRevenue);
+    if (requestedEligibleRevenue !== undefined && (requestedEligibleRevenue < 0 || !Number.isFinite(requestedEligibleRevenue))) {
       throw new CompanyOpsHttpError(400, "eligibleRevenue must be zero or greater");
     }
     const note = textValue(input.reconciliationNote);
@@ -5433,23 +5496,24 @@ ${entry}` : entry;
       throw new CompanyOpsHttpError(409, "This campaign is not awaiting reconciliation");
     }
     const campaignCode = textValue(recordField(record.fields, ["活动代码 Campaign Code", "Campaign Code"]));
-    const tracked = await this.campaignRevenue(campaignCode);
+    const orderRows = await this.campaignOrderRows(campaignCode);
     const manualRevenue = numberValue(recordField(record.fields, [
       "线下申报回款 Reported Offline Revenue", "Reported Offline Revenue",
     ])) || 0;
     const adjustments = numberValue(recordField(record.fields, [
       "退款与调整 Refunds & Adjustments", "Refunds & Adjustments",
     ])) || 0;
-    const maximumEligible = Math.max(0, tracked.grossCollected + manualRevenue - adjustments);
-    if (eligibleRevenue > maximumEligible + 0.01) {
-      throw new CompanyOpsHttpError(
-        400,
-        `Eligible revenue cannot exceed tracked plus reported revenue after refunds and adjustments (CNY ${maximumEligible.toFixed(2)})`,
-      );
-    }
-    const product = textValue(recordField(record.fields, ["产品 Product", "Product"]));
-    const projectedRevenue = numberValue(recordField(record.fields, [
-      "目标回款 Revenue Target", "Revenue Target",
+    const discounts = numberValue(recordField(record.fields, [
+      "申报折扣 Reported Discounts", "Reported Discounts",
+    ])) || 0;
+    const refunds = numberValue(recordField(record.fields, [
+      "申报退款 Reported Refunds", "Reported Refunds",
+    ])) || 0;
+    const chargebacks = numberValue(recordField(record.fields, [
+      "申报拒付 Reported Chargebacks", "Reported Chargebacks",
+    ])) || 0;
+    const vat = numberValue(recordField(record.fields, [
+      "申报增值税 Reported VAT", "Reported VAT",
     ])) || 0;
     const approvedShare = numberValue(recordField(record.fields, [
       "员工归因比例% Attribution Share", "Attribution Share %",
@@ -5457,26 +5521,70 @@ ${entry}` : entry;
     const approvedRate = numberValue(recordField(record.fields, [
       "批准提成比例% Commission Rate", "Commission Rate %",
     ]));
-    const storedRule = textValue(recordField(record.fields, [
-      "提成规则快照 Commission Rule", "Commission Rule",
+    const commissionType = textValue(recordField(record.fields, [
+      "提成类型 Commission Type", "Commission Type",
+    ])) as "rate" | "flat_fee" | undefined;
+    const ratePercentAboveThreshold = numberValue(recordField(record.fields, [
+      "超出区间提成比例% Rate Above Threshold", "Rate Above Threshold %",
     ]));
-    const rule = campaignCommissionRule({
-      product,
-      projectedRevenue,
-      collectedRevenue: eligibleRevenue,
-      attributionSharePercent: approvedShare,
-      customRatePercent: /^Written pre-approval rate:/.test(storedRule)
-        ? approvedRate
-        : undefined,
+    const thresholdAmount = numberValue(recordField(record.fields, [
+      "提成加速阈值 Threshold Amount", "Threshold Amount",
+    ]));
+    const flatFeeAmount = numberValue(recordField(record.fields, [
+      "固定费用金额 Flat Fee Amount", "Flat Fee Amount",
+    ]));
+    const rule: CampaignCommissionRule = {
+      product: campaignProductKind(textValue(recordField(record.fields, ["产品 Product", "Product"])) || "digital"),
+      commissionType: commissionType || "rate",
+      attributionSharePercent: Number.isFinite(approvedShare) ? approvedShare! : 100,
+      ratePercent: Number.isFinite(approvedRate) ? approvedRate : undefined,
+      ratePercentAboveThreshold: Number.isFinite(ratePercentAboveThreshold) ? ratePercentAboveThreshold : undefined,
+      thresholdAmount: Number.isFinite(thresholdAmount) ? thresholdAmount : undefined,
+      flatFeeAmount: Number.isFinite(flatFeeAmount) ? flatFeeAmount : undefined,
+      label: textValue(recordField(record.fields, [
+        "提成规则快照 Commission Rule", "Commission Rule",
+      ])) || "Approved commission rule",
+      requiresWrittenFee: commissionType === "flat_fee",
+    };
+    if (rule.commissionType === "flat_fee" && !rule.flatFeeAmount) {
+      throw new CompanyOpsHttpError(400, "This flat-fee campaign is missing its approved fee amount");
+    }
+    const campaignStartMs = dateValue(recordField(record.fields, ["开始 Start", "Start Date"]));
+    const campaignEndMs = dateValue(recordField(record.fields, ["结束 End", "End Date"]));
+    const policyResult = campaignCommissionFromOrders({
+      product: textValue(recordField(record.fields, ["产品 Product", "Product"])) || "digital",
+      rule,
+      orders: orderRows,
+      manualRevenue,
+      discounts,
+      refunds,
+      chargebacks,
+      vat,
+      adjustments,
+      campaignStartAt: campaignStartMs !== undefined ? new Date(campaignStartMs) : undefined,
+      campaignEndAt: campaignEndMs !== undefined ? new Date(campaignEndMs) : undefined,
     });
-    const commissionAmount = campaignCommissionAmount({
-      eligibleRevenue,
-      ratePercent: rule.ratePercent,
-      attributionSharePercent: rule.attributionSharePercent,
-    });
+    const eligibleRevenue = requestedEligibleRevenue === undefined
+      ? policyResult.eligibleRevenue
+      : requestedEligibleRevenue;
+    if (eligibleRevenue > policyResult.maximumEligibleRevenue + 0.01) {
+      throw new CompanyOpsHttpError(
+        400,
+        `Eligible revenue cannot exceed net collected revenue after refunds, discounts, VAT and adjustments (CNY ${policyResult.maximumEligibleRevenue.toFixed(2)})`,
+      );
+    }
+    if (requestedEligibleRevenue !== undefined && Math.abs(requestedEligibleRevenue - policyResult.eligibleRevenue) > 0.01) {
+      throw new CompanyOpsHttpError(
+        400,
+        `The eligible revenue you entered (CNY ${requestedEligibleRevenue.toFixed(2)}) does not match the system-calculated eligible revenue (CNY ${policyResult.eligibleRevenue.toFixed(2)}). Leave the field blank to use the calculated amount.`,
+      );
+    }
+    const commissionAmount = requestedEligibleRevenue === undefined
+      ? policyResult.commission
+      : campaignCommissionAmount({ eligibleRevenue, rule });
     const fields: FeishuFields = {};
+    this.setCampaignValue(fields, target, "netCollectedRevenue", policyResult.netCollectedRevenue);
     this.setCampaignValue(fields, target, "eligibleRevenue", eligibleRevenue);
-    this.setCampaignValue(fields, target, "commissionRatePercent", rule.ratePercent);
     this.setCampaignValue(fields, target, "commissionAmount", commissionAmount);
     this.setCampaignValue(fields, target, "reconciliationNote", note);
     this.setCampaignValue(fields, target, "reconciledAt", Date.now());

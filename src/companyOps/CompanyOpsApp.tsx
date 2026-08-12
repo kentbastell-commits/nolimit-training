@@ -63,6 +63,7 @@ const navItems: Array<{
 }> = [
   { page: "home", label: "navHome", icon: Home },
   { page: "performance", label: "navPerformance", icon: Target },
+  { page: "campaigns", label: "navCampaigns", icon: Megaphone },
   { page: "growth", label: "navGrowth", icon: TrendingUp },
   { page: "calendar", label: "navCalendar", icon: CalendarDays },
   { page: "articles", label: "navArticles", icon: Newspaper },
@@ -72,21 +73,20 @@ const navItems: Array<{
 ];
 
 function readInitialPage(): CompanyOpsPage {
-  const page = new URLSearchParams(window.location.search).get("page");
+  const search = new URLSearchParams(window.location.search);
+  const page = search.get("page");
+  const view = search.get("view");
   if (page === "guide" || page === "policies") return "resources";
-  if (page === "campaigns") return "performance";
+  if (page === "campaigns" || (page === "performance" && view === "campaigns")) return "campaigns";
   return navItems.some((item) => item.page === page)
     ? (page as CompanyOpsPage)
     : "home";
 }
 
-type PerformanceView = "goals" | "campaigns";
+type PerformanceView = "goals";
 
 function readInitialPerformanceView(): PerformanceView {
-  const search = new URLSearchParams(window.location.search);
-  return search.get("page") === "campaigns" || search.get("view") === "campaigns"
-    ? "campaigns"
-    : "goals";
+  return "goals";
 }
 
 function readInitialLanguage(): CompanyOpsLanguage {
@@ -429,7 +429,29 @@ export default function CompanyOpsApp({
       if (nextPage === "home") url.searchParams.delete("page");
       else url.searchParams.set("page", nextPage);
       url.searchParams.delete("view");
-      url.searchParams.delete("campaign");
+      if (nextPage !== "campaigns") url.searchParams.delete("campaign");
+      window.history.pushState({}, "", `${url.pathname}${url.search}${url.hash}`);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    },
+    [language, user],
+  );
+
+  const openCampaignPage = useCallback(
+    (campaignId?: string) => {
+      if (user && !canOpenPage(user, "campaigns")) return;
+      if (
+        unsavedRef.current &&
+        !window.confirm(opsText(language, "unsavedConfirm"))
+      ) {
+        return;
+      }
+      unsavedRef.current = false;
+      setPage("campaigns");
+      const url = new URL(window.location.href);
+      url.searchParams.set("page", "campaigns");
+      url.searchParams.delete("view");
+      if (campaignId) url.searchParams.set("campaign", campaignId);
+      else url.searchParams.delete("campaign");
       window.history.pushState({}, "", `${url.pathname}${url.search}${url.hash}`);
       window.scrollTo({ top: 0, behavior: "smooth" });
     },
@@ -437,8 +459,7 @@ export default function CompanyOpsApp({
   );
 
   const openPerformanceView = useCallback(
-    (nextView: PerformanceView, campaignId?: string) => {
-      if (nextView === "campaigns" && user && !canOpenPage(user, "campaigns")) return;
+    (nextView: PerformanceView) => {
       if (
         unsavedRef.current &&
         !window.confirm(opsText(language, "unsavedConfirm"))
@@ -450,14 +471,12 @@ export default function CompanyOpsApp({
       setPerformanceView(nextView);
       const url = new URL(window.location.href);
       url.searchParams.set("page", "performance");
-      if (nextView === "campaigns") url.searchParams.set("view", "campaigns");
-      else url.searchParams.delete("view");
-      if (nextView === "campaigns" && campaignId) url.searchParams.set("campaign", campaignId);
-      else url.searchParams.delete("campaign");
+      url.searchParams.delete("view");
+      url.searchParams.delete("campaign");
       window.history.pushState({}, "", `${url.pathname}${url.search}${url.hash}`);
       window.scrollTo({ top: 0, behavior: "smooth" });
     },
-    [language, user],
+    [language],
   );
 
   const submitQuickAction = async (payload: Record<string, unknown>) => {
@@ -589,7 +608,7 @@ export default function CompanyOpsApp({
     } else if (item.kind === "onboarding") {
       navigate("onboarding");
     } else if (item.kind === "campaign" && user && canOpenPage(user, "campaigns")) {
-      openPerformanceView("campaigns", item.id);
+      openCampaignPage(item.id);
     } else if (
       ["content", "lead", "partner", "report"].includes(
         item.kind,
@@ -988,44 +1007,31 @@ export default function CompanyOpsApp({
                     <Target size={20} aria-hidden={true} />
                     <span><strong>{language === "zh" ? "月度目标" : "Monthly Goals"}</strong><small>{language === "zh" ? "目标、月报与奖金评审" : "Goals, reports and bonus review"}</small></span>
                   </button>
-                  {capabilities.has("view_growth") ? (
-                    <button
-                      type="button"
-                      role="tab"
-                      aria-selected={activePerformanceView === "campaigns"}
-                      className={activePerformanceView === "campaigns" ? "is-active" : ""}
-                      onClick={() => openPerformanceView("campaigns")}
-                    >
-                      <Megaphone size={20} aria-hidden={true} />
-                      <span><strong>{language === "zh" ? "活动" : "Campaigns"}</strong><small>{language === "zh" ? "方案、归因与提成核对" : "Proposals, attribution and reconciliation"}</small></span>
-                    </button>
-                  ) : null}
                 </div>
               </section>
-              {activePerformanceView === "campaigns" ? (
-                <CampaignsPage
-                  campaigns={dashboard.campaigns || []}
-                  language={language}
-                  user={user}
-                  onCreate={() => setDrawerAction("campaign")}
-                  onAction={runRecordAction}
-                />
-              ) : (
-                <PerformanceHome
-                  user={user}
-                  language={language}
-                  myPerformance={dashboard.myPerformance}
-                  performance={dashboard.performance}
-                  sharedAssetsUrl={dashboard.links?.sharedAssets}
-                  onAction={runRecordAction}
-                  onUploadAsset={
-                    (user.role === "founder" || user.role === "growth") && api.uploadAsset
-                      ? (file) => api.uploadAsset!(file, session?.csrfToken)
-                      : undefined
-                  }
-                />
-              )}
+              <PerformanceHome
+                user={user}
+                language={language}
+                myPerformance={dashboard.myPerformance}
+                performance={dashboard.performance}
+                sharedAssetsUrl={dashboard.links?.sharedAssets}
+                onAction={runRecordAction}
+                onUploadAsset={
+                  (user.role === "founder" || user.role === "growth") && api.uploadAsset
+                    ? (file) => api.uploadAsset!(file, session?.csrfToken)
+                    : undefined
+                }
+              />
             </>
+          ) : null}
+          {activePage === "campaigns" && capabilities.has("view_growth") ? (
+            <CampaignsPage
+              campaigns={dashboard.campaigns || []}
+              language={language}
+              user={user}
+              onCreate={() => setDrawerAction("campaign")}
+              onAction={runRecordAction}
+            />
           ) : null}
           {activePage === "decisions" && capabilities.has("view_decisions") ? (
             <FounderHome

@@ -492,6 +492,43 @@ export class FeishuClient {
     return items;
   }
 
+  async createField(
+    appToken: string,
+    tableId: string,
+    options: {
+      fieldName: string;
+      type: number;
+      property?: Record<string, unknown>;
+    }
+  ): Promise<FeishuField> {
+    const body = await this.tenantRequest(
+      `/open-apis/bitable/v1/apps/${encodeURIComponent(appToken)}` +
+        `/tables/${encodeURIComponent(tableId)}/fields`,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          field_name: options.fieldName,
+          type: options.type,
+          ...(options.property ? { property: options.property } : {}),
+        }),
+      }
+    );
+    const data = jsonObject(body.data);
+    const field = jsonObject(data.field ?? data);
+    const fieldId = asString(field.field_id);
+    const fieldName = asString(field.field_name);
+    if (!fieldId || !fieldName) {
+      throw new FeishuApiError("Feishu did not return the created field");
+    }
+    return {
+      field_id: fieldId,
+      field_name: fieldName,
+      type: asNumber(field.type) || options.type,
+      is_primary: Boolean(field.is_primary),
+      property: jsonObject(field.property),
+    };
+  }
+
   async listRecords(
     appToken: string,
     tableId: string,

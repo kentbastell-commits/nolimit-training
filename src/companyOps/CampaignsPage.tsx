@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import QRCode from "qrcode";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { campaignCommissionRule } from "../../server/companyOps/campaignPolicy";
 import { EmptyState, SectionHeading, TonePill } from "./components";
 import type {
   CompanyOpsActionName,
@@ -130,17 +131,36 @@ export default function CampaignsPage({
   const [feedback, setFeedback] = useState("");
   const selected = campaigns.find((campaign) => campaign.id === selectedId);
   const [share, setShare] = useState("100");
-  const [customRate, setCustomRate] = useState("");
+  const [flatFee, setFlatFee] = useState("");
+  const [originatorName, setOriginatorName] = useState("");
+  const [managerName, setManagerName] = useState("");
+  const [closerName, setCloserName] = useState("");
   const [revision, setRevision] = useState<Record<string, string>>({});
   const [results, setResults] = useState<Record<string, string>>({});
   const [reconciliation, setReconciliation] = useState<Record<string, string>>({});
+
+  const previewRule = useMemo(() => {
+    if (selected?.commissionRule || !selected?.canReview || !selected?.product) return undefined;
+    try {
+      return campaignCommissionRule({
+        product: selected.product,
+        attributionSharePercent: Number(share) || 100,
+        flatFeeAmount: flatFee ? Number(flatFee) : undefined,
+      });
+    } catch {
+      return undefined;
+    }
+  }, [selected, share, flatFee]);
 
   useEffect(() => {
     if (!selected) return;
     const timeoutId = window.setTimeout(() => {
       setFeedback(selected.reviewNote || "");
       setShare(String(selected.attributionSharePercent ?? (/digital/i.test(selected.product || "") ? 100 : 80)));
-      setCustomRate("");
+      setFlatFee(selected.flatFeeAmount != null ? String(selected.flatFeeAmount) : "");
+      setOriginatorName(selected.originatorName || "");
+      setManagerName(selected.managerName || "");
+      setCloserName(selected.closerName || "");
       setRevision({
         name: selected.name,
         objective: selected.objective || "",
@@ -158,19 +178,16 @@ export default function CampaignsPage({
         resultsSummary: selected.resultsSummary || "",
         evidenceLinks: (selected.evidenceLinks || []).join("\n"),
         manualRevenue: String(selected.reportedManualRevenue ?? 0),
-        adjustments: String(selected.reportedAdjustments ?? 0),
+        reportedDiscounts: String(selected.reportedDiscounts ?? 0),
+        reportedRefunds: String(selected.reportedRefunds ?? 0),
+        reportedChargebacks: String(selected.reportedChargebacks ?? 0),
+        reportedVat: String(selected.reportedVat ?? 0),
         reach: String(selected.reach ?? 0),
         clicks: String(selected.clicks ?? 0),
         consultations: String(selected.consultations ?? 0),
       });
-      const defaultEligible = Math.max(
-        0,
-        selected.trackedCollectedRevenue +
-          (selected.reportedManualRevenue || 0) -
-          (selected.reportedAdjustments || 0),
-      );
       setReconciliation({
-        eligibleRevenue: String(selected.eligibleRevenue ?? defaultEligible),
+        eligibleRevenue: selected.eligibleRevenue != null ? String(selected.eligibleRevenue) : "",
         reconciliationNote: selected.reconciliationNote || "",
       });
     }, 0);
@@ -354,8 +371,8 @@ export default function CampaignsPage({
                   <strong>{t(language, "Fair attribution is locked at approval", "公平归因在审批时锁定")}</strong>
                   <p>{t(
                     language,
-                    "Originator 40% + campaign manager 40% + closer 20%. Unassigned roles are redistributed to assigned contributors. The approved employee share below is the controlling snapshot.",
-                    "方案提出人40%＋活动负责人40%＋成交人20%。未分配角色的份额按比例分配给已分配贡献者；以下审批份额为最终控制快照。",
+                    "Attribution is locked at approval. Ordinary tracked digital sales receive 100% campaign credit. Negotiated splits are used only for complex team, institutional or partnership deals.",
+                    "归因份额在审批时锁定。普通已跟踪的数字计划销售默认获得100%活动归因；仅团队、机构或合作类复杂成交才协商分配比例。",
                   )}</p>
                 </div>
               </section>
@@ -377,9 +394,22 @@ export default function CampaignsPage({
                   <dl>
                     <div><dt>{t(language, "Submitted", "提交时间")}</dt><dd>{formatOpsDateTime(selected.submittedAt, language) || "—"}</dd></div>
                     <div><dt>{t(language, "Approved", "批准时间")}</dt><dd>{formatOpsDateTime(selected.approvedAt, language) || "—"}</dd></div>
+                    <div><dt>{t(language, "Commission type", "提成类型")}</dt><dd>{selected.commissionType === "flat_fee" ? t(language, "Flat fee", "固定费用") : t(language, "Rate", "比例提成")}</dd></div>
                     <div><dt>{t(language, "Employee share", "员工归因份额")}</dt><dd>{selected.attributionSharePercent == null ? "—" : `${selected.attributionSharePercent}%`}</dd></div>
-                    <div><dt>{t(language, "Approved starting rate", "批准起始提成比例")}</dt><dd>{selected.commissionRatePercent == null ? "—" : `${selected.commissionRatePercent}%`}</dd></div>
-                    <div className="fopsCampaignDlWide"><dt>{t(language, "Rule", "规则")}</dt><dd>{selected.commissionRule || t(language, "Set when approved", "批准时确定")}</dd></div>
+                    {selected.commissionType === "flat_fee" ? (
+                      <div><dt>{t(language, "Flat fee", "固定费用")}</dt><dd>{money(selected.flatFeeAmount)}</dd></div>
+                    ) : (
+                      <>
+                        <div><dt>{t(language, "Approved starting rate", "批准起始提成比例")}</dt><dd>{selected.commissionRatePercent == null ? "—" : `${selected.commissionRatePercent}%`}</dd></div>
+                        {selected.ratePercentAboveThreshold != null && selected.thresholdAmount != null ? (
+                          <div><dt>{t(language, "Accelerator", "加速区间")}</dt><dd>{selected.ratePercentAboveThreshold}% {t(language, "above", "超过")} {money(selected.thresholdAmount)}</dd></div>
+                        ) : null}
+                      </>
+                    )}
+                    {selected.originatorName || selected.managerName || selected.closerName ? (
+                      <div className="fopsCampaignDlWide"><dt>{t(language, "Roles", "角色")}</dt><dd>{[selected.originatorName && `${t(language, "Originator", "提出人")}: ${selected.originatorName}`, selected.managerName && `${t(language, "Manager", "负责人")}: ${selected.managerName}`, selected.closerName && `${t(language, "Closer", "成交人")}: ${selected.closerName}`].filter(Boolean).join(" · ")}</dd></div>
+                    ) : null}
+                    <div className="fopsCampaignDlWide"><dt>{t(language, "Rule", "规则")}</dt><dd>{selected.commissionRule || previewRule?.label || t(language, "Set when approved", "批准时确定")}</dd></div>
                   </dl>
                 </section>
               </div>
@@ -387,16 +417,22 @@ export default function CampaignsPage({
               {selected.canReview ? (
                 <section className="fopsCampaignActionPanel fopsCampaignActionPanel--review">
                   <h3>{t(language, "Founder review", "创始人审批")}</h3>
-                  <p>{t(language, "Check the commercial promise, spend, dates, success measure and attribution before approving.", "批准前检查对外承诺、支出、日期、成功指标与归因份额。")}</p>
+                  <p>{t(language, "Check the commercial promise, spend, dates, success measure, fee and attribution before approving.", "批准前检查对外承诺、支出、日期、成功指标、费用与归因份额。")}</p>
+                  <p className="fopsCampaignReviewNote">{t(language, "Who originated, managed and closed this campaign? Leave blank if one person performed all roles.", "谁提出了方案、负责执行并促成了成交？如由同一人完成所有角色，可留空。")}</p>
                   <div className="fopsCampaignActionFields">
+                    <label><span>{t(language, "Originator", "方案提出人")}</span><input type="text" value={originatorName} onChange={(event) => setOriginatorName(event.target.value)} /></label>
+                    <label><span>{t(language, "Campaign manager", "活动负责人")}</span><input type="text" value={managerName} onChange={(event) => setManagerName(event.target.value)} /></label>
+                    <label><span>{t(language, "Closer", "成交人")}</span><input type="text" value={closerName} onChange={(event) => setCloserName(event.target.value)} /></label>
                     <label><span>{t(language, "Employee attribution share (%)", "员工归因份额（%）")}</span><input type="number" min="0" max="100" value={share} onChange={(event) => setShare(event.target.value)} /></label>
-                    <label><span>{t(language, "Custom written rate (%) — only when required", "书面自定义比例（%）—仅在需要时")}</span><input type="number" min="0" max="100" step="0.01" value={customRate} onChange={(event) => setCustomRate(event.target.value)} /></label>
+                    {selected.product && /^(team|presentation|workshop|small camp|training camp)/i.test(selected.product) ? (
+                      <label><span>{t(language, "Flat fee (CNY)", "固定费用（人民币）")}</span><input type="number" min="0" step="0.01" value={flatFee} onChange={(event) => setFlatFee(event.target.value)} /></label>
+                    ) : null}
                     <label className="fopsFieldWide"><span>{t(language, "Decision note", "审批意见")}</span><textarea rows={3} value={feedback} onChange={(event) => setFeedback(event.target.value)} /></label>
                   </div>
                   <div className="fopsCampaignActionButtons">
                     <button type="button" className="fopsButton fopsButton--ghost" disabled={busy || !feedback.trim()} onClick={() => void run("campaign.review", { campaignId: selected.id, decision: "reject", feedback })}>{t(language, "Reject", "拒绝")}</button>
                     <button type="button" className="fopsButton fopsButton--ghost" disabled={busy || !feedback.trim()} onClick={() => void run("campaign.review", { campaignId: selected.id, decision: "changes", feedback })}>{t(language, "Request changes", "要求修改")}</button>
-                    <button type="button" className="fopsButton fopsButton--primary" disabled={busy} onClick={() => void run("campaign.review", { campaignId: selected.id, decision: "approve", feedback, attributionSharePercent: share, ...(customRate ? { customRatePercent: customRate } : {}) })}><Check size={16} />{busy ? t(language, "Saving…", "保存中…") : t(language, "Approve & generate codes", "批准并生成代码")}</button>
+                    <button type="button" className="fopsButton fopsButton--primary" disabled={busy} onClick={() => void run("campaign.review", { campaignId: selected.id, decision: "approve", feedback, attributionSharePercent: share, ...(flatFee ? { flatFeeAmount: flatFee } : {}), ...(originatorName ? { originatorName } : {}), ...(managerName ? { managerName } : {}), ...(closerName ? { closerName } : {}) })}><Check size={16} />{busy ? t(language, "Saving…", "保存中…") : t(language, "Approve & generate codes", "批准并生成代码")}</button>
                   </div>
                 </section>
               ) : null}
@@ -467,9 +503,14 @@ export default function CampaignsPage({
                   <p>{t(language, "Postgres-paid orders are already counted below. Report offline or contract cash only after it has actually been collected.", "Postgres中的已支付订单已自动计入。线下或机构合同只有实际回款后才能申报。")}</p>
                   <div className="fopsCampaignLiveRevenue"><span>{t(language, "Automatically tracked", "自动跟踪")}</span><strong>{money(selected.trackedCollectedRevenue, selected.currency)}</strong><small>{selected.trackedOrderCount} {t(language, "paid orders", "笔已支付订单")}</small></div>
                   <div className="fopsCampaignActionFields">
-                    {(["reach", "clicks", "consultations", "manualRevenue", "adjustments"] as const).map((key) => (
-                      <label key={key}><span>{key === "reach" ? t(language, "Reach", "触达") : key === "clicks" ? t(language, "Clicks", "点击") : key === "consultations" ? t(language, "Qualified leads / consultations", "合格线索／咨询") : key === "manualRevenue" ? t(language, "Collected offline / contract revenue", "线下／合同实际回款") : t(language, "Refunds & adjustments", "退款与调整")}</span><input type="number" min="0" step={key === "reach" || key === "clicks" || key === "consultations" ? "1" : "0.01"} value={results[key]} onChange={(event) => setResults((all) => ({ ...all, [key]: event.target.value }))} /></label>
+                    {(["reach", "clicks", "consultations"] as const).map((key) => (
+                      <label key={key}><span>{key === "reach" ? t(language, "Reach", "触达") : key === "clicks" ? t(language, "Clicks", "点击") : t(language, "Qualified leads / consultations", "合格线索／咨询")}</span><input type="number" min="0" step="1" value={results[key]} onChange={(event) => setResults((all) => ({ ...all, [key]: event.target.value }))} /></label>
                     ))}
+                    <label><span>{t(language, "Collected offline / contract revenue", "线下／合同实际回款")}</span><input type="number" min="0" step="0.01" value={results.manualRevenue} onChange={(event) => setResults((all) => ({ ...all, manualRevenue: event.target.value }))} /></label>
+                    <label><span>{t(language, "Discounts", "折扣")}</span><input type="number" min="0" step="0.01" value={results.reportedDiscounts} onChange={(event) => setResults((all) => ({ ...all, reportedDiscounts: event.target.value }))} /></label>
+                    <label><span>{t(language, "Refunds", "退款")}</span><input type="number" min="0" step="0.01" value={results.reportedRefunds} onChange={(event) => setResults((all) => ({ ...all, reportedRefunds: event.target.value }))} /></label>
+                    <label><span>{t(language, "Chargebacks", "拒付")}</span><input type="number" min="0" step="0.01" value={results.reportedChargebacks} onChange={(event) => setResults((all) => ({ ...all, reportedChargebacks: event.target.value }))} /></label>
+                    <label><span>{t(language, "VAT / taxes", "增值税/税费")}</span><input type="number" min="0" step="0.01" value={results.reportedVat} onChange={(event) => setResults((all) => ({ ...all, reportedVat: event.target.value }))} /></label>
                     <label className="fopsFieldWide"><span>{t(language, "Results summary", "结果总结")}</span><textarea required rows={4} value={results.resultsSummary} onChange={(event) => setResults((all) => ({ ...all, resultsSummary: event.target.value }))} /></label>
                     <label className="fopsFieldWide"><span>{t(language, "Evidence links — one HTTPS link per line", "证据链接—每行一个HTTPS链接")}</span><textarea rows={3} value={results.evidenceLinks} onChange={(event) => setResults((all) => ({ ...all, evidenceLinks: event.target.value }))} /></label>
                   </div>
@@ -480,16 +521,26 @@ export default function CampaignsPage({
               {selected.canReconcile ? (
                 <form className="fopsCampaignActionPanel fopsCampaignActionPanel--reconcile" onSubmit={(event) => {
                   event.preventDefault();
-                  void run("campaign.reconcile", { campaignId: selected.id, ...reconciliation });
+                  const eligibleRevenue = reconciliation.eligibleRevenue.trim();
+                  void run("campaign.reconcile", {
+                    campaignId: selected.id,
+                    ...(eligibleRevenue ? { eligibleRevenue } : {}),
+                    reconciliationNote: reconciliation.reconciliationNote,
+                  });
                 }}>
                   <h3>{t(language, "Founder revenue reconciliation", "创始人回款核对")}</h3>
                   <div className="fopsReconciliationMath">
                     <span>{money(selected.trackedCollectedRevenue)} {t(language, "tracked", "自动跟踪")}</span>
                     <b>+</b><span>{money(selected.reportedManualRevenue || 0)} {t(language, "reported", "申报回款")}</span>
-                    <b>−</b><span>{money(selected.reportedAdjustments || 0)} {t(language, "adjustments", "调整")}</span>
+                    <b>−</b><span>{money(selected.reportedDiscounts || 0)} {t(language, "discounts", "折扣")}</span>
+                    <b>−</b><span>{money(selected.reportedRefunds || 0)} {t(language, "refunds", "退款")}</span>
+                    <b>−</b><span>{money(selected.reportedChargebacks || 0)} {t(language, "chargebacks", "拒付")}</span>
+                    <b>−</b><span>{money(selected.reportedVat || 0)} {t(language, "VAT", "增值税")}</span>
+                    <b>=</b><span>{money(Math.max(0, selected.trackedCollectedRevenue + (selected.reportedManualRevenue || 0) - (selected.reportedDiscounts || 0) - (selected.reportedRefunds || 0) - (selected.reportedChargebacks || 0) - (selected.reportedVat || 0)))} {t(language, "net collected", "净回款")}</span>
                   </div>
+                  <p className="fopsCampaignReviewNote">{t(language, "Leave eligible revenue blank to use the system-calculated amount from paid orders. Only enter an override if it matches the calculated amount.", "留空以使用系统根据已支付订单计算的归因回款。仅在需要覆盖时输入，且必须与计算金额一致。")}</p>
                   <div className="fopsCampaignActionFields">
-                    <label><span>{t(language, "Approved eligible revenue", "核准归因回款")}</span><input required type="number" min="0" step="0.01" value={reconciliation.eligibleRevenue} onChange={(event) => setReconciliation((all) => ({ ...all, eligibleRevenue: event.target.value }))} /></label>
+                    <label><span>{t(language, "Approved eligible revenue (override)", "核准归因回款（覆盖）")}</span><input type="number" min="0" step="0.01" value={reconciliation.eligibleRevenue} onChange={(event) => setReconciliation((all) => ({ ...all, eligibleRevenue: event.target.value }))} /></label>
                     <label className="fopsFieldWide"><span>{t(language, "Reconciliation note", "核对说明")}</span><textarea required rows={3} value={reconciliation.reconciliationNote} onChange={(event) => setReconciliation((all) => ({ ...all, reconciliationNote: event.target.value }))} /></label>
                   </div>
                   <button type="submit" className="fopsButton fopsButton--primary" disabled={busy}><BadgeCheck size={16} />{t(language, "Reconcile & stage for monthly statement", "核对并进入月度结算")}</button>

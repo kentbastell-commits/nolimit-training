@@ -74,12 +74,20 @@ const productOptions: readonly SelectOption[] = [
   ["online coaching", "Online 1:1 coaching", "线上 1 对 1"],
   ["in-person", "In-person coaching", "线下训练"],
   ["team", "Team / institution", "团队／机构"],
+  ["presentation", "Presentation", "演讲分享"],
+  ["workshop", "Workshop", "工作坊"],
+  ["small camp", "Small training camp", "短期小型营"],
+  ["training camp", "Training camp", "训练营"],
   ["unsure", "Not sure yet", "未定"],
 ];
 
 const campaignProductOptions = productOptions.filter(
   ([value]) => value !== "unsure",
 );
+
+function isFlatFeeProduct(value: string) {
+  return ["team", "presentation", "workshop", "small camp", "training camp"].includes(value);
+}
 const channelOptions: readonly SelectOption[] = [
   ...platformOptions.filter(([value]) => value !== "multi-platform"),
   ["offline", "Offline", "线下"],
@@ -194,6 +202,7 @@ function initialState(action: QuickActionKey): FormState {
       targetAudience: "",
       offer: "",
       product: "",
+      flatFeeAmount: "",
       channels: "",
       budget: "2500",
       revenueTarget: "25000",
@@ -732,6 +741,18 @@ export default function QuickActionDrawer({
                   opsText(language, "product"),
                   selectInput("product", campaignProductOptions),
                 )}
+                {isFlatFeeProduct(String(values.product || "")) ? (
+                  <>
+                    {field(
+                      "flatFeeAmount",
+                      opsText(language, "campaignFlatFeeAmount"),
+                      input("flatFeeAmount", "number"),
+                    )}
+                    <p className="fopsPrivacyNote fopsFieldWide">
+                      {opsText(language, "campaignFlatFeeNote")}
+                    </p>
+                  </>
+                ) : null}
                 {field(
                   "objective",
                   opsText(language, "objective"),
