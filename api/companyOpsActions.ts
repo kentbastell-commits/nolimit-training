@@ -12,7 +12,15 @@ import {
 import {
   createCompanyOpsRepository,
   publicCompanyOpsError,
+  type CompanyOpsPrincipal,
 } from "../server/companyOps/repository.ts";
+import {
+  PRINCIPAL_TTL_MS,
+  invalidateCompanyOpsDashboards,
+  principalCacheKey,
+  readCache,
+  writeCache,
+} from "../server/companyOps/cache.ts";
 
 const bodyObject = (value: unknown): Record<string, unknown> =>
   value && typeof value === "object" && !Array.isArray(value)
@@ -42,11 +50,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
     const payload = bodyObject(body.payload);
     const repository = createCompanyOpsRepository(config);
-    const principal = await repository.resolvePrincipal(session);
+    const principalKey = principalCacheKey(session.openId);
+    let principal = readCache<CompanyOpsPrincipal>(principalKey);
+    if (!principal) {
+      principal = await repository.resolvePrincipal(session);
+      writeCache(principalKey, principal, PRINCIPAL_TTL_MS);
+    }
     const result = await repository.performAction(principal, {
       action: body.action as CompanyOpsActionName,
       payload,
     });
+    // Every dashboard (this user's and everyone else's) may now be stale.
+    // Broadcast so BOTH pm2 forks drop it, not just the one that served the
+    // write — otherwise the very next read can hit the sibling and show the
+    // pre-write state, which reads as "my save didn't take".
+    invalidateCompanyOpsDashboards();
     return res.status(200).json({
       ...result,
       id: result.recordId,

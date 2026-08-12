@@ -12,7 +12,16 @@ import {
   createCompanyOpsRepository,
   publicCompanyOpsError,
   type CompanyOpsDashboardItem,
+  type CompanyOpsPrincipal,
 } from "../server/companyOps/repository.ts";
+import {
+  DASHBOARD_TTL_MS,
+  PRINCIPAL_TTL_MS,
+  dashboardCacheKey,
+  principalCacheKey,
+  readCache,
+  writeCache,
+} from "../server/companyOps/cache.ts";
 
 const publicRole = (role: CompanyOpsRole) =>
   role === "staff" || role === "pending" ? "employee" : role;
@@ -55,7 +64,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     assertCompanyOpsAuthConfigured(config);
     const session = requireRequestSession(req, config);
     const repository = createCompanyOpsRepository(config);
-    const principal = await repository.resolvePrincipal(session);
+
+    // Resolving the principal is itself a staff-table read (~1.3s against
+    // Feishu), paid on every request including cache hits — so cache it too.
+    const principalKey = principalCacheKey(session.openId);
+    let principal = readCache<CompanyOpsPrincipal>(principalKey);
+    if (!principal) {
+      principal = await repository.resolvePrincipal(session);
+      writeCache(principalKey, principal, PRINCIPAL_TTL_MS);
+    }
+
+    // The assembled payload is per-person (role decides what's visible), so
+    // the key carries both. Any mutation clears every dashboard key across
+    // both pm2 forks, so a cache hit can never hide the user's own write.
+    const cacheKey = dashboardCacheKey(principal.openId, principal.role);
+    const cachedPayload = readCache<Record<string, unknown>>(cacheKey);
+    if (cachedPayload) {
+      return res.status(200).json(cachedPayload);
+    }
+
     const data = await repository.getDashboard(principal);
 
     const kinds = new Map<string, string>();
@@ -335,7 +362,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
       : { cycles: [], canManage: false };
 
-    return res.status(200).json({
+    const payload = {
       generatedAt: new Date().toISOString(),
       user,
       summary: data.summary,
@@ -407,7 +434,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             performanceCycles: data.founder.performanceCycles,
           }
         : undefined,
-    });
+    };
+
+    writeCache(cacheKey, payload, DASHBOARD_TTL_MS);
+    return res.status(200).json(payload);
   } catch (error) {
     const safe = publicCompanyOpsError(error);
     return res.status(safe.status).json({ error: safe.message, message: safe.message });
