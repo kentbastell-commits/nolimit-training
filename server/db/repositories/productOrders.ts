@@ -90,6 +90,12 @@ export async function paidRevenueByCampaignCodes(campaignCodes: readonly string[
   return pg.paidRevenueByCampaignCodes(campaignCodes);
 }
 
+export async function paidOrderRowsByCampaignCode(campaignCode: string) {
+  return pg.paidOrderRowsByCampaignCode(campaignCode);
+}
+
+export type { PaidCampaignOrderRow } from "../pg/productOrders.ts";
+
 export async function createProductOrder(
   input: CreateProductOrderInput
 ): Promise<ProductOrderWriteResult> {

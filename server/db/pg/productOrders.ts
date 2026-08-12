@@ -135,6 +135,53 @@ export async function paidRevenueByCampaignCodes(
   );
 }
 
+export type PaidCampaignOrderRow = {
+  orderId: string;
+  clientId: string;
+  productType: string;
+  productName?: string;
+  amount: number;
+  purchasedAt: Date;
+};
+
+/**
+ * Order-level attribution read for campaign commission calculations.
+ * No customer contact details leave SQL; only the business columns needed
+ * for tiering, per-client caps and attribution windows are returned.
+ */
+export async function paidOrderRowsByCampaignCode(
+  campaignCode: string,
+): Promise<PaidCampaignOrderRow[]> {
+  const code = String(campaignCode || "").trim();
+  if (!code) return [];
+  const rows = await db
+    .select({
+      orderId: productOrders.orderId,
+      clientId: productOrders.clientId,
+      productType: productOrders.productType,
+      productName: productOrders.productName,
+      amount: productOrders.amount,
+      purchasedAt: productOrders.purchasedAt,
+    })
+    .from(productOrders)
+    .where(
+      and(
+        sql`lower(coalesce(${productOrders.paymentStatus}, '')) = 'paid'`,
+        sql`lower(coalesce(${productOrders.currency}, 'cny')) = 'cny'`,
+        eq(productOrders.campaignCode, code),
+      ),
+    )
+    .orderBy(productOrders.purchasedAt);
+  return rows.map((r) => ({
+    orderId: str(r.orderId),
+    clientId: str(r.clientId),
+    productType: str(r.productType),
+    productName: r.productName == null ? undefined : str(r.productName),
+    amount: r.amount == null ? 0 : Number(r.amount),
+    purchasedAt: r.purchasedAt ? new Date(Number(r.purchasedAt)) : new Date(),
+  }));
+}
+
 /* --------------------------------- writes --------------------------------- */
 // Same operations as server/db/feishu/productOrders.ts, same result shapes.
 // On Postgres the ORD-… business code IS the id (no Feishu record_ids), and
