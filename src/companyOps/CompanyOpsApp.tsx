@@ -58,21 +58,33 @@ import "./companyOps.css";
 type LoadState = "loading" | "ready" | "unauthenticated" | "denied" | "error";
 type Toast = { id: number; message: string; tone: "success" | "error" };
 
+// Grouped by how often the page is opened, not by which team owns it — a
+// founder checks Today several times a day, Grow weekly, Team monthly.
+type NavGroup = "today" | "grow" | "team" | "reference";
+
+const NAV_GROUPS: Array<{ id: NavGroup; label: OpsCopyKey }> = [
+  { id: "today", label: "navGroupToday" },
+  { id: "grow", label: "navGroupGrow" },
+  { id: "team", label: "navGroupTeam" },
+  { id: "reference", label: "navGroupReference" },
+];
+
 const navItems: Array<{
   page: CompanyOpsPage;
   label: OpsCopyKey;
+  group: NavGroup;
   icon: ComponentType<{ size?: number; "aria-hidden"?: boolean }>;
 }> = [
-  { page: "home", label: "navHome", icon: Home },
-  { page: "performance", label: "navPerformance", icon: Target },
-  { page: "campaigns", label: "navCampaigns", icon: Megaphone },
-  { page: "growth", label: "navGrowth", icon: TrendingUp },
-  { page: "calendar", label: "navCalendar", icon: CalendarDays },
-  { page: "articles", label: "navArticles", icon: Newspaper },
-  { page: "warroom", label: "navWarRoom", icon: Lightbulb },
-  { page: "decisions", label: "navDecisions", icon: Gavel },
-  { page: "onboarding", label: "navOnboarding", icon: UserRoundCheck },
-  { page: "resources", label: "navResources", icon: BookOpenCheck },
+  { page: "home", label: "navHome", icon: Home , group: "today" },
+  { page: "performance", label: "navPerformance", icon: Target , group: "team" },
+  { page: "campaigns", label: "navCampaigns", icon: Megaphone , group: "grow" },
+  { page: "growth", label: "navGrowth", icon: TrendingUp , group: "grow" },
+  { page: "calendar", label: "navCalendar", icon: CalendarDays , group: "grow" },
+  { page: "articles", label: "navArticles", icon: Newspaper , group: "grow" },
+  { page: "warroom", label: "navWarRoom", icon: Lightbulb , group: "today" },
+  { page: "decisions", label: "navDecisions", icon: Gavel , group: "today" },
+  { page: "onboarding", label: "navOnboarding", icon: UserRoundCheck , group: "team" },
+  { page: "resources", label: "navResources", icon: BookOpenCheck , group: "reference" },
 ];
 
 function readInitialPage(): CompanyOpsPage {
@@ -377,6 +389,27 @@ export default function CompanyOpsApp({
     const timer = window.setTimeout(() => setToast(undefined), 4_000);
     return () => window.clearTimeout(timer);
   }, [toast]);
+
+  // Only counts that mean "this needs a human": approvals waiting on a
+  // founder, ideas still open, onboarding tasks not done. A badge that never
+  // clears teaches people to ignore badges.
+  const navCounts = useMemo<Partial<Record<CompanyOpsPage, number>>>(() => {
+    if (!dashboard) return {};
+    const pendingDecisions = (dashboard.decisions || []).filter(
+      (item) => !item.status || /pending|待|open/i.test(item.status),
+    ).length;
+    const openIdeas = (dashboard.ideas || []).filter(
+      (item) => item.status !== "采纳 Adopted" && item.status !== "搁置 Parked",
+    ).length;
+    const openOnboarding = (dashboard.onboarding?.tasks || []).filter(
+      (task) => !task.completed,
+    ).length;
+    return {
+      decisions: pendingDecisions || undefined,
+      warroom: openIdeas || undefined,
+      onboarding: openOnboarding || undefined,
+    };
+  }, [dashboard]);
 
   const visibleNav = useMemo(
     () =>
@@ -719,19 +752,30 @@ export default function CompanyOpsApp({
           <span>{opsText(language, "appName")}</span>
         </div>
         <nav aria-label={opsText(language, "appName")}>
-          {visibleNav.map((item) => {
-            const Icon = item.icon;
+          {NAV_GROUPS.map((group) => {
+            const items = visibleNav.filter((item) => item.group === group.id);
+            if (!items.length) return null;
             return (
-              <button
-                type="button"
-                className={activePage === item.page ? "is-active" : ""}
-                aria-current={activePage === item.page ? "page" : undefined}
-                onClick={() => navigate(item.page)}
-                key={item.page}
-              >
-                <Icon size={19} aria-hidden={true} />
-                <span>{opsText(language, item.label)}</span>
-              </button>
+              <div className="fopsNavGroup" key={group.id}>
+                <span className="fopsNavGroupLabel">{opsText(language, group.label)}</span>
+                {items.map((item) => {
+                  const Icon = item.icon;
+                  const count = navCounts[item.page];
+                  return (
+                    <button
+                      type="button"
+                      className={activePage === item.page ? "is-active" : ""}
+                      aria-current={activePage === item.page ? "page" : undefined}
+                      onClick={() => navigate(item.page)}
+                      key={item.page}
+                    >
+                      <Icon size={19} aria-hidden={true} />
+                      <span>{opsText(language, item.label)}</span>
+                      {count ? <em className="fopsNavCount" aria-hidden="true">{count}</em> : null}
+                    </button>
+                  );
+                })}
+              </div>
             );
           })}
         </nav>
@@ -1160,6 +1204,7 @@ export default function CompanyOpsApp({
       <nav className="fopsMobileNav" aria-label={opsText(language, "appName")}>
         {visibleNav.map((item) => {
           const Icon = item.icon;
+          const count = navCounts[item.page];
           return (
             <button
               type="button"
@@ -1170,6 +1215,7 @@ export default function CompanyOpsApp({
             >
               <Icon size={19} aria-hidden={true} />
               <span>{opsText(language, item.label)}</span>
+              {count ? <em className="fopsNavCount" aria-hidden="true">{count}</em> : null}
             </button>
           );
         })}

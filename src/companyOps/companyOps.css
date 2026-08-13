@@ -6057,3 +6057,33 @@ a.fopsOnboardingTaskLink:hover strong {
   .fopsWarCounts { gap: 16px; }
   .fopsWarCaptureRow select, .fopsWarCaptureRow button { flex: 1 1 auto; }
 }
+
+/* ---- Grouped sidebar nav ---------------------------------------------- */
+.fopsNavGroup { display: flex; flex-direction: column; gap: 2px; }
+.fopsNavGroup + .fopsNavGroup { margin-top: 16px; }
+.fopsNavGroupLabel {
+  padding: 0 14px 5px;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--fops-ink-soft);
+  opacity: 0.72;
+}
+.fopsNavCount {
+  margin-left: auto;
+  min-width: 20px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgb(184 134 58 / 18%);
+  color: #8a651f;
+  font-size: 0.7rem;
+  font-style: normal;
+  font-weight: 800;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+nav button.is-active .fopsNavCount {
+  background: rgb(255 255 255 / 20%);
+  color: #f0dc88;
+}
