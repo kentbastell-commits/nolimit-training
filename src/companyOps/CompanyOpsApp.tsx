@@ -969,6 +969,16 @@ export default function CompanyOpsApp({
               growth={dashboard.growth}
               language={language}
               onQuickAction={setDrawerAction}
+              onEditRecord={async (resource, recordId, fields) => {
+                try {
+                  await runRecordAction("update_record", { resource, recordId, fields });
+                } catch (error) {
+                  showToast(
+                    error instanceof Error ? error.message : opsText(language, "actionFailed"),
+                    "error",
+                  );
+                }
+              }}
               onDeleteRecord={async (resource, recordId) => {
                 if (!window.confirm(opsText(language, "deleteConfirmGeneric"))) return;
                 try {

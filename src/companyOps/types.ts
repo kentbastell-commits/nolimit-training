@@ -55,6 +55,7 @@ export type CompanyOpsActionName =
   | "update_article"
   | "delete_article"
   | "delete_record"
+  | "update_record"
   | "create_goal"
   | "update_goal"
   | "respond_goal"

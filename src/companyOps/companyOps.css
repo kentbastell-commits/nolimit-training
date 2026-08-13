@@ -5852,3 +5852,47 @@ a.fopsOnboardingTaskLink:hover strong {
 .fopsExperimentCard {
   position: relative;
 }
+
+.fopsMiniTools {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+.fopsMiniEditBtn {
+  display: inline-flex;
+  padding: 4px 9px;
+  border: 1px solid var(--fops-line-dark);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--fops-ink-soft);
+  cursor: pointer;
+}
+.fopsMiniEditBtn:hover {
+  color: var(--fops-ink);
+}
+.fopsMiniEdit {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-top: 8px;
+  padding: 10px;
+  border: 1px dashed var(--fops-line-dark);
+  border-radius: 10px;
+}
+.fopsMiniEdit label {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 0.75rem;
+  font-weight: 650;
+  color: var(--fops-ink-soft);
+}
+.fopsMiniEdit input {
+  font-size: 0.88rem;
+  padding: 5px 8px;
+}
+.fopsMiniEditActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 7px;
+}

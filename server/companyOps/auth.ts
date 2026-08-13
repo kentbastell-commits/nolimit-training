@@ -48,6 +48,8 @@ export type CompanyOpsActionName =
   | "delete_content"
   | "content.duplicate"
   | "duplicate_content"
+  | "record.update"
+  | "update_record"
   | "record.delete"
   | "delete_record"
   | "article.create"
@@ -130,6 +132,8 @@ const ACTIONS_BY_ROLE: Record<CompanyOpsRole, ReadonlySet<CompanyOpsActionName>>
     "delete_content",
     "content.duplicate",
     "duplicate_content",
+    "record.update",
+    "update_record",
     "record.delete",
     "delete_record",
     "article.create",
@@ -208,6 +212,8 @@ const ACTIONS_BY_ROLE: Record<CompanyOpsRole, ReadonlySet<CompanyOpsActionName>>
     "delete_content",
     "content.duplicate",
     "duplicate_content",
+    "record.update",
+    "update_record",
     "record.delete",
     "delete_record",
     "article.create",

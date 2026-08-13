@@ -1985,6 +1985,48 @@ export class CompanyOpsRepository {
     return this.client.createRecord(target.appToken, target.tableId, fields);
   }
 
+  // PATCH-style sibling of createMapped: only the keys actually present in
+  // the payload are written, so an editor that collects five fields can't
+  // blank the ten it never showed (named mistake #43). Reuses the same specs
+  // as create, so column aliases and validation can never drift apart.
+  private async updateMapped(
+    resource: CompanyOpsResource,
+    recordId: string,
+    payload: unknown,
+    specs: readonly InputFieldSpec[]
+  ): Promise<void> {
+    const target = await this.target(resource);
+    const input = objectInput(payload);
+    const allowed = new Set(specs.map((spec) => spec.key));
+    const unknown = Object.keys(input).filter((key) => !allowed.has(key));
+    if (unknown.length) {
+      throw new CompanyOpsHttpError(400, `Unknown fields: ${unknown.join(", ")}`);
+    }
+    const updates: FeishuFields = {};
+    for (const spec of specs) {
+      if (!(spec.key in input)) continue;
+      const field = fieldByAlias(target.fields, spec.aliases, spec.primary);
+      if (!field) continue;
+      const value = input[spec.key];
+      const empty = value === undefined || value === null || value === "";
+      if (empty) {
+        if (spec.required || spec.primary) {
+          throw new CompanyOpsHttpError(400, `${spec.key} cannot be empty`);
+        }
+        // Feishu rejects "" on typed columns and fails the WHOLE record write
+        // (named mistake #3), so only text fields can be cleared this way;
+        // clearing a date/number means editing it in the Base.
+        if (spec.kind === "string") updates[field.field_name] = "";
+        continue;
+      }
+      updates[field.field_name] = this.serializeInput(value, spec, field);
+    }
+    if (!Object.keys(updates).length) {
+      throw new CompanyOpsHttpError(400, "No changes provided");
+    }
+    await this.client.updateRecord(target.appToken, target.tableId, recordId, updates);
+  }
+
   private async list(resource: CompanyOpsResource, maximum = 100): Promise<FeishuRecord[]> {
     const target = await this.target(resource);
     return this.client.listRecords(target.appToken, target.tableId, {
@@ -3437,6 +3479,33 @@ ${entry}` : entry;
         await this.client.getRecord(target.appToken, target.tableId, articleId);
         await this.client.deleteRecord(target.appToken, target.tableId, articleId);
         return { success: true, message: "Article deleted", recordId: articleId };
+      }
+      case "record.update":
+      case "update_record": {
+        const allowedUpdate = new Set(["resource", "recordId", "fields"]);
+        const unknownUpdate = Object.keys(payload).filter((key) => !allowedUpdate.has(key));
+        if (unknownUpdate.length) {
+          throw new CompanyOpsHttpError(400, `Unknown fields: ${unknownUpdate.join(", ")}`);
+        }
+        const resourceName = textValue(payload.resource);
+        // Only the follow-up records get free-form editing. Money, HR and
+        // workflow-state records stay on their dedicated actions so their
+        // server-authoritative status can't be edited around.
+        const EDITABLE = { lead: LEAD_SPECS, partner: PARTNER_SPECS } as const;
+        const specs = EDITABLE[resourceName as keyof typeof EDITABLE];
+        if (!specs) {
+          throw new CompanyOpsHttpError(400, "This record type cannot be edited here");
+        }
+        const resource = resourceName as CompanyOpsResource;
+        const recordId = validRecordId(payload.recordId);
+        const target = await this.target(resource);
+        const record = await this.client.getRecord(target.appToken, target.tableId, recordId);
+        if (principal.role !== "founder" && !this.belongsTo(record, principal)) {
+          throw new CompanyOpsHttpError(403, "You can edit only your own records");
+        }
+        assertNoHealthData(objectInput(payload.fields));
+        await this.updateMapped(resource, recordId, payload.fields, specs);
+        return { success: true, message: "Saved", recordId };
       }
       case "record.delete":
       case "delete_record": {

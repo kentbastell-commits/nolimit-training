@@ -1,4 +1,6 @@
+import { useState } from "react";
 import {
+  Pencil,
   Trash2,
   ArrowRight,
   BarChart3,
@@ -110,19 +112,88 @@ function ContentCard({
   );
 }
 
+// Inline editor for a follow-up record. Deliberately a PATCH: only the
+// fields shown here are sent, so the many columns the Base holds for a lead
+// or partner survive an edit made from this compact card.
+function MiniEditForm({
+  language,
+  fields,
+  initial,
+  onCancel,
+  onSave,
+}: {
+  language: CompanyOpsLanguage;
+  fields: readonly { key: string; label: string; type?: "text" | "date" }[];
+  initial: Record<string, string>;
+  onCancel: () => void;
+  onSave: (values: Record<string, string>) => void | Promise<void>;
+}) {
+  const [draft, setDraft] = useState<Record<string, string>>(initial);
+  const [busy, setBusy] = useState(false);
+  const submit = async () => {
+    const changed: Record<string, string> = {};
+    for (const field of fields) {
+      const next = (draft[field.key] ?? "").trim();
+      if (next !== (initial[field.key] ?? "")) changed[field.key] = next;
+    }
+    if (!Object.keys(changed).length) {
+      onCancel();
+      return;
+    }
+    setBusy(true);
+    try {
+      await onSave(changed);
+      onCancel();
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="fopsMiniEdit">
+      {fields.map((field) => (
+        <label key={field.key}>
+          <span>{field.label}</span>
+          <input
+            type={field.type === "date" ? "date" : "text"}
+            value={draft[field.key] ?? ""}
+            onChange={(event) =>
+              setDraft((current) => ({ ...current, [field.key]: event.target.value }))
+            }
+          />
+        </label>
+      ))}
+      <div className="fopsMiniEditActions">
+        <button type="button" className="fopsButton fopsButton--compact fopsButton--ghost" onClick={onCancel}>
+          {opsText(language, "cancel")}
+        </button>
+        <button type="button" className="fopsButton fopsButton--compact" onClick={() => void submit()} disabled={busy}>
+          {busy ? opsText(language, "saving") : opsText(language, "goalEditSave")}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function GrowthHome({
   growth,
   language,
   onQuickAction,
   onUpdateContentStatus,
   onDeleteRecord,
+  onEditRecord,
 }: {
   growth?: OpsGrowthDashboard;
   language: CompanyOpsLanguage;
   onQuickAction: (action: QuickActionKey) => void;
   onUpdateContentStatus?: (contentId: string, status: string) => void;
   onDeleteRecord?: (resource: string, recordId: string) => void;
+  onEditRecord?: (
+    resource: string,
+    recordId: string,
+    fields: Record<string, string>,
+  ) => void | Promise<void>;
 }) {
+  const [editing, setEditing] = useState<string | null>(null);
   const pipeline = growth?.pipeline || [];
   const upcoming = growth?.upcomingContent || [];
   const leads = growth?.leadsToFollowUp || [];
@@ -287,18 +358,54 @@ export default function GrowthHome({
                         {lead.nextActionAt ? (
                           <small>{formatOpsDate(lead.nextActionAt, language)}</small>
                         ) : null}
-                        {onDeleteRecord ? (
-                          <button
-                            type="button"
-                            className="fopsMiniDelete"
-                            onClick={(event) => {
-                              event.preventDefault();
-                              event.stopPropagation();
-                              onDeleteRecord("lead", lead.id);
+                        <div className="fopsMiniTools">
+                          {onEditRecord ? (
+                            <button
+                              type="button"
+                              className="fopsMiniEditBtn"
+                              onClick={(event) => {
+                                event.preventDefault();
+                                event.stopPropagation();
+                                setEditing(editing === `lead:${lead.id}` ? null : `lead:${lead.id}`);
+                              }}
+                            >
+                              <Pencil size={13} />
+                            </button>
+                          ) : null}
+                          {onDeleteRecord ? (
+                            <button
+                              type="button"
+                              className="fopsMiniDelete"
+                              onClick={(event) => {
+                                event.preventDefault();
+                                event.stopPropagation();
+                                onDeleteRecord("lead", lead.id);
+                              }}
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          ) : null}
+                        </div>
+                        {onEditRecord && editing === `lead:${lead.id}` ? (
+                          <MiniEditForm
+                            language={language}
+                            fields={[
+                              { key: "name", label: opsText(language, "leadName") },
+                              { key: "contact", label: opsText(language, "leadContact") },
+                              { key: "stage", label: opsText(language, "leadStage") },
+                              { key: "productInterest", label: opsText(language, "leadInterest") },
+                              { key: "nextFollowUp", label: opsText(language, "nextAction"), type: "date" },
+                            ]}
+                            initial={{
+                              name: lead.name || "",
+                              contact: "",
+                              stage: lead.status || "",
+                              productInterest: lead.productInterest || "",
+                              nextFollowUp: (lead.nextActionAt || "").slice(0, 10),
                             }}
-                          >
-                            <Trash2 size={13} />
-                          </button>
+                            onCancel={() => setEditing(null)}
+                            onSave={(values) => onEditRecord("lead", lead.id, values)}
+                          />
                         ) : null}
                       </>
                     );
@@ -348,18 +455,54 @@ export default function GrowthHome({
                             {formatOpsDate(partner.nextFollowUpAt, language)}
                           </small>
                         ) : null}
-                        {onDeleteRecord ? (
-                          <button
-                            type="button"
-                            className="fopsMiniDelete"
-                            onClick={(event) => {
-                              event.preventDefault();
-                              event.stopPropagation();
-                              onDeleteRecord("partner", partner.id);
+                        <div className="fopsMiniTools">
+                          {onEditRecord ? (
+                            <button
+                              type="button"
+                              className="fopsMiniEditBtn"
+                              onClick={(event) => {
+                                event.preventDefault();
+                                event.stopPropagation();
+                                setEditing(editing === `partner:${partner.id}` ? null : `partner:${partner.id}`);
+                              }}
+                            >
+                              <Pencil size={13} />
+                            </button>
+                          ) : null}
+                          {onDeleteRecord ? (
+                            <button
+                              type="button"
+                              className="fopsMiniDelete"
+                              onClick={(event) => {
+                                event.preventDefault();
+                                event.stopPropagation();
+                                onDeleteRecord("partner", partner.id);
+                              }}
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          ) : null}
+                        </div>
+                        {onEditRecord && editing === `partner:${partner.id}` ? (
+                          <MiniEditForm
+                            language={language}
+                            fields={[
+                              { key: "name", label: opsText(language, "partnerName") },
+                              { key: "platform", label: opsText(language, "partnerPlatform") },
+                              { key: "stage", label: opsText(language, "leadStage") },
+                              { key: "proposedCollaboration", label: opsText(language, "partnerCollab") },
+                              { key: "nextFollowUp", label: opsText(language, "nextAction"), type: "date" },
+                            ]}
+                            initial={{
+                              name: partner.name || "",
+                              platform: partner.platform || "",
+                              stage: partner.stage || "",
+                              proposedCollaboration: partner.proposedCollaboration || "",
+                              nextFollowUp: (partner.nextFollowUpAt || "").slice(0, 10),
                             }}
-                          >
-                            <Trash2 size={13} />
-                          </button>
+                            onCancel={() => setEditing(null)}
+                            onSave={(values) => onEditRecord("partner", partner.id, values)}
+                          />
                         ) : null}
                       </>
                     );

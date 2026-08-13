@@ -279,6 +279,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         acknowledged: acknowledgedPolicies.has("expense-policy"),
       });
     }
+    // NOTE: the commission policy is deliberately NOT offered for
+    // acknowledgement yet (Kent, 2026-08-12) — rates are settled in code but
+    // the employee-facing document isn't ready to publish. The server already
+    // accepts the "commission-structure" policy id and the link is configured,
+    // so surfacing it later is a small block here.
     if (config.links.employeeHandbook) {
       policies.push({
         id: "employee-handbook",
