@@ -27,19 +27,29 @@ Edit `SRC` and `CUTOFF` at the top of each script for the card path and date
 window. Both uploaders skip what is already uploaded, so re-running is always
 safe.
 
-## The one thing that matters: use the accelerate endpoint
+## Endpoint choice: speed vs a real bill
 
 Measured from Thailand, 2 MB test object:
 
-- `nxlimit-footage-1454208796.cos.**ap-guangzhou**.myqcloud.com` → **0.03 MB/s**
-  (51 GB would take ~3 weeks; 8 MB multipart parts time out entirely)
-- `nxlimit-footage-1454208796.cos.**accelerate**.myqcloud.com` → **1.9 MB/s
-  single-stream, 25-28 MB/s with 8 parallel parts** (51 GB in ~30 min)
+- `...cos.**ap-guangzhou**.myqcloud.com` → **0.03 MB/s** (51 GB ≈ 3 weeks;
+  8 MB multipart parts time out entirely)
+- `...cos.**accelerate**.myqcloud.com` → **1.9 MB/s single-stream, 25-28 MB/s
+  with 8 parallel parts** (51 GB in ~30 min)
 
-COS regional endpoints are domestic infrastructure and are effectively
-unusable from outside mainland China. Global acceleration (already enabled on
-this bucket) routes to a nearby edge then over Tencent's backbone. Same bucket,
-same data — only the hostname differs. It adds a small per-GB transfer fee.
+COS regional endpoints are domestic infrastructure, effectively unusable from
+outside mainland China. Acceleration routes to a nearby edge then over
+Tencent's backbone — same bucket, same data, only the hostname differs.
+
+**It is billed per GB.** The first 52 GB archive cost **¥65**, essentially all
+of it acceleration (~¥1.25/GB); storage was covered by the free 1 TB package.
+So:
+
+- **Inside China → regional** (the script's default). Fast and no per-GB fee.
+- **Outside China → `--accelerate`**, and accept the cost, or wait until back
+  in China. 52 GB ≈ ¥65.
+
+Enabling acceleration on the bucket is free; only USING the accelerate
+hostname bills — so the setting can stay on permanently.
 
 Never "fix" a slow upload by lowering concurrency; check the endpoint first.
 

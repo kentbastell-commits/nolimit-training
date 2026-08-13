@@ -125,16 +125,23 @@ The Company Operations safety cap is **500 MiB per file**; the tenant's current
 storage-plan quota still applies. Keep raw social-video working files in the
 shared assets tree; keep identity, bank, payroll, legal and health data out of it.
 
-## Commission rules seeded (source: Employee Handbook V2.0, Appendix A-1)
-Digital programs 4/5/6% tiered at ¥25k/¥50k monthly attributable net
-collected revenue · online 1:1 8% of new client's first 3 paid months ·
-in-person 3% first package · team/institution first contract 2% (>¥300k needs
-pre-signing written rate) · renewals 1% written-approval-only · activated
-partner bonus ¥500 once per partner at ≥¥10k cumulative · quarterly growth
-bonus 2k/5k/10k/15k at 150k/300k/500k/800k × personal factor (monthly perf
-90+=100%, 80-89=80%, 70-79=50%, <70=0). Settlement: monthly calc, quarterly
-reconciliation, paid with payroll on 4/10, 7/10, 10/10, 1/10; refunds claw
-back from unpaid variable comp only.
+## Commission rules — REVISED 2026-08-12 (Kent's decision; supersedes Handbook V2.0 Appendix A-1)
+Campaign-attributed sales only (no tracking code = no commission):
+digital programs **10%** of net collected revenue, **13%** on the portion
+above **¥80,000** in a calendar month · online 1:1 **8%** of the new client's
+first 3 paid months · in-person **5%** first package · team/institution and
+presentations/workshops/camps: **pre-approved written flat fee**, agreed
+before the opportunity is approved. Attribution share applies (originator 40 /
+manager 40 / closer 20; founder-approved staff share is what's paid).
+
+The old tiered model (digital 4/5/6% at ¥25k/¥50k, in-person 3%, team 2%,
+renewals 1%) is RETIRED — it was too low and too complicated to motivate, and
+the tier direction penalised exactly the launch months that need the push.
+Executable copy: `server/companyOps/campaignPolicy.ts`. Still current from the
+handbook: activated-partner bonus ¥500 once per partner at ≥¥10k cumulative;
+settlement monthly calc, paid with payroll (refunds claw back from unpaid
+variable comp only). **Handbook Appendix A-1 and the Feishu 提成规则 table must
+be updated to match — until they are, they contradict what the app pays.**
 
 ## Design decisions & their logic (don't re-litigate without new facts)
 

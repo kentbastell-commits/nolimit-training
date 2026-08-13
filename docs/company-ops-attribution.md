@@ -61,14 +61,19 @@ Pending Approval -> Approved -> Active -> Reconciliation -> Reconciled
         +-> Rejected
 ```
 
-The current handbook rules used by the calculator are:
+The current rules used by the calculator (revised 2026-08-12 — replaces the
+earlier 4/5/6% tiered digital model, 3% in-person and 2% team contract):
 
 | Product | Eligible commission rule | Default attribution share |
 |---|---:|---:|
-| Digital programs | 4% below CNY 25,000; 5% at CNY 25,000; 6% at CNY 50,000 | 100% |
+| Digital programs | 10% of net collected revenue; 13% on the portion above CNY 80,000 in a calendar month | 100% |
 | Online 1:1 coaching | 8% of the first three paid months | 80% |
-| In-person coaching | 3% of the first paid package | 80% |
-| Team/institution contract | 2% of the first paid contract | 80% |
+| In-person coaching | 5% of the first paid package | 80% |
+| Team/institution contract | Pre-approved written flat fee, agreed before approval | 80% |
+| Presentation / workshop / camp | Pre-approved written flat fee | 80% |
+
+`server/companyOps/campaignPolicy.ts` is the executable copy of this table —
+change both together or the app will pay a rate the policy doesn't state.
 
 For shared work, the recommended evidence model is originator 40%, campaign
 manager 40% and closer 20%, with an unassigned role redistributed among the

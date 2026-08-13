@@ -8,9 +8,26 @@ import { cos } from "./cos.mjs";
 
 const SRC = "E:\\DCIM";
 const CUTOFF = new Date("2026-08-08T00:00:00+07:00").getTime();
-// Global acceleration endpoint: measured 1.92 MB/s vs 0.03 MB/s direct to
-// ap-guangzhou from outside mainland China (64x). Same bucket, same data.
-const HOST = "nxlimit-footage-1454208796.cos.accelerate.myqcloud.com";
+// ENDPOINT CHOICE = A REAL BILL. Acceleration is charged per GB (~¥1.25/GB
+// measured: the first 52 GB archive cost ¥65, essentially all of it
+// acceleration — storage itself was covered by the free 1 TB package).
+//
+//   inside mainland China -> regional, fast AND free of the per-GB fee
+//   outside China         -> regional is 0.03 MB/s (unusable), so pay for
+//                            acceleration with --accelerate
+//
+// Enabling acceleration on the bucket costs nothing; only USING the
+// accelerate hostname bills. Default is therefore regional.
+const BUCKET = "nxlimit-footage-1454208796";
+const ACCELERATE = process.argv.includes("--accelerate");
+const HOST = ACCELERATE
+  ? `${BUCKET}.cos.accelerate.myqcloud.com`
+  : `${BUCKET}.cos.ap-guangzhou.myqcloud.com`;
+console.log(
+  ACCELERATE
+    ? "endpoint: GLOBAL ACCELERATION (~¥1.25/GB — use only from outside China)"
+    : "endpoint: ap-guangzhou direct (no per-GB fee; near-unusable from outside China — add --accelerate there)"
+);
 const PREFIX = "footage/";
 const PART_SIZE = 8 * 1024 * 1024;
 const PART_CONCURRENCY = 8;
