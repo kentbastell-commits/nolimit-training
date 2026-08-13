@@ -48,6 +48,22 @@ export type CompanyOpsActionName =
   | "delete_content"
   | "content.duplicate"
   | "duplicate_content"
+  | "idea.create"
+  | "create_idea"
+  | "idea.respond"
+  | "respond_idea"
+  | "idea.vote"
+  | "vote_idea"
+  | "idea.status"
+  | "update_idea_status"
+  | "idea.create"
+  | "create_idea"
+  | "idea.respond"
+  | "respond_idea"
+  | "idea.vote"
+  | "vote_idea"
+  | "idea.status"
+  | "update_idea_status"
   | "record.update"
   | "update_record"
   | "record.delete"
@@ -132,6 +148,22 @@ const ACTIONS_BY_ROLE: Record<CompanyOpsRole, ReadonlySet<CompanyOpsActionName>>
     "delete_content",
     "content.duplicate",
     "duplicate_content",
+    "idea.create",
+    "create_idea",
+    "idea.respond",
+    "respond_idea",
+    "idea.vote",
+    "vote_idea",
+    "idea.status",
+    "update_idea_status",
+    "idea.create",
+    "create_idea",
+    "idea.respond",
+    "respond_idea",
+    "idea.vote",
+    "vote_idea",
+    "idea.status",
+    "update_idea_status",
     "record.update",
     "update_record",
     "record.delete",
@@ -212,6 +244,22 @@ const ACTIONS_BY_ROLE: Record<CompanyOpsRole, ReadonlySet<CompanyOpsActionName>>
     "delete_content",
     "content.duplicate",
     "duplicate_content",
+    "idea.create",
+    "create_idea",
+    "idea.respond",
+    "respond_idea",
+    "idea.vote",
+    "vote_idea",
+    "idea.status",
+    "update_idea_status",
+    "idea.create",
+    "create_idea",
+    "idea.respond",
+    "respond_idea",
+    "idea.vote",
+    "vote_idea",
+    "idea.status",
+    "update_idea_status",
     "record.update",
     "update_record",
     "record.delete",

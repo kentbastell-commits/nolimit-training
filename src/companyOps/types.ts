@@ -2,6 +2,22 @@ export type CompanyOpsLanguage = "en" | "zh";
 
 export type CompanyOpsRole = "founder" | "growth" | "employee" | "finance";
 
+export interface OpsIdeaItem {
+  id: string;
+  idea: string;
+  detail?: string;
+  category?: string;
+  status?: string;
+  raisedBy?: string;
+  raisedByOpenId?: string;
+  votes: number;
+  hasVoted: boolean;
+  thread: string;
+  createdAt?: string;
+  /** Set only on locally-optimistic rows that have not reached Feishu yet. */
+  pending?: boolean;
+}
+
 export type CompanyOpsPage =
   | "home"
   | "performance"
@@ -11,7 +27,8 @@ export type CompanyOpsPage =
   | "calendar"
   | "articles"
   | "resources"
-  | "onboarding";
+  | "onboarding"
+  | "warroom";
 
 export type CompanyOpsCapability =
   | "view_performance"
@@ -56,6 +73,10 @@ export type CompanyOpsActionName =
   | "delete_article"
   | "delete_record"
   | "update_record"
+  | "create_idea"
+  | "respond_idea"
+  | "vote_idea"
+  | "update_idea_status"
   | "create_goal"
   | "update_goal"
   | "respond_goal"
@@ -545,6 +566,7 @@ export interface CompanyOpsDashboard {
   decisions?: OpsDecisionItem[];
   finance?: OpsFinanceSummary;
   goals?: OpsGoalItem[];
+  ideas?: OpsIdeaItem[];
   contentCalendar?: OpsContentFullItem[];
   articles?: OpsArticleItem[];
   keyDates?: OpsKeyDateItem[];

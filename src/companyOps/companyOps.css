@@ -5896,3 +5896,164 @@ a.fopsOnboardingTaskLink:hover strong {
   justify-content: flex-end;
   gap: 7px;
 }
+
+/* ---- War Room ---------------------------------------------------------- */
+.fopsWarHeader {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+.fopsWarHeader h2 { margin: 4px 0 4px; }
+.fopsWarCounts { display: flex; gap: 22px; }
+.fopsWarCounts b {
+  display: block;
+  font-size: 1.6rem;
+  font-weight: 800;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+.fopsWarCounts span { font-size: 0.75rem; color: var(--fops-ink-soft); }
+
+.fopsWarCapture {
+  border: 1px solid var(--fops-line-dark);
+  border-radius: 14px;
+  padding: 12px 14px;
+  background: var(--fops-surface);
+  margin-bottom: 14px;
+}
+.fopsWarCaptureRow { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+.fopsWarCaptureRow > svg { color: var(--fops-ink-soft); flex: 0 0 auto; }
+.fopsWarCaptureRow input {
+  flex: 1 1 240px;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  font-size: 1rem;
+  padding: 6px 0;
+  color: inherit;
+}
+.fopsWarCaptureRow input:focus { outline: none; }
+.fopsWarCaptureRow select { flex: 0 0 auto; }
+.fopsWarDetail { width: 100%; margin-top: 9px; font-size: 0.92rem; }
+.fopsWarDetailToggle {
+  margin-top: 6px;
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--fops-ink-soft);
+  font-size: 0.8rem;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.fopsWarFilters { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+.fopsWarChip {
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--fops-line-dark);
+  background: transparent;
+  color: var(--fops-ink-soft);
+  font-size: 0.8rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+.fopsWarChip.is-active {
+  background: var(--fops-ink);
+  border-color: var(--fops-ink);
+  color: var(--fops-surface);
+}
+
+.fopsWarGrid { display: flex; flex-direction: column; gap: 10px; }
+.fopsWarCard {
+  border: 1px solid var(--fops-line);
+  border-radius: 13px;
+  background: var(--fops-surface);
+  padding: 13px 15px;
+}
+.fopsWarCard.is-open { border-color: var(--fops-line-dark); }
+.fopsWarCard.is-pending { opacity: 0.62; }
+.fopsWarCardTop { display: flex; gap: 12px; align-items: flex-start; }
+.fopsWarVote {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  min-width: 44px;
+  padding: 6px 4px;
+  border: 1px solid var(--fops-line-dark);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--fops-ink-soft);
+  cursor: pointer;
+}
+.fopsWarVote b { font-size: 0.95rem; font-variant-numeric: tabular-nums; }
+.fopsWarVote.is-voted {
+  border-color: #b8863a;
+  color: #b8863a;
+  background: rgb(184 134 58 / 10%);
+}
+.fopsWarCardBody { flex: 1; min-width: 0; }
+.fopsWarCardTitle {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: none;
+  padding: 0;
+  font-size: 1.02rem;
+  font-weight: 700;
+  color: inherit;
+  cursor: pointer;
+  line-height: 1.4;
+}
+.fopsWarMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  align-items: center;
+  margin-top: 5px;
+  font-size: 0.76rem;
+  color: var(--fops-ink-soft);
+}
+.fopsWarMeta small { display: inline-flex; align-items: center; gap: 3px; }
+.fopsWarTag {
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--fops-line-dark);
+  font-weight: 650;
+}
+.fopsWarStatus { padding: 2px 8px; border-radius: 999px; font-weight: 700; }
+.fopsWarStatus.is-new { background: rgb(85 112 143 / 14%); color: #4a6a8f; }
+.fopsWarStatus.is-discussing { background: rgb(184 134 58 / 15%); color: #8a651f; }
+.fopsWarStatus.is-adopted { background: rgb(63 125 82 / 15%); color: #3f7d52; }
+.fopsWarStatus.is-parked { background: rgb(0 0 0 / 7%); color: var(--fops-ink-soft); }
+.fopsWarHot { color: #b8863a; font-weight: 700; }
+
+.fopsWarThread {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--fops-line-dark);
+}
+.fopsWarDetailText { margin: 0 0 10px; color: var(--fops-ink-soft); }
+.fopsWarThreadList { list-style: none; margin: 0 0 10px; padding: 0; display: flex; flex-direction: column; gap: 9px; }
+.fopsWarThreadList li {
+  padding: 8px 11px;
+  border-radius: 10px;
+  background: var(--fops-surface-muted, rgb(0 0 0 / 3%));
+}
+.fopsWarThreadHead { display: flex; gap: 8px; align-items: baseline; margin-bottom: 2px; }
+.fopsWarThreadHead strong { font-size: 0.84rem; }
+.fopsWarThreadHead small { font-size: 0.72rem; color: var(--fops-ink-soft); }
+.fopsWarThreadList p { margin: 0; font-size: 0.92rem; }
+.fopsWarReply { display: flex; gap: 7px; }
+.fopsWarReply input { flex: 1; min-width: 0; }
+.fopsWarActions { display: flex; gap: 8px; align-items: center; margin-top: 10px; }
+
+@media (max-width: 560px) {
+  .fopsWarCounts { gap: 16px; }
+  .fopsWarCaptureRow select, .fopsWarCaptureRow button { flex: 1 1 auto; }
+}

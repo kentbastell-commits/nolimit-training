@@ -5,6 +5,7 @@ import {
   Home,
   Languages,
   LogOut,
+  Lightbulb,
   Megaphone,
   Newspaper,
   RefreshCw,
@@ -26,6 +27,7 @@ import CompanyOpsHome from "./CompanyOpsHome";
 import CompanyBriefPage from "./CompanyBriefPage";
 import ArticleBuilderPage from "./ArticleBuilderPage";
 import CampaignsPage from "./CampaignsPage";
+import WarRoomPage from "./WarRoomPage";
 import ContentCalendarPage from "./ContentCalendarPage";
 import { SkeletonPage } from "./components";
 import { opsText, roleLabel, type OpsCopyKey } from "./copy";
@@ -67,6 +69,7 @@ const navItems: Array<{
   { page: "growth", label: "navGrowth", icon: TrendingUp },
   { page: "calendar", label: "navCalendar", icon: CalendarDays },
   { page: "articles", label: "navArticles", icon: Newspaper },
+  { page: "warroom", label: "navWarRoom", icon: Lightbulb },
   { page: "decisions", label: "navDecisions", icon: Gavel },
   { page: "onboarding", label: "navOnboarding", icon: UserRoundCheck },
   { page: "resources", label: "navResources", icon: BookOpenCheck },
@@ -1038,6 +1041,40 @@ export default function CompanyOpsApp({
                 }
               />
             </>
+          ) : null}
+          {activePage === "warroom" ? (
+            <WarRoomPage
+              ideas={dashboard.ideas || []}
+              language={language}
+              user={user}
+              onCreate={async (idea, category, detail) => {
+                await runRecordAction("create_idea", {
+                  idea,
+                  category,
+                  ...(detail ? { detail } : {}),
+                });
+              }}
+              onReply={async (ideaId, message) => {
+                await runRecordAction("respond_idea", { ideaId, message });
+              }}
+              onVote={async (ideaId) => {
+                await runRecordAction("vote_idea", { ideaId });
+              }}
+              onStatus={async (ideaId, status) => {
+                await runRecordAction("update_idea_status", { ideaId, status });
+              }}
+              onDelete={async (ideaId) => {
+                if (!window.confirm(opsText(language, "deleteConfirmGeneric"))) return;
+                try {
+                  await runRecordAction("delete_record", { resource: "idea", recordId: ideaId });
+                } catch (error) {
+                  showToast(
+                    error instanceof Error ? error.message : opsText(language, "actionFailed"),
+                    "error",
+                  );
+                }
+              }}
+            />
           ) : null}
           {activePage === "campaigns" && capabilities.has("view_growth") ? (
             <CampaignsPage

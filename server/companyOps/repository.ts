@@ -168,6 +168,20 @@ export interface CompanyOpsPerformanceStaffOption {
   role: CompanyOpsRole;
 }
 
+export interface CompanyOpsIdeaItem {
+  id: string;
+  idea: string;
+  detail?: string;
+  category?: string;
+  status?: string;
+  raisedBy?: string;
+  raisedByOpenId?: string;
+  votes: number;
+  hasVoted: boolean;
+  thread: string;
+  createdAt?: string;
+}
+
 export interface CompanyOpsDashboard {
   user: {
     name: string;
@@ -267,6 +281,8 @@ export interface CompanyOpsDashboard {
     respondedBy?: string;
     notes?: string;
   }>;
+  /** War Room: free-form team ideas with discussion threads. */
+  ideas?: CompanyOpsIdeaItem[];
   /** Long-form articles built in the block editor (growth-visible). */
   articles?: Array<{
     id: string;
@@ -556,6 +572,37 @@ const LEAD_SPECS: readonly InputFieldSpec[] = [
   { key: "nextAction", aliases: ["下一步 Next Action", "Next Action", "Next Step", "下一步"], kind: "string", maximum: 1_000 },
   { key: "notes", aliases: ["备注 Notes (无健康信息 no health data)", "Notes (no health data)", "Notes", "备注（禁止健康数据）"], kind: "string", maximum: 3_000 },
 ];
+
+const IDEA_SPECS: readonly InputFieldSpec[] = [
+  { key: "idea", aliases: ["想法 Idea", "Idea", "想法"], kind: "string", required: true, primary: true, maximum: 200 },
+  { key: "detail", aliases: ["说明 Detail", "Detail", "说明"], kind: "string", maximum: 4_000 },
+  { key: "category", aliases: ["类别 Category", "Category", "类别"], kind: "string", maximum: 40 },
+  { key: "status", aliases: ["状态 Status", "Status", "状态"], kind: "string", maximum: 40 },
+];
+
+const IDEA_CATEGORIES: Record<string, string> = {
+  "产品 product": "产品 Product",
+  product: "产品 Product",
+  "内容 content": "内容 Content",
+  content: "内容 Content",
+  "增长 growth": "增长 Growth",
+  growth: "增长 Growth",
+  "运营 ops": "运营 Ops",
+  ops: "运营 Ops",
+  "其他 other": "其他 Other",
+  other: "其他 Other",
+};
+
+const IDEA_STATUSES: Record<string, string> = {
+  "新 new": "新 New",
+  new: "新 New",
+  "讨论中 discussing": "讨论中 Discussing",
+  discussing: "讨论中 Discussing",
+  "采纳 adopted": "采纳 Adopted",
+  adopted: "采纳 Adopted",
+  "搁置 parked": "搁置 Parked",
+  parked: "搁置 Parked",
+};
 
 const PARTNER_SPECS: readonly InputFieldSpec[] = [
   { key: "name", aliases: ["伙伴 Partner", "Partner", "Name", "KOL / Partner", "合作伙伴"], kind: "string", required: true, primary: true, maximum: 200 },
@@ -1797,6 +1844,44 @@ export class CompanyOpsRepository {
     }
   }
 
+  private projectIdea(record: FeishuRecord, principal: CompanyOpsPrincipal): CompanyOpsIdeaItem {
+    const f = record.fields;
+    const voters = textValue(recordField(f, ["支持者 Voters"]))
+      .split(/[,\s]+/)
+      .filter(Boolean);
+    return {
+      id: record.record_id,
+      idea: textValue(recordField(f, ["想法 Idea", "Idea"])),
+      detail: textValue(recordField(f, ["说明 Detail", "Detail"])) || undefined,
+      category: textValue(recordField(f, ["类别 Category", "Category"])) || undefined,
+      status: textValue(recordField(f, ["状态 Status", "Status"])) || "新 New",
+      raisedBy: textValue(recordField(f, ["提出人 Raised By"])) || undefined,
+      raisedByOpenId: textValue(recordField(f, ["提出人 Open ID"])) || undefined,
+      votes: voters.length,
+      hasVoted: voters.includes(principal.openId),
+      thread: textValue(recordField(f, ["讨论 Thread"])),
+      createdAt: isoDate(recordField(f, ["创建时间 Created"])),
+    };
+  }
+
+  private async ideaRecord(recordId: string) {
+    const target = await this.target("idea");
+    const record = await this.client.getRecord(target.appToken, target.tableId, recordId);
+    return { target, record };
+  }
+
+  // Same append-only convention as goal threads so both read identically in
+  // the UI and in the Base: "[yyyy-mm-dd hh:mm Name] text" per line.
+  private appendThreadEntry(existing: string, principal: CompanyOpsPrincipal, text: string): string {
+    const stamp = new Date(Date.now() + 8 * 3_600_000).toISOString().slice(0, 16).replace("T", " ");
+    const entry = `[${stamp} ${principal.name}] ${text}`;
+    const combined = existing.trim() ? `${existing.trim()}\n${entry}` : entry;
+    if (combined.length > 12_000) {
+      throw new CompanyOpsHttpError(400, "This discussion is full — summarise it into a new idea");
+    }
+    return combined;
+  }
+
   async resolvePrincipal(
     identity: FeishuOAuthUser | CompanyOpsSession | CompanyOpsPrincipal
   ): Promise<CompanyOpsPrincipal> {
@@ -2048,6 +2133,7 @@ export class CompanyOpsRepository {
 
   private belongsTo(record: FeishuRecord, principal: CompanyOpsPrincipal): boolean {
     const aliases = [
+      "提出人 Open ID",
       ...FIELD.createdByOpenId,
       ...FIELD.newHireOpenId,
       ...FIELD.submittedBy,
@@ -2377,7 +2463,7 @@ export class CompanyOpsRepository {
 
     const growthVisible = principal.role === "founder" || principal.role === "growth";
     const financeVisible = principal.role === "founder" || principal.role === "finance";
-    const [contentRecords, leadRecords, campaignRecords, partnerRecords, experimentRecords, onboardingAll, supportAll] = await Promise.all([
+    const [contentRecords, leadRecords, campaignRecords, partnerRecords, experimentRecords, onboardingAll, supportAll, ideaRecords] = await Promise.all([
       growthVisible ? this.listOptional("content", 150) : Promise.resolve([]),
       growthVisible ? this.listOptional("lead", 100) : Promise.resolve([]),
       growthVisible ? this.listOptional("campaign", 100) : Promise.resolve([]),
@@ -2385,6 +2471,7 @@ export class CompanyOpsRepository {
       growthVisible ? this.listOptional("experiment", 100) : Promise.resolve([]),
       this.listOptional("onboarding", 150),
       this.listOptional("support", 150),
+      this.listOptional("idea", 200),
     ]);
 
     // Kick off every remaining table read NOW. These used to be awaited one
@@ -2832,6 +2919,15 @@ export class CompanyOpsRepository {
         .sort((left, right) => (left.date || "9999").localeCompare(right.date || "9999"));
     }
 
+    // War Room: everyone's raw ideas, hottest first (votes, then recency).
+    dashboard.ideas = ideaRecords
+      .map((record) => this.projectIdea(record, principal))
+      .filter((idea) => idea.idea)
+      .sort((left, right) =>
+        right.votes - left.votes ||
+        (right.createdAt || "").localeCompare(left.createdAt || "")
+      );
+
     // Founder goals & ideas: shared direction, visible to the whole team.
     const goalRecords = await prefetch.goal;
     dashboard.goals = goalRecords
@@ -3212,6 +3308,129 @@ export class CompanyOpsRepository {
         await this.client.updateRecord(target.appToken, target.tableId, goalId, updates);
         return { success: true, message: "Goal updated", recordId: goalId };
       }
+      case "idea.create":
+      case "create_idea": {
+        const allowedIdea = new Set(["idea", "detail", "category"]);
+        const unknownIdea = Object.keys(payload).filter((key) => !allowedIdea.has(key));
+        if (unknownIdea.length) {
+          throw new CompanyOpsHttpError(400, `Unknown fields: ${unknownIdea.join(", ")}`);
+        }
+        assertNoHealthData(payload);
+        const category = payload.category === undefined
+          ? "其他 Other"
+          : choice(payload.category, "category", IDEA_CATEGORIES);
+        const target = await this.target("idea");
+        const fields = this.mappedFields(
+          { idea: payload.idea, detail: payload.detail, category, status: "新 New" },
+          IDEA_SPECS,
+          target,
+          principal
+        );
+        const raisedBy = fieldByAlias(target.fields, ["提出人 Raised By"]);
+        if (raisedBy) fields[raisedBy.field_name] = principal.name;
+        const raisedById = fieldByAlias(target.fields, ["提出人 Open ID"]);
+        if (raisedById) fields[raisedById.field_name] = principal.openId;
+        const created = fieldByAlias(target.fields, ["创建时间 Created"]);
+        if (created) fields[created.field_name] = Date.now();
+        const record = await this.client.createRecord(target.appToken, target.tableId, fields);
+        void this.pingFounders(
+          principal,
+          `💡 ${principal.name} 提了个新想法 New idea: “${textValue(payload.idea).slice(0, 80)}”`
+        );
+        return { success: true, message: "Idea posted", recordId: record.record_id };
+      }
+      case "idea.respond":
+      case "respond_idea": {
+        const allowedReply = new Set(["ideaId", "message"]);
+        const unknownReply = Object.keys(payload).filter((key) => !allowedReply.has(key));
+        if (unknownReply.length) {
+          throw new CompanyOpsHttpError(400, `Unknown fields: ${unknownReply.join(", ")}`);
+        }
+        const ideaId = validRecordId(payload.ideaId);
+        const message = textValue(payload.message).trim();
+        if (!message) throw new CompanyOpsHttpError(400, "message is required");
+        if (message.length > 3_000) throw new CompanyOpsHttpError(400, "message is too long");
+        assertNoHealthData({ message });
+        const { target, record } = await this.ideaRecord(ideaId);
+        const threadField = requiredField(target, ["讨论 Thread"]);
+        const combined = this.appendThreadEntry(
+          textValue(recordField(record.fields, ["讨论 Thread"])),
+          principal,
+          message
+        );
+        const updates: FeishuFields = { [threadField.field_name]: combined };
+        // First reply moves a new idea into discussion on its own.
+        const statusField = fieldByAlias(target.fields, ["状态 Status"]);
+        const currentStatus = textValue(recordField(record.fields, ["状态 Status"]));
+        if (statusField && (!currentStatus || currentStatus === "新 New")) {
+          updates[statusField.field_name] = "讨论中 Discussing";
+        }
+        await this.client.updateRecord(target.appToken, target.tableId, ideaId, updates);
+        const title = textValue(recordField(record.fields, ["想法 Idea", "Idea"])).slice(0, 60);
+        const ownerOpenId = textValue(recordField(record.fields, ["提出人 Open ID"]));
+        const pingText = `💬 ${principal.name} 回复了想法「${title}」: ${message.slice(0, 100)}`;
+        if (ownerOpenId && ownerOpenId !== principal.openId) {
+          void this.sendPings([ownerOpenId], principal.openId, pingText);
+        } else {
+          void this.pingFounders(principal, pingText);
+        }
+        return { success: true, message: "Reply added", recordId: ideaId };
+      }
+      case "idea.vote":
+      case "vote_idea": {
+        const allowedVote = new Set(["ideaId"]);
+        const unknownVote = Object.keys(payload).filter((key) => !allowedVote.has(key));
+        if (unknownVote.length) {
+          throw new CompanyOpsHttpError(400, `Unknown fields: ${unknownVote.join(", ")}`);
+        }
+        const ideaId = validRecordId(payload.ideaId);
+        const { target, record } = await this.ideaRecord(ideaId);
+        const votersField = requiredField(target, ["支持者 Voters"]);
+        const voters = textValue(recordField(record.fields, ["支持者 Voters"]))
+          .split(/[,\s]+/)
+          .filter(Boolean);
+        // One vote per person, and clicking again takes it back.
+        const next = voters.includes(principal.openId)
+          ? voters.filter((id) => id !== principal.openId)
+          : [...voters, principal.openId];
+        const updates: FeishuFields = { [votersField.field_name]: next.join(",") };
+        const countField = fieldByAlias(target.fields, ["支持 Votes"]);
+        if (countField) updates[countField.field_name] = next.length;
+        await this.client.updateRecord(target.appToken, target.tableId, ideaId, updates);
+        return {
+          success: true,
+          message: next.includes(principal.openId) ? "Voted" : "Vote removed",
+          recordId: ideaId,
+        };
+      }
+      case "idea.status":
+      case "update_idea_status": {
+        if (principal.role !== "founder") {
+          throw new CompanyOpsHttpError(403, "Only founders change an idea's status");
+        }
+        const allowedStatus = new Set(["ideaId", "status"]);
+        const unknownStatus = Object.keys(payload).filter((key) => !allowedStatus.has(key));
+        if (unknownStatus.length) {
+          throw new CompanyOpsHttpError(400, `Unknown fields: ${unknownStatus.join(", ")}`);
+        }
+        const ideaId = validRecordId(payload.ideaId);
+        const status = choice(payload.status, "status", IDEA_STATUSES);
+        const { target, record } = await this.ideaRecord(ideaId);
+        const statusField = requiredField(target, ["状态 Status"]);
+        await this.client.updateRecord(target.appToken, target.tableId, ideaId, {
+          [statusField.field_name]: status,
+        });
+        const ownerOpenId = textValue(recordField(record.fields, ["提出人 Open ID"]));
+        const title = textValue(recordField(record.fields, ["想法 Idea", "Idea"])).slice(0, 60);
+        if (ownerOpenId) {
+          void this.sendPings(
+            [ownerOpenId],
+            principal.openId,
+            `📌 你的想法「${title}」状态更新为 ${status} / status changed to ${status}`
+          );
+        }
+        return { success: true, message: "Status updated", recordId: ideaId };
+      }
       case "goal.respond":
       case "respond_goal": {
         const allowed = new Set(["goalId", "response"]);
@@ -3519,7 +3738,7 @@ ${entry}` : entry;
         // remove anything on this list; staff only their OWN rows, and never
         // goals (founder direction) or money/HR records (not listed).
         const DELETABLE: ReadonlySet<CompanyOpsResource> = new Set([
-          "goal", "lead", "partner", "campaign", "experiment", "support",
+          "goal", "idea", "lead", "partner", "campaign", "experiment", "support",
           "internalRequest", "metrics", "weeklyReport",
         ] as CompanyOpsResource[]);
         if (!DELETABLE.has(resourceName as CompanyOpsResource)) {
