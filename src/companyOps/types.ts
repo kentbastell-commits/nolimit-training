@@ -29,7 +29,8 @@ export type CompanyOpsPage =
   | "articles"
   | "resources"
   | "onboarding"
-  | "warroom";
+  | "warroom"
+  | "weekly";
 
 export type CompanyOpsCapability =
   | "view_performance"

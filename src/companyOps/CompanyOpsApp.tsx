@@ -5,6 +5,7 @@ import {
   Home,
   Languages,
   LogOut,
+  FileSignature,
   Lightbulb,
   Megaphone,
   Newspaper,
@@ -28,6 +29,7 @@ import CompanyBriefPage from "./CompanyBriefPage";
 import ArticleBuilderPage from "./ArticleBuilderPage";
 import CampaignsPage from "./CampaignsPage";
 import WarRoomPage from "./WarRoomPage";
+import WeeklyReportPage from "./WeeklyReportPage";
 import ContentCalendarPage from "./ContentCalendarPage";
 import { SkeletonPage } from "./components";
 import { opsText, roleLabel, type OpsCopyKey } from "./copy";
@@ -77,6 +79,7 @@ const navItems: Array<{
 }> = [
   { page: "home", label: "navHome", icon: Home , group: "today" },
   { page: "performance", label: "navPerformance", icon: Target , group: "team" },
+  { page: "weekly", label: "navWeekly", icon: FileSignature , group: "team" },
   { page: "campaigns", label: "navCampaigns", icon: Megaphone , group: "grow" },
   { page: "growth", label: "navGrowth", icon: TrendingUp , group: "grow" },
   { page: "calendar", label: "navCalendar", icon: CalendarDays , group: "grow" },
@@ -1085,6 +1088,16 @@ export default function CompanyOpsApp({
                 }
               />
             </>
+          ) : null}
+          {activePage === "weekly" ? (
+            <WeeklyReportPage
+              dashboard={dashboard}
+              language={language}
+              user={user}
+              onSubmit={async (payload) => {
+                await runRecordAction("submit_weekly_report", payload);
+              }}
+            />
           ) : null}
           {activePage === "warroom" ? (
             <WarRoomPage
