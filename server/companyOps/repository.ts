@@ -1750,6 +1750,26 @@ export class CompanyOpsRepository {
     }
   }
 
+  // Everyone on the team except whoever did the thing. Used for posts that
+  // are genuinely company-wide — a new company goal, a new idea — so a
+  // founder's post reaches staff and not only the other founder.
+  private async pingTeam(
+    principal: CompanyOpsPrincipal,
+    message: string
+  ): Promise<void> {
+    try {
+      const admins = await this.appAdminIds();
+      const staff = await this.activeStaffOpenIds().catch(() => [] as string[]);
+      await this.sendPings(
+        [...this.config.founderOpenIds, ...admins.openIds, ...staff],
+        principal.openId,
+        message
+      );
+    } catch {
+      /* best-effort */
+    }
+  }
+
   private async pingFounders(
     principal: CompanyOpsPrincipal,
     message: string
@@ -3279,6 +3299,10 @@ export class CompanyOpsRepository {
         const record = await this.createMapped("goal", normalizedPayload, GOAL_SPECS, principal, {
           status: textValue(payload.goalType).includes("想法") ? "新想法 New" : "进行中 Active",
         });
+        void this.pingTeam(
+          principal,
+          `🎯 ${principal.name} 发布了新的公司目标 New company goal: “${textValue(payload.title).slice(0, 80)}”`
+        );
         return { success: true, message: "Goal shared with the team", recordId: record.record_id };
       }
       case "goal.update":
@@ -3360,7 +3384,7 @@ export class CompanyOpsRepository {
         const created = fieldByAlias(target.fields, ["创建时间 Created"]);
         if (created) fields[created.field_name] = Date.now();
         const record = await this.client.createRecord(target.appToken, target.tableId, fields);
-        void this.pingFounders(
+        void this.pingTeam(
           principal,
           `💡 ${principal.name} 提了个新想法 New idea: “${textValue(payload.idea).slice(0, 80)}”`
         );
