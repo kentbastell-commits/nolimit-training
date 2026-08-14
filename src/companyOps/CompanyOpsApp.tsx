@@ -2,6 +2,8 @@ import {
   BookOpenCheck,
   CalendarDays,
   ChevronDown,
+  ExternalLink,
+  FolderOpen,
   Gavel,
   Inbox as InboxIcon,
   Home,
@@ -869,6 +871,20 @@ export default function CompanyOpsApp({
                         </button>
                       );
                     })}
+                    {section.id === "team" && dashboard.links?.sharedAssets ? (
+                      <a
+                        className="fopsNavExternal"
+                        href={dashboard.links.sharedAssets}
+                        target="_blank"
+                        rel="noreferrer"
+                        role="menuitem"
+                        onClick={() => setOpenSection(null)}
+                      >
+                        <FolderOpen size={17} aria-hidden={true} />
+                        <span>{opsText(language, "navDrive")}</span>
+                        <ExternalLink size={13} aria-hidden={true} className="fopsNavExternalMark" />
+                      </a>
+                    ) : null}
                 </div>
               </div>
             );
