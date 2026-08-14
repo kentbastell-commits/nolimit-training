@@ -6413,3 +6413,36 @@ nav button.is-active .fopsNavCount {
   padding: 3px 8px;
 }
 .fopsWeeklyFiles a:hover { color: var(--fops-ink); }
+
+/* ---- Weekly report preview -------------------------------------------- */
+.fopsPreviewHead { display: flex; flex-wrap: wrap; gap: 16px; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+.fopsPreviewHead h2 { margin: 4px 0 4px; }
+.fopsPreviewSheet {
+  border: 1px solid var(--fops-line-dark);
+  border-radius: 14px;
+  background: var(--fops-surface);
+  padding: 24px 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.fopsPreviewBlock h3 {
+  margin: 0 0 6px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--fops-ink-soft);
+}
+.fopsPreviewBlock p {
+  margin: 0;
+  white-space: pre-wrap;
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+.fopsWeeklyFooterActions { display: flex; gap: 9px; align-items: center; }
+@media (max-width: 560px) {
+  .fopsPreviewSheet { padding: 18px 16px; }
+  .fopsWeeklyFooterActions { width: 100%; }
+  .fopsWeeklyFooterActions button { flex: 1; justify-content: center; }
+}

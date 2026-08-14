@@ -11,6 +11,7 @@ import { useEffect, useMemo, useState } from "react";
 import { companyOpsApi } from "./api";
 import {
   CalendarDays,
+  Eye,
   Check,
   FileText,
   Lightbulb,
@@ -214,6 +215,7 @@ export default function WeeklyReportPage({
   const [nextWeek, setNextWeek] = useState("");
   const [decisions, setDecisions] = useState("");
   const [busy, setBusy] = useState(false);
+  const [preview, setPreview] = useState(false);
   const [done, setDone] = useState(false);
 
   // Seed the tick-boxes once the timeline is known.
@@ -263,8 +265,9 @@ export default function WeeklyReportPage({
   const chosen = timeline.filter((item) => included[item.id]);
   const chosenCount = chosen.length + manual.length;
 
-  const submit = async () => {
-    if (busy) return;
+  // Preview and submit MUST read from the same builder — a preview that
+  // renders differently from what gets sent is worse than no preview.
+  const buildReport = () => {
     const lines: string[] = [];
     for (const item of chosen) {
       const note = (comments[item.id] || "").trim();
@@ -282,17 +285,22 @@ export default function WeeklyReportPage({
       .map((item) => `• ${item.title}${item.detail ? ` (${item.detail})` : ""}`)
       .join("\n");
 
+    return {
+      reportingWeek: week.label,
+      completed: [narrative.trim(), "", wins].filter(Boolean).join(String.fromCharCode(10)),
+      results: dataLines || t("No platform data logged this week.", "本周未记录平台数据。"),
+      problems: blockers.trim(),
+      learnings: learning.trim() || t("—", "—"),
+      nextWeek: nextWeek.trim() || t("—", "—"),
+      decisionsNeeded: decisions.trim(),
+    };
+  };
+
+  const submit = async () => {
+    if (busy) return;
     setBusy(true);
     try {
-      await onSubmit({
-        reportingWeek: week.label,
-        completed: [narrative.trim(), "", wins].filter(Boolean).join("\n"),
-        results: dataLines || t("No platform data logged this week.", "本周未记录平台数据。"),
-        problems: blockers.trim(),
-        learnings: learning.trim() || t("—", "—"),
-        nextWeek: nextWeek.trim() || t("—", "—"),
-        decisionsNeeded: decisions.trim(),
-      });
+      await onSubmit(buildReport());
       setDone(true);
       try {
         window.localStorage.removeItem(draftKey);
@@ -314,6 +322,57 @@ export default function WeeklyReportPage({
             {t("The founders have been notified.", "创始人已收到通知。")}
           </p>
         </div>
+      </section>
+    );
+  }
+
+  if (preview) {
+    const report = buildReport();
+    const block = (label: string, value: string) =>
+      value.trim() ? (
+        <div className="fopsPreviewBlock" key={label}>
+          <h3>{label}</h3>
+          <p>{value}</p>
+        </div>
+      ) : null;
+    return (
+      <section className="fopsSection fopsPreview">
+        <header className="fopsPreviewHead">
+          <div>
+            <span className="fopsEyebrow">{t("Preview", "预览")}</span>
+            <h2>{t("How the founders will read it", "创始人看到的样子")}</h2>
+            <p className="fopsQuietText">{report.reportingWeek}</p>
+          </div>
+          <button
+            type="button"
+            className="fopsButton fopsButton--compact fopsButton--ghost"
+            onClick={() => setPreview(false)}
+          >
+            {t("Back to editing", "返回编辑")}
+          </button>
+        </header>
+        <article className="fopsPreviewSheet">
+          {block(t("What changed this week", "本周带来的变化"), report.completed)}
+          {block(t("Numbers", "数据"), report.results)}
+          {block(t("Blockers", "阻碍"), report.problems)}
+          {block(t("Learnings", "学习与洞察"), report.learnings)}
+          {block(t("Next week", "下周计划"), report.nextWeek)}
+          {block(t("Needs a founder decision", "需要创始人决策"), report.decisionsNeeded)}
+        </article>
+        <footer className="fopsWeeklyFooter">
+          <small className="fopsQuietText">
+            {chosenCount} {t("items included", "项已包含")}
+          </small>
+          <button
+            type="button"
+            className="fopsButton fopsButton--primary"
+            onClick={() => void submit()}
+            disabled={busy || !narrative.trim()}
+          >
+            <Send size={15} aria-hidden="true" />
+            {busy ? t("Sending…", "提交中…") : t("Send weekly report", "提交周报")}
+          </button>
+        </footer>
       </section>
     );
   }
@@ -534,15 +593,26 @@ export default function WeeklyReportPage({
         <small className="fopsQuietText">
           {t("Saved as you type.", "输入内容会自动保存。")}
         </small>
-        <button
-          type="button"
-          className="fopsButton fopsButton--primary"
-          onClick={() => void submit()}
-          disabled={busy || !narrative.trim()}
-        >
-          <Send size={15} aria-hidden="true" />
-          {busy ? t("Sending…", "提交中…") : t("Send weekly report", "提交周报")}
-        </button>
+        <div className="fopsWeeklyFooterActions">
+          <button
+            type="button"
+            className="fopsButton fopsButton--compact fopsButton--ghost"
+            onClick={() => setPreview(true)}
+            disabled={!narrative.trim()}
+          >
+            <Eye size={15} aria-hidden="true" />
+            {t("Preview", "预览")}
+          </button>
+          <button
+            type="button"
+            className="fopsButton fopsButton--primary"
+            onClick={() => void submit()}
+            disabled={busy || !narrative.trim()}
+          >
+            <Send size={15} aria-hidden="true" />
+            {busy ? t("Sending…", "提交中…") : t("Send weekly report", "提交周报")}
+          </button>
+        </div>
       </footer>
     </section>
   );
