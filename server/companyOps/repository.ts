@@ -2158,16 +2158,42 @@ export class CompanyOpsRepository {
     });
   }
 
+  // NEVER rejects. Two reasons, both learned the hard way:
+  //
+  //  1. The dashboard's prefetch block creates these promises EAGERLY and
+  //     awaits several of them only under a role condition. A promise that
+  //     rejects before anything awaits it is an unhandled rejection, which
+  //     takes the whole Node process down — the server was crash-looping on
+  //     exactly this.
+  //  2. Feishu answers 1254607 ("data not ready") when it is throttling after
+  //     a burst of reads, and the dashboard now reads ~17 tables at once. That
+  //     is transient by definition (named mistake #9), so it earns one retry.
+  //
+  // A section that is briefly empty is enormously better than a dead server.
   private async listOptional(
     resource: CompanyOpsResource,
     maximum = 100
   ): Promise<FeishuRecord[]> {
-    try {
-      return await this.list(resource, maximum);
-    } catch (error) {
-      if (error instanceof CompanyOpsConfigurationError) return [];
-      throw error;
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        return await this.list(resource, maximum);
+      } catch (error) {
+        if (error instanceof CompanyOpsConfigurationError) return [];
+        const code = (error as { code?: number }).code;
+        const transient = code === 1254607 || code === 99991400;
+        if (transient && attempt === 1) {
+          await new Promise((resolve) => setTimeout(resolve, 1_500));
+          continue;
+        }
+        console.warn("[companyOps] optional read failed", {
+          resource,
+          code,
+          message: error instanceof Error ? error.message : String(error),
+        });
+        return [];
+      }
     }
+    return [];
   }
 
   private belongsTo(record: FeishuRecord, principal: CompanyOpsPrincipal): boolean {

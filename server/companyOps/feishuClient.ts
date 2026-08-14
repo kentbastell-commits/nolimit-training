@@ -233,19 +233,34 @@ export class FeishuClient {
   }
 
   private async tenantRequest(path: string, init: RequestInit = {}): Promise<JsonMap> {
-    const token = await this.getTenantAccessToken();
-    const response = await this.fetcher(
-      `https://open.feishu.cn${path}`,
-      {
-        ...init,
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json; charset=utf-8",
-          ...(init.headers || {}),
-        },
+    // 1254607 is Feishu throttling after a burst (the dashboard reads ~17
+    // tables at once) — transient by definition. Retry READS once after a
+    // pause; never retry writes, where a redo could duplicate a record.
+    const isRead = !init.method || init.method.toUpperCase() === "GET";
+    for (let attempt = 1; ; attempt++) {
+      const token = await this.getTenantAccessToken();
+      const response = await this.fetcher(
+        `https://open.feishu.cn${path}`,
+        {
+          ...init,
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json; charset=utf-8",
+            ...(init.headers || {}),
+          },
+        }
+      );
+      try {
+        return assertFeishuSuccess(response, await parseJson(response));
+      } catch (error) {
+        const code = (error as { code?: number }).code;
+        if (isRead && code === 1254607 && attempt === 1) {
+          await new Promise((resolve) => setTimeout(resolve, 1_500));
+          continue;
+        }
+        throw error;
       }
-    );
-    return assertFeishuSuccess(response, await parseJson(response));
+    }
   }
 
   async listApplicationAdminIds(): Promise<FeishuAppAdminIds> {
