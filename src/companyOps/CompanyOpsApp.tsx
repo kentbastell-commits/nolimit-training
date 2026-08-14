@@ -440,13 +440,13 @@ export default function CompanyOpsApp({
 
   // A section opens automatically when the page you're on lives inside it,
   // so navigating by URL never lands you in a collapsed sidebar.
-  const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
+  const [openSection, setOpenSection] = useState<string | null>(null);
 
-  // A click anywhere else, or Escape, closes an open section — otherwise the
+  // A click anywhere else, or Escape, closes the open section — otherwise the
   // panel sits over the page until you happen to click the heading again.
   useEffect(() => {
-    if (!Object.values(openSections).some(Boolean)) return;
-    const close = () => setOpenSections({});
+    if (!openSection) return;
+    const close = () => setOpenSection(null);
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") close();
     };
@@ -456,7 +456,7 @@ export default function CompanyOpsApp({
       window.removeEventListener("pointerdown", close);
       window.removeEventListener("keydown", onKey);
     };
-  }, [openSections]);
+  }, [openSection]);
 
   const visibleNav = useMemo(
     () =>
@@ -822,7 +822,7 @@ export default function CompanyOpsApp({
           {NAV_SECTIONS.map((section) => {
             const items = visibleNav.filter((item) => item.group === section.id);
             if (!items.length) return null;
-            const open = Boolean(openSections[section.id ?? ""]);
+            const open = openSection === section.id;
             const holdsActive = items.some((item) => item.page === activePage);
             const SectionIcon = section.icon;
             // Collapsed sections still surface anything needing attention.
@@ -837,12 +837,8 @@ export default function CompanyOpsApp({
                   type="button"
                   className={`fopsNavSectionHead${holdsActive ? " is-current" : ""}`}
                   aria-expanded={open}
-                  onClick={() =>
-                    setOpenSections((current) => ({
-                      ...current,
-                      [section.id ?? ""]: !open,
-                    }))
-                  }
+                  aria-haspopup="menu"
+                  onClick={() => setOpenSection(open ? null : section.id ?? null)}
                 >
                   <SectionIcon size={19} aria-hidden={true} />
                   <span>{opsText(language, section.label)}</span>
@@ -862,10 +858,7 @@ export default function CompanyOpsApp({
                           aria-current={activePage === item.page ? "page" : undefined}
                           onClick={() => {
                             navigate(item.page);
-                            setOpenSections((current) => ({
-                              ...current,
-                              [section.id ?? ""]: false,
-                            }));
+                            setOpenSection(null);
                           }}
                           role="menuitem"
                           key={item.page}

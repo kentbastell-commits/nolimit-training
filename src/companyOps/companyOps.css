@@ -6263,9 +6263,24 @@ nav button.is-active .fopsNavCount {
   background: var(--fops-surface);
   box-shadow: 0 24px 60px rgb(0 0 0 / 18%);
 }
-/* Click-only: a hover-opened panel kept appearing over the page content. */
+/* Click-only: a hover-opened panel kept appearing over the page content, and
+   only one section is ever open, so two panels can't overlap. */
 .fopsNavSection.is-open .fopsNavFlyout { display: flex; }
-.fopsSidebar nav .fopsNavSectionHead.is-current { background: #f0ece1; }
+.fopsNavSection.is-open > .fopsNavSectionHead { background: #f0ece1; }
+.fopsNavSection.is-open .fopsNavChevron { transform: rotate(0deg); opacity: 1; }
+.fopsSidebar nav .fopsNavSectionHead.is-current { background: #f5f1e6; }
+.fopsSidebar nav .fopsNavSectionHead.is-current::after {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 18px;
+  border-radius: 2px;
+  background: #b8863a;
+}
+.fopsSidebar nav .fopsNavSectionHead { position: relative; }
 .fopsSidebar nav .fopsNavFlyout button {
   min-height: 42px;
   font-size: 0.92rem;
