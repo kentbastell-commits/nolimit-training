@@ -10,7 +10,7 @@
 //  - Everything is bilingual through opsText / TranslatableText: Yumei writes
 //    Chinese, the founders write English, and each side reads its own.
 import { useMemo, useState } from "react";
-import { Flame, MessageSquare, Paperclip, Plus, Send, Trash2, TrendingUp, X } from "lucide-react";
+import { Flame, Image as ImageIcon, MessageSquare, Paperclip, Plus, Send, Trash2, TrendingUp, X } from "lucide-react";
 import { companyOpsApi } from "./api";
 import { opsText } from "./copy";
 import { TranslatableText } from "./TranslatableText";
@@ -72,14 +72,15 @@ const fileLabel = (url: string) => {
 
 const isImage = (url: string) => /\.(png|jpe?g|gif|webp|avif)(\?|$)/i.test(url);
 
+// Uploads land in the Feishu shared-assets folder, and that link is a Drive
+// PAGE (302 -> HTML), not the file bytes — verified by probing a real upload.
+// So never render one as <img src>: it would show a broken image. Everything
+// is a labelled link that opens in Feishu, where the team is already signed
+// in and gets a proper preview.
 function AttachmentLink({ url }: { url: string }) {
-  return isImage(url) ? (
-    <a className="fopsWarAttachImg" href={url} target="_blank" rel="noreferrer">
-      <img src={url} alt="" loading="lazy" />
-    </a>
-  ) : (
+  return (
     <a className="fopsWarAttachFile" href={url} target="_blank" rel="noreferrer">
-      <Paperclip size={13} aria-hidden="true" />
+      {isImage(url) ? <ImageIcon size={13} aria-hidden="true" /> : <Paperclip size={13} aria-hidden="true" />}
       {fileLabel(url)}
     </a>
   );
