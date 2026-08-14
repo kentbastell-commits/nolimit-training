@@ -13,6 +13,7 @@ export interface OpsIdeaItem {
   votes: number;
   hasVoted: boolean;
   thread: string;
+  attachments?: string[];
   createdAt?: string;
   /** Set only on locally-optimistic rows that have not reached Feishu yet. */
   pending?: boolean;

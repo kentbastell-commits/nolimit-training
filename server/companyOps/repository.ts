@@ -179,6 +179,8 @@ export interface CompanyOpsIdeaItem {
   votes: number;
   hasVoted: boolean;
   thread: string;
+  /** Absolute links to files uploaded into the shared assets folder. */
+  attachments: string[];
   createdAt?: string;
 }
 
@@ -578,7 +580,20 @@ const IDEA_SPECS: readonly InputFieldSpec[] = [
   { key: "detail", aliases: ["说明 Detail", "Detail", "说明"], kind: "string", maximum: 4_000 },
   { key: "category", aliases: ["类别 Category", "Category", "类别"], kind: "string", maximum: 40 },
   { key: "status", aliases: ["状态 Status", "Status", "状态"], kind: "string", maximum: 40 },
+  { key: "attachments", aliases: ["附件 Attachments", "Attachments", "附件"], kind: "string", maximum: 4_000 },
 ];
+
+// Attachment values are links produced by the shared-assets uploader. Store
+// them newline-separated; reject anything that isn't an http(s) URL so a
+// crafted payload can't push script or file:// links into the Base.
+const normalizeAttachmentList = (value: unknown): string => {
+  const raw = Array.isArray(value) ? value : String(value ?? "").split(/\n+/);
+  const links = raw
+    .map((entry) => String(entry ?? "").trim())
+    .filter((entry) => /^https?:\/\//i.test(entry))
+    .slice(0, 10);
+  return links.join("\n");
+};
 
 const IDEA_CATEGORIES: Record<string, string> = {
   "产品 product": "产品 Product",
@@ -1860,6 +1875,10 @@ export class CompanyOpsRepository {
       votes: voters.length,
       hasVoted: voters.includes(principal.openId),
       thread: textValue(recordField(f, ["讨论 Thread"])),
+      attachments: textValue(recordField(f, ["附件 Attachments"]))
+        .split(/\n+/)
+        .map((line) => line.trim())
+        .filter(Boolean),
       createdAt: isoDate(recordField(f, ["创建时间 Created"])),
     };
   }
@@ -3310,7 +3329,7 @@ export class CompanyOpsRepository {
       }
       case "idea.create":
       case "create_idea": {
-        const allowedIdea = new Set(["idea", "detail", "category"]);
+        const allowedIdea = new Set(["idea", "detail", "category", "attachments"]);
         const unknownIdea = Object.keys(payload).filter((key) => !allowedIdea.has(key));
         if (unknownIdea.length) {
           throw new CompanyOpsHttpError(400, `Unknown fields: ${unknownIdea.join(", ")}`);
@@ -3321,7 +3340,15 @@ export class CompanyOpsRepository {
           : choice(payload.category, "category", IDEA_CATEGORIES);
         const target = await this.target("idea");
         const fields = this.mappedFields(
-          { idea: payload.idea, detail: payload.detail, category, status: "新 New" },
+          {
+            idea: payload.idea,
+            detail: payload.detail,
+            category,
+            status: "新 New",
+            ...(payload.attachments === undefined
+              ? {}
+              : { attachments: normalizeAttachmentList(payload.attachments) }),
+          },
           IDEA_SPECS,
           target,
           principal
@@ -3341,13 +3368,16 @@ export class CompanyOpsRepository {
       }
       case "idea.respond":
       case "respond_idea": {
-        const allowedReply = new Set(["ideaId", "message"]);
+        const allowedReply = new Set(["ideaId", "message", "attachments"]);
         const unknownReply = Object.keys(payload).filter((key) => !allowedReply.has(key));
         if (unknownReply.length) {
           throw new CompanyOpsHttpError(400, `Unknown fields: ${unknownReply.join(", ")}`);
         }
         const ideaId = validRecordId(payload.ideaId);
-        const message = textValue(payload.message).trim();
+        const replyFiles = normalizeAttachmentList(payload.attachments);
+        const messageText = textValue(payload.message).trim();
+        // A reply may be just a picture — the file is the point.
+        const message = [messageText, ...replyFiles].filter(Boolean).join("\n");
         if (!message) throw new CompanyOpsHttpError(400, "message is required");
         if (message.length > 3_000) throw new CompanyOpsHttpError(400, "message is too long");
         assertNoHealthData({ message });

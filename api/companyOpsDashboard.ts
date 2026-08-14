@@ -385,6 +385,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       goals: data.goals || [],
       contentCalendar: data.contentFull || [],
       articles: data.articles || [],
+      // War Room. The repository builds this and normalizeDashboard whitelists
+      // it, but the payload is an explicit object — a field missing HERE is
+      // invisible no matter how correct the other two layers are (the exact
+      // shape that hid the articles list, CLAUDE.md #43).
+      ideas: data.ideas || [],
       keyDates: data.keyDates || [],
       onboarding,
       onboardingCases: data.founder?.onboardingCases || [],

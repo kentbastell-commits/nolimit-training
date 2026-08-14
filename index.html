@@ -28,7 +28,10 @@
     <meta name="applicable-device" content="pc,mobile" />
 
     <!-- PWA / add-to-home-screen -->
-    <link rel="manifest" href="/manifest.webmanifest" />
+    <!-- use-credentials: the manifest fetch omits cookies by default, so while
+         the pre-launch nginx gate is up it was served coming-soon.html and
+         failed to parse (console error on every page load). -->
+    <link rel="manifest" href="/manifest.webmanifest" crossorigin="use-credentials" />
     <meta name="theme-color" content="#0D0D0D" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="apple-mobile-web-app-capable" content="yes" />

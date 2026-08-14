@@ -1091,15 +1091,21 @@ export default function CompanyOpsApp({
               ideas={dashboard.ideas || []}
               language={language}
               user={user}
-              onCreate={async (idea, category, detail) => {
+              csrfToken={session?.csrfToken}
+              onCreate={async (idea, category, detail, attachments) => {
                 await runRecordAction("create_idea", {
                   idea,
                   category,
                   ...(detail ? { detail } : {}),
+                  ...(attachments?.length ? { attachments } : {}),
                 });
               }}
-              onReply={async (ideaId, message) => {
-                await runRecordAction("respond_idea", { ideaId, message });
+              onReply={async (ideaId, message, attachments) => {
+                await runRecordAction("respond_idea", {
+                  ideaId,
+                  message,
+                  ...(attachments?.length ? { attachments } : {}),
+                });
               }}
               onVote={async (ideaId) => {
                 await runRecordAction("vote_idea", { ideaId });

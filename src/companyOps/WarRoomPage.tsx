@@ -10,7 +10,8 @@
 //  - Everything is bilingual through opsText / TranslatableText: Yumei writes
 //    Chinese, the founders write English, and each side reads its own.
 import { useMemo, useState } from "react";
-import { Flame, MessageSquare, Plus, Send, Trash2, TrendingUp } from "lucide-react";
+import { Flame, MessageSquare, Paperclip, Plus, Send, Trash2, TrendingUp, X } from "lucide-react";
+import { companyOpsApi } from "./api";
 import { opsText } from "./copy";
 import { TranslatableText } from "./TranslatableText";
 import { formatOpsDate } from "./utils";
@@ -60,10 +61,54 @@ function parseThread(raw: string): ThreadEntry[] {
     .filter((entry) => entry.body);
 }
 
+const fileLabel = (url: string) => {
+  try {
+    const name = decodeURIComponent(new URL(url).pathname.split("/").pop() || url);
+    return name.length > 26 ? `${name.slice(0, 23)}…` : name;
+  } catch {
+    return url.slice(0, 26);
+  }
+};
+
+const isImage = (url: string) => /\.(png|jpe?g|gif|webp|avif)(\?|$)/i.test(url);
+
+function AttachmentLink({ url }: { url: string }) {
+  return isImage(url) ? (
+    <a className="fopsWarAttachImg" href={url} target="_blank" rel="noreferrer">
+      <img src={url} alt="" loading="lazy" />
+    </a>
+  ) : (
+    <a className="fopsWarAttachFile" href={url} target="_blank" rel="noreferrer">
+      <Paperclip size={13} aria-hidden="true" />
+      {fileLabel(url)}
+    </a>
+  );
+}
+
+/** A reply may be text, links, or both — links render as attachments. */
+function ThreadBody({ body, language }: { body: string; language: CompanyOpsLanguage }) {
+  const lines = body.split(/\n+/);
+  const links = lines.filter((line) => /^https?:\/\//i.test(line.trim()));
+  const text = lines.filter((line) => !/^https?:\/\//i.test(line.trim())).join("\n").trim();
+  return (
+    <>
+      {text ? <TranslatableText text={text} language={language} /> : null}
+      {links.length ? (
+        <div className="fopsWarAttachList">
+          {links.map((url) => (
+            <AttachmentLink url={url.trim()} key={url} />
+          ))}
+        </div>
+      ) : null}
+    </>
+  );
+}
+
 export default function WarRoomPage({
   ideas,
   language,
   user,
+  csrfToken,
   onCreate,
   onReply,
   onVote,
@@ -73,8 +118,14 @@ export default function WarRoomPage({
   ideas: OpsIdeaItem[];
   language: CompanyOpsLanguage;
   user?: CompanyOpsUser;
-  onCreate: (idea: string, category: string, detail?: string) => Promise<void>;
-  onReply: (ideaId: string, message: string) => Promise<void>;
+  csrfToken?: string;
+  onCreate: (
+    idea: string,
+    category: string,
+    detail?: string,
+    attachments?: string[],
+  ) => Promise<void>;
+  onReply: (ideaId: string, message: string, attachments?: string[]) => Promise<void>;
   onVote: (ideaId: string) => Promise<void>;
   onStatus: (ideaId: string, status: string) => Promise<void>;
   onDelete: (ideaId: string) => void;
@@ -85,6 +136,28 @@ export default function WarRoomPage({
   const [detail, setDetail] = useState("");
   const [detailOpen, setDetailOpen] = useState(false);
   const [posting, setPosting] = useState(false);
+  const [files, setFiles] = useState<string[]>([]);
+  const [replyFiles, setReplyFiles] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
+
+  // Reuses the shared-assets uploader the Article Builder already uses, so
+  // attachments land in the same Feishu folder the team browses.
+  const upload = async (file: File, target: "idea" | "reply") => {
+    setUploading(true);
+    setUploadError("");
+    try {
+      const result = await companyOpsApi.uploadAsset?.(file, csrfToken);
+      const url = result?.url;
+      if (!url) throw new Error("no url");
+      if (target === "idea") setFiles((current) => [...current, url]);
+      else setReplyFiles((current) => [...current, url]);
+    } catch {
+      setUploadError(opsText(language, "warRoomAttachFailed"));
+    } finally {
+      setUploading(false);
+    }
+  };
   const [filter, setFilter] = useState<string>("all");
   const [openIdea, setOpenIdea] = useState<string | null>(null);
   const [reply, setReply] = useState("");
@@ -118,6 +191,7 @@ export default function WarRoomPage({
       id: `pending-${Date.now()}`,
       idea: text,
       detail: detail.trim() || undefined,
+      attachments: files,
       category: draftCategory,
       status: "新 New",
       raisedBy: user?.name,
@@ -133,7 +207,8 @@ export default function WarRoomPage({
     setDetail("");
     setDetailOpen(false);
     try {
-      await onCreate(text, draftCategory, optimistic.detail);
+      await onCreate(text, draftCategory, optimistic.detail, files);
+      setFiles([]);
     } finally {
       setPosting(false);
     }
@@ -141,7 +216,7 @@ export default function WarRoomPage({
 
   const submitReply = async (ideaId: string) => {
     const text = reply.trim();
-    if (!text || replying) return;
+    if ((!text && !replyFiles.length) || replying) return;
     setReplying(true);
     const stamp = new Date(Date.now() + 8 * 3_600_000).toISOString().slice(0, 16).replace("T", " ");
     setLocalReplies((current) => ({
@@ -150,7 +225,8 @@ export default function WarRoomPage({
     }));
     setReply("");
     try {
-      await onReply(ideaId, text);
+      await onReply(ideaId, text, replyFiles);
+      setReplyFiles([]);
     } finally {
       setReplying(false);
     }
@@ -214,6 +290,35 @@ export default function WarRoomPage({
             >
               {opsText(language, "warRoomPost")}
             </button>
+          </div>
+          <div className="fopsWarAttachRow">
+            <label className="fopsWarAttachBtn">
+              <Paperclip size={14} aria-hidden="true" />
+              {uploading ? opsText(language, "warRoomAttaching") : opsText(language, "warRoomAttach")}
+              <input
+                type="file"
+                accept="image/*,.pdf,.doc,.docx,.ppt,.pptx,.xlsx,.mp4,.mov"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (file) void upload(file, "idea");
+                  event.target.value = "";
+                }}
+                disabled={uploading}
+              />
+            </label>
+            {files.map((url) => (
+              <span className="fopsWarChipFile" key={url}>
+                <a href={url} target="_blank" rel="noreferrer">{fileLabel(url)}</a>
+                <button
+                  type="button"
+                  onClick={() => setFiles((current) => current.filter((item) => item !== url))}
+                  aria-label="remove"
+                >
+                  <X size={11} aria-hidden="true" />
+                </button>
+              </span>
+            ))}
+            {uploadError ? <small className="fopsWarAttachError">{uploadError}</small> : null}
           </div>
           {detailOpen ? (
             <textarea
@@ -319,6 +424,13 @@ export default function WarRoomPage({
                       {item.detail ? (
                         <TranslatableText text={item.detail} language={language} className="fopsWarDetailText" />
                       ) : null}
+                      {item.attachments?.length ? (
+                        <div className="fopsWarAttachList">
+                          {item.attachments.map((url) => (
+                            <AttachmentLink url={url} key={url} />
+                          ))}
+                        </div>
+                      ) : null}
                       {thread.length ? (
                         <ul className="fopsWarThreadList">
                           {thread.map((entry, index) => (
@@ -327,7 +439,7 @@ export default function WarRoomPage({
                                 <strong>{entry.author}</strong>
                                 <small>{entry.stamp}</small>
                               </div>
-                              <TranslatableText text={entry.body} language={language} />
+                              <ThreadBody body={entry.body} language={language} />
                             </li>
                           ))}
                         </ul>
@@ -348,11 +460,24 @@ export default function WarRoomPage({
                           placeholder={opsText(language, "warRoomReplyPlaceholder")}
                           aria-label={opsText(language, "warRoomReplyPlaceholder")}
                         />
+                        <label className="fopsWarAttachBtn fopsWarAttachBtn--inline">
+                          <Paperclip size={14} aria-hidden="true" />
+                          <input
+                            type="file"
+                            accept="image/*,.pdf,.doc,.docx,.ppt,.pptx,.xlsx,.mp4,.mov"
+                            onChange={(event) => {
+                              const file = event.target.files?.[0];
+                              if (file) void upload(file, "reply");
+                              event.target.value = "";
+                            }}
+                            disabled={uploading}
+                          />
+                        </label>
                         <button
                           type="button"
                           className="fopsButton fopsButton--compact"
                           onClick={() => void submitReply(item.id)}
-                          disabled={!reply.trim() || replying}
+                          disabled={(!reply.trim() && !replyFiles.length) || replying}
                         >
                           <Send size={14} aria-hidden="true" />
                         </button>

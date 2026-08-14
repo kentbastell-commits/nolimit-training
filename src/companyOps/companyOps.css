@@ -6087,3 +6087,53 @@ nav button.is-active .fopsNavCount {
   background: rgb(255 255 255 / 20%);
   color: #f0dc88;
 }
+
+/* ---- War Room attachments --------------------------------------------- */
+.fopsWarAttachRow { display: flex; flex-wrap: wrap; gap: 7px; align-items: center; margin-top: 8px; }
+.fopsWarAttachBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border: 1px solid var(--fops-line-dark);
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 650;
+  color: var(--fops-ink-soft);
+  cursor: pointer;
+}
+.fopsWarAttachBtn:hover { color: var(--fops-ink); }
+.fopsWarAttachBtn input { display: none; }
+.fopsWarAttachBtn--inline { padding: 6px 9px; }
+.fopsWarChipFile {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgb(0 0 0 / 5%);
+  font-size: 0.76rem;
+}
+.fopsWarChipFile a { color: inherit; }
+.fopsWarChipFile button { border: 0; background: none; padding: 0; cursor: pointer; color: var(--fops-ink-soft); display: inline-flex; }
+.fopsWarAttachError { color: #a53a26; font-size: 0.76rem; }
+.fopsWarAttachList { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+.fopsWarAttachImg img {
+  max-width: 190px;
+  max-height: 150px;
+  border-radius: 9px;
+  border: 1px solid var(--fops-line);
+  display: block;
+}
+.fopsWarAttachFile {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border: 1px solid var(--fops-line-dark);
+  border-radius: 9px;
+  font-size: 0.8rem;
+  color: inherit;
+  text-decoration: none;
+}
+.fopsWarAttachFile:hover { background: rgb(0 0 0 / 4%); }
