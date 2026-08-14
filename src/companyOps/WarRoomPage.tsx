@@ -271,6 +271,23 @@ export default function WarRoomPage({
               placeholder={opsText(language, "warRoomPlaceholder")}
               aria-label={opsText(language, "warRoomPlaceholder")}
             />
+            <label
+              className="fopsWarAttachIcon"
+              title={opsText(language, "warRoomAttach")}
+              aria-label={opsText(language, "warRoomAttach")}
+            >
+              <Paperclip size={16} aria-hidden="true" />
+              <input
+                type="file"
+                accept="image/*,.pdf,.doc,.docx,.ppt,.pptx,.xlsx,.mp4,.mov"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (file) void upload(file, "idea");
+                  event.target.value = "";
+                }}
+                disabled={uploading}
+              />
+            </label>
             <select
               value={draftCategory}
               onChange={(event) => setDraftCategory(event.target.value)}
@@ -291,21 +308,8 @@ export default function WarRoomPage({
               {opsText(language, "warRoomPost")}
             </button>
           </div>
-          <div className="fopsWarAttachRow">
-            <label className="fopsWarAttachBtn">
-              <Paperclip size={14} aria-hidden="true" />
-              {uploading ? opsText(language, "warRoomAttaching") : opsText(language, "warRoomAttach")}
-              <input
-                type="file"
-                accept="image/*,.pdf,.doc,.docx,.ppt,.pptx,.xlsx,.mp4,.mov"
-                onChange={(event) => {
-                  const file = event.target.files?.[0];
-                  if (file) void upload(file, "idea");
-                  event.target.value = "";
-                }}
-                disabled={uploading}
-              />
-            </label>
+          {files.length || uploadError ? (
+            <div className="fopsWarAttachRow">
             {files.map((url) => (
               <span className="fopsWarChipFile" key={url}>
                 <a href={url} target="_blank" rel="noreferrer">{fileLabel(url)}</a>
@@ -318,8 +322,9 @@ export default function WarRoomPage({
                 </button>
               </span>
             ))}
-            {uploadError ? <small className="fopsWarAttachError">{uploadError}</small> : null}
-          </div>
+              {uploadError ? <small className="fopsWarAttachError">{uploadError}</small> : null}
+            </div>
+          ) : null}
           {detailOpen ? (
             <textarea
               className="fopsWarDetail"

@@ -6137,3 +6137,21 @@ nav button.is-active .fopsNavCount {
   text-decoration: none;
 }
 .fopsWarAttachFile:hover { background: rgb(0 0 0 / 4%); }
+
+/* Icon-only attach control, sitting in the capture row rather than taking a
+   line of its own — keeps the "what's the idea?" box to one line. */
+.fopsWarAttachIcon {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--fops-line-dark);
+  border-radius: 9px;
+  color: var(--fops-ink-soft);
+  cursor: pointer;
+}
+.fopsWarAttachIcon:hover { color: var(--fops-ink); background: rgb(0 0 0 / 4%); }
+.fopsWarAttachIcon input { display: none; }
+.fopsWarAttachIcon:focus-within { outline: 2px solid var(--fops-ink); outline-offset: 1px; }
