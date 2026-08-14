@@ -3,6 +3,7 @@ import {
   CalendarDays,
   ChevronDown,
   Gavel,
+  Inbox as InboxIcon,
   Home,
   Languages,
   LogOut,
@@ -30,6 +31,7 @@ import CompanyOpsHome from "./CompanyOpsHome";
 import CompanyBriefPage from "./CompanyBriefPage";
 import ArticleBuilderPage from "./ArticleBuilderPage";
 import CampaignsPage from "./CampaignsPage";
+import InboxPage from "./InboxPage";
 import WarRoomPage from "./WarRoomPage";
 import WeeklyReportPage from "./WeeklyReportPage";
 import ContentCalendarPage from "./ContentCalendarPage";
@@ -90,6 +92,7 @@ const navItems: Array<{
   { page: "articles", label: "navArticles", icon: Newspaper , group: "content" },
   { page: "warroom", label: "navWarRoom", icon: Lightbulb , group: null },
   { page: "decisions", label: "navDecisions", icon: Gavel , group: null },
+  { page: "inbox", label: "navInbox", icon: InboxIcon , group: null },
   { page: "onboarding", label: "navOnboarding", icon: UserRoundCheck , group: "team" },
   { page: "resources", label: "navResources", icon: BookOpenCheck , group: "team" },
 ];
@@ -411,7 +414,24 @@ export default function CompanyOpsApp({
     const openOnboarding = (dashboard.onboarding?.tasks || []).filter(
       (task) => !task.completed,
     ).length;
+    // Her Inbox badge counts anything she has not opened yet.
+    let unreadInbox = 0;
+    try {
+      const seen = JSON.parse(window.localStorage.getItem("nl_ops_inbox_read") || "{}");
+      const ideaReplies = (dashboard.ideas || []).filter(
+        (idea) => Boolean(idea.thread) && !seen[`idea-${idea.id}`],
+      ).length;
+      const goalReplies = (dashboard.goals || []).filter((goal) => Boolean(goal.response)).length;
+      const policyTodo = (dashboard.policies || []).filter(
+        (policy) => !policy.acknowledged && !seen[`policy-${policy.id}`],
+      ).length;
+      unreadInbox = ideaReplies + goalReplies + policyTodo;
+    } catch {
+      unreadInbox = 0;
+    }
+
     return {
+      inbox: unreadInbox || undefined,
       decisions: pendingDecisions || undefined,
       warroom: openIdeas || undefined,
       onboarding: openOnboarding || undefined,
@@ -1143,6 +1163,14 @@ export default function CompanyOpsApp({
                 }
               />
             </>
+          ) : null}
+          {activePage === "inbox" ? (
+            <InboxPage
+              dashboard={dashboard}
+              language={language}
+              user={user}
+              onOpenPage={(page) => navigate(page)}
+            />
           ) : null}
           {activePage === "weekly" ? (
             <WeeklyReportPage

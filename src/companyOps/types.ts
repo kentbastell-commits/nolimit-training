@@ -30,7 +30,8 @@ export type CompanyOpsPage =
   | "resources"
   | "onboarding"
   | "warroom"
-  | "weekly";
+  | "weekly"
+  | "inbox";
 
 export type CompanyOpsCapability =
   | "view_performance"

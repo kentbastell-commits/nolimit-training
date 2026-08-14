@@ -6256,3 +6256,42 @@ nav button.is-active .fopsNavCount {
 @media (prefers-reduced-motion: reduce) {
   .fopsNavChevron { transition: none; }
 }
+
+/* ---- Inbox ------------------------------------------------------------- */
+.fopsInboxHead { display: flex; flex-wrap: wrap; gap: 18px; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+.fopsInboxHead h2 { margin: 4px 0 4px; }
+.fopsInboxCount { text-align: right; }
+.fopsInboxCount b { display: block; font-size: 1.7rem; font-weight: 850; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.fopsInboxCount span { font-size: 0.76rem; color: var(--fops-ink-soft); }
+.fopsInboxList { display: flex; flex-direction: column; gap: 8px; }
+.fopsInboxItem {
+  position: relative;
+  display: flex;
+  gap: 12px;
+  padding: 13px 15px;
+  border: 1px solid var(--fops-line-dark);
+  border-radius: 12px;
+  background: var(--fops-surface);
+}
+.fopsInboxItem.is-read { opacity: 0.62; border-color: var(--fops-line); }
+.fopsInboxIcon {
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgb(184 134 58 / 14%);
+  color: #8a651f;
+}
+.fopsInboxBody { flex: 1; min-width: 0; }
+.fopsInboxTop { display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; }
+.fopsInboxTop strong { font-size: 0.97rem; }
+.fopsInboxTop small { font-size: 0.75rem; color: var(--fops-ink-soft); }
+.fopsInboxBody p { margin: 4px 0 0; font-size: 0.92rem; color: var(--fops-ink-soft); }
+.fopsInboxActions { display: flex; gap: 10px; align-items: center; margin-top: 9px; }
+.fopsInboxDismiss { border: 0; background: none; padding: 0; font-size: 0.8rem; color: var(--fops-ink-soft); cursor: pointer; text-decoration: underline; }
+.fopsInboxDot { position: absolute; top: 13px; right: 13px; width: 8px; height: 8px; border-radius: 50%; background: #b8863a; }
+.fopsInboxEmpty { text-align: center; padding: 44px 20px; color: var(--fops-ink-soft); }
+.fopsInboxEmpty p { margin: 10px 0 0; }

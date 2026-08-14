@@ -35,6 +35,7 @@ export function canOpenPage(user: CompanyOpsUser, page: CompanyOpsPage) {
   if (page === "performance") return user.accessStatus !== "pending";
   if (page === "warroom") return user.accessStatus !== "pending";
   if (page === "weekly") return user.accessStatus !== "pending";
+  if (page === "inbox") return user.accessStatus !== "pending" && user.role !== "founder";
   if (page === "growth") return capabilities.has("view_growth");
   if (page === "campaigns") return capabilities.has("view_growth");
   if (page === "calendar") return capabilities.has("view_growth");
