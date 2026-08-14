@@ -72,7 +72,9 @@ export default function FounderHome({
       ? opsText(language, "categoryFinance")
       : category === "people"
         ? opsText(language, "categoryPeople")
-        : opsText(language, "categoryOther");
+        : category === "report"
+          ? opsText(language, "categoryReport")
+          : opsText(language, "categoryOther");
 
   return (
     <div className="fopsPage fopsFounderPage">

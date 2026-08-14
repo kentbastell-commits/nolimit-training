@@ -152,7 +152,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           ? "finance"
           : item.actionType === "access_request"
             ? "people"
-            : "other",
+            : item.actionType === "weekly_report"
+              ? "report"
+              : "other",
       actionType: item.actionType,
       title: item.title,
       summary: item.subtitle,

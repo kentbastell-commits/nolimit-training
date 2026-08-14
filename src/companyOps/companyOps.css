@@ -6446,3 +6446,6 @@ nav button.is-active .fopsNavCount {
   .fopsWeeklyFooterActions { width: 100%; }
   .fopsWeeklyFooterActions button { flex: 1; justify-content: center; }
 }
+
+/* A weekly report card carries the full report, so keep its line breaks. */
+.fopsDecisionCard p { white-space: pre-wrap; }

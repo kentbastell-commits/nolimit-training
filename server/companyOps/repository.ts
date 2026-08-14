@@ -2750,14 +2750,37 @@ export class CompanyOpsRepository {
             due: ["截止 Due", "提交时间 Submitted At", "Submitted At", "Created At"],
             owner: ["提出人（飞书） Requested By (Feishu)", "Submitted By", "提交人"],
           }), actionType: "founder_decision" as const }));
-        const weeklyReports = weeklyRecords.map((record) => ({ ...this.project(record, {
-          resource: "weeklyReport",
-          title: ["报告 Report", "报告周 Reporting Week", "Reporting Week", "Week", "报告周"],
-          status: FIELD.status,
-          subtitle: ["E 需要决策 Decisions Needed", "F. Founder Decisions Needed", "F — Decisions Needed", "F. 需要创始人决策"],
-          due: ["提交时间 Submitted At", "Submitted At", "Created At", "提交时间"],
-          owner: ["提交人 Author", "Author", "Submitted By", "作者", "提交人"],
-        }), actionType: "weekly_report" as const }));
+        // The card used to show only "decisions needed", titled with the bare
+        // week date — it read as a note from nobody about nothing. Carry the
+        // whole report so a founder can read it without opening the Base.
+        const weeklyReports = weeklyRecords.map((record) => {
+          const base = this.project(record, {
+            resource: "weeklyReport",
+            title: ["报告 Report", "报告周 Reporting Week", "Reporting Week", "Week", "报告周"],
+            status: FIELD.status,
+            subtitle: ["E 需要决策 Decisions Needed", "F. Founder Decisions Needed", "F — Decisions Needed", "F. 需要创始人决策"],
+            due: ["提交时间 Submitted At", "Submitted At", "Created At", "提交时间"],
+            owner: ["提交人 Author", "Author", "Submitted By", "作者", "提交人"],
+          });
+          const section = (label: string, aliases: readonly string[]) => {
+            const value = textValue(recordField(record.fields, aliases)).trim();
+            return value ? `${label}\n${value}` : "";
+          };
+          const full = [
+            section("完成事项 Completed", ["A 完成事项 Completed", "A. Wins", "A — Wins", "A. 本周成果"]),
+            section("主要成果 Results", ["B 主要成果 Results", "B. Metrics", "B — Metrics", "B. 核心数据"]),
+            section("问题 Problems", ["C 问题 Problems", "C. Problems", "D. Blockers", "D — Blockers", "D. 阻碍"]),
+            section("学习 Learnings", ["D 学习 Learnings", "C. Learning", "C — Learning", "C. 学习与洞察"]),
+            section("下周优先级 Next", ["F 下周优先级 Next Priorities", "E. Next Week", "E — Next Week", "E. 下周计划"]),
+            section("需要决策 Decisions needed", ["E 需要决策 Decisions Needed", "F. Founder Decisions Needed", "F — Decisions Needed", "F. 需要创始人决策"]),
+          ].filter(Boolean).join("\n\n");
+          return {
+            ...base,
+            title: `周报 Weekly report — ${base.owner || "?"} · ${base.title}`,
+            subtitle: full || base.subtitle,
+            actionType: "weekly_report" as const,
+          };
+        });
         const onboardingCandidates = staffRecords.flatMap((record) => {
           if (!isActiveStaff(record)) return [];
           const openIds = idsFromValue(recordField(record.fields, [
