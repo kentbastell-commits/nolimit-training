@@ -442,6 +442,22 @@ export default function CompanyOpsApp({
   // so navigating by URL never lands you in a collapsed sidebar.
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
 
+  // A click anywhere else, or Escape, closes an open section — otherwise the
+  // panel sits over the page until you happen to click the heading again.
+  useEffect(() => {
+    if (!Object.values(openSections).some(Boolean)) return;
+    const close = () => setOpenSections({});
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") close();
+    };
+    window.addEventListener("pointerdown", close);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("pointerdown", close);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [openSections]);
+
   const visibleNav = useMemo(
     () =>
       user
@@ -806,17 +822,20 @@ export default function CompanyOpsApp({
           {NAV_SECTIONS.map((section) => {
             const items = visibleNav.filter((item) => item.group === section.id);
             if (!items.length) return null;
-            // Open by default when the page you are on lives inside it.
-            const open =
-              openSections[section.id ?? ""] ?? items.some((item) => item.page === activePage);
+            const open = Boolean(openSections[section.id ?? ""]);
+            const holdsActive = items.some((item) => item.page === activePage);
             const SectionIcon = section.icon;
             // Collapsed sections still surface anything needing attention.
             const rolled = items.reduce((total, item) => total + (navCounts[item.page] || 0), 0);
             return (
-              <div className={`fopsNavSection${open ? " is-open" : ""}`} key={section.id}>
+              <div
+                className={`fopsNavSection${open ? " is-open" : ""}`}
+                onPointerDown={(event) => event.stopPropagation()}
+                key={section.id}
+              >
                 <button
                   type="button"
-                  className="fopsNavSectionHead"
+                  className={`fopsNavSectionHead${holdsActive ? " is-current" : ""}`}
                   aria-expanded={open}
                   onClick={() =>
                     setOpenSections((current) => ({
@@ -1182,6 +1201,7 @@ export default function CompanyOpsApp({
               dashboard={dashboard}
               language={language}
               user={user}
+              csrfToken={session?.csrfToken}
               onSubmit={async (payload) => {
                 await runRecordAction("submit_weekly_report", payload);
               }}

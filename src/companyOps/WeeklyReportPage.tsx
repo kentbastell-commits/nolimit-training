@@ -8,12 +8,14 @@
 // Deliberately assembled CLIENT-side from the dashboard payload the page has
 // already loaded — every Feishu table read costs ~1.3s, and this needs none.
 import { useEffect, useMemo, useState } from "react";
+import { companyOpsApi } from "./api";
 import {
   CalendarDays,
   Check,
   FileText,
   Lightbulb,
   Megaphone,
+  Paperclip,
   Plus,
   Send,
   TrendingUp,
@@ -81,11 +83,13 @@ export default function WeeklyReportPage({
   dashboard,
   language,
   user,
+  csrfToken,
   onSubmit,
 }: {
   dashboard: CompanyOpsDashboard;
   language: CompanyOpsLanguage;
   user?: CompanyOpsUser;
+  csrfToken?: string;
   onSubmit: (payload: Record<string, string>) => Promise<void>;
 }) {
   const week = useMemo(() => weekWindow(), []);
@@ -166,8 +170,44 @@ export default function WeeklyReportPage({
 
   const [included, setIncluded] = useState<Record<string, boolean>>({});
   const [comments, setComments] = useState<Record<string, string>>({});
-  const [manual, setManual] = useState<Array<{ id: string; title: string; comment: string }>>([]);
-  const [manualDraft, setManualDraft] = useState("");
+  const [manual, setManual] = useState<
+    Array<{ id: string; title: string; comment: string; files: string[] }>
+  >([]);
+  const [formOpen, setFormOpen] = useState(false);
+  const [newTitle, setNewTitle] = useState("");
+  const [newComment, setNewComment] = useState("");
+  const [newFiles, setNewFiles] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
+
+  // Same shared-assets uploader the War Room uses, so a photo of a whiteboard
+  // or a planning doc lands in the folder the team already browses.
+  const uploadFile = async (file: File) => {
+    setUploading(true);
+    setUploadError("");
+    try {
+      const result = await companyOpsApi.uploadAsset?.(file, csrfToken);
+      if (!result?.url) throw new Error("no url");
+      setNewFiles((current) => [...current, result.url as string]);
+    } catch {
+      setUploadError(t("That file could not be uploaded", "文件上传失败"));
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const addManual = () => {
+    const title = newTitle.trim();
+    if (!title) return;
+    setManual((current) => [
+      ...current,
+      { id: `manual-${Date.now()}`, title, comment: newComment.trim(), files: newFiles },
+    ]);
+    setNewTitle("");
+    setNewComment("");
+    setNewFiles([]);
+    setFormOpen(false);
+  };
   const [narrative, setNarrative] = useState("");
   const [blockers, setBlockers] = useState("");
   const [learning, setLearning] = useState("");
@@ -234,6 +274,7 @@ export default function WeeklyReportPage({
     for (const item of manual) {
       const label = language === "zh" ? KIND_LABEL.manual.zh : KIND_LABEL.manual.en;
       lines.push(`• [${label}] ${item.title}${item.comment.trim() ? ` — ${item.comment.trim()}` : ""}`);
+      for (const url of item.files) lines.push(`    ${url}`);
     }
     const wins = lines.join("\n") || t("(nothing selected)", "（未选择）");
     const dataLines = chosen
@@ -370,43 +411,104 @@ export default function WeeklyReportPage({
               <div className="fopsWeeklyTop">
                 <Plus size={14} aria-hidden="true" />
                 <strong>{item.title}</strong>
+                <span className="fopsWeeklyKind">
+                  {language === "zh" ? KIND_LABEL.manual.zh : KIND_LABEL.manual.en}
+                </span>
               </div>
-              <input
-                className="fopsWeeklyComment"
-                value={item.comment}
-                onChange={(event) =>
-                  setManual((current) =>
-                    current.map((entry) =>
-                      entry.id === item.id ? { ...entry, comment: event.target.value } : entry,
-                    ),
-                  )
-                }
-                placeholder={t("Add a note", "加一句说明")}
-              />
+              {item.comment ? <small className="fopsQuietText">{item.comment}</small> : null}
+              {item.files.length ? (
+                <div className="fopsWeeklyFiles">
+                  {item.files.map((url) => (
+                    <a href={url} target="_blank" rel="noreferrer" key={url}>
+                      <Paperclip size={12} aria-hidden="true" />
+                      {decodeURIComponent(url.split("/").pop() || url).slice(0, 28)}
+                    </a>
+                  ))}
+                </div>
+              ) : null}
             </div>
           </article>
         ))}
-        <div className="fopsWeeklyAddRow">
-          <Plus size={15} aria-hidden="true" />
-          <input
-            value={manualDraft}
-            onChange={(event) => setManualDraft(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" && manualDraft.trim()) {
-                event.preventDefault();
-                setManual((current) => [
-                  ...current,
-                  { id: `manual-${Date.now()}`, title: manualDraft.trim(), comment: "" },
-                ]);
-                setManualDraft("");
-              }
-            }}
-            placeholder={t(
-              "Something the app didn't record — a meeting, a shoot, a call…",
-              "系统没记录的事——开会、拍摄、通话…",
-            )}
-          />
-        </div>
+
+        {formOpen ? (
+          <div className="fopsWeeklyForm">
+            <label>
+              <span>{t("What was it?", "是什么事？")}</span>
+              <input
+                value={newTitle}
+                onChange={(event) => setNewTitle(event.target.value)}
+                placeholder={t("Shoot with Mario at the gym", "和 Mario 在场馆拍摄")}
+                autoFocus
+              />
+            </label>
+            <label>
+              <span>{t("Notes", "说明")}</span>
+              <textarea
+                rows={3}
+                value={newComment}
+                onChange={(event) => setNewComment(event.target.value)}
+                placeholder={t("What came of it, what you learned", "结果如何、学到什么")}
+              />
+            </label>
+            <div className="fopsWeeklyFormFoot">
+              <label className="fopsWeeklyAttach">
+                <Paperclip size={14} aria-hidden="true" />
+                {uploading ? t("Uploading…", "上传中…") : t("Attach file or photo", "添加文件或照片")}
+                <input
+                  type="file"
+                  accept="image/*,.pdf,.doc,.docx,.ppt,.pptx,.xlsx,.mp4,.mov"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (file) void uploadFile(file);
+                    event.target.value = "";
+                  }}
+                  disabled={uploading}
+                />
+              </label>
+              {newFiles.map((url) => (
+                <span className="fopsWeeklyFileChip" key={url}>
+                  <Paperclip size={11} aria-hidden="true" />
+                  {decodeURIComponent(url.split("/").pop() || url).slice(0, 22)}
+                  <button
+                    type="button"
+                    onClick={() => setNewFiles((current) => current.filter((item) => item !== url))}
+                    aria-label={t("Remove", "移除")}
+                  >
+                    <X size={10} aria-hidden="true" />
+                  </button>
+                </span>
+              ))}
+              {uploadError ? <small className="fopsWeeklyError">{uploadError}</small> : null}
+              <div className="fopsWeeklyFormActions">
+                <button
+                  type="button"
+                  className="fopsButton fopsButton--compact fopsButton--ghost"
+                  onClick={() => {
+                    setFormOpen(false);
+                    setNewTitle("");
+                    setNewComment("");
+                    setNewFiles([]);
+                  }}
+                >
+                  {t("Cancel", "取消")}
+                </button>
+                <button
+                  type="button"
+                  className="fopsButton fopsButton--compact"
+                  onClick={addManual}
+                  disabled={!newTitle.trim()}
+                >
+                  {t("Add to report", "加入周报")}
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <button type="button" className="fopsWeeklyAddBtn" onClick={() => setFormOpen(true)}>
+            <Plus size={16} aria-hidden="true" />
+            {t("Add something the app didn't record", "添加系统没记录的事")}
+          </button>
+        )}
       </div>
 
       <div className="fopsWeeklyFields">

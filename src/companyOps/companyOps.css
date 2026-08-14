@@ -6263,9 +6263,9 @@ nav button.is-active .fopsNavCount {
   background: var(--fops-surface);
   box-shadow: 0 24px 60px rgb(0 0 0 / 18%);
 }
-.fopsNavSection:hover .fopsNavFlyout,
-.fopsNavSection:focus-within .fopsNavFlyout,
+/* Click-only: a hover-opened panel kept appearing over the page content. */
 .fopsNavSection.is-open .fopsNavFlyout { display: flex; }
+.fopsSidebar nav .fopsNavSectionHead.is-current { background: #f0ece1; }
 .fopsSidebar nav .fopsNavFlyout button {
   min-height: 42px;
   font-size: 0.92rem;
@@ -6329,3 +6329,72 @@ nav button.is-active .fopsNavCount {
     padding: 0 0 0 9px;
   }
 }
+
+/* ---- Weekly report: manual entry form --------------------------------- */
+.fopsWeeklyAddBtn {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 12px 15px;
+  border: 1px dashed var(--fops-line-dark);
+  border-radius: 11px;
+  background: transparent;
+  color: var(--fops-ink);
+  font-size: 0.92rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: left;
+}
+.fopsWeeklyAddBtn:hover { background: rgb(0 0 0 / 3%); border-style: solid; }
+.fopsWeeklyForm {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  padding: 15px;
+  border: 1px solid var(--fops-line-dark);
+  border-radius: 12px;
+  background: var(--fops-surface);
+}
+.fopsWeeklyForm > label { display: flex; flex-direction: column; gap: 4px; }
+.fopsWeeklyForm > label > span { font-size: 0.8rem; font-weight: 700; }
+.fopsWeeklyFormFoot { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.fopsWeeklyAttach {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid var(--fops-line-dark);
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 650;
+  color: var(--fops-ink-soft);
+  cursor: pointer;
+}
+.fopsWeeklyAttach:hover { color: var(--fops-ink); }
+.fopsWeeklyAttach input { display: none; }
+.fopsWeeklyFileChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: rgb(0 0 0 / 5%);
+  font-size: 0.76rem;
+}
+.fopsWeeklyFileChip button { border: 0; background: none; padding: 0; cursor: pointer; color: inherit; display: inline-flex; }
+.fopsWeeklyError { color: #a53a26; font-size: 0.76rem; }
+.fopsWeeklyFormActions { display: flex; gap: 8px; margin-left: auto; }
+.fopsWeeklyFiles { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 7px; }
+.fopsWeeklyFiles a {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.78rem;
+  color: var(--fops-ink-soft);
+  text-decoration: none;
+  border: 1px solid var(--fops-line);
+  border-radius: 8px;
+  padding: 3px 8px;
+}
+.fopsWeeklyFiles a:hover { color: var(--fops-ink); }
