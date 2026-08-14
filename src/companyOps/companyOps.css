@@ -151,7 +151,7 @@
   background: transparent;
   cursor: pointer;
   font-size: 0.9rem;
-  font-weight: 650;
+  font-weight: 800;
   text-align: left;
 }
 
@@ -6236,23 +6236,42 @@ nav button.is-active .fopsNavCount {
   padding: 0 13px;
   background: transparent;
   cursor: pointer;
-  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 800;
   color: inherit;
   text-align: left;
 }
 .fopsSidebar nav .fopsNavSectionHead:hover { background: #f0ece1; }
-.fopsNavChevron { margin-left: auto; transition: transform 160ms ease; opacity: 0.6; }
-.fopsNavSection.is-open .fopsNavChevron { transform: rotate(180deg); }
+.fopsNavChevron { margin-left: auto; opacity: 0.55; transform: rotate(-90deg); }
 .fopsNavSectionHead .fopsNavCount + .fopsNavChevron { margin-left: 8px; }
-.fopsNavSectionItems {
-  display: flex;
+/* Sub-navigation is a panel that opens beside the rail — same behaviour as
+   the training app's nav flyout — rather than pushing the sidebar into a
+   long accordion. */
+.fopsNavSection { position: relative; }
+.fopsNavFlyout {
+  position: absolute;
+  top: -6px;
+  left: calc(100% + 12px);
+  z-index: 60;
+  display: none;
   flex-direction: column;
-  gap: 2px;
-  margin: 2px 0 6px 15px;
-  padding-left: 9px;
-  border-left: 1px solid var(--fops-line-dark);
+  gap: 3px;
+  min-width: 208px;
+  padding: 8px;
+  border-radius: 14px;
+  border: 1px solid var(--fops-line-dark);
+  background: var(--fops-surface);
+  box-shadow: 0 24px 60px rgb(0 0 0 / 18%);
 }
-.fopsSidebar nav .fopsNavSectionItems button { min-height: 40px; font-size: 0.93rem; }
+.fopsNavSection:hover .fopsNavFlyout,
+.fopsNavSection:focus-within .fopsNavFlyout,
+.fopsNavSection.is-open .fopsNavFlyout { display: flex; }
+.fopsSidebar nav .fopsNavFlyout button {
+  min-height: 42px;
+  font-size: 0.92rem;
+  font-weight: 800;
+  border-radius: 10px;
+}
 @media (prefers-reduced-motion: reduce) {
   .fopsNavChevron { transition: none; }
 }
@@ -6295,3 +6314,18 @@ nav button.is-active .fopsNavCount {
 .fopsInboxDot { position: absolute; top: 13px; right: 13px; width: 8px; height: 8px; border-radius: 50%; background: #b8863a; }
 .fopsInboxEmpty { text-align: center; padding: 44px 20px; color: var(--fops-ink-soft); }
 .fopsInboxEmpty p { margin: 10px 0 0; }
+
+/* Below the desktop rail there is no room beside it — fall back to a panel
+   anchored under the heading. */
+@media (max-width: 900px) {
+  .fopsNavFlyout {
+    position: static;
+    box-shadow: none;
+    border: 0;
+    border-left: 1px solid var(--fops-line-dark);
+    border-radius: 0;
+    min-width: 0;
+    margin: 2px 0 6px 15px;
+    padding: 0 0 0 9px;
+  }
+}

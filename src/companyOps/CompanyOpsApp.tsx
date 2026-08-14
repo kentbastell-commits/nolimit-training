@@ -832,8 +832,7 @@ export default function CompanyOpsApp({
                   ) : null}
                   <ChevronDown size={15} aria-hidden={true} className="fopsNavChevron" />
                 </button>
-                {open ? (
-                  <div className="fopsNavSectionItems">
+                <div className="fopsNavFlyout" role="menu">
                     {items.map((item) => {
                       const Icon = item.icon;
                       const count = navCounts[item.page];
@@ -842,7 +841,14 @@ export default function CompanyOpsApp({
                           type="button"
                           className={activePage === item.page ? "is-active" : ""}
                           aria-current={activePage === item.page ? "page" : undefined}
-                          onClick={() => navigate(item.page)}
+                          onClick={() => {
+                            navigate(item.page);
+                            setOpenSections((current) => ({
+                              ...current,
+                              [section.id ?? ""]: false,
+                            }));
+                          }}
+                          role="menuitem"
                           key={item.page}
                         >
                           <Icon size={17} aria-hidden={true} />
@@ -851,8 +857,7 @@ export default function CompanyOpsApp({
                         </button>
                       );
                     })}
-                  </div>
-                ) : null}
+                </div>
               </div>
             );
           })}
