@@ -1,5 +1,6 @@
 import {
   Banknote,
+  ClipboardList,
   Check,
   ChevronRight,
   CircleDollarSign,
@@ -36,6 +37,7 @@ const categoryIcons = {
   people: UserRoundCheck,
   finance: Banknote,
   filming: MessageSquareWarning,
+  report: ClipboardList,
   other: MessageSquareWarning,
 } satisfies Record<OpsDecisionItem["category"], typeof FileCheck2>;
 
@@ -98,7 +100,7 @@ export default function FounderHome({
       {decisions.length ? (
         <div className="fopsDecisionSummary">
           {Object.entries(categoryCounts).map(([category, count]) => {
-            const Icon = categoryIcons[category as OpsDecisionItem["category"]];
+            const Icon = categoryIcons[category as OpsDecisionItem["category"]] || MessageSquareWarning;
             return (
               <div className="fopsDecisionSummaryItem" key={category}>
                 <Icon size={17} />
@@ -118,7 +120,7 @@ export default function FounderHome({
         {decisions.length ? (
           <div className="fopsDecisionGrid">
             {decisions.map((decision) => {
-              const Icon = categoryIcons[decision.category];
+              const Icon = categoryIcons[decision.category] || MessageSquareWarning;
               const busy = busyDecisionId === decision.id;
               return (
                 <article className="fopsDecisionCard" key={decision.id}>

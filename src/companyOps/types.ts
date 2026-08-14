@@ -343,6 +343,7 @@ export interface OpsDecisionItem {
     | "people"
     | "finance"
     | "filming"
+    | "report"
     | "other";
   title: string;
   summary?: string;
