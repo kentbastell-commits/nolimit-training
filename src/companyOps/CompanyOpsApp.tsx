@@ -1,6 +1,7 @@
 import {
   BookOpenCheck,
   CalendarDays,
+  ChevronDown,
   Gavel,
   Home,
   Languages,
@@ -11,6 +12,7 @@ import {
   Newspaper,
   RefreshCw,
   Target,
+  Users,
   TrendingUp,
   UserRoundCheck,
 } from "lucide-react";
@@ -62,13 +64,15 @@ type Toast = { id: number; message: string; tone: "success" | "error" };
 
 // Grouped by how often the page is opened, not by which team owns it — a
 // founder checks Today several times a day, Grow weekly, Team monthly.
-type NavGroup = "today" | "grow" | "team" | "reference";
+/** null = a standalone top-level button. */
+type NavGroup = "content" | "team" | null;
 
-const NAV_GROUPS: Array<{ id: NavGroup; label: OpsCopyKey }> = [
-  { id: "today", label: "navGroupToday" },
-  { id: "grow", label: "navGroupGrow" },
-  { id: "team", label: "navGroupTeam" },
-  { id: "reference", label: "navGroupReference" },
+// Three pages are checked constantly and stay at the top level; the rest
+// live behind two headings that expand, so the sidebar is five rows at rest
+// instead of eleven.
+const NAV_SECTIONS: Array<{ id: NavGroup; label: OpsCopyKey; icon: ComponentType<{ size?: number; "aria-hidden"?: boolean }> }> = [
+  { id: "content", label: "navSectionContent", icon: Newspaper },
+  { id: "team", label: "navSectionTeam", icon: Users },
 ];
 
 const navItems: Array<{
@@ -77,17 +81,17 @@ const navItems: Array<{
   group: NavGroup;
   icon: ComponentType<{ size?: number; "aria-hidden"?: boolean }>;
 }> = [
-  { page: "home", label: "navHome", icon: Home , group: "today" },
+  { page: "home", label: "navHome", icon: Home , group: null },
   { page: "performance", label: "navPerformance", icon: Target , group: "team" },
   { page: "weekly", label: "navWeekly", icon: FileSignature , group: "team" },
-  { page: "campaigns", label: "navCampaigns", icon: Megaphone , group: "grow" },
-  { page: "growth", label: "navGrowth", icon: TrendingUp , group: "grow" },
-  { page: "calendar", label: "navCalendar", icon: CalendarDays , group: "grow" },
-  { page: "articles", label: "navArticles", icon: Newspaper , group: "grow" },
-  { page: "warroom", label: "navWarRoom", icon: Lightbulb , group: "today" },
-  { page: "decisions", label: "navDecisions", icon: Gavel , group: "today" },
+  { page: "campaigns", label: "navCampaigns", icon: Megaphone , group: "content" },
+  { page: "growth", label: "navGrowth", icon: TrendingUp , group: "content" },
+  { page: "calendar", label: "navCalendar", icon: CalendarDays , group: "content" },
+  { page: "articles", label: "navArticles", icon: Newspaper , group: "content" },
+  { page: "warroom", label: "navWarRoom", icon: Lightbulb , group: null },
+  { page: "decisions", label: "navDecisions", icon: Gavel , group: null },
   { page: "onboarding", label: "navOnboarding", icon: UserRoundCheck , group: "team" },
-  { page: "resources", label: "navResources", icon: BookOpenCheck , group: "reference" },
+  { page: "resources", label: "navResources", icon: BookOpenCheck , group: "team" },
 ];
 
 function readInitialPage(): CompanyOpsPage {
@@ -413,6 +417,10 @@ export default function CompanyOpsApp({
       onboarding: openOnboarding || undefined,
     };
   }, [dashboard]);
+
+  // A section opens automatically when the page you're on lives inside it,
+  // so navigating by URL never lands you in a collapsed sidebar.
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
 
   const visibleNav = useMemo(
     () =>
@@ -755,29 +763,76 @@ export default function CompanyOpsApp({
           <span>{opsText(language, "appName")}</span>
         </div>
         <nav aria-label={opsText(language, "appName")}>
-          {NAV_GROUPS.map((group) => {
-            const items = visibleNav.filter((item) => item.group === group.id);
+          {visibleNav
+            .filter((item) => item.group === null)
+            .map((item) => {
+              const Icon = item.icon;
+              const count = navCounts[item.page];
+              return (
+                <button
+                  type="button"
+                  className={activePage === item.page ? "is-active" : ""}
+                  aria-current={activePage === item.page ? "page" : undefined}
+                  onClick={() => navigate(item.page)}
+                  key={item.page}
+                >
+                  <Icon size={19} aria-hidden={true} />
+                  <span>{opsText(language, item.label)}</span>
+                  {count ? <em className="fopsNavCount" aria-hidden="true">{count}</em> : null}
+                </button>
+              );
+            })}
+
+          {NAV_SECTIONS.map((section) => {
+            const items = visibleNav.filter((item) => item.group === section.id);
             if (!items.length) return null;
+            // Open by default when the page you are on lives inside it.
+            const open =
+              openSections[section.id ?? ""] ?? items.some((item) => item.page === activePage);
+            const SectionIcon = section.icon;
+            // Collapsed sections still surface anything needing attention.
+            const rolled = items.reduce((total, item) => total + (navCounts[item.page] || 0), 0);
             return (
-              <div className="fopsNavGroup" key={group.id}>
-                <span className="fopsNavGroupLabel">{opsText(language, group.label)}</span>
-                {items.map((item) => {
-                  const Icon = item.icon;
-                  const count = navCounts[item.page];
-                  return (
-                    <button
-                      type="button"
-                      className={activePage === item.page ? "is-active" : ""}
-                      aria-current={activePage === item.page ? "page" : undefined}
-                      onClick={() => navigate(item.page)}
-                      key={item.page}
-                    >
-                      <Icon size={19} aria-hidden={true} />
-                      <span>{opsText(language, item.label)}</span>
-                      {count ? <em className="fopsNavCount" aria-hidden="true">{count}</em> : null}
-                    </button>
-                  );
-                })}
+              <div className={`fopsNavSection${open ? " is-open" : ""}`} key={section.id}>
+                <button
+                  type="button"
+                  className="fopsNavSectionHead"
+                  aria-expanded={open}
+                  onClick={() =>
+                    setOpenSections((current) => ({
+                      ...current,
+                      [section.id ?? ""]: !open,
+                    }))
+                  }
+                >
+                  <SectionIcon size={19} aria-hidden={true} />
+                  <span>{opsText(language, section.label)}</span>
+                  {!open && rolled ? (
+                    <em className="fopsNavCount" aria-hidden="true">{rolled}</em>
+                  ) : null}
+                  <ChevronDown size={15} aria-hidden={true} className="fopsNavChevron" />
+                </button>
+                {open ? (
+                  <div className="fopsNavSectionItems">
+                    {items.map((item) => {
+                      const Icon = item.icon;
+                      const count = navCounts[item.page];
+                      return (
+                        <button
+                          type="button"
+                          className={activePage === item.page ? "is-active" : ""}
+                          aria-current={activePage === item.page ? "page" : undefined}
+                          onClick={() => navigate(item.page)}
+                          key={item.page}
+                        >
+                          <Icon size={17} aria-hidden={true} />
+                          <span>{opsText(language, item.label)}</span>
+                          {count ? <em className="fopsNavCount" aria-hidden="true">{count}</em> : null}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : null}
               </div>
             );
           })}

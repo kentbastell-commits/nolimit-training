@@ -6059,8 +6059,6 @@ a.fopsOnboardingTaskLink:hover strong {
 }
 
 /* ---- Grouped sidebar nav ---------------------------------------------- */
-.fopsNavGroup { display: flex; flex-direction: column; gap: 2px; }
-.fopsNavGroup + .fopsNavGroup { margin-top: 16px; }
 .fopsNavGroupLabel {
   padding: 0 14px 5px;
   font-size: 0.66rem;
@@ -6224,3 +6222,37 @@ nav button.is-active .fopsNavCount {
 .fopsWeeklyFooter { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin-top: 20px; }
 .fopsWeeklyDone { text-align: center; padding: 46px 20px; color: var(--fops-ink); }
 .fopsWeeklyDone h2 { margin: 10px 0 4px; }
+
+/* ---- Collapsible sidebar sections -------------------------------------- */
+.fopsNavSection { display: flex; flex-direction: column; gap: 2px; margin-top: 4px; }
+.fopsSidebar nav .fopsNavSectionHead {
+  display: flex;
+  min-height: 46px;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  border: 0;
+  border-radius: 10px;
+  padding: 0 13px;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+}
+.fopsSidebar nav .fopsNavSectionHead:hover { background: #f0ece1; }
+.fopsNavChevron { margin-left: auto; transition: transform 160ms ease; opacity: 0.6; }
+.fopsNavSection.is-open .fopsNavChevron { transform: rotate(180deg); }
+.fopsNavSectionHead .fopsNavCount + .fopsNavChevron { margin-left: 8px; }
+.fopsNavSectionItems {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 2px 0 6px 15px;
+  padding-left: 9px;
+  border-left: 1px solid var(--fops-line-dark);
+}
+.fopsSidebar nav .fopsNavSectionItems button { min-height: 40px; font-size: 0.93rem; }
+@media (prefers-reduced-motion: reduce) {
+  .fopsNavChevron { transition: none; }
+}
