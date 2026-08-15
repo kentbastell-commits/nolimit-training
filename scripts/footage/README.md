@@ -62,3 +62,17 @@ only** — never account-wide `QCloudResourceFullAccess`.
 Bucket naming uses the **APPID** (`1454208796`), not the account UIN that the
 COS list-buckets API returns as `<Owner><ID>` — a bucket name built from the
 UIN returns `AccessDenied`, which looks exactly like a permissions problem.
+
+## Renaming rule (learned 2026-08-15)
+
+When reviewing proxies in Feishu, KEEP the DJI clip id in the name —
+`Barbell RDL__0214.mp4`, not `Barbell RDL.mp4`. Mario's first review pass
+dropped the ids, which severed the only link back to the COS originals; the
+mapping had to be rebuilt by probing VIDEO DURATIONS on both sides (a proxy
+and its original are twin recordings, so durations agree to ~50ms) plus a
+global one-to-one assignment to break ties. It worked (94/94 within 48ms),
+but it is an hour of recovery for a naming convention.
+
+The COS archive now carries review names in the same form:
+`footage/<date>/<Name>__<clipId>.MP4` — the id suffix is what keeps every
+future rename reversible.
