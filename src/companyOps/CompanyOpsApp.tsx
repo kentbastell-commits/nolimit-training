@@ -972,11 +972,13 @@ export default function CompanyOpsApp({
               onDisputeCompensation={() =>
                 setDrawerAction("compensation_dispute")
               }
-              onRespondGoal={async (goal, response) => {
+              csrfToken={session?.csrfToken}
+              onRespondGoal={async (goal, response, attachments) => {
                 try {
                   await runRecordAction("respond_goal", {
                     goalId: goal.id,
                     response,
+                    ...(attachments?.length ? { attachments } : {}),
                   });
                 } catch (error) {
                   showToast(

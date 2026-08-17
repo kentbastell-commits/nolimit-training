@@ -5,7 +5,9 @@ import {
   ChevronRight,
   CircleAlert,
   ExternalLink,
+  Image as ImageIcon,
   LockKeyhole,
+  Paperclip,
   UserRound,
 } from "lucide-react";
 import type { ReactNode } from "react";
@@ -237,6 +239,50 @@ export function SkeletonPage() {
       </div>
       <div className="fopsSkeletonPanel" />
     </div>
+  );
+}
+
+export const fileLabel = (url: string) => {
+  try {
+    const name = decodeURIComponent(new URL(url).pathname.split("/").pop() || url);
+    return name.length > 26 ? `${name.slice(0, 23)}…` : name;
+  } catch {
+    return url.slice(0, 26);
+  }
+};
+
+const isImage = (url: string) => /\.(png|jpe?g|gif|webp|avif)(\?|$)/i.test(url);
+
+// Uploads land in the Feishu shared-assets folder, and that link is a Drive
+// PAGE (302 -> HTML), not the file bytes — verified by probing a real upload.
+// So never render one as <img src>: it would show a broken image. Everything
+// is a labelled link that opens in Feishu, where the team is already signed
+// in and gets a proper preview.
+export function AttachmentLink({ url }: { url: string }) {
+  return (
+    <a className="fopsWarAttachFile" href={url} target="_blank" rel="noreferrer">
+      {isImage(url) ? <ImageIcon size={13} aria-hidden="true" /> : <Paperclip size={13} aria-hidden="true" />}
+      {fileLabel(url)}
+    </a>
+  );
+}
+
+/** A thread entry may be text, links, or both — links render as attachments. */
+export function ThreadBody({ body, language }: { body: string; language: CompanyOpsLanguage }) {
+  const lines = body.split(/\n+/);
+  const links = lines.filter((line) => /^https?:\/\//i.test(line.trim()));
+  const text = lines.filter((line) => !/^https?:\/\//i.test(line.trim())).join("\n").trim();
+  return (
+    <>
+      {text ? <TranslatableText text={text} language={language} /> : null}
+      {links.length ? (
+        <div className="fopsWarAttachList">
+          {links.map((url) => (
+            <AttachmentLink url={url.trim()} key={url} />
+          ))}
+        </div>
+      ) : null}
+    </>
   );
 }
 

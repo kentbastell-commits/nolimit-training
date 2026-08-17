@@ -3450,7 +3450,7 @@ export class CompanyOpsRepository {
         const replyFiles = normalizeAttachmentList(payload.attachments);
         const messageText = textValue(payload.message).trim();
         // A reply may be just a picture — the file is the point.
-        const message = [messageText, ...replyFiles].filter(Boolean).join("\n");
+        const message = [messageText, replyFiles].filter(Boolean).join("\n");
         if (!message) throw new CompanyOpsHttpError(400, "message is required");
         if (message.length > 3_000) throw new CompanyOpsHttpError(400, "message is too long");
         assertNoHealthData({ message });
@@ -3536,11 +3536,16 @@ export class CompanyOpsRepository {
       }
       case "goal.respond":
       case "respond_goal": {
-        const allowed = new Set(["goalId", "response"]);
+        const allowed = new Set(["goalId", "response", "attachments"]);
         const unknown = Object.keys(payload).filter((key) => !allowed.has(key));
         if (unknown.length) throw new CompanyOpsHttpError(400, `Unknown fields: ${unknown.join(", ")}`);
         const goalId = validRecordId(payload.goalId);
-        const response = textValue(payload.response).trim();
+        // Attachment links ride in the same thread text, one URL per line —
+        // the war-room convention, so the client renders them as file chips.
+        const goalFiles = normalizeAttachmentList(payload.attachments);
+        const response = [textValue(payload.response).trim(), goalFiles]
+          .filter(Boolean)
+          .join("\n");
         if (!response) throw new CompanyOpsHttpError(400, "response is required");
         if (response.length > 3_000) throw new CompanyOpsHttpError(400, "response is too long");
         assertNoHealthData({ response });

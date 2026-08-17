@@ -13,11 +13,13 @@ import {
   Lightbulb,
   Megaphone,
   MessageSquareMore,
+  Paperclip,
   Plus,
   Receipt,
   Send,
   Target,
   UserPlus,
+  X,
 } from "lucide-react";
 import {
   EmptyState,
@@ -25,8 +27,11 @@ import {
   QueueCard,
   ResourceLink,
   SectionHeading,
+  ThreadBody,
   TonePill,
+  fileLabel,
 } from "./components";
+import { companyOpsApi } from "./api";
 import { opsText, quickActionLabel, roleLabel, statusLabel } from "./copy";
 import { TranslatableText } from "./TranslatableText";
 import { useState } from "react";
@@ -84,18 +89,39 @@ function GoalRow({
   onUpdateStatus,
   onEdit,
   onDelete,
+  csrfToken,
 }: {
   goal: OpsGoalItem;
   language: CompanyOpsLanguage;
   isFounder: boolean;
   open: boolean;
   onToggle: () => void;
-  onRespond?: (goal: OpsGoalItem, response: string) => void;
+  onRespond?: (goal: OpsGoalItem, response: string, attachments?: string[]) => void;
   onUpdateStatus?: (goal: OpsGoalItem, status: string) => void;
   onEdit?: (goal: OpsGoalItem, patch: Record<string, string>) => void;
   onDelete?: (goal: OpsGoalItem) => void;
+  csrfToken?: string;
 }) {
   const [text, setText] = useState("");
+  const [files, setFiles] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
+  // Same shared-assets uploader the war room uses, so goal attachments land
+  // in the Feishu folder the team already browses.
+  const upload = async (file: File) => {
+    setUploading(true);
+    setUploadError("");
+    try {
+      const result = await companyOpsApi.uploadAsset?.(file, csrfToken);
+      const url = result?.url;
+      if (!url) throw new Error("no url");
+      setFiles((current) => [...current, url]);
+    } catch {
+      setUploadError(opsText(language, "warRoomAttachFailed"));
+    } finally {
+      setUploading(false);
+    }
+  };
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState({ title: "", measure: "", priority: "", due: "", notes: "" });
   const beginEdit = () => {
@@ -261,32 +287,69 @@ function GoalRow({
               {thread.map((entry, index) => (
                 <div className="fopsGoalThreadEntry" key={index}>
                   <small>{entry.meta}</small>
-                  <TranslatableText text={entry.body} language={language} />
+                  <ThreadBody body={entry.body} language={language} />
                 </div>
               ))}
             </div>
           ) : null}
           {onRespond ? (
-            <div className="fopsGoalRespond">
-              <textarea
-                rows={1}
-                value={text}
-                placeholder={opsText(language, "goalRespondPlaceholder")}
-                onChange={(event) => setText(event.target.value)}
-              />
-              <button
-                type="button"
-                className="fopsButton fopsButton--compact"
-                disabled={!text.trim()}
-                onClick={() => {
-                  onRespond(goal, text.trim());
-                  setText("");
-                }}
-              >
-                <Send size={14} />
-                {opsText(language, "goalRespondSend")}
-              </button>
-            </div>
+            <>
+              <div className="fopsGoalRespond">
+                <textarea
+                  rows={1}
+                  value={text}
+                  placeholder={opsText(language, "goalRespondPlaceholder")}
+                  onChange={(event) => setText(event.target.value)}
+                />
+                <label
+                  className="fopsWarAttachIcon"
+                  title={opsText(language, "warRoomAttach")}
+                  aria-label={opsText(language, "warRoomAttach")}
+                >
+                  <Paperclip size={16} aria-hidden="true" />
+                  <input
+                    type="file"
+                    accept="image/*,.pdf,.doc,.docx,.ppt,.pptx,.xlsx,.mp4,.mov"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      if (file) void upload(file);
+                      event.target.value = "";
+                    }}
+                    disabled={uploading}
+                  />
+                </label>
+                <button
+                  type="button"
+                  className="fopsButton fopsButton--compact"
+                  disabled={(!text.trim() && !files.length) || uploading}
+                  onClick={() => {
+                    onRespond(goal, text.trim(), files);
+                    setText("");
+                    setFiles([]);
+                  }}
+                >
+                  <Send size={14} />
+                  {opsText(language, "goalRespondSend")}
+                </button>
+              </div>
+              {files.length || uploadError ? (
+                <div className="fopsWarAttachRow">
+                  {files.map((url) => (
+                    <span className="fopsWarChipFile" key={url}>
+                      <a href={url} target="_blank" rel="noreferrer">{fileLabel(url)}</a>
+                      <button
+                        type="button"
+                        onClick={() => setFiles((current) => current.filter((item) => item !== url))}
+                        aria-label="remove"
+                      >
+                        <X size={11} aria-hidden="true" />
+                      </button>
+                    </span>
+                  ))}
+                  {uploadError ? <small className="fopsWarAttachError">{uploadError}</small> : null}
+                </div>
+              ) : null}
+            </>
           ) : null}
         </div>
       ) : null}
@@ -308,6 +371,7 @@ export default function CompanyOpsHome({
   onEditGoal,
   onDeleteGoal,
   compensationBusy,
+  csrfToken,
 }: {
   user: CompanyOpsUser;
   dashboard: CompanyOpsDashboard;
@@ -317,11 +381,12 @@ export default function CompanyOpsHome({
   onOpenItem: (item: OpsQueueItem) => void;
   onAcknowledgeCompensation: () => void;
   onDisputeCompensation: () => void;
-  onRespondGoal?: (goal: OpsGoalItem, response: string) => void;
+  onRespondGoal?: (goal: OpsGoalItem, response: string, attachments?: string[]) => void;
   onUpdateGoalStatus?: (goal: OpsGoalItem, status: string) => void;
   onEditGoal?: (goal: OpsGoalItem, patch: Record<string, string>) => void;
   onDeleteGoal?: (goal: OpsGoalItem) => void;
   compensationBusy: boolean;
+  csrfToken?: string;
 }) {
   const [openGoalId, setOpenGoalId] = useState("");
   const configured = dashboard.quickActions?.filter(
@@ -602,6 +667,7 @@ export default function CompanyOpsHome({
                   onUpdateStatus={onUpdateGoalStatus}
                   onEdit={onEditGoal}
                   onDelete={onDeleteGoal}
+                  csrfToken={csrfToken}
                   key={goal.id}
                 />
               ))}

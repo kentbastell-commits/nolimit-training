@@ -79,6 +79,7 @@ const pendingPrincipal: CompanyOpsPrincipal = {
 const tableIds: Record<CompanyOpsResource, string> = {
   staff: "tblStaff",
   goal: "tblGoal",
+  idea: "tblIdea",
   content: "tblContent",
   lead: "tblLead",
   partner: "tblPartner",
@@ -267,8 +268,20 @@ const campaignFields: FeishuField[] = [
   field("员工归因比例% Attribution Share", 2),
   field("批准提成比例% Commission Rate", 2),
   field("提成规则快照 Commission Rule", 1),
+  field("提成类型 Commission Type", 3),
+  field("超出区间提成比例% Rate Above Threshold", 2),
+  field("提成加速阈值 Threshold Amount", 2),
+  field("固定费用金额 Flat Fee Amount", 2),
+  field("方案提出人 Originator", 1),
+  field("活动负责人 Manager", 1),
+  field("成交人 Closer", 1),
   field("线下申报回款 Reported Offline Revenue", 2),
+  field("申报折扣 Reported Discounts", 2),
+  field("申报退款 Reported Refunds", 2),
+  field("申报拒付 Reported Chargebacks", 2),
+  field("申报增值税 Reported VAT", 2),
   field("退款与调整 Refunds & Adjustments", 2),
+  field("净回款 Net Collected Revenue", 2),
   field("核准归因回款 Eligible Revenue", 2),
   field("活动提成金额 Campaign Commission", 2),
   field("结果总结 Results Summary", 1),
@@ -811,8 +824,9 @@ describe("Company Operations quick-action Feishu contracts", () => {
       "审核意见 Review Note": "Approved for launch",
       "审批人 Approver": [{ id: "ou_founder" }],
       "员工归因比例% Attribution Share": 100,
-      "批准提成比例% Commission Rate": 4,
-      "提成规则快照 Commission Rule": expect.stringContaining("4% / 5% / 6%"),
+      "批准提成比例% Commission Rate": 10,
+      "提成类型 Commission Type": "rate",
+      "提成规则快照 Commission Rule": expect.stringContaining("10% on net collected revenue"),
       "活动代码 Campaign Code": expect.stringMatching(/^CMP-\d{6}-[A-F0-9]{6}$/),
       "员工归因代码 Staff Attribution Code": expect.stringMatching(/^STF-[A-F0-9]{7}$/),
       "批准时间 Approved At": expect.any(Number),
@@ -906,7 +920,8 @@ describe("Company Operations quick-action Feishu contracts", () => {
         "负责人 Owner": [{ id: "ou_growth", name: "Growth Owner" }],
         "活动代码 Campaign Code": "CMP-202608-A1B2C3",
         "员工归因比例% Attribution Share": 100,
-        "批准提成比例% Commission Rate": 4,
+        "批准提成比例% Commission Rate": 10,
+        "提成类型 Commission Type": "rate",
         "线下申报回款 Reported Offline Revenue": 1000,
         "退款与调整 Refunds & Adjustments": 200,
       },
@@ -923,7 +938,7 @@ describe("Company Operations quick-action Feishu contracts", () => {
         eligibleRevenue: 801,
         reconciliationNote: "Reviewed offline collection and refund evidence.",
       },
-    })).rejects.toThrow("after refunds and adjustments (CNY 800.00)");
+    })).rejects.toThrow("net collected revenue after refunds, discounts, VAT and adjustments (CNY 800.00)");
 
     await repository.performAction(founderPrincipal, {
       action: "campaign.reconcile",
@@ -937,7 +952,7 @@ describe("Company Operations quick-action Feishu contracts", () => {
     expect(updated[0].fields).toMatchObject({
       "状态 Status": "已核对 Reconciled",
       "核准归因回款 Eligible Revenue": 800,
-      "活动提成金额 Campaign Commission": 32,
+      "活动提成金额 Campaign Commission": 80,
       "核对说明 Reconciliation Note": "Reviewed offline collection and refund evidence.",
       "核对时间 Reconciled At": expect.any(Number),
     });
@@ -2122,5 +2137,130 @@ describe("Feishu DM pings", () => {
     });
     expect(result.success).toBe(true);
     expect(harness.updated).toHaveLength(1);
+  });
+
+  it("goal comment attachments append as URL lines and drop non-http links", async () => {
+    const harness = repositoryHarness(
+      { tblGoal: [goalRecord], tblStaff: staffTable },
+      { tblGoal: goalFields, tblStaff: staffAccessFields },
+      { FEISHU_ADMIN_FOUNDER_OPEN_IDS: "ou_founder" }
+    );
+    const result = await harness.repository.performAction(staffPrincipal, {
+      action: "respond_goal",
+      payload: {
+        goalId: "recGoal1",
+        response: "Draft attached",
+        attachments: [
+          "https://example.feishu.cn/file/plan.pdf",
+          "javascript:alert(1)",
+        ],
+      },
+    });
+    expect(result.success).toBe(true);
+    const thread = String(harness.updated[0].fields["回应 Response"]);
+    expect(thread).toContain("Draft attached\nhttps://example.feishu.cn/file/plan.pdf");
+    expect(thread).not.toContain("javascript:");
+  });
+
+  it("an attachment-only goal comment is accepted", async () => {
+    const harness = repositoryHarness(
+      { tblGoal: [goalRecord], tblStaff: staffTable },
+      { tblGoal: goalFields, tblStaff: staffAccessFields },
+      { FEISHU_ADMIN_FOUNDER_OPEN_IDS: "ou_founder" }
+    );
+    const result = await harness.repository.performAction(staffPrincipal, {
+      action: "respond_goal",
+      payload: {
+        goalId: "recGoal1",
+        response: "",
+        attachments: ["https://example.feishu.cn/file/photo.jpg"],
+      },
+    });
+    expect(result.success).toBe(true);
+    const thread = String(harness.updated[0].fields["回应 Response"]);
+    expect(thread).toContain("https://example.feishu.cn/file/photo.jpg");
+  });
+
+  it("war room reply attachments stay whole URLs in the thread", async () => {
+    // Regression: the attachment list was string-spread character by
+    // character into the reply, garbling every attached link.
+    const ideaFields: FeishuField[] = [
+      field("想法 Idea", 1, true),
+      field("讨论 Thread", 1),
+      field("状态 Status", 1),
+      field("提出人 Open ID", 1),
+    ];
+    const ideaRecord: FeishuRecord = {
+      record_id: "recIdea1",
+      fields: {
+        "想法 Idea": "Try a referral push",
+        "提出人 Open ID": "ou_founder",
+        "状态 Status": "讨论中 Discussing",
+      },
+    };
+    const harness = repositoryHarness(
+      { tblIdea: [ideaRecord], tblStaff: staffTable },
+      { tblIdea: ideaFields, tblStaff: staffAccessFields },
+      { FEISHU_ADMIN_FOUNDER_OPEN_IDS: "ou_founder" }
+    );
+    const result = await harness.repository.performAction(growthPrincipal, {
+      action: "respond_idea",
+      payload: {
+        ideaId: "recIdea1",
+        message: "see mockup",
+        attachments: ["https://example.feishu.cn/file/mockup.png"],
+      },
+    });
+    expect(result.success).toBe(true);
+    const thread = String(harness.updated[0].fields["讨论 Thread"]);
+    expect(thread).toContain("see mockup\nhttps://example.feishu.cn/file/mockup.png");
+  });
+});
+
+describe("FeishuClient", () => {
+  it("createField posts the field definition and returns the created field", async () => {
+    const captured: { url: string; init: RequestInit }[] = [];
+    const fakeFetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = input.toString();
+      if (url.includes("/auth/v3/tenant_access_token/internal")) {
+        return new Response(JSON.stringify({ code: 0, tenant_access_token: "token" }));
+      }
+      captured.push({ url, init: init || {} });
+      return new Response(
+        JSON.stringify({
+          code: 0,
+          data: {
+            field_id: "fldCreated",
+            field_name: "净回款 Net Collected Revenue",
+            type: 2,
+            property: { formatter: "0.00" },
+          },
+        })
+      );
+    });
+
+    const client = new FeishuClient(config(), fakeFetch as unknown as typeof fetch);
+    const result = await client.createField("appToken", "tblCampaign", {
+      fieldName: "净回款 Net Collected Revenue",
+      type: 2,
+      property: { formatter: "0.00" },
+    });
+
+    expect(result).toEqual({
+      field_id: "fldCreated",
+      field_name: "净回款 Net Collected Revenue",
+      type: 2,
+      is_primary: false,
+      property: { formatter: "0.00" },
+    });
+    expect(captured).toHaveLength(1);
+    expect(captured[0].url).toContain("/open-apis/bitable/v1/apps/appToken/tables/tblCampaign/fields");
+    expect(captured[0].init.method).toBe("POST");
+    const body = JSON.parse(captured[0].init.body as string);
+    expect(body).toEqual({
+      field_name: "净回款 Net Collected Revenue",
+      type: 2,
+      property: { formatter: "0.00" },
+    });
   });
 });

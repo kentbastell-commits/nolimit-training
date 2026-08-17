@@ -10,8 +10,9 @@
 //  - Everything is bilingual through opsText / TranslatableText: Yumei writes
 //    Chinese, the founders write English, and each side reads its own.
 import { useMemo, useState } from "react";
-import { Flame, Image as ImageIcon, MessageSquare, Paperclip, Plus, Send, Trash2, TrendingUp, X } from "lucide-react";
+import { Flame, MessageSquare, Paperclip, Plus, Send, Trash2, TrendingUp, X } from "lucide-react";
 import { companyOpsApi } from "./api";
+import { AttachmentLink, ThreadBody, fileLabel } from "./components";
 import { opsText } from "./copy";
 import { TranslatableText } from "./TranslatableText";
 import { formatOpsDate } from "./utils";
@@ -59,50 +60,6 @@ function parseThread(raw: string): ThreadEntry[] {
       return { stamp: match[1], author: match[2].trim(), body: match[3].trim() };
     })
     .filter((entry) => entry.body);
-}
-
-const fileLabel = (url: string) => {
-  try {
-    const name = decodeURIComponent(new URL(url).pathname.split("/").pop() || url);
-    return name.length > 26 ? `${name.slice(0, 23)}…` : name;
-  } catch {
-    return url.slice(0, 26);
-  }
-};
-
-const isImage = (url: string) => /\.(png|jpe?g|gif|webp|avif)(\?|$)/i.test(url);
-
-// Uploads land in the Feishu shared-assets folder, and that link is a Drive
-// PAGE (302 -> HTML), not the file bytes — verified by probing a real upload.
-// So never render one as <img src>: it would show a broken image. Everything
-// is a labelled link that opens in Feishu, where the team is already signed
-// in and gets a proper preview.
-function AttachmentLink({ url }: { url: string }) {
-  return (
-    <a className="fopsWarAttachFile" href={url} target="_blank" rel="noreferrer">
-      {isImage(url) ? <ImageIcon size={13} aria-hidden="true" /> : <Paperclip size={13} aria-hidden="true" />}
-      {fileLabel(url)}
-    </a>
-  );
-}
-
-/** A reply may be text, links, or both — links render as attachments. */
-function ThreadBody({ body, language }: { body: string; language: CompanyOpsLanguage }) {
-  const lines = body.split(/\n+/);
-  const links = lines.filter((line) => /^https?:\/\//i.test(line.trim()));
-  const text = lines.filter((line) => !/^https?:\/\//i.test(line.trim())).join("\n").trim();
-  return (
-    <>
-      {text ? <TranslatableText text={text} language={language} /> : null}
-      {links.length ? (
-        <div className="fopsWarAttachList">
-          {links.map((url) => (
-            <AttachmentLink url={url.trim()} key={url} />
-          ))}
-        </div>
-      ) : null}
-    </>
-  );
 }
 
 export default function WarRoomPage({
