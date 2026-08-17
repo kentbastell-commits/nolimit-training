@@ -89,8 +89,9 @@ Encoder traps (all hit 2026-08-17): the Pocket 3 records 10-bit HEVC, so
 `-pix_fmt yuv420p` (hevc_nvenc works without it). Add `-hwaccel cuda` — CPU
 decode of 3K 10-bit HEVC is the real bottleneck (~3x speedup; CPU-only x264
 was on pace for 8+ hours, GPU did 188 encodes in ~40 min). And NVENC `-cq`
-without `-maxrate` balloons long clips to 500MB+ (over the 160MB
-uploadFormVideoFile cap) — cap at `-maxrate 8M` for delivery files.
+without `-maxrate` balloons long clips to 500MB+ at ~30Mbps — pointless weight
+for 1080p delivery; cap at `-maxrate 8M` (the upload endpoint's real limit is
+500MB, but 8Mbps keeps pages fast and the media-CDN daily cap unbothered).
 
 ## Credentials
 
