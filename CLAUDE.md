@@ -686,6 +686,16 @@ data between them, never "borrow" a table ID across products.
     belongs to another agent's WIP, either leave the whole file out or
     commit their completed work as its own gate-passed commit.
 
+60. **The exemplar copied on faith** — mirroring the war room's attachment
+    flow onto goal comments exposed that the exemplar itself was broken:
+    `respond_idea` spread a newline-joined STRING into its message array
+    (`[messageText, ...replyFiles]` — JS spreads a string per character), so
+    every war-room reply attachment had been written to the thread as
+    one-char-per-line garbage, and no test covered any attachment path.
+    Rule: before copying a pattern, check the exemplar has a passing test or
+    a verified live use — "it shipped" is not evidence — and give the
+    exemplar its missing regression test in the same pass as the copy.
+
 ## Quality bar — checkable, per deliverable
 
 **Any shipped code change**
