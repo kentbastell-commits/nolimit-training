@@ -53,6 +53,17 @@ hostname bills — so the setting can stay on permanently.
 
 Never "fix" a slow upload by lowering concurrency; check the endpoint first.
 
+## Checking a clip without downloading it
+
+`ffprobe` reads just the header over a `stream-link.mjs` signed URL — so
+resolution/duration/rotation questions about archived footage never need a
+download. Found this way 2026-08-17: a whole shoot recorded **3072×3072
+square** because the Pocket 3's aspect-ratio setting was on 1:1 (square maxes
+at 3K; 16:9 records 4K). The upload pipeline preserves whatever the camera
+recorded — check a COS original with ffprobe before suspecting the pipeline.
+Pre-shoot camera check: ratio 16:9, 4K, framerate. Square footage crops to
+3072×1728 landscape or 9:16 vertical in post, so it's recoverable.
+
 ## Credentials
 
 `COS_SECRET_ID` / `COS_SECRET_KEY` live in `.env.local` (git-ignored), installed
