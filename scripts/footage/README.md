@@ -64,6 +64,34 @@ recorded — check a COS original with ffprobe before suspecting the pipeline.
 Pre-shoot camera check: ratio 16:9, 4K, framerate. Square footage crops to
 3072×1728 landscape or 9:16 vertical in post, so it's recoverable.
 
+## Reframing the square 2026-08-08 shoot (16:9 + 9:16)
+
+Local pipeline, built 2026-08-17 (Kent-approved framing):
+
+```bash
+node --env-file=.env.local scripts/footage/download-originals.mjs   # COS -> C:\Users\kentb\Videos\nolimit-footage (one-time ~¥65 via accelerate)
+node scripts/footage/extract-analysis-frames.mjs                    # gridded contact sheets per clip
+# ...measure every clip from the sheets -> analysis/measurements.json (headTop, xLeft, xRight as 0..1)
+node scripts/footage/batch-crop.mjs                                 # both formats, resumable, GPU
+```
+
+Crop rules (generalized from the edits Kent approved; keep unless he re-approves):
+16:9 = full width, window top 50px above the clip's highest head position.
+9:16 = floor-anchored, 420px headroom, never tighter than 75% of frame height
+("too zoomed" feedback), widened to cover lying/floor exercises, person-centered
+— center on the PERSON, not the machine, and never trust one sampled frame:
+jump clips get airborne allowance, and two clips (RFE split squat, ballistic
+back ext) needed remeasuring because the sampled frames caught mirrors/empty
+moments. Always end with a contact-sheet review of the OUTPUTS.
+
+Encoder traps (all hit 2026-08-17): the Pocket 3 records 10-bit HEVC, so
+`h264_nvenc` fails with a misleading "No capable devices" until you add
+`-pix_fmt yuv420p` (hevc_nvenc works without it). Add `-hwaccel cuda` — CPU
+decode of 3K 10-bit HEVC is the real bottleneck (~3x speedup; CPU-only x264
+was on pace for 8+ hours, GPU did 188 encodes in ~40 min). And NVENC `-cq`
+without `-maxrate` balloons long clips to 500MB+ (over the 160MB
+uploadFormVideoFile cap) — cap at `-maxrate 8M` for delivery files.
+
 ## Credentials
 
 `COS_SECRET_ID` / `COS_SECRET_KEY` live in `.env.local` (git-ignored), installed
