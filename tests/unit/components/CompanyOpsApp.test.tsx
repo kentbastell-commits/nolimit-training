@@ -217,14 +217,11 @@ describe("CompanyOpsApp", () => {
     render(<CompanyOpsApp api={api} />);
 
     await screen.findByText("Hello, Kent");
-    expect(screen.queryByRole("button", { name: "Campaigns" })).not.toBeInTheDocument();
-    await user.click(screen.getAllByRole("button", { name: "Performance" })[0]);
-    expect(screen.getByRole("tab", { name: /^Monthly Goals/ })).toHaveAttribute("aria-selected", "true");
-    await user.click(screen.getByRole("tab", { name: /^Campaigns/ }));
+    await user.click(screen.getAllByRole("button", { name: "Campaigns" })[0]);
     expect(screen.getByRole("heading", { name: "Campaigns & attribution" })).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Review proposal" }));
     expect(screen.getByRole("dialog", { name: "Autumn strength launch" })).toBeInTheDocument();
-    expect(screen.getByText(/Originator 40%/)).toBeInTheDocument();
+    expect(screen.getByText(/10% on net collected revenue/)).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Approve & generate codes" }));
 
     await waitFor(() => expect(api.submitAction).toHaveBeenCalledWith(
