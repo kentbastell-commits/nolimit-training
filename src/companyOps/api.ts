@@ -35,17 +35,38 @@ async function readJson(response: Response) {
   return (await response.json()) as Record<string, unknown>;
 }
 
+// Browser fetch has no default timeout, so a hung Feishu round-trip used to
+// freeze whatever was awaiting it forever (stuck loading screen, a poisoned
+// TranslatableText cache with no way to recover short of a reload).
+const DEFAULT_TIMEOUT_MS = 30_000;
+
 async function request<T>(url: string, init: RequestInit = {}): Promise<T> {
-  const response = await fetch(url, {
-    credentials: "same-origin",
-    cache: "no-store",
-    ...init,
-    headers: {
-      Accept: "application/json",
-      ...(init.body ? { "Content-Type": "application/json" } : {}),
-      ...init.headers,
-    },
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      credentials: "same-origin",
+      cache: "no-store",
+      ...init,
+      signal: controller.signal,
+      headers: {
+        Accept: "application/json",
+        ...(init.body ? { "Content-Type": "application/json" } : {}),
+        ...init.headers,
+      },
+    });
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new CompanyOpsApiError(
+        "Request timed out. Check your connection and try again.",
+        { status: 0, code: "timeout" },
+      );
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
   const data = await readJson(response);
   if (!response.ok) {
     throw new CompanyOpsApiError(
@@ -325,17 +346,35 @@ export const companyOpsApi: CompanyOpsApi = {
   async uploadAsset(file, csrfToken) {
     const url = new URL("/api/company-ops/assets/upload", window.location.origin);
     url.searchParams.set("fileName", file.name);
-    const response = await fetch(`${url.pathname}${url.search}`, {
-      method: "POST",
-      credentials: "same-origin",
-      cache: "no-store",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": file.type || "application/octet-stream",
-        ...(csrfToken ? { "x-csrf-token": csrfToken } : {}),
-      },
-      body: file,
-    });
+    // Longer than the default timeout — this ships real file bytes, not a
+    // small JSON payload, so it legitimately takes longer on a slow link.
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 120_000);
+    let response: Response;
+    try {
+      response = await fetch(`${url.pathname}${url.search}`, {
+        method: "POST",
+        credentials: "same-origin",
+        cache: "no-store",
+        signal: controller.signal,
+        headers: {
+          Accept: "application/json",
+          "Content-Type": file.type || "application/octet-stream",
+          ...(csrfToken ? { "x-csrf-token": csrfToken } : {}),
+        },
+        body: file,
+      });
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        throw new CompanyOpsApiError(
+          "Upload timed out. Check your connection and try again.",
+          { status: 0, code: "timeout" },
+        );
+      }
+      throw error;
+    } finally {
+      clearTimeout(timeoutId);
+    }
     const data = await readJson(response);
     if (!response.ok) {
       throw new CompanyOpsApiError(

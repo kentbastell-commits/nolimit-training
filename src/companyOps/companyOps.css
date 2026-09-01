@@ -369,6 +369,14 @@
   background: transparent;
 }
 
+.fopsButton.is-danger {
+  color: #a12c22;
+  border-color: rgb(161 44 34 / 45%);
+}
+.fopsButton.is-danger:hover:not(:disabled) {
+  background: rgb(161 44 34 / 8%);
+}
+
 .fopsButton--compact {
   min-height: 36px;
   border-radius: 8px;

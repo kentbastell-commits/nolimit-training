@@ -20,7 +20,6 @@ import {
   type FeishuRecord,
 } from "./feishuClient.ts";
 import {
-  campaignCommissionAmount,
   campaignCommissionFromOrders,
   campaignCommissionRule,
   campaignProductKind,
@@ -1617,6 +1616,9 @@ const STAFF_FEISHU_USER_ALIASES = [
 ] as const;
 
 const OPS_APP_URL = "https://trainnolimit.cn/company-ops";
+// Sentinel distinguishing "staff table isn't configured" from a real record
+// list in resolvePrincipal's parallel admin/staff read (see below).
+const STAFF_CONFIG_ERROR = Symbol("staffConfigError");
 
 export class CompanyOpsRepository {
   private readonly config: CompanyOpsConfig;
@@ -1932,24 +1934,34 @@ export class CompanyOpsRepository {
       tenantKey: identity.tenantKey,
       role: "pending",
     };
-    const appAdmins = await this.appAdminIds();
+    // Independent Feishu reads (admin list, staff table) — run concurrently
+    // instead of stacking two ~1.3s round-trips on every uncached principal
+    // resolution.
+    const [appAdmins, staffResult] = await Promise.all([
+      this.appAdminIds(),
+      (async (): Promise<FeishuRecord[] | typeof STAFF_CONFIG_ERROR> => {
+        try {
+          const target = await this.target("staff");
+          return await this.client.listRecords(target.appToken, target.tableId, {
+            maxRecords: 500,
+          });
+        } catch (error) {
+          if (error instanceof CompanyOpsConfigurationError) {
+            return STAFF_CONFIG_ERROR;
+          }
+          throw error;
+        }
+      })(),
+    ]);
     const trustedFounder =
       this.config.founderOpenIds.has(identity.openId) ||
       appAdmins.openIds.has(identity.openId) ||
       Boolean(identity.userId && appAdmins.userIds.has(identity.userId));
 
-    let records: FeishuRecord[];
-    try {
-      const target = await this.target("staff");
-      records = await this.client.listRecords(target.appToken, target.tableId, {
-        maxRecords: 500,
-      });
-    } catch (error) {
-      if (error instanceof CompanyOpsConfigurationError) {
-        return trustedFounder ? { ...base, role: "founder" } : base;
-      }
-      throw error;
+    if (staffResult === STAFF_CONFIG_ERROR) {
+      return trustedFounder ? { ...base, role: "founder" } : base;
     }
+    const records: FeishuRecord[] = staffResult;
     const staffMatches = records.filter((record) =>
       idsFromValue(
         recordField(record.fields, [
@@ -2185,9 +2197,16 @@ export class CompanyOpsRepository {
           await new Promise((resolve) => setTimeout(resolve, 1_500));
           continue;
         }
-        console.warn("[companyOps] optional read failed", {
+        // Still never rejects (see above), but a genuine failure — a bad
+        // table ID, a revoked permission, a real Feishu outage — must not
+        // look identical to routine throttling in the logs; it was
+        // previously always console.warn, indistinguishable from the
+        // expected-and-retried case above and easy to miss entirely.
+        const log = transient ? console.warn : console.error;
+        log("[companyOps] optional read failed", {
           resource,
           code,
+          transient,
           message: error instanceof Error ? error.message : String(error),
         });
         return [];
@@ -5316,51 +5335,76 @@ ${entry}` : entry;
 
     const createdTaskIds: string[] = [];
     const fallbackCounts = new Map<string, number>();
-    for (const template of selectedTemplates) {
-      if (taskIdByTemplate.has(template.recordId)) continue;
-      const directOwner = template.ownerRole === "新员工 New Hire"
-        ? newHireOpenId
-        : principal.openId;
-      const isFallback = !new Set(["新员工 New Hire", "创始人 Founder"]).has(
-        template.ownerRole
+    // Each template creates its own independent task row (same caseId, no
+    // dependency between iterations), so these can run concurrently instead
+    // of one 3.6s Feishu create at a time — a 15-template onboarding case
+    // used to take 50s+ serially (CLAUDE.md #58's shape, on a write path).
+    // Bounded (not full Promise.all) to stay clear of Feishu write throttling
+    // (#9) on larger template sets.
+    const ONBOARDING_CREATE_CONCURRENCY = 5;
+    const templatesToCreate = selectedTemplates.filter(
+      (template) => !taskIdByTemplate.has(template.recordId)
+    );
+    for (
+      let i = 0;
+      i < templatesToCreate.length;
+      i += ONBOARDING_CREATE_CONCURRENCY
+    ) {
+      const chunk = templatesToCreate.slice(i, i + ONBOARDING_CREATE_CONCURRENCY);
+      const chunkResults = await Promise.all(
+        chunk.map(async (template) => {
+          const directOwner = template.ownerRole === "新员工 New Hire"
+            ? newHireOpenId
+            : principal.openId;
+          const isFallback = !new Set(["新员工 New Hire", "创始人 Founder"]).has(
+            template.ownerRole
+          );
+          const fields: FeishuFields = {
+            [taskPrimary.field_name]: template.task,
+            [taskCase.field_name]: [caseId],
+            [taskTemplate.field_name]: [template.recordId],
+            [taskCategory.field_name]: template.category,
+            [taskAssignee.field_name]: [{ id: directOwner }],
+            [taskDue.field_name]: startDate + template.relativeDay * 86_400_000,
+            [taskStatus.field_name]: "未开始 Todo",
+            [taskRequired.field_name]: template.required,
+          };
+          if (template.instructions) {
+            fields[taskInstructions.field_name] = template.instructions;
+          }
+          if (template.resourceUrl) {
+            fields[taskResource.field_name] = {
+              link: template.resourceUrl,
+              text: template.resourceUrl,
+            };
+          }
+          if (isFallback) {
+            fields[taskNotes.field_name] =
+              `负责人回退 Owner fallback: ${template.ownerRole} is not mapped to a specific ` +
+              `Feishu user, so this task is temporarily assigned to founder ${principal.name}. ` +
+              "Reassign it in Feishu; the new hire assignment was not overwritten.";
+          }
+          const task = await this.client.createRecord(
+            taskTarget.appToken,
+            taskTarget.tableId,
+            fields
+          );
+          if (!task.record_id) {
+            throw new FeishuApiError("Feishu did not return an onboarding task ID");
+          }
+          return { template, taskId: task.record_id, isFallback };
+        })
       );
-      const fields: FeishuFields = {
-        [taskPrimary.field_name]: template.task,
-        [taskCase.field_name]: [caseId],
-        [taskTemplate.field_name]: [template.recordId],
-        [taskCategory.field_name]: template.category,
-        [taskAssignee.field_name]: [{ id: directOwner }],
-        [taskDue.field_name]: startDate + template.relativeDay * 86_400_000,
-        [taskStatus.field_name]: "未开始 Todo",
-        [taskRequired.field_name]: template.required,
-      };
-      if (template.instructions) {
-        fields[taskInstructions.field_name] = template.instructions;
+      for (const result of chunkResults) {
+        createdTaskIds.push(result.taskId);
+        taskIdByTemplate.set(result.template.recordId, result.taskId);
+        if (result.isFallback) {
+          fallbackCounts.set(
+            result.template.ownerRole,
+            (fallbackCounts.get(result.template.ownerRole) || 0) + 1
+          );
+        }
       }
-      if (template.resourceUrl) {
-        fields[taskResource.field_name] = {
-          link: template.resourceUrl,
-          text: template.resourceUrl,
-        };
-      }
-      if (isFallback) {
-        fallbackCounts.set(
-          template.ownerRole,
-          (fallbackCounts.get(template.ownerRole) || 0) + 1
-        );
-        fields[taskNotes.field_name] =
-          `负责人回退 Owner fallback: ${template.ownerRole} is not mapped to a specific ` +
-          `Feishu user, so this task is temporarily assigned to founder ${principal.name}. ` +
-          "Reassign it in Feishu; the new hire assignment was not overwritten.";
-      }
-      const task = await this.client.createRecord(
-        taskTarget.appToken,
-        taskTarget.tableId,
-        fields
-      );
-      if (!task.record_id) throw new FeishuApiError("Feishu did not return an onboarding task ID");
-      createdTaskIds.push(task.record_id);
-      taskIdByTemplate.set(template.recordId, task.record_id);
     }
     const taskIds = selectedTemplates
       .map((template) => taskIdByTemplate.get(template.recordId))
@@ -5975,9 +6019,17 @@ ${entry}` : entry;
         `The eligible revenue you entered (CNY ${requestedEligibleRevenue.toFixed(2)}) does not match the system-calculated eligible revenue (CNY ${policyResult.eligibleRevenue.toFixed(2)}). Leave the field blank to use the calculated amount.`,
       );
     }
-    const commissionAmount = requestedEligibleRevenue === undefined
-      ? policyResult.commission
-      : campaignCommissionAmount({ eligibleRevenue, rule });
+    // requestedEligibleRevenue, when provided, is already verified above to
+    // match policyResult.eligibleRevenue within CNY 0.01 — so this is never
+    // a genuinely different revenue figure, and policyResult.commission
+    // (month-bucketed, per the policy doc's accelerator rule) is already
+    // correct for it. Recomputing via campaignCommissionAmount() here used
+    // to apply the accelerator to the whole eligibleRevenue as one lump sum
+    // instead of per Shanghai calendar month — for a campaign that crosses
+    // the threshold in aggregate but not within any single month, that
+    // silently overpaid the accelerator rate on revenue that never actually
+    // qualified for it.
+    const commissionAmount = policyResult.commission;
     const fields: FeishuFields = {};
     this.setCampaignValue(fields, target, "netCollectedRevenue", policyResult.netCollectedRevenue);
     this.setCampaignValue(fields, target, "eligibleRevenue", eligibleRevenue);

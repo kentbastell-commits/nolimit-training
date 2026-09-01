@@ -240,12 +240,17 @@ function Editor({
   busy,
   onSave,
   onClose,
+  onDelete,
 }: {
   item: OpsContentFullItem;
   language: CompanyOpsLanguage;
   busy: boolean;
   onSave: (patch: EditorPatch) => void;
   onClose: () => void;
+  /** Previously delete only existed behind a right-click context menu on the
+   *  calendar chip — unreachable by keyboard or on a device without a working
+   *  right-click/long-press. */
+  onDelete: () => void;
 }) {
   const [draft, setDraft] = useState<EditorPatch>({});
   const [publishTime, setPublishTime] = useState(() => timeOf(item.publishDate));
@@ -417,6 +422,14 @@ function Editor({
           ) : null}
         </div>
         <footer>
+          <button
+            type="button"
+            className="fopsButton fopsButton--ghost is-danger"
+            disabled={busy}
+            onClick={onDelete}
+          >
+            <Trash2 size={14} /> {text(language, "Delete", "删除")}
+          </button>
           <button type="button" className="fopsButton fopsButton--ghost" onClick={requestClose}>
             {text(language, "Close", "关闭")}
           </button>
@@ -1164,6 +1177,11 @@ export default function ContentCalendarPage({
           busy={busy}
           onClose={() => setEditing(null)}
           onSave={(patch) => void save(editing.id, patch)}
+          onDelete={() => {
+            const target = editing;
+            setEditing(null);
+            deleteItem(target);
+          }}
         />
       ) : null}
     </div>

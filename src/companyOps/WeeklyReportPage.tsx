@@ -217,6 +217,7 @@ export default function WeeklyReportPage({
   const [busy, setBusy] = useState(false);
   const [preview, setPreview] = useState(false);
   const [done, setDone] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
   // Seed the tick-boxes once the timeline is known.
   useEffect(() => {
@@ -299,6 +300,7 @@ export default function WeeklyReportPage({
   const submit = async () => {
     if (busy) return;
     setBusy(true);
+    setSubmitError("");
     try {
       await onSubmit(buildReport());
       setDone(true);
@@ -307,6 +309,14 @@ export default function WeeklyReportPage({
       } catch {
         /* ignore */
       }
+    } catch (error) {
+      // Previously uncaught: the button just stopped spinning with no
+      // indication the report was never sent (CLAUDE.md #42's shape).
+      setSubmitError(
+        error instanceof Error
+          ? error.message
+          : t("Could not send the report. Try again.", "周报发送失败，请重试。")
+      );
     } finally {
       setBusy(false);
     }
@@ -363,6 +373,7 @@ export default function WeeklyReportPage({
           <small className="fopsQuietText">
             {chosenCount} {t("items included", "项已包含")}
           </small>
+          {submitError ? <small className="fopsWeeklyError">{submitError}</small> : null}
           <button
             type="button"
             className="fopsButton fopsButton--primary"
@@ -593,6 +604,7 @@ export default function WeeklyReportPage({
         <small className="fopsQuietText">
           {t("Saved as you type.", "输入内容会自动保存。")}
         </small>
+        {submitError ? <small className="fopsWeeklyError">{submitError}</small> : null}
         <div className="fopsWeeklyFooterActions">
           <button
             type="button"

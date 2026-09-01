@@ -11,7 +11,14 @@ import {
 import {
   createCompanyOpsRepository,
   publicCompanyOpsError,
+  type CompanyOpsPrincipal,
 } from "../server/companyOps/repository.ts";
+import {
+  PRINCIPAL_TTL_MS,
+  principalCacheKey,
+  readCache,
+  writeCache,
+} from "../server/companyOps/cache.ts";
 
 type PublicRole = "founder" | "growth" | "employee" | "finance";
 
@@ -58,9 +65,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         loginUrl: "/api/companyOpsLogin",
       });
     }
-    const principal = await createCompanyOpsRepository(config).resolvePrincipal(
-      session
-    );
+    // Same principal cache the dashboard endpoint reads/writes (cache.ts) —
+    // without this, session + dashboard each paid their own ~1.3s staff-table
+    // read on every single app load (CLAUDE.md #58's shape).
+    const principalKey = principalCacheKey(session.openId);
+    let principal = readCache<CompanyOpsPrincipal>(principalKey);
+    if (!principal) {
+      principal = await createCompanyOpsRepository(config).resolvePrincipal(
+        session
+      );
+      writeCache(principalKey, principal, PRINCIPAL_TTL_MS);
+    }
     return res.status(200).json({
       authenticated: true,
       user: {

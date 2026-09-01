@@ -16,10 +16,17 @@ async function fetchTranslation(text: string, target: "en" | "zh"): Promise<stri
   const inFlight = pending.get(key);
   if (inFlight) return inFlight;
   const job = (async () => {
+    // Bounded: a hung fetch used to leave this promise unresolved forever,
+    // which meant `pending.delete(key)` (in the finally below) never ran —
+    // every future mount of this exact string, on every page, kept getting
+    // handed that same dead promise until a full reload.
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15_000);
     try {
       const res = await fetch("/api/companyOpsTranslate", {
         method: "POST",
         credentials: "same-origin",
+        signal: controller.signal,
         headers: { "Content-Type": "application/json", Accept: "application/json" },
         body: JSON.stringify({ text, target }),
       });
@@ -29,6 +36,7 @@ async function fetchTranslation(text: string, target: "en" | "zh"): Promise<stri
     } catch {
       return null;
     } finally {
+      clearTimeout(timeoutId);
       pending.delete(key);
     }
   })();

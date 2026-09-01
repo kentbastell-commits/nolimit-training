@@ -589,7 +589,10 @@ export default function CompanyOpsApp({
           .filter(Boolean)
           .join(" · "),
       );
-      await refreshDashboard();
+      // Not awaited — see runRecordAction below / CLAUDE.md #58. Awaiting
+      // here made actionBusy (and any drawer opened right after) stay
+      // disabled for the full dashboard reload, not just the write.
+      void refreshDashboard();
     } catch (error) {
       setActionError(
         error instanceof Error
@@ -1214,6 +1217,9 @@ export default function CompanyOpsApp({
               user={user}
               csrfToken={session?.csrfToken}
               onSubmit={async (payload) => {
+                // Not caught here: WeeklyReportPage's submit() must see the
+                // rejection so it doesn't show "report sent" on a failed
+                // write (setDone(true) runs right after this await).
                 await runRecordAction("submit_weekly_report", payload);
               }}
             />

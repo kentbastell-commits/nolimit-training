@@ -23,6 +23,14 @@ import {
   type CompanyOpsPrincipal,
 } from "../../../server/companyOps/repository.ts";
 
+// campaignOrderRows() dynamically imports this module so a campaign with no
+// real orders never needs it configured; mocked here so reconciliation tests
+// can supply dated orders without a real Postgres connection.
+const paidOrderRowsByCampaignCodeMock = vi.fn(async () => [] as unknown[]);
+vi.mock("../../../server/db/repositories/productOrders.ts", () => ({
+  paidOrderRowsByCampaignCode: (code: string) => paidOrderRowsByCampaignCodeMock(code),
+}));
+
 const env = {
   FEISHU_ADMIN_APP_ID: "cli_test",
   FEISHU_ADMIN_APP_SECRET: "app-secret",
@@ -957,6 +965,68 @@ describe("Company Operations quick-action Feishu contracts", () => {
       "核对时间 Reconciled At": expect.any(Number),
     });
     expect(updated[0].fields).not.toHaveProperty("支付状态 Payment Status");
+  });
+
+  it("reconciles a multi-month campaign identically whether eligibleRevenue is left blank or explicitly confirmed", async () => {
+    // Regression for a real overpayment bug: two Shanghai months of CNY
+    // 50,000 each (100,000 total) never individually cross the CNY 80,000
+    // accelerator threshold, so both months should stay at the 10% base
+    // rate (commission 10,000). Confirming the system-shown eligibleRevenue
+    // explicitly used to route through a lump-sum formula that applied the
+    // 13% accelerator to the aggregate instead of per month (commission
+    // 10,600) — a CNY 600 overpayment purely from which value the founder
+    // typed into an already-matching field.
+    paidOrderRowsByCampaignCodeMock.mockResolvedValueOnce([
+      {
+        orderId: "order-a",
+        clientId: "client-a",
+        productType: "program",
+        productName: "Test program",
+        amount: 50_000,
+        purchasedAt: new Date("2026-03-10T00:00:00+08:00"),
+      },
+      {
+        orderId: "order-b",
+        clientId: "client-b",
+        productType: "program",
+        productName: "Test program",
+        amount: 50_000,
+        purchasedAt: new Date("2026-04-05T00:00:00+08:00"),
+      },
+    ]);
+    const record: FeishuRecord = {
+      record_id: "recCampaignMultiMonth",
+      fields: {
+        "活动 Campaign": "Multi-month digital campaign",
+        "产品 Product": "数字计划 Digital",
+        "目标回款 Revenue Target": 100_000,
+        "状态 Status": "待核对 Reconciliation",
+        "负责人 Owner": [{ id: "ou_growth", name: "Growth Owner" }],
+        "活动代码 Campaign Code": "CMP-202603-MULTIMO",
+        "员工归因比例% Attribution Share": 100,
+        "批准提成比例% Commission Rate": 10,
+        "超出区间提成比例% Rate Above Threshold": 13,
+        "提成加速阈值 Threshold Amount": 80_000,
+        "提成类型 Commission Type": "rate",
+      },
+    };
+    const { repository, updated } = repositoryHarness(
+      { tblCampaign: [record] },
+      { tblCampaign: campaignFields },
+    );
+
+    await repository.performAction(founderPrincipal, {
+      action: "campaign.reconcile",
+      payload: {
+        campaignId: record.record_id,
+        eligibleRevenue: 100_000, // exactly what the system would compute
+        reconciliationNote: "Confirmed the shown eligible revenue.",
+      },
+    });
+    expect(updated[0].fields).toMatchObject({
+      "核准归因回款 Eligible Revenue": 100_000,
+      "活动提成金额 Campaign Commission": 10_000, // NOT 10,600
+    });
   });
 
   it("stores a growth experiment with exact fields and Idea state", async () => {
@@ -2262,5 +2332,46 @@ describe("FeishuClient", () => {
       type: 2,
       property: { formatter: "0.00" },
     });
+  });
+
+  it("retries a throttled idempotent record update once", async () => {
+    vi.useFakeTimers();
+    resetCompanyOpsFeishuTokenCacheForTests();
+    let updateAttempts = 0;
+    const fakeFetch = vi.fn(async (input: RequestInfo | URL) => {
+      const url = input.toString();
+      if (url.includes("/auth/v3/tenant_access_token/internal")) {
+        return new Response(JSON.stringify({
+          code: 0,
+          tenant_access_token: "token",
+          expire: 7_200,
+        }));
+      }
+      updateAttempts += 1;
+      if (updateAttempts === 1) {
+        return new Response(JSON.stringify({ code: 1254607, msg: "rate limited" }));
+      }
+      return new Response(JSON.stringify({
+        code: 0,
+        data: { record: { record_id: "recIdea1", fields: { "讨论 Thread": "saved" } } },
+      }));
+    });
+
+    try {
+      const client = new FeishuClient(config(), fakeFetch as unknown as typeof fetch);
+      const update = client.updateRecord("appToken", "tblIdea", "recIdea1", {
+        "讨论 Thread": "saved",
+      });
+      await vi.runAllTimersAsync();
+
+      await expect(update).resolves.toMatchObject({
+        record_id: "recIdea1",
+        fields: { "讨论 Thread": "saved" },
+      });
+      expect(updateAttempts).toBe(2);
+    } finally {
+      vi.useRealTimers();
+      resetCompanyOpsFeishuTokenCacheForTests();
+    }
   });
 });

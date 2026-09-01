@@ -63,6 +63,21 @@ const quickActionIcons = {
   founder_decision: MessageSquareMore,
 } satisfies Record<QuickActionKey, typeof Lightbulb>;
 
+// Priority is stored as the combined bilingual literal itself (e.g. "高
+// High" — same convention as other companyOps enum fields such as onboarding
+// task status), not a clean code translated via a lookup map like
+// goal.status/statusLabel. Show only the viewer's half instead of the raw
+// stored string.
+function priorityLabel(
+  language: CompanyOpsLanguage,
+  priority?: string
+): string | undefined {
+  if (!priority) return priority;
+  const match = priority.match(/^(\S+)\s+(.+)$/);
+  if (!match) return priority;
+  return language === "zh" ? match[1] : match[2];
+}
+
 /** Parses the goal's response column into a comment thread. Entries are
  *  "[yyyy-mm-dd hh:mm Name] text"; anything before the first prefix is a
  *  legacy single response. */
@@ -171,7 +186,7 @@ function GoalRow({
         {isIdea ? (
           <TonePill tone="purple">{goal.goalType}</TonePill>
         ) : goal.priority ? (
-          <TonePill tone="warning">{goal.priority}</TonePill>
+          <TonePill tone="warning">{priorityLabel(language, goal.priority)}</TonePill>
         ) : null}
         {goal.status ? (
           <TonePill
