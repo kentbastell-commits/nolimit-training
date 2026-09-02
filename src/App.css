@@ -4627,7 +4627,10 @@ body {
 .assignmentDrawerOverlay {
   position: fixed;
   inset: 0;
-  z-index: 70;
+  /* Must sit above the fixed mobile bottom nav (z-index 1200), same reason
+     as .workout-modal-overlay above — otherwise the nav overlaps the
+     mobile bottom-sheet and hides its Assign Program submit button. */
+  z-index: 2000;
   display: flex;
   justify-content: flex-end;
   background: rgba(17, 17, 17, 0.28);
@@ -8368,6 +8371,10 @@ body {
   --nl-surface-strong: #ffffff;
   --nl-page: #f2f0ea;
   --nl-line: #dcd8cd;
+  /* NOT true brand gold — these are muted, WCAG-contrast-safe stand-ins for
+     gold-on-light-surface text, despite the name. True brand gold-dark is
+     the literal #b5731a used directly elsewhere (PortalPrograms.css etc.);
+     don't swap one for the other assuming the names line up. */
   --nl-gold-dark: #565249;
   --nl-gold-soft: #eadfbf;
   --nl-gold-quiet: #e8e6df;

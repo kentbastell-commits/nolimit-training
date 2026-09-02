@@ -2892,12 +2892,19 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   }, []);
 
   // Guard against losing an in-progress program build on tab close / refresh.
+  // Mirrors hasUnsavedBuilderWork() below: content alone isn't enough to
+  // warn on — opening an EXISTING program populates programSessions /
+  // selectedProgramExercises immediately, so a content-only check fired
+  // this dialog before any real edit happened. builderServerDirtyRef is a
+  // ref, so it's read live inside the handler rather than baked into
+  // whether the listener gets attached.
   useEffect(() => {
-    const unsaved =
-      workoutPageTab === "Program Builder" &&
-      (selectedProgramExercises.length > 0 || programSessions.length > 0);
-    if (!unsaved) return;
+    if (workoutPageTab !== "Program Builder") return;
     const handler = (event: BeforeUnloadEvent) => {
+      if (!builderServerDirtyRef.current) return;
+      if (selectedProgramExercises.length === 0 && programSessions.length === 0) {
+        return;
+      }
       event.preventDefault();
       event.returnValue = "";
     };
@@ -7224,7 +7231,6 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     setDetailsLoading(true);
     setWorkoutDetails([]);
     setSetLogs([]);
-    setWorkoutHistoryLogs([]);
     setSavedExerciseDraftIds([]);
     setCheckedWorkoutPageItems([]);
     setWorkoutSubmissionNote("");
@@ -7295,8 +7301,15 @@ function App({ onReady }: { onReady?: () => void } = {}) {
         setSavedExerciseDraftIds([]);
         setCheckedWorkoutPageItems([]);
         // The client review lands directly on the full exercise list (their
-        // values visible) instead of the pre-start glance screen.
-        if (isClientPortal) setWorkoutLoggingStarted(true);
+        // values visible) instead of the pre-start glance screen. Reset the
+        // focus index too — it's leftover state from whatever workout was
+        // last opened, and a shorter session being reviewed here can leave
+        // it pointing past the end (e.g. index 1 surviving into a 1-exercise
+        // review renders as "Exercise 2/1" with a blank card).
+        if (isClientPortal) {
+          setWorkoutFocusIndex(0);
+          setWorkoutLoggingStarted(true);
+        }
       } else if (savedDraft) {
         try {
           const parsedDraft = JSON.parse(savedDraft);
@@ -7328,13 +7341,16 @@ function App({ onReady }: { onReady?: () => void } = {}) {
 
       originalExercisesRef.current = exercises;
       setWorkoutDetails(exercises);
-      setWorkoutHistoryLogs(historyData.logs || []);
+      // historyData is still used above (reviewingCompleted's dayLogs match)
+      // but is deliberately NOT written into workoutHistoryLogs state here —
+      // that's the athlete's persistent lifetime history (Trophy Case, PR
+      // charts), owned by the client-select effect; overwriting it with
+      // just this one fetch on every workout open/close cycle was wiping it.
     } catch {
       setWorkoutDetails([]);
       setSetLogs([]);
       setSavedExerciseDraftIds([]);
       setCheckedWorkoutPageItems([]);
-      setWorkoutHistoryLogs([]);
     } finally {
       setDetailsLoading(false);
     }
@@ -11454,32 +11470,41 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     )
   ).sort((a, b) => a.localeCompare(b));
 
-  const filteredLibraryExercises = libraryExercises.filter((exercise) => {
-    if (String(exercise.notes || "").startsWith("[Archived]")) {
-      return false;
-    }
+  // Memoized: App.tsx re-renders often (notification/coach-count polling,
+  // unrelated tabs' state), and this list feeds Card's poster <video> per
+  // exercise on the Library page — recomputing fresh arrays every render
+  // was churning props into that page more than the actual filter/search
+  // inputs changing would justify.
+  const filteredLibraryExercises = useMemo(
+    () =>
+      libraryExercises.filter((exercise) => {
+        if (String(exercise.notes || "").startsWith("[Archived]")) {
+          return false;
+        }
 
-    if (
-      libraryCategoryFilter !== "All" &&
-      String(exercise.category || "").trim() !== libraryCategoryFilter
-    ) {
-      return false;
-    }
+        if (
+          libraryCategoryFilter !== "All" &&
+          String(exercise.category || "").trim() !== libraryCategoryFilter
+        ) {
+          return false;
+        }
 
-    const search = librarySearch.toLowerCase();
+        const search = librarySearch.toLowerCase();
 
-    return (
-      exercise.exerciseName?.toLowerCase().includes(search) ||
-      exercise.exerciseId?.toLowerCase().includes(search) ||
-      exercise.category?.toLowerCase().includes(search) ||
-      exercise.equipment?.toLowerCase().includes(search) ||
-      exercise.movementPattern?.toLowerCase().includes(search)
-    );
-  });
+        return (
+          exercise.exerciseName?.toLowerCase().includes(search) ||
+          exercise.exerciseId?.toLowerCase().includes(search) ||
+          exercise.category?.toLowerCase().includes(search) ||
+          exercise.equipment?.toLowerCase().includes(search) ||
+          exercise.movementPattern?.toLowerCase().includes(search)
+        );
+      }),
+    [libraryExercises, libraryCategoryFilter, librarySearch]
+  );
 
   // Group the filtered exercises by category so the main library page shows all
   // squats together, hinges together, etc. Uncategorized exercises sort last.
-  const groupedLibraryExercises = (() => {
+  const groupedLibraryExercises = useMemo(() => {
     const groups = new Map<string, LibraryExercise[]>();
     filteredLibraryExercises.forEach((exercise) => {
       const category = String(exercise.category || "").trim() || "Uncategorized";
@@ -11491,7 +11516,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       if (b === "Uncategorized") return -1;
       return a.localeCompare(b);
     });
-  })();
+  }, [filteredLibraryExercises]);
 
   const cardioSectionActive = isCardioSectionName(pendingSectionName);
   const builderExercises = libraryExercises.filter((exercise) => {

@@ -556,7 +556,13 @@ export default function PortalTraining({
                     </div>
                   )}
 
-                  {(!isClientPortal || trainingScope === "upcoming") && (
+                  {/* Month view's own calendar card renders an identical prev/
+                      next/title header just below (moveCalendarRange just
+                      delegates to moveClientMonth for this case) — showing
+                      both stacks two redundant nav bars on mobile. */}
+                  {(!isClientPortal ||
+                    (trainingScope === "upcoming" &&
+                      clientCalendarStyle !== "Month")) && (
                   <div className="calendarNavigator">
                     <div className="calendarRangeControls">
                       <button

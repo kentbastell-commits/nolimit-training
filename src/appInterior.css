@@ -2,7 +2,9 @@
 .builderSupersetLinkButton.isLinked {
   border-color: #111;
   background: #111;
-  color: var(--nl-gold);
+  /* --nl-gold isn't defined anywhere in this app (it's a mini-program-only
+     token) — use the same brand gold literal App.css uses everywhere else. */
+  color: #d4af37;
 }
 .builderModalExerciseEditor.isAccessory {
   border-color: rgba(68, 132, 92, 0.34);

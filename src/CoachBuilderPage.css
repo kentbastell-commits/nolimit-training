@@ -3048,6 +3048,17 @@
   .wkFormsTable .programTableRow { grid-template-columns: 1fr auto; }
   .programTableRow > .programTableCell:nth-of-type(2),
   .programTableRow > .programTableCell:nth-of-type(3) { display: none; }
+  /* With only an icon + actions column left beside it, the title has a lot
+     less room — let similarly-named programs wrap onto a second line
+     instead of hard-cutting to a few characters. */
+  .programTableName strong {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    white-space: normal;
+    line-height: 1.3;
+  }
 }
 
 @media (max-width: 390px) {
