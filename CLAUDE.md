@@ -4,7 +4,15 @@ Kent is a fitness coach and founder, not a programmer. He reads outcomes, not di
 Deliver working, verified software; explain in plain language; never hand him a list
 of options when a recommendation will do. He often runs several AI agents on the
 same repo at once — check `git status` before editing, stay off files another agent
-is actively changing, and keep your diffs surgical in shared files.
+is actively changing, and keep your diffs surgical in shared files. When you must fix
+something inside a file another session has uncommitted WIP in, don't trust `git add
+-p` alone on a big file — nearby unrelated hunks merge under its default context and
+you'll stage a mix. Instead: `git show HEAD:<file> > base`, copy to `mine`, reapply
+your OWN edits onto `mine` (only works if your target text is unchanged since HEAD —
+if it lives inside code the other session added and hasn't committed yet, leave that
+one edit uncommitted in the working tree and move on), `git diff --no-index base mine`,
+fix the diff's path headers to point at the real file, then `git apply --cached
+--check` and `git apply --cached` to stage cleanly without touching the working tree.
 
 ## The two products
 
@@ -695,6 +703,25 @@ data between them, never "borrow" a table ID across products.
     Rule: before copying a pattern, check the exemplar has a passing test or
     a verified live use — "it shipped" is not evidence — and give the
     exemplar its missing regression test in the same pass as the copy.
+
+61. **The state variable with two owners** — `workoutHistoryLogs` was meant
+    to be the athlete's persistent lifetime training history (Trophy Case,
+    PR charts, exercise-history modal all read it), populated once by a
+    `[selectedClient]` effect. But `openWorkout`/`closeWorkoutPlayer` ALSO
+    reset and refetched the same state, scoped to "history as of this one
+    workout" — so opening or closing ANY workout wiped it for the rest of
+    the portal session, and Trophy Case sat at 0/11 despite real completed
+    sessions. The transient writes were pure redundancy: the local
+    `historyData` var already served the one thing inside `openWorkout` that
+    needed fresh data. Rule: before adding a reset/refetch of a state
+    variable inside a narrow-scoped flow (a modal open/close), check whether
+    something ELSE already owns that variable as persistent — grep every
+    setter, not just the one you're touching. Same surface also had the
+    classic sibling bug: `workoutFocusIndex` (which exercise a review shows)
+    isn't reset when entering review mode, so a stale index from a longer
+    session survives into a shorter one and renders as "Exercise 2/1" with a
+    blank card — reset any such index explicitly on every new entry point,
+    never assume it starts at a sane default just because `useState(0)` said so.
 
 ## Quality bar — checkable, per deliverable
 
