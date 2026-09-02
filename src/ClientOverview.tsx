@@ -172,8 +172,8 @@ export default function ClientOverview({
                         </span>
                         <p className="portalProfileHelp">
                           {paceZh
-                            ? "教练二维码加载中，或联系客服获取。"
-                            : "Coach QR code loading, or contact support to get connected."}
+                            ? "教练还未上传微信二维码，可在下次沟通中直接向教练索取。"
+                            : "Your coach hasn't added a WeChat QR code yet — ask them for it directly next time you're in touch."}
                         </p>
                       </section>
                     )}

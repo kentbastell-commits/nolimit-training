@@ -798,15 +798,20 @@
 }
 
 /* Program drawer hero: dark identity band with week/day eyebrow, session
-   name and the save actions — same hero language as the detail pages. */
+   name and the save actions — same hero language as the detail pages.
+   Sticky at the top of the scrolling drawer so "Save Day" stays reachable
+   without scrolling back up through a long exercise list. */
 .drawerSessionHero {
+  position: sticky;
+  top: 0;
+  z-index: 2;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  margin: 18px 0 16px;
+  margin: 0 -22px 16px;
   padding: 20px 22px;
-  border-radius: 18px;
+  border-radius: 0 0 18px 18px;
   background:
     radial-gradient(
       120% 190% at 100% 0%,
