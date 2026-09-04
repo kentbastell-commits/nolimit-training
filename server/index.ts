@@ -227,8 +227,33 @@ app.post("/api/company-ops/assets/upload", (req, res) => {
 });
 app.use(
   "/uploads",
-  express.static(uploadsDir, { maxAge: "365d", immutable: true })
+  express.static(uploadsDir, {
+    maxAge: "365d",
+    immutable: true,
+    setHeaders: (res, filePath, stat) => {
+      // The optimize cron (scripts/optimizeVideos.sh) rewrites freshly
+      // uploaded videos IN PLACE (same URL, new bytes) within ~10 minutes.
+      // Serving them immutable/1yr lets the CDN lock in the pre-optimization
+      // copy — origin and CDN then disagree on Content-Length for a year,
+      // which surfaces as 416 Range errors and broken players (bit Mario's
+      // exercise uploads live). Until a video has been stable for 30 min,
+      // make every cache revalidate.
+      if (
+        /\.(mp4|mov|m4v|webm)$/i.test(filePath) &&
+        Date.now() - stat.mtimeMs < 30 * 60 * 1000
+      ) {
+        res.setHeader("Cache-Control", "no-cache");
+      }
+    },
+  })
 );
+// A miss under /uploads must be a real 404. Falling through to the SPA
+// catch-all serves index.html with a 200, and CDN edges then cache that HTML
+// against the media URL for weeks (the mistake-#54 poisoning class) — even
+// after the real file (e.g. a cron-generated thumbnail) appears.
+app.use("/uploads", (_req, res) => {
+  res.status(404).json({ error: "Not found" });
+});
 
 // WeChat Pay callback: the APIv3 signature covers the exact raw bytes, so
 // this must be a dedicated raw-body route registered BEFORE express.json.

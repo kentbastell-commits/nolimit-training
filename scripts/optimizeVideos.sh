@@ -12,7 +12,7 @@ cd "$UP" || exit 1
 
 mkdir -p "$UP/thumbs"
 
-done_n=0; skip_n=0; fail_n=0
+done_n=0; skip_n=0; fail_n=0; purged_urls=""
 for f in ex-*; do
   [ -f "$f" ] || continue
   case "$f" in *.mov|*.mp4|*.m4v) ;; *) continue;; esac
@@ -47,6 +47,7 @@ for f in ex-*; do
     cp -p "$f" "$BAK/$f" 2>/dev/null || true
     mv "$tmp" "$f"
     done_n=$((done_n+1))
+    purged_urls="$purged_urls https://media.trainnolimit.cn/uploads/$f"
     echo "OK $f $((out_size/1048576))MB" >>"$LOG"
   else
     rm -f "$tmp"
@@ -54,6 +55,17 @@ for f in ex-*; do
     echo "FAIL $f (src_dur=$src_dur out_dur=$out_dur size=$out_size)" >>"$LOG"
   fi
 done
+
+# The CDN may have cached the pre-optimization bytes under these URLs the
+# moment a coach viewed them — purge so edges re-pull the rewritten file.
+# Best-effort: purgeCdn.mjs exits 0 (no-op) when creds are absent or the CAM
+# policy lacks cdn purge permission; the origin's no-cache-while-fresh header
+# (server/index.ts /uploads setHeaders) is the backstop.
+if [ -n "${purged_urls:-}" ]; then
+  # shellcheck disable=SC2086
+  /usr/bin/node --env-file=/opt/nolimit-training/.env \
+    /opt/nolimit-training/scripts/purgeCdn.mjs $purged_urls >>"$LOG" 2>&1 || true
+fi
 
 echo "DONE optimized=$done_n skipped=$skip_n failed=$fail_n" | tee -a "$LOG"
 du -sh "$UP" "$BAK" | tee -a "$LOG"

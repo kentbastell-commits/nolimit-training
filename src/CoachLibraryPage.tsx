@@ -16,7 +16,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { parseExerciseCueSections, toMediaCdnUrl, videoThumbnail } from "./appCore";
+import { parseExerciseCueSections, toMediaCdnUrl, uploadThumbUrl, videoThumbnail } from "./appCore";
 
 const BATCH = 60;
 const CAP = 8;
@@ -78,6 +78,12 @@ export default function CoachLibraryPage(props: { [key: string]: any }) {
   const [cueEx, setCueEx] = useState<any>(null);
   const [visibleCount, setVisibleCount] = useState(BATCH);
   const [compactMobile, setCompactMobile] = useState(false);
+  // Cards whose static JPG poster failed to load (thumb not generated yet —
+  // the optimize cron makes them within ~10 min of upload). Those fall back
+  // to the heavier <video preload="metadata"> poster.
+  const [thumbFallbackIds, setThumbFallbackIds] = useState<Set<string>>(
+    () => new Set()
+  );
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
   const all = (libraryExercises as any[]) || [];
@@ -148,7 +154,15 @@ export default function CoachLibraryPage(props: { [key: string]: any }) {
 
   const Card = (e: any) => {
     const col = catCol(e.category);
-    const thumb = videoThumbnail(e.videoUrl || "");
+    const cardKey = String(e.recordId || e.exerciseId || "");
+    const ytThumb = videoThumbnail(e.videoUrl || "");
+    // Self-hosted uploads have a server-generated 480px JPG poster — one
+    // small image per card instead of streaming each video's metadata
+    // (which made the library painfully slow on cross-border connections).
+    const upThumb = thumbFallbackIds.has(cardKey)
+      ? ""
+      : uploadThumbUrl(e.videoUrl || "");
+    const thumb = ytThumb || upThumb;
     const posterVideo = !thumb && isDirectVideo(e.videoUrl || "");
     const cued = hasCues(e);
     return (
@@ -167,7 +181,22 @@ export default function CoachLibraryPage(props: { [key: string]: any }) {
           }}
         >
           {thumb ? (
-            <img className="clThumb" src={thumb} alt="" loading="lazy" />
+            <img
+              className="clThumb"
+              src={thumb}
+              alt=""
+              loading="lazy"
+              onError={
+                upThumb && thumb === upThumb
+                  ? () =>
+                      setThumbFallbackIds((prev) => {
+                        const next = new Set(prev);
+                        next.add(cardKey);
+                        return next;
+                      })
+                  : undefined
+              }
+            />
           ) : posterVideo ? (
             <video
               className="clThumb"
