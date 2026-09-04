@@ -1,7 +1,11 @@
 // Purge Tencent CDN cache for media.trainnolimit.cn.
 //
-//   node --env-file=.env.local scripts/purgeCdn.mjs --path /uploads/
+//   node --env-file=.env.local scripts/purgeCdn.mjs --path "https://media.trainnolimit.cn/uploads/"
 //   node --env-file=.env.local scripts/purgeCdn.mjs https://media.trainnolimit.cn/uploads/ex-abc.mov [...]
+//
+// Always pass FULL URLs from Git Bash on Windows: a bare "/uploads/" gets
+// MSYS-converted to "C:/Program Files/Git/uploads/" before Node sees it,
+// which produced a purge request for the domain "media.trainnolimit.cnC".
 //
 // --path issues a directory purge (PurgePathCache, flush type "delete" so
 // edges re-pull from origin); bare URLs issue PurgeUrlsCache. Uses the same
