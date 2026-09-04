@@ -723,6 +723,24 @@ data between them, never "borrow" a table ID across products.
     blank card — reset any such index explicitly on every new entry point,
     never assume it starts at a sane default just because `useState(0)` said so.
 
+62. **The in-place rewrite under an immutable cache** — `optimizeVideos.sh`
+    (10-min cron) recompresses uploaded videos IN PLACE (same URL, new
+    bytes) while `/uploads` serves `Cache-Control: immutable, max-age=1yr` —
+    so the CDN locked in whichever bytes it saw first: confirmed live with
+    one URL serving 16.1MB from the CDN and 6.6MB from origin, surfacing as
+    416 Range errors, refetch storms, and broken exercise videos (Mario's
+    Aug-25/27 uploads). Rule: a URL is immutable only if its bytes are —
+    any pipeline that rewrites a served file in place must either purge the
+    CDN per rewrite (`scripts/purgeCdn.mjs`, needs cdn CAM permission on
+    the COS key) or the origin must serve `no-cache` until the file is
+    stable (server/index.ts does this for videos <30 min old). Twin fact
+    rediscovered: an `/uploads` miss fell through to the SPA catch-all as
+    200+HTML (mistake #54's poisoning class) — now a real 404 in
+    server/index.ts; keep it that way. And when a "videos are slow/broken"
+    report comes in: diff `curl -sI` origin vs media CDN for the same URL
+    FIRST (Content-Length + Last-Modified) — a mismatch is this bug in one
+    command.
+
 ## Quality bar — checkable, per deliverable
 
 **Any shipped code change**
