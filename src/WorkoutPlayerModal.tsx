@@ -5,6 +5,7 @@ import { stripLocalizedExerciseMeta } from "./appCore";
 import "./WorkoutPlayerModal.css";
 import { Check, ChevronLeft, ChevronRight, ClipboardList, Clock3, Dumbbell, Film, HeartPulse, MessageSquare, MoreVertical, Play, RefreshCw, Shuffle, SquarePen, Target, Timer, Trash2, Trophy, Waves, X } from "lucide-react";
 import { getDisplayTaskStatus, isDirectMediaUrl, makeExerciseLabel, parseExerciseNotes, toMediaCdnUrl, uploadThumbUrl, videoThumbnail } from "./appCore";
+import ContentWatermark from "./ContentWatermark";
 
 // Category → colourful icon for the player header (mirrors PortalHome).
 const CAT_ICON: Record<string, any> = {
@@ -130,6 +131,7 @@ export default function WorkoutPlayerModal({
               isClientPortal ? " clientWorkoutPlayerOverlay" : " clientPortalApp"
             }`}
           >
+            {isClientPortal && <ContentWatermark />}
             <div
               className={`workout-modal${
                 coachReviewMode ? " coachReviewModal" : ""

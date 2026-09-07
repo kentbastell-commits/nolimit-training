@@ -1,0 +1,12 @@
+/* Identity watermark overlay: covers the nearest positioned ancestor (the
+   player modal / program page container), never intercepts input, and sits
+   above content but below interactive overlays (toasts are 1200+, action
+   menus 1500+). The tile's gray is mid-tone + low alpha so it stays faint
+   on both light and dark surfaces. */
+.contentWatermark {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 60;
+  background-repeat: repeat;
+}
