@@ -741,6 +741,24 @@ data between them, never "borrow" a table ID across products.
     FIRST (Content-Length + Last-Modified) — a mismatch is this bug in one
     command.
 
+63. **The backfill that wrote to the wrong database** (#45's data-script
+    sibling) — integrate-exercise-library.mjs uploaded 62 videos to PROD
+    (via the live HTTPS endpoint) but did its DB writes through
+    `--env-file=.env`, whose DATABASE_URL is LOCALHOST on this repo. It
+    reported "28 replaced, 34 created, 0 failed" — all true, all in the
+    dev database. Prod showed nothing for 6 days; the finished videos sat
+    as "orphaned files" until a video audit stumbled on the mismatch. The
+    mixed transport is what made it invisible: the HTTP half really did
+    hit prod, so spot-checking an uploaded file URL "worked". Rules: a
+    script that mixes live-API calls with direct DB writes must point BOTH
+    at the same environment, and a prod backfill is verified by READING
+    PROD after the run (live endpoint or prod DB query for the exact rows
+    written) — never by the script's own success output. Recovery
+    procedure that worked: export the intended rows from the local DB,
+    ship as JSON, apply server-side with per-row guards (file-exists on
+    prod disk, never overwrite non-empty prod values, skip existing IDs)
+    and a --dry mode first.
+
 ## Quality bar — checkable, per deliverable
 
 **Any shipped code change**
