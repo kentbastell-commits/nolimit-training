@@ -16,6 +16,7 @@ import { AttachmentLink, ThreadBody, fileLabel } from "./components";
 import { opsText } from "./copy";
 import { TranslatableText } from "./TranslatableText";
 import { formatOpsDate } from "./utils";
+import { reportClientEvent } from "../telemetry";
 import type {
   CompanyOpsLanguage,
   CompanyOpsUser,
@@ -98,6 +99,7 @@ export default function WarRoomPage({
   const [replyFiles, setReplyFiles] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
+  const [actionError, setActionError] = useState("");
 
   // Reuses the shared-assets uploader the Article Builder already uses, so
   // attachments land in the same Feishu folder the team browses.
@@ -124,6 +126,15 @@ export default function WarRoomPage({
   const [localVotes, setLocalVotes] = useState<Record<string, boolean>>({});
   const [localReplies, setLocalReplies] = useState<Record<string, ThreadEntry[]>>({});
   const [justPosted, setJustPosted] = useState<OpsIdeaItem[]>([]);
+  const [busyVotes, setBusyVotes] = useState<Set<string>>(() => new Set());
+  const [statusBusy, setStatusBusy] = useState<string | null>(null);
+
+  const showActionError = (event: string, error: unknown, message: string) => {
+    setActionError(message);
+    reportClientEvent("api_fail", event, {
+      message: error instanceof Error ? error.message : String(error || message),
+    });
+  };
 
   const merged = useMemo(() => {
     const known = new Set(ideas.map((item) => item.id));
@@ -144,12 +155,15 @@ export default function WarRoomPage({
   const submitIdea = async () => {
     const text = draft.trim();
     if (!text || posting) return;
+    const submittedDetail = detail.trim();
+    const submittedFiles = [...files];
     setPosting(true);
+    setActionError("");
     const optimistic: OpsIdeaItem = {
       id: `pending-${Date.now()}`,
       idea: text,
-      detail: detail.trim() || undefined,
-      attachments: files,
+      detail: submittedDetail || undefined,
+      attachments: submittedFiles,
       category: draftCategory,
       status: "新 New",
       raisedBy: user?.name,
@@ -165,8 +179,15 @@ export default function WarRoomPage({
     setDetail("");
     setDetailOpen(false);
     try {
-      await onCreate(text, draftCategory, optimistic.detail, files);
+      await onCreate(text, draftCategory, optimistic.detail, submittedFiles);
       setFiles([]);
+    } catch (error) {
+      setJustPosted((current) => current.filter((item) => item.id !== optimistic.id));
+      setDraft(text);
+      setDetail(submittedDetail);
+      setDetailOpen(Boolean(submittedDetail));
+      setFiles(submittedFiles);
+      showActionError("company_ops_warroom_create_failed", error, opsText(language, "warRoomPostFailed"));
     } finally {
       setPosting(false);
     }
@@ -175,28 +196,69 @@ export default function WarRoomPage({
   const submitReply = async (ideaId: string) => {
     const text = reply.trim();
     if ((!text && !replyFiles.length) || replying) return;
+    const submittedFiles = [...replyFiles];
+    const optimisticReply: ThreadEntry = {
+      stamp: new Date(Date.now() + 8 * 3_600_000).toISOString().slice(0, 16).replace("T", " "),
+      author: user?.name || "",
+      body: text,
+    };
     setReplying(true);
-    const stamp = new Date(Date.now() + 8 * 3_600_000).toISOString().slice(0, 16).replace("T", " ");
+    setActionError("");
     setLocalReplies((current) => ({
       ...current,
-      [ideaId]: [...(current[ideaId] || []), { stamp, author: user?.name || "", body: text }],
+      [ideaId]: [...(current[ideaId] || []), optimisticReply],
     }));
     setReply("");
     try {
-      await onReply(ideaId, text, replyFiles);
+      await onReply(ideaId, text, submittedFiles);
       setReplyFiles([]);
+    } catch (error) {
+      setLocalReplies((current) => ({
+        ...current,
+        [ideaId]: (current[ideaId] || []).filter((entry) => entry !== optimisticReply),
+      }));
+      setReply(text);
+      setReplyFiles(submittedFiles);
+      showActionError("company_ops_warroom_reply_failed", error, opsText(language, "warRoomReplyFailed"));
     } finally {
       setReplying(false);
     }
   };
 
   const toggleVote = async (item: OpsIdeaItem) => {
-    if (item.pending) return;
+    if (item.pending || busyVotes.has(item.id)) return;
+    const previous = localVotes[item.id] ?? item.hasVoted;
+    setActionError("");
+    setBusyVotes((current) => new Set(current).add(item.id));
     setLocalVotes((current) => ({
       ...current,
-      [item.id]: !(current[item.id] ?? item.hasVoted),
+      [item.id]: !previous,
     }));
-    await onVote(item.id);
+    try {
+      await onVote(item.id);
+    } catch (error) {
+      setLocalVotes((current) => ({ ...current, [item.id]: previous }));
+      showActionError("company_ops_warroom_vote_failed", error, opsText(language, "warRoomVoteFailed"));
+    } finally {
+      setBusyVotes((current) => {
+        const next = new Set(current);
+        next.delete(item.id);
+        return next;
+      });
+    }
+  };
+
+  const changeStatus = async (ideaId: string, status: string) => {
+    if (statusBusy === ideaId) return;
+    setActionError("");
+    setStatusBusy(ideaId);
+    try {
+      await onStatus(ideaId, status);
+    } catch (error) {
+      showActionError("company_ops_warroom_status_failed", error, opsText(language, "warRoomStatusFailed"));
+    } finally {
+      setStatusBusy(null);
+    }
   };
 
   return (
@@ -214,6 +276,12 @@ export default function WarRoomPage({
           </div>
         </header>
 
+        {actionError ? (
+          <p className="fopsInlineNotice fopsInlineNotice--error" role="alert">
+            {actionError}
+          </p>
+        ) : null}
+
         <div className="fopsWarCapture">
           <div className="fopsWarCaptureRow">
             <Plus size={17} aria-hidden="true" />
@@ -228,6 +296,7 @@ export default function WarRoomPage({
               }}
               placeholder={opsText(language, "warRoomPlaceholder")}
               aria-label={opsText(language, "warRoomPlaceholder")}
+              disabled={posting}
             />
             <label
               className="fopsWarAttachIcon"
@@ -243,13 +312,14 @@ export default function WarRoomPage({
                   if (file) void upload(file, "idea");
                   event.target.value = "";
                 }}
-                disabled={uploading}
+                disabled={uploading || posting}
               />
             </label>
             <select
               value={draftCategory}
               onChange={(event) => setDraftCategory(event.target.value)}
               aria-label={opsText(language, "warRoomCategory")}
+              disabled={posting}
             >
               {CATEGORIES.map((entry) => (
                 <option value={entry.value} key={entry.value}>
@@ -261,7 +331,7 @@ export default function WarRoomPage({
               type="button"
               className="fopsButton fopsButton--primary fopsButton--compact"
               onClick={() => void submitIdea()}
-              disabled={!draft.trim()}
+              disabled={!draft.trim() || posting || uploading}
             >
               {opsText(language, "warRoomPost")}
             </button>
@@ -290,6 +360,7 @@ export default function WarRoomPage({
               value={detail}
               onChange={(event) => setDetail(event.target.value)}
               placeholder={opsText(language, "warRoomDetailPlaceholder")}
+              disabled={posting}
             />
           ) : (
             <button type="button" className="fopsWarDetailToggle" onClick={() => setDetailOpen(true)}>
@@ -344,7 +415,7 @@ export default function WarRoomPage({
                       className={`fopsWarVote${voted ? " is-voted" : ""}`}
                       onClick={() => void toggleVote(item)}
                       aria-label={opsText(language, "warRoomVote")}
-                      disabled={item.pending}
+                      disabled={item.pending || busyVotes.has(item.id)}
                     >
                       <TrendingUp size={14} aria-hidden="true" />
                       <b>{voteCount}</b>
@@ -422,6 +493,7 @@ export default function WarRoomPage({
                           }}
                           placeholder={opsText(language, "warRoomReplyPlaceholder")}
                           aria-label={opsText(language, "warRoomReplyPlaceholder")}
+                          disabled={replying}
                         />
                         <label className="fopsWarAttachBtn fopsWarAttachBtn--inline">
                           <Paperclip size={14} aria-hidden="true" />
@@ -433,7 +505,7 @@ export default function WarRoomPage({
                               if (file) void upload(file, "reply");
                               event.target.value = "";
                             }}
-                            disabled={uploading}
+                            disabled={uploading || replying}
                           />
                         </label>
                         <button
@@ -450,8 +522,9 @@ export default function WarRoomPage({
                         {isFounder ? (
                           <select
                             value={item.status || "新 New"}
-                            onChange={(event) => void onStatus(item.id, event.target.value)}
+                            onChange={(event) => void changeStatus(item.id, event.target.value)}
                             aria-label={opsText(language, "warRoomStatus")}
+                            disabled={statusBusy === item.id}
                           >
                             {STATUSES.map((entry) => (
                               <option value={entry.value} key={entry.value}>

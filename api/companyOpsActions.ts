@@ -14,6 +14,7 @@ import {
   publicCompanyOpsError,
   type CompanyOpsPrincipal,
 } from "../server/companyOps/repository.ts";
+import { FeishuApiError } from "../server/companyOps/feishuClient.ts";
 import {
   PRINCIPAL_TTL_MS,
   invalidateCompanyOpsDashboards,
@@ -32,6 +33,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
+  let actionName = "unknown";
   try {
     const config = getCompanyOpsConfig();
     assertCompanyOpsAuthConfigured(config);
@@ -48,6 +50,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (typeof body.action !== "string" || !body.action) {
       return res.status(400).json({ error: "action is required" });
     }
+    actionName = body.action;
     const payload = bodyObject(body.payload);
     const repository = createCompanyOpsRepository(config);
     const principalKey = principalCacheKey(session.openId);
@@ -70,7 +73,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       id: result.recordId,
     });
   } catch (error) {
+    if (error instanceof FeishuApiError) {
+      // Preserve the diagnostic Feishu intentionally gives us without
+      // logging request payloads, staff identity, credentials, or record data.
+      console.error("[company-ops] Feishu action failed", {
+        action: actionName,
+        status: error.status,
+        code: error.code,
+        requestId: error.requestId,
+      });
+    }
     const safe = publicCompanyOpsError(error);
-    return res.status(safe.status).json({ error: safe.message, message: safe.message });
+    return res.status(safe.status).json({
+      error: safe.message,
+      message: safe.message,
+      ...(error instanceof FeishuApiError ? { code: "FEISHU_UNAVAILABLE" } : {}),
+    });
   }
 }

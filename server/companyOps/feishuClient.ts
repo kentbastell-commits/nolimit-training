@@ -234,9 +234,11 @@ export class FeishuClient {
 
   private async tenantRequest(path: string, init: RequestInit = {}): Promise<JsonMap> {
     // 1254607 is Feishu throttling after a burst (the dashboard reads ~17
-    // tables at once) — transient by definition. Retry READS once after a
-    // pause; never retry writes, where a redo could duplicate a record.
-    const isRead = !init.method || init.method.toUpperCase() === "GET";
+    // tables at once) — transient by definition. Retry reads and idempotent
+    // PUT updates once after a pause. Never retry POST writes, where a lost
+    // response followed by a redo could duplicate a record.
+    const method = (init.method || "GET").toUpperCase();
+    const canRetryThrottle = method === "GET" || method === "PUT";
     for (let attempt = 1; ; attempt++) {
       const token = await this.getTenantAccessToken();
       const response = await this.fetcher(
@@ -254,7 +256,7 @@ export class FeishuClient {
         return assertFeishuSuccess(response, await parseJson(response));
       } catch (error) {
         const code = (error as { code?: number }).code;
-        if (isRead && code === 1254607 && attempt === 1) {
+        if (canRetryThrottle && code === 1254607 && attempt === 1) {
           await new Promise((resolve) => setTimeout(resolve, 1_500));
           continue;
         }
