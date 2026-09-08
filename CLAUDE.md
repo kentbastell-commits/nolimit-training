@@ -460,6 +460,14 @@ data between them, never "borrow" a table ID across products.
     src/companyOps/api.ts is an explicit field WHITELIST, so a new dashboard
     field the server emits is silently dropped client-side until it's added
     there too. Server payload + client types + page are not enough.
+    Corollary (caught in review 2026-09-08, never shipped): REMOVING a
+    prefill is a data-contract change too. The workout player stopped
+    prefilling actual reps from the prescription (good UI: never echo the
+    target as if logged), but the submit sent `actualReps` verbatim, so a
+    ✓-only set would have stored "" → 0 reps in volume, PRs and coach
+    review. Rule: when a field stops being prefilled, trace the "user
+    touched nothing but confirmed" path to the writer and resolve the
+    default AT SUBMIT (see `resolvedLogs` in App.tsx), not in the input.
 
 44. **The lifecycle-destroyed draft** — the WeChat mini program
     (`c:\Users\kentb\nolimit-miniprogram`, a THIRD repo) held a whole 45-90
