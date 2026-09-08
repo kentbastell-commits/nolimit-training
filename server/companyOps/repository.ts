@@ -514,9 +514,15 @@ const FOOTAGE_STATUS_OPTIONS: Record<string, string> = {
   "to film": "需拍摄 To Film",
   "需拍摄": "需拍摄 To Film",
   "需拍摄 to film": "需拍摄 To Film",
-  "filming": "拍摄中 Filming",
-  "拍摄中": "拍摄中 Filming",
-  "拍摄中 filming": "拍摄中 Filming",
+  // Flow (Kent, 2026-09-08): idea → film → organise/upload to COS → edit →
+  // footage ready. "拍摄中 Filming" was redundant with To Film and is kept only
+  // as a legacy alias that resolves to To Film.
+  "filming": "需拍摄 To Film",
+  "拍摄中": "需拍摄 To Film",
+  "拍摄中 filming": "需拍摄 To Film",
+  "to edit": "待剪辑 To Edit",
+  "待剪辑": "待剪辑 To Edit",
+  "待剪辑 to edit": "待剪辑 To Edit",
   "footage ready": "已有素材 Footage Ready",
   "已有素材": "已有素材 Footage Ready",
   "已有素材 footage ready": "已有素材 Footage Ready",

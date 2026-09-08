@@ -705,6 +705,26 @@ describe("Company Operations quick-action Feishu contracts", () => {
     ).rejects.toThrow(/platform/);
   });
 
+  it("maps footage status to the four-step flow and folds the retired Filming value into To Film", async () => {
+    const record: FeishuRecord = { record_id: "recContent1", fields: { "内容 Content": "Footwork drill" } };
+    const fields = [...contentFields, field("素材状态 Footage Status", 3)];
+    const { repository, updated } = repositoryHarness({ tblContent: [record] }, { tblContent: fields });
+
+    await repository.performAction(growthPrincipal, {
+      action: "update_content",
+      payload: { contentId: record.record_id, footageStatus: "to edit" },
+    });
+    await repository.performAction(growthPrincipal, {
+      action: "update_content",
+      payload: { contentId: record.record_id, footageStatus: "拍摄中 Filming" },
+    });
+
+    expect(updated.map((u) => u.fields["素材状态 Footage Status"])).toEqual([
+      "待剪辑 To Edit",
+      "需拍摄 To Film",
+    ]);
+  });
+
   it("stores a lead with supported select values and cannot be client-promoted", async () => {
     const { repository, created } = repositoryHarness({}, {
       tblLead: leadFields,

@@ -146,25 +146,35 @@ const FUNNEL_CHOICES = [
   "复购/留存 Retention",
 ] as const;
 
+// Footage flow (Kent, 2026-09-08): idea → film → organise/upload to COS →
+// edit → footage ready. The pill cycles in that order; "无需拍摄" opts out.
 const FOOTAGE_CHOICES = [
   "需拍摄 To Film",
-  "拍摄中 Filming",
+  "待剪辑 To Edit",
   "已有素材 Footage Ready",
   "无需拍摄 No Filming Needed",
 ] as const;
 
-const footageClass = (value?: string): string =>
-  !value
+// Records written before 2026-09-08 may still carry the retired
+// "拍摄中 Filming" value; it means the same as To Film everywhere.
+const normalizeFootage = (value?: string): string | undefined =>
+  value && value.includes("拍摄中") ? FOOTAGE_CHOICES[0] : value;
+
+const footageClass = (raw?: string): string => {
+  const value = normalizeFootage(raw);
+  return !value
     ? "is-unset"
     : value.includes("需拍摄")
       ? "is-tofilm"
-      : value.includes("拍摄中")
-        ? "is-filming"
+      : value.includes("待剪辑")
+        ? "is-toedit"
         : value.includes("已有素材")
           ? "is-ready"
           : "is-skip";
+};
 
-const footageDisplay = (language: CompanyOpsLanguage, value?: string): string => {
+const footageDisplay = (language: CompanyOpsLanguage, raw?: string): string => {
+  const value = normalizeFootage(raw);
   if (!value) return language === "zh" ? "定素材状态" : "Set footage";
   const [zh, ...rest] = value.split(" ");
   return language === "zh" ? zh : rest.join(" ") || value;
@@ -258,7 +268,12 @@ function Editor({
     const raw = item[key];
     return typeof raw === "string" ? raw : "";
   };
-  const value = (key: string): string => draft[key] ?? stringOf(key as keyof OpsContentFullItem);
+  const value = (key: string): string => {
+    const current = draft[key] ?? stringOf(key as keyof OpsContentFullItem);
+    // A retired legacy value would make the <select> DISPLAY the first option
+    // while holding something else (named mistake #21) — show it as To Film.
+    return key === "footageStatus" ? normalizeFootage(current) || "" : current;
+  };
   const set = (key: string, next: string) => setDraft((all) => ({ ...all, [key]: next }));
   const dirty = Object.keys(draft).length > 0 || publishTime !== timeOf(item.publishDate);
 
@@ -635,7 +650,7 @@ export default function ContentCalendarPage({
   };
 
   const cycleFootage = (item: OpsContentFullItem) => {
-    const index = FOOTAGE_CHOICES.findIndex((choice) => choice === item.footageStatus);
+    const index = FOOTAGE_CHOICES.findIndex((choice) => choice === normalizeFootage(item.footageStatus));
     void save(item.id, { footageStatus: FOOTAGE_CHOICES[(index + 1) % FOOTAGE_CHOICES.length] });
   };
 
@@ -983,8 +998,12 @@ export default function ContentCalendarPage({
               const weekEnd = new Date(weekStart);
               weekEnd.setDate(weekStart.getDate() + 6);
               const isThisWeek = weekKey === dayKey(new Date(new Date().setDate(new Date().getDate() - ((new Date().getDay() + 6) % 7))));
-              const needsFilming = weekItems.filter(
-                (item) => !item.footageStatus || item.footageStatus.includes("需拍摄") || item.footageStatus.includes("拍摄中"),
+              const needsFilming = weekItems.filter((item) => {
+                const value = normalizeFootage(item.footageStatus);
+                return !value || value.includes("需拍摄");
+              }).length;
+              const needsEditing = weekItems.filter((item) =>
+                (normalizeFootage(item.footageStatus) || "").includes("待剪辑"),
               ).length;
               return (
                 <section className="fopsCalPlanWeek" key={weekKey}>
@@ -996,8 +1015,13 @@ export default function ContentCalendarPage({
                       <span className="fopsCalPlanNow">{text(language, "This week", "本周")}</span>
                     ) : null}
                     <span className="fopsCalPlanCount">
-                      {needsFilming
-                        ? `${needsFilming} ${text(language, "need footage", "待解决素材")}`
+                      {needsFilming || needsEditing
+                        ? [
+                            needsFilming ? `${needsFilming} ${text(language, "to film", "待拍摄")}` : "",
+                            needsEditing ? `${needsEditing} ${text(language, "to edit", "待剪辑")}` : "",
+                          ]
+                            .filter(Boolean)
+                            .join(" · ")
                         : text(language, "footage sorted", "素材已就绪")}
                     </span>
                   </header>

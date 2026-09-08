@@ -5093,7 +5093,7 @@ a.fopsOnboardingTaskLink:hover strong {
   background: rgb(192 69 50 / 10%);
   color: #a12c22;
 }
-.fopsFootagePill.is-filming {
+.fopsFootagePill.is-toedit {
   border-color: var(--fops-gold-dark);
   background: rgb(201 168 76 / 14%);
   color: var(--fops-gold-dark);

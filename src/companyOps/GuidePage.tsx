@@ -119,8 +119,8 @@ const SECTIONS: GuideSection[] = [
         zh: "未来内容按周分组，每周显示「N 条待解决素材」。",
       },
       {
-        en: "Tap the pill on each row to cycle footage status: 需拍摄 To Film → 拍摄中 Filming → 已有素材 Footage Ready → 无需拍摄.",
-        zh: "点每行的状态胶囊切换素材状态：需拍摄 → 拍摄中 → 已有素材 → 无需拍摄。",
+        en: "Tap the pill on each row to cycle footage status: 需拍摄 To Film → 待剪辑 To Edit → 已有素材 Footage Ready → 无需拍摄 No Filming Needed. That mirrors the flow: idea → film → organise and upload to COS → edit → footage ready.",
+        zh: "点每行的状态胶囊切换素材状态：需拍摄 → 待剪辑 → 已有素材 → 无需拍摄。对应流程：想法 → 拍摄 → 整理并上传 COS → 剪辑 → 素材就绪。",
       },
       {
         en: "Open a card and write “Filming notes” describing exactly what to shoot (angles, location, who's on camera, how many seconds). The clearer the note, the better the footage.",
