@@ -66,6 +66,12 @@ Pre-shoot camera check: ratio 16:9, 4K, framerate. Square footage crops to
 
 ## Reframing the square 2026-08-08 shoot (16:9 + 9:16)
 
+The current approved per-format workflow, output folders, exceptions, and QA
+rules are in `docs/footage-reframing-runbook.md`. Read that file before running
+the older shared batch command below. In particular, its generic 16:9 crop has
+been superseded by `framing-decisions-16x9.mjs` and
+`local-render-16x9.mjs`; do not use `edited\16x9` as the final library.
+
 Local pipeline, built 2026-08-17 (Kent-approved framing):
 
 ```bash

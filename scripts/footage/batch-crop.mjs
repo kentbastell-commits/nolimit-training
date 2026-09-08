@@ -16,8 +16,9 @@
 //   node scripts/footage/batch-crop.mjs <srcDir> <outDir> <measurements.json>
 import { execFile } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
-import { join, basename } from "node:path";
+import { join } from "node:path";
 import { promisify } from "node:util";
+import { canonicalOutputTitle } from "./canonical-output-titles.mjs";
 
 const run = promisify(execFile);
 const SRC = process.argv[2] || "C:\\Users\\kentb\\Videos\\nolimit-footage\\2026-08-08";
@@ -57,7 +58,7 @@ console.log(`${measures.length} clips to encode (x2 formats)`);
 const jobs = [];
 for (const m of measures) {
   const src = join(SRC, m.clip);
-  const base = basename(m.clip, ".MP4");
+  const base = canonicalOutputTitle(m.clip);
   const { c169, c916 } = crops(m);
   jobs.push(
     { src, vf: c169, dest: join(OUT, "16x9", `${base}_16x9.mp4`), label: `${base} 16x9` },

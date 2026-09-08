@@ -48,7 +48,7 @@ export function authorization({ method, pathname, params = {}, headers = {} }) {
   ].join("&");
 }
 
-export async function cos({ method = "GET", host, pathname = "/", params = {}, body, extraHeaders = {} }) {
+export async function cos({ method = "GET", host, pathname = "/", params = {}, body, extraHeaders = {}, signal }) {
   const headers = { host, ...extraHeaders };
   const auth = authorization({ method, pathname, params, headers });
   const query = Object.entries(params)
@@ -59,6 +59,7 @@ export async function cos({ method = "GET", host, pathname = "/", params = {}, b
     method,
     headers: { Authorization: auth, ...extraHeaders },
     body,
+    signal,
   });
   return res;
 }

@@ -1,0 +1,3 @@
+# Codex project instructions
+
+Before working on exercise footage, read `docs/footage-reframing-runbook.md` in full. It is the canonical record of the approved 9:16 and 16:9 workflows, framing decisions, audio rules, output locations, and QA requirements. Its future-edit decision process and full-duration visual/technical QA gates are mandatory: measure the complete technique-critical motion envelope, render a candidate, and verify movement extremes before replacing a master. Do not replace its per-clip decisions with a generic center crop or use a paid reframe service unless Kent explicitly authorizes new spending.

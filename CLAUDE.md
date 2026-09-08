@@ -14,6 +14,16 @@ one edit uncommitted in the working tree and move on), `git diff --no-index base
 fix the diff's path headers to point at the real file, then `git apply --cached
 --check` and `git apply --cached` to stage cleanly without touching the working tree.
 
+## Exercise footage
+
+Before touching exercise footage, read `docs/footage-reframing-runbook.md` in full.
+It is the canonical record of the approved 9:16 and 16:9 framing, audio, output,
+and QA workflow. Follow its future-edit decision process and mandatory full-duration
+QA gates: measure the complete technique-critical motion envelope, render a working
+candidate, and inspect movement extremes before replacing a master. Do not substitute
+a generic center crop or spend paid reframe credits unless Kent explicitly authorizes
+that run.
+
 ## The two products
 
 | | nolimit-training (this repo) | kangfu-zhuanjia (`c:\Users\kentb\kangfu-zhuanjia`) |
