@@ -12,8 +12,8 @@
 //
 // Re-runnable: a file already in dest with the same byte size is skipped.
 // One bad file never sinks the batch; failures are listed at the end.
-import { copyFileSync, existsSync, mkdirSync, readFileSync, statSync, unlinkSync } from "node:fs";
-import { basename, join } from "node:path";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, statSync, unlinkSync } from "node:fs";
+import { basename, dirname, join } from "node:path";
 import { execFileSync, execSync } from "node:child_process";
 
 // Stop before the system drive is full: this box had 59GB free against a
@@ -43,14 +43,32 @@ const names = [...new Set(
 )];
 mkdirSync(DEST, { recursive: true });
 
+// Expected sizes come from the review manifests (recorded BEFORE any
+// hydration). A network drop mid-hydration was seen (2026-09-08) to leave a
+// placeholder reporting a SMALLER size than the real file — copying it then
+// "succeeds" with a truncated video. Anything whose current size disagrees
+// with the manifest is skipped and listed, never saved.
+const expectedBytes = new Map();
+const reviewRoot = dirname(listFile);
+if (existsSync(reviewRoot)) {
+  for (const d of readdirSync(reviewRoot)) {
+    const mf = join(reviewRoot, d, "manifest.json");
+    if (!/^\d{4}-\d{2}-\d{2}_/.test(d) || !existsSync(mf)) continue;
+    const rows = JSON.parse(readFileSync(mf, "utf8").replace(/^﻿/, ""));
+    for (const row of Array.isArray(rows) ? rows : [rows]) expectedBytes.set(row.name, Number(row.bytes) || 0);
+  }
+}
+
 let totalBytes = 0;
 const plan = [];
 for (const name of names) {
   const src = join(ROOT, name);
   if (!existsSync(src)) { plan.push({ name, status: "missing" }); continue; }
-  const size = statSync(src).size;
+  const current = statSync(src).size;
+  const size = expectedBytes.get(name) ?? current;
   const dst = join(DEST, name);
   if (existsSync(dst) && statSync(dst).size === size) { plan.push({ name, status: "already" }); continue; }
+  if (current !== size) { plan.push({ name, status: "damaged", size, current }); continue; }
   totalBytes += size;
   plan.push({ name, status: "fetch", src, dst, size });
 }
@@ -61,6 +79,11 @@ console.log(
   `${plan.filter((p) => p.status === "missing").length} not found in iCloud folder`,
 );
 for (const p of plan.filter((p) => p.status === "missing")) console.log(`  missing: ${p.name}`);
+const damaged = plan.filter((p) => p.status === "damaged");
+if (damaged.length) {
+  console.log(`${damaged.length} skipped: local placeholder size differs from the manifest (damaged by an interrupted download — iCloud usually repairs these on its own; re-run later):`);
+  for (const p of damaged) console.log(`  damaged: ${p.name}  expected ${p.size}, placeholder now ${p.current}`);
+}
 if (DRY) { console.log("dry run — nothing copied"); process.exit(0); }
 
 const failed = [];
