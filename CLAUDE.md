@@ -643,6 +643,16 @@ data between them, never "borrow" a table ID across products.
     wrapper class (`*V2` under `*V3`), diff the wrapper's inherited layout
     properties (display/flex rules), not just the visual ones — same family
     as #18/#25, found only by measuring `getBoundingClientRect` at 390px.
+    Corollary (content-calendar month view, 2026-09-08): a grid track of
+    bare `1fr` is `minmax(auto, 1fr)` — its MINIMUM is the content's
+    min-content width — so one long `white-space: nowrap` chip title
+    stretched its weekday column to ~1100px and crushed the other six,
+    while `text-overflow: ellipsis` never fired because no ancestor in the
+    chain (track → cell → flex chip → title) had `min-width: 0`. Rule:
+    equal-column grids are `repeat(n, minmax(0, 1fr))`, and every flex/grid
+    child that must truncate carries `min-width: 0` all the way down. Verify
+    by rendering the BUILT CSS chunk with a deliberately long title and
+    asserting the column widths are equal, not by reading the stylesheet.
 
 56. **The one serializer Feishu does not share** — Bitable's current create-field
     API expects `description: { text, disable_sync }`, while a field nested in
