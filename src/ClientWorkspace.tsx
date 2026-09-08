@@ -502,7 +502,7 @@ export default function ClientWorkspace({
                     onClick={() => setClientTab("Store")}
                   >
                     <ShoppingBag size={21} strokeWidth={2.2} />
-                    <span>{paceZh ? "商店" : "Store"}</span>
+                    <span>{t("store")}</span>
                   </button>
                   <button
                     className={clientTab === "Overview" ? "active" : ""}

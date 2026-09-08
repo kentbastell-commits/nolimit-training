@@ -1,6 +1,6 @@
 // Extracted from App.tsx (monolith split) — JSX verbatim; props threaded.
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { stripLocalizedExerciseMeta } from "./appCore";
 import "./WorkoutPlayerModal.css";
 import { Check, ChevronLeft, ChevronRight, ClipboardList, Clock3, Dumbbell, Film, HeartPulse, MessageSquare, MoreVertical, Play, RefreshCw, Shuffle, SquarePen, Target, Timer, Trash2, Trophy, Waves, X } from "lucide-react";
@@ -21,6 +21,7 @@ const catIcon = (cc?: string) => CAT_ICON[cc || ""] || Dumbbell;
 export default function WorkoutPlayerModal({
   getLabelColorClass,
   t,
+  canRepeatPreviousWorkoutSet,
   checkAndSaveWorkoutSet,
   checkedWorkoutPageItems,
   clientReviewMode,
@@ -55,6 +56,7 @@ export default function WorkoutPlayerModal({
   openWorkoutExerciseFromGlance,
   openWorkoutProgramInBuilder,
   openWorkoutFinish,
+  closeWorkoutPlayer,
   originalExercisesRef,
   paceZh,
   resetWodState,
@@ -75,21 +77,17 @@ export default function WorkoutPlayerModal({
   setLogs,
   setOpenWorkoutActionMenuId,
   setRestTimer,
-  setSavedExerciseDraftIds,
-  setSelectedWorkout,
-  setSetLogs,
   setTechnicalCueExercise,
   setWodRounds,
   setWodTimer,
-  setWorkoutDetails,
   setWorkoutFocusMode,
   setWorkoutFocusSetRound,
-  setWorkoutHistoryLogs,
   setWorkoutLoggingStarted,
   setWorkoutSubmissionNote,
   setWorkoutVideoOverlay,
   startRestTimer,
   toggleWorkoutReviewed,
+  repeatPreviousWorkoutSet,
   updateSetLog,
   updateWorkoutDate,
   updatingWorkoutDate,
@@ -105,6 +103,7 @@ export default function WorkoutPlayerModal({
   workoutFocusSetRound,
   workoutGroupTitle,
   workoutLoggingStarted,
+  workoutDraftStatus,
   workoutSetCheckKey,
   workoutSubmissionNote,
 }: { [key: string]: any }) {
@@ -120,6 +119,68 @@ export default function WorkoutPlayerModal({
   const [noteSentFor, setNoteSentFor] = useState<string[]>([]);
   // occurrence id -> reason label ("" while choosing)
   const [skippedExercises, setSkippedExercises] = useState<Record<string, string>>({});
+
+  // Prevent the screen dimming during a live session. The browser can release
+  // a wake lock when the tab is backgrounded, so reacquire it on return.
+  useEffect(() => {
+    if (!isClientPortal || coachReviewMode || clientReviewMode) return;
+    type ScreenWakeLock = { released?: boolean; release: () => Promise<void> };
+    type WakeLockNavigator = Navigator & {
+      wakeLock?: { request: (type: "screen") => Promise<ScreenWakeLock> };
+    };
+    let sentinel: ScreenWakeLock | null = null;
+    let disposed = false;
+    const acquire = async () => {
+      if (disposed || sentinel || document.visibilityState !== "visible") return;
+      try {
+        sentinel = await (navigator as WakeLockNavigator).wakeLock?.request(
+          "screen"
+        ) || null;
+        // The modal may have unmounted while request() was pending; a lock
+        // resolved after cleanup would otherwise never be released.
+        if (disposed) {
+          void sentinel?.release().catch(() => {});
+          sentinel = null;
+        }
+      } catch {
+        // Wake Lock is best-effort (unsupported, low battery, or permission).
+      }
+    };
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        sentinel = null;
+        void acquire();
+      }
+    };
+    void acquire();
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => {
+      disposed = true;
+      document.removeEventListener("visibilitychange", handleVisibility);
+      void sentinel?.release().catch(() => {});
+      sentinel = null;
+    };
+  }, [clientReviewMode, coachReviewMode, isClientPortal]);
+
+  const advanceFromWorkoutInput = (
+    event: React.KeyboardEvent<HTMLInputElement>
+  ) => {
+    if (event.key !== "Enter") return;
+    event.preventDefault();
+    const inputs = Array.from(
+      event.currentTarget
+        .closest(".exerciseSetRows")
+        ?.querySelectorAll<HTMLInputElement>("input:not([disabled])") || []
+    );
+    const current = inputs.indexOf(event.currentTarget);
+    const next = current >= 0 ? inputs[current + 1] : null;
+    if (next) {
+      next.focus();
+      next.select();
+    } else {
+      event.currentTarget.blur();
+    }
+  };
 
   return (
     <>
@@ -220,16 +281,7 @@ export default function WorkoutPlayerModal({
 
                   <button
                     className="drawerClose"
-                    onClick={() => {
-                      setSelectedWorkout(null);
-                      setWorkoutLoggingStarted(false);
-                      setWorkoutDetails([]);
-                      setSetLogs([]);
-                      setSavedExerciseDraftIds([]);
-                      setWorkoutHistoryLogs([]);
-                      setHistoryExerciseName("");
-                      setRestTimer(null);
-                    }}
+                    onClick={closeWorkoutPlayer}
                   >
                     <X size={28} strokeWidth={3} aria-hidden="true" />
                   </button>
@@ -506,6 +558,26 @@ export default function WorkoutPlayerModal({
                               {paceZh ? "完成" : "done"}
                             </span>
                           </div>
+                          {workoutDraftStatus !== "idle" &&
+                            !coachReviewMode &&
+                            !clientReviewMode && (
+                              <div
+                                className={`workoutDraftStatus workoutDraftStatus--${workoutDraftStatus}`}
+                                role={
+                                  workoutDraftStatus === "error"
+                                    ? "alert"
+                                    : "status"
+                                }
+                              >
+                                {workoutDraftStatus === "error"
+                                  ? paceZh
+                                    ? "未能保存"
+                                    : "Not saved"
+                                  : paceZh
+                                    ? "已存本机"
+                                    : "Saved on device"}
+                              </div>
+                            )}
                         </div>
                       </section>
                     );
@@ -987,7 +1059,7 @@ export default function WorkoutPlayerModal({
                                   current === exercise.id ? "" : exercise.id
                                 )
                               }
-                              title={paceZh ? "More" : "More actions"}
+                              title={t("more")}
                               aria-label={`Open actions for ${exercise.exerciseName}`}
                             >
                               <MoreVertical size={20} aria-hidden="true" />
@@ -1413,6 +1485,8 @@ export default function WorkoutPlayerModal({
                                         </span>
                                         <input
                                           inputMode="decimal"
+                                          enterKeyHint="next"
+                                          onKeyDown={advanceFromWorkoutInput}
                                           value={log.actualWeight}
                                           placeholder={
                                             lastLoggedWeight(log) || weightUnit
@@ -1434,7 +1508,10 @@ export default function WorkoutPlayerModal({
                                         <span>{t("actualReps")}</span>
                                         <input
                                           inputMode="numeric"
+                                          enterKeyHint="next"
+                                          onKeyDown={advanceFromWorkoutInput}
                                           value={log.actualReps}
+                                          placeholder={log.prescribedReps || ""}
                                           onChange={(e) =>
                                             updateSetLog(
                                               globalIndex,
@@ -1457,6 +1534,8 @@ export default function WorkoutPlayerModal({
                                         </span>
                                         <input
                                           inputMode="text"
+                                          enterKeyHint="next"
+                                          onKeyDown={advanceFromWorkoutInput}
                                           value={log.actualTime}
                                           placeholder={
                                             log.prescribedTime ||
@@ -1484,6 +1563,8 @@ export default function WorkoutPlayerModal({
                                         </span>
                                         <input
                                           inputMode="decimal"
+                                          enterKeyHint="next"
+                                          onKeyDown={advanceFromWorkoutInput}
                                           value={log.actualDistance}
                                           placeholder={
                                             log.prescribedDistance ||
@@ -1511,6 +1592,8 @@ export default function WorkoutPlayerModal({
                                         </span>
                                         <input
                                           inputMode="decimal"
+                                          enterKeyHint="next"
+                                          onKeyDown={advanceFromWorkoutInput}
                                           value={log.actualRpe}
                                           placeholder="1-10"
                                           onChange={(e) =>
@@ -1535,6 +1618,8 @@ export default function WorkoutPlayerModal({
                                         </span>
                                         <input
                                           inputMode="decimal"
+                                          enterKeyHint="next"
+                                          onKeyDown={advanceFromWorkoutInput}
                                           value={log.actualRir}
                                           placeholder="0-5"
                                           onChange={(e) =>
@@ -1672,6 +1757,8 @@ export default function WorkoutPlayerModal({
                                     </span>
                                     <input
                                       inputMode="decimal"
+                                      enterKeyHint="next"
+                                      onKeyDown={advanceFromWorkoutInput}
                                       value={
                                         log.actualDistance
                                           ? String(
@@ -1724,6 +1811,8 @@ export default function WorkoutPlayerModal({
                                         <div className="setLogTimeRow">
                                           <input
                                             inputMode="numeric"
+                                            enterKeyHint="next"
+                                            onKeyDown={advanceFromWorkoutInput}
                                             value={mm}
                                             placeholder="min"
                                             onChange={(e) =>
@@ -1736,6 +1825,8 @@ export default function WorkoutPlayerModal({
                                           <span>:</span>
                                           <input
                                             inputMode="numeric"
+                                            enterKeyHint="done"
+                                            onKeyDown={advanceFromWorkoutInput}
                                             value={ss}
                                             placeholder="sec"
                                             onChange={(e) =>
@@ -1753,6 +1844,21 @@ export default function WorkoutPlayerModal({
                                   })()}
                                 </>
                               )}
+
+                              {isClientPortal &&
+                                !coachReviewMode &&
+                                !clientReviewMode &&
+                                !setChecked &&
+                                canRepeatPreviousWorkoutSet(log) && (
+                                  <button
+                                    className="setRepeatPreviousButton"
+                                    type="button"
+                                    onClick={() => repeatPreviousWorkoutSet(log)}
+                                  >
+                                    <RefreshCw size={14} aria-hidden="true" />
+                                    {paceZh ? "同上一组" : "Same as last set"}
+                                  </button>
+                                )}
 
                               {isClientPortal && !coachReviewMode && !clientReviewMode && (
                                 <button

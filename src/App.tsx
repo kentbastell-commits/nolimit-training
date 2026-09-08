@@ -9,14 +9,19 @@ import {
   Dumbbell,
   Eye,
   GripVertical,
+  HeartPulse,
+  MapPin,
   MoreHorizontal,
   MoreVertical,
+  Package,
   Pencil,
   Plus,
   RefreshCw,
   Shuffle,
   Scissors,
   Settings,
+  Sparkles,
+  Timer,
   Trash2,
   Bell,
   TrendingUp,
@@ -481,11 +486,12 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       void i18n.changeLanguage(storeLang);
     }
   }, [storeLang, i18n, isStorePage, isPublicLandingPage]);
+  // Keep the store/public-page language state in sync with the global i18n
+  // language no matter where the user changes it (portal, invite, settings).
   useEffect(() => {
-    if (!isClientPortal) return;
     const next = i18n.language === "zh" ? "zh" : "en";
     if (next !== storeLang) setStoreLang(next);
-  }, [i18n.language, isClientPortal, storeLang]);
+  }, [i18n.language, storeLang]);
   const [storeLauncherOpen, setStoreLauncherOpen] = useState(false);
   const [storeLauncherClient, setStoreLauncherClient] = useState("");
   const [programsLoading, setProgramsLoading] = useState(false);
@@ -791,8 +797,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     const clearedKeys = new Set(
       setLogs.filter(matches).map((log) => workoutSetCheckKey(log))
     );
-    setSetLogs((cur) =>
-      cur.map((log) =>
+    const nextLogs = setLogs.map((log) =>
         matches(log)
           ? {
               ...log,
@@ -804,11 +809,13 @@ function App({ onReady }: { onReady?: () => void } = {}) {
               actualRir: "",
             }
           : log
-      )
     );
-    setCheckedWorkoutPageItems((cur) =>
-      cur.filter((key) => !clearedKeys.has(key))
+    const nextChecked = checkedWorkoutPageItems.filter(
+      (key) => !clearedKeys.has(key)
     );
+    setSetLogs(nextLogs);
+    setCheckedWorkoutPageItems(nextChecked);
+    persistWorkoutDraft(nextLogs, savedExerciseDraftIds, nextChecked);
   };
   // One-time first-workout coach marks (per browser).
   const [playerTutorialOpen, setPlayerTutorialOpen] = useState(false);
@@ -1240,6 +1247,12 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   const [checkedWorkoutPageItems, setCheckedWorkoutPageItems] = useState<string[]>(
     []
   );
+  const [workoutDraftStatus, setWorkoutDraftStatus] = useState<
+    "idle" | "saved" | "error"
+  >("idle");
+  // A close warning is useful only when the latest edit could not be written.
+  // Successfully persisted drafts can close without nagging the athlete.
+  const [workoutDraftUnsafe, setWorkoutDraftUnsafe] = useState(false);
   const [workoutVideoOverlay, setWorkoutVideoOverlay] = useState<{
     url: string;
     title: string;
@@ -7168,8 +7181,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
             prescribedTime,
             prescribedDistance,
             trackingFields,
-            actualReps:
-              meta.trackingType === "Weight" ? prescribedRepsForSet : "",
+            actualReps: "",
             actualWeight: "",
             actualTime: "",
             actualDistance: "",
@@ -7192,33 +7204,95 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     return `nolimit-workout-draft:${client.id}:${workout.id}`;
   };
 
-  const saveExerciseDraft = (
-    exerciseId: string,
-    options: { showToast?: boolean } = {}
+  const persistWorkoutDraft = (
+    logs: SetLog[],
+    savedExerciseIds: string[],
+    checkedKeys: string[]
   ) => {
     const draftKey = getWorkoutDraftKey();
+    if (!draftKey) return false;
 
-    if (!draftKey) return savedExerciseDraftIds;
+    try {
+      window.localStorage.setItem(
+        draftKey,
+        JSON.stringify({
+          logs,
+          savedExerciseIds,
+          checkedKeys,
+          updatedAt: new Date().toISOString(),
+        })
+      );
+      setWorkoutDraftStatus("saved");
+      setWorkoutDraftUnsafe(false);
+      return true;
+    } catch {
+      setWorkoutDraftStatus("error");
+      setWorkoutDraftUnsafe(true);
+      return false;
+    }
+  };
 
+  const saveExerciseDraft = (
+    exerciseId: string,
+    options: { showToast?: boolean; checkedKeys?: string[] } = {}
+  ) => {
     const nextSavedExerciseIds = Array.from(
       new Set([...savedExerciseDraftIds, exerciseId])
     );
 
-    window.localStorage.setItem(
-      draftKey,
-      JSON.stringify({
-        logs: setLogs,
-        savedExerciseIds: nextSavedExerciseIds,
-        updatedAt: new Date().toISOString(),
-      })
-    );
-
-    setSavedExerciseDraftIds(nextSavedExerciseIds);
-    if (options.showToast !== false) {
+    if (
+      persistWorkoutDraft(
+        setLogs,
+        nextSavedExerciseIds,
+        options.checkedKeys || checkedWorkoutPageItems
+      )
+    ) {
+      setSavedExerciseDraftIds(nextSavedExerciseIds);
+    }
+    if (options.showToast !== false && !workoutDraftUnsafe) {
       notify("Exercise saved. You can come back and keep editing.", "success");
     }
     return nextSavedExerciseIds;
   };
+
+  const closeWorkoutPlayer = () => {
+    if (
+      workoutDraftUnsafe &&
+      !window.confirm(
+        paceZh
+          ? "最新修改未能保存在本机。关闭并放弃这些修改吗？"
+          : "Your latest changes could not be saved on this device. Close and discard them?"
+      )
+    ) {
+      return;
+    }
+    setSelectedWorkout(null);
+    setWorkoutLoggingStarted(false);
+    setWorkoutDetails([]);
+    setSetLogs([]);
+    setSavedExerciseDraftIds([]);
+    setCheckedWorkoutPageItems([]);
+    // NOT setWorkoutHistoryLogs([]) — this state is the athlete's full
+    // lifetime training history (Trophy Case, PR charts, exercise-history
+    // modal all read it), owned by the client-select effect further up.
+    // Wiping it here just because a workout modal closed was clearing it
+    // for the rest of the portal session too — Trophy Case would sit at
+    // 0/11 the moment you'd reviewed and closed any workout.
+    setHistoryExerciseName("");
+    setRestTimer(null);
+    setWorkoutDraftStatus("idle");
+    setWorkoutDraftUnsafe(false);
+  };
+
+  useEffect(() => {
+    if (!selectedWorkout || !workoutDraftUnsafe) return;
+    const warnBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warnBeforeUnload);
+    return () => window.removeEventListener("beforeunload", warnBeforeUnload);
+  }, [selectedWorkout, workoutDraftUnsafe]);
 
   const openWorkout = async (workout: Workout) => {
     setSelectedWorkout(workout);
@@ -7233,6 +7307,8 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     setSetLogs([]);
     setSavedExerciseDraftIds([]);
     setCheckedWorkoutPageItems([]);
+    setWorkoutDraftStatus("idle");
+    setWorkoutDraftUnsafe(false);
     setWorkoutSubmissionNote("");
 
     try {
@@ -7316,18 +7392,34 @@ function App({ onReady }: { onReady?: () => void } = {}) {
           // A corrupt/stale draft (schema drift across deploys) must not seed
           // setLogs with a non-array — every player .map/.filter would then throw
           // and, before the error boundary, white-screen the app.
-          const draftLogs =
+          const rawDraftLogs =
             Array.isArray(parsedDraft?.logs) &&
             parsedDraft.logs.every((l: any) => l && l.exerciseName != null)
               ? parsedDraft.logs
               : baseLogs;
+          // Legacy drafts captured the prescription-prefilled reps value.
+          // Clear only those legacy target echoes; current-schema drafts keep
+          // every value the athlete actually typed.
+          const draftLogs = Array.isArray(parsedDraft?.checkedKeys)
+            ? rawDraftLogs
+            : rawDraftLogs.map((log: SetLog) =>
+                String(log.actualReps || "").trim() ===
+                String(log.prescribedReps || "").trim()
+                  ? { ...log, actualReps: "" }
+                  : log
+              );
           setSetLogs(draftLogs);
           setSavedExerciseDraftIds(
             Array.isArray(parsedDraft?.savedExerciseIds)
               ? parsedDraft.savedExerciseIds
               : []
           );
-          setCheckedWorkoutPageItems([]);
+          setCheckedWorkoutPageItems(
+            Array.isArray(parsedDraft?.checkedKeys)
+              ? parsedDraft.checkedKeys
+              : []
+          );
+          setWorkoutDraftStatus("saved");
         } catch {
           setSetLogs(baseLogs);
           setSavedExerciseDraftIds([]);
@@ -7498,8 +7590,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     );
     // Re-point this exercise's logs (matched by its current id + order) so the
     // saved records and history reflect the chosen exercise name.
-    setSetLogs((prev) =>
-      prev.map((log) =>
+    const nextLogs = setLogs.map((log) =>
         log.exerciseId === target.exerciseId &&
         log.exerciseOrder === target.order
           ? {
@@ -7510,7 +7601,12 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                 : option.exerciseName,
             }
           : log
-      )
+    );
+    setSetLogs(nextLogs);
+    persistWorkoutDraft(
+      nextLogs,
+      savedExerciseDraftIds,
+      checkedWorkoutPageItems
     );
     setAlternatePickerExercise(null);
   };
@@ -7546,6 +7642,11 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     };
 
     setSetLogs(updated);
+    persistWorkoutDraft(
+      updated,
+      savedExerciseDraftIds,
+      checkedWorkoutPageItems
+    );
 
     // Light haptic the moment a set's primary value goes from empty to filled.
     if (prev) {
@@ -7660,6 +7761,22 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       .filter(Boolean)
       .join("\n");
 
+    // Actual fields start blank (the reps prefill was removed so the UI never
+    // echoes the target as if it were logged), but the STORED contract for a
+    // completed Weight set stays "reps as prescribed" when the athlete ticked
+    // ✓ without typing — otherwise volume, PRs and coach review read 0 reps
+    // for every tick-only set. Mirrors the old prefill exactly at submit time.
+    const resolvedLogs = setLogs.map((log) => {
+      const completed = isSetComplete(log);
+      const actualReps =
+        completed &&
+        log.trackingType === "Weight" &&
+        !String(log.actualReps || "").trim()
+          ? String(log.prescribedReps || "")
+          : log.actualReps;
+      return { ...log, actualReps, completed };
+    });
+
     const payload = {
       clientId: selectedClient.id,
       clientCode: selectedClient.clientCode,
@@ -7669,7 +7786,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       workoutDate: normalizeDate(String(selectedWorkout.scheduledDate)),
       // Per-set truth: the server persists Completed from this flag instead of
       // stamping every prescribed set as done.
-      logs: setLogs.map((log) => ({ ...log, completed: isSetComplete(log) })),
+      logs: resolvedLogs,
       submissionNote: combinedNote,
       sessionRpe: workoutRpe ?? undefined,
       sessionDurationMin: finishDurationMin || undefined,
@@ -7677,7 +7794,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
 
     // Celebration stats share the app-wide completion rule (✓ or typed value);
     // the finish-screen catch has already resolved untouched sets by now.
-    const completedLogs = setLogs.filter(isSetComplete);
+    const completedLogs = resolvedLogs.filter((log) => log.completed);
     const volumeKg = completedLogs.reduce((sum, log) => {
       const w = Number(log.actualWeight);
       const r = Number(log.actualReps);
@@ -16203,6 +16320,23 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   };
 
   // Cross-sell: store programs/add-ons/bundles the athlete doesn't already own.
+  const productTypeMeta = (productType = "") => {
+    const tLower = productType.toLowerCase();
+    if (tLower.includes("bundle"))
+      return { Icon: Package, colorClass: "wcol-skill" };
+    if (tLower.includes("add-on"))
+      return { Icon: Sparkles, colorClass: "wcol-mobility" };
+    if (tLower.includes("coaching"))
+      return { Icon: Users, colorClass: "wcol-purple" };
+    if (tLower.includes("in-person") || tLower.includes("in person"))
+      return { Icon: MapPin, colorClass: "wcol-test" };
+    if (tLower.includes("single workout") || tLower.includes("single"))
+      return { Icon: Timer, colorClass: "wcol-cardio" };
+    if (tLower.includes("cardio"))
+      return { Icon: HeartPulse, colorClass: "wcol-cardio" };
+    return { Icon: Dumbbell, colorClass: "wcol-strength" };
+  };
+
   const renderProgramStore = () => {
     const owned = new Set(
       uniqueClientPurchasedPrograms.map((p) => p.programId)
@@ -16231,24 +16365,33 @@ function App({ onReady }: { onReady?: () => void } = {}) {
             ? "探索更多训练计划、套餐和加购模块。"
             : "Explore more programs, bundles, and add-ons."}
         </p>
-        {forSale.map((p) => (
-          <a
-            className="programStoreItem"
-            key={p.recordId}
-            href="/?page=store"
-          >
-            <div>
-              <strong>{localizedProgramName(p)}</strong>
-              <span>
-                {localizedProductType(p.productType)}
-                {p.storeCategory ? ` · ${p.storeCategory}` : ""}
+        {forSale.map((p) => {
+          const { Icon, colorClass } = productTypeMeta(p.productType);
+          return (
+            <a
+              className={`programStoreItem ${colorClass}`}
+              key={p.recordId}
+              href="/?page=store"
+            >
+              <span className="programStoreIcon" aria-hidden="true">
+                <Icon size={22} strokeWidth={2} />
               </span>
-            </div>
-            <span className="programStorePrice">
-              {p.price ? `${p.currency || "CNY"} ${p.price}` : ""}
-            </span>
-          </a>
-        ))}
+              <div className="programStoreBody">
+                <strong>{localizedProgramName(p)}</strong>
+                <span>
+                  {localizedProductType(p.productType)}
+                  {p.storeCategory ? ` · ${p.storeCategory}` : ""}
+                  {p.durationWeeks
+                    ? ` · ${p.durationWeeks}${paceZh ? "周" : "wks"}`
+                    : ""}
+                </span>
+              </div>
+              <span className="programStorePrice">
+                {p.price ? `${p.currency || "CNY"} ${p.price}` : ""}
+              </span>
+            </a>
+          );
+        })}
         <a className="outlineButton programStoreBrowse" href="/?page=store">
           {paceZh ? "打开商店" : "Open store"}
         </a>
@@ -18943,9 +19086,9 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   };
 
   // A single set is "complete" once its primary actual value is entered.
-  // A set is DONE only when the athlete ticked it ✓ or typed a real value
-  // (weight/time/distance/RPE/RIR — reps alone don't count because the plan
-  // prefills them). Unchecked and untouched honestly means "skipped"; the
+  // A set is DONE only when the athlete ticked it ✓ or typed a real value.
+  // Actual fields start blank; the prescription remains separate guidance.
+  // Unchecked and untouched honestly means "skipped"; the
   // finish screen catches forgetful tickers before submit.
   const isSetComplete = (log: SetLog) => {
     if (checkedWorkoutPageItems.includes(workoutSetCheckKey(log))) return true;
@@ -18959,6 +19102,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       );
     return Boolean(
       String(log.actualWeight || "").trim() ||
+        String(log.actualReps || "").trim() ||
         String(log.actualRpe || "").trim() ||
         String(log.actualRir || "").trim() ||
         // Time-tracked strength sets (isometric holds) complete on a logged time.
@@ -19075,11 +19219,58 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       log.side || "both"
     }`;
 
+  const previousCompletedWorkoutSet = (log: SetLog) =>
+    setLogs
+      .filter(
+        (candidate) =>
+          (candidate.occurrenceId || candidate.exerciseId) ===
+            (log.occurrenceId || log.exerciseId) &&
+          (candidate.side || "") === (log.side || "") &&
+          Number(candidate.setNumber) < Number(log.setNumber) &&
+          checkedWorkoutPageItems.includes(workoutSetCheckKey(candidate))
+      )
+      .sort((a, b) => Number(b.setNumber) - Number(a.setNumber))[0];
+
+  const canRepeatPreviousWorkoutSet = (log: SetLog) =>
+    Boolean(previousCompletedWorkoutSet(log));
+
+  const repeatPreviousWorkoutSet = (log: SetLog) => {
+    const previous = previousCompletedWorkoutSet(log);
+    if (!previous) return;
+    const index = setLogs.findIndex(
+      (candidate) => workoutSetCheckKey(candidate) === workoutSetCheckKey(log)
+    );
+    if (index < 0) return;
+
+    const updated = [...setLogs];
+    updated[index] = {
+      ...updated[index],
+      // Copy actual performance only. Prescribed targets remain guidance and
+      // are never promoted into the athlete's result fields.
+      actualWeight: previous.actualWeight,
+      actualReps: previous.actualReps,
+      actualTime: previous.actualTime,
+      actualDistance: previous.actualDistance,
+      actualRpe: previous.actualRpe,
+      actualRir: previous.actualRir,
+    };
+    setSetLogs(updated);
+    persistWorkoutDraft(
+      updated,
+      savedExerciseDraftIds,
+      checkedWorkoutPageItems
+    );
+    vibrate(10);
+  };
+
   const checkAndSaveWorkoutSet = (log: SetLog, visibleLogs: SetLog[]) => {
     const key = workoutSetCheckKey(log);
     const nextChecked = Array.from(new Set([...checkedWorkoutPageItems, key]));
     setCheckedWorkoutPageItems(nextChecked);
-    saveExerciseDraft(log.exerciseId, { showToast: false });
+    saveExerciseDraft(log.exerciseId, {
+      showToast: false,
+      checkedKeys: nextChecked,
+    });
     vibrate(14);
 
     const allVisibleChecked = visibleLogs
@@ -22487,6 +22678,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
             getLabelColorClass={getLabelColorClass}
             t={t}
             checkAndSaveWorkoutSet={checkAndSaveWorkoutSet}
+            canRepeatPreviousWorkoutSet={canRepeatPreviousWorkoutSet}
             checkedWorkoutPageItems={checkedWorkoutPageItems}
             clientReviewMode={clientReviewMode}
             coachReviewMode={coachReviewMode}
@@ -22522,6 +22714,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
             openWorkoutExerciseFromGlance={openWorkoutExerciseFromGlance}
             openWorkoutProgramInBuilder={openWorkoutProgramInBuilder}
             openWorkoutFinish={openWorkoutFinish}
+            closeWorkoutPlayer={closeWorkoutPlayer}
             originalExercisesRef={originalExercisesRef}
             paceZh={paceZh}
             resetWodState={resetWodState}
@@ -22555,6 +22748,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
             setWorkoutVideoOverlay={setWorkoutVideoOverlay}
             startRestTimer={startRestTimer}
             toggleWorkoutReviewed={toggleWorkoutReviewed}
+            repeatPreviousWorkoutSet={repeatPreviousWorkoutSet}
             updateSetLog={updateSetLog}
             updateWorkoutDate={updateWorkoutDate}
             updatingWorkoutDate={updatingWorkoutDate}
@@ -22570,6 +22764,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
             workoutFocusSetRound={workoutFocusSetRound}
             workoutGroupTitle={workoutGroupTitle}
             workoutLoggingStarted={workoutLoggingStarted}
+            workoutDraftStatus={workoutDraftStatus}
             workoutSetCheckKey={workoutSetCheckKey}
             workoutSubmissionNote={workoutSubmissionNote}
           />
@@ -22952,8 +23147,9 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                 <button
                   className="drawerClose"
                   onClick={() => setAlternatePickerExercise(null)}
+                  aria-label={paceZh ? "关闭" : "Close"}
                 >
-                  x
+                  <X size={18} aria-hidden="true" />
                 </button>
               </div>
 
@@ -23028,8 +23224,9 @@ function App({ onReady }: { onReady?: () => void } = {}) {
               <button
                 className="drawerClose"
                 onClick={() => setShowNotificationsPanel(false)}
+                aria-label={paceZh ? "关闭" : "Close"}
               >
-                ×
+                <X size={18} aria-hidden="true" />
               </button>
             </div>
             {notificationsLoading ? (

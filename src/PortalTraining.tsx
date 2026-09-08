@@ -1491,7 +1491,7 @@ export default function PortalTraining({
                                 .toLowerCase()
                                 .includes("test")
                                 ? t("start")
-                                : "Answer"}
+                                : t("answer")}
                             </span>
                             {!isClientPortal && (
                               <span
@@ -1780,7 +1780,7 @@ export default function PortalTraining({
                                   .toLowerCase()
                                   .includes("test")
                                   ? t("start")
-                                  : "Answer"}
+                                  : t("answer")}
                               </span>
                               {!isClientPortal && (
                                 <span

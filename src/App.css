@@ -5827,13 +5827,13 @@ body {
   }
 
   .weekCalendar {
-    grid-template-columns: repeat(7, minmax(92px, 1fr));
+    grid-template-columns: repeat(7, minmax(40px, 1fr));
     overflow-x: auto;
     padding-bottom: 8px;
   }
 
   .monthCalendar {
-    grid-template-columns: repeat(7, minmax(82px, 1fr));
+    grid-template-columns: repeat(7, minmax(36px, 1fr));
     overflow-x: auto;
     padding-bottom: 8px;
   }
@@ -6042,7 +6042,10 @@ body {
     bottom: 0;
     z-index: 1200;
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    /* 5 tracks: the nav renders 5 buttons (Home/Calendar/Programs/Store/
+       Profile); with 4 the fifth wrapped to a second row in the coach's
+       client-workspace view at phone width (measured 137px tall). */
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 4px;
     padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
     border-top: 1px solid rgba(212, 175, 55, 0.32);
@@ -7761,6 +7764,8 @@ body {
   color: #111;
   padding: 10px 4px 9px;
   cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .clientPortalApp .clientWeekStripCalendar .calendarDay:hover {
@@ -9982,7 +9987,7 @@ textarea {
   bottom: 14px !important;
   transform: translateX(-50%) !important;
   width: min(620px, calc(100vw - 32px)) !important;
-  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
   gap: 6px !important;
   padding: 6px !important;
   border: 1px solid rgba(212, 175, 55, 0.3) !important;
@@ -10035,7 +10040,7 @@ textarea {
     bottom: 0 !important;
     transform: none !important;
     width: auto !important;
-    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
     gap: 4px !important;
     padding: 8px 8px calc(8px + env(safe-area-inset-bottom)) !important;
     border-right: 0 !important;
@@ -15025,9 +15030,10 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   border: none !important;
   background: transparent !important;
   box-shadow: none !important;
-  padding: 6px 2px 2px !important;
-  min-height: 0;
+  padding: 6px 2px 8px !important;
+  min-height: 44px;
   gap: 0;
+  touch-action: manipulation;
 }
 .clientPortalApp .clientFullCalendar .calendarDateLabel {
   display: block;

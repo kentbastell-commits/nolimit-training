@@ -1567,25 +1567,58 @@
 .programStoreItem {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 12px;
   padding: 14px;
   border-radius: 14px;
   border: 1px solid #e5dfd2;
+  border-left: 4px solid var(--nl-border, #e5dfd2);
   background: #fff;
   text-decoration: none;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
 }
-.programStoreItem strong {
-  display: block;
-  font-size: 16px;
+.programStoreItem:active {
+  transform: scale(0.99);
+}
+.programStoreItem.wcol-strength { border-left-color: var(--wcol-strength, #758eae); }
+.programStoreItem.wcol-cardio { border-left-color: var(--wcol-cardio, #d8412f); }
+.programStoreItem.wcol-mobility { border-left-color: var(--wcol-mobility, #7c7a52); }
+.programStoreItem.wcol-skill { border-left-color: var(--wcol-skill, #7e5aa6); }
+.programStoreItem.wcol-test { border-left-color: var(--wcol-test, #c99a4e); }
+.programStoreItem.wcol-purple { border-left-color: var(--wcol-other, #6c5a50); }
+.programStoreIcon {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #f7f6f3;
   color: var(--nl-ink, #1a1a1a);
 }
-.programStoreItem span {
+.programStoreItem.wcol-strength .programStoreIcon { color: var(--wcol-strength, #758eae); background: color-mix(in srgb, var(--wcol-strength, #758eae) 12%, #fff); }
+.programStoreItem.wcol-cardio .programStoreIcon { color: var(--wcol-cardio, #d8412f); background: color-mix(in srgb, var(--wcol-cardio, #d8412f) 10%, #fff); }
+.programStoreItem.wcol-mobility .programStoreIcon { color: var(--wcol-mobility, #7c7a52); background: color-mix(in srgb, var(--wcol-mobility, #7c7a52) 10%, #fff); }
+.programStoreItem.wcol-skill .programStoreIcon { color: var(--wcol-skill, #7e5aa6); background: color-mix(in srgb, var(--wcol-skill, #7e5aa6) 10%, #fff); }
+.programStoreItem.wcol-test .programStoreIcon { color: var(--wcol-test, #c99a4e); background: color-mix(in srgb, var(--wcol-test, #c99a4e) 10%, #fff); }
+.programStoreItem.wcol-purple .programStoreIcon { color: var(--wcol-other, #6c5a50); background: color-mix(in srgb, var(--wcol-other, #6c5a50) 10%, #fff); }
+.programStoreBody {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.programStoreBody strong {
+  display: block;
+  font-size: 15px;
+  color: var(--nl-ink, #1a1a1a);
+}
+.programStoreBody span {
+  display: block;
+  margin-top: 2px;
   font-size: 12px;
   color: var(--nl-muted, #68645d);
 }
 .programStorePrice {
   flex: 0 0 auto;
+  margin-left: auto;
   font-weight: 800;
   color: #9b7a21 !important;
   font-size: 15px !important;
