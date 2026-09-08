@@ -53,6 +53,37 @@ hostname bills — so the setting can stay on permanently.
 
 Never "fix" a slow upload by lowering concurrency; check the endpoint first.
 
+## Sorting the iCloud phone library BEFORE downloading (2026-09-08)
+
+iCloud for Windows keeps the whole Photos library at
+`C:\Users\kentb\iCloudPhotos\Photos` as cloud-only placeholders (9,273 videos,
+1.46 TB, nothing on disk). The Windows shell still returns a real frame
+thumbnail plus duration/resolution/date for a placeholder WITHOUT
+downloading it, so the review happens first and only the picks get pulled:
+
+```powershell
+# 1. thumbnails + manifest for camera clips > 5s (≈1.5s per uncached thumb —
+#    run several date shards in parallel, ~85 thumbs/min total)
+powershell -ExecutionPolicy Bypass -File scripts/footage/icloud-contact-sheet.ps1 -From 2026-05-01 -To 2026-09-09 -MinSeconds 6 -CameraOnly
+# 2. numbered 6x5 contact sheets (+ sheet-NNN.json index→file map)
+powershell -ExecutionPolicy Bypass -File scripts/footage/icloud-compose-sheets.ps1 -Dir "C:\Users\kentb\Videos\icloud-review\2026-05-01_2026-09-09" -MinSeconds 6 -CameraOnly
+# 3. review: a person (or model) writes sheet-NNN.keep.txt per sheet (kept file names);
+#    or open review.html from step 1 and tick clips by hand
+# 4. merge every keep list newest-first, then download only those into ONE flat folder,
+#    stopping at a 15 GB free-disk floor (re-run to resume; MIN_FREE_GB=n to change)
+node scripts/footage/icloud-merge-selection.mjs
+node scripts/footage/icloud-fetch-selected.mjs "C:\Users\kentb\Videos\icloud-review\selected-all.txt" --dest C:\Users\kentb\Videos\workout-videos
+```
+
+Facts that shaped this: copying a placeholder is the download (the cloud
+filter hydrates it; `attrib +U -P` releases the original again so disk is
+paid once); iCloud download speed depends entirely on the network route —
+0.23 MB/s at home through the Clash tunnel vs. fast at the office — so run
+step 4 where iCloud is quick; the full 2021-2026 review kept 1,898 of 6,935
+camera clips (510 GB), far more than the laptop's free disk, so the fetch
+is newest-first and the rest waits for an external drive or a COS archive
+pass (`proxy-phone-videos.mjs` on the folder in batches).
+
 ## Checking a clip without downloading it
 
 `ffprobe` reads just the header over a `stream-link.mjs` signed URL — so

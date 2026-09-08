@@ -866,7 +866,16 @@ invented procedure is not.
   non-ASCII char (em-dashes → â€", CJK too) with no error — cost App.css a
   145-line mojibake diff, caught only by `git diff --stat` looking too big.
   Use the Edit tool; after any scripted file rewrite, sanity-check the diff
-  size and grep the diff for `â€|Â` before committing. Python needs `PYTHONIOENCODING=utf-8` for
+  size and grep the diff for `â€|Â` before committing. Two PowerShell traps
+  that each cost a run on 2026-09-08: variables are CASE-INSENSITIVE, so a
+  `[int]$Rows` param and a `$rows` array, or `$R` and a `foreach ($r ...)`,
+  are the SAME variable and silently clobber each other — never reuse a
+  name in any casing; and a BOM-less UTF-8 `.ps1` is parsed as ANSI by PS
+  5.1, where mojibake curly quotes become string delimiters and the parse
+  error points at an unrelated line — keep scripts ASCII-only or save with
+  a BOM. Also: killing "the script's" process by matching its command line
+  matches your OWN tool shell too (it contains the same string) — filter by
+  `-File <name>` or record the PID at launch. Python needs `PYTHONIOENCODING=utf-8` for
   CJK output. `curl -d "…中文…"` from Git Bash mangles CJK to literal `?` — send
   Chinese payloads with `--data-binary @file` (write the file server-side or via
   printf \x escapes), never inline in the command.
