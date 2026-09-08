@@ -302,13 +302,10 @@ function initialState(action: QuickActionKey): FormState {
 }
 
 const requiredByAction: Record<QuickActionKey, string[]> = {
-  content: [
-    "workingTitle",
-    "platform",
-    "contentPillar",
-    "objective",
-    "plannedPublishDate",
-  ],
+  // Content: only the name is required — platform, pillar, objective and the
+  // date are filled in later from the calendar card (Kent, 2026-09-08). The
+  // server mirrors this (CONTENT_SPECS / create_content_idea).
+  content: ["workingTitle"],
   lead: ["name", "contact", "source", "productInterest", "nextAction"],
   partner: ["name", "platform", "audienceFit", "nextFollowUpAt"],
   campaign: [

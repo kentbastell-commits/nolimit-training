@@ -672,6 +672,39 @@ describe("Company Operations quick-action Feishu contracts", () => {
     } }]);
   });
 
+  it("stores a content idea with only a title — every other field is optional and omitted when blank", async () => {
+    const { repository, created } = repositoryHarness({}, {
+      tblContent: contentFields,
+    });
+
+    await repository.performAction(growthPrincipal, {
+      action: "create_content_idea",
+      payload: {
+        workingTitle: "Footwork drill teaser",
+        platform: "",
+        contentPillar: "",
+        objective: "",
+        plannedPublishDate: "",
+      },
+    });
+
+    expect(created).toEqual([{ tableId: "tblContent", fields: {
+      "内容 Content": "Footwork drill teaser",
+      "状态 Status": "想法 Idea",
+      "负责人 Owner (Feishu)": [{ id: "ou_growth" }],
+    } }]);
+  });
+
+  it("still rejects an unsupported platform when one is given", async () => {
+    const { repository } = repositoryHarness({}, { tblContent: contentFields });
+    await expect(
+      repository.performAction(growthPrincipal, {
+        action: "create_content_idea",
+        payload: { workingTitle: "Bad platform", platform: "myspace" },
+      }),
+    ).rejects.toThrow(/platform/);
+  });
+
   it("stores a lead with supported select values and cannot be client-promoted", async () => {
     const { repository, created } = repositoryHarness({}, {
       tblLead: leadFields,

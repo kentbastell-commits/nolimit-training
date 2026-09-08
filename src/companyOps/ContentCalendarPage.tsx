@@ -448,7 +448,7 @@ function Editor({
 }
 
 export default function ContentCalendarPage({
-  items,
+  items: sourceItems,
   language,
   onUpdate,
   onDuplicate,
@@ -476,6 +476,36 @@ export default function ContentCalendarPage({
   const [clipboard, setClipboard] = useState<
     { mode: "cut" | "copy"; item: OpsContentFullItem } | null
   >(null);
+  // Optimistic overlay. `sourceItems` comes from the dashboard, which only
+  // changes after the Bitable write (~3.6s floor) PLUS the un-awaited
+  // dashboard reload (2-3s more) — so without this a dropped chip sat on
+  // its old day for 6s+ and drag-to-reschedule read as broken/slow. Each
+  // pending patch is painted over its item immediately; it is dropped on
+  // failure (the chip snaps back) or once the first dashboard refresh after
+  // a successful write lands (`settled`), which by then carries the value.
+  const [pending, setPending] = useState<
+    Record<string, { patch: Record<string, unknown>; settled: boolean }>
+  >({});
+  const items = useMemo(() => {
+    const ids = Object.keys(pending);
+    if (!ids.length) return sourceItems;
+    return sourceItems.map((item) =>
+      pending[item.id] ? ({ ...item, ...pending[item.id].patch } as OpsContentFullItem) : item,
+    );
+  }, [sourceItems, pending]);
+  useEffect(() => {
+    // Syncing to a fresh server snapshot is the purpose of this effect (same
+    // precedent as CompanyOpsApp's mount load); the updater bails out with
+    // the same object when nothing is settled, so no cascade in steady state.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setPending((current) => {
+      const settledIds = Object.keys(current).filter((id) => current[id].settled);
+      if (!settledIds.length) return current;
+      const next = { ...current };
+      for (const id of settledIds) delete next[id];
+      return next;
+    });
+  }, [sourceItems]);
 
   useEffect(() => {
     if (!menu) return;
@@ -581,9 +611,24 @@ export default function ContentCalendarPage({
 
   const save = async (contentId: string, patch: Record<string, unknown>) => {
     setBusy(true);
+    setPending((current) => ({
+      ...current,
+      [contentId]: { patch: { ...(current[contentId]?.patch || {}), ...patch }, settled: false },
+    }));
     try {
       await onUpdate(contentId, patch);
+      setPending((current) =>
+        current[contentId] ? { ...current, [contentId]: { ...current[contentId], settled: true } } : current,
+      );
       setEditing(null);
+    } catch {
+      // The parent already toasted the error; snap the item back.
+      setPending((current) => {
+        if (!current[contentId]) return current;
+        const next = { ...current };
+        delete next[contentId];
+        return next;
+      });
     } finally {
       setBusy(false);
     }

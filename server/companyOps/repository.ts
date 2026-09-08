@@ -533,7 +533,9 @@ const ARTICLE_SPECS: readonly InputFieldSpec[] = [
 
 const CONTENT_SPECS: readonly InputFieldSpec[] = [
   { key: "title", aliases: ["内容 Content", "Title", "Content Title", "内容标题"], kind: "string", required: true, primary: true, maximum: 200 },
-  { key: "platform", aliases: ["平台 Platform", "Platform", "平台"], kind: "string", required: true, maximum: 50 },
+  // Only the title is required (Kent, 2026-09-08): a content idea is often
+  // just a name on a day, with platform/pillar/dates filled in later.
+  { key: "platform", aliases: ["平台 Platform", "Platform", "平台"], kind: "string", maximum: 50 },
   { key: "contentType", aliases: ["形式 Format", "Content Type", "内容类型"], kind: "string", maximum: 80 },
   { key: "status", aliases: FIELD.status, kind: "string", maximum: 50 },
   { key: "publishDate", aliases: ["发布日期 Publish Date", "Publish Date", "Planned Publish Date", "发布日期"], kind: "date" },
@@ -3160,9 +3162,12 @@ export class CompanyOpsRepository {
         const normalizedPayload = request.action === "create_content_idea"
           ? {
               title: payload.workingTitle,
-              platform: choice(payload.platform, "platform", PLATFORM_OPTIONS),
-              pillar: choice(payload.contentPillar, "contentPillar", CONTENT_PILLAR_OPTIONS),
-              objective: choice(payload.objective, "objective", CONTENT_OBJECTIVE_OPTIONS),
+              // Everything but the title is optional — an empty select is
+              // omitted (mappedFields skips empties), a filled one must still
+              // be a supported option.
+              platform: choice(payload.platform, "platform", PLATFORM_OPTIONS, { optional: true }),
+              pillar: choice(payload.contentPillar, "contentPillar", CONTENT_PILLAR_OPTIONS, { optional: true }),
+              objective: choice(payload.objective, "objective", CONTENT_OBJECTIVE_OPTIONS, { optional: true }),
               publishDate: payload.plannedPublishDate,
               // Depth fields from the richer idea form — all optional.
               hook: payload.hook,
