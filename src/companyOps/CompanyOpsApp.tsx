@@ -364,7 +364,10 @@ export default function CompanyOpsApp({
       const nextDashboard = await api.getDashboard();
       applyDashboard(nextDashboard, user);
     } catch {
-      showToast(opsText(language, "actionFailed"), "error");
+      // This runs AFTER a successful write (see runRecordAction). Saying
+      // "could not be saved" here made a slow reload read as a lost save
+      // (Kent, 2026-09-10: "it said it failed to save" — the record existed).
+      showToast(opsText(language, "dashboardRefreshFailed"), "error");
     } finally {
       setRefreshing(false);
     }

@@ -40,9 +40,9 @@ async function readJson(response: Response) {
 // TranslatableText cache with no way to recover short of a reload).
 const DEFAULT_TIMEOUT_MS = 30_000;
 
-async function request<T>(url: string, init: RequestInit = {}): Promise<T> {
+async function request<T>(url: string, init: RequestInit = {}, timeoutMs = DEFAULT_TIMEOUT_MS): Promise<T> {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   let response: Response;
   try {
     response = await fetch(url, {
@@ -319,8 +319,12 @@ export const companyOpsApi: CompanyOpsApi = {
   },
 
   async getDashboard() {
+    // The dashboard is ~17 Bitable reads; after a write it is rebuilt from
+    // scratch, so give it longer than the 30s default before giving up.
     const data = await request<Record<string, unknown>>(
       "/api/companyOpsDashboard",
+      {},
+      75_000,
     );
     return normalizeDashboard(data.dashboard || data);
   },

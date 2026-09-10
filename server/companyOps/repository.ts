@@ -2571,6 +2571,35 @@ export class CompanyOpsRepository {
     // Feishu round-trips (measured 13-23s). Guards mirror the use sites
     // exactly, so each started promise is always awaited (no floating
     // rejections for skipped sections).
+    // Later phases start NOW so their Feishu round-trips overlap the first
+    // batch instead of queueing behind it (mistake #58 recurred: 21.5s
+    // measured on the box 2026-09-10, so the post-save reload hit the
+    // client's 30s timeout and surfaced as "could not be saved"). settled()
+    // marks a rejection as observed so an early throw elsewhere can't turn
+    // it into an unhandled rejection; the real await below still throws.
+    const settled = <T,>(promise: Promise<T>): Promise<T> => {
+      promise.catch(() => undefined);
+      return promise;
+    };
+    const financePhase = financeVisible
+      ? settled(Promise.all([
+          this.listOptional("expense", 100),
+          this.listOptional("payroll", 100),
+          this.listOptional("commission", 100),
+        ]))
+      : null;
+    const founderPhase = financeVisible && principal.role !== "finance"
+      ? settled(Promise.all([
+          this.listOptional("internalRequest", 150),
+          this.listOptional("weeklyReport", 100),
+          this.listOptional("staff", 500),
+        ]))
+      : null;
+    const personalPhase = settled(Promise.all([
+      this.getMyCompensation(principal),
+      this.getAcknowledgedPolicyIds(principal),
+      this.getPerformanceDashboard(principal),
+    ]));
     const prefetch = {
       expense: !financeVisible
         ? this.listOptional("expense", 100)
@@ -2725,11 +2754,7 @@ export class CompanyOpsRepository {
     };
 
     if (financeVisible) {
-      const [expenseRecords, payrollRecords, commissionRecords] = await Promise.all([
-        this.listOptional("expense", 100),
-        this.listOptional("payroll", 100),
-        this.listOptional("commission", 100),
-      ]);
+      const [expenseRecords, payrollRecords, commissionRecords] = await (financePhase as NonNullable<typeof financePhase>);
       const expenses = expenseRecords.map((record) => ({
         ...this.project(record, {
           resource: "expense",
@@ -2774,11 +2799,7 @@ export class CompanyOpsRepository {
       if (principal.role === "finance") {
         dashboard.finance = { expenses, payroll, commissions };
       } else {
-        const [requestRecords, weeklyRecords, staffRecords] = await Promise.all([
-          this.listOptional("internalRequest", 150),
-          this.listOptional("weeklyReport", 100),
-          this.listOptional("staff", 500),
-        ]);
+        const [requestRecords, weeklyRecords, staffRecords] = await (founderPhase as NonNullable<typeof founderPhase>);
         const accessRequests = requestRecords
           .filter((record) => /company operations access|权限/.test(
             normalize(textValue(recordField(record.fields, ["请求 Request", "Request", "Title"])))
@@ -2894,11 +2915,7 @@ export class CompanyOpsRepository {
         ];
       }
     }
-    const [myCompensation, acknowledgedPolicyIds, performance] = await Promise.all([
-      this.getMyCompensation(principal),
-      this.getAcknowledgedPolicyIds(principal),
-      this.getPerformanceDashboard(principal),
-    ]);
+    const [myCompensation, acknowledgedPolicyIds, performance] = await personalPhase;
     dashboard.myCompensation = myCompensation;
     dashboard.acknowledgedPolicyIds = acknowledgedPolicyIds;
     dashboard.performance = performance;
