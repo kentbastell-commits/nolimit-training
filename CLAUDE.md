@@ -709,6 +709,20 @@ data between them, never "borrow" a table ID across products.
     reads as an 8s hang. Refresh in the background or update optimistically.
     The real cure for write latency is the Postgres migration; while the
     backend is Bitable, 3.6s per write is the floor, not a bug to hunt.
+    RECURRED 2026-09-10, three lessons: (a) the "floor" is per TABLE, not
+    per read — a per-read trace (monkey-patch client.listRecords, log start
+    offset + duration) showed the dashboard fully parallel yet one
+    commission-table page taking 28s, and the commission/payroll tables
+    were EMPTY; an empty Bitable table still costs 2.5-7s a read. Trace
+    before parallelising — hoisting phases won 3s, caching the four slow
+    tables won 17s. (b) `api/_cache.setCached` refuses a bare empty array
+    (so a transient [] can't be cached as "no data"), which silently made
+    the record cache useless for exactly those empty tables — cache a
+    `{ records }` wrapper written only on the success path. (c) The user
+    saw "That action could not be saved" for a save that HAD landed: the
+    toast came from the post-write dashboard reload hitting the client's
+    30s timeout. A failure message must name the step that failed
+    (`dashboardRefreshFailed`), never the step the user cares about.
 
 59. **The commit that imports a ghost** — committing a SHARED file by name
     while another agent is mid-feature in it swept their `import ...
