@@ -2199,14 +2199,19 @@ export class CompanyOpsRepository {
     // finance/performance writes drop it via invalidateCompanyOpsRecords.
     const slow = SLOW_RECORD_RESOURCES.has(resource);
     const cacheKey = recordsCacheKey(resource, maximum);
+    // Wrapped in an object on purpose: api/_cache refuses to store a bare
+    // empty array (a transient failure looks like an empty table there), but
+    // commission and payroll ARE empty today and still cost 2.5-3.5s per
+    // read. This branch only runs after a successful list(), so an empty
+    // wrapper here is a real empty table, never a swallowed failure.
     if (slow) {
-      const cached = readCache<FeishuRecord[]>(cacheKey);
-      if (cached) return cached;
+      const cached = readCache<{ records: FeishuRecord[] }>(cacheKey);
+      if (cached) return cached.records;
     }
     for (let attempt = 1; attempt <= 2; attempt++) {
       try {
         const records = await this.list(resource, maximum);
-        if (slow) writeCache(cacheKey, records, SLOW_RECORDS_TTL_MS);
+        if (slow) writeCache(cacheKey, { records }, SLOW_RECORDS_TTL_MS);
         return records;
       } catch (error) {
         if (error instanceof CompanyOpsConfigurationError) return [];
