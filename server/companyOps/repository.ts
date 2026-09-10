@@ -3149,9 +3149,11 @@ export class CompanyOpsRepository {
     requireActionPermission(principal.role, request.action);
     const payload = objectInput(request.payload);
     // Free-text create/submit actions all get the health-data guard; the
-    // lead case keeps its own (more specific) message below.
+    // lead case keeps its own (more specific) message below. Content ideas
+    // are deliberately NOT guarded (Kent, 2026-09-10): a content idea about
+    // "training around a finger injury" is marketing prose, not a client
+    // health record, same reasoning as articles.
     const freeTextCreates = new Set([
-      "content.create", "create_content_idea",
       "partner.create", "create_partner",
       "campaign.create", "create_campaign",
       "experiment.create", "create_experiment",
@@ -3642,7 +3644,7 @@ ${entry}` : entry;
         if (unknownContentEdits.length) {
           throw new CompanyOpsHttpError(400, `Unknown fields: ${unknownContentEdits.join(", ")}`);
         }
-        assertNoHealthData(payload);
+        // No health-data guard on content prose — see create_content_idea.
         const contentId = validRecordId(payload.contentId);
         const target = await this.target("content");
         await this.client.getRecord(target.appToken, target.tableId, contentId);
@@ -3656,6 +3658,14 @@ ${entry}` : entry;
           if (payload[key] === undefined) return;
           const field = fieldByAlias(target.fields, aliases);
           if (!field) return;
+          // An explicit blank is a CLEAR (named mistake #43): a card can go
+          // back to "no date yet" instead of failing with "must be a date".
+          // Bitable clears a Date column with null (verified 2026-09-10 on a
+          // throwaway record); "" would fail the whole write (mistake #3).
+          if (payload[key] === null || String(payload[key]).trim() === "") {
+            updates[field.field_name] = null;
+            return;
+          }
           const value = dateValue(payload[key]);
           if (value === undefined) throw new CompanyOpsHttpError(400, `${key} must be a date`);
           updates[field.field_name] = value;

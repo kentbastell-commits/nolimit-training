@@ -657,6 +657,53 @@ export default function ContentCalendarPage({
   const markLive = (item: OpsContentFullItem) =>
     void save(item.id, { status: LIVE_STATUSES.has(item.status || "") ? "Scheduled" : "Published" });
 
+  // One row of the plan-ahead board; shared by the dated weeks and the
+  // "no date yet" section so an idea can live on the board before it has a
+  // day (Kent, 2026-09-10: saving must never require a date).
+  const planRow = (item: OpsContentFullItem) => (
+    <div className="fopsCalPlanRow" key={item.id}>
+      <PlatformBadge platform={item.platform} size={17} />
+      <div className="fopsCalPlanMain">
+        <strong>
+          <TranslatableText text={item.title} language={language} as="span" />
+        </strong>
+        <span>
+          {[
+            item.format,
+            item.publishDate
+              ? new Date(item.publishDate).toLocaleDateString(locale, { weekday: "short", month: "short", day: "numeric" })
+              : "",
+            item.shootDate
+              ? `${text(language, "shoot", "拍摄")} ${new Date(item.shootDate).toLocaleDateString(locale, { month: "short", day: "numeric" })}`
+              : "",
+          ]
+            .filter(Boolean)
+            .join(" · ")}
+        </span>
+        {item.filmingNotes ? (
+          <TranslatableText text={item.filmingNotes} language={language} />
+        ) : null}
+      </div>
+      <button
+        type="button"
+        className={`fopsFootagePill ${footageClass(item.footageStatus)}`}
+        disabled={busy}
+        title={text(language, "Click to change footage status", "点击切换素材状态")}
+        onClick={() => cycleFootage(item)}
+      >
+        {footageDisplay(language, item.footageStatus)}
+      </button>
+      <button
+        type="button"
+        className="fopsCalIconBtn"
+        onClick={() => setEditing(item)}
+        aria-label={text(language, "Open & edit", "打开编辑")}
+      >
+        <Pencil size={14} />
+      </button>
+    </div>
+  );
+
   const handleDrop = (day: string) => (event: React.DragEvent) => {
     event.preventDefault();
     setDragOverDay(null);
@@ -992,6 +1039,17 @@ export default function ContentCalendarPage({
               "标记未来几周需要教练拍摄的内容——点状态胶囊切换素材状态，打开卡片写清楚要拍什么。",
             )}
           </p>
+          {unscheduled.length ? (
+            <section className="fopsCalPlanWeek fopsCalPlanUndated">
+              <header>
+                <strong>{text(language, "No date yet", "未定日期")}</strong>
+                <span className="fopsCalPlanCount">
+                  {unscheduled.length} {text(language, "ideas — drag onto a day when ready", "条想法——准备好后拖到某一天")}
+                </span>
+              </header>
+              <div className="fopsCalPlanRows">{unscheduled.map(planRow)}</div>
+            </section>
+          ) : null}
           {planWeeks.length ? (
             planWeeks.map(([weekKey, weekItems]) => {
               const weekStart = new Date(`${weekKey}T00:00:00`);
@@ -1026,49 +1084,7 @@ export default function ContentCalendarPage({
                     </span>
                   </header>
                   <div className="fopsCalPlanRows">
-                    {weekItems.map((item) => (
-                      <div className="fopsCalPlanRow" key={item.id}>
-                        <PlatformBadge platform={item.platform} size={17} />
-                        <div className="fopsCalPlanMain">
-                          <strong>
-                            <TranslatableText text={item.title} language={language} as="span" />
-                          </strong>
-                          <span>
-                            {[
-                              item.format,
-                              item.publishDate
-                                ? new Date(item.publishDate).toLocaleDateString(locale, { weekday: "short", month: "short", day: "numeric" })
-                                : "",
-                              item.shootDate
-                                ? `${text(language, "shoot", "拍摄")} ${new Date(item.shootDate).toLocaleDateString(locale, { month: "short", day: "numeric" })}`
-                                : "",
-                            ]
-                              .filter(Boolean)
-                              .join(" · ")}
-                          </span>
-                          {item.filmingNotes ? (
-                            <TranslatableText text={item.filmingNotes} language={language} />
-                          ) : null}
-                        </div>
-                        <button
-                          type="button"
-                          className={`fopsFootagePill ${footageClass(item.footageStatus)}`}
-                          disabled={busy}
-                          title={text(language, "Click to change footage status", "点击切换素材状态")}
-                          onClick={() => cycleFootage(item)}
-                        >
-                          {footageDisplay(language, item.footageStatus)}
-                        </button>
-                        <button
-                          type="button"
-                          className="fopsCalIconBtn"
-                          onClick={() => setEditing(item)}
-                          aria-label={text(language, "Open & edit", "打开编辑")}
-                        >
-                          <Pencil size={14} />
-                        </button>
-                      </div>
-                    ))}
+                    {weekItems.map(planRow)}
                   </div>
                 </section>
               );

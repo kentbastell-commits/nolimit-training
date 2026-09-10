@@ -725,6 +725,26 @@ describe("Company Operations quick-action Feishu contracts", () => {
     ]);
   });
 
+  it("clears a content card's publish date on an explicit blank and accepts injury wording in content prose", async () => {
+    const record: FeishuRecord = {
+      record_id: "recContent2",
+      fields: { "内容 Content": "Finger injury comeback", "发布日期 Publish Date": Date.parse("2026-09-14") },
+    };
+    const { repository, updated, created } = repositoryHarness({ tblContent: [record] }, { tblContent: contentFields });
+
+    await repository.performAction(growthPrincipal, {
+      action: "update_content",
+      payload: { contentId: record.record_id, publishDate: "", ideaNotes: "Training around a pulley injury and tendon rehab" },
+    });
+    expect(updated[0].fields["发布日期 Publish Date"]).toBeNull();
+
+    await repository.performAction(growthPrincipal, {
+      action: "create_content_idea",
+      payload: { workingTitle: "Knee pain: what climbers get wrong about injury rehab" },
+    });
+    expect(created[0].fields["内容 Content"]).toBe("Knee pain: what climbers get wrong about injury rehab");
+  });
+
   it("stores a lead with supported select values and cannot be client-promoted", async () => {
     const { repository, created } = repositoryHarness({}, {
       tblLead: leadFields,
