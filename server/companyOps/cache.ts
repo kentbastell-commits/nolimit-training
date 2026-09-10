@@ -47,6 +47,22 @@ export function invalidateCompanyOpsDashboards(): void {
   invalidateCache(`${PREFIX}dashboard:`);
 }
 
+// Four Bitable tables answer a single-page read in 4-28s (measured on the
+// box 2026-09-10: commission 28s, performance 9s, expenses 6.6s, payroll
+// 4.3s — every other table is ~1s). Rebuilding the dashboard after EVERY
+// write re-paid those, so a content-calendar save took 20-30s to reload and
+// read as "could not be saved". Their record lists are cached for 5 minutes
+// and dropped only by writes that can change them (see companyOpsActions).
+export const SLOW_RECORD_RESOURCES = new Set(["commission", "payroll", "performance", "expense"]);
+export const SLOW_RECORDS_TTL_MS = 5 * 60_000;
+export const recordsCacheKey = (resource: string, maximum: number) =>
+  `${PREFIX}records:${resource}:${maximum}`;
+
+/** Finance / performance writes: drop the slow-table record lists too. */
+export function invalidateCompanyOpsRecords(): void {
+  invalidateCache(`${PREFIX}records:`);
+}
+
 /** Role/staff changes: drop cached principals too. */
 export function invalidateCompanyOpsPrincipals(): void {
   invalidateCache(`${PREFIX}principal:`);

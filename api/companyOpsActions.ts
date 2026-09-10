@@ -18,6 +18,7 @@ import { FeishuApiError } from "../server/companyOps/feishuClient.ts";
 import {
   PRINCIPAL_TTL_MS,
   invalidateCompanyOpsDashboards,
+  invalidateCompanyOpsRecords,
   principalCacheKey,
   readCache,
   writeCache,
@@ -68,6 +69,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // write — otherwise the very next read can hit the sibling and show the
     // pre-write state, which reads as "my save didn't take".
     invalidateCompanyOpsDashboards();
+    // Only writes that can change the slow finance/performance tables drop
+    // their 5-minute record cache; a content or lead save must not re-pay
+    // the 28s commission read (see cache.ts).
+    if (/expense|payroll|commission|compensation|performance|review|goal|score|rating/i.test(String(body.action))) {
+      invalidateCompanyOpsRecords();
+    }
     return res.status(200).json({
       ...result,
       id: result.recordId,

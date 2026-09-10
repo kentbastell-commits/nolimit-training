@@ -1,3 +1,4 @@
+import { SLOW_RECORD_RESOURCES, SLOW_RECORDS_TTL_MS, readCache, recordsCacheKey, writeCache } from "./cache.ts";
 import {
   CompanyOpsConfigurationError,
   baseTokenFor,
@@ -2194,9 +2195,19 @@ export class CompanyOpsRepository {
     resource: CompanyOpsResource,
     maximum = 100
   ): Promise<FeishuRecord[]> {
+    // The four slow tables (see cache.ts) are served from a 5-minute cache;
+    // finance/performance writes drop it via invalidateCompanyOpsRecords.
+    const slow = SLOW_RECORD_RESOURCES.has(resource);
+    const cacheKey = recordsCacheKey(resource, maximum);
+    if (slow) {
+      const cached = readCache<FeishuRecord[]>(cacheKey);
+      if (cached) return cached;
+    }
     for (let attempt = 1; attempt <= 2; attempt++) {
       try {
-        return await this.list(resource, maximum);
+        const records = await this.list(resource, maximum);
+        if (slow) writeCache(cacheKey, records, SLOW_RECORDS_TTL_MS);
+        return records;
       } catch (error) {
         if (error instanceof CompanyOpsConfigurationError) return [];
         const code = (error as { code?: number }).code;
