@@ -889,7 +889,10 @@ invented procedure is not.
   error points at an unrelated line — keep scripts ASCII-only or save with
   a BOM. Also: killing "the script's" process by matching its command line
   matches your OWN tool shell too (it contains the same string) — filter by
-  `-File <name>` or record the PID at launch. Python needs `PYTHONIOENCODING=utf-8` for
+  `-File <name>` or record the PID at launch. RECURRED 2026-09-17 with a
+  path filter (`*微信web开发者工具*` matched the PowerShell running the kill):
+  always add `-and $_.ProcessId -ne $PID -and $_.Name -ne 'powershell.exe'`
+  to any command-line-matching kill. Python needs `PYTHONIOENCODING=utf-8` for
   CJK output. `curl -d "…中文…"` from Git Bash mangles CJK to literal `?` — send
   Chinese payloads with `--data-binary @file` (write the file server-side or via
   printf \x escapes), never inline in the command.
