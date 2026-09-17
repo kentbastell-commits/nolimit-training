@@ -2,7 +2,9 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import {
   ordersByWxpayTradeNo,
   updateProductOrder,
+  wxpayOrderGroup,
 } from "../server/db/repositories/productOrders.ts";
+import { verifyPayLinkKey } from "../server/wxpay/client.ts";
 
 // Public payment link (/pay/<tradeNo>) — the shareable alternative to the
 // coach's collect-payment QR. A WeChat Pay Native QR can only be paid by a
@@ -44,12 +46,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: "Method not allowed" });
   }
   const source = req.method === "GET" ? req.query : (req.body ?? {});
+  // `key` is the signed order key from wxpayCollect (stable across trade
+  // re-mints); `tradeNo` is accepted only for links sent before keys existed.
+  const key = String((source as Record<string, unknown>).key || "").trim();
   const tradeNo = String((source as Record<string, unknown>).tradeNo || "").trim();
-  if (!TRADE_NO.test(tradeNo)) {
-    return res.status(400).json({ error: "tradeNo required" });
+  let orders;
+  if (key) {
+    const orderId = verifyPayLinkKey(key);
+    if (!orderId) return res.status(404).json({ error: "Unknown payment link" });
+    orders = await wxpayOrderGroup(orderId);
+  } else {
+    if (!TRADE_NO.test(tradeNo)) {
+      return res.status(400).json({ error: "key or tradeNo required" });
+    }
+    orders = await ordersByWxpayTradeNo(tradeNo);
   }
-
-  const orders = await ordersByWxpayTradeNo(tradeNo);
   if (!orders.length) return res.status(404).json({ error: "Unknown payment link" });
   const order = orders[0];
   const amount = orders.reduce((sum, o) => sum + (o.amount > 0 ? o.amount : 0), 0);

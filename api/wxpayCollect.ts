@@ -5,6 +5,7 @@ import {
 } from "../server/db/repositories/productOrders.ts";
 import {
   createNativeTransaction,
+  makePayLinkKey,
   makeOutTradeNo,
   wxpayEnabled,
 } from "../server/wxpay/client.ts";
@@ -78,6 +79,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       orderId,
       tradeNo,
       codeUrl,
+      payLinkKey: makePayLinkKey(orderId),
       amountFen: Math.round(amount * 100),
     });
   } catch (err: unknown) {

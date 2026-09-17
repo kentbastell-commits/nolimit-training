@@ -11,7 +11,7 @@ import PortalToApp from "./PortalToApp";
 type Phase =
   | { step: "form" }
   | { step: "creating" }
-  | { step: "qr"; qrDataUrl: string; tradeNo: string; amountLabel: string; label: string }
+  | { step: "qr"; qrDataUrl: string; tradeNo: string; payLinkKey: string; amountLabel: string; label: string }
   | { step: "paid"; amountLabel: string; label: string };
 
 export default function CollectPaymentModal({
@@ -116,7 +116,7 @@ export default function CollectPaymentModal({
         color: { dark: "#111111", light: "#ffffff" },
       });
       const amountLabel = `¥${value.toLocaleString("zh-CN", { minimumFractionDigits: 2 })}`;
-      setPhase({ step: "qr", qrDataUrl, tradeNo: String(data.tradeNo), amountLabel, label: label.trim() });
+      setPhase({ step: "qr", qrDataUrl, tradeNo: String(data.tradeNo), payLinkKey: String(data.payLinkKey || ""), amountLabel, label: label.trim() });
       startPolling(String(data.tradeNo), amountLabel, label.trim());
     } catch (err) {
       setError(err instanceof Error ? err.message : tr("Could not create the payment", "创建收款失败"));
@@ -219,7 +219,7 @@ export default function CollectPaymentModal({
               <div className="collectPayLink">
                 <input
                   readOnly
-                  value={`${window.location.origin}/pay/${phase.tradeNo}`}
+                  value={`${window.location.origin}/pay/${phase.payLinkKey}`}
                   onFocus={(event) => event.currentTarget.select()}
                   aria-label={tr("Payment link", "付款链接")}
                 />
@@ -227,7 +227,7 @@ export default function CollectPaymentModal({
                   type="button"
                   className="collectPayCta"
                   onClick={() => {
-                    const link = `${window.location.origin}/pay/${phase.tradeNo}`;
+                    const link = `${window.location.origin}/pay/${phase.payLinkKey}`;
                     void navigator.clipboard?.writeText(link).then(
                       () => setLinkCopied(true),
                       () => setLinkCopied(false),

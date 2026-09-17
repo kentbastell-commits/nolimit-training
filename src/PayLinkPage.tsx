@@ -1,4 +1,4 @@
-// Public payment page for a coach-collected amount: trainnolimit.cn/pay/<tradeNo>.
+// Public payment page for a coach-collected amount: trainnolimit.cn/pay/<signed order key>.
 // Sent by WeChat message instead of a QR screenshot (which WeChat refuses to
 // pay from). Inside WeChat it opens the native payment sheet via WxPayPanel's
 // JSAPI path; in any other browser WxPayPanel falls back to a scannable QR.
@@ -27,7 +27,7 @@ function detectLang(): "en" | "zh" {
 }
 
 export default function PayLinkPage() {
-  const tradeNo = (window.location.pathname.match(/^\/pay\/([A-Za-z0-9]{8,32})/) || [])[1] || "";
+  const key = (window.location.pathname.match(/^\/pay\/([A-Za-z0-9._-]{8,200})/) || [])[1] || "";
   const [lang, setLang] = useState<"en" | "zh">(detectLang);
   const tr = (en: string, zh: string) => (lang === "zh" ? zh : en);
   const [info, setInfo] = useState<LinkInfo | null>(null);
@@ -46,12 +46,12 @@ export default function PayLinkPage() {
   }, [lang]);
 
   useEffect(() => {
-    if (!tradeNo) {
+    if (!key) {
       setError("missing");
       return;
     }
     let cancelled = false;
-    fetch(`/api/payLink?tradeNo=${encodeURIComponent(tradeNo)}`)
+    fetch(`/api/payLink?key=${encodeURIComponent(key)}`)
       .then(async (res) => {
         const data = await res.json().catch(() => null);
         if (cancelled) return;
@@ -73,7 +73,7 @@ export default function PayLinkPage() {
     return () => {
       cancelled = true;
     };
-  }, [tradeNo]);
+  }, [key]);
 
   const submitFapiao = async () => {
     if (!info || fapiaoBusy) return;
@@ -83,7 +83,7 @@ export default function PayLinkPage() {
       const res = await fetch("/api/payLink", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tradeNo, title, taxId, email }),
+        body: JSON.stringify({ key, title, taxId, email }),
       });
       const data = await res.json().catch(() => null);
       if (!res.ok || !data?.fapiao) {

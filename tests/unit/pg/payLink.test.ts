@@ -8,6 +8,9 @@ import {
   createProductOrder,
 } from "../../../server/db/repositories/productOrders.ts";
 import { closeDb, makeReq, makeRes, resetDb, rows } from "./helpers.ts";
+import { makePayLinkKey, verifyPayLinkKey } from "../../../server/wxpay/client.ts";
+
+process.env.PAY_LINK_SECRET = "test-pay-link-secret";
 
 beforeEach(async () => {
   await resetDb();
@@ -35,6 +38,23 @@ async function seedCollectOrder(tradeNo = "NLTESTTRADE0001") {
 }
 
 describe("payLink", () => {
+  it("resolves a signed order key (stable across WeChat trade re-mints) and rejects a tampered one", async () => {
+    const orderId = await seedCollectOrder();
+    const key = makePayLinkKey(orderId);
+    expect(verifyPayLinkKey(key)).toBe(orderId);
+    expect(verifyPayLinkKey(key.slice(0, -2) + "zz")).toBeNull();
+
+    await attachWxpayTradeNo([orderId], "NLREMINTED00002"); // a later JSAPI attempt
+    const res = makeRes();
+    await handler(makeReq({ method: "GET", query: { key } }) as any, res as any);
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toMatchObject({ orderId, amount: 900 });
+
+    const bad = makeRes();
+    await handler(makeReq({ method: "GET", query: { key: key.slice(0, -2) + "zz" } }) as any, bad as any);
+    expect(bad.statusCode).toBe(404);
+  });
+
   it("returns the stored amount and label for a known trade, 404 for unknown, 400 for junk", async () => {
     const orderId = await seedCollectOrder();
     const res = makeRes();

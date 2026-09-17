@@ -321,6 +321,37 @@ export function makeOpenidToken(openid: string, ttlMs = 2 * 3600_000): string {
   return `${payload}.${mac}`;
 }
 
+/**
+ * Stable, unguessable key for a public payment link (/pay/<key>). Keyed on
+ * the ORDER, not the WeChat trade number: every JSAPI/Native attempt mints a
+ * new trade number and overwrites the order's wxpayTradeNo, so a link keyed
+ * on that died the first time someone opened it outside WeChat
+ * (2026-09-17). No expiry — a fee request stays payable until it's paid.
+ */
+const payLinkSecret = (): string | null =>
+  process.env.PAY_LINK_SECRET || wxpayConfig()?.apiV3Key || null;
+
+export function makePayLinkKey(orderId: string): string {
+  const secret = payLinkSecret();
+  if (!secret) throw new Error("WeChat Pay is not configured");
+  const payload = Buffer.from(orderId, "utf8").toString("base64url");
+  const mac = crypto.createHmac("sha256", `paylink:${secret}`).update(payload).digest("base64url").slice(0, 24);
+  return `${payload}.${mac}`;
+}
+
+export function verifyPayLinkKey(key: string): string | null {
+  const secret = payLinkSecret();
+  if (!secret) return null;
+  const parts = String(key || "").split(".");
+  if (parts.length !== 2) return null;
+  const [payload, mac] = parts;
+  const expected = crypto.createHmac("sha256", `paylink:${secret}`).update(payload).digest("base64url").slice(0, 24);
+  const a = Buffer.from(mac); const b = Buffer.from(expected);
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
+  const orderId = Buffer.from(payload, "base64url").toString("utf8");
+  return /^[A-Za-z0-9-]{4,64}$/.test(orderId) ? orderId : null;
+}
+
 export function verifyOpenidToken(token: string): string | null {
   const config = wxpayConfig();
   if (!config) return null;

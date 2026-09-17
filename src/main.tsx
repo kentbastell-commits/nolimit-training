@@ -44,7 +44,7 @@ function Root() {
   // Public payment link (/pay/<tradeNo>) — a standalone page, no App boot,
   // so a client opening it from a WeChat message gets the payment sheet in
   // one hop instead of the whole coaching app.
-  if (/^\/pay\/[A-Za-z0-9]{8,32}/.test(window.location.pathname)) {
+  if (/^\/pay\/[A-Za-z0-9._-]{8,}/.test(window.location.pathname)) {
     return (
       <ErrorBoundary label="pay-link">
         <Suspense fallback={<div className="companyOpsBoot" aria-hidden="true" />}>
