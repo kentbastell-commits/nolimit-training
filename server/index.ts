@@ -106,6 +106,7 @@ import wxpayCreate from "../api/wxpayCreate.ts";
 import wxpayCreateMini from "../api/wxpayCreateMini.ts";
 import wxpayCreateJsapi from "../api/wxpayCreateJsapi.ts";
 import wxpayCollect from "../api/wxpayCollect.ts";
+import payLink from "../api/payLink.ts";
 import wxpayNotify from "../api/wxpayNotify.ts";
 import wxpayStatus from "../api/wxpayStatus.ts";
 import workouts from "../api/workouts.ts";
@@ -343,6 +344,7 @@ const handlers = {
   wxAuthWeb,
   wxLogin,
   wxpayCollect,
+  payLink,
   wxpayConfig,
   wxpayCreate,
   wxpayCreateMini,

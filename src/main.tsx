@@ -12,6 +12,7 @@ import { applyPageMetadata } from './seo.ts'
 import { initTelemetry } from './telemetry.ts'
 
 const CompanyOpsApp = lazy(() => import('./companyOps/CompanyOpsApp.tsx'))
+const PayLinkPage = lazy(() => import('./PayLinkPage.tsx'))
 
 applyPageMetadata()
 initTelemetry()
@@ -40,6 +41,18 @@ function bootShowsSplash() {
 }
 
 function Root() {
+  // Public payment link (/pay/<tradeNo>) — a standalone page, no App boot,
+  // so a client opening it from a WeChat message gets the payment sheet in
+  // one hop instead of the whole coaching app.
+  if (/^\/pay\/[A-Za-z0-9]{8,32}/.test(window.location.pathname)) {
+    return (
+      <ErrorBoundary label="pay-link">
+        <Suspense fallback={<div className="companyOpsBoot" aria-hidden="true" />}>
+          <PayLinkPage />
+        </Suspense>
+      </ErrorBoundary>
+    )
+  }
   const isCompanyOps = window.location.pathname.startsWith('/company-ops')
   if (isCompanyOps) {
     return (

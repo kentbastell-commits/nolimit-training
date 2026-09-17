@@ -148,3 +148,28 @@
   color: #171512;
   font-size: 0.92rem;
 }
+
+/* Shareable payment link under the QR (2026-09-17): WeChat refuses to pay a
+   forwarded QR screenshot, so remote clients get /pay/<tradeNo> instead. */
+.collectPayLink {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  margin-top: 6px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(21, 21, 21, 0.1);
+}
+.collectPayLink input {
+  width: 100%;
+  min-height: 40px;
+  padding: 6px 10px;
+  border: 1px solid rgba(21, 21, 21, 0.16);
+  border-radius: 10px;
+  font-size: 0.82rem;
+  color: inherit;
+  background: rgba(255, 255, 255, 0.7);
+}
+.collectPayLink .collectPayHint {
+  margin: 0;
+}

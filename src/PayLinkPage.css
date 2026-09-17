@@ -1,0 +1,180 @@
+/* Public payment link page — forced-light, phone-first, brand gold. Owns its
+   own foreground tokens (mistake #24) so a dark-mode OS can't blank it. */
+.payLink {
+  --pl-ink: #151515;
+  --pl-ink-soft: #6b6b63;
+  --pl-line: rgba(21, 21, 21, 0.12);
+  --pl-gold: #c9a84c;
+  --pl-gold-dark: #9a7a2a;
+  --pl-surface: #ffffff;
+  --pl-ground: #f6f3ec;
+  min-height: 100dvh;
+  padding: 16px 16px calc(28px + env(safe-area-inset-bottom));
+  background: var(--pl-ground);
+  color: var(--pl-ink);
+  color-scheme: light;
+  font-family: Inter, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  align-items: center;
+}
+.payLink > * {
+  width: 100%;
+  max-width: 460px;
+}
+.payLinkHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 2px;
+}
+.payLinkBrand {
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  font-size: 0.95rem;
+}
+.payLinkLang {
+  border: 1px solid var(--pl-line);
+  background: var(--pl-surface);
+  color: var(--pl-ink);
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.payLinkCard {
+  background: var(--pl-surface);
+  border: 1px solid var(--pl-line);
+  border-radius: 16px;
+  padding: 22px 20px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.payLinkCard--loading,
+.payLinkCard--error {
+  text-align: center;
+  color: var(--pl-ink-soft);
+}
+.payLinkCard--error strong {
+  color: var(--pl-ink);
+  font-size: 1.05rem;
+}
+.payLinkEyebrow {
+  color: var(--pl-gold-dark);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.payLinkAmount {
+  margin: 0;
+  font-size: 2.4rem;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+.payLinkLabel {
+  margin: 0;
+  font-size: 1.02rem;
+  font-weight: 600;
+}
+.payLinkFor,
+.payLinkHint {
+  margin: 0;
+  color: var(--pl-ink-soft);
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+.payLinkPaid {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 12px;
+  background: rgb(16 122 74 / 10%);
+  color: #107a4a;
+  font-size: 1.05rem;
+}
+.payLinkPaid span {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #107a4a;
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+}
+.payLinkFapiao h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+.payLinkForm {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.payLinkForm label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--pl-ink-soft);
+}
+.payLinkForm input {
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--pl-line);
+  border-radius: 10px;
+  font-size: 1rem;
+  color: var(--pl-ink);
+  background: var(--pl-surface);
+}
+.payLinkForm input:focus {
+  outline: 2px solid var(--pl-gold);
+  outline-offset: 1px;
+}
+.payLinkCta {
+  min-height: 46px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--pl-ink);
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+.payLinkCta:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.payLinkText {
+  align-self: flex-start;
+  border: 0;
+  background: transparent;
+  color: var(--pl-gold-dark);
+  font-weight: 700;
+  cursor: pointer;
+  padding: 4px 0;
+}
+.payLinkError {
+  margin: 0;
+  color: #a12c22;
+  font-size: 0.86rem;
+}
+.payLinkFapiaoDone p {
+  margin: 0;
+}
+.payLinkFooter {
+  text-align: center;
+  color: var(--pl-ink-soft);
+  font-size: 0.74rem;
+  padding: 4px 8px;
+}

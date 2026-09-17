@@ -24,6 +24,7 @@ export default function CollectPaymentModal({
   onCollected?: () => void;
 }) {
   const tr = (en: string, zh: string) => (isChinese ? zh : en);
+  const [linkCopied, setLinkCopied] = useState(false);
   const [amount, setAmount] = useState("");
   const [label, setLabel] = useState("");
   const [clientName, setClientName] = useState("");
@@ -211,10 +212,34 @@ export default function CollectPaymentModal({
               <img src={phase.qrDataUrl} alt={tr("WeChat Pay QR", "微信支付二维码")} />
               <p className="collectPayHint">
                 {tr(
-                  "Show this QR, or screenshot and send it — they scan with WeChat. Valid ~2 hours; this window turns green the moment they pay.",
-                  "出示或截图发送此二维码，对方用微信扫码付款。有效期约2小时；付款成功后此窗口会自动变绿。",
+                  "In person: they scan this with WeChat. A screenshot of the QR can't be paid — for remote clients send the link below instead. Valid ~2 hours; this window turns green the moment they pay.",
+                  "当面收款：对方用微信扫码。二维码截图无法支付——远程客户请发送下方链接。有效期约2小时；付款成功后此窗口会自动变绿。",
                 )}
               </p>
+              <div className="collectPayLink">
+                <input
+                  readOnly
+                  value={`${window.location.origin}/pay/${phase.tradeNo}`}
+                  onFocus={(event) => event.currentTarget.select()}
+                  aria-label={tr("Payment link", "付款链接")}
+                />
+                <button
+                  type="button"
+                  className="collectPayCta"
+                  onClick={() => {
+                    const link = `${window.location.origin}/pay/${phase.tradeNo}`;
+                    void navigator.clipboard?.writeText(link).then(
+                      () => setLinkCopied(true),
+                      () => setLinkCopied(false),
+                    );
+                  }}
+                >
+                  {linkCopied ? tr("Copied ✓", "已复制 ✓") : tr("Copy payment link", "复制付款链接")}
+                </button>
+                <span className="collectPayHint">
+                  {tr("Send it in WeChat — it opens the payment sheet directly, no scanning.", "微信里发给对方——点开即可直接付款，无需扫码。")}
+                </span>
+              </div>
             </div>
           ) : null}
 

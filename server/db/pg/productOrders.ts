@@ -375,7 +375,9 @@ export async function updateProductOrder(
   omitIfProvided("Onboarding Status", i.onboardingStatus);
   omitIfProvided("Access End Date", toEpochMs(i.accessEndDate));
   omitIfProvided("Fulfilled At", toEpochMs(i.fulfilledAt));
-  omitIfProvided("Notes", i.notes);
+  // Real column (order_notes) — was reported as "no backing column" and
+  // silently dropped (mistake #43); the pay link writes fapiao requests here.
+  if (i.notes !== undefined && i.notes !== null) set.orderNotes = i.notes;
 
   if (Object.keys(set).length === 0) {
     return {
@@ -446,6 +448,7 @@ export type WxpayOrderRow = {
   paymentStatus: string;
   paymentReference: string;
   wxpayTradeNo: string;
+  notes: string;
 };
 
 const toWxpayRow = (r: Row): WxpayOrderRow => ({
@@ -458,6 +461,7 @@ const toWxpayRow = (r: Row): WxpayOrderRow => ({
   paymentStatus: str(r.paymentStatus),
   paymentReference: str(r.paymentReference),
   wxpayTradeNo: str(r.wxpayTradeNo),
+  notes: str(r.orderNotes),
 });
 
 /**
