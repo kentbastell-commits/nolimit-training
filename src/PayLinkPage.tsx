@@ -15,6 +15,8 @@ type LinkInfo = {
   label: string;
   clientName: string;
   paid: boolean;
+  needsIdentity: boolean;
+  clientCode: string;
   fapiao: { title: string; taxId: string; email: string; requestedAt: string } | null;
 };
 
@@ -40,6 +42,39 @@ export default function PayLinkPage() {
   const [email, setEmail] = useState("");
   const [fapiaoBusy, setFapiaoBusy] = useState(false);
   const [fapiaoError, setFapiaoError] = useState("");
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [identBusy, setIdentBusy] = useState(false);
+  const [identError, setIdentError] = useState("");
+
+  // A stranger from a social-media link has no account yet: name + phone
+  // create (or find) it and attach this order BEFORE the payment sheet, so
+  // nothing needs linking by hand afterwards.
+  const submitIdentity = async () => {
+    if (!info || identBusy) return;
+    setIdentBusy(true);
+    setIdentError("");
+    try {
+      const res = await fetch("/api/payLink", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key, action: "identify", name, phone }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data?.clientCode) {
+        throw new Error(
+          data?.error === "phone invalid"
+            ? tr("Please enter a valid mobile number", "请输入有效的手机号")
+            : tr("Could not save your details", "信息保存失败，请重试"),
+        );
+      }
+      setInfo({ ...info, needsIdentity: false, clientCode: String(data.clientCode), clientName: name });
+    } catch (err) {
+      setIdentError(err instanceof Error ? err.message : tr("Could not save your details", "信息保存失败，请重试"));
+    } finally {
+      setIdentBusy(false);
+    }
+  };
 
   useEffect(() => {
     document.title = lang === "zh" ? "NX LIMIT 付款" : "NX LIMIT Payment";
@@ -61,6 +96,7 @@ export default function PayLinkPage() {
         }
         setInfo(data as LinkInfo);
         setPaid(Boolean(data.paid));
+        if (data.needsIdentity && data.clientName && data.clientName !== data.label) setName(String(data.clientName));
         if (data.fapiao) {
           setTitle(data.fapiao.title || "");
           setTaxId(data.fapiao.taxId || "");
@@ -147,10 +183,50 @@ export default function PayLinkPage() {
             ) : null}
 
             {paid ? (
-              <div className="payLinkPaid" role="status">
-                <span aria-hidden="true">✓</span>
-                <strong>{tr("Paid. Thank you!", "已付款，谢谢！")}</strong>
-              </div>
+              <>
+                <div className="payLinkPaid" role="status">
+                  <span aria-hidden="true">✓</span>
+                  <strong>{tr("Paid. Thank you!", "已付款，谢谢！")}</strong>
+                </div>
+                {info.clientCode ? (
+                  <div className="payLinkAccount">
+                    <strong>{tr("Your training account is ready", "你的训练账户已开通")}</strong>
+                    <p className="payLinkHint">
+                      {tr(
+                        "Open the NX LIMIT mini program in WeChat and log in with this phone number, or use the web portal:",
+                        "在微信搜索 NX LIMIT 小程序并用此手机号登录，或使用网页版：",
+                      )}
+                    </p>
+                    <a className="payLinkCta payLinkCta--link" href={`/?portal=client&client=${encodeURIComponent(info.clientCode)}`}>
+                      {tr("Open my portal", "打开我的训练页面")}
+                    </a>
+                  </div>
+                ) : null}
+              </>
+            ) : info.needsIdentity ? (
+              <form
+                className="payLinkForm"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  void submitIdentity();
+                }}
+              >
+                <p className="payLinkHint">
+                  {tr("First, who is this for? Your account is created from these details.", "请先填写付款人信息，系统将据此创建你的训练账户。")}
+                </p>
+                <label>
+                  <span>{tr("Your name", "姓名")} *</span>
+                  <input value={name} onChange={(e) => setName(e.target.value)} maxLength={60} required autoComplete="name" />
+                </label>
+                <label>
+                  <span>{tr("Mobile number", "手机号")} *</span>
+                  <input value={phone} onChange={(e) => setPhone(e.target.value)} maxLength={20} required inputMode="tel" autoComplete="tel" placeholder="138 0000 0000" />
+                </label>
+                {identError ? <p className="payLinkError" role="alert">{identError}</p> : null}
+                <button type="submit" className="payLinkCta" disabled={identBusy || name.trim().length < 2 || phone.replace(/[\s-]/g, "").length < 7}>
+                  {identBusy ? tr("Saving…", "保存中…") : tr("Continue to payment", "下一步：付款")}
+                </button>
+              </form>
             ) : !wxpayEnabled ? (
               <p className="payLinkHint">{tr("WeChat Pay is not available right now.", "微信支付暂不可用。")}</p>
             ) : (

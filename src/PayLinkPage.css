@@ -178,3 +178,17 @@
   font-size: 0.74rem;
   padding: 4px 8px;
 }
+.payLinkAccount {
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--pl-line);
+}
+.payLinkCta--link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}

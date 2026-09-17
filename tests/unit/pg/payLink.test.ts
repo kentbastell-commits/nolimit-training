@@ -55,6 +55,39 @@ describe("payLink", () => {
     expect(bad.statusCode).toBe(404);
   });
 
+  it("identify creates the client from name + phone, attaches the order, and reuses the client next time", async () => {
+    const orderId = await seedCollectOrder();
+    const key = makePayLinkKey(orderId);
+    const before = makeRes();
+    await handler(makeReq({ method: "GET", query: { key } }) as any, before as any);
+    expect(before.body.needsIdentity).toBe(true);
+
+    const bad = makeRes();
+    await handler(makeReq({ method: "POST", body: { key, action: "identify", name: "Li Meini", phone: "12" } }) as any, bad as any);
+    expect(bad.statusCode).toBe(400);
+
+    const ok = makeRes();
+    await handler(makeReq({ method: "POST", body: { key, action: "identify", name: "Li Meini", phone: "138 0000 1234" } }) as any, ok as any);
+    expect(ok.statusCode).toBe(200);
+    const code = String(ok.body.clientCode);
+    expect(code).toMatch(/^CL-/);
+    const client = await rows<{ full_name: string; phone: string; source: string }>("select full_name, phone, source from clients where client_id = $1", [code]);
+    expect(client[0]).toMatchObject({ full_name: "Li Meini", phone: "13800001234", source: "Pay link" });
+    const order = await rows<{ client_id: string; client_name: string }>("select client_id, client_name from product_orders where order_id = $1", [orderId]);
+    expect(order[0]).toMatchObject({ client_id: code, client_name: "Li Meini" });
+
+    const after = makeRes();
+    await handler(makeReq({ method: "GET", query: { key } }) as any, after as any);
+    expect(after.body).toMatchObject({ needsIdentity: false, clientCode: code });
+
+    // Same person, second link: found, not duplicated.
+    const orderId2 = await seedCollectOrder("NLTESTTRADE0002");
+    const again = makeRes();
+    await handler(makeReq({ method: "POST", body: { key: makePayLinkKey(orderId2), action: "identify", name: "Li Meini", phone: "13800001234" } }) as any, again as any);
+    expect(again.body.clientCode).toBe(code);
+    expect((await rows("select client_id from clients")).length).toBe(1);
+  });
+
   it("returns the stored amount and label for a known trade, 404 for unknown, 400 for junk", async () => {
     const orderId = await seedCollectOrder();
     const res = makeRes();

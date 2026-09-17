@@ -5,6 +5,7 @@ import {
   wxpayOrderGroup,
 } from "../server/db/repositories/productOrders.ts";
 import { verifyPayLinkKey } from "../server/wxpay/client.ts";
+import { createClient, findClientByPhoneName } from "../server/db/repositories/clients.ts";
 
 // Public payment link (/pay/<tradeNo>) — the shareable alternative to the
 // coach's collect-payment QR. A WeChat Pay Native QR can only be paid by a
@@ -14,7 +15,12 @@ import { verifyPayLinkKey } from "../server/wxpay/client.ts";
 //
 //   GET  /api/payLink?tradeNo=…   → what the payer sees (amount comes from the
 //                                    stored order, never the client — #22)
-//   POST /api/payLink { tradeNo, title, taxId?, email? }
+//   POST /api/payLink { key, action:"identify", name, phone, email? }
+//                                  → creates (or finds by phone+name) the client
+//                                    and attaches the order, so a stranger who
+//                                    pays from a social-media link gets an
+//                                    account without Kent linking anything
+//   POST /api/payLink { key, title, taxId?, email? }
 //                                  → files a 发票 (fapiao) request on the order
 //
 // Fapiao issuing itself is still manual (no e-invoice provider yet): the
@@ -75,11 +81,44 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       label: order.productName || "",
       clientName: order.clientName || "",
       paid,
+      // No client attached yet → the page asks for name + phone before paying.
+      needsIdentity: !order.clientId,
+      // The payer's own account code, for the "your account is ready" step.
+      clientCode: order.clientId || "",
       fapiao: parseFapiao(notes),
     });
   }
 
   const body = (req.body ?? {}) as Record<string, unknown>;
+  if (String(body.action || "") === "identify") {
+    const name = String(body.name || "").trim().replace(/\s+/g, " ").slice(0, 60);
+    const phone = String(body.phone || "").replace(/[\s-]/g, "").slice(0, 20);
+    const email = String(body.email || "").trim().slice(0, 120);
+    if (name.length < 2) return res.status(400).json({ error: "name required" });
+    if (!/^(\+?\d{7,15})$/.test(phone)) return res.status(400).json({ error: "phone invalid" });
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ error: "email invalid" });
+    }
+    let clientCode = await findClientByPhoneName(phone, name);
+    if (!clientCode) {
+      const created = await createClient({
+        name,
+        phone,
+        ...(email ? { email } : {}),
+        source: "Pay link",
+        paymentStatus: "Pending",
+        intakeStatus: "Not Sent",
+        subscriptionStatus: "Active",
+      });
+      clientCode = String((created as { recordId?: string }).recordId || (created as { clientId?: string }).clientId || "");
+      if (!created.success || !clientCode) {
+        return res.status(500).json({ error: "Could not create the account" });
+      }
+    }
+    const attached = await updateProductOrder({ recordId: order.orderId, clientCode, clientName: name });
+    if (!attached.success) return res.status(attached.status).json(attached.body);
+    return res.status(200).json({ success: true, clientCode, needsIdentity: false });
+  }
   const title = String(body.title || "").trim().slice(0, 120);
   const taxId = String(body.taxId || "").trim().toUpperCase().slice(0, 20);
   const email = String(body.email || "").trim().slice(0, 120);
