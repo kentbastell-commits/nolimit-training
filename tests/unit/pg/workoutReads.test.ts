@@ -58,6 +58,17 @@ async function seedTemplate(id: string, week: number, day: number) {
 }
 
 describe("api/workouts (postgres)", () => {
+  it("localizes a completed snapshot by its saved exercise name without changing recorded values", async () => {
+    await seedAssigned("AW-saved", { completion_status: "Completed" });
+    await pool.query("update exercises set name_cn='杠铃深蹲' where exercise_id='EX-1'");
+    await pool.query(`insert into workout_logs(log_id,client_id,assigned_workout_id,exercise_name,set_number,actual_reps,actual_weight,completed)
+      values ('LOG-saved','CL-9001','AW-saved','Back Squat - Left',1,'4',80,true)`);
+    const res = await get(historyHandler, { clientCode: "CL-9001", assignedWorkoutId: "AW-saved" });
+    expect(res.body.logs[0].exerciseName).toBe("Back Squat - Left");
+    expect(res.body.logs[0].exerciseNameCn).toBe("杠铃深蹲");
+    expect(res.body.logs[0].actualReps).toBe("4");
+    expect(res.body.logs[0].actualWeight).toBe("80");
+  });
   it("returns [] for an athlete with nothing scheduled", async () => {
     const res = await get(workoutsHandler, { clientCode: "CL-9001" });
     expect(res.statusCode).toBe(200);
@@ -161,6 +172,27 @@ describe("api/workoutHistory (postgres)", () => {
     const res = await get(historyHandler, { clientCode: "CL-9001" });
     expect(res.statusCode).toBe(200);
     expect(res.body.history ?? []).toEqual([]);
+  });
+
+  it("uses exact athlete codes even when another code starts with the same text", async () => {
+    await seedClient({ client_id: "CL-90010" });
+    await seedLog({ actual_weight: "100" });
+    await seedLog({ client_id: "CL-90010", client_code: "CL-90010", actual_weight: "200" });
+    const res = await get(historyHandler, { clientCode: "CL-9001" });
+    expect(res.body.logs).toHaveLength(1);
+    expect(res.body.summary.bestWeight).toBe(100);
+  });
+
+  it("returns the saved values and skips for exactly one completed workout", async () => {
+    await seedAssigned("AW-1", { completion_status: "Completed" });
+    await seedAssigned("AW-2");
+    await seedLog({ assigned_workout_id: "AW-1", exercise_name: "Goblet Squat", prescribed_reps: "8", actual_reps: 7, exercise_order: 1 });
+    await seedLog({ assigned_workout_id: "AW-1", set_number: 2, completed: false, actual_reps: null, actual_weight: null, exercise_order: 2 });
+    await seedLog({ assigned_workout_id: "AW-2", actual_weight: "999" });
+    const res = await get(historyHandler, { clientCode: "CL-9001", assignedWorkoutId: "AW-1" });
+    expect(res.body.logs).toHaveLength(2);
+    expect(res.body.logs.find((r: any) => r.exerciseOrder === 1)).toMatchObject({ exerciseName: "Goblet Squat", actualReps: "7", prescribedReps: "8", completed: true });
+    expect(res.body.logs.find((r: any) => r.exerciseOrder === 2)).toMatchObject({ completed: false, actualReps: "", actualWeight: "" });
   });
 
   it("summarises what the athlete last lifted", async () => {

@@ -1,11 +1,8 @@
-import { and, eq, inArray, isNull, or } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { db } from "../client.ts";
-import { fillTranslation } from "../translate.ts";
 import {
   formResponses,
   testResults,
-  testItems,
-  athleteMetrics,
   assignedForms,
   assignedTests,
   formTemplates,
@@ -13,24 +10,25 @@ import {
   clients,
 } from "../schema.ts";
 import { epochToDate, str } from "./_util.ts";
-import {
-  calculateMetric,
-  deriveMetricKind,
-  deriveMetricUnit,
-} from "../metricPipeline.ts";
 import type { ResponseDTO } from "../dto.ts";
-import type {
-  SubmitContentResponseInput,
-  SubmitContentResponseResult,
-} from "../repositories/contentResponses.ts";
+export { submitContentResponse } from "./submitAssessment.ts";
 
-export async function listAllResponses(): Promise<ResponseDTO[]> {
+export async function listAllResponses(clientId = "", clientName = ""): Promise<ResponseDTO[]> {
   const [forms, tests] = await Promise.all([
-    db.select().from(formResponses),
-    db.select().from(testResults),
+    db.select({ row: formResponses, title: formTemplates.name, titleCn: formTemplates.nameCn, reviewedAt: assignedForms.reviewedAt, clientName: clients.fullName }).from(formResponses)
+      .leftJoin(formTemplates, eq(formResponses.formId, formTemplates.formId))
+      .leftJoin(assignedForms, eq(formResponses.assignedFormId, assignedForms.assignedFormId))
+      .leftJoin(clients, eq(formResponses.clientId, clients.clientId))
+      .where(clientId ? eq(formResponses.clientId, clientId) : clientName ? eq(clients.fullName, clientName) : undefined),
+    db.select({ row: testResults, title: testTemplates.name, titleCn: testTemplates.nameCn, reviewedAt: assignedTests.reviewedAt, clientName: clients.fullName }).from(testResults)
+      .leftJoin(testTemplates, eq(testResults.testTemplateId, testTemplates.testTemplateId))
+      .leftJoin(assignedTests, eq(testResults.assignedTestId, assignedTests.assignedTestId))
+      .leftJoin(clients, eq(testResults.clientId, clients.clientId))
+      .where(clientId ? eq(testResults.clientId, clientId) : clientName ? eq(clients.fullName, clientName) : undefined),
   ]);
 
-  const formDtos: ResponseDTO[] = forms.map((r) => ({
+  const formDtos: ResponseDTO[] = forms.map(({ row: r, title, titleCn, reviewedAt, clientName }) => ({
+    templateName: str(title), templateNameCn: str(titleCn), reviewedAt: reviewedAt ? Number(reviewedAt) : null,
     recordId: r.responseId,
     responseType: "Questionnaire",
     responseId: r.responseId,
@@ -41,21 +39,25 @@ export async function listAllResponses(): Promise<ResponseDTO[]> {
     label: "",
     answer: "",
     answersJson: r.answers == null ? "" : JSON.stringify(r.answers),
+    answersJsonEn: str(r.answersEn),
     unit: "",
     notes: "",
+    clientComment: str(r.clientComment),
+    clientCommentEn: str(r.clientCommentEn),
     clientId: str(r.clientId),
-    clientName: "",
+    clientName: str(clientName),
     submittedAt: epochToDate(r.submittedAt),
   }));
 
-  const testDtos: ResponseDTO[] = tests.map((r) => ({
+  const testDtos: ResponseDTO[] = tests.map(({ row: r, title, titleCn, reviewedAt, clientName }) => ({
+    templateName: str(title), templateNameCn: str(titleCn), reviewedAt: reviewedAt ? Number(reviewedAt) : null,
     recordId: r.resultId,
     responseType: "Physical Test",
     responseId: r.resultId,
     assignmentId: str(r.assignedTestId),
     assignmentRecordId: "",
     templateId: str(r.testTemplateId),
-    itemId: str(r.testItemId),
+    itemId: str(r.testItemId) || (r.testItemName === "Client Comment" ? "__client_comment" : ""),
     // The stored name renders directly (the frontend prefers label over the
     // itemId lookup), so results outlive template edits.
     label: str(r.testItemName),
@@ -63,348 +65,11 @@ export async function listAllResponses(): Promise<ResponseDTO[]> {
     answersJson: "",
     unit: str(r.unit),
     notes: str(r.notes),
+    notesEn: str(r.notesEn),
     clientId: str(r.clientId),
-    clientName: "",
+    clientName: str(clientName),
     submittedAt: epochToDate(r.submittedAt),
   }));
 
   return [...formDtos, ...testDtos];
-}
-
-/* ------------------------- submitContentResponse -------------------------- */
-// Same semantics as the Feishu impl. Questionnaires land as ONE row with the
-// answers JSON (the pg schema always has that column); physical tests land as
-// one row per item and run the test->metric pipeline. FK references are
-// validated first (Feishu just stores dead text) — a missing client keeps the
-// submission with the FK nulled so an athlete's submit can never bounce.
-
-async function exists<T extends { length: number }>(q: Promise<T>) {
-  return (await q).length > 0;
-}
-
-export async function submitContentResponse(
-  input: SubmitContentResponseInput
-): Promise<SubmitContentResponseResult> {
-  const {
-    assignmentType,
-    assignmentId,
-    assignmentRecordId,
-    templateId,
-    clientId,
-    clientName,
-    responses,
-  } = input;
-
-  const isTest = String(assignmentType).toLowerCase().includes("test");
-  const now = Date.now();
-  const clientCode = String(clientId);
-  const assignmentCode = String(assignmentId || assignmentRecordId || "");
-
-  // Ownership check: without this, anyone who knows or guesses another
-  // client's assignment id could POST with their own clientId and forge
-  // that client's answers, or mark their intake/test complete. A missing
-  // assignment still soft-fails through below (matches the existing "an
-  // athlete's submit can never bounce" semantics) — only an assignment that
-  // EXISTS and belongs to someone else is rejected.
-  const assignmentLookupId = String(assignmentRecordId || assignmentId || "");
-  if (assignmentLookupId) {
-    const assignment = isTest
-      ? (
-          await db
-            .select({
-              clientCode: assignedTests.clientCode,
-              clientId: assignedTests.clientId,
-            })
-            .from(assignedTests)
-            .where(eq(assignedTests.assignedTestId, assignmentLookupId))
-            .limit(1)
-        )[0]
-      : (
-          await db
-            .select({
-              clientCode: assignedForms.clientCode,
-              clientId: assignedForms.clientId,
-            })
-            .from(assignedForms)
-            .where(eq(assignedForms.assignedFormId, assignmentLookupId))
-            .limit(1)
-        )[0];
-    if (
-      assignment &&
-      assignment.clientCode !== clientCode &&
-      assignment.clientId !== clientCode
-    ) {
-      return {
-        status: 403,
-        body: { error: "This assignment does not belong to that client" },
-      };
-    }
-  }
-
-  const clientFk = (await exists(
-    db.select({ id: clients.clientId }).from(clients).where(eq(clients.clientId, clientCode))
-  ))
-    ? clientCode
-    : null;
-
-  const createdRecords: string[] = [];
-  const metricsCreated: string[] = [];
-  const metricWarnings: string[] = [];
-
-  const clientComment = String(
-    responses.find(
-      (responseItem: any) =>
-        responseItem?.questionId === "__client_comment" ||
-        responseItem?.itemId === "__client_comment" ||
-        String(responseItem?.label || "").toLowerCase() === "client comment"
-    )?.value || ""
-  );
-
-  if (!isTest) {
-    const responseId = `FR-${now}`;
-    const assignedFk = assignmentCode
-      ? (await exists(
-          db
-            .select({ id: assignedForms.assignedFormId })
-            .from(assignedForms)
-            .where(eq(assignedForms.assignedFormId, assignmentCode))
-        ))
-        ? assignmentCode
-        : null
-      : null;
-    const formFk = (await exists(
-      db
-        .select({ id: formTemplates.formId })
-        .from(formTemplates)
-        .where(eq(formTemplates.formId, String(templateId)))
-    ))
-      ? String(templateId)
-      : null;
-
-    try {
-      await db.insert(formResponses).values({
-        responseId,
-        assignedFormId: assignedFk,
-        formId: formFk,
-        clientId: clientFk,
-        submittedAt: now,
-        answers: responses,
-        clientComment: clientComment || null,
-      });
-    } catch (e: any) {
-      return {
-        status: 500,
-        body: { error: "Could not submit response", message: e?.message || String(e) },
-      };
-    }
-    createdRecords.push(responseId);
-
-    // Translate-on-write: mirror the client's comment into client_comment_en
-    // (best-effort, fills empty only).
-    if (clientComment) {
-      void fillTranslation(clientComment, "en", (en) =>
-        db
-          .update(formResponses)
-          .set({ clientCommentEn: en })
-          .where(
-            and(
-              eq(formResponses.responseId, responseId),
-              or(
-                isNull(formResponses.clientCommentEn),
-                eq(formResponses.clientCommentEn, "")
-              )
-            )
-          )
-      );
-    }
-  } else {
-    // Metric configs for this template's items, keyed by item id.
-    const itemIds = responses
-      .map((r: any) => String(r.itemId || r.questionId || ""))
-      .filter(Boolean);
-    const itemRows = itemIds.length
-      ? await db.select().from(testItems).where(inArray(testItems.testItemId, itemIds))
-      : [];
-    const testItemMetrics = new Map(
-      itemRows.map((item) => [
-        item.testItemId,
-        {
-          createsMetric: item.createsMetric === true,
-          metricType: str(item.testingMetricType) || str(item.metricType),
-          metricName: str(item.metricName),
-          metricUnit: str(item.metricUnit),
-          calculationMethod: str(item.calculationMethod),
-          inputUnit: str(item.inputUnit),
-          testName: str(item.testName),
-        },
-      ])
-    );
-    const knownItems = new Set(itemRows.map((r) => r.testItemId));
-    const templateFk = (await exists(
-      db
-        .select({ id: testTemplates.testTemplateId })
-        .from(testTemplates)
-        .where(eq(testTemplates.testTemplateId, String(templateId)))
-    ))
-      ? String(templateId)
-      : null;
-    const assignedFk = assignmentCode
-      ? (await exists(
-          db
-            .select({ id: assignedTests.assignedTestId })
-            .from(assignedTests)
-            .where(eq(assignedTests.assignedTestId, assignmentCode))
-        ))
-        ? assignmentCode
-        : null
-      : null;
-
-    for (const [index, responseItem] of responses.entries()) {
-      const responseId = `TR-${now}-${index + 1}`;
-      const responseValue = String(responseItem.value || "");
-      const responseNotes = String(responseItem.notes || "");
-      const storedNotes = responseValue
-        ? [responseNotes, `Result input: ${responseValue}`].filter(Boolean).join("\n")
-        : responseNotes;
-      const responseItemId = String(responseItem.itemId || responseItem.questionId || "");
-
-      // The Feishu impl 400s when the required Value can't be written.
-      if (!responseValue) {
-        return {
-          status: 400,
-          body: {
-            error: "Missing required response columns",
-            missingRequired: ["Value"],
-            availableFields: [],
-          },
-        };
-      }
-
-      const row: typeof testResults.$inferInsert = {
-        resultId: responseId,
-        assignedTestId: assignedFk,
-        testTemplateId: templateFk,
-        testItemId: knownItems.has(responseItemId) ? responseItemId : null,
-        // Name survives template rewrites (which replace item rows and null
-        // the FK on historical results).
-        testItemName:
-          testItemMetrics.get(responseItemId)?.testName ||
-          str((responseItem as any).label) ||
-          null,
-        clientId: clientFk,
-        value: responseValue,
-        unit: String(responseItem.unit || "") || null,
-        notes: storedNotes || null,
-        submittedAt: now,
-      };
-
-      try {
-        await db.insert(testResults).values(row);
-      } catch (e: any) {
-        return {
-          status: 500,
-          body: { error: "Could not submit response", message: e?.message || String(e) },
-        };
-      }
-      createdRecords.push(responseId);
-
-      const metricConfig = testItemMetrics.get(responseItemId);
-      if (metricConfig?.createsMetric) {
-        const metricKind = deriveMetricKind(metricConfig.calculationMethod);
-        const metricBaseName = metricConfig.testName || responseItem.label || "Test";
-        const metricName =
-          metricConfig.metricName ||
-          (metricKind ? `${metricBaseName} — ${metricKind}` : `${metricBaseName} Metric`);
-        const metricUnit = deriveMetricUnit({
-          metricKind,
-          calculationMethod: metricConfig.calculationMethod,
-          metricUnit: metricConfig.metricUnit,
-          inputUnit: metricConfig.inputUnit,
-          responseUnit: responseItem.unit,
-        });
-        const calculatedValue = calculateMetric({
-          value: String(responseItem.value || ""),
-          notes: String(responseItem.notes || ""),
-          label: String(responseItem.label || metricConfig.testName || ""),
-          method: metricConfig.calculationMethod,
-          metricUnit,
-        });
-
-        if (calculatedValue === null) {
-          metricWarnings.push(
-            `Could not calculate ${metricName} from "${responseItem.value || ""}"`
-          );
-          await db
-            .update(testResults)
-            .set({ createsMetric: true, metricCreated: false })
-            .where(eq(testResults.resultId, responseId));
-        } else {
-          const metricId = `AM-${now}-${index + 1}`;
-          try {
-            await db.insert(athleteMetrics).values({
-              metricId,
-              clientId: clientFk,
-              clientName: String(clientName || "") || null,
-              metricType:
-                String(metricConfig.metricType || responseItem.metricType || "") || null,
-              metricName,
-              value: calculatedValue,
-              unit: metricUnit || null,
-              sourceType: "Physical Test",
-              sourceTestId: responseItemId || null,
-              sourceTestName:
-                String(responseItem.label || metricConfig.testName || "") || null,
-              calculationMethod: String(metricConfig.calculationMethod || "Direct Value"),
-              validFrom: now,
-              status: "Active",
-              notes: String(responseItem.notes || "") || null,
-            });
-            metricsCreated.push(metricId);
-            await db
-              .update(testResults)
-              .set({ createsMetric: true, metricCreated: true })
-              .where(eq(testResults.resultId, responseId));
-          } catch (e: any) {
-            metricWarnings.push(
-              `Could not create ${metricName}: ${e?.message || String(e)}`
-            );
-          }
-        }
-      }
-    }
-  }
-
-  // Mark the assignment completed (same best-effort semantics as Feishu).
-  let assignmentUpdate: any = null;
-  // Accept either id, exactly like the response link above (assignmentCode).
-  // Keying only off assignmentRecordId meant a caller sending just
-  // assignmentId filed the answers correctly and silently left the athlete's
-  // intake showing as outstanding — they sit on "complete your intake" with a
-  // questionnaire they have already filled in.
-  const completionTarget = String(assignmentRecordId || assignmentId || "");
-  if (completionTarget) {
-    const updated = isTest
-      ? await db
-          .update(assignedTests)
-          .set({ completedAt: now })
-          .where(eq(assignedTests.assignedTestId, completionTarget))
-          .returning({ id: assignedTests.assignedTestId })
-      : await db
-          .update(assignedForms)
-          .set({ status: "Completed", completedAt: now })
-          .where(eq(assignedForms.assignedFormId, completionTarget))
-          .returning({ id: assignedForms.assignedFormId });
-    assignmentUpdate = { code: 0, updated: updated.length };
-  }
-
-  return {
-    status: 200,
-    body: {
-      success: true,
-      recordsCreated: createdRecords.length,
-      metricsCreated: metricsCreated.length,
-      metricWarnings,
-      assignmentUpdate,
-    },
-  };
 }

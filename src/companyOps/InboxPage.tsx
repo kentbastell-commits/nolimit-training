@@ -17,6 +17,7 @@ import {
   Target,
   TrendingUp,
 } from "lucide-react";
+import { TranslatableText } from "./TranslatableText";
 import { formatOpsDate } from "./utils";
 import type {
   CompanyOpsDashboard,
@@ -238,7 +239,7 @@ export default function InboxPage({
                     {item.who ? <small>{item.who}</small> : null}
                     {item.when ? <small>{formatOpsDate(item.when, language)}</small> : null}
                   </div>
-                  {item.body ? <p>{item.body}</p> : null}
+                  {item.body ? <TranslatableText text={item.body} language={language} /> : null}
                   <div className="fopsInboxActions">
                     <button
                       type="button"

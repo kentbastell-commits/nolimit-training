@@ -6,6 +6,7 @@
 // text): a missing client keeps the code in client_code with the FK nulled,
 // a missing template fails the create explicitly.
 import { eq } from "drizzle-orm";
+import { randomUUID } from "node:crypto";
 import { db } from "../client.ts";
 import {
   assignedForms,
@@ -36,6 +37,7 @@ export async function listContentAssignments(): Promise<ContentAssignmentDTO[]> 
       .select({
         row: assignedForms,
         templateName: formTemplates.name,
+        templateNameCn: formTemplates.nameCn,
         clientName: clients.fullName,
       })
       .from(assignedForms)
@@ -45,6 +47,7 @@ export async function listContentAssignments(): Promise<ContentAssignmentDTO[]> 
       .select({
         row: assignedTests,
         templateName: testTemplates.name,
+        templateNameCn: testTemplates.nameCn,
         clientName: clients.fullName,
       })
       .from(assignedTests)
@@ -56,12 +59,14 @@ export async function listContentAssignments(): Promise<ContentAssignmentDTO[]> 
   ]);
 
   const forms = formRows.map(
-    ({ row, templateName, clientName }): ContentAssignmentDTO => ({
+    ({ row, templateName, templateNameCn, clientName }): ContentAssignmentDTO => ({
       recordId: row.assignedFormId,
       assignmentId: row.assignedFormId,
       assignmentType: "Questionnaire",
+      isIntake: row.isIntake,
       templateId: str(row.formId),
       templateName: str(templateName),
+      templateNameCn: str(templateNameCn),
       clientId: str(row.clientId) || str(row.clientCode),
       clientCode: str(row.clientCode) || str(row.clientId),
       clientName: str(clientName),
@@ -72,12 +77,13 @@ export async function listContentAssignments(): Promise<ContentAssignmentDTO[]> 
   );
 
   const tests = testRows.map(
-    ({ row, templateName, clientName }): ContentAssignmentDTO => ({
+    ({ row, templateName, templateNameCn, clientName }): ContentAssignmentDTO => ({
       recordId: row.assignedTestId,
       assignmentId: row.assignedTestId,
       assignmentType: "Physical Test",
       templateId: str(row.testTemplateId),
       templateName: str(templateName),
+      templateNameCn: str(templateNameCn),
       clientId: str(row.clientId) || str(row.clientCode),
       clientCode: str(row.clientCode) || str(row.clientId),
       clientName: str(clientName),
@@ -103,7 +109,7 @@ export async function assignContent(
   } = input;
 
   const isTest = String(assignmentType).toLowerCase().includes("test");
-  const assignmentId = `${isTest ? "AT" : "AF"}-${Date.now()}`;
+  const assignmentId = `${isTest ? "AT" : "AF"}-${randomUUID()}`;
   const code = String(clientCode || clientId);
   const dateMs = toEpoch(dueDate || assignedDate);
 
@@ -152,6 +158,7 @@ export async function assignContent(
     };
   }
   await db.insert(assignedForms).values({
+    isIntake: input.isIntake === true,
     assignedFormId: assignmentId,
     formId: String(templateId),
     clientId: clientFk,

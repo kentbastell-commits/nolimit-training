@@ -14266,6 +14266,10 @@ input[type="date"]:disabled::-webkit-calendar-picker-indicator {
   /* Fit brand + lang + CTA on one 320-412px row — the CTA used to clip
      off-screen (page overflowed ~37px at 390px). */
   .lv3Nav { gap: 10px; padding: 12px 14px; }
+  .lv3Brand { min-width: 0; flex: 1 1 auto; }
+  .lv3Brand img { max-width: 100%; object-fit: contain; }
+  .lv3BrandTagline { max-width: 100%; overflow: hidden; }
+  .lv3NavActions { flex: 0 0 auto; gap: 8px; }
   .lv3Brand img { height: 24px; }
   .lv3BrandTagline { font-size: 4.8px; letter-spacing: 0.055em; }
   .lv3Lang span { padding: 5px 9px; font-size: 0.72rem; }

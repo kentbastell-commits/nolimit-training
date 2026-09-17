@@ -2,6 +2,12 @@ import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import ClientWorkspace from "../../../src/ClientWorkspace";
 
+vi.mock("../../../src/PortalTraining", () => ({
+  default: ({ localizeAssignmentKind, localizeTaskStatus }: any) => (
+    <div>{localizeAssignmentKind("Questionnaire")} {localizeTaskStatus("Completed")}</div>
+  ),
+}));
+
 // ClientWorkspace routes between PortalHome / PortalTraining / PortalPrograms /
 // ClientOverview by clientTab. The Overview tab has the smallest prop surface,
 // so the smoke test renders the coach view on that tab.
@@ -81,6 +87,11 @@ const baseProps = {
 };
 
 describe("ClientWorkspace", () => {
+  it("keeps calendar assignment and status translation connected through the workspace", () => {
+    render(<ClientWorkspace {...baseProps} clientTab="Training"
+      localizeAssignmentKind={() => "问卷"} localizeTaskStatus={() => "已完成"} />);
+    expect(screen.getByText("问卷 已完成")).toBeInTheDocument();
+  });
   it("renders the coach view header and overview tab", () => {
     render(<ClientWorkspace {...baseProps} />);
     expect(

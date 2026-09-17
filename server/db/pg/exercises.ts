@@ -1,10 +1,10 @@
 // Postgres-backed exercises read + upsert. Returns the same DTO/response
 // shapes as the Feishu impl so handlers/frontend don't change when
 // DATA_BACKEND=postgres.
-import { and, eq, isNull, or } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { db } from "../client.ts";
 import { exercises } from "../schema.ts";
-import { fillTranslation } from "../translate.ts";
+import { queueTranslations, translationPatch } from "../contentTranslations.ts";
 import type { ExerciseDTO, ExerciseListResult } from "../dto.ts";
 import type {
   UpsertExerciseInput,
@@ -28,9 +28,9 @@ function rowToDto(r: Row): ExerciseDTO {
     category: r.category ?? "",
     categoryCn: r.categoryCn ?? "",
     equipment: (r.equipment ?? []).join(", "),
-    equipmentCn: "",
+    equipmentCn: r.equipmentCn ?? "",
     movementPattern: r.movementPattern ?? "",
-    movementPatternCn: "",
+    movementPatternCn: r.movementPatternCn ?? "",
     primaryMuscles: r.primaryMuscles ?? "",
     primaryMusclesCn: r.primaryMusclesCn ?? "",
     targetMuscles: r.targetMuscles ?? [],
@@ -163,7 +163,7 @@ export async function upsertExercise(
     // (FK targets elsewhere reference it).
     const updated = await db
       .update(exercises)
-      .set(set)
+      .set(translationPatch("exercises", set))
       .where(eq(exercises.exerciseId, recordId))
       .returning({ exerciseId: exercises.exerciseId });
     if (!updated.length) {
@@ -183,24 +183,7 @@ export async function upsertExercise(
     await db.insert(exercises).values({ ...set, exerciseId: code, name });
   }
 
-  // Translate-on-write (replaces the Feishu AI formula): mirror the English
-  // name and cues into the CN columns. Best-effort, fills empty only — never
-  // touches curated bilingual library content.
-  const emptyOnly = (col: any) => or(isNull(col), eq(col, ""));
-  void fillTranslation(name, "zh", (zh) =>
-    db
-      .update(exercises)
-      .set({ nameCn: zh })
-      .where(and(eq(exercises.exerciseId, code), emptyOnly(exercises.nameCn)))
-  );
-  if (!archive && notes) {
-    void fillTranslation(notes, "zh", (zh) =>
-      db
-        .update(exercises)
-        .set({ coachingCuesCn: zh })
-        .where(and(eq(exercises.exerciseId, code), emptyOnly(exercises.coachingCuesCn)))
-    );
-  }
+  if (!archive) queueTranslations("exercises", [code]);
 
   return {
     success: true,

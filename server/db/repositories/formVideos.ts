@@ -13,6 +13,7 @@ export type FormVideoDTO = {
   workoutName: string;
   videoUrl: string;
   clientNote: string;
+  clientNoteEn?: string;
   submittedAt: number;
   status: string;
   coachReply: string;

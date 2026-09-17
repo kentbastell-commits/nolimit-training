@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { db } from "../client.ts";
 import { checkIns, clients } from "../schema.ts";
-import { fillTranslation } from "../translate.ts";
+import { queueTranslations, translationPatch } from "../contentTranslations.ts";
 import { epochToDate, str } from "./_util.ts";
 import type { WriteResult } from "../dto.ts";
 import type {
@@ -61,10 +61,15 @@ export async function listCheckIns(): Promise<CheckInDTO[]> {
       soreness: str(r.soreness),
       readinessScore: str(r.readinessScore),
       nutritionNotes: str(r.nutritionNotes),
+      nutritionNotesEn: str(r.nutritionNotesEn),
       trainingNotes: str(r.trainingNotes),
+      trainingNotesEn: str(r.trainingNotesEn),
       wins: str(r.wins),
+      winsEn: str(r.winsEn),
       problemsPain: str(r.problemsPain),
+      problemsPainEn: str(r.problemsPainEn),
       clientNotes: str(r.clientNotes),
+      clientNotesEn: str(r.clientNotesEn),
       coachResponse,
       coachResponseCn: str(r.coachNotesCn),
       // No "Coach Reviewed" column on Postgres: a review always stamps
@@ -98,16 +103,7 @@ export async function reviewCheckIn(input: ReviewCheckInInput): Promise<WriteRes
     return { success: false, error: "Could not update check-in" };
   }
 
-  // Best-effort zh mirror of the coach's reply (skip text already Chinese).
-  const reply = String(input.coachResponse || "");
-  if (reply && !/[一-鿿]/.test(reply)) {
-    void fillTranslation(reply, "zh", (zh) =>
-      db
-        .update(checkIns)
-        .set({ coachNotesCn: zh })
-        .where(eq(checkIns.checkinId, String(input.recordId)))
-    );
-  }
+  queueTranslations("checkIns", [String(input.recordId)]);
   return { success: true, recordId: input.recordId };
 }
 
@@ -138,7 +134,7 @@ export async function createCheckIn(input: CreateCheckInInput): Promise<WriteRes
     if (existing) {
       await db
         .update(checkIns)
-        .set({
+        .set(translationPatch("checkIns", {
           status: "Submitted",
           bodyWeight: toNumberOrNull(input.bodyWeight),
           sleepHours: toNumberOrNull(input.sleepHours),
@@ -151,8 +147,9 @@ export async function createCheckIn(input: CreateCheckInInput): Promise<WriteRes
           wins: toTextOrNull(input.wins),
           problemsPain: toTextOrNull(input.problemsPain),
           clientNotes: toTextOrNull(input.clientNotes),
-        })
+        }))
         .where(eq(checkIns.checkinId, existing.checkinId));
+      queueTranslations("checkIns", [existing.checkinId]);
       return { success: true, recordId: existing.checkinId };
     }
   }
@@ -181,5 +178,6 @@ export async function createCheckIn(input: CreateCheckInInput): Promise<WriteRes
     coachNotes: toTextOrNull(input.coachResponse),
     reviewedDate: input.reviewedDate ? toDateMs(input.reviewedDate) : null,
   });
+  queueTranslations("checkIns", [checkinId]);
   return { success: true, recordId: checkinId };
 }

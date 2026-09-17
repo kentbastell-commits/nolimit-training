@@ -88,6 +88,7 @@ export type CoachDTO = {
   role: string;
   status: string;
   bio: string;
+  bioCn?: string;
   qrCodeUrl: string;
   createdAt: string;
 };
@@ -185,6 +186,7 @@ export type WorkoutDTO = {
   sessionNameCn: string;
   sessionType: string;
   sessionGoal: string;
+  sessionGoalCn?: string;
   estimatedDuration: string;
   intensity: string;
   scheduledDate: string;
@@ -203,6 +205,14 @@ export type WorkoutDTO = {
 };
 
 export type LogDTO = {
+  exerciseNameCn?: string;
+  assignedWorkoutId?: string;
+  completed?: boolean;
+  exerciseOrder?: number;
+  prescribedSets?: string;
+  actualRpe?: string;
+  actualRir?: string;
+  athleteNotes?: string;
   recordId: string;
   clientId: string;
   clientCode: string;
@@ -234,11 +244,14 @@ export type WorkoutHistoryResult = {
 };
 
 export type WorkoutDetailDTO = {
+  sessionNotes?: string;
+  sessionNotesCn?: string;
   id: string;
   templateId: string;
   programId: string;
   sessionType: string;
   sessionGoal: string;
+  sessionGoalCn?: string;
   estimatedDuration: string;
   intensity: string;
   exerciseId: string;
@@ -308,6 +321,7 @@ export type TemplateSummaryDTO = {
   sessionNameCn: string;
   sessionType: string;
   sessionGoal: string;
+  sessionGoalCn?: string;
   sessionNotes?: string;
   estimatedDuration: string;
   intensity: string;
@@ -336,6 +350,9 @@ export type TemplateRow = TemplateSummaryDTO & {
 };
 
 export type ResponseDTO = {
+  templateName?: string;
+  templateNameCn?: string;
+  reviewedAt?: number | null;
   recordId: string;
   responseType: "Questionnaire" | "Physical Test";
   responseId: string;
@@ -346,8 +363,14 @@ export type ResponseDTO = {
   label: string;
   answer: string;
   answersJson: string;
+  answersJsonEn?: string;
+  answerEn?: string;
+  labelEn?: string;
   unit: string;
   notes: string;
+  notesEn?: string;
+  clientComment?: string;
+  clientCommentEn?: string;
   clientId: string;
   clientName: string;
   submittedAt: string;
@@ -486,6 +509,7 @@ export type ClientMessageDTO = {
   clientId: string;
   clientName: string;
   body: string;
+  bodyEn?: string;
   status: string; // New | Replied
   coachReply: string;
   // Translate-on-write mirror for zh athletes (may be empty).

@@ -4615,6 +4615,10 @@
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.4);
 }
 .playerTutorialCard h3 { font-size: 20px; color: #111; }
+.playerTutorialCard .primaryButton {
+  min-height: 44px; padding: 10px 24px; border: 0; border-radius: 12px;
+  background: #181814; color: #fff; font: inherit; font-weight: 700; cursor: pointer;
+}
 .playerTutorialCard ol {
   margin: 0;
   padding-left: 22px;

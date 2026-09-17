@@ -4,6 +4,7 @@
 // target row doesn't exist — the review always lands.
 import { eq } from "drizzle-orm";
 import { db } from "../client.ts";
+import { queueTranslations } from "../contentTranslations.ts";
 import { reviews, clients, programs } from "../schema.ts";
 import { str } from "./_util.ts";
 import { epochToDate } from "./_util.ts";
@@ -29,6 +30,8 @@ export async function listAllReviews(): Promise<ReviewDTO[]> {
     programName: str(r.programName),
     rating: r.rating ?? 0,
     quote: str(r.quote),
+    quoteCn: str(r.quoteCn),
+    quoteEn: str(r.quoteEn),
     showOnStore: r.showOnStore ?? false,
     approved: r.approved ?? false,
     submittedDate: epochToDate(r.submittedDate),
@@ -54,6 +57,7 @@ export async function updateReview(input: UpdateReviewInput): Promise<WriteResul
       message: "Review not found",
     };
   }
+  queueTranslations("reviews", [input.recordId]);
   return { success: true, recordId: input.recordId };
 }
 
@@ -103,5 +107,6 @@ export async function createReview(input: CreateReviewInput): Promise<WriteResul
       message: e?.message || String(e),
     };
   }
+  queueTranslations("reviews", [reviewId]);
   return { success: true, recordId: reviewId };
 }

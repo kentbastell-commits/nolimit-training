@@ -143,13 +143,21 @@ ssh nolimit "cd /opt/kangfu-zhuanjia && git pull origin main && npm install --no
 
 ## Steps — NoLimit mini program
 
-Build from `c:\Users\kentb\nolimit-miniprogram`, then upload through the installed
-WeChat DevTools CLI. An upload creates a new development version; it is not the
-same as submitting for review or releasing it in the WeChat admin.
+Build from `c:\Users\kentb\nolimit-miniprogram`, then prefer the repository's
+`scripts/upload.mjs` (official miniprogram-ci, using the gitignored upload key).
+It uploads the freshly built `dist/` and avoids the DevTools daemon's stale
+compile cache. An upload creates a development version; WeChat review and
+public release are separate steps. Never report an upload as publicly released.
 
 ```powershell
 npx tsc --noEmit
 npm run build:weapp
+node scripts/upload.mjs <version> "<description>"
+```
+
+If the CI upload key is unavailable, use the installed DevTools CLI:
+
+```powershell
 & 'C:\Program Files (x86)\Tencent\微信web开发者工具\cli.bat' islogin --project 'C:\Users\kentb\nolimit-miniprogram'
 & 'C:\Program Files (x86)\Tencent\微信web开发者工具\cli.bat' upload --project 'C:\Users\kentb\nolimit-miniprogram' --version '<version>' --desc '<description>' --debug
 ```

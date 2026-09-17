@@ -1048,6 +1048,7 @@ export default function ClientWorkspace({
                   isClientPortal={isClientPortal}
                   jumpClientCalendarToToday={jumpClientCalendarToToday}
                   loadProgramSessionsForAssignment={loadProgramSessionsForAssignment}
+                  localizeAssignmentKind={localizeAssignmentKind}
                   localizeTaskStatus={localizeTaskStatus}
                   localizedCalendarLabel={localizedCalendarLabel}
                   localizedMonthTitle={localizedMonthTitle}

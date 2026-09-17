@@ -81,6 +81,7 @@ import shiftAssignedWorkouts from "../api/shiftAssignedWorkouts.ts";
 import workloadLogs from "../api/workloadLogs.ts";
 import saveWorkloadLog from "../api/saveWorkloadLog.ts";
 import submitContentResponse from "../api/submitContentResponse.ts";
+import reviewContentSubmission from "../api/reviewContentSubmission.ts";
 import subscriptions from "../api/subscriptions.ts";
 import upsertSubscription from "../api/upsertSubscription.ts";
 import teams from "../api/teams.ts";
@@ -326,6 +327,7 @@ const handlers = {
   workloadLogs,
   saveWorkloadLog,
   submitContentResponse,
+  reviewContentSubmission,
   subscriptions,
   upsertSubscription,
   teams,

@@ -148,6 +148,27 @@
       "when": 1786510000000,
       "tag": "0020_wx_login_tokens",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1789100000000,
+      "tag": "0021_workout_log_client_code_index",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1789100100000,
+      "tag": "0022_translation_coverage",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1789600000000,
+      "tag": "0023_assessment_workflow",
+      "breakpoints": true
     }
   ]
 }

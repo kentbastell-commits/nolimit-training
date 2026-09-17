@@ -1,19 +1,13 @@
 import * as pg from "../pg/workouts.ts";
 import type { WorkoutDTO } from "../dto.ts";
-import { getCached, setCached, invalidateCache } from "../../../api/_cache.ts";
+import { getCachedOrLoad, invalidateCache } from "../../../api/_cache.ts";
 
 // The full assigned-workouts list is cached briefly (2 min — it changes often:
 // assigns, completions, reviews) and filtered per request; workout writers
 // invalidate "workouts".
 export async function listWorkouts(clientCode = ""): Promise<WorkoutDTO[]> {
-  let all = getCached<WorkoutDTO[]>("workouts");
-  if (!all) {
-    all =
-      await pg.listAllWorkouts();
-    setCached("workouts", all, 2 * 60 * 1000);
-  }
-  if (!clientCode) return all;
-  return all.filter((w) => w.clientId.includes(clientCode));
+  return getCachedOrLoad(`workouts:${clientCode}`, 2 * 60 * 1000,
+    () => pg.listAllWorkouts(clientCode));
 }
 
 /* ------------------------------- writes ---------------------------------- */

@@ -1,6 +1,6 @@
 import * as pg from "../pg/workoutLogs.ts";
 import type { ExerciseHistoryDTO, LogDTO, WorkoutHistoryResult } from "../dto.ts";
-import { getCached, setCached } from "../../../api/_cache.ts";
+import { getCachedOrLoad } from "../../../api/_cache.ts";
 
 // Filtering + per-exercise aggregation are backend-agnostic, so they live here.
 // Logs are cached per client (5 min) so repeat views (workout player, history
@@ -8,31 +8,12 @@ import { getCached, setCached } from "../../../api/_cache.ts";
 export async function getWorkoutHistory(
   clientId = "",
   clientCode = "",
-  exerciseName = ""
+  exerciseName = "",
+  assignedWorkoutId = ""
 ): Promise<WorkoutHistoryResult> {
-  const cacheKey = `workoutLogs:${clientCode || clientId || "all"}`;
-  let clientLogs = getCached<LogDTO[]>(cacheKey);
-
-  if (!clientLogs) {
-    const all =
-      await pg.listAllLogs();
-
-    // Match the plain-text Client Code, the Client ID link's resolved text,
-    // or its record_ids.
-    const matchesClient = (log: LogDTO) =>
-      (!clientId && !clientCode) ||
-      Boolean(
-        clientCode &&
-          (log.clientCode === clientCode || log.clientId.includes(clientCode))
-      ) ||
-      Boolean(
-        clientId &&
-          (log.clientId.includes(clientId) || log.clientRecordIds.includes(clientId))
-      );
-
-    clientLogs = all.filter(matchesClient);
-    setCached(cacheKey, clientLogs, 5 * 60 * 1000);
-  }
+  const cacheKey = `workoutLogs:${JSON.stringify([clientId, clientCode, assignedWorkoutId])}`;
+  const clientLogs = await getCachedOrLoad<LogDTO[]>(cacheKey, 5 * 60 * 1000,
+    () => pg.listAllLogs(clientId, clientCode, assignedWorkoutId));
 
   const exFilter = exerciseName.toLowerCase();
   const logs = clientLogs
@@ -71,8 +52,8 @@ export async function getWorkoutHistory(
     summary: {
       totalLogs: logs.length,
       uniqueExercises: historyByExercise.size,
-      bestWeight: Math.max(0, ...logs.map((l) => toNumber(l.actualWeight))),
-      bestReps: Math.max(0, ...logs.map((l) => toNumber(l.actualReps))),
+      bestWeight: logs.reduce((best, l) => Math.max(best, toNumber(l.actualWeight)), 0),
+      bestReps: logs.reduce((best, l) => Math.max(best, toNumber(l.actualReps)), 0),
     },
   };
 }

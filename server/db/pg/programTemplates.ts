@@ -1,6 +1,6 @@
-import { and, eq, inArray, isNull, or } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { db } from "../client.ts";
-import { fillTranslation } from "../translate.ts";
+import { queueTranslations } from "../contentTranslations.ts";
 import {
   workoutTemplates,
   setPrescriptions,
@@ -66,60 +66,8 @@ function mintId(prefix: string) {
   return `${prefix}-${Date.now()}-${mintCounter}`;
 }
 
-// ---- translate-on-write for athlete-visible coach text -------------------
-// The coachingNotes blob mixes builder meta lines with the coach's actual
-// cues; only the HUMAN lines go to the translator — a translated meta label
-// would slip past the render-time strippers (their CN label list can't know
-// every machine translation of "Tracking:").
-const NOTE_META_LINE =
-  /^(Section|Label|Superset|Circuit|Circuit Mode|Circuit Minutes|Tracking|Fields|Unilateral|Accessory|Accessory Parent|Accessory Color|Set Prescriptions|Alternate Exercises|Target[^:：]*)\s*[:：]/i;
-
-function humanNoteText(notes: string): string {
-  return String(notes || "")
-    .split(/\r?\n/)
-    .filter((line) => line.trim() && !NOTE_META_LINE.test(line.trim()))
-    .join("\n")
-    .trim();
-}
-
-const hasCjk = (text: string) => /[一-鿿]/.test(text);
-const emptyOnly = (col: any) => or(isNull(col), eq(col, ""));
-
-// Best-effort, after the rows are committed: mirror the coach's English cue
-// text and session names into the CN columns so a Chinese athlete's player
-// isn't silently English. Fills EMPTY columns only; skips text that already
-// contains Chinese (the coach wrote it bilingually themselves).
 function fillTemplateTranslations(rows: Insert[]) {
-  for (const row of rows) {
-    const human = humanNoteText(String(row.coachingNotes || ""));
-    if (human && !hasCjk(human)) {
-      void fillTranslation(human, "zh", (zh) =>
-        db
-          .update(workoutTemplates)
-          .set({ coachingNotesCn: zh })
-          .where(
-            and(
-              eq(workoutTemplates.templateId, row.templateId),
-              emptyOnly(workoutTemplates.coachingNotesCn)
-            )
-          )
-      );
-    }
-    const sessionName = String(row.sessionName || "");
-    if (sessionName && !row.sessionNameCn && !hasCjk(sessionName)) {
-      void fillTranslation(sessionName, "zh", (zh) =>
-        db
-          .update(workoutTemplates)
-          .set({ sessionNameCn: zh })
-          .where(
-            and(
-              eq(workoutTemplates.templateId, row.templateId),
-              emptyOnly(workoutTemplates.sessionNameCn)
-            )
-          )
-      );
-    }
-  }
+  queueTranslations("workoutTemplates", rows.map((r) => r.templateId));
 }
 
 // Alternates parsed from coaching notes aren't in the top-level exercise

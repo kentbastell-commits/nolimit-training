@@ -726,3 +726,10 @@
   .storePopScrim { align-items: center; padding: 24px; }
   .storePopPanel { border-radius: 22px; max-height: 88vh; }
 }
+
+@media (max-width: 760px) {
+  .storeModalV2--checkout .storeModalImageV2 { display: none; }
+  .storeModalV2--checkout .storeModalInnerV2 { grid-template-columns: 1fr; }
+  .storeModalV2--checkout .storeModalInfoV2 { padding: 24px 20px; }
+  .storeModalV2--checkout .storeModalInfoV2 > h2 { padding-right: 38px; font-size: 24px; }
+}

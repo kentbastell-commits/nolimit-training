@@ -2,6 +2,8 @@
 import "./ContentAssignmentModal.css";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Suspense, lazy, useState } from "react";
+import { displayAnswer } from "./contentAnswers";
+import { localizedOptions } from "./localizedOptions";
 
 const JumpLabModal = lazy(() => import("./JumpLabModal"));
 
@@ -38,9 +40,14 @@ export default function ContentAssignmentModal({
   setContentAssignmentComment,
   submitActiveContentAssignment,
   submittingContentAssignment,
+  contentAssignmentReview = false,
+  savedResponses = [],
+  draftStatus = "",
 }: { [key: string]: any }) {
   // Jump Lab analyzer for jump-style tests: fills item answers from video.
   const [jumpAnalyzerOpen, setJumpAnalyzerOpen] = useState(false);
+  const setQuestionAnswer = (id: string, value: string) =>
+    setContentAssignmentAnswers((current: any) => ({ ...current, [id]: value }));
 
   const applyJumpResult = (r: any) => {
     const filled: Record<string, string> = {};
@@ -61,10 +68,10 @@ export default function ContentAssignmentModal({
   return (
     <>
           <div className="workout-modal-overlay">
-            <div className="clientFormModal contentAssignmentModal">
+            <div className="clientFormModal contentAssignmentModal" role="dialog" aria-modal="true" aria-labelledby="assignment-title">
               <div className="modal-header">
                 <div>
-                  <h2>
+                  <h2 id="assignment-title">
                     {activeAssignmentIsTest
                       ? localizeText(
                           activeTestTemplate?.name ||
@@ -82,12 +89,12 @@ export default function ContentAssignmentModal({
                   <p>
                     {activeAssignmentIsTest
                       ? localizeText(
-                          activeTestTemplate?.description || "Record your test results.",
+                          activeTestTemplate?.description || localizeText("Record your test results.", "请记录测试结果。"),
                           activeTestTemplate?.descriptionCn
                         )
                       : localizeText(
                           activeFormTemplate?.description ||
-                            "Answer the assigned questionnaire.",
+                            localizeText("Answer the assigned questionnaire.", "请填写已分配的问卷。"),
                           activeFormTemplate?.descriptionCn
                         )}
                   </p>
@@ -95,6 +102,8 @@ export default function ContentAssignmentModal({
 
                 <button
                   className="drawerClose"
+                  aria-label={localizeText("Close dialog", "关闭窗口")}
+                  disabled={submittingContentAssignment}
                   onClick={() => {
                     setActiveContentAssignment(null);
                     setContentAssignmentComment("");
@@ -104,7 +113,29 @@ export default function ContentAssignmentModal({
                 </button>
               </div>
 
-              <div className="contentAssignmentFields">
+              {contentAssignmentReview ? (
+                <div className="contentAssignmentFields">
+                  <p role="status">{localizeText("Completed · Saved answers", "已完成 · 已保存的回答")}</p>
+                  {savedResponses.map((response: any) => {
+                    const question = activeFormTemplate?.questions?.find((q: any) => q.questionId === response.itemId);
+                    const item = activeTestTemplate?.items?.find((i: any) => i.testItemId === response.itemId);
+                    const title = response.itemId === "__client_comment" ? t("clientComment")
+                      : question ? localizeText(question.label, question.labelCn)
+                      : item ? localizeText(item.testName, item.testNameCn) : response.label;
+                    const choices = question ? localizedOptions(question.options, question.optionsCn, localizeText("en", "zh")) : [];
+                    let answer = response.answer || "";
+                    try { const parsed = JSON.parse(answer); if (Array.isArray(parsed)) answer = parsed.map(v => choices.find(o => o.matches(v))?.label || v).join(", "); } catch { answer = choices.find(o => o.matches(answer))?.label || answer; }
+                    return <div className="assignmentSavedAnswer" key={response.recordId}>
+                      <strong>{title}</strong><p>{displayAnswer(answer) || localizeText("No answer", "未填写")}{response.unit ? ` (${response.unit})` : ""}</p>
+                      {response.notes ? <small>{response.notes}</small> : null}
+                    </div>;
+                  })}
+                </div>
+              ) : <div className="contentAssignmentFields">
+                {draftStatus ? <p className="assignmentDraftNotice" role="status">{draftStatus === "memory"
+                  ? localizeText("This device could not store your draft. Keep this page open until you submit.", "设备暂时无法保存草稿，提交前请勿关闭此页面。")
+                  : draftStatus === "restored" ? localizeText("Draft restored. Changes are saved on this device.", "已恢复草稿，修改会保存在此设备。")
+                  : localizeText("Draft saved on this device. You can close and return later.", "草稿已保存在此设备，可关闭后继续填写。")}</p> : null}
                 {activeAssignmentIsTest ? (
                   <button
                     type="button"
@@ -143,7 +174,7 @@ export default function ContentAssignmentModal({
                           {testMode === "weightReps" ? (
                             <div className="structuredTestInputs">
                               <label>
-                                <span>Weight</span>
+                                <span>{localizeText("Weight", "重量")}</span>
                                 <input
                                   type="number"
                                   inputMode="decimal"
@@ -162,7 +193,7 @@ export default function ContentAssignmentModal({
                                 />
                               </label>
                               <label>
-                                <span>Reps</span>
+                                <span>{localizeText("Reps", "次数")}</span>
                                 <input
                                   type="number"
                                   inputMode="numeric"
@@ -177,14 +208,14 @@ export default function ContentAssignmentModal({
                                       event.target.value
                                     )
                                   }
-                                  placeholder="reps"
+                                  placeholder={localizeText("reps", "次")}
                                 />
                               </label>
                             </div>
                           ) : testMode === "distanceTime" ? (
                             <div className="structuredTestInputs threeFields">
                               <label>
-                                <span>Distance</span>
+                                <span>{localizeText("Distance", "距离")}</span>
                                 <input
                                   type="number"
                                   inputMode="decimal"
@@ -203,7 +234,7 @@ export default function ContentAssignmentModal({
                                 />
                               </label>
                               <label>
-                                <span>Minutes</span>
+                                <span>{localizeText("Minutes", "分钟")}</span>
                                 <input
                                   type="number"
                                   inputMode="numeric"
@@ -222,7 +253,7 @@ export default function ContentAssignmentModal({
                                 />
                               </label>
                               <label>
-                                <span>Seconds</span>
+                                <span>{localizeText("Seconds", "秒")}</span>
                                 <input
                                   type="number"
                                   inputMode="numeric"
@@ -251,13 +282,13 @@ export default function ContentAssignmentModal({
                                 onChange={(event) =>
                                   updateTestAnswer(item.testItemId, event.target.value)
                                 }
-                                placeholder={item.unit || "Result"}
+                                placeholder={item.unit || localizeText("Result", "结果")}
                               />
                             </label>
                           )}
 
                           <label className="testResultNotesField">
-                            <span>Notes</span>
+                            <span>{localizeText("Notes", "备注")}</span>
                             <input
                               value={
                                 contentAssignmentAnswers[
@@ -270,14 +301,14 @@ export default function ContentAssignmentModal({
                                   event.target.value
                                 )
                               }
-                              placeholder="Optional notes"
+                              placeholder={localizeText("Optional notes", "补充说明（选填）")}
                             />
                           </label>
                         </div>
                       );
                     })
                   : (activeFormTemplate?.questions || []).map((question: any) => (
-                      <label key={question.questionId}>
+                      <div className="assignmentQuestion" key={question.questionId}>
                         <span>
                           {localizeText(question.label, question.labelCn)}
                           {question.required ? " *" : ""}
@@ -289,15 +320,11 @@ export default function ContentAssignmentModal({
                         ) : null}
                         {question.questionType.toLowerCase().includes("scale") ? (
                           <select
+                            aria-label={localizeText(question.label, question.labelCn)}
                             value={contentAssignmentAnswers[question.questionId] || ""}
-                            onChange={(event) =>
-                              setContentAssignmentAnswers((current: any) => ({
-                                ...current,
-                                [question.questionId]: event.target.value,
-                              }))
-                            }
+                            onChange={(event) => setQuestionAnswer(question.questionId, event.target.value)}
                           >
-                            <option value="">Select</option>
+                            <option value="">{localizeText("Select", "请选择")}</option>
                             {[1, 2, 3, 4, 5].map((value) => (
                               <option key={value} value={value}>
                                 {value}
@@ -306,28 +333,45 @@ export default function ContentAssignmentModal({
                           </select>
                         ) : question.questionType.toLowerCase().includes("long") ? (
                           <textarea
+                            aria-label={localizeText(question.label, question.labelCn)}
                             value={contentAssignmentAnswers[question.questionId] || ""}
-                            onChange={(event) =>
-                              setContentAssignmentAnswers((current: any) => ({
-                                ...current,
-                                [question.questionId]: event.target.value,
-                              }))
-                            }
-                            placeholder="Answer"
+                            onChange={(event) => setQuestionAnswer(question.questionId, event.target.value)}
+                            placeholder={localizeText("Answer", "请输入回答")}
                           />
+                        ) : localizedOptions(question.options, question.optionsCn, "en").length > 0 && /multi|checkbox/i.test(question.questionType) ? (
+                          <div className="assignmentChoices" role="group" aria-label={localizeText(question.label, question.labelCn)}>
+                            {localizedOptions(question.options, question.optionsCn, localizeText("en", "zh")).map((option) => {
+                              let selected: string[] = [];
+                              try { const parsed = JSON.parse(contentAssignmentAnswers[question.questionId] || "[]"); if (Array.isArray(parsed)) selected = parsed; } catch { /* no prior choices */ }
+                              const checked = selected.some(option.matches);
+                              return <label className="assignmentChoice" key={option.value}>
+                                <input type="checkbox" aria-label={option.label} checked={checked}
+                                  onChange={() => setContentAssignmentAnswers((current: any) => ({ ...current,
+                                    [question.questionId]: JSON.stringify(checked ? selected.filter((v) => !option.matches(v)) : [...selected, option.value]),
+                                  }))} /><span>{option.label}</span>
+                              </label>;
+                            })}
+                          </div>
+                        ) : localizedOptions(question.options, question.optionsCn, "en").length > 0 ? (
+                          <select
+                            aria-label={localizeText(question.label, question.labelCn)}
+                            value={contentAssignmentAnswers[question.questionId] || ""}
+                            onChange={(event) => setQuestionAnswer(question.questionId, event.target.value)}
+                          >
+                            <option value="">{localizeText("Select", "请选择")}</option>
+                            {localizedOptions(question.options, question.optionsCn, localizeText("en", "zh")).map((option) => (
+                              <option key={option.value} value={option.value}>{option.label}</option>
+                            ))}
+                          </select>
                         ) : (
                           <input
+                            aria-label={localizeText(question.label, question.labelCn)}
                             value={contentAssignmentAnswers[question.questionId] || ""}
-                            onChange={(event) =>
-                              setContentAssignmentAnswers((current: any) => ({
-                                ...current,
-                                [question.questionId]: event.target.value,
-                              }))
-                            }
-                            placeholder="Answer"
+                            onChange={(event) => setQuestionAnswer(question.questionId, event.target.value)}
+                            placeholder={localizeText("Answer", "请输入回答")}
                           />
                         )}
-                      </label>
+                      </div>
                     ))}
 
                 <label className="submissionCommentField">
@@ -340,25 +384,26 @@ export default function ContentAssignmentModal({
                     placeholder={t("clientCommentPlaceholder")}
                   />
                 </label>
-              </div>
+              </div>}
 
               <div className="modalActions">
                 <button
                   className="outlineButton"
+                  disabled={submittingContentAssignment}
                   onClick={() => {
                     setActiveContentAssignment(null);
                     setContentAssignmentComment("");
                   }}
                 >
-                  Cancel
+                  {contentAssignmentReview ? localizeText("Close", "关闭") : draftStatus === "memory" ? localizeText("Close", "关闭") : localizeText("Save & close", "保存并关闭")}
                 </button>
-                <button
+                {!contentAssignmentReview && <button
                   className="goldButton"
                   onClick={submitActiveContentAssignment}
                   disabled={submittingContentAssignment}
                 >
-                  {submittingContentAssignment ? "Submitting..." : "Submit"}
-                </button>
+                  {submittingContentAssignment ? localizeText("Submitting...", "正在提交…") : localizeText("Submit", "提交")}
+                </button>}
               </div>
             </div>
           </div>

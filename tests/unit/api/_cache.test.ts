@@ -1,9 +1,28 @@
 import { describe, expect, it } from "vitest";
-import { getCached, setCached, invalidateCache } from "../../../api/_cache.ts";
+import { getCached, getCachedOrLoad, setCached, invalidateCache } from "../../../api/_cache.ts";
 
 // Module-level Map shared across tests in this file — every test uses its own
 // unique key prefix so nothing leaks between assertions.
 describe("api/_cache", () => {
+  it("coalesces simultaneous cold reads", async () => {
+    let loads = 0;
+    const values = await Promise.all(Array.from({ length: 100 }, () =>
+      getCachedOrLoad("unittest-coalesced", 60_000, async () => { loads++; return 42; })));
+    expect(loads).toBe(1);
+    expect(values.every((v) => v === 42)).toBe(true);
+  });
+
+  it("does not cache an old read that completes after a write invalidates it", async () => {
+    let release!: (value: number) => void;
+    const old = getCachedOrLoad("unittest-race", 60_000, () => new Promise<number>((resolve) => { release = resolve; }));
+    await Promise.resolve();
+    invalidateCache("unittest-race");
+    expect(await getCachedOrLoad("unittest-race", 60_000, async () => 2)).toBe(2);
+    release(1);
+    expect(await old).toBe(1);
+    expect(getCached("unittest-race")).toBe(2);
+  });
+
   it("stores and returns a value within its TTL", () => {
     setCached("unittest-cache-basic", { a: 1 }, 60_000);
     expect(getCached("unittest-cache-basic")).toEqual({ a: 1 });

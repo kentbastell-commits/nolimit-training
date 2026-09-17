@@ -1,7 +1,7 @@
-import { and, eq, isNull, or } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { db } from "../client.ts";
 import { programs, workoutTemplates } from "../schema.ts";
-import { fillTranslation } from "../translate.ts";
+import { queueTranslations, translationPatch } from "../contentTranslations.ts";
 import { str } from "./_util.ts";
 import type { ProgramDTO } from "../dto.ts";
 import type {
@@ -117,6 +117,11 @@ export async function createProgram(i: CreateProgramInput): Promise<HandlerResul
     level: i.level || "",
     durationWeeks: Number(i.durationWeeks) || 1,
     phase: i.phase || "",
+    phaseCn: i.phaseCn || null,
+    description: i.description || null,
+    descriptionCn: i.descriptionCn || null,
+    storeDescription: i.storeDescription || null,
+    storeDescriptionCn: i.storeDescriptionCn || null,
     sessionsPerWeek: Number(i.sessionsPerWeek) || 1,
     coachId: i.coach || "Kent Bastell",
     status: i.status || "Active",
@@ -155,23 +160,7 @@ export async function createProgram(i: CreateProgramInput): Promise<HandlerResul
     };
   }
 
-  // Translate-on-write: mirror name/goal into the CN columns (best-effort,
-  // fills empty only — the store shows programNameCn/goalCn).
-  const emptyOnly = (col: any) => or(isNull(col), eq(col, ""));
-  void fillTranslation(i.programName, "zh", (zh) =>
-    db
-      .update(programs)
-      .set({ nameCn: zh })
-      .where(and(eq(programs.programId, programId), emptyOnly(programs.nameCn)))
-  );
-  if (i.goal) {
-    void fillTranslation(i.goal, "zh", (zh) =>
-      db
-        .update(programs)
-        .set({ goalCn: zh })
-        .where(and(eq(programs.programId, programId), emptyOnly(programs.goalCn)))
-    );
-  }
+  queueTranslations("programs", [programId]);
 
   return {
     status: 200,
@@ -190,6 +179,9 @@ export async function updateProgram(i: UpdateProgramInput): Promise<HandlerResul
 
   if (i.programName !== undefined) set.name = i.programName;
   if (i.goal !== undefined) set.goal = i.goal;
+  for (const key of ["programNameCn", "goalCn", "phaseCn", "description", "descriptionCn", "storeDescription", "storeDescriptionCn"] as const) {
+    if (i[key] !== undefined) (set as Record<string, unknown>)[key === "programNameCn" ? "nameCn" : key] = i[key] || null;
+  }
   if (i.sport !== undefined) set.sport = i.sport;
   if (i.level !== undefined) set.level = i.level;
   if (i.durationWeeks !== undefined) set.durationWeeks = Number(i.durationWeeks) || 1;
@@ -241,7 +233,7 @@ export async function updateProgram(i: UpdateProgramInput): Promise<HandlerResul
   const updated = Object.keys(set).length
     ? await db
         .update(programs)
-        .set(set)
+        .set(translationPatch("programs", set))
         .where(eq(programs.programId, i.programRecordId))
         .returning({ programId: programs.programId })
     : await db
@@ -256,24 +248,7 @@ export async function updateProgram(i: UpdateProgramInput): Promise<HandlerResul
     };
   }
 
-  // Translate-on-write for renamed programs / changed goals (fills empty only).
-  const emptyOnly = (col: any) => or(isNull(col), eq(col, ""));
-  if (i.programName !== undefined && i.programName) {
-    void fillTranslation(i.programName, "zh", (zh) =>
-      db
-        .update(programs)
-        .set({ nameCn: zh })
-        .where(and(eq(programs.programId, i.programRecordId), emptyOnly(programs.nameCn)))
-    );
-  }
-  if (i.goal !== undefined && i.goal) {
-    void fillTranslation(i.goal, "zh", (zh) =>
-      db
-        .update(programs)
-        .set({ goalCn: zh })
-        .where(and(eq(programs.programId, i.programRecordId), emptyOnly(programs.goalCn)))
-    );
-  }
+  queueTranslations("programs", [i.programRecordId]);
 
   return {
     status: 200,

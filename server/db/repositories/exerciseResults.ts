@@ -4,7 +4,7 @@
 // create path invalidates that key when every row landed, exactly as the old
 // handler did (api/saveWorkoutLog.ts additionally invalidates it itself).
 import * as pg from "../pg/exerciseResults.ts";
-import { getCached, setCached, invalidateCache } from "../../../api/_cache.ts";
+import { getCachedOrLoad, invalidateCache } from "../../../api/_cache.ts";
 
 export type ExerciseResultDTO = {
   recordId: string;
@@ -41,19 +41,15 @@ export async function listExerciseResults(
   clientId = "",
   exerciseName = ""
 ): Promise<ExerciseResultDTO[]> {
-  let all = getCached<ExerciseResultDTO[]>("exerciseResults");
-  if (!all) {
-    all =
-      await pg.listExerciseResults();
-    setCached("exerciseResults", all, 5 * 60 * 1000);
-  }
+  const all = await getCachedOrLoad(`exerciseResults:${clientId}`, 5 * 60 * 1000,
+    () => pg.listExerciseResults(clientId));
 
   const exerciseNameFilter = exerciseName.toLowerCase();
   return all
     .filter((result) => {
       const matchesClient =
         !clientId ||
-        result.clientId.includes(clientId) ||
+        result.clientId === clientId ||
         result.clientRecordIds.includes(clientId);
       const matchesExercise =
         !exerciseNameFilter ||

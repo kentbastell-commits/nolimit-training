@@ -858,3 +858,10 @@ button.rvItem:focus-visible {
   opacity: 0.55;
   cursor: default;
 }
+/* Full queue counts remain visible while each section renders one page. */
+.rvPagination { grid-column: 1 / -1; display: flex; align-items: center; justify-content: center; gap: 16px; padding: 16px 0; }
+.rvPagination button { min-height: 44px; }
+.rvPagination button:disabled { opacity: .45; cursor: default; }
+.rvSubmissionFilters { grid-column: 1 / -1; display: flex; gap: 12px; flex-wrap: wrap; }
+.rvSubmissionFilters input { flex: 1; min-width: 180px; }
+.rvSubmissionFilters input, .rvSubmissionFilters select { min-height: 44px; border: 1px solid #dcd8cd; border-radius: 10px; padding: 10px; font: inherit; }

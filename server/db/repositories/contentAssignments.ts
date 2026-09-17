@@ -8,11 +8,13 @@ import { getCached, setCached, invalidateCache } from "../../../api/_cache.ts";
 // invalidates that key.
 
 export type ContentAssignmentDTO = {
+  isIntake?: boolean;
   recordId: string;
   assignmentId: string;
   assignmentType: string;
   templateId: string;
   templateName: string;
+  templateNameCn?: string;
   clientId: string;
   clientCode: string;
   clientName: string;
@@ -22,6 +24,7 @@ export type ContentAssignmentDTO = {
 };
 
 export type AssignContentInput = {
+  isIntake?: boolean;
   assignmentType: string;
   templateId: string;
   templateName?: string;

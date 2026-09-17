@@ -16,6 +16,11 @@ export type CreateProgramInput = {
   level?: any;
   durationWeeks?: any;
   phase?: any;
+  phaseCn?: any;
+  description?: any;
+  descriptionCn?: any;
+  storeDescription?: any;
+  storeDescriptionCn?: any;
   season?: any;
   sessionsPerWeek?: any;
   coach?: any;
@@ -70,6 +75,13 @@ export async function listPrograms(): Promise<ProgramDTO[]> {
 export function hasProgramUpdateFields(i: UpdateProgramInput): boolean {
   const definedKeys: Array<keyof UpdateProgramInput> = [
     "programName",
+    "programNameCn",
+    "goalCn",
+    "phaseCn",
+    "description",
+    "descriptionCn",
+    "storeDescription",
+    "storeDescriptionCn",
     "goal",
     "sport",
     "level",

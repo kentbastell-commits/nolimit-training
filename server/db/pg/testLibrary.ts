@@ -1,10 +1,10 @@
 // Postgres impl for the testLibrary domain. The linked exercise is a real FK
 // (EX-… code); its display name comes from a join instead of Feishu's
 // cache-based record_id resolution.
-import { and, eq, isNull, or } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { db } from "../client.ts";
 import { testLibrary, exercises } from "../schema.ts";
-import { fillTranslation } from "../translate.ts";
+import { queueTranslations } from "../contentTranslations.ts";
 import { str } from "./_util.ts";
 import type {
   TestLibraryResult,
@@ -94,23 +94,7 @@ export async function createLibraryTest(
     };
   }
 
-  // Translate-on-write: fill the CN name/protocol when the coach didn't
-  // provide them (best-effort, fills empty only).
-  const emptyOnly = (col: any) => or(isNull(col), eq(col, ""));
-  void fillTranslation(String(input.testName), "zh", (zh) =>
-    db
-      .update(testLibrary)
-      .set({ nameCn: zh })
-      .where(and(eq(testLibrary.testId, testId), emptyOnly(testLibrary.nameCn)))
-  );
-  if (String(input.protocol || "").trim()) {
-    void fillTranslation(String(input.protocol), "zh", (zh) =>
-      db
-        .update(testLibrary)
-        .set({ protocolCn: zh })
-        .where(and(eq(testLibrary.testId, testId), emptyOnly(testLibrary.protocolCn)))
-    );
-  }
+  queueTranslations("testLibrary", [testId]);
 
   return { status: 200, body: { success: true, testId, recordId: testId } };
 }

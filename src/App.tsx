@@ -1,3 +1,5 @@
+import { validQuestionAnswer, testInputMode, isTwoKm, buildTestAnswer, displayAnswer } from "./contentAnswers";
+import { assignmentDraftKey, readAssignmentDraft, writeAssignmentDraft, clearAssignmentDraft } from "./assignmentDraft";
 import {
   Activity,
   BookOpen,
@@ -454,12 +456,14 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   const [submittingInvite, setSubmittingInvite] = useState(false);
   const [inviteSubmitted, setInviteSubmitted] = useState(false);
   const [inviteClientId, setInviteClientId] = useState("");
-  const [inviteLang, setInviteLang] = useState<"en" | "zh">(() =>
-    localStorage.getItem("nl_public_lang") === "zh" ? "zh" : "en"
-  );
-  useEffect(() => {
-    localStorage.setItem("nl_public_lang", inviteLang);
-  }, [inviteLang]);
+  // Public pages share i18n as their single source of truth. Opposing effects
+  // copying local state to/from i18n can continually undo a language change.
+  const storeLang: "en" | "zh" = i18n.language.startsWith("zh") ? "zh" : "en";
+  const setStoreLang = (language: "en" | "zh") => {
+    void i18n.changeLanguage(language);
+  };
+  const inviteLang = storeLang;
+  const setInviteLang = setStoreLang;
   // In-person training & consulting enquiry form.
   const [enquiryForm, setEnquiryForm] = useState({
     contactPerson: "",
@@ -472,26 +476,9 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   const [submittingEnquiry, setSubmittingEnquiry] = useState(false);
   const [enquirySubmitted, setEnquirySubmitted] = useState(false);
   // Language survives full-page navigation between landing/store/invite.
-  const [storeLang, setStoreLang] = useState<"en" | "zh">(() =>
-    localStorage.getItem("nl_public_lang") === "zh" ? "zh" : "en"
-  );
   useEffect(() => {
-    localStorage.setItem("nl_public_lang", storeLang);
+    try { localStorage.setItem("nl_public_lang", storeLang); } catch { /* private mode */ }
   }, [storeLang]);
-  // Keep the public pages' language in sync with the global i18n instance (so
-  // switching language in the portal/invite also flips the store, and toggling
-  // the store toggle also updates the global language for the rest of the app).
-  useEffect(() => {
-    if ((isStorePage || isPublicLandingPage) && i18n.language !== storeLang) {
-      void i18n.changeLanguage(storeLang);
-    }
-  }, [storeLang, i18n, isStorePage, isPublicLandingPage]);
-  // Keep the store/public-page language state in sync with the global i18n
-  // language no matter where the user changes it (portal, invite, settings).
-  useEffect(() => {
-    const next = i18n.language === "zh" ? "zh" : "en";
-    if (next !== storeLang) setStoreLang(next);
-  }, [i18n.language, storeLang]);
   const [storeLauncherOpen, setStoreLauncherOpen] = useState(false);
   const [storeLauncherClient, setStoreLauncherClient] = useState("");
   const [programsLoading, setProgramsLoading] = useState(false);
@@ -1178,6 +1165,20 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     Record<string, string>
   >({});
   const [contentAssignmentComment, setContentAssignmentComment] = useState("");
+  const [contentAssignmentReview, setContentAssignmentReview] = useState(false);
+  const [contentAssignmentSavedResponses, setContentAssignmentSavedResponses] = useState<ContentResponse[]>([]);
+  const [contentDraftStatus, setContentDraftStatus] = useState("");
+  useEffect(() => {
+    if (!activeContentAssignment || contentAssignmentReview || !selectedClient) return;
+    const saved = writeAssignmentDraft(assignmentDraftKey(selectedClient.id, activeContentAssignment.assignmentId), { answers: contentAssignmentAnswers, comment: contentAssignmentComment });
+    setContentDraftStatus(current => saved ? (current === "restored" ? "restored" : "saved") : "memory");
+  }, [activeContentAssignment, contentAssignmentReview, selectedClient?.id, contentAssignmentAnswers, contentAssignmentComment]);
+  useEffect(() => {
+    if (!activeContentAssignment || contentAssignmentReview || contentDraftStatus !== "memory") return;
+    const warn = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = ""; };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [activeContentAssignment, contentAssignmentReview, contentDraftStatus]);
   const [submittingContentAssignment, setSubmittingContentAssignment] =
     useState(false);
   const [selectedWorkout, setSelectedWorkout] = useState<Workout | null>(null);
@@ -2501,7 +2502,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
 
   // Quiet-load per-client 7-day activity for the Clients list (no modal).
   useEffect(() => {
-    if (isClientPortal || activePage !== "Clients") return;
+    if (isClientPortal || isStorePage || isPublicLandingPage || activePage !== "Clients") return;
 
     let cancelled = false;
     fetch("/api/analytics")
@@ -2529,7 +2530,6 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   useEffect(() => {
     if (isStorePage || isPublicLandingPage) {
       void loadPrograms();
-      void loadClients(); // for the "Client View" launcher picker
       void loadCoaches(); // powers the store "Meet your coach" section
       fetch("/api/reviews?storeOnly=1")
         .then((res) => res.json())
@@ -2568,6 +2568,10 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       }
     }
   }, []);
+
+  useEffect(() => {
+    if (storeLauncherOpen) void loadClients();
+  }, [storeLauncherOpen]);
 
   // Client portal: ready as soon as its client resolves (the "Loading your
   // training portal" gate clears), so the splash hands off to a populated view.
@@ -7696,7 +7700,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
           body: JSON.stringify(payload),
         });
         const data = await response.json();
-        if (!response.ok) {
+        if (!response.ok || data.success === false) {
           console.error(data);
           markFailed();
           return;
@@ -7761,21 +7765,9 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       .filter(Boolean)
       .join("\n");
 
-    // Actual fields start blank (the reps prefill was removed so the UI never
-    // echoes the target as if it were logged), but the STORED contract for a
-    // completed Weight set stays "reps as prescribed" when the athlete ticked
-    // ✓ without typing — otherwise volume, PRs and coach review read 0 reps
-    // for every tick-only set. Mirrors the old prefill exactly at submit time.
-    const resolvedLogs = setLogs.map((log) => {
-      const completed = isSetComplete(log);
-      const actualReps =
-        completed &&
-        log.trackingType === "Weight" &&
-        !String(log.actualReps || "").trim()
-          ? String(log.prescribedReps || "")
-          : log.actualReps;
-      return { ...log, actualReps, completed };
-    });
+    // A checkmark records completion; only entered numbers record performance.
+    // Match the mini player: never turn an unentered target into an actual.
+    const resolvedLogs = setLogs.map((log) => ({ ...log, completed: isSetComplete(log) }));
 
     const payload = {
       clientId: selectedClient.id,
@@ -8024,15 +8016,15 @@ function App({ onReady }: { onReady?: () => void } = {}) {
         );
 
     if (isTest && savedTemplate && "name" in savedTemplate) {
-      return savedTemplate.name || assignment.templateName || "Physical Test";
+      return localizeText(savedTemplate.name || assignment.templateName, savedTemplate.nameCn || assignment.templateNameCn) || t("physicalTest");
     }
 
     if (!isTest && savedTemplate && "name" in savedTemplate) {
-      return savedTemplate.name || assignment.templateName || "Questionnaire";
+      return localizeText(savedTemplate.name || assignment.templateName, savedTemplate.nameCn || assignment.templateNameCn) || t("questionnaire");
     }
 
     return (
-      assignment.templateName ||
+      localizeText(assignment.templateName, assignment.templateNameCn) ||
       assignment.assignmentType ||
       "Assigned item"
     );
@@ -12530,7 +12522,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   );
   const reviewQueueCount =
     coachReviewComments.filter((comment) => !comment.reviewed).length +
-    coachReviewResponses.length +
+    new Set(coachReviewResponses.filter(response => !response.reviewedAt).map(response => response.assignmentId || response.responseId)).size +
     coachReviewCheckIns.length +
     newEnquiries.length +
     productOrders.length;
@@ -13126,7 +13118,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   // Load every athlete's assigned workouts for the coach Clients load watch +
   // per-row risk badges.
   useEffect(() => {
-    if (isClientPortal || activePage !== "Clients") return;
+    if (isClientPortal || isStorePage || isPublicLandingPage || activePage !== "Clients") return;
     let cancelled = false;
     (async () => {
       try {
@@ -13841,9 +13833,8 @@ function App({ onReady }: { onReady?: () => void } = {}) {
             assignment.assignmentId === response.assignmentId ||
             assignment.templateId === response.templateId
         );
-        const templateTitle = matchingAssignment
-          ? getAssignmentDisplayName(matchingAssignment)
-          : response.responseType;
+        const templateTitle = response.templateName || (matchingAssignment
+          ? getAssignmentDisplayName(matchingAssignment) : response.responseType);
 
         if (!groups[key]) {
           groups[key] = {
@@ -13899,8 +13890,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     .filter((group) => {
       const first = group.answers[0];
       return reviewItemBelongsToCoachScope(first?.clientId, first?.clientName);
-    })
-    .slice(0, 18);
+    });
 
   const globalUnreviewedWorkoutComments = coachReviewComments
     .filter(
@@ -13908,8 +13898,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
         !comment.reviewed &&
         reviewItemBelongsToCoachScope(comment.clientId, comment.clientName)
     )
-    .sort((a, b) => (b.date || "").localeCompare(a.date || ""))
-    .slice(0, 18);
+    .sort((a, b) => (b.date || "").localeCompare(a.date || ""));
 
   const globalMissedWorkouts = coachReviewWorkouts
     .filter(
@@ -13920,8 +13909,23 @@ function App({ onReady }: { onReady?: () => void } = {}) {
           workout.scheduledDate
         ) === "Missed"
     )
-    .sort((a, b) => (b.scheduledDate || "").localeCompare(a.scheduledDate || ""))
-    .slice(0, 18);
+    .sort((a, b) => (b.scheduledDate || "").localeCompare(a.scheduledDate || ""));
+
+  const [reviewingSubmission, setReviewingSubmission] = useState(false);
+  const markContentSubmissionReviewed = async (group: ContentResponseGroup, reviewed: boolean) => {
+    const first = group.answers[0];
+    if (!first?.assignmentId || reviewingSubmission) return;
+    setReviewingSubmission(true);
+    try {
+      const response = await fetch("/api/reviewContentSubmission", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ assignmentId: first.assignmentId, assignmentType: first.responseType, reviewed }) });
+      const data = await response.json();
+      if (!response.ok || !data.success) throw new Error("Could not save review");
+      const update = (rows: ContentResponse[]) => rows.map(row => row.assignmentId === first.assignmentId ? { ...row, reviewedAt: data.reviewedAt } : row);
+      setCoachReviewResponses(update); setContentResponses(update); setSelectedContentSubmission(null);
+    } catch { notify("Could not update review state. Please retry.", "error"); }
+    finally { setReviewingSubmission(false); }
+  };
 
   const openReviewClient = (clientId?: string, clientName?: string) => {
     const client = findClientForReviewItem(clientId, clientName);
@@ -14108,6 +14112,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
         },
         body: JSON.stringify({
           assignmentType,
+          isIntake: true,
           templateId: intakeTemplate.formId,
           templateName: intakeTemplate.name,
           clientId: client.id,
@@ -15073,7 +15078,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                 {"★".repeat(r.rating)}
                 {"☆".repeat(Math.max(0, 5 - r.rating))}
               </span>
-              {r.quote && <p className="quote">“{r.quote}”</p>}
+              {r.quote && <p className="quote">“{i18n.language === "zh" ? r.quoteCn || r.quote : r.quoteEn || r.quote}”</p>}
               <span className="meta">
                 {r.clientName || "Client"} · {r.programName || r.programId}
                 {r.showOnStore ? " · opted in" : " · private"}
@@ -17249,22 +17254,41 @@ function App({ onReady }: { onReady?: () => void } = {}) {
             form.formId === assignment.templateId || form.name === assignment.templateName
         );
 
-    if (!template) {
-      notify("Could not find the saved template for this assignment.", "error");
+    const review = normalizeTaskStatus(assignment.status) === "Completed";
+    if (!template && !review) {
+      notify(localizeText("Could not load this assignment. Please try again.", "暂时无法加载此任务，请重试。"), "error");
       return;
     }
-
+    if (review) {
+      try {
+        const response = await fetch(`/api/contentResponses?clientId=${encodeURIComponent(assignment.clientId || selectedClient?.id || "")}`);
+        const data = await response.json();
+        if (!response.ok) throw new Error("Could not load answers");
+        const saved = (data.responses || []).filter((r: ContentResponse) => r.assignmentId === assignment.assignmentId || r.assignmentRecordId === assignment.recordId);
+        if (!saved.length) throw new Error("No saved answers");
+        setContentAssignmentSavedResponses(saved);
+      } catch {
+        notify(localizeText("Could not load saved answers. Please retry.", "暂时无法加载已保存的回答，请重试。"), "error");
+        return;
+      }
+    } else {
+      setContentAssignmentSavedResponses([]);
+    }
+    const draft = !review && selectedClient ? readAssignmentDraft(assignmentDraftKey(selectedClient.id, assignment.assignmentId)) : null;
+    setContentAssignmentReview(review);
+    setContentAssignmentAnswers(draft?.answers || {});
+    setContentAssignmentComment(draft?.comment || "");
+    setContentDraftStatus(draft ? "restored" : "");
     setActiveContentAssignment(assignment);
-    setContentAssignmentAnswers({});
-    setContentAssignmentComment("");
   };
 
   // Load the purchased program(s) starting on the chosen date. Called from the
   // post-intake start-date chooser.
   const loadProgramFromDate = async (startDate: string) => {
     if (!selectedClient) return;
-    setPortalPendingStartDate(startDate);
+    setPortalPostIntake(true);
     setPortalStartPicker(false);
+    setPortalPendingStartDate(startDate);
     setPortalAutoLoading(true);
     try {
       const loadRes = await fetch("/api/autoLoadProgram", {
@@ -17286,6 +17310,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
             "info"
           );
         } else {
+          setPortalPostIntake(false);
           setPortalStartPicker(true);
           notify(loadData.message || loadData.error || "Could not load your program.", "error");
         }
@@ -17300,6 +17325,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       }
       void loadContentAssignments(selectedClient);
     } catch {
+      setPortalPostIntake(false);
       setPortalStartPicker(true);
       notify(
         paceZh ? "暂时无法加载训练计划，请重试。" : "Could not load your program. Please try again.",
@@ -17333,121 +17359,13 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   const getTestAnswerKey = (item: SavedTestItem, suffix?: string) =>
     suffix ? `${item.testItemId}__${suffix}` : item.testItemId;
 
-  const getTestInputMode = (
-    item: SavedTestItem
-  ): "weightReps" | "distanceTime" | "single" => {
-    const descriptor = [
-      item.testName,
-      item.metricType,
-      item.unit,
-      item.inputUnit,
-      item.calculationMethod,
-      item.metricName,
-      item.metricUnit,
-    ]
-      .filter(Boolean)
-      .join(" ")
-      .toLowerCase();
-
-    if (
-      descriptor.includes("epley") ||
-      descriptor.includes("brzycki") ||
-      descriptor.includes("1rm") ||
-      descriptor.includes("3rm") ||
-      descriptor.includes("5rm") ||
-      descriptor.includes("weight x reps") ||
-      descriptor.includes("weight/reps")
-    ) {
-      return "weightReps";
-    }
-
-    if (
-      descriptor.includes("2km") ||
-      descriptor.includes("2000") ||
-      descriptor.includes("min/500") ||
-      descriptor.includes("aerobic") ||
-      descriptor.includes("mas") ||
-      descriptor.includes("threshold") ||
-      descriptor.includes("time") ||
-      descriptor.includes("duration") ||
-      descriptor.includes("minute") ||
-      descriptor.includes("second") ||
-      descriptor.includes("distance") ||
-      descriptor.includes("meter") ||
-      descriptor.includes("metre")
-    ) {
-      return "distanceTime";
-    }
-
-    return "single";
-  };
-
-  const isTwoKilometerTest = (item: SavedTestItem) => {
-    const descriptor = [
-      item.testName,
-      item.metricType,
-      item.inputUnit,
-      item.calculationMethod,
-    ]
-      .filter(Boolean)
-      .join(" ")
-      .toLowerCase();
-
-    return descriptor.includes("2km") || descriptor.includes("2000");
-  };
-
-  const buildStructuredTestValue = (item: SavedTestItem) => {
-    const mode = getTestInputMode(item);
-
-    if (mode === "weightReps") {
-      const weight = contentAssignmentAnswers[getTestAnswerKey(item, "weight")] || "";
-      const reps = contentAssignmentAnswers[getTestAnswerKey(item, "reps")] || "";
-      const unit = item.inputUnit || item.unit || "kg";
-      return weight && reps ? `${weight} ${unit} x ${reps} reps` : "";
-    }
-
-    if (mode === "distanceTime") {
-      const defaultDistance = isTwoKilometerTest(item) ? "2000" : "";
-      const distance =
-        contentAssignmentAnswers[getTestAnswerKey(item, "distance")] ||
-        defaultDistance;
-      const minutes = contentAssignmentAnswers[getTestAnswerKey(item, "minutes")] || "0";
-      const secondsRaw = contentAssignmentAnswers[getTestAnswerKey(item, "seconds")] || "";
-      const seconds = secondsRaw ? secondsRaw.padStart(2, "0") : "00";
-      return distance && (minutes !== "0" || secondsRaw)
-        ? `${distance} m in ${minutes}:${seconds}`
-        : "";
-    }
-
-    return contentAssignmentAnswers[item.testItemId] || "";
-  };
-
-  const isStructuredTestComplete = (item: SavedTestItem) => {
-    const mode = getTestInputMode(item);
-
-    if (mode === "weightReps") {
-      return Boolean(
-        contentAssignmentAnswers[getTestAnswerKey(item, "weight")] &&
-          contentAssignmentAnswers[getTestAnswerKey(item, "reps")]
-      );
-    }
-
-    if (mode === "distanceTime") {
-      const hasDistance =
-        Boolean(contentAssignmentAnswers[getTestAnswerKey(item, "distance")]) ||
-        isTwoKilometerTest(item);
-      const hasTime = Boolean(
-        contentAssignmentAnswers[getTestAnswerKey(item, "minutes")] ||
-          contentAssignmentAnswers[getTestAnswerKey(item, "seconds")]
-      );
-      return hasDistance && hasTime;
-    }
-
-    return Boolean(contentAssignmentAnswers[item.testItemId]);
-  };
+  const getTestInputMode = testInputMode;
+  const isTwoKilometerTest = isTwoKm;
+  const buildStructuredTestValue = (item: SavedTestItem) => buildTestAnswer(item, contentAssignmentAnswers);
+  const isStructuredTestComplete = (item: SavedTestItem) => Boolean(buildStructuredTestValue(item));
 
   const submitActiveContentAssignment = async () => {
-    if (!activeContentAssignment || !selectedClient) return;
+    if (!activeContentAssignment || !selectedClient || contentAssignmentReview || submittingContentAssignment) return;
 
     const clientComment = contentAssignmentComment.trim();
     const responses = activeAssignmentIsTest
@@ -17494,14 +17412,14 @@ function App({ onReady }: { onReady?: () => void } = {}) {
         )
       : (activeFormTemplate?.questions || []).filter(
           (question) =>
-            question.required && !contentAssignmentAnswers[question.questionId]
+            !validQuestionAnswer(question, contentAssignmentAnswers[question.questionId])
         );
 
     if (missingRequired.length > 0) {
       notify(
         activeAssignmentIsTest
-          ? "Please enter a result for each test item."
-          : "Please answer all required questions.",
+          ? localizeText("Please enter a valid result for each test item.", "请为每项测试填写有效结果。")
+          : localizeText("Please answer all required questions with valid choices.", "请完整填写必答题，并选择有效选项。"),
         "error"
       );
       return;
@@ -17527,7 +17445,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
 
       if (!response.ok || !data.success) {
         console.error(data);
-        notify(data.message || data.error || "Could not submit assignment.", "error");
+        notify(localizeText("Could not save your answers. Please retry.", "暂时无法保存回答，请重试。"), "error");
         return;
       }
 
@@ -17540,22 +17458,23 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       );
       void loadContentAssignments(selectedClient);
       void loadContentResponses(selectedClient);
+      clearAssignmentDraft(assignmentDraftKey(selectedClient.id, activeContentAssignment.assignmentId));
       setActiveContentAssignment(null);
       setContentAssignmentAnswers({});
       setContentAssignmentComment("");
 
       // Intake submitted in the portal: let the client choose their program
       // start date, then load. (Previously loading always started "today".)
-      const isIntake = activeContentAssignment.assignmentType === "Questionnaire";
+      const isIntake = data.isIntake === true;
       if (isClientPortal && isIntake && selectedClient) {
-        setPortalPostIntake(true);
+        setPortalPostIntake(false);
         setPortalStartPicker(true);
       } else {
-        notify("Assignment submitted.", "success");
+        notify(localizeText("Answers saved. Your coach can now review them.", "回答已保存，教练可以查看了。"), "success");
       }
     } catch (error) {
       console.error(error);
-      notify("Could not submit assignment.", "error");
+      notify(localizeText("Could not save your answers. Please retry.", "暂时无法保存回答，请重试。"), "error");
     } finally {
       setSubmittingContentAssignment(false);
     }
@@ -17591,6 +17510,15 @@ function App({ onReady }: { onReady?: () => void } = {}) {
         normalizeDate(String(b.dueDate || b.assignedDate))
       )
     );
+  const localizeAssignmentKind = (assignmentType?: string) => {
+    const clean = String(assignmentType || "").toLowerCase();
+    if (clean.includes("question") || clean.includes("intake") || clean.includes("survey"))
+      return t("questionnaire");
+    if (clean.includes("physical") || clean.includes("test")) return t("physicalTest");
+    if (clean.includes("check")) return t("checkIn");
+    if (clean.includes("program")) return t("program");
+    return assignmentType || t("questionnaire");
+  };
   const clientPortalUpcomingTasks = [
     ...clientPortalUpcomingWorkouts.map((workout) => ({
       type: "workout" as const,
@@ -17609,9 +17537,9 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       id: assignment.recordId,
       date: normalizeDate(String(assignment.dueDate || assignment.assignedDate)),
       title: getAssignmentDisplayName(assignment),
-      kindLabel: assignment.assignmentType || t("questionnaire"),
+      kindLabel: localizeAssignmentKind(assignment.assignmentType),
       colorClass: getAssignmentColorClass(assignment.assignmentType),
-      meta: assignment.assignmentType || "Questionnaire",
+      meta: localizeAssignmentKind(assignment.assignmentType),
       status: getDisplayTaskStatus(
         assignment.status,
         assignment.dueDate || assignment.assignedDate
@@ -17631,15 +17559,6 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     if (status === "Completed") return t("view");
     if (hasProgress) return t("continueTask");
     return t("start");
-  };
-  const localizeAssignmentKind = (assignmentType?: string) => {
-    const clean = String(assignmentType || "").toLowerCase();
-    if (clean.includes("question") || clean.includes("intake") || clean.includes("survey"))
-      return t("questionnaire");
-    if (clean.includes("physical") || clean.includes("test")) return t("physicalTest");
-    if (clean.includes("check")) return t("checkIn");
-    if (clean.includes("program")) return t("program");
-    return assignmentType || t("questionnaire");
   };
   const getTaskTone = (status: SimpleTaskStatus) => {
     if (status === "Completed") return "completed";
@@ -22469,17 +22388,21 @@ function App({ onReady }: { onReady?: () => void } = {}) {
               <div className="submissionAnswerGrid submissionResultsGrid">
                 {selectedContentSubmission.answers.map((answer) => (
                   <div className="submissionAnswer" key={answer.recordId}>
-                    <span>{getContentResponseLabel(answer)}</span>
+                    <span>{i18n.language === "en" ? answer.labelEn || getContentResponseLabel(answer) : getContentResponseLabel(answer)}</span>
                     <strong>
-                      {answer.answer || "--"}
+                      {displayAnswer((i18n.language === "en" ? answer.answerEn || answer.answer : answer.answer) || "--")}
                       {answer.unit ? ` ${answer.unit}` : ""}
                     </strong>
-                    {answer.notes ? <small>{answer.notes}</small> : null}
+                    {answer.notes ? <small>{i18n.language === "en" ? answer.notesEn || answer.notes : answer.notes}</small> : null}
                   </div>
                 ))}
               </div>
 
               <div className="modalActions">
+                {!isClientPortal && selectedContentSubmission.answers[0]?.assignmentId ? <button className="goldButton" disabled={reviewingSubmission}
+                  onClick={() => void markContentSubmissionReviewed(selectedContentSubmission, !selectedContentSubmission.answers[0]?.reviewedAt)}>
+                  {reviewingSubmission ? "Saving…" : selectedContentSubmission.answers[0]?.reviewedAt ? "Mark as unreviewed" : "Mark reviewed"}
+                </button> : null}
                 <button
                   className="goldButton"
                   onClick={() => setSelectedContentSubmission(null)}
@@ -22498,6 +22421,9 @@ function App({ onReady }: { onReady?: () => void } = {}) {
             activeContentAssignment={activeContentAssignment}
             activeFormTemplate={activeFormTemplate}
             activeTestTemplate={activeTestTemplate}
+            contentAssignmentReview={contentAssignmentReview}
+            savedResponses={contentAssignmentSavedResponses}
+            draftStatus={contentDraftStatus}
             contentAssignmentAnswers={contentAssignmentAnswers}
             contentAssignmentComment={contentAssignmentComment}
             getAssignmentDisplayName={getAssignmentDisplayName}
@@ -22527,8 +22453,8 @@ function App({ onReady }: { onReady?: () => void } = {}) {
 
         {portalStartPicker && isClientPortal && (
           <div className="startPickerOverlay">
-            <div className="startPickerCard">
-              <h3>{paceZh ? "🎯 什么时候开始？" : "🎯 When do you want to start?"}</h3>
+            <div className="startPickerCard" role="dialog" aria-modal="true" aria-labelledby="start-picker-title">
+              <h3 id="start-picker-title">{paceZh ? "🎯 什么时候开始？" : "🎯 When do you want to start?"}</h3>
               <p>
                 {paceZh
                   ? "你的训练计划会从所选日期开始排入日历。"
@@ -22536,7 +22462,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
               </p>
               <button
                 type="button"
-                className="primaryButton"
+                className="goldButton"
                 onClick={() => void loadProgramFromDate(todayValue)}
               >
                 {paceZh ? "今天开始" : "Start today"}
@@ -22556,6 +22482,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
               <div className="startPickerCustom">
                 <input
                   type="date"
+                  aria-label={paceZh ? "训练开始日期" : "Training start date"}
                   min={todayValue}
                   value={portalStartCustom}
                   onChange={(e) => setPortalStartCustom(e.target.value)}
@@ -22647,8 +22574,8 @@ function App({ onReady }: { onReady?: () => void } = {}) {
               <ol>
                 <li>
                   {paceZh
-                    ? "每组填写重量和次数（次数已按计划预填）"
-                    : "Enter your weight for each set — reps are pre-filled from the plan"}
+                    ? "填写实际完成的重量和次数；勾选表示该组已完成，未填写的数值不会作为成绩记录。"
+                    : "Enter the reps and weight you performed. A checkmark completes the set; blank values are not recorded as performance."}
                 </li>
                 <li>
                   {paceZh
@@ -22657,7 +22584,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                 </li>
                 <li>
                   {paceZh
-                    ? "全部完成后点「Finish Workout」提交给教练"
+                    ? "全部完成后点「完成训练」提交给教练"
                     : "Tap “Finish Workout” at the end to send it to your coach"}
                 </li>
               </ol>

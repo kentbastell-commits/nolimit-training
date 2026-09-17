@@ -25,6 +25,7 @@ export type SaveWorkoutLogInput = {
 
 export type SaveWorkoutLogResult = {
   success: boolean;
+  replayed?: boolean;
   recordsCreated?: number;
   createdRecords?: string[];
   assignedWorkoutUpdate?: any;

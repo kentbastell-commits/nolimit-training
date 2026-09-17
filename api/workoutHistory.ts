@@ -14,7 +14,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const result = await getWorkoutHistory(
       clientId,
       clientCode,
-      String(req.query.exerciseName || "")
+      String(req.query.exerciseName || ""),
+      String(req.query.assignedWorkoutId || "")
     );
     return res.status(200).json(result);
   } catch (error: any) {

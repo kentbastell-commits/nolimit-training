@@ -5,6 +5,7 @@
 // /api/coachingSignup. Client-facing (public bundle), bilingual EN / 中文.
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import "./CoachingFlowPage.css";
 import { reportClientEvent } from "./telemetry";
 import { BRAND_WORDMARK_BLACK } from "./brandAssets";
@@ -32,7 +33,12 @@ const TIERS: Tier[] = [
 const money = (n: number) => `CNY ${n.toLocaleString("en-US")}`;
 
 export default function CoachingFlowPage() {
-  const [lang, setLang] = useState<"en" | "zh">("en");
+  const { i18n } = useTranslation();
+  const lang = i18n.language.startsWith("zh") ? "zh" : "en";
+  const setLang = (value: "en" | "zh") => {
+    void i18n.changeLanguage(value);
+    try { localStorage.setItem("nl_public_lang", value); } catch { /* private mode */ }
+  };
   const zh = lang === "zh";
   const t = (en: string, cn: string) => (zh ? cn : en);
 
@@ -61,6 +67,7 @@ export default function CoachingFlowPage() {
   const [equipment, setEquipment] = useState("");
   const [notes, setNotes] = useState("");
   const [healthConsent, setHealthConsent] = useState(false);
+  const [intakeSubmitted, setIntakeSubmitted] = useState(false);
 
   const tier = useMemo(() => TIERS.find((x) => x.id === tierId) || null, [tierId]);
   const tierLabel = (x: Tier) =>
@@ -210,9 +217,11 @@ export default function CoachingFlowPage() {
   };
 
   const finish = async () => {
+    if (submitting) return;
     setSubmitting(true);
+    setError("");
     try {
-      await fetch("/api/coachingSignup", {
+      const response = await fetch("/api/coachingSignup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -231,11 +240,14 @@ export default function CoachingFlowPage() {
           consentVersion: "2026-07-12",
         }),
       });
+      const result = await response.json();
+      if (!response.ok || !result.success) throw new Error("Questionnaire not saved");
+      setIntakeSubmitted(true);
+      setStep("done");
     } catch {
-      /* best-effort — payment + qualifier already captured */
+      setError(t("Your questionnaire was not submitted. Your answers are still here; please retry.", "问卷未提交。你的填写内容已保留，请重试。"));
     } finally {
       setSubmitting(false);
-      setStep("done");
     }
   };
 
@@ -576,7 +588,7 @@ export default function CoachingFlowPage() {
                     <path d="M20 6L9 17l-5-5" />
                   </svg>
                 </span>
-                {t("Payment confirmed", "支付已确认")} · {orderId}
+                {t("Order saved · payment awaiting verification", "订单已保存 · 付款待核对")} · {orderId}
               </div>
               <h1 className="cfpH1">{t("Now let's build your plan.", "现在来打造你的计划。")}</h1>
               <p className="cfpLead">
@@ -696,6 +708,7 @@ export default function CoachingFlowPage() {
               </div>
 
               <div className="cfpOnboardActions">
+                {error && <p className="cfpError" role="alert">{error}</p>}
                 <button
                   className="cfpPrimary"
                   onClick={finish}
@@ -705,10 +718,10 @@ export default function CoachingFlowPage() {
                 </button>
                 <button
                   className="cfpGhost"
-                  onClick={finish}
-                  disabled={submitting || (healthConsentRequired && !healthConsent)}
+                  onClick={() => setStep("done")}
+                  disabled={submitting}
                 >
-                  {t("I'll finish later", "稍后再填")}
+                  {t("Skip questionnaire", "跳过问卷")}
                 </button>
               </div>
             </div>
@@ -724,9 +737,11 @@ export default function CoachingFlowPage() {
               </div>
               <h1 className="cfpH1 cfpDoneH1">{t("You're in the queue.", "你已进入队列。")}</h1>
               <p className="cfpDoneLead">
-                {t("Payment received and your questionnaire is with your coach for the ", "支付已收到，你的问卷已发送给教练，指导周期为 ")}
+                {intakeSubmitted
+                  ? t("Your questionnaire is with your coach. Your order is awaiting payment verification for the ", "你的问卷已发送给教练。订单付款待核对，指导周期为 ")
+                  : t("Your order is saved and awaiting payment verification for the ", "你的订单已保存，付款待核对，指导周期为 ")}
                 <strong>{tier ? tierLabel(tier) : ""}</strong>
-                {t(" term. They'll add you on WeChat within 24 hours to start.", "。教练会在 24 小时内通过微信添加你，开始训练。")}
+                {t(" term. Your coach will confirm your payment and next steps on WeChat.", "。教练将通过微信确认付款及后续安排。")}
               </p>
               <div className="cfpDoneOrder">{t("Order", "订单")} {orderId}</div>
 

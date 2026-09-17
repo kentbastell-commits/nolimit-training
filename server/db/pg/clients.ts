@@ -1,7 +1,7 @@
-import { and, eq, or, isNull } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db } from "../client.ts";
 import { clients, assignedWorkouts } from "../schema.ts";
-import { fillTranslation } from "../translate.ts";
+import { queueTranslations, translationPatch } from "../contentTranslations.ts";
 import { epochToDate, pgErrorMessage, str } from "./_util.ts";
 import type { ClientDTO, UpdateClientInput, WriteResult } from "../dto.ts";
 import type { CreateClientInput } from "../repositories/clients.ts";
@@ -132,20 +132,7 @@ export async function createClient(i: CreateClientInput): Promise<WriteResult> {
       fieldsSent: values,
     };
   }
-  // Translate-on-write: mirror the intake notes into notes_en (best-effort).
-  if (i.notes) {
-    void fillTranslation(i.notes, "en", (en) =>
-      db
-        .update(clients)
-        .set({ notesEn: en })
-        .where(
-          and(
-            eq(clients.clientId, clientId),
-            or(isNull(clients.notesEn), eq(clients.notesEn, ""))
-          )
-        )
-    );
-  }
+  queueTranslations("clients", [clientId]);
 
   // On Postgres the business code IS the record identity, so echo it as both.
   return { success: true, clientId, recordId: clientId };
@@ -223,7 +210,7 @@ export async function updateClient(i: UpdateClientInput): Promise<WriteResult> {
   try {
     r = await db
       .update(clients)
-      .set(set)
+      .set(translationPatch("clients", set))
       .where(eq(clients.clientId, i.clientRecordId))
       .returning({ clientId: clients.clientId });
   } catch (e: any) {
@@ -236,28 +223,7 @@ export async function updateClient(i: UpdateClientInput): Promise<WriteResult> {
     };
   }
 
-  // Translate-on-write (replaces the Feishu AI formula): the mirror must
-  // FOLLOW the source — clear it on every notes edit, then refill. The old
-  // fill-only-empty rule left a stale translation forever after edits.
-  if (r.length && i.notes !== undefined) {
-    await db
-      .update(clients)
-      .set({ notesEn: "" })
-      .where(eq(clients.clientId, i.clientRecordId));
-    if (i.notes) {
-      void fillTranslation(i.notes, "en", (en) =>
-        db
-          .update(clients)
-          .set({ notesEn: en })
-          .where(
-            and(
-              eq(clients.clientId, i.clientRecordId),
-              or(isNull(clients.notesEn), eq(clients.notesEn, ""))
-            )
-          )
-      );
-    }
-  }
+  if (r.length) queueTranslations("clients", [i.clientRecordId]);
 
   return r.length
     ? { success: true, clientRecordId: i.clientRecordId }

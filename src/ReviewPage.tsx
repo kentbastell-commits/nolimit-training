@@ -11,6 +11,7 @@ import { CheckSquare, ChevronDown, X } from "lucide-react";
 import "./ReviewPage.css";
 import { normalizeDate, toMediaCdnUrl } from "./appCore";
 import CountUp from "./CountUp";
+import ReviewPager, { reviewPageNumber, REVIEW_PAGE_SIZE } from "./ReviewPager";
 
 export default function ReviewPage({
   refreshReviewQueue,
@@ -54,6 +55,22 @@ export default function ReviewPage({
 }: { [key: string]: any }) {
   // Presentational only: which check-in is expanded in the slide-over.
   const [selectedCheckIn, setSelectedCheckIn] = useState<any>(null);
+  const [pages, setPages] = useState<Record<string, number>>({});
+  const [submissionQuery, setSubmissionQuery] = useState("");
+  const [submissionFilter, setSubmissionFilter] = useState("pending");
+  const pageRows = (key: string, rows: any[]) => {
+    const page = reviewPageNumber(pages[key] || 0, rows.length);
+    return rows.slice(page * REVIEW_PAGE_SIZE, (page + 1) * REVIEW_PAGE_SIZE);
+  };
+  const pager = (key: string, label: string, rows: any[]) => <ReviewPager label={label} total={rows.length} page={pages[key] || 0}
+    onPage={page => setPages(previous => ({ ...previous, [key]: page }))} />;
+  const pendingSubmissions = globalReviewSubmissionItems.filter((g: any) => !g.answers?.[0]?.reviewedAt);
+  const filteredSubmissions = globalReviewSubmissionItems.filter((group: any) => {
+    const reviewed = Boolean(group.answers?.[0]?.reviewedAt);
+    if (submissionFilter === "pending" && reviewed || submissionFilter === "reviewed" && !reviewed) return false;
+    const first = group.answers?.[0];
+    return `${group.title} ${clientLabel(first?.clientName || first?.clientId)}`.toLowerCase().includes(submissionQuery.toLowerCase().trim());
+  });
 
   // Auto-close the slide-over once its check-in leaves the queue (resolved via
   // respondToCheckIn) so we never show a stale panel.
@@ -85,7 +102,7 @@ export default function ReviewPage({
     globalUnreviewedWorkoutComments.length + globalReviewOrders.length;
   const total =
     globalUnreviewedWorkoutComments.length +
-    globalReviewSubmissionItems.length +
+    pendingSubmissions.length +
     globalMissedWorkouts.length +
     globalReviewOrders.length +
     coachReviewCheckIns.length +
@@ -119,11 +136,11 @@ export default function ReviewPage({
       .join(" · ");
   const checkInNoteBlocks = (c: any) =>
     [
-      c.trainingNotes && { label: "Training notes", text: c.trainingNotes },
-      c.wins && { label: "Wins", text: c.wins },
-      c.problemsPain && { label: "Problems / pain", text: c.problemsPain },
-      c.clientNotes && { label: "Client notes", text: c.clientNotes },
-      c.nutritionNotes && { label: "Nutrition", text: c.nutritionNotes },
+      c.trainingNotes && { label: "Training notes", text: c.trainingNotesEn || c.trainingNotes },
+      c.wins && { label: "Wins", text: c.winsEn || c.wins },
+      c.problemsPain && { label: "Problems / pain", text: c.problemsPainEn || c.problemsPain },
+      c.clientNotes && { label: "Client notes", text: c.clientNotesEn || c.clientNotes },
+      c.nutritionNotes && { label: "Nutrition", text: c.nutritionNotesEn || c.nutritionNotes },
     ].filter(Boolean) as { label: string; text: string }[];
 
   const summaryCards = [
@@ -135,7 +152,7 @@ export default function ReviewPage({
     },
     {
       label: "Submissions",
-      count: globalReviewSubmissionItems.length,
+      count: pendingSubmissions.length,
       target: "reviewColSubmissions",
       accent: "#5e8a86", // Dusty Teal
     },
@@ -291,7 +308,7 @@ export default function ReviewPage({
                         : "—"}
                     </small>
                   </div>
-                  <p className="rvNote">{msg.body}</p>
+                  <p className="rvNote">{msg.bodyEn || msg.body}</p>
                   <textarea
                     className="rvReply"
                     placeholder="Write a reply to your athlete…"
@@ -361,7 +378,7 @@ export default function ReviewPage({
                         ))}
                       </div>
                     )}
-                    {enq.notes && <p className="rvNote">{enq.notes}</p>}
+                    {enq.notes && <p className="rvNote">{enq.notesEn || enq.notes}</p>}
                   </div>
                 );
               })}
@@ -400,7 +417,7 @@ export default function ReviewPage({
                     />
                   )}
                   {video.clientNote && (
-                    <p className="rvNote">{video.clientNote}</p>
+                    <p className="rvNote">{video.clientNoteEn || video.clientNote}</p>
                   )}
                   <textarea
                     className="rvReply"
@@ -531,7 +548,7 @@ export default function ReviewPage({
           )}
           {openReviewSections.comments && (
             <div className="rvGrid">
-              {globalReviewOrders.slice(0, 6).map((order: any) => (
+              {pageRows("orders", globalReviewOrders).map((order: any) => (
                 <button
                   type="button"
                   key={`order-${order.recordId || order.orderId}`}
@@ -551,7 +568,7 @@ export default function ReviewPage({
                 </button>
               ))}
 
-              {globalUnreviewedWorkoutComments.map((comment: any) => (
+              {pageRows("comments", globalUnreviewedWorkoutComments).map((comment: any) => (
                 <div key={comment.key} className="rvItem rvCommentItem">
                   <span className="rvItemKicker">Workout comment</span>
                   <strong>
@@ -587,6 +604,8 @@ export default function ReviewPage({
                 </div>
               ))}
 
+              {pager("orders", "Orders", globalReviewOrders)}
+              {pager("comments", "Workout comments", globalUnreviewedWorkoutComments)}
               {commentsCount === 0 && (
                 <p className="rvEmpty">No comments or order reviews waiting.</p>
               )}
@@ -613,7 +632,7 @@ export default function ReviewPage({
                 // One collapsible group per client — a 16-card wall repeating
                 // the same three names buries the rest of the queue.
                 const groups = new Map<string, any[]>();
-                globalMissedWorkouts.forEach((w: any) => {
+                pageRows("missed", globalMissedWorkouts).forEach((w: any) => {
                   const label = clientLabel(w.clientId) || "Unknown client";
                   if (!groups.has(label)) groups.set(label, []);
                   groups.get(label)!.push(w);
@@ -628,7 +647,7 @@ export default function ReviewPage({
                     >
                       <summary className="rvMissSummary">
                         <strong>{label}</strong>
-                        <span>{items.length} missed</span>
+                        <span>{items.length} on this page</span>
                       </summary>
                       <div className="rvMissList">
                         {items.map((workout: any) => (
@@ -650,6 +669,7 @@ export default function ReviewPage({
                     </details>
                   ));
               })()}
+              {pager("missed", "Missed tasks", globalMissedWorkouts)}
               {globalMissedWorkouts.length === 0 && (
                 <p className="rvEmpty">No missed workouts need attention.</p>
               )}
@@ -667,12 +687,20 @@ export default function ReviewPage({
           {sectionHeader(
             "Submissions",
             "Forms & Tests",
-            globalReviewSubmissionItems.length,
+            pendingSubmissions.length,
             "submissions"
           )}
           {openReviewSections.submissions && (
             <div className="rvGrid">
-              {globalReviewSubmissionItems.map((group: any) => {
+              <div className="rvSubmissionFilters">
+                <input aria-label="Search submissions" placeholder="Search athlete or assessment…" value={submissionQuery}
+                  onChange={e => { setSubmissionQuery(e.target.value); setPages(p => ({ ...p, submissions: 0 })); }} />
+                <select aria-label="Submission status" value={submissionFilter}
+                  onChange={e => { setSubmissionFilter(e.target.value); setPages(p => ({ ...p, submissions: 0 })); }}>
+                  <option value="pending">Needs review</option><option value="reviewed">Reviewed</option><option value="all">All submissions</option>
+                </select>
+              </div>
+              {pageRows("submissions", filteredSubmissions).map((group: any) => {
                 const first = group.answers?.[0];
                 return (
                   <button
@@ -691,8 +719,9 @@ export default function ReviewPage({
                   </button>
                 );
               })}
-              {globalReviewSubmissionItems.length === 0 && (
-                <p className="rvEmpty">No new form or test submissions.</p>
+              {pager("submissions", "Submissions", filteredSubmissions)}
+              {filteredSubmissions.length === 0 && (
+                <p className="rvEmpty">No matching form or test submissions.</p>
               )}
             </div>
           )}

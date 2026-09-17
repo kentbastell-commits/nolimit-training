@@ -23,6 +23,8 @@ export type FormQuestionInput = {
 
 export type CreateFormTemplateInput = {
   name: any;
+  nameCn?: any;
+  descriptionCn?: any;
   type?: any;
   description?: any;
   status?: any;

@@ -5,7 +5,7 @@
 // validates the FK target exists and simply omits the reference otherwise —
 // same outcome: the row always lands, the link is best-effort.
 import { eq, inArray } from "drizzle-orm";
-import { db } from "../client.ts";
+import { db, type DbExecutor } from "../client.ts";
 import { exerciseResults, exercises, clients } from "../schema.ts";
 import { epochToDate, str } from "./_util.ts";
 import type {
@@ -16,8 +16,9 @@ import type {
 
 type Row = typeof exerciseResults.$inferSelect;
 
-export async function listExerciseResults(): Promise<ExerciseResultDTO[]> {
-  const rows = await db.select().from(exerciseResults);
+export async function listExerciseResults(clientId = ""): Promise<ExerciseResultDTO[]> {
+  const rows = await db.select().from(exerciseResults)
+    .where(clientId ? eq(exerciseResults.clientId, clientId) : undefined);
   return rows.map((r: Row): ExerciseResultDTO => ({
     recordId: r.resultId, // business code is the identity on Postgres
     resultId: r.resultId,
@@ -56,7 +57,8 @@ function estimateOneRepMax(weight: number | undefined, reps: number | undefined)
 }
 
 export async function createExerciseResults(
-  input: CreateExerciseResultsInput
+  input: CreateExerciseResultsInput,
+  executor: DbExecutor = db
 ): Promise<CreateExerciseResultsResult> {
   const { clientRecordId, assignedWorkoutId, workoutDate, logs } = input;
 
@@ -78,7 +80,7 @@ export async function createExerciseResults(
   const clientCode = clientRecordId ? String(clientRecordId) : "";
   const clientExists = clientCode
     ? (
-        await db
+        await executor
           .select({ id: clients.clientId })
           .from(clients)
           .where(eq(clients.clientId, clientCode))
@@ -90,7 +92,7 @@ export async function createExerciseResults(
   const knownExercises = new Set(
     exerciseCodes.length
       ? (
-          await db
+          await executor
             .select({ id: exercises.exerciseId })
             .from(exercises)
             .where(inArray(exercises.exerciseId, exerciseCodes))
@@ -149,9 +151,12 @@ export async function createExerciseResults(
     };
 
     try {
-      await db.insert(exerciseResults).values(values);
+      await executor.insert(exerciseResults).values(values);
       createdRecords.push(resultId);
     } catch (e: any) {
+      // A workout submission owns one transaction: any result failure must
+      // roll back its logs and completion state too.
+      if (executor !== db) throw e;
       errors.push({ error: e?.message || String(e), fields: values });
     }
   }

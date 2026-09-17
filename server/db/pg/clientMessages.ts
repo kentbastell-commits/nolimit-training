@@ -2,7 +2,7 @@ import { desc, eq } from "drizzle-orm";
 import { db } from "../client.ts";
 import { clientMessages } from "../schema.ts";
 import { str } from "./_util.ts";
-import { fillTranslation } from "../translate.ts";
+import { queueTranslations } from "../contentTranslations.ts";
 import type { ClientMessageDTO } from "../dto.ts";
 
 type Row = typeof clientMessages.$inferSelect;
@@ -12,6 +12,7 @@ const toDTO = (r: Row): ClientMessageDTO => ({
   clientId: str(r.clientId),
   clientName: str(r.clientName),
   body: str(r.body),
+      bodyEn: str(r.bodyEn),
   status: str(r.status) || "New",
   coachReply: str(r.coachReply),
   coachReplyCn: str(r.coachReplyCn),
@@ -41,6 +42,7 @@ export async function createMessage(input: {
     status: "New",
     createdAt: Date.now(),
   });
+  queueTranslations("clientMessages", [input.messageId]);
 }
 
 export async function replyToMessage(
@@ -54,14 +56,6 @@ export async function replyToMessage(
     .where(eq(clientMessages.messageId, messageId))
     .returning({ messageId: clientMessages.messageId });
 
-  // Best-effort zh mirror of the coach's reply (skip text already Chinese).
-  if (updated.length > 0 && coachReply && !/[一-鿿]/.test(coachReply)) {
-    void fillTranslation(coachReply, "zh", (zh) =>
-      db
-        .update(clientMessages)
-        .set({ coachReplyCn: zh })
-        .where(eq(clientMessages.messageId, messageId))
-    );
-  }
+  if (updated.length) queueTranslations("clientMessages", [messageId]);
   return updated.length > 0;
 }

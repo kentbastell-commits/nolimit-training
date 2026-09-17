@@ -1,5 +1,6 @@
 import { eq } from "drizzle-orm";
 import { db } from "../client.ts";
+import { queueTranslations, translationPatch } from "../contentTranslations.ts";
 import { coaches } from "../schema.ts";
 import { epochToDate, str } from "./_util.ts";
 import type { CoachDTO, WriteResult } from "../dto.ts";
@@ -19,6 +20,7 @@ export async function listCoaches(): Promise<CoachDTO[]> {
       role: r.role || "Coach",
       status: r.status || "Active",
       bio: str(r.bio),
+      bioCn: str(r.bioCn),
       qrCodeUrl: str(r.qrCodeUrl),
       createdAt: epochToDate(r.createdAt),
     })
@@ -56,12 +58,13 @@ export async function upsertCoach(i: UpsertCoachInput): Promise<WriteResult> {
     // update (a Coach ID rewrite would orphan client references).
     const r = await db
       .update(coaches)
-      .set(values)
+      .set(translationPatch("coaches", values))
       .where(eq(coaches.coachId, i.recordId))
       .returning({ coachId: coaches.coachId });
     if (!r.length) {
       return { success: false, error: "Failed to update coach", message: "Coach not found" };
     }
+    queueTranslations("coaches", [r[0].coachId]);
     return {
       success: true,
       coachId: r[0].coachId,
@@ -76,6 +79,7 @@ export async function upsertCoach(i: UpsertCoachInput): Promise<WriteResult> {
   await db
     .insert(coaches)
     .values({ coachId, ...values, createdAt: Date.now() })
-    .onConflictDoUpdate({ target: coaches.coachId, set: values });
+    .onConflictDoUpdate({ target: coaches.coachId, set: translationPatch("coaches", values) });
+  queueTranslations("coaches", [coachId]);
   return { success: true, coachId, recordId: coachId, omittedFields: [] };
 }

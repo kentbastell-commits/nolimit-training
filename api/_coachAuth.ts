@@ -48,6 +48,7 @@ export const COACH_ONLY_HANDLERS = new Set([
   "enquiries",
   "productOrders",
   "reviewWorkoutComment",
+  "reviewContentSubmission",
   "setWorkoutReviewed",
   "subscriptions",
   "teams",

@@ -1,6 +1,6 @@
 // Translate-on-write — replaces the Feishu AI-formula columns after the
-// Postgres cutover. Tencent Machine Translation (TMT) via a hand-rolled
-// TC3-HMAC-SHA256 signed call (no SDK dependency).
+// Postgres cutover. DeepSeek first, Tencent Machine Translation (TMT) second.
+// Callers keep the saved interface text/original if both are unavailable.
 //
 // Design rules (same as the kangfu AI calls):
 //  - BEST-EFFORT ONLY: any failure (missing creds, timeout, API error)
@@ -30,8 +30,61 @@ const sha256Hex = (msg: string) =>
   createHash("sha256").update(msg, "utf8").digest("hex");
 
 // text -> translated text, keyed by target language.
-const cache = new Map<string, string>();
+const cache = new Map<string, { text: string | null; expires: number }>();
+const pending = new Map<string, Promise<string | null>>();
 const CACHE_MAX = 500;
+const MAX_ACTIVE = 4;
+const MAX_PENDING = 256;
+let active = 0;
+const waiting: Array<() => void> = [];
+
+// Bound external work independently of the number of athletes or template rows.
+async function withSlot<T>(work: () => Promise<T>): Promise<T> {
+  if (active >= MAX_ACTIVE) await new Promise<void>((resolve) => waiting.push(resolve));
+  else active++;
+  try { return await work(); }
+  finally {
+    const next = waiting.shift();
+    if (next) next();
+    else active--;
+  }
+}
+
+function remember(key: string, text: string | null, ttl: number) {
+  if (cache.size >= CACHE_MAX) cache.delete(cache.keys().next().value!);
+  cache.set(key, { text, expires: Date.now() + ttl });
+}
+
+/** Byte-safe chunks, preserving every character and paragraph boundary. */
+export function translationChunks(text: string, maxBytes = 1800): string[] {
+  const chunks: string[] = [];
+  let rest = text;
+  while (Buffer.byteLength(rest, "utf8") > maxBytes) {
+    let end = 0, bytes = 0, boundary = 0;
+    for (const char of rest) {
+      const size = Buffer.byteLength(char, "utf8");
+      if (bytes + size > maxBytes) break;
+      bytes += size;
+      end += char.length;
+      if (/[\s。！？.!?]/u.test(char)) boundary = end;
+    }
+    const cut = boundary > end / 2 ? boundary : end;
+    chunks.push(rest.slice(0, cut));
+    rest = rest.slice(cut);
+  }
+  if (rest) chunks.push(rest);
+  return chunks;
+}
+
+// Timeout covers reading the response body as well as receiving headers.
+async function fetchJson(url: string, init: RequestInit, timeoutMs: number): Promise<any> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, { ...init, signal: controller.signal });
+    return response.ok ? await response.json() : null;
+  } finally { clearTimeout(timer); }
+}
 
 // ---- LLM path (preferred): domain-aware translation ----------------------
 // Generic MT renders coaching language literally ("out of the hole" → 冲出洞).
@@ -47,6 +100,10 @@ function llmConfig() {
     base: (process.env.AI_BASE_URL || "https://api.deepseek.com").replace(/\/+$/, ""),
     model: process.env.AI_MODEL || "deepseek-chat",
   };
+}
+
+export function translationsConfigured(): boolean {
+  return Boolean(llmConfig() || creds());
 }
 
 const LLM_PROMPTS: Record<"zh" | "en", string> = {
@@ -108,9 +165,7 @@ async function llmTranslate(
   const cfg = llmConfig();
   if (!cfg) return null;
   try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 15000);
-    const res = await fetch(`${cfg.base}/chat/completions`, {
+    const data = await fetchJson(`${cfg.base}/chat/completions`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -122,15 +177,15 @@ async function llmTranslate(
         max_tokens: 2000,
         messages: [
           { role: "system", content: (domain === "ops" ? OPS_PROMPTS : LLM_PROMPTS)[target] },
-          { role: "user", content: text.slice(0, 4000) },
+          { role: "user", content: text },
         ],
       }),
-      signal: controller.signal,
-    }).finally(() => clearTimeout(timer));
-    if (!res.ok) return null;
-    const data: any = await res.json();
-    const out = data?.choices?.[0]?.message?.content?.trim();
-    return out && typeof out === "string" ? out : null;
+    }, 15000);
+    const choice = data?.choices?.[0];
+    // A token-limited answer is incomplete and must never become a saved cue.
+    if (choice?.finish_reason && choice.finish_reason !== "stop") return null;
+    const out = choice?.message?.content;
+    return typeof out === "string" && out.trim() ? out.trim() : null;
   } catch {
     return null;
   }
@@ -147,32 +202,47 @@ export async function translateText(
   domain: "coaching" | "ops" = "coaching"
 ): Promise<string | null> {
   const clean = String(text || "").trim();
-  if (!clean) return null;
+  if (!clean || Buffer.byteLength(clean, "utf8") > 32_000) return null;
 
   const cacheKey = `${domain}:${target}:${clean}`;
   const hit = cache.get(cacheKey);
-  if (hit !== undefined) return hit;
+  if (hit && hit.expires > Date.now()) return hit.text;
+  const inFlight = pending.get(cacheKey);
+  if (inFlight) return inFlight;
+  if (pending.size >= MAX_PENDING) return null;
+  const job = withSlot(async () => {
+    const chunks = translationChunks(clean);
+    const translateAll = async (translate: (chunk: string) => Promise<string | null>) => {
+      const results: string[] = [];
+      for (const chunk of chunks) {
+        if (!chunk.trim()) { results.push(chunk); continue; }
+        const result = await translate(chunk.trim());
+        if (!result) return null;
+        results.push((chunk.match(/^\s*/)?.[0] || "") + result + (chunk.match(/\s*$/)?.[0] || ""));
+      }
+      return results.join("");
+    };
+    const primary = await translateAll((chunk) => llmTranslate(chunk, target, domain));
+    if (primary) { remember(cacheKey, primary, 6 * 60 * 60_000); return primary; }
+    const fallback = await translateAll((chunk) => tmtTranslate(chunk, target));
+    // A temporary fallback must not hide DeepSeek's recovery for the process lifetime.
+    remember(cacheKey, fallback, fallback ? 60_000 : 5_000);
+    return fallback;
+  }).catch(() => null).finally(() => pending.delete(cacheKey));
+  pending.set(cacheKey, job);
+  return job;
+}
 
-  const fromLlm = await llmTranslate(clean, target, domain);
-  if (fromLlm) {
-    if (cache.size >= CACHE_MAX) {
-      const first = cache.keys().next().value;
-      if (first !== undefined) cache.delete(first);
-    }
-    cache.set(cacheKey, fromLlm);
-    return fromLlm;
-  }
-
+async function tmtTranslate(clean: string, target: "en" | "zh"): Promise<string | null> {
   const c = creds();
   if (!c) return null; // no TMT key either — silently disabled
 
   try {
     const timestamp = Math.floor(Date.now() / 1000);
     const date = new Date(timestamp * 1000).toISOString().slice(0, 10);
-    // TMT caps a single request at 2000 utf-8 bytes of source text; clip
-    // rather than fail (mirror fields are previews, not archives).
+    // The shared chunker keeps this below TMT's 2000 UTF-8 byte limit.
     const payload = JSON.stringify({
-      SourceText: clean.slice(0, 1500),
+      SourceText: clean,
       Source: "auto",
       Target: target,
       ProjectId: 0,
@@ -200,9 +270,7 @@ export async function translateText(
       `TC3-HMAC-SHA256 Credential=${c.id}/${date}/tmt/tc3_request, ` +
       `SignedHeaders=content-type;host, Signature=${signature}`;
 
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 5000);
-    const res = await fetch(`https://${ENDPOINT}`, {
+    const data = await fetchJson(`https://${ENDPOINT}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json; charset=utf-8",
@@ -213,19 +281,9 @@ export async function translateText(
         "X-TC-Region": c.region,
       },
       body: payload,
-      signal: controller.signal,
-    }).finally(() => clearTimeout(timer));
-
-    const data: any = await res.json();
+    }, 5000);
     const translated = data?.Response?.TargetText;
-    if (!translated || typeof translated !== "string") return null;
-
-    if (cache.size >= CACHE_MAX) {
-      const first = cache.keys().next().value;
-      if (first !== undefined) cache.delete(first);
-    }
-    cache.set(cacheKey, translated);
-    return translated;
+    return typeof translated === "string" && translated.trim() ? translated.trim() : null;
   } catch {
     return null; // timeouts / network / API errors: caller proceeds untranslated
   }

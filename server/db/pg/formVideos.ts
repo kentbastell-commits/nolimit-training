@@ -5,7 +5,7 @@ import { eq } from "drizzle-orm";
 import { db } from "../client.ts";
 import { formVideos, clients } from "../schema.ts";
 import { str } from "./_util.ts";
-import { fillTranslation } from "../translate.ts";
+import { queueTranslations } from "../contentTranslations.ts";
 import type {
   FormVideoDTO,
   CreateFormVideoInput,
@@ -25,6 +25,7 @@ export async function listFormVideos(): Promise<FormVideoDTO[]> {
       workoutName: str(r.workoutName),
       videoUrl: str(r.videoUrl),
       clientNote: str(r.clientNote),
+      clientNoteEn: str(r.clientNoteEn),
       submittedAt: r.submittedAt ?? 0,
       status: str(r.status) || "New",
       coachReply: str(r.coachReply),
@@ -65,6 +66,7 @@ export async function createFormVideo(
       message: e?.message || String(e),
     };
   }
+  queueTranslations("formVideos", [videoId]);
   return { success: true, videoId };
 }
 
@@ -90,15 +92,6 @@ export async function reviewFormVideo(
     return { success: false, error: "Could not update video", message: "Video not found" };
   }
 
-  // Best-effort zh mirror of the coach's reply (skip text already Chinese).
-  const reply = String(input.coachReply || "");
-  if (reply && !/[一-鿿]/.test(reply)) {
-    void fillTranslation(reply, "zh", (zh) =>
-      db
-        .update(formVideos)
-        .set({ coachReplyCn: zh })
-        .where(eq(formVideos.videoId, input.recordId))
-    );
-  }
+  queueTranslations("formVideos", [input.recordId]);
   return { success: true };
 }

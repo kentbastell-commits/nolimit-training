@@ -686,9 +686,15 @@ export const resources = {
   },
 };
 
+function initialLanguage(): "en" | "zh" {
+  if (typeof window === "undefined") return "en";
+  try { return window.localStorage.getItem("nl_public_lang") === "zh" ? "zh" : "en"; }
+  catch { return "en"; }
+}
+
 i18n.use(initReactI18next).init({
   resources,
-  lng: "en",
+  lng: initialLanguage(),
   fallbackLng: "en",
   interpolation: {
     escapeValue: false,

@@ -12,6 +12,8 @@ export type ReviewDTO = {
   programName: string;
   rating: number;
   quote: string;
+  quoteCn?: string;
+  quoteEn?: string;
   showOnStore: boolean;
   approved: boolean;
   submittedDate: string;

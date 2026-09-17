@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import ReviewPage from "../../../src/ReviewPage";
 
 const baseProps = {
@@ -46,6 +46,24 @@ const baseProps = {
 };
 
 describe("ReviewPage", () => {
+  it("reaches every submission beyond 18, with search and reviewed history", () => {
+    const groups = Array.from({ length: 51 }, (_, i) => ({ key: `A${i}`, title: `Assessment ${i}`, responseType: "Questionnaire", answers: [{ clientId: "CL-1", reviewedAt: i === 50 ? 123 : null }] }));
+    const open = vi.fn();
+    render(<ReviewPage {...baseProps} globalReviewSubmissionItems={groups} setSelectedContentSubmission={open} />);
+    expect(screen.getByText("1–18 of 50")).toBeInTheDocument();
+    const pager = screen.getByRole("navigation", { name: "Submissions pages" });
+    fireEvent.click(within(pager).getByRole("button", { name: "Next" }));
+    expect(screen.getByText("19–36 of 50")).toBeInTheDocument();
+    fireEvent.click(within(pager).getByRole("button", { name: "Next" }));
+    fireEvent.click(screen.getByRole("button", { name: /Assessment 49/ }));
+    expect(open).toHaveBeenCalledWith(groups[49]);
+    fireEvent.change(screen.getByRole("textbox", { name: "Search submissions" }), { target: { value: "Assessment 2" } });
+    expect(screen.getByText("Assessment 2")).toBeInTheDocument();
+    fireEvent.change(screen.getByRole("textbox", { name: "Search submissions" }), { target: { value: "" } });
+    fireEvent.change(screen.getByRole("combobox", { name: "Submission status" }), { target: { value: "reviewed" } });
+    expect(screen.getByText("Assessment 50")).toBeInTheDocument();
+    expect(screen.queryByText("Assessment 49")).not.toBeInTheDocument();
+  });
   it("renders the review workspace with its summary cards", () => {
     render(<ReviewPage {...baseProps} />);
     expect(

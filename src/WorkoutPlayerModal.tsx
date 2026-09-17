@@ -314,7 +314,7 @@ export default function WorkoutPlayerModal({
                     {selectedWorkout?.coachNotes?.trim() && (
                       <div className="workoutCoachNotesBanner">
                         <strong>{paceZh ? "教练提示" : "Coach notes"}</strong>
-                        <p>{selectedWorkout.coachNotes}</p>
+                        <p>{i18n.language === "zh" ? selectedWorkout.coachNotesCn || selectedWorkout.coachNotes : selectedWorkout.coachNotes}</p>
                       </div>
                     )}
                     {isClientPortal && !workoutLoggingStarted && (

@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 // Postgres impl of autoLoadProgram. Same flow and result bodies as the Feishu
 // impl; on this backend clientRecordId carries the CL-… code and all links are
 // business-code columns. One structural difference: pg clients.program_id is a
@@ -5,31 +6,20 @@
 // and never overwritten, so a second purchase can't unlink the first program.
 import { eq, inArray } from "drizzle-orm";
 import { db } from "../client.ts";
+import { queueTranslations, translationPatch } from "../contentTranslations.ts";
 import {
   clients,
   productOrders,
   programs,
-  workoutTemplates,
-  assignedWorkouts,
   formTemplates,
   assignedForms,
 } from "../schema.ts";
 import { dayStartMs, str } from "./_util.ts";
 import type {
-  AutoLoadProgramInput,
-  AutoLoadProgramResult,
   ActivateDigitalOrderInput,
   CoachingSignupInput,
   SignupResult,
 } from "../repositories/fulfillment.ts";
-
-function makeId(prefix: string) {
-  return `${prefix}-${Math.floor(100000 + Math.random() * 900000)}`;
-}
-
-function normText(v?: string) {
-  return String(v || "").toLowerCase().replace(/[^a-z0-9一-鿿]+/gi, " ").trim();
-}
 
 function cleanAttribution(value: unknown): string | null {
   const cleaned = String(value || "")
@@ -39,282 +29,7 @@ function cleanAttribution(value: unknown): string | null {
   return cleaned || null;
 }
 
-function textMatches(a?: string, b?: string) {
-  const na = normText(a);
-  const nb = normText(b);
-  return Boolean(na && nb && (na === nb || na.includes(nb) || nb.includes(na)));
-}
-
-function addDays(dateStr: string, days: number): string {
-  const d = new Date(`${dateStr}T00:00:00`);
-  d.setDate(d.getDate() + days);
-  return d.toISOString().split("T")[0];
-}
-
-export async function autoLoadProgram(
-  input: AutoLoadProgramInput
-): Promise<AutoLoadProgramResult> {
-  const { clientRecordId, startDate } = input;
-
-  // Schedule from the client's chosen start date when given; otherwise from
-  // "today" in China time (same rule as the Feishu impl).
-  const chinaToday = new Date(Date.now() + 8 * 3600 * 1000)
-    .toISOString()
-    .split("T")[0];
-  const today =
-    typeof startDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(startDate)
-      ? startDate
-      : chinaToday;
-
-  // 1. Client by code.
-  const clientRows = await db
-    .select()
-    .from(clients)
-    .where(eq(clients.clientId, String(clientRecordId)));
-  const client = clientRows[0];
-  if (!client) return { status: 404, body: { error: "Client not found" } };
-  const clientCode = client.clientId;
-  const clientName = str(client.fullName);
-
-  // 2. Unloaded orders for this client.
-  const allOrders = await db.select().from(productOrders);
-  const unloadedOrders = allOrders.filter((o) => {
-    const isThisClient =
-      textMatches(str(o.clientId), clientCode) ||
-      textMatches(str(o.clientName), clientName);
-    const isNotLoaded = !str(o.fulfillmentStatus).toLowerCase().includes("loaded");
-    const hasProgramId = Boolean(str(o.programId));
-    return isThisClient && isNotLoaded && hasProgramId;
-  });
-
-  if (unloadedOrders.length === 0) {
-    return {
-      status: 200,
-      body: { success: true, alreadyLoaded: true, message: "No pending program orders found" },
-    };
-  }
-
-  // Fulfil only after the coach verifies the WeChat reference. Match the
-  // complete value: substring checks would incorrectly treat "Unpaid" as paid.
-  const pendingOrders = unloadedOrders.filter((o) =>
-    /^paid$/i.test(str(o.paymentStatus).trim())
-  );
-
-  if (pendingOrders.length === 0) {
-    const paymentReferences = Array.from(
-      new Set(unloadedOrders.map((o) => str(o.paymentReference).trim()).filter(Boolean))
-    );
-    return {
-      status: 402,
-      body: {
-        success: false,
-        paymentPending: true,
-        error: "Payment verification required",
-        message: "Your WeChat payment is still awaiting coach verification.",
-        paymentReferences,
-      },
-    };
-  }
-
-  // 3+4. Lookup tables once for all pending orders.
-  const allPrograms = await db.select().from(programs);
-  const tmplItems = await db.select().from(workoutTemplates);
-
-  const loadedPrograms: string[] = [];
-  const failedPrograms: string[] = [];
-  const loadedProgramIds = new Set<string>();
-  let totalWorkoutsCreated = 0;
-  let anyOrderStatusUpdateFailed = false;
-  let maxAccessLengthDays = 0;
-
-  for (const pendingOrder of pendingOrders) {
-    const programIdText = str(pendingOrder.programId);
-    const programNameText = str(pendingOrder.productName);
-
-    const programRecord = allPrograms.find(
-      (p) =>
-        textMatches(p.programId, programIdText) ||
-        textMatches(str(p.name), programNameText)
-    );
-
-    if (!programRecord) {
-      failedPrograms.push(`${programIdText || programNameText}: program not found`);
-      continue;
-    }
-    const programId = programRecord.programId;
-    const programName = str(programRecord.name) || programNameText;
-    const accessLengthDays = programRecord.accessLengthDays || 0;
-    if (accessLengthDays > maxAccessLengthDays) {
-      maxAccessLengthDays = accessLengthDays;
-    }
-
-    // Already loaded this program in this run — just mark the duplicate order
-    // fulfilled so it can't re-fire, without doubling the calendar.
-    if (loadedProgramIds.has(programId)) {
-      try {
-        await db
-          .update(productOrders)
-          .set({ fulfillmentStatus: "Program Loaded" })
-          .where(eq(productOrders.orderId, pendingOrder.orderId));
-      } catch {
-        anyOrderStatusUpdateFailed = true;
-      }
-      continue;
-    }
-
-    const allTemplates = tmplItems.filter(
-      (t) =>
-        textMatches(str(t.programId), programIdText) ||
-        (programId && textMatches(str(t.programId), programId))
-    );
-
-    if (allTemplates.length === 0) {
-      failedPrograms.push(`${programName}: no workout sessions found`);
-      continue;
-    }
-
-    // 5. Build unique sessions (deduplicate by week-day-sessionName).
-    const sessionMap = new Map<
-      string,
-      {
-        week: number;
-        day: number;
-        sessionName: string;
-        sessionNameCn: string;
-        sessionType: string;
-        sessionGoal: string;
-        estimatedDuration: number | null;
-        intensity: string;
-      }
-    >();
-    for (const t of allTemplates) {
-      const week = t.week || 1;
-      const day = t.day || 1;
-      const sessionName = str(t.sessionName) || "Session";
-      const sessionNameCn = str(t.sessionNameCn) || sessionName;
-      const sessionType = str(t.sessionType) || "Strength";
-      const sessionGoal = str(t.sessionGoal);
-      const estimatedDuration = t.estimatedDuration ?? null;
-      const intensity = str(t.intensity) || "Moderate";
-      const key = `${week}-${day}-${sessionName}`;
-      if (!sessionMap.has(key)) {
-        sessionMap.set(key, {
-          week,
-          day,
-          sessionName,
-          sessionNameCn,
-          sessionType,
-          sessionGoal,
-          estimatedDuration,
-          intensity,
-        });
-      }
-    }
-
-    // 6+7. Schedule from `today` and insert the assigned workouts.
-    const rows = Array.from(sessionMap.values()).map((session) => {
-      const offsetDays = (session.week - 1) * 7 + (session.day - 1) * 2;
-      const scheduledDate = addDays(today, offsetDays);
-      return {
-        assignedWorkoutId: makeId("AW"),
-        clientId: clientCode,
-        programId,
-        week: session.week,
-        day: session.day,
-        sessionName: session.sessionName,
-        sessionNameCn: session.sessionNameCn,
-        sessionType: session.sessionType,
-        sessionGoal: session.sessionGoal,
-        estimatedDuration: session.estimatedDuration,
-        intensity: session.intensity,
-        scheduledDate: dayStartMs(scheduledDate),
-        completionStatus: "Scheduled",
-      };
-    });
-
-    try {
-      await db.insert(assignedWorkouts).values(rows);
-    } catch (e: any) {
-      console.error(
-        "autoLoadProgram: assigned-workouts insert failed",
-        JSON.stringify({ message: e?.message || String(e) })
-      );
-      failedPrograms.push(`${programName}: workout creation failed`);
-      continue;
-    }
-    totalWorkoutsCreated += rows.length;
-    loadedPrograms.push(programName);
-    loadedProgramIds.add(programId);
-
-    // Mark this order loaded (best-effort; also the dedup guard for repeats).
-    try {
-      await db
-        .update(productOrders)
-        .set({
-          fulfillmentStatus: "Program Loaded",
-          accessStartDate: new Date(`${today}T00:00:00`).getTime(),
-        })
-        .where(eq(productOrders.orderId, pendingOrder.orderId));
-    } catch (e: any) {
-      anyOrderStatusUpdateFailed = true;
-      console.error(
-        "autoLoadProgram: order status update failed (non-fatal)",
-        JSON.stringify({ message: e?.message || String(e) })
-      );
-    }
-  }
-
-  if (loadedPrograms.length === 0) {
-    return {
-      status: 500,
-      body: {
-        error: "Could not load program workouts",
-        failures: failedPrograms,
-      },
-      notice: `⚠️ Program load FAILED for ${clientName || clientCode}\n${failedPrograms.join("\n")}`,
-    };
-  }
-
-  // Update the client once with everything that loaded.
-  const clientUpdate: Partial<typeof clients.$inferInsert> = {
-    intakeStatus: "Reviewed",
-    accessStartDate: new Date(`${today}T00:00:00`).getTime(),
-  };
-  // Single-FK column: adopt the first loaded program only when none is set.
-  if (!client.programId) {
-    clientUpdate.programId = Array.from(loadedProgramIds)[0];
-  }
-  if (maxAccessLengthDays > 0) {
-    const endDate = addDays(today, Math.max(0, maxAccessLengthDays - 1));
-    clientUpdate.accessEndDate = new Date(`${endDate}T00:00:00`).getTime();
-  }
-  try {
-    await db.update(clients).set(clientUpdate).where(eq(clients.clientId, clientCode));
-  } catch (e: any) {
-    console.error(
-      "autoLoadProgram: client program update failed (non-fatal)",
-      JSON.stringify({ message: e?.message || String(e) })
-    );
-  }
-
-  return {
-    status: 200,
-    body: {
-      success: true,
-      programName: loadedPrograms.join(" + "),
-      programsLoaded: loadedPrograms,
-      ...(failedPrograms.length ? { failures: failedPrograms } : {}),
-      workoutsCreated: totalWorkoutsCreated,
-      orderStatusUpdated: !anyOrderStatusUpdateFailed,
-      startDate: today,
-    },
-    notice:
-      `📦 Program loaded for ${clientName || clientCode}\n` +
-      `Programs: ${loadedPrograms.join(" + ")}\n` +
-      `Workouts created: ${totalWorkoutsCreated}` +
-      (failedPrograms.length ? `\n⚠️ Failed: ${failedPrograms.join("; ")}` : ""),
-  };
-}
+export { autoLoadProgram } from "./programDelivery.ts";
 
 /* -------------------------- activateDigitalOrder -------------------------- */
 // Postgres impl of the store purchase. Same flow/bodies/notices as Feishu; the
@@ -324,12 +39,13 @@ export async function autoLoadProgram(
 // consent lives on the client row (same place Feishu stores it durably).
 
 function makeShortId(prefix: string) {
-  return `${prefix}-${Math.floor(1000 + Math.random() * 9000)}`;
+  if (prefix === "CL") return `${prefix}-${Math.floor(1000 + Math.random() * 9000)}`;
+  return `${prefix}-${randomUUID()}`;
 }
 
 function toEpochOrNow(dateStr?: string) {
   if (!dateStr) return Date.now();
-  return new Date(`${dateStr}T00:00:00`).getTime();
+  return dayStartMs(dateStr);
 }
 
 // CL-XXXX is a PRIMARY KEY here (Feishu had no uniqueness constraint) — remint
@@ -472,8 +188,10 @@ export async function activateDigitalOrder(
 
   await db
     .update(clients)
-    .set({ notes: [existingClientNotes, consentRecord].filter(Boolean).join("\n\n") })
+    .set(translationPatch("clients", { notes: [existingClientNotes, consentRecord].filter(Boolean).join("\n\n") }))
     .where(eq(clients.clientId, clientCode));
+
+  queueTranslations("clients", [clientCode]);
 
   // 3. One product order per cart item. Payment Status starts "Pending" —
   // autoLoadProgram keeps the plan locked until the coach verifies the code.
@@ -612,6 +330,7 @@ export async function activateDigitalOrder(
       try {
         await db.insert(assignedForms).values({
           assignedFormId: assignmentId,
+          isIntake: true,
           formId: intakeTemplateId,
           clientId: clientCode,
           clientCode,
@@ -664,6 +383,7 @@ export async function activateDigitalOrder(
       success: true,
       clientCode,
       clientRecordId: clientCode, // business code is the identity on Postgres
+      clientType: existing?.clientType || "Digital Program",
       orderId,
       orderIds,
       orderPersisted,
@@ -764,12 +484,13 @@ export async function coachingSignup(body: CoachingSignupInput): Promise<SignupR
         .join("\n\n");
       const updated = await db
         .update(clients)
-        .set({ notes: merged, intakeStatus: "Received" })
+        .set(translationPatch("clients", { notes: merged, intakeStatus: "Received" }))
         .where(eq(clients.clientId, clientCode))
         .returning({ id: clients.clientId });
       ok = updated.length > 0;
     }
     if (ok) {
+      queueTranslations("clients", [clientCode]);
       notices.push(
         `📝 Coaching questionnaire received\nClient: ${
           body.clientName || body.clientCode || clientCode
@@ -805,12 +526,12 @@ export async function coachingSignup(body: CoachingSignupInput): Promise<SignupR
     const merged = [str(existing.notes), qualifierNotes].filter(Boolean).join("\n\n");
     await db
       .update(clients)
-      .set({
+      .set(translationPatch("clients", {
         subscriptionStatus: "Active",
         clientType: "Online Coaching",
         packageType: termLabel,
         notes: merged,
-      })
+      }))
       .where(eq(clients.clientId, clientCode));
   } else {
     clientCode = await mintClientCode();
@@ -834,6 +555,8 @@ export async function coachingSignup(body: CoachingSignupInput): Promise<SignupR
       return { status: 500, body: { error: "Could not create or find client" }, notices };
     }
   }
+
+  queueTranslations("clients", [clientCode]);
 
   // 3. The coaching order — no Program link, the term rides in Product Name.
   let orderId = "";

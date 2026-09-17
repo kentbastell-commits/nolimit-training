@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import type { CompanyOpsLanguage } from "./types";
 
 const hasCjk = (text: string) => /[一-鿿]/.test(text);
-const cache = new Map<string, string | null>();
+const cache = new Map<string, string>();
 const pending = new Map<string, Promise<string | null>>();
 
 async function fetchTranslation(text: string, target: "en" | "zh"): Promise<string | null> {
@@ -21,7 +21,8 @@ async function fetchTranslation(text: string, target: "en" | "zh"): Promise<stri
     // every future mount of this exact string, on every page, kept getting
     // handed that same dead promise until a full reload.
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15_000);
+    // The server tries DeepSeek (15s) then Tencent (5s); allow both to finish.
+    const timeoutId = setTimeout(() => controller.abort(), 45_000);
     try {
       const res = await fetch("/api/companyOpsTranslate", {
         method: "POST",
@@ -42,7 +43,10 @@ async function fetchTranslation(text: string, target: "en" | "zh"): Promise<stri
   })();
   pending.set(key, job);
   const result = await job;
-  cache.set(key, result);
+  if (result) {
+    if (cache.size >= 500) cache.delete(cache.keys().next().value!);
+    cache.set(key, result);
+  }
   return result;
 }
 
@@ -62,30 +66,30 @@ export function TranslatableText({
 }) {
   const clean = String(text || "").trim();
   const target: "en" | "zh" | null =
-    clean && language === "zh" && !hasCjk(clean)
+    clean && language === "zh" && /[a-z]{3}/i.test(clean)
       ? "zh"
       : clean && language === "en" && hasCjk(clean)
         ? "en"
         : null;
-  const [translated, setTranslated] = useState<string | null>(() =>
-    target ? (cache.get(`${target}:${clean}`) ?? null) : null
-  );
+  const key = `${target}:${clean}`;
+  const [result, setResult] = useState<{ key: string; text: string | null }>({ key, text: cache.get(key) ?? null });
+  const translated = result.key === key ? result.text : cache.get(key) ?? null;
   const [showOriginal, setShowOriginal] = useState(false);
 
   useEffect(() => {
     let alive = true;
     setShowOriginal(false);
     if (!target) {
-      setTranslated(null);
+      setResult({ key, text: null });
       return;
     }
     void fetchTranslation(clean, target).then((zh) => {
-      if (alive) setTranslated(zh);
+      if (alive) setResult({ key, text: zh });
     });
     return () => {
       alive = false;
     };
-  }, [clean, target]);
+  }, [clean, target, key]);
 
   if (!clean) return null;
   if (bare) {

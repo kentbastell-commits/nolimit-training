@@ -1,5 +1,6 @@
 // Postgres impl for the enquiries domain.
 import { db } from "../client.ts";
+import { queueTranslations } from "../contentTranslations.ts";
 import { enquiries } from "../schema.ts";
 import { str } from "./_util.ts";
 import type { EnquiryDTO, CreateEnquiryInput } from "../repositories/enquiries.ts";
@@ -17,6 +18,7 @@ export async function listEnquiries(): Promise<EnquiryDTO[]> {
       athletes: str(r.athletes),
       duration: str(r.duration),
       notes: str(r.notes),
+      notesEn: str(r.notesEn),
       submittedDate: str(r.submittedDate),
       status: str(r.status),
     }))
@@ -44,5 +46,6 @@ export async function createEnquiry(input: CreateEnquiryInput): Promise<WriteRes
       message: e?.message || String(e),
     };
   }
+  queueTranslations("enquiries", [enquiryId]);
   return { success: true, recordId: enquiryId };
 }

@@ -1,6 +1,6 @@
 import * as pg from "../pg/contentResponses.ts";
 import type { ResponseDTO } from "../dto.ts";
-import { getCached, setCached, invalidateCache } from "../../../api/_cache.ts";
+import { getCachedOrLoad, invalidateCache } from "../../../api/_cache.ts";
 
 export type SubmitContentResponseInput = {
   assignmentType: string;
@@ -22,19 +22,11 @@ export type SubmitContentResponseResult = {
   body: Record<string, any>;
 };
 
-// Expansion of questionnaire answersJson + client filter + sort are
-// backend-agnostic, so they live here. The unfiltered list is cached (5 min);
-// form/test submit endpoints invalidate "contentResponses".
+// Each client scope is filtered in SQL before caching. Expand questionnaire
+// answers for both clients and coaches; form/test writes invalidate all scopes.
 export async function getContentResponses(clientId = "", clientName = ""): Promise<ResponseDTO[]> {
-  let all = getCached<ResponseDTO[]>("contentResponses");
-  if (!all) {
-    all =
-      await pg.listAllResponses();
-    setCached("contentResponses", all, 5 * 60 * 1000);
-  }
-
-  const reqId = clientId.toLowerCase();
-  const reqName = clientName.toLowerCase();
+  const all = await getCachedOrLoad<ResponseDTO[]>(`contentResponses:${JSON.stringify([clientId, clientName])}`, 5 * 60 * 1000,
+    () => pg.listAllResponses(clientId, clientName));
 
   return all
     .flatMap((item) => {
@@ -42,24 +34,21 @@ export async function getContentResponses(clientId = "", clientName = ""): Promi
       try {
         const answers = JSON.parse(item.answersJson);
         if (!Array.isArray(answers)) return [item];
+        let translated: any[] = [];
+        try { const parsed = JSON.parse(item.answersJsonEn || "[]"); if (Array.isArray(parsed)) translated = parsed; } catch { /* original remains readable */ }
         return answers.map((answer: any, index: number) => ({
           ...item,
           recordId: `${item.recordId}-${answer.questionId || index}`,
           itemId: String(answer.questionId || answer.itemId || index + 1),
           label: String(answer.label || item.label || "Answer"),
-          answer: String(answer.value || answer.answer || ""),
+          answer: String(answer.value ?? answer.answer ?? ""),
+          answerEn: String(translated[index]?.value ?? translated[index]?.answer ?? ""),
+          labelEn: String(translated[index]?.label ?? ""),
           unit: String(answer.unit || item.unit || ""),
         }));
       } catch {
         return [item];
       }
-    })
-    .filter((item) => {
-      if (!reqId && !reqName) return true;
-      return (
-        (Boolean(reqId) && item.clientId.toLowerCase().includes(reqId)) ||
-        (Boolean(reqName) && item.clientName.toLowerCase() === reqName)
-      );
     })
     .sort((a, b) => b.submittedAt.localeCompare(a.submittedAt));
 }
@@ -76,6 +65,7 @@ export async function submitContentResponse(
     invalidateCache("contentResponses");
     invalidateCache("athleteMetrics");
     invalidateCache("contentAssignments");
+    if (result.body.isIntake) invalidateCache("clients");
   }
   return result;
 }

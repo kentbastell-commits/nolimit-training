@@ -40,6 +40,7 @@ export const coaches = pgTable("coaches", {
   role: text("role"),
   status: text("status").default("Active"),
   bio: text("bio"),
+  bioCn: text("bio_cn"),
   revenueSharePct: doublePrecision("revenue_share_pct"),
   // WeCom "add me" QR code image — lets a client-facing surface show
   // "message your coach" without a personal-WeChat handle in plain text.
@@ -57,6 +58,7 @@ export const exercises = pgTable(
     category: text("category"),
     categoryCn: text("category_cn"),
     movementPattern: text("movement_pattern"),
+    movementPatternCn: text("movement_pattern_cn"),
     primaryMuscles: text("primary_muscles"),
     primaryMusclesCn: text("primary_muscles_cn"),
     // Structured muscle-group keys for the anatomy diagram (e.g. "chest",
@@ -67,6 +69,7 @@ export const exercises = pgTable(
     // Grip) — the third taxonomy axis; they used to pollute `category`.
     tags: text("tags").array(),
     equipment: text("equipment").array(),
+    equipmentCn: text("equipment_cn"),
     difficulty: text("difficulty"),
     trainingQuality: text("training_quality"),
     defaultSets: integer("default_sets"),
@@ -251,9 +254,11 @@ export const workoutTemplates = pgTable(
     sessionNameCn: text("session_name_cn"),
     sessionType: text("session_type"),
     sessionGoal: text("session_goal"),
+    sessionGoalCn: text("session_goal_cn"),
     // Session-level coach notes (intensity cues, warm-up instructions),
     // replicated on each of the session's rows like sessionGoal.
     sessionNotes: text("session_notes"),
+    sessionNotesCn: text("session_notes_cn"),
     estimatedDuration: integer("estimated_duration"),
     intensity: text("intensity"),
     isSingleWorkout: boolean("is_single_workout"),
@@ -350,6 +355,7 @@ export const assignedWorkouts = pgTable(
     sessionNameCn: text("session_name_cn"),
     sessionType: text("session_type"),
     sessionGoal: text("session_goal"),
+    sessionGoalCn: text("session_goal_cn"),
     intensity: text("intensity"),
     estimatedDuration: integer("estimated_duration"),
     scheduledDate: ts("scheduled_date"),
@@ -414,6 +420,7 @@ export const workoutLogs = pgTable(
   },
   (t) => [
     index("workout_logs_client_idx").on(t.clientId),
+    index("workout_logs_client_code_idx").on(t.clientCode),
     index("workout_logs_assigned_idx").on(t.assignedWorkoutId),
     index("workout_logs_exercise_idx").on(t.exerciseId),
     index("workout_logs_client_date_idx").on(t.clientId, t.date),
@@ -563,10 +570,15 @@ export const checkIns = pgTable(
     readinessScore: doublePrecision("readiness_score"),
     status: text("status"),
     nutritionNotes: text("nutrition_notes"),
+    nutritionNotesEn: text("nutrition_notes_en"),
     trainingNotes: text("training_notes"),
+    trainingNotesEn: text("training_notes_en"),
     wins: text("wins"),
+    winsEn: text("wins_en"),
     problemsPain: text("problems_pain"),
+    problemsPainEn: text("problems_pain_en"),
     clientNotes: text("client_notes"),
+    clientNotesEn: text("client_notes_en"),
     coachNotes: text("coach_notes"),
     // Translate-on-write mirror (LLM/TMT best-effort) for zh athletes.
     coachNotesCn: text("coach_notes_cn"),
@@ -601,6 +613,7 @@ export const formQuestions = pgTable(
     labelCn: text("label_cn"),
     questionType: text("question_type"),
     options: jsonb("options"),
+    optionsCn: text("options_cn"),
     required: boolean("required").default(false),
     helpText: text("help_text"),
     helpTextCn: text("help_text_cn"),
@@ -620,6 +633,7 @@ export const assignedForms = pgTable(
     completedAt: ts("completed_at"),
     productType: text("product_type"),
     intakeAssessment: text("intake_assessment"),
+    isIntake: boolean("is_intake").notNull().default(false),
     reviewStatus: text("review_status"),
     reviewedBy: text("reviewed_by"),
     reviewedAt: ts("reviewed_at"),
@@ -641,6 +655,7 @@ export const formResponses = pgTable(
     clientId: text("client_id").references(() => clients.clientId),
     submittedAt: ts("submitted_at"),
     answers: jsonb("answers"),
+    answersEn: text("answers_en"),
     clientComment: text("client_comment"),
     clientCommentEn: text("client_comment_en"),
   },
@@ -698,6 +713,7 @@ export const assignedTests = pgTable(
     assignedDate: ts("assigned_date"),
     options: jsonb("options"),
     completedAt: ts("completed_at"),
+    reviewedAt: ts("reviewed_at"),
   },
   (t) => [
     index("assigned_tests_client_idx").on(t.clientId),
@@ -784,6 +800,8 @@ export const reviews = pgTable(
     programName: text("program_name"),
     rating: doublePrecision("rating"),
     quote: text("quote"),
+    quoteCn: text("quote_cn"),
+    quoteEn: text("quote_en"),
     showOnStore: boolean("show_on_store").default(false),
     approved: boolean("approved").default(false),
     submittedDate: ts("submitted_date"),
@@ -801,6 +819,7 @@ export const enquiries = pgTable("enquiries", {
   athletes: text("athletes"),
   duration: text("duration"),
   notes: text("notes"),
+  notesEn: text("notes_en"),
   submittedDate: text("submitted_date"), // stored as text in Feishu
   status: text("status"),
 });
@@ -816,6 +835,7 @@ export const formVideos = pgTable(
     workoutName: text("workout_name"),
     videoUrl: text("video_url"),
     clientNote: text("client_note"),
+    clientNoteEn: text("client_note_en"),
     submittedAt: ts("submitted_at"),
     status: text("status"), // New | Reviewed
     coachReply: text("coach_reply"),
@@ -855,6 +875,7 @@ export const clientMessages = pgTable(
     clientId: text("client_id").references(() => clients.clientId),
     clientName: text("client_name"),
     body: text("body").notNull(),
+    bodyEn: text("body_en"),
     status: text("status").default("New"), // New | Replied
     coachReply: text("coach_reply"),
     // Translate-on-write mirror (LLM/TMT best-effort) for zh athletes.

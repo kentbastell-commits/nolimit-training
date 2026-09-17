@@ -11,6 +11,25 @@
   display: grid;
   gap: 8px;
 }
+.assignmentQuestion { display: grid; gap: 8px; }
+.assignmentQuestion > span { font-weight: 700; }
+.assignmentChoices { display: grid; gap: 8px; }
+.contentAssignmentFields .assignmentChoice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  padding: 10px 14px;
+  border: 1px solid #cfc7b8;
+  border-radius: 10px;
+  cursor: pointer;
+}
+.contentAssignmentFields .assignmentChoice input { width: 20px; height: 20px; margin: 0; flex: none; accent-color: #967218; }
+.contentAssignmentFields .assignmentChoice > span { font-weight: 600; }
+.assignmentChoice:has(input:checked) { background: #faf4e5; border-color: #967218; }
+.assignmentDraftNotice { font-size: 13px; line-height: 1.5; color: #625947; margin: 0; }
+.assignmentSavedAnswer { padding: 14px; border: 1px solid #dcd8cd; border-radius: 10px; }
+.assignmentSavedAnswer p { white-space: pre-wrap; overflow-wrap: anywhere; }
 .contentAssignmentFields label > span {
   color: #111;
   font-size: 16px;

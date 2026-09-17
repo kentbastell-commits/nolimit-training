@@ -8,6 +8,7 @@
 // silently (buildFields semantics), reads return "".
 import { eq, inArray } from "drizzle-orm";
 import { db } from "../client.ts";
+import { queueTranslations, translationPatch } from "../contentTranslations.ts";
 import {
   testTemplates,
   testItems,
@@ -134,12 +135,16 @@ export async function createTestTemplate(
   await db.insert(testTemplates).values({
     testTemplateId,
     name: String(input.name),
+    ...(input.nameCn !== undefined ? { nameCn: String(input.nameCn || "") } : {}),
+    ...(input.descriptionCn !== undefined ? { descriptionCn: String(input.descriptionCn || "") } : {}),
     description: String(input.description || ""),
     category: String(input.category || ""),
   });
 
   const rows = itemRows(testTemplateId, input.items);
   if (rows.length) await db.insert(testItems).values(rows);
+  queueTranslations("testTemplates", [testTemplateId]);
+  queueTranslations("testItems", rows.map((r) => r.testItemId));
 
   return {
     status: 200,
@@ -173,8 +178,8 @@ export async function updateTestTemplate(
     return {
       ...row,
       testNameCn: row.testNameCn ?? prev.testNameCn,
-      unitCn: row.unitCn ?? prev.unitCn,
-      instructionsCn: row.instructionsCn ?? prev.instructionsCn,
+      unitCn: row.unitCn ?? (row.unit === (prev.unit || "") ? prev.unitCn : null),
+      instructionsCn: row.instructionsCn ?? (row.instructions === (prev.instructions || "") ? prev.instructionsCn : null),
       testingMetricType: row.testingMetricType ?? prev.testingMetricType,
     };
   });
@@ -188,16 +193,18 @@ export async function updateTestTemplate(
   await db.transaction(async (tx) => {
     const updated = await tx
       .update(testTemplates)
-      .set({
+      .set(translationPatch("testTemplates", {
         testTemplateId,
         name: String(input.name),
+        ...(input.nameCn !== undefined ? { nameCn: String(input.nameCn || "") } : {}),
+        ...(input.descriptionCn !== undefined ? { descriptionCn: String(input.descriptionCn || "") } : {}),
         // Patch-style: the editor never collects description — writing ""
         // on every edit wiped it.
         ...(input.description !== undefined
           ? { description: String(input.description || "") }
           : {}),
         category: String(input.category || ""),
-      })
+      }))
       .where(eq(testTemplates.testTemplateId, testTemplateId))
       .returning({ testTemplateId: testTemplates.testTemplateId });
     if (!updated.length) {
@@ -222,6 +229,8 @@ export async function updateTestTemplate(
       body: { error: "Could not update test template" },
     };
   }
+  queueTranslations("testTemplates", [testTemplateId]);
+  queueTranslations("testItems", rows.map((r) => r.testItemId));
 
   return {
     status: 200,

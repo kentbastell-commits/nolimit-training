@@ -28,6 +28,8 @@ export type TestItemInput = {
 
 export type CreateTestTemplateInput = {
   name: any;
+  nameCn?: any;
+  descriptionCn?: any;
   description?: any;
   category?: any;
   status?: any;

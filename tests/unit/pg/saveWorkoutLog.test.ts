@@ -51,6 +51,40 @@ const oneSet = (overrides: Record<string, any> = {}) => ({
 });
 
 describe("api/saveWorkoutLog (postgres)", () => {
+  it("commits exactly once for concurrent submissions and a lost-response retry", async () => {
+    await seedClient();
+    await seedAssignedWorkout();
+    const payload = { clientId: "CL-9001", assignedWorkoutRecordId: AWID,
+      assignedWorkoutId: AWID, workoutDate: "2026-09-14", logs: [oneSet()] };
+    const results = await Promise.all([save(payload), save(payload), save(payload)]);
+    expect(results.every((r) => r.body.success)).toBe(true);
+    expect((await save(payload)).body.replayed).toBe(true);
+    expect(await rows("select 1 from workout_logs")).toHaveLength(1);
+    const resultsRows = await rows("select volume from exercise_results");
+    expect(resultsRows).toHaveLength(1);
+    expect(Number(resultsRows[0].volume)).toBe(500);
+  });
+
+  it.each(["assigned_workouts", "exercise_results"])("rolls back all writes when %s fails, then safely retries", async (table) => {
+    await seedClient();
+    await seedAssignedWorkout();
+    await pool.query(`create or replace function audit_fail_save() returns trigger language plpgsql as $$ begin raise exception 'injected save failure'; end $$`);
+    await pool.query(`create trigger audit_fail_save before ${table === "assigned_workouts" ? "update" : "insert"} on ${table} for each row execute function audit_fail_save()`);
+    const payload = { clientId: "CL-9001", assignedWorkoutRecordId: AWID,
+      assignedWorkoutId: AWID, workoutDate: "2026-09-14", logs: [oneSet()] };
+    try {
+      expect((await save(payload)).body.success).toBe(false);
+      expect(await rows("select 1 from workout_logs")).toHaveLength(0);
+      expect(await rows("select 1 from exercise_results")).toHaveLength(0);
+      expect((await rows("select completion_status from assigned_workouts"))[0].completion_status).toBe("Scheduled");
+    } finally {
+      await pool.query(`drop trigger audit_fail_save on ${table}`);
+      await pool.query("drop function audit_fail_save()");
+    }
+    expect((await save(payload)).body.success).toBe(true);
+    expect(await rows("select 1 from workout_logs")).toHaveLength(1);
+  });
+
   it("rejects non-POST with 405", async () => {
     const res = makeRes();
     await handler(makeReq({ method: "GET" }) as any, res as any);

@@ -7,6 +7,7 @@
 // them silently (buildFields semantics), reads return "".
 import { eq } from "drizzle-orm";
 import { db } from "../client.ts";
+import { queueTranslations, translationPatch } from "../contentTranslations.ts";
 import {
   formTemplates,
   formQuestions,
@@ -44,7 +45,7 @@ function mapQuestion(r: QuestionRow) {
     labelCn: str(r.labelCn),
     questionType: str(r.questionType),
     options: jsonText(r.options),
-    optionsCn: "", // Feishu-only column
+    optionsCn: str(r.optionsCn),
     required: Boolean(r.required),
     helpText: str(r.helpText),
     helpTextCn: str(r.helpTextCn),
@@ -92,6 +93,7 @@ function questionRows(formId: string, questions: unknown) {
     // CN columns: the console doesn't send these; update() carries them over
     // from the previous rows so an edit never strips them.
     labelCn: question?.labelCn ? String(question.labelCn) : null,
+    optionsCn: question?.optionsCn ? String(question.optionsCn) : null,
     helpTextCn: question?.helpTextCn ? String(question.helpTextCn) : null,
   }));
 }
@@ -104,12 +106,16 @@ export async function createFormTemplate(
   await db.insert(formTemplates).values({
     formId,
     name: String(input.name),
+    ...(input.nameCn !== undefined ? { nameCn: String(input.nameCn || "") } : {}),
+    ...(input.descriptionCn !== undefined ? { descriptionCn: String(input.descriptionCn || "") } : {}),
     type: String(input.type || "Questionnaire"),
     description: String(input.description || ""),
   });
 
   const rows = questionRows(formId, input.questions);
   if (rows.length) await db.insert(formQuestions).values(rows);
+  queueTranslations("formTemplates", [formId]);
+  queueTranslations("formQuestions", rows.map((r) => r.questionId));
 
   return {
     status: 200,
@@ -137,16 +143,18 @@ export async function updateFormTemplate(
 
   const updated = await db
     .update(formTemplates)
-    .set({
+    .set(translationPatch("formTemplates", {
       formId,
       name: String(input.name),
+      ...(input.nameCn !== undefined ? { nameCn: String(input.nameCn || "") } : {}),
+      ...(input.descriptionCn !== undefined ? { descriptionCn: String(input.descriptionCn || "") } : {}),
       type: String(input.type || "Questionnaire"),
       // Patch-style: the editor never collects description — writing "" on
       // every edit wiped it.
       ...(input.description !== undefined
         ? { description: String(input.description || "") }
         : {}),
-    })
+    }))
     .where(eq(formTemplates.formId, formId))
     .returning({ formId: formTemplates.formId });
 
@@ -167,10 +175,13 @@ export async function updateFormTemplate(
     return {
       ...row,
       labelCn: row.labelCn ?? prev.labelCn,
-      helpTextCn: row.helpTextCn ?? prev.helpTextCn,
+      helpTextCn: row.helpTextCn ?? (row.helpText === (prev.helpText || "") ? prev.helpTextCn : null),
+      optionsCn: row.optionsCn ?? (jsonText(row.options) === jsonText(prev.options) ? prev.optionsCn : null),
     };
   });
   if (rows.length) await db.insert(formQuestions).values(rows);
+  queueTranslations("formTemplates", [formId]);
+  queueTranslations("formQuestions", rows.map((r) => r.questionId));
 
   return {
     status: 200,

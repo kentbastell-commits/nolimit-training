@@ -21,10 +21,15 @@ export type CheckInDTO = {
   soreness: string;
   readinessScore: string;
   nutritionNotes: string;
+  nutritionNotesEn?: string;
   trainingNotes: string;
+  trainingNotesEn?: string;
   wins: string;
+  winsEn?: string;
   problemsPain: string;
+  problemsPainEn?: string;
   clientNotes: string;
+  clientNotesEn?: string;
   coachResponse: string;
   // Translate-on-write mirror for zh athletes (may be empty).
   coachResponseCn: string;

@@ -35,3 +35,9 @@ if (url.pathname === `/${TEST_DB}`) {
 
 // These tests exercise the path production actually runs.
 process.env.DATA_BACKEND = "postgres";
+// Ordinary persistence tests must never call paid translation providers.
+// Translation integration tests supply their own controlled provider fixture.
+process.env.AI_API_KEY = "";
+process.env.TENCENT_TMT_SECRET_ID = "";
+process.env.TENCENT_TMT_SECRET_KEY = "";
+process.env.FEISHU_BOT_WEBHOOK_URL = "";

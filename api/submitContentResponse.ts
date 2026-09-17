@@ -22,11 +22,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (
       result.status === 200 &&
-      String(assignmentType).toLowerCase().includes("questionnaire")
+      !result.body.alreadySubmitted
     ) {
       void notifyCoach(
-        `📋 Intake completed by ${clientName || clientId}\n` +
-          `Their program will auto-load now — check the Review queue for their answers.`
+        `📋 ${result.body.isIntake ? "Intake" : "Assessment"} completed by ${clientName || clientId}\n` +
+          `Check the Review queue for their answers.`
       );
     }
 

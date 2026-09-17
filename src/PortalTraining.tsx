@@ -66,6 +66,7 @@ export default function PortalTraining({
   jumpClientCalendarToToday,
   loadProgramSessionsForAssignment,
   localizeTaskStatus,
+  localizeAssignmentKind,
   localizedCalendarLabel,
   localizedMonthTitle,
   localizedWeekStripLabel,
@@ -226,7 +227,7 @@ export default function PortalTraining({
                                 <div className="homeTaskBody">
                                   <strong>{getAssignmentDisplayName(a)}</strong>
                                   <small>
-                                    {a.assignmentType || "Questionnaire"}
+                                    {localizeAssignmentKind(a.assignmentType)}
                                   </small>
                                 </div>
                               </div>
@@ -304,10 +305,10 @@ export default function PortalTraining({
                           <strong>{workout.sessionName || "Workout"}</strong>
                           <small>
                             Week {workout.week} • Day {workout.day} •{" "}
-                            {getDisplayTaskStatus(
+                            {localizeTaskStatus(getDisplayTaskStatus(
                               workout.completionStatus,
                               workout.scheduledDate
-                            )}
+                            ))}
                           </small>
                         </button>
                       ))}
@@ -1450,10 +1451,10 @@ export default function PortalTraining({
                                 {workout.day} ·{" "}
                                 {movingWorkoutId === workout.id
                                   ? t("moving")
-                                  : getDisplayTaskStatus(
+                                  : localizeTaskStatus(getDisplayTaskStatus(
                                       workout.completionStatus,
                                       workout.scheduledDate
-                                    )}
+                                    ))}
                               </small>
                             </div>
                             <span className="selectedDayWorkoutAction">
@@ -1475,19 +1476,19 @@ export default function PortalTraining({
                             onClick={() => handleOpenContentAssignment(assignment)}
                           >
                             <div>
-                              <span>{assignment.assignmentType || "Questionnaire"}</span>
+                              <span>{localizeAssignmentKind(assignment.assignmentType)}</span>
                               <strong>
                                 {getAssignmentDisplayName(assignment)}
                               </strong>
                               <small>
-                                {getDisplayTaskStatus(
+                                {localizeTaskStatus(getDisplayTaskStatus(
                                   assignment.status,
                                   assignment.dueDate || assignment.assignedDate
-                                )}
+                                ))}
                               </small>
                             </div>
                             <span className="selectedDayWorkoutAction">
-                              {String(assignment.assignmentType)
+                              {String(assignment.status).toLowerCase() === "completed" ? t("view") : String(assignment.assignmentType)
                                 .toLowerCase()
                                 .includes("test")
                                 ? t("start")
@@ -1737,10 +1738,10 @@ export default function PortalTraining({
                                   {workout.day} ·{" "}
                                   {movingWorkoutId === workout.id
                                     ? t("moving")
-                                    : getDisplayTaskStatus(
+                                    : localizeTaskStatus(getDisplayTaskStatus(
                                         workout.completionStatus,
                                         workout.scheduledDate
-                                      )}
+                                      ))}
                                 </small>
                               </div>
                               <span className="selectedDayWorkoutAction">
@@ -1763,20 +1764,20 @@ export default function PortalTraining({
                             >
                               <div>
                                 <span>
-                                  {assignment.assignmentType || "Questionnaire"}
+                                  {localizeAssignmentKind(assignment.assignmentType)}
                                 </span>
                                 <strong>
                                   {getAssignmentDisplayName(assignment)}
                                 </strong>
                                 <small>
-                                  {getDisplayTaskStatus(
+                                  {localizeTaskStatus(getDisplayTaskStatus(
                                     assignment.status,
                                     assignment.dueDate || assignment.assignedDate
-                                  )}
+                                  ))}
                                 </small>
                               </div>
                               <span className="selectedDayWorkoutAction">
-                                {String(assignment.assignmentType)
+                                {String(assignment.status).toLowerCase() === "completed" ? t("view") : String(assignment.assignmentType)
                                   .toLowerCase()
                                   .includes("test")
                                   ? t("start")
@@ -1941,10 +1942,10 @@ export default function PortalTraining({
                                   <strong>{workout.sessionName || "Workout"}</strong>
                                   <small>
                                     Week {workout.week} · Day {workout.day} ·{" "}
-                                    {getDisplayTaskStatus(
+                                    {localizeTaskStatus(getDisplayTaskStatus(
                                       workout.completionStatus,
                                       workout.scheduledDate
-                                    )}
+                                    ))}
                                   </small>
                                 </div>
                                 <span className="selectedDayWorkoutAction">
@@ -1968,16 +1969,16 @@ export default function PortalTraining({
                               >
                                 <div>
                                   <span>
-                                    {assignment.assignmentType || "Questionnaire"}
+                                    {localizeAssignmentKind(assignment.assignmentType)}
                                   </span>
                                   <strong>
                                     {getAssignmentDisplayName(assignment)}
                                   </strong>
                                   <small>
-                                    {getDisplayTaskStatus(
+                                    {localizeTaskStatus(getDisplayTaskStatus(
                                       assignment.status,
                                       assignment.dueDate || assignment.assignedDate
-                                    )}
+                                    ))}
                                   </small>
                                 </div>
                                 <span className="selectedDayWorkoutAction">

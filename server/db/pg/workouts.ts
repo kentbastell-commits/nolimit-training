@@ -1,7 +1,7 @@
 import { and, eq, gte, inArray, isNull, not, ilike, or, sql } from "drizzle-orm";
 import { db } from "../client.ts";
 import { assignedTests, assignedWorkouts, workoutLogs } from "../schema.ts";
-import { fillTranslation } from "../translate.ts";
+import { queueTranslations } from "../contentTranslations.ts";
 import { dayStartMs, pgErrorMessage, str } from "./_util.ts";
 import type { WorkoutDTO } from "../dto.ts";
 import type {
@@ -14,10 +14,11 @@ import type {
 
 type Row = typeof assignedWorkouts.$inferSelect;
 
-export async function listAllWorkouts(): Promise<WorkoutDTO[]> {
+export async function listAllWorkouts(clientCode = ""): Promise<WorkoutDTO[]> {
   const rows = await db
     .select()
     .from(assignedWorkouts)
+    .where(clientCode ? eq(assignedWorkouts.clientId, clientCode) : undefined)
     .orderBy(
       assignedWorkouts.scheduledDate,
       // Coach-chosen position within a day; unordered rows sort after so a
@@ -34,7 +35,8 @@ export async function listAllWorkouts(): Promise<WorkoutDTO[]> {
       await db
         .selectDistinct({ awId: workoutLogs.assignedWorkoutId })
         .from(workoutLogs)
-        .where(not(isNull(workoutLogs.assignedWorkoutId)))
+        .where(and(not(isNull(workoutLogs.assignedWorkoutId)),
+          clientCode ? eq(workoutLogs.clientId, clientCode) : undefined))
     ).map((r) => String(r.awId))
   );
   return rows.map(
@@ -49,6 +51,7 @@ export async function listAllWorkouts(): Promise<WorkoutDTO[]> {
       sessionNameCn: str(r.sessionNameCn),
       sessionType: str(r.sessionType),
       sessionGoal: str(r.sessionGoal),
+        sessionGoalCn: str(r.sessionGoalCn),
       estimatedDuration: str(r.estimatedDuration),
       intensity: str(r.intensity),
       scheduledDate: str(r.scheduledDate), // epoch-ms as text, matching Feishu
@@ -157,42 +160,7 @@ export async function assignProgram(input: AssignProgramInput): Promise<WorkoutW
     return { success: false, error: pgErrorMessage(e) };
   }
 
-  // Best-effort after commit: mirror the coach's English note and session
-  // name into the CN columns so a Chinese athlete's calendar/player isn't
-  // silently English. Fills empty columns only; text already containing
-  // Chinese is the coach's own wording — leave it.
-  const emptyOnly = (col: any) => or(isNull(col), eq(col, ""));
-  const hasCjk = (text: string) => /[一-鿿]/.test(text);
-  for (const row of rows) {
-    const note = String(row.coachNotes || "");
-    if (note && !hasCjk(note)) {
-      void fillTranslation(note, "zh", (zh) =>
-        db
-          .update(assignedWorkouts)
-          .set({ coachNotesCn: zh })
-          .where(
-            and(
-              eq(assignedWorkouts.assignedWorkoutId, row.assignedWorkoutId),
-              emptyOnly(assignedWorkouts.coachNotesCn)
-            )
-          )
-      );
-    }
-    const sessionName = String(row.sessionName || "");
-    if (sessionName && !row.sessionNameCn && !hasCjk(sessionName)) {
-      void fillTranslation(sessionName, "zh", (zh) =>
-        db
-          .update(assignedWorkouts)
-          .set({ sessionNameCn: zh })
-          .where(
-            and(
-              eq(assignedWorkouts.assignedWorkoutId, row.assignedWorkoutId),
-              emptyOnly(assignedWorkouts.sessionNameCn)
-            )
-          )
-      );
-    }
-  }
+  queueTranslations("assignedWorkouts", rows.map((r) => r.assignedWorkoutId));
 
   let testsCreated = 0;
   if (testEntries.length > 0) {

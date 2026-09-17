@@ -2,7 +2,7 @@
 // JSX verbatim; state/handlers arrive via props (typed loosely for the
 // mechanical move; tighten when the store gets its own state).
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import IcpBadge from "./IcpBadge";
 import {
   Activity,
@@ -138,6 +138,36 @@ export default function StorePage({
   const wxpayOn = useWxpayEnabled();
   const storePrograms = programs.filter((p) => p.publicStoreVisible);
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
+  const checkoutRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const dialog = checkoutRef.current;
+    if (!storeSelectedProgram || !dialog) return;
+    const previous = document.activeElement as HTMLElement | null;
+    const focusable = () => Array.from(dialog.querySelectorAll<HTMLElement>(
+      'button:not(:disabled), a[href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex="0"]'
+    )).filter((element) => element.getClientRects().length > 0);
+    // Start at the dialog heading without scrolling past the order summary
+    // or opening a phone keyboard before the athlete chooses a field.
+    dialog.focus({ preventScroll: true });
+    dialog.scrollTop = 0;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        dialog.querySelector<HTMLButtonElement>(".storeModalCloseV2")?.click();
+      } else if (event.key === "Tab") {
+        const targets = focusable();
+        const first = targets[0] || dialog;
+        const last = targets[targets.length - 1] || dialog;
+        if (event.shiftKey && (document.activeElement === first || !dialog.contains(document.activeElement))) {
+          event.preventDefault(); last.focus();
+        } else if (!event.shiftKey && (document.activeElement === last || !dialog.contains(document.activeElement))) {
+          event.preventDefault(); first.focus();
+        }
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => { document.removeEventListener("keydown", onKey); previous?.focus(); };
+  }, [storeSelectedProgram]);
 
   // The coach to feature in "Meet your coach": prefer a Head/Admin coach,
   // else the first active one. Bio is editable in the coach record; until
@@ -157,7 +187,7 @@ export default function StorePage({
     .join("")
     .toUpperCase();
   const coachBio =
-    (featuredCoach?.bio || "").trim() ||
+    ((sZh ? featuredCoach?.bioCn || featuredCoach?.bio : featuredCoach?.bio) || "").trim() ||
     (sZh
       ? "我们的训练计划由奥运及职业级别教练编排——把为顶尖运动员设计的同款周期化训练，原汁原味地带到你的手机上。每一个动作、每一组、每一次的安排，都来自真实的高水平训练实践，而非套用模板。"
       : "Our programs are built by an Olympic and professional-level coach — the same periodised training designed for elite athletes, brought straight to your phone. Every exercise, set and rep is drawn from real high-performance coaching, not a template.");
@@ -226,11 +256,15 @@ export default function StorePage({
     program.productType === "Digital Bundle";
 
   const bundleIncludes = (program: Program) => {
-    const ids = (program.bundleProgramIds || "")
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean);
-    return programs.filter((p) => ids.includes(p.programId));
+    const raw = program.bundleProgramIds || "";
+    let ids: string[];
+    try {
+      const parsed = JSON.parse(raw);
+      ids = Array.isArray(parsed) ? parsed.map(String) : raw.split(",");
+    } catch { ids = raw.split(","); }
+    return [...new Set(ids.map((id) => id.trim()).filter(Boolean))]
+      .map((id) => programs.find((p) => p.programId === id))
+      .filter((p): p is Program => Boolean(p));
   };
 
   const bundleIndividualTotal = (program: Program) =>
@@ -260,10 +294,12 @@ export default function StorePage({
   };
 
   const formatDuration = (program: Program) => {
-    const weeks = program.durationWeeks;
-    const sessions = program.sessionsPerWeek;
+    const members = isBundleProgram(program) ? bundleIncludes(program) : [];
+    const weeks = members.length ? String(members.reduce((sum, member) => sum + (Number(member.durationWeeks) || 0), 0)) : program.durationWeeks;
+    const counts = members.map((member) => Number(member.sessionsPerWeek)).filter((n) => n > 0);
+    const sessions = counts.length ? (Math.min(...counts) === Math.max(...counts) ? String(counts[0]) : `${Math.min(...counts)}–${Math.max(...counts)}`) : program.sessionsPerWeek;
     if (weeks && sessions) {
-      return sZh ? `${weeks} 周 - 每周 ${sessions} 次` : `${weeks} weeks - ${sessions}x/week`;
+      return sZh ? `${weeks} 周 - 每周 ${sessions} 次` : `${weeks} ${Number(weeks) === 1 ? "week" : "weeks"} - ${sessions}x/week`;
     }
     if (weeks) return sZh ? `${weeks} 周` : `${weeks} weeks`;
     return sZh ? "灵活安排" : "Flexible schedule";
@@ -894,7 +930,7 @@ export default function StorePage({
                       {coach?.role || (sZh ? "主教练" : "Head Coach")}
                     </span>
                     <p className="storeCoachBioV3">
-                      {(coach?.bio || "").trim() || coachBio}
+                      {((sZh ? coach?.bioCn || coach?.bio : coach?.bio) || "").trim() || coachBio}
                     </p>
                   </motion.div>
                 ))}
@@ -936,7 +972,10 @@ export default function StorePage({
                     {"☆".repeat(Math.max(0, 5 - r.rating))}
                   </div>
                   {r.quote && (
-                    <p className="storeTestimonialQuote">“{r.quote}”</p>
+                    <p className="storeTestimonialQuote" title={r.quote}>
+                      “{sZh ? r.quoteCn || r.quote : r.quoteEn || r.quote}”
+                      {(sZh ? r.quoteCn : r.quoteEn) && (sZh ? r.quoteCn : r.quoteEn) !== r.quote ? <small>{sZh ? "（译文）" : " (translated)"}</small> : null}
+                    </p>
                   )}
                   <div className="storeTestimonialMeta">
                     {(r.clientName || "").split(" ")[0] || (sZh ? "学员" : "Athlete")}
@@ -1471,7 +1510,8 @@ export default function StorePage({
             className="storeModalBackdropV2"
             onClick={closeModal}
           >
-            <div className="storeModalV2" onClick={(e) => e.stopPropagation()}>
+            <div ref={checkoutRef} role="dialog" aria-modal="true" aria-label={sZh ? "结账" : "Checkout"} tabIndex={-1}
+              className={`storeModalV2${storeStep === 3 ? " storeModalV2--checkout" : ""}`} onClick={(e) => e.stopPropagation()}>
               <button
                 className="storeModalCloseV2"
                 aria-label="Close"
@@ -1503,7 +1543,7 @@ export default function StorePage({
                       !hasAddons && storeStep === 3 ? 2 : storeStep;
                     return (
                       <span className="storeEyebrowV2">
-                        {sZh
+                        {storeStep === 3 ? (sZh ? "结账" : "Checkout") : sZh
                           ? `第 ${displayStep} 步 / 共 ${totalSteps} 步`
                           : `Step ${displayStep} of ${totalSteps}`}
                       </span>
@@ -1870,14 +1910,14 @@ export default function StorePage({
                                     : sZh
                                       ? "正在创建你的客户端…"
                                       : "Creating your portal…"
-                                : sZh
-                                  ? "我已付款，提交订单"
-                                  : "I've paid — submit my order"}
+                                : wxpayOn
+                                  ? sZh ? "继续微信支付" : "Continue to WeChat Pay"
+                                  : sZh ? "我已转账，提交订单" : "I've transferred payment — submit order"}
                             </button>
                             <span className="storeRegisterHintV2">
-                              {sZh
-                                ? "点击即表示你已完成微信付款。教练核对付款备注后，训练计划才会加载。"
-                                : "Tapping confirms you paid via WeChat. The program loads only after your coach verifies the reference."}
+                              {wxpayOn
+                                ? sZh ? "下一步显示微信支付二维码，付款确认后即可激活计划。" : "Next, scan your WeChat Pay QR. Activate your program after payment is confirmed."
+                                : sZh ? "教练核对你的转账备注后，训练计划即可加载。" : "Your program becomes available after your coach verifies the transfer reference."}
                             </span>
                             <div className="storeConsentGroup">
                               <label>

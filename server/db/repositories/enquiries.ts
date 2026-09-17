@@ -12,6 +12,7 @@ export type EnquiryDTO = {
   athletes: string;
   duration: string;
   notes: string;
+  notesEn?: string;
   submittedDate: string;
   status: string;
 };

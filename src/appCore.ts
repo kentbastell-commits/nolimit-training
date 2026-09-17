@@ -124,6 +124,7 @@ export type Coach = {
   role: "Admin" | "Coach" | string;
   status: "Active" | "Inactive" | string;
   bio?: string;
+  bioCn?: string;
   qrCodeUrl?: string;
   createdAt?: string;
 };
@@ -217,6 +218,7 @@ export type Workout = {
   sessionNameCn?: string;
   sessionType?: string;
   sessionGoal?: string;
+  sessionGoalCn?: string;
   estimatedDuration?: string;
   intensity?: string;
   scheduledDate: string;
@@ -524,6 +526,8 @@ export type ProgramReview = {
   programName: string;
   rating: number;
   quote: string;
+  quoteCn?: string;
+  quoteEn?: string;
   showOnStore: boolean;
   approved: boolean;
   submittedDate: string;
@@ -642,6 +646,7 @@ export type ProgramSession = {
   sessionNameCn?: string;
   sessionType?: string;
   sessionGoal?: string;
+  sessionGoalCn?: string;
   sessionNotes?: string;
   estimatedDuration?: string;
   intensity?: string;
@@ -660,6 +665,7 @@ export type AssignableWorkout = {
   sessionNameCn?: string;
   sessionType?: string;
   sessionGoal?: string;
+  sessionGoalCn?: string;
   sessionNotes?: string;
   estimatedDuration?: string;
   intensity?: string;
@@ -709,6 +715,7 @@ export type SavedProgramTemplate = {
   sessionNameCn?: string;
   sessionType?: string;
   sessionGoal?: string;
+  sessionGoalCn?: string;
   sessionNotes?: string;
   estimatedDuration?: string;
   intensity?: string;
@@ -789,11 +796,13 @@ export type SavedTestTemplate = {
 };
 
 export type ContentAssignment = {
+  isIntake?: boolean;
   recordId: string;
   assignmentId: string;
   assignmentType: string;
   templateId: string;
   templateName: string;
+  templateNameCn?: string;
   clientId: string;
   clientCode: string;
   clientName: string;
@@ -803,6 +812,9 @@ export type ContentAssignment = {
 };
 
 export type ContentResponse = {
+  templateName?: string;
+  templateNameCn?: string;
+  reviewedAt?: number | null;
   recordId: string;
   responseType: string;
   responseId: string;
@@ -812,6 +824,9 @@ export type ContentResponse = {
   itemId: string;
   label: string;
   answer: string;
+  answerEn?: string;
+  labelEn?: string;
+  notesEn?: string;
   unit: string;
   notes?: string;
   clientId: string;
