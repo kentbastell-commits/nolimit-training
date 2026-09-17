@@ -143,24 +143,27 @@ ssh nolimit "cd /opt/kangfu-zhuanjia && git pull origin main && npm install --no
 
 ## Steps — NoLimit mini program
 
-Build from `c:\Users\kentb\nolimit-miniprogram`, then prefer the repository's
-`scripts/upload.mjs` (official miniprogram-ci, using the gitignored upload key).
-It uploads the freshly built `dist/` and avoids the DevTools daemon's stale
-compile cache. An upload creates a development version; WeChat review and
-public release are separate steps. Never report an upload as publicly released.
+Build from `c:\Users\kentb\nolimit-miniprogram`, then use the established
+WeChat DevTools CLI upload route below. The alternative `scripts/upload.mjs`
+uses miniprogram-ci and is not evidence that CI uploads were ever enabled:
+commit `8fd0230` explicitly parked it on the code-upload IP whitelist and kept
+DevTools as the release route. Confirm CI is configured before choosing it.
+An upload creates a development version; WeChat review and public release are
+separate steps. Never report an upload as publicly released.
 
 ```powershell
 npx tsc --noEmit
 npm run build:weapp
-node scripts/upload.mjs <version> "<description>"
 ```
 
 CI error `-10008` / `invalid ip` means the current outbound IP is missing from
 WeChat's **code-upload** allowlist (separate from the AppSecret allowlist).
-Report the exact rejected IP and ask for that entry to be added while preserving
-existing entries. Rebuilding or replacing the upload key does not fix this.
+This does not establish that the user's IP changed. Check the previous successful
+upload method and restore the DevTools path first; do not ask for allowlist changes
+merely because an unconfigured alternative was selected. Rebuilding or replacing
+the upload key does not fix this.
 
-If the CI upload key is unavailable, use the installed DevTools CLI:
+Use the installed DevTools CLI:
 
 ```powershell
 & 'C:\Program Files (x86)\Tencent\微信web开发者工具\cli.bat' islogin --project 'C:\Users\kentb\nolimit-miniprogram'
@@ -171,6 +174,16 @@ DevTools can report one port from `islogin` while the already-running IDE is
 actually listening on another. If upload stalls, stop only the exact CLI upload
 process, retry with `--debug`, and use the port from “IDE server has started on
 http://127.0.0.1:<port>” as `--port <port>`. Never kill all Node/DevTools processes.
+
+On 17 September, explicit-port retries also stalled at “preparing”; upload
+succeeded after DevTools restarted, using an isolated copy of the verified build.
+Close project windows gracefully before restarting, preserving unsaved work and
+unrelated processes. When another task is changing the miniprogram, upload the
+frozen verified artifact rather than its mutable `dist/`. Require `√ upload` and
+exit status 0 before claiming success. Record the version and remind Kent to
+select it as the trial version in Version Management; trial does not automatically
+follow a development upload. Trial promotion and public release need separate
+verification.
 
 ## Verify — a deploy without verification is not a deploy
 

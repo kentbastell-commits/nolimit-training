@@ -1,8 +1,8 @@
 # Follow-up tour fixes — 17 September 2026
 
-Deployment update: the web/API fixes and migrations are now live; the miniprogram upload is blocked by WeChat's IP allowlist. See [deployment status and verification](deployment-2026-09-17.md). The implementation report below records the pre-deployment checks.
+Deployment update: the web/API fixes and migrations are now live; miniprogram version **2026.9.17** uploaded successfully through DevTools. Trial promotion and public release remain unconfirmed. See [deployment status and verification](deployment-2026-09-17.md). The implementation report below records the pre-deployment checks.
 
-All ten findings (T01–T10) from the [follow-up tour](product-tour-followup-2026-09-11.md) now have local fixes across the web app, API and miniprogram. These changes are not deployed. Login/security and exercise footage were outside this batch.
+All ten findings (T01–T10) from the [follow-up tour](product-tour-followup-2026-09-11.md) have fixes across the web app, API and miniprogram, with release status recorded above. Login/security and exercise footage were outside this batch.
 
 ## Changes
 

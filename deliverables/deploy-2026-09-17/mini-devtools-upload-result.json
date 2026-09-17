@@ -1,0 +1,17 @@
+{
+  "date": "2026-09-17",
+  "method": "WeChat DevTools CLI",
+  "version": "2026.9.17",
+  "appid": "wx1b7faa7c68731fdf",
+  "sourceCommit": "41cd2c76cb9d7dd109ea929f6077ec4aff0e2a0e",
+  "projectPath": "C:/Users/kentb/nolimit-training/deliverables/deploy-2026-09-17/weapp-release",
+  "archiveSha256": "710121f7fe202d28a2324a5056451c285a985930dc642f593121c7adde50488c",
+  "description": "Reliable assessments, bilingual workflows and coach review",
+  "packageSizeBytes": 979237,
+  "exitCode": 0,
+  "observedSuccessOutput": "√ upload",
+  "evidenceSource": "exec session 5505 completion, chunk 3bf69c",
+  "allowlistChangedByThisTask": false,
+  "trialPromotionConfirmed": false,
+  "publicReleaseConfirmed": false
+}
