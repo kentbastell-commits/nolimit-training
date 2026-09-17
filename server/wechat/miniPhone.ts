@@ -3,6 +3,8 @@
 // The token is cached in-process (WeChat issues it for ~2h and rate-limits
 // the mint endpoint), same shape as the WeChat Pay tenant token cache.
 
+import crypto from "node:crypto";
+
 type TokenCache = { token: string; expiresAt: number };
 let cache: TokenCache | null = null;
 
@@ -53,4 +55,32 @@ export async function resolveMiniPhoneNumber(
   const phone = String(body.phone_info?.purePhoneNumber || body.phone_info?.phoneNumber || "").replace(/\D/g, "");
   if (!phone) throw new Error("WeChat phone lookup returned no number");
   return phone;
+}
+
+/**
+ * A getPhoneNumber code is SINGLE-USE. When sign-up needs a second round
+ * trip (new phone -> ask a name -> create), the verified number travels back
+ * to the app as this short-lived signed token instead of re-spending the
+ * code (which WeChat rejects - the bug behind "WeChat login failed" on
+ * 2026-09-17). Ten minutes is plenty for typing a name.
+ */
+const phoneTokenSecret = (): string =>
+  `phone:${process.env.PAY_LINK_SECRET || process.env.WECHAT_MINI_SECRET || ""}`;
+
+export function makeVerifiedPhoneToken(phone: string, ttlMs = 10 * 60_000): string {
+  const payload = `${Buffer.from(phone, "utf8").toString("base64url")}.${Date.now() + ttlMs}`;
+  const mac = crypto.createHmac("sha256", phoneTokenSecret()).update(payload).digest("base64url").slice(0, 24);
+  return `${payload}.${mac}`;
+}
+
+export function verifyPhoneToken(token: string): string | null {
+  const parts = String(token || "").split(".");
+  if (parts.length !== 3) return null;
+  const [encoded, expires, mac] = parts;
+  const expected = crypto.createHmac("sha256", phoneTokenSecret()).update(`${encoded}.${expires}`).digest("base64url").slice(0, 24);
+  const a = Buffer.from(mac); const b = Buffer.from(expected);
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
+  if (Number(expires) < Date.now()) return null;
+  const phone = Buffer.from(encoded, "base64url").toString("utf8");
+  return /^\d{7,15}$/.test(phone) ? phone : null;
 }

@@ -7,7 +7,7 @@ import {
   findClientByPhoneName,
   findClientByPin,
 } from "../server/db/repositories/clients.ts";
-import { resolveMiniPhoneNumber } from "../server/wechat/miniPhone.ts";
+import { makeVerifiedPhoneToken, resolveMiniPhoneNumber, verifyPhoneToken } from "../server/wechat/miniPhone.ts";
 
 // Mini program WeChat auth.
 //   POST { code }               -> one-tap login for an already-bound account
@@ -29,7 +29,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(503).json({ error: "WeChat auth not configured" });
   }
 
-  const { code, phone, name, pin, phoneCode } = req.body || {};
+  const { code, phone, name, pin, phoneCode, phoneToken } = req.body || {};
   if (!code) {
     return res.status(400).json({ error: "code required" });
   }
@@ -53,19 +53,33 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // phone (e.g. created by a payment link) is bound and logged in; no
     // account → one is created from the typed name. A stranger from social
     // media therefore never needs a coach-issued code (Kent, 2026-09-17).
-    if (phoneCode) {
+    if (phoneCode || phoneToken) {
       let verifiedPhone = "";
-      try {
-        verifiedPhone = await resolveMiniPhoneNumber(String(phoneCode));
-      } catch (error: any) {
-        return res.status(502).json({ error: "Could not read your WeChat phone number", message: error.message });
+      if (phoneToken) {
+        // Second round trip of a sign-up: the phone was verified moments ago
+        // and travels as a signed token (the getPhoneNumber code is single-use).
+        verifiedPhone = verifyPhoneToken(String(phoneToken)) || "";
+        if (!verifiedPhone) {
+          return res.status(401).json({ error: "Phone verification expired - tap Continue with WeChat again" });
+        }
+      } else {
+        try {
+          verifiedPhone = await resolveMiniPhoneNumber(String(phoneCode));
+        } catch (error: any) {
+          return res.status(502).json({ error: "Could not read your WeChat phone number", message: error.message });
+        }
       }
       const typedName = String(name || "").trim().replace(/\s+/g, " ").slice(0, 60);
       let clientCode = await findClientByPhone(verifiedPhone, typedName);
       let created = false;
       if (!clientCode) {
         if (typedName.length < 2) {
-          return res.status(404).json({ success: false, needsName: true, error: "No account for this phone yet" });
+          return res.status(404).json({
+            success: false,
+            needsName: true,
+            phoneToken: makeVerifiedPhoneToken(verifiedPhone),
+            error: "No account for this phone yet",
+          });
         }
         const made = await createClient({
           name: typedName,

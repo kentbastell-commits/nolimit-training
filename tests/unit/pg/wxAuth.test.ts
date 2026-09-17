@@ -63,10 +63,16 @@ describe("wxAuth sign-up with a WeChat-verified phone", () => {
     await handler(makeReq({ method: "POST", body: { code: "jscode", phoneCode: "pc" } }) as any, noName as any);
     expect(noName.statusCode).toBe(404);
     expect(noName.body.needsName).toBe(true);
+    expect(typeof noName.body.phoneToken).toBe("string");
     expect((await rows("select client_id from clients")).length).toBe(0);
 
+    // The phone code is single-use: the second round trip carries the signed
+    // phone token instead (the stub now returns a different number to prove
+    // the phone endpoint is not consulted again).
+    vi.unstubAllGlobals();
+    stubWeChat("00000000000", "openid-B");
     const withName = makeRes();
-    await handler(makeReq({ method: "POST", body: { code: "jscode", phoneCode: "pc", name: "Li Meini" } }) as any, withName as any);
+    await handler(makeReq({ method: "POST", body: { code: "jscode", phoneToken: noName.body.phoneToken, name: "Li Meini" } }) as any, withName as any);
     expect(withName.statusCode).toBe(200);
     expect(withName.body).toMatchObject({ success: true, created: true, bound: true });
     const client = await rows<{ full_name: string; phone: string; source: string; wechat_openid: string }>(
@@ -74,6 +80,10 @@ describe("wxAuth sign-up with a WeChat-verified phone", () => {
       [withName.body.clientCode],
     );
     expect(client[0]).toMatchObject({ full_name: "Li Meini", phone: "13700002222", source: "Mini program", wechat_openid: "openid-B" });
+
+    const expired = makeRes();
+    await handler(makeReq({ method: "POST", body: { code: "jscode", phoneToken: "bad.token.here", name: "X Y" } }) as any, expired as any);
+    expect(expired.statusCode).toBe(401);
   });
 
   it("refuses to hijack an account already bound to a different WeChat", async () => {
