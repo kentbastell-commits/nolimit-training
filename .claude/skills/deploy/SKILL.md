@@ -155,6 +155,11 @@ npm run build:weapp
 node scripts/upload.mjs <version> "<description>"
 ```
 
+CI error `-10008` / `invalid ip` means the current outbound IP is missing from
+WeChat's **code-upload** allowlist (separate from the AppSecret allowlist).
+Report the exact rejected IP and ask for that entry to be added while preserving
+existing entries. Rebuilding or replacing the upload key does not fix this.
+
 If the CI upload key is unavailable, use the installed DevTools CLI:
 
 ```powershell

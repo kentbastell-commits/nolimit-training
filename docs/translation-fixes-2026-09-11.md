@@ -1,5 +1,7 @@
 # Translation coverage and reliability — 11 September 2026
 
+Update, 17 September: the application and translation migration are deployed. Existing-content backfill completed: 3,059 fields filled, with zero missing mirrors in the final inventory. See [deployment status](deployment-2026-09-17.md).
+
 Implemented locally across `nolimit-training` and `nolimit-miniprogram`. Production configuration and both translation providers were checked, but the application changes, database migration and existing-content backfill have **not been deployed or applied to production**.
 
 ## Translation order

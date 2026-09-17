@@ -2,7 +2,7 @@
 
 Follow-up: [translation coverage and reliability fixes](translation-fixes-2026-09-11.md) cover DeepSeek-first translation, interface fallbacks and the additional release migration.
 
-These are local changes following the [11 September product audit](./product-launch-audit-2026-09-11.md). They have not been deployed or uploaded to WeChat. Login/security remain outside this work. Existing workspace changes, including the miniprogram's design work, have been preserved.
+These changes follow the [11 September product audit](./product-launch-audit-2026-09-11.md). Update, 17 September: the web/API changes and migrations are deployed; WeChat upload is blocked by its IP allowlist. See [deployment status](deployment-2026-09-17.md). Login/security remain outside this work. Existing workspace changes, including the miniprogram's design work, have been preserved.
 
 ## Implemented
 
