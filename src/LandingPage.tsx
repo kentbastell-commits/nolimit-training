@@ -21,6 +21,7 @@ import {
 } from "framer-motion";
 import type { Program, Toast } from "./appCore";
 import { BRAND_WORDMARK_BLACK } from "./brandAssets";
+import { STORE_PUBLIC } from "./storeFlags";
 
 // Confident, weighty easing (ease-out-expo) — reads as strong, not bouncy.
 const EASE: [number, number, number, number] = [0.16, 1, 0.3, 1];
@@ -189,7 +190,9 @@ export default function LandingPage({
       : "Olympic and professional-level programming and 1:1 coaching — evidence-based training built around your sport, your season, and your schedule. All from your phone.",
     storeCta: lZh ? "进入商店" : "Explore Store",
     onlineCta: lZh ? "了解线上教练" : "Online Coaching",
-    stepsTitle: lZh ? "购买后的流程" : "How It Works",
+    coachCta: lZh ? "一对一训练" : "Train with us 1:1",
+    inPersonCta: lZh ? "线下训练" : "In-Person Training",
+    stepsTitle: lZh ? (STORE_PUBLIC ? "购买后的流程" : "训练流程") : "How It Works",
     programsTitle: lZh ? "数字训练计划" : "Digital Programs",
     programsBody: lZh
       ? "可立即开始的专业训练计划——顶级编排，价格远低于一对一私教。进阶式、支持多水平，并可加购关节与伤病预防模块。"
@@ -214,19 +217,33 @@ export default function LandingPage({
     [2, lZh ? "语言" : "Languages"],
   ];
 
-  const landingSteps = lZh
-    ? [
-        ["支付", "通过外部付款方式购买训练计划。"],
-        ["填写问卷", "完成 intake，让我们了解你的背景和训练目标。"],
-        ["我的计划", "训练计划进入你的客户端 My Programs。"],
-        ["自定日期", "选择按月、按周或逐日安排到日历。"],
-      ]
-    : [
-        ["Pay", "Purchase a digital program through the external checkout."],
-        ["Intake", "Complete your intake so the plan fits your background."],
-        ["My Programs", "Your program appears inside your client portal."],
-        ["Customize Dates", "Schedule by month, by week, or day by day."],
-      ];
+  const landingSteps = STORE_PUBLIC
+    ? lZh
+      ? [
+          ["支付", "通过外部付款方式购买训练计划。"],
+          ["填写问卷", "完成 intake，让我们了解你的背景和训练目标。"],
+          ["我的计划", "训练计划进入你的客户端 My Programs。"],
+          ["自定日期", "选择按月、按周或逐日安排到日历。"],
+        ]
+      : [
+          ["Pay", "Purchase a digital program through the external checkout."],
+          ["Intake", "Complete your intake so the plan fits your background."],
+          ["My Programs", "Your program appears inside your client portal."],
+          ["Customize Dates", "Schedule by month, by week, or day by day."],
+        ]
+    : lZh
+      ? [
+          ["申请", "选择训练周期，告诉我们你的项目、目标和时间安排。"],
+          ["沟通", "与教练进行 30 分钟沟通，规划整个赛季。"],
+          ["我的计划", "个性化训练计划进入你的客户端和小程序。"],
+          ["每周反馈", "记录训练、反馈状态，教练据此调整计划。"],
+        ]
+      : [
+          ["Apply", "Pick your coaching term and tell us your sport, goals and schedule."],
+          ["Consult", "A 30-minute call with your coach to map out the season."],
+          ["Your Plan", "Your personalised program lands in your portal and mini program."],
+          ["Weekly Check-ins", "Log sessions, report how you feel, and your coach adjusts the plan."],
+        ];
 
   return (
     <div className={`lv3 ${lZh ? "zh" : "en"}`}>
@@ -257,7 +274,7 @@ export default function LandingPage({
           </span>
         </a>
         <nav className="lv3NavLinks">
-          <a href="/store">{landingCopy.navPrograms}</a>
+          {STORE_PUBLIC && <a href="/store">{landingCopy.navPrograms}</a>}
           <a href="#paths">{landingCopy.navCoaching}</a>
           <a href="#inperson">{landingCopy.navInPerson}</a>
         </nav>
@@ -270,8 +287,8 @@ export default function LandingPage({
             <span className={!lZh ? "active" : ""}>EN</span>
             <span className={lZh ? "active" : ""}>中文</span>
           </button>
-          <a className="lv3NavCta" href="/store">
-            {landingCopy.viewPrograms}
+          <a className="lv3NavCta" href={STORE_PUBLIC ? "/store" : "/coaching"}>
+            {STORE_PUBLIC ? landingCopy.viewPrograms : landingCopy.coachCta}
           </a>
         </div>
       </motion.header>
@@ -335,19 +352,33 @@ export default function LandingPage({
               {landingCopy.heroLead}
             </motion.p>
             <motion.div className="lv3HeroActions" variants={item}>
-              <a className="lv3BtnPrimary" href="/store">
-                {lZh ? "浏览训练计划" : "Browse Programs"}
-                <ArrowRight size={18} />
-              </a>
-              <a className="lv3BtnBlue" href="/coaching">
-                {lZh ? "一对一训练" : "Train with us 1:1"}
-              </a>
+              {STORE_PUBLIC ? (
+                <>
+                  <a className="lv3BtnPrimary" href="/store">
+                    {lZh ? "浏览训练计划" : "Browse Programs"}
+                    <ArrowRight size={18} />
+                  </a>
+                  <a className="lv3BtnBlue" href="/coaching">
+                    {landingCopy.coachCta}
+                  </a>
+                </>
+              ) : (
+                <>
+                  <a className="lv3BtnPrimary" href="/coaching">
+                    {landingCopy.coachCta}
+                    <ArrowRight size={18} />
+                  </a>
+                  <a className="lv3BtnBlue" href="/in-person">
+                    {landingCopy.inPersonCta}
+                  </a>
+                </>
+              )}
             </motion.div>
           </motion.div>
         </section>
 
         {/* By the numbers */}
-        {landingPrograms.length > 0 && (
+        {STORE_PUBLIC && landingPrograms.length > 0 && (
           <motion.section className="lv3Stats" {...reveal}>
             {landingStats.map(([value, label]) => (
               <motion.div className="lv3StatItem" variants={item} key={label}>
@@ -364,9 +395,21 @@ export default function LandingPage({
         <motion.section className="lv3Paths" id="paths" {...reveal}>
           <motion.div className="lv3SectionHead" variants={item}>
             <span className="lv3Eyebrow">{lZh ? "选择你的路径" : "Choose your path"}</span>
-            <h2>{lZh ? "三种方式，开始训练。" : "Three ways to train."}</h2>
+            <h2>
+              {STORE_PUBLIC
+                ? lZh
+                  ? "三种方式，开始训练。"
+                  : "Three ways to train."
+                : lZh
+                  ? "两种方式，开始训练。"
+                  : "Two ways to train."}
+            </h2>
           </motion.div>
-          <motion.div className="lv3PathGrid lv3PathGrid3" variants={staggerParent}>
+          <motion.div
+            className={`lv3PathGrid ${STORE_PUBLIC ? "lv3PathGrid3" : "lv3PathGrid2"}`}
+            variants={staggerParent}
+          >
+            {STORE_PUBLIC && (
             <TiltCard className="lv3PathCard" variants={item}>
               <div className="lv3PathIcon">
                 <BookOpen size={26} strokeWidth={2.4} />
@@ -388,6 +431,7 @@ export default function LandingPage({
                 <ArrowRight size={17} />
               </a>
             </TiltCard>
+            )}
 
             <TiltCard className="lv3PathCard lv3PathCardBlue" variants={item}>
               <div className="lv3PathIcon">
@@ -451,7 +495,7 @@ export default function LandingPage({
         {/* Digital programs — description only; the catalog lives in the
             store. A grid of the first 3 API rows here just repeated three
             near-identical climbing cards (Kent: "randomly laid out"). */}
-        {landingPrograms.length > 0 && (
+        {STORE_PUBLIC && landingPrograms.length > 0 && (
           <motion.section className="lv3Featured" {...reveal}>
             <motion.div className="lv3SectionHead" variants={item}>
               <span className="lv3Eyebrow">{landingCopy.programsTitle}</span>
@@ -475,7 +519,15 @@ export default function LandingPage({
         <motion.section className="lv3Steps" {...reveal}>
           <motion.div className="lv3SectionHead" variants={item}>
             <span className="lv3Eyebrow">{landingCopy.stepsTitle}</span>
-            <h2>{lZh ? "从购买到开练，只需四步。" : "From purchase to training in four steps."}</h2>
+            <h2>
+              {STORE_PUBLIC
+                ? lZh
+                  ? "从购买到开练，只需四步。"
+                  : "From purchase to training in four steps."
+                : lZh
+                  ? "从申请到开练，只需四步。"
+                  : "From application to training in four steps."}
+            </h2>
           </motion.div>
           <motion.div className="lv3StepGrid" variants={staggerParent}>
             {landingSteps.map(([title, body], index) => (
@@ -511,18 +563,36 @@ export default function LandingPage({
             {lZh ? "为训练而生。" : "Raise the Floor. Break the Ceiling."}
           </motion.h2>
           <motion.p variants={item}>
-            {lZh
-              ? "从数字训练计划开始，或申请一对一线上 / 线下教练服务。"
-              : "Start with a digital program, or train with us 1:1 — online or in person."}
+            {STORE_PUBLIC
+              ? lZh
+                ? "从数字训练计划开始，或申请一对一线上 / 线下教练服务。"
+                : "Start with a digital program, or train with us 1:1 — online or in person."
+              : lZh
+                ? "申请一对一线上教练，或联系我们安排线下训练。"
+                : "Train with us 1:1 online, or bring us in for in-person training."}
           </motion.p>
           <motion.div className="lv3HeroActions lv3FinalActions" variants={item}>
-            <a className="lv3BtnPrimary" href="/store">
-              {lZh ? "浏览训练计划" : "Browse Programs"}
-              <ArrowRight size={18} />
-            </a>
-            <a className="lv3BtnBlue" href="/coaching">
-              {lZh ? "一对一训练" : "Train with us 1:1"}
-            </a>
+            {STORE_PUBLIC ? (
+              <>
+                <a className="lv3BtnPrimary" href="/store">
+                  {lZh ? "浏览训练计划" : "Browse Programs"}
+                  <ArrowRight size={18} />
+                </a>
+                <a className="lv3BtnBlue" href="/coaching">
+                  {landingCopy.coachCta}
+                </a>
+              </>
+            ) : (
+              <>
+                <a className="lv3BtnPrimary" href="/coaching">
+                  {landingCopy.coachCta}
+                  <ArrowRight size={18} />
+                </a>
+                <a className="lv3BtnBlue" href="/in-person">
+                  {landingCopy.inPersonCta}
+                </a>
+              </>
+            )}
           </motion.div>
         </motion.section>
       </main>
@@ -530,7 +600,7 @@ export default function LandingPage({
       <footer className="lv3Footer">
         <span>{landingCopy.footer}</span>
         <div className="lv3FooterLinks">
-          <a href="/store">{landingCopy.navPrograms}</a>
+          {STORE_PUBLIC && <a href="/store">{landingCopy.navPrograms}</a>}
           <a href="/coaching">{landingCopy.navCoaching}</a>
           <a href="/?portal=client">{lZh ? "客户端" : "Client Portal"}</a>
           <a href="/?view=coach">{landingCopy.coachLogin}</a>

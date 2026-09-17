@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { trackErrors, settle } from "./helpers";
+import { STORE_PUBLIC } from "../src/storeFlags";
 
 test("landing page renders hero and store links", async ({ page }) => {
   const errs = trackErrors(page);
@@ -26,6 +27,7 @@ test("all legal policies keep readable headings in dark system mode", async ({ p
 });
 
 test("store renders the catalog before FAQ and opens checkout to the pay step", async ({ page }) => {
+  test.skip(!STORE_PUBLIC, "public store is hidden (src/storeFlags.ts)");
   const errs = trackErrors(page);
   await page.goto("/store");
   await settle(page);
@@ -94,6 +96,7 @@ test("in-person enquiry route lazy-loads and renders", async ({ page }) => {
 });
 
 test("find-my-portal modal opens and validates", async ({ page }) => {
+  test.skip(!STORE_PUBLIC, "public store is hidden (src/storeFlags.ts)");
   const errs = trackErrors(page);
   await page.goto("/store");
   await settle(page);

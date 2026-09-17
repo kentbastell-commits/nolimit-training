@@ -35,5 +35,7 @@ describe("api/_coachAuth", () => {
     expect(COACH_ONLY_HANDLERS.has("createClient")).toBe(false);
     expect(COACH_ONLY_HANDLERS.has("coaches")).toBe(false);
     expect(COACH_ONLY_HANDLERS.has("autoLoadProgram")).toBe(false);
+    // The mini program moves single sessions with this one (athlete calendar).
+    expect(COACH_ONLY_HANDLERS.has("updateAssignedProgramDate")).toBe(false);
   });
 });

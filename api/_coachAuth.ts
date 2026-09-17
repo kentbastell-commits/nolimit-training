@@ -9,6 +9,15 @@ export function coachKeyOk(req: { headers: Record<string, unknown> }): boolean {
   return typeof provided === "string" && provided === required;
 }
 
+// Positive proof of a coach: the key is configured AND this request carries
+// it. Unlike coachKeyOk (which is permissive while the key is unset, so
+// gating can roll out safely), this never treats "no key configured" as
+// "everyone is a coach" — use it where a caller earns EXTRA rights (e.g.
+// skipping an athlete ownership check), never for plain gating.
+export function isVerifiedCoach(req: { headers: Record<string, unknown> }): boolean {
+  return Boolean(process.env.COACH_ACCESS_KEY) && coachKeyOk(req);
+}
+
 // Handler names (as registered in server/index.ts) that only a coach may call.
 // Deliberately excludes everything the athlete portal or public store touches:
 // activateDigitalOrder, findMyPortal, inPersonEnquiry, recordLogin, workouts,
@@ -46,13 +55,18 @@ export const COACH_ONLY_HANDLERS = new Set([
   "duplicateAssignedWorkout",
   "duplicateProgram",
   "enquiries",
-  "productOrders",
+  // productOrders is NOT here: the athlete portal reads its own purchases
+  // through it (?clientCode=). The handler itself requires the coach key for
+  // the unscoped full list (see api/productOrders.ts).
   "reviewWorkoutComment",
   "reviewContentSubmission",
   "setWorkoutReviewed",
   "subscriptions",
   "teams",
-  "updateAssignedProgramDate",
+  // updateAssignedProgramDate is NOT here: the mini program's calendar moves
+  // a single session with it (src/services/api.ts updateWorkoutDate), so it
+  // is athlete-facing. Ownership is checked in the handler when the caller
+  // sends its clientCode (see api/updateAssignedProgramDate.ts).
   "reorderAssignedWorkouts",
   "updateContentAssignmentDate",
   "updateProductOrder",

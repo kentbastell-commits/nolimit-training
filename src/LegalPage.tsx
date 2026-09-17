@@ -2,6 +2,7 @@ import { ArrowLeft, ShieldCheck } from "lucide-react";
 import IcpBadge from "./IcpBadge";
 import "./LegalPage.css";
 import { BRAND_WORDMARK_BLACK } from "./brandAssets";
+import { STORE_PUBLIC } from "./storeFlags";
 
 type LegalKind = "privacy" | "terms" | "refund" | "business";
 
@@ -42,7 +43,9 @@ export default function LegalPage({
           <img src={BRAND_WORDMARK_BLACK} alt="NX LIMIT Training" />
         </a>
         <div className="legalNavActions">
-          <a href="/store">{zh ? "训练计划" : "Programs"}</a>
+          <a href={STORE_PUBLIC ? "/store" : "/coaching"}>
+            {STORE_PUBLIC ? (zh ? "训练计划" : "Programs") : zh ? "线上教练" : "Coaching"}
+          </a>
           <button type="button" onClick={() => setLang(zh ? "en" : "zh")}>
             {zh ? "English" : "中文"}
           </button>
@@ -50,7 +53,7 @@ export default function LegalPage({
       </header>
 
       <main className="legalShell">
-        <a className="legalBack" href="/store">
+        <a className="legalBack" href={STORE_PUBLIC ? "/store" : "/"}>
           <ArrowLeft size={16} /> {zh ? "返回" : "Back"}
         </a>
         <div className="legalHero">

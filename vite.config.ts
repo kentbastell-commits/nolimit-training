@@ -3,10 +3,12 @@ import react from '@vitejs/plugin-react'
 import fs from 'node:fs'
 import path from 'node:path'
 import { injectSeo } from './server/seo.ts'
+import { STORE_PUBLIC } from './src/storeFlags.ts'
 
 const publicSeoRoutes = [
   '/',
-  '/store',
+  // Hidden store: no /store page in the sitemap or as static route HTML.
+  ...(STORE_PUBLIC ? ['/store'] : []),
   '/coaching',
   '/in-person',
   '/privacy',

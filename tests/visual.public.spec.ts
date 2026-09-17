@@ -1,8 +1,10 @@
 import { expect, test } from "@playwright/test";
+import { STORE_PUBLIC } from "../src/storeFlags";
 
 const publicRoutes = [
   { path: "/", root: ".lv3" },
-  { path: "/store", root: ".storePageV3" },
+  // While the store is hidden, /store renders the landing page.
+  { path: "/store", root: STORE_PUBLIC ? ".storePageV3" : ".lv3" },
   { path: "/privacy", root: ".legalPage" },
   { path: "/?invite=client&coach=1", root: ".invitePage" },
   { path: "/?invite=client", root: ".cfpWrap" },
@@ -82,7 +84,7 @@ test("touch-facing primary controls meet the 44px target", async ({ page }, test
 
   const targets = [
     { path: "/", selector: ".lv3BtnPrimary" },
-    { path: "/store", selector: ".storeNavEnterV3" },
+    ...(STORE_PUBLIC ? [{ path: "/store", selector: ".storeNavEnterV3" }] : []),
     { path: "/privacy", selector: ".legalTabs a" },
     { path: "/?invite=client&coach=1", selector: ".inviteLangToggle" },
     { path: "/?invite=client", selector: ".cfpLangToggle" },
@@ -103,11 +105,13 @@ test("cards and panels follow the shared shape hierarchy", async ({ page }, test
   await page.goto("/");
   await expect(page.locator(".lv3PathCard").first()).toHaveCSS("border-radius", "18px");
 
-  await page.goto("/store");
-  await expect(page.locator(".storeCategoryCardV2").first()).toHaveCSS(
-    "border-radius",
-    "18px"
-  );
+  if (STORE_PUBLIC) {
+    await page.goto("/store");
+    await expect(page.locator(".storeCategoryCardV2").first()).toHaveCSS(
+      "border-radius",
+      "18px"
+    );
+  }
 
   await page.goto("/privacy");
   await expect(page.locator(".legalArticle")).toHaveCSS(

@@ -1,3 +1,5 @@
+import { STORE_PUBLIC } from "./storeFlags.ts";
+
 export type SeoLanguage = "en" | "zh" | "bilingual";
 
 export type SeoPage = {
@@ -93,6 +95,7 @@ function pageCopy(key: CopyKey, language: SeoLanguage) {
 export function resolveSeoPage(
   requestUrl: string,
   language: SeoLanguage = "bilingual",
+  storePublic: boolean = STORE_PUBLIC,
 ): SeoPage {
   const url = new URL(requestUrl, "https://trainnolimit.com");
   const path = url.pathname.replace(/\/+$/, "") || "/";
@@ -104,8 +107,14 @@ export function resolveSeoPage(
 
   let key: CopyKey = "home";
   let canonicalPath = path;
-  if (path === "/store" || url.searchParams.get("page") === "store") key = "store";
-  else if (path === "/coaching" || url.searchParams.get("invite") === "client") {
+  const isStoreUrl = path === "/store" || url.searchParams.get("page") === "store";
+  if (isStoreUrl && storePublic) key = "store";
+  else if (isStoreUrl) {
+    // Store hidden: the URL renders the landing page, so it canonicalises
+    // to "/" instead of advertising a page that no longer exists.
+    key = "home";
+    canonicalPath = "/";
+  } else if (path === "/coaching" || url.searchParams.get("invite") === "client") {
     key = "coaching";
     canonicalPath = "/coaching";
   } else if (path === "/in-person" || url.searchParams.get("enquiry") === "inperson") {

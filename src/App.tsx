@@ -48,6 +48,7 @@ import {
 } from "react";
 import { useTranslation } from "react-i18next";
 import "./App.css";
+import { STORE_PUBLIC } from "./storeFlags";
 import {
   BRAND_MONOGRAM_BLACK,
   BRAND_MONOGRAM_WHITE,
@@ -266,8 +267,11 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   // Root is the public brand landing page. Store remains available at /store
   // and ?page=store. Coach app is at ?view=coach, athlete portal at
   // ?portal=client, intake at ?invite=client.
+  // While the store is hidden (src/storeFlags.ts) both store URLs fall
+  // through to the landing page instead of a catalog with nothing real in it.
   const isStorePage =
-    inviteSearchParams.get("page") === "store" || publicPath === "/store";
+    STORE_PUBLIC &&
+    (inviteSearchParams.get("page") === "store" || publicPath === "/store");
   const isPublicLandingPage =
     !isStorePage &&
     !legalKind &&
@@ -2345,7 +2349,13 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     }
 
     try {
-      const response = await fetch("/api/productOrders");
+      // The portal only ever needs its own purchases; the unscoped order book
+      // is coach-key-gated on the server.
+      const response = await fetch(
+        isClientPortal && clientPortalCode
+          ? `/api/productOrders?clientCode=${encodeURIComponent(clientPortalCode)}`
+          : "/api/productOrders"
+      );
       const data = await response.json();
 
       if (!response.ok) {
@@ -2502,7 +2512,10 @@ function App({ onReady }: { onReady?: () => void } = {}) {
 
   // Quiet-load per-client 7-day activity for the Clients list (no modal).
   useEffect(() => {
-    if (isClientPortal || isStorePage || isPublicLandingPage || activePage !== "Clients") return;
+    // Coach console only: the public invite/enquiry/legal pages share this
+    // App shell with activePage defaulting to "Clients", and analytics is a
+    // coach-key-gated endpoint.
+    if (!isCoachView || isClientPortal || isStorePage || isPublicLandingPage || activePage !== "Clients") return;
 
     let cancelled = false;
     fetch("/api/analytics")
@@ -2528,7 +2541,19 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   }, [isClientPortal, activePage, clients.length]);
 
   useEffect(() => {
-    if (isStorePage || isPublicLandingPage) {
+    // Every public surface (landing, store, 1:1 sign-up, in-person enquiry,
+    // legal pages) boots with public data only. Before 2026-09-18 the sign-up,
+    // enquiry and legal pages fell through to the coach boot below and pulled
+    // the roster, teams and subscriptions keylessly — the same leak class as
+    // the 2026-07-30 audit, and a guaranteed 401 storm once the coach key is
+    // on.
+    if (
+      isStorePage ||
+      isPublicLandingPage ||
+      isClientInvite ||
+      isInPersonEnquiry ||
+      legalKind
+    ) {
       void loadPrograms();
       void loadCoaches(); // powers the store "Meet your coach" section
       fetch("/api/reviews?storeOnly=1")

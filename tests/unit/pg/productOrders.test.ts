@@ -208,6 +208,43 @@ describe("api/updateProductOrder (postgres)", () => {
 });
 
 describe("api/productOrders list (postgres)", () => {
+  it("scopes to one athlete with ?clientCode and key-gates the full book", async () => {
+    await seedProgram({ program_id: "PR-1001", name: "Test Program" });
+    await seedClient({ client_id: "CL-9001", full_name: "Bob Tan" });
+    await seedClient({ client_id: "CL-9002", full_name: "Amy Wu" });
+    // A coach-created order carries only the name; the client link is set by
+    // fulfilment (activateDigitalOrder) — mirror that directly.
+    const bob = await createOrder({ clientName: "Bob Tan", programId: "PR-1001", productName: "Test Program" });
+    const amy = await createOrder({ clientName: "Amy Wu", programId: "PR-1001", productName: "Test Program" });
+    await rows("update product_orders set client_id = $1 where order_id = $2", ["CL-9001", bob.body.orderId]);
+    await rows("update product_orders set client_id = $1 where order_id = $2", ["CL-9002", amy.body.orderId]);
+
+    // Portal mode: only Amy's order, whatever the casing of her code.
+    const scoped = makeRes();
+    await listHandler(makeReq({ method: "GET", query: { clientCode: "cl-9002" } }) as any, scoped as any);
+    expect(scoped.statusCode).toBe(200);
+    expect(scoped.body.orders.map((o: any) => o.clientId)).toEqual(["CL-9002"]);
+
+    process.env.COACH_ACCESS_KEY = "test-key";
+    try {
+      // Unscoped without the key: refused (every buyer's name/phone/payment).
+      const denied = makeRes();
+      await listHandler(makeReq({ method: "GET" }) as any, denied as any);
+      expect(denied.statusCode).toBe(401);
+
+      // Coach with the key: the full book.
+      const full = makeRes();
+      await listHandler(
+        makeReq({ method: "GET", headers: { "x-coach-key": "test-key" } }) as any,
+        full as any
+      );
+      expect(full.statusCode).toBe(200);
+      expect(full.body.orders).toHaveLength(2);
+    } finally {
+      delete process.env.COACH_ACCESS_KEY;
+    }
+  });
+
   it("returns [] when there are no orders", async () => {
     const res = makeRes();
     await listHandler(makeReq({ method: "GET" }) as any, res as any);

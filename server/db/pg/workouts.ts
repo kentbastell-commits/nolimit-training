@@ -216,6 +216,21 @@ export async function reorderAssignedWorkouts(
   }
 }
 
+// Which athlete an assigned workout belongs to (either id form accepted).
+// Used by athlete-facing writes to refuse moves on someone else's session.
+export async function getAssignedWorkoutClientCode(
+  ids: Array<string | undefined>
+): Promise<string> {
+  const candidates = Array.from(new Set(ids.filter(Boolean))) as string[];
+  if (!candidates.length) return "";
+  const found = await db
+    .select({ clientId: assignedWorkouts.clientId })
+    .from(assignedWorkouts)
+    .where(inArray(assignedWorkouts.assignedWorkoutId, candidates))
+    .limit(1);
+  return found[0]?.clientId || "";
+}
+
 export async function updateAssignedWorkoutDate(
   input: UpdateWorkoutDateInput
 ): Promise<WorkoutWriteResult> {

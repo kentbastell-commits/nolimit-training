@@ -18,6 +18,7 @@ import {
   UserCircle,
 } from "lucide-react";
 import { normalizeDate } from "./appCore";
+import { STORE_PUBLIC } from "./storeFlags";
 import CountUp from "./CountUp";
 import PortalToApp from "./PortalToApp";
 
@@ -497,13 +498,15 @@ export default function ClientWorkspace({
                     <BookOpen size={21} strokeWidth={2.2} />
                     <span>{t("myPrograms")}</span>
                   </button>
-                  <button
-                    className={clientTab === "Store" ? "active" : ""}
-                    onClick={() => setClientTab("Store")}
-                  >
-                    <ShoppingBag size={21} strokeWidth={2.2} />
-                    <span>{t("store")}</span>
-                  </button>
+                  {STORE_PUBLIC && (
+                    <button
+                      className={clientTab === "Store" ? "active" : ""}
+                      onClick={() => setClientTab("Store")}
+                    >
+                      <ShoppingBag size={21} strokeWidth={2.2} />
+                      <span>{t("store")}</span>
+                    </button>
+                  )}
                   <button
                     className={clientTab === "Overview" ? "active" : ""}
                     onClick={() => setClientTab("Overview")}
@@ -538,9 +541,11 @@ export default function ClientWorkspace({
                             ? `计划访问还剩 ${daysLeft} 天。`
                             : `${daysLeft} day${daysLeft === 1 ? "" : "s"} of program access left.`}
                       </span>
-                      <a href="/store">
-                        {paceZh ? "续订 / 浏览计划" : "Renew / browse programs"}
-                      </a>
+                      {STORE_PUBLIC && (
+                        <a href="/store">
+                          {paceZh ? "续订 / 浏览计划" : "Renew / browse programs"}
+                        </a>
+                      )}
                     </div>
                   );
                 })()}
@@ -593,7 +598,9 @@ export default function ClientWorkspace({
                       ["Home", Home, t("home")],
                       ["Training", CalendarDays, t("calendar")],
                       ["Programs", BookOpen, t("myPrograms")],
-                      ["Store", ShoppingBag, paceZh ? "商店" : "Store"],
+                      ...(STORE_PUBLIC
+                        ? [["Store", ShoppingBag, paceZh ? "商店" : "Store"]]
+                        : []),
                       ["Overview", UserCircle, t("profile")],
                     ].map(([key, Icon, label]: any) => (
                       <button
@@ -1107,7 +1114,7 @@ export default function ClientWorkspace({
                 />
               )}
 
-              {clientTab === "Store" && renderProgramStore()}
+              {STORE_PUBLIC && clientTab === "Store" && renderProgramStore()}
             </section>
           </div>
     </>

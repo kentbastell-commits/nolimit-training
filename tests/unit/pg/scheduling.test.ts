@@ -285,6 +285,48 @@ describe("api/updateAssignedProgramDate (postgres)", () => {
     expect(now["AW-1"]).toBe(dayStart("2026-08-06"));
     expect(now["AW-2"]).toBe(neighbour);
   });
+
+  it("refuses to move another athlete's session when the caller names itself", async () => {
+    await seedClient({ client_id: "CL-9002", full_name: "Amy Wu" });
+    const original = utcMs("2026-08-03");
+    await seedWorkout("AW-1", original);
+    await seedWorkout("AW-3", original, { client_id: "CL-9002" });
+
+    // Amy claims Bob's session: refused, nothing moves.
+    const denied = await post(updateDateHandler, {
+      assignedWorkoutId: "AW-1",
+      scheduledDate: "2026-08-06",
+      clientCode: "CL-9002",
+    });
+    expect(denied.statusCode).toBe(403);
+    expect((await dates())["AW-1"]).toBe(original);
+
+    // Her own session (any casing of the code) moves fine.
+    const ok = await post(updateDateHandler, {
+      assignedWorkoutId: "AW-3",
+      scheduledDate: "2026-08-06",
+      clientCode: "cl-9002",
+    });
+    expect(ok.statusCode).toBe(200);
+    expect((await dates())["AW-3"]).toBe(dayStart("2026-08-06"));
+
+    // A coach carrying the access key may move anyone's session.
+    process.env.COACH_ACCESS_KEY = "test-key";
+    try {
+      const res = makeRes();
+      await updateDateHandler(
+        makeReq({
+          method: "POST",
+          headers: { "x-coach-key": "test-key" },
+          body: { assignedWorkoutId: "AW-1", scheduledDate: "2026-08-07", clientCode: "CL-9002" },
+        }) as any,
+        res as any
+      );
+      expect(res.statusCode).toBe(200);
+    } finally {
+      delete process.env.COACH_ACCESS_KEY;
+    }
+  });
 });
 
 describe("api/duplicateAssignedWorkout (postgres)", () => {
