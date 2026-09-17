@@ -171,10 +171,14 @@ data between them, never "borrow" a table ID across products.
     while a single file passes: that's memory exhaustion, not broken tests — and
     it is NOT reliably predicted by free RAM: it fired at `--maxWorkers=2`
     with 1.2GB free once and again with 3.5GB free, so "check free RAM" is a
-    weak signal. Rule: single file passes → go straight to `--maxWorkers=1`,
-    which always fits (full suite ≈2min). Never touch test code off a phantom
-    run, and never conclude a config edit broke the suite until one file has
-    been run on its own.
+    weak signal. Rule: single file passes → go straight to `--maxWorkers=1`
+    (full suite ≈2min). Never touch test code off a phantom run, and never
+    conclude a config edit broke the suite until one file has been run on
+    its own. 2026-09-18: it fired even AT `--maxWorkers=1` (20 pg files
+    "failed", "Vitest failed to find the runner"). The gate that always
+    works: run the pg project one file per process (`for f in
+    tests/unit/pg/*.test.ts; do npx vitest run --project pg --maxWorkers=1
+    "$f"; done`, ~4 min) and `--project node --project dom` separately.
 16. **The clobbered intent** — the store checkout has a `useEffect` keyed on
     `storeSelectedProgram?.recordId` that resets step/add-ons/paymentCode. Any
     handler that sets one of those *while also changing the selected program*
@@ -577,6 +581,17 @@ data between them, never "borrow" a table ID across products.
     repository under `server/db/repositories/` for `!clientId`-style "empty
     filter returns all" branches and gate every one in the same pass, not just
     the reported one.
+    RECURRED client-side 2026-09-18: the public `/coaching`, `/in-person` and
+    legal pages share App.tsx's boot effect, whose guard listed only
+    `isStorePage || isPublicLandingPage`, so every visitor to those pages
+    keylessly pulled the roster, teams and subscriptions — and the 2026-07-30
+    audit's "the portal never needed them" was true yet missed these
+    surfaces. Rule: a boot/page-visit effect in the monolith is gated on the
+    surface that NEEDS the data (`isCoachView`), never on a list of surfaces
+    that don't; and the way to prove a lock is safe is to record which
+    `/api/*` names every public URL actually fires (Playwright `request`
+    listener) and intersect with `COACH_ONLY_HANDLERS`, not to reason from
+    guards.
 50. **The two-field kind** — a digital product's real "kind" (program / bundle
     / add-on) lives in `storeListingType`; `productType` stays `"Digital
     Program"` for bundles and add-ons too (confirmed live: all 3 real add-ons
@@ -800,6 +815,16 @@ data between them, never "borrow" a table ID across products.
     ship as JSON, apply server-side with per-row guards (file-exists on
     prod disk, never overwrite non-empty prod values, skip existing IDs)
     and a --dry mode first.
+64. **The permissive gate used as proof** — `coachKeyOk()` deliberately
+    returns TRUE while `COACH_ACCESS_KEY` is unset (so gating can roll out
+    safely). Reused as "is this caller a coach?" to SKIP an athlete
+    ownership check, it granted every keyless caller coach rights for as
+    long as the key stayed unset — the 403 test failed with a 200 on the
+    first run, which is the only reason it never shipped. Rule: a permissive
+    default is for DENYING less, never for GRANTING more; anything that
+    earns extra rights uses `isVerifiedCoach()` (key configured AND
+    presented). Same family as #45: a default that decides who is trusted
+    must fail closed.
 
 ## Quality bar — checkable, per deliverable
 

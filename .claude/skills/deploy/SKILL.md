@@ -50,7 +50,12 @@ an effect check (pm2 uptime reset to seconds, dist chunk grep).
    gate**: they run against a real local Postgres and are the only thing that
    catches a broken money path or a leaked athlete read before a client does.
    Use `--maxWorkers=1` — higher values give phantom whole-suite failures
-   (named mistake #15). Never deploy past a red gate.
+   (named mistake #15). If the full run still shows MANY pg files failing at
+   once with runner/suite nonsense, that is the phantom too (seen at
+   `--maxWorkers=1` on 2026-09-18): re-run the pg project one file per
+   process (`for f in tests/unit/pg/*.test.ts; do npx vitest run --project pg
+   --maxWorkers=1 "$f"; done`) plus `--project node --project dom`, and
+   treat THAT result as the gate. Never deploy past a red gate.
    **Scoped fast lane (company-ops only):** when `git diff --name-only`
    against the server HEAD touches ONLY `src/companyOps/`, `api/companyOps*`,
    and/or `server/companyOps/`, the vitest step may be scoped to
