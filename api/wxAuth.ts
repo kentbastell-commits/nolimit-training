@@ -2,9 +2,12 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import {
   findClientByOpenid,
   bindClientOpenid,
+  createClient,
+  findClientByPhone,
   findClientByPhoneName,
   findClientByPin,
 } from "../server/db/repositories/clients.ts";
+import { resolveMiniPhoneNumber } from "../server/wechat/miniPhone.ts";
 
 // Mini program WeChat auth.
 //   POST { code }               -> one-tap login for an already-bound account
@@ -26,7 +29,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(503).json({ error: "WeChat auth not configured" });
   }
 
-  const { code, phone, name, pin } = req.body || {};
+  const { code, phone, name, pin, phoneCode } = req.body || {};
   if (!code) {
     return res.status(400).json({ error: "code required" });
   }
@@ -43,6 +46,48 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
     const openid = String(session.openid);
+
+    // Self-serve sign-up / login with WeChat's OWN verified phone number
+    // (`<button open-type="getPhoneNumber">` → one-time phoneCode). Ownership
+    // of the number is proven by WeChat, so: an existing account with that
+    // phone (e.g. created by a payment link) is bound and logged in; no
+    // account → one is created from the typed name. A stranger from social
+    // media therefore never needs a coach-issued code (Kent, 2026-09-17).
+    if (phoneCode) {
+      let verifiedPhone = "";
+      try {
+        verifiedPhone = await resolveMiniPhoneNumber(String(phoneCode));
+      } catch (error: any) {
+        return res.status(502).json({ error: "Could not read your WeChat phone number", message: error.message });
+      }
+      const typedName = String(name || "").trim().replace(/\s+/g, " ").slice(0, 60);
+      let clientCode = await findClientByPhone(verifiedPhone, typedName);
+      let created = false;
+      if (!clientCode) {
+        if (typedName.length < 2) {
+          return res.status(404).json({ success: false, needsName: true, error: "No account for this phone yet" });
+        }
+        const made = await createClient({
+          name: typedName,
+          phone: verifiedPhone,
+          source: "Mini program",
+          paymentStatus: "Pending",
+          intakeStatus: "Not Sent",
+          subscriptionStatus: "Active",
+        });
+        clientCode = String((made as { recordId?: string }).recordId || (made as { clientId?: string }).clientId || "");
+        if (!made.success || !clientCode) {
+          return res.status(500).json({ error: "Could not create the account" });
+        }
+        created = true;
+      }
+      const bound = await bindClientOpenid(clientCode, openid);
+      if (!bound.success) {
+        const errorMessage = String(bound.error || "Could not bind WeChat account");
+        return res.status(errorMessage.includes("already linked") ? 409 : 500).json({ error: errorMessage });
+      }
+      return res.status(200).json({ success: true, clientCode, bound: true, created });
+    }
 
     if (pin || (phone && name)) {
       const clientCode = pin

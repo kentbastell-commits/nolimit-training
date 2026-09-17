@@ -78,6 +78,11 @@ export async function findClientByOpenid(openid: string): Promise<string> {
   return await pg.findClientByOpenid(openid);
 }
 
+/** Phone-only match for a WeChat-verified number (see pg.findClientByPhone). */
+export async function findClientByPhone(phone: string, preferName = ""): Promise<string> {
+  return await pg.findClientByPhone(phone, preferName);
+}
+
 export async function bindClientOpenid(
   clientCode: string,
   openid: string

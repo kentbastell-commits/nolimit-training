@@ -281,6 +281,30 @@ export async function findClientByPin(pin: string): Promise<string> {
   return rows[0]?.clientId || "";
 }
 
+// Phone-only lookup for a phone number WeChat itself has verified
+// (getPhoneNumber). Ownership is proven by WeChat, so no name check is
+// needed to bind; the name only breaks ties when one number has several
+// records (family members, a re-created account).
+export async function findClientByPhone(
+  phone: string,
+  preferName = ""
+): Promise<string> {
+  const rows = await db
+    .select({ clientId: clients.clientId, fullName: clients.fullName, fullNameCn: clients.fullNameCn })
+    .from(clients)
+    .where(eq(clients.phone, String(phone).trim()))
+    .orderBy(clients.clientId)
+    .limit(10);
+  if (!rows.length) return "";
+  if (rows.length > 1 && preferName) {
+    const byName = rows.find(
+      (r) => textMatches(r.fullName || "", preferName) || textMatches(r.fullNameCn || "", preferName)
+    );
+    if (byName) return byName.clientId;
+  }
+  return rows[0].clientId;
+}
+
 export async function findClientByOpenid(openid: string): Promise<string> {
   const rows = await db
     .select({ clientId: clients.clientId })
