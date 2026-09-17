@@ -155,7 +155,7 @@ export default function PayLinkPage() {
               <p className="payLinkHint">{tr("WeChat Pay is not available right now.", "微信支付暂不可用。")}</p>
             ) : (
               <>
-                <WxPayPanel orderId={info.orderId} lang={lang} onPaid={() => setPaid(true)} />
+                <WxPayPanel orderId={info.orderId} lang={lang} variant="collect" onPaid={() => setPaid(true)} />
                 {!IS_WECHAT ? (
                   <p className="payLinkHint">
                     {tr(

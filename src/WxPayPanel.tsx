@@ -115,10 +115,13 @@ export default function WxPayPanel({
   orderId,
   lang,
   onPaid,
+  variant = "store",
 }: {
   orderId: string;
   lang: "en" | "zh";
   onPaid?: () => void;
+  /** "collect": a coach-collected fee (pay link) — no program to unlock. */
+  variant?: "store" | "collect";
 }) {
   const [state, setState] = useState<PanelState>({ phase: "loading" });
   const pollRef = useRef<number | null>(null);
@@ -256,9 +259,13 @@ export default function WxPayPanel({
         </span>
         <strong>{zh ? "支付成功！" : "Payment received!"}</strong>
         <p>
-          {zh
-            ? "训练计划已自动解锁——打开客户端即可开始。"
-            : "Your program is unlocked — open your portal to get started."}
+          {variant === "collect"
+            ? zh
+              ? "已记录，谢谢！教练会看到这笔付款。"
+              : "Recorded — thank you! Your coach can see this payment."
+            : zh
+              ? "训练计划已自动解锁——打开客户端即可开始。"
+              : "Your program is unlocked — open your portal to get started."}
         </p>
         <div className="wxpayFollow">
           <img src="/oa-follow-qr.jpg" alt={zh ? "公众号二维码" : "Official account QR"} />
@@ -302,9 +309,13 @@ export default function WxPayPanel({
             : "Open WeChat and use Scan to pay."}
       </p>
       <p className="wxpayAuto">
-        {zh
-          ? "付款成功后此页面会自动确认，训练计划立即解锁。"
-          : "This page confirms automatically after payment — your program unlocks instantly."}
+        {variant === "collect"
+          ? zh
+            ? "付款成功后此页面会自动确认。"
+            : "This page confirms automatically after payment."
+          : zh
+            ? "付款成功后此页面会自动确认，训练计划立即解锁。"
+            : "This page confirms automatically after payment — your program unlocks instantly."}
       </p>
     </div>
   );
