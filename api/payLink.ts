@@ -115,10 +115,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
     let clientCode = await findClientByPhoneName(phone, name);
     if (!clientCode) {
+      // A coaching payment creates a COACHED profile (Extras tab, wellness,
+      // "coach is building your plan"), so the coach never has to fix the
+      // type by hand after a self-serve pay link.
+      const orderType = String(order.productType || "").trim();
+      const coachedType =
+        orderType === "Online Coaching" || orderType === "In-Person Training" ? orderType : "";
       const created = await createClient({
         name,
         phone,
         ...(email ? { email } : {}),
+        ...(coachedType ? { clientType: coachedType } : {}),
         source: "Pay link",
         paymentStatus: "Pending",
         intakeStatus: "Not Sent",

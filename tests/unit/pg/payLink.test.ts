@@ -71,8 +71,15 @@ describe("payLink", () => {
     expect(ok.statusCode).toBe(200);
     const code = String(ok.body.clientCode);
     expect(code).toMatch(/^CL-/);
-    const client = await rows<{ full_name: string; phone: string; source: string }>("select full_name, phone, source from clients where client_id = $1", [code]);
+    const client = await rows<{ full_name: string; phone: string; source: string; client_type: string | null }>("select full_name, phone, source, client_type from clients where client_id = $1", [code]);
     expect(client[0]).toMatchObject({ full_name: "Li Meini", phone: "13800001234", source: "Pay link" });
+    // A coaching order makes a COACHED profile; anything else leaves the type alone.
+    const [{ product_type }] = await rows<{ product_type: string }>("select product_type from product_orders where order_id = $1", [orderId]);
+    if (product_type === "Online Coaching" || product_type === "In-Person Training") {
+      expect(client[0].client_type).toBe(product_type);
+    } else {
+      expect(client[0].client_type || "").toBe("");
+    }
     const order = await rows<{ client_id: string; client_name: string }>("select client_id, client_name from product_orders where order_id = $1", [orderId]);
     expect(order[0]).toMatchObject({ client_id: code, client_name: "Li Meini" });
 

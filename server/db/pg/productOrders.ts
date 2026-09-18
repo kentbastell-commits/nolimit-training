@@ -443,6 +443,7 @@ export type WxpayOrderRow = {
   clientId: string;
   clientName: string;
   productName: string;
+  productType: string;
   amount: number;
   currency: string;
   paymentStatus: string;
@@ -456,6 +457,7 @@ const toWxpayRow = (r: Row): WxpayOrderRow => ({
   clientId: str(r.clientId),
   clientName: str(r.clientName),
   productName: str(r.productName),
+  productType: str(r.productType),
   amount: r.amount == null ? 0 : Number(r.amount),
   currency: str(r.currency),
   paymentStatus: str(r.paymentStatus),
