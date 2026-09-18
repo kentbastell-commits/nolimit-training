@@ -6,17 +6,21 @@ import { clients, assignedWorkouts } from "../schema.ts";
 // ("13900001111"); coaches type "+86 139 0000 1111", "139-0000-1111" or the
 // bare number. A mismatch here silently creates a SECOND account for an
 // athlete the coach already set up (with her program on the first one), so
-// every phone lookup compares the last 11 digits of both sides — the length
-// of a mainland mobile — after stripping everything that isn't a digit.
-// Shorter values (landlines, foreign numbers) compare digits-for-digits.
+// every phone lookup compares the last 10 digits of both sides after
+// stripping everything that isn't a digit. Ten covers both markets: a
+// mainland mobile is 11 digits that always start with 1 (so its last 10 are
+// as unique as the whole), and a US/Canada number is exactly 10 — and WeChat
+// reports the national number WITHOUT the country code (purePhoneNumber),
+// so "+1 415 555 0000" typed by the coach and "4155550000" from WeChat meet.
+// Shorter values compare digits-for-digits.
 export function phoneDigits(value: unknown): string {
   return String(value ?? "").replace(/\D/g, "");
 }
 export function phoneMatches(phone: unknown): SQL {
   const digits = phoneDigits(phone);
   const stored = sql`regexp_replace(coalesce(${clients.phone}, ''), '\\D', '', 'g')`;
-  if (digits.length >= 11) {
-    return sql`right(${stored}, 11) = ${digits.slice(-11)}`;
+  if (digits.length >= 10) {
+    return sql`right(${stored}, 10) = ${digits.slice(-10)}`;
   }
   return sql`${stored} = ${digits}`;
 }

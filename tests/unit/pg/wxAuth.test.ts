@@ -70,6 +70,20 @@ describe("wxAuth sign-up with a WeChat-verified phone", () => {
     expect((await rows("select client_id from clients")).length).toBe(1);
   });
 
+  it("matches a US number typed with +1 against WeChat's national number", async () => {
+    // WeChat's purePhoneNumber carries no country code: "+1 (415) 555-0100"
+    // on the coach's side must meet "4155550100" from the phone.
+    const made = await createClient({ name: "Ava Miller", phone: "+1 (415) 555-0100", source: "Coach" });
+    const existingCode = String((made as { recordId?: string }).recordId);
+    stubWeChat("4155550100");
+
+    const res = makeRes();
+    await handler(makeReq({ method: "POST", body: { code: "jscode", phoneCode: "pc" } }) as any, res as any);
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toMatchObject({ success: true, clientCode: existingCode, created: false });
+    expect((await rows("select client_id from clients")).length).toBe(1);
+  });
+
   it("asks for a name when the phone is new, then creates the account and binds it", async () => {
     stubWeChat("13700002222", "openid-B");
     const noName = makeRes();
