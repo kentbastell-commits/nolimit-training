@@ -776,6 +776,15 @@ export default function CoachingFlowPage() {
                 </div>
               </div>
 
+              <div className="cfpAppCode">
+                <img src="/mini-program-code.jpg" alt="NX LIMIT mini program code" />
+                <p>
+                  {t(
+                    "Long-press to open the NX LIMIT mini program in WeChat and log in with the phone number you used here.",
+                    "长按识别小程序码，在微信中打开 NX LIMIT 小程序，用本次填写的手机号一键登录。",
+                  )}
+                </p>
+              </div>
               {portalLink && (
                 <a className="cfpPrimary cfpDoneCta" href={portalLink}>
                   {t("Open my portal", "打开我的主页")}

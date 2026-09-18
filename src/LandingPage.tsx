@@ -599,6 +599,14 @@ export default function LandingPage({
 
       <footer className="lv3Footer">
         <span>{landingCopy.footer}</span>
+        <div className="lv3FooterApp">
+          <img src="/mini-program-code.jpg" alt="NX LIMIT WeChat mini program" />
+          <span>
+            {lZh
+              ? "已是学员？微信扫码打开 NX LIMIT 小程序"
+              : "Already training with us? Scan in WeChat to open the NX LIMIT mini program"}
+          </span>
+        </div>
         <div className="lv3FooterLinks">
           {STORE_PUBLIC && <a href="/store">{landingCopy.navPrograms}</a>}
           <a href="/coaching">{landingCopy.navCoaching}</a>

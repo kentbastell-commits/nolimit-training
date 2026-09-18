@@ -200,6 +200,15 @@ export default function PayLinkPage() {
                     <a className="payLinkCta payLinkCta--link" href={`/?portal=client&client=${encodeURIComponent(info.clientCode)}`}>
                       {tr("Open my portal", "打开我的训练页面")}
                     </a>
+                    <div className="payLinkAppCode">
+                      <img src="/mini-program-code.jpg" alt="NX LIMIT mini program code" />
+                      <p className="payLinkHint">
+                        {tr(
+                          "Long-press the code to open the NX LIMIT mini program in WeChat, then tap “Continue with WeChat” — your account is matched by this phone number.",
+                          "长按识别小程序码，打开 NX LIMIT 小程序，点击“微信一键登录”即可进入你的账户（按此手机号匹配）。",
+                        )}
+                      </p>
+                    </div>
                   </div>
                 ) : null}
               </>

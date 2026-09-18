@@ -192,3 +192,18 @@
   justify-content: center;
   text-decoration: none;
 }
+/* Mini program scan code after payment: long-press in WeChat opens the app. */
+.payLinkAppCode {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding-top: 12px;
+  border-top: 1px solid var(--pl-line);
+}
+.payLinkAppCode img {
+  width: 168px;
+  height: 168px;
+  border-radius: 12px;
+  background: #fff;
+}
