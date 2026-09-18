@@ -181,7 +181,7 @@ export default function PayLinkPage() {
             <h1 className="payLinkAmount">{amountLabel}</h1>
             <p className="payLinkLabel">{info.label}</p>
             {info.clientName && info.clientName !== info.label ? (
-              <p className="payLinkFor">{tr("For", "付款人")}: {info.clientName}</p>
+              <p className="payLinkFor">{tr("Athlete", "训练者")}: {info.clientName}</p>
             ) : null}
 
             {paid ? (
@@ -231,7 +231,10 @@ export default function PayLinkPage() {
                 }}
               >
                 <p className="payLinkHint">
-                  {tr("First, who is this for? Your account is created from these details.", "请先填写付款人信息，系统将据此创建你的训练账户。")}
+                  {tr(
+                    "First, who will be training? Enter the athlete's name and the phone number on the WeChat they will use — paying for your child? Enter the child's details, then pay with your own WeChat.",
+                    "请先填写训练者信息：训练者姓名和其微信绑定的手机号。为孩子购买？请填写孩子的信息，再用你自己的微信付款。",
+                  )}
                 </p>
                 <label>
                   <span>{tr("Your name", "姓名")} *</span>
