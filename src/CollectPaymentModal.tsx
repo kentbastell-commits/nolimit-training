@@ -209,14 +209,9 @@ export default function CollectPaymentModal({
             <div className="collectPayBody collectPayBody--qr">
               <span className="collectPayAmount">{phase.amountLabel}</span>
               <span className="collectPayLabel">{phase.label}</span>
-              <img src={phase.qrDataUrl} alt={tr("WeChat Pay QR", "微信支付二维码")} />
-              <p className="collectPayHint">
-                {tr(
-                  "In person: they scan this with WeChat. A screenshot of the QR can't be paid — for remote clients send the link below instead. Valid ~2 hours; this window turns green the moment they pay.",
-                  "当面收款：对方用微信扫码。二维码截图无法支付——远程客户请发送下方链接。有效期约2小时；付款成功后此窗口会自动变绿。",
-                )}
-              </p>
-              <div className="collectPayLink">
+              {/* Link FIRST: remote clients are the common case; the QR only
+                  works for someone scanning the coach's screen in person. */}
+              <div className="collectPayLink collectPayLink--first">
                 <input
                   readOnly
                   value={`${window.location.origin}/pay/${phase.payLinkKey}`}
@@ -240,6 +235,16 @@ export default function CollectPaymentModal({
                   {tr("Send it in WeChat — it opens the payment sheet directly, no scanning.", "微信里发给对方——点开即可直接付款，无需扫码。")}
                 </span>
               </div>
+              <details className="collectPayQrFold">
+                <summary>{tr("In person? Show the QR instead", "当面收款？显示二维码")}</summary>
+                <img src={phase.qrDataUrl} alt={tr("WeChat Pay QR", "微信支付二维码")} />
+                <p className="collectPayHint">
+                  {tr(
+                    "They scan this with WeChat on your screen. A screenshot of the QR can't be paid. Valid ~2 hours; this window turns green the moment they pay.",
+                    "对方用微信扫你屏幕上的码。二维码截图无法支付。有效期约2小时；付款成功后此窗口会自动变绿。",
+                  )}
+                </p>
+              </details>
             </div>
           ) : null}
 
