@@ -1,6 +1,25 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql, type SQL } from "drizzle-orm";
 import { db } from "../client.ts";
 import { clients, assignedWorkouts } from "../schema.ts";
+
+// Phone matching that survives formatting. WeChat hands us pure digits
+// ("13900001111"); coaches type "+86 139 0000 1111", "139-0000-1111" or the
+// bare number. A mismatch here silently creates a SECOND account for an
+// athlete the coach already set up (with her program on the first one), so
+// every phone lookup compares the last 11 digits of both sides — the length
+// of a mainland mobile — after stripping everything that isn't a digit.
+// Shorter values (landlines, foreign numbers) compare digits-for-digits.
+export function phoneDigits(value: unknown): string {
+  return String(value ?? "").replace(/\D/g, "");
+}
+export function phoneMatches(phone: unknown): SQL {
+  const digits = phoneDigits(phone);
+  const stored = sql`regexp_replace(coalesce(${clients.phone}, ''), '\\D', '', 'g')`;
+  if (digits.length >= 11) {
+    return sql`right(${stored}, 11) = ${digits.slice(-11)}`;
+  }
+  return sql`${stored} = ${digits}`;
+}
 import { queueTranslations, translationPatch } from "../contentTranslations.ts";
 import { epochToDate, pgErrorMessage, str } from "./_util.ts";
 import type { ClientDTO, UpdateClientInput, WriteResult } from "../dto.ts";
@@ -257,7 +276,7 @@ export async function findClientByPhoneName(
       fullNameCn: clients.fullNameCn,
     })
     .from(clients)
-    .where(eq(clients.phone, String(phone).trim()))
+    .where(phoneMatches(phone))
     .limit(10);
 
   const match = rows.find(
@@ -292,7 +311,7 @@ export async function findClientByPhone(
   const rows = await db
     .select({ clientId: clients.clientId, fullName: clients.fullName, fullNameCn: clients.fullNameCn })
     .from(clients)
-    .where(eq(clients.phone, String(phone).trim()))
+    .where(phoneMatches(phone))
     .orderBy(clients.clientId)
     .limit(10);
   if (!rows.length) return "";

@@ -57,6 +57,19 @@ describe("wxAuth sign-up with a WeChat-verified phone", () => {
     expect(again.body).toMatchObject({ success: true, clientCode: existingCode });
   });
 
+  it("finds a coach-created account whose phone was typed with +86, spaces and dashes", async () => {
+    // Kent adds an athlete before she opens the app; WeChat reports bare digits.
+    const made = await createClient({ name: "Zhou Yanjun", phone: "+86 139-0000-1111", source: "Coach" });
+    const existingCode = String((made as { recordId?: string }).recordId);
+    stubWeChat("13900001111");
+
+    const res = makeRes();
+    await handler(makeReq({ method: "POST", body: { code: "jscode", phoneCode: "pc" } }) as any, res as any);
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toMatchObject({ success: true, clientCode: existingCode, created: false });
+    expect((await rows("select client_id from clients")).length).toBe(1);
+  });
+
   it("asks for a name when the phone is new, then creates the account and binds it", async () => {
     stubWeChat("13700002222", "openid-B");
     const noName = makeRes();

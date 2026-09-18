@@ -15,6 +15,7 @@ import {
   assignedForms,
 } from "../schema.ts";
 import { dayStartMs, str } from "./_util.ts";
+import { phoneMatches } from "./clients.ts";
 import type {
   ActivateDigitalOrderInput,
   CoachingSignupInput,
@@ -152,7 +153,7 @@ export async function activateDigitalOrder(
   }
   if (!existing) {
     existing = (
-      await db.select().from(clients).where(eq(clients.phone, String(phone)))
+      await db.select().from(clients).where(phoneMatches(phone))
     )[0];
   }
 
@@ -515,7 +516,7 @@ export async function coachingSignup(body: CoachingSignupInput): Promise<SignupR
 
   // 1+2. Find existing client by phone, create or refresh.
   let clientCode = "";
-  const existingRows = await db.select().from(clients).where(eq(clients.phone, phone));
+  const existingRows = await db.select().from(clients).where(phoneMatches(phone));
   const existing = existingRows[0];
   const qualifierNotes = buildQualifierNotes(body);
 
