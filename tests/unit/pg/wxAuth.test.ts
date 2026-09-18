@@ -6,6 +6,7 @@ import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vites
 import handler from "../../../api/wxAuth.ts";
 import { createClient } from "../../../server/db/repositories/clients.ts";
 import { resetMiniAccessTokenCache } from "../../../server/wechat/miniPhone.ts";
+import { makeInviteToken } from "../../../server/wechat/invite.ts";
 import { closeDb, makeReq, makeRes, resetDb, rows } from "./helpers.ts";
 
 process.env.WECHAT_MINI_APPID = "wx-test-app";
@@ -82,6 +83,30 @@ describe("wxAuth sign-up with a WeChat-verified phone", () => {
     expect(res.statusCode).toBe(200);
     expect(res.body).toMatchObject({ success: true, clientCode: existingCode, created: false });
     expect((await rows("select client_id from clients")).length).toBe(1);
+  });
+
+  it("binds whoever presents a coach-issued invite, and refuses a second WeChat", async () => {
+    const made = await createClient({ name: "Ethan Miller", source: "Coach" });
+    const existingCode = String((made as { recordId?: string }).recordId);
+    const invite = makeInviteToken(existingCode);
+
+    // The child's WeChat (no phone step at all).
+    stubWeChat("", "openid-child");
+    const res = makeRes();
+    await handler(makeReq({ method: "POST", body: { code: "jscode", invite } }) as any, res as any);
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toMatchObject({ success: true, clientCode: existingCode, invited: true });
+
+    // A different WeChat with the same image: refused, the child keeps the account.
+    stubWeChat("", "openid-stranger");
+    const again = makeRes();
+    await handler(makeReq({ method: "POST", body: { code: "jscode", invite } }) as any, again as any);
+    expect(again.statusCode).toBe(409);
+
+    // Forged / expired invites are refused outright.
+    const bad = makeRes();
+    await handler(makeReq({ method: "POST", body: { code: "jscode", invite: "i.CL-9999.zzzz.forged" } }) as any, bad as any);
+    expect(bad.statusCode).toBe(410);
   });
 
   it("asks for a name when the phone is new, then creates the account and binds it", async () => {

@@ -6,6 +6,7 @@ import {
 } from "../server/db/repositories/productOrders.ts";
 import { verifyPayLinkKey } from "../server/wxpay/client.ts";
 import { createClient, findClientByPhoneName } from "../server/db/repositories/clients.ts";
+import { inviteCodeDataUrl, makeInviteToken } from "../server/wechat/invite.ts";
 
 // Public payment link (/pay/<tradeNo>) — the shareable alternative to the
 // coach's collect-payment QR. A WeChat Pay Native QR can only be paid by a
@@ -74,6 +75,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const notes = String(order.notes || "");
 
   if (req.method === "GET") {
+    // Paid + attached to a client → the page shows THAT athlete's personal
+    // invite code (scan/long-press → bound to this account), which the payer
+    // may forward to whoever will actually train (a parent to a child).
+    // Best-effort: a WeChat hiccup must never break the paid page.
+    let inviteImage = "";
+    if (paid && order.clientId) {
+      try {
+        inviteImage = await inviteCodeDataUrl(makeInviteToken(String(order.clientId)));
+      } catch {
+        inviteImage = "";
+      }
+    }
     return res.status(200).json({
       orderId: order.orderId,
       amount,
@@ -85,6 +98,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       needsIdentity: !order.clientId,
       // The payer's own account code, for the "your account is ready" step.
       clientCode: order.clientId || "",
+      inviteImage,
       fapiao: parseFapiao(notes),
     });
   }

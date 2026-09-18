@@ -1,6 +1,8 @@
 // Extracted from App.tsx (monolith split) — JSX verbatim; props threaded.
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { useState } from "react";
 import PortalHome from "./PortalHome";
+import ClientInviteModal from "./ClientInviteModal";
 import "./ClientWorkspace.css";
 import PortalTraining from "./PortalTraining";
 import PortalPrograms from "./PortalPrograms";
@@ -441,8 +443,19 @@ export default function ClientWorkspace({
     };
   })();
 
+  // Coach-only: "Invite via WeChat / collect" (optional pay link, then the
+  // athlete's personal scan code). Local state — the monolith needn't know.
+  const [inviteOpen, setInviteOpen] = useState(false);
+
   return (
     <>
+          {inviteOpen && !isClientPortal && selectedClient ? (
+            <ClientInviteModal
+              client={{ clientCode: selectedClient.clientCode, name: selectedClient.name }}
+              isChinese={Boolean(paceZh)}
+              onClose={() => setInviteOpen(false)}
+            />
+          ) : null}
           <div
             className={
               clientTab === "Training" ? "clientPage trainingFocus" : "clientPage"
@@ -704,6 +717,9 @@ export default function ClientWorkspace({
                           </button>
                           <button onClick={() => openEditClientForm(selectedClient)}>
                             {t("editAssignCoach")}
+                          </button>
+                          <button onClick={() => setInviteOpen(true)}>
+                            {paceZh ? "微信邀请 / 收款" : "Invite via WeChat / collect"}
                           </button>
                           <button
                             onClick={() =>

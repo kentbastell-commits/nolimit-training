@@ -8,6 +8,7 @@ import {
   findClientByPin,
 } from "../server/db/repositories/clients.ts";
 import { makeVerifiedPhoneToken, resolveMiniPhoneNumber, verifyPhoneToken } from "../server/wechat/miniPhone.ts";
+import { verifyInviteToken } from "../server/wechat/invite.ts";
 
 // Mini program WeChat auth.
 //   POST { code }               -> one-tap login for an already-bound account
@@ -29,7 +30,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(503).json({ error: "WeChat auth not configured" });
   }
 
-  const { code, phone, name, pin, phoneCode, phoneToken } = req.body || {};
+  const { code, phone, name, pin, phoneCode, phoneToken, invite } = req.body || {};
   if (!code) {
     return res.status(400).json({ error: "code required" });
   }
@@ -101,6 +102,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(errorMessage.includes("already linked") ? 409 : 500).json({ error: errorMessage });
       }
       return res.status(200).json({ success: true, clientCode, bound: true, created });
+    }
+
+    // Coach-issued personal invite (scan code / ?invite= link): the token
+    // names the client, so whoever scans it is bound — no phone, no name. A
+    // parent can forward the code to a child's phone. bindClientOpenid still
+    // refuses a client already bound to another WeChat (409 below).
+    if (invite) {
+      const clientCode = verifyInviteToken(String(invite));
+      if (!clientCode) {
+        return res.status(410).json({ error: "Invite expired or invalid — ask your coach for a new one" });
+      }
+      const bound = await bindClientOpenid(clientCode, openid);
+      if (!bound.success) {
+        const errorMessage = String(bound.error || "Could not bind WeChat account");
+        return res.status(errorMessage.includes("already linked") ? 409 : 500).json({ error: errorMessage });
+      }
+      return res.status(200).json({ success: true, clientCode, bound: true, invited: true });
     }
 
     if (pin || (phone && name)) {

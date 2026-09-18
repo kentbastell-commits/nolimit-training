@@ -100,6 +100,7 @@ import workoutHistory from "../api/workoutHistory.ts";
 import workoutComments from "../api/workoutComments.ts";
 import warmCache from "../api/warmCache.ts";
 import wxAuth from "../api/wxAuth.ts";
+import clientInvite from "../api/clientInvite.ts";
 import wxAuthWeb from "../api/wxAuthWeb.ts";
 import wxLogin from "../api/wxLogin.ts";
 import wxpayConfig from "../api/wxpayConfig.ts";
@@ -343,6 +344,7 @@ const handlers = {
   upsertTeam,
   warmCache,
   wxAuth,
+  clientInvite,
   wxAuthWeb,
   wxLogin,
   wxpayCollect,

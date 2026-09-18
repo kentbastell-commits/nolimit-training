@@ -17,6 +17,8 @@ type LinkInfo = {
   paid: boolean;
   needsIdentity: boolean;
   clientCode: string;
+  /** Data URL of the athlete's personal invite scan code, once paid. */
+  inviteImage?: string;
   fapiao: { title: string; taxId: string; email: string; requestedAt: string } | null;
 };
 
@@ -201,12 +203,20 @@ export default function PayLinkPage() {
                       {tr("Open my portal", "打开我的训练页面")}
                     </a>
                     <div className="payLinkAppCode">
-                      <img src="/mini-program-code.jpg" alt="NX LIMIT mini program code" />
+                      <img
+                        src={info.inviteImage || "/mini-program-code.jpg"}
+                        alt="NX LIMIT mini program code"
+                      />
                       <p className="payLinkHint">
-                        {tr(
-                          "Long-press the code to open the NX LIMIT mini program in WeChat, then tap “Continue with WeChat” — your account is matched by this phone number.",
-                          "长按识别小程序码，打开 NX LIMIT 小程序，点击“微信一键登录”即可进入你的账户（按此手机号匹配）。",
-                        )}
+                        {info.inviteImage
+                          ? tr(
+                              "This code is yours. Long-press it in WeChat to open the NX LIMIT mini program, tap “Continue with WeChat”, and you are signed in. Training for someone else? Save the image and send it to their phone — whoever opens it gets this account.",
+                              "这是你的专属码。在微信里长按识别，打开 NX LIMIT 小程序，点击“微信一键登录”即可进入账户。如果是为家人购买，把图片保存并发给对方手机，谁打开谁登录。",
+                            )
+                          : tr(
+                              "Long-press the code to open the NX LIMIT mini program in WeChat, then tap “Continue with WeChat” — your account is matched by this phone number.",
+                              "长按识别小程序码，打开 NX LIMIT 小程序，点击“微信一键登录”即可进入你的账户（按此手机号匹配）。",
+                            )}
                       </p>
                     </div>
                   </div>

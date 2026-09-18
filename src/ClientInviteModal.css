@@ -1,0 +1,81 @@
+/* Invite-via-WeChat modal (coach console). Fixed overlay portaled to .app
+   (mistake #34); below toasts (3600+), above drawers. */
+.clientInviteScrim {
+  position: fixed;
+  inset: 0;
+  z-index: 3300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  background: rgba(10, 10, 8, 0.55);
+}
+.clientInviteModal {
+  width: min(440px, 100%);
+  max-height: min(90vh, 720px);
+  overflow-y: auto;
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  border-radius: 16px;
+  background: var(--nl-surface, #fffdf7);
+  color: var(--nl-ink, #171512);
+  box-shadow: 0 24px 60px rgba(10, 10, 8, 0.35);
+}
+.clientInviteModal > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 18px;
+  border-bottom: 1px solid rgba(120, 110, 80, 0.18);
+}
+.clientInviteModal > header strong { font-size: 1.02rem; }
+.clientInviteModal > header button {
+  display: inline-flex;
+  padding: 6px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.clientInviteSection { padding: 14px 18px; border-bottom: 1px solid rgba(120, 110, 80, 0.12); }
+.clientInviteSection:last-of-type { border-bottom: 0; }
+.clientInviteSection h4 { margin: 0 0 10px; font-size: 0.86rem; letter-spacing: 0.02em; text-transform: uppercase; opacity: 0.8; }
+.clientInviteFields { display: grid; gap: 10px; }
+.clientInviteFields label { display: grid; gap: 4px; font-size: 0.82rem; }
+.clientInviteFields input,
+.clientInviteLinkRow input {
+  width: 100%;
+  padding: 9px 11px;
+  border: 1px solid rgba(120, 110, 80, 0.3);
+  border-radius: 10px;
+  background: #fff;
+  color: inherit;
+  font: inherit;
+}
+.clientInvitePrimary,
+.clientInviteLinkRow button,
+.clientInviteActions button,
+.clientInviteActions a {
+  padding: 9px 14px;
+  border: 1px solid rgba(23, 21, 18, 0.9);
+  border-radius: 10px;
+  background: #171512;
+  color: #fffdf7;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.clientInvitePrimary:disabled,
+.clientInviteActions button:disabled { opacity: 0.45; cursor: default; }
+.clientInviteLinkRow { display: flex; gap: 8px; }
+.clientInviteLinkRow input { flex: 1; min-width: 0; font-size: 0.8rem; }
+.clientInviteHint { margin: 8px 0 0; font-size: 0.82rem; line-height: 1.45; opacity: 0.85; }
+.clientInviteLocked { margin: 0; padding: 12px; border-radius: 10px; background: rgba(212, 175, 55, 0.14); font-size: 0.86rem; }
+.clientInviteImage { display: block; width: 220px; height: 220px; margin: 0 auto; border-radius: 14px; background: #fff; }
+.clientInviteActions { display: flex; gap: 8px; justify-content: center; margin-top: 12px; }
+.clientInviteError { margin: 0; padding: 10px 18px 16px; color: #a3262c; font-size: 0.84rem; }

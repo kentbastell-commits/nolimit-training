@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import {
   attachWxpayTradeNo,
   createProductOrder,
+  updateProductOrder,
 } from "../server/db/repositories/productOrders.ts";
 import {
   createNativeTransaction,
@@ -26,6 +27,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const amount = Number(req.body?.amount);
   const label = String(req.body?.label || "").trim();
   const clientName = String(req.body?.clientName || "").trim();
+  // Optional: the athlete this payment is for. Attached up front, so the pay
+  // page skips its name/phone step and the paid screen shows THAT athlete's
+  // personal invite code (client-invite flow) instead of creating a client.
+  const clientCode = String(req.body?.clientCode || "").trim();
   const productTypeRaw = String(req.body?.productType || "").trim();
   const COLLECT_TYPES = new Set([
     "Online Coaching",
@@ -64,6 +69,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     );
     if (!orderId) {
       return res.status(500).json({ error: "Order created but no id returned" });
+    }
+    if (clientCode) {
+      const attached = await updateProductOrder({
+        recordId: orderId,
+        clientCode,
+        ...(clientName ? { clientName } : {}),
+      });
+      if (!attached.success) return res.status(attached.status).json(attached.body);
     }
 
     const tradeNo = makeOutTradeNo();
