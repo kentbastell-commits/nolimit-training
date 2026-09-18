@@ -552,7 +552,7 @@ export default function LandingPage({
               src="/wechat-contact-qr.jpg"
               alt="WeChat QR"
             />
-            <strong>{lZh ? "扫码加微信咨询" : "Scan for WeChat"}</strong>
+            <strong>{lZh ? "扫码关注公众号咨询" : "Scan to follow us on WeChat"}</strong>
           </motion.div>
         </motion.section>
 

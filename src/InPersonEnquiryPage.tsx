@@ -152,7 +152,7 @@ export default function InPersonEnquiryPage({
                 src="/wechat-contact-qr.jpg"
                 alt="WeChat QR"
               />
-              <span>{iZh ? "或扫码加微信咨询" : "Or scan to ask on WeChat"}</span>
+              <span>{iZh ? "或扫码关注公众号咨询" : "Or follow us on WeChat and ask there"}</span>
             </div>
 
             <div className="inviteActions">
