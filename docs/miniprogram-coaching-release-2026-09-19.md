@@ -27,8 +27,10 @@ This batch does not add the full service/payment recovery page, renewal manageme
 
 ## Release status
 
+**Latest candidate:** [2026.9.19.3 adds the circuit player fix](miniprogram-circuit-fix-2026-09-19.md) and includes all changes below. Use .3 for trial selection and review; the .2 receipt below records the original coaching release.
+
 - **Backend/web live:** `0b53ca73cf5c2cda058652aa33ee9b23c88cb185`, deployed to Shanghai and verified through both `trainnolimit.cn` and `trainnolimit.com`. This includes the preceding `8f6eb61` correction to Claude's WeChat contact QR. The additive profile response remains compatible with the currently published mini program.
 - **Mini development upload complete:** version **2026.9.19.2**, source `19f46be2991beb9d7213ec60405539a9815f25ed`, based on `ed16a3b`. DevTools returned `√ upload` and exit code 0. Uploaded package: **933,833 bytes (911.9 KB)**.
 - The upload used a frozen copy of the verified production build at `deliverables/mini-ux-2026-09-19/weapp-release-2026.9.19.2`, pointing to `https://trainnolimit.cn`. File hashes and source revision are recorded in `mini-release-manifest.json`; CLI evidence is in `mini-upload.log`. The mini repository has no remote configured, so its committed source is also preserved in the verified `mini-source.bundle`.
-- **Trial promotion, WeChat review and public release are not complete.** In WeChat Version Management, select **2026.9.19.2** as the trial version, check the coaching and enquiry flows on real phones, then submit the candidate for review. Do not use the separate `qa-mini` fixture copy or its earlier QA preview QR for release.
+- **Trial promotion, WeChat review and public release are not complete.** In WeChat Version Management, select the latest **2026.9.19.3** candidate as the trial version, check the coaching, circuit and enquiry flows on real phones, then submit it for review. Do not use the separate `qa-mini` fixture copy or its earlier QA preview QR for release.
 - The remaining acceptance checks include real payment confirmation and reopening, parent/athlete account recovery, weak-network workout saves and iOS/Android layout. The broader remaining features are listed above and in the original review.
