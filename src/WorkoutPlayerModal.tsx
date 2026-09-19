@@ -1694,7 +1694,8 @@ export default function WorkoutPlayerModal({
                                     if (log.prescribedIntensityValue)
                                       chips.push({
                                         label: zh ? "目标心率" : "Target HR",
-                                        value: `${log.prescribedIntensityValue} bpm`,
+                                        // "130-150" (a range from the builder) reads as 130–150 bpm.
+                                        value: `${String(log.prescribedIntensityValue).replace(/\s*-\s*/, "–")} bpm`,
                                       });
                                   } else if (mode === "rpe") {
                                     if (log.prescribedIntensityValue)

@@ -3887,6 +3887,17 @@
   min-width: 0;
   text-align: center;
 }
+/* Heart-rate range: two short inputs, a dash and the unit. Widened so the
+   method select ("HR range") still fits; the machine select is 66px. */
+.builderHrLow,
+.builderHrHigh {
+  flex: 1 1 0;
+  width: 44px !important;
+  padding-inline: 4px !important;
+}
+.builderHrDash { flex: 0 0 auto; opacity: 0.6; }
+.builderHrUnit { flex: 0 0 auto; font-size: 11px; opacity: 0.6; }
+.builderIntensityMethod { width: 82px !important; }
 .builderIntensityRevert {
   flex: 0 0 auto;
   width: 30px;

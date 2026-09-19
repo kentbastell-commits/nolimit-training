@@ -9365,7 +9365,43 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                         value
                       );
 
-                    // Machine cardio: HR/RPE method + value (no zone).
+                    // Heart-rate targets are a RANGE ("130-150", shown to the
+                    // athlete as "130–150 bpm"); a single number still works.
+                    // Stored in intensityValue as low-high so nothing else
+                    // (player chips, saves, mini program) changes shape.
+                    const hrParts = String(set.intensityValue || "").split(/[-–~]/);
+                    const hrLow = (hrParts[0] || "").trim();
+                    const hrHigh = (hrParts[1] || "").trim();
+                    const writeHr = (low: string, high: string) => {
+                      const l = low.replace(/\D/g, "");
+                      const h = high.replace(/\D/g, "");
+                      setField("intensityValue", h ? `${l}-${h}` : l);
+                    };
+                    const hrRangeInputs = (
+                      <>
+                        <input
+                          className="miniSearch builderIntensityValue builderHrLow"
+                          inputMode="numeric"
+                          value={hrLow}
+                          onChange={(event) => writeHr(event.target.value, hrHigh)}
+                          placeholder="from"
+                          aria-label="Heart rate from (bpm)"
+                        />
+                        <span className="builderHrDash">–</span>
+                        <input
+                          className="miniSearch builderIntensityValue builderHrHigh"
+                          inputMode="numeric"
+                          value={hrHigh}
+                          onChange={(event) => writeHr(hrLow, event.target.value)}
+                          placeholder="to"
+                          aria-label="Heart rate to (bpm)"
+                        />
+                        <span className="builderHrUnit">bpm</span>
+                      </>
+                    );
+
+                    // Machine cardio (elliptical, bike, rower…): HR range or
+                    // RPE (no zone).
                     if (!isRunExercise) {
                       const machineMode = mode === "hr" ? "hr" : "rpe";
                       return (
@@ -9373,33 +9409,41 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                           <select
                             className="miniSearch builderIntensityMethod"
                             value={machineMode}
-                            onChange={(event) =>
-                              setField("intensityMode", event.target.value)
-                            }
+                            onChange={(event) => {
+                              setField("intensityMode", event.target.value);
+                              setField("intensityValue", "");
+                            }}
                           >
                             <option value="rpe">RPE</option>
-                            <option value="hr">HR</option>
+                            <option value="hr">HR range</option>
                           </select>
-                          <input
-                            className="miniSearch builderIntensityValue"
-                            inputMode="numeric"
-                            value={set.intensityValue}
-                            onChange={(event) =>
-                              setField(
-                                "intensityValue",
-                                event.target.value.replace(/[^\d.\-]/g, "")
-                              )
-                            }
-                            placeholder={machineMode === "hr" ? "bpm" : "RPE"}
-                          />
+                          {machineMode === "hr" ? (
+                            hrRangeInputs
+                          ) : (
+                            <input
+                              className="miniSearch builderIntensityValue"
+                              inputMode="numeric"
+                              value={set.intensityValue}
+                              onChange={(event) =>
+                                setField(
+                                  "intensityValue",
+                                  event.target.value.replace(/[^\d.\-]/g, "")
+                                )
+                              }
+                              placeholder="RPE"
+                            />
+                          )}
                         </div>
                       );
                     }
 
-                    // Run: direct HR or RPE.
+                    // Run: direct HR range or RPE.
                     if (mode === "hr" || mode === "rpe") {
                       return (
                         <div className="builderIntensityRow">
+                          {mode === "hr" ? (
+                            hrRangeInputs
+                          ) : (
                           <input
                             className="miniSearch builderIntensityValue"
                             inputMode="numeric"
@@ -9410,8 +9454,9 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                                 event.target.value.replace(/[^\d.\-]/g, "")
                               )
                             }
-                            placeholder={mode === "hr" ? "bpm" : "RPE"}
+                            placeholder="RPE"
                           />
+                          )}
                           <button
                             type="button"
                             className="builderIntensityRevert"
@@ -9553,7 +9598,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                           </option>
                         ))}
                         <option value="custom">Custom %</option>
-                        <option value="hr">HR (bpm)</option>
+                        <option value="hr">HR range (bpm)</option>
                         <option value="rpe">RPE</option>
                       </select>
                     );
