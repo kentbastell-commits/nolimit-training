@@ -4,6 +4,8 @@ import { initReactI18next } from "react-i18next";
 export const resources = {
   en: {
     translation: {
+      trainingEnquiries: "Training enquiries",
+      trainingEnquiriesEmpty: "No new training enquiries.",
       clientHeroDashboardEyebrow: "Athlete Dashboard",
       clientHeroDashboardSub:
         "Your training, readiness and coaching activity in one place.",
@@ -352,6 +354,8 @@ export const resources = {
   },
   zh: {
     translation: {
+      trainingEnquiries: "训练咨询",
+      trainingEnquiriesEmpty: "暂无新的训练咨询。",
       clientHeroDashboardEyebrow: "运动员主页",
       clientHeroDashboardSub: "集中查看训练、恢复状态与教练互动。",
       clientHeroCalendarEyebrow: "训练日程",

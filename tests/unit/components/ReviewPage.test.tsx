@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import ReviewPage from "../../../src/ReviewPage";
+import "../../../src/i18n";
 
 const baseProps = {
   reviewFlashColumn: "",
@@ -70,15 +71,13 @@ describe("ReviewPage", () => {
       screen.getByText(/Client comments, form & test submissions/i)
     ).toBeInTheDocument();
     expect(screen.getByText("Workout comments")).toBeInTheDocument();
-    expect(screen.getByText("In-Person Enquiries")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Training enquiries\s*0$/ })).toBeInTheDocument();
   });
 
   it("shows empty states when nothing needs review, and surfaces errors", () => {
     render(<ReviewPage {...baseProps} coachReviewError="Feishu timeout" />);
     expect(screen.getByText("Feishu timeout")).toBeInTheDocument();
-    expect(
-      screen.getByText("No new in-person enquiries.")
-    ).toBeInTheDocument();
+    expect(screen.getByText("No new training enquiries.")).toBeInTheDocument();
     expect(screen.getByText("No unanswered messages. 👍")).toBeInTheDocument();
   });
 

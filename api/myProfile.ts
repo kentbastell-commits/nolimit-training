@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { listClients } from "../server/db/repositories/clients.ts";
 import { listCoaches } from "../server/db/repositories/coaches.ts";
+import { getCoachingJourney } from "../server/db/pg/coachingJourney.ts";
 
 // The athlete-facing profile read. The mini program used to download the
 // ENTIRE client list (names, phones, emails, coach notes) just to learn its
@@ -28,12 +29,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const myCoach = coaches.find(
       (c) => c.name === coachName || c.coachId === coachName
     );
+    const journey = await getCoachingJourney(clientId);
 
     return res.status(200).json({
       profile: {
         clientCode: me.clientCode,
         name: me.name,
-        clientType: me.clientType,
+        clientType: journey?.clientType || me.clientType,
+        journey,
         languagePreference: me.languagePreference,
         purchasedProgramId: me.purchasedProgramId || "",
         coach: myCoach?.name || coachName,

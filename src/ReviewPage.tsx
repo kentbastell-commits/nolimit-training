@@ -7,6 +7,7 @@
 // prop and stays wired.
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { CheckSquare, ChevronDown, X } from "lucide-react";
 import "./ReviewPage.css";
 import { normalizeDate, toMediaCdnUrl } from "./appCore";
@@ -53,6 +54,7 @@ export default function ReviewPage({
   setSelectedContentSubmission,
   toggleReviewSection,
 }: { [key: string]: any }) {
+  const { t } = useTranslation();
   // Presentational only: which check-in is expanded in the slide-over.
   const [selectedCheckIn, setSelectedCheckIn] = useState<any>(null);
   const [pages, setPages] = useState<Record<string, number>>({});
@@ -175,7 +177,7 @@ export default function ReviewPage({
       accent: "#b3a6d4", // Wisteria
     },
     {
-      label: "In-person enquiries",
+      label: t("trainingEnquiries"),
       count: newEnquiries.length,
       target: "reviewColEnquiries",
       accent: "#b5654a", // Clay
@@ -345,14 +347,14 @@ export default function ReviewPage({
         >
           {sectionHeader(
             "Needs follow-up",
-            "In-Person Enquiries",
+            t("trainingEnquiries"),
             newEnquiries.length,
             "enquiries"
           )}
           {openReviewSections.enquiries && (
             <div className="rvGrid">
               {newEnquiries.length === 0 && (
-                <p className="rvEmpty">No new in-person enquiries.</p>
+                <p className="rvEmpty">{t("trainingEnquiriesEmpty")}</p>
               )}
               {newEnquiries.map((enq: any) => {
                 const chips = [

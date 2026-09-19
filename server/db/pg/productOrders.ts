@@ -1,6 +1,7 @@
 import { and, desc, eq, gte, inArray, lt, ne, sql } from "drizzle-orm";
 import { db } from "../client.ts";
 import { productOrders } from "../schema.ts";
+import { activateCoachingOrder } from "./coachingJourney.ts";
 import { epochToDate, pgErrorMessage, str } from "./_util.ts";
 import type { OrderDTO } from "../dto.ts";
 import type {
@@ -393,11 +394,20 @@ export async function updateProductOrder(
 
   let updated: { orderId: string }[];
   try {
-    updated = await db
-      .update(productOrders)
-      .set(set)
-      .where(eq(productOrders.orderId, i.recordId))
-      .returning({ orderId: productOrders.orderId });
+    updated = await db.transaction(async tx => {
+      const [before] = await tx.select({ clientId: productOrders.clientId, paymentStatus: productOrders.paymentStatus })
+        .from(productOrders).where(eq(productOrders.orderId, i.recordId)).for("update");
+      const orders = await tx.update(productOrders).set(set)
+        .where(eq(productOrders.orderId, i.recordId)).returning();
+      // Includes coach-verified payment and attaching a client to an already
+      // paid order. Other edits must not reactivate a paused service.
+      const newlyPaid = String(i.paymentStatus || "").trim().toLowerCase() === "paid" && before?.paymentStatus?.trim().toLowerCase() !== "paid";
+      const attachedClient = clientId && clientId !== before?.clientId;
+      if (newlyPaid || attachedClient) {
+        for (const order of orders) await activateCoachingOrder(tx, order);
+      }
+      return orders.map(order => ({ orderId: order.orderId }));
+    });
   } catch (e: any) {
     return {
       success: false,
@@ -527,19 +537,13 @@ export async function markOrdersPaidByWxpay(
   tradeNo: string,
   transactionId: string
 ): Promise<string[]> {
-  const updated = await db
-    .update(productOrders)
-    .set({
-      paymentStatus: "Paid",
-      paymentProvider: "WeChat Pay",
-      wxpayTransactionId: transactionId,
-    })
-    .where(
-      and(
-        eq(productOrders.wxpayTradeNo, tradeNo),
-        ne(productOrders.paymentStatus, "Paid")
-      )
-    )
-    .returning({ orderId: productOrders.orderId });
-  return updated.map((row: { orderId: string }) => row.orderId);
+  return db.transaction(async tx => {
+    const updated = await tx.update(productOrders).set({
+      paymentStatus: "Paid", paymentProvider: "WeChat Pay", wxpayTransactionId: transactionId,
+    }).where(and(eq(productOrders.wxpayTradeNo, tradeNo), ne(productOrders.paymentStatus, "Paid"))).returning();
+    for (const order of updated.sort((a, b) => (a.clientId || "").localeCompare(b.clientId || ""))) {
+      await activateCoachingOrder(tx, order);
+    }
+    return updated.map(row => row.orderId);
+  });
 }

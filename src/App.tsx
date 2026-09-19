@@ -13713,11 +13713,16 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     const statusText = `${order.onboardingStatus || ""} ${
       order.fulfillmentStatus || ""
     }`.toLowerCase();
-    const intakeStatus = String(order.intakeStatus || "").toLowerCase();
+    // Coaching intake is completed against the athlete's assignment, so its
+    // current client status takes precedence over the order's initial "Sent".
+    const intakeStatus = String(
+      (order.productType === "Online Coaching" && getOrderClient(order)?.intakeStatus) || order.intakeStatus || ""
+    ).toLowerCase();
 
     if (
       statusText.includes("program loaded") ||
-      statusText.includes("fulfilled")
+      statusText.includes("fulfilled") ||
+      order.fulfillmentStatus === "Active"
     ) {
       return "Program Loaded";
     }
@@ -13726,7 +13731,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       return "Program Ready";
     }
 
-    if (intakeStatus.includes("submitted")) return "Intake Submitted";
+    if (intakeStatus.includes("submitted") || intakeStatus === "received") return "Intake Submitted";
     if (
       statusText.includes("intake sent") ||
       // guard against "Not Sent" — `includes("sent")` matches it otherwise,

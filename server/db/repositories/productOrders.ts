@@ -110,7 +110,7 @@ export async function updateProductOrder(
 ): Promise<ProductOrderWriteResult> {
   const result =
     await pg.updateProductOrder(input);
-  if (result.success) invalidateCache("productOrders");
+  if (result.success) invalidateCoachingCaches();
   return result;
 }
 
@@ -135,6 +135,10 @@ export async function markOrdersPaidByWxpay(
   transactionId: string
 ) {
   const updated = await pg.markOrdersPaidByWxpay(tradeNo, transactionId);
-  if (updated.length) invalidateCache("productOrders");
+  if (updated.length) invalidateCoachingCaches();
   return updated;
+}
+
+function invalidateCoachingCaches() {
+  for (const key of ["productOrders", "clients", "contentAssignments", "formTemplates"]) invalidateCache(key);
 }
