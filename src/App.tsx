@@ -89,6 +89,7 @@ import {
   getMonthDates,
   getWorkoutColorClass,
   isCardioCategory,
+  isCardioExercise,
   isCardioSectionName,
   isConditioningCategory,
   isFreshCache,
@@ -9712,7 +9713,10 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     parent: ProgramExercise | null
   ): ProgramExercise => {
     const meta = parseExerciseNotes(exercise.notes || "");
-    const categoryDefaults = isCardioCategory(exercise.category)
+    // Cardio by category OR a conditioning machine/run (Elliptical, Bike,
+    // Row Erg… — see isCardioExercise): time/distance tracking + HR/RPE zones.
+    const cardio = isCardioExercise(exercise.category, exercise.exerciseName);
+    const categoryDefaults = cardio
       ? null
       : categoryPrescriptionDefaults(exercise.category);
     // Category-aware fallback: a conditioning/cardio exercise added first into
@@ -9744,7 +9748,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       // (plyo, Olympic, carries, mobility…) stay tempo-free even in supersets.
       // Tempo defaults blank everywhere — a coach types one only when it
       // matters (was a blanket 3-1-1 on strength rows).
-      tempo: isCardioCategory(exercise.category)
+      tempo: cardio
         ? ""
         : categoryDefaults && categoryDefaults.tempo === ""
           ? ""
@@ -9752,9 +9756,12 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       rest: parent ? "45 sec" : categoryDefaults?.rest || "60 sec",
       coachingNotes: "",
       // Cardio exercises default to Distance tracking so the run/Zone layout
-      // shows immediately (coach can still toggle to Time/Weight).
-      trackingType: isCardioCategory(exercise.category)
-        ? "Distance"
+      // shows immediately (coach can still toggle to Time/Weight). Machines
+      // (elliptical, bike…) are usually programmed by time.
+      trackingType: cardio
+        ? /run|treadmill|track|jog|swim/i.test(exercise.exerciseName || "")
+          ? "Distance"
+          : "Time"
         : meta.trackingType,
       // Pure-bodyweight movements (burpees, push-ups) log reps only — no
       // orphan Weight (kg) field. Coach can re-add fields via the toggles.
@@ -9816,7 +9823,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     // Cardio machines (bike, rower, etc.) are HR/RPE-driven, not %MAS — default
     // their sets to an RPE prescription so no zone is required.
     const isCardioMachine =
-      isCardioCategory(exercise.category) &&
+      isCardioExercise(exercise.category, exercise.exerciseName) &&
       !/run|treadmill|track|jog/i.test(exercise.exerciseName || "");
     if (isCardioMachine) {
       newExercise = {

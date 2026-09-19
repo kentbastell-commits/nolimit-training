@@ -30,6 +30,7 @@ const {
   getStatusClass,
   getWorkoutColorClass,
   isCardioCategory,
+  isCardioExercise,
   isConditioningCategory,
   isFreshCache,
   isPastCalendarDate,
@@ -415,6 +416,19 @@ describe("category helpers", () => {
     expect(isCardioCategory("Aerobic Base")).toBe(true);
     expect(isCardioCategory("Conditioning")).toBe(false);
     expect(isConditioningCategory("Conditioning")).toBe(true);
+  });
+
+  it("treats conditioning machines and runs as cardio, but not WOD-style conditioning", () => {
+    // The library files Elliptical/Bike/Row Erg under "Conditioning"; the
+    // builder must give them time tracking + HR/RPE, not weight × reps.
+    for (const name of ["Elliptical", "Bike", "Assault Bike", "Row Ergometer", "Ski Ergometer", "Stairmaster", "Run - Treadmill", "Run - Track/Outdoor", "Incline Treadmill Walk", "Swim", "Jump Rope"]) {
+      expect(isCardioExercise("Conditioning", name), name).toBe(true);
+    }
+    for (const name of ["Burpee", "Barbell Thruster", "Wall Ball", "Sled Sprint", "Battle Ropes", "Sandbag Lunge", "Devil's Press"]) {
+      expect(isCardioExercise("Conditioning", name), name).toBe(false);
+    }
+    expect(isCardioExercise("Cardio", "Anything")).toBe(true);
+    expect(isCardioExercise("Strength", "Bike")).toBe(false);
   });
 
   it("categoryPrescriptionDefaults seeds sensible per-category defaults", () => {

@@ -407,6 +407,23 @@ export function isCardioCategory(category?: string) {
 export function isConditioningCategory(category?: string) {
   return /conditioning/i.test(String(category || ""));
 }
+/**
+ * Should the builder treat this library exercise as cardio (time/distance
+ * tracking, HR/RPE or %MAS zones instead of weight × reps)? True for the
+ * Cardio/Aerobic categories, and for the steady-state machines and runs the
+ * library files under "Conditioning" (Elliptical, Bike, Row/Ski Ergometer,
+ * Stairmaster, Assault Bike, treadmill/track runs, swim, jump rope). The rest
+ * of Conditioning (burpees, thrusters, wall balls, sled pushes, sandbag work)
+ * stays sets × reps. Kent, 2026-09-19: "elliptical has no heart-rate field" —
+ * it was being built as a strength exercise.
+ */
+export function isCardioExercise(category?: string, exerciseName?: string) {
+  if (isCardioCategory(category)) return true;
+  if (!isConditioningCategory(category)) return false;
+  return /ellip|\bbike\b|cycl|\brow(?:er|ing)?\b|\berg\b|ergometer|\bski\b|stair|treadmill|\brun\b|\bjog|swim|assault|airdyne|jump rope|skipping|\bwalk\b/i.test(
+    String(exerciseName || "")
+  );
+}
 export function isCardioSectionName(name?: string) {
   return /cardio|conditioning|aerobic/i.test(String(name || ""));
 }
