@@ -576,6 +576,12 @@ button.rvItem:focus-visible {
   gap: 0.5rem;
   margin-top: 0.65rem;
 }
+/* Order cards are plain blocks with three actions (Open / Mark done / Archive)
+   instead of one big button, so each action is its own control. */
+.rvOrderItem {
+  text-align: left;
+  cursor: default;
+}
 .rvGhostBtn,
 .rvDarkBtn {
   border-radius: 999px;

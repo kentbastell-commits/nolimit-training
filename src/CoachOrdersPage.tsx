@@ -78,7 +78,13 @@ export default function CoachOrdersPage(props: { [key: string]: any }) {
   const [ipFilter, setIpFilter] = useState<"all" | "Paid" | "Pending" | "Refunded">("all");
   const [assignTarget, setAssignTarget] = useState<any>(null);
 
-  const orders = (visibleProductOrders as any[]) || [];
+  // Archived orders (Review page "Archive", or a cancelled fulfilment) stay out
+  // of every board and total; a fold at the bottom lists them with Unarchive.
+  const isArchived = (o: any) => /archived|cancelled/i.test(o.fulfillmentStatus || "");
+  const [showArchived, setShowArchived] = useState(false);
+  const allOrders = (visibleProductOrders as any[]) || [];
+  const archivedOrders = allOrders.filter(isArchived);
+  const orders = allOrders.filter((o) => !isArchived(o));
   const money = (amt: any, cur?: string) =>
     `${cur || "CNY"} ${Number(amt || 0).toLocaleString("en-US")}`;
   const intakeDone = (o: any) =>
@@ -982,6 +988,39 @@ export default function CoachOrdersPage(props: { [key: string]: any }) {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Archived orders — put away from the Review page; restorable here. */}
+      {archivedOrders.length > 0 && (
+        <details
+          className="copReviewsFold copArchivedFold"
+          open={showArchived}
+          onToggle={(e) => setShowArchived((e.currentTarget as HTMLDetailsElement).open)}
+        >
+          <summary>
+            {isChinese ? "已归档订单" : "Archived orders"} · {archivedOrders.length}
+          </summary>
+          <div className="copArchivedList">
+            {archivedOrders.map((o: any) => (
+              <div key={o.recordId || o.orderId} className="copArchivedRow">
+                <div>
+                  <strong>{o.clientName || (isChinese ? "未命名" : "Unnamed")}</strong>
+                  <span>
+                    {o.productName || o.productType || "Order"} · {money(o.amount, o.currency)} ·{" "}
+                    {o.paymentStatus || (isChinese ? "无状态" : "No status")}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  className="copGhostBtn"
+                  onClick={() => void updateProductOrder(o, { fulfillmentStatus: "" })}
+                >
+                  {isChinese ? "取消归档" : "Unarchive"}
+                </button>
+              </div>
+            ))}
+          </div>
+        </details>
+      )}
 
       {/* Program reviews — collapsed at the bottom (they read as revenue
           feedback, not roster work; moved off the Clients page). */}

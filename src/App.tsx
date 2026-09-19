@@ -13719,6 +13719,13 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       (order.productType === "Online Coaching" && getOrderClient(order)?.intakeStatus) || order.intakeStatus || ""
     ).toLowerCase();
 
+    // Coach put it away (Review page "Archive"): out of every queue and count,
+    // still listed under "Show archived" on Orders. Clearing fulfillment
+    // status restores it.
+    if (statusText.includes("archived") || statusText.includes("cancelled")) {
+      return "Archived";
+    }
+
     if (
       statusText.includes("program loaded") ||
       statusText.includes("fulfilled") ||
@@ -13822,9 +13829,10 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       order.intakeStatus,
     ].some((value) => String(value || "").toLowerCase().includes(search));
   });
-  const openOrdersCount = visibleProductOrders.filter(
-    (order) => getOrderPipelineStatus(order) !== "Program Loaded"
-  ).length;
+  const openOrdersCount = visibleProductOrders.filter((order) => {
+    const status = getOrderPipelineStatus(order);
+    return status !== "Program Loaded" && status !== "Archived";
+  }).length;
   const readyOrdersCount = visibleProductOrders.filter(
     (order) => getOrderPipelineStatus(order) === "Program Ready"
   ).length;
@@ -20944,6 +20952,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                 focusReviewColumn={focusReviewColumn}
                 formVideoReplies={formVideoReplies}
                 getOrderPipelineStatus={getOrderPipelineStatus}
+                updateProductOrder={updateProductOrder}
                 globalMissedWorkouts={globalMissedWorkouts}
                 globalReviewOrders={globalReviewOrders}
                 globalReviewSubmissionItems={globalReviewSubmissionItems}

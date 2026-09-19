@@ -16,6 +16,7 @@ import ReviewPager, { reviewPageNumber, REVIEW_PAGE_SIZE } from "./ReviewPager";
 
 export default function ReviewPage({
   refreshReviewQueue,
+  updateProductOrder,
   coachReviewLoading,
   reviewFlashColumn,
   checkInReplyDrafts,
@@ -58,6 +59,8 @@ export default function ReviewPage({
   // Presentational only: which check-in is expanded in the slide-over.
   const [selectedCheckIn, setSelectedCheckIn] = useState<any>(null);
   const [pages, setPages] = useState<Record<string, number>>({});
+  // Order card whose Done/Archive write is in flight (Review page).
+  const [savingOrderKey, setSavingOrderKey] = useState("");
   const [submissionQuery, setSubmissionQuery] = useState("");
   const [submissionFilter, setSubmissionFilter] = useState("pending");
   const pageRows = (key: string, rows: any[]) => {
@@ -550,25 +553,65 @@ export default function ReviewPage({
           )}
           {openReviewSections.comments && (
             <div className="rvGrid">
-              {pageRows("orders", globalReviewOrders).map((order: any) => (
-                <button
-                  type="button"
-                  key={`order-${order.recordId || order.orderId}`}
-                  className="rvItem rvItemUrgent"
-                  onClick={() => {
-                    setActivePage("Orders");
-                    void openOrderReview(order);
-                  }}
-                >
-                  <span className="rvItemKicker">
-                    {getOrderPipelineStatus(order)}
-                  </span>
-                  <strong>{order.clientName || "New client"}</strong>
-                  <small>
-                    {order.productName || order.productType || "Order"}
-                  </small>
-                </button>
-              ))}
+              {pageRows("orders", globalReviewOrders).map((order: any) => {
+                const orderKey = String(order.recordId || order.orderId);
+                const saving = savingOrderKey === orderKey;
+                // "Done" = the program is loaded (leaves the queue, stays a
+                // normal order); "Archive" = put away without fulfilling
+                // (test orders, duplicates, abandoned carts). Both are
+                // reversible from the Orders page.
+                const settle = async (fulfillmentStatus: string) => {
+                  if (saving || !updateProductOrder) return;
+                  setSavingOrderKey(orderKey);
+                  try {
+                    await updateProductOrder(order, { fulfillmentStatus });
+                  } finally {
+                    setSavingOrderKey("");
+                  }
+                };
+                return (
+                  <div
+                    key={`order-${orderKey}`}
+                    className="rvItem rvItemUrgent rvOrderItem"
+                  >
+                    <span className="rvItemKicker">
+                      {getOrderPipelineStatus(order)}
+                    </span>
+                    <strong>{order.clientName || "New client"}</strong>
+                    <small>
+                      {order.productName || order.productType || "Order"}
+                    </small>
+                    <div className="rvItemActions">
+                      <button
+                        type="button"
+                        className="rvDarkBtn"
+                        onClick={() => {
+                          setActivePage("Orders");
+                          void openOrderReview(order);
+                        }}
+                      >
+                        Open
+                      </button>
+                      <button
+                        type="button"
+                        className="rvGhostBtn"
+                        disabled={saving}
+                        onClick={() => void settle("Program Loaded")}
+                      >
+                        {saving ? "Saving…" : "Mark done"}
+                      </button>
+                      <button
+                        type="button"
+                        className="rvGhostBtn"
+                        disabled={saving}
+                        onClick={() => void settle("Archived")}
+                      >
+                        Archive
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
 
               {pageRows("comments", globalUnreviewedWorkoutComments).map((comment: any) => (
                 <div key={comment.key} className="rvItem rvCommentItem">

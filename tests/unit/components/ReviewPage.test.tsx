@@ -134,4 +134,26 @@ describe("ReviewPage", () => {
     fireEvent.keyDown(window, { key: "Escape" });
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
+
+  it("lets the coach mark an order done or archive it straight from the queue", async () => {
+    const order = { recordId: "PO-1", orderId: "PO-1", clientName: "Zhou Yanjun", productName: "1:1 Online Coaching" };
+    const updateProductOrder = vi.fn(async () => undefined);
+    const openOrderReview = vi.fn();
+    render(
+      <ReviewPage
+        {...baseProps}
+        globalReviewOrders={[order]}
+        getOrderPipelineStatus={vi.fn(() => "Intake Sent")}
+        updateProductOrder={updateProductOrder}
+        openOrderReview={openOrderReview}
+      />
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Archive" }));
+    expect(updateProductOrder).toHaveBeenCalledWith(order, { fulfillmentStatus: "Archived" });
+    await screen.findByRole("button", { name: "Archive" });
+    fireEvent.click(screen.getByRole("button", { name: "Mark done" }));
+    expect(updateProductOrder).toHaveBeenCalledWith(order, { fulfillmentStatus: "Program Loaded" });
+    fireEvent.click(screen.getByRole("button", { name: "Open" }));
+    expect(openOrderReview).toHaveBeenCalledWith(order);
+  });
 });
