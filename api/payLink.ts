@@ -7,6 +7,7 @@ import {
 import { verifyPayLinkKey } from "../server/wxpay/client.ts";
 import { createClient, findClientByPhoneName } from "../server/db/repositories/clients.ts";
 import { inviteCodeDataUrl, makeInviteToken } from "../server/wechat/invite.ts";
+import { ensureIntakeOnSignup } from "../server/db/pg/coachingJourney.ts";
 
 // Public payment link (/pay/<tradeNo>) — the shareable alternative to the
 // coach's collect-payment QR. A WeChat Pay Native QR can only be paid by a
@@ -135,6 +136,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (!created.success || !clientCode) {
         return res.status(500).json({ error: "Could not create the account" });
       }
+      // New athlete: the intake questionnaire waits for them in the app.
+      await ensureIntakeOnSignup(clientCode).catch(() => {});
     }
     const attached = await updateProductOrder({ recordId: order.orderId, clientCode, clientName: name });
     if (!attached.success) return res.status(attached.status).json(attached.body);

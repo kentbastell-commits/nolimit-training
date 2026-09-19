@@ -7,6 +7,61 @@ const INTAKE_ID = "FORM-COACHING-INTAKE";
 const isCoaching = (type: string | null) => type === "Online Coaching" || type === "In-Person Training";
 const intakeComplete = (status: string | null) => /^(received|submitted|reviewed|completed|not needed)$/i.test((status || "").trim());
 
+// The athlete intake every sign-up gets (Kent, 2026-09-19). Nothing is
+// mandatory — a parent filling it in for a child answers what they can.
+// Seeded only when the template row is missing; the live template is edited
+// in the coach console / via PUT /api/formTemplates and keeps its edits.
+export const INTAKE_QUESTIONS: Array<[key: string, label: string, labelCn: string, type: string, options?: string, optionsCn?: string]> = [
+  ["name", "Name", "姓名", "Text"],
+  ["age", "Age of athlete", "运动员年龄", "Number"],
+  ["schedule", "Current technical training schedule", "目前的专项技术训练安排（每周几次、每次多久）", "Long Text"],
+  ["competition", "Future competition?", "近期是否有比赛计划？", "Single Select", "Yes,No", "是,否"],
+  ["competition_detail", "If yes: which competition, and when?", "如有，请写比赛名称与时间", "Long Text"],
+  ["home_gym", "Home gym equipment", "家中可用的训练器械", "Long Text"],
+  ["public_gym", "Public gym access", "是否能去健身房？请说明场馆和频率", "Long Text"],
+  ["strengths", "Technical strengths", "技术优势", "Long Text"],
+  ["weaknesses", "Technical weaknesses", "技术短板", "Long Text"],
+  ["injuries", "Previous or current injuries", "既往或目前的伤病", "Long Text"],
+];
+
+/** Creates the intake template + questions when absent; never edits an existing one. */
+async function ensureIntakeTemplate(exec: DbExecutor) {
+  await exec.insert(formTemplates).values({ formId: INTAKE_ID, name: "Athlete intake", nameCn: "运动员入门问卷",
+    type: "Intake", productType: "Online Coaching", requiresCoachReview: true,
+    description: "Tell your coach about the athlete, their schedule, equipment and history. Nothing is mandatory.",
+    descriptionCn: "让教练了解运动员的情况、训练安排、器械和伤病史。所有题目均为选填。" }).onConflictDoNothing();
+  await exec.insert(formQuestions).values(INTAKE_QUESTIONS.map(([key, label, labelCn, questionType, options, optionsCn], index) => ({
+    questionId: `${INTAKE_ID}-${key}`, formId: INTAKE_ID, orderIndex: index + 1,
+    label, labelCn, questionType, required: false,
+    ...(options ? { options: options as unknown, optionsCn: optionsCn || null } : {}),
+  }))).onConflictDoNothing();
+}
+
+/**
+ * Every sign-up gets the intake once: scan an invite → log in → questionnaire.
+ * Called from wxAuth (invite bind, WeChat self sign-up) and the pay link's
+ * identity step. Idempotent: an existing pending or completed intake (from a
+ * paid order, an earlier sign-in, or the coach) means nothing is added.
+ */
+export async function ensureIntakeOnSignup(clientId: string): Promise<{ assigned: boolean; assignmentId: string }> {
+  const [client] = await db.select().from(clients).where(eq(clients.clientId, clientId));
+  if (!client) return { assigned: false, assignmentId: "" };
+  const existing = (await db.select().from(assignedForms).where(and(
+    or(eq(assignedForms.clientId, clientId), eq(assignedForms.clientCode, clientId)),
+    eq(assignedForms.isIntake, true),
+  ))).filter(x => !/^(cancelled|archived)$/i.test(x.status || ""));
+  const pending = existing.find(x => !x.completedAt && x.status?.toLowerCase() !== "completed");
+  if (pending) return { assigned: false, assignmentId: pending.assignedFormId };
+  if (existing.length || intakeComplete(client.intakeStatus)) return { assigned: false, assignmentId: "" };
+  await ensureIntakeTemplate(db);
+  const assignmentId = `AF-${randomUUID()}`;
+  await db.insert(assignedForms).values({ assignedFormId: assignmentId, formId: INTAKE_ID,
+    clientId, clientCode: clientId, assignedDate: Date.now(), status: "Assigned", isIntake: true,
+    productType: client.clientType?.trim() || "Online Coaching" });
+  await db.update(clients).set({ intakeStatus: "Sent" }).where(eq(clients.clientId, clientId));
+  return { assigned: true, assignmentId };
+}
+
 /** Called inside the payment transaction. The client lock serializes different
  * orders for the same athlete, so renewals cannot create duplicate intakes. */
 export async function activateCoachingOrder(tx: DbExecutor, order: typeof productOrders.$inferSelect) {
@@ -41,20 +96,7 @@ export async function activateCoachingOrder(tx: DbExecutor, order: typeof produc
   if (!pending && !complete && !(training && alreadyCoached)) {
     // A dedicated, bilingual, non-medical intake; never borrow an unrelated
     // digital or wellness questionnaire. Existing template edits are retained.
-    await tx.insert(formTemplates).values({ formId: INTAKE_ID, name: "Your coaching intake", nameCn: "线上训练入门问卷",
-      type: "Intake", productType: "Online Coaching", requiresCoachReview: true,
-      description: "Tell your coach how training can fit your goals and schedule.", descriptionCn: "让教练了解你的目标和时间安排，制定适合你的训练计划。" }).onConflictDoNothing();
-    const questions = [
-      ["sport", "What sport or activity are you training for?", "你主要参加什么运动？"],
-      ["goal", "What would you like to improve?", "你最希望提升什么？"],
-      ["experience", "Tell us about your current training and experience.", "请介绍你目前的训练安排和训练经验。"],
-      ["schedule", "Which days can you train, and for how long?", "你每周哪些天可以训练？每次能安排多长时间？"],
-      ["equipment", "Where will you train, and what equipment is available?", "你在哪里训练？有哪些可用器械？"],
-    ];
-    await tx.insert(formQuestions).values(questions.map(([key, label, labelCn], index) => ({
-      questionId: `${INTAKE_ID}-${key}`, formId: INTAKE_ID, orderIndex: index + 1,
-      label, labelCn, questionType: "Long Text", required: true,
-    }))).onConflictDoNothing();
+    await ensureIntakeTemplate(tx);
     await tx.insert(assignedForms).values({ assignedFormId: `AF-${randomUUID()}`, formId: INTAKE_ID,
       clientId: client.clientId, clientCode: client.clientId, assignedDate: Date.now(), status: "Assigned", isIntake: true, productType: "Online Coaching" });
     await tx.update(clients).set({ intakeStatus: "Sent" }).where(eq(clients.clientId, client.clientId));

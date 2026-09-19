@@ -109,6 +109,29 @@ describe("wxAuth sign-up with a WeChat-verified phone", () => {
     expect(bad.statusCode).toBe(410);
   });
 
+  it("assigns the athlete intake once at sign-up (scan → log in → questionnaire)", async () => {
+    const made = await createClient({ name: "Ethan Miller", source: "Coach" });
+    const code = String((made as { recordId?: string }).recordId);
+    const invite = makeInviteToken(code);
+    stubWeChat("", "openid-child");
+    await handler(makeReq({ method: "POST", body: { code: "jscode", invite } }) as any, makeRes() as any);
+
+    const forms = await rows<{ form_id: string; is_intake: boolean; status: string }>(
+      "select form_id, is_intake, status from assigned_forms where client_id = $1", [code]);
+    expect(forms).toHaveLength(1);
+    expect(forms[0]).toMatchObject({ form_id: "FORM-COACHING-INTAKE", is_intake: true, status: "Assigned" });
+    const [client] = await rows<{ intake_status: string }>("select intake_status from clients where client_id = $1", [code]);
+    expect(client.intake_status).toBe("Sent");
+    // Template seeded with the ten optional questions.
+    const qs = await rows<{ required: boolean }>("select required from form_questions where form_id = 'FORM-COACHING-INTAKE'");
+    expect(qs).toHaveLength(10);
+    expect(qs.every((q) => q.required === false)).toBe(true);
+
+    // Same WeChat opening the invite again: still one intake.
+    await handler(makeReq({ method: "POST", body: { code: "jscode", invite } }) as any, makeRes() as any);
+    expect((await rows("select 1 from assigned_forms where client_id = $1", [code])).length).toBe(1);
+  });
+
   it("asks for a name when the phone is new, then creates the account and binds it", async () => {
     stubWeChat("13700002222", "openid-B");
     const noName = makeRes();

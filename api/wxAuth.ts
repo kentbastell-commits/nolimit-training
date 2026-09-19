@@ -9,6 +9,7 @@ import {
 } from "../server/db/repositories/clients.ts";
 import { makeVerifiedPhoneToken, resolveMiniPhoneNumber, verifyPhoneToken } from "../server/wechat/miniPhone.ts";
 import { verifyInviteToken } from "../server/wechat/invite.ts";
+import { ensureIntakeOnSignup } from "../server/db/pg/coachingJourney.ts";
 
 // Mini program WeChat auth.
 //   POST { code }               -> one-tap login for an already-bound account
@@ -101,6 +102,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const errorMessage = String(bound.error || "Could not bind WeChat account");
         return res.status(errorMessage.includes("already linked") ? 409 : 500).json({ error: errorMessage });
       }
+      // Every sign-up gets the athlete intake once (idempotent, best-effort).
+      await ensureIntakeOnSignup(clientCode).catch(() => {});
       return res.status(200).json({ success: true, clientCode, bound: true, created });
     }
 
@@ -118,6 +121,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const errorMessage = String(bound.error || "Could not bind WeChat account");
         return res.status(errorMessage.includes("already linked") ? 409 : 500).json({ error: errorMessage });
       }
+      // Scan → log in → questionnaire: the intake is assigned here (once) so
+      // Home opens it straight away. Best-effort — login never fails on it.
+      await ensureIntakeOnSignup(clientCode).catch(() => {});
       return res.status(200).json({ success: true, clientCode, bound: true, invited: true });
     }
 
