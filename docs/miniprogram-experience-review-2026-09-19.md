@@ -2,7 +2,7 @@
 
 **Recommendation:** make the mini program the place where an athlete starts and receives their coaching. Lead new enquiries toward a conversation and the right service; lead paying clients toward their next training action. Keep all three business pillars, with prominence that reflects what is actually available today.
 
-This is a review and proposed next-version specification. No application code, customer records, payments or production configuration were changed.
+This records the initial review and proposed next-version specification. No application code, customer records, payments or production configuration were changed during that review. Subsequent authorized implementation, deployment, verification and remaining work are recorded in [the coaching journey release notes](miniprogram-coaching-release-2026-09-19.md).
 
 ## What Claude actually completed
 
