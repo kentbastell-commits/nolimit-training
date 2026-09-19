@@ -825,6 +825,18 @@ data between them, never "borrow" a table ID across products.
     earns extra rights uses `isVerifiedCoach()` (key configured AND
     presented). Same family as #45: a default that decides who is trusted
     must fail closed.
+65. **The category the library doesn't use** — the builder decided "is this
+    cardio?" by `isCardioCategory` (/cardio|aerobic/), but the live library
+    has NO Cardio category: Elliptical, Bike, Row/Ski Erg, Stairmaster and
+    the treadmill/track runs are filed under "Conditioning" alongside
+    burpees and thrusters. Every machine was therefore built as weight ×
+    reps, and Kent reported it as "no heart-rate field on the elliptical"
+    — a missing-field symptom whose cause was classification. Rule: before
+    fixing a "missing field" in the builder, pull the exercise from
+    `/api/exercises` and check its `category`; classification helpers must
+    match the library's real taxonomy (`isCardioExercise(category, name)`
+    in appCore — category OR machine/run name), never a label nobody
+    assigns. Same family as #50 (two ways of computing one kind).
 
 ## Quality bar — checkable, per deliverable
 
