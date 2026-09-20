@@ -887,6 +887,35 @@ data between them, never "borrow" a table ID across products.
     The real fix for uploads is direct-to-COS via the accelerate endpoint
     (see COS footage archive memory for the cost), not more timeout.
 
+68. **The prop pruner that reached the neighbour** — after deleting a dead
+    panel from CoachBuilderPage, a script removed every `name={...}` line
+    tsc flagged as unused from App.tsx by regex at the shared 16-space
+    indent, and silently stripped the SAME-NAMED passes from CoachTestsPage
+    (its battery modal lost testItems/saveTestTemplate); tsc then reported
+    those STATES as unused and the next "cleanup" nearly deleted the live
+    test-battery save. Rule: mechanical prop removal in the monolith is
+    scoped to the one `<Component …/>` block (match the element, then edit
+    inside it), and any name tsc calls unused right after a bulk edit is
+    checked against `git diff` for a removed pass before its declaration
+    is touched — "unused" one round after your own edit is a symptom of the
+    edit, not evidence. Same session, same file: the "first `)}` at this
+    indent" closer for a JSX guard is wrong whenever an inner block shares
+    the indent — match closers by paren depth.
+
+69. **One door per job (builder cleanup 2026-09-21)** — a program could be
+    edited from five buttons, "Duplicate" meant two different things, store
+    price/visibility lived in both the builder and the Store tab (a builder
+    save overwrote a Store edit because it sent the whole payload), one
+    builder screen had four save verbs, and three panels were unreachable.
+    Rules now in force: the program page (row click) is the only home for
+    Edit / Duplicate / Assign / Delete; Duplicate is always the server
+    clone; commerce fields live ONLY in Digital › Store and an in-place
+    builder save sends none of them; the builder has two saves ("Done" for
+    a day = local commit, "Save Program/Session" in the header = server)
+    and leaves via the back link; pickers are named by outcome ("Assign
+    from library" on the calendar, "Insert from library" in the builder).
+    Before adding a second way to do any of these, delete the first.
+
 ## Quality bar — checkable, per deliverable
 
 **Any shipped code change**
