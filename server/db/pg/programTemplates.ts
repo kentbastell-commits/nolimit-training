@@ -377,7 +377,23 @@ export async function createWorkoutTemplatesBulk(input: {
   replaceExisting?: boolean;
   sessions: Array<Omit<CreateWorkoutTemplateInput, "programId" | "programRecordId">>;
 }): Promise<HandlerResult> {
-  const { programRecordId, sessions } = input;
+  const { programRecordId } = input;
+  // One session per calendar day. If the client sends the same week/day
+  // twice (a stale committed copy plus the live edit — PR-4418, 2026-09-19),
+  // the LAST one is the coach's current version; writing both doubled every
+  // exercise in the athlete's session. Single-workout programs and placed
+  // test days are exempt (tests sit beside a session on the same day).
+  const slotOf = (s: { week: unknown; day: unknown; isSingleWorkout?: unknown; testTemplateId?: string }) =>
+    s.isSingleWorkout || s.testTemplateId ? "" : `${Number(s.week)}|${Number(s.day)}`;
+  const lastForSlot = new Map<string, number>();
+  input.sessions.forEach((s, i) => {
+    const key = slotOf(s);
+    if (key) lastForSlot.set(key, i);
+  });
+  const sessions = input.sessions.filter((s, index) => {
+    const key = slotOf(s);
+    return !key || lastForSlot.get(key) === index;
+  });
 
   const allExercises = sessions.flatMap((s) => s.exercises);
   const codes = Array.from(

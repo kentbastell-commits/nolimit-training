@@ -1868,3 +1868,26 @@ export function clearPersistentCache(key: string) {
     // Ignore storage cleanup failures.
   }
 }
+
+/**
+ * Merge the builder's live draft into the committed session list. Identity is
+ * the session's localId when it has one; otherwise its calendar SLOT
+ * (week + day — the grid holds one session per cell), and in single-workout
+ * mode the one and only session. Matching by localId alone appended a second
+ * copy of the same day whenever the draft had lost its id (day reopened after
+ * "Save Day", editor re-entered), and one save then wrote both copies —
+ * PR-4418 "Accessory" shipped every exercise twice (2026-09-19).
+ */
+export function upsertProgramSession(
+  list: ProgramSession[],
+  session: ProgramSession,
+  singleWorkoutMode = false
+): ProgramSession[] {
+  const byId = list.findIndex((s) => s.localId === session.localId);
+  const sameSlot = (s: ProgramSession) =>
+    String(s.week) === String(session.week) && String(s.day) === String(session.day) && !s.testTemplateId;
+  const index =
+    byId >= 0 ? byId : singleWorkoutMode && list.length > 0 ? 0 : list.findIndex(sameSlot);
+  if (index < 0) return [...list, session];
+  return list.map((s, i) => (i === index ? { ...session, localId: s.localId || session.localId } : s));
+}

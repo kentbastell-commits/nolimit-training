@@ -147,6 +147,25 @@ describe("api/createWorkoutTemplatesBulk (postgres)", () => {
     expect(await rows("select 1 from workout_templates")).toHaveLength(4);
   });
 
+  it("writes one session per calendar day — the last copy wins when a day is sent twice", async () => {
+    // A stale committed copy plus the live edit of the same day (PR-4418):
+    // both arrived in one request and every exercise was doubled.
+    const res = await post(bulkHandler, bulkBody([
+      session(1, 1, { exercises: [exercise({ exerciseId: "EX-1", exerciseName: "Reverse Crunch", reps: "12" })] }),
+      session(1, 2),
+      session(1, 1, { exercises: [
+        exercise({ exerciseId: "EX-1", exerciseName: "Reverse Crunch", reps: "8" }),
+        exercise({ exerciseId: "EX-2", exerciseName: "Hollow Hold", order: 2 }),
+      ] }),
+    ]));
+    expect(res.statusCode).toBe(200);
+    const saved = await rows<{ week: number; day: number; exercise_name: string; reps: string }>(
+      "select week, day, exercise_name, reps from workout_templates where program_id = 'PR-1001' order by week, day, exercise_order");
+    expect(saved.filter((r) => r.week === 1 && r.day === 1).map((r) => `${r.exercise_name}:${r.reps}`))
+      .toEqual(["Reverse Crunch:8", "Hollow Hold:5"]);
+    expect(saved.filter((r) => r.day === 2)).toHaveLength(1);
+  });
+
   it("preserves the coach's chosen days instead of renumbering them", async () => {
     // A deliberate Day 1 / 4 / 6 week — the layout an athlete's rest days
     // depend on. #35: reassigning these by array order silently pulled a

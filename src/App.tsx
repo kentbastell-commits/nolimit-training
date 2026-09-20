@@ -91,6 +91,7 @@ import {
   isCardioCategory,
   isCardioExercise,
   isCardioSectionName,
+  upsertProgramSession,
   isConditioningCategory,
   isFreshCache,
   languagePreferenceToCode,
@@ -10878,12 +10879,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     builderServerDirtyRef.current = true;
 
     setProgramSessions((current) => {
-      const hasExisting = current.some((session) => session.localId === localId);
-      const nextSessions = hasExisting
-        ? current.map((session) =>
-            session.localId === localId ? savedSession : session
-          )
-        : [...current, savedSession];
+      const nextSessions = upsertProgramSession(current, savedSession, singleWorkoutMode);
 
       // Multi-day uses fixed Week × Day-1-7 slots, so keep the explicit day.
       // Single-workout still collapses to a clean sequence.
@@ -11095,12 +11091,9 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     if (!savedSession) return;
     justSavedRef.current = true;
     builderServerDirtyRef.current = true;
-    setProgramSessions((current) => {
-      const hasExisting = current.some((s) => s.localId === localId);
-      return hasExisting
-        ? current.map((s) => (s.localId === localId ? savedSession : s))
-        : [...current, savedSession];
-    });
+    setProgramSessions((current) =>
+      upsertProgramSession(current, savedSession, builderMode === "Single Workout")
+    );
   };
 
   // Calendar: start building a brand-new session in a specific week/day cell.
@@ -11238,13 +11231,9 @@ function App({ onReady }: { onReady?: () => void } = {}) {
         return false;
       }
 
-      sessionsToSave = sessionsToSave.some(
-        (session) => session.localId === currentSession.localId
-      )
-        ? sessionsToSave.map((session) =>
-            session.localId === currentSession.localId ? currentSession : session
-          )
-        : [...sessionsToSave, currentSession];
+      // Slot-aware: a draft that lost its localId still REPLACES the committed
+      // copy of the same week/day instead of being saved twice (PR-4418).
+      sessionsToSave = upsertProgramSession(sessionsToSave, currentSession, singleWorkoutMode);
     }
 
     sessionsToSave = renumberProgramSessionsByWeek(sessionsToSave);

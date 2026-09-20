@@ -32,6 +32,7 @@ const {
   isCardioCategory,
   isCardioExercise,
   isConditioningCategory,
+  upsertProgramSession,
   isFreshCache,
   isPastCalendarDate,
   labelColor,
@@ -407,6 +408,30 @@ describe("workout color coding", () => {
     );
     // Push/Pull/unknown default to strength.
     expect(getWorkoutColorClass("Push Day")).toBe("wcol-strength");
+  });
+});
+
+describe("upsertProgramSession", () => {
+  const s = (localId: string, week: string, day: string, extra: Record<string, unknown> = {}) =>
+    ({ localId, week, day, sessionName: `W${week}D${day}`, exercises: [], ...extra }) as any;
+
+  it("replaces by localId, then by week/day slot, and appends only for a new slot", () => {
+    const list = [s("a", "1", "1"), s("b", "1", "2")];
+    // Same id → replaced in place.
+    expect(upsertProgramSession(list, s("a", "1", "1", { sessionName: "edited" })).map((x: any) => x.sessionName))
+      .toEqual(["edited", "W1D2"]);
+    // Draft lost its id but is the same day → replaces, keeps the original id (PR-4418).
+    const merged = upsertProgramSession(list, s("draft-9", "1", "1", { sessionName: "edited" }));
+    expect(merged).toHaveLength(2);
+    expect(merged[0]).toMatchObject({ localId: "a", sessionName: "edited" });
+    // A genuinely new day is appended.
+    expect(upsertProgramSession(list, s("c", "1", "3"))).toHaveLength(3);
+  });
+
+  it("single-workout mode always has one session; placed test days are never displaced", () => {
+    expect(upsertProgramSession([s("a", "1", "1")], s("z", "1", "1"), true)).toHaveLength(1);
+    const withTest = [s("t", "1", "1", { testTemplateId: "TT-1" })];
+    expect(upsertProgramSession(withTest, s("d", "1", "1"))).toHaveLength(2);
   });
 });
 
