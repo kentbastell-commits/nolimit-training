@@ -11,13 +11,15 @@
 // unlock link to bookmark on each device.
 //
 // To turn the lock OFF again: node scripts/setCoachKey.mjs --clear
-import { execFileSync, spawnSync } from "node:child_process";
+// To only CHECK the lock + get the unlock link: node scripts/setCoachKey.mjs --check
+import { spawnSync } from "node:child_process";
 import { createInterface } from "node:readline";
 
 const SSH_HOST = "nolimit-cn";
 const SERVER_DIR = "/opt/nolimit-training";
 const LIVE = "https://trainnolimit.cn";
 const clear = process.argv.includes("--clear");
+const checkOnly = process.argv.includes("--check");
 
 function askHidden(question) {
   return new Promise((resolve) => {
@@ -51,15 +53,35 @@ function ssh(script, input) {
   return res.stdout.trim();
 }
 
-function probe(key) {
-  const args = ["-s", "-o", "/dev/null", "-w", "%{http_code}"];
-  if (key) args.push("-H", `x-coach-key: ${key}`);
-  args.push(`${LIVE}/api/enquiries`);
-  return execFileSync("curl", args, { encoding: "utf8" }).trim();
+// Node's own fetch — the first version shelled out to curl, and Windows curl
+// has no /dev/null, so the probe "failed" after the key had already landed.
+async function probe(key) {
+  const headers = key ? { "x-coach-key": key } : {};
+  try {
+    const res = await fetch(`${LIVE}/api/enquiries`, { headers });
+    return String(res.status);
+  } catch (err) {
+    return `network error (${err.message})`;
+  }
 }
 
 async function main() {
   let key = "";
+  if (checkOnly) {
+    key = (await askHidden("Your coach access key (typing is hidden): ")).trim();
+    const keyless = await probe("");
+    const keyed = await probe(key);
+    if (keyless !== "401") {
+      console.error(`The lock is NOT active: a keyless coach call returned ${keyless}.`);
+      process.exit(1);
+    }
+    if (keyed === "401") {
+      console.error("That key is rejected by the server — not the one that was installed.");
+      process.exit(1);
+    }
+    printSuccess(key, keyed);
+    return;
+  }
   if (!clear) {
     key = (await askHidden("Coach access key (typing is hidden): ")).trim();
     const again = (await askHidden("Type it once more: ")).trim();
@@ -98,7 +120,7 @@ async function main() {
   console.log("Waiting for the apps to come back…");
   await new Promise((r) => setTimeout(r, 6000));
 
-  const keyless = probe("");
+  const keyless = await probe("");
   if (clear) {
     if (keyless === "401") {
       console.error("Still locked (401) — the reload may not have picked up .env. Check pm2 logs.");
@@ -107,7 +129,7 @@ async function main() {
     console.log(`Lock is OFF: keyless coach call returned ${keyless}.`);
     return;
   }
-  const keyed = probe(key);
+  const keyed = await probe(key);
   if (keyless !== "401") {
     console.error(
       `The lock is NOT active: a keyless coach call returned ${keyless}, expected 401. Check pm2 logs.`
@@ -118,6 +140,10 @@ async function main() {
     console.error("The key you typed is rejected by the server — retry.");
     process.exit(1);
   }
+  printSuccess(key, keyed);
+}
+
+function printSuccess(key, keyed) {
   console.log(`Lock is ON: keyless → 401, with key → ${keyed}.`);
   console.log("");
   console.log("Bookmark this on every device you coach from (one tap unlocks it):");
