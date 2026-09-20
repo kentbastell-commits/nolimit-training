@@ -870,6 +870,23 @@ data between them, never "borrow" a table ID across products.
     helper, never to a call site. Capture anything the caller still needs
     (one-off assign target, return client) into locals BEFORE the reset.
 
+67. **The hard timeout on a throttled link** — a 25 MB exercise video from
+    outside mainland China "failed" twice over: nginx's DEFAULT
+    `client_body_timeout` (60 s of silence) returned 408 on the first stall,
+    and the modal's fixed 10-minute XHR timeout sat exactly where a 25 MB
+    upload lands at the measured ~40 KB/s inbound. Measured 2026-09-20 from
+    Kent's machine: download from trainnolimit.cn ~480 KB/s, upload ~43 KB/s
+    to .cn, ~28 KB/s to .com (the HK hop buffers the whole body first), and
+    a single 10 KB API read stalled 80 s once then took 0.5 s — while the
+    box answered the same request in 3 ms. Rules: upload locations set
+    `client_body_timeout` explicitly (600 s, both boxes); browser uploads
+    time out on STALL (no progress for N min), never on total elapsed; and
+    a "the app is slow" report from abroad is diagnosed by timing the same
+    request on the box (`curl 127.0.0.1:3001`) vs from here BEFORE touching
+    code — one stalled request out of three is the link, not the server.
+    The real fix for uploads is direct-to-COS via the accelerate endpoint
+    (see COS footage archive memory for the cost), not more timeout.
+
 ## Quality bar — checkable, per deliverable
 
 **Any shipped code change**
