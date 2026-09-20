@@ -472,6 +472,15 @@ data between them, never "borrow" a table ID across products.
     review. Rule: when a field stops being prefilled, trace the "user
     touched nothing but confirmed" path to the writer and resolve the
     default AT SUBMIT (see `resolvedLogs` in App.tsx), not in the input.
+    Corollary (builder audit 2026-09-20): the WRITE-ONLY twin store —
+    `set_prescriptions` had been written by every save for months while
+    every reader used the "Set Prescriptions: [...]" JSON in coaching_notes,
+    so its columns silently lost units (`rest` via toNum) and never gained
+    rpe/time/distance; the table looked authoritative and was decoration.
+    When a table and a JSON blob both hold the same data, grep for READERS
+    of each before trusting either — the one nobody reads is the one that
+    has drifted. Now the table is read first (migration 0024), JSON is the
+    fallback.
 
 44. **The lifecycle-destroyed draft** — the WeChat mini program
     (`c:\Users\kentb\nolimit-miniprogram`, a THIRD repo) held a whole 45-90
@@ -848,6 +857,18 @@ data between them, never "borrow" a table ID across products.
     match the library's real taxonomy (`isCardioExercise(category, name)`
     in appCore — category OR machine/run name), never a label nobody
     assigns. Same family as #50 (two ways of computing one kind).
+
+66. **The four reset lists that drifted** — "new program", "new session",
+    post-save and `resetBuilder` each hand-listed the state to clear, and
+    over a year each grew differently: sport/level/coach/one-off target
+    survived from one program into the next, store price/category leaked
+    into a fresh build, and Sport/Level were saved on every program without
+    any input to edit them. Rule: a surface with N "start fresh" entry
+    points has ONE reset helper per scope (`resetProgramFields`,
+    `resetSessionFields`) that every entry point calls before applying its
+    own values; adding a builder state variable means adding it to that
+    helper, never to a call site. Capture anything the caller still needs
+    (one-off assign target, return client) into locals BEFORE the reset.
 
 ## Quality bar — checkable, per deliverable
 
