@@ -1,6 +1,7 @@
 // Extracted from App.tsx (monolith split) — JSX verbatim; props threaded.
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from "react";
+import { X } from "lucide-react";
 import { formatCalendarLabel, normalizeDate } from "./appCore";
 import "./AssignmentDrawer.css";
 
@@ -98,8 +99,9 @@ export default function AssignmentDrawer({
                   className="drawerClose"
                   onClick={closeAssignmentDrawer}
                   type="button"
+                  aria-label="Close"
                 >
-                  x
+                  <X size={18} />
                 </button>
               </div>
 

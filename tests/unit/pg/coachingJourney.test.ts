@@ -21,7 +21,8 @@ describe("coaching purchase to first session", () => {
       client_type: "Online Coaching", purchased_program_id: "OWNED-PROGRAM", coach_assigned: "Kent Bastell",
     });
     expect(await getCoachingJourney("CL-9001")).toMatchObject({ stage: "intake", coached: true, pendingAssessments: 1 });
-    expect(await rows("select question_id from form_questions")).toHaveLength(5);
+    // The athlete intake: ten optional questions (name, age, schedule, competition …).
+    expect(await rows("select question_id from form_questions")).toHaveLength(10);
     expect(await markOrdersPaidByWxpay("NLCOACH1", "wx-confirmed")).toEqual([]);
     expect(await rows("select assigned_form_id from assigned_forms")).toHaveLength(1);
   });
@@ -45,9 +46,10 @@ describe("coaching purchase to first session", () => {
     await seedClient(); await order();
     await updateProductOrder({ recordId: "ORD-C1", paymentStatus: "Paid" });
     const [assignment] = await rows("select * from assigned_forms");
-    const questions = await rows("select question_id from form_questions order by order_index");
+    const questions = await rows<{ question_id: string; question_type: string }>("select question_id, question_type from form_questions order by order_index");
+    const answerFor = (type: string) => (/number/i.test(type) ? "14" : /select/i.test(type) ? "Yes" : "Training answer");
     const saved = await submitContentResponse({ assignmentType: "Questionnaire", assignmentId: assignment.assigned_form_id,
-      templateId: assignment.form_id, clientId: "CL-9001", responses: questions.map(q => ({ questionId: q.question_id, value: "Training answer" })) });
+      templateId: assignment.form_id, clientId: "CL-9001", responses: questions.map(q => ({ questionId: q.question_id, value: answerFor(q.question_type) })) });
     expect(saved.status).toBe(200);
     expect(await getCoachingJourney("CL-9001")).toMatchObject({ stage: "preparing", pendingAssessments: 0, intakeAssignmentId: "" });
     await order("ORD-C2", "NLCOACH2"); await markOrdersPaidByWxpay("NLCOACH2", "wx-renewal");

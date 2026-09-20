@@ -2483,10 +2483,9 @@ export default function CoachBuilderPage({
                       </span>
                       <button
                         className="goldButton drawerHeroSave"
-                        disabled={savingTemplate}
                         onClick={() => saveCurrentSessionToProgram(true, false)}
                       >
-                        {savingTemplate ? saveBusyLabel : "Save Day"}
+                        Save Day
                       </button>
                       <button
                         type="button"

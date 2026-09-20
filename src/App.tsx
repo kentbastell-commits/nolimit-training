@@ -5195,6 +5195,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
             week: workout.week,
             day: workout.day,
             sessionName: workout.sessionName,
+            sessionNameCn: workout.sessionNameCn || "",
             sessionType: workout.sessionType,
             sessionGoal: workout.sessionGoal,
             sessionNotes: workout.sessionNotes || "",
@@ -5422,6 +5423,16 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   const pasteSessionAtCell = (week: number, day: number) => {
     if (!copiedSession) return;
     const { session, mode } = copiedSession;
+    // The copied snapshot may be older than the live editor: commit the draft
+    // so the committed copy is current, and if this CUT moves the very day
+    // being edited, close that editor — otherwise the draft would be saved as
+    // a second copy of the day (audit B4).
+    commitDraftSessionIfAny();
+    if (mode === "cut" && editingProgramSessionId === session.localId) {
+      setSelectedProgramExercises([]);
+      setEditingProgramSessionId("");
+      setSessionEditorOpen(false);
+    }
     setProgramSessions((current) => {
       const base =
         mode === "cut"
@@ -6485,6 +6496,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
             week: w.week,
             day: w.day,
             sessionName: w.sessionName,
+            sessionNameCn: w.sessionNameCn || "",
             sessionType: w.sessionType,
             sessionGoal: w.sessionGoal,
             sessionNotes: w.sessionNotes || "",
@@ -6646,6 +6658,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
           week: w.week,
           day: w.day,
           sessionName: w.sessionName,
+          sessionNameCn: w.sessionNameCn || "",
           sessionType: w.sessionType,
           sessionGoal: w.sessionGoal,
           sessionNotes: w.sessionNotes || "",
@@ -7112,6 +7125,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
             week: workout.week,
             day: workout.day,
             sessionName: workout.sessionName,
+            sessionNameCn: workout.sessionNameCn || "",
             sessionType: workout.sessionType,
             sessionGoal: workout.sessionGoal,
             sessionNotes: workout.sessionNotes || "",
@@ -9888,8 +9902,13 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       return;
     }
 
-    setSelectedProgramExercises(
-      relabelProgramExercises([...selectedProgramExercises, newExercise])
+    // Functional update: two quick library clicks in one React batch used to
+    // read the same stale list and drop one exercise.
+    setSelectedProgramExercises((current) =>
+      relabelProgramExercises([
+        ...current,
+        buildProgramExerciseFromLibrary(exercise, current, null),
+      ])
     );
     setLatestBuilderExerciseIndex(selectedProgramExercises.length);
     scrollLatestBuilderExerciseIntoView();
@@ -10746,6 +10765,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
             onClick={(event) => {
               event.stopPropagation();
               duplicateProgramExercise(index);
+              setBuilderExerciseOptionsIndex(null);
             }}
           >
             <Copy size={16} />
@@ -10838,7 +10858,21 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     setSessionEstimatedDuration("");
     setSessionType("Strength");
     setSessionIntensity("Moderate");
+    resetExerciseIndexState();
+  };
+
+  // Index-keyed builder state belongs to ONE day's exercise list. Carried
+  // across a day switch it targets the wrong rows: a pending "Change
+  // exercise" overwrote exercise N of the next day, a %1RM toggle followed
+  // exercise #0 into every day, a bulk selection rewrote the wrong sets.
+  const resetExerciseIndexState = () => {
     setAccessoryTargetIndex(null);
+    setSwapExerciseIndex(null);
+    setUsePercentExerciseIndexes(new Set());
+    setBulkSelectedIdx(new Set());
+    setCustomizeFieldsIndex(null);
+    setAlternateEditorExerciseIndex(null);
+    setBuilderExerciseOptionsIndex(null);
   };
 
   const saveCurrentSessionToProgram = (
@@ -10931,7 +10965,21 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   };
 
   const removeProgramSession = (localId: string) => {
-    setProgramSessions(programSessions.filter((session) => session.localId !== localId));
+    const target = programSessions.find((session) => session.localId === localId);
+    // One click used to delete a whole day with no way back; every other
+    // destructive action in the app confirms.
+    if (
+      target &&
+      target.exercises.length > 0 &&
+      !window.confirm(
+        `Remove "${target.sessionName || `Week ${target.week} Day ${target.day}`}" (${target.exercises.length} exercise${
+          target.exercises.length === 1 ? "" : "s"
+        })? This cannot be undone.`
+      )
+    ) {
+      return;
+    }
+    setProgramSessions((current) => current.filter((session) => session.localId !== localId));
 
     if (editingProgramSessionId === localId) {
       clearCurrentProgramSession(false);
@@ -10941,10 +10989,11 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   const duplicateProgramSession = (session: ProgramSession) => {
     const newSession: ProgramSession = {
       ...session,
-      localId: Date.now().toString(),
+      localId: `${Date.now()}-${Math.random()}`,
       week: String(Number(session.week) + 1),
+      exercises: session.exercises.map((ex) => ({ ...ex })),
     };
-    setProgramSessions([...programSessions, newSession]);
+    setProgramSessions((current) => [...current, newSession]);
   };
 
   // Calendar: move a day card to another cell (fixed week + Day 1-7 slot).
@@ -10981,6 +11030,24 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   // Calendar: overwrite a target week with copies of a source week's sessions
   // (optionally progressing loads by a percent).
   const duplicateWeek = (fromWeek: number, toWeeks: number[], pct: number) => {
+    // Include the day being edited in the copy, and warn before wiping a
+    // target week that already has work (it used to vanish with a cheerful
+    // "Week 1 copied" toast).
+    commitDraftSessionIfAny();
+    const targetHasWork = programSessions.some(
+      (s) => toWeeks.map(String).includes(String(s.week)) && s.exercises.length > 0
+    );
+    if (
+      targetHasWork &&
+      !window.confirm(
+        `Week${toWeeks.length > 1 ? "s" : ""} ${toWeeks.join(", ")} already ${
+          toWeeks.length > 1 ? "have" : "has"
+        } sessions. Replace them with a copy of Week ${fromWeek}?`
+      )
+    ) {
+      setWeekDupMenu(null);
+      return;
+    }
     setProgramSessions((current) => {
       const source = current.filter((s) => s.week === String(fromWeek));
       const targetSet = new Set(toWeeks.map(String));
@@ -11108,7 +11175,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     setSessionEstimatedDuration("");
     setSessionType("Strength");
     setSessionIntensity("Moderate");
-    setAccessoryTargetIndex(null);
+    resetExerciseIndexState();
     setProgramWeek(String(week));
     setProgramDay(String(day));
     setBuilderMode("Program");
@@ -11143,6 +11210,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     setSelectedProgramExercises(session.exercises);
     adoptSectionColors(session.exercises);
     setExpandedBuilderExerciseIndexes(new Set());
+    resetExerciseIndexState();
     setEditingProgramSessionId(session.localId);
     // Program sessions keep the drawer underneath (it owns "Save Day"), but the
     // big library builder opens on top immediately — one click straight to editing.
@@ -11351,11 +11419,19 @@ function App({ onReady }: { onReady?: () => void } = {}) {
           notify("Could not create program. Check API response.");
           return false;
         }
+        // The program row now exists. If the session write below fails and
+        // the coach clicks Save again, that retry must UPDATE this program —
+        // not create a second one (the old #52 shape).
+        setEditProgramId(String(programData.programId || ""));
+        setEditProgramRecordId(String(programData.programRecordId || ""));
       }
 
       let totalRecordsCreated = 0;
       let sessionsDone = 0;
-      setSaveProgress({ done: 0, total: sessionsToSave.length });
+      // The bulk path is one request: a numeric counter would sit at 0/N for
+      // its whole duration (mistake #35's "frozen save"). Plain "Saving…"
+      // until the per-session fallback, which really does count.
+      setSaveProgress(null);
 
       // Fast path: save the WHOLE program in one bulk call — the server
       // collapses N×3 Feishu round-trips into ~3. It rolls back atomically on
@@ -11371,10 +11447,12 @@ function App({ onReady }: { onReady?: () => void } = {}) {
             body: JSON.stringify({
               programId: programData.programId,
               programRecordId: programData.programRecordId,
-              // In-place edit: the server swaps old rows for new in ONE
-              // transaction — duplicates are impossible even if two saves
-              // overlap, and the client-side delete below is skipped.
-              replaceExisting: inPlaceEdit,
+              // ALWAYS replace: the server swaps this program's rows for the
+              // new set in ONE transaction. For an edit that is the point;
+              // for a brand-new program there is nothing to replace, and it
+              // makes a retry after a timed-out-but-committed bulk
+              // idempotent instead of a second copy of every exercise.
+              replaceExisting: true,
               sessions: sessionsToSave.map((session) => ({
                 week: Number(session.week),
                 day: Number(session.day),
@@ -11403,11 +11481,37 @@ function App({ onReady }: { onReady?: () => void } = {}) {
         if (bulkRes.ok && bulkData.success) {
           bulkOk = true;
           totalRecordsCreated = Number(bulkData.recordsCreated || 0);
-          setSaveProgress({ done: sessionsToSave.length, total: sessionsToSave.length });
         }
       } catch {
-        /* bulk timed out / errored — fall through to the per-session path */
+        /* bulk timed out / errored — checked below before any fallback */
       }
+
+      // A bulk that timed out CLIENT-side may still have committed server-side
+      // (the transaction doesn't know we stopped waiting). Falling back then
+      // would write every session a second time. Ask the server what it has:
+      // rows present for this program = the bulk landed.
+      if (!bulkOk) {
+        try {
+          const check = await fetchWithTimeout(
+            `/api/programTemplates?programId=${encodeURIComponent(programData.programId)}`,
+            {},
+            30000
+          );
+          const checkData = await check.json();
+          const rowsOnServer = Array.isArray(checkData?.templates)
+            ? checkData.templates.length
+            : Array.isArray(checkData?.workoutTemplates)
+              ? checkData.workoutTemplates.length
+              : 0;
+          if (check.ok && rowsOnServer > 0) {
+            bulkOk = true;
+            totalRecordsCreated = rowsOnServer;
+          }
+        } catch {
+          /* unreachable server: the fallback below will report its own failure */
+        }
+      }
+      if (!bulkOk) setSaveProgress({ done: 0, total: sessionsToSave.length });
 
       // Per-session fallback. Save one session (its exercises → template rows).
       // Never throws — a network/timeout error becomes ok:false so the retry
@@ -11518,8 +11622,11 @@ function App({ onReady }: { onReady?: () => void } = {}) {
           ? `Program updated. ${sessionsToSave.length} session${
               sessionsToSave.length === 1 ? "" : "s"
             } saved.`
-          : `Program saved. Sessions: ${sessionsToSave.length}. Template records created: ${totalRecordsCreated}`
+          : `Program saved. ${sessionsToSave.length} session${
+              sessionsToSave.length === 1 ? "" : "s"
+            }.`
       );
+      void totalRecordsCreated;
 
       // Mark saved BEFORE these resets fire the dirty-tracking effect, so the
       // status lands on "saved" (not "dirty") deterministically. The server
@@ -11835,14 +11942,23 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     const nextDay = (daysInWeek.length ? Math.max(...daysInWeek) : 0) + 1;
     // Same rule as startSessionForCell/loadSessionForEditing: never clear the
     // in-progress day without committing it (mobile "Add day" used to wipe it).
+    // The desktop grid is Day 1-7; a phone-built Day 8 saves but can never
+    // be seen or edited on desktop.
+    if (nextDay > 7) {
+      notify("A week holds 7 days. Add a new week for more sessions.");
+      return;
+    }
     commitDraftSessionIfAny();
     setSelectedProgramExercises([]);
     setEditingProgramSessionId("");
     setSessionName("");
     setSessionNameCn("");
     setSessionGoal("");
+    setSessionNotes("");
+    setSessionEstimatedDuration("");
     setSessionType("Strength");
     setSessionIntensity("Moderate");
+    resetExerciseIndexState();
     setProgramWeek(String(week));
     setProgramDay(String(nextDay));
     setMobileBuilderStep("details");
@@ -12092,7 +12208,10 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     // reflect "saved", don't treat the save's own clears as new dirty edits.
     if (justSavedRef.current) {
       justSavedRef.current = false;
-      setBuilderSaveStatus("saved");
+      // "Saved" means the SERVER has it. A local day commit ("Save Day",
+      // day switch) also lands here but leaves builderServerDirtyRef true —
+      // the header pill must keep saying "Unsaved changes" (mistake #42).
+      setBuilderSaveStatus(builderServerDirtyRef.current ? "dirty" : "saved");
       return;
     }
 
@@ -12115,6 +12234,17 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     programAccessLengthDays,
     programProductStatus,
     programSalesDescription,
+    programSalesDescriptionCn,
+    programCompareAtPrice,
+    programSport,
+    programLevel,
+    programSeason,
+    programStoreCategory,
+    programStoreCategoryCn,
+    programBundleIds,
+    programBuiltForClient,
+    programBuiltForTeam,
+    programCoach,
     programWeek,
     programDay,
     sessionName,
