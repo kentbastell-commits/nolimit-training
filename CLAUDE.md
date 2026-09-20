@@ -634,6 +634,17 @@ data between them, never "borrow" a table ID across products.
     server-side transaction (`replaceExisting` in createWorkoutTemplatesBulk),
     never a client-orchestrated capture→insert→delete sequence, which
     duplicates under every race and half-completes under every failure.
+    THIRD cause (PR-4418, 2026-09-19): the builder merged the live draft
+    into the session list by `localId` only, so a day reopened after "Save
+    Day" (id cleared) was APPENDED next to its committed copy and one bulk
+    call wrote both — template ids 1 ms apart, the second copy carrying the
+    later edit. Rules: session identity is the calendar SLOT (week+day; see
+    `upsertProgramSession` in appCore), the bulk endpoint keeps only the
+    last session per slot, `replaceExisting` is ALWAYS on (a retry after a
+    timed-out-but-committed bulk must be idempotent), and before any
+    fallback loop the client asks the server whether rows already exist.
+    Diagnose duplicates from the minted ids first: one timestamp = one
+    request sent the copies; two timestamps = two saves.
 
 53. **The list that only loads when empty** — every cached client-side list
     (exercises, programs, form/test templates) was fetched only `if

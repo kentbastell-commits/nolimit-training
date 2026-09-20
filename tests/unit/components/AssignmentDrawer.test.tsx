@@ -58,7 +58,7 @@ describe("AssignmentDrawer", () => {
         closeAssignmentDrawer={closeAssignmentDrawer}
       />
     );
-    fireEvent.click(screen.getByRole("button", { name: "x" }));
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
     expect(closeAssignmentDrawer).toHaveBeenCalled();
   });
 
