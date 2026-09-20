@@ -76,6 +76,16 @@ export default function AssignmentDrawer({
     programs,
     selectedAssignProgramId,
   ]);
+
+  // Picking a program shows its sessions straight away — the "Load Sessions"
+  // step was an easy-to-miss prerequisite for the Assign button.
+  useEffect(() => {
+    if (assignmentType !== "Program") return;
+    if (!selectedAssignProgramId || assignLoading) return;
+    if (assignableWorkouts.length > 0) return;
+    void loadProgramSessionsForAssignment();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [assignmentType, selectedAssignProgramId, assignableWorkouts.length]);
   return (
     <>
           <div

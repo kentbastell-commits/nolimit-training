@@ -225,6 +225,45 @@ describe("api/createWorkoutTemplatesBulk (postgres)", () => {
     expect(sets.map((s) => s.load)).toEqual(["60", "65", "70"]);
   });
 
+  it("per-set RPE, time, distance, rest-with-unit and auto-target fields round-trip through their own columns", async () => {
+    // The table was write-only and lossy (rest through toNum, no rpe/time/
+    // distance) — readers had to re-parse the notes JSON. Now it is the store.
+    const prescriptions = JSON.stringify([
+      { setNumber: 1, reps: "8", load: "40", rpe: "7", rest: "90 sec", time: "30", distance: "" },
+      { setNumber: 2, reps: "", load: "", intensityMode: "hr", intensityValue: "130-150", rest: "2 min", time: "5:00", distance: "" },
+    ]);
+    const res = await post(
+      bulkHandler,
+      bulkBody([
+        session(1, 1, {
+          exercises: [
+            exercise({
+              coachingNotes: `Set Prescriptions: ${prescriptions}`,
+              targetSource: "1RM", targetMetric: "Back Squat 1RM", targetPercent: "80", autoTarget: true, displayTarget: "80% of 1RM",
+            }),
+          ],
+        }),
+      ])
+    );
+    expect(res.statusCode).toBe(200);
+    const sets = await rows("select rpe, rest, time, intensity_mode, intensity_value from set_prescriptions order by set_number");
+    expect(sets).toEqual([
+      { rpe: "7", rest: "90 sec", time: "30", intensity_mode: null, intensity_value: null },
+      { rpe: null, rest: "2 min", time: "5:00", intensity_mode: "hr", intensity_value: "130-150" },
+    ]);
+    const [tpl] = await rows("select target_source, target_metric, target_percent, auto_target, display_target from workout_templates");
+    expect(tpl).toMatchObject({ target_source: "1RM", target_metric: "Back Squat 1RM", target_percent: 80, auto_target: true, display_target: "80% of 1RM" });
+
+    // And the builder / players read them back without touching the notes.
+    const { listProgramTemplates } = await import("../../../server/db/repositories/programTemplates.ts");
+    const [row] = await listProgramTemplates("PR-1001", "PR-1001");
+    expect(row.targetPercent).toBe("80");
+    expect(row.setPrescriptions?.map((s) => `${s.setNumber}:${s.rpe || s.intensityValue}:${s.rest}`)).toEqual(["1:7:90 sec", "2:130-150:2 min"]);
+    const { getWorkoutDetails } = await import("../../../server/db/repositories/workoutDetails.ts");
+    const [detail] = await getWorkoutDetails("PR-1001", "1", "1");
+    expect(detail.setPrescriptions.map((s) => s.time)).toEqual(["30", "5:00"]);
+  });
+
   it("replaceExisting swaps the program's old rows for the new set atomically", async () => {
     // The duplication bug (PR-1759 live): an in-place edit that INSERTS new
     // rows and separately deletes the old ones duplicates the whole program

@@ -169,6 +169,13 @@
       "when": 1789600000000,
       "tag": "0023_assessment_workflow",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1789885657940,
+      "tag": "0024_set_prescription_fields",
+      "breakpoints": true
     }
   ]
 }

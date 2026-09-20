@@ -78,6 +78,13 @@ export async function listProgramTemplates(
         tempo: row.tempo,
         rest: row.rest,
         notes: row.notes,
+        setPrescriptions: row.setPrescriptions || [],
+        targetSource: row.targetSource || "",
+        targetMetric: row.targetMetric || "",
+        targetPercent: row.targetPercent || "",
+        targetAdjustment: row.targetAdjustment || "",
+        autoTarget: Boolean(row.autoTarget),
+        displayTarget: row.displayTarget || "",
       })
     )
     .sort((a, b) =>

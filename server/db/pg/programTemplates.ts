@@ -10,7 +10,7 @@ import {
 import { str } from "./_util.ts";
 import { parseTemplateMeta, toNum } from "../templateMeta.ts";
 import type { ParsedMeta, ProgramExerciseInput } from "../templateMeta.ts";
-import type { TemplateRow } from "../dto.ts";
+import type { SetPrescriptionDTO, TemplateRow } from "../dto.ts";
 import type {
   HandlerResult,
   CreateWorkoutTemplateInput,
@@ -18,10 +18,56 @@ import type {
 
 type Row = typeof workoutTemplates.$inferSelect;
 
+/** Per-set rows grouped by template, as string DTOs (blank for null). */
+export async function listSetPrescriptionsByTemplate(
+  templateIds?: string[]
+): Promise<Map<string, SetPrescriptionDTO[]>> {
+  const rows =
+    templateIds && templateIds.length
+      ? await db.select().from(setPrescriptions).where(inArray(setPrescriptions.templateId, templateIds))
+      : templateIds
+        ? []
+        : await db.select().from(setPrescriptions);
+  const byTemplate = new Map<string, SetPrescriptionDTO[]>();
+  for (const s of rows) {
+    const key = str(s.templateId);
+    if (!key) continue;
+    const list = byTemplate.get(key) || [];
+    list.push({
+      setNumber: Number(s.setNumber) || list.length + 1,
+      reps: str(s.reps),
+      load: str(s.load),
+      percent: s.percent == null ? "" : String(s.percent),
+      percentMas: s.percentMas == null ? "" : String(s.percentMas),
+      intensityMode: str(s.intensityMode),
+      intensityValue: str(s.intensityValue),
+      tempo: str(s.tempo),
+      rest: str(s.rest),
+      rpe: str(s.rpe),
+      rir: str(s.rir),
+      time: str(s.time),
+      distance: str(s.distance),
+    });
+    byTemplate.set(key, list);
+  }
+  for (const list of byTemplate.values()) list.sort((a, b) => a.setNumber - b.setNumber);
+  return byTemplate;
+}
+
 export async function listAllTemplateRows(): Promise<TemplateRow[]> {
-  const rows = await db.select().from(workoutTemplates);
+  const [rows, sets] = await Promise.all([
+    db.select().from(workoutTemplates),
+    listSetPrescriptionsByTemplate(),
+  ]);
   return rows.map(
     (r: Row): TemplateRow => ({
+      setPrescriptions: sets.get(r.templateId) || [],
+      targetSource: str(r.targetSource),
+      targetMetric: str(r.targetMetric),
+      targetPercent: r.targetPercent == null ? "" : String(r.targetPercent),
+      targetAdjustment: r.targetAdjustment == null ? "" : String(r.targetAdjustment),
+      autoTarget: r.autoTarget ?? false,
+      displayTarget: str(r.displayTarget),
       recordId: r.templateId,
       programId: str(r.programId),
       programRecordIds: r.programId ? [r.programId] : [],
@@ -187,6 +233,30 @@ export async function createWorkoutTemplate(
       },
     };
   }
+  if (testTemplateId) {
+    // Test day that also has exercises: keep the battery marker alongside
+    // the exercise rows written below (best-effort; the exercises are the
+    // main save).
+    try {
+      await db.insert(workoutTemplates).values([
+        buildTestMarkerRow({
+          programRecordId,
+          week,
+          day,
+          sessionName,
+          sessionNameCn,
+          sessionType,
+          sessionGoal,
+          sessionNotes,
+          intensity,
+          isSingleWorkout,
+          testTemplateId: String(testTemplateId),
+        }),
+      ]);
+    } catch (e: any) {
+      console.error("createWorkoutTemplate: test marker failed", e?.message || e);
+    }
+  }
 
   // Validate every exercise reference against the library in one query. The
   // FK is enforced here, and the Feishu impl throws the same message when a
@@ -261,6 +331,15 @@ export async function createWorkoutTemplate(
         trackingType: meta.trackingType || null,
         accessoryParent: meta.accessoryParent || null,
         accessoryColor: meta.accessoryColor || null,
+        // Auto-target: the columns existed since the pg cutover but were
+        // never written, so the library's "uses auto target" flags were dead
+        // by the time a program was saved.
+        targetSource: exercise.targetSource ? String(exercise.targetSource) : null,
+        targetMetric: exercise.targetMetric ? String(exercise.targetMetric) : null,
+        targetPercent: toNum(exercise.targetPercent) ?? null,
+        targetAdjustment: toNum(exercise.targetAdjustment) ?? null,
+        autoTarget: exercise.autoTarget === undefined ? null : Boolean(exercise.autoTarget),
+        displayTarget: exercise.displayTarget ? String(exercise.displayTarget) : null,
         estimatedDuration:
           Number.isFinite(durationNumber) && durationNumber > 0
             ? Math.round(durationNumber)
@@ -294,7 +373,6 @@ export async function createWorkoutTemplate(
     if (!meta) return;
 
     meta.setPrescriptions.forEach((set) => {
-      const rest = toNum(set.rest);
       setRows.push({
         prescriptionId: mintId("SP"),
         templateId: row.templateId,
@@ -306,7 +384,12 @@ export async function createWorkoutTemplate(
         intensityMode: set.intensityMode || null,
         percent: toNum(set.percent) ?? null,
         percentMas: toNum(set.percentMas) ?? null,
-        rest: rest === undefined ? null : String(rest),
+        // Kept verbatim with its unit — this table is read back now.
+        rest: set.rest || null,
+        rpe: set.rpe || null,
+        rir: set.rir || null,
+        time: set.time || null,
+        distance: set.distance || null,
       });
     });
 
@@ -418,9 +501,11 @@ export async function createWorkoutTemplatesBulk(input: {
   const metas: ParsedMeta[] = [];
   const templateRows: Insert[] = [];
   for (const session of sessions) {
-    if (session.testTemplateId && session.exercises.length === 0) {
-      // Test day: single marker row, no exercise/meta processing. metas stays
-      // aligned with templateRows for the child-table pass below.
+    if (session.testTemplateId) {
+      // Test day: a marker row carries the battery. A test day may ALSO hold
+      // exercises (coach added a warm-up to a testing day) — those follow as
+      // normal rows on the same week/day; the marker is never dropped. metas
+      // stays aligned with templateRows for the child-table pass below.
       templateRows.push(
         buildTestMarkerRow({
           programRecordId,
@@ -437,7 +522,7 @@ export async function createWorkoutTemplatesBulk(input: {
         })
       );
       metas.push(parseTemplateMeta(""));
-      continue;
+      if (session.exercises.length === 0) continue;
     }
     session.exercises.forEach((exercise: ProgramExerciseInput, index: number) => {
       const exerciseLinkId =
@@ -483,6 +568,15 @@ export async function createWorkoutTemplatesBulk(input: {
         trackingType: meta.trackingType || null,
         accessoryParent: meta.accessoryParent || null,
         accessoryColor: meta.accessoryColor || null,
+        // Auto-target: the columns existed since the pg cutover but were
+        // never written, so the library's "uses auto target" flags were dead
+        // by the time a program was saved.
+        targetSource: exercise.targetSource ? String(exercise.targetSource) : null,
+        targetMetric: exercise.targetMetric ? String(exercise.targetMetric) : null,
+        targetPercent: toNum(exercise.targetPercent) ?? null,
+        targetAdjustment: toNum(exercise.targetAdjustment) ?? null,
+        autoTarget: exercise.autoTarget === undefined ? null : Boolean(exercise.autoTarget),
+        displayTarget: exercise.displayTarget ? String(exercise.displayTarget) : null,
         estimatedDuration:
           Number.isFinite(durationNumber) && durationNumber > 0
             ? Math.round(durationNumber)
@@ -525,7 +619,6 @@ export async function createWorkoutTemplatesBulk(input: {
     const meta = metas[index];
     if (!meta) return;
     meta.setPrescriptions.forEach((set) => {
-      const rest = toNum(set.rest);
       setRows.push({
         prescriptionId: mintId("SP"),
         templateId: row.templateId,
@@ -537,7 +630,12 @@ export async function createWorkoutTemplatesBulk(input: {
         intensityMode: set.intensityMode || null,
         percent: toNum(set.percent) ?? null,
         percentMas: toNum(set.percentMas) ?? null,
-        rest: rest === undefined ? null : String(rest),
+        // Kept verbatim with its unit — this table is read back now.
+        rest: set.rest || null,
+        rpe: set.rpe || null,
+        rir: set.rir || null,
+        time: set.time || null,
+        distance: set.distance || null,
       });
     });
     meta.alternates.forEach((alt) => {

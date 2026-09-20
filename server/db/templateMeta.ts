@@ -34,6 +34,10 @@ export type ParsedSet = {
   intensityValue: string;
   tempo: string;
   rest: string;
+  rpe: string;
+  rir: string;
+  time: string;
+  distance: string;
 };
 
 export type ParsedAlternate = {
@@ -125,6 +129,10 @@ export function parseTemplateMeta(notes = ""): ParsedMeta {
               intensityValue: String(set?.intensityValue || ""),
               tempo: String(set?.tempo || ""),
               rest: String(set?.rest || ""),
+              rpe: String(set?.rpe || ""),
+              rir: String(set?.rir || ""),
+              time: String(set?.time || ""),
+              distance: String(set?.distance || ""),
             }))
             .filter((set) => set.setNumber > 0);
         }

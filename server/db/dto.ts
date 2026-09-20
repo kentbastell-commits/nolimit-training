@@ -286,6 +286,10 @@ export type WorkoutDetailDTO = {
   targetAdjustment: string;
   autoTarget: boolean;
   displayTarget: string;
+  // Per-set prescriptions (reps/load/RPE/HR range/time/distance/rest) — what
+  // the athlete-facing players show as set targets. From the set_prescriptions
+  // table; falls back to the coaching-notes JSON for pre-2026-09-20 rows.
+  setPrescriptions: SetPrescriptionDTO[];
   // Alternates the coach offered (parsed from Coaching Notes), each resolved
   // against the exercise library so the player can fully swap to it.
   alternateExercises: AlternateExerciseDTO[];
@@ -341,6 +345,33 @@ export type TemplateSummaryDTO = {
   tempo: string;
   rest: string;
   notes: string;
+  // Per-set prescriptions from the set_prescriptions table (the real store
+  // since 2026-09-20). Empty for rows saved before then — readers fall back
+  // to the "Set Prescriptions:" JSON inside `notes`.
+  setPrescriptions?: SetPrescriptionDTO[];
+  // Auto-target resolution, straight from the template columns.
+  targetSource?: string;
+  targetMetric?: string;
+  targetPercent?: string;
+  targetAdjustment?: string;
+  autoTarget?: boolean;
+  displayTarget?: string;
+};
+
+export type SetPrescriptionDTO = {
+  setNumber: number;
+  reps: string;
+  load: string;
+  percent: string;
+  percentMas: string;
+  intensityMode: string;
+  intensityValue: string;
+  tempo: string;
+  rest: string;
+  rpe: string;
+  rir: string;
+  time: string;
+  distance: string;
 };
 
 // Internal: carries the program reference used for filtering before it's stripped.

@@ -190,6 +190,8 @@ export default function CoachBuilderPage({
   programGridDrop,
   programName,
   programPhase,
+  programSport,
+  programLevel,
   programPrice,
   programCompareAtPrice,
   programSeason,
@@ -326,6 +328,8 @@ export default function CoachBuilderPage({
   setProgramMenu,
   setProgramName,
   setProgramPhase,
+  setProgramSport,
+  setProgramLevel,
   setProgramPrice,
   setProgramCompareAtPrice,
   setProgramSeason,
@@ -776,7 +780,9 @@ export default function CoachBuilderPage({
                                     type="button"
                                     className="pbSaveBtn"
                                     disabled={savingTemplate}
-                                    onClick={saveFullProgram}
+                                    onClick={() => {
+                                      void saveFullProgram({ stay: true });
+                                    }}
                                   >
                                     <Save size={17} strokeWidth={2.2} />
                                     {savingTemplate
@@ -1520,6 +1526,30 @@ export default function CoachBuilderPage({
                             placeholder="e.g. Foundation"
                             className="miniSearch"
                           />
+                        </label>
+
+                        <label>
+                          <span>Sport</span>
+                          <input
+                            value={programSport}
+                            onChange={(e) => setProgramSport(e.target.value)}
+                            placeholder="e.g. Climbing"
+                            className="miniSearch"
+                          />
+                        </label>
+
+                        <label>
+                          <span>Level</span>
+                          <select
+                            value={programLevel}
+                            onChange={(e) => setProgramLevel(e.target.value)}
+                            className="miniSearch"
+                          >
+                            <option value="Beginner">Beginner</option>
+                            <option value="Intermediate">Intermediate</option>
+                            <option value="Advanced">Advanced</option>
+                            <option value="Elite">Elite</option>
+                          </select>
                         </label>
 
                         <label>

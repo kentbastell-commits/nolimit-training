@@ -319,7 +319,15 @@ export const setPrescriptions = pgTable(
     intensityMode: text("intensity_mode"),
     intensityValue: text("intensity_value"),
     tempo: text("tempo"),
+    // Free text WITH its unit ("90 sec", "2 min") — it used to pass through
+    // toNum and lose the unit, which is one reason nobody could read this
+    // table. Since 2026-09-20 the table is the real per-set store; readers
+    // (builder, workoutDetails) prefer it over the coaching-notes JSON.
     rest: text("rest"),
+    rpe: text("rpe"),
+    rir: text("rir"),
+    time: text("time"),
+    distance: text("distance"),
   },
   (t) => [index("set_prescriptions_template_idx").on(t.templateId)]
 );

@@ -750,6 +750,15 @@ export type SavedProgramTemplate = {
   tempo?: string;
   rest?: string;
   notes?: string;
+  // Per-set prescriptions from the server's set_prescriptions table (rows
+  // saved before 2026-09-20 have none; the notes JSON is the fallback).
+  setPrescriptions?: Array<Partial<ExerciseSetPrescription> & { setNumber?: number }>;
+  targetSource?: string;
+  targetMetric?: string;
+  targetPercent?: string;
+  targetAdjustment?: string;
+  autoTarget?: boolean;
+  displayTarget?: string;
 };
 
 export type SavedFormQuestion = {

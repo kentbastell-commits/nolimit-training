@@ -2,6 +2,8 @@ import { and, eq } from "drizzle-orm";
 import { db } from "../client.ts";
 import { workoutTemplates, exercises } from "../schema.ts";
 import { str } from "./_util.ts";
+import { parseTemplateMeta } from "../templateMeta.ts";
+import { listSetPrescriptionsByTemplate } from "./programTemplates.ts";
 import type { AlternateExerciseDTO, WorkoutDetailDTO } from "../dto.ts";
 
 type ExRow = typeof exercises.$inferSelect;
@@ -72,6 +74,16 @@ export async function getWorkoutDetails(
     if (e.exerciseId) byId.set(e.exerciseId, e);
     if (e.name) byName.set(e.name.trim().toLowerCase(), e);
   }
+  // Per-set targets: the table first; rows saved before 2026-09-20 only have
+  // the JSON inside coaching notes, so fall back to parsing that.
+  const setsByTemplate = await listSetPrescriptionsByTemplate(
+    templates.map((t) => t.templateId)
+  );
+  const setsFor = (t: (typeof templates)[number]) => {
+    const fromTable = setsByTemplate.get(t.templateId);
+    if (fromTable && fromTable.length) return fromTable;
+    return parseTemplateMeta(str(t.coachingNotes)).setPrescriptions;
+  };
 
   return templates
     .map((t): WorkoutDetailDTO => {
@@ -121,6 +133,7 @@ export async function getWorkoutDetails(
         targetAdjustment: str(t.targetAdjustment),
         autoTarget: t.autoTarget ?? false,
         displayTarget: str(t.displayTarget),
+        setPrescriptions: setsFor(t),
         alternateExercises: parseAlternateList(str(t.coachingNotes)).map(
           (alt): AlternateExerciseDTO => {
             const altLib =

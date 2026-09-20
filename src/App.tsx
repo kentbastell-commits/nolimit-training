@@ -1721,6 +1721,9 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   >([]);
   const [programSessions, setProgramSessions] = useState<ProgramSession[]>([]);
   const [editingProgramSessionId, setEditingProgramSessionId] = useState("");
+  // The test battery of the day being edited (placed test days keep it when
+  // exercises are added alongside).
+  const [editingSessionTestTemplateId, setEditingSessionTestTemplateId] = useState("");
   const [draggedProgramSessionId, setDraggedProgramSessionId] = useState("");
   const [programGridDrop, setProgramGridDrop] = useState<{
     w: number;
@@ -5294,8 +5297,34 @@ function App({ onReady }: { onReady?: () => void } = {}) {
           accessoryParentLabel: meta.accessoryParentLabel,
           accessoryColor: meta.accessoryColor,
           sectionColor: meta.sectionColor,
-          setPrescriptions: meta.setPrescriptions,
+          // The set_prescriptions table is the real per-set store; older
+          // rows only carry the JSON in the notes.
+          setPrescriptions:
+            t.setPrescriptions && t.setPrescriptions.length > 0
+              ? t.setPrescriptions.map((set) => ({
+                  setNumber: Number(set.setNumber) || 0,
+                  reps: String(set.reps ?? ""),
+                  load: String(set.load ?? ""),
+                  percent: String(set.percent ?? ""),
+                  percentMas: String(set.percentMas ?? ""),
+                  intensityMode: String(set.intensityMode ?? ""),
+                  intensityValue: String(set.intensityValue ?? ""),
+                  rpe: String(set.rpe ?? ""),
+                  rir: String(set.rir ?? ""),
+                  time: String(set.time ?? ""),
+                  distance: String(set.distance ?? ""),
+                  tempo: String(set.tempo ?? ""),
+                  rest: String(set.rest ?? ""),
+                }))
+              : meta.setPrescriptions,
           alternateExercises: meta.alternateExercises,
+          // Auto-target fields now round-trip through their own columns.
+          targetSource: t.targetSource || undefined,
+          targetMetric: t.targetMetric || undefined,
+          targetPercent: t.targetPercent || undefined,
+          targetAdjustment: t.targetAdjustment || undefined,
+          autoTarget: t.autoTarget || undefined,
+          displayTarget: t.displayTarget || undefined,
         };
         session.exercises.push(withNormalizedSetFields(baseExercise));
       });
@@ -5946,6 +5975,11 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   // Programming landing "Create Program" → seed a blank multi-day builder
   // from the details modal, then jump into the builder.
   const startProgramFromDraft = () => {
+    // Fresh canvas first (clears the edit target — leftover ids from a
+    // previously edited program would make Save overwrite that program —
+    // and every program/session field), then the draft's own values.
+    resetProgramFields();
+    resetSessionFields();
     setProgramProductType(createDraft.productType);
     setProgramName(createDraft.name.trim() || "Untitled Program");
     setProgramGoal(createDraft.goal.trim());
@@ -5953,36 +5987,6 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     setProgramDurationWeeks(
       String(Math.max(1, Number(createDraft.durationWeeks) || 1))
     );
-    // Sessions/week dropped from the UI; keep a sane default for the schema.
-    setProgramSessionsPerWeek("3");
-    setProgramBuiltForMode("internal");
-    setProgramBuiltForClient("");
-    setProgramBuiltForTeam("");
-    // Commerce/store fields must not leak from a previously loaded product
-    // into a fresh program (it could publish with the old price/copy).
-    setProgramPrice("");
-    setProgramCompareAtPrice("");
-    setProgramCurrency("CNY");
-    setProgramPublicStoreVisible(false);
-    setProgramPurchaseLink("");
-    setProgramDefaultIntakeFormId("");
-    setProgramAccessLengthDays("42");
-    setProgramProductStatus("Draft");
-    setProgramSalesDescription("");
-    setProgramSalesDescriptionCn("");
-    setProgramSeason("");
-    setProgramStoreCategory("");
-    setProgramStoreCategoryCn("");
-    setProgramBundleIds([]);
-    // Fresh canvas. Clearing the edit target is critical: leftover ids from a
-    // previously edited program would make saveProgram overwrite that program.
-    setEditProgramId("");
-    setEditProgramRecordId("");
-    setProgramSessions([]);
-    setSelectedProgramExercises([]);
-    setProgramWeek("1");
-    setProgramDay("1");
-    setSessionName("");
     setBuilderMode("Program");
     setBuilderSubTab("build");
     setCreateProgramOpen(false);
@@ -6001,18 +6005,9 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   const startNewSession = () => {
     // A fresh session is NOT a calendar one-off unless the calendar flow
     // re-tags it right after this call (startOneOffSessionForDate does).
-    setOneOffAssignTarget(null);
-    setEditProgramId("");
-    setEditProgramRecordId("");
-    setProgramName("");
-    setProgramGoal("");
+    resetProgramFields();
+    resetSessionFields();
     setProgramProductType("Single Workout");
-    setProgramSessions([]);
-    setSelectedProgramExercises([]);
-    setProgramWeek("1");
-    setProgramDay("1");
-    setSessionName("");
-    setEditingProgramSessionId("");
     setBuilderMode("Single Workout");
     setBuilderSubTab("build");
     setMobileBuilderStep("editor");
@@ -9032,7 +9027,10 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     const raw = String(set.rest || "").trim();
     const value = (raw.match(/[\d.]+/) || [""])[0];
     const unitWord = (raw.match(/[a-z]+/i) || [""])[0].toLowerCase();
-    const unit = unitWord.startsWith("m") ? "min" : "s";
+    // Stored as "30 sec" / "2 min" — the same words every category default
+    // and the athlete-facing parser use (a bare "s" read back as seconds only
+    // by luck of the regex).
+    const unit = unitWord.startsWith("m") ? "min" : "sec";
     const write = (nextValue: string, nextUnit: string) =>
       updateExerciseSetPrescription(
         exerciseIndex,
@@ -9056,7 +9054,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
           value={unit}
           onChange={(event) => write(value, event.target.value)}
         >
-          <option value="s">s</option>
+          <option value="sec">s</option>
           <option value="min">min</option>
         </select>
       </div>
@@ -9440,12 +9438,19 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                               className="miniSearch builderIntensityValue"
                               inputMode="numeric"
                               value={set.intensityValue}
-                              onChange={(event) =>
-                                setField(
-                                  "intensityValue",
-                                  event.target.value.replace(/[^\d.\-]/g, "")
-                                )
-                              }
+                              onChange={(event) => {
+                                const next = event.target.value.replace(
+                                  /[^\d.\-]/g,
+                                  ""
+                                );
+                                setField("intensityValue", next);
+                                // The dropdown DISPLAYS "RPE" for an unset
+                                // mode; persist it so the athlete's app reads
+                                // the value as RPE (not a zone), and mirror it
+                                // into the per-set RPE column.
+                                if (mode !== "rpe") setField("intensityMode", "rpe");
+                                setField("rpe", next);
+                              }}
                               placeholder="RPE"
                             />
                           )}
@@ -10164,11 +10169,32 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       const target = prev[index];
       if (!target) return prev;
       const updated = [...prev];
+      // Swapping across the cardio/strength line (Back Squat → Elliptical)
+      // must re-derive the tracking layout, or the row keeps Weight × Reps
+      // for a machine (and Time/Distance for a lift). Same-kind swaps keep
+      // the coach's own tracking choices.
+      const wasCardio = isCardioExercise(
+        findLibraryExerciseForProgramExercise(target)?.category,
+        target.exerciseName
+      );
+      const nowCardio = isCardioExercise(library.category, library.exerciseName);
+      const rebuilt =
+        wasCardio !== nowCardio
+          ? buildProgramExerciseFromLibrary(library, prev, null)
+          : null;
       updated[index] = {
         ...target,
         exerciseRecordId: library.recordId || library.exerciseId || "",
         exerciseId: library.exerciseId,
         exerciseName: library.exerciseName,
+        ...(rebuilt
+          ? {
+              trackingType: rebuilt.trackingType,
+              trackingFields: rebuilt.trackingFields,
+              tempo: rebuilt.tempo,
+              setPrescriptions: rebuilt.setPrescriptions,
+            }
+          : {}),
       };
       return updated;
     });
@@ -10812,6 +10838,9 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       day: effectiveDay,
       sessionName: effectiveSessionName,
       sessionNameCn: sessionNameCn.trim() || undefined,
+      // A placed test day keeps its battery when the coach adds exercises
+      // to it (it used to silently become a normal session on rebuild).
+      testTemplateId: editingSessionTestTemplateId || undefined,
       sessionType,
       sessionGoal,
       sessionNotes: sessionNotes.trim() || undefined,
@@ -10873,6 +10902,64 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     setCustomizeFieldsIndex(null);
     setAlternateEditorExerciseIndex(null);
     setBuilderExerciseOptionsIndex(null);
+    setEditingSessionTestTemplateId("");
+  };
+
+  // ONE definition of "blank session fields" and "blank program fields".
+  // The post-save reset, Discard, "New program" and "New session" used to
+  // each clear a different subset, so store category, bundle contents,
+  // built-for, sport/level and the last day's notes leaked into the next
+  // program (audit B11/B12).
+  const resetSessionFields = () => {
+    setSelectedProgramExercises([]);
+    setEditingProgramSessionId("");
+    setSessionName("");
+    setSessionNameCn("");
+    setSessionNotes("");
+    setSessionGoal("");
+    setSessionEstimatedDuration("");
+    setSessionType("Strength");
+    setSessionIntensity("Moderate");
+    setPendingSectionName("Warmup");
+    setProgramWeek("1");
+    setProgramDay("1");
+    resetExerciseIndexState();
+  };
+  const resetProgramFields = () => {
+    setProgramSessions([]);
+    setProgramName("");
+    setProgramGoal("");
+    setProgramSport("Fitness");
+    setProgramLevel("Beginner");
+    setProgramPhase("");
+    setProgramSeason("");
+    setProgramCoach("Kent Bastell");
+    setProgramDurationWeeks("4");
+    setProgramSessionsPerWeek("3");
+    setProgramProductType("Digital Program");
+    setProgramBuiltForMode("internal");
+    setProgramBuiltForClient("");
+    setProgramBuiltForTeam("");
+    // Commerce/store fields must not leak from a previously loaded product
+    // into a fresh program (it could publish with the old price/copy).
+    setProgramPrice("");
+    setProgramCompareAtPrice("");
+    setProgramCurrency("CNY");
+    setProgramPublicStoreVisible(false);
+    setProgramPurchaseLink("");
+    setProgramDefaultIntakeFormId("");
+    setProgramAccessLengthDays("42");
+    setProgramProductStatus("Draft");
+    setProgramSalesDescription("");
+    setProgramSalesDescriptionCn("");
+    setProgramStoreCategory("");
+    setProgramStoreCategoryCn("");
+    setProgramBundleIds([]);
+    setEditProgramId("");
+    setEditProgramRecordId("");
+    setCopiedSession(null);
+    setOneOffAssignTarget(null);
+    oneOffReturnClientRef.current = null;
   };
 
   const saveCurrentSessionToProgram = (
@@ -11211,6 +11298,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     adoptSectionColors(session.exercises);
     setExpandedBuilderExerciseIndexes(new Set());
     resetExerciseIndexState();
+    setEditingSessionTestTemplateId(session.testTemplateId || "");
     setEditingProgramSessionId(session.localId);
     // Program sessions keep the drawer underneath (it owns "Save Day"), but the
     // big library builder opens on top immediately — one click straight to editing.
@@ -11243,17 +11331,25 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   // stored the whole program in triplicate (found live on PR-1759).
   const saveInFlightRef = useRef(false);
 
-  const saveFullProgram = async (): Promise<boolean> => {
+  // `stay: true` keeps the coach in the builder after a successful save,
+  // reloading the just-saved program in edit mode (header "Save" while
+  // mid-build). The default clears the canvas and leaves it to the caller
+  // to navigate (mobile flow, one-off calendar sessions).
+  const saveFullProgram = async (
+    opts?: { stay?: boolean }
+  ): Promise<boolean> => {
     if (saveInFlightRef.current) return false;
     saveInFlightRef.current = true;
     try {
-      return await saveFullProgramInner();
+      return await saveFullProgramInner(opts);
     } finally {
       saveInFlightRef.current = false;
     }
   };
 
-  const saveFullProgramInner = async (): Promise<boolean> => {
+  const saveFullProgramInner = async (
+    opts?: { stay?: boolean }
+  ): Promise<boolean> => {
     const singleWorkoutMode = builderMode === "Single Workout";
     const digitalProductProgram =
       !singleWorkoutMode &&
@@ -11633,41 +11729,32 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       // now has everything — the leave-guard can stand down.
       justSavedRef.current = true;
       builderServerDirtyRef.current = false;
-      setEditProgramId("");
-      setEditProgramRecordId("");
-      setProgramSessions([]);
-      setSelectedProgramExercises([]);
-      setProgramName("");
-      setProgramGoal("");
-      setProgramSport("");
-      setProgramLevel("");
-      setProgramDurationWeeks("4");
-      setProgramPhase("");
-      setProgramSessionsPerWeek("3");
-      setProgramProductType("Digital Program");
-      setProgramPrice("");
-      setProgramCompareAtPrice("");
-      setProgramCurrency("CNY");
-      setProgramPublicStoreVisible(false);
-      setProgramPurchaseLink("");
-      setProgramDefaultIntakeFormId("");
-      setProgramAccessLengthDays("42");
-      setProgramProductStatus("Draft");
-      setProgramSalesDescription("");
-      setProgramSalesDescriptionCn("");
-      setProgramSeason("");
-      setSessionName("");
-      setProgramWeek("1");
-      setProgramDay("1");
-      void loadPrograms(true);
+      // Capture the one-off/return context BEFORE the reset clears it.
+      const oneOffTarget = oneOffAssignTarget;
+      const returnClientAfterSave = oneOffReturnClientRef.current;
+      const savedRecordId = String(programData.programRecordId || "");
+      resetProgramFields();
+      resetSessionFields();
+      const refreshedPrograms = await loadPrograms(true);
+
+      if (opts?.stay && !oneOffTarget) {
+        // Header "Save" mid-build: stay put, now editing the saved record
+        // (so the next Save updates it instead of creating a copy).
+        const savedProgram = (
+          Array.isArray(refreshedPrograms) ? refreshedPrograms : programs
+        ).find((p) => p.recordId === savedRecordId);
+        if (savedProgram) {
+          await loadSavedProgramIntoBuilder(savedProgram, { edit: true });
+        }
+        return true;
+      }
 
       // One-off calendar session: auto-assign the just-saved session to the
       // client + date the coach started from, then land back on their
       // calendar. A failed assign degrades to "saved but unassigned" with a
       // clear message — never a silent loss.
-      if (singleWorkoutMode && oneOffAssignTarget) {
-        const target = oneOffAssignTarget;
-        setOneOffAssignTarget(null);
+      if (singleWorkoutMode && oneOffTarget) {
+        const target = oneOffTarget;
         const savedSession = sessionsToSave[0];
         try {
           const assignRes = await fetch("/api/assignProgram", {
@@ -11713,19 +11800,17 @@ function App({ onReady }: { onReady?: () => void } = {}) {
           );
         }
         // Land back INSIDE the client's calendar, not the roster.
-        const returnClient = oneOffReturnClientRef.current;
-        oneOffReturnClientRef.current = null;
+        const returnClient = returnClientAfterSave;
         setActivePage("Clients");
         if (returnClient) {
           setSelectedClient(returnClient);
           setClientTab("Training");
           void loadClientWorkouts(returnClient, true);
         }
-      } else if (oneOffReturnClientRef.current) {
+      } else if (returnClientAfterSave) {
         // Program edit opened FROM a client's workout modal (#51 stash):
         // land back inside that client's calendar, refreshed.
-        const returnClient = oneOffReturnClientRef.current;
-        oneOffReturnClientRef.current = null;
+        const returnClient = returnClientAfterSave;
         setActivePage("Clients");
         setSelectedClient(returnClient);
         setClientTab("Training");
@@ -11923,8 +12008,10 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     window.addEventListener("pointerup", onUp);
   };
 
+  // Mobile saves leave the (now empty) builder and land on the list that
+  // holds what was just saved — never an emptied "details" step.
   const saveMobileWorkout = async () => {
-    if (await saveFullProgram()) setMobileBuilderStep("details");
+    if (await saveFullProgram()) selectWorkoutTab("Sessions", true);
   };
 
   const saveMobileProgramDay = () => {
@@ -11981,7 +12068,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   };
 
   const finishMobileProgram = async () => {
-    if (await saveFullProgram()) setMobileBuilderStep("details");
+    if (await saveFullProgram()) selectWorkoutTab("Saved Programs", true);
   };
 
   const focusReviewColumn = (columnId: string) => {
@@ -12036,42 +12123,12 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   // re-opened builder doesn't show the abandoned program).
   const resetBuilder = () => {
     builderServerDirtyRef.current = false;
-    setProgramSessions([]);
-    setSelectedProgramExercises([]);
-    setProgramName("");
-    setProgramGoal("");
-    setProgramPhase("");
-    setProgramDurationWeeks("4");
-    setProgramSessionsPerWeek("3");
-    setProgramProductType("Digital Program");
-    setProgramBuiltForMode("internal");
-    setProgramBuiltForClient("");
-    setProgramBuiltForTeam("");
-    // Commerce/store fields must not leak from a previously loaded product
-    // into a fresh program (it could publish with the old price/copy).
-    setProgramPrice("");
-    setProgramCompareAtPrice("");
-    setProgramCurrency("CNY");
-    setProgramPublicStoreVisible(false);
-    setProgramPurchaseLink("");
-    setProgramDefaultIntakeFormId("");
-    setProgramAccessLengthDays("42");
-    setProgramProductStatus("Draft");
-    setProgramSalesDescription("");
-    setProgramSalesDescriptionCn("");
-    setProgramSeason("");
-    setProgramStoreCategory("");
-    setProgramStoreCategoryCn("");
-    setProgramBundleIds([]);
-    setEditProgramId("");
-    setEditProgramRecordId("");
-    setEditingProgramSessionId("");
-    setSessionName("");
+    resetProgramFields();
+    resetSessionFields();
     setSessionEditorOpen(false);
     setBuilderSubTab("build");
     setProgramDetailsOpen(true);
     setBuilderSaveStatus("saved");
-    setCopiedSession(null);
     // Also land back on the list, not a blank builder — a nav click away
     // from an in-progress program should return to the library, not leave
     // an empty "Program Builder" tab sitting open.
@@ -21466,6 +21523,8 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                 programInherentStoreProduct={programInherentStoreProduct}
                 programName={programName}
                 programPhase={programPhase}
+                programSport={programSport}
+                programLevel={programLevel}
                 programPrice={programPrice}
                 programCompareAtPrice={programCompareAtPrice}
                 programSeason={programSeason}
@@ -21612,6 +21671,8 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                 setProgramMenu={setProgramMenu}
                 setProgramName={setProgramName}
                 setProgramPhase={setProgramPhase}
+                setProgramSport={setProgramSport}
+                setProgramLevel={setProgramLevel}
                 setProgramPrice={setProgramPrice}
                 setProgramCompareAtPrice={setProgramCompareAtPrice}
                 setProgramSeason={setProgramSeason}
