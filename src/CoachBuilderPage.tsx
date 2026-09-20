@@ -6,10 +6,9 @@ import { Fragment, useEffect, useState } from "react";
 import CoachProgramsLanding from "./CoachProgramsLanding";
 import ProgramDetailPanel from "./ProgramDetailPanel";
 import PortalToApp from "./PortalToApp";
-import { Activity, BookOpen, CalendarDays, ChevronDown, ChevronLeft, ChevronUp, ChevronsLeftRight, ClipboardList, Copy, Dumbbell, Feather, Film, FlaskConical, GripVertical, HeartPulse, Link2, MoreVertical, Pencil, Plus, RefreshCw, Save, Settings, Shuffle, Tag, Target, Trash2, Trophy, X } from "lucide-react";
+import { Activity, BookOpen, CalendarDays, ChevronDown, ChevronLeft, ChevronUp, ChevronsLeftRight, ClipboardList, Copy, Dumbbell, Feather, Film, GripVertical, HeartPulse, Link2, MoreVertical, Pencil, Plus, RefreshCw, Save, Settings, Shuffle, Tag, Target, Trash2, Trophy, X } from "lucide-react";
 import type { Program, ProgramSession } from "./appCore";
-import { getWorkoutColorClass, glanceRepsToken, normalizeDate } from "./appCore";
-import { TEST_CATEGORIES, testCategoryLabelKey } from "./testVisuals";
+import { getWorkoutColorClass, glanceRepsToken } from "./appCore";
 import { useTranslation } from "react-i18next";
 
 // Type/form badge tones for the Library · Programming lists (redesign).
@@ -67,26 +66,18 @@ export default function CoachBuilderPage({
   programSessionDropId,
   selectedSavedFormId,
   selectedSavedProgramId,
-  selectedSavedTestId,
   usePercentExerciseIndexes,
   activeWorkoutTabValue,
   addAlternateExercise,
   addExerciseToProgram,
   addFormQuestion,
   addMobileDayToWeek,
-  addTestItem,
   adjustProgramExerciseSets,
   alternateSearch,
   applyBulkPrescription,
   arrangementDragIndex,
   arrangementDropIndex,
   assignSavedProgramToClient,
-  assignmentClientId,
-  assignmentDueDate,
-  assignmentHubDateInputRef,
-  assignmentTemplateId,
-  assignmentTemplateOptions,
-  assignmentType,
   buildGlanceChain,
   builderEquipFilter,
   builderExercises,
@@ -107,12 +98,9 @@ export default function CoachBuilderPage({
   coachVisibleClients,
   collapsedDays,
   commitMobilePicker,
-  createContentAssignment,
-  creatingAssignment,
   customBuilderSectionName,
   deleteSavedFormTemplate,
   deleteSavedProgram,
-  deleteSavedTestTemplate,
   deletingSavedProgramId,
   draggedLibSessionId,
   draggedProgramSessionId,
@@ -120,13 +108,11 @@ export default function CoachBuilderPage({
   duplicateProgramSession,
   duplicateSavedFormIntoBuilder,
   duplicateSavedProgram,
-  duplicateSavedTestIntoBuilder,
   duplicateWeek,
   duplicatingProgramId,
   editProgramRecordId,
   editingFormTemplate,
   editingProgramSessionId,
-  editingTestTemplate,
   estimateSessionMinutes,
   existingStoreCategories,
   finishMobileProgram,
@@ -154,10 +140,8 @@ export default function CoachBuilderPage({
   loadSavedFormIntoBuilder,
   loadSavedProgramIntoBuilder,
   loadSavedProgramSessionsForAssignment,
-  loadSavedTestIntoBuilder,
   loadSessionForEditing,
   loadSessionLibrary,
-  loadTestTemplates,
   mobileAlternateIndex,
   mobileArrangeItemsRef,
   mobileArrangeRefs,
@@ -214,7 +198,6 @@ export default function CoachBuilderPage({
   removeFormQuestion,
   removeProgramExercise,
   removeProgramSession,
-  removeTestItem,
   renderAlternateExerciseEditor,
   renderBuilderExerciseOptionsMenu,
   renderExerciseLabelBadge,
@@ -238,7 +221,6 @@ export default function CoachBuilderPage({
   setOneOffSaveToLibrary,
   saveMobileProgramDay,
   saveMobileWorkout,
-  saveTestTemplate,
   savedAssignClientId,
   savedAssignLoading,
   savedAssignStartDate,
@@ -250,12 +232,9 @@ export default function CoachBuilderPage({
   savedProgramSearch,
   savedProgramSessions,
   savedTemplatesLoading,
-  savedTestSearch,
-  savedTestTemplates,
   savingFormTemplate,
   savingTemplate,
   saveBusyLabel = "Saving…",
-  savingTestTemplate,
   selectBuilderSection,
   setCustomSectionColors,
   selectWorkoutTab,
@@ -278,10 +257,6 @@ export default function CoachBuilderPage({
   setAlternateSearch,
   setArrangementDragIndex,
   setArrangementDropIndex,
-  setAssignmentClientId,
-  setAssignmentDueDate,
-  setAssignmentTemplateId,
-  setAssignmentType,
   setBuilderEquipFilter,
   setBuilderLibraryModeAndLoad,
   setBuilderMode,
@@ -292,7 +267,6 @@ export default function CoachBuilderPage({
   setBulkRest,
   setBulkSelectedIdx,
   setBulkSets,
-  setCalendarAnchorDate,
   setCellMenu,
   setCircuitGroupMode,
   setCircuitGroupRounds,
@@ -350,10 +324,8 @@ export default function CoachBuilderPage({
   setSavedFormSearch,
   setSavedProgramProductFilter,
   setSavedProgramSearch,
-  setSavedTestSearch,
   setSelectedSavedFormId,
   setSelectedSavedProgramId,
-  setSelectedSavedTestId,
   setSessionEditorOpen,
   setSessionGoal,
   setSessionIntensity,
@@ -366,9 +338,6 @@ export default function CoachBuilderPage({
   setSessionSetupOpen,
   setSessionType,
   setShowProgramDetail,
-  setTestTemplateCategory,
-  setTestTemplateName,
-  exitTestBuilder,
   setWeekDupMenu,
   setWeekDupPct,
   setWorkoutTabsMenuOpen,
@@ -376,11 +345,6 @@ export default function CoachBuilderPage({
   showProgramDetail,
   startMobileDrag,
   teams,
-  testItems,
-  testTemplateCategory,
-  testTemplateName,
-  testTemplatesLoading,
-  testView,
   toggleBuilderCircuitLink,
   toggleBuilderSupersetLink,
   toggleMobilePick,
@@ -389,11 +353,9 @@ export default function CoachBuilderPage({
   updateFormQuestion,
   updateProgramExercise,
   updateSavedAssignableWorkoutDate,
-  updateTestItem,
   useMobileWorkoutRows,
   visibleProgramsOnly,
   visibleSavedForms,
-  visibleSavedTests,
   visibleSessionsOnly,
   weekDupMenu,
   weekDupPct,
@@ -1349,7 +1311,6 @@ export default function CoachBuilderPage({
                   </section>
                   );
                 })()}
-
 
                 {workoutPageTab === "Program Builder" &&
                   !useMobileWorkoutRows && (
@@ -5168,479 +5129,6 @@ export default function CoachBuilderPage({
                   </section>
                 )}
 
-                {workoutPageTab === "Tests" && testView === "builder" && (
-                  <section className="tableCard builderHubPanel ptbPanel">
-                    <button
-                      type="button"
-                      className="builderBackLink"
-                      onClick={() => exitTestBuilder()}
-                    >
-                      <ChevronLeft size={16} /> Tests
-                    </button>
-                    <div className="ptbHero">
-                      <div className="ptbHeroText">
-                        <span className="ptbHeroEyebrow">
-                          <FlaskConical size={14} /> Physical Tests · Builder
-                        </span>
-                        <h2>
-                          {testTemplateName.trim() || "Physical Test Builder"}
-                        </h2>
-                        <p>
-                          Build test batteries for strength, speed, power,
-                          mobility, or return-to-training checkpoints.
-                        </p>
-                      </div>
-                      <div className="builderHubActions ptbHeroActions">
-                        <details className="savedTemplateDropdown">
-                          <summary className="outlineButton ptbGhostBtn">
-                            Saved Tests
-                            <span>{savedTestTemplates.length}</span>
-                          </summary>
-                          <div className="savedTemplateDropdownMenu">
-                            <div className="savedTemplateHeader">
-                              <h3>Saved Tests</h3>
-                              <button
-                                className="outlineButton"
-                                onClick={(event) => {
-                                  event.preventDefault();
-                                  void loadTestTemplates(true);
-                                }}
-                              >
-                                Reload
-                              </button>
-                            </div>
-
-                            <input
-                              className="templateSearchInput"
-                              value={savedTestSearch}
-                              onChange={(event) =>
-                                setSavedTestSearch(event.target.value)
-                              }
-                              placeholder="Search tests..."
-                            />
-
-                            {testTemplatesLoading && (
-                              <p className="emptyState">Loading tests...</p>
-                            )}
-
-                            {!testTemplatesLoading && savedTestTemplates.length === 0 && (
-                              <p className="emptyState">No saved tests yet.</p>
-                            )}
-
-                            {!testTemplatesLoading &&
-                              savedTestTemplates.length > 0 &&
-                              visibleSavedTests.length === 0 && (
-                                <p className="emptyState">No tests match your search.</p>
-                              )}
-
-                            <div className="savedTemplateList">
-                              {visibleSavedTests.map((test: any) => (
-                                <div
-                                  key={test.recordId}
-                                  className={`savedTemplateItem savedTemplateCard ${
-                                    selectedSavedTestId === test.testTemplateId
-                                      ? "selectedSavedTemplateItem"
-                                      : ""
-                                  }`}
-                                >
-                                  <button
-                                    type="button"
-                                    className="savedTemplateMainButton"
-                                    onClick={() => {
-                                      setSelectedSavedTestId(test.testTemplateId);
-                                      loadSavedTestIntoBuilder(test);
-                                    }}
-                                  >
-                                    <strong>
-                                      {test.name ||
-                                        test.testTemplateId ||
-                                        "Untitled Test"}
-                                    </strong>
-                                    <span>{test.status || "Active"}</span>
-                                    <small>{test.items.length} test items</small>
-                                  </button>
-                                  <details className="templateActionMenu">
-                                    <summary aria-label="Template actions">...</summary>
-                                    <div>
-                                      <button
-                                        type="button"
-                                        onClick={() => loadSavedTestIntoBuilder(test)}
-                                      >
-                                        Edit
-                                      </button>
-                                      <button
-                                        type="button"
-                                        onClick={() =>
-                                          duplicateSavedTestIntoBuilder(test)
-                                        }
-                                      >
-                                        Duplicate
-                                      </button>
-                                      <button
-                                        type="button"
-                                        onClick={() => deleteSavedTestTemplate(test)}
-                                      >
-                                        Delete
-                                      </button>
-                                    </div>
-                                  </details>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        </details>
-
-                        <button
-                          className="goldButton"
-                          onClick={saveTestTemplate}
-                          disabled={savingTestTemplate}
-                        >
-                          {savingTestTemplate
-                            ? "Saving..."
-                            : editingTestTemplate
-                            ? "Update Test Template"
-                            : "Save Test Template"}
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="builderHubMain">
-                        <div className="ptbSetupCard">
-                          <div className="ptbCardHead">
-                            <div>
-                              <span className="eyebrow">Battery</span>
-                              <strong>Test Setup</strong>
-                            </div>
-                          </div>
-                          <div className="builderHubGrid ptbSetupGrid">
-                            <label>
-                              <span>Test Template Name</span>
-                              <input
-                                className="miniSearch"
-                                value={testTemplateName}
-                                onChange={(e) => setTestTemplateName(e.target.value)}
-                                placeholder="Return-to-sport screen, Power profile..."
-                              />
-                            </label>
-                            <label>
-                              <span>{t("testsCategoryLabel")}</span>
-                              <select
-                                className="miniSearch"
-                                value={testTemplateCategory}
-                                onChange={(e) =>
-                                  setTestTemplateCategory(e.target.value)
-                                }
-                              >
-                                {TEST_CATEGORIES.map((category) => (
-                                  <option key={category} value={category}>
-                                    {t(testCategoryLabelKey(category))}
-                                  </option>
-                                ))}
-                              </select>
-                            </label>
-                          </div>
-                        </div>
-
-                        <div className="builderHubList">
-                          <div className="ptbItemsHead">
-                            <div>
-                              <span className="eyebrow">Protocol</span>
-                              <h3>Test Items</h3>
-                            </div>
-                            <button className="goldButton" onClick={addTestItem}>
-                              + Add Test
-                            </button>
-                          </div>
-
-                          {testItems.map((item: any, index: any) => (
-                            <div className="ptbItemCard" key={`${item.id}-${index}`}>
-                              <div className="ptbItemHead">
-                                <span className="ptbItemBadge">{index + 1}</span>
-                                <input
-                                  className="ptbItemNameInput"
-                                  value={item.testName}
-                                  onChange={(e) =>
-                                    updateTestItem(index, "testName", e.target.value)
-                                  }
-                                  placeholder="Countermovement jump, 5RM squat..."
-                                />
-                                <button
-                                  type="button"
-                                  className="iconActionButton ptbItemRemove"
-                                  title="Remove test item"
-                                  onClick={() => removeTestItem(index)}
-                                >
-                                  <Trash2 size={16} />
-                                </button>
-                              </div>
-                              <div className="ptbItemGrid">
-                              <label>
-                                <span>Metric</span>
-                                <select
-                                  className="miniSearch"
-                                  value={item.metricType}
-                                  onChange={(e) =>
-                                    updateTestItem(index, "metricType", e.target.value)
-                                  }
-                                >
-                                  <option>Weight</option>
-                                  <option>Reps</option>
-                                  <option>Time</option>
-                                  <option>Distance</option>
-                                  <option>Height</option>
-                                  <option>Power</option>
-                                  <option>Speed</option>
-                                  <option>Score</option>
-                                  <option>Yes/No</option>
-                                </select>
-                              </label>
-                              <label>
-                                <span>Unit</span>
-                                <select
-                                  className="miniSearch"
-                                  value={item.unit}
-                                  onChange={(e) =>
-                                    updateTestItem(index, "unit", e.target.value)
-                                  }
-                                >
-                                  <option>kg</option>
-                                  <option>lb</option>
-                                  <option>reps</option>
-                                  <option>sec</option>
-                                  <option>min</option>
-                                  <option>m</option>
-                                  <option>cm</option>
-                                  <option>watts</option>
-                                  <option>m/s</option>
-                                  <option>score</option>
-                                  <option>none</option>
-                                </select>
-                              </label>
-                              <label className="checkboxRow builderMetricCheckbox ptbMetricToggle">
-                                <input
-                                  type="checkbox"
-                                  checked={Boolean(item.createsMetric)}
-                                  onChange={(e) =>
-                                    updateTestItem(
-                                      index,
-                                      "createsMetric",
-                                      e.target.checked
-                                    )
-                                  }
-                                />
-                                <span>Create athlete metric</span>
-                              </label>
-                              </div>
-                              {item.createsMetric && (
-                                <div className="ptbMetricConfig">
-                                  <label>
-                                    <span>Metric Name</span>
-                                    <input
-                                      className="miniSearch"
-                                      value={item.metricName || ""}
-                                      onChange={(e) =>
-                                        updateTestItem(
-                                          index,
-                                          "metricName",
-                                          e.target.value
-                                        )
-                                      }
-                                      placeholder="Predicted 1RM, MAS..."
-                                    />
-                                  </label>
-                                  <label>
-                                    <span>Metric Unit</span>
-                                    <input
-                                      className="miniSearch"
-                                      value={item.metricUnit || ""}
-                                      onChange={(e) =>
-                                        updateTestItem(
-                                          index,
-                                          "metricUnit",
-                                          e.target.value
-                                        )
-                                      }
-                                      placeholder="kg, m/s, km/h..."
-                                    />
-                                  </label>
-                                  <label>
-                                    <span>Calculation</span>
-                                    <select
-                                      className="miniSearch"
-                                      value={item.calculationMethod || "Direct Value"}
-                                      onChange={(e) =>
-                                        updateTestItem(
-                                          index,
-                                          "calculationMethod",
-                                          e.target.value
-                                        )
-                                      }
-                                    >
-                                      <option>Direct Value</option>
-                                      <option>Epley 1RM</option>
-                                      <option>Brzycki 1RM</option>
-                                      <option>Relative Strength (x BW)</option>
-                                      <option>2km Time Trial Speed</option>
-                                      <option>Max Aerobic Speed</option>
-                                      <option>Max Aerobic Speed (m/s)</option>
-                                      <option>30-15 IFT (VIFT)</option>
-                                      <option>Run Pace (min/km)</option>
-                                      <option>Row Pace (min/500m)</option>
-                                      <option>Lactate Threshold</option>
-                                      <option>VO2max (Cooper 12-min)</option>
-                                      <option>VO2max (Yo-Yo IR1)</option>
-                                      <option>Peak Power (CMJ, Sayers)</option>
-                                      <option>Reactive Strength Index (RSI)</option>
-                                      <option>Sprint Velocity (m/s)</option>
-                                    </select>
-                                  </label>
-                                  <label>
-                                    <span>Input Unit</span>
-                                    <input
-                                      className="miniSearch"
-                                      value={item.inputUnit || ""}
-                                      onChange={(e) =>
-                                        updateTestItem(
-                                          index,
-                                          "inputUnit",
-                                          e.target.value
-                                        )
-                                      }
-                                      placeholder="kg x reps, mm:ss..."
-                                    />
-                                  </label>
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                    </div>
-                  </section>
-                )}
-
-                {workoutPageTab === "Assignments" && (
-                  <section className="tableCard builderHubPanel">
-                    <div className="builderHubHeader">
-                      <div>
-                        <h2>Assignment Hub</h2>
-                        <p>
-                          Send programs, forms, check-ins, and tests to clients. Assigned items will appear in the client portal as tasks.
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="builderHubGrid assignmentHubGrid">
-                      <label>
-                        <span>Assignment Type</span>
-                        <select
-                          className="miniSearch"
-                          value={assignmentType}
-                          onChange={(e) => {
-                            setAssignmentType(e.target.value);
-                            setAssignmentTemplateId("");
-                          }}
-                        >
-                          <option>Program</option>
-                          <option>Check-in</option>
-                          <option>Questionnaire</option>
-                          <option>Physical Test</option>
-                        </select>
-                      </label>
-                      <label>
-                        <span>Client</span>
-                        <select
-                          className="miniSearch"
-                          value={assignmentClientId}
-                          onChange={(e) => setAssignmentClientId(e.target.value)}
-                        >
-                          <option value="">Select client</option>
-                          {coachVisibleClients.map((client: any) => (
-                            <option key={client.id} value={client.id}>
-                              {client.name}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                      <label>
-                        <span>
-                          {assignmentType === "Program"
-                            ? "Saved Program"
-                            : assignmentType === "Physical Test"
-                            ? "Saved Test"
-                            : "Saved Form"}
-                        </span>
-                        <select
-                          key={assignmentType}
-                          className="miniSearch"
-                          value={assignmentTemplateId}
-                          onChange={(e) => setAssignmentTemplateId(e.target.value)}
-                        >
-                          <option value="">
-                            {assignmentTemplateOptions.length === 0
-                              ? assignmentType === "Program"
-                                ? "No saved programs"
-                                : assignmentType === "Physical Test"
-                                ? "No saved tests"
-                                : "No saved forms"
-                              : "Select saved item"}
-                          </option>
-                          {assignmentTemplateOptions.map((option: any) => (
-                            <option key={option.id} value={option.id}>
-                              {option.label} ({option.meta})
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                      <label>
-                        <span>Start Date</span>
-                        <input
-                          ref={assignmentHubDateInputRef}
-                          className="miniSearch"
-                          type="date"
-                          value={assignmentDueDate}
-                          onChange={(e) => {
-                            const nextDate = normalizeDate(e.target.value);
-                            setAssignmentDueDate(nextDate);
-                            setCalendarAnchorDate(nextDate);
-                          }}
-                        />
-                      </label>
-                      <button
-                        className="goldButton"
-                        onClick={() =>
-                          createContentAssignment({
-                            assignmentDueDate: normalizeDate(
-                              assignmentHubDateInputRef.current?.value ||
-                                assignmentDueDate
-                            ),
-                          })
-                        }
-                        disabled={creatingAssignment}
-                      >
-                        {creatingAssignment ? "Creating..." : "Create Assignment"}
-                      </button>
-                    </div>
-
-                    <div className="assignmentTypeGrid">
-                      <div>
-                        <strong>Programs</strong>
-                        <span>Use saved programs to create scheduled workouts.</span>
-                      </div>
-                      <div>
-                        <strong>Check-ins</strong>
-                        <span>Assign recurring or one-off readiness questionnaires.</span>
-                      </div>
-                      <div>
-                        <strong>Questionnaires</strong>
-                        <span>Send intake, feedback, travel, pain, or custom forms.</span>
-                      </div>
-                      <div>
-                        <strong>Physical Tests</strong>
-                        <span>Assign test batteries and collect structured results.</span>
-                      </div>
-                    </div>
-                  </section>
-                )}
               </>
     </>
   );

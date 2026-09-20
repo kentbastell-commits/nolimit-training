@@ -23,9 +23,7 @@ export type WorkoutPageTab =
   | "Saved Programs"
   | "Program Builder"
   | "Sessions"
-  | "Forms"
-  | "Tests"
-  | "Assignments";
+  | "Forms";
 export type ToastType = "success" | "error" | "info";
 export type CheckInFilter = "Due" | "Recent" | "No Check-in" | "All";
 export type TrackingType = "Weight" | "Time" | "Distance" | "Pace";

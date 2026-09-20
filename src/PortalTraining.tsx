@@ -111,9 +111,7 @@ export default function PortalTraining({
   setDraggingAssignmentId,
   setDraggingWorkoutId,
   setSelectedAssignProgramId,
-  setShowCalendarActionMenu,
   shiftAssignableWorkoutsToStartDate,
-  showCalendarActionMenu,
   startCalendarLongPress,
   startClientCalendarWorkoutTouch,
   suppressClientCalendarTouchClick,
@@ -502,7 +500,6 @@ export default function PortalTraining({
                         <button
                           className="iconActionButton calendarAddButton"
                           onClick={(event) => {
-                            setShowCalendarActionMenu(false);
                             setCalAddMenu({
                               date: calendarAnchorDate,
                               x: event.clientX - 150,
@@ -516,42 +513,6 @@ export default function PortalTraining({
                           <Plus size={19} aria-hidden="true" />
                         </button>
 
-                        {showCalendarActionMenu && (
-                          <div className="calendarAddMenu">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                openAssignmentHubFromCalendar("Program");
-                              }}
-                            >
-                              Add Workout
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                openAssignmentHubFromCalendar("Check-in");
-                              }}
-                            >
-                              Add Check-in Program
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                openAssignmentHubFromCalendar("Questionnaire");
-                              }}
-                            >
-                              Add Form
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                openAssignmentHubFromCalendar("Physical Test");
-                              }}
-                            >
-                              Add Physical Test
-                            </button>
-                          </div>
-                        )}
                       </div>
                       </div>
                     </div>

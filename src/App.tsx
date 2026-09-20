@@ -1109,7 +1109,6 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   const [loadingClientProgramSessions, setLoadingClientProgramSessions] =
     useState(false);
   const [populatingClientProgram, setPopulatingClientProgram] = useState(false);
-  const [showCalendarActionMenu, setShowCalendarActionMenu] = useState(false);
   const [showAssignmentDrawer, setShowAssignmentDrawer] = useState(false);
   const [workoutPageTab, setWorkoutPageTab] =
     useState<WorkoutPageTab>("Saved Programs");
@@ -1726,7 +1725,6 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   const [assignmentDueDate, setAssignmentDueDate] = useState(
     dateToInputValue(new Date())
   );
-  const assignmentHubDateInputRef = useRef<HTMLInputElement>(null);
   const calendarAssignmentDateInputRef = useRef<HTMLInputElement>(null);
   const [creatingAssignment, setCreatingAssignment] = useState(false);
   const [selectedProgramExercises, setSelectedProgramExercises] = useState<
@@ -1845,7 +1843,6 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   >("program");
   // Forms / Tests: list table (default) vs the builder for the selected item.
   const [formView, setFormView] = useState<"list" | "builder">("list");
-  const [testView, setTestView] = useState<"list" | "builder">("list");
   const [templateMenu, setTemplateMenu] = useState<{
     kind: "form" | "test";
     recordId: string;
@@ -4767,9 +4764,9 @@ function App({ onReady }: { onReady?: () => void } = {}) {
         loadSavedFormIntoBuilder(t);
         setFormView("builder");
       } else {
-        setSelectedSavedTestId(t.testTemplateId);
-        loadSavedTestIntoBuilder(t);
-        setTestView("builder");
+        // Test batteries open in the battery modal (the inline builder
+        // under a "Tests" workout tab was unreachable).
+        openTestFromTestsPage(t);
       }
     };
     return (
@@ -6082,7 +6079,6 @@ function App({ onReady }: { onReady?: () => void } = {}) {
         inputUnit: "",
       },
     ]);
-    setTestView("builder");
   };
 
   // Battery create/edit/duplicate opens the modal on the Tests page itself —
@@ -6104,11 +6100,6 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   const duplicateTestFromTestsPage = (test: SavedTestTemplate) => {
     duplicateSavedTestIntoBuilder(test);
     setTestBatteryModalOpen(true);
-  };
-
-  const exitTestBuilder = () => {
-    setTestView("list");
-    setActivePage("Tests");
   };
 
   const loadProgramSessionsForAssignment = async () => {
@@ -12202,16 +12193,6 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       loadFormTemplates(true);
       setFormView("list");
     }
-    if (tab === "Tests") {
-      loadTestTemplates(true);
-      setTestView("list");
-    }
-    if (tab === "Assignments") {
-      loadPrograms();
-      loadFormTemplates();
-      loadTestTemplates();
-      setAssignmentTemplateId("");
-    }
   };
 
   // Compact Everfit-style set table for the mobile card. The full editor
@@ -12637,41 +12618,6 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   const removeFormQuestion = (index: number) => {
     setFormQuestions((current) =>
       current.filter((_, questionIndex) => questionIndex !== index)
-    );
-  };
-
-  const addTestItem = () => {
-    setTestItems((current) => [
-      ...current,
-      {
-        id: `T${current.length + 1}`,
-        testName: "",
-        metricType: "Weight",
-        unit: "kg",
-        createsMetric: false,
-        metricName: "",
-        metricUnit: "",
-        calculationMethod: "Direct Value",
-        inputUnit: "",
-      },
-    ]);
-  };
-
-  const updateTestItem = (
-    index: number,
-    field: keyof (typeof testItems)[number],
-    value: string | boolean
-  ) => {
-    setTestItems((current) =>
-      current.map((item, itemIndex) =>
-        itemIndex === index ? { ...item, [field]: value } : item
-      )
-    );
-  };
-
-  const removeTestItem = (index: number) => {
-    setTestItems((current) =>
-      current.filter((_, itemIndex) => itemIndex !== index)
     );
   };
 
@@ -17217,7 +17163,6 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     setAssignmentDueDate(date);
     setAssignStartDate(date);
     setSelectedWorkout(null);
-    setShowCalendarActionMenu(false);
     setShowAssignmentDrawer(true);
   };
 
@@ -19798,9 +19743,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                         loadSavedFormIntoBuilder(item);
                         setFormView("builder");
                       } else {
-                        setSelectedSavedTestId(item.testTemplateId);
-                        loadSavedTestIntoBuilder(item);
-                        setTestView("builder");
+                        openTestFromTestsPage(item);
                       }
                     }}
                   >
@@ -19814,8 +19757,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                         duplicateSavedFormIntoBuilder(item);
                         setFormView("builder");
                       } else {
-                        duplicateSavedTestIntoBuilder(item);
-                        setTestView("builder");
+                        duplicateTestFromTestsPage(item);
                       }
                     }}
                   >
@@ -21430,7 +21372,6 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                   scrollLatestBuilderExerciseIntoView
                 }
                 usePercentExerciseIndexes={usePercentExerciseIndexes}
-                selectedSavedTestId={selectedSavedTestId}
                 selectedSavedProgramId={selectedSavedProgramId}
                 selectedSavedFormId={selectedSavedFormId}
                 copiedSession={copiedSession}
@@ -21443,19 +21384,12 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                 addExerciseToProgram={addExerciseToProgram}
                 addFormQuestion={addFormQuestion}
                 addMobileDayToWeek={addMobileDayToWeek}
-                addTestItem={addTestItem}
                 adjustProgramExerciseSets={adjustProgramExerciseSets}
                 alternateSearch={alternateSearch}
                 applyBulkPrescription={applyBulkPrescription}
                 arrangementDragIndex={arrangementDragIndex}
                 arrangementDropIndex={arrangementDropIndex}
                 assignSavedProgramToClient={assignSavedProgramToClient}
-                assignmentClientId={assignmentClientId}
-                assignmentDueDate={assignmentDueDate}
-                assignmentHubDateInputRef={assignmentHubDateInputRef}
-                assignmentTemplateId={assignmentTemplateId}
-                assignmentTemplateOptions={assignmentTemplateOptions}
-                assignmentType={assignmentType}
                 buildGlanceChain={buildGlanceChain}
                 builderEquipFilter={builderEquipFilter}
                 builderExercises={builderExercises}
@@ -21478,12 +21412,9 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                 collapseAllBuilderExercises={collapseAllBuilderExercises}
                 collapsedDays={collapsedDays}
                 commitMobilePicker={commitMobilePicker}
-                createContentAssignment={createContentAssignment}
-                creatingAssignment={creatingAssignment}
                 customBuilderSectionName={customBuilderSectionName}
                 deleteSavedFormTemplate={deleteSavedFormTemplate}
                 deleteSavedProgram={deleteSavedProgram}
-                deleteSavedTestTemplate={deleteSavedTestTemplate}
                 deletingSavedProgramId={deletingSavedProgramId}
                 draggedLibSessionId={draggedLibSessionId}
                 draggedProgramSessionId={draggedProgramSessionId}
@@ -21491,13 +21422,11 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                 duplicateProgramSession={duplicateProgramSession}
                 duplicateSavedFormIntoBuilder={duplicateSavedFormIntoBuilder}
                 duplicateSavedProgram={duplicateSavedProgram}
-                duplicateSavedTestIntoBuilder={duplicateSavedTestIntoBuilder}
                 duplicateWeek={duplicateWeek}
                 duplicatingProgramId={duplicatingProgramId}
                 editProgramRecordId={editProgramRecordId}
                 editingFormTemplate={editingFormTemplate}
                 editingProgramSessionId={editingProgramSessionId}
-                editingTestTemplate={editingTestTemplate}
                 estimateSessionMinutes={estimateSessionMinutes}
                 existingStoreCategories={existingStoreCategories}
                 expandAllBuilderExercises={expandAllBuilderExercises}
@@ -21529,10 +21458,8 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                 loadSavedFormIntoBuilder={loadSavedFormIntoBuilder}
                 loadSavedProgramIntoBuilder={loadSavedProgramIntoBuilder}
                 loadSavedProgramSessionsForAssignment={loadSavedProgramSessionsForAssignment}
-                loadSavedTestIntoBuilder={loadSavedTestIntoBuilder}
                 loadSessionForEditing={loadSessionForEditing}
                 loadSessionLibrary={loadSessionLibrary}
-                loadTestTemplates={loadTestTemplates}
                 mobileAlternateIndex={mobileAlternateIndex}
                 mobileArrangeItemsRef={mobileArrangeItemsRef}
                 mobileArrangeRefs={mobileArrangeRefs}
@@ -21589,7 +21516,6 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                 removeFormQuestion={removeFormQuestion}
                 removeProgramExercise={removeProgramExercise}
                 removeProgramSession={removeProgramSession}
-                removeTestItem={removeTestItem}
                 renderAlternateExerciseEditor={renderAlternateExerciseEditor}
                 renderBuilderExerciseOptionsMenu={renderBuilderExerciseOptionsMenu}
                 renderExerciseLabelBadge={renderExerciseLabelBadge}
@@ -21618,7 +21544,6 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                 setOneOffSaveToLibrary={setOneOffSaveToLibrary}
                 saveMobileProgramDay={saveMobileProgramDay}
                 saveMobileWorkout={saveMobileWorkout}
-                saveTestTemplate={saveTestTemplate}
                 savedAssignClientId={savedAssignClientId}
                 savedAssignLoading={savedAssignLoading}
                 savedAssignStartDate={savedAssignStartDate}
@@ -21630,8 +21555,6 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                 savedProgramSearch={savedProgramSearch}
                 savedProgramSessions={savedProgramSessions}
                 savedTemplatesLoading={savedTemplatesLoading}
-                savedTestSearch={savedTestSearch}
-                savedTestTemplates={savedTestTemplates}
                 savingFormTemplate={savingFormTemplate}
                 savingTemplate={savingTemplate}
                 saveBusyLabel={
@@ -21639,7 +21562,6 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                     ? `Saving ${saveProgress.done}/${saveProgress.total}…`
                     : "Saving…"
                 }
-                savingTestTemplate={savingTestTemplate}
                 selectBuilderSection={selectBuilderSection}
                 setCustomSectionColors={setCustomSectionColors}
                 selectWorkoutTab={selectWorkoutTab}
@@ -21662,10 +21584,6 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                 setAlternateSearch={setAlternateSearch}
                 setArrangementDragIndex={setArrangementDragIndex}
                 setArrangementDropIndex={setArrangementDropIndex}
-                setAssignmentClientId={setAssignmentClientId}
-                setAssignmentDueDate={setAssignmentDueDate}
-                setAssignmentTemplateId={setAssignmentTemplateId}
-                setAssignmentType={setAssignmentType}
                 setBuilderEquipFilter={setBuilderEquipFilter}
                 setBuilderLibraryModeAndLoad={setBuilderLibraryModeAndLoad}
                 setBuilderMode={setBuilderMode}
@@ -21676,7 +21594,6 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                 setBulkRest={setBulkRest}
                 setBulkSelectedIdx={setBulkSelectedIdx}
                 setBulkSets={setBulkSets}
-                setCalendarAnchorDate={setCalendarAnchorDate}
                 setCellMenu={setCellMenu}
                 setCircuitGroupMode={setCircuitGroupMode}
                 setCircuitGroupRounds={setCircuitGroupRounds}
@@ -21735,11 +21652,9 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                 setSavedFormSearch={setSavedFormSearch}
                 setSavedProgramProductFilter={setSavedProgramProductFilter}
                 setSavedProgramSearch={setSavedProgramSearch}
-                setSavedTestSearch={setSavedTestSearch}
                 setSelectedProgramExercises={setSelectedProgramExercises}
                 setSelectedSavedFormId={setSelectedSavedFormId}
                 setSelectedSavedProgramId={setSelectedSavedProgramId}
-                setSelectedSavedTestId={setSelectedSavedTestId}
                 setSessionEditorOpen={setSessionEditorOpen}
                 setSessionEstimatedDuration={setSessionEstimatedDuration}
                 setSessionGoal={setSessionGoal}
@@ -21752,9 +21667,6 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                 setSessionSetupOpen={setSessionSetupOpen}
                 setSessionType={setSessionType}
                 setShowProgramDetail={setShowProgramDetail}
-                setTestTemplateCategory={setTestTemplateCategory}
-                setTestTemplateName={setTestTemplateName}
-                exitTestBuilder={exitTestBuilder}
                 setWeekDupMenu={setWeekDupMenu}
                 setWeekDupPct={setWeekDupPct}
                 setWorkoutTabsMenuOpen={setWorkoutTabsMenuOpen}
@@ -21763,11 +21675,6 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                 startMobileDrag={startMobileDrag}
                 startNewSession={startNewSession}
                 teams={teams}
-                testItems={testItems}
-                testTemplateCategory={testTemplateCategory}
-                testTemplateName={testTemplateName}
-                testTemplatesLoading={testTemplatesLoading}
-                testView={testView}
                 toggleBuilderCircuitLink={toggleBuilderCircuitLink}
                 toggleBuilderExerciseExpanded={toggleBuilderExerciseExpanded}
                 toggleBuilderSupersetLink={toggleBuilderSupersetLink}
@@ -21778,11 +21685,9 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                 updateFormQuestion={updateFormQuestion}
                 updateProgramExercise={updateProgramExercise}
                 updateSavedAssignableWorkoutDate={updateSavedAssignableWorkoutDate}
-                updateTestItem={updateTestItem}
                 useMobileWorkoutRows={useMobileWorkoutRows}
                 visibleProgramsOnly={visibleProgramsOnly}
                 visibleSavedForms={visibleSavedForms}
-                visibleSavedTests={visibleSavedTests}
                 visibleSessionsOnly={visibleSessionsOnly}
                 weekDupMenu={weekDupMenu}
                 weekDupPct={weekDupPct}
@@ -22052,11 +21957,9 @@ function App({ onReady }: { onReady?: () => void } = {}) {
             setSelectedClientProgramId={setSelectedClientProgramId}
             setSelectedWorkout={setSelectedWorkout}
             setSetLogs={setSetLogs}
-            setShowCalendarActionMenu={setShowCalendarActionMenu}
             setWeightUnitPref={setWeightUnitPref}
             setWorkoutDetails={setWorkoutDetails}
             shiftAssignableWorkoutsToStartDate={shiftAssignableWorkoutsToStartDate}
-            showCalendarActionMenu={showCalendarActionMenu}
             startCalendarLongPress={startCalendarLongPress}
             startClientCalendarWorkoutTouch={startClientCalendarWorkoutTouch}
             suppressClientCalendarTouchClick={suppressClientCalendarTouchClick}
