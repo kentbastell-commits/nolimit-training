@@ -913,6 +913,8 @@ data between them, never "borrow" a table ID across products.
 - [ ] Chinese reads like a Chinese physio/coach wrote it (口令-style cues, clinical register)
 - [ ] numbers, angles, set/rep schemes, anatomical abbreviations preserved exactly
 - [ ] safety watchouts included where clinically relevant (post-op limits, pain thresholds)
+- [ ] Coaching-note edits preserve the metadata lines embedded in `coaching_notes` / `coaching_cues` (circuit, unilateral, fields, set JSON); patch existing rows rather than recreate sessions. Back up and compare prescriptions before/after.
+- [ ] Match the actual exercise demonstration, save English and Chinese together, invalidate the cache bus, and verify both workout-detail and library readers. Ask the coach about ambiguous dosing instead of inferring a hold duration from a rep count.
 
 **Deploy**
 - [ ] built on the server (`tsc -b --force` + `vite build`), pm2 restarted
