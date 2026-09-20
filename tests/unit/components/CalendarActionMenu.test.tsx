@@ -59,7 +59,7 @@ describe("CalendarActionMenu", () => {
       />
     );
     expect(
-      screen.getByRole("menuitem", { name: "Paste copy" })
+      screen.getByRole("menuitem", { name: "Paste" })
     ).toBeInTheDocument();
     expect(
       screen.getByRole("menuitem", { name: "Cancel" })

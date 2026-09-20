@@ -107,9 +107,7 @@ export default function CalendarActionMenu({
                     ) : (
                       <Scissors size={15} aria-hidden="true" />
                     )}
-                    {copiedCalendarItem.action === "copy"
-                      ? "Paste copy"
-                      : "Paste cut"}
+                    Paste
                   </button>
                 )}
                 <button

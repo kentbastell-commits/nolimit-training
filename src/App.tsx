@@ -19809,7 +19809,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                 }
               }}
             >
-              <BookOpen size={15} /> Add from Library
+              <BookOpen size={15} /> Assign from library
             </button>
           </div>
         </>
@@ -20232,7 +20232,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                 setLibPickTarget({ w, d });
               }}
             >
-              <BookOpen size={15} /> Add from Library
+              <BookOpen size={15} /> Insert from library
             </button>
           </div>
         </>
@@ -20249,7 +20249,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
           >
             <div className="createProgramHeader">
               <div>
-                <span className="eyebrow">Add from Library</span>
+                <span className="eyebrow">Insert from library</span>
                 <h3>
                   {libPickMode === "choice" && "What do you want to add?"}
                   {libPickMode === "sessions" &&

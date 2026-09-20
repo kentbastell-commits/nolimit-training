@@ -941,9 +941,7 @@ export default function PortalTraining({
                                       void pasteCalendarItemToDate(date);
                                     }}
                                   >
-                                    {copiedCalendarItem.action === "copy"
-                                      ? "Paste Copy"
-                                      : "Paste Cut"}
+                                    Paste
                                   </button>
                                 )}
                                 <button
@@ -1986,9 +1984,7 @@ export default function PortalTraining({
                                 ) : (
                                   <Scissors size={16} aria-hidden="true" />
                                 )}
-                                {copiedCalendarItem.action === "copy"
-                                  ? "Paste copied item"
-                                  : "Paste cut item"}
+                                Paste
                               </button>
                             )}
                             <button

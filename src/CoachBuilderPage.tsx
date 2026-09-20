@@ -752,7 +752,9 @@ export default function CoachBuilderPage({
                                       ? saveBusyLabel
                                       : oneOffAssignTarget
                                         ? t("assignSession")
-                                        : "Save"}
+                                        : isSingleWorkoutBuilder
+                                          ? "Save Session"
+                                          : "Save Program"}
                                   </button>
                                   <span
                                     className={`pbSaveStatus${
@@ -765,22 +767,6 @@ export default function CoachBuilderPage({
                                       : "All changes saved"}
                                   </span>
                                 </div>
-                                {isSingleWorkoutBuilder && !oneOffAssignTarget && (
-                                  <button
-                                    type="button"
-                                    className="pbSaveExitBtn"
-                                    disabled={savingTemplate}
-                                    onClick={() => {
-                                      void (async () => {
-                                        const ok = await saveFullProgram();
-                                        if (ok)
-                                          selectWorkoutTab("Sessions", true);
-                                      })();
-                                    }}
-                                  >
-                                    Save Session + Exit
-                                  </button>
-                                )}
                               </div>
                             </div>
                           )}
@@ -2376,24 +2362,6 @@ export default function CoachBuilderPage({
                         ))}
                       </div>
                     </div>
-                    {!isSingleWorkoutBuilder && (
-                      <div className="pbSaveBar">
-                        <button
-                          type="button"
-                          disabled={savingTemplate}
-                          onClick={() => {
-                            void (async () => {
-                              const ok = await saveFullProgram();
-                              if (ok) selectWorkoutTab("Saved Programs", true);
-                            })();
-                          }}
-                        >
-                          {savingTemplate
-                            ? saveBusyLabel
-                            : "Save Program + Exit"}
-                        </button>
-                      </div>
-                    )}
                     </>
                   );
                 })()}
@@ -2427,23 +2395,16 @@ export default function CoachBuilderPage({
                       <h2>{sessionName || "Name your session"}</h2>
                       <p>
                         {editingProgramSessionId
-                          ? "Save this day, then pick the next session."
-                          : "Build the day, then save it into the program."}
+                          ? "Tap Done, then pick the next day."
+                          : "Build the day, then tap Done. Save Program keeps it."}
                       </p>
                     </div>
                     <div className="drawerSessionHeroActions">
-                      <span
-                        className={`drawerHeroStatusPill ${
-                          builderSaveStatus === "dirty" ? "isDirty" : "isSaved"
-                        }`}
-                      >
-                        {builderSaveStatus === "dirty" ? "Unsaved" : "Saved"}
-                      </span>
                       <button
                         className="goldButton drawerHeroSave"
                         onClick={() => saveCurrentSessionToProgram(true, false)}
                       >
-                        Save Day
+                        Done
                       </button>
                       <button
                         type="button"
@@ -2957,7 +2918,10 @@ export default function CoachBuilderPage({
                         <button
                           className="builderDrawerClose"
                           onClick={() => {
+                            // Closing never discards: the picked exercises are
+                            // committed onto the day like "Done".
                             setSwapExerciseIndex(null);
+                            commitDraftSessionIfAny();
                             setIsBuilderLibraryOpen(false);
                           }}
                           aria-label="Close builder library"
@@ -3302,12 +3266,6 @@ export default function CoachBuilderPage({
                           )}
                         </div>
                         <div className="builderDrawerFooter">
-                          <button
-                            className="outlineButton"
-                            onClick={() => setIsBuilderLibraryOpen(false)}
-                          >
-                            Close
-                          </button>
                           <button
                             className="goldButton"
                             onClick={() => {
@@ -4018,7 +3976,7 @@ export default function CoachBuilderPage({
                                 disabled={savingTemplate}
                                 onClick={saveMobileProgramDay}
                               >
-                                Save Day
+                                Done
                               </button>
                             )}
                           </div>
