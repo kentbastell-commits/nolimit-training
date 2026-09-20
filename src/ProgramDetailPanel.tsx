@@ -100,6 +100,8 @@ export default function ProgramDetailPanel({
   savedTemplatesLoading,
   deleteSavedProgram,
   deletingSavedProgramId,
+  duplicateSavedProgram,
+  duplicatingProgramId,
   clients,
   savedAssignClientId,
   setSavedAssignClientId,
@@ -290,10 +292,13 @@ export default function ProgramDetailPanel({
             <button
               type="button"
               className="pdpBtnGhost"
-              disabled={savedTemplatesLoading}
-              onClick={() => loadSavedProgramIntoBuilder(p, { asCopy: true })}
+              disabled={duplicatingProgramId === p.recordId}
+              // One meaning of "Duplicate" everywhere: an instant copy in the
+              // list (server-side clone), never an unsaved copy in the builder.
+              onClick={() => void duplicateSavedProgram(p)}
             >
-              <Copy size={15} /> Duplicate
+              <Copy size={15} />{" "}
+              {duplicatingProgramId === p.recordId ? "Duplicating…" : "Duplicate"}
             </button>
             <button
               type="button"

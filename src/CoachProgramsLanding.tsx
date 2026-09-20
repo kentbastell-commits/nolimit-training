@@ -4,7 +4,6 @@
 // of the saved-programs list only; the Program Builder itself is untouched and
 // all handlers are threaded in from CoachBuilderPage.
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState } from "react";
 import "./CoachProgramsLanding.css";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
@@ -14,7 +13,6 @@ import {
   Dumbbell,
   Eye,
   Layers,
-  Pencil,
   Plus,
   PlusCircle,
   RefreshCw,
@@ -140,8 +138,6 @@ export default function CoachProgramsLanding(props: { [key: string]: any }) {
     ? {}
     : { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 } };
 
-  const [confirmingId, setConfirmingId] = useState<string | null>(null);
-
   const metaLine = (p: any) => {
     const k = kindOf(p);
     if (k === "bundle") return `${bundleMembers(p).length} programs`;
@@ -162,8 +158,6 @@ export default function CoachProgramsLanding(props: { [key: string]: any }) {
     const k = kindOf(p);
     const meta = TYPE_META[k];
     const needsWork = k === "program" && workoutsOf(p) === 0;
-    const dupPending = duplicatingProgramId === p.recordId;
-    const delPending = deletingSavedProgramId === p.recordId;
     return (
       <div className="cplRow" key={p.recordId} onClick={() => openDetail(p)}>
         <div className="cplBadge" style={{ background: meta.bg, color: meta.color }}>
@@ -192,44 +186,6 @@ export default function CoachProgramsLanding(props: { [key: string]: any }) {
           </div>
         </div>
         <div className="cplRowActions" onClick={(e) => e.stopPropagation()}>
-          <button
-            type="button"
-            className="cplIconBtn"
-            title="Preview"
-            onClick={() => openProgramPreview(p)}
-          >
-            <Eye size={15} />
-          </button>
-          <button
-            type="button"
-            className="cplIconBtn"
-            title="Edit"
-            onClick={() => loadSavedProgramIntoBuilder(p, { edit: true })}
-          >
-            <Pencil size={15} />
-          </button>
-          <button
-            type="button"
-            className="cplIconBtn"
-            title="Duplicate"
-            disabled={dupPending}
-            onClick={() => duplicateSavedProgram(p)}
-          >
-            <Copy size={15} />
-          </button>
-          <button
-            type="button"
-            className="cplIconBtn cplIconDanger"
-            title="Delete"
-            disabled={delPending}
-            onClick={() =>
-              confirmingId === p.recordId
-                ? (deleteSavedProgram(p), setConfirmingId(null))
-                : setConfirmingId(p.recordId)
-            }
-          >
-            <Trash2 size={15} />
-          </button>
           <button type="button" className="cplOpenBtn" onClick={() => openDetail(p)}>
             Open <ChevronRight size={14} />
           </button>
@@ -474,7 +430,7 @@ export default function CoachProgramsLanding(props: { [key: string]: any }) {
                         loadSavedProgramIntoBuilder(d, { edit: true })
                       }
                     >
-                      <Dumbbell size={17} /> Open in the builder
+                      <Dumbbell size={17} /> Edit in the builder
                     </button>
 
                     <div className="cplSectionLabel">Overview</div>

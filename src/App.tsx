@@ -27,7 +27,6 @@ import {
   Trash2,
   Bell,
   TrendingUp,
-  UserCircle,
   Users,
   Shield,
   ShoppingBag,
@@ -1752,11 +1751,6 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   // opened via the gear (clicking a row opens the builder calendar instead).
   const [showProgramDetail, setShowProgramDetail] = useState(false);
   // Right-click context menu on a program row.
-  const [programMenu, setProgramMenu] = useState<{
-    program: Program;
-    x: number;
-    y: number;
-  } | null>(null);
   // In-place edit: when set, "Save Full Program" updates this record instead
   // of creating a new one.
   const [editProgramId, setEditProgramId] = useState("");
@@ -5399,9 +5393,8 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     return session && session.exercises.length > 0 ? session.exercises : null;
   };
 
-  // Read-only at-a-glance preview of a saved program (right-click → Preview).
+  // Read-only at-a-glance preview of a saved program.
   const openProgramPreview = async (program: Program) => {
-    setProgramMenu(null);
     setPreviewLoading(true);
     setPreviewProgram({ program, sessions: [] });
     try {
@@ -20697,86 +20690,12 @@ function App({ onReady }: { onReady?: () => void } = {}) {
         </div>
       )}
 
-      {programMenu && (
-        <>
-          <div
-            className="programCtxBackdrop"
-            onClick={() => setProgramMenu(null)}
-            onContextMenu={(e) => {
-              e.preventDefault();
-              setProgramMenu(null);
-            }}
-          />
-          <div
-            className="programCtxMenu"
-            style={{
-              top: Math.min(programMenu.y, window.innerHeight - 230),
-              left: Math.min(programMenu.x, window.innerWidth - 190),
-            }}
-          >
-            <button
-              type="button"
-              onClick={() => {
-                const pr = programMenu.program;
-                setProgramMenu(null);
-                setSelectedSavedProgramId(pr.programId);
-                setSavedAssignableWorkouts([]);
-                setShowProgramDetail(true);
-              }}
-            >
-              <UserCircle size={15} /> Assign
-            </button>
-            <button
-              type="button"
-              onClick={() => openProgramPreview(programMenu.program)}
-            >
-              <Eye size={15} /> Preview
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                const pr = programMenu.program;
-                setProgramMenu(null);
-                setSelectedSavedProgramId(pr.programId);
-                void loadSavedProgramIntoBuilder(pr, { edit: true });
-              }}
-            >
-              <Pencil size={15} /> Edit
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                const pr = programMenu.program;
-                setProgramMenu(null);
-                setSelectedSavedProgramId(pr.programId);
-                void loadSavedProgramIntoBuilder(pr, { asCopy: true });
-              }}
-            >
-              <Copy size={15} /> Duplicate
-            </button>
-            <button
-              type="button"
-              className="dangerMenuItem"
-              onClick={() => {
-                const pr = programMenu.program;
-                setProgramMenu(null);
-                deleteSavedProgram(pr);
-              }}
-            >
-              <Trash2 size={15} /> Delete
-            </button>
-          </div>
-        </>
-      )}
-
       {previewProgram && (
         <ProgramPreviewModal
           buildGlanceChain={buildGlanceChain}
-          loadSavedProgramIntoBuilder={loadSavedProgramIntoBuilder}
           previewLoading={previewLoading}
           previewProgram={previewProgram}
           setPreviewProgram={setPreviewProgram}
-          setSelectedSavedProgramId={setSelectedSavedProgramId}
         />
       )}
 
@@ -21628,7 +21547,6 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                 setProgramDurationWeeks={setProgramDurationWeeks}
                 setProgramGoal={setProgramGoal}
                 setProgramGridDrop={setProgramGridDrop}
-                setProgramMenu={setProgramMenu}
                 setProgramName={setProgramName}
                 setProgramPhase={setProgramPhase}
                 setProgramSport={setProgramSport}

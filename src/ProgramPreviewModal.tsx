@@ -1,16 +1,14 @@
 // Extracted from App.tsx (monolith split) — JSX verbatim; props threaded.
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Copy, Pencil, X } from "lucide-react";
+import { X } from "lucide-react";
 import "./ProgramPreviewModal.css";
 import { getWorkoutColorClass, glanceRepsToken } from "./appCore";
 
 export default function ProgramPreviewModal({
   buildGlanceChain,
-  loadSavedProgramIntoBuilder,
   previewLoading,
   previewProgram,
   setPreviewProgram,
-  setSelectedSavedProgramId,
 }: { [key: string]: any }) {
   return (
     <>
@@ -137,30 +135,6 @@ export default function ProgramPreviewModal({
                 onClick={() => setPreviewProgram(null)}
               >
                 Close
-              </button>
-              <button
-                type="button"
-                className="outlineButton"
-                onClick={() => {
-                  const pr = previewProgram.program;
-                  setPreviewProgram(null);
-                  setSelectedSavedProgramId(pr.programId);
-                  void loadSavedProgramIntoBuilder(pr, { asCopy: true });
-                }}
-              >
-                <Copy size={15} /> Duplicate
-              </button>
-              <button
-                type="button"
-                className="goldButton"
-                onClick={() => {
-                  const pr = previewProgram.program;
-                  setPreviewProgram(null);
-                  setSelectedSavedProgramId(pr.programId);
-                  void loadSavedProgramIntoBuilder(pr, { edit: true });
-                }}
-              >
-                <Pencil size={15} /> Edit
               </button>
             </div>
           </div>

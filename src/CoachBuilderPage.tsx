@@ -6,7 +6,7 @@ import { Fragment, useEffect, useState } from "react";
 import CoachProgramsLanding from "./CoachProgramsLanding";
 import ProgramDetailPanel from "./ProgramDetailPanel";
 import PortalToApp from "./PortalToApp";
-import { Activity, BookOpen, CalendarDays, ChevronDown, ChevronLeft, ChevronUp, ChevronsLeftRight, ClipboardList, Copy, Dumbbell, Feather, Film, GripVertical, HeartPulse, Link2, MoreVertical, Pencil, Plus, RefreshCw, Save, Settings, Shuffle, Tag, Target, Trash2, Trophy, X } from "lucide-react";
+import { Activity, BookOpen, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, ChevronsLeftRight, ClipboardList, Copy, Dumbbell, Feather, Film, GripVertical, HeartPulse, Link2, MoreVertical, Pencil, Plus, RefreshCw, Save, Shuffle, Tag, Target, Trash2, Trophy, X } from "lucide-react";
 import type { Program, ProgramSession } from "./appCore";
 import { getWorkoutColorClass, glanceRepsToken } from "./appCore";
 import { useTranslation } from "react-i18next";
@@ -301,7 +301,6 @@ export default function CoachBuilderPage({
   setProgramDurationWeeks,
   setProgramGoal,
   setProgramGridDrop,
-  setProgramMenu,
   setProgramName,
   setProgramPhase,
   setProgramSport,
@@ -930,6 +929,8 @@ export default function CoachBuilderPage({
                               }
                               savedTemplatesLoading={savedTemplatesLoading}
                               deleteSavedProgram={deleteSavedProgram}
+                              duplicateSavedProgram={duplicateSavedProgram}
+                              duplicatingProgramId={duplicatingProgramId}
                               deletingSavedProgramId={deletingSavedProgramId}
                               clients={clients}
                               savedAssignClientId={savedAssignClientId}
@@ -1178,14 +1179,6 @@ export default function CoachBuilderPage({
                                 setSavedAssignableWorkouts([]);
                                 setShowProgramDetail(true);
                               }}
-                              onContextMenu={(e) => {
-                                e.preventDefault();
-                                setProgramMenu({
-                                  program,
-                                  x: e.clientX,
-                                  y: e.clientY,
-                                });
-                              }}
                             >
                               <span className="programTableTitle">
                                 {sessionsTab ? (
@@ -1230,46 +1223,8 @@ export default function CoachBuilderPage({
                               <span className="programTableCell">
                                 {program.coach || "—"}
                               </span>
-                              <span
-                                className="programTableActions"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <button
-                                  type="button"
-                                  className="iconActionButton"
-                                  title="Assign / details"
-                                  onClick={() => {
-                                    setSelectedSavedProgramId(program.programId);
-                                    setSavedAssignableWorkouts([]);
-                                    setShowProgramDetail(true);
-                                  }}
-                                >
-                                  <Settings size={16} />
-                                </button>
-                                <button
-                                  type="button"
-                                  className="iconActionButton"
-                                  title="Duplicate program (copies every session)"
-                                  disabled={
-                                    duplicatingProgramId === program.recordId
-                                  }
-                                  onClick={() =>
-                                    void duplicateSavedProgram(program)
-                                  }
-                                >
-                                  <Copy size={16} />
-                                </button>
-                                <button
-                                  type="button"
-                                  className="iconActionButton dangerMenuItem"
-                                  title="Delete program"
-                                  disabled={
-                                    deletingSavedProgramId === program.recordId
-                                  }
-                                  onClick={() => deleteSavedProgram(program)}
-                                >
-                                  <Trash2 size={16} />
-                                </button>
+                              <span className="programTableActions" aria-hidden="true">
+                                <ChevronRight size={16} />
                               </span>
                             </div>
                           );
@@ -1287,6 +1242,8 @@ export default function CoachBuilderPage({
                           loadSavedProgramIntoBuilder={loadSavedProgramIntoBuilder}
                           savedTemplatesLoading={savedTemplatesLoading}
                           deleteSavedProgram={deleteSavedProgram}
+                          duplicateSavedProgram={duplicateSavedProgram}
+                          duplicatingProgramId={duplicatingProgramId}
                           deletingSavedProgramId={deletingSavedProgramId}
                           clients={clients}
                           savedAssignClientId={savedAssignClientId}
