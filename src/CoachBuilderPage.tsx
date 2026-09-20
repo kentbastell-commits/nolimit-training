@@ -7,7 +7,7 @@ import CoachProgramsLanding from "./CoachProgramsLanding";
 import ProgramDetailPanel from "./ProgramDetailPanel";
 import PortalToApp from "./PortalToApp";
 import { Activity, BookOpen, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, ChevronsLeftRight, ClipboardList, Copy, Dumbbell, Feather, Film, GripVertical, HeartPulse, Link2, MoreVertical, Pencil, Plus, RefreshCw, Save, Shuffle, Tag, Target, Trash2, Trophy, X } from "lucide-react";
-import type { Program, ProgramSession } from "./appCore";
+import type { ProgramSession } from "./appCore";
 import { getWorkoutColorClass, glanceRepsToken } from "./appCore";
 import { useTranslation } from "react-i18next";
 
@@ -87,7 +87,6 @@ export default function CoachBuilderPage({
   builderSaveStatus,
   builderSearch,
   builderSectionOptions,
-  builderSubTab,
   bulkEditMode,
   bulkReps,
   bulkRest,
@@ -114,7 +113,6 @@ export default function CoachBuilderPage({
   editingFormTemplate,
   editingProgramSessionId,
   estimateSessionMinutes,
-  existingStoreCategories,
   finishMobileProgram,
   formQuestions,
   formTemplateName,
@@ -159,15 +157,10 @@ export default function CoachBuilderPage({
   openMobilePicker,
   openProgramPreview,
   pendingSectionName,
-  programAccessLengthDays,
   programBuiltForClient,
   programBuiltForMode,
   programBuiltForTeam,
-  programBundleIds,
-  programBundleSearch,
-  programCurrency,
   programDay,
-  programDefaultIntakeFormId,
   programDetailsOpen,
   programDurationWeeks,
   programGoal,
@@ -176,21 +169,8 @@ export default function CoachBuilderPage({
   programPhase,
   programSport,
   programLevel,
-  programPrice,
-  programCompareAtPrice,
-  programSeason,
-  programProductChecklist,
-  programProductReadyCount,
-  programProductReadyForSale,
-  programProductStatus,
   programProductType,
-  programPurchaseLink,
-  programSalesDescription,
-  programSalesDescriptionCn,
   programSessions,
-  programStoreCategory,
-  programStoreCategoryCn,
-  programStoreFieldsVisible,
   programWeek,
   programs,
   programsLoading,
@@ -261,7 +241,6 @@ export default function CoachBuilderPage({
   setBuilderLibraryModeAndLoad,
   setBuilderMode,
   setBuilderSearch,
-  setBuilderSubTab,
   setBulkEditMode,
   setBulkReps,
   setBulkRest,
@@ -288,15 +267,10 @@ export default function CoachBuilderPage({
   setMobileMenuIndex,
   setMobilePickerSelected,
   setPendingSectionName,
-  setProgramAccessLengthDays,
   setProgramBuiltForClient,
   setProgramBuiltForMode,
   setProgramBuiltForTeam,
-  setProgramBundleIds,
-  setProgramBundleSearch,
-  setProgramCurrency,
   setProgramDay,
-  setProgramDefaultIntakeFormId,
   setProgramDetailsOpen,
   setProgramDurationWeeks,
   setProgramGoal,
@@ -305,17 +279,8 @@ export default function CoachBuilderPage({
   setProgramPhase,
   setProgramSport,
   setProgramLevel,
-  setProgramPrice,
-  setProgramCompareAtPrice,
-  setProgramSeason,
-  setProgramProductStatus,
   setProgramProductType,
-  setProgramPurchaseLink,
-  setProgramSalesDescription,
-  setProgramSalesDescriptionCn,
   setProgramSessionDropId,
-  setProgramStoreCategory,
-  setProgramStoreCategoryCn,
   setProgramWeek,
   setSavedAssignClientId,
   setSavedAssignStartDate,
@@ -340,7 +305,6 @@ export default function CoachBuilderPage({
   setWeekDupMenu,
   setWeekDupPct,
   setWorkoutTabsMenuOpen,
-  showDigitalProductSettings,
   showProgramDetail,
   startMobileDrag,
   teams,
@@ -1293,26 +1257,7 @@ export default function CoachBuilderPage({
                     : "Program Builder"}
                 </h2>
 
-                {showDigitalProductSettings && (
-                  <div className="builderSubTabBar" role="tablist">
-                    <button
-                      type="button"
-                      className={builderSubTab === "build" ? "active" : ""}
-                      onClick={() => setBuilderSubTab("build")}
-                    >
-                      Build
-                    </button>
-                    <button
-                      type="button"
-                      className={builderSubTab === "product" ? "active" : ""}
-                      onClick={() => setBuilderSubTab("product")}
-                    >
-                      Product Settings
-                    </button>
-                  </div>
-                )}
-
-                {(builderSubTab === "build" || !showDigitalProductSettings) && (
+                <>
                 <div className="mobileBuilderQuickNav" aria-label="Builder quick navigation">
                   {[
                     ["Details", "builder-details"],
@@ -1333,9 +1278,9 @@ export default function CoachBuilderPage({
                     </button>
                   ))}
                 </div>
-                )}
+                </>
 
-                {!isSingleWorkoutBuilder && builderSubTab === "build" && (
+                {!isSingleWorkoutBuilder && (
                 <details
                   className="builderCollapsiblePanel programDetailsPanel"
                   id="builder-details"
@@ -1573,300 +1518,7 @@ export default function CoachBuilderPage({
                 </details>
                 )}
 
-                {showDigitalProductSettings && builderSubTab === "product" && (
-                  <div className="builderProductPanel builderTabPanel">
-                    <div className="builderTabPanelHead">
-                      <span className="eyebrow">{programProductType || "Digital Product"}</span>
-                      <strong>Product Settings</strong>
-                      <small>
-                        {programPrice || "--"} {programCurrency || "CNY"} /{" "}
-                        {programProductStatus || "Draft"}
-                      </small>
-                    </div>
-
-                    <div className="programProductGrid">
-                  <label>
-                    <span>Price ({programCurrency || "CNY"})</span>
-                    <input
-                      type="number"
-                      min="0"
-                      inputMode="decimal"
-                      value={programPrice}
-                      onChange={(e) => setProgramPrice(e.target.value)}
-                      placeholder="e.g. 299"
-                      className="miniSearch"
-                    />
-                  </label>
-
-                  <label>
-                    <span>Compare-at (was)</span>
-                    <input
-                      type="number"
-                      min="0"
-                      inputMode="decimal"
-                      value={programCompareAtPrice}
-                      onChange={(e) => setProgramCompareAtPrice(e.target.value)}
-                      placeholder="optional · struck-through"
-                      className="miniSearch"
-                    />
-                  </label>
-
-                  <label>
-                    <span>Currency</span>
-                    <select
-                      value={programCurrency}
-                      onChange={(e) => setProgramCurrency(e.target.value)}
-                      className="miniSearch"
-                    >
-                      <option>CNY</option>
-                      <option>USD</option>
-                      <option>CAD</option>
-                    </select>
-                  </label>
-
-                  <label>
-                    <span>Access length (days)</span>
-                    <input
-                      type="number"
-                      min="0"
-                      value={programAccessLengthDays}
-                      onChange={(e) => setProgramAccessLengthDays(e.target.value)}
-                      placeholder="42 · blank = lifetime"
-                      className="miniSearch"
-                    />
-                  </label>
-
-                  <label>
-                    <span>Product Status</span>
-                    <select
-                      value={programProductStatus}
-                      onChange={(e) => setProgramProductStatus(e.target.value)}
-                      className="miniSearch"
-                    >
-                      <option>Draft</option>
-                      <option>Active</option>
-                      <option>Hidden</option>
-                      <option>Archived</option>
-                    </select>
-                  </label>
-
-                  <label>
-                    <span>Default Intake</span>
-                    <select
-                      value={programDefaultIntakeFormId}
-                      onChange={(e) => setProgramDefaultIntakeFormId(e.target.value)}
-                      className="miniSearch"
-                    >
-                      <option value="">No default intake</option>
-                      {savedFormTemplates.map((form: any) => (
-                        <option key={form.formId} value={form.formId}>
-                          {form.name}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-
-                  {programStoreFieldsVisible && (
-                    <div className="programStorePlacement">
-                      <div className="programCategoryPicker">
-                        <span className="programCategoryPickerLabel">
-                          Store category (sport)
-                        </span>
-                        <div className="programCategoryChips">
-                          {existingStoreCategories.map((cat: any) => (
-                            <button
-                              type="button"
-                              key={cat}
-                              className={`programCategoryChip${
-                                programStoreCategory === cat ? " active" : ""
-                              }`}
-                              onClick={() => setProgramStoreCategory(cat)}
-                            >
-                              {cat}
-                            </button>
-                          ))}
-                        </div>
-                        <input
-                          value={programStoreCategory}
-                          onChange={(e) =>
-                            setProgramStoreCategory(e.target.value)
-                          }
-                          placeholder="Pick a label above, or type a new one…"
-                          className="miniSearch"
-                        />
-                      </div>
-                      <label>
-                        <span>Category name (中文)</span>
-                        <input
-                          value={programStoreCategoryCn}
-                          onChange={(e) =>
-                            setProgramStoreCategoryCn(e.target.value)
-                          }
-                          placeholder="可选 · 如 足球"
-                          className="miniSearch"
-                        />
-                      </label>
-                      <label>
-                        <span>Season (badge)</span>
-                        <input
-                          type="number"
-                          min="1"
-                          value={programSeason}
-                          onChange={(e) => setProgramSeason(e.target.value)}
-                          placeholder="e.g. 1 → shows S1"
-                          className="miniSearch"
-                        />
-                      </label>
-                    </div>
-                  )}
-
-                  {programProductType === "Digital Bundle" && (
-                      <div className="programBundlePicker">
-                        <span className="programBundleLabel">
-                          Programs in this bundle
-                        </span>
-                        <input
-                          value={programBundleSearch}
-                          onChange={(e) =>
-                            setProgramBundleSearch(e.target.value)
-                          }
-                          placeholder="Search programs to add…"
-                          className="miniSearch programBundleSearch"
-                        />
-                        {(() => {
-                          const q = programBundleSearch.trim().toLowerCase();
-                          const candidates = programs.filter(
-                            (p: any) =>
-                              p.status !== "Archived" &&
-                              p.productType !== "Digital Bundle" &&
-                              (programBundleIds.includes(p.programId) ||
-                                !q ||
-                                p.programName.toLowerCase().includes(q) ||
-                                (p.storeCategory || "")
-                                  .toLowerCase()
-                                  .includes(q))
-                          );
-                          const priceNum = (p: Program) =>
-                            parseFloat(p.price || "0") || 0;
-                          const individualTotal = candidates
-                            .filter((p: any) => programBundleIds.includes(p.programId))
-                            .reduce((s: any, p: any) => s + priceNum(p), 0);
-                          const bundlePrice = parseFloat(programPrice || "0") || 0;
-                          const save = individualTotal - bundlePrice;
-                          return (
-                            <>
-                              <div className="programBundleList">
-                                {candidates.map((p: any) => {
-                                  const checked = programBundleIds.includes(
-                                    p.programId
-                                  );
-                                  return (
-                                    <label
-                                      className="programBundleRow"
-                                      key={p.recordId}
-                                    >
-                                      <input
-                                        type="checkbox"
-                                        checked={checked}
-                                        onChange={() =>
-                                          setProgramBundleIds((prev: any) =>
-                                            checked
-                                              ? prev.filter(
-                                                  (x: any) => x !== p.programId
-                                                )
-                                              : [...prev, p.programId]
-                                          )
-                                        }
-                                      />
-                                      <span>{p.programName}</span>
-                                      <span className="programBundleRowPrice">
-                                        {priceNum(p)
-                                          ? `${p.currency || "CNY"} ${p.price}`
-                                          : "--"}
-                                      </span>
-                                    </label>
-                                  );
-                                })}
-                              </div>
-                              {programBundleIds.length > 0 && (
-                                <p className="programBundleHint">
-                                  Individual total: {individualTotal} · Package
-                                  price: {bundlePrice || "set Price above"}
-                                  {save > 0 ? ` · Save ${save}` : ""}
-                                </p>
-                              )}
-                            </>
-                          );
-                        })()}
-                      </div>
-                    )}
-
-                  <label>
-                    <span>Purchase Link</span>
-                    <input
-                      value={programPurchaseLink}
-                      onChange={(e) => setProgramPurchaseLink(e.target.value)}
-                      placeholder="Optional checkout link"
-                      className="miniSearch"
-                    />
-                  </label>
-                    </div>
-
-                    <label className="programSalesDescription">
-                      <span>Sales Description (EN)</span>
-                      <textarea
-                        value={programSalesDescription}
-                        onChange={(e) => setProgramSalesDescription(e.target.value)}
-                        placeholder="Short product description for the store or order workflow."
-                      />
-                    </label>
-
-                    <label className="programSalesDescription">
-                      <span>销售描述 (中文)</span>
-                      <textarea
-                        value={programSalesDescriptionCn}
-                        onChange={(e) =>
-                          setProgramSalesDescriptionCn(e.target.value)
-                        }
-                        placeholder="店铺中文简介 · 留空则中文用户看到英文描述。"
-                      />
-                    </label>
-
-                    <div
-                      className={`programProductReadiness ${
-                        programProductReadyForSale ? "readyForSale" : ""
-                      }`}
-                    >
-                  <div className="programProductReadinessHeader">
-                    <div>
-                      <span>Product Setup</span>
-                      <h3>
-                        {programProductReadyForSale
-                          ? "Ready for external checkout"
-                          : "Prep this program for sale"}
-                      </h3>
-                    </div>
-                    <strong>
-                      {programProductReadyCount}/{programProductChecklist.length}
-                    </strong>
-                  </div>
-
-                  <div className="programProductChecklist">
-                    {programProductChecklist.map((item: any) => (
-                      <div
-                        key={item.label}
-                        className={item.complete ? "complete" : ""}
-                      >
-                        <span>{item.complete ? "Ready" : "Missing"}</span>
-                        <strong>{item.label}</strong>
-                      </div>
-                    ))}
-                  </div>
-                    </div>
-                  </div>
-                )}
-
-                {(builderSubTab === "build" || !showDigitalProductSettings) && (
+                <>
                 <>
                 {!isSingleWorkoutBuilder && (() => {
                   const maxWeek = programSessions.reduce(
@@ -3670,7 +3322,7 @@ export default function CoachBuilderPage({
                   </div>
                 ))}
                 </>
-                )}
+                </>
 
                 {/* Bottom save now lives in the sticky pbSaveBar (plus the
                     hero's Save Full Program) — one primary action per surface. */}

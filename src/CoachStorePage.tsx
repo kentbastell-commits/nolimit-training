@@ -61,6 +61,7 @@ const knobStyle = (on: boolean): any => ({
 
 export default function CoachStorePage({
   programs,
+  formTemplates = [],
   existingStoreCategories,
   createStoreProduct,
   setProductLive,
@@ -69,6 +70,7 @@ export default function CoachStorePage({
   onNewProgram,
 }: {
   programs: Program[];
+  formTemplates?: { formId: string; name: string }[];
   existingStoreCategories: string[];
   createStoreProduct: (p: any) => Promise<boolean>;
   setProductLive: (program: Program, live: boolean) => Promise<void> | void;
@@ -276,6 +278,12 @@ export default function CoachStorePage({
       season: e.season || "",
       accessLengthDays: e.accessLengthDays || "",
       salesDescription: e.salesDescription || "",
+      // Moved here from the builder's old "Product Settings" tab so every
+      // commerce field has exactly one home.
+      storeCategoryCn: e.storeCategoryCn || "",
+      salesDescriptionCn: e.salesDescriptionCn || "",
+      defaultIntakeFormId: e.defaultIntakeFormId || "",
+      purchaseLink: e.purchaseLink || "",
     });
     setEditId(p.recordId);
   };
@@ -906,6 +914,19 @@ export default function CoachStorePage({
                               }
                             />
                           </label>
+                    <label className="cspField cspFieldGrow">
+                      <span>Category (中文)</span>
+                      <input
+                        value={eDraft.storeCategoryCn}
+                        onChange={(e) =>
+                          setEDraft((d) => ({
+                            ...d,
+                            storeCategoryCn: e.target.value,
+                          }))
+                        }
+                        placeholder="e.g. 攀岩"
+                      />
+                    </label>
                           {k === "program" && (
                             <label className="cspField cspFieldSeason">
                               <span>Season</span>
@@ -944,6 +965,42 @@ export default function CoachStorePage({
                         placeholder="e.g. 42"
                       />
                     </label>
+                    <label className="cspField">
+                      <span>
+                        Default intake form <em>— sent on purchase</em>
+                      </span>
+                      <select
+                        value={eDraft.defaultIntakeFormId}
+                        onChange={(e) =>
+                          setEDraft((d) => ({
+                            ...d,
+                            defaultIntakeFormId: e.target.value,
+                          }))
+                        }
+                      >
+                        <option value="">No intake form</option>
+                        {formTemplates.map((f) => (
+                          <option key={f.formId} value={f.formId}>
+                            {f.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="cspField">
+                      <span>
+                        Purchase link <em>— external checkout, optional</em>
+                      </span>
+                      <input
+                        value={eDraft.purchaseLink}
+                        onChange={(e) =>
+                          setEDraft((d) => ({
+                            ...d,
+                            purchaseLink: e.target.value,
+                          }))
+                        }
+                        placeholder="https://…"
+                      />
+                    </label>
 
                     <div className="cspSectionLabel">Listing</div>
                     <label className="cspField">
@@ -958,6 +1015,20 @@ export default function CoachStorePage({
                           }))
                         }
                         placeholder="One or two lines clients see on the store card…"
+                      />
+                    </label>
+                    <label className="cspField">
+                      <span>Sales description (中文)</span>
+                      <textarea
+                        rows={3}
+                        value={eDraft.salesDescriptionCn}
+                        onChange={(e) =>
+                          setEDraft((d) => ({
+                            ...d,
+                            salesDescriptionCn: e.target.value,
+                          }))
+                        }
+                        placeholder="中文版本，显示给中文用户…"
                       />
                     </label>
 
