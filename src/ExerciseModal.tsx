@@ -107,13 +107,30 @@ export default function ExerciseModal({
     };
     xhr.onerror = () => fail("Upload failed — check your connection and try again.");
     // A stalled transfer used to sit at "Uploading 0%" forever with both
-    // buttons disabled (cost Kent an evening's uploads). 10 min is generous
-    // for a 500MB cap on any workable connection.
-    xhr.timeout = 10 * 60 * 1000;
-    xhr.ontimeout = () =>
-      fail(
-        "Upload timed out — the file may still be exporting/syncing. Check it plays on this device, then try again."
-      );
+    // buttons disabled (cost Kent an evening's uploads). But a HARD total
+    // timeout fails a healthy slow upload: from outside mainland China the
+    // link into the server runs ~40 KB/s (measured 2026-09-20), so 25 MB is
+    // ~10 min and hit the old 10-min cap. Time out on STALL instead — no
+    // progress for 3 min — and let a slow-but-moving upload finish.
+    let stallTimer: ReturnType<typeof setTimeout> | undefined;
+    const armStall = () => {
+      if (stallTimer) clearTimeout(stallTimer);
+      stallTimer = setTimeout(() => {
+        xhr.abort();
+        fail(
+          "Upload stalled — no data moved for 3 minutes. Check the file plays on this device and try again; from outside China, uploads are slow (about 10 minutes per 25 MB), so keep this page open."
+        );
+      }, 3 * 60 * 1000);
+    };
+    const prevProgress = xhr.upload.onprogress;
+    xhr.upload.onprogress = (ev) => {
+      armStall();
+      if (prevProgress) prevProgress.call(xhr.upload, ev);
+    };
+    xhr.onloadend = () => {
+      if (stallTimer) clearTimeout(stallTimer);
+    };
+    armStall();
     xhr.send(file);
   };
 
@@ -414,8 +431,9 @@ export default function ExerciseModal({
             <p>
               <strong>Plays in mainland China.</strong> Uploads are self-hosted
               and play in-app — unlike a YouTube link. Up to {MAX_UPLOAD_MB} MB;
-              MP4 or MOV. A large phone video can take a minute or two — keep
-              the page open.
+              MP4 or MOV. Inside China a phone video takes a minute or two;
+              from abroad the link into China is slow (about 10 minutes per
+              25 MB) — keep the page open and use trainnolimit.cn.
             </p>
           </div>
 
