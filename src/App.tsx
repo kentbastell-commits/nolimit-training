@@ -311,6 +311,19 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   );
   useEffect(() => {
     if (!isCoachView) return;
+    // One-tap unlock: a bookmarked `?view=coach&key=...` link stores the key
+    // on this device and drops it from the address bar before the probe.
+    try {
+      const url = new URL(window.location.href);
+      const linkKey = (url.searchParams.get("key") || "").trim();
+      if (linkKey) {
+        window.localStorage.setItem("nl_coach_key", linkKey);
+        url.searchParams.delete("key");
+        window.history.replaceState(null, "", url.toString());
+      }
+    } catch {
+      // storage or URL unavailable — fall through to the normal probe
+    }
     let alive = true;
     void fetch("/api/enquiries")
       .then((res) => {
