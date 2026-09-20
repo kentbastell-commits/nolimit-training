@@ -12163,6 +12163,34 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     return false;
   };
 
+  // The builder was opened FROM an athlete's calendar (#51 stash) — the name
+  // the back link shows, and the place it returns to. Null when the builder
+  // was reached from the program library.
+  const builderReturnClientName = oneOffAssignTarget
+    ? ""
+    : oneOffReturnClientRef.current?.name || "";
+  // Back link from a builder entered via an athlete's workout: land on THAT
+  // athlete's calendar, not the program library ("goes back to Spring Ankle
+  // program, not Yanjun's calendar"). Captures the client before the
+  // leave-guard/reset clears the ref.
+  const returnToBuilderOrigin = () => {
+    const client = oneOffReturnClientRef.current;
+    if (!client || oneOffAssignTarget) {
+      selectWorkoutTab(
+        builderMode === "Single Workout" ? "Sessions" : "Saved Programs"
+      );
+      return;
+    }
+    if (!confirmLeaveBuilder()) return;
+    resetBuilder();
+    oneOffReturnClientRef.current = null;
+    setWorkoutPageTab("Saved Programs");
+    setActivePage("Clients");
+    setSelectedClient(client);
+    setClientTab("Training");
+    void loadClientWorkouts(client, true);
+  };
+
   // skipGuard: the caller already saved (a successful saveFullProgram both
   // resets the builder and returns true), so the unsaved-changes confirm must
   // NOT run — its check reads stale closure state and would prompt anyway.
@@ -21615,6 +21643,8 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                 selectBuilderSection={selectBuilderSection}
                 setCustomSectionColors={setCustomSectionColors}
                 selectWorkoutTab={selectWorkoutTab}
+                builderReturnClientName={builderReturnClientName}
+                returnToBuilderOrigin={returnToBuilderOrigin}
                 selectedProgramExercises={selectedProgramExercises}
                 selectedSavedProgram={selectedSavedProgram}
                 sessionEditorOpen={sessionEditorOpen}

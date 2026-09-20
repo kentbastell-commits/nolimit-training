@@ -259,6 +259,8 @@ export default function CoachBuilderPage({
   selectBuilderSection,
   setCustomSectionColors,
   selectWorkoutTab,
+  builderReturnClientName,
+  returnToBuilderOrigin,
   selectedProgramExercises,
   selectedSavedProgram,
   sessionEditorOpen,
@@ -1356,14 +1358,22 @@ export default function CoachBuilderPage({
                   <button
                     type="button"
                     className="builderBackLink"
-                    onClick={() =>
+                    onClick={() => {
+                      if (builderReturnClientName && returnToBuilderOrigin) {
+                        returnToBuilderOrigin();
+                        return;
+                      }
                       selectWorkoutTab(
                         isSingleWorkoutBuilder ? "Sessions" : "Saved Programs"
-                      )
-                    }
+                      );
+                    }}
                   >
                     <ChevronLeft size={16} />{" "}
-                    {isSingleWorkoutBuilder ? "Sessions" : "Programs"}
+                    {builderReturnClientName
+                      ? `${builderReturnClientName}'s calendar`
+                      : isSingleWorkoutBuilder
+                        ? "Sessions"
+                        : "Programs"}
                   </button>
                 )}
 
