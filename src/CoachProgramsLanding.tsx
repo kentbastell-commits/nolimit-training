@@ -467,7 +467,12 @@ export default function CoachProgramsLanding(props: { [key: string]: any }) {
                       type="button"
                       className="cplOpenBuilder"
                       disabled={savedTemplatesLoading}
-                      onClick={() => loadSavedProgramIntoBuilder()}
+                      onClick={() =>
+                        // Explicit EDIT: the no-args call was neither edit
+                        // nor copy, so Save silently minted a second
+                        // program (#52 family).
+                        loadSavedProgramIntoBuilder(d, { edit: true })
+                      }
                     >
                       <Dumbbell size={17} /> Open in the builder
                     </button>
