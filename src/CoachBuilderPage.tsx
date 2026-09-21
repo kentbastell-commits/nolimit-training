@@ -58,12 +58,12 @@ const CUSTOM_SECTION_COLORS = [
 ];
 
 export default function CoachBuilderPage({
+  calendarBuilderContext,
   builderScope,
   accessoryTargetIndex,
   copiedSession,
   mobileDragIndex,
   mobileDragOverIndex,
-  programSessionDropId,
   selectedSavedFormId,
   selectedSavedProgramId,
   usePercentExerciseIndexes,
@@ -149,7 +149,7 @@ export default function CoachBuilderPage({
   mobilePickerSelected,
   moveSessionToCell,
   normalizeBuilderSection,
-  openBuilderLibrary,
+  openBuilderLibrary: openLibrary,
   scrollLatestBuilderExerciseIntoView,
   setLatestBuilderExerciseIndex,
   openMobileAlternate,
@@ -185,9 +185,7 @@ export default function CoachBuilderPage({
   renderSetPrescriptionTable,
   reorderAlternateExercise,
   reorderProgramExercise,
-  reorderProgramSession,
   saveCurrentSessionToProgram,
-  commitDraftSessionIfAny,
   saveFormTemplate,
   saveFullProgram,
   openCreateExerciseFromBuilder,
@@ -280,7 +278,6 @@ export default function CoachBuilderPage({
   setProgramSport,
   setProgramLevel,
   setProgramProductType,
-  setProgramSessionDropId,
   setProgramWeek,
   setSavedAssignClientId,
   setSavedAssignStartDate,
@@ -328,6 +325,15 @@ export default function CoachBuilderPage({
   workoutTabsMenuOpen,
 }: { [key: string]: any }) {
   const { t } = useTranslation();
+  const [focusedExerciseIndex, setFocusedExerciseIndex] = useState<number | null>(null);
+  const focusedEditor = focusedExerciseIndex !== null && swapExerciseIndex === null;
+  const openBuilderLibrary = (mode: string) => {
+    setFocusedExerciseIndex(null);
+    openLibrary(mode);
+  };
+  useEffect(() => {
+    if (!isBuilderLibraryOpen) setFocusedExerciseIndex(null);
+  }, [isBuilderLibraryOpen]);
   // Sessions library: filter the list by session category (Focus column —
   // Strength / Cardio / Mobility…). "All" shows everything.
   const [sessionCategoryFilter, setSessionCategoryFilter] = useState("All");
@@ -495,14 +501,16 @@ export default function CoachBuilderPage({
   };
 
   const openExerciseEditor = (i: number) => {
+    setFocusedExerciseIndex(i);
     setLatestBuilderExerciseIndex(i);
-    openBuilderLibrary("Exercises");
+    openLibrary("Exercises");
     scrollLatestBuilderExerciseIntoView();
   };
   useEffect(() => {
     const closeMobileLayer = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
-      if (mobileAlternateIndex != null) setMobileAlternateIndex(null);
+      if (isBuilderLibraryOpen) { setSwapExerciseIndex(null); setIsBuilderLibraryOpen(false); }
+      else if (mobileAlternateIndex != null) setMobileAlternateIndex(null);
       else if (mobileDetailsIndex != null) setMobileDetailsIndex(null);
       else if (mobileMenuIndex != null) setMobileMenuIndex(null);
       else if (["picker", "arrange", "libpick"].includes(mobileBuilderStep)) {
@@ -513,6 +521,7 @@ export default function CoachBuilderPage({
     window.addEventListener("keydown", closeMobileLayer);
     return () => window.removeEventListener("keydown", closeMobileLayer);
   }, [
+    isBuilderLibraryOpen, setIsBuilderLibraryOpen, setSwapExerciseIndex,
     mobileAlternateIndex,
     mobileBuilderStep,
     mobileDetailsIndex,
@@ -662,23 +671,23 @@ export default function CoachBuilderPage({
                       <div className="wkHead">
                         <div className="wkHeadLeft">
                           <span className="wkEyebrow">
-                            <BookOpen size={14} /> Library · Programming
+                            <BookOpen size={14} /> {calendarBuilderContext ? t("calendarWorkoutHeading") : "Library · Programming"}
                           </span>
                           <h1>
-                            {workoutPageTab === "Program Builder"
+                            {calendarBuilderContext ? sessionName || programName || t("calendarWorkoutHeading") : workoutPageTab === "Program Builder"
                               ? isSingleWorkoutBuilder
                                 ? oneOffAssignTarget
                                   ? `New session for ${oneOffAssignTarget.clientName}`
-                                  : "Create Session"
+                                  : editProgramRecordId ? t("editSavedSession") : "Create Session"
                                 : editProgramRecordId
                                 ? "Edit Program"
                                 : "Create Program"
                               : "Workouts"}
                           </h1>
                           <p className={oneOffAssignTarget ? "oneOffBuilderLibraryCopy" : ""}>
-                            {workoutPageTab === "Program Builder"
+                            {calendarBuilderContext ? t(oneOffAssignTarget ? "calendarNewWorkoutHint" : "calendarWorkoutSharedHint") : workoutPageTab === "Program Builder"
                               ? isSingleWorkoutBuilder
-                                ? "Build a reusable session once — drop it into any program, anytime."
+                                ? editProgramRecordId ? t("editSavedSessionHint") : "Build a reusable session once — drop it into any program, anytime."
                                 : editProgramRecordId
                                 ? "Editing an existing program — saving updates it in place."
                                 : "Build a full phase of programming — sessions, weeks, and progressions in one place."
@@ -714,7 +723,7 @@ export default function CoachBuilderPage({
                                     <Save size={17} strokeWidth={2.2} />
                                     {savingTemplate
                                       ? saveBusyLabel
-                                      : oneOffAssignTarget
+                                      : calendarBuilderContext ? t(oneOffAssignTarget ? "assignAndReturn" : "saveAndReturn") : oneOffAssignTarget
                                         ? t("assignSession")
                                         : isSingleWorkoutBuilder
                                           ? "Save Session"
@@ -1280,7 +1289,7 @@ export default function CoachBuilderPage({
                 </div>
                 </>
 
-                {!isSingleWorkoutBuilder && (
+                {!isSingleWorkoutBuilder && !calendarBuilderContext && (
                 <details
                   className="builderCollapsiblePanel programDetailsPanel"
                   id="builder-details"
@@ -1520,7 +1529,7 @@ export default function CoachBuilderPage({
 
                 <>
                 <>
-                {!isSingleWorkoutBuilder && (() => {
+                {!isSingleWorkoutBuilder && !calendarBuilderContext && (() => {
                   const maxWeek = programSessions.reduce(
                     (m: any, s: any) => Math.max(m, Number(s.week) || 1),
                     1
@@ -2018,7 +2027,7 @@ export default function CoachBuilderPage({
                   );
                 })()}
 
-                {!isSingleWorkoutBuilder && sessionEditorOpen && (
+                {!isSingleWorkoutBuilder && !calendarBuilderContext && sessionEditorOpen && (
                   <PortalToApp>
                     <div
                       className="builderEditorBackdrop"
@@ -2027,17 +2036,17 @@ export default function CoachBuilderPage({
                   </PortalToApp>
                 )}
 
-                <PortalToApp enabled={!isSingleWorkoutBuilder}>
+                <PortalToApp enabled={!isSingleWorkoutBuilder && !calendarBuilderContext}>
                 <div
                   className={`builderEditorWrap${
-                    isSingleWorkoutBuilder ? "" : " asDrawer"
+                    isSingleWorkoutBuilder || calendarBuilderContext ? "" : " asDrawer"
                   }${sessionEditorOpen ? " open" : ""}`}
                 >
                 {/* Program drawer: one dark hero band carries the identity
                     (week/day + session name) and the save actions — matching
                     the hero language used across the detail pages. The
                     single-workout builder keeps its own hero. */}
-                {!isSingleWorkoutBuilder && (
+                {!isSingleWorkoutBuilder && !calendarBuilderContext && (
                   <div className="drawerSessionHero" id="builder-session">
                     <div className="drawerSessionHeroText">
                       <span className="drawerSessionHeroEyebrow">
@@ -2141,9 +2150,9 @@ export default function CoachBuilderPage({
                       />
                     </label>
                   )}
-                  {isSingleWorkoutBuilder && !oneOffAssignTarget && (
+                  {isSingleWorkoutBuilder && !oneOffAssignTarget && !calendarBuilderContext && (
                     <label>
-                      <span>Assign to</span>
+                      <span>{t("builderDesignedFor")}</span>
                       <select
                         value={programBuiltForMode}
                         onChange={(e) => {
@@ -2164,6 +2173,7 @@ export default function CoachBuilderPage({
                     </label>
                   )}
                   {isSingleWorkoutBuilder &&
+                    !calendarBuilderContext &&
                     programBuiltForMode === "client" && (
                       <label>
                         <span>Client</span>
@@ -2185,6 +2195,7 @@ export default function CoachBuilderPage({
                       </label>
                     )}
                   {isSingleWorkoutBuilder &&
+                    !calendarBuilderContext &&
                     programBuiltForMode === "team" && (
                       <label>
                         <span>Team</span>
@@ -2210,6 +2221,7 @@ export default function CoachBuilderPage({
                         <span>Week</span>
                         <input
                           value={programWeek}
+                          readOnly={Boolean(calendarBuilderContext)}
                           onChange={(e) => setProgramWeek(e.target.value)}
                           placeholder="Week"
                           className="miniSearch"
@@ -2220,6 +2232,7 @@ export default function CoachBuilderPage({
                         <span>Day</span>
                         <input
                           value={programDay}
+                          readOnly={Boolean(calendarBuilderContext)}
                           onChange={(e) => setProgramDay(e.target.value)}
                           placeholder="Day"
                           className="miniSearch"
@@ -2449,9 +2462,13 @@ export default function CoachBuilderPage({
                         isBuilderOrderOpen && selectedProgramExercises.length > 0
                           ? " orderOpen"
                           : ""
-                      }`}
+                      }${focusedEditor ? " focusedExerciseEditor" : ""}`}
+                      role="dialog"
+                      aria-modal="true"
+                      aria-label={focusedEditor ? t("editWorkoutExercise") : t("builderExerciseLibrary")}
                       onClick={(event) => event.stopPropagation()}
                     >
+                      {!focusedEditor && (
                       <aside className="builderLibraryDrawerSide">
                         <div className="builderDrawerTabs">
                           <button
@@ -2565,31 +2582,31 @@ export default function CoachBuilderPage({
                           )}
                         </div>
                       </aside>
+                      )}
 
                       <section className="builderLibraryPreview">
                         <button
                           className="builderDrawerClose"
                           onClick={() => {
-                            // Closing never discards: the picked exercises are
-                            // committed onto the day like "Done".
+                            // Edits already live in the session draft. Closing
+                            // a read-only inspection must not mark it dirty.
                             setSwapExerciseIndex(null);
-                            commitDraftSessionIfAny();
                             setIsBuilderLibraryOpen(false);
                           }}
-                          aria-label="Close builder library"
+                          aria-label={t("closeExerciseEditor")}
                         >
                           <X size={22} />
                         </button>
                         <span className="eyebrow">
-                          {builderMode === "Single Workout"
+                          {focusedEditor ? t("editWorkoutExercise") : builderMode === "Single Workout"
                             ? "Single Workout"
                             : `Week ${programWeek || "--"} / Day ${
                                 programDay || "--"
                               }`}
                         </span>
                         <div className="builderPreviewTitleRow">
-                          <h2>{sessionName || programName || "Name your workout"}</h2>
-                          {selectedProgramExercises.length > 0 && (
+                          <h2>{focusedEditor ? selectedProgramExercises[focusedExerciseIndex]?.exerciseName : sessionName || programName || "Name your workout"}</h2>
+                          {!focusedEditor && selectedProgramExercises.length > 0 && (
                             <button
                               className={`outlineButton builderOrderToggle${
                                 isBuilderOrderOpen ? " active" : ""
@@ -2604,11 +2621,11 @@ export default function CoachBuilderPage({
                             </button>
                           )}
                         </div>
-                        <p>
+                        {!focusedEditor && <p>
                           Active section:{" "}
                           <strong>{pendingSectionName || builderSectionOptions[0]}</strong>
-                        </p>
-                        {pendingSectionName === "Circuit" &&
+                        </p>}
+                        {!focusedEditor && pendingSectionName === "Circuit" &&
                           builderLibraryMode !== "Sections" && (
                             <p className="builderCircuitHint">
                               Exercises you add are linked as one circuit and
@@ -2617,7 +2634,7 @@ export default function CoachBuilderPage({
                               (+ minutes) on the circuit&apos;s first exercise.
                             </p>
                           )}
-                        {builderLibraryMode === "Sections" && (
+                        {!focusedEditor && builderLibraryMode === "Sections" && (
                           <div className="builderSectionPicker builderSectionPickerInline">
                             <h3>Choose a section</h3>
                             <p>
@@ -2714,6 +2731,7 @@ export default function CoachBuilderPage({
                               ref={builderModalListRef}
                             >
                               {selectedProgramExercises.map((exercise: any, index: any) => {
+                                if (focusedEditor && index !== focusedExerciseIndex) return null;
                                 const currentSection = normalizeBuilderSection(
                                   exercise.sectionName
                                 );
@@ -2782,12 +2800,13 @@ export default function CoachBuilderPage({
                                       </div>
                                     )}
                                     {isCircuitGroupStart(index) && (
-                                      <div className="circuitPanelInEditor">
+                                      <details className="circuitPanelInEditor builderCircuitDetails">
+                                        <summary>{t("builderCircuitSettings")}</summary>
                                         {renderCircuitSettingsPanel(
                                           exercise,
                                           index
                                         )}
-                                      </div>
+                                      </details>
                                     )}
                                     <div
                                       className={`builderModalExerciseEditor ${
@@ -2921,20 +2940,16 @@ export default function CoachBuilderPage({
                           <button
                             className="goldButton"
                             onClick={() => {
-                              // Done = keep this work: commit the in-progress
-                              // session onto the grid, then close. (It used to
-                              // be a no-op close identical to Cancel — the
-                              // primary gold button that "did nothing".)
-                              commitDraftSessionIfAny();
+                              // The header save includes the current draft.
                               setIsBuilderLibraryOpen(false);
                             }}
                           >
-                            Done
+                            {t("doneEditingExercise")}
                           </button>
                         </div>
                       </section>
 
-                      {isBuilderOrderOpen && selectedProgramExercises.length > 0 && (
+                      {!focusedEditor && isBuilderOrderOpen && selectedProgramExercises.length > 0 && (
                         <aside className="builderArrangementSidebar builderModalOrderSidebar">
                           <div className="builderArrangementSidebarHeader">
                             <span className="eyebrow">Order</span>
@@ -3146,7 +3161,12 @@ export default function CoachBuilderPage({
 
                             <div className="builderExerciseSummaryStats">
                               <span>{exercise.sets || "--"} sets</span>
-                              <span>{exercise.reps || "--"} reps</span>
+                              <span>{exercise.trackingFields?.includes("Time") && !exercise.trackingFields?.includes("Reps")
+                                ? /[a-z秒]/i.test(glanceRepsToken(exercise)) ? glanceRepsToken(exercise) : t("builderDurationSeconds", { value: glanceRepsToken(exercise) })
+                                : exercise.trackingFields?.includes("Distance") && !exercise.trackingFields?.includes("Reps")
+                                  ? glanceRepsToken(exercise)
+                                  : t("builderRepetitions", { value: exercise.reps || "--" })}</span>
+                              {exercise.isUnilateral && <span>{t("builderEachSide")}</span>}
                               {exercise.load && <span>{exercise.load}</span>}
                               {exercise.tempo && <span>Tempo {exercise.tempo}</span>}
                               {exercise.rest && <span>Rest {exercise.rest}</span>}
@@ -3187,7 +3207,10 @@ export default function CoachBuilderPage({
                                 {exercise.groupType}: {exercise.groupName}
                               </span>
                             )}
-                            {isCircuitGroupStart(index) && renderCircuitSettingsPanel(exercise, index)}
+                            {isCircuitGroupStart(index) && <details className="builderCircuitDetails">
+                              <summary>{t("builderCircuitSettings")}</summary>
+                              {renderCircuitSettingsPanel(exercise, index)}
+                            </details>}
                             {exercise.isAccessory && (
                               <span className="exerciseAccessoryPill">
                                 Accessory for{" "}
@@ -3209,118 +3232,6 @@ export default function CoachBuilderPage({
                 </div>
                 </PortalToApp>
 
-                {isSingleWorkoutBuilder && (
-                  <>
-                    <h3
-                      className="builderSectionTitle builderSectionTitleSpaced"
-                      id="builder-review"
-                    >
-                      Saved Workout
-                    </h3>
-                    {programSessions.length === 0 && (
-                      <p>No workout saved yet.</p>
-                    )}
-                  </>
-                )}
-
-                {isSingleWorkoutBuilder && programSessions.map((session: any) => (
-                  <div
-                    className={`exercise-card programSessionCard ${
-                      editingProgramSessionId === session.localId
-                        ? "editingSessionCard"
-                        : ""
-                    } ${
-                      draggedProgramSessionId === session.localId
-                        ? "isDraggingSession"
-                        : ""
-                    } ${
-                      programSessionDropId === session.localId
-                        ? "isDropTargetSession"
-                        : ""
-                    }`}
-                    key={session.localId}
-                    draggable
-                    onDragStart={(event) => {
-                      event.dataTransfer.effectAllowed = "move";
-                      setDraggedProgramSessionId(session.localId);
-                    }}
-                    onDragEnter={() => setProgramSessionDropId(session.localId)}
-                    onDragOver={(event) => {
-                      event.preventDefault();
-                      event.dataTransfer.dropEffect = "move";
-                      setProgramSessionDropId(session.localId);
-                    }}
-                    onDrop={() => {
-                      reorderProgramSession(draggedProgramSessionId, session.localId);
-                      setDraggedProgramSessionId("");
-                      setProgramSessionDropId("");
-                    }}
-                    onDragEnd={() => {
-                      setDraggedProgramSessionId("");
-                      setProgramSessionDropId("");
-                    }}
-                  >
-                    <div className="exerciseTitleRow">
-                      <div className="programSessionTitle">
-                        <span className="dragHandle" aria-hidden="true">
-                          Drag
-                        </span>
-                        <h3
-                          className={`builderSessionLabel ${getWorkoutColorClass(
-                            session.sessionName,
-                            session.sessionType
-                          )}`}
-                        >
-                          {isSingleWorkoutBuilder
-                            ? session.sessionName
-                            : `Week ${session.week} / Day ${session.day}: ${session.sessionName}`}
-                        </h3>
-                        <div className="programSessionMeta">
-                          <span>{session.sessionType || "Strength"}</span>
-                          <span>{session.intensity || "Moderate"}</span>
-                          {session.estimatedDuration && (
-                            <span>{session.estimatedDuration} min</span>
-                          )}
-                          {session.isSingleWorkout && <span>Single Workout</span>}
-                        </div>
-                      </div>
-
-                      <div className="programSessionActions">
-                        <button
-                          className="outlineButton"
-                          onClick={() => loadSessionForEditing(session)}
-                        >
-                          Edit
-                        </button>
-
-                        {!isSingleWorkoutBuilder && (
-                          <button
-                            className="outlineButton"
-                            onClick={() => duplicateProgramSession(session)}
-                          >
-                            Duplicate
-                          </button>
-                        )}
-
-                        <button
-                          className="outlineButton"
-                          onClick={() => removeProgramSession(session.localId)}
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    </div>
-
-                    <p>{session.exercises.length} exercises</p>
-
-                    {session.exercises.map((exercise: any) => (
-                      <p key={exercise.exerciseRecordId} style={{ margin: "4px 0" }}>
-                        {exercise.order}. {exercise.exerciseName} — {exercise.sets} x{" "}
-                        {exercise.reps}, Tempo {exercise.tempo}, Rest {exercise.rest}
-                      </p>
-                    ))}
-                  </div>
-                ))}
                 </>
                 </>
 

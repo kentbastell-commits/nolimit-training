@@ -1,4 +1,5 @@
 import { validQuestionAnswer, testInputMode, isTwoKm, buildTestAnswer, displayAnswer } from "./contentAnswers";
+import CalendarWorkoutEditor from "./CalendarWorkoutEditor";
 import { assignmentDraftKey, readAssignmentDraft, writeAssignmentDraft, clearAssignmentDraft } from "./assignmentDraft";
 import {
   Activity,
@@ -1633,6 +1634,26 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   >(null);
   const [builderExerciseOptionsIndex, setBuilderExerciseOptionsIndex] =
     useState<number | null>(null);
+  useEffect(() => {
+    if (builderExerciseOptionsIndex === null && customizeFieldsIndex === null) return;
+    const dismiss = (event: PointerEvent) => {
+      if (!(event.target instanceof Element) || !event.target.closest(".builderExerciseOptions")) {
+        setBuilderExerciseOptionsIndex(null);
+      }
+    };
+    const escape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.stopImmediatePropagation();
+      if (customizeFieldsIndex !== null) setCustomizeFieldsIndex(null);
+      else setBuilderExerciseOptionsIndex(null);
+    };
+    document.addEventListener("pointerdown", dismiss);
+    window.addEventListener("keydown", escape, true);
+    return () => {
+      document.removeEventListener("pointerdown", dismiss);
+      window.removeEventListener("keydown", escape, true);
+    };
+  }, [builderExerciseOptionsIndex, customizeFieldsIndex]);
   const [alternateEditorExerciseIndex, setAlternateEditorExerciseIndex] =
     useState<number | null>(null);
   const [alternateSearch, setAlternateSearch] = useState("");
@@ -1795,10 +1816,12 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     date: string;
   } | null>(null);
   const [oneOffSaveToLibrary, setOneOffSaveToLibrary] = useState(false);
-  // The client object to restore after the one-off save — the client-detail
-  // view overlays every page while selectedClient is set, so entering the
-  // builder must clear it and finishing must put it back.
+  // Keep the calendar mounted while its workout editor is open. The return
+  // client also carries the save/close destination through builder resets.
   const oneOffReturnClientRef = useRef<Client | null>(null);
+  const [calendarBuilderContext, setCalendarBuilderContext] = useState<{
+    clientName: string; date: string;
+  } | null>(null);
   // Calendar "Add from Library": builder-style picker that drops a saved
   // session / program / test onto a specific calendar date.
   const [calLibPick, setCalLibPick] = useState<{ date: string } | null>(null);
@@ -5625,11 +5648,11 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     // Pre-name it so a quick build can save without a naming stop; the coach
     // can overwrite. This is also the session name the athlete sees.
     setProgramName(`${selectedClient.name} · ${formatCalendarLabel(date)}`);
-    // The client-detail view overlays every page while a client is selected —
-    // clear it so the builder actually shows; the ref restores it on save.
+    // Open over the existing calendar so its date, view and scroll survive.
     oneOffReturnClientRef.current = selectedClient;
-    setSelectedClient(null);
-    setActivePage("Workouts");
+    setCalendarBuilderContext({ clientName: selectedClient.name, date });
+    setActivePage("Clients");
+    setClientTab("Training");
   };
 
   // Coach opened an assigned workout and wants to change the programming:
@@ -5652,15 +5675,19 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       notify("This workout isn't linked to a saved program.");
       return;
     }
+    const loaded = await loadSavedProgramIntoBuilder(program, {
+      edit: true, session: { week: String(workout.week), day: String(workout.day) },
+    });
+    if (!loaded) return;
     setSelectedWorkout(null);
-    // #51: the client-detail view overlays every page while a client is
-    // selected — clear it so the builder shows; restored after save.
     if (selectedClient) {
       oneOffReturnClientRef.current = selectedClient;
-      setSelectedClient(null);
+      setCalendarBuilderContext({ clientName: selectedClient.name, date: normalizeDate(String(workout.scheduledDate || "")) });
+      setActivePage("Clients");
+      setClientTab("Training");
+    } else {
+      setActivePage("Workouts");
     }
-    setActivePage("Workouts");
-    void loadSavedProgramIntoBuilder(program, { edit: true });
   };
 
   // Calendar library picker: drop ONE saved session onto the date.
@@ -5794,7 +5821,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
 
   const loadSavedProgramIntoBuilder = async (
     programArg?: Program,
-    opts?: { edit?: boolean; asCopy?: boolean }
+    opts?: { edit?: boolean; asCopy?: boolean; session?: { week: string; day: string } }
   ) => {
     const sourceProgram = programArg || selectedSavedProgram;
     if (!sourceProgram) {
@@ -5835,6 +5862,13 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       const sessions = buildSessionsFromTemplates(
         templateData.templates || []
       );
+      const targetSession = opts?.session
+        ? sessions.find(s => s.week === opts.session!.week && s.day === opts.session!.day)
+        : sessions[0];
+      if (opts?.session && !targetSession) {
+        notify(t("builderSessionUnavailable"), "error");
+        return false;
+      }
 
       // Loading a program is a clean baseline, not an edit: without this the
       // dirty-tracking effect marks a freshly opened program "Unsaved" and the
@@ -5873,7 +5907,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       );
       setProgramSessions(sessions);
       adoptSectionColors(sessions.flatMap((s) => s.exercises));
-      const firstSession = sessions[0];
+      const firstSession = targetSession;
       const sourceIsSingleWorkout =
         sourceProgram.productType === "Single Workout";
 
@@ -5881,7 +5915,9 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       // a reusable session opens in its exercise editor, a multi-day program
       // opens its overview on mobile, and desktop opens the first day in the
       // editor drawer with the calendar still visible behind it.
-      if (firstSession && (sourceIsSingleWorkout || !useMobileWorkoutRows)) {
+      resetExerciseIndexState();
+      setSessionSetupOpen(false);
+      if (firstSession && (sourceIsSingleWorkout || !useMobileWorkoutRows || opts?.session)) {
         setProgramWeek(firstSession.week || "1");
         setProgramDay(firstSession.day || "1");
         setSessionName(firstSession.sessionName || "");
@@ -5895,7 +5931,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
           firstSession.exercises.map((exercise) => ({ ...exercise }))
         );
         setEditingProgramSessionId(firstSession.localId);
-        setSessionEditorOpen(!sourceIsSingleWorkout);
+        setSessionEditorOpen(!sourceIsSingleWorkout && !opts?.session);
         setIsBuilderLibraryOpen(false);
       } else {
         setSelectedProgramExercises([]);
@@ -5913,7 +5949,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
         setIsBuilderLibraryOpen(false);
       }
       setMobileBuilderStep(
-        sourceIsSingleWorkout
+        opts?.session ? "editor" : sourceIsSingleWorkout
           ? firstSession
             ? "editor"
             : "details"
@@ -5930,6 +5966,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
           ? "Duplicated into builder. Saving creates a new program."
           : "Opened in builder. Saving creates a new program version."
       );
+      return true;
     } catch (error) {
       console.error(error);
       notify("Could not load program into builder.");
@@ -10673,6 +10710,8 @@ function App({ onReady }: { onReady?: () => void } = {}) {
         type="button"
         title="More options"
         aria-label={`More options for ${exercise.exerciseName}`}
+        aria-expanded={builderExerciseOptionsIndex === index}
+        aria-haspopup="true"
         onClick={(event) => {
           event.stopPropagation();
           setBuilderExerciseOptionsIndex((current) =>
@@ -10706,7 +10745,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
             }}
           >
             <Pencil size={16} />
-            Edit exercise
+            {t("editLibraryExercise")}
           </button>
           <button
             type="button"
@@ -10903,6 +10942,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     setEditProgramRecordId("");
     setCopiedSession(null);
     setOneOffAssignTarget(null);
+    setCalendarBuilderContext(null);
     oneOffReturnClientRef.current = null;
   };
 
@@ -11223,7 +11263,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     // stale stored copy over live edits — just make sure the editor is open.
     if (editingProgramSessionId && session.localId === editingProgramSessionId) {
       if (!session.isSingleWorkout) setSessionEditorOpen(true);
-      setIsBuilderLibraryOpen(true);
+      setIsBuilderLibraryOpen(false);
       return;
     }
     // Switching to ANOTHER session: preserve the in-progress one first.
@@ -11244,10 +11284,9 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     resetExerciseIndexState();
     setEditingSessionTestTemplateId(session.testTemplateId || "");
     setEditingProgramSessionId(session.localId);
-    // Program sessions keep the drawer underneath (it owns "Save Day"), but the
-    // big library builder opens on top immediately — one click straight to editing.
+    // Open the session editor; the library opens only when adding exercises.
     if (!session.isSingleWorkout) setSessionEditorOpen(true);
-    setIsBuilderLibraryOpen(true);
+    setIsBuilderLibraryOpen(false);
     setBuilderLibraryMode("Exercises");
     if (!libraryLoading) {
       void loadExerciseLibrary();
@@ -12106,7 +12145,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   // leave-guard/reset clears the ref.
   const returnToBuilderOrigin = () => {
     const client = oneOffReturnClientRef.current;
-    if (!client || oneOffAssignTarget) {
+    if (!client) {
       selectWorkoutTab(
         builderMode === "Single Workout" ? "Sessions" : "Saved Programs"
       );
@@ -12645,7 +12684,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   // since confirmLeaveBuilder() only resets on a confirmed dirty discard.
   const goToPage = (page: Page) => {
     const inBuilder =
-      activePage === "Workouts" || (activePage === "Digital" && digitalSubTab === "program");
+      Boolean(calendarBuilderContext) || activePage === "Workouts" || (activePage === "Digital" && digitalSubTab === "program");
     if (inBuilder) {
       if (!confirmLeaveBuilder()) return;
       resetBuilder();
@@ -20855,7 +20894,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
           ))}
         </div>
 
-        {!selectedClient && (
+        {(!selectedClient || calendarBuilderContext) && (
           <>
             <header className="topbar">
               {/* Page actions live in each page's own header now. The topbar
@@ -20867,7 +20906,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                   redesign) — the sticky bottom bar covers mobile. */}
             </header>
 
-            {activePage === "Clients" && (
+            {activePage === "Clients" && !selectedClient && (
               <CoachClientsPage
                 loading={loading}
                 clients={clients}
@@ -21171,9 +21210,11 @@ function App({ onReady }: { onReady?: () => void } = {}) {
               </div>
             )}
 
-            {(activePage === "Workouts" ||
+            {(calendarBuilderContext || activePage === "Workouts" ||
               (activePage === "Digital" && digitalSubTab === "program")) && (
+              <CalendarWorkoutEditor context={calendarBuilderContext} onClose={returnToBuilderOrigin} busy={savingTemplate}>
               <CoachBuilderPage
+                calendarBuilderContext={calendarBuilderContext}
                 builderScope={builderScope}
                 setLatestBuilderExerciseIndex={setLatestBuilderExerciseIndex}
                 scrollLatestBuilderExerciseIntoView={
@@ -21453,7 +21494,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                 updateFormQuestion={updateFormQuestion}
                 updateProgramExercise={updateProgramExercise}
                 updateSavedAssignableWorkoutDate={updateSavedAssignableWorkoutDate}
-                useMobileWorkoutRows={useMobileWorkoutRows}
+                useMobileWorkoutRows={useMobileWorkoutRows && !calendarBuilderContext}
                 visibleProgramsOnly={visibleProgramsOnly}
                 visibleSavedForms={visibleSavedForms}
                 visibleSessionsOnly={visibleSessionsOnly}
@@ -21464,6 +21505,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                 workoutTabList={workoutTabList}
                 workoutTabsMenuOpen={workoutTabsMenuOpen}
               />
+              </CalendarWorkoutEditor>
             )}
 
             {activePage === "Digital" && digitalSubTab === "store" && (

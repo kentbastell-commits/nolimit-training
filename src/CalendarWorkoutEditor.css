@@ -1,0 +1,30 @@
+.calendarWorkoutBackdrop { position: fixed; inset: 0; background: rgb(20 24 20 / 28%); z-index: 1460; }
+.calendarWorkoutEditor { position: fixed; inset: 0 0 0 auto; width: min(1060px, 88vw); z-index: 1470; background: #f8f7f3; overflow: auto; overscroll-behavior: contain; box-shadow: -16px 0 60px rgb(0 0 0 / 18%); padding: 0 24px 32px; outline: none; }
+.calendarWorkoutContext { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 0; font-size: 14px; font-weight: 700; }
+.calendarWorkoutContext button { border: 1px solid #ddd9d0; border-radius: 50%; background: #fff; min-width: 40px; height: 40px; display: grid; place-items: center; cursor: pointer; }
+.calendarWorkoutEditor .wkHub { margin: 0; }
+.calendarWorkoutEditor .wkHubBuilderActive .wkHead { padding: 20px; border-radius: 16px; margin-bottom: 0; }
+.calendarWorkoutEditor .wkHubBuilderActive .wkHead .wkHeadLeft h1 { font-size: 30px; }
+.calendarWorkoutEditor .wkHead p { max-width: 530px; }
+.calendarWorkoutEditor .programBuilderPanel { margin-top: 16px; padding: 18px; }
+.calendarWorkoutEditor .builderPageTitle, .calendarWorkoutEditor .builderBackLink, .calendarWorkoutEditor .mobileBuilderQuickNav { display: none; }
+.calendarWorkoutEditor .builderEditorWrap { padding: 0; }
+.calendarWorkoutEditor .currentSessionGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media(max-width: 720px) {
+  .calendarWorkoutEditor { width: 100%; padding: 0 12px 24px; }
+  .calendarWorkoutEditor .wkHubBuilderActive .wkHead { display: flex; padding: 16px; flex-direction: column; align-items: stretch; }
+  .calendarWorkoutEditor .wkHubBuilderActive .wkHead .wkHeadLeft h1 { font-size: 26px; }
+  .calendarWorkoutEditor .wkHeadRight, .calendarWorkoutEditor .pbSaveCluster, .calendarWorkoutEditor .pbSaveRow, .calendarWorkoutEditor .pbSaveCol { width: 100%; }
+  .calendarWorkoutEditor .pbSaveBtn { width: 100%; }
+  .calendarWorkoutEditor .programBuilderPanel { padding: 12px; }
+  .calendarWorkoutEditor .currentSessionGrid { grid-template-columns: 1fr; }
+  .calendarWorkoutEditor .builderExerciseSummaryStats { flex-wrap: wrap; }
+  .app:not(.clientPortalApp) .calendarWorkoutEditor .builderExerciseSummaryButton { grid-template-columns: minmax(0, 1fr) auto !important; }
+  .calendarWorkoutEditor .builderExerciseSummaryStats { grid-column: 1 / -1; grid-row: 2; }
+  .calendarWorkoutEditor .builderExerciseSummaryTitle { min-width: 0; }
+  .calendarWorkoutEditor .builderExerciseSummaryTitle h3 { white-space: normal; }
+  .calendarWorkoutEditor .builderSessionDetails .pbSetupIcon,
+  .calendarWorkoutEditor .builderSessionDetails .pbChipRow { display: none; }
+  .calendarWorkoutEditor .builderSessionDetails > summary { display: flex; justify-content: space-between; gap: 12px; }
+  .calendarWorkoutEditor .builderSessionDetails > summary strong { font-size: 17px; }
+}

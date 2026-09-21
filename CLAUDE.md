@@ -627,6 +627,10 @@ data between them, never "borrow" a table ID across products.
     either goes through `goToPage()` (which clears selectedClient) or must
     clear/stash `selectedClient` itself and restore it on the way back
     (see `oneOffReturnClientRef`).
+    Calendar workout editing is an in-context exception: keep ClientWorkspace
+    mounted and use CalendarWorkoutEditor over it, preserving date/view/scroll.
+    Resolve the clicked workout's exact week/day before opening; never default
+    to the first program session. Save/close returns to that athlete's calendar.
 
 52. **The overlapping save that doubles the program** — (second cause, fixed
     2026-08-05: `inPlaceEdit` was gated `&& !singleWorkoutMode`, so every
