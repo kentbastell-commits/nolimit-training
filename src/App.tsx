@@ -11675,7 +11675,11 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       resetSessionFields();
       const refreshedPrograms = await loadPrograms(true);
 
-      if (opts?.stay && !oneOffTarget) {
+      // Opened from an athlete's calendar (returnClientAfterSave) or a
+      // one-off calendar session: Save lands back on THAT calendar — the
+      // coach was editing the athlete's training, not browsing the library.
+      // "Stay" only applies to a program opened from the library.
+      if (opts?.stay && !oneOffTarget && !returnClientAfterSave) {
         // Header "Save" mid-build: stay put, now editing the saved record
         // (so the next Save updates it instead of creating a copy).
         const savedProgram = (
