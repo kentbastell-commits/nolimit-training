@@ -931,6 +931,23 @@ data between them, never "borrow" a table ID across products.
     running the chunks it loaded (#33): ask for a hard reload before
     debugging a flow that already passes on the current build.
 
+71. **The gate that broke the phone in everyone's pocket** — switching the
+    coach lock on (COACH_ACCESS_KEY set) also made `workoutDetails` demand
+    `clientCode`, because `coachKeyOk()` had been permissive and the
+    entitlement branch had never actually run in production. The RELEASED
+    mini program (2026.9.17.4) calls that endpoint without a code, so every
+    athlete's workout became a 403 the mini shows as "network not
+    available" — reported by Kent the next morning, an athlete due to train
+    that day. The 2026-09-18 lock-safety pass replayed the WEB portal's
+    requests, not the mini program's. Rules: before turning on any gate,
+    replay the exact request set of EVERY released client (mini program =
+    grep `"/api/` in nolimit-miniprogram/src/services/api.ts) with the gate
+    on and assert each still passes; and a handler that starts enforcing
+    entitlement must keep serving what was never paid content (coached
+    programs) so a client you cannot hot-fix keeps working while the proper
+    client change goes through WeChat review. Fixed server-side in e8d80aa
+    (`programIsPaidContent`); mini sends the code from 8b6c178 onward.
+
 ## Quality bar — checkable, per deliverable
 
 **Any shipped code change**
