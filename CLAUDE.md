@@ -916,6 +916,21 @@ data between them, never "borrow" a table ID across products.
     from library" on the calendar, "Insert from library" in the builder).
     Before adding a second way to do any of these, delete the first.
 
+70. **The copy the calendar reads** — `assigned_workouts` carries its own
+    session_name/type/goal/intensity/duration, copied from the template at
+    ASSIGN time; exercises are read live from `workout_templates`. So an
+    in-place builder edit changed what the athlete trains but the calendar
+    (and the mini program list) kept the old title ("still says Sunday's
+    date program" after a rename to Accessory), and the coach concluded the
+    save hadn't worked. Rule: any writer that replaces a program's templates
+    (`createWorkoutTemplatesBulk` with `replaceExisting`) also updates the
+    not-yet-completed assigned copies for the same program + week/day, in
+    the same transaction, and invalidates `workouts`. When a "my edit didn't
+    take" report names a CALENDAR surface, diff the assigned row against the
+    template before touching the save path — and remember an open tab keeps
+    running the chunks it loaded (#33): ask for a hard reload before
+    debugging a flow that already passes on the current build.
+
 ## Quality bar — checkable, per deliverable
 
 **Any shipped code change**
