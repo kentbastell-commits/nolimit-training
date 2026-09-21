@@ -1,4 +1,4 @@
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, isNull, ne, or } from "drizzle-orm";
 import { db } from "../client.ts";
 import { queueTranslations } from "../contentTranslations.ts";
 import {
@@ -6,6 +6,7 @@ import {
   setPrescriptions,
   exerciseAlternates,
   exercises,
+  assignedWorkouts,
 } from "../schema.ts";
 import { str } from "./_util.ts";
 import { parseTemplateMeta, toNum } from "../templateMeta.ts";
@@ -596,6 +597,43 @@ export async function createWorkoutTemplatesBulk(input: {
           .delete(workoutTemplates)
           .where(eq(workoutTemplates.programId, programRecordId));
         await tx.insert(workoutTemplates).values(templateRows);
+        // An athlete's calendar shows assigned_workouts.session_name — a
+        // COPY taken at assign time. Exercises are read live from the
+        // templates, so an in-place edit updated the workout's content but
+        // the calendar kept the old name ("still says Sunday's program").
+        // Keep not-yet-completed assigned copies in step, per week/day.
+        const bySlot = new Map<string, (typeof templateRows)[number]>();
+        for (const row of templateRows) {
+          // Single workouts are week 1 / day 1 rows too (a renamed one-off
+          // calendar session is the reported case); only test-day markers
+          // carry no session of their own.
+          if (row.testTemplateId) continue;
+          const key = `${row.week}|${row.day}`;
+          if (!bySlot.has(key)) bySlot.set(key, row);
+        }
+        for (const row of bySlot.values()) {
+          await tx
+            .update(assignedWorkouts)
+            .set({
+              sessionName: row.sessionName,
+              sessionNameCn: row.sessionNameCn || null,
+              sessionType: row.sessionType,
+              sessionGoal: row.sessionGoal,
+              intensity: row.intensity,
+              estimatedDuration: row.estimatedDuration ?? null,
+            })
+            .where(
+              and(
+                eq(assignedWorkouts.programId, input.programId || programRecordId),
+                eq(assignedWorkouts.week, Number(row.week)),
+                eq(assignedWorkouts.day, Number(row.day)),
+                or(
+                  isNull(assignedWorkouts.completionStatus),
+                  ne(assignedWorkouts.completionStatus, "Completed")
+                )
+              )
+            );
+        }
       });
     } else {
       await db.insert(workoutTemplates).values(templateRows);

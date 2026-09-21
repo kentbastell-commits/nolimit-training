@@ -6,7 +6,7 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import singleHandler from "../../../api/createWorkoutTemplate.ts";
 import bulkHandler from "../../../api/createWorkoutTemplatesBulk.ts";
-import { closeDb, makeReq, makeRes, resetDb, rows, seedProgram } from "./helpers.ts";
+import { closeDb, makeReq, makeRes, resetDb, rows, seedClient, seedProgram } from "./helpers.ts";
 import { pool } from "../../../server/db/client.ts";
 
 beforeEach(async () => {
@@ -406,5 +406,39 @@ describe("api/createWorkoutTemplatesBulk (postgres)", () => {
     // contract instead.
     const res = await post(bulkHandler, bulkBody([session(1, 1, { exercises: [] })]));
     expect(res.statusCode).toBe(400);
+  });
+});
+
+describe("createWorkoutTemplatesBulk — assigned copies follow an in-place edit", () => {
+  it("renames not-yet-completed assigned workouts of the edited slots, leaves completed ones", async () => {
+    // An athlete's calendar shows assigned_workouts.session_name, a copy
+    // taken at assign time. Kent renamed a one-off session to "Accessory"
+    // and the calendar kept saying "赵彦钧 · Sun, Sep 20".
+    await seedClient({ client_id: "CL-9001" });
+    await post(bulkHandler, bulkBody([session(1, 1, { sessionName: "Old name" }), session(1, 3)]));
+    await pool.query(
+      `insert into assigned_workouts (assigned_workout_id, client_id, program_id, week, day, session_name, completion_status)
+       values ('AW-1', 'CL-9001', 'PR-1001', 1, 1, 'Old name', 'Scheduled'),
+              ('AW-2', 'CL-9001', 'PR-1001', 1, 1, 'Old name', 'Completed'),
+              ('AW-3', 'CL-9001', 'PR-1001', 1, 3, 'W1D3', null)`
+    );
+
+    const res = await post(bulkHandler, {
+      ...bulkBody([
+        session(1, 1, { sessionName: "Accessory", sessionType: "Mobility", intensity: "Low" }),
+        session(1, 3, { sessionName: "Carries" }),
+      ]),
+      replaceExisting: true,
+    });
+    expect(res.statusCode).toBe(200);
+
+    const after = await rows(
+      "select assigned_workout_id id, session_name, session_type, intensity from assigned_workouts order by assigned_workout_id"
+    );
+    expect(after).toEqual([
+      { id: "AW-1", session_name: "Accessory", session_type: "Mobility", intensity: "Low" },
+      { id: "AW-2", session_name: "Old name", session_type: null, intensity: null },
+      { id: "AW-3", session_name: "Carries", session_type: "Strength", intensity: "Moderate" },
+    ]);
   });
 });

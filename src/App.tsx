@@ -11684,6 +11684,9 @@ function App({ onReady }: { onReady?: () => void } = {}) {
         if (savedProgram) {
           await loadSavedProgramIntoBuilder(savedProgram, { edit: true });
         }
+        // Opened from an athlete's calendar: keep the way back (the reset
+        // above cleared the stash) so the back link still returns there.
+        oneOffReturnClientRef.current = returnClientAfterSave;
         return true;
       }
 

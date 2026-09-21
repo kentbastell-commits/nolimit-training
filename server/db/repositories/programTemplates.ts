@@ -118,6 +118,8 @@ export async function createWorkoutTemplatesBulk(
   if (result.status === 200) {
     invalidateCache("workoutTemplatesRaw");
     invalidateCache("programs");
+    // replaceExisting also renames assigned copies (see pg/programTemplates).
+    invalidateCache("workouts");
     const typeMap = getCached<Record<string, string>>("programSessionTypes");
     if (typeMap && input.sessions.length > 0) {
       // Last session's type wins for the program-level map (matches how the
@@ -140,6 +142,8 @@ export async function createWorkoutTemplate(
   if (result.status === 200) {
     invalidateCache("workoutTemplatesRaw");
     invalidateCache("programs");
+    // replaceExisting also renames assigned copies (see pg/programTemplates).
+    invalidateCache("workouts");
 
     // /api/programs resolves each program's Session Type from a long-lived
     // programId->type map (programSessionTypes). Adding a new session here
