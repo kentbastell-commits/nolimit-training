@@ -2,7 +2,7 @@
 // programTemplates}.test.ts. Every read the athlete's calendar and workout
 // player depend on, in both the portal and the mini program. A wrong filter
 // here shows someone another athlete's training.
-import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
 import workoutsHandler from "../../../api/workouts.ts";
 import detailsHandler from "../../../api/workoutDetails.ts";
 import historyHandler from "../../../api/workoutHistory.ts";
@@ -246,5 +246,47 @@ describe("api/programTemplates (postgres)", () => {
     // The builder reloads a program through this endpoint, so a read that
     // renumbers is as destructive as a write that does (#35).
     expect(days).toEqual([1, 4, 6]);
+  });
+});
+
+describe("api/workoutDetails — coach lock ON (COACH_ACCESS_KEY set)", () => {
+  // The released mini program calls workoutDetails without a clientCode. The
+  // day the lock went on (2026-09-20) every athlete's workout became a 403
+  // shown as "network not available". Coached programs are not paid content
+  // and stay readable; store products keep the code requirement.
+  beforeEach(() => {
+    process.env.COACH_ACCESS_KEY = "test-key";
+  });
+  afterEach(() => {
+    delete process.env.COACH_ACCESS_KEY;
+  });
+
+  it("serves a coached program's session without a client code", async () => {
+    await seedTemplate("WT-1", 1, 1);
+    const res = await get(detailsHandler, { programId: "PR-1001", week: "1", day: "1" });
+    expect(res.statusCode).toBe(200);
+    expect(res.body.exercises).toHaveLength(1);
+  });
+
+  it("still refuses a store product without a code, and serves it to an assigned athlete", async () => {
+    await seedProgram({ program_id: "PR-2001", name: "Paid", product_type: "Digital Program" });
+    await pool.query(
+      `insert into workout_templates (template_id, program_id, exercise_id, week, day, session_name, sets, reps)
+       values ('WT-2', 'PR-2001', 'EX-1', 1, 1, 'Paid day', 3, '5')`
+    );
+    const denied = await get(detailsHandler, { programId: "PR-2001", week: "1", day: "1" });
+    expect(denied.statusCode).toBe(403);
+
+    await pool.query(
+      `insert into assigned_workouts (assigned_workout_id, client_id, program_id, week, day, session_name)
+       values ('AW-2', 'CL-9001', 'PR-2001', 1, 1, 'Paid day')`
+    );
+    const allowed = await get(detailsHandler, {
+      programId: "PR-2001",
+      week: "1",
+      day: "1",
+      clientCode: "CL-9001",
+    });
+    expect(allowed.statusCode).toBe(200);
   });
 });

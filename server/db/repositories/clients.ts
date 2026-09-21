@@ -100,6 +100,10 @@ export async function clientHasProgramAccess(
   return await pg.clientHasProgramAccess(clientCode, programId);
 }
 
+export async function programIsPaidContent(programId: string): Promise<boolean> {
+  return await pg.programIsPaidContent(programId);
+}
+
 export async function updateClient(input: UpdateClientInput): Promise<WriteResult> {
   const result =
     await pg.updateClient(input);

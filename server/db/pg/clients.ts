@@ -1,6 +1,6 @@
 import { and, eq, sql, type SQL } from "drizzle-orm";
 import { db } from "../client.ts";
-import { clients, assignedWorkouts } from "../schema.ts";
+import { clients, assignedWorkouts, programs } from "../schema.ts";
 
 // Phone matching that survives formatting. WeChat hands us pure digits
 // ("13900001111"); coaches type "+86 139 0000 1111", "139-0000-1111" or the
@@ -379,6 +379,28 @@ export async function bindClientOpenid(
 // everywhere else in this app), so this can't verify WHO is asking — only
 // that the programId is legitimately in play for the claimed clientCode,
 // closing the "zero identity claimed at all" version of the bug.
+// Coached programs (Internal Coaching Template, Online Coaching, In-Person)
+// are not paid content: nothing is lost by serving their workout details
+// without an athlete code. Only store products (Digital Program / Add-on /
+// Bundle, or anything listed on the store) keep the code requirement. Needed
+// because the RELEASED mini program calls workoutDetails without a clientCode
+// — the day the coach lock went on (2026-09-20) every athlete's workout
+// opened to a 403 ("network not available").
+export async function programIsPaidContent(programId: string): Promise<boolean> {
+  if (!programId) return true;
+  const [program] = await db
+    .select({
+      productType: programs.productType,
+      publicStoreVisible: programs.publicStoreVisible,
+    })
+    .from(programs)
+    .where(eq(programs.programId, String(programId)))
+    .limit(1);
+  if (!program) return true;
+  const type = String(program.productType || "");
+  return Boolean(program.publicStoreVisible) || /^Digital /.test(type);
+}
+
 export async function clientHasProgramAccess(
   clientCode: string,
   programId: string

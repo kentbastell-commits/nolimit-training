@@ -1,6 +1,9 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { getWorkoutDetails } from "../server/db/repositories/workoutDetails.ts";
-import { clientHasProgramAccess } from "../server/db/repositories/clients.ts";
+import {
+  clientHasProgramAccess,
+  programIsPaidContent,
+} from "../server/db/repositories/clients.ts";
 import { coachKeyOk } from "./_coachAuth.ts";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -21,7 +24,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         String(clientCode || ""),
         String(programId)
       );
-      if (!hasAccess) {
+      // Coached (non-store) programs are readable without a code: the
+      // released mini program sends none, and the day the coach lock went
+      // on every athlete's workout became a 403. Paid store content still
+      // needs the athlete's proof of purchase/assignment.
+      if (!hasAccess && (await programIsPaidContent(String(programId)))) {
         return res.status(403).json({ error: "No access to this program" });
       }
     }
