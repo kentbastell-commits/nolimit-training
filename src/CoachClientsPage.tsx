@@ -44,6 +44,7 @@ export default function CoachClientsPage(props: { [key: string]: any }) {
   const { t } = useTranslation();
   const {
     loading,
+    activityState = "ready",
     todayValue,
     activeCoaches,
     buildClientPortalLink,
@@ -282,7 +283,9 @@ export default function CoachClientsPage(props: { [key: string]: any }) {
           </div>
         </div>
         <div className="crpEng">
-          {noEng ? (
+          {activityState !== "ready" ? (
+            <span className="crpNoEng">{t(activityState === "loading" ? "loading" : "coachActivityUnavailable")}</span>
+          ) : noEng ? (
             <span className="crpNoEng">No sessions yet</span>
           ) : (
             <>
@@ -408,7 +411,7 @@ export default function CoachClientsPage(props: { [key: string]: any }) {
             <small>athletes flagged</small>
           </div>
           <p>
-            {sumAvg == null ? (
+            {activityState !== "ready" ? t(activityState === "loading" ? "loading" : "coachActivityUnavailable") : sumAvg == null ? (
               "No compliance data this week."
             ) : (
               <>

@@ -1,5 +1,6 @@
 export const redesignCopy = {
   en: {
+    coachActivityUnavailable: "Activity unavailable",
     athleteMarkRead: "Mark all read",
     redesignDays_one: "{{count}} day", redesignDays_other: "{{count}} days", redesignExercises_one: "{{count}} exercise", redesignExercises_other: "{{count}} exercises", redesignSets_one: "{{count}} set", redesignSets_other: "{{count}} sets",
     athleteToday: "Today", athleteTraining: "Training", athleteMe: "Me", athleteCoach: "Coach", athleteSupport: "Support", athleteGetStarted: "Get started",
@@ -7,6 +8,7 @@ export const redesignCopy = {
     redesignSessionNotes: "Session notes", redesignNotesHint: "Session instructions and warm-up guidance", redesignDetails: "Details", redesignWeek: "Week {{week}}", redesignAddDay: "Add day", redesignCopyDay: "Copy to next week", redesignDuplicateWeek: "Duplicate week", redesignDays: "{{count}} days", redesignExercises: "{{count}} exercises", redesignSets: "{{count}} sets", redesignSelect: "Select", redesignDone: "Done", redesignSession: "Saved workout", redesignProgram: "Program", redesignTest: "Test", redesignNewWorkout: "New workout", redesignAddToDate: "Add to {{date}}", redesignSaveProgram: "Save program", redesignUpdateProgram: "Update program", redesignSaving: "Saving…", redesignReviewProgram: "Review program", redesignWeekView: "Week", redesignMonthView: "Month", redesignFullView: "Full", redesignDayDraft: "Day draft · save the program to publish", redesignRecent: "Recently used", redesignReps: "{{value}} reps",
   },
   zh: {
+    coachActivityUnavailable: "暂时无法加载训练记录",
     athleteMarkRead: "全部标为已读",
     redesignDays_one: "{{count}} 个训练日", redesignExercises_one: "{{count}} 个动作", redesignSets_one: "{{count}} 组",
     redesignDays_other: "{{count}} 个训练日", redesignExercises_other: "{{count}} 个动作", redesignSets_other: "{{count}} 组",

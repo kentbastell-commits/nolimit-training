@@ -910,6 +910,9 @@ data between them, never "borrow" a table ID across products.
     code — one stalled request out of three is the link, not the server.
     The real fix for uploads is direct-to-COS via the accelerate endpoint
     (see COS footage archive memory for the cost), not more timeout.
+    For coach startup, measure usable-screen time cold AND warm on the same
+    link: preload the roster, defer secondary reads until visible, and remove
+    splash dwell after readiness. Share concurrent reads, never cache refreshes.
 
 68. **The prop pruner that reached the neighbour** — after deleting a dead
     panel from CoachBuilderPage, a script removed every `name={...}` line

@@ -3,6 +3,7 @@ import CalendarWorkoutEditor from "./CalendarWorkoutEditor";
 import { glanceRepsToken } from "./appCore";
 import "./MobileCoach.css";
 import { isAthletePreview } from "./athletePreviewPolicy";
+import { createSharedRead } from "./sharedRead";
 import { assignmentDraftKey, readAssignmentDraft, writeAssignmentDraft, clearAssignmentDraft } from "./assignmentDraft";
 import {
   Activity,
@@ -203,7 +204,8 @@ const InPersonEnquiryPage = withSuspense(() => import("./InPersonEnquiryPage"));
 const LegalPage = withSuspense(() => import("./LegalPage"));
 const PortalWelcome = withSuspense(() => import("./PortalWelcome"));
 const ReviewPage = withSuspense(() => import("./ReviewPage"));
-const CoachClientsPage = withSuspense(() => import("./CoachClientsPage"));
+const loadCoachClientsPage = () => import("./CoachClientsPage");
+const CoachClientsPage = withSuspense(loadCoachClientsPage);
 const CoachOrdersPage = withSuspense(() => import("./CoachOrdersPage"));
 const CoachTeamsPage = withSuspense(() => import("./CoachTeamsPage"));
 const CoachRevenuePage = withSuspense(() => import("./CoachRevenuePage"));
@@ -233,7 +235,7 @@ const CreateFormModal = withSuspense(() => import("./CreateFormModal"), null);
 const ProgramPreviewModal = withSuspense(() => import("./ProgramPreviewModal"), null);
 const Celebration = withSuspense(() => import("./Celebration"), null);
 
-function App({ onReady }: { onReady?: () => void } = {}) {
+function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisible?: boolean } = {}) {
   const { t, i18n } = useTranslation();
   // Fire the boot-splash "ready" signal exactly once, when the first meaningful
   // screen has its data: the client portal once its client resolves, the coach
@@ -312,6 +314,9 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   const [coachGate, setCoachGate] = useState<"checking" | "locked" | "open">(
     isCoachView ? "checking" : "open"
   );
+  const [coachBootDataSettled, setCoachBootDataSettled] = useState(false);
+  const [coachRosterUiReady, setCoachRosterUiReady] = useState(false);
+  const coachBackgroundReady = isCoachView && coachGate === "open" && coachBootDataSettled && bootVisible;
   useEffect(() => {
     if (!isCoachView) return;
     // One-tap unlock: a bookmarked `?view=coach&key=...` link stores the key
@@ -373,6 +378,22 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       : "Clients";
   });
   const [openNavGroup, setOpenNavGroup] = useState<string | null>(null);
+  // Fetch the first screen alongside auth/data, rather than discovering its
+  // chunk after the interior CSS and the background request burst finish.
+  useEffect(() => {
+    if (!isCoachView) return;
+    let alive = true;
+    const ui = activePage === "Clients" ? loadCoachClientsPage() : Promise.resolve();
+    void ui.then(() => { if (alive) setCoachRosterUiReady(true); });
+    return () => { alive = false; };
+    // Only prefetch the entry screen; navigation still uses lazy routes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => {
+    if (!isCoachView || !interiorCssReady) return;
+    if (coachGate === "locked" || (coachGate === "open" && coachBootDataSettled && coachRosterUiReady)) fireBootReady();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isCoachView, interiorCssReady, coachGate, coachBootDataSettled, coachRosterUiReady]);
   // Digital tab sub-navigation: the program builder vs the store manager.
   const [digitalSubTab, setDigitalSubTab] = useState<"program" | "store">(
     "program"
@@ -652,17 +673,13 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     // Review data belongs to the coach console. Public/store/intake routes use
     // the same App state defaults (activePage starts at Clients), but must not
     // fetch internal queues or surface coach-only failure toasts to visitors.
-    if (!isCoachView) return;
+    if (!coachBackgroundReady) return;
     if (activePage === "Review" || activePage === "Clients") {
       void loadFormVideos();
-    }
-    // The Clients-page "Today" strip needs the review queue + subscriptions.
-    if (activePage === "Clients") {
       void loadCoachReviewQueue();
-      void loadSubscriptions();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activePage]);
+  }, [activePage, coachBackgroundReady]);
   const reviewFormVideo = async (recordId: string) => {
     try {
       const res = await fetch("/api/formVideos", {
@@ -1071,6 +1088,8 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   });
   // All athletes' assigned workouts, for the coach roster load watch.
   const [rosterLoadWorkouts, setRosterLoadWorkouts] = useState<Workout[]>([]);
+  const [rosterActivityState, setRosterActivityState] = useState<"loading" | "ready" | "error">("loading");
+  const [readAssignedWorkouts] = useState(() => createSharedRead<Workout[]>());
   const [calendarView, setCalendarView] = useState<CalendarView>("Week");
   const [calendarAnchorDate, setCalendarAnchorDate] = useState(
     dateToInputValue(new Date())
@@ -1127,11 +1146,6 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   const [athleteMetrics, setAthleteMetrics] = useState<AthleteMetric[]>([]);
   const [athleteMetricsLoading, setAthleteMetricsLoading] = useState(false);
   const [exerciseResults, setExerciseResults] = useState<ExerciseResult[]>([]);
-  // Cross-client Clients list: per-client 7-day training activity, keyed by
-  // client record id. Quiet-loaded from /api/analytics on the Clients page.
-  const [, setClientActivityMap] = useState<
-    Record<string, { completed7d: number; scheduled7d: number }>
-  >({});
   // Coach Overview: editable Coach Notes (draft + saving state).
   const [coachNotesDraft, setCoachNotesDraft] = useState("");
   const [savingCoachNotes, setSavingCoachNotes] = useState(false);
@@ -1167,7 +1181,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   const [checkInReplySaving, setCheckInReplySaving] = useState("");
   // In-person enquiries waiting for the coach to action.
   const [coachReviewEnquiries, setCoachReviewEnquiries] = useState<any[]>([]);
-  const [coachReviewLoading, setCoachReviewLoading] = useState(false);
+  const [coachReviewLoading, setCoachReviewLoading] = useState(isCoachView);
   const [coachReviewError, setCoachReviewError] = useState("");
   const [openReviewSections, setOpenReviewSections] = useState<
     Record<string, boolean>
@@ -2540,36 +2554,6 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     }
   };
 
-  // Quiet-load per-client 7-day activity for the Clients list (no modal).
-  useEffect(() => {
-    // Coach console only: the public invite/enquiry/legal pages share this
-    // App shell with activePage defaulting to "Clients", and analytics is a
-    // coach-key-gated endpoint.
-    if (!isCoachView || isClientPortal || isStorePage || isPublicLandingPage || activePage !== "Clients") return;
-
-    let cancelled = false;
-    fetch("/api/analytics")
-      .then((res) => res.json())
-      .then((data) => {
-        if (cancelled) return;
-        const map: Record<string, { completed7d: number; scheduled7d: number }> = {};
-        (data.clientActivity || []).forEach((entry: any) => {
-          if (entry.recordId) {
-            map[entry.recordId] = {
-              completed7d: entry.completed7d || 0,
-              scheduled7d: entry.scheduled7d || 0,
-            };
-          }
-        });
-        setClientActivityMap(map);
-      })
-      .catch(() => {});
-
-    return () => {
-      cancelled = true;
-    };
-  }, [isClientPortal, activePage, clients.length]);
-
   useEffect(() => {
     // Every public surface (landing, store, 1:1 sign-up, in-person enquiry,
     // legal pages) boots with public data only. Before 2026-09-18 the sign-up,
@@ -2593,17 +2577,13 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       return;
     }
     void loadClients().then(() => {
-      // Coach console is ready once the clients fetch settles. The portal waits
-      // instead for its client to resolve (see the selectedClient effect below).
-      if (!isClientPortal) fireBootReady();
+      if (isCoachView) setCoachBootDataSettled(true);
     });
-    void loadNotifications();
-    // Coaches are needed in the client portal too (assigned coach QR code).
-    loadCoaches();
-    if (!isClientPortal) {
-      void loadTeams();
-      void loadSubscriptions();
-      void loadCoachReviews();
+    if (isClientPortal) {
+      void loadNotifications();
+      void loadCoaches();
+    }
+    if (isCoachView) {
       // Deep links / refreshes land here WITHOUT going through the page
       // navigation handler — a refresh on Digital/Workouts/Library showed
       // "0 programs" until the coach navigated away and back.
@@ -2623,6 +2603,19 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       }
     }
   }, []);
+
+  // Secondary data starts only after the roster/auth/styles are ready and the
+  // splash is gone. Slow review feeds must not delay opening an athlete.
+  useEffect(() => {
+    if (!coachBackgroundReady) return;
+    void loadNotifications();
+    void loadCoaches();
+    void loadTeams();
+    void loadSubscriptions();
+    void loadCoachReviews();
+    // These global lists load once at boot; their existing refresh actions remain.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [coachBackgroundReady]);
 
   useEffect(() => {
     if (storeLauncherOpen) void loadClients();
@@ -4020,7 +4013,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     return (data.comments || []) as WorkoutComment[];
   };
 
-  const fetchAllAssignedWorkouts = async () => {
+  const fetchAllAssignedWorkouts = () => readAssignedWorkouts(async () => {
     const response = await fetch("/api/workouts");
     const data = await response.json();
 
@@ -4029,7 +4022,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     }
 
     return (data.workouts || []) as Workout[];
-  };
+  });
 
   // Unreviewed check-ins across every client, tagged with the client's name.
   const fetchUnreviewedCheckIns = async () => {
@@ -4247,11 +4240,6 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     if (!formTemplatesLoading) {
       void loadFormTemplates();
     }
-  }, [activePage]);
-
-  useEffect(() => {
-    if (activePage !== "Review") return;
-    void loadCoachReviewQueue();
   }, [activePage]);
 
   useEffect(() => {
@@ -12735,7 +12723,9 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       loadFormTemplates();
     }
     if (page === "Review") {
-      void loadCoachReviewQueue(true);
+      // Changing page loads the queue in its effect. Re-clicking Review is an
+      // explicit refresh; do not also start a second queue during navigation.
+      if (page === activePage) void loadCoachReviewQueue(true);
       loadPrograms();
       loadFormTemplates();
     }
@@ -13342,27 +13332,30 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   // Load every athlete's assigned workouts for the coach Clients load watch +
   // per-row risk badges.
   useEffect(() => {
-    if (isClientPortal || isStorePage || isPublicLandingPage || activePage !== "Clients") return;
+    if (!coachBackgroundReady || activePage !== "Clients") return;
     let cancelled = false;
     (async () => {
       try {
         const list = await fetchAllAssignedWorkouts();
-        if (!cancelled) setRosterLoadWorkouts(list);
+        if (!cancelled) {
+          setRosterLoadWorkouts(list);
+          setRosterActivityState("ready");
+        }
       } catch {
-        /* non-fatal: the watch just stays empty */
+        if (!cancelled) setRosterActivityState("error");
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [isClientPortal, activePage]);
+  }, [coachBackgroundReady, activePage]);
 
   const clientStatusOptions = Array.from(
     new Set(coachVisibleClients.map((client) => client.status).filter(Boolean))
   );
 
   const clientNeedsProgramming = (client: Client) =>
-    (!client.program || client.program === "--") && !rosterLoadWorkouts.some(workout =>
+    rosterActivityState === "ready" && (!client.program || client.program === "--") && !rosterLoadWorkouts.some(workout =>
       (workout.clientId || "").split(/[,\s[\]"']+/).includes(client.clientCode) &&
       normalizeDate(String(workout.scheduledDate)) >= dateToInputValue(new Date()) &&
       !/completed|cancelled|archived/i.test(workout.completionStatus || "")
@@ -20909,6 +20902,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
 
             {activePage === "Clients" && !selectedClient && (
               <CoachClientsPage
+                activityState={rosterActivityState}
                 loading={loading}
                 clients={clients}
                 openNewClientForm={openNewClientForm}

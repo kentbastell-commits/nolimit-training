@@ -76,6 +76,20 @@ const client = {
 };
 
 describe("CoachClientsPage", () => {
+  it("keeps the athlete accessible while activity loads without claiming an empty history", () => {
+    const open = vi.fn();
+    const props = { ...baseProps, clients: [client], rosterClients: [client], setSelectedClient: open };
+    const { rerender } = render(<CoachClientsPage {...props} activityState="loading" />);
+    expect(screen.queryByText("No sessions yet")).not.toBeInTheDocument();
+    expect(screen.queryByText("No compliance data this week.")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByText(client.name));
+    expect(open).toHaveBeenCalledWith(client);
+    rerender(<CoachClientsPage {...props} activityState="error" />);
+    expect(screen.queryByText("No sessions yet")).not.toBeInTheDocument();
+    rerender(<CoachClientsPage {...props} activityState="ready" />);
+    expect(screen.getByText("No sessions yet")).toBeInTheDocument();
+  });
+
   it("renders the toolbar and empty roster state", () => {
     // Redesign: placeholder gained an ellipsis, the empty state is a two-line
     // "No clients match" card, and the invite button is "Copy invite".

@@ -66,6 +66,7 @@ function Root() {
   }
 
   const wantsSplash = bootShowsSplash()
+  const coachEntry = new URLSearchParams(window.location.search).get('view') === 'coach'
   // App mounts immediately and loads underneath the splash; `booted` flips when
   // App signals its real boot data is ready, which drives the bars to 100%.
   const [booted, setBooted] = useState(false)
@@ -84,7 +85,12 @@ function Root() {
       {/* Outermost net: the coach console had no boundary at all, so any
           render throw white-screened the whole app. */}
       <ErrorBoundary label="app">
-        <App onReady={() => setBooted(true)} />
+        <App bootVisible={splashDone} onReady={() => {
+          setBooted(true)
+          // Coaching is a working tool: once its real screen is ready, expose
+          // it immediately instead of waiting for the splash fill/dwell.
+          if (coachEntry) setSplashDone(true)
+        }} />
       </ErrorBoundary>
       {!splashDone && (
         <SplashScreen done={booted} onFinish={() => setSplashDone(true)} />
