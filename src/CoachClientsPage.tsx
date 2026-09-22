@@ -108,6 +108,7 @@ export default function CoachClientsPage(props: { [key: string]: any }) {
     "none" | "online" | "inperson" | "team"
   >(rosterGroupBy === "team" ? "team" : "none");
   const [inviteCopied, setInviteCopied] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [peekId, setPeekId] = useState<string | null>(null);
 
   // ---- board (from the full clients list, stable across filters) ----
@@ -417,7 +418,7 @@ export default function CoachClientsPage(props: { [key: string]: any }) {
       </div>
 
       {/* filter bar */}
-      <div className="crpFilters">
+      <div className={`crpFilters${filtersOpen ? " crpFiltersExpanded" : ""}`}>
         <div
           className="crpBucketTabs"
           role="group"
@@ -448,6 +449,7 @@ export default function CoachClientsPage(props: { [key: string]: any }) {
               placeholder="Search client…"
             />
           </div>
+          <button type="button" className="crpMobileFiltersButton" aria-expanded={filtersOpen} onClick={() => setFiltersOpen(!filtersOpen)}>{t("mobileRosterFilters")}</button>
           <select
             className="crpSelect"
             aria-label="Group clients"

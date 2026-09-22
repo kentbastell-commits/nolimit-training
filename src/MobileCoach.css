@@ -1,0 +1,73 @@
+.crpMobileFiltersButton, .coachCalendarCompactMeta, .coachCalendarAddLabel, .mobileBuilderContext { display: none; }
+/* Fixed navigation and preview dialogs must remain anchored to the viewport. */
+.app.clientPortalApp { animation: none !important; transform: none !important; will-change: auto !important; }
+@media (max-width: 720px) {
+  .app.app:not(.clientPortalApp).clientLayerActive .sidebar nav { display: grid; }
+  .app.app:not(.clientPortalApp) .coachClientPageHeading { display: none; }
+  .app.app:not(.clientPortalApp) .coachClientContext { grid-template-columns: auto auto minmax(0, 1fr); margin-bottom: 12px; box-shadow: none; }
+  .app.app:not(.clientPortalApp) .coachClientIdentity > p { display: none; }
+  .app.app:not(.clientPortalApp) .coachClientContextActions { grid-column: 1 / -1; display: flex; justify-content: space-between; padding-top: 8px; border-top: 1px solid #eee9dd; }
+  .app.app:not(.clientPortalApp) .coachClientPortalButton { display: inline-flex; min-height: 44px; font: inherit; font-size: 13px; font-weight: 750; }
+  .app.app:not(.clientPortalApp) .coachClientBack, .app.app:not(.clientPortalApp) .clientActionMenu > summary { min-width: 44px; min-height: 44px; }
+  .app.app:not(.clientPortalApp) .coachClientTabs { margin-bottom: 14px; }
+  .app.app:not(.clientPortalApp) .coachClientTabs .tab { min-height: 44px; padding: 0 12px; }
+  .app.app:not(.clientPortalApp) .calendarHeader { gap: 10px; align-items: center; }
+  .app.app:not(.clientPortalApp) .calendarHeader > h2 { display: none; }
+  .app.app:not(.clientPortalApp) .calendarControls { display: flex; width: 100%; justify-content: space-between; gap: 8px; }
+  .app.app:not(.clientPortalApp) .calendarAddButton { display: inline-flex; width: auto; gap: 5px; padding: 0 12px; min-height: 44px; background: #151512; color: #fff; }
+  .app.app:not(.clientPortalApp) .coachCalendarAddLabel { display: inline; font-size: 12px; font-weight: 800; }
+  .app.app:not(.clientPortalApp) .calendarNavigator { gap: 8px; margin-bottom: 12px; }
+  .app.app:not(.clientPortalApp) .calendarRangeControls { display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; width: 100%; gap: 6px; }
+  .app.app:not(.clientPortalApp) .calendarRangeControls > button { min-width: 44px; min-height: 44px; padding: 8px; }
+  .app.app:not(.clientPortalApp) .calendarRangeControls > strong { font-size: 13px; text-align: center; }
+  .app.app:not(.clientPortalApp) .calendarQuickControls { display: flex; gap: 6px; justify-content: flex-end; }
+  .app.app:not(.clientPortalApp) .calendarDay { min-height: 70px !important; padding: 12px; height: auto; }
+  .app.app:not(.clientPortalApp) .calendarDayActions { display: flex !important; opacity: 1 !important; visibility: visible !important; }
+  .app.app:not(.clientPortalApp) .calendarDayActionButton { min-width: 36px; min-height: 36px; }
+  .app.app:not(.clientPortalApp) .calendarGrid .calCardGlance { display: none; }
+  .app.app:not(.clientPortalApp) .calendarGrid .workoutBlock { min-height: 60px; padding: 12px; margin-top: 8px; }
+  .app.app:not(.clientPortalApp) .coachCalendarCompactMeta { display: block; font-size: 11px; font-weight: 550; color: #716b60; margin-top: 5px; }
+  .app.app:not(.clientPortalApp) .crpBoard, .app.app:not(.clientPortalApp) .crpHead > div > p { display: none; }
+  .app.app:not(.clientPortalApp) .crpHead { flex-direction: row; align-items: center; gap: 10px; }
+  .app.app:not(.clientPortalApp) .crpHeadActions { width: auto; }
+  .app.app:not(.clientPortalApp) .crpInviteBtn { display: none; }
+  .app.app:not(.clientPortalApp) .crpHeadActions .crpAddBtn { min-height: 44px; width: auto; padding: 0 12px; }
+  .app.app:not(.clientPortalApp) .crpFilterRight { display: flex; flex-wrap: wrap; }
+  .app.app:not(.clientPortalApp) .crpSearch { flex: 1; width: auto; min-width: 180px; }
+  .app.app:not(.clientPortalApp) .crpMobileFiltersButton { display: block; min-height: 44px; padding: 0 12px; border: 1px solid #d9d2c2; border-radius: 10px; background: #fff; font: inherit; font-size: 12px; }
+  .app.app:not(.clientPortalApp) .crpFilters:not(.crpFiltersExpanded) .crpSelect,
+  .app.app:not(.clientPortalApp) .crpFilters:not(.crpFiltersExpanded) .crpRefresh { display: none; }
+  .app.app:not(.clientPortalApp) .wkBoard, .app.app:not(.clientPortalApp) .wkHeadLeft > p { display: none; }
+  .app.app:not(.clientPortalApp) .wkHead { padding: 16px; margin-bottom: 12px; }
+  .app.app:not(.clientPortalApp) .wkHead h1 { font-size: 26px; }
+  .mobileBuilderContext { display: flex; align-items: center; gap: 12px; padding: 10px 0; margin-bottom: 10px; }
+  .mobileBuilderContext > button { display: flex; align-items: center; gap: 3px; min-height: 44px; padding: 0 8px; border: 1px solid #ddd5c5; border-radius: 9px; background: #fff; color: #353125; font: inherit; font-size: 12px; }
+  .mobileBuilderContext > div { display: grid; gap: 3px; min-width: 0; }
+  .mobileBuilderContext strong { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 15px; }
+  .mobileBuilderContext small { font-size: 11px; color: #756338; }
+  .mobileExerciseCardHeader .mobileExerciseToggle { flex: 1; min-width: 0; display: grid; gap: 5px; padding: 8px 0; text-align: left; background: none; border: 0; color: inherit; font: inherit; min-height: 48px; }
+  .mobileExerciseToggle small { font-size: 11px; color: #736a59; }
+  .mobileExerciseCardHeader .mbCardMenuBtn { min-width: 44px; min-height: 44px; }
+  .mobileExerciseCardBody { padding-top: 8px; }
+  .mobileBuilderActionBar { z-index: 1250; padding-bottom: max(10px, env(safe-area-inset-bottom)); }
+  .mobileBuilderActionBar > button { min-height: 46px; }
+  .mobileBuilder .mbNote, .mobileBuilder input, .mobileBuilder select, .assignmentDrawer input, .assignmentDrawer select { font-size: 16px; }
+  .mobileBuilder .builderCircuitDetails { margin: 8px 0; }
+  .mbOverview .mbSaveProgramAction { position: sticky; bottom: 80px; z-index: 5; min-height: 46px; box-shadow: 0 4px 20px #0002; }
+  .clientPortalApp .clientCalendarDesktopUpcoming { display: none; }
+  .clientPortalApp .clientHomeGrid { display: flex; flex-direction: column; }
+  .clientPortalApp .portalHomeTabs { order: -3; }
+  .clientPortalApp .upcomingHomePanel { order: -2; }
+  .clientPortalApp .coachInboxPanel { order: 1; }
+  .app.app:not(.clientPortalApp) .libPickChoiceGrid { grid-template-columns: 1fr; }
+  .app.app:not(.clientPortalApp) .libPickChoiceCard { display: grid; grid-template-columns: 24px 1fr; gap: 4px 12px; padding: 16px; min-height: 82px; }
+  .app.app:not(.clientPortalApp) .libPickChoiceCard > svg { grid-row: 1 / 3; align-self: center; }
+  .app.app:not(.clientPortalApp) .libPickChoiceCard small { grid-column: 2; }
+  .app.app:not(.clientPortalApp) .calendarAssignPreviewActions { position: sticky; bottom: -16px; padding: 12px 0; background: #fff; }
+  .app.app:not(.clientPortalApp) .libPickSearch { font-size: 16px; }
+  .mbProgramDetails { margin-bottom: 16px; }
+  .mbProgramDetails > summary { padding: 12px 0; font-size: 13px; font-weight: 750; cursor: pointer; }
+  .app.app:not(.clientPortalApp) .calendarWorkoutEditor { padding-bottom: 115px; }
+  .app.app:not(.clientPortalApp) .calendarWorkoutEditor .wkHeadRight { position: fixed; left: 0; right: 0; bottom: 0; z-index: 1480; padding: 10px 12px max(10px, env(safe-area-inset-bottom)); background: #f8f7f3; border-top: 1px solid #e2dccf; }
+  .app.app:not(.clientPortalApp) .calendarWorkoutEditor .wkHeadLeft > p { display: block; font-size: 12px; }
+}

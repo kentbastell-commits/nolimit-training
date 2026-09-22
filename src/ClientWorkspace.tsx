@@ -2,6 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState } from "react";
 import PortalHome from "./PortalHome";
+import AthletePreview from "./AthletePreview";
 import ClientInviteModal from "./ClientInviteModal";
 import "./ClientWorkspace.css";
 import PortalTraining from "./PortalTraining";
@@ -446,9 +447,13 @@ export default function ClientWorkspace({
   // Coach-only: "Invite via WeChat / collect" (optional pay link, then the
   // athlete's personal scan code). Local state — the monolith needn't know.
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [athletePreviewOpen, setAthletePreviewOpen] = useState(false);
 
   return (
     <>
+          {athletePreviewOpen && !isClientPortal && <AthletePreview
+            name={selectedClient.name} url={buildClientPortalLink(selectedClient)}
+            onClose={() => setAthletePreviewOpen(false)} />}
           {inviteOpen && !isClientPortal && selectedClient ? (
             <ClientInviteModal
               client={{ clientCode: selectedClient.clientCode, name: selectedClient.name }}
@@ -484,7 +489,7 @@ export default function ClientWorkspace({
                   makes it the containing block for position:fixed children — the
                   nav detached from the viewport and floated mid-page after the
                   first tab switch (named mistake #34). */}
-              <PortalToApp>
+              {isClientPortal && <PortalToApp>
                 <nav className="mobileClientBottomNav" aria-label="Client navigation">
                   <button
                     className={clientTab === "Home" ? "active" : ""}
@@ -528,7 +533,7 @@ export default function ClientWorkspace({
                     <span>{t("profile")}</span>
                   </button>
                 </nav>
-              </PortalToApp>
+              </PortalToApp>}
 
               {isClientPortal &&
                 (() => {
@@ -676,7 +681,7 @@ export default function ClientWorkspace({
                       {selectedClient.initials}
                     </div>
                     <div className="coachClientIdentity">
-                      <span>{coachSection.eyebrow}</span>
+                      <span>{t("coachModeLabel")}</span>
                       <h1>{selectedClient.name}</h1>
                       <p>
                         {selectedClient.clientType || t("client")} ·{" "}
@@ -688,15 +693,14 @@ export default function ClientWorkspace({
                       </p>
                     </div>
                     <div className="coachClientContextActions">
-                      <a
+                      <button
+                        type="button"
                         className="coachClientPortalButton"
-                        href={buildClientPortalLink(selectedClient)}
-                        target="_blank"
-                        rel="noreferrer"
+                        onClick={() => setAthletePreviewOpen(true)}
                       >
                         <ExternalLink size={16} aria-hidden="true" />
-                        {t("viewAsClient")}
-                      </a>
+                        {t("viewAsAthlete")}
+                      </button>
                       <details className="clientActionMenu">
                         <summary
                           className="iconActionButton"

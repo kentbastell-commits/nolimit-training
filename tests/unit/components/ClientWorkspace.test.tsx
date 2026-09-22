@@ -87,6 +87,19 @@ const baseProps = {
 };
 
 describe("ClientWorkspace", () => {
+  it("keeps athlete navigation out of the coach workspace and returns from preview without changing tabs", () => {
+    const setClientTab = vi.fn();
+    const { container } = render(<ClientWorkspace {...baseProps} setClientTab={setClientTab} />);
+    expect(container.querySelector(".mobileClientBottomNav")).toBeNull();
+    screen.getByRole("button", { name: "viewAsAthlete" }).focus();
+    fireEvent.click(screen.getByRole("button", { name: "viewAsAthlete" }));
+    expect(screen.getByRole("dialog", { name: "athletePreviewTitle" })).toBeInTheDocument();
+    expect(screen.getByTitle("athletePreviewTitle")).toHaveAttribute("src", "/portal?preview=coach");
+    fireEvent.click(screen.getByRole("button", { name: "backToCoaching" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(setClientTab).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "viewAsAthlete" })).toHaveFocus();
+  });
   it("keeps calendar assignment and status translation connected through the workspace", () => {
     render(<ClientWorkspace {...baseProps} clientTab="Training"
       localizeAssignmentKind={() => "问卷"} localizeTaskStatus={() => "已完成"} />);

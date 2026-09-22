@@ -37,6 +37,7 @@ window.addEventListener('vite:preloadError', (event) => {
 // true here.
 function bootShowsSplash() {
   const params = new URLSearchParams(window.location.search)
+  if (params.get('portal') === 'client' && params.get('preview') === 'coach') return false
   return params.get('view') === 'coach' || params.get('portal') === 'client'
 }
 

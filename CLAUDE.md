@@ -642,6 +642,11 @@ data between them, never "borrow" a table ID across products.
     mounted and use CalendarWorkoutEditor over it, preserving date/view/scroll.
     Resolve the clicked workout's exact week/day before opening; never default
     to the first program session. Save/close returns to that athlete's calendar.
+    On phones, keep coach navigation inside the athlete workspace; render athlete
+    tabs only in the athlete portal. Preview in a separate read-only surface with
+    a return action, and block preview writes before they reach the API. Portal
+    shells must cancel inherited entrance animations so fixed navigation stays
+    on screen (the loading shell can be reused as the app root).
 
 52. **The overlapping save that doubles the program** — (second cause, fixed
     2026-08-05: `inPlaceEdit` was gated `&& !singleWorkoutMode`, so every

@@ -511,6 +511,7 @@ export default function PortalTraining({
                           aria-label={t("addToSelectedDate")}
                         >
                           <Plus size={19} aria-hidden="true" />
+                          <span className="coachCalendarAddLabel">{t("mobileAddWorkout")}</span>
                         </button>
 
                       </div>
@@ -532,11 +533,7 @@ export default function PortalTraining({
                         aria-label={t("previous")}
                         onClick={() => moveCalendarRange(-1)}
                       >
-                        {isClientPortal ? (
-                          <ChevronLeft size={16} aria-hidden="true" />
-                        ) : (
-                          t("previous")
-                        )}
+                        <ChevronLeft size={18} aria-hidden="true" />
                       </button>
 
                       <strong>
@@ -554,11 +551,7 @@ export default function PortalTraining({
                         aria-label={t("next")}
                         onClick={() => moveCalendarRange(1)}
                       >
-                        {isClientPortal ? (
-                          <ChevronRight size={16} aria-hidden="true" />
-                        ) : (
-                          t("next")
-                        )}
+                        <ChevronRight size={18} aria-hidden="true" />
                       </button>
                     </div>
 
@@ -1122,7 +1115,8 @@ export default function PortalTraining({
                                   );
                                 })()}
                               <div className="workoutBlockMain">
-                                {localizedWorkoutName(workout)}
+                                <b className="calendarWorkoutName">{localizedWorkoutName(workout)}</b>
+                                {!isClientPortal && <span className="coachCalendarCompactMeta">{t("week")} {workout.week} · {t("day")} {workout.day} · {localizeTaskStatus(getDisplayTaskStatus(workout.completionStatus, workout.scheduledDate))}</span>}
                                 {/* Coach cards drop the "Type - Status" line
                                     (status lives in the left bar; the chain
                                     below says the rest) — except while a

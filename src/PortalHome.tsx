@@ -219,7 +219,7 @@ export default function PortalHome({
                       );
                     })()}
 
-                  {isClientPortal && portalHomeTab === "tasks" && (
+                  {isClientPortal && portalHomeTab === "metrics" && (
                     <button
                       className="jlbCard"
                       onClick={() => setJumpLabOpen(true)}
@@ -313,7 +313,7 @@ export default function PortalHome({
                                 inner
                               )}
                               <em className={`taskActionBadge ${getTaskTone(task.status)}`}>
-                                {getTaskActionLabel(task.status, task.hasProgress)}
+                                {isClientPortal ? getTaskActionLabel(task.status, task.hasProgress) : t("view")}
                               </em>
                             </button>
                           );

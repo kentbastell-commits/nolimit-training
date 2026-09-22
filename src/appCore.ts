@@ -1,6 +1,7 @@
 // Shared core for the app: domain types, pure helpers, constants, and the
 // coach-key fetch patch (module side effect). Extracted verbatim from
 // App.tsx as phase A of the monolith split — no behavior changes.
+import { blocksPreviewRequest, isAthletePreview } from "./athletePreviewPolicy";
 
 export type AppMode = "Coach" | "Client";
 export type Page =
@@ -379,7 +380,15 @@ window.fetch = ((input: RequestInfo | URL, init?: RequestInit) => {
         : input instanceof URL
           ? input.href
           : input.url;
-    if (url.startsWith("/api/")) {
+    const requestUrl = new URL(url, window.location.href);
+    if (requestUrl.origin === window.location.origin && requestUrl.pathname.startsWith("/api/")) {
+      const method = init?.method || (input instanceof Request ? input.method : "GET");
+      if (blocksPreviewRequest(window.location.search, method)) {
+        return Promise.resolve(new Response(JSON.stringify({ success: false, error: "Athlete preview is read-only. Return to coaching to make changes. / 运动员预览为只读模式，请返回教练模式进行修改。" }), {
+          status: 403, headers: { "Content-Type": "application/json" },
+        }));
+      }
+      if (isAthletePreview(window.location.search)) return nativeFetch(input, init);
       const key = window.localStorage.getItem("nl_coach_key");
       if (key) {
         const headers = new Headers(

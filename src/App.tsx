@@ -1,5 +1,7 @@
 import { validQuestionAnswer, testInputMode, isTwoKm, buildTestAnswer, displayAnswer } from "./contentAnswers";
 import CalendarWorkoutEditor from "./CalendarWorkoutEditor";
+import { glanceRepsToken } from "./appCore";
+import "./MobileCoach.css";
 import { assignmentDraftKey, readAssignmentDraft, writeAssignmentDraft, clearAssignmentDraft } from "./assignmentDraft";
 import {
   Activity,
@@ -5993,6 +5995,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     setBuilderMode("Program");
     setCreateProgramOpen(false);
     setWorkoutPageTab("Program Builder");
+    setMobileBuilderStep("overview");
     // Fresh defaults next time the Create Program modal opens.
     setCreateDraft({
       productType: "Digital Program",
@@ -11004,13 +11007,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       }
     }
 
-    notify(
-      singleWorkoutMode
-        ? "Workout saved."
-        : closeAfterSave && advanceAfterClose
-        ? "Day saved. Ready for the next day."
-        : "Day saved."
-    );
+    notify(t("mobileSessionDraftReady"));
     return true;
   };
 
@@ -19822,7 +19819,13 @@ function App({ onReady }: { onReady?: () => void } = {}) {
                               <div key={`${exercise.exerciseRecordId || exercise.exerciseName}-${index}`}>
                                 <strong>{exercise.exerciseName}</strong>
                                 <small>
-                                  {[exercise.sets && `${exercise.sets} ${t("sets")}`, exercise.reps && `${exercise.reps} ${t("reps")}`]
+                                  {[exercise.sets && `${exercise.sets} ${t("sets")}`,
+                                    exercise.trackingFields?.includes("Time") && !exercise.trackingFields?.includes("Reps")
+                                      ? /[a-z秒]/i.test(glanceRepsToken(exercise)) ? glanceRepsToken(exercise) : t("builderDurationSeconds", { value: glanceRepsToken(exercise) })
+                                      : exercise.trackingFields?.includes("Distance") && !exercise.trackingFields?.includes("Reps")
+                                        ? glanceRepsToken(exercise)
+                                        : exercise.reps && `${exercise.reps} ${t("reps")}`,
+                                    exercise.isUnilateral && t("builderEachSide")]
                                     .filter(Boolean)
                                     .join(" · ")}
                                 </small>

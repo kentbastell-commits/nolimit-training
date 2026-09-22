@@ -326,6 +326,7 @@ export default function CoachBuilderPage({
 }: { [key: string]: any }) {
   const { t } = useTranslation();
   const [focusedExerciseIndex, setFocusedExerciseIndex] = useState<number | null>(null);
+  const [mobileExpandedExercise, setMobileExpandedExercise] = useState<number | null>(null);
   const focusedEditor = focusedExerciseIndex !== null && swapExerciseIndex === null;
   const openBuilderLibrary = (mode: string) => {
     setFocusedExerciseIndex(null);
@@ -800,7 +801,7 @@ export default function CoachBuilderPage({
                           })}
                         </div>
                       )}
-                      {useMobileWorkoutRows && (
+                      {useMobileWorkoutRows && workoutPageTab !== "Program Builder" && (
                         <div
                           className={`workoutTabMenu ${
                             workoutTabsMenuOpen ? "workoutTabMenuOpen" : ""
@@ -3243,14 +3244,20 @@ export default function CoachBuilderPage({
                 {workoutPageTab === "Program Builder" &&
                   useMobileWorkoutRows && (
                   <>
+                    <div className="mobileBuilderContext">
+                      <button type="button" onClick={returnToBuilderOrigin}><ChevronLeft size={18} />{t("mobileBackToLibrary")}</button>
+                      <div><strong>{programName || (isSingleWorkoutBuilder ? t("mobileNewSession") : t("mobileNewProgram"))}</strong>
+                        <small>{builderSaveStatus === "dirty" ? t("mobileUnsavedProgram") : t("mobileAllChangesSaved")}</small></div>
+                    </div>
                     {mobileBuilderStep !== "overview" && (
                     <section className="mobileBuilder">
                       {mobileBuilderStep === "details" ? (
                         <div className="mobileBuilderBody">
                           <h2 className="mbScreenTitle">
-                            {isSingleWorkoutBuilder ? "New Workout" : "New Program"}
+                            {isSingleWorkoutBuilder ? t(editProgramRecordId ? "editSavedSession" : "mobileNewSession") : t("mobileSessionDetails")}
                           </h2>
-
+                          <details className="mbProgramDetails" open={isSingleWorkoutBuilder}>
+                          <summary>{t("mobileProgramSettings")}</summary>
                           <div className="mbField">
                             <span className="mbFieldLabel">Builder type</span>
                             <select
@@ -3295,6 +3302,12 @@ export default function CoachBuilderPage({
                             />
                           </div>
 
+                          {!isSingleWorkoutBuilder && (
+                              <label className="mbField"><span className="mbFieldLabel">{t("mobileProgramWeeks")}</span>
+                                <input className="miniSearch" type="number" min="1" max="52" value={programDurationWeeks} onChange={(e) => setProgramDurationWeeks(e.target.value)} />
+                              </label>
+                          )}
+                          </details>
                           {!isSingleWorkoutBuilder && (
                             <>
                               <div className="mbFieldRow">
@@ -3341,8 +3354,7 @@ export default function CoachBuilderPage({
                           >
                             Next
                           </button>
-                          {!isSingleWorkoutBuilder &&
-                            programSessions.length > 0 && (
+                          {!isSingleWorkoutBuilder && (
                               <button
                                 className="outlineButton mbFullButton"
                                 onClick={() => setMobileBuilderStep("overview")}
@@ -3403,7 +3415,9 @@ export default function CoachBuilderPage({
                                         {exercise.sectionName || "Main"}
                                       </div>
                                     )}
-                                    {index > 0 && !showSectionHeading && (
+                                    {index > 0 && !showSectionHeading && mobileExpandedExercise === index && (
+                                      <details className="builderCircuitDetails"><summary>{t("mobileCircuitLinks")}</summary>
+                                      {
                                       linked ? (
                                         <button
                                           className="mobileSupersetLinkButton linked"
@@ -3432,21 +3446,27 @@ export default function CoachBuilderPage({
                                             + Link as circuit
                                           </button>
                                         </div>
-                                      )
+                                      )}
+                                      </details>
                                     )}
-                                    {isCircuitGroupStart(index) &&
-                                      renderCircuitSettingsPanel(
+                                    {isCircuitGroupStart(index) && mobileExpandedExercise === index &&
+                                      <details className="builderCircuitDetails"><summary>{t("builderCircuitSettings")}</summary>{renderCircuitSettingsPanel(
                                         exercise,
                                         index
-                                      )}
+                                      )}</details>}
                                     <div className="mobileExerciseCard">
                                       <div className="mobileExerciseCardHeader">
+                                        <button type="button" className="mobileExerciseToggle" aria-expanded={mobileExpandedExercise === index}
+                                          onClick={() => setMobileExpandedExercise(mobileExpandedExercise === index ? null : index)}>
                                         <strong>
                                           {exercise.exerciseLabel
                                             ? `${exercise.exerciseLabel} · `
                                             : ""}
                                           {exercise.exerciseName}
                                         </strong>
+                                        <small>{exercise.sets || "--"} {t("sets")} · {glanceRepsToken(exercise)}{exercise.trackingFields?.includes("Time") && !/[a-z秒]/i.test(glanceRepsToken(exercise)) ? " s" : ""}{exercise.isUnilateral ? ` · ${t("builderEachSide")}` : ""}</small>
+                                        <small>{t(mobileExpandedExercise === index ? "mobileClosePrescription" : "mobileEditPrescription")}</small>
+                                        </button>
                                         <button
                                           className="mbCardMenuBtn"
                                           aria-label="Exercise options"
@@ -3455,7 +3475,7 @@ export default function CoachBuilderPage({
                                           <MoreVertical size={18} />
                                         </button>
                                       </div>
-
+                                      {mobileExpandedExercise === index && <div className="mobileExerciseCardBody">
                                       {renderMobileSetTable(exercise, index)}
 
                                       <div className="mbCardControls">
@@ -3503,6 +3523,7 @@ export default function CoachBuilderPage({
                                         }
                                         placeholder="Coach comment — the athlete sees this…"
                                       />
+                                      </div>}
                                     </div>
                                   </div>
                                 );
@@ -3539,7 +3560,7 @@ export default function CoachBuilderPage({
                                 disabled={savingTemplate}
                                 onClick={saveMobileProgramDay}
                               >
-                                Done
+                                {t("mobileReviewProgram")}
                               </button>
                             )}
                           </div>
@@ -3870,9 +3891,12 @@ export default function CoachBuilderPage({
                             });
                           })()}
 
+                          <button type="button" className="outlineButton mbFullButton" onClick={() => setProgramDurationWeeks(String(Math.max(Number(programDurationWeeks) || 1, ...programSessions.map((s: any) => Number(s.week) || 1)) + 1))}>
+                            <Plus size={16} /> {t("mobileAddWeek")}
+                          </button>
                           <button
                             type="button"
-                            className="goldButton mbFullButton"
+                            className="goldButton mbFullButton mbSaveProgramAction"
                             disabled={savingTemplate}
                             onClick={finishMobileProgram}
                           >
@@ -4016,7 +4040,7 @@ export default function CoachBuilderPage({
                                 <span className="mbOptIcon">
                                   <Pencil size={22} />
                                 </span>
-                                Edit exercise
+                                {t("editLibraryExercise")}
                               </button>
                               <button
                                 onClick={() =>
