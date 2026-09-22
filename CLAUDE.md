@@ -320,6 +320,9 @@ data between them, never "borrow" a table ID across products.
     first navigation runs the animation. When a fixed element misbehaves,
     walk its ancestors for `transform !== "none"` — an identity matrix is
     invisible by eye and in a screenshot.
+    Audit overlays after scrolling into the real task, with normal animation:
+    the 2026-09-23 Review check-in panel measured top -932px because `.rvPage`
+    retained an identity transform. A top-of-page or reduced-motion check misses it.
 35. **The renumber that collapses rest days** — the builder's
     `renumberProgramSessionsByWeek` used to reassign each week's days by array
     order (1,2,3…), silently pulling a Day-4 session onto Day 3 and destroying an
