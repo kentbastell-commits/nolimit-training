@@ -244,7 +244,7 @@ export default function PortalTraining({
                     <div className="clientCalendarHead">
                       <span className="clientCalendarEyebrow">{t("program")}</span>
                       <h1 className="clientCalendarTitle">
-                        {t("trainingCalendar")}
+                        {t("athleteTraining")}
                       </h1>
                     </div>
                   )}
@@ -490,7 +490,7 @@ export default function PortalTraining({
                               className={calendarView === view ? "active" : ""}
                               onClick={() => setCalendarView(view)}
                             >
-                              {view}
+                              {t(`redesign${view}View`)}
                             </button>
                           )
                         )}
@@ -789,6 +789,13 @@ export default function PortalTraining({
                     }
                   >
                     <div className="clientTrainingWeekPanel">
+                  {!isClientPortal && calendarView === "Week" && <nav className="coachWeekJump" aria-label={t("trainingCalendar")}>
+                    {calendarDates.map((date: string) => <button key={date} type="button" className={date === calendarAnchorDate ? "active" : ""}
+                      onClick={() => { setCalendarAnchorDate(date); requestAnimationFrame(() => document.querySelector(`[data-cal-day="${date}"]`)?.scrollIntoView({ block: "nearest", behavior: "smooth" })); }}>
+                      <span>{new Date(`${date}T12:00:00`).toLocaleDateString(useChineseClientText ? "zh-CN" : "en", { weekday: "narrow" })}</span>
+                      <strong>{Number(date.slice(8, 10))}</strong><i className={getCalendarItemCountForDate(date) ? "hasSessions" : ""} />
+                    </button>)}
+                  </nav>}
                   <div
                     className={
                       isClientPortal && clientCalendarStyle === "Week"

@@ -1,4 +1,12 @@
 /* Co-located styles for WorkoutPlayerModal — load with the WorkoutPlayerModal chunk, not the main bundle. */
+.app.clientPortalApp .workout-modal { background: #f4f6f8; color: #171b20; }
+.app.clientPortalApp .workout-modal > .modal-header { background: linear-gradient(135deg,#080808,#1b2530); border-bottom: 1px solid #d4af3780; color: #fff; }
+.app.clientPortalApp .workout-modal > .modal-header h2 { color: #fff; font-family: inherit; text-transform: none; }
+.app.clientPortalApp .workoutHeaderMeta { color: #aeb7c1; }
+.app.clientPortalApp .workoutLogExerciseCard { background: #fff; border: 1px solid #b8c5d1; border-radius: 16px; box-shadow: none; }
+.app.clientPortalApp .workoutCoachNotes { background: #edf2f7; color: #343b43; border: 1px solid #cad5e2; border-radius: 10px; padding: 14px; font-size: 14px; line-height: 1.65; white-space: pre-wrap; }
+.app.clientPortalApp .workoutPlayerGroupHeader { border-radius: 12px; background: #0d0d0d; color: #f0dc88; }
+.app.clientPortalApp .workoutExerciseMedia { border-radius: 12px; }
 .modalHeaderActions {
   display: flex;
   align-items: flex-start;

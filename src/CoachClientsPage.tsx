@@ -109,6 +109,7 @@ export default function CoachClientsPage(props: { [key: string]: any }) {
   >(rosterGroupBy === "team" ? "team" : "none");
   const [inviteCopied, setInviteCopied] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [selectMode, setSelectMode] = useState(false);
   const [peekId, setPeekId] = useState<string | null>(null);
 
   // ---- board (from the full clients list, stable across filters) ----
@@ -356,7 +357,7 @@ export default function CoachClientsPage(props: { [key: string]: any }) {
   const peek = peekId ? all.find((c: any) => c.id === peekId) : null;
 
   return (
-    <div className="coachClientsPage">
+    <div className={`coachClientsPage${selectMode || rosterSelectedIds.length ? " crpSelectMode" : ""}`}>
       {/* header */}
       <div className="crpHead">
         <div>
@@ -367,6 +368,7 @@ export default function CoachClientsPage(props: { [key: string]: any }) {
           <p>Your athletes at a glance — engagement, attention flags, and quick actions.</p>
         </div>
         <div className="crpHeadActions">
+          <button type="button" className="crpMobileSelect" onClick={() => { setSelectMode(!selectMode); if (selectMode) clearRosterSelection(); }}>{t(selectMode ? "redesignDone" : "redesignSelect")}</button>
           <button type="button" className="crpInviteBtn" onClick={copyInvite}>
             <Link2 size={16} /> {inviteCopied ? "Copied ✓" : "Copy invite"}
           </button>

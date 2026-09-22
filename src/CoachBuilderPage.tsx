@@ -2056,9 +2056,7 @@ export default function CoachBuilderPage({
                       </span>
                       <h2>{sessionName || "Name your session"}</h2>
                       <p>
-                        {editingProgramSessionId
-                          ? "Tap Done, then pick the next day."
-                          : "Build the day, then tap Done. Save Program keeps it."}
+                        {t("redesignDayDraft")}
                       </p>
                     </div>
                     <div className="drawerSessionHeroActions">
@@ -2066,7 +2064,7 @@ export default function CoachBuilderPage({
                         className="goldButton drawerHeroSave"
                         onClick={() => saveCurrentSessionToProgram(true, false)}
                       >
-                        Done
+                        {t("mobileReviewProgram")}
                       </button>
                       <button
                         type="button"
@@ -3086,15 +3084,18 @@ export default function CoachBuilderPage({
                 )}
 
                 {selectedProgramExercises.length > 0 && (
+                  <details className="builderNotesDetails">
+                    <summary>{t("redesignSessionNotes")}{sessionNotes?.trim() && <span aria-hidden="true"> · •</span>}</summary>
                   <label className="builderSessionNotesField builderSessionNotesFieldInline">
-                    <span>Session Notes</span>
+                    <span>{t("redesignSessionNotes")}</span>
                     <textarea
                       value={sessionNotes}
                       onChange={(e) => setSessionNotes(e.target.value)}
-                      placeholder="Coach notes for this session, intensity cues, warm-up instructions..."
+                      placeholder={t("redesignNotesHint")}
                       rows={2}
                     />
                   </label>
+                  </details>
                 )}
 
                 {selectedProgramExercises.map((exercise: any, index: any) => {
@@ -3464,7 +3465,7 @@ export default function CoachBuilderPage({
                                             : ""}
                                           {exercise.exerciseName}
                                         </strong>
-                                        <small>{exercise.sets || "--"} {t("sets")} · {glanceRepsToken(exercise)}{exercise.trackingFields?.includes("Time") && !/[a-z秒]/i.test(glanceRepsToken(exercise)) ? " s" : ""}{exercise.isUnilateral ? ` · ${t("builderEachSide")}` : ""}</small>
+                                        <small>{exercise.sets || "--"} {t("sets")} · {exercise.trackingFields?.includes("Time") ? `${glanceRepsToken(exercise)}${/[a-z秒]/i.test(glanceRepsToken(exercise)) ? "" : " s"}` : exercise.trackingFields?.includes("Distance") ? glanceRepsToken(exercise) : t("redesignReps", { value: glanceRepsToken(exercise) || "—" })}{exercise.isUnilateral ? ` · ${t("builderEachSide")}` : ""}</small>
                                         <small>{t(mobileExpandedExercise === index ? "mobileClosePrescription" : "mobileEditPrescription")}</small>
                                         </button>
                                         <button
@@ -3812,9 +3813,7 @@ export default function CoachBuilderPage({
                             {programName || "Program"}
                           </h2>
                           <p className="mbHint">
-                            {programSessions.length} day
-                            {programSessions.length === 1 ? "" : "s"} ·{" "}
-                            tap a day to edit
+                            {t("redesignDays", { count: programSessions.length })}
                           </p>
 
                           {(() => {
@@ -3835,28 +3834,26 @@ export default function CoachBuilderPage({
                                 .filter((s: any) => s.week === String(w))
                                 .sort((a: any, b: any) => Number(a.day) - Number(b.day));
                               return (
-                                <div className="mbOvWeek" key={w}>
-                                  <div className="mbOvWeekHead">
-                                    <strong>Week {w}</strong>
+                                <details className="mbOvWeek" key={w} open={w === 1 || days.length > 0}>
+                                  <summary className="mbOvWeekHead">
+                                    <strong>{t("redesignWeek", { week: w })}</strong>
                                     {days.length > 0 && (
                                       <span className="weekVolChip">
-                                        {weekVolume(w).sets} sets
+                                        {t("redesignSets", { count: weekVolume(w).sets })}
                                       </span>
                                     )}
                                     {days.length > 0 && (
                                       <button
                                         type="button"
                                         className="mbOvDup"
-                                        onClick={() =>
-                                          duplicateWeek(w, [w + 1], 0)
-                                        }
+                                        onClick={(event) => { event.preventDefault(); duplicateWeek(w, [w + 1], 0); }}
                                       >
-                                        <Copy size={13} /> Duplicate →
+                                        <Copy size={13} /> {t("redesignDuplicateWeek")}
                                       </button>
                                     )}
-                                  </div>
+                                  </summary>
                                   {days.map((s: any) => (
-                                    <button
+                                    <div className="mbOvDayRow" key={s.localId}><button
                                       key={s.localId}
                                       type="button"
                                       className="mbOvDay"
@@ -3867,26 +3864,25 @@ export default function CoachBuilderPage({
                                     >
                                       <span className="mbOvDayMain">
                                         <strong>
-                                          Day {s.day} ·{" "}
+                                          {t("day")} {s.day} ·{" "}
                                           {s.sessionName ||
                                             `Week ${w} Day ${s.day}`}
                                         </strong>
                                         <small>
-                                          {s.exercises.length} exercise
-                                          {s.exercises.length === 1 ? "" : "s"}
+                                          {t("redesignExercises", { count: s.exercises.length })}
                                         </small>
                                       </span>
                                       <span className="mbOvChevron">›</span>
-                                    </button>
+                                    </button><button type="button" className="mbCopyDay" aria-label={t("redesignCopyDay")} onClick={() => duplicateProgramSession(s)}><Copy size={17} /></button></div>
                                   ))}
                                   <button
                                     type="button"
                                     className="mbOvAdd"
                                     onClick={() => addMobileDayToWeek(w)}
                                   >
-                                    <Plus size={15} /> Add day
+                                    <Plus size={15} /> {t("redesignAddDay")}
                                   </button>
-                                </div>
+                                </details>
                               );
                             });
                           })()}
@@ -3901,10 +3897,10 @@ export default function CoachBuilderPage({
                             onClick={finishMobileProgram}
                           >
                             {savingTemplate
-                              ? "Saving…"
+                              ? t("redesignSaving")
                               : editProgramRecordId
-                                ? "Update Program"
-                                : "Save Program"}
+                                ? t("redesignUpdateProgram")
+                                : t("redesignSaveProgram")}
                           </button>
                         </div>
                       </section>

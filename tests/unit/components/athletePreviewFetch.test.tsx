@@ -23,6 +23,14 @@ afterEach(() => {
 });
 
 describe("athlete preview requests", () => {
+  it("keeps preview profiles separate from the coach roster and other athletes", async () => {
+    const { CACHE_KEYS, readPersistentCache, writePersistentCache } = await import("../../../src/appCore");
+    writePersistentCache(CACHE_KEYS.clients, [{ clientCode: "CL-1" }, { clientCode: "CL-2" }]);
+    writePersistentCache(CACHE_KEYS.portalClient("CL-1"), [{ clientCode: "CL-1", clientType: "Coaching" }]);
+    expect(readPersistentCache<any[]>(CACHE_KEYS.clients)?.data).toHaveLength(2);
+    expect(readPersistentCache<any[]>(CACHE_KEYS.portalClient("CL-1"))?.data[0].clientType).toBe("Coaching");
+    expect(readPersistentCache(CACHE_KEYS.portalClient("CL-2"))).toBeNull();
+  });
   it("stops relative and absolute API writes before they reach the network", async () => {
     window.history.replaceState(null, "", "/?portal=client&preview=coach");
     await import("../../../src/appCore");

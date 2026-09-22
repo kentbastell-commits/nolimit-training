@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import PortalToApp from "./PortalToApp";
@@ -8,6 +8,7 @@ export default function AthletePreview({ name, url, onClose }: {
   name: string; url: string; onClose: () => void;
 }) {
   const { t } = useTranslation();
+  const [wide, setWide] = useState(false);
   const back = useRef<HTMLButtonElement>(null);
   const close = useRef(onClose); close.current = onClose;
   const target = new URL(url, window.location.href);
@@ -28,12 +29,13 @@ export default function AthletePreview({ name, url, onClose }: {
     };
   }, []);
   return <PortalToApp>
-    <section className="athletePreview" role="dialog" aria-modal="true" aria-label={t("athletePreviewTitle", { name })}>
+    <section className={`athletePreview${wide ? " athletePreviewWide" : ""}`} role="dialog" aria-modal="true" aria-label={t("athletePreviewTitle", { name })}>
       <header>
         <button ref={back} type="button" onClick={onClose}><ArrowLeft size={18} />{t("backToCoaching")}</button>
+        <button className="athletePreviewSize" type="button" onClick={() => setWide(!wide)}>{t(wide ? "athletePreviewPhone" : "athletePreviewWide")}</button>
         <div><strong>{name}</strong><span>{t("athletePreviewReadOnly")}</span></div>
       </header>
-      <iframe title={t("athletePreviewTitle", { name })} src={`${target.pathname}${target.search}`} />
+      <div className="athletePreviewStage"><iframe title={t("athletePreviewTitle", { name })} src={`${target.pathname}${target.search}`} /></div>
     </section>
   </PortalToApp>;
 }

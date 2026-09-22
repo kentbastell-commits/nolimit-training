@@ -99,7 +99,7 @@ const baseProps = {
 describe("PortalTraining", () => {
   it("renders the client week calendar with nothing scheduled", () => {
     render(<PortalTraining {...baseProps} />);
-    expect(screen.getByText("trainingCalendar")).toBeInTheDocument();
+    expect(screen.getByText("athleteTraining")).toBeInTheDocument();
     expect(screen.getByText("Jul 6 - Jul 12")).toBeInTheDocument();
     expect(screen.getByText("nothingScheduledShort")).toBeInTheDocument();
   });

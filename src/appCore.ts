@@ -16,7 +16,7 @@ export type Page =
   | "Review"
   | "Revenue"
   | "Coaches";
-export type ClientTab = "Home" | "Programs" | "Overview" | "Training" | "Store";
+export type ClientTab = "Home" | "Programs" | "Overview" | "Training" | "Store" | "Coach";
 export type CalendarView = "Week" | "Month" | "Full";
 export type CalendarDisplayMode = CalendarView;
 export type ClientProgramScheduleMode = "Month" | "Week" | "Day";
@@ -1825,7 +1825,8 @@ export const CACHE_KEYS = {
   // Bumped again for the 2026-07-21 Postgres cutover: pre-migration caches
   // hold Feishu record ids ("rec...") that no pg endpoint can resolve —
   // fresh keys force every browser onto business-code-shaped rows.
-  clients: "clients:v3",
+  clients: "clients:coach:v4",
+  portalClient: (code: string) => `clients:portal:v4:${code}`,
   exercises: "exercises:v2",
   productOrders: "product-orders:v2",
   programs: "programs:v2",

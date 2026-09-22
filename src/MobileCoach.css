@@ -1,6 +1,13 @@
 .crpMobileFiltersButton, .coachCalendarCompactMeta, .coachCalendarAddLabel, .mobileBuilderContext { display: none; }
 /* Fixed navigation and preview dialogs must remain anchored to the viewport. */
 .app.clientPortalApp { animation: none !important; transform: none !important; will-change: auto !important; }
+.builderNotesDetails { border-bottom: 1px solid #e6e0d5; margin: 8px 0 16px; }
+.builderNotesDetails > summary { padding: 12px 0; min-height: 44px; font-size: 13px; font-weight: 750; cursor: pointer; }
+.crpMobileSelect, .coachWeekJump { display: none; }
+.calQuickAdd { min-width: 245px; }.calQuickAddHead { display: grid; gap: 4px; padding: 12px; border-bottom: 1px solid #e6e0d5; font-size: 13px; }.calQuickAddHead span { color: #716b60; font-size: 12px; }
+.calQuickAdd > button { min-height: 46px; }
+.mbOvWeek > summary { cursor: pointer; list-style: none; }.mbOvWeek > summary::-webkit-details-marker { display: none; }.mbOvWeek > summary::after { content: "⌄"; margin-left: auto; }.mbOvWeek[open] > summary::after { transform: rotate(180deg); }
+.mbOvDayRow { display: flex; align-items: center; gap: 6px; }.mbOvDayRow .mbOvDay { flex: 1; min-width: 0; }.mbCopyDay { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 10px; border: 1px solid #ded8cc; background: #fff; color: #786327; flex-shrink: 0; }
 @media (max-width: 720px) {
   .app.app:not(.clientPortalApp).clientLayerActive .sidebar nav { display: grid; }
   .app.app:not(.clientPortalApp) .coachClientPageHeading { display: none; }
@@ -53,7 +60,8 @@
   .mobileBuilderActionBar > button { min-height: 46px; }
   .mobileBuilder .mbNote, .mobileBuilder input, .mobileBuilder select, .assignmentDrawer input, .assignmentDrawer select { font-size: 16px; }
   .mobileBuilder .builderCircuitDetails { margin: 8px 0; }
-  .mbOverview .mbSaveProgramAction { position: sticky; bottom: 80px; z-index: 5; min-height: 46px; box-shadow: 0 4px 20px #0002; }
+  .mbOverview .mbSaveProgramAction { position: fixed; bottom: calc(78px + env(safe-area-inset-bottom)); left: 12px; right: 12px; width: calc(100% - 24px); z-index: 1250; min-height: 46px; box-shadow: 0 4px 20px #0002; }
+  .mbOverview .mobileBuilderBody { padding-bottom: 150px; }.mbOverview .mbScreenTitle { display: none; }
   .clientPortalApp .clientCalendarDesktopUpcoming { display: none; }
   .clientPortalApp .clientHomeGrid { display: flex; flex-direction: column; }
   .clientPortalApp .portalHomeTabs { order: -3; }
@@ -70,4 +78,56 @@
   .app.app:not(.clientPortalApp) .calendarWorkoutEditor { padding-bottom: 115px; }
   .app.app:not(.clientPortalApp) .calendarWorkoutEditor .wkHeadRight { position: fixed; left: 0; right: 0; bottom: 0; z-index: 1480; padding: 10px 12px max(10px, env(safe-area-inset-bottom)); background: #f8f7f3; border-top: 1px solid #e2dccf; }
   .app.app:not(.clientPortalApp) .calendarWorkoutEditor .wkHeadLeft > p { display: block; font-size: 12px; }
+}
+
+/* Reflow desktop structures while keeping the same actions and hierarchy. */
+@media (max-width:720px) {
+  .app.app:not(.clientPortalApp) .coachClientContext { grid-template-columns: 36px minmax(0,1fr) auto; gap: 8px; padding: 10px; }
+  .app.app:not(.clientPortalApp) .coachClientAvatar { display: none; }
+  .app.app:not(.clientPortalApp) .coachClientContextActions { grid-column: auto; padding: 0; border: 0; gap: 4px; }
+  .app.app:not(.clientPortalApp) .coachClientIdentity h1 { font-size: 17px; }
+  .app.app:not(.clientPortalApp) .coachClientIdentity > span { font-size: 9px; }
+  .app.app:not(.clientPortalApp) .coachClientPortalButton { font-size: 11px; padding: 0 8px; gap: 4px; }
+  .app.app:not(.clientPortalApp) .coachClientBack { min-width: 36px; padding: 0; }
+  .app.app:not(.clientPortalApp) .coachClientTabs { margin-bottom: 10px; }
+  .app.app:not(.clientPortalApp) .calendarNavigator { display: flex; flex-wrap: wrap; gap: 6px; }
+  .app.app:not(.clientPortalApp) .calendarRangeControls { flex: 1; width: auto; min-width: 200px; grid-template-columns: 36px minmax(0,1fr) 36px; gap: 2px; }
+  .app.app:not(.clientPortalApp) .calendarQuickControls { gap: 4px; }.app.app:not(.clientPortalApp) .calendarQuickControls > button { min-height: 40px; padding: 8px; }
+  .coachWeekJump { display: grid; grid-template-columns: repeat(7,minmax(0,1fr)); gap: 4px; margin: 8px 0 14px; }
+  .coachWeekJump button { display: grid; justify-items: center; gap: 4px; min-height: 62px; padding: 7px 2px; background: #fff; border: 1px solid #e2dccf; border-radius: 10px; color: #655d4c; font: inherit; font-size: 11px; }.coachWeekJump strong { font-size: 15px; }.coachWeekJump .active { background: #171713; color: #efd984; border-color: #171713; }.coachWeekJump i { height: 4px; width: 4px; border-radius: 50%; }.coachWeekJump .hasSessions { background: #c69a26; }
+  .app.app:not(.clientPortalApp) .calendarDay { scroll-margin-top: 12px; }
+  .app.app:not(.clientPortalApp) .crpMobileSelect { display: block; min-height: 44px; background: #fff; border: 1px solid #ded8cc; border-radius: 9px; padding: 0 10px; font: inherit; font-size: 12px; }
+  .app.app:not(.clientPortalApp) .coachClientsPage:not(.crpSelectMode) .crpCheck { display: none; }
+  .app.app:not(.clientPortalApp) .crpRow { display: grid; grid-template-areas: none; grid-template-columns: 38px minmax(0,1fr) auto; padding: 14px 12px; gap: 8px; margin-bottom: 8px; }
+  .app.app:not(.clientPortalApp) .crpSelectMode .crpRow { grid-template-columns: 32px 38px minmax(0,1fr) auto; }
+  .app.app:not(.clientPortalApp) .crpRow .crpAvatar { width: 36px; height: 36px; grid-area: auto; grid-column: 1; grid-row: 1; }.app.app:not(.clientPortalApp) .crpRowMain { grid-area: auto; grid-column: 2; grid-row: 1; }.app.app:not(.clientPortalApp) .crpRowName strong { font-size: 15px; }.app.app:not(.clientPortalApp) .crpRowSub { font-size: 11px; }
+  .app.app:not(.clientPortalApp) .crpRow .crpEng { grid-column: 2; padding: 0; background: transparent; min-height: 0; }.app.app:not(.clientPortalApp) .crpRow .crpEng:has(.crpNoEng) { display: none; }
+  .app.app:not(.clientPortalApp) .crpRow .crpFlags { grid-column: 2; grid-row: 2; padding: 0; }.app.app:not(.clientPortalApp) .crpRow .crpEng:not(:has(.crpNoEng)) + .crpFlags { grid-row: 3; }
+  .app.app:not(.clientPortalApp) .crpRowActions { grid-column: -2; grid-row: 1 / 3; display: grid; gap: 3px; }.app.app:not(.clientPortalApp) .crpRowActions .crpIconBtn { min-width: 36px; min-height: 36px; }
+  .app.app:not(.clientPortalApp) .crpRowActions .crpIconBtn:last-child { display: none; }
+  .app.app:not(.clientPortalApp) .crpSelectMode .crpCheck { grid-area: auto; grid-column: 1; grid-row: 1; width: 30px; }
+  .app.app:not(.clientPortalApp) .crpSelectMode .crpAvatar { grid-column: 2; }.app.app:not(.clientPortalApp) .crpSelectMode .crpRowMain,.app.app:not(.clientPortalApp) .crpSelectMode .crpFlags { grid-column: 3; }
+  .app.app:not(.clientPortalApp) .calQuickAdd { position: fixed; left: 12px !important; right: 12px; top: auto !important; bottom: max(16px,env(safe-area-inset-bottom)); width: auto; border-radius: 18px; padding: 8px; }
+  .app.app:not(.clientPortalApp) .calendarWorkoutContext { padding: 8px 0; font-size: 12px; }
+  .app.app:not(.clientPortalApp) .calendarWorkoutEditor .wkHubBuilderActive .wkHead { background: transparent; color: #171713; padding: 0 0 10px; border: 0; box-shadow: none; border-radius: 0; min-height: 0; }
+  .app.app:not(.clientPortalApp) .calendarWorkoutEditor .wkHead::before,.app.app:not(.clientPortalApp) .calendarWorkoutEditor .wkHead::after { display: none; }
+  .app.app:not(.clientPortalApp) .calendarWorkoutEditor .wkHeadLeft > .eyebrow,.app.app:not(.clientPortalApp) .calendarWorkoutEditor .wkHeadLeft > .wkEyebrow { display: none; }
+  .app.app:not(.clientPortalApp) .calendarWorkoutEditor .wkHubBuilderActive .wkHead .wkHeadLeft h1 { font-size: 23px; color: #171713 !important; line-height: 1.2; }
+  .app.app:not(.clientPortalApp) .calendarWorkoutEditor .wkHeadLeft > p { color: #6a6253 !important; font-size: 11px; margin: 6px 0 0; line-height: 1.4; }
+  .app.app:not(.clientPortalApp) .calendarWorkoutEditor .programBuilderPanel { padding: 8px 12px; margin-top: 0; border-radius: 12px; }
+  .app.app:not(.clientPortalApp) .calendarWorkoutEditor .builderSessionDetails { margin: 0 0 8px; border: 1px solid #e6e0d5; border-radius: 10px; box-shadow: none; }
+  .app.app:not(.clientPortalApp) .calendarWorkoutEditor .builderSessionDetails > summary { padding: 10px 12px; min-height: 44px; background: transparent; }
+  .app.app:not(.clientPortalApp) .calendarWorkoutEditor .builderSessionDetails .pbSetupIcon,
+  .app.app:not(.clientPortalApp) .calendarWorkoutEditor .builderSessionDetails .pbChipRow,
+  .app.app:not(.clientPortalApp) .calendarWorkoutEditor .builderSessionDetails .eyebrow { display: none !important; }
+  .app.app:not(.clientPortalApp) .calendarWorkoutEditor .builderSessionDetails > summary strong { font-size: 14px !important; }
+  .app.app:not(.clientPortalApp) .calendarWorkoutEditor .builderSessionDetails .builderPanelToggle { min-height: 28px; padding: 4px 10px; font-size: 11px; }
+  .app.app:not(.clientPortalApp) .calendarWorkoutEditor .builderSessionStatsBar { padding: 8px 0; gap: 8px; flex-wrap: nowrap; margin: 0; }
+  .app.app:not(.clientPortalApp) .calendarWorkoutEditor .builderSessionStats { gap: 12px; flex-wrap: nowrap; }.app.app:not(.clientPortalApp) .calendarWorkoutEditor .builderSessionStat strong { font-size: 19px; }.app.app:not(.clientPortalApp) .calendarWorkoutEditor .builderSessionStat span { font-size: 8px; letter-spacing: 0; }
+  .app.app:not(.clientPortalApp) .calendarWorkoutEditor .builderSessionStatsBar > button { min-height: 40px; padding: 8px; font-size: 11px; white-space: nowrap; }
+  .app.app:not(.clientPortalApp) .calendarWorkoutEditor .builderNotesDetails { margin-bottom: 6px; }.app.app:not(.clientPortalApp) .calendarWorkoutEditor .builderExerciseSectionDivider { margin: 14px 0 8px; }
+  .app.app:not(.clientPortalApp) .calendarWorkoutEditor .builderExerciseCard { padding: 10px; margin-bottom: 8px; }.app.app:not(.clientPortalApp) .calendarWorkoutEditor .builderExerciseSummaryTitle h3 { font-size: 16px; }
+  .app.app:not(.clientPortalApp) .toastStack { top: max(12px,env(safe-area-inset-top)); bottom: auto; pointer-events: none; }.app.app:not(.clientPortalApp) .toastStack .toast:not(:last-child) { display: none; }
+  .app.app:not(.clientPortalApp) .mobileBuilderContext + .mobileBuilder .mbScreenTitle { font-size: 19px; }
+  .app.app:not(.clientPortalApp) .mbOvWeek { padding: 10px 12px; margin-bottom: 10px; }.app.app:not(.clientPortalApp) .mbOvWeekHead { min-height: 42px; margin-bottom: 0; }.app.app:not(.clientPortalApp) .mbOvWeekHead .mbOvDup { font-size: 11px; }
 }

@@ -128,8 +128,12 @@ export async function getCoachingJourney(clientId: string) {
   const pendingPayment = orders.some(x => /^(pending|unpaid|awaiting payment)$/i.test((x.paymentStatus || "").trim()));
   const pendingForms = forms.filter(x => !x.completed && x.status?.toLowerCase() !== "completed" && !/^(cancelled|archived)$/i.test(x.status || ""));
   const intake = pendingForms.find(x => x.isIntake);
-  const coached = Boolean(client.clientType?.trim() && !/digital/i.test(client.clientType)) || Boolean(paid);
   const hasWorkouts = Number(workoutCount[0]?.count) > 0;
+  // Legacy manually coached athletes can predate client_type and orders.
+  // Resolve their display from an assigned coach + training, without changing
+  // stored entitlements or mistaking a known digital purchase for coaching.
+  const legacyCoached = !client.clientType?.trim() && Boolean(client.coachAssigned?.trim()) && hasWorkouts && !client.purchasedProgramId;
+  const coached = Boolean(client.clientType?.trim() && !/digital/i.test(client.clientType)) || Boolean(paid) || legacyCoached;
   const stage = hasWorkouts ? "active"
     : !paid && pendingPayment ? "payment_pending"
     : intake ? "intake"
@@ -138,6 +142,6 @@ export async function getCoachingJourney(clientId: string) {
   return { stage, coached, intakeAssignmentId: intake?.id || "",
     pendingAssessments: pendingForms.length + tests.filter(x => !x.completed).length,
     // A paid service can repair the display of an old client without a GET write.
-    clientType: coached && (!client.clientType || /digital/i.test(client.clientType)) ? paid?.productType || client.clientType || "" : client.clientType || "",
+    clientType: coached && (!client.clientType || /digital/i.test(client.clientType)) ? paid?.productType || (legacyCoached ? "Coaching" : client.clientType) || "" : client.clientType || "",
   };
 }

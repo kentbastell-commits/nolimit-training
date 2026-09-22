@@ -11,6 +11,17 @@ async function order(id = "ORD-C1", trade = "NLCOACH1", client = "CL-9001") {
     values ($1,$2,'Online Coaching','Pending',$3,'Kent Bastell',100)`, [id, client, trade]);
 }
 describe("coaching purchase to first session", () => {
+  it("resolves legacy coached display consistently without changing the stored account", async () => {
+    await seedClient({ coach_assigned: "Kent Bastell" }); await seedProgram();
+    expect(await getCoachingJourney("CL-9001")).toMatchObject({ coached: false, stage: "prospect" });
+    await rows("insert into assigned_workouts (assigned_workout_id,client_id,program_id) values ('AW-LEGACY','CL-9001','PR-1001')");
+    expect(await getCoachingJourney("CL-9001")).toMatchObject({ coached: true, clientType: "Coaching", stage: "active" });
+    expect((await rows("select client_type from clients"))[0].client_type).toBeNull();
+    await rows("update clients set purchased_program_id='OWNED-PROGRAM'");
+    expect(await getCoachingJourney("CL-9001")).toMatchObject({ coached: false });
+    await rows("update clients set client_type='Digital Program'");
+    expect(await getCoachingJourney("CL-9001")).toMatchObject({ coached: false, clientType: "Digital Program" });
+  });
   it("upgrades an existing digital client only after confirmation, preserving their program", async () => {
     await seedClient({ client_type: "Digital Program", purchased_program_id: "OWNED-PROGRAM" });
     await order();

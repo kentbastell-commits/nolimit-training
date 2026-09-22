@@ -2,6 +2,7 @@ import { validQuestionAnswer, testInputMode, isTwoKm, buildTestAnswer, displayAn
 import CalendarWorkoutEditor from "./CalendarWorkoutEditor";
 import { glanceRepsToken } from "./appCore";
 import "./MobileCoach.css";
+import { isAthletePreview } from "./athletePreviewPolicy";
 import { assignmentDraftKey, readAssignmentDraft, writeAssignmentDraft, clearAssignmentDraft } from "./assignmentDraft";
 import {
   Activity,
@@ -498,6 +499,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   const [enquirySubmitted, setEnquirySubmitted] = useState(false);
   // Language survives full-page navigation between landing/store/invite.
   useEffect(() => {
+    if (isAthletePreview(window.location.search)) return;
     try { localStorage.setItem("nl_public_lang", storeLang); } catch { /* private mode */ }
   }, [storeLang]);
   const [storeLauncherOpen, setStoreLauncherOpen] = useState(false);
@@ -550,7 +552,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     }
   });
   useEffect(() => {
-    if (isClientPortal && clientPortalCode) {
+    if (isClientPortal && clientPortalCode && !isAthletePreview(window.location.search)) {
       try {
         window.localStorage.setItem("nl_portal_code", clientPortalCode);
       } catch {
@@ -696,7 +698,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   // Deferred (arrow) — selectedClient is declared further down the component.
   const isPremiumClient = () =>
     isClientPortal &&
-    /online|in-person/i.test(String(selectedClient?.clientType || ""));
+    /online|in-person|coaching/i.test(String(selectedClient?.clientType || ""));
   const submitFormVideo = async (file: File) => {
     if (!formVideoExercise || !selectedClient) return;
     setFormVideoBusy(true);
@@ -1099,7 +1101,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   });
   const setWeightUnitPref = (unit: "kg" | "lb") => {
     setWeightUnit(unit);
-    if (typeof window !== "undefined") {
+    if (typeof window !== "undefined" && !isAthletePreview(window.location.search)) {
       window.localStorage.setItem("nl_weight_unit", unit);
     }
   };
@@ -1190,6 +1192,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   const [contentDraftStatus, setContentDraftStatus] = useState("");
   useEffect(() => {
     if (!activeContentAssignment || contentAssignmentReview || !selectedClient) return;
+    if (isAthletePreview(window.location.search)) return;
     const saved = writeAssignmentDraft(assignmentDraftKey(selectedClient.id, activeContentAssignment.assignmentId), { answers: contentAssignmentAnswers, comment: contentAssignmentComment });
     setContentDraftStatus(current => saved ? (current === "restored" ? "restored" : "saved") : "memory");
   }, [activeContentAssignment, contentAssignmentReview, selectedClient?.id, contentAssignmentAnswers, contentAssignmentComment]);
@@ -1285,6 +1288,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   );
   const [loading, setLoading] = useState(true);
   const [workoutsLoading, setWorkoutsLoading] = useState(false);
+  const [workoutsLoadFailed, setWorkoutsLoadFailed] = useState(false);
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [savingWorkout, setSavingWorkout] = useState(false);
   const [editingWorkoutDate, setEditingWorkoutDate] = useState("");
@@ -2238,12 +2242,13 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   const loadClients = async (force = false) => {
     const shouldForce = force === true;
     const cached = clientsCacheRef.current;
+    const clientCacheKey = isClientPortal ? CACHE_KEYS.portalClient(clientPortalCode) : CACHE_KEYS.clients;
 
     if (shouldForce) {
-      clearPersistentCache(CACHE_KEYS.clients);
+      clearPersistentCache(clientCacheKey);
     }
 
-    if (!shouldForce && cached && isFreshCache(cached.timestamp)) {
+    if (!isClientPortal && !shouldForce && cached && isFreshCache(cached.timestamp)) {
       setClients(cached.data);
       setLoading(false);
       return cached.data;
@@ -2251,8 +2256,8 @@ function App({ onReady }: { onReady?: () => void } = {}) {
 
     const persistentCache = shouldForce
       ? null
-      : readPersistentCache<Client[]>(CACHE_KEYS.clients);
-    if (persistentCache) {
+      : readPersistentCache<Client[]>(clientCacheKey);
+    if (!isClientPortal && persistentCache) {
       clientsCacheRef.current = persistentCache;
       setClients(persistentCache.data);
       setLoading(false);
@@ -2270,9 +2275,18 @@ function App({ onReady }: { onReady?: () => void } = {}) {
           : "/api/clients"
       );
       const data = await response.json();
+      if (!response.ok) throw new Error(data?.error || "Could not load clients");
       const nextClients = data.clients || [];
+      if (isClientPortal && nextClients[0]?.clientCode) {
+        // Use the same resolved journey/type as the mini program. Older roster
+        // rows can have a blank type even though coaching is already active.
+        const profileResponse = await fetch(`/api/myProfile?clientId=${encodeURIComponent(nextClients[0].clientCode)}`);
+        if (!profileResponse.ok) throw new Error("Could not load athlete profile");
+        const { profile } = await profileResponse.json();
+        if (profile) Object.assign(nextClients[0], profile);
+      }
       clientsCacheRef.current = { data: nextClients, timestamp: Date.now() };
-      writePersistentCache(CACHE_KEYS.clients, nextClients);
+      writePersistentCache(clientCacheKey, nextClients);
       setClients(nextClients);
       return nextClients;
     } catch (error) {
@@ -3005,6 +3019,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
 
     const response = await fetch(`/api/workouts?clientCode=${clientCode}`);
     const data = await response.json();
+    if (!response.ok) throw new Error(data?.error || "Could not load workouts");
     const nextWorkouts = data.workouts || [];
     cacheClientWorkouts(clientCode, nextWorkouts);
     setWorkouts(nextWorkouts);
@@ -3019,6 +3034,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       Boolean(cachedWorkouts) && isFreshCache(cachedWorkouts.timestamp);
 
     setWorkoutsLoading(!hasFreshWorkouts);
+    setWorkoutsLoadFailed(false);
     setSelectedWorkout(null);
     setWorkoutDetails([]);
     setSetLogs([]);
@@ -3049,6 +3065,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
       })
       .catch(() => {
         setWorkouts([]);
+        setWorkoutsLoadFailed(true);
         setContentAssignments([]);
         setContentResponses([]);
         setAthleteMetrics([]);
@@ -7247,6 +7264,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
     savedExerciseIds: string[],
     checkedKeys: string[]
   ) => {
+    if (isAthletePreview(window.location.search)) return true;
     const draftKey = getWorkoutDraftKey();
     if (!draftKey) return false;
 
@@ -13097,7 +13115,7 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   };
 
   // Workload self-report is a premium feature for online / in-person athletes.
-  const isWorkloadMonitored = /online coaching|in[-\s]?person/i.test(
+  const isWorkloadMonitored = /coaching|in[-\s]?person/i.test(
     selectedClient?.clientType || ""
   );
 
@@ -13344,7 +13362,11 @@ function App({ onReady }: { onReady?: () => void } = {}) {
   );
 
   const clientNeedsProgramming = (client: Client) =>
-    !client.program || client.program === "--";
+    (!client.program || client.program === "--") && !rosterLoadWorkouts.some(workout =>
+      (workout.clientId || "").split(/[,\s[\]"']+/).includes(client.clientCode) &&
+      normalizeDate(String(workout.scheduledDate)) >= dateToInputValue(new Date()) &&
+      !/completed|cancelled|archived/i.test(workout.completionStatus || "")
+    );
   const clientNeedsContact = (client: Client) => !client.email && !client.phone;
   const clientIsArchived = (client: Client) =>
     client.status.toLowerCase().includes("archived");
@@ -19701,41 +19723,17 @@ function App({ onReady }: { onReady?: () => void } = {}) {
 
       {calAddMenu && (
         <>
-          <div
-            className="programCtxBackdrop"
-            onClick={() => setCalAddMenu(null)}
-          />
-          <div
-            className="programCtxMenu"
-            style={{
-              top: Math.min(calAddMenu.y, window.innerHeight - 130),
-              left: Math.min(calAddMenu.x, window.innerWidth - 200),
-            }}
-          >
-            <button
-              type="button"
-              onClick={() => startOneOffSessionForDate(calAddMenu.date)}
-            >
-              <Plus size={15} /> New session
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                const date = calAddMenu.date;
-                setCalAddMenu(null);
-                setCalLibPickMode("choice");
-                setCalLibPickSearch("");
-                setCalLibPickPreview(null);
-                setCalLibPick({ date });
-                // The test library loads lazily elsewhere — fetch it now so
-                // the Add Test list isn't empty on first open.
-                if (!testTemplatesLoading) {
-                  void loadTestTemplates();
-                }
-              }}
-            >
-              <BookOpen size={15} /> Assign from library
-            </button>
+          <div className="programCtxBackdrop" onClick={() => setCalAddMenu(null)} />
+          <div className="programCtxMenu calQuickAdd" role="dialog" aria-modal="true" aria-label={t("mobileAddWorkout")} onKeyDown={event => { if (event.key === "Escape") setCalAddMenu(null); }}
+            style={{ top: Math.max(12, Math.min(calAddMenu.y, window.innerHeight - 280)), left: Math.max(12, Math.min(calAddMenu.x, window.innerWidth - 260)) }}>
+            <div className="calQuickAddHead"><strong>{selectedClient?.name}</strong><span>{t("redesignAddToDate", { date: formatCalendarLabel(calAddMenu.date) })}</span></div>
+            <button autoFocus type="button" onClick={() => startOneOffSessionForDate(calAddMenu.date)}><Plus size={18} />{t("redesignNewWorkout")}</button>
+            {([['sessions', 'redesignSession', Dumbbell], ['programs', 'redesignProgram', ClipboardList], ['tests', 'redesignTest', Activity]] as const).map(([mode, label, Icon]) =>
+              <button key={mode} type="button" onClick={() => {
+                const date = calAddMenu.date; setCalAddMenu(null); setCalLibPickMode(mode);
+                setCalLibPickSearch(""); setCalLibPickPreview(null); setCalLibPick({ date });
+                if (mode === "tests" && !testTemplatesLoading) void loadTestTemplates();
+              }}><Icon size={18} />{t(label)}</button>)}
           </div>
         </>
       )}
@@ -21707,6 +21705,8 @@ function App({ onReady }: { onReady?: () => void } = {}) {
             populateClientProgramCalendar={populateClientProgramCalendar}
             populatingClientProgram={populatingClientProgram}
             portalHomeTab={portalHomeTab}
+            workoutsLoadFailed={workoutsLoadFailed}
+            retryWorkouts={() => selectedClient && setSelectedClient({ ...selectedClient })}
             programs={programs}
             programsTab={programsTab}
             recentWorkoutSubmissions={recentWorkoutSubmissions}

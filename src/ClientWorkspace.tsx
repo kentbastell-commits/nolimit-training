@@ -3,6 +3,7 @@
 import { useState } from "react";
 import PortalHome from "./PortalHome";
 import AthletePreview from "./AthletePreview";
+import AthleteHub, { athleteContactKey } from "./AthleteHub";
 import ClientInviteModal from "./ClientInviteModal";
 import "./ClientWorkspace.css";
 import PortalTraining from "./PortalTraining";
@@ -17,7 +18,7 @@ import {
   ExternalLink,
   Home,
   MoreVertical,
-  ShoppingBag,
+  MessageCircle,
   UserCircle,
 } from "lucide-react";
 import { normalizeDate } from "./appCore";
@@ -236,6 +237,8 @@ export default function ClientWorkspace({
   weightUnit,
   workouts,
   workoutsLoading,
+  workoutsLoadFailed,
+  retryWorkouts,
 }: { [key: string]: any }) {
   const portalCompletedWorkouts = isClientPortal
     ? (workouts || []).filter((workout: any) =>
@@ -448,6 +451,41 @@ export default function ClientWorkspace({
   // athlete's personal scan code). Local state — the monolith needn't know.
   const [inviteOpen, setInviteOpen] = useState(false);
   const [athletePreviewOpen, setAthletePreviewOpen] = useState(false);
+  const accountPanel = (<ClientOverview
+                  t={t}
+                  coachNotesDraft={coachNotesDraft}
+                  editingMetrics={editingMetrics}
+                  formatPace={formatPace}
+                  getCoachDisplayName={getCoachDisplayName}
+                  getMasKmh={getMasKmh}
+                  hrMaxMetric={hrMaxMetric}
+                  i18n={i18n}
+                  isClientPortal={isClientPortal}
+                  latestMasMetric={latestMasMetric}
+                  metricsDraft={metricsDraft}
+                  openMetricsEditor={openMetricsEditor}
+                  overviewDetailsOpen={overviewDetailsOpen}
+                  paceZh={paceZh}
+                  parseBpm={parseBpm}
+                  parseOverride={parseOverride}
+                  renderPerformanceMetrics={renderPerformanceMetrics}
+                  renderPersonalRecords={renderPersonalRecords}
+                  restingHrMetric={restingHrMetric}
+                  saveCoachNotes={saveCoachNotes}
+                  saveMetricsOverrides={saveMetricsOverrides}
+                  savingCoachNotes={savingCoachNotes}
+                  savingMetrics={savingMetrics}
+                  selectedClient={selectedClient}
+                  selectedClientLatestOrder={selectedClientLatestOrder}
+                  setCoachNotesDraft={setCoachNotesDraft}
+                  setEditingMetrics={setEditingMetrics}
+                  setMetricsDraft={setMetricsDraft}
+                  setOverviewDetailsOpen={setOverviewDetailsOpen}
+                  setWeightUnitPref={setWeightUnitPref}
+                  updateClientLanguagePreference={updateClientLanguagePreference}
+                  weightUnit={weightUnit}
+                />);
+  const athleteNav = [["Home", Home, t("athleteToday")], ["Training", CalendarDays, t("athleteTraining")], ["Coach", MessageCircle, t(athleteContactKey(selectedClient?.clientType || ""))], ["Overview", UserCircle, t("athleteMe")]];
 
   return (
     <>
@@ -490,48 +528,8 @@ export default function ClientWorkspace({
                   nav detached from the viewport and floated mid-page after the
                   first tab switch (named mistake #34). */}
               {isClientPortal && <PortalToApp>
-                <nav className="mobileClientBottomNav" aria-label="Client navigation">
-                  <button
-                    className={clientTab === "Home" ? "active" : ""}
-                    onClick={() => setClientTab("Home")}
-                  >
-                    <Home size={21} strokeWidth={2.2} />
-                    <span>{t("home")}</span>
-                    {isClientPortal &&
-                      coachInboxItems().some((i: any) => i.at > inboxSeenAt) && (
-                        <em className="navUnreadDot" aria-label="New coach messages" />
-                      )}
-                  </button>
-                  <button
-                    className={clientTab === "Training" ? "active" : ""}
-                    onClick={() => setClientTab("Training")}
-                  >
-                    <CalendarDays size={21} strokeWidth={2.2} />
-                    <span>{t("calendar")}</span>
-                  </button>
-                  <button
-                    className={clientTab === "Programs" ? "active" : ""}
-                    onClick={() => setClientTab("Programs")}
-                  >
-                    <BookOpen size={21} strokeWidth={2.2} />
-                    <span>{t("myPrograms")}</span>
-                  </button>
-                  {STORE_PUBLIC && (
-                    <button
-                      className={clientTab === "Store" ? "active" : ""}
-                      onClick={() => setClientTab("Store")}
-                    >
-                      <ShoppingBag size={21} strokeWidth={2.2} />
-                      <span>{t("store")}</span>
-                    </button>
-                  )}
-                  <button
-                    className={clientTab === "Overview" ? "active" : ""}
-                    onClick={() => setClientTab("Overview")}
-                  >
-                    <UserCircle size={21} strokeWidth={2.2} />
-                    <span>{t("profile")}</span>
-                  </button>
+                <nav className="mobileClientBottomNav" aria-label={t("clientNavigation")}>
+                  {athleteNav.map(([key, Icon, label]: any) => <button key={key} type="button" className={clientTab === key || key === "Overview" && clientTab === "Programs" ? "active" : ""} onClick={() => setClientTab(key)}><Icon size={21} /><span>{label}</span>{key === "Coach" && coachInboxItems().some((i: any) => i.at > inboxSeenAt) && <em className="navUnreadDot" />}</button>)}
                 </nav>
               </PortalToApp>}
 
@@ -612,15 +610,7 @@ export default function ClientWorkspace({
                   </header>
 
                   <nav className="clientDesktopNav" aria-label={t("clientNavigation")}>
-                    {[
-                      ["Home", Home, t("home")],
-                      ["Training", CalendarDays, t("calendar")],
-                      ["Programs", BookOpen, t("myPrograms")],
-                      ...(STORE_PUBLIC
-                        ? [["Store", ShoppingBag, paceZh ? "商店" : "Store"]]
-                        : []),
-                      ["Overview", UserCircle, t("profile")],
-                    ].map(([key, Icon, label]: any) => (
+                    {athleteNav.map(([key, Icon, label]: any) => (
                       <button
                         type="button"
                         key={key}
@@ -897,7 +887,18 @@ export default function ClientWorkspace({
                 </button>
               </div>}
 
-              {clientTab === "Home" && (
+              {isClientPortal && ["Home", "Overview", "Coach"].includes(clientTab) && <AthleteHub
+                key={selectedClient.clientCode} view={clientTab} client={selectedClient} t={t} today={todayValue}
+                workouts={workouts} loading={workoutsLoading} loadFailed={workoutsLoadFailed} retry={retryWorkouts} tasks={clientPortalUpcomingTasks} assignments={contentAssignments} assignmentName={getAssignmentDisplayName}
+                openAssignment={handleOpenContentAssignment} openWorkout={openWorkout} workoutName={localizedWorkoutName}
+                dateLabel={localizedCalendarLabel} setClientTab={setClientTab} renderWellness={renderDailyCheckIn}
+                renderWorkload={renderWorkloadTab} renderMetrics={renderPerformanceMetrics} renderHistory={renderExerciseHistoryBody}
+                renderRecords={renderPrLeaderboard} renderTrophies={renderTrophyCase} account={<div className="athLegacyAccount">{accountPanel}</div>}
+                inbox={coachInboxItems()} markInboxSeen={markInboxSeen} inboxSeenAt={inboxSeenAt} workloadEnabled={isWorkloadMonitored}
+              />}
+              {isClientPortal && clientTab === "Programs" && <button className="athBack" onClick={() => setClientTab("Overview")}><ArrowLeft size={18} />{t("athleteBackMe")}</button>}
+
+              {!isClientPortal && clientTab === "Home" && (
                 <PortalHome
                   t={t}
                   getTaskTone={getTaskTone}
@@ -944,42 +945,7 @@ export default function ClientWorkspace({
                 />
               )}
 
-              {clientTab === "Overview" && (
-                <ClientOverview
-                  t={t}
-                  coachNotesDraft={coachNotesDraft}
-                  editingMetrics={editingMetrics}
-                  formatPace={formatPace}
-                  getCoachDisplayName={getCoachDisplayName}
-                  getMasKmh={getMasKmh}
-                  hrMaxMetric={hrMaxMetric}
-                  i18n={i18n}
-                  isClientPortal={isClientPortal}
-                  latestMasMetric={latestMasMetric}
-                  metricsDraft={metricsDraft}
-                  openMetricsEditor={openMetricsEditor}
-                  overviewDetailsOpen={overviewDetailsOpen}
-                  paceZh={paceZh}
-                  parseBpm={parseBpm}
-                  parseOverride={parseOverride}
-                  renderPerformanceMetrics={renderPerformanceMetrics}
-                  renderPersonalRecords={renderPersonalRecords}
-                  restingHrMetric={restingHrMetric}
-                  saveCoachNotes={saveCoachNotes}
-                  saveMetricsOverrides={saveMetricsOverrides}
-                  savingCoachNotes={savingCoachNotes}
-                  savingMetrics={savingMetrics}
-                  selectedClient={selectedClient}
-                  selectedClientLatestOrder={selectedClientLatestOrder}
-                  setCoachNotesDraft={setCoachNotesDraft}
-                  setEditingMetrics={setEditingMetrics}
-                  setMetricsDraft={setMetricsDraft}
-                  setOverviewDetailsOpen={setOverviewDetailsOpen}
-                  setWeightUnitPref={setWeightUnitPref}
-                  updateClientLanguagePreference={updateClientLanguagePreference}
-                  weightUnit={weightUnit}
-                />
-              )}
+              {!isClientPortal && clientTab === "Overview" && accountPanel}
 
               {clientTab === "Programs" && (
                 <PortalPrograms

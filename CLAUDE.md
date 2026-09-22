@@ -647,6 +647,10 @@ data between them, never "borrow" a table ID across products.
     a return action, and block preview writes before they reach the API. Portal
     shells must cancel inherited entrance animations so fixed navigation stays
     on screen (the loading shell can be reused as the app root).
+    Keep desktop's coach workflow and the mini program's athlete hierarchy as
+    the two references. Share athlete web/preview screens and read myProfile
+    for the resolved coaching type. Scope portal caches by athlete; never write
+    the coach roster cache, athlete drafts, remembered identity or language preference.
 
 52. **The overlapping save that doubles the program** — (second cause, fixed
     2026-08-05: `inPlaceEdit` was gated `&& !singleWorkoutMode`, so every
