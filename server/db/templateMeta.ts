@@ -160,3 +160,31 @@ export function parseTemplateMeta(notes = ""): ParsedMeta {
 
   return meta;
 }
+
+// Port of src/appCore.ts stripLocalizedExerciseMeta. The English note keeps
+// its metadata block (Section/Tracking/Set Prescriptions…) because both
+// clients PARSE it; the Chinese note only ever needs the coach's prose. 323
+// legacy coaching_notes_cn rows carry a machine translation of the whole
+// block (板块/标签/组次规划 JSON) from before the translator stripped meta
+// lines (4c5c9f8), and the released mini program (2026.9.17.4) renders
+// notesCn raw on the workout card — so the server strips it (CLAUDE.md #47).
+const EN_META_LINE =
+  /^\s*(?:Section|Section Color|Label|Superset|Circuit|Circuit Mode|Circuit Minutes|Tracking|Fields|Unilateral|Accessory|Accessory Parent|Accessory Color|Set Prescriptions|Alternate Exercises|Target[^:：]*)\s*[:：]/i;
+const CN_META_LINE = /^\s*[一-鿿][一-鿿0-9]{0,11}[:：]/;
+const META_JSON_FRAGMENT =
+  /^\s*[[\]{}]|"(?:setNumber|reps|load|percent|percentMas|intensityMode|intensityValue|rpe|rir|time|tempo|rest|exerciseRecordId|exerciseId|exerciseName)"\s*:/;
+
+export function stripLocalizedExerciseMeta(note = ""): string {
+  return String(note || "")
+    .split(/\r?\n/)
+    .filter((line) => {
+      const trimmed = line.trim();
+      if (!trimmed) return true;
+      if (EN_META_LINE.test(trimmed)) return false;
+      if (CN_META_LINE.test(trimmed)) return false;
+      if (META_JSON_FRAGMENT.test(trimmed)) return false;
+      return true;
+    })
+    .join("\n")
+    .trim();
+}

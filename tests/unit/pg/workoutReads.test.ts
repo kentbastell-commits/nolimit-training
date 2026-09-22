@@ -126,6 +126,21 @@ describe("api/workoutDetails (postgres)", () => {
     expect(exercise.rest).toBe("180");
   });
 
+  it("strips the translated builder metadata from the Chinese note", async () => {
+    await seedTemplate("WT-1", 1, 1);
+    // Legacy rows: a machine translation of the WHOLE English meta block.
+    // The released mini program renders notesCn raw on the card.
+    await pool.query(
+      `update workout_templates set coaching_notes_cn = $1 where template_id = 'WT-1'`,
+      [
+        '板块：活动度\n标签：A1\n追踪项：重量\n单侧训练：否\n辅具颜色：金色\n组次规划：[{"组号":1,"次数":"8","休息时长":"30 sec"},{"组号":2,"次数":"8","休息时长":"30 sec"}]\n保持骨盆稳定，慢速画圈。',
+      ]
+    );
+
+    const res = await get(detailsHandler, { programId: "PR-1001", week: "1", day: "1" });
+    expect(res.body.exercises[0].notesCn).toBe("保持骨盆稳定，慢速画圈。");
+  });
+
   it("returns only the requested day, not the whole program", async () => {
     await seedTemplate("WT-1", 1, 1);
     await seedTemplate("WT-2", 1, 3);

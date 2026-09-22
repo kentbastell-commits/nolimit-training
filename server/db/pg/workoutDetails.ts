@@ -2,7 +2,7 @@ import { and, eq } from "drizzle-orm";
 import { db } from "../client.ts";
 import { workoutTemplates, exercises } from "../schema.ts";
 import { str } from "./_util.ts";
-import { parseTemplateMeta } from "../templateMeta.ts";
+import { parseTemplateMeta, stripLocalizedExerciseMeta } from "../templateMeta.ts";
 import { listSetPrescriptionsByTemplate } from "./programTemplates.ts";
 import type { AlternateExerciseDTO, WorkoutDetailDTO } from "../dto.ts";
 
@@ -125,7 +125,7 @@ export async function getWorkoutDetails(
         tempo: str(t.tempo),
         rest: str(t.rest),
         notes: str(t.coachingNotes),
-        notesCn: str(t.coachingNotesCn),
+        notesCn: stripLocalizedExerciseMeta(str(t.coachingNotesCn)),
         sectionNameCn: "",
         targetSource: str(t.targetSource),
         targetMetric: str(t.targetMetric),
