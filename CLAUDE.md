@@ -563,6 +563,17 @@ data between them, never "borrow" a table ID across products.
     data; and note both clients share the web's quirk that an exercise with
     no matching 1RM test falls back to the athlete's FIRST 1RM metric (a
     bench % can resolve from a squat 1RM) — change it in both or neither.
+    RECURRED inside ONE client 2026-09-22 (Anthony's screenshot: 板块/标签/
+    组次规划 JSON on the mini workout card): the info sheet and the "coach
+    cue" line both ran `cleanNotes`, but the card's COMMENT line rendered
+    `ex.notesCn` raw — and 323 legacy `coaching_notes_cn` rows (7 programs)
+    carry a machine translation of the whole meta block, because the
+    translator only started stripping meta lines on 2026-09-17 (4c5c9f8).
+    It is not a DeepSeek/TMT quality problem and not location-dependent.
+    Rule: the sweep is per RENDER PATH, not per helper — grep `\.notesCn`
+    and `\.cueNotesCn` in the page and require every read to pass through
+    the strip; the data stays as-is (the EN column holds the same meta by
+    design), so a display fix is the fix.
 48. **The cascade that forgets the new table** — `client_messages` (migration
     0008) shipped with an FK to clients but was never added to
     `cascadeDeleteClientData` (server/db/pg/records.ts), so deleting any
