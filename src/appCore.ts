@@ -2,6 +2,7 @@
 // coach-key fetch patch (module side effect). Extracted verbatim from
 // App.tsx as phase A of the monolith split — no behavior changes.
 import { blocksPreviewRequest, isAthletePreview } from "./athletePreviewPolicy";
+import { coachingDate, coachingToday, calendarDayOffset } from "./coachingCalendar";
 
 export type AppMode = "Coach" | "Client";
 export type Page =
@@ -1088,20 +1089,7 @@ export function uploadThumbUrl(videoUrl = ""): string {
   return m ? `https://media.trainnolimit.cn/uploads/thumbs/${m[1]}.jpg` : "";
 }
 
-export function normalizeDate(value: string) {
-  if (!value) return "";
-
-  if (/^\d+$/.test(value)) {
-    const date = new Date(Number(value));
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-
-    return `${year}-${month}-${day}`;
-  }
-
-  return value.split("T")[0].split(" ")[0];
-}
+export const normalizeDate = coachingDate;
 
 export function normalizeLookupText(value?: string) {
   return String(value || "")
@@ -1602,7 +1590,7 @@ export function normalizeTaskStatus(status?: string): SimpleTaskStatus {
 export function isPastCalendarDate(dateString?: string) {
   const date = normalizeDate(String(dateString || ""));
 
-  return Boolean(date) && date < dateToInputValue(new Date());
+  return Boolean(date) && date < coachingToday();
 }
 
 export function getDisplayTaskStatus(
@@ -1619,9 +1607,7 @@ export function getDisplayTaskStatus(
 }
 
 export function addDays(dateString: string, days: number) {
-  const date = new Date(dateString + "T00:00:00");
-  date.setDate(date.getDate() + days);
-  return dateToInputValue(date);
+  return calendarDayOffset(dateString, days);
 }
 
 export function addMonths(dateString: string, months: number) {

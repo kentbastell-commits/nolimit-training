@@ -1005,6 +1005,10 @@ data between them, never "borrow" a table ID across products.
     Retain the original baseline, review a three-way merge, and save with the latest
     version; never bypass the guard or discard a device draft to resolve a conflict.
 
+74. **The calendar that vanishes on a bad connection** — independent reads need independent outcomes;
+    retain successful data on refresh failure and reject late reads for a different athlete.
+    Use China calendar days for assignments; browser-local midnight changes when coaches travel.
+
 ## Quality bar — checkable, per deliverable
 
 **Any shipped code change**

@@ -2,6 +2,7 @@ import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 import { redesignCopy } from "./redesignCopy";
 import { coachReliabilityCopy } from "./coachReliabilityCopy";
+import { coachPolishCopy } from "./coachPolishCopy";
 import { dailyCoachingCopy } from "./dailyCoachingCopy";
 
 export const resources = {
@@ -9,6 +10,7 @@ export const resources = {
     translation: {
       ...redesignCopy.en,
       ...coachReliabilityCopy.en,
+      ...coachPolishCopy.en,
       ...dailyCoachingCopy.en,
       editFields: "Edit fields",
       mobileSessionEditorTitle: "Edit session",
@@ -435,6 +437,7 @@ export const resources = {
     translation: {
       ...redesignCopy.zh,
       ...coachReliabilityCopy.zh,
+      ...coachPolishCopy.zh,
       ...dailyCoachingCopy.zh,
       editFields: "编辑记录项",
       mobileSessionEditorTitle: "编辑训练",

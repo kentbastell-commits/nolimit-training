@@ -3,15 +3,8 @@
 export type ReviewKind = "message" | "comment" | "checkin" | "video" | "submission" | "workout" | "coverage" | "missed" | "order" | "enquiry";
 export type CoachingItem = { key: string; revision: string; kind: ReviewKind; clientId: string; clientName: string; title: string; date: string; source: any; priority: number; sourceDone?: boolean };
 export type ReviewDecision = { key: string; revision: string; status: "open" | "resolved" | "snoozed"; until: number | null; version: number; updatedAt: number; item: Omit<CoachingItem, "source">; note: string };
-export function coachingDate(value: unknown): string {
-  if (!value) return "";
-  const str = String(value);
-  const date = /^\d{10,}$/.test(str) ? new Date(Number(str)) : /^\d{4}-\d{2}-\d{2}$/.test(str) ? null : new Date(str);
-  if (!date) return str;
-  if (!Number.isFinite(date.getTime())) return "";
-  return date.toLocaleDateString("en-CA", { timeZone: "Asia/Shanghai" });
-}
-export const coachingToday = () => coachingDate(Date.now());
+import { coachingDate, coachingToday } from "./coachingCalendar";
+export { coachingDate, coachingToday } from "./coachingCalendar";
 export const daysBetween = (a: string, b: string) => Math.floor((Date.parse(b) - Date.parse(a)) / 86400000);
 export const belongsTo = (row: any, client: any) => [client.clientCode, client.id].filter(Boolean).some(id => String(row.clientId || "").split(/[,\s[\]"']+/).includes(id));
 export const coachingPaused = (c: any) => /paused|archived|inactive/i.test(c.status || "");

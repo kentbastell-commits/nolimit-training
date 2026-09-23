@@ -1129,6 +1129,7 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
+.dueTodayCalendarItem .workoutBlockMain[data-today-label]::after { content: attr(data-today-label); }
 .technicalCueOverlay {
   z-index: 4200;
 }

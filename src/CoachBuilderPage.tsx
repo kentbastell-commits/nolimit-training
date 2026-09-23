@@ -451,7 +451,7 @@ export default function CoachBuilderPage({
                                       {mode === "" && (
                                         <>
                                           <label>
-                                            <span>Rounds</span>
+                                            <span>{t("polishRoundsceea")}</span>
                                             <input
                                               type="number"
                                               min={1}
@@ -466,22 +466,14 @@ export default function CoachBuilderPage({
                                             />
                                           </label>
                                           <small>
-                                            Athletes cycle through all{" "}
-                                            {members} exercise
-                                            {members === 1 ? "" : "s"} in
-                                            order, {exercise.sets || "3"}{" "}
-                                            round
-                                            {Number(exercise.sets || "3") === 1
-                                              ? ""
-                                              : "s"}{" "}
-                                            total.
+                                            {t("coachCircuitSequence", { count: members, rounds: exercise.sets || "3" })}
                                           </small>
                                         </>
                                       )}
                                       {mode === "AMRAP" && (
                                         <>
                                           <label>
-                                            <span>Time cap (min)</span>
+                                            <span>{t("polishTimeCapMin4422")}</span>
                                             <input
                                               type="number"
                                               min={1}
@@ -499,20 +491,14 @@ export default function CoachBuilderPage({
                                             />
                                           </label>
                                           <small>
-                                            As many rounds of the {members}{" "}
-                                            exercise
-                                            {members === 1 ? "" : "s"} as
-                                            possible in{" "}
-                                            {exercise.groupMinutes || "12"}{" "}
-                                            min. Each exercise shows one set
-                                            row — reps are per round.
+                                            {t("coachAmrapSequence", { count: members, minutes: exercise.groupMinutes || "12" })}
                                           </small>
                                         </>
                                       )}
                                       {mode === "EMOM" && (
                                         <>
                                           <label>
-                                            <span>Total (min)</span>
+                                            <span>{t("polishTotalMindfea")}</span>
                                             <input
                                               type="number"
                                               min={1}
@@ -530,17 +516,7 @@ export default function CoachBuilderPage({
                                             />
                                           </label>
                                           <small>
-                                            Every minute on the minute: minute
-                                            1 → station 1, rotating through{" "}
-                                            {members} station
-                                            {members === 1 ? "" : "s"}
-                                            {emomRounds
-                                              ? ` (${emomRounds} round${
-                                                  emomRounds === 1 ? "" : "s"
-                                                })`
-                                              : ""}
-                                            . Reps are per minute; rest is the
-                                            remainder of each minute.
+                                            {t("coachEmomSequence", { count: members, rounds: emomRounds || "—" })}
                                           </small>
                                         </>
                                       )}
@@ -962,7 +938,7 @@ export default function CoachBuilderPage({
                               setSessionCategoryFilter(event.target.value)
                             }
                           >
-                            <option value="All">All categories</option>
+                            <option value="All">{t("polishAllCategories060b")}</option>
                             {Array.from(
                               new Set(
                                 [
@@ -997,27 +973,15 @@ export default function CoachBuilderPage({
                             </option>
                             {builderScope === "digital" ? (
                               <optgroup label="Product type">
-                                <option value="type:Digital Program">
-                                  Digital programs
-                                </option>
-                                <option value="type:Digital Bundle">
-                                  Bundles
-                                </option>
-                                <option value="type:Digital Add-on">
-                                  Add-ons
-                                </option>
+                                <option value="type:Digital Program">{t("polishDigitalProgramsf261")} </option>
+                                <option value="type:Digital Bundle">{t("polishBundles9a03")} </option>
+                                <option value="type:Digital Add-on">{t("polishAddOns41b6")} </option>
                               </optgroup>
                             ) : (
                               <optgroup label="Program type">
-                                <option value="type:Online Coaching">
-                                  Online coaching
-                                </option>
-                                <option value="type:In-Person Training">
-                                  In-person training
-                                </option>
-                                <option value="internal">
-                                  Internal / general
-                                </option>
+                                <option value="type:Online Coaching">{t("polishOnlineCoaching7105")} </option>
+                                <option value="type:In-Person Training">{t("polishInPersonTraining014b")} </option>
+                                <option value="internal">{t("polishInternalGeneralffaa")} </option>
                               </optgroup>
                             )}
                             {teams.length > 0 && (
@@ -1060,16 +1024,16 @@ export default function CoachBuilderPage({
                     <div className="programLibraryStack">
                       <div className="programTable">
                         <div className="programTableHead">
-                          <span>Title</span>
-                          <span>Level</span>
-                          <span>Focus</span>
-                          <span>Type</span>
-                          <span>Created By</span>
-                          <span className="programTableActionsHead">Actions</span>
+                          <span>{t("polishTitle768e")}</span>
+                          <span>{t("polishLevel7c7f")}</span>
+                          <span>{t("polishFocusfe7f")}</span>
+                          <span>{t("polishType3deb")}</span>
+                          <span>{t("polishCreatedBy43de")}</span>
+                          <span className="programTableActionsHead">{t("polishActionsc3cd")}</span>
                         </div>
 
                         {programsLoading && programs.length === 0 && (
-                          <p className="programTableEmpty">Loading…</p>
+                          <p className="programTableEmpty">{t("polishLoading33ce")}</p>
                         )}
                         {!programsLoading && libraryList.length === 0 && (
                           <p className="programTableEmpty">
@@ -1251,7 +1215,7 @@ export default function CoachBuilderPage({
                 </h2>
 
                 <>
-                <div className="mobileBuilderQuickNav" aria-label="Builder quick navigation">
+                <div className="mobileBuilderQuickNav" aria-label={t("polishBuilderQuickNavigationac07")}>
                   {[
                     ["Details", "builder-details"],
                     ["Session", "builder-session"],
@@ -1310,8 +1274,7 @@ export default function CoachBuilderPage({
                           <>
                             <em>{programProductType || "Program"}</em>
                             <em>
-                              {programDurationWeeks || "--"} week
-                              {programDurationWeeks === "1" ? "" : "s"}
+                              {programDurationWeeks || "--"}{t("polishWeekc0ee")} {programDurationWeeks === "1" ? "" : "s"}
                             </em>
                           </>
                         )}
@@ -1339,20 +1302,20 @@ export default function CoachBuilderPage({
                     {!isSingleWorkoutBuilder && (
                       <>
                         <label className="pbFeat pbFeatTeal">
-                          <span>Goal</span>
+                          <span>{t("polishGoal9fe0")}</span>
                           <div className="pbFieldWrap">
                             <Target size={15} className="pbFieldIco" />
                             <input
                               value={programGoal}
                               onChange={(e) => setProgramGoal(e.target.value)}
-                              placeholder="e.g. Build muscle"
+                              placeholder={t("polishEGBuildMuscle8d3c")}
                               className="miniSearch"
                             />
                           </div>
                         </label>
 
                         <label>
-                          <span>Duration</span>
+                          <span>{t("polishDuration1370")}</span>
                           <select
                             value={programDurationWeeks}
                             onChange={(e) =>
@@ -1363,7 +1326,7 @@ export default function CoachBuilderPage({
                             {Array.from({ length: 8 }, (_: any, i: any) => i + 1).map(
                               (n) => (
                                 <option key={n} value={String(n)}>
-                                  {n} week{n === 1 ? "" : "s"}
+                                  {n}{t("polishWeekc0ee")}{n === 1 ? "" : "s"}
                                 </option>
                               )
                             )}
@@ -1371,41 +1334,41 @@ export default function CoachBuilderPage({
                         </label>
 
                         <label>
-                          <span>Phase</span>
+                          <span>{t("polishPhasef637")}</span>
                           <input
                             value={programPhase}
                             onChange={(e) => setProgramPhase(e.target.value)}
-                            placeholder="e.g. Foundation"
+                            placeholder={t("polishEGFoundation9fd3")}
                             className="miniSearch"
                           />
                         </label>
 
                         <label>
-                          <span>Sport</span>
+                          <span>{t("polishSport1855")}</span>
                           <input
                             value={programSport}
                             onChange={(e) => setProgramSport(e.target.value)}
-                            placeholder="e.g. Climbing"
+                            placeholder={t("polishEGClimbingc373")}
                             className="miniSearch"
                           />
                         </label>
 
                         <label>
-                          <span>Level</span>
+                          <span>{t("polishLevel7c7f")}</span>
                           <select
                             value={programLevel}
                             onChange={(e) => setProgramLevel(e.target.value)}
                             className="miniSearch"
                           >
-                            <option value="Beginner">Beginner</option>
-                            <option value="Intermediate">Intermediate</option>
-                            <option value="Advanced">Advanced</option>
-                            <option value="Elite">Elite</option>
+                            <option value="Beginner">{t("polishBeginner6057")}</option>
+                            <option value="Intermediate">{t("polishIntermediateb1cf")}</option>
+                            <option value="Advanced">{t("polishAdvanced4d06")}</option>
+                            <option value="Elite">{t("polishElite6f28")}</option>
                           </select>
                         </label>
 
                         <label>
-                          <span>Program Type</span>
+                          <span>{t("polishProgramType7dbe")}</span>
                           <select
                             value={programProductType}
                             onChange={(e) => setProgramProductType(e.target.value)}
@@ -1440,7 +1403,7 @@ export default function CoachBuilderPage({
                         {(programProductType === "Online Coaching" ||
                           programProductType === "In-Person Training") && (
                           <label>
-                            <span>Assign to</span>
+                            <span>{t("polishAssignTocc79")}</span>
                             <select
                               value={programBuiltForMode}
                               onChange={(e) => {
@@ -1454,9 +1417,9 @@ export default function CoachBuilderPage({
                               }}
                               className="miniSearch"
                             >
-                              <option value="internal">Internal (general)</option>
-                              <option value="client">Client</option>
-                              <option value="team">Team</option>
+                              <option value="internal">{t("polishInternalGenerala16d")}</option>
+                              <option value="client">{t("polishClient1bdd")}</option>
+                              <option value="team">{t("polishTeam2188")}</option>
                             </select>
                           </label>
                         )}
@@ -1465,7 +1428,7 @@ export default function CoachBuilderPage({
                           programProductType === "In-Person Training") &&
                           programBuiltForMode === "client" && (
                             <label>
-                              <span>Client</span>
+                              <span>{t("polishClient1bdd")}</span>
                               <select
                                 value={programBuiltForClient}
                                 onChange={(e) =>
@@ -1473,7 +1436,7 @@ export default function CoachBuilderPage({
                                 }
                                 className="miniSearch"
                               >
-                                <option value="">Select client…</option>
+                                <option value="">{t("polishSelectClient0765")}</option>
                                 {coachVisibleClients.map((c: any) => (
                                   <option key={c.id} value={c.clientCode || c.id}>
                                     {c.name}
@@ -1488,7 +1451,7 @@ export default function CoachBuilderPage({
                           programProductType === "In-Person Training") &&
                           programBuiltForMode === "team" && (
                             <label>
-                              <span>Team</span>
+                              <span>{t("polishTeam2188")}</span>
                               <select
                                 value={programBuiltForTeam}
                                 onChange={(e) =>
@@ -1496,7 +1459,7 @@ export default function CoachBuilderPage({
                                 }
                                 className="miniSearch"
                               >
-                                <option value="">Select team…</option>
+                                <option value="">{t("polishSelectTeam5c98")}</option>
                                 {teams.map((tm: any) => (
                                   <option key={tm.id} value={tm.name}>
                                     {tm.name}
@@ -1607,7 +1570,7 @@ export default function CoachBuilderPage({
                                   <span className="collapsedDayText">D{d}</span>
                                 ) : (
                                   <>
-                                    <span>Day {d}</span>
+                                    <span>{t("polishDay987b")} {d}</span>
                                     <button
                                       type="button"
                                       className="dayCollapseBtn"
@@ -1633,13 +1596,12 @@ export default function CoachBuilderPage({
                         {weeks.map((w: any) => (
                           <div key={w} className="programGridWeek">
                             <div className="programGridWeekLabel">
-                              <span>Week {w}</span>
+                              <span>{t("polishWeekf82b")} {w}</span>
                               {(() => {
                                 const v = weekVolume(w);
                                 return v.days > 0 ? (
                                   <span className="weekVolChip">
-                                    {v.days}d · {v.sets} sets · {v.exercises} ex
-                                  </span>
+                                    {v.days}{t("polishDa3aa")} {v.sets}{t("polishSets23fe")} {v.exercises}{t("polishExe066")} </span>
                                 ) : null;
                               })()}
                               {programSessions.some(
@@ -1655,8 +1617,7 @@ export default function CoachBuilderPage({
                                       )
                                     }
                                   >
-                                    <Copy size={13} /> Duplicate
-                                    <ChevronDown size={12} />
+                                    <Copy size={13} />{t("polishDuplicate972d")} <ChevronDown size={12} />
                                   </button>
                                 </div>
                               )}
@@ -1804,16 +1765,14 @@ export default function CoachBuilderPage({
                                               : `Week ${w} Day ${d}`}
                                           </strong>
                                           {s.__draft ? (
-                                            <span className="gridDraftTag">
-                                              Unsaved
-                                            </span>
+                                            <span className="gridDraftTag">{t("polishUnsaved2ab0")} </span>
                                           ) : (
                                             <div className="programGridCardActions">
                                               {!s.testTemplateId && (
                                               <button
                                                 type="button"
                                                 className="iconActionButton"
-                                                title="Edit session"
+                                                title={t("polishEditSessionaca3")}
                                                 onClick={(e) => {
                                                   e.stopPropagation();
                                                   loadSessionForEditing(s);
@@ -1825,7 +1784,7 @@ export default function CoachBuilderPage({
                                               <button
                                                 type="button"
                                                 className="iconActionButton"
-                                                title="Duplicate to next week"
+                                                title={t("polishDuplicateToNextWeek8423")}
                                                 onClick={(e) => {
                                                   e.stopPropagation();
                                                   duplicateProgramSession(s);
@@ -1836,7 +1795,7 @@ export default function CoachBuilderPage({
                                               <button
                                                 type="button"
                                                 className="iconActionButton dangerMenuItem"
-                                                title="Remove session"
+                                                title={t("polishRemoveSessiona72e")}
                                                 onClick={(e) => {
                                                   e.stopPropagation();
                                                   removeProgramSession(s.localId);
@@ -1850,12 +1809,9 @@ export default function CoachBuilderPage({
 
                                         {s.testTemplateId ? (
                                           <span className="programGridCardMeta gridCardTestMeta">
-                                            <Activity size={12} /> Physical Test
-                                          </span>
+                                            <Activity size={12} />{t("polishPhysicalTestdc27")} </span>
                                         ) : s.exercises.length === 0 ? (
-                                          <span className="programGridCardMeta">
-                                            No exercises yet
-                                          </span>
+                                          <span className="programGridCardMeta">{t("polishNoExercisesYet71ff")} </span>
                                         ) : (
                                           <div className="glanceChain">
                                             {buildGlanceChain(s.exercises).map(
@@ -1932,7 +1888,7 @@ export default function CoachBuilderPage({
                                         <Plus size={14} />
                                       </span>
                                       {cellSessions.length === 0 && (
-                                        <span className="pbAddLabel">Add</span>
+                                        <span className="pbAddLabel">{t("polishAdd61cc")}</span>
                                       )}
                                     </button>
                                   </div>
@@ -1969,8 +1925,7 @@ export default function CoachBuilderPage({
                 {!isSingleWorkoutBuilder && !calendarBuilderContext && (
                   <div className="drawerSessionHero" id="builder-session">
                     <div className="drawerSessionHeroText">
-                      <span className="drawerSessionHeroEyebrow">
-                        Current Session · Week {programWeek || "--"} · Day{" "}
+                      <span className="drawerSessionHeroEyebrow">{t("polishCurrentSessionWeek39df")} {programWeek || "--"}{t("polishDay2ad3")}{" "}
                         {programDay || "--"}
                       </span>
                       <h2>{sessionName || "Name your session"}</h2>
@@ -1988,7 +1943,7 @@ export default function CoachBuilderPage({
                       <button
                         type="button"
                         className="drawerHeroClose"
-                        title="Close editor"
+                        title={t("polishCloseEditor3ada")}
                         onClick={() => setSessionEditorOpen(false)}
                       >
                         <X size={18} />
@@ -2041,9 +1996,7 @@ export default function CoachBuilderPage({
                   {isSingleWorkoutBuilder && oneOffAssignTarget && (
                     <div className="oneOffAssignBanner">
                       <span className="oneOffAssignText">
-                        <CalendarDays size={15} /> Saving assigns this session
-                        to <strong>{oneOffAssignTarget.clientName}</strong> on{" "}
-                        <strong>{oneOffAssignTarget.date}</strong>.
+                        <CalendarDays size={15} /> {t("coachAssignOnSave", { name: oneOffAssignTarget.clientName, date: oneOffAssignTarget.date })}
                       </span>
                       <label className="oneOffAssignToggle">
                         <input
@@ -2052,18 +2005,16 @@ export default function CoachBuilderPage({
                           onChange={(e) =>
                             setOneOffSaveToLibrary(e.target.checked)
                           }
-                        />
-                        Also save to Session Library
-                      </label>
+                        />{t("polishAlsoSaveToSessionLibraryb1b8")} </label>
                     </div>
                   )}
                   {isSingleWorkoutBuilder && (
                     <label className="sessionNameField">
-                      <span>Workout Name</span>
+                      <span>{t("polishWorkoutName7adc")}</span>
                       <input
                         value={programName}
                         onChange={(e) => setProgramName(e.target.value)}
-                        placeholder="Workout Name"
+                        placeholder={t("polishWorkoutName7adc")}
                         className="miniSearch"
                       />
                     </label>
@@ -2084,9 +2035,9 @@ export default function CoachBuilderPage({
                         }}
                         className="miniSearch"
                       >
-                        <option value="internal">Internal (general)</option>
-                        <option value="client">Client</option>
-                        <option value="team">Team</option>
+                        <option value="internal">{t("polishInternalGenerala16d")}</option>
+                        <option value="client">{t("polishClient1bdd")}</option>
+                        <option value="team">{t("polishTeam2188")}</option>
                       </select>
                     </label>
                   )}
@@ -2094,7 +2045,7 @@ export default function CoachBuilderPage({
                     !calendarBuilderContext &&
                     programBuiltForMode === "client" && (
                       <label>
-                        <span>Client</span>
+                        <span>{t("polishClient1bdd")}</span>
                         <select
                           value={programBuiltForClient}
                           onChange={(e) =>
@@ -2102,7 +2053,7 @@ export default function CoachBuilderPage({
                           }
                           className="miniSearch"
                         >
-                          <option value="">Select client…</option>
+                          <option value="">{t("polishSelectClient0765")}</option>
                           {coachVisibleClients.map((c: any) => (
                             <option key={c.id} value={c.clientCode || c.id}>
                               {c.name}
@@ -2116,7 +2067,7 @@ export default function CoachBuilderPage({
                     !calendarBuilderContext &&
                     programBuiltForMode === "team" && (
                       <label>
-                        <span>Team</span>
+                        <span>{t("polishTeam2188")}</span>
                         <select
                           value={programBuiltForTeam}
                           onChange={(e) =>
@@ -2124,7 +2075,7 @@ export default function CoachBuilderPage({
                           }
                           className="miniSearch"
                         >
-                          <option value="">Select team…</option>
+                          <option value="">{t("polishSelectTeam5c98")}</option>
                           {teams.map((tm: any) => (
                             <option key={tm.id} value={tm.name}>
                               {tm.name}
@@ -2136,39 +2087,39 @@ export default function CoachBuilderPage({
                   {!isSingleWorkoutBuilder && (
                     <>
                       <label className="sessionWeekField">
-                        <span>Week</span>
+                        <span>{t("polishWeekf82b")}</span>
                         <input
                           value={programWeek}
                           readOnly={Boolean(calendarBuilderContext)}
                           onChange={(e) => setProgramWeek(e.target.value)}
-                          placeholder="Week"
+                          placeholder={t("polishWeekf82b")}
                           className="miniSearch"
                         />
                       </label>
 
                       <label className="sessionDayField">
-                        <span>Day</span>
+                        <span>{t("polishDay987b")}</span>
                         <input
                           value={programDay}
                           readOnly={Boolean(calendarBuilderContext)}
                           onChange={(e) => setProgramDay(e.target.value)}
-                          placeholder="Day"
+                          placeholder={t("polishDay987b")}
                           className="miniSearch"
                         />
                       </label>
 
                       <label className="sessionNameField">
-                        <span>Session Name</span>
+                        <span>{t("polishSessionNamec78b")}</span>
                         <input
                           value={sessionName}
                           onChange={(e) => setSessionName(e.target.value)}
-                          placeholder="Session Name"
+                          placeholder={t("polishSessionNamec78b")}
                           className="miniSearch"
                         />
                       </label>
 
                       <label className="sessionNameField">
-                        <span>Session Name (中文)</span>
+                        <span>{t("polishSessionName650a")}</span>
                         <input
                           value={sessionNameCn}
                           onChange={(e) => setSessionNameCn(e.target.value)}
@@ -2178,7 +2129,7 @@ export default function CoachBuilderPage({
                       </label>
 
                       <label className="sessionDurationField">
-                        <span>Est. Duration (min)</span>
+                        <span>{t("polishEstDurationMinfd26")}</span>
                         <input
                           type="number"
                           min={0}
@@ -2198,7 +2149,7 @@ export default function CoachBuilderPage({
                   )}
 
                   <label className="sessionTypeField">
-                    <span>Session Type</span>
+                    <span>{t("polishSessionType3833")}</span>
                     <select
                       value={sessionType}
                       onChange={(e) => setSessionType(e.target.value)}
@@ -2221,26 +2172,26 @@ export default function CoachBuilderPage({
                   </label>
 
                   <label className="sessionIntensityField">
-                    <span>Intensity</span>
+                    <span>{t("polishIntensity0ad6")}</span>
                     <select
                       value={sessionIntensity}
                       onChange={(e) => setSessionIntensity(e.target.value)}
                       className="miniSearch"
                     >
-                      <option>Low</option>
-                      <option>Moderate</option>
-                      <option>High</option>
-                      <option>Max</option>
-                      <option>Recovery</option>
+                      <option>{t("polishLowa124")}</option>
+                      <option>{t("polishModerateea8b")}</option>
+                      <option>{t("polishHighb1a5")}</option>
+                      <option>{t("polishMaxa95e")}</option>
+                      <option>{t("polishRecoveryea92")}</option>
                     </select>
                   </label>
 
                   <label className="sessionGoalField">
-                    <span>Session Goal</span>
+                    <span>{t("polishSessionGoald948")}</span>
                     <input
                       value={sessionGoal}
                       onChange={(e) => setSessionGoal(e.target.value)}
-                      placeholder="Primary focus..."
+                      placeholder={t("polishPrimaryFocus319f")}
                       className="miniSearch"
                     />
                   </label>
@@ -2248,7 +2199,7 @@ export default function CoachBuilderPage({
                 </div>
 
                 <div className="builderInsertSavedRow">
-                  <span>Insert saved session</span>
+                  <span>{t("polishInsertSavedSessioncc09")}</span>
                   <select
                     className="miniSearch"
                     value={sessionLibProgramId}
@@ -2263,14 +2214,14 @@ export default function CoachBuilderPage({
                       }
                     }}
                   >
-                    <option value="">From program…</option>
+                    <option value="">{t("polishFromProgram794d")}</option>
                     {programs.map((pp: any) => (
                       <option key={pp.recordId} value={pp.programId}>
                         {pp.programName}
                       </option>
                     ))}
                   </select>
-                  {sessionLibLoading && <em>Loading…</em>}
+                  {sessionLibLoading && <em>{t("polishLoading33ce")}</em>}
                   {sessionLibSessions.length > 0 && (
                     <select
                       className="miniSearch"
@@ -2282,7 +2233,7 @@ export default function CoachBuilderPage({
                         if (s) insertSavedSessionExercises(s);
                       }}
                     >
-                      <option value="">Pick a session…</option>
+                      <option value="">{t("polishPickASession52ec")}</option>
                       {sessionLibSessions.map((s: any) => (
                         <option key={s.localId} value={s.localId}>
                           W{s.week} D{s.day} · {s.sessionName}
@@ -2318,24 +2269,22 @@ export default function CoachBuilderPage({
                               new Set(selectedProgramExercises.map((_: any, i: any) => i))
                             )
                           }
-                        >
-                          All
-                        </button>
+                        >{t("polishAll6a72")} </button>
                         <input
                           className="miniSearch bulkEditInput"
-                          placeholder="Sets"
+                          placeholder={t("polishSets2ab2")}
                           value={bulkSets}
                           onChange={(e) => setBulkSets(e.target.value)}
                         />
                         <input
                           className="miniSearch bulkEditInput"
-                          placeholder="Reps"
+                          placeholder={t("polishReps7020")}
                           value={bulkReps}
                           onChange={(e) => setBulkReps(e.target.value)}
                         />
                         <input
                           className="miniSearch bulkEditInput bulkEditRest"
-                          placeholder="Rest e.g. 90 sec"
+                          placeholder={t("polishRestEG90Secb7e4")}
                           value={bulkRest}
                           onChange={(e) => setBulkRest(e.target.value)}
                         />
@@ -2344,8 +2293,7 @@ export default function CoachBuilderPage({
                           className="primaryButton compactBuilderButton"
                           disabled={bulkSelectedIdx.size === 0}
                           onClick={applyBulkPrescription}
-                        >
-                          Apply to {bulkSelectedIdx.size}
+                        >{t("polishApplyToc76e")} {bulkSelectedIdx.size}
                         </button>
                       </>
                     )}
@@ -2357,15 +2305,13 @@ export default function CoachBuilderPage({
                     <div className="builderEmptyCanvasIcon">
                       <Dumbbell size={34} />
                     </div>
-                    <h3>Drag your session into shape</h3>
-                    <p>Add exercises to build this session.</p>
+                    <h3>{t("polishDragYourSessionIntoShape137c")}</h3>
+                    <p>{t("polishAddExercisesToBuildThisSession07d5")}</p>
                     <div>
                       <button
                         className="goldButton"
                         onClick={() => openBuilderLibrary("Exercises")}
-                      >
-                        + Add Exercise
-                      </button>
+                      >{t("polishAddExercise3ca5")} </button>
                     </div>
                   </div>
                 )}
@@ -2405,22 +2351,18 @@ export default function CoachBuilderPage({
                               builderLibraryMode === "Exercises" ? "active" : ""
                             }
                             onClick={() => setBuilderLibraryModeAndLoad("Exercises")}
-                          >
-                            Exercises
-                          </button>
+                          >{t("polishExercises4dc5")} </button>
                           <button
                             className={
                               builderLibraryMode === "Sections" ? "active" : ""
                             }
                             onClick={() => setBuilderLibraryModeAndLoad("Sections")}
-                          >
-                            Sections
-                          </button>
+                          >{t("polishSections7ff5")} </button>
                         </div>
 
                         <div className="builderDrawerSearch">
                           <input
-                            placeholder="Search exercise library..."
+                            placeholder={t("polishSearchExerciseLibrary09bf")}
                             value={builderSearch}
                             onChange={(e) => setBuilderSearch(e.target.value)}
                           />
@@ -2428,9 +2370,9 @@ export default function CoachBuilderPage({
                             className="builderEquipSelect"
                             value={builderEquipFilter}
                             onChange={(e) => setBuilderEquipFilter(e.target.value)}
-                            title="Filter by equipment"
+                            title={t("polishFilterByEquipmentc44b")}
                           >
-                            <option value="">All equipment</option>
+                            <option value="">{t("polishAllEquipmentf3df")}</option>
                             {["Barbell", "Dumbbell", "Kettlebell", "Landmine", "Trap Bar", "Bodyweight", "Bands", "Cable", "Machine", "Sled", "Medicine Ball", "Box", "Pull-Up Bar", "Hangboard"].map(
                               (eq) => (
                                 <option key={eq} value={eq}>
@@ -2457,9 +2399,7 @@ export default function CoachBuilderPage({
                               <button
                                 type="button"
                                 onClick={() => setSwapExerciseIndex(null)}
-                              >
-                                Cancel
-                              </button>
+                              >{t("polishCancel77df")} </button>
                             </div>
                           )}
                         <div className="builderDrawerExerciseGrid">
@@ -2468,17 +2408,11 @@ export default function CoachBuilderPage({
                             onClick={openCreateExerciseFromBuilder}
                           >
                             <span>
-                              <Plus size={14} /> Create Exercise
-                            </span>
-                            <small>
-                              New to the library — saved AND added to this
-                              session
-                            </small>
+                              <Plus size={14} />{t("polishCreateExerciseb53a")} </span>
+                            <small>{t("polishNewToTheLibrarySavedANDAddedToThisSessiona5dc")} </small>
                           </button>
                           {libraryLoading && builderExercises.length === 0 && (
-                            <div className="builderLibraryEmpty">
-                              Loading exercises...
-                            </div>
+                            <div className="builderLibraryEmpty">{t("polishLoadingExercisesd973")} </div>
                           )}
                           {builderExercises.map((exercise: any) => (
                             <button
@@ -2503,9 +2437,7 @@ export default function CoachBuilderPage({
                             </button>
                           ))}
                           {!libraryLoading && builderExercises.length === 0 && (
-                            <div className="builderLibraryEmpty">
-                              No exercises match this search.
-                            </div>
+                            <div className="builderLibraryEmpty">{t("polishNoExercisesMatchThisSearch1df8")} </div>
                           )}
                         </div>
                       </aside>
@@ -2543,30 +2475,22 @@ export default function CoachBuilderPage({
                                 { setIsBuilderOrderOpen((current: any) => !current); setMobileLibraryPanel("order"); }
                               }
                             >
-                              <GripVertical size={16} />
-                              Exercise Order
-                            </button>
+                              <GripVertical size={16} />{t("polishExerciseOrderbc78")} </button>
                           )}
                         </div>
-                        {!focusedEditor && <p>
-                          Active section:{" "}
+                        {!focusedEditor && <p>{t("polishActiveSection34db")}{" "}
                           <strong>{pendingSectionName || builderSectionOptions[0]}</strong>
                         </p>}
                         {!focusedEditor && pendingSectionName === "Circuit" &&
                           builderLibraryMode !== "Sections" && (
                             <p className="builderCircuitHint">
-                              Exercises you add are linked as one circuit and
-                              run in sequence. Set <strong>Rounds</strong>,{" "}
-                              <strong>AMRAP</strong> or <strong>EMOM</strong>{" "}
-                              (+ minutes) on the circuit&apos;s first exercise.
+                              {t("coachCircuitAddHint")}
                             </p>
                           )}
                         {!focusedEditor && builderLibraryMode === "Sections" && (
                           <div className="builderSectionPicker builderSectionPickerInline">
-                            <h3>Choose a section</h3>
-                            <p>
-                              New exercises will be added under the selected section.
-                            </p>
+                            <h3>{t("polishChooseASection87f5")}</h3>
+                            <p>{t("polishNewExercisesWillBeAddedUnderTheSelectedSection2263")} </p>
                             <div className="builderSectionOptionGrid">
                               {builderSectionOptions.map((section: any) => (
                                 <button
@@ -2582,23 +2506,18 @@ export default function CoachBuilderPage({
                             </div>
                             {pendingSectionName === "Circuit" && (
                               <p className="builderCircuitHint">
-                                Exercises you add are linked as one circuit and
-                                run in sequence. Set <strong>Rounds</strong>,{" "}
-                                <strong>AMRAP</strong> or <strong>EMOM</strong>{" "}
-                                (+ minutes) on the circuit&apos;s first
-                                exercise. Add exercises in the order athletes
-                                should perform them.
+                                {t("coachCircuitAddHint")}
                               </p>
                             )}
                             <label>
-                              <span>Custom section</span>
+                              <span>{t("polishCustomSection8a73")}</span>
                               <div className="builderCustomSectionRow">
                                 <input
                                   value={customBuilderSectionName}
                                   onChange={(e) =>
                                     setCustomBuilderSectionName(e.target.value)
                                   }
-                                  placeholder="Return to sport, Fingerboard..."
+                                  placeholder={t("polishReturnToSportFingerboardd854")}
                                 />
                                 <button
                                   className="goldButton"
@@ -2613,12 +2532,10 @@ export default function CoachBuilderPage({
                                     }
                                     selectBuilderSection(customBuilderSectionName);
                                   }}
-                                >
-                                  Use
-                                </button>
+                                >{t("polishUse1d4d")} </button>
                               </div>
                               <div className="builderSectionColorRow">
-                                <small>Colour</small>
+                                <small>{t("polishColourf285")}</small>
                                 {CUSTOM_SECTION_COLORS.map((hex) => (
                                   <button
                                     key={hex}
@@ -2647,10 +2564,7 @@ export default function CoachBuilderPage({
                           {selectedProgramExercises.length === 0 ? (
                             <>
                               <Dumbbell size={28} />
-                              <span>
-                                Choose an exercise from the left to add it to this
-                                session.
-                              </span>
+                              <span>{t("polishChooseAnExerciseFromTheLeftToAddItToThisSessionb592")} </span>
                             </>
                           ) : (
                             <div
@@ -2693,8 +2607,7 @@ export default function CoachBuilderPage({
                                             ).toLowerCase()}`}
                                           >
                                             <Link2 size={15} />
-                                            <span>
-                                              Linked{" "}
+                                            <span>{t("polishLinkeda089")}{" "}
                                               {(exercise.groupType || "Superset").toLowerCase()}
                                             </span>
                                           </button>
@@ -2706,10 +2619,10 @@ export default function CoachBuilderPage({
                                               onClick={() =>
                                                 toggleBuilderSupersetLink(index)
                                               }
-                                              title="Link these exercises as a superset (alternate sets)"
+                                              title={t("polishLinkTheseExercisesAsASupersetAlternateSets047c")}
                                             >
                                               <Link2 size={15} />
-                                              <span>Link superset</span>
+                                              <span>{t("polishLinkSuperset7988")}</span>
                                             </button>
                                             <button
                                               type="button"
@@ -2717,10 +2630,10 @@ export default function CoachBuilderPage({
                                               onClick={() =>
                                                 toggleBuilderCircuitLink(index)
                                               }
-                                              title="Link these exercises as a circuit (rounds of every exercise back-to-back)"
+                                              title={t("polishLinkTheseExercisesAsACircuitRoundsOfEveryExerciseBackToBack40f1")}
                                             >
                                               <RefreshCw size={15} />
-                                              <span>Link circuit</span>
+                                              <span>{t("polishLinkCircuit4dda")}</span>
                                             </button>
                                           </>
                                         )}
@@ -2757,7 +2670,7 @@ export default function CoachBuilderPage({
                                   <AthletePrescriptionHistory exercise={exercise} history={prescriptionHistory} date={calendarBuilderContext?.date || ""} />
                                   <div className="builderModalEditGrid">
                                     <label>
-                                      <span>Label</span>
+                                      <span>{t("polishLabel7434")}</span>
                                       {/* Labels + badge colours are DERIVED:
                                           letter/colour from the Section, the
                                           number from order. A typed label was
@@ -2767,11 +2680,11 @@ export default function CoachBuilderPage({
                                         value={exercise.exerciseLabel}
                                         readOnly
                                         className="builderLabelDerived"
-                                        title="Set automatically — the letter and colour come from the Section, the number from order. Change the Section to change the letter/colour."
+                                        title={t("polishSetAutomaticallyTheLetterAndColourComeFromTheSectionTheNumberFrom0d68")}
                                       />
                                     </label>
                                     <label>
-                                      <span>Section</span>
+                                      <span>{t("polishSectionf2c6")}</span>
                                       <select
                                         value={exercise.sectionName}
                                         onChange={(e) =>
@@ -2792,7 +2705,7 @@ export default function CoachBuilderPage({
                                       </select>
                                     </label>
                                     <label className="builderModalCheck">
-                                      <span>Accessory</span>
+                                      <span>{t("polishAccessory9624")}</span>
                                       <input
                                         type="checkbox"
                                         checked={Boolean(exercise.isAccessory)}
@@ -2833,13 +2746,13 @@ export default function CoachBuilderPage({
                       {!focusedEditor && isBuilderOrderOpen && selectedProgramExercises.length > 0 && (
                         <aside className="builderArrangementSidebar builderModalOrderSidebar">
                           <div className="builderArrangementSidebarHeader">
-                            <span className="eyebrow">Order</span>
-                            <h4>Exercise Order</h4>
+                            <span className="eyebrow">{t("polishOrder1d75")}</span>
+                            <h4>{t("polishExerciseOrderbc78")}</h4>
                             <button
                               className="iconButton compactIconButton"
                               type="button"
                               onClick={() => { setIsBuilderOrderOpen(false); setMobileLibraryPanel("session"); }}
-                              aria-label="Collapse exercise order"
+                              aria-label={t("polishCollapseExerciseOrderbfee")}
                             >
                               <X size={15} />
                             </button>
@@ -2941,7 +2854,7 @@ export default function CoachBuilderPage({
                     <div className="builderSessionStats">
                       <div className="builderSessionStat">
                         <strong>{selectedProgramExercises.length}</strong>
-                        <span>Exercises</span>
+                        <span>{t("polishExercises4dc5")}</span>
                       </div>
                       <div className="builderSessionStat">
                         <strong>
@@ -2951,22 +2864,20 @@ export default function CoachBuilderPage({
                             0
                           )}
                         </strong>
-                        <span>Work sets</span>
+                        <span>{t("polishWorkSets125a")}</span>
                       </div>
                       <div className="builderSessionStat">
                         <strong>
                           ~{estimateSessionMinutes(selectedProgramExercises)}
-                          <em>min</em>
+                          <em>{t("polishMinb6c9")}</em>
                         </strong>
-                        <span>Est. duration</span>
+                        <span>{t("polishEstDurationdca1")}</span>
                       </div>
                     </div>
                     <button
                       className="goldButton compactBuilderButton"
                       onClick={() => openBuilderLibrary("Exercises")}
-                    >
-                      + Add Exercise
-                    </button>
+                    >{t("polishAddExercise3ca5")} </button>
                   </div>
                 )}
 
@@ -3051,13 +2962,11 @@ export default function CoachBuilderPage({
                             <div className="builderExerciseSummaryStats">
                               <span>{exercisePrescription(exercise, i18n.language.startsWith("zh")).summary}</span>
                               {exercise.load && <span>{exercise.load}</span>}
-                              {exercise.tempo && <span>Tempo {exercise.tempo}</span>}
-                              {exercise.rest && <span>Rest {exercise.rest}</span>}
+                              {exercise.tempo && <span>{t("polishTempo8996")} {exercise.tempo}</span>}
+                              {exercise.rest && <span>{t("polishRestb79e")} {exercise.rest}</span>}
                             </div>
 
-                            <span className="builderExerciseExpandIndicator">
-                              Edit
-                            </span>
+                            <span className="builderExerciseExpandIndicator">{t("polishEdit5301")} </span>
                           </button>
                           {bulkEditMode && (
                             <input
@@ -3096,8 +3005,7 @@ export default function CoachBuilderPage({
                               {renderCircuitSettingsPanel(exercise, index)}
                             </details>}
                             {exercise.isAccessory && (
-                              <span className="exerciseAccessoryPill">
-                                Accessory for{" "}
+                              <span className="exerciseAccessoryPill">{t("polishAccessoryFordd2d")}{" "}
                                 {exercise.accessoryParentLabel ||
                                   exercise.exerciseLabel ||
                                   "main lift"}
@@ -3142,7 +3050,7 @@ export default function CoachBuilderPage({
                           <details className="mbProgramDetails" open={isSingleWorkoutBuilder}>
                           <summary>{t("mobileProgramSettings")}</summary>
                           <div className="mbField">
-                            <span className="mbFieldLabel">Builder type</span>
+                            <span className="mbFieldLabel">{t("polishBuilderType18e9")}</span>
                             <select
                               className="miniSearch"
                               value={builderMode}
@@ -3152,8 +3060,8 @@ export default function CoachBuilderPage({
                                 )
                               }
                             >
-                              <option value="Single Workout">Single Workout</option>
-                              <option value="Program">Multi-Day Program</option>
+                              <option value="Single Workout">{t("polishSingleWorkout8b3d")}</option>
+                              <option value="Program">{t("polishMultiDayProgram407f")}</option>
                             </select>
                           </div>
 
@@ -3181,7 +3089,7 @@ export default function CoachBuilderPage({
                               className="miniSearch mbTextarea"
                               value={programGoal}
                               onChange={(e) => setProgramGoal(e.target.value)}
-                              placeholder="Optional"
+                              placeholder={t("polishOptional0c6c")}
                             />
                           </div>
 
@@ -3195,7 +3103,7 @@ export default function CoachBuilderPage({
                             <>
                               <div className="mbFieldRow">
                                 <div className="mbField">
-                                  <span className="mbFieldLabel">Week</span>
+                                  <span className="mbFieldLabel">{t("polishWeekf82b")}</span>
                                   <input
                                     className="miniSearch"
                                     inputMode="numeric"
@@ -3204,7 +3112,7 @@ export default function CoachBuilderPage({
                                   />
                                 </div>
                                 <div className="mbField">
-                                  <span className="mbFieldLabel">Day</span>
+                                  <span className="mbFieldLabel">{t("polishDay987b")}</span>
                                   <input
                                     className="miniSearch"
                                     inputMode="numeric"
@@ -3214,12 +3122,12 @@ export default function CoachBuilderPage({
                                 </div>
                               </div>
                               <div className="mbField">
-                                <span className="mbFieldLabel">Session name</span>
+                                <span className="mbFieldLabel">{t("polishSessionName9dd6")}</span>
                                 <input
                                   className="miniSearch"
                                   value={sessionName}
                                   onChange={(e) => setSessionName(e.target.value)}
-                                  placeholder="e.g. Lower Strength"
+                                  placeholder={t("polishEGLowerStrength497a")}
                                 />
                               </div>
                               {programSessions.length > 0 && (
@@ -3234,16 +3142,12 @@ export default function CoachBuilderPage({
                           <button
                             className="goldButton mbFullButton"
                             onClick={() => setMobileBuilderStep("editor")}
-                          >
-                            Next
-                          </button>
+                          >{t("polishNextbc98")} </button>
                           {!isSingleWorkoutBuilder && (
                               <button
                                 className="outlineButton mbFullButton"
                                 onClick={() => setMobileBuilderStep("overview")}
-                              >
-                                View program ›
-                              </button>
+                              >{t("polishViewProgram2e88")} </button>
                             )}
                         </div>
                       ) : (
@@ -3253,32 +3157,25 @@ export default function CoachBuilderPage({
                               <button
                                 className="mbTextButton"
                                 onClick={() => setMobileBuilderStep("details")}
-                              >
-                                ‹ Details
-                              </button>
+                              >{t("polishDetailsa328")} </button>
                               <strong>{programName || "Untitled"}</strong>
                             </div>
 
                             {selectedProgramExercises.length === 0 ? (
                               <div className="mbEmpty">
-                                <h3>Add Exercises</h3>
+                                <h3>{t("polishAddExercisesa4ef")}</h3>
                                 <p>
-                                  Add at least one exercise to build this{" "}
-                                  {isSingleWorkoutBuilder ? "workout" : "day"}.
+                                  {t("coachAddFirstExercise")}
                                 </p>
                                 <button
                                   className="goldButton mbFullButton"
                                   onClick={openMobilePicker}
-                                >
-                                  Add Exercise
-                                </button>
+                                >{t("polishAddExercise0ca1")} </button>
                                 {!isSingleWorkoutBuilder && (
                                   <button
                                     className="outlineButton mbFullButton"
                                     onClick={openMobileLibPick}
-                                  >
-                                    Insert saved session
-                                  </button>
+                                  >{t("polishInsertSavedSessioncc09")} </button>
                                 )}
                               </div>
                             ) : (
@@ -3317,17 +3214,13 @@ export default function CoachBuilderPage({
                                             onClick={() =>
                                               toggleBuilderSupersetLink(index)
                                             }
-                                          >
-                                            + Link as superset
-                                          </button>
+                                          >{t("polishLinkAsSupersetf478")} </button>
                                           <button
                                             className="mobileSupersetLinkButton"
                                             onClick={() =>
                                               toggleBuilderCircuitLink(index)
                                             }
-                                          >
-                                            + Link as circuit
-                                          </button>
+                                          >{t("polishLinkAsCircuit37b2")} </button>
                                         </div>
                                       )}
                                       </details>
@@ -3352,7 +3245,7 @@ export default function CoachBuilderPage({
                                         </button>
                                         <button
                                           className="mbCardMenuBtn"
-                                          aria-label="Exercise options"
+                                          aria-label={t("polishExerciseOptionsb4ed")}
                                           onClick={() => setMobileMenuIndex(index)}
                                         >
                                           <MoreVertical size={18} />
@@ -3373,16 +3266,12 @@ export default function CoachBuilderPage({
                             <button
                               className="outlineButton"
                               onClick={openMobilePicker}
-                            >
-                              + Add
-                            </button>
+                            >{t("polishAdd109b")} </button>
                             {selectedProgramExercises.length > 1 && (
                               <button
                                 className="outlineButton"
                                 onClick={() => setMobileBuilderStep("arrange")}
-                              >
-                                Arrange
-                              </button>
+                              >{t("polishArrangecfdd")} </button>
                             )}
                             {isSingleWorkoutBuilder ? (
                               <button
@@ -3412,7 +3301,7 @@ export default function CoachBuilderPage({
                         className="mobileSheet"
                         role="dialog"
                         aria-modal="true"
-                        aria-label="Select exercises"
+                        aria-label={t("polishSelectExercisesc770")}
                       >
                         <header className="mobileBuilderHeader">
                           <button
@@ -3422,7 +3311,7 @@ export default function CoachBuilderPage({
                               setSwapExerciseIndex(null);
                               setMobileBuilderStep("editor");
                             }}
-                            aria-label="Back"
+                            aria-label={t("polishBackb52b")}
                           >
                             ‹
                           </button>
@@ -3446,7 +3335,7 @@ export default function CoachBuilderPage({
                         </header>
                         <div className="mobileBuilderBody">
                           <div className="mbField">
-                            <span className="mbFieldLabel">Section</span>
+                            <span className="mbFieldLabel">{t("polishSectionf2c6")}</span>
                             <select
                               className="miniSearch"
                               value={pendingSectionName}
@@ -3463,17 +3352,16 @@ export default function CoachBuilderPage({
                             className="miniSearch mbSearchInput"
                             value={builderSearch}
                             onChange={(e) => setBuilderSearch(e.target.value)}
-                            placeholder="Search exercise…"
+                            placeholder={t("polishSearchExercisec4cc")}
                           />
                           <button
                             type="button"
                             className="builderCreateExerciseCard mbCreateExercise"
                             onClick={openCreateExerciseFromBuilder}
                           >
-                            <Plus size={14} /> Create Exercise
-                          </button>
+                            <Plus size={14} />{t("polishCreateExerciseb53a")} </button>
                           {libraryLoading && builderExercises.length === 0 && (
-                            <p className="mbHint">Loading exercises…</p>
+                            <p className="mbHint">{t("polishLoadingExercisesd450")}</p>
                           )}
                           {builderExercises.map((exercise: any) => {
                             const key =
@@ -3517,7 +3405,7 @@ export default function CoachBuilderPage({
                           })}
                           {!libraryLoading &&
                             builderExercises.length === 0 && (
-                              <p className="mbHint">No exercises match.</p>
+                              <p className="mbHint">{t("polishNoExercisesMatch16db")}</p>
                             )}
                         </div>
                       </div>
@@ -3533,17 +3421,15 @@ export default function CoachBuilderPage({
                           onClick={(e) => e.stopPropagation()}
                           role="dialog"
                           aria-modal="true"
-                          aria-label="Arrange exercises"
+                          aria-label={t("polishArrangeExercises94f0")}
                         >
                           <div className="mobileSheetHandle" />
                           <div className="mobileSheetTitleRow">
-                            <h3>Arrange exercises</h3>
+                            <h3>{t("polishArrangeExercises94f0")}</h3>
                             <button
                               className="mbHeaderAction"
                               onClick={() => setMobileBuilderStep("editor")}
-                            >
-                              Done
-                            </button>
+                            >{t("polishDonee9b4")} </button>
                           </div>
                           <div className="mobileSheetScroll">
                             {(() => {
@@ -3574,8 +3460,7 @@ export default function CoachBuilderPage({
                                   <div className="mobileArrangeBody">
                                     {item.isLinkedGroup && (
                                       <span className="mobileArrangeSupersetTag">
-                                        <Link2 size={13} /> Superset
-                                      </span>
+                                        <Link2 size={13} />{t("polishSupersetd568")} </span>
                                     )}
                                     {item.exercises.map((exercise: any, subIndex: any) => (
                                       <span
@@ -3748,22 +3633,22 @@ export default function CoachBuilderPage({
                         className="mobileSheet"
                         role="dialog"
                         aria-modal="true"
-                        aria-label="Select saved session"
+                        aria-label={t("polishSelectSavedSessionea91")}
                       >
                         <header className="mobileBuilderHeader">
                           <button
                             className="mbHeaderBack"
                             onClick={() => setMobileBuilderStep("editor")}
-                            aria-label="Back"
+                            aria-label={t("polishBackb52b")}
                           >
                             ‹
                           </button>
-                          <h2>Insert session</h2>
+                          <h2>{t("polishInsertSessionb53b")}</h2>
                           <span style={{ width: 40 }} />
                         </header>
                         <div className="mobileBuilderBody">
                           <div className="mbField">
-                            <span className="mbFieldLabel">From program</span>
+                            <span className="mbFieldLabel">{t("polishFromProgram22b1")}</span>
                             <select
                               className="miniSearch"
                               value={sessionLibProgramId}
@@ -3778,7 +3663,7 @@ export default function CoachBuilderPage({
                                 }
                               }}
                             >
-                              <option value="">Choose a program…</option>
+                              <option value="">{t("polishChooseAProgram45d8")}</option>
                               {programs.map((pp: any) => (
                                 <option key={pp.recordId} value={pp.programId}>
                                   {pp.programName}
@@ -3787,14 +3672,12 @@ export default function CoachBuilderPage({
                             </select>
                           </div>
                           {sessionLibLoading && (
-                            <p className="mbHint">Loading sessions…</p>
+                            <p className="mbHint">{t("polishLoadingSessions3164")}</p>
                           )}
                           {!sessionLibLoading &&
                             sessionLibProgramId &&
                             sessionLibSessions.length === 0 && (
-                              <p className="mbHint">
-                                No sessions in this program.
-                              </p>
+                              <p className="mbHint">{t("polishNoSessionsInThisProgramf4b6")} </p>
                             )}
                           {sessionLibSessions.map((s: any) => (
                             <button
@@ -3807,7 +3690,7 @@ export default function CoachBuilderPage({
                                 <strong>
                                   {s.sessionName || `W${s.week} D${s.day}`}
                                 </strong>
-                                <small>{s.exercises.length} exercises</small>
+                                <small>{s.exercises.length}{t("polishExercises0ee6")}</small>
                               </span>
                             </button>
                           ))}
@@ -3826,10 +3709,10 @@ export default function CoachBuilderPage({
                             onClick={(e) => e.stopPropagation()}
                             role="dialog"
                             aria-modal="true"
-                            aria-label="Exercise options"
+                            aria-label={t("polishExerciseOptionsb4ed")}
                           >
                             <div className="mobileSheetHandle" />
-                            <h3 className="mobileOptionsTitle">Exercise options</h3>
+                            <h3 className="mobileOptionsTitle">{t("polishExerciseOptionsb4ed")}</h3>
                             <div className="mobileOptionsGrid">
                               {/* "Details" (the per-set % / tempo table) moved
                                   to an inline link on the card — this slot now
@@ -3843,9 +3726,7 @@ export default function CoachBuilderPage({
                               >
                                 <span className="mbOptIcon">
                                   <RefreshCw size={22} />
-                                </span>
-                                Change
-                              </button>
+                                </span>{t("polishChange64fb")} </button>
                               <button
                                 onClick={() => {
                                   viewProgramExercise(
@@ -3856,9 +3737,7 @@ export default function CoachBuilderPage({
                               >
                                 <span className="mbOptIcon">
                                   <Film size={22} />
-                                </span>
-                                View exercise
-                              </button>
+                                </span>{t("polishViewExercise6a3d")} </button>
                               {/* Edit-on-the-fly: same library editor the
                                   desktop builder kebab opens — fix a video or
                                   name without leaving the session. */}
@@ -3898,9 +3777,7 @@ export default function CoachBuilderPage({
                               >
                                 <span className="mbOptIcon">
                                   <Copy size={22} />
-                                </span>
-                                Duplicate
-                              </button>
+                                </span>{t("polishDuplicate972d")} </button>
                               <button
                                 onClick={() => {
                                   removeProgramExercise(mobileMenuIndex);
@@ -3909,9 +3786,7 @@ export default function CoachBuilderPage({
                               >
                                 <span className="mbOptIcon mbOptIconDanger">
                                   <Trash2 size={22} />
-                                </span>
-                                Delete
-                              </button>
+                                </span>{t("polishDeletef6fd")} </button>
                             </div>
                           </div>
                         </div>
@@ -3944,14 +3819,10 @@ export default function CoachBuilderPage({
                               <button
                                 className="mbHeaderAction"
                                 onClick={() => setMobileDetailsIndex(null)}
-                              >
-                                Done
-                              </button>
+                              >{t("polishDonee9b4")} </button>
                             </div>
                             <div className="mobileSheetScroll">
-                              <p className="mbDetailsHint">
-                                Full set detail — load, %1RM, tempo, rest
-                                {isCardioCategory(
+                              <p className="mbDetailsHint">{t("polishFullSetDetailLoad1RMTempoResta800")} {isCardioCategory(
                                   selectedProgramExercises[mobileDetailsIndex]
                                     .sectionName
                                 )
@@ -4011,22 +3882,17 @@ export default function CoachBuilderPage({
                             >
                               <div className="mobileSheetHandle" />
                               <div className="mobileSheetTitleRow">
-                                <h3>Alternates · {ex.exerciseName}</h3>
+                                <h3>{t("polishAlternates90d6")} {ex.exerciseName}</h3>
                                 <button
                                   className="mbHeaderAction"
                                   onClick={() => setMobileAlternateIndex(null)}
-                                >
-                                  Done
-                                </button>
+                                >{t("polishDonee9b4")} </button>
                               </div>
                               <div className="mobileSheetScroll">
-                                <p className="mbDetailsHint">
-                                  Swaps the athlete can use instead of this
-                                  exercise.
-                                </p>
+                                <p className="mbDetailsHint">{t("polishSwapsTheAthleteCanUseInsteadOfThisExercisee604")} </p>
 
                                 {alts.length === 0 ? (
-                                  <p className="mbHint">No alternates yet.</p>
+                                  <p className="mbHint">{t("polishNoAlternatesYetc3dc")}</p>
                                 ) : (
                                   <div className="mbAltList">
                                     {alts.map((a: any, ai: any) => (
@@ -4041,7 +3907,7 @@ export default function CoachBuilderPage({
                                         <div className="mbAltActions">
                                           <button
                                             disabled={ai === 0}
-                                            aria-label="Move up"
+                                            aria-label={t("polishMoveUpb4f5")}
                                             onClick={() =>
                                               reorderAlternateExercise(
                                                 exIdx,
@@ -4054,7 +3920,7 @@ export default function CoachBuilderPage({
                                           </button>
                                           <button
                                             disabled={ai === alts.length - 1}
-                                            aria-label="Move down"
+                                            aria-label={t("polishMoveDown260f")}
                                             onClick={() =>
                                               reorderAlternateExercise(
                                                 exIdx,
@@ -4086,12 +3952,12 @@ export default function CoachBuilderPage({
                                   onChange={(e) =>
                                     setAlternateSearch(e.target.value)
                                   }
-                                  placeholder="Search to add an alternate…"
+                                  placeholder={t("polishSearchToAddAnAlternate2546")}
                                 />
                                 <div className="mbAltLibrary">
                                   {libraryLoading &&
                                     libraryExercises.length === 0 && (
-                                      <p className="mbHint">Loading…</p>
+                                      <p className="mbHint">{t("polishLoading33ce")}</p>
                                     )}
                                   {available.map((le: any) => (
                                     <button
@@ -4107,7 +3973,7 @@ export default function CoachBuilderPage({
                                   ))}
                                   {!libraryLoading &&
                                     available.length === 0 && (
-                                      <p className="mbHint">No matches.</p>
+                                      <p className="mbHint">{t("polishNoMatches0be6")}</p>
                                     )}
                                 </div>
                               </div>
@@ -4122,14 +3988,12 @@ export default function CoachBuilderPage({
                   <section className="programLibraryPanel">
                     <div className="programLibraryHeader programLandingHeader">
                       <div className="programLandingControls">
-                        <span className="programViewSelect programViewStatic">
-                          All forms
-                        </span>
+                        <span className="programViewSelect programViewStatic">{t("polishAllForms04f4")} </span>
                         <input
                           className="templateSearchInput programLandingSearch"
                           value={savedFormSearch}
                           onChange={(e) => setSavedFormSearch(e.target.value)}
-                          placeholder="Search forms..."
+                          placeholder={t("polishSearchForms9253")}
                         />
                       </div>
 
@@ -4137,28 +4001,24 @@ export default function CoachBuilderPage({
                     <div className="programLibraryStack">
                       <div className="programTable wkFormsTable">
                         <div className="programTableHead">
-                          <span>Title</span>
-                          <span>Type</span>
-                          <span>Items</span>
-                          <span>Created By</span>
-                          <span className="programTableActionsHead">Actions</span>
+                          <span>{t("polishTitle768e")}</span>
+                          <span>{t("polishType3deb")}</span>
+                          <span>{t("polishItems44d2")}</span>
+                          <span>{t("polishCreatedBy43de")}</span>
+                          <span className="programTableActionsHead">{t("polishActionsc3cd")}</span>
                         </div>
                         {formTemplatesLoading &&
                           savedFormTemplates.length === 0 && (
-                            <p className="programTableEmpty">Loading…</p>
+                            <p className="programTableEmpty">{t("polishLoading33ce")}</p>
                           )}
                         {!formTemplatesLoading &&
                           savedFormTemplates.length === 0 && (
-                            <p className="programTableEmpty">
-                              No saved forms yet. Create one to assign to clients.
-                            </p>
+                            <p className="programTableEmpty">{t("polishNoSavedFormsYetCreateOneToAssignToClients2172")} </p>
                           )}
                         {!formTemplatesLoading &&
                           savedFormTemplates.length > 0 &&
                           visibleSavedForms.length === 0 && (
-                            <p className="programTableEmpty">
-                              No forms match your search.
-                            </p>
+                            <p className="programTableEmpty">{t("polishNoFormsMatchYourSearch3ae9")} </p>
                           )}
                         {visibleSavedForms.map((form: any) => {
                           const initials =
@@ -4197,8 +4057,7 @@ export default function CoachBuilderPage({
                                 </span>
                               </span>
                               <span className="programTableCell">
-                                {(form.questions?.length ?? 0)} questions
-                              </span>
+                                {(form.questions?.length ?? 0)}{t("polishQuestionsff3d")} </span>
                               <span className="programTableCell">
                                 {form.createdBy || form.coach || "—"}
                               </span>
@@ -4209,7 +4068,7 @@ export default function CoachBuilderPage({
                                 <button
                                   type="button"
                                   className="iconActionButton"
-                                  title="Duplicate form"
+                                  title={t("polishDuplicateForm4a5d")}
                                   onClick={() => duplicateSavedFormIntoBuilder(form)}
                                 >
                                   <Copy size={16} />
@@ -4217,7 +4076,7 @@ export default function CoachBuilderPage({
                                 <button
                                   type="button"
                                   className="iconActionButton dangerMenuItem"
-                                  title="Delete form"
+                                  title={t("polishDeleteForme51f")}
                                   onClick={() => deleteSavedFormTemplate(form)}
                                 >
                                   <Trash2 size={16} />
@@ -4238,33 +4097,26 @@ export default function CoachBuilderPage({
                       className="builderBackLink"
                       onClick={() => setFormView("list")}
                     >
-                      <ChevronLeft size={16} /> Forms
-                    </button>
+                      <ChevronLeft size={16} />{t("polishForms4bec")} </button>
                     <div className="builderHubHeader builderToneHeader">
                       <div>
-                        <h2>Form & Questionnaire Builder</h2>
-                        <p>
-                          Build check-ins, intake forms, readiness surveys, and custom questionnaires for coach assignment.
-                        </p>
+                        <h2>{t("polishFormQuestionnaireBuilder9b72")}</h2>
+                        <p>{t("polishBuildCheckInsIntakeFormsReadinessSurveysAndCustomQuestionnairesFo1d31")} </p>
                       </div>
                       <div className="builderHubActions">
                         <details className="savedTemplateDropdown">
-                          <summary className="outlineButton">
-                            Saved Forms
-                            <span>{savedFormTemplates.length}</span>
+                          <summary className="outlineButton">{t("polishSavedForms370a")} <span>{savedFormTemplates.length}</span>
                           </summary>
                           <div className="savedTemplateDropdownMenu">
                             <div className="savedTemplateHeader">
-                              <h3>Saved Forms</h3>
+                              <h3>{t("polishSavedForms370a")}</h3>
                               <button
                                 className="outlineButton"
                                 onClick={(event) => {
                                   event.preventDefault();
                                   void loadFormTemplates(true);
                                 }}
-                              >
-                                Reload
-                              </button>
+                              >{t("polishReloadcce7")} </button>
                             </div>
 
                             <input
@@ -4273,22 +4125,22 @@ export default function CoachBuilderPage({
                               onChange={(event) =>
                                 setSavedFormSearch(event.target.value)
                               }
-                              placeholder="Search forms..."
+                              placeholder={t("polishSearchForms9253")}
                             />
 
                             {formTemplatesLoading && (
-                              <p className="emptyState">Loading forms...</p>
+                              <p className="emptyState">{t("polishLoadingFormsc68a")}</p>
                             )}
 
                             {!formTemplatesLoading &&
                               savedFormTemplates.length === 0 && (
-                                <p className="emptyState">No saved forms yet.</p>
+                                <p className="emptyState">{t("polishNoSavedFormsYet6be8")}</p>
                               )}
 
                             {!formTemplatesLoading &&
                               savedFormTemplates.length > 0 &&
                               visibleSavedForms.length === 0 && (
-                                <p className="emptyState">No forms match your search.</p>
+                                <p className="emptyState">{t("polishNoFormsMatchYourSearch3ae9")}</p>
                               )}
 
                             <div className="savedTemplateList">
@@ -4313,31 +4165,25 @@ export default function CoachBuilderPage({
                                       {form.name || form.formId || "Untitled Form"}
                                     </strong>
                                     <span>{form.type || "Form"}</span>
-                                    <small>{form.questions.length} questions</small>
+                                    <small>{form.questions.length}{t("polishQuestionsff3d")}</small>
                                   </button>
                                   <details className="templateActionMenu">
-                                    <summary aria-label="Template actions">...</summary>
+                                    <summary aria-label={t("polishTemplateActionsa931")}>...</summary>
                                     <div>
                                       <button
                                         type="button"
                                         onClick={() => loadSavedFormIntoBuilder(form)}
-                                      >
-                                        Edit
-                                      </button>
+                                      >{t("polishEdit5301")} </button>
                                       <button
                                         type="button"
                                         onClick={() =>
                                           duplicateSavedFormIntoBuilder(form)
                                         }
-                                      >
-                                        Duplicate
-                                      </button>
+                                      >{t("polishDuplicate972d")} </button>
                                       <button
                                         type="button"
                                         onClick={() => deleteSavedFormTemplate(form)}
-                                      >
-                                        Delete
-                                      </button>
+                                      >{t("polishDeletef6fd")} </button>
                                     </div>
                                   </details>
                                 </div>
@@ -4363,7 +4209,7 @@ export default function CoachBuilderPage({
                     <div className="builderHubMain">
                         <div className="builderHubGrid">
                           <label>
-                            <span>Form Name</span>
+                            <span>{t("polishFormName3baf")}</span>
                             <input
                               className="miniSearch"
                               value={formTemplateName}
@@ -4371,44 +4217,42 @@ export default function CoachBuilderPage({
                             />
                           </label>
                           <label>
-                            <span>Type</span>
+                            <span>{t("polishType3deb")}</span>
                             <select
                               className="miniSearch"
                               value={formTemplateType}
                               onChange={(e) => setFormTemplateType(e.target.value)}
                             >
-                              <option>Check-in</option>
-                              <option>Questionnaire</option>
-                              <option>Intake</option>
-                              <option>Readiness</option>
-                              <option>Custom</option>
+                              <option>{t("polishCheckIn4843")}</option>
+                              <option>{t("polishQuestionnaire42d2")}</option>
+                              <option>{t("polishIntaked9e7")}</option>
+                              <option>{t("polishReadiness6dc1")}</option>
+                              <option>{t("polishCustom081a")}</option>
                             </select>
                           </label>
                         </div>
 
                         <div className="builderHubList">
                           <div className="exerciseTitleRow">
-                            <h3>Questions</h3>
-                            <button className="outlineButton" onClick={addFormQuestion}>
-                              + Add Question
-                            </button>
+                            <h3>{t("polishQuestions9a1f")}</h3>
+                            <button className="outlineButton" onClick={addFormQuestion}>{t("polishAddQuestion1475")} </button>
                           </div>
 
                           {formQuestions.map((question: any, index: any) => (
                             <div className="builderHubRow" key={`${question.id}-${index}`}>
                               <label>
-                                <span>Question</span>
+                                <span>{t("polishQuestion002f")}</span>
                                 <input
                                   className="miniSearch"
                                   value={question.label}
                                   onChange={(e) =>
                                     updateFormQuestion(index, "label", e.target.value)
                                   }
-                                  placeholder="Question text"
+                                  placeholder={t("polishQuestionTextdda9")}
                                 />
                               </label>
                               <label>
-                                <span>Type</span>
+                                <span>{t("polishType3deb")}</span>
                                 <select
                                   className="miniSearch"
                                   value={question.questionType}
@@ -4420,14 +4264,14 @@ export default function CoachBuilderPage({
                                     )
                                   }
                                 >
-                                  <option>Text</option>
-                                  <option>Long Text</option>
-                                  <option>Number</option>
-                                  <option>Scale</option>
-                                  <option>Single Select</option>
-                                  <option>Multi Select</option>
-                                  <option>Yes/No</option>
-                                  <option>Date</option>
+                                  <option>{t("polishTextc332")}</option>
+                                  <option>{t("polishLongText3afc")}</option>
+                                  <option>{t("polishNumberb7ba")}</option>
+                                  <option>{t("polishScalea29f")}</option>
+                                  <option>{t("polishSingleSelectc17b")}</option>
+                                  <option>{t("polishMultiSelect9ffa")}</option>
+                                  <option>{t("polishYesNo9f62")}</option>
+                                  <option>{t("polishDateeb9a")}</option>
                                 </select>
                               </label>
                               <label className="builderCheckboxLabel">
@@ -4442,14 +4286,12 @@ export default function CoachBuilderPage({
                                     )
                                   }
                                 />
-                                <span>Required</span>
+                                <span>{t("polishRequiredeed6")}</span>
                               </label>
                               <button
                                 className="outlineButton"
                                 onClick={() => removeFormQuestion(index)}
-                              >
-                                Remove
-                              </button>
+                              >{t("polishRemovee963")} </button>
                             </div>
                           ))}
                         </div>

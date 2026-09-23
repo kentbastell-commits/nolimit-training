@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { coachingToday } from "./coachingCalendar";
 // Extracted from App.tsx (monolith split) — JSX verbatim; props threaded.
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { DragEvent } from "react";
@@ -17,7 +18,7 @@ const CAT_ICON: Record<string, any> = {
 const catIcon = (cc: string) => CAT_ICON[cc] || Dumbbell;
 import PortalToApp from "./PortalToApp";
 import type { CalendarView } from "./appCore";
-import { dateToInputValue, formatCalendarLabel, formatMonthTitle, getAssignmentColorClass, getDisplayTaskStatus, getMonthDates, getSessionTypeClass, getStatusClass, getWorkoutColorClass, glanceRepsToken, exercisePrescription, normalizeDate } from "./appCore";
+import { dateToInputValue, formatCalendarLabel, getAssignmentColorClass, getDisplayTaskStatus, getMonthDates, getSessionTypeClass, getStatusClass, getWorkoutColorClass, glanceRepsToken, exercisePrescription, normalizeDate } from "./appCore";
 
 export default function PortalTraining({
   calendarDropWorkoutId,
@@ -294,7 +295,7 @@ export default function PortalTraining({
 
                   {false && isClientPortal && clientPortalUpcomingWorkouts.length > 0 && (
                     <section className="clientPortalWorkoutList">
-                      <h3>Upcoming Workouts</h3>
+                      <h3>{t("polishUpcomingWorkouts1a28")}</h3>
                       {clientPortalUpcomingWorkouts.map((workout: any) => (
                         <button
                           key={workout.id}
@@ -307,8 +308,7 @@ export default function PortalTraining({
                             )}
                           </span>
                           <strong>{workout.sessionName || "Workout"}</strong>
-                          <small>
-                            Week {workout.week} • Day {workout.day} •{" "}
+                          <small>{t("polishWeekf82b")} {workout.week}{t("polishDayd420")} {workout.day} •{" "}
                             {localizeTaskStatus(getDisplayTaskStatus(
                               workout.completionStatus,
                               workout.scheduledDate
@@ -485,7 +485,7 @@ export default function PortalTraining({
 
                   {!isClientPortal && (
                     <div className="calendarHeader">
-                      <h2>{t("trainingCalendar")}</h2>
+                      <div><h2>{t("trainingCalendar")}</h2><small>{t("coachCalendarZone")}</small></div>
                       <div className="calendarControls">
                       <div className="clientCalendarViewToggle">
                         {(["Week", "Month", "Full"] as CalendarView[]).map(
@@ -570,7 +570,7 @@ export default function PortalTraining({
                             return;
                           }
 
-                          setCalendarAnchorDate(dateToInputValue(new Date()));
+                          setCalendarAnchorDate(coachingToday());
                         }}
                       >
                         {t("today")}
@@ -588,7 +588,7 @@ export default function PortalTraining({
                         </button>
                       ) : null}
 
-                      <label className="calendarDatePickerButton" title="Choose date">
+                      <label className="calendarDatePickerButton" title={t("polishChooseDatee787")}>
                         <CalendarDays size={18} strokeWidth={2.2} aria-hidden="true" />
                         <span className="srOnly">{t("chooseDate")}</span>
                         <input
@@ -613,11 +613,11 @@ export default function PortalTraining({
 
                   {false && !isClientPortal && (
                   <section className="assignProgramPanel">
-                    <h3>Assign Task</h3>
+                    <h3>{t("polishAssignTaska96a")}</h3>
 
                     <div className="assignProgramGrid">
                       <label>
-                        <span>Type</span>
+                        <span>{t("polishType3deb")}</span>
                         <select
                           className="miniSearch"
                           value={assignmentType}
@@ -633,16 +633,16 @@ export default function PortalTraining({
                             setAssignStartDate(calendarAnchorDate);
                           }}
                         >
-                          <option>Program</option>
-                          <option>Check-in</option>
-                          <option>Questionnaire</option>
-                          <option>Physical Test</option>
+                          <option>{t("polishProgram9d68")}</option>
+                          <option>{t("polishCheckIn4843")}</option>
+                          <option>{t("polishQuestionnaire42d2")}</option>
+                          <option>{t("polishPhysicalTestdc27")}</option>
                         </select>
                       </label>
 
                       {assignmentType === "Program" ? (
                         <label>
-                          <span>Program</span>
+                          <span>{t("polishProgram9d68")}</span>
                           <select
                             className="miniSearch"
                             value={selectedAssignProgramId}
@@ -688,7 +688,7 @@ export default function PortalTraining({
                       )}
 
                       <label>
-                        <span>Start Date</span>
+                        <span>{t("polishStartDate9d7a")}</span>
                         <input
                           ref={calendarAssignmentDateInputRef}
                           type="date"
@@ -750,15 +750,15 @@ export default function PortalTraining({
 
                     {assignmentType === "Program" && assignableWorkouts.length > 0 && (
                       <div className="arrangeWorkouts">
-                        <h4>Arrange Workouts</h4>
+                        <h4>{t("polishArrangeWorkouts4458")}</h4>
 
                         {assignableWorkouts.map((workout: any) => (
                           <div
                             key={workout.localId}
                             className="arrangeWorkoutRow"
                           >
-                            <span>Week {workout.week}</span>
-                            <span>Day {workout.day}</span>
+                            <span>{t("polishWeekf82b")} {workout.week}</span>
+                            <span>{t("polishDay987b")} {workout.day}</span>
                             <strong>{workout.sessionName}</strong>
                             {workout.sessionType && (
                               <span className="sessionTypeMini">
@@ -798,7 +798,7 @@ export default function PortalTraining({
                   {!isClientPortal && calendarView === "Week" && <nav className="coachWeekJump" aria-label={t("trainingCalendar")}>
                     {calendarDates.map((date: string) => <button key={date} type="button" className={date === calendarAnchorDate ? "active" : ""}
                       onClick={() => { setCalendarAnchorDate(date); requestAnimationFrame(() => document.querySelector(`[data-cal-day="${date}"]`)?.scrollIntoView({ block: "nearest", behavior: "smooth" })); }}>
-                      <span>{new Date(`${date}T12:00:00`).toLocaleDateString(useChineseClientText ? "zh-CN" : "en", { weekday: "narrow" })}</span>
+                      <span>{new Date(`${date}T12:00:00`).toLocaleDateString(i18n.language.startsWith("zh") ? "zh-CN" : "en", { weekday: "narrow" })}</span>
                       <strong>{Number(date.slice(8, 10))}</strong><i className={getCalendarItemCountForDate(date) ? "hasSessions" : ""} />
                     </button>)}
                   </nav>}
@@ -946,15 +946,13 @@ export default function PortalTraining({
                                       event.stopPropagation();
                                       void pasteCalendarItemToDate(date);
                                     }}
-                                  >
-                                    Paste
-                                  </button>
+                                  >{t("polishPastedb24")} </button>
                                 )}
                                 <button
                                   className="calendarDayActionButton"
                                   type="button"
                                   aria-label={`Add item on ${localizedCalendarLabel(date)}`}
-                                  title="Add program or session"
+                                  title={t("polishAddProgramOrSession623a")}
                                   onClick={(event) => {
                                     event.stopPropagation();
                                     setCalAddMenu({
@@ -1127,7 +1125,7 @@ export default function PortalTraining({
                                     </span>
                                   );
                                 })()}
-                              <div className="workoutBlockMain">
+                              <div className="workoutBlockMain" data-today-label={t("today")}>
                                 {sessionActions(workout)}
                                 <b className="calendarWorkoutName">{localizedWorkoutName(workout)}</b>
                                 {!isClientPortal && <span className="coachCalendarCompactMeta">{t("week")} {workout.week} · {t("day")} {workout.day} · {localizeTaskStatus(getDisplayTaskStatus(workout.completionStatus, workout.scheduledDate))}</span>}
@@ -1257,7 +1255,7 @@ export default function PortalTraining({
                                 role="button"
                                 tabIndex={0}
                                 draggable={!isClientPortal}
-                                title="Open assignment"
+                                title={t("polishOpenAssignment82fa")}
                                 onDragStart={(event) => {
                                   if (isClientPortal) return;
                                   event.dataTransfer.setData(
@@ -1302,7 +1300,7 @@ export default function PortalTraining({
                                   }
                                 }}
                               >
-                                <div className="workoutBlockMain">
+                                <div className="workoutBlockMain" data-today-label={t("today")}>
                                   {getAssignmentDisplayName(assignment)}
                                   <span>
                                     {movingAssignmentId === assignment.recordId
@@ -1363,7 +1361,7 @@ export default function PortalTraining({
                             data-client-calendar-workout-id={workout.id}
                             data-client-calendar-date={calendarAnchorDate}
                             draggable={clientCanReschedule}
-                            title="Drag to another date or tap to open"
+                            title={t("polishDragToAnotherDateOrTapToOpen968d")}
                             onDragStart={(event) => {
                               event.dataTransfer.setData("text/plain", workout.id);
                               event.dataTransfer.effectAllowed = "move";
@@ -1473,9 +1471,7 @@ export default function PortalTraining({
                                     void deleteContentAssignment(assignment);
                                   }
                                 }}
-                              >
-                                Delete
-                              </span>
+                              >{t("polishDeletef6fd")} </span>
                             )}
                           </button>
                         ))}
@@ -1496,7 +1492,7 @@ export default function PortalTraining({
                             type="button"
                             className="clientMonthArrow"
                             onClick={() => moveClientMonth(-1)}
-                            aria-label="Previous month"
+                            aria-label={t("polishPreviousMonth46a2")}
                           >
                             {"<"}
                           </button>
@@ -1505,7 +1501,7 @@ export default function PortalTraining({
                             type="button"
                             className="clientMonthArrow"
                             onClick={() => moveClientMonth(1)}
-                            aria-label="Next month"
+                            aria-label={t("polishNextMonth8abf")}
                           >
                             {">"}
                           </button>
@@ -1633,7 +1629,7 @@ export default function PortalTraining({
                               data-client-calendar-workout-id={workout.id}
                               data-client-calendar-date={calendarAnchorDate}
                               draggable={clientCanReschedule}
-                              title="Drag to another date or tap to open"
+                              title={t("polishDragToAnotherDateOrTapToOpen968d")}
                               onDragStart={(event) => {
                                 event.dataTransfer.setData("text/plain", workout.id);
                                 event.dataTransfer.effectAllowed = "move";
@@ -1762,9 +1758,7 @@ export default function PortalTraining({
                                       void deleteContentAssignment(assignment);
                                     }
                                   }}
-                                >
-                                  Delete
-                                </span>
+                                >{t("polishDeletef6fd")} </span>
                               )}
                             </button>
                           ))}
@@ -1785,16 +1779,16 @@ export default function PortalTraining({
                               type="button"
                               className="clientMonthArrow"
                               onClick={() => moveCalendarRange(-1)}
-                              aria-label="Previous month"
+                              aria-label={t("polishPreviousMonth46a2")}
                             >
                               {"<"}
                             </button>
-                            <strong>{formatMonthTitle(calendarAnchorDate)}</strong>
+                            <strong>{localizedMonthTitle(calendarAnchorDate)}</strong>
                             <button
                               type="button"
                               className="clientMonthArrow"
                               onClick={() => moveCalendarRange(1)}
-                              aria-label="Next month"
+                              aria-label={t("polishNextMonth8abf")}
                             >
                               {">"}
                             </button>
@@ -1904,8 +1898,7 @@ export default function PortalTraining({
                                 </span>
                                 <div className="homeTaskBody">
                                   <strong>{workout.sessionName || "Workout"}</strong>
-                                  <small>
-                                    Week {workout.week} · Day {workout.day} ·{" "}
+                                  <small>{t("polishWeekf82b")} {workout.week}{t("polishDay2ad3")} {workout.day} ·{" "}
                                     {localizeTaskStatus(getDisplayTaskStatus(
                                       workout.completionStatus,
                                       workout.scheduledDate
@@ -1943,9 +1936,7 @@ export default function PortalTraining({
                                     ))}
                                   </small>
                                 </div>
-                                <span className="selectedDayWorkoutAction">
-                                  Open
-                                </span>
+                                <span className="selectedDayWorkoutAction">{t("polishOpencf9b")} </span>
                                 <span
                                   className="selectedDayDeleteAction"
                                   role="button"
@@ -1961,9 +1952,7 @@ export default function PortalTraining({
                                       void deleteContentAssignment(assignment);
                                     }
                                   }}
-                                >
-                                  Delete
-                                </span>
+                                >{t("polishDeletef6fd")} </span>
                               </button>
                             ))}
                             </>
@@ -1986,9 +1975,7 @@ export default function PortalTraining({
                                   <Copy size={16} aria-hidden="true" />
                                 ) : (
                                   <Scissors size={16} aria-hidden="true" />
-                                )}
-                                Paste
-                              </button>
+                                )}{t("polishPastedb24")} </button>
                             )}
                             <button
                               className="outlineButton selectedDayAddButton"
@@ -2000,9 +1987,7 @@ export default function PortalTraining({
                                 )
                               }
                             >
-                              <Plus size={16} aria-hidden="true" />
-                              Add item to this date
-                            </button>
+                              <Plus size={16} aria-hidden="true" />{t("polishAddItemToThisDateae8d")} </button>
                             </>
                           )}
                         </section>
@@ -2020,7 +2005,7 @@ export default function PortalTraining({
                 <h3>{t("replanTitle")}</h3>
                 <button
                   className="rpnClose"
-                  aria-label="Close"
+                  aria-label={t("polishClosebbfa")}
                   onClick={() => setReplanOpen(false)}
                 >
                   ✕

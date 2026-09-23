@@ -245,6 +245,7 @@ export default function ClientWorkspace({
   retryWorkouts,
   coachingCheckIns = [], coachingCheckInsReady = false, coachingItems = [], coachingDecisions = [], coachingVideos = [], coachingFeedLoading, coachingFeedError,
   reviewReturn, returnToReview, openCoachingReview, adjustNextSession,
+  coachPreviewOpen, setCoachPreviewOpen,
 }: { [key: string]: any }) {
   const portalCompletedWorkouts = isClientPortal
     ? (workouts || []).filter((workout: any) =>
@@ -456,7 +457,9 @@ export default function ClientWorkspace({
   // Coach-only: "Invite via WeChat / collect" (optional pay link, then the
   // athlete's personal scan code). Local state — the monolith needn't know.
   const [inviteOpen, setInviteOpen] = useState(false);
-  const [athletePreviewOpen, setAthletePreviewOpen] = useState(false);
+  const [localPreviewOpen, setLocalPreviewOpen] = useState(false);
+  const athletePreviewOpen = coachPreviewOpen ?? localPreviewOpen;
+  const setAthletePreviewOpen = setCoachPreviewOpen || setLocalPreviewOpen;
   const accountPanel = (<ClientOverview
                   t={t}
                   coachNotesDraft={coachNotesDraft}

@@ -15,7 +15,8 @@ import {
   Users,
   X,
 } from "lucide-react";
-import { dateToInputValue, labelColor } from "./appCore";
+import { labelColor } from "./appCore";
+import { coachingToday } from "./coachingCalendar";
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 
@@ -161,7 +162,7 @@ export default function CoachTeamsPage(props: { [key: string]: any }) {
   const openQuickAssign = (team: any) => {
     setTeamQuickAssignId(team.id);
     setTeamQuickProgramId("");
-    setTeamQuickStartDate(dateToInputValue(new Date()));
+    setTeamQuickStartDate(coachingToday());
   };
 
   return (

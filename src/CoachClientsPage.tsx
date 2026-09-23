@@ -4,6 +4,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { coachingToday } from "./coachingCalendar";
 import "./CoachClientsPage.css";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
@@ -242,7 +243,7 @@ export default function CoachClientsPage(props: { [key: string]: any }) {
         <button
           type="button"
           className={`crpCheck${selected ? " on" : ""}`}
-          title="Select"
+          title={t("polishSelect8598")}
           onClick={(e) => {
             e.stopPropagation();
             toggleRosterSelect(c.id);
@@ -287,7 +288,7 @@ export default function CoachClientsPage(props: { [key: string]: any }) {
           {activityState !== "ready" ? (
             <span className="crpNoEng">{t(activityState === "loading" ? "loading" : "coachActivityUnavailable")}</span>
           ) : noEng ? (
-            <span className="crpNoEng">No sessions yet</span>
+            <span className="crpNoEng">{t("polishNoSessionsYet9d77")}</span>
           ) : (
             <>
               {/* No compliance % yet but trained recently: an empty ring with a
@@ -335,7 +336,7 @@ export default function CoachClientsPage(props: { [key: string]: any }) {
           <button
             type="button"
             className="crpIconBtn"
-            title="Athlete's calendar"
+            title={t("polishAthleteSCalendarc77c")}
             onClick={() => {
               setSelectedClient(c);
               setClientTab("Training");
@@ -346,7 +347,7 @@ export default function CoachClientsPage(props: { [key: string]: any }) {
           <button
             type="button"
             className="crpIconBtn"
-            title="Copy portal link"
+            title={t("polishCopyPortalLink8847")}
             onClick={() =>
               void copyToClipboard(buildClientPortalLink(c), "Portal link")
             }
@@ -366,10 +367,9 @@ export default function CoachClientsPage(props: { [key: string]: any }) {
       <div className="crpHead">
         <div>
           <span className="crpEyebrow">
-            <Users size={14} /> Roster
-          </span>
-          <h1>Clients</h1>
-          <p>Your athletes at a glance — engagement, attention flags, and quick actions.</p>
+            <Users size={14} />{t("polishRostere551")} </span>
+          <h1>{t("polishClients28e2")}</h1>
+          <p>{t("polishYourAthletesAtAGlanceEngagementAttentionFlagsAndQuickActions01af")}</p>
         </div>
         <div className="crpHeadActions">
           <button type="button" className="crpMobileSelect" onClick={() => { setSelectMode(!selectMode); if (selectMode) clearRosterSelection(); }}>{t(selectMode ? "redesignDone" : "redesignSelect")}</button>
@@ -378,8 +378,7 @@ export default function CoachClientsPage(props: { [key: string]: any }) {
           </button>
           {openNewClientForm && (
             <button type="button" className="crpAddBtn" onClick={openNewClientForm}>
-              <Plus size={17} /> Add client
-            </button>
+              <Plus size={17} />{t("polishAddClient4b57")} </button>
           )}
         </div>
       </div>
@@ -388,36 +387,32 @@ export default function CoachClientsPage(props: { [key: string]: any }) {
       <div className="crpBoard">
         <div className="crpBoardActive">
           <div className="crpBoardGlow" />
-          <span className="crpBoardEyebrow">Active athletes</span>
+          <span className="crpBoardEyebrow">{t("polishActiveAthletes78e2")}</span>
           <div className="crpBoardBig">
             <span>{sumActive}</span>
-            <small>training with you now</small>
+            <small>{t("polishTrainingWithYouNow24ed")}</small>
           </div>
           <div className="crpBoardBreak">
             <span>
-              <strong>{sumOnline}</strong> online
-            </span>
+              <strong>{sumOnline}</strong>{t("polishOnline2dbc")} </span>
             <span>
-              <strong>{sumInPerson}</strong> in-person
-            </span>
+              <strong>{sumInPerson}</strong>{t("polishInPerson2883")} </span>
             <span>
-              <strong>{sumTeams}</strong> teams
-            </span>
+              <strong>{sumTeams}</strong>{t("polishTeams4629")} </span>
           </div>
         </div>
         <div className="crpBoardAttn">
-          <span className="crpBoardEyebrowRed">Need attention</span>
+          <span className="crpBoardEyebrowRed">{t("polishNeedAttention46d0")}</span>
           <div className="crpBoardBig">
             <span className="crpBoardBigDark">{sumAttention}</span>
-            <small>athletes flagged</small>
+            <small>{t("polishAthletesFlagged3386")}</small>
           </div>
           <p>
             {activityState !== "ready" ? t(activityState === "loading" ? "loading" : "coachActivityUnavailable") : sumAvg == null ? (
               "No compliance data this week."
             ) : (
               <>
-                <strong>{sumAvg}%</strong> average compliance this week.
-              </>
+                <strong>{sumAvg}%</strong>{t("polishAverageComplianceThisWeekee2a")} </>
             )}
           </p>
         </div>
@@ -428,7 +423,7 @@ export default function CoachClientsPage(props: { [key: string]: any }) {
         <div
           className="crpBucketTabs"
           role="group"
-          aria-label="Client status filters"
+          aria-label={t("polishClientStatusFiltersae1f")}
         >
           {BUCKETS.map(([name, label]) => (
             <button
@@ -449,31 +444,31 @@ export default function CoachClientsPage(props: { [key: string]: any }) {
           <div className="crpSearch">
             <Search size={15} />
             <input
-              aria-label="Search clients"
+              aria-label={t("polishSearchClientsb50b")}
               value={clientSearch}
               onChange={(e) => setClientSearch(e.target.value)}
-              placeholder="Search client…"
+              placeholder={t("polishSearchClient11f1")}
             />
           </div>
           <button type="button" className="crpMobileFiltersButton" aria-expanded={filtersOpen} onClick={() => setFiltersOpen(!filtersOpen)}>{t("mobileRosterFilters")}</button>
           <select
             className="crpSelect"
-            aria-label="Group clients"
+            aria-label={t("polishGroupClientsc8ff")}
             value={groupView}
             onChange={(e) => onGroupChange(e.target.value)}
           >
-            <option value="none">No grouping</option>
-            <option value="online">Online</option>
-            <option value="inperson">In-person</option>
-            <option value="team">Team</option>
+            <option value="none">{t("polishNoGroupinga0d0")}</option>
+            <option value="online">{t("polishOnlinec3e8")}</option>
+            <option value="inperson">{t("polishInPersone1d7")}</option>
+            <option value="team">{t("polishTeam2188")}</option>
           </select>
           <select
             className="crpSelect"
-            aria-label="Filter client status"
+            aria-label={t("polishFilterClientStatusc123")}
             value={clientStatusFilter}
             onChange={(e) => setClientStatusFilter(e.target.value)}
           >
-            <option value="All">All statuses</option>
+            <option value="All">{t("polishAllStatuses6405")}</option>
             {clientStatusOptions.map((s: any) => (
               <option key={s} value={s}>
                 {s}
@@ -483,11 +478,11 @@ export default function CoachClientsPage(props: { [key: string]: any }) {
           {activeCoaches?.length > 0 && (
             <select
               className="crpSelect crpCoachSelect"
-              aria-label="Filter by coach"
+              aria-label={t("polishFilterByCoach589a")}
               value={coachScope}
               onChange={(e) => setCoachScope(e.target.value)}
             >
-              <option>All Coaches</option>
+              <option>{t("polishAllCoaches4f5b")}</option>
               {activeCoaches.map((coach: any) => (
                 <option key={coach.recordId || coach.coachId} value={coach.name}>
                   {coach.name}
@@ -498,7 +493,7 @@ export default function CoachClientsPage(props: { [key: string]: any }) {
           <button
             type="button"
             className="crpRefresh"
-            title="Refresh"
+            title={t("polishRefresh56e3")}
             onClick={() => void loadClients(true)}
           >
             <RefreshCw size={16} />
@@ -508,8 +503,8 @@ export default function CoachClientsPage(props: { [key: string]: any }) {
 
       {/* triage chips */}
       {triageDefs.some((d: any) => triageCounts[d.key] > 0) && (
-        <div className="crpTriage" role="group" aria-label="Attention filters">
-          <span className="crpTriageLabel">Needs attention</span>
+        <div className="crpTriage" role="group" aria-label={t("polishAttentionFilters00f6")}>
+          <span className="crpTriageLabel">{t("polishNeedsAttentiona126")}</span>
           {triageDefs
             .filter((d: any) => triageCounts[d.key] > 0)
             .map((d: any) => (
@@ -530,9 +525,7 @@ export default function CoachClientsPage(props: { [key: string]: any }) {
               type="button"
               className="crpTriageClear"
               onClick={() => setRosterTriage("")}
-            >
-              Show all
-            </button>
+            >{t("polishShowAll50a2")} </button>
           )}
         </div>
       )}
@@ -541,28 +534,18 @@ export default function CoachClientsPage(props: { [key: string]: any }) {
       {rosterSelectedIds.length > 0 && (
         <div className="crpBulk">
           <div className="crpBulkMain">
-            <strong>{rosterSelectedIds.length} selected</strong>
+            <strong>{rosterSelectedIds.length}{t("polishSelected835f")}</strong>
             <span className="crpBulkDivider" />
-            <button type="button" onClick={() => setBulkPanel((p: any) => (p === "program" ? "" : "program"))}>
-              Assign program
-            </button>
-            <button type="button" onClick={() => setBulkPanel((p: any) => (p === "team" ? "" : "team"))}>
-              Add to team
-            </button>
-            <button type="button" onClick={() => setBulkPanel((p: any) => (p === "tag" ? "" : "tag"))}>
-              Add tag
-            </button>
-            <button type="button" onClick={bulkCopyLinks}>
-              Copy links
-            </button>
-            <button type="button" className="crpBulkClear" onClick={clearRosterSelection}>
-              Clear
-            </button>
+            <button type="button" onClick={() => setBulkPanel((p: any) => (p === "program" ? "" : "program"))}>{t("polishAssignProgram52dc")} </button>
+            <button type="button" onClick={() => setBulkPanel((p: any) => (p === "team" ? "" : "team"))}>{t("polishAddToTeamb445")} </button>
+            <button type="button" onClick={() => setBulkPanel((p: any) => (p === "tag" ? "" : "tag"))}>{t("polishAddTage0db")} </button>
+            <button type="button" onClick={bulkCopyLinks}>{t("polishCopyLinksd68a")} </button>
+            <button type="button" className="crpBulkClear" onClick={clearRosterSelection}>{t("polishClear719e")} </button>
           </div>
           {bulkPanel === "program" && (
             <div className="crpBulkPanel">
               <select value={bulkProgramId} onChange={(e) => setBulkProgramId(e.target.value)}>
-                <option value="">Select program…</option>
+                <option value="">{t("polishSelectProgramb398")}</option>
                 {programs.map((p: any) => (
                   <option key={p.recordId} value={p.programId}>
                     {p.programName}
@@ -571,7 +554,7 @@ export default function CoachClientsPage(props: { [key: string]: any }) {
               </select>
               <input
                 type="date"
-                value={bulkStartDate || new Date().toISOString().split("T")[0]}
+                value={bulkStartDate || coachingToday()}
                 onChange={(e) => setBulkStartDate(e.target.value)}
               />
               <button
@@ -587,7 +570,7 @@ export default function CoachClientsPage(props: { [key: string]: any }) {
           {bulkPanel === "team" && (
             <div className="crpBulkPanel">
               <select value={bulkTeamId} onChange={(e) => setBulkTeamId(e.target.value)}>
-                <option value="">Select team…</option>
+                <option value="">{t("polishSelectTeam5c98")}</option>
                 {teams.map((t: any) => (
                   <option key={t.id} value={t.id}>
                     {t.name}
@@ -607,7 +590,7 @@ export default function CoachClientsPage(props: { [key: string]: any }) {
           {bulkPanel === "tag" && (
             <div className="crpBulkPanel">
               <input
-                placeholder="Tag name"
+                placeholder={t("polishTagNamefcf2")}
                 value={bulkTag}
                 onChange={(e) => setBulkTag(e.target.value)}
                 onKeyDown={(e) => {
@@ -629,14 +612,12 @@ export default function CoachClientsPage(props: { [key: string]: any }) {
 
       {/* roster */}
       {loading && totalShown === 0 ? (
-        <p className="crpLoading" role="status">
-          Loading clients…
-        </p>
+        <p className="crpLoading" role="status">{t("polishLoadingClients527e")} </p>
       ) : totalShown === 0 ? (
         <div className="crpEmpty">
           <UserCircle className="crpEmptyIcon" size={28} aria-hidden="true" />
-          <p className="crpEmptyTitle">No clients match</p>
-          <p className="crpEmptySub">Try a different bucket, filter, or search.</p>
+          <p className="crpEmptyTitle">{t("polishNoClientsMatch7494")}</p>
+          <p className="crpEmptySub">{t("polishTryADifferentBucketFilterOrSearch71dd")}</p>
         </div>
       ) : (
         <>
@@ -644,10 +625,10 @@ export default function CoachClientsPage(props: { [key: string]: any }) {
             <div className="crpRosterHead" aria-hidden="true">
               <span />
               <span />
-              <span>Athlete</span>
-              <span>Engagement</span>
-              <span>Attention</span>
-              <span>Actions</span>
+              <span>{t("polishAthleteaa86")}</span>
+              <span>{t("polishEngagement4b1f")}</span>
+              <span>{t("polishAttention74e0")}</span>
+              <span>{t("polishActionsc3cd")}</span>
             </div>
           )}
           {renderGroups.map((g, gi) => (
@@ -706,7 +687,7 @@ export default function CoachClientsPage(props: { [key: string]: any }) {
                     <button
                       type="button"
                       className="crpSlideClose"
-                      aria-label="Close"
+                      aria-label={t("polishClosebbfa")}
                       autoFocus
                       onClick={() => setPeekId(null)}
                     >
@@ -745,17 +726,16 @@ export default function CoachClientsPage(props: { [key: string]: any }) {
                         setSelectedClient(c);
                         setClientTab("Home");
                       }}
-                    >
-                      Open client home <ChevronRight size={16} />
+                    >{t("polishOpenClientHome238c")} <ChevronRight size={16} />
                     </button>
 
-                    <div className="crpSectionLabel">This week</div>
+                    <div className="crpSectionLabel">{t("polishThisWeek7b72")}</div>
                     <div className="crpStatGrid">
                       <div className="crpStat">
                         <strong style={{ color: ringColorOf(pct) }}>
                           {pct != null ? `${pct}%` : "—"}
                         </strong>
-                        <span>Compliance</span>
+                        <span>{t("polishCompliance68f0")}</span>
                       </div>
                       <div className="crpStat">
                         <strong>
@@ -765,17 +745,17 @@ export default function CoachClientsPage(props: { [key: string]: any }) {
                               ? "Today"
                               : `${lcDays}d`}
                         </strong>
-                        <span>Last trained</span>
+                        <span>{t("polishLastTrainedd266")}</span>
                       </div>
                       <div className="crpStat">
                         <strong>
                           {seenD == null ? "—" : seenD === 0 ? "Today" : `${seenD}d`}
                         </strong>
-                        <span>Last seen</span>
+                        <span>{t("polishLastSeen5646")}</span>
                       </div>
                     </div>
 
-                    <div className="crpSectionLabel">Quick actions</div>
+                    <div className="crpSectionLabel">{t("polishQuickActionse47e")}</div>
                     <div className="crpQuick">
                       <button
                         type="button"
@@ -784,19 +764,16 @@ export default function CoachClientsPage(props: { [key: string]: any }) {
                           setClientTab("Training");
                         }}
                       >
-                        <CalendarDays size={17} /> View training calendar
-                      </button>
+                        <CalendarDays size={17} />{t("polishViewTrainingCalendarf779")} </button>
                       <button type="button" onClick={() => openAccountModal(c)}>
-                        <UserCircle size={17} /> Account &amp; profile
-                      </button>
+                        <UserCircle size={17} />{t("polishAccountProfile765a")} </button>
                       <button
                         type="button"
                         onClick={() =>
                           void copyToClipboard(buildClientPortalLink(c), "Portal link")
                         }
                       >
-                        <Link2 size={17} /> Copy portal link
-                      </button>
+                        <Link2 size={17} />{t("polishCopyPortalLink8847")} </button>
                     </div>
                   </div>
                 </motion.div>

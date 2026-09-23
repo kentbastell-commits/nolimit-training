@@ -2,13 +2,14 @@ import { listClients } from "./clients.ts";
 import { listWorkouts } from "./workouts.ts";
 import type { AnalyticsResult } from "../dto.ts";
 import { getCached, setCached } from "../../../api/_cache.ts";
+import { epochToDate } from "../pg/_util.ts";
 
 // Analytics is a pure aggregation over the clients + workouts repositories, so
 // it is automatically backend-agnostic (no separate Feishu/Postgres impl).
 
 function normalizeDate(text: string) {
   if (!text) return "";
-  if (/^\d+$/.test(text)) return new Date(Number(text)).toISOString().split("T")[0];
+  if (/^\d+$/.test(text)) return epochToDate(Number(text));
   return text.split("T")[0].split(" ")[0];
 }
 
@@ -23,12 +24,6 @@ function getDisplayTaskStatus(status: string, scheduledDate: string, today: stri
   const n = normalizeTaskStatus(status);
   if (n === "Scheduled" && scheduledDate && scheduledDate < today) return "Missed";
   return n;
-}
-
-function addDays(date: Date, days: number) {
-  const next = new Date(date);
-  next.setDate(next.getDate() + days);
-  return next;
 }
 
 export async function getAnalytics(): Promise<AnalyticsResult> {
@@ -55,10 +50,10 @@ export async function getAnalytics(): Promise<AnalyticsResult> {
     status: w.completionStatus || "Scheduled",
   }));
 
-  const today = new Date();
-  const todayString = today.toISOString().split("T")[0];
-  const nextWeekString = addDays(today, 7).toISOString().split("T")[0];
-  const weekAgoString = addDays(today, -6).toISOString().split("T")[0];
+  const now = Date.now();
+  const todayString = epochToDate(now);
+  const nextWeekString = epochToDate(now + 7 * 86400000);
+  const weekAgoString = epochToDate(now - 6 * 86400000);
 
   const withStatus = workouts.map((w) => ({
     ...w,

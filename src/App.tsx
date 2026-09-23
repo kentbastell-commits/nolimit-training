@@ -8,6 +8,10 @@ import { validQuestionAnswer, testInputMode, isTwoKm, buildTestAnswer, displayAn
 import CalendarWorkoutEditor from "./CalendarWorkoutEditor";
 import AssignedSessionRecoveryDialog, { SessionSaveDialog } from "./SessionSaveDialog";
 import type { SessionRecovery } from "./assignedSessionRecovery";
+import { coachingToday } from "./coachingCalendar";
+import useCoachReplyDrafts from "./useCoachReplyDrafts";
+import CoachConnectionStatus from "./CoachConnectionStatus";
+import useCoachHistory from "./useCoachHistory";
 import { exercisePrescription } from "./appCore";
 import "./MobileCoach.css";
 import { isAthletePreview } from "./athletePreviewPolicy";
@@ -430,8 +434,8 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     paymentProvider: "WeChat QR",
     paymentReference: "",
     assignedCoach: "Kent Bastell",
-    purchasedAt: dateToInputValue(new Date()),
-    accessStartDate: dateToInputValue(new Date()),
+    purchasedAt: coachingToday(),
+    accessStartDate: coachingToday(),
     accessEndDate: "",
     notes: "",
   });
@@ -472,13 +476,17 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
   const [savingClient, setSavingClient] = useState(false);
   const [updatingClientStatus, setUpdatingClientStatus] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const [coachDraftOwner, setCoachDraftOwner] = useState("");
+  const coachWriteInFlightRef = useRef(new Set<string>());
   const appMode: AppMode = isClientPortal ? "Client" : "Coach";
   const [analytics, setAnalytics] = useState<CoachAnalytics | null>(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [showAnalyticsModal, setShowAnalyticsModal] = useState(false);
   const [showNotificationsPanel, setShowNotificationsPanel] = useState(false);
-  const [notifications, setNotifications] = useState<{ id: string; title: string; body: string; type: string; read: boolean; createdAt: string }[]>([]);
+  const [coachPreviewOpen, setCoachPreviewOpen] = useState(false);
+  const [notifications, setNotifications] = useState<{ id: string; clientId?: string; title: string; body: string; type: string; read: boolean; createdAt: string }[]>([]);
   const [notificationsLoading, setNotificationsLoading] = useState(false);
+  const [notificationsError, setNotificationsError] = useState(false);
   const [coachInvitePackage, setCoachInvitePackage] = useState("Pending");
   const [inviteForm, setInviteForm] = useState({
     name: "",
@@ -663,9 +671,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
       status: string;
     }>
   >([]);
-  const [formVideoReplies, setFormVideoReplies] = useState<
-    Record<string, string>
-  >({});
+  const [formVideoReplies, setFormVideoReplies, videoDraftStatus] = useCoachReplyDrafts(coachDraftOwner, "video");
   const loadFormVideos = async () => {
     try {
       const res = await fetch("/api/formVideos");
@@ -687,6 +693,9 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activePage, coachBackgroundReady]);
   const reviewFormVideo = async (recordId: string) => {
+    const key = `video:${recordId}`;
+    if (coachWriteInFlightRef.current.has(key)) return;
+    coachWriteInFlightRef.current.add(key);
     try {
       const res = await fetch("/api/formVideos", {
         method: "PUT",
@@ -704,9 +713,12 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
           v.recordId === recordId ? { ...v, status: "Reviewed" } : v
         )
       );
-      notify("Video reviewed.", "success");
+      setFormVideoReplies(current => { const next = { ...current }; delete next[recordId]; return next; });
+      notify(t("coachVideoReviewed"), "success");
     } catch {
-      notify("Could not save the review.", "error");
+      notify(t("coachReplyFailed"), "error");
+    } finally {
+      coachWriteInFlightRef.current.delete(key);
     }
   };
 
@@ -894,11 +906,15 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     accessStartDate: "",
     accessEndDate: "",
     paymentId: "",
-    startDate: dateToInputValue(new Date()),
+    startDate: coachingToday(),
     notes: "",
     languagePreference: "English",
   });
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const selectedClientCodeRef = useRef("");
+  selectedClientCodeRef.current = selectedClient?.clientCode || "";
+  const clientWorkoutReadRef = useRef<Record<string, number>>({});
+  const previousWorkspaceClientRef = useRef("");
   const [clientTab, setClientTab] = useState<ClientTab>("Home");
   // Portal Home sub-pages (swipeable): Tasks / Records / Metrics.
   const [portalHomeTab, setPortalHomeTab] = useState<
@@ -1008,8 +1024,8 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
 
   // Today's readiness (from the daily check-in) for adaptive load hints.
   const latestReadiness = () => {
-    const today = dateToInputValue(new Date());
-    const yesterday = dateToInputValue(new Date(Date.now() - 86400000));
+    const today = coachingToday();
+    const yesterday = addDays(coachingToday(), -1);
     const recent = clientCheckIns.find(
       (c) =>
         (c.submittedDate === today || c.submittedDate === yesterday) &&
@@ -1098,13 +1114,13 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
   const [readAssignedWorkouts] = useState(() => createSharedRead<Workout[]>());
   const [calendarView, setCalendarView] = useState<CalendarView>("Week");
   const [calendarAnchorDate, setCalendarAnchorDate] = useState(
-    dateToInputValue(new Date())
+    coachingToday()
   );
   const [clientWeekStartDate, setClientWeekStartDate] = useState(
-    getMondayStart(dateToInputValue(new Date()))
+    getMondayStart(coachingToday())
   );
   const [clientMonthAnchorDate, setClientMonthAnchorDate] = useState(
-    dateToInputValue(new Date())
+    coachingToday()
   );
   const [clientCalendarStyle, setClientCalendarStyle] =
     useState<CalendarDisplayMode>("Week");
@@ -1112,7 +1128,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
   const [clientProgramScheduleMode, setClientProgramScheduleMode] =
     useState<ClientProgramScheduleMode>("Month");
   const [clientProgramStartDate, setClientProgramStartDate] = useState(
-    dateToInputValue(new Date())
+    coachingToday()
   );
   const [clientProgramWeekStarts, setClientProgramWeekStarts] = useState<
     Record<string, string>
@@ -1184,20 +1200,20 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
   const [reviewDecisionsReady, setReviewDecisionsReady] = useState(false);
   const [dailyReviewView, setDailyReviewView] = useState({ filter: "dailyAll", athlete: "", search: "", selected: "", limit: 18, scroll: 0 });
   const [reviewReturn, setReviewReturn] = useState(false);
-  const [dailyReviewNotes, setDailyReviewNotes] = useState<Record<string, string>>({});
+  const [dailyReviewNotes, setDailyReviewNotes, reviewNoteDraftStatus] = useCoachReplyDrafts(coachDraftOwner, "decision");
   const [coachingNow, setCoachingNow] = useState(Date.now());
   useEffect(() => {
     if (!coachBackgroundReady) return;
     const timer = window.setInterval(() => setCoachingNow(Date.now()), 30000);
-    return () => window.clearInterval(timer);
+    const resume = () => { if (document.visibilityState === "visible") setCoachingNow(Date.now()); };
+    document.addEventListener("visibilitychange", resume);
+    return () => { window.clearInterval(timer); document.removeEventListener("visibilitychange", resume); };
   }, [coachBackgroundReady]);
   // Unreviewed check-ins across all clients + the coach's in-progress replies.
   const [coachReviewCheckIns, setCoachReviewCheckIns] = useState<
     (PortalCheckIn & { clientName?: string })[]
   >([]);
-  const [checkInReplyDrafts, setCheckInReplyDrafts] = useState<
-    Record<string, string>
-  >({});
+  const [checkInReplyDrafts, setCheckInReplyDrafts, checkInDraftStatus] = useCoachReplyDrafts(coachDraftOwner, "checkin");
   const [checkInReplySaving, setCheckInReplySaving] = useState("");
   // In-person enquiries waiting for the coach to action.
   const [coachReviewEnquiries, setCoachReviewEnquiries] = useState<any[]>([]);
@@ -1209,9 +1225,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
   // Athlete-initiated "写给教练" messages awaiting a reply (mail, not chat —
   // the relationship conversation lives in WeChat; this is the review queue).
   const [coachClientMessages, setCoachClientMessages] = useState<any[]>([]);
-  const [messageReplyDrafts, setMessageReplyDrafts] = useState<
-    Record<string, string>
-  >({});
+  const [messageReplyDrafts, setMessageReplyDrafts, messageDraftStatus] = useCoachReplyDrafts(coachDraftOwner, "message");
   const [messageReplySaving, setMessageReplySaving] = useState("");
   const toggleReviewSection = (key: string) =>
     setOpenReviewSections((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -1323,6 +1337,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
   const [loading, setLoading] = useState(true);
   const [workoutsLoading, setWorkoutsLoading] = useState(false);
   const [workoutsLoadFailed, setWorkoutsLoadFailed] = useState(false);
+  const [workoutsUpdatedAt, setWorkoutsUpdatedAt] = useState(0);
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [savingWorkout, setSavingWorkout] = useState(false);
   const [editingWorkoutDate, setEditingWorkoutDate] = useState("");
@@ -1419,7 +1434,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
   const [savedTemplatesLoading, setSavedTemplatesLoading] = useState(false);
   const [savedAssignClientId, setSavedAssignClientId] = useState("");
   const [savedAssignStartDate, setSavedAssignStartDate] = useState(
-    dateToInputValue(new Date())
+    coachingToday()
   );
   const [savedAssignableWorkouts, setSavedAssignableWorkouts] = useState<
     AssignableWorkout[]
@@ -1429,7 +1444,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
   const [savedProgramSearch, setSavedProgramSearch] = useState("");
   const [savedProgramProductFilter, setSavedProgramProductFilter] = useState("All");
   const [selectedAssignProgramId, setSelectedAssignProgramId] = useState("");
-  const [assignStartDate, setAssignStartDate] = useState(dateToInputValue(new Date()));
+  const [assignStartDate, setAssignStartDate] = useState(coachingToday());
   const [assignableWorkouts, setAssignableWorkouts] = useState<AssignableWorkout[]>([]);
   const [assignLoading, setAssignLoading] = useState(false);
   const [assigningProgram, setAssigningProgram] = useState(false);
@@ -1517,12 +1532,12 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
   const [bulkBusy, setBulkBusy] = useState(false);
   const [accountProgramId, setAccountProgramId] = useState("");
   const [accountStartDate, setAccountStartDate] = useState(
-    dateToInputValue(new Date())
+    coachingToday()
   );
   const [savingAccount, setSavingAccount] = useState(false);
   const [teamAssignProgramId, setTeamAssignProgramId] = useState("");
   const [teamAssignStartDate, setTeamAssignStartDate] = useState(
-    dateToInputValue(new Date())
+    coachingToday()
   );
   const [teamAssigning, setTeamAssigning] = useState(false);
   // Which athletes are checked to receive the program (defaults to all members).
@@ -1535,7 +1550,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
   const [teamQuickAssignId, setTeamQuickAssignId] = useState("");
   const [teamQuickProgramId, setTeamQuickProgramId] = useState("");
   const [teamQuickStartDate, setTeamQuickStartDate] = useState(
-    dateToInputValue(new Date())
+    coachingToday()
   );
   const [teamQuickBusy, setTeamQuickBusy] = useState(false);
   // Teams table: multi-select bulk (assign a program across several squads)
@@ -1543,7 +1558,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
   const [teamBulkPanel, setTeamBulkPanel] = useState<"" | "program">("");
   const [teamBulkProgramId, setTeamBulkProgramId] = useState("");
   const [teamBulkStartDate, setTeamBulkStartDate] = useState(
-    dateToInputValue(new Date())
+    coachingToday()
   );
   const [teamBulkBusy, setTeamBulkBusy] = useState(false);
 
@@ -1765,7 +1780,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
   const [assignmentClientId, setAssignmentClientId] = useState("");
   const [assignmentTemplateId, setAssignmentTemplateId] = useState("");
   const [assignmentDueDate, setAssignmentDueDate] = useState(
-    dateToInputValue(new Date())
+    coachingToday()
   );
   const calendarAssignmentDateInputRef = useRef<HTMLInputElement>(null);
   const [creatingAssignment, setCreatingAssignment] = useState(false);
@@ -2113,7 +2128,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
           coach: "Kent Bastell",
           clientType: inviteForm.trainingFormat,
           packageType: publicInvitePackage,
-          startDate: dateToInputValue(new Date()),
+          startDate: coachingToday(),
           notes: inviteNotes,
         }),
       });
@@ -2208,7 +2223,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
       accessStartDate: "",
       accessEndDate: "",
       paymentId: "",
-      startDate: dateToInputValue(new Date()),
+      startDate: coachingToday(),
       notes: "",
       languagePreference: "English",
     });
@@ -2234,7 +2249,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
       accessStartDate: "",
       accessEndDate: "",
       paymentId: "",
-      startDate: dateToInputValue(new Date()),
+      startDate: coachingToday(),
       notes: "",
       languagePreference: "English",
     });
@@ -2767,7 +2782,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
   const useChineseClientText =
     isClientPortal &&
     languagePreferenceToCode(selectedClient?.languagePreference) === "zh";
-  const clientLocale = useChineseClientText ? "zh-CN" : "en-US";
+  const clientLocale = (isClientPortal ? useChineseClientText : i18n.language.startsWith("zh")) ? "zh-CN" : "en-US";
 
   const localizeText = (english = "", chinese = "") =>
     useChineseClientText && chinese ? chinese : english;
@@ -3018,12 +3033,8 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     const clientCode = client.clientCode;
     const cached = workoutCacheRef.current[clientCode];
 
-    if (shouldForce) {
-      clearPersistentCache(CACHE_KEYS.clientWorkouts(clientCode));
-    }
-
     if (!shouldForce && cached && isFreshCache(cached.timestamp)) {
-      setWorkouts(cached.data);
+      if (selectedClientCodeRef.current === clientCode) { setWorkouts(cached.data); setWorkoutsUpdatedAt(cached.timestamp); }
       return cached.data;
     }
 
@@ -3032,22 +3043,36 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
       : readPersistentCache<Workout[]>(CACHE_KEYS.clientWorkouts(clientCode));
     if (persistentCache) {
       workoutCacheRef.current[clientCode] = persistentCache;
-      setWorkouts(persistentCache.data);
+      if (selectedClientCodeRef.current === clientCode) { setWorkouts(persistentCache.data); setWorkoutsUpdatedAt(persistentCache.timestamp); }
       return persistentCache.data;
     }
 
-    const response = await fetch(`/api/workouts?clientCode=${clientCode}`);
-    const data = await response.json();
-    if (!response.ok) throw new Error(data?.error || "Could not load workouts");
-    const nextWorkouts = data.workouts || [];
-    cacheClientWorkouts(clientCode, nextWorkouts);
-    setWorkouts(nextWorkouts);
-    return nextWorkouts;
+    const request = (clientWorkoutReadRef.current[clientCode] || 0) + 1;
+    clientWorkoutReadRef.current[clientCode] = request;
+    try {
+      const response = await fetchWithTimeout(`/api/workouts?clientCode=${encodeURIComponent(clientCode)}`, {});
+      const data = await response.json();
+      if (!response.ok || !Array.isArray(data.workouts)) throw new Error("Could not load workouts");
+      if (clientWorkoutReadRef.current[clientCode] === request) {
+        cacheClientWorkouts(clientCode, data.workouts);
+        if (selectedClientCodeRef.current === clientCode) {
+          setWorkouts(data.workouts); setWorkoutsLoadFailed(false); setWorkoutsUpdatedAt(Date.now());
+        }
+      }
+      return data.workouts as Workout[];
+    } catch {
+      // A failed refresh must not erase the last successful read, or make a
+      // completed write look unsuccessful merely because its refresh failed.
+      if (selectedClientCodeRef.current === clientCode && clientWorkoutReadRef.current[clientCode] === request) setWorkoutsLoadFailed(true);
+      return workoutCacheRef.current[clientCode]?.data || [];
+    }
   };
 
   useEffect(() => {
     if (!selectedClient) return;
-
+    let active = true;
+    const changingAthlete = previousWorkspaceClientRef.current !== selectedClient.clientCode;
+    previousWorkspaceClientRef.current = selectedClient.clientCode;
     const cachedWorkouts = workoutCacheRef.current[selectedClient.clientCode];
     const hasFreshWorkouts =
       Boolean(cachedWorkouts) && isFreshCache(cachedWorkouts.timestamp);
@@ -3059,56 +3084,47 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     setSetLogs([]);
     setSavedExerciseDraftIds([]);
     setCheckedWorkoutPageItems([]);
-    setContentAssignments([]);
-    setContentResponses([]);
-    setAthleteMetrics([]);
-    setWorkoutComments([]);
-    setWorkouts(hasFreshWorkouts && cachedWorkouts ? cachedWorkouts.data : []);
+    if (changingAthlete) {
+      setCoachPreviewOpen(false);
+      setContentAssignments([]); setContentResponses([]); setAthleteMetrics([]); setWorkoutComments([]);
+      setWorkouts(cachedWorkouts?.data || []); setWorkoutsUpdatedAt(cachedWorkouts?.timestamp || 0);
+    }
 
     loadPrograms();
 
-    Promise.all([
+    Promise.allSettled([
       loadClientWorkouts(selectedClient),
       loadContentAssignments(selectedClient).then((assignments) => ({ assignments })),
       loadContentResponses(selectedClient).then((responses) => ({ responses })),
       loadAthleteMetrics(selectedClient).then((metrics) => ({ metrics })),
       loadWorkoutComments(selectedClient).then((comments) => ({ comments })),
     ])
-      .then(([workoutData, assignmentData, responseData, metricData, commentData]) => {
-        setWorkouts(workoutData || []);
-        setContentAssignments(assignmentData.assignments || []);
-        setContentResponses(responseData.responses || []);
-        setAthleteMetrics(metricData.metrics || []);
-        setWorkoutComments(commentData.comments || []);
-        setWorkoutsLoading(false);
-      })
-      .catch(() => {
-        setWorkouts([]);
-        setWorkoutsLoadFailed(true);
-        setContentAssignments([]);
-        setContentResponses([]);
-        setAthleteMetrics([]);
-        setWorkoutComments([]);
+      .then((results) => {
+        if (!active) return;
+        if (results[1].status === "rejected") notify(t("coachRelatedDataFailed"), "error");
         setWorkoutsLoading(false);
       });
+    return () => { active = false; };
   }, [selectedClient]);
 
   useEffect(() => {
     if (!selectedClient) return;
 
+    let active = true;
+    setWorkoutHistoryLogs([]); setExerciseResults([]); setClientCheckIns([]); setClientReviews([]);
     fetch(
       `/api/workoutHistory?clientId=${selectedClient.id}&clientCode=${encodeURIComponent(
         selectedClient.clientCode || ""
       )}`
     )
       .then((res) => res.json())
-      .then((data) => setWorkoutHistoryLogs(data.logs || []))
-      .catch(() => setWorkoutHistoryLogs([]));
+      .then((data) => { if (active) setWorkoutHistoryLogs(data.logs || []); })
+      .catch(() => { if (active) setWorkoutHistoryLogs([]); });
 
     fetch(`/api/exerciseResults?clientId=${selectedClient.id}`)
       .then((res) => res.json())
-      .then((data) => setExerciseResults(data.results || []))
-      .catch(() => setExerciseResults([]));
+      .then((data) => { if (active) setExerciseResults(data.results || []); })
+      .catch(() => { if (active) setExerciseResults([]); });
 
     // Load check-ins for the selected client (athlete portal: the logged-in
     // client; coach: the client being viewed — powers the wellness trend chart).
@@ -3116,15 +3132,15 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
       `/api/checkIns?clientId=${selectedClient.clientCode || selectedClient.id}`
     )
       .then((res) => res.json())
-      .then((data) => setClientCheckIns(data.checkIns || []))
-      .catch(() => setClientCheckIns([]));
+      .then((data) => { if (active) setClientCheckIns(data.checkIns || []); })
+      .catch(() => { if (active) setClientCheckIns([]); });
     if (isClientPortal) {
       fetch(
         `/api/reviews?clientId=${selectedClient.clientCode || selectedClient.id}`
       )
         .then((res) => res.json())
-        .then((data) => setClientReviews(data.reviews || []))
-        .catch(() => setClientReviews([]));
+        .then((data) => { if (active) setClientReviews(data.reviews || []); })
+        .catch(() => { if (active) setClientReviews([]); });
     }
 
     setCoachNotesDraft(selectedClient.notes || "");
@@ -3132,6 +3148,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     if (isClientPortal && libraryExercises.length === 0) {
       loadExerciseLibrary();
     }
+    return () => { active = false; };
   }, [selectedClient, isClientPortal]);
 
   useEffect(() => {
@@ -3560,14 +3577,20 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
   }, [activePage, workoutPageTab]);
 
   const loadNotifications = async () => {
+    if (coachWriteInFlightRef.current.has("read-notifications")) return;
+    coachWriteInFlightRef.current.add("read-notifications");
     setNotificationsLoading(true);
+    setNotificationsError(false);
     try {
       const res = await fetch("/api/notifications");
       const data = await res.json();
-      setNotifications(data.notifications || []);
+      if (!res.ok || !Array.isArray(data.notifications)) throw new Error("Notifications unavailable");
+      setNotifications(data.notifications);
     } catch (err) {
       console.error(err);
+      setNotificationsError(true);
     } finally {
+      coachWriteInFlightRef.current.delete("read-notifications");
       setNotificationsLoading(false);
     }
   };
@@ -3596,8 +3619,8 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
       paymentProvider: "WeChat QR",
       paymentReference: "",
       assignedCoach: currentScopedCoach?.name || "Kent Bastell",
-      purchasedAt: dateToInputValue(new Date()),
-      accessStartDate: dateToInputValue(new Date()),
+      purchasedAt: coachingToday(),
+      accessStartDate: coachingToday(),
       accessEndDate: "",
       notes: "",
     });
@@ -3605,7 +3628,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
 
   const selectManualOrderProgram = (programId: string) => {
     const program = programs.find((item) => item.programId === programId);
-    const startDate = manualOrder.accessStartDate || dateToInputValue(new Date());
+    const startDate = manualOrder.accessStartDate || coachingToday();
     const accessLength = Number(program?.accessLengthDays || 0);
 
     setManualOrder((current) => ({
@@ -3866,7 +3889,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     }
 
     const assignments = data.assignments || [];
-    setContentAssignments(assignments);
+    if (selectedClientCodeRef.current === client.clientCode) setContentAssignments(assignments);
     return assignments;
   };
 
@@ -3895,7 +3918,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
       }
 
       const responses = data.responses || [];
-      setContentResponses(responses);
+      if (selectedClientCodeRef.current === client.clientCode) setContentResponses(responses);
       return responses;
     } catch (error) {
       console.error(error);
@@ -3933,7 +3956,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
       }
 
       const metrics = data.metrics || [];
-      setAthleteMetrics(metrics);
+      if (selectedClientCodeRef.current === client.clientCode) setAthleteMetrics(metrics);
       return metrics;
     } catch (error) {
       console.error(error);
@@ -3969,7 +3992,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
       }
 
       const comments = data.comments || [];
-      setWorkoutComments(comments);
+      if (selectedClientCodeRef.current === client.clientCode) setWorkoutComments(comments);
       return comments;
     } catch (error) {
       console.error(error);
@@ -4087,9 +4110,12 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
   const respondToClientMessage = async (message: any) => {
     const text = (messageReplyDrafts[message.messageId] || "").trim();
     if (!text) {
-      notify("Write a reply first.", "error");
+      notify(t("coachWriteReplyFirst"), "error");
       return;
     }
+    const key = `message:${message.messageId}`;
+    if (coachWriteInFlightRef.current.has(key)) return;
+    coachWriteInFlightRef.current.add(key);
     setMessageReplySaving(message.messageId);
     try {
       const response = await fetch("/api/clientMessages", {
@@ -4100,7 +4126,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
       const data = await response.json();
       if (!response.ok || !data.success) {
         console.error(data);
-        notify("Could not send reply.", "error");
+        notify(t("coachReplyFailed"), "error");
         return;
       }
       setCoachClientMessages((cur) =>
@@ -4111,11 +4137,12 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
         delete next[message.messageId];
         return next;
       });
-      notify("Reply sent.", "success");
+      notify(t("coachReplySent"), "success");
     } catch (error) {
       console.error(error);
-      notify("Could not send reply.", "error");
+      notify(t("coachReplyFailed"), "error");
     } finally {
+      coachWriteInFlightRef.current.delete(key);
       setMessageReplySaving("");
     }
   };
@@ -4123,9 +4150,12 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
   const respondToCheckIn = async (checkIn: PortalCheckIn) => {
     const text = (checkInReplyDrafts[checkIn.recordId] || "").trim();
     if (!text) {
-      notify("Write a reply first.", "error");
+      notify(t("coachWriteReplyFirst"), "error");
       return;
     }
+    const key = `checkin:${checkIn.recordId}`;
+    if (coachWriteInFlightRef.current.has(key)) return;
+    coachWriteInFlightRef.current.add(key);
     setCheckInReplySaving(checkIn.recordId);
     try {
       const response = await fetch("/api/checkIns", {
@@ -4135,13 +4165,13 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
           recordId: checkIn.recordId,
           coachResponse: text,
           coachReviewed: true,
-          reviewedDate: dateToInputValue(new Date()),
+          reviewedDate: coachingToday(),
         }),
       });
       const data = await response.json();
       if (!response.ok || !data.success) {
         console.error(data);
-        notify("Could not send reply.", "error");
+        notify(t("coachReplyFailed"), "error");
         return;
       }
       setCoachReviewCheckIns((cur) =>
@@ -4153,16 +4183,19 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
         delete next[checkIn.recordId];
         return next;
       });
-      notify("Reply sent.", "success");
+      notify(t("coachReplySent"), "success");
     } catch (error) {
       console.error(error);
-      notify("Could not send reply.", "error");
+      notify(t("coachReplyFailed"), "error");
     } finally {
+      coachWriteInFlightRef.current.delete(key);
       setCheckInReplySaving("");
     }
   };
 
   const loadCoachReviewQueue = async (force = false) => {
+    if (coachWriteInFlightRef.current.has("read-review")) return;
+    coachWriteInFlightRef.current.add("read-review");
     setCoachReviewLoading(true);
     setCoachReviewError("");
 
@@ -4232,13 +4265,10 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
         failed = await attempt();
       }
       if (failed > 0) {
-        setCoachReviewError("Part of the review queue could not load.");
-        notify(
-          "Part of the review queue could not load — use Refresh Queue to retry.",
-          "error"
-        );
+        setCoachReviewError(t("coachReviewReadFailed"));
       }
     } finally {
+      coachWriteInFlightRef.current.delete("read-review");
       setCoachReviewLoading(false);
     }
   };
@@ -4252,6 +4282,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     if (!response.ok) throw new Error("failed");
     const data = await response.json();
     setReviewDecisions(current => [...current.filter(s => s.key !== item.key), data.state]);
+    setDailyReviewNotes(current => { const next = { ...current }; delete next[item.key]; return next; });
   };
 
   const markGlobalWorkoutCommentReviewed = async (comment: WorkoutComment) => {
@@ -5007,7 +5038,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
           clientId: client.id,
           clientCode: client.clientCode,
           clientName: client.name,
-          assignedDate: dateToInputValue(new Date()),
+          assignedDate: coachingToday(),
           dueDate: nextDueDate,
         }),
       });
@@ -5024,7 +5055,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
       }
 
       setCalendarAnchorDate(nextDueDate);
-      setAssignmentDueDate(dateToInputValue(new Date()));
+      setAssignmentDueDate(coachingToday());
       notify(`${nextAssignmentType} assigned to ${client.name}.`, "success");
       setShowAssignmentDrawer(false);
     } catch (error) {
@@ -6729,7 +6760,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
       const created = await assignProgramByIds(
         team.memberIds,
         teamQuickProgramId,
-        teamQuickStartDate || dateToInputValue(new Date())
+        teamQuickStartDate || coachingToday()
       );
       if (created > 0) {
         notify(
@@ -6757,7 +6788,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
       const created = await assignProgramByIds(
         teamBulkMemberIds,
         teamBulkProgramId,
-        teamBulkStartDate || dateToInputValue(new Date())
+        teamBulkStartDate || coachingToday()
       );
       if (created > 0) {
         notify(
@@ -6825,7 +6856,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     setAccountTagInput("");
     setAccountCategoryInput("");
     setAccountProgramId("");
-    setAccountStartDate(dateToInputValue(new Date()));
+    setAccountStartDate(coachingToday());
     if (programs.length === 0) void loadPrograms();
     if (teams.length === 0) void loadTeams();
     const sub = subscriptions.find((s) => s.clientRecordIds.includes(client.id));
@@ -6847,7 +6878,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
             price: "",
             currency: "CNY",
             billingCycle: "1 Month",
-            startDate: dateToInputValue(new Date()),
+            startDate: coachingToday(),
             nextBillingDate: "",
             status: "Active",
             autoRenew: false,
@@ -8474,7 +8505,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
           clientId: client.id,
           clientCode: client.clientCode,
           clientName: client.name,
-          assignedDate: dateToInputValue(new Date()),
+          assignedDate: coachingToday(),
           dueDate: scheduledDate,
         }),
       });
@@ -12188,7 +12219,6 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
 
   // Durable device drafts are separate from athlete logging and server saves.
   // Loading happens after the roster is ready; it adds no startup API request.
-  const [coachDraftOwner, setCoachDraftOwner] = useState("");
   const [coachDraftStatus, setCoachDraftStatus] = useState("");
   const activeCoachDraft = useRef<{ id: string; revision: string | null } | null>(null);
   const coachDraftSnapshot = useMemo(() => ({
@@ -12694,7 +12724,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
 
     if (Number.isNaN(checkInDate.getTime())) return null;
 
-    const today = new Date(`${dateToInputValue(new Date())}T00:00:00`);
+    const today = new Date(`${coachingToday()}T00:00:00`);
     return Math.max(
       0,
       Math.floor((today.getTime() - checkInDate.getTime()) / 86400000)
@@ -12881,12 +12911,12 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
   const navGroups: NavGroup[] = [
     {
       key: "clients",
-      label: "Clients",
+      label: t("coachNavClients"),
       icon: Users,
       items: [
         {
           name: "Clients",
-          label: "Clients",
+          label: t("coachNavClients"),
           count: coachVisibleClients.length,
           icon: Users,
         },
@@ -12894,13 +12924,13 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     },
     {
       key: "teams",
-      label: "Teams",
+      label: t("coachNavTeams"),
       icon: Shield,
       desktopOnly: true,
       items: [
         {
           name: "Teams",
-          label: "Teams",
+          label: t("coachNavTeams"),
           count: teams.length,
           icon: Shield,
         },
@@ -12908,26 +12938,26 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     },
     {
       key: "library",
-      label: "Library",
+      label: t("coachNavLibrary"),
       icon: BookOpen,
       items: [
         {
           name: "Library",
-          label: "Library",
+          label: t("coachNavLibrary"),
           count: libraryExercises.length,
           icon: BookOpen,
         },
         {
           name: "Workouts",
-          label: "Programming",
-          mobileLabel: "Build",
+          label: t("coachNavProgramming"),
+          mobileLabel: t("coachNavBuild"),
           count: workouts.length,
           icon: Dumbbell,
         },
         {
           name: "Tests",
-          label: "Tests",
-          mobileLabel: "Tests",
+          label: t("coachNavTests"),
+          mobileLabel: t("coachNavTests"),
           count: savedTestTemplates.length,
           icon: ClipboardList,
         },
@@ -12935,13 +12965,13 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     },
     {
       key: "digital",
-      label: "Digital",
+      label: t("coachNavDigital"),
       icon: ShoppingBag,
       desktopOnly: true,
       items: [
         {
           name: "Digital",
-          label: "Digital",
+          label: t("coachNavDigital"),
           count: programs.filter((p) => p.publicStoreVisible).length,
           icon: ShoppingBag,
         },
@@ -12949,12 +12979,12 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     },
     {
       key: "review",
-      label: "Review",
+      label: t("coachNavReview"),
       icon: Bell,
       items: [
         {
           name: "Review",
-          label: "Review",
+          label: t("coachNavReview"),
           count: reviewQueueCount,
           icon: Bell,
           attention: true,
@@ -12963,7 +12993,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     },
     {
       key: "admin",
-      label: "Admin",
+      label: t("coachNavAdmin"),
       icon: canManageCoaches ? UserCog : ClipboardList,
       desktopOnly: true,
       items: [
@@ -12971,7 +13001,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
           ? [
               {
                 name: "Coaches" as Page,
-                label: "Coaches",
+                label: t("coachNavCoaches"),
                 count: allCoaches.length,
                 icon: UserCog,
               },
@@ -12979,14 +13009,14 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
           : []),
         {
           name: "Orders",
-          label: "Orders",
+          label: t("coachNavOrders"),
           count: productOrders.length,
           icon: ClipboardList,
           attention: true,
         },
         {
           name: "Revenue",
-          label: "Revenue",
+          label: t("coachNavRevenue"),
           count: 0,
           icon: TrendingUp,
         },
@@ -12994,19 +13024,19 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     },
     {
       key: "more",
-      label: "More",
+      label: t("coachNavMore"),
       icon: MoreHorizontal,
       mobileOnly: true,
       items: [
         {
           name: "Teams",
-          label: "Teams",
+          label: t("coachNavTeams"),
           count: teams.length,
           icon: Shield,
         },
         {
           name: "Digital",
-          label: "Digital",
+          label: t("coachNavDigital"),
           count: programs.filter((p) => p.publicStoreVisible).length,
           icon: ShoppingBag,
         },
@@ -13014,7 +13044,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
           ? [
               {
                 name: "Coaches" as Page,
-                label: "Coaches",
+                label: t("coachNavCoaches"),
                 count: allCoaches.length,
                 icon: UserCog,
               },
@@ -13022,14 +13052,14 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
           : []),
         {
           name: "Orders",
-          label: "Orders",
+          label: t("coachNavOrders"),
           count: productOrders.length,
           icon: ClipboardList,
           attention: true,
         },
         {
           name: "Revenue",
-          label: "Revenue",
+          label: t("coachNavRevenue"),
           count: 0,
           icon: TrendingUp,
         },
@@ -13106,7 +13136,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
       return;
     }
     void loadWorkloadLogs(code);
-    if (!workloadDay) setWorkloadDay(dateToInputValue(new Date()));
+    if (!workloadDay) setWorkloadDay(coachingToday());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedClient?.clientCode]);
 
@@ -13422,7 +13452,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
         const data = await (await fetch("/api/workouts")).json();
         if (cancelled) return;
         const workoutList = data.workouts || [];
-        const today = dateToInputValue(new Date());
+        const today = coachingToday();
         const counts: Record<string, number> = {};
         teams.forEach((team) => {
           const codes = new Set(
@@ -13674,7 +13704,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     if (!bulkProgramId) return notify("Select a program to assign.");
     setBulkBusy(true);
     try {
-      const start = bulkStartDate || new Date().toISOString().split("T")[0];
+      const start = bulkStartDate || coachingToday();
       const created = await assignProgramByIds(
         rosterSelectedIds,
         bulkProgramId,
@@ -13827,7 +13857,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
       )
     : [];
   const selectedClientLatestOrder = selectedClientOrders[0];
-  const todayInputValue = dateToInputValue(new Date());
+  const todayInputValue = coachingToday();
   const getOrderClient = (order: ProductOrder) =>
     clients.find((client) => {
       return (
@@ -14946,7 +14976,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     const weekNums = cal.map((w) => Number(w.week) || 0);
     const maxWeek = weekNums.length ? Math.max(...weekNums) : 0;
     const currentWeek = next ? Number(next.week) || 1 : maxWeek;
-    const todayKey = dateToInputValue(new Date());
+    const todayKey = coachingToday();
     const dayNames = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
     const weekChips = cal
       .filter((w) => Number(w.week) === currentWeek)
@@ -15268,7 +15298,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
           quote: reviewQuote.trim(),
           showOnStore: reviewShowStore,
           approved: false,
-          submittedDate: dateToInputValue(new Date()),
+          submittedDate: coachingToday(),
         },
         ...prev,
       ]);
@@ -15379,7 +15409,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
   // 1–10 scales (soreness and stress are inverted — higher = worse).
   const submitWellness = async () => {
     if (!selectedClient) return;
-    const today = dateToInputValue(new Date());
+    const today = coachingToday();
     const { sleep, energy, soreness, mood, stress } = wellnessForm;
     const readiness = Math.round(
       ((sleep + energy + (11 - soreness) + mood + (11 - stress)) / 50) * 100
@@ -15484,13 +15514,13 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     const isCoached = /online|in-?person|coaching/i.test(type);
     if (!isCoached) return null;
 
-    const today = dateToInputValue(new Date());
+    const today = coachingToday();
     const todayCheckIn = clientCheckIns.find((c) => c.submittedDate === today);
 
     // Daily check-in streak (consecutive days ending today/yesterday).
     const dates = new Set(clientCheckIns.map((c) => c.submittedDate));
     let streak = 0;
-    const cur = new Date();
+    const cur = new Date(`${coachingToday()}T12:00:00`);
     if (!dates.has(dateToInputValue(cur))) cur.setDate(cur.getDate() - 1);
     while (dates.has(dateToInputValue(cur))) {
       streak++;
@@ -15977,7 +16007,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     const trainedDates = new Set(
       workoutHistoryLogs.map((l) => (l.date || "").slice(0, 10)).filter(Boolean)
     );
-    const todayKey = dateToInputValue(new Date());
+    const todayKey = coachingToday();
     const trainedToday = trainedDates.has(todayKey);
     const todaySession = sessions.find(
       (s) => normalizeDate(String(s.scheduledDate)) === todayKey
@@ -15993,14 +16023,14 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
       [...trainedDates].map((d) => mondayOf(new Date(`${d}T00:00:00`)))
     );
     let streakWeeks = 0;
-    const probe = new Date();
+    const probe = new Date(`${coachingToday()}T12:00:00`);
     if (!trainedWeeks.has(mondayOf(probe))) probe.setDate(probe.getDate() - 7);
     while (trainedWeeks.has(mondayOf(probe))) {
       streakWeeks++;
       probe.setDate(probe.getDate() - 7);
     }
     // Current-month calendar grid (Mon-first), dots on trained days.
-    const calNow = new Date();
+    const calNow = new Date(`${coachingToday()}T12:00:00`);
     const calYear = calNow.getFullYear();
     const calMonth = calNow.getMonth();
     const calLead = (new Date(calYear, calMonth, 1).getDay() + 6) % 7;
@@ -16950,7 +16980,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
   };
 
   const markClientCheckedInToday = async (client: Client) => {
-    const today = dateToInputValue(new Date());
+    const today = coachingToday();
 
     setSavingCheckInClientId(client.id);
 
@@ -17024,7 +17054,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
   const submitCheckInQuestionnaire = async () => {
     if (!checkInFormClient) return;
 
-    const today = dateToInputValue(new Date());
+    const today = coachingToday();
 
     setSavingCheckInClientId(checkInFormClient.id);
 
@@ -17141,7 +17171,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
   };
 
   const jumpClientCalendarToToday = () => {
-    const today = dateToInputValue(new Date());
+    const today = coachingToday();
 
     selectClientCalendarDate(today);
   };
@@ -17753,7 +17783,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     }
   };
 
-  const todayValue = dateToInputValue(new Date());
+  const todayValue = coachingToday();
   const selectedCalendarDateWorkouts = getWorkoutsForDate(calendarAnchorDate);
   const selectedCalendarDateAssignments = getAssignmentsForDate(calendarAnchorDate);
   const selectedCalendarDateItemCount =
@@ -18337,7 +18367,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
 
     const raw = String(metric.measuredAt || "").trim();
     const date = /^\d{10,}$/.test(raw)
-      ? new Date(Number(raw)).toISOString().slice(0, 10)
+      ? coachingDate(raw)
       : normalizeDate(raw);
     const source = metric.sourceTestName || metric.metricName || t("latest");
 
@@ -18351,13 +18381,13 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
       Number(log.actualDistance) > 0
   );
   const startOfThisWeek = (() => {
-    const d = new Date();
+    const d = new Date(`${coachingToday()}T12:00:00`);
     d.setHours(0, 0, 0, 0);
     d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); // back to Monday
     return d;
   })();
   const startOfThisMonth = (() => {
-    const d = new Date();
+    const d = new Date(`${coachingToday()}T12:00:00`);
     return new Date(d.getFullYear(), d.getMonth(), 1);
   })();
   const sumRunningKm = (since: Date) =>
@@ -19243,6 +19273,46 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
       ? meta.groupName
       : `${meta.groupType} ${meta.groupName}`;
   };
+
+  const refreshCoachWorkspace = async () => {
+    if (selectedClient) {
+      setWorkoutsLoading(true);
+      await Promise.allSettled([loadClientWorkouts(selectedClient, true), loadContentAssignments(selectedClient),
+        loadContentResponses(selectedClient), loadAthleteMetrics(selectedClient), loadWorkoutComments(selectedClient)]);
+      if (selectedClientCodeRef.current === selectedClient.clientCode) setWorkoutsLoading(false);
+    }
+    await Promise.allSettled([loadCoachReviewQueue(true), loadFormVideos()]);
+  };
+  const replyDraftStates = [videoDraftStatus, reviewNoteDraftStatus, checkInDraftStatus, messageDraftStatus];
+  const replyDraftState = replyDraftStates.includes("conflict") ? "conflict" : replyDraftStates.includes("unavailable") ? "unavailable" : "saved";
+  const hasReplyDrafts = [formVideoReplies, dailyReviewNotes, checkInReplyDrafts, messageReplyDrafts].some(map => Object.values(map).some(text => text.trim()));
+  const connectionNotice = () => <CoachConnectionStatus onRefresh={refreshCoachWorkspace} busy={workoutsLoading || coachReviewLoading}
+    failed={Boolean(selectedClient ? workoutsLoadFailed : coachReviewError)} updatedAt={selectedClient ? workoutsUpdatedAt : 0}
+    draftsStatus={replyDraftState} showDrafts={activePage === "Review" && hasReplyDrafts} />;
+  const historyOverlay = showNotificationsPanel || coachPreviewOpen || Boolean(calendarBuilderContext || selectedWorkout) || workoutPageTab === "Program Builder";
+  useCoachHistory(coachBackgroundReady && !isClientPortal, {
+    page: activePage, client: selectedClient?.clientCode || "", tab: clientTab, libraryTab: workoutPageTab,
+    calendarStyle: clientCalendarStyle, calendarView, week: clientWeekStartDate, month: clientMonthAnchorDate, date: calendarAnchorDate, scroll: 0,
+  }, historyOverlay, () => {
+    if (showNotificationsPanel) { setShowNotificationsPanel(false); return true; }
+    if (coachPreviewOpen) { setCoachPreviewOpen(false); return true; }
+    if (sessionRecovery) { setSessionRecovery(null); return false; }
+    if (builderLeaveOpen) { setBuilderLeaveOpen(false); return false; }
+    if (calendarBuilderContext || workoutPageTab === "Program Builder") {
+      if (savingTemplate) return false;
+      const dirty = hasUnsavedBuilderWork(); returnToBuilderOrigin(); return !dirty;
+    }
+    if (selectedWorkout) { closeWorkoutPlayer(); return !workoutDraftUnsafe; }
+    return true;
+  }, location => {
+    const client = clients.find(c => c.clientCode === location.client) || null;
+    setSelectedClient(client); setSelectedWorkout(null); setCoachPreviewOpen(false);
+    setActivePage(location.page as Page); setClientTab(location.tab as ClientTab);
+    setWorkoutPageTab(location.libraryTab === "Program Builder" ? "Saved Programs" : location.libraryTab as WorkoutPageTab);
+    setClientCalendarStyle(location.calendarStyle as CalendarDisplayMode);
+    setCalendarView(location.calendarView as CalendarView);
+    setClientWeekStartDate(location.week); setClientMonthAnchorDate(location.month); setCalendarAnchorDate(location.date);
+  });
 
   // Move to a different exercise in the one-at-a-time focus player and bring
   // the new card into view from the top.
@@ -20858,6 +20928,10 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
                       </button>
                     );
                   })}
+                  {(group.key === "more" || group.key === "admin") && <button type="button" role="menuitem" className="navFlyoutItem"
+                    onClick={() => { setOpenNavGroup(null); setShowNotificationsPanel(true); void loadNotifications(); }}>
+                    <Bell size={17} /><span className="navFlyoutLabel">{t("coachNotifications")}</span>
+                  </button>}
                 </div>
               </div>
             );
@@ -20914,6 +20988,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
       </aside>
 
       <main className="main">
+        {isCoachView && !isClientPortal && !calendarBuilderContext && connectionNotice()}
         {isCoachView && !isClientPortal && !calendarBuilderContext && workoutPageTab !== "Program Builder" && (
           <CoachDraftNotice drafts={coachDrafts} resume={resumeCoachDraft} discard={discardCoachDraft} />
         )}
@@ -21255,6 +21330,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
             {(calendarBuilderContext || activePage === "Workouts" ||
               (activePage === "Digital" && digitalSubTab === "program")) && (
               <CalendarWorkoutEditor context={calendarBuilderContext} onClose={returnToBuilderOrigin} busy={savingTemplate}>
+                {calendarBuilderContext && connectionNotice()}
               <CoachBuilderPage
                 calendarBuilderContext={calendarBuilderContext}
                 historyClientCode={assignedSessionEdit?.clientId || ""}
@@ -21649,6 +21725,8 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
             returnToReview={() => { setSelectedClient(null); setSelectedWorkout(null); setActivePage("Review"); setReviewReturn(false); }}
             openCoachingReview={(key = "", filter = "dailyAll") => { const item = dailyCoachingItems.find(i => i.key === key); const nextFilter = filter === "dailyAll" && item && decisionStatus(item, reviewDecisions) === "resolved" ? "dailyHistory" : filter; setDailyReviewView(v => ({ ...v, athlete: selectedClient.clientCode, search: "", filter: nextFilter, selected: key, limit: 18, scroll: 0 })); setSelectedClient(null); setSelectedWorkout(null); setActivePage("Review"); }}
             switchableAthletes={coachVisibleClients}
+            coachPreviewOpen={coachPreviewOpen}
+            setCoachPreviewOpen={setCoachPreviewOpen}
             switchAthlete={(client: Client) => { setSelectedWorkout(null); setWorkoutDetails([]); setSetLogs([]); setSavedExerciseDraftIds([]); setSelectedClient(client); }}
             adjustNextSession={(workout: Workout) => { setClientTab("Training"); selectClientCalendarDate(coachingDate(workout.scheduledDate)); void openWorkoutProgramInBuilder(workout); }}
             clientHeroKpis={computeClientHeroKpis()}
@@ -21773,7 +21851,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
             populatingClientProgram={populatingClientProgram}
             portalHomeTab={portalHomeTab}
             workoutsLoadFailed={workoutsLoadFailed}
-            retryWorkouts={() => selectedClient && setSelectedClient({ ...selectedClient })}
+            retryWorkouts={refreshCoachWorkspace}
             programs={programs}
             programsTab={programsTab}
             recentWorkoutSubmissions={recentWorkoutSubmissions}
@@ -22571,7 +22649,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
                 type="button"
                 className="outlineButton"
                 onClick={() => {
-                  const d = new Date();
+                  const d = new Date(`${coachingToday()}T12:00:00`);
                   const add = ((8 - d.getDay()) % 7) || 7;
                   d.setDate(d.getDate() + add);
                   void loadProgramFromDate(dateToInputValue(d));
@@ -23244,10 +23322,11 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
           />
         )}
 
-        {showNotificationsPanel && (
-          <div className="notificationsPanel">
+      {showNotificationsPanel && (
+          <SessionSaveDialog title={t("coachNotifications")} onClose={() => setShowNotificationsPanel(false)} busy={false}>
+          <div className="coachNotificationsContent">
             <div className="notificationsPanelHeader">
-              <h3>Notifications</h3>
+              <button type="button" disabled={notificationsLoading} onClick={() => void loadNotifications()}>{t(notificationsLoading ? "dailyRefreshing" : "dailyRefresh")}</button>
               <button
                 className="drawerClose"
                 onClick={() => setShowNotificationsPanel(false)}
@@ -23256,15 +23335,14 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
                 <X size={18} aria-hidden="true" />
               </button>
             </div>
-            {notificationsLoading ? (
-              <div className="notificationsPanelEmpty">Loading...</div>
+            <p className="dailyHint">{t("coachNotificationsHint")}</p>
+            {notificationsError && <p className="dailyError" role="alert">{t("coachNotificationsError")}</p>}
+            {notificationsLoading && !notifications.length ? (
+              <div className="notificationsPanelEmpty">{t("dailyLoading")}</div>
             ) : notifications.length === 0 ? (
               <div className="notificationsPanelEmpty">
                 <Bell size={32} strokeWidth={1.2} />
-                <p>No notifications yet.</p>
-                <small>
-                  When clients are assigned workouts, submit check-ins, or complete programs, notifications will appear here.
-                </small>
+                <p>{notificationsError ? t("dailyActivityUnavailable") : t("coachNotificationsEmpty")}</p>
               </div>
             ) : (
               <div className="notificationsList">
@@ -23281,12 +23359,18 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
                         <strong>{n.title}</strong>
                         <p>{n.body}</p>
                         <small>{new Date(n.createdAt).toLocaleDateString()}</small>
+                        {n.clientId && clients.some(c => c.clientCode === n.clientId) && <button type="button" onClick={() => {
+                          const client = clients.find(c => c.clientCode === n.clientId);
+                          if (!client || !goToPage("Clients")) return;
+                          setShowNotificationsPanel(false); setSelectedClient(client); setClientTab("Home");
+                        }}>{t("coachNotificationAthlete")}</button>}
                       </div>
                     </div>
                   ))}
               </div>
             )}
           </div>
+          </SessionSaveDialog>
         )}
       </main>
     </div>

@@ -1,0 +1,10 @@
+.coachConnectionStatus { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; margin: 0 0 12px; border: 1px solid #ded7c5; border-radius: 12px; background: #fff9e9; color: #383629; font-size: 14px; }
+.coachConnectionStatus p { margin: 4px 0 0; font-size: 13px; line-height: 1.5; }
+.coachConnectionStatus button { flex: 0 0 auto; border: 1px solid #cdc5b4; border-radius: 10px; background: #fff; padding: 10px 12px; min-height: 44px; cursor: pointer; font: inherit; }
+@media(max-width: 420px) { .coachConnectionStatus { align-items: flex-start; flex-wrap: wrap; } }
+.coachNotificationsContent .notificationsPanelHeader { padding: 0 0 12px; }
+.coachNotificationsContent .notificationItem { color: #24231e; border-color: #e1ded4; }
+.coachNotificationsContent .notificationItem strong { color: #24231e; }
+.coachNotificationsContent .notificationItem p, .coachNotificationsContent .notificationItem small { color: #625f56; }
+.coachNotificationsContent .notificationItem button { display: block; margin-top: 10px; }
+.coachNotificationsContent button { min-height: 44px; min-width: 44px; padding: 8px 12px; border: 1px solid #d8d3c7; border-radius: 10px; background: #fff; color: #24231e; font: inherit; cursor: pointer; }

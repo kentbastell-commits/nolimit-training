@@ -246,10 +246,9 @@ export default function ReviewPage({
       {/* header */}
       <header className="rvHeader">
         <span className="rvEyebrow">
-          <CheckSquare size={14} /> Review
-        </span>
+          <CheckSquare size={14} />{t("polishReviewe29a")} </span>
         <div className="rvTitleRow">
-          <h1 className="rvTitle">Review</h1>
+          <h1 className="rvTitle">{t("polishReviewe29a")}</h1>
           <button
             type="button"
             className="rvRefresh"
@@ -259,10 +258,7 @@ export default function ReviewPage({
             {coachReviewLoading ? "Refreshing…" : "Refresh queue"}
           </button>
         </div>
-        <p className="rvIntro">
-          Client comments, form &amp; test submissions, missed tasks, and order
-          follow-ups that need a coach decision.
-        </p>
+        <p className="rvIntro">{t("polishClientCommentsFormTestSubmissionsMissedTasksAndOrderFollowUpsThat49cd")} </p>
       </header>
 
       {coachReviewError && <div className="rvError">{coachReviewError}</div>}
@@ -270,14 +266,12 @@ export default function ReviewPage({
       {/* dark KPI hero */}
       <div className="rvHero">
         <div className="rvHeroGlow" aria-hidden="true" />
-        <span className="rvHeroEyebrow">Needs a decision</span>
+        <span className="rvHeroEyebrow">{t("polishNeedsADecision83ce")}</span>
         <div className="rvHeroRow">
           <span className="rvHeroNum">
             <CountUp value={total} />
           </span>
-          <span className="rvHeroSub">
-            open items across 7 queues waiting on you
-          </span>
+          <span className="rvHeroSub">{t("polishOpenItemsAcross7QueuesWaitingOnYou9df6")} </span>
         </div>
       </div>
 
@@ -325,7 +319,7 @@ export default function ReviewPage({
           {openReviewSections.messages && (
             <div className="rvGrid">
               {clientMessages.length === 0 && (
-                <p className="rvEmpty">No unanswered messages. 👍</p>
+                <p className="rvEmpty">{t("polishNoUnansweredMessagesb36c")}</p>
               )}
               {clientMessages.map((msg: any) => (
                 <div key={msg.messageId} className="rvCard">
@@ -451,7 +445,7 @@ export default function ReviewPage({
                   )}
                   <textarea
                     className="rvReply"
-                    placeholder="Reply to your athlete…"
+                    placeholder={t("polishReplyToYourAthlete7e23")}
                     value={formVideoReplies[video.recordId] || ""}
                     onChange={(e) =>
                       setFormVideoReplies((cur: any) => ({
@@ -464,9 +458,7 @@ export default function ReviewPage({
                     type="button"
                     className="rvGoldBtn"
                     onClick={() => void reviewFormVideo(video.recordId)}
-                  >
-                    Send reply &amp; mark reviewed
-                  </button>
+                  >{t("polishSendReplyMarkReviewed51d8")} </button>
                 </div>
                 ))}
               </div>
@@ -491,7 +483,7 @@ export default function ReviewPage({
           {openReviewSections.checkins && (
             <div className="rvGrid rvGridWide">
               {coachReviewCheckIns.length === 0 && (
-                <p className="rvEmpty">No check-ins waiting for a reply.</p>
+                <p className="rvEmpty">{t("polishNoCheckInsWaitingForAReply7351")}</p>
               )}
               {coachReviewCheckIns.map((checkIn: any) => {
                 const chips = checkInChips(checkIn);
@@ -530,9 +522,7 @@ export default function ReviewPage({
                         </div>
                       )}
                       {notes && <p className="rvNote rvNoteClamp">{notes}</p>}
-                      <span className="rvCardOpenHint" aria-hidden="true">
-                        Review &amp; reply →
-                      </span>
+                      <span className="rvCardOpenHint" aria-hidden="true">{t("polishReviewReply05e1")} </span>
                     </div>
                     <textarea
                       className="rvReply"
@@ -616,9 +606,7 @@ export default function ReviewPage({
                           setActivePage("Orders");
                           void openOrderReview(order);
                         }}
-                      >
-                        Open
-                      </button>
+                      >{t("polishOpencf9b")} </button>
                       <button
                         type="button"
                         className="rvGhostBtn"
@@ -632,9 +620,7 @@ export default function ReviewPage({
                         className="rvGhostBtn"
                         disabled={saving}
                         onClick={() => void settle("Archived")}
-                      >
-                        Archive
-                      </button>
+                      >{t("polishArchive2621")} </button>
                     </div>
                   </div>
                 );
@@ -642,7 +628,7 @@ export default function ReviewPage({
 
               {pageRows("comments", globalUnreviewedWorkoutComments).map((comment: any) => (
                 <div key={comment.key} className="rvItem rvCommentItem">
-                  <span className="rvItemKicker">Workout comment</span>
+                  <span className="rvItemKicker">{t("polishWorkoutCommentc988")}</span>
                   <strong>
                     {clientLabel(comment.clientName || comment.clientId)}
                   </strong>
@@ -657,9 +643,7 @@ export default function ReviewPage({
                       onClick={() =>
                         openReviewClient(comment.clientId, comment.clientName)
                       }
-                    >
-                      Open Client
-                    </button>
+                    >{t("polishOpenClient9da0")} </button>
                     <button
                       type="button"
                       className="rvDarkBtn"
@@ -679,7 +663,7 @@ export default function ReviewPage({
               {pager("orders", "Orders", globalReviewOrders)}
               {pager("comments", "Workout comments", globalUnreviewedWorkoutComments)}
               {commentsCount === 0 && (
-                <p className="rvEmpty">No comments or order reviews waiting.</p>
+                <p className="rvEmpty">{t("polishNoCommentsOrOrderReviewsWaitingb922")}</p>
               )}
             </div>
           )}
@@ -720,7 +704,7 @@ export default function ReviewPage({
                     >
                       <summary className="rvMissSummary">
                         <strong>{label}</strong>
-                        <span>{items.length} on this page</span>
+                        <span>{items.length}{t("polishOnThisPagee1fc")}</span>
                       </summary>
                       <div className="rvMissList">
                         {items.map((workout: any) => (
@@ -730,7 +714,7 @@ export default function ReviewPage({
                             className="rvItem rvItemMissed"
                             onClick={() => openReviewWorkout(workout)}
                           >
-                            <span className="rvItemKicker">Missed workout</span>
+                            <span className="rvItemKicker">{t("polishMissedWorkout3195")}</span>
                             <strong>{workout.sessionName || "Workout"}</strong>
                             <small>
                               {normalizeDate(String(workout.scheduledDate)) ||
@@ -744,7 +728,7 @@ export default function ReviewPage({
               })()}
               {pager("missed", "Missed tasks", globalMissedWorkouts)}
               {globalMissedWorkouts.length === 0 && (
-                <p className="rvEmpty">No missed workouts need attention.</p>
+                <p className="rvEmpty">{t("polishNoMissedWorkoutsNeedAttention56df")}</p>
               )}
             </div>
           )}
@@ -767,11 +751,11 @@ export default function ReviewPage({
           {openReviewSections.submissions && (
             <div className="rvGrid">
               <div className="rvSubmissionFilters">
-                <input aria-label="Search submissions" placeholder="Search athlete or assessment…" value={submissionQuery}
+                <input aria-label={t("polishSearchSubmissions849c")} placeholder={t("polishSearchAthleteOrAssessmentd6e1")} value={submissionQuery}
                   onChange={e => { setSubmissionQuery(e.target.value); setPages(p => ({ ...p, submissions: 0 })); }} />
-                <select aria-label="Submission status" value={submissionFilter}
+                <select aria-label={t("polishSubmissionStatus6698")} value={submissionFilter}
                   onChange={e => { setSubmissionFilter(e.target.value); setPages(p => ({ ...p, submissions: 0 })); }}>
-                  <option value="pending">Needs review</option><option value="reviewed">Reviewed</option><option value="all">All submissions</option>
+                  <option value="pending">{t("polishNeedsReview33a5")}</option><option value="reviewed">{t("polishReviewed31ef")}</option><option value="all">{t("polishAllSubmissions4ff2")}</option>
                 </select>
               </div>
               {pageRows("submissions", filteredSubmissions).map((group: any) => {
@@ -795,7 +779,7 @@ export default function ReviewPage({
               })}
               {pager("submissions", "Submissions", filteredSubmissions)}
               {filteredSubmissions.length === 0 && (
-                <p className="rvEmpty">No matching form or test submissions.</p>
+                <p className="rvEmpty">{t("polishNoMatchingFormOrTestSubmissionsc32c")}</p>
               )}
             </div>
           )}
@@ -817,21 +801,20 @@ export default function ReviewPage({
           >
             <div className="rvSlideHead">
               <div>
-                <span className="rvSlideEyebrow">Daily check-in</span>
+                <span className="rvSlideEyebrow">{t("polishDailyCheckIn35af")}</span>
                 <strong className="rvSlideTitle" id="rv-checkin-title">
                   {clientLabel(
                     selectedCheckIn.clientName || selectedCheckIn.clientId
                   )}
                 </strong>
-                <small className="rvSlideSub">
-                  Submitted {selectedCheckIn.submittedDate || "—"}
+                <small className="rvSlideSub">{t("polishSubmitted2e00")} {selectedCheckIn.submittedDate || "—"}
                 </small>
               </div>
               <button
                 type="button"
                 className="rvSlideClose"
                 onClick={() => setSelectedCheckIn(null)}
-                aria-label="Close check-in review"
+                aria-label={t("polishCloseCheckInReview4d6d")}
               >
                 <X size={16} />
               </button>
@@ -857,7 +840,7 @@ export default function ReviewPage({
                 </div>
               ))}
               <div className="rvSlideReply">
-                <span className="rvNoteLabel">Your reply</span>
+                <span className="rvNoteLabel">{t("polishYourReplybf9a")}</span>
                 <textarea
                   className="rvReply rvReplyLg"
                   placeholder={t("dailyWriteReply")}

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import CoachClientsPage from "../../../src/CoachClientsPage";
+import "../../../src/i18n";
 
 const baseProps = {
   loading: false,
@@ -141,7 +142,7 @@ describe("CoachClientsPage", () => {
       />
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "quickView" }));
+    fireEvent.click(screen.getByRole("button", { name: "Quick view" }));
     const dialog = screen.getByRole("dialog", { name: "Ada Lovelace" });
     expect(dialog).toBeInTheDocument();
     fireEvent.keyDown(dialog, { key: "Escape" });
