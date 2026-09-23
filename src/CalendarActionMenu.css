@@ -2,7 +2,9 @@
 .calendarContextMenu {
   position: fixed;
   z-index: 3000;
-  width: min(190px, calc(100vw - 24px));
+  width: min(240px, calc(100vw - 24px));
+  max-height: calc(100dvh - 24px);
+  overflow: auto;
   padding: 8px;
   border: 1px solid rgba(22, 22, 22, 0.16);
   border-radius: 14px;
@@ -19,6 +21,7 @@
   font-weight: 900;
 }
 .calendarContextMenu button {
+  min-height: 44px;
   width: 100%;
   margin-top: 4px;
   padding: 10px;

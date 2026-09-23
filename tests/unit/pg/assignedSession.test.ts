@@ -24,6 +24,15 @@ beforeEach(async () => {
 });
 afterAll(closeDb);
 describe("assigned session edits", () => {
+  it("reads bilingual notes into the builder and saves explicit Chinese edits to the athlete copy", async () => {
+    await pool.query("update workout_templates set coaching_notes_cn='旧备注'");
+    const before = await call(); expect(before.body.templates[0].notesCn).toBe("旧备注");
+    const res = await call("POST", { assignedWorkoutId: "AW-1", version: before.body.version,
+      session: { ...session, exercises: [{ ...exercise, coachingNotesCn: "保持底部姿势，脚掌均匀受力。" }] } });
+    expect(res.statusCode).toBe(200);
+    expect((await getWorkoutDetails(res.body.programId, "1", "1"))[0].notesCn).toBe("保持底部姿势，脚掌均匀受力。");
+    expect((await getWorkoutDetails("PR-1001", "1", "1"))[0].notesCn).toBe("旧备注");
+  });
   it("forks only this assignment, keeps library/history intact, and serves the existing mini API", async () => {
     await pool.query("update workout_templates set coaching_notes_cn='保持底部姿势，脚掌均匀受力。'");
     const before = await call();

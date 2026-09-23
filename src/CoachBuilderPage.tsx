@@ -1,6 +1,9 @@
 // Extracted from App.tsx (monolith split) — JSX verbatim; props threaded.
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import "./CoachBuilderPage.css";
+import ExercisePrescriptionEditor from "./ExercisePrescriptionEditor";
+import ProgrammingBlocks from "./ProgrammingBlocks";
+import WeekCopySheet from "./WeekCopySheet";
 import AthletePrescriptionHistory, { useAthletePrescriptionHistory } from "./AthletePrescriptionHistory";
 import { isCardioCategory } from "./appCore";
 import { Fragment, useEffect, useState } from "react";
@@ -69,12 +72,10 @@ export default function CoachBuilderPage({
   selectedSavedFormId,
   selectedSavedProgramId,
   usePercentExerciseIndexes,
-  activeWorkoutTabValue,
   addAlternateExercise,
   addExerciseToProgram,
   addFormQuestion,
   addMobileDayToWeek,
-  adjustProgramExerciseSets,
   alternateSearch,
   applyBulkPrescription,
   arrangementDragIndex,
@@ -111,6 +112,8 @@ export default function CoachBuilderPage({
   duplicateSavedFormIntoBuilder,
   duplicateSavedProgram,
   duplicateWeek,
+  weekCopySessions,
+  insertProgrammingBlock,
   duplicatingProgramId,
   editProgramRecordId,
   editingFormTemplate,
@@ -184,7 +187,6 @@ export default function CoachBuilderPage({
   renderAlternateExerciseEditor,
   renderBuilderExerciseOptionsMenu,
   renderExerciseLabelBadge,
-  renderMobileSetTable,
   renderSetPrescriptionTable,
   reorderAlternateExercise,
   reorderProgramExercise,
@@ -303,8 +305,6 @@ export default function CoachBuilderPage({
   setSessionType,
   setShowProgramDetail,
   setWeekDupMenu,
-  setWeekDupPct,
-  setWorkoutTabsMenuOpen,
   showProgramDetail,
   startMobileDrag,
   teams,
@@ -320,14 +320,14 @@ export default function CoachBuilderPage({
   visibleProgramsOnly,
   visibleSavedForms,
   visibleSessionsOnly,
-  weekDupMenu,
-  weekDupPct,
+  weekDupMenu = null,
   weekVolume,
   workoutPageTab,
-  workoutTabList,
-  workoutTabsMenuOpen,
 }: { [key: string]: any }) {
   const { t, i18n } = useTranslation();
+  const [blocksOpen, setBlocksOpen] = useState(false);
+  const renderBlockActions = () => <div className="builderBlockActions"><button type="button" className="outlineButton" onClick={() => setBlocksOpen(true)}><Copy size={16} /> {i18n.language.startsWith("zh") ? "训练模块" : "Exercise blocks"}</button></div>;
+  const renderPrescription = (exercise: any, index: number) => <ExercisePrescriptionEditor exercise={exercise} update={(key, value) => updateProgramExercise(index, key, value)} table={renderSetPrescriptionTable(exercise, index)} percent={usePercentExerciseIndexes.has(index)} togglePercent={() => toggleUsePercent(index)} alternates={renderAlternateExerciseEditor(exercise, index)} />;
   const prescriptionHistory = useAthletePrescriptionHistory(calendarBuilderContext ? historyClientCode : "");
   const [focusedExerciseIndex, setFocusedExerciseIndex] = useState<number | null>(null);
   const [mobileExpandedExercise, setMobileExpandedExercise] = useState<number | null>(null);
@@ -573,6 +573,8 @@ export default function CoachBuilderPage({
   };
   return (
     <>
+      {blocksOpen && <ProgrammingBlocks exercises={selectedProgramExercises} insert={insertProgrammingBlock} close={() => setBlocksOpen(false)} />}
+      {weekDupMenu !== null && <WeekCopySheet week={weekDupMenu} count={Number(programDurationWeeks) || 1} sessions={weekCopySessions} copy={duplicateWeek} close={() => setWeekDupMenu(null)} />}
               <>
                 {builderScope === "digital" ? null : (() => {
                   // Redesigned Library · Programming hub — header + per-tab KPI
@@ -687,7 +689,7 @@ export default function CoachBuilderPage({
                                 : editProgramRecordId
                                 ? "Edit Program"
                                 : "Create Program"
-                              : "Workouts"}
+                              : workoutPageTab === "Sessions" ? (i18n.language.startsWith("zh") ? "单次训练" : "Sessions") : workoutPageTab === "Forms" ? (i18n.language.startsWith("zh") ? "表单" : "Forms") : (i18n.language.startsWith("zh") ? "训练计划" : "Programs")}
                           </h1>
                           <p className={oneOffAssignTarget ? "oneOffBuilderLibraryCopy" : ""}>
                             {calendarBuilderContext ? t(oneOffAssignTarget ? "calendarNewWorkoutHint" : "calendarWorkoutIsolatedHint") : workoutPageTab === "Program Builder"
@@ -708,6 +710,7 @@ export default function CoachBuilderPage({
                           )}
                         </div>
                         <div className="wkHeadRight">
+                          {isListTab && <button type="button" className="libraryRefresh" aria-label={i18n.language.startsWith("zh") ? "刷新资料库" : "Refresh library"} onClick={() => workoutPageTab === "Forms" ? loadFormTemplates(true) : loadPrograms(true)}><RefreshCw size={18} /></button>}
                           {isListTab && (
                             <button type="button" className="wkCreateBtn" onClick={onCreate}>
                               <Plus size={17} /> {createLabel}
@@ -779,70 +782,6 @@ export default function CoachBuilderPage({
                         </div>
                       )}
 
-                      {!useMobileWorkoutRows &&
-                        workoutPageTab !== "Program Builder" && (
-                        <div className="wkTabs">
-                          {workoutTabList.map((tab: any) => {
-                            const count =
-                              tab.value === "Sessions"
-                                ? S.length
-                                : tab.value === "Forms"
-                                ? F.length
-                                : P.length;
-                            return (
-                              <button
-                                key={tab.value}
-                                type="button"
-                                className={`wkTab${
-                                  activeWorkoutTabValue === tab.value ? " on" : ""
-                                }`}
-                                onClick={() => selectWorkoutTab(tab.value)}
-                              >
-                                <span>{tab.label}</span>
-                                <span className="wkTabCount">{count}</span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      )}
-                      {useMobileWorkoutRows && workoutPageTab !== "Program Builder" && (
-                        <div
-                          className={`workoutTabMenu ${
-                            workoutTabsMenuOpen ? "workoutTabMenuOpen" : ""
-                          }`}
-                        >
-                          <button
-                            className="workoutTabMenuTrigger"
-                            aria-expanded={workoutTabsMenuOpen}
-                            onClick={() => setWorkoutTabsMenuOpen((open: any) => !open)}
-                          >
-                            <span>
-                              {workoutTabList.find(
-                                (t: any) => t.value === activeWorkoutTabValue
-                              )?.label || "Programs"}
-                            </span>
-                            <ChevronDown size={18} className="workoutTabMenuCaret" />
-                          </button>
-                          {workoutTabsMenuOpen && (
-                            <div className="workoutTabMenuList">
-                              {workoutTabList.map((tab: any) => (
-                                <button
-                                  key={tab.value}
-                                  className={
-                                    activeWorkoutTabValue === tab.value ? "active" : ""
-                                  }
-                                  onClick={() => {
-                                    selectWorkoutTab(tab.value);
-                                    setWorkoutTabsMenuOpen(false);
-                                  }}
-                                >
-                                  {tab.label}
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      )}
                     </div>
                   );
                 })()}
@@ -1071,11 +1010,7 @@ export default function CoachBuilderPage({
                           }
                         />
                       </div>
-                      <div className="programLandingActions">
-                        <button className="outlineButton" onClick={loadPrograms}>
-                          Refresh
-                        </button>
-                      </div>
+
                     </div>
 
                     <div className="programLibraryStack">
@@ -1679,66 +1614,6 @@ export default function CoachBuilderPage({
                                     <Copy size={13} /> Duplicate
                                     <ChevronDown size={12} />
                                   </button>
-                                  {weekDupMenu === w && (
-                                    <>
-                                      <div
-                                        className="weekDupBackdrop"
-                                        onClick={() => setWeekDupMenu(null)}
-                                      />
-                                      <div className="weekDupMenu">
-                                        <div className="weekDupSection">
-                                          Progress load
-                                        </div>
-                                        <div className="weekDupPctRow">
-                                          {[0, 2.5, 5, 10].map((pct) => (
-                                            <button
-                                              key={pct}
-                                              type="button"
-                                              className={
-                                                weekDupPct === pct ? "active" : ""
-                                              }
-                                              onClick={() => setWeekDupPct(pct)}
-                                            >
-                                              {pct === 0 ? "None" : `+${pct}%`}
-                                            </button>
-                                          ))}
-                                        </div>
-                                        <div className="weekDupSection">
-                                          Copy Week {w} to
-                                        </div>
-                                        {weeks
-                                          .filter((t: any) => t !== w)
-                                          .map((t: any) => (
-                                            <button
-                                              key={t}
-                                              type="button"
-                                              className="weekDupTarget"
-                                              onClick={() =>
-                                                duplicateWeek(w, [t], weekDupPct)
-                                              }
-                                            >
-                                              Week {t}
-                                            </button>
-                                          ))}
-                                        {weeks.filter((t: any) => t > w).length >
-                                          1 && (
-                                          <button
-                                            type="button"
-                                            className="weekDupTarget weekDupAll"
-                                            onClick={() =>
-                                              duplicateWeek(
-                                                w,
-                                                weeks.filter((t: any) => t > w),
-                                                weekDupPct
-                                              )
-                                            }
-                                          >
-                                            All later weeks
-                                          </button>
-                                        )}
-                                      </div>
-                                    </>
-                                  )}
                                 </div>
                               )}
                             </div>
@@ -2374,6 +2249,7 @@ export default function CoachBuilderPage({
                 </div>
                 </details>
 
+                {renderBlockActions()}
                 {selectedProgramExercises.length > 1 && (
                   <div className={`bulkEditBar${bulkEditMode ? " active" : ""}`}>
                     <button
@@ -2823,18 +2699,6 @@ export default function CoachBuilderPage({
                                       <strong>{exercise.exerciseName}</strong>
                                       <small>{exercise.sectionName || "Main"}</small>
                                     </div>
-                                    <button
-                                      type="button"
-                                      className={`builderUsePercentToggle${
-                                        usePercentExerciseIndexes.has(index)
-                                          ? " active"
-                                          : ""
-                                      }`}
-                                      onClick={() => toggleUsePercent(index)}
-                                      title="Show the %1RM field for this exercise"
-                                    >
-                                      Use %
-                                    </button>
                                     {renderBuilderExerciseOptionsMenu(exercise, index)}
                                   </div>
 
@@ -2889,45 +2753,10 @@ export default function CoachBuilderPage({
                                         }
                                       />
                                     </label>
-                                    <label className="builderModalCheck">
-                                      <span>Each Side</span>
-                                      <input
-                                        type="checkbox"
-                                        checked={Boolean(exercise.isUnilateral)}
-                                        onChange={(e) =>
-                                          updateProgramExercise(
-                                            index,
-                                            "isUnilateral",
-                                            e.target.checked
-                                          )
-                                        }
-                                      />
-                                    </label>
+
                                   </div>
 
-                                  <label className="exEditCueLabel">
-                                    Coach comment
-                                    <span className="exEditCueHint">
-                                      {" "}
-                                      — the athlete sees this on the exercise
-                                    </span>
-                                    <textarea
-                                      className="exEditReveal exEditCue"
-                                      value={exercise.coachingNotes || ""}
-                                      onChange={(e) =>
-                                        updateProgramExercise(
-                                          index,
-                                          "coachingNotes",
-                                          e.target.value
-                                        )
-                                      }
-                                      placeholder="Cue, form focus, intent — e.g. Slow eccentric, drive through the heel…"
-                                    />
-                                  </label>
-
-                                  {renderAlternateExerciseEditor(exercise, index)}
-
-                                  {renderSetPrescriptionTable(exercise, index)}
+                                  {renderPrescription(exercise, index)}
 
                                     </div>
                                   </Fragment>
@@ -3473,53 +3302,7 @@ export default function CoachBuilderPage({
                                         </button>
                                       </div>
                                       {mobileExpandedExercise === index && <div className="mobileExerciseCardBody">
-                                      {renderMobileSetTable(exercise, index)}
-
-                                      <div className="mbCardControls">
-                                        <label className="mbEachSide">
-                                          <input
-                                            type="checkbox"
-                                            checked={Boolean(exercise.isUnilateral)}
-                                            onChange={(e) =>
-                                              updateProgramExercise(
-                                                index,
-                                                "isUnilateral",
-                                                e.target.checked
-                                              )
-                                            }
-                                          />
-                                          Each side
-                                        </label>
-                                        <button
-                                          className="mbAddSet"
-                                          onClick={() =>
-                                            adjustProgramExerciseSets(index, 1)
-                                          }
-                                        >
-                                          + Add Set
-                                        </button>
-                                        <button
-                                          className="mbAddSet mbSetDetailLink"
-                                          onClick={() =>
-                                            setMobileDetailsIndex(index)
-                                          }
-                                        >
-                                          % / tempo
-                                        </button>
-                                      </div>
-
-                                      <textarea
-                                        className="miniSearch mbNote"
-                                        value={exercise.coachingNotes}
-                                        onChange={(e) =>
-                                          updateProgramExercise(
-                                            index,
-                                            "coachingNotes",
-                                            e.target.value
-                                          )
-                                        }
-                                        placeholder="Coach comment — the athlete sees this…"
-                                      />
+                                      {renderPrescription(exercise, index)}
                                       </div>}
                                     </div>
                                   </div>
@@ -3528,6 +3311,7 @@ export default function CoachBuilderPage({
                             )}
                           </div>
 
+                          {renderBlockActions()}
                           <div className="mobileBuilderActionBar">
                             <button
                               className="outlineButton"
@@ -3842,7 +3626,7 @@ export default function CoachBuilderPage({
                                       <button
                                         type="button"
                                         className="mbOvDup"
-                                        onClick={(event) => { event.preventDefault(); duplicateWeek(w, [w + 1], 0); }}
+                                        onClick={(event) => { event.preventDefault(); setWeekDupMenu(w); }}
                                       >
                                         <Copy size={13} /> {t("redesignDuplicateWeek")}
                                       </button>
@@ -4291,14 +4075,7 @@ export default function CoachBuilderPage({
                           placeholder="Search forms..."
                         />
                       </div>
-                      <div className="programLandingActions">
-                        <button
-                          className="outlineButton"
-                          onClick={() => void loadFormTemplates(true)}
-                        >
-                          Refresh
-                        </button>
-                      </div>
+
                     </div>
                     <div className="programLibraryStack">
                       <div className="programTable wkFormsTable">

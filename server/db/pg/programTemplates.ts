@@ -93,6 +93,7 @@ export async function listAllTemplateRows(): Promise<TemplateRow[]> {
       tempo: str(r.tempo),
       rest: str(r.rest),
       notes: str(r.coachingNotes),
+      notesCn: str(r.coachingNotesCn),
     })
   );
 }
@@ -322,6 +323,7 @@ export async function createWorkoutTemplate(
         tempo: String(exercise.tempo || ""),
         rest: String(exercise.rest || ""),
         coachingNotes: String(exercise.coachingNotes || ""),
+        coachingNotesCn: String(exercise.coachingNotesCn || ""),
         status: String(exercise.status || "Active"),
         isUnilateral: meta.isUnilateral,
         isAccessory: meta.isAccessory,
@@ -559,6 +561,7 @@ export async function createWorkoutTemplatesBulk(input: {
         tempo: String(exercise.tempo || ""),
         rest: String(exercise.rest || ""),
         coachingNotes: String(exercise.coachingNotes || ""),
+        coachingNotesCn: String(exercise.coachingNotesCn || ""),
         status: String(exercise.status || "Active"),
         isUnilateral: meta.isUnilateral,
         isAccessory: meta.isAccessory,

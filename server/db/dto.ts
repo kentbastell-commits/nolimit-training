@@ -346,6 +346,7 @@ export type TemplateSummaryDTO = {
   tempo: string;
   rest: string;
   notes: string;
+  notesCn?: string;
   // Per-set prescriptions from the set_prescriptions table (the real store
   // since 2026-09-20). Empty for rows saved before then — readers fall back
   // to the "Set Prescriptions:" JSON inside `notes`.

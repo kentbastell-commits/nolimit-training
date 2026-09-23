@@ -1,3 +1,5 @@
+import { insertBlock, progressExerciseLoad } from "./programmingBlockData";
+import CoachLibraryNavigation, { librarySections, type LibrarySection } from "./CoachLibraryNavigation";
 import CoachDraftNotice from "./CoachDraftNotice";
 import { athleteFacts, buildCoachingItems, coachingDate, decisionStatus, isAdminItem, type CoachingItem, type ReviewDecision } from "./coachingReview";
 import { readCoachDrafts, writeCoachDraft, removeCoachDraft, type CoachDraft } from "./coachDraft";
@@ -5344,6 +5346,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
           tempo: t.tempo || "",
           rest: t.rest || "",
           coachingNotes: meta.coachingNotes,
+          coachingNotesCn: t.notesCn || "",
           trackingType: meta.trackingType,
           trackingFields: meta.trackingFields,
           isUnilateral: meta.isUnilateral,
@@ -8118,8 +8121,8 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     y: number,
     menu: CalendarActionMenuPayload
   ) => {
-    const menuWidth = 190;
-    const menuHeight = 190;
+    const menuWidth = 260;
+    const menuHeight = 350;
     const maxX = Math.max(12, window.innerWidth - menuWidth - 12);
     const maxY = Math.max(12, window.innerHeight - menuHeight - 12);
 
@@ -9985,6 +9988,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
       ...updated[index],
       [field]: field === "order" ? Number(value) : value,
     };
+    if (field === "coachingNotes" && value !== updated[index].coachingNotes) nextExercise.coachingNotesCn = "";
 
     // Moving out of the "Circuit" section: exercises added there auto-link
     // into a circuit group (see buildProgramExerciseFromLibrary), and the
@@ -11119,34 +11123,19 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     );
   };
 
-  // Bump a numeric load by a percent (leaves BW / % / blanks untouched).
-  const progressLoad = (value: string, pct: number) => {
-    if (!pct) return value;
-    const n = parseFloat(value);
-    if (!Number.isFinite(n)) return value;
-    return String(Math.round(n * (1 + pct / 100) * 100) / 100);
-  };
-
-  const progressExercise = (ex: ProgramExercise, pct: number): ProgramExercise => {
-    if (!pct) return { ...ex };
-    return {
-      ...ex,
-      load: progressLoad(ex.load, pct),
-      setPrescriptions: ex.setPrescriptions?.map((sp) => ({
-        ...sp,
-        load: progressLoad(sp.load, pct),
-      })),
-    };
-  };
-
   // Calendar: overwrite a target week with copies of a source week's sessions
   // (optionally progressing loads by a percent).
+  const sessionsForWeekCopy = () => {
+    const draft = buildCurrentProgramSession(editingProgramSessionId || "week-copy-draft", sessionName || `Week ${programWeek} Day ${programDay}`);
+    return draft?.exercises.length ? upsertProgramSession(programSessions, draft, false) : programSessions;
+  };
   const duplicateWeek = (fromWeek: number, toWeeks: number[], pct: number) => {
+    if (!toWeeks.length || toWeeks.includes(fromWeek) || toWeeks.some(w => !Number.isInteger(w) || w < 1 || w > 52) || !Number.isFinite(pct) || pct < -50 || pct > 100) return;
     // Include the day being edited in the copy, and warn before wiping a
     // target week that already has work (it used to vanish with a cheerful
     // "Week 1 copied" toast).
-    commitDraftSessionIfAny();
-    const targetHasWork = programSessions.some(
+    const snapshot = sessionsForWeekCopy();
+    const targetHasWork = snapshot.some(
       (s) => toWeeks.map(String).includes(String(s.week)) && s.exercises.length > 0
     );
     if (
@@ -11160,7 +11149,8 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
       setWeekDupMenu(null);
       return;
     }
-    setProgramSessions((current) => {
+    setProgramSessions(() => {
+      const current = snapshot;
       const source = current.filter((s) => s.week === String(fromWeek));
       const targetSet = new Set(toWeeks.map(String));
       const kept = current.filter((s) => !targetSet.has(s.week));
@@ -11171,21 +11161,23 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
             ...s,
             localId: `${Date.now()}-${Math.random()}`,
             week: String(toWeek),
-            exercises: s.exercises.map((ex) => progressExercise(ex, pct)),
+            exercises: s.exercises.map((ex) => progressExerciseLoad(ex, pct)),
           });
         });
       });
       return [...kept, ...copies];
     });
+    setProgramDurationWeeks(String(Math.max(Number(programDurationWeeks) || 1, ...toWeeks)));
+    if (toWeeks.includes(Number(programWeek))) { setSelectedProgramExercises([]); setEditingProgramSessionId(""); setSessionEditorOpen(false); }
     setWeekDupMenu(null);
     setBuilderSaveStatus("dirty");
     notify(
       toWeeks.length > 1
         ? `Week ${fromWeek} copied to ${toWeeks.length} weeks${
-            pct ? ` (+${pct}% load)` : ""
+            pct ? ` (${pct > 0 ? "+" : ""}${pct}% load)` : ""
           }.`
         : `Week ${fromWeek} copied to Week ${toWeeks[0]}${
-            pct ? ` (+${pct}% load)` : ""
+            pct ? ` (${pct > 0 ? "+" : ""}${pct}% load)` : ""
           }.`
     );
   };
@@ -12110,85 +12102,6 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
   // Compact Everfit-style set table for the mobile card. The full editor
   // (%1RM, tempo, cardio zones) lives behind the card's ⋯ "Details" sheet,
   // which reuses renderSetPrescriptionTable.
-  const renderMobileSetTable = (
-    exercise: ProgramExercise,
-    exerciseIndex: number
-  ) => {
-    const sets = normalizeExerciseSetPrescriptions(exercise);
-    const isRunning =
-      exercise.trackingType === "Time" ||
-      exercise.trackingType === "Distance" ||
-      exercise.trackingType === "Pace";
-    const isTime = exercise.trackingType === "Time";
-    return (
-      <div className="mbSetTable">
-        <div className="mbSetHead">
-          <span>Set</span>
-          <span>{isRunning ? (isTime ? "Time" : "Dist") : "Kg"}</span>
-          <span>{isRunning ? "Zone" : "Reps"}</span>
-          <span>Rest</span>
-          <span />
-        </div>
-        {sets.map((set, setIndex) => (
-          <div className="mbSetRow" key={setIndex}>
-            <span className="mbSetNum">{set.setNumber}</span>
-            <input
-              className="mbSetInput"
-              value={isRunning ? set.reps : set.load}
-              placeholder="–"
-              onChange={(e) =>
-                updateExerciseSetPrescription(
-                  exerciseIndex,
-                  setIndex,
-                  isRunning ? "reps" : "load",
-                  e.target.value
-                )
-              }
-            />
-            <input
-              className="mbSetInput"
-              value={isRunning ? set.percentMas : set.reps}
-              placeholder="–"
-              inputMode={isRunning ? "decimal" : "numeric"}
-              onChange={(e) =>
-                updateExerciseSetPrescription(
-                  exerciseIndex,
-                  setIndex,
-                  isRunning ? "percentMas" : "reps",
-                  e.target.value
-                )
-              }
-            />
-            <input
-              className="mbSetInput"
-              value={set.rest}
-              placeholder="0:00"
-              onChange={(e) =>
-                updateExerciseSetPrescription(
-                  exerciseIndex,
-                  setIndex,
-                  "rest",
-                  e.target.value
-                )
-              }
-            />
-            {sets.length > 1 ? (
-              <button
-                className="mbSetDel"
-                aria-label={`Remove set ${set.setNumber}`}
-                onClick={() => removeExerciseSet(exerciseIndex, setIndex)}
-              >
-                <X size={14} />
-              </button>
-            ) : (
-              <span />
-            )}
-          </div>
-        ))}
-      </div>
-    );
-  };
-
   useEffect(() => {
     if (!builderSaveStatusReadyRef.current) {
       builderSaveStatusReadyRef.current = true;
@@ -12804,7 +12717,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     const inBuilder =
       Boolean(calendarBuilderContext) || activePage === "Workouts" || (activePage === "Digital" && digitalSubTab === "program");
     if (inBuilder) {
-      if (!confirmLeaveBuilder()) return;
+      if (!confirmLeaveBuilder()) return false;
       resetBuilder();
     }
     setSelectedClient(null);
@@ -12844,6 +12757,22 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
       loadPrograms();
       loadFormTemplates();
     }
+    return true;
+  };
+
+  const [lastLibrarySection, setLastLibrarySection] = useState<LibrarySection>(() => {
+    try { const saved = localStorage.getItem("nl_coach_library_section"); return librarySections.includes(saved as LibrarySection) ? saved as LibrarySection : "Programs"; } catch { return "Programs"; }
+  });
+  const currentLibrarySection: LibrarySection = activePage === "Library" ? "Exercises" : activePage === "Tests" ? "Tests" : workoutPageTab === "Sessions" ? "Sessions" : workoutPageTab === "Forms" ? "Forms" : "Programs";
+  useEffect(() => {
+    if (!["Library", "Workouts", "Tests"].includes(activePage) || (activePage === "Workouts" && workoutPageTab === "Program Builder")) return;
+    setLastLibrarySection(currentLibrarySection);
+    try { localStorage.setItem("nl_coach_library_section", currentLibrarySection); } catch { /* Navigation still works without storage. */ }
+  }, [activePage, workoutPageTab, currentLibrarySection]);
+  const selectLibrarySection = (section: LibrarySection) => {
+    if (!goToPage(section === "Exercises" ? "Library" : section === "Tests" ? "Tests" : "Workouts")) return;
+    if (["Programs", "Sessions", "Forms"].includes(section)) selectWorkoutTab(section === "Programs" ? "Saved Programs" : section as "Sessions" | "Forms");
+    setLastLibrarySection(section);
   };
 
   const newEnquiries = coachReviewEnquiries.filter(
@@ -20815,7 +20744,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
             );
 
             // Single-item entries are direct nav buttons (no flyout).
-            if (group.items.length === 1) {
+            if (group.items.length === 1 || group.key === "library") {
               const leaf = group.items[0];
               const showDot =
                 Boolean(leaf.attention) &&
@@ -20837,7 +20766,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
                     }`}
                     title={group.label}
                     aria-label={group.label}
-                    onClick={() => goToPage(leaf.name)}
+                    onClick={() => group.key === "library" ? selectLibrarySection(lastLibrarySection) : goToPage(leaf.name)}
                   >
                     <span className="navItemLabel">
                       <GroupIcon size={20} strokeWidth={2.2} />
@@ -21260,6 +21189,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
               />
             )}
 
+            {["Library", "Workouts", "Tests"].includes(activePage) && !calendarBuilderContext && !(activePage === "Workouts" && workoutPageTab === "Program Builder") && <CoachLibraryNavigation selected={currentLibrarySection} select={selectLibrarySection} />}
             {activePage === "Library" && (
               <CoachLibraryPage
                 deleteExercise={deleteExercise}
@@ -21361,6 +21291,8 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
                 duplicateSavedFormIntoBuilder={duplicateSavedFormIntoBuilder}
                 duplicateSavedProgram={duplicateSavedProgram}
                 duplicateWeek={duplicateWeek}
+                weekCopySessions={weekDupMenu === null ? [] : sessionsForWeekCopy()}
+                insertProgrammingBlock={(exercises: ProgramExercise[]) => { setSelectedProgramExercises(current => relabelProgramExercises(insertBlock(current, exercises))); setBuilderSaveStatus("dirty"); }}
                 duplicatingProgramId={duplicatingProgramId}
                 editProgramRecordId={editProgramRecordId}
                 editingFormTemplate={editingFormTemplate}
@@ -21436,7 +21368,6 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
                 renderAlternateExerciseEditor={renderAlternateExerciseEditor}
                 renderBuilderExerciseOptionsMenu={renderBuilderExerciseOptionsMenu}
                 renderExerciseLabelBadge={renderExerciseLabelBadge}
-                renderMobileSetTable={renderMobileSetTable}
                 renderSetPrescriptionTable={renderSetPrescriptionTable}
                 renderTemplateLibrary={renderTemplateLibrary}
                 reorderAlternateExercise={reorderAlternateExercise}
@@ -21683,6 +21614,8 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
             reviewReturn={reviewReturn}
             returnToReview={() => { setSelectedClient(null); setSelectedWorkout(null); setActivePage("Review"); setReviewReturn(false); }}
             openCoachingReview={(key = "", filter = "dailyAll") => { const item = dailyCoachingItems.find(i => i.key === key); const nextFilter = filter === "dailyAll" && item && decisionStatus(item, reviewDecisions) === "resolved" ? "dailyHistory" : filter; setDailyReviewView(v => ({ ...v, athlete: selectedClient.clientCode, search: "", filter: nextFilter, selected: key, limit: 18, scroll: 0 })); setSelectedClient(null); setSelectedWorkout(null); setActivePage("Review"); }}
+            switchableAthletes={coachVisibleClients}
+            switchAthlete={(client: Client) => { setSelectedWorkout(null); setWorkoutDetails([]); setSetLogs([]); setSavedExerciseDraftIds([]); setSelectedClient(client); }}
             adjustNextSession={(workout: Workout) => { setClientTab("Training"); selectClientCalendarDate(coachingDate(workout.scheduledDate)); void openWorkoutProgramInBuilder(workout); }}
             clientHeroKpis={computeClientHeroKpis()}
             dragPreviewDate={dragPreviewDate}
@@ -22253,6 +22186,8 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
 
         {calendarActionMenu && (
           <CalendarActionMenu
+            openWorkout={openWorkout}
+            editWorkout={openWorkoutProgramInBuilder}
             calendarActionMenu={calendarActionMenu}
             closeCalendarActionMenu={closeCalendarActionMenu}
             copiedCalendarItem={copiedCalendarItem}

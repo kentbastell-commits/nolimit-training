@@ -485,6 +485,12 @@ data between them, never "borrow" a table ID across products.
     has drifted. Now the table is read first (migration 0024), JSON is the
     fallback.
 
+    Shared programming editors must read and write the same tracking fields on
+    phone and desktop; a compact kg/reps shortcut loses timed holds. Deep-copy
+    saved blocks, re-key each inserted circuit, and round-trip Chinese notes
+    through template readers and both writers. Progress only literal numeric
+    loads, preserving percentages, units and automatic targets.
+
 44. **The lifecycle-destroyed draft** — the WeChat mini program
     (`c:\Users\kentb\nolimit-miniprogram`, a THIRD repo) held a whole 45-90
     minute workout in React state and wrote only on "Finish", but WeChat

@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { DragEvent } from "react";
 import { useState } from "react";
-import { CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, ClipboardList, Copy, Dumbbell, HeartPulse, Plus, Scissors, Target, Trophy, Waves } from "lucide-react";
+import { CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, ClipboardList, Copy, Dumbbell, HeartPulse, MoreVertical, Plus, Scissors, Target, Trophy, Waves } from "lucide-react";
 
 // Category → colourful icon (colour comes from the .wcatIcon.<class> CSS).
 const CAT_ICON: Record<string, any> = {
@@ -122,6 +122,10 @@ export default function PortalTraining({
   workoutsLoading,
 }: { [key: string]: any }) {
   const { i18n } = useTranslation();
+  const sessionActions = (workout: any) => !isClientPortal && <button type="button" className="coachSessionActions" aria-label={`${i18n.language.startsWith("zh") ? "训练操作" : "Session actions"}: ${localizedWorkoutName(workout)}`} onTouchStart={e => e.stopPropagation()} onKeyDown={e => e.stopPropagation()} onClick={e => {
+    e.stopPropagation(); clearCalendarLongPress(); const rect = e.currentTarget.getBoundingClientRect();
+    openCalendarActionMenu(rect.left, rect.bottom, { kind: "item", item: { type: "workout", workout } });
+  }}><MoreVertical size={20} /></button>;
   // Up to 3 session-type color classes for the work-dots on a date (Week strip
   // + Month grid). Colors come from the same helpers that color the blocks.
   const workDotClasses = (date: any): string[] => [
@@ -828,7 +832,7 @@ export default function PortalTraining({
 
                       return (
                         <div
-                          className={`calendarDay ${
+                          className={`calendarDay ${!isClientPortal && date === calendarAnchorDate ? "selectedCoachDay" : ""} ${
                             draggingWorkoutId || draggingAssignmentId
                               ? "calendarDropTarget"
                               : ""
@@ -1124,6 +1128,7 @@ export default function PortalTraining({
                                   );
                                 })()}
                               <div className="workoutBlockMain">
+                                {sessionActions(workout)}
                                 <b className="calendarWorkoutName">{localizedWorkoutName(workout)}</b>
                                 {!isClientPortal && <span className="coachCalendarCompactMeta">{t("week")} {workout.week} · {t("day")} {workout.day} · {localizeTaskStatus(getDisplayTaskStatus(workout.completionStatus, workout.scheduledDate))}</span>}
                                 {/* Coach cards drop the "Type - Status" line
@@ -1888,10 +1893,11 @@ export default function PortalTraining({
                               );
                               const Icon = catIcon(cc);
                               return (
-                              <button
+                              <div role="button" tabIndex={0}
                                 className={`selectedDayWorkout ${cc}`}
                                 key={workout.id}
                                 onClick={() => openWorkout(workout)}
+                                onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openWorkout(workout); } }}
                               >
                                 <span className={`wcatBadge ${cc}`}>
                                   <Icon size={20} aria-hidden="true" />
@@ -1906,10 +1912,8 @@ export default function PortalTraining({
                                     ))}
                                   </small>
                                 </div>
-                                <span className="selectedDayWorkoutAction">
-                                  Open
-                                </span>
-                              </button>
+                                {sessionActions(workout)}
+                              </div>
                               );
                             })}
                             {selectedCalendarDateAssignments.map((assignment: any) => (

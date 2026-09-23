@@ -22,7 +22,9 @@ describe("server/wechat/invite token", () => {
     const token = makeInviteToken("CL-0001");
     const [i, code, exp, sig] = token.split(".");
     expect(verifyInviteToken(`${i}.CL-0002.${exp}.${sig}`)).toBeNull(); // another athlete
-    expect(verifyInviteToken(`${i}.${code}.${exp}.${sig.slice(0, -1)}x`)).toBeNull(); // bad sig
+    // Always change the signature; it can legitimately already end in x.
+    const tamperedSig = `${sig.slice(0, -1)}${sig.endsWith("x") ? "y" : "x"}`;
+    expect(verifyInviteToken(`${i}.${code}.${exp}.${tamperedSig}`)).toBeNull();
     expect(verifyInviteToken("i.CL-0001.abc")).toBeNull(); // malformed
     expect(verifyInviteToken(makeInviteToken("CL-0001", -1000))).toBeNull(); // expired
     vi.stubEnv("PAY_LINK_SECRET", "s2");

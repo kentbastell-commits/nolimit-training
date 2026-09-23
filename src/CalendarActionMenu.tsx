@@ -1,6 +1,7 @@
 // Extracted from App.tsx (monolith split) — JSX verbatim; props threaded.
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Copy, Scissors, Trash2, X } from "lucide-react";
+import { Copy, Scissors, Trash2, X, Pencil, Eye } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import "./CalendarActionMenu.css";
 import { formatCalendarLabel } from "./appCore";
 
@@ -16,7 +17,10 @@ export default function CalendarActionMenu({
   localizedWorkoutName,
   pasteCalendarItemToDate,
   setCopiedCalendarItem,
+  openWorkout,
+  editWorkout,
 }: { [key: string]: any }) {
+  const { i18n } = useTranslation(); const zh = i18n.language?.startsWith("zh");
   return (
     <>
           <div
@@ -35,6 +39,10 @@ export default function CalendarActionMenu({
                     ? localizedWorkoutName(calendarActionMenu.item.workout)
                     : getAssignmentDisplayName(calendarActionMenu.item.assignment)}
                 </strong>
+                {calendarActionMenu.item.type === "workout" && <>
+                  <button type="button" role="menuitem" onClick={() => { openWorkout(calendarActionMenu.item.workout); closeCalendarActionMenu(); }}><Eye size={15} />{zh ? "查看 / 回顾" : "View / Review"}</button>
+                  {calendarActionMenu.item.workout.completionStatus !== "Completed" && <button type="button" role="menuitem" onClick={() => { editWorkout(calendarActionMenu.item.workout); closeCalendarActionMenu(); }}><Pencil size={15} />{zh ? "编辑本次训练" : "Edit this session"}</button>}
+                </>}
                 <button
                   type="button"
                   role="menuitem"
@@ -51,7 +59,7 @@ export default function CalendarActionMenu({
                   }}
                 >
                   <Copy size={15} aria-hidden="true" />
-                  Copy
+                  {zh ? "复制" : "Copy"}
                 </button>
                 <button
                   type="button"
@@ -69,7 +77,7 @@ export default function CalendarActionMenu({
                   }}
                 >
                   <Scissors size={15} aria-hidden="true" />
-                  Cut
+                  {zh ? "移动到其他日期" : "Move to another date"}
                 </button>
                 <button
                   type="button"
@@ -87,7 +95,7 @@ export default function CalendarActionMenu({
                   }}
                 >
                   <Trash2 size={15} aria-hidden="true" />
-                  Delete
+                  {zh ? "删除" : "Delete"}
                 </button>
               </>
             ) : (
@@ -107,7 +115,7 @@ export default function CalendarActionMenu({
                     ) : (
                       <Scissors size={15} aria-hidden="true" />
                     )}
-                    Paste
+                    {zh ? "放到此日期" : "Place on this date"}
                   </button>
                 )}
                 <button
@@ -119,7 +127,7 @@ export default function CalendarActionMenu({
                   }}
                 >
                   <X size={15} aria-hidden="true" />
-                  Cancel
+                  {zh ? "取消" : "Cancel"}
                 </button>
               </>
             )}

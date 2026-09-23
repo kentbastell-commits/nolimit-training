@@ -15,6 +15,7 @@ export type ProgramExerciseInput = {
   tempo: string;
   rest: string;
   coachingNotes: string;
+  coachingNotesCn?: string;
   status?: string;
   targetSource?: string;
   targetMetric?: string;

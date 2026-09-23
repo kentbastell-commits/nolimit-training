@@ -26,7 +26,7 @@ async function editorFor(workout: Assigned) {
   const version = createHash("sha256").update(JSON.stringify({
     id: workout.assignedWorkoutId, client: workout.clientId, program: workout.programId,
     date: workout.scheduledDate, status: workout.completionStatus,
-    templates: templates.map(({ sessionNameCn: _cn, ...row }) => row),
+    templates: templates.map(({ sessionNameCn: _cn, notesCn: _notesCn, ...row }) => row),
   })).digest("hex");
   return { workout, program, templates, version };
 }
@@ -70,7 +70,7 @@ export async function saveAssignedSession(id: string, expectedVersion: string, s
       const original = originals.find(row => row.exerciseId === copy.exerciseId && row.exerciseOrder === copy.exerciseOrder);
       if (!original) continue;
       await tx.update(workoutTemplates).set({
-        coachingNotesCn: humanTranslationText(original.coachingNotes, "notes") === humanTranslationText(copy.coachingNotes, "notes") ? original.coachingNotesCn : null,
+        coachingNotesCn: copy.coachingNotesCn || (humanTranslationText(original.coachingNotes, "notes") === humanTranslationText(copy.coachingNotes, "notes") ? original.coachingNotesCn : null),
         sessionNotesCn: original.sessionNotes === copy.sessionNotes ? original.sessionNotesCn : null,
         sessionGoalCn: original.sessionGoal === copy.sessionGoal ? original.sessionGoalCn : null,
       }).where(eq(workoutTemplates.templateId, copy.templateId));

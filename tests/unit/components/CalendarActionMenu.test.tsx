@@ -26,7 +26,9 @@ describe("CalendarActionMenu", () => {
     render(<CalendarActionMenu {...baseProps} />);
     expect(screen.getByText("Leg Day")).toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: "Copy" })).toBeInTheDocument();
-    expect(screen.getByRole("menuitem", { name: "Cut" })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "Move to another date" })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "Edit this session" })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "View / Review" })).toBeInTheDocument();
     expect(
       screen.getByRole("menuitem", { name: "Delete" })
     ).toBeInTheDocument();
@@ -59,7 +61,7 @@ describe("CalendarActionMenu", () => {
       />
     );
     expect(
-      screen.getByRole("menuitem", { name: "Paste" })
+      screen.getByRole("menuitem", { name: "Place on this date" })
     ).toBeInTheDocument();
     expect(
       screen.getByRole("menuitem", { name: "Cancel" })

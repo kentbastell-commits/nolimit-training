@@ -78,6 +78,7 @@ export async function listProgramTemplates(
         tempo: row.tempo,
         rest: row.rest,
         notes: row.notes,
+        notesCn: row.notesCn,
         setPrescriptions: row.setPrescriptions || [],
         targetSource: row.targetSource || "",
         targetMetric: row.targetMetric || "",

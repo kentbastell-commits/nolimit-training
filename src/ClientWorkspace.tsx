@@ -3,6 +3,7 @@
 import { useState } from "react";
 import PortalHome from "./PortalHome";
 import CoachAthleteSummary from "./CoachAthleteSummary";
+import CoachAthleteSwitcher from "./CoachAthleteSwitcher";
 import AthletePreview from "./AthletePreview";
 import AthleteHub, { athleteContactKey } from "./AthleteHub";
 import ClientInviteModal from "./ClientInviteModal";
@@ -28,6 +29,8 @@ import CountUp from "./CountUp";
 import PortalToApp from "./PortalToApp";
 
 export default function ClientWorkspace({
+  switchableAthletes = [],
+  switchAthlete,
   t,
   assignLoading,
   assignProgramToClient,
@@ -675,7 +678,7 @@ export default function ClientWorkspace({
                     </div>
                     <div className="coachClientIdentity">
                       <span>{t("coachModeLabel")}</span>
-                      <h1>{selectedClient.name}</h1>
+                      <h1><CoachAthleteSwitcher clients={switchableAthletes} selected={selectedClient.id} name={selectedClient.name} select={switchAthlete} /></h1>
                       <p>
                         {selectedClient.clientType || t("client")} ·{" "}
                         {getCoachDisplayName(

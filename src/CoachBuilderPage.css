@@ -4104,3 +4104,17 @@
 .previousPerformance summary{min-height:44px;display:flex;align-items:center;cursor:pointer;font-weight:650;gap:8px}
 .previousPerformance summary:before{content:"+"}.previousPerformance[open] summary:before{content:"−"}
 .previousPerformance ul{padding-left:18px}.previousPerformance li{margin:8px 0;line-height:1.5}.previousPerformance p{font-size:13px;line-height:1.5}
+/* One library surface: search and filters sit directly above the results. */
+.app.app:not(.clientPortalApp) .programLibraryPanel { padding:0 !important;border:0 !important;background:transparent !important; }
+.app.app:not(.clientPortalApp) .programLandingHeader { padding:0 !important;border:0 !important;background:transparent !important;box-shadow:none !important; }
+.app.app:not(.clientPortalApp) .wkHub:not(.wkHubBuilderActive) .wkBoard { display:none; }
+.libraryRefresh { display:grid;place-items:center;min-width:44px;min-height:44px;border:1px solid #ded8ca;border-radius:8px;background:transparent;cursor:pointer; }
+.app.app:not(.clientPortalApp) .wkHeadRight { display:flex;align-items:center;gap:8px; }
+.programLandingControls { min-width:0; }
+@media(max-width:720px){
+  .app.app:not(.clientPortalApp) .wkHeadRight { flex-direction:row; }
+  .app.app:not(.clientPortalApp) .wkHeadRight .wkCreateBtn { flex:1;width:auto; }
+  .app.app:not(.clientPortalApp) .programLandingControls { display:grid;grid-template-columns:minmax(0,1fr);gap:8px;width:100%;align-self:stretch; }
+  .app.app:not(.clientPortalApp) .programLandingControls .programViewSelect,.app.app:not(.clientPortalApp) .programLandingControls .templateSearchInput { width:100%;min-width:0;box-sizing:border-box; }
+  .mbOvDup { min-height:44px; }
+}

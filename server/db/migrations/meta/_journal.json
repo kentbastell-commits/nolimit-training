@@ -183,6 +183,13 @@
       "when": 1790121600000,
       "tag": "0025_coaching_review",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1790121600001,
+      "tag": "0026_programming_blocks",
+      "breakpoints": true
     }
   ]
 }

@@ -652,6 +652,7 @@ export type ProgramExercise = {
   tempo: string;
   rest: string;
   coachingNotes: string;
+  coachingNotesCn?: string;
   trackingType: TrackingType;
   trackingFields?: string[];
   isUnilateral: boolean;
@@ -771,6 +772,7 @@ export type SavedProgramTemplate = {
   tempo?: string;
   rest?: string;
   notes?: string;
+  notesCn?: string;
   // Per-set prescriptions from the server's set_prescriptions table (rows
   // saved before 2026-09-20 have none; the notes JSON is the fallback).
   setPrescriptions?: Array<Partial<ExerciseSetPrescription> & { setNumber?: number }>;

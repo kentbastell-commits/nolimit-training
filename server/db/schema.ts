@@ -924,6 +924,12 @@ export const wxSubscribeCredits = pgTable(
 // token and polls; the phone (inside WeChat) authorizes and marks it ok.
 // Short-lived working data, cleaned opportunistically; NO client FK on
 // purpose - rows expire in minutes and must never block a client delete.
+export const programmingBlocks = pgTable("programming_blocks", {
+  id: text("id").primaryKey(), name: text("name").notNull(), nameCn: text("name_cn").notNull().default(""),
+  exercises: jsonb("exercises").notNull(), favorite: boolean("favorite").notNull().default(false),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(), lastUsedAt: bigint("last_used_at", { mode: "number" }), version: integer("version").notNull(),
+});
+
 export const wxLoginTokens = pgTable(
   "wx_login_tokens",
   {

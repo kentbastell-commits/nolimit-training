@@ -56,6 +56,7 @@ import createWorkoutTemplate from "../api/createWorkoutTemplate.ts";
 import createWorkoutTemplatesBulk from "../api/createWorkoutTemplatesBulk.ts";
 import assignedSession from "../api/assignedSession.ts";
 import coachingReview, { history as coachingReviewHistory } from "../api/coachingReview.ts";
+import programmingBlocks from "../api/programmingBlocks.ts";
 import deleteRecord from "../api/deleteRecord.ts";
 import duplicateAssignedWorkout from "../api/duplicateAssignedWorkout.ts";
 import duplicateProgram from "../api/duplicateProgram.ts";
@@ -306,6 +307,7 @@ const handlers = {
   assignedSession,
   coachingReview,
   coachingReviewHistory,
+  programmingBlocks,
   deleteRecord,
   duplicateAssignedWorkout,
   duplicateProgram,

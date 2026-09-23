@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import CoachBuilderPage from "../../../src/CoachBuilderPage";
+import CoachLibraryNavigation from "../../../src/CoachLibraryNavigation";
 import "../../../src/i18n";
 
 // CoachBuilderPage (~5k lines) renders one panel per workoutPageTab. The
@@ -46,16 +47,11 @@ describe("CoachBuilderPage", () => {
     ).toBeInTheDocument();
   });
 
-  it("switches tabs from the tab bar", () => {
-    // Redesign: the segmented wkTabs bar appends a per-tab count badge, so
-    // the button's accessible name becomes "Programs0" (label + count, no
-    // whitespace). Match on the label prefix to stay resilient to the count.
-    const selectWorkoutTab = vi.fn();
-    render(
-      <CoachBuilderPage {...baseProps} selectWorkoutTab={selectWorkoutTab} />
-    );
-    fireEvent.click(screen.getByRole("button", { name: /^Programs/ }));
-    expect(selectWorkoutTab).toHaveBeenCalledWith("Saved Programs");
+  it("switches destinations from the shared library navigation", () => {
+    const select = vi.fn();
+    render(<CoachLibraryNavigation selected="Forms" select={select} />);
+    fireEvent.click(screen.getByRole("button", { name: "Programs", exact: true }));
+    expect(select).toHaveBeenCalledWith("Programs");
   });
 
   it("offers button-based arranging and closes the mobile sheet with Escape", () => {
