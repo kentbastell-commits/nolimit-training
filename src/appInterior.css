@@ -3873,6 +3873,7 @@
 }
 .builderIntensityRow {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 4px;
   min-width: 0;
@@ -3897,7 +3898,42 @@
 }
 .builderHrDash { flex: 0 0 auto; opacity: 0.6; }
 .builderHrUnit { flex: 0 0 auto; font-size: 11px; opacity: 0.6; }
-.builderIntensityMethod { width: 82px !important; }
+.builderIntensityRow .builderIntensityMethod { width: 100% !important; flex-basis: 100%; }
+.builderHrRange {
+  display: grid;
+  grid-template-columns: minmax(60px, 1fr) auto minmax(60px, 1fr) auto;
+  align-items: center;
+  gap: 6px;
+  flex: 1 0 100%;
+  min-width: 0;
+}
+.app:not(.clientPortalApp) .builderSetTableRow .builderHrRange .builderHrLow,
+.app:not(.clientPortalApp) .builderSetTableRow .builderHrRange .builderHrHigh {
+  width: 100% !important;
+  min-width: 60px !important;
+  min-height: 44px !important;
+  font-size: 16px !important;
+  box-sizing: border-box;
+}
+.builderCardioFieldLabel { display: none; }
+@media (min-width: 981px) {
+  .app:not(.clientPortalApp) .builderSetPrescriptionRunning .builderSetTableHeader,
+  .app:not(.clientPortalApp) .builderSetPrescriptionRunning .builderSetTableRow {
+    grid-template-columns: 42px minmax(116px, 1fr) minmax(190px, 1.2fr) minmax(96px, .8fr) !important;
+  }
+}
+@media (max-width: 980px) {
+  .builderSetPrescriptionRunning .builderIntervalCell,
+  .builderSetPrescriptionRunning .builderZoneCell { grid-column: 1 / -1; }
+  .builderSetPrescriptionRunning .builderIntervalCell { flex-wrap: wrap; }
+  .builderSetPrescriptionRunning .builderCardioFieldLabel {
+    display: block; flex-basis: 100%; font-size: 12px; font-weight: 700; color: #59574e; margin-bottom: 4px;
+  }
+  .app:not(.clientPortalApp) .builderSetPrescriptionRunning .builderSetTableRow .miniSearch {
+    min-height: 44px !important; font-size: 16px !important;
+  }
+  .app .builderSetTrackingToggle button { min-height: 44px; font-size: 14px !important; }
+}
 .builderIntensityRevert {
   flex: 0 0 auto;
   width: 30px;

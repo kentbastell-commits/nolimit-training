@@ -6,7 +6,7 @@ import ProgrammingBlocks from "./ProgrammingBlocks";
 import WeekCopySheet from "./WeekCopySheet";
 import AthletePrescriptionHistory, { useAthletePrescriptionHistory } from "./AthletePrescriptionHistory";
 import { isCardioCategory } from "./appCore";
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import CoachProgramsLanding from "./CoachProgramsLanding";
 import ProgramDetailPanel from "./ProgramDetailPanel";
 import PortalToApp from "./PortalToApp";
@@ -332,14 +332,20 @@ export default function CoachBuilderPage({
   const [focusedExerciseIndex, setFocusedExerciseIndex] = useState<number | null>(null);
   const [mobileLibraryPanel, setMobileLibraryPanel] = useState("exercises");
   const [mobileExpandedExercise, setMobileExpandedExercise] = useState<number | null>(null);
-  const focusedEditor = focusedExerciseIndex !== null && swapExerciseIndex === null;
+  const previousExerciseCount = useRef(selectedProgramExercises?.length || 0);
+  const lastLibraryPick = useRef({ key: "", time: 0 });
+  const focusedEditor = focusedExerciseIndex !== null && Boolean(selectedProgramExercises[focusedExerciseIndex]) && swapExerciseIndex === null;
   const openBuilderLibrary = (mode: string) => {
+    lastLibraryPick.current = { key: "", time: 0 };
     setFocusedExerciseIndex(null);
     setMobileLibraryPanel(mode === "Sections" ? "sections" : "exercises");
     openLibrary(mode);
   };
   useEffect(() => {
-    if (swapExerciseIndex !== null) setMobileLibraryPanel("exercises");
+    if (swapExerciseIndex !== null) {
+      lastLibraryPick.current = { key: "", time: 0 };
+      setMobileLibraryPanel("exercises");
+    }
   }, [swapExerciseIndex]);
   useEffect(() => {
     if (builderLibraryMode === "Sections") setMobileLibraryPanel("sections");
@@ -348,6 +354,35 @@ export default function CoachBuilderPage({
   useEffect(() => {
     if (!isBuilderLibraryOpen) setFocusedExerciseIndex(null);
   }, [isBuilderLibraryOpen]);
+  useEffect(() => {
+    const count = selectedProgramExercises?.length || 0;
+    // Indexes move when any row is removed. Return to the session rather than
+    // showing an empty editor or silently editing the next exercise's slot.
+    if (count < previousExerciseCount.current && focusedExerciseIndex !== null) {
+      setFocusedExerciseIndex(null);
+      setSwapExerciseIndex(null);
+      setIsBuilderLibraryOpen(false);
+    }
+    previousExerciseCount.current = count;
+  }, [selectedProgramExercises?.length, focusedExerciseIndex, setSwapExerciseIndex, setIsBuilderLibraryOpen]);
+  const pickLibraryExercise = (exercise: any) => {
+    // Keep the key stable after a replacement/accessory insertion clears its
+    // target index; a second click must not become an ordinary append.
+    const key = `${exercise.recordId || exercise.exerciseId}:${pendingSectionName}`;
+    const now = Date.now();
+    if (lastLibraryPick.current.key === key && now - lastLibraryPick.current.time < 700) return;
+    lastLibraryPick.current = { key, time: now };
+    if (swapExerciseIndex !== null) {
+      replaceProgramExerciseWith(exercise);
+      setMobileLibraryPanel("session");
+    } else {
+      const index = accessoryTargetIndex !== null ? accessoryTargetIndex + 1 : selectedProgramExercises.length;
+      addExerciseToProgram(exercise);
+      // A phone cannot see the library and new prescription side by side.
+      // Open the added row immediately so one tap has a visible result.
+      if (window.matchMedia("(max-width: 720px)").matches) setFocusedExerciseIndex(index);
+    }
+  };
   // Sessions library: filter the list by session category (Focus column —
   // Strength / Cardio / Mobility…). "All" shows everything.
   const [sessionCategoryFilter, setSessionCategoryFilter] = useState("All");
@@ -2448,15 +2483,9 @@ export default function CoachBuilderPage({
                           {builderExercises.map((exercise: any) => (
                             <button
                               className="builderExercisePickCard"
+                              type="button"
                               key={exercise.recordId || exercise.exerciseId}
-                              onClick={() => {
-                                if (swapExerciseIndex !== null) {
-                                  replaceProgramExerciseWith(exercise);
-                                  setMobileLibraryPanel("session");
-                                } else {
-                                  addExerciseToProgram(exercise);
-                                }
-                              }}
+                              onClick={() => pickLibraryExercise(exercise)}
                             >
                               <span>{exercise.exerciseName}</span>
                               <small>
@@ -2468,6 +2497,9 @@ export default function CoachBuilderPage({
                                   .filter(Boolean)
                                   .join(" / ") || "Exercise"}
                               </small>
+                              {selectedProgramExercises.some((item: any) => item.exerciseId === exercise.exerciseId) && (
+                                <small className="builderLibraryAdded">{t("builderInSessionCount", { count: selectedProgramExercises.filter((item: any) => item.exerciseId === exercise.exerciseId).length })}</small>
+                              )}
                             </button>
                           ))}
                           {!libraryLoading && builderExercises.length === 0 && (

@@ -9276,6 +9276,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
                     isPaceTracked ? " builderPaceSpan" : ""
                   }`}
                 >
+                  <span className="builderCardioFieldLabel">{t(`builderCardio${intervalLabel}`)}</span>
                   {isPaceTracked
                     ? (() => {
                         // Pace target as mm:ss per km, stored as "M:SS/km".
@@ -9414,6 +9415,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
                 </div>
                 {!isPaceTracked && (
                 <div className="builderZoneCell">
+                  <span className="builderCardioFieldLabel">{t("builderIntensityMethod")}</span>
                   {(() => {
                     const mode = set.intensityMode || "";
                     const setField = (
@@ -9440,14 +9442,14 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
                       setField("intensityValue", h ? `${l}-${h}` : l);
                     };
                     const hrRangeInputs = (
-                      <>
+                      <div className="builderHrRange">
                         <input
                           className="miniSearch builderIntensityValue builderHrLow"
                           inputMode="numeric"
                           value={hrLow}
                           onChange={(event) => writeHr(event.target.value, hrHigh)}
-                          placeholder="from"
-                          aria-label="Heart rate from (bpm)"
+                          placeholder={t("builderHrFrom")}
+                          aria-label={t("builderHrFromLabel")}
                         />
                         <span className="builderHrDash">–</span>
                         <input
@@ -9455,11 +9457,11 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
                           inputMode="numeric"
                           value={hrHigh}
                           onChange={(event) => writeHr(hrLow, event.target.value)}
-                          placeholder="to"
-                          aria-label="Heart rate to (bpm)"
+                          placeholder={t("builderHrTo")}
+                          aria-label={t("builderHrToLabel")}
                         />
                         <span className="builderHrUnit">bpm</span>
-                      </>
+                      </div>
                     );
 
                     // Machine cardio (elliptical, bike, rower…): HR range or
@@ -9470,6 +9472,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
                         <div className="builderIntensityRow">
                           <select
                             className="miniSearch builderIntensityMethod"
+                            aria-label={t("builderIntensityMethod")}
                             value={machineMode}
                             onChange={(event) => {
                               setField("intensityMode", event.target.value);
@@ -9477,7 +9480,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
                             }}
                           >
                             <option value="rpe">RPE</option>
-                            <option value="hr">HR range</option>
+                            <option value="hr">{t("builderHrRange")}</option>
                           </select>
                           {machineMode === "hr" ? (
                             hrRangeInputs
@@ -9809,8 +9812,8 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
       exerciseLabel: isWarmupSection(exerciseSection)
         ? ""
         : parent?.exerciseLabel || makeExerciseLabel(baseList.length),
-      sets: parent ? "2" : categoryDefaults?.sets || "3",
-      reps: parent ? "10" : categoryDefaults?.reps || "8",
+      sets: cardio ? "1" : parent ? "2" : categoryDefaults?.sets || "3",
+      reps: cardio ? "" : parent ? "10" : categoryDefaults?.reps || "8",
       load: "",
       // Cardio has no lifting tempo; categories with an explicitly empty tempo
       // (plyo, Olympic, carries, mobility…) stay tempo-free even in supersets.
@@ -9821,7 +9824,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
         : categoryDefaults && categoryDefaults.tempo === ""
           ? ""
           : parent?.tempo || categoryDefaults?.tempo || "",
-      rest: parent ? "45 sec" : categoryDefaults?.rest || "60 sec",
+      rest: cardio ? "" : parent ? "45 sec" : categoryDefaults?.rest || "60 sec",
       coachingNotes: "",
       // Cardio exercises default to Distance tracking so the run/Zone layout
       // shows immediately (coach can still toggle to Time/Weight). Machines

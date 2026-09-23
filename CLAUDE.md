@@ -996,6 +996,11 @@ data between them, never "borrow" a table ID across products.
     client change goes through WeChat review. Fixed server-side in e8d80aa
     (`programIsPaidContent`); mini sends the code from 8b6c178 onward.
 
+72. **The blank exercise editor after delete** — a focused numeric index survives
+    row removal and points outside the list or at its neighbour. Close or rebind
+    the editor on removal; test first, middle and last rows, plus rapid library
+    taps (visible add feedback and a synchronous guard prevent accidental copies).
+
 ## Quality bar — checkable, per deliverable
 
 **Any shipped code change**
