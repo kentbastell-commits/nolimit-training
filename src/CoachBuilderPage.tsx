@@ -89,6 +89,7 @@ export default function CoachBuilderPage({
   builderMode,
   builderSaveStatus,
   coachDraftStatus,
+  cloudDraftStatus,
   builderSearch,
   builderSectionOptions,
   bulkEditMode,
@@ -328,7 +329,7 @@ export default function CoachBuilderPage({
   const [blocksOpen, setBlocksOpen] = useState(false);
   const renderBlockActions = () => <div className="builderBlockActions"><button type="button" className="outlineButton" onClick={() => setBlocksOpen(true)}><Copy size={16} /> {i18n.language.startsWith("zh") ? "训练模块" : "Exercise blocks"}</button></div>;
   const renderPrescription = (exercise: any, index: number) => <ExercisePrescriptionEditor exercise={exercise} update={(key, value) => updateProgramExercise(index, key, value)} table={renderSetPrescriptionTable(exercise, index)} percent={usePercentExerciseIndexes.has(index)} togglePercent={() => toggleUsePercent(index)} alternates={renderAlternateExerciseEditor(exercise, index)} />;
-  const prescriptionHistory = useAthletePrescriptionHistory(calendarBuilderContext ? historyClientCode : "");
+  const prescriptionHistory = useAthletePrescriptionHistory(historyClientCode);
   const [focusedExerciseIndex, setFocusedExerciseIndex] = useState<number | null>(null);
   const [mobileLibraryPanel, setMobileLibraryPanel] = useState("exercises");
   const [mobileExpandedExercise, setMobileExpandedExercise] = useState<number | null>(null);
@@ -594,7 +595,7 @@ export default function CoachBuilderPage({
   return (
     <>
       {blocksOpen && <ProgrammingBlocks exercises={selectedProgramExercises} insert={insertProgrammingBlock} close={() => setBlocksOpen(false)} />}
-      {weekDupMenu !== null && <WeekCopySheet week={weekDupMenu} count={Number(programDurationWeeks) || 1} sessions={weekCopySessions} copy={duplicateWeek} close={() => setWeekDupMenu(null)} />}
+      {weekDupMenu !== null && <WeekCopySheet week={weekDupMenu} count={Number(programDurationWeeks) || 1} sessions={weekCopySessions} clientCode={historyClientCode} copy={duplicateWeek} close={() => setWeekDupMenu(null)} />}
               <>
                 {builderScope === "digital" ? null : (() => {
                   // Redesigned Library · Programming hub — header + per-tab KPI
@@ -764,7 +765,7 @@ export default function CoachBuilderPage({
                                   >
                                     <i />
                                     {builderSaveStatus === "dirty"
-                                      ? t(coachDraftStatus === "saved" ? "coachDraftSavedLocally" : coachDraftStatus === "conflict" ? "coachDraftConflict" : coachDraftStatus === "unavailable" ? "coachDraftUnavailable" : "coachDraftSaving")
+                                      ? (cloudDraftStatus || t(coachDraftStatus === "saved" ? "coachDraftSavedLocally" : coachDraftStatus === "conflict" ? "coachDraftConflict" : coachDraftStatus === "unavailable" ? "coachDraftUnavailable" : "coachDraftSaving"))
                                       : "All changes saved"}
                                   </span>
                                 </div>
@@ -3038,7 +3039,7 @@ export default function CoachBuilderPage({
                     <div className="mobileBuilderContext">
                       <button type="button" onClick={returnToBuilderOrigin}><ChevronLeft size={18} />{t("mobileBackToLibrary")}</button>
                       <div><strong>{programName || (isSingleWorkoutBuilder ? t("mobileNewSession") : t("mobileNewProgram"))}</strong>
-                        <small>{builderSaveStatus === "dirty" ? t(coachDraftStatus === "saved" ? "coachDraftSavedLocally" : coachDraftStatus === "conflict" ? "coachDraftConflict" : coachDraftStatus === "unavailable" ? "coachDraftUnavailable" : "coachDraftSaving") : t("mobileAllChangesSaved")}</small></div>
+                        <small>{builderSaveStatus === "dirty" ? (cloudDraftStatus || t(coachDraftStatus === "saved" ? "coachDraftSavedLocally" : coachDraftStatus === "conflict" ? "coachDraftConflict" : coachDraftStatus === "unavailable" ? "coachDraftUnavailable" : "coachDraftSaving")) : t("mobileAllChangesSaved")}</small></div>
                     </div>
                     {mobileBuilderStep !== "overview" && (
                     <section className="mobileBuilder">

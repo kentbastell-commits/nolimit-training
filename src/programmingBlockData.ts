@@ -23,6 +23,11 @@ export function insertBlock(existing: ProgramExercise[], block: ProgramExercise[
 }
 
 // Only literal loads are progressed. Never strip units or interpret 80% as kg.
+export const progressionKey = (sessionId: string, index: number) => `${sessionId}:${index}`;
+export function canProgressLoad(ex: ProgramExercise): boolean {
+  return !ex.autoTarget && [ex.load, ...(ex.setPrescriptions || []).map(s => s.load)].some(v => /^\d+(?:\.\d+)?$/.test(String(v || "").trim()));
+}
+
 export function progressExerciseLoad(ex: ProgramExercise, pct: number): ProgramExercise {
   const copy = structuredClone(ex);
   if (copy.autoTarget) return copy;

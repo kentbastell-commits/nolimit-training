@@ -1009,6 +1009,10 @@ data between them, never "borrow" a table ID across products.
     retain successful data on refresh failure and reject late reads for a different athlete.
     Use China calendar days for assignments; browser-local midnight changes when coaches travel.
 
+75. **The cloud draft that resurrects after publishing** — synchronize unpublished snapshots with
+    server-derived ownership, atomic revision checks and deletion tombstones. Keep both competing
+    edits; a delayed acknowledgement must preserve newer typing and any queued deletion.
+
 ## Quality bar — checkable, per deliverable
 
 **Any shipped code change**

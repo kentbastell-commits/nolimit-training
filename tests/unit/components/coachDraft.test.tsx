@@ -17,7 +17,7 @@ describe("coach device drafts", () => {
   it("recovers after refresh, separated from other coaches and athlete logging", () => {
     expect(writeCoachDraft("coach-a", draft, null)).toBe("saved");
     localStorage.setItem("nl-assignment-draft:CL-1:AW-1", "{}");
-    expect(readCoachDrafts("coach-a")).toEqual([draft]);
+    expect(readCoachDrafts("coach-a")).toEqual([{ ...draft, cloudRevision: null }]);
     expect(readCoachDrafts("coach-b")).toEqual([]);
     expect(removeCoachDraft("coach-a", draft.id, "r1")).toBe(true);
     expect(localStorage.getItem("nl-assignment-draft:CL-1:AW-1")).toBe("{}");

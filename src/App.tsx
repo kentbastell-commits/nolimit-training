@@ -1,6 +1,7 @@
-import { insertBlock, progressExerciseLoad } from "./programmingBlockData";
+import { insertBlock, progressExerciseLoad, progressionKey } from "./programmingBlockData";
 import CoachLibraryNavigation, { librarySections, type LibrarySection } from "./CoachLibraryNavigation";
-import CoachDraftNotice from "./CoachDraftNotice";
+import CoachDraftNotice, { cloudDraftLabel } from "./CoachDraftNotice";
+import { useCloudCoachDrafts } from "./useCloudCoachDrafts";
 import ExerciseFieldsSheet from "./ExerciseFieldsSheet";
 import { athleteFacts, buildCoachingItems, coachingDate, decisionStatus, isAdminItem, type CoachingItem, type ReviewDecision } from "./coachingReview";
 import { readCoachDrafts, writeCoachDraft, removeCoachDraft, type CoachDraft } from "./coachDraft";
@@ -11177,7 +11178,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     const draft = buildCurrentProgramSession(editingProgramSessionId || "week-copy-draft", sessionName || `Week ${programWeek} Day ${programDay}`);
     return draft?.exercises.length ? upsertProgramSession(programSessions, draft, false) : programSessions;
   };
-  const duplicateWeek = (fromWeek: number, toWeeks: number[], pct: number) => {
+  const duplicateWeek = (fromWeek: number, toWeeks: number[], pct: number, selected: Set<string>, replace: boolean) => {
     if (!toWeeks.length || toWeeks.includes(fromWeek) || toWeeks.some(w => !Number.isInteger(w) || w < 1 || w > 52) || !Number.isFinite(pct) || pct < -50 || pct > 100) return;
     // Include the day being edited in the copy, and warn before wiping a
     // target week that already has work (it used to vanish with a cheerful
@@ -11186,17 +11187,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     const targetHasWork = snapshot.some(
       (s) => toWeeks.map(String).includes(String(s.week)) && s.exercises.length > 0
     );
-    if (
-      targetHasWork &&
-      !window.confirm(
-        `Week${toWeeks.length > 1 ? "s" : ""} ${toWeeks.join(", ")} already ${
-          toWeeks.length > 1 ? "have" : "has"
-        } sessions. Replace them with a copy of Week ${fromWeek}?`
-      )
-    ) {
-      setWeekDupMenu(null);
-      return;
-    }
+    if (targetHasWork && !replace) return;
     setProgramSessions(() => {
       const current = snapshot;
       const source = current.filter((s) => s.week === String(fromWeek));
@@ -11209,7 +11200,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
             ...s,
             localId: `${Date.now()}-${Math.random()}`,
             week: String(toWeek),
-            exercises: s.exercises.map((ex) => progressExerciseLoad(ex, pct)),
+            exercises: s.exercises.map((ex, index) => progressExerciseLoad(ex, selected.has(progressionKey(s.localId, index)) ? pct : 0)),
           });
         });
       });
@@ -12300,6 +12291,10 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
   ]);
   type BuilderDraft = CoachDraft<typeof coachDraftSnapshot>;
   const [coachDrafts, setCoachDrafts] = useState<BuilderDraft[]>([]);
+  const cloudDrafts = useCloudCoachDrafts(coachDraftOwner, coachDrafts, () => activeCoachDraft.current?.id, setCoachDrafts);
+  const activeDraft = coachDrafts.find(d => d.id === activeCoachDraft.current?.id);
+  const cloudDraftStatus = activeDraft && coachDraftStatus === "saved" ? cloudDraftLabel(
+    cloudDrafts.statuses[activeDraft.id] === "conflict" ? "conflict" : activeDraft.cloudRevision === activeDraft.revision ? "synced" : cloudDrafts.state === "offline" ? "offline" : "syncing", i18n.language.startsWith("zh")) : "";
   useEffect(() => {
     if (!coachBackgroundReady || isClientPortal) return;
     let alive = true;
@@ -20990,7 +20985,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
       <main className="main">
         {isCoachView && !isClientPortal && !calendarBuilderContext && connectionNotice()}
         {isCoachView && !isClientPortal && !calendarBuilderContext && workoutPageTab !== "Program Builder" && (
-          <CoachDraftNotice drafts={coachDrafts} resume={resumeCoachDraft} discard={discardCoachDraft} />
+          <CoachDraftNotice cloud={cloudDrafts} drafts={coachDrafts} resume={resumeCoachDraft} discard={discardCoachDraft} />
         )}
         <div className="toastStack">
           {toasts.map((toast) => (
@@ -21333,7 +21328,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
                 {calendarBuilderContext && connectionNotice()}
               <CoachBuilderPage
                 calendarBuilderContext={calendarBuilderContext}
-                historyClientCode={assignedSessionEdit?.clientId || ""}
+                historyClientCode={assignedSessionEdit?.clientId || (programBuiltForMode === "client" ? programBuiltForClient : "")}
                 builderScope={builderScope}
                 setLatestBuilderExerciseIndex={setLatestBuilderExerciseIndex}
                 scrollLatestBuilderExerciseIntoView={
@@ -21366,6 +21361,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
                 builderMode={builderMode}
                 builderSaveStatus={builderSaveStatus}
                 coachDraftStatus={coachDraftStatus}
+                cloudDraftStatus={cloudDraftStatus}
                 builderSearch={builderSearch}
                 builderSectionOptions={builderSectionOptions}
                 bulkEditMode={bulkEditMode}

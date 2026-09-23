@@ -1,5 +1,6 @@
 import {
   pgTable,
+  primaryKey,
   text,
   bigint,
   integer,
@@ -940,3 +941,9 @@ export const wxLoginTokens = pgTable(
   },
   (t) => [index("wx_login_tokens_created_idx").on(t.createdAt)]
 );
+
+export const coachDrafts = pgTable("coach_drafts", {
+  owner: text("owner").notNull(), id: text("id").notNull(), revision: text("revision").notNull(),
+  title: text("title").notNull(), snapshot: jsonb("snapshot"), deleted: boolean("deleted").notNull().default(false),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+}, (t) => [primaryKey({ columns: [t.owner, t.id] })]);
