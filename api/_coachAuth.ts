@@ -54,6 +54,8 @@ export const COACH_ONLY_HANDLERS = new Set([
   "assignContent",
   "assignProgram",
   "clientInvite",
+  "cosUploadTicket",
+  "cosUploadFinish",
   "createProductOrder",
   "createProgram",
   "createWorkoutTemplate",

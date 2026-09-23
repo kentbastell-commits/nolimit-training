@@ -71,67 +71,106 @@ export default function ExerciseModal({
     }
     setUploadingField(field);
     setUploadPct(0);
-    const xhr = new XMLHttpRequest();
-    xhr.open(
-      "POST",
-      `/api/uploadFormVideoFile?kind=exercise&name=${encodeURIComponent(file.name)}`
-    );
-    xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
-    xhr.upload.onprogress = (ev) => {
-      if (ev.lengthComputable) setUploadPct(Math.round((ev.loaded / ev.total) * 100));
-    };
     const fail = (msg: string) => {
       setUploadingField(null);
       setUploadPct(0);
       setUploadError(msg);
     };
-    xhr.onload = () => {
+    const done = (url: string) => {
+      // Feishu URL columns mangle relative paths — store an absolute URL, and
+      // use the functional setState so a slow upload can't clobber other edits.
+      const absolute = String(url).startsWith("/") ? `${window.location.origin}${url}` : String(url);
+      setExerciseForm((prev: any) => ({ ...prev, [field]: absolute }));
+      setUploadingField(null);
+      setUploadPct(0);
+    };
+    // Send the bytes with live progress and a STALL timeout. A hard total
+    // timeout fails a healthy slow upload (cost Kent an evening's uploads),
+    // so time out only when nothing has moved for 3 minutes.
+    const send = (method: string, url: string, headers: Record<string, string>, stallMsg: string) =>
+      new Promise<{ status: number; text: string }>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open(method, url);
+        for (const [k, v] of Object.entries(headers)) xhr.setRequestHeader(k, v);
+        let stallTimer: ReturnType<typeof setTimeout> | undefined;
+        const armStall = () => {
+          if (stallTimer) clearTimeout(stallTimer);
+          stallTimer = setTimeout(() => {
+            xhr.abort();
+            reject(new Error(stallMsg));
+          }, 3 * 60 * 1000);
+        };
+        xhr.upload.onprogress = (ev) => {
+          armStall();
+          if (ev.lengthComputable) setUploadPct(Math.round((ev.loaded / ev.total) * 100));
+        };
+        xhr.onload = () => resolve({ status: xhr.status, text: xhr.responseText });
+        xhr.onerror = () => reject(new Error("network"));
+        xhr.onloadend = () => {
+          if (stallTimer) clearTimeout(stallTimer);
+        };
+        armStall();
+        xhr.send(file);
+      });
+    const contentType = file.type || "application/octet-stream";
+    // The proven route: raw body straight into the server. From outside
+    // mainland China it runs ~40 KB/s (measured 2026-09-20; CLAUDE.md #67).
+    const direct = async (): Promise<string> => {
+      const r = await send(
+        "POST",
+        `/api/uploadFormVideoFile?kind=exercise&name=${encodeURIComponent(file.name)}`,
+        { "Content-Type": contentType },
+        "Upload stalled — no data moved for 3 minutes. Check the file plays on this device and try again; from outside China, uploads are slow (about 10 minutes per 25 MB), so keep this page open."
+      );
       let data: any = {};
       try {
-        data = JSON.parse(xhr.responseText);
+        data = JSON.parse(r.text);
       } catch {
         /* non-JSON */
       }
-      if (xhr.status === 200 && data.url) {
-        // Feishu URL columns mangle relative paths — store an absolute URL, and
-        // use the functional setState so a slow upload can't clobber other edits.
-        const absolute = String(data.url).startsWith("/")
-          ? `${window.location.origin}${data.url}`
-          : String(data.url);
-        setExerciseForm((prev: any) => ({ ...prev, [field]: absolute }));
-        setUploadingField(null);
-        setUploadPct(0);
-      } else {
-        fail(data.error || "Upload failed — please try again.");
-      }
+      if (r.status === 200 && data.url) return String(data.url);
+      throw new Error(data.error || "Upload failed — please try again.");
     };
-    xhr.onerror = () => fail("Upload failed — check your connection and try again.");
-    // A stalled transfer used to sit at "Uploading 0%" forever with both
-    // buttons disabled (cost Kent an evening's uploads). But a HARD total
-    // timeout fails a healthy slow upload: from outside mainland China the
-    // link into the server runs ~40 KB/s (measured 2026-09-20), so 25 MB is
-    // ~10 min and hit the old 10-min cap. Time out on STALL instead — no
-    // progress for 3 min — and let a slow-but-moving upload finish.
-    let stallTimer: ReturnType<typeof setTimeout> | undefined;
-    const armStall = () => {
-      if (stallTimer) clearTimeout(stallTimer);
-      stallTimer = setTimeout(() => {
-        xhr.abort();
+    // The fast route: a signed ticket from the server, the file PUT straight
+    // to Tencent COS's acceleration host (2-25 MB/s from Hong Kong / abroad),
+    // then the server pulls it in over Tencent's internal network. Returns
+    // null on ANY failure before the file is committed so the caller falls
+    // back to the direct route — this path can be faster, never broken.
+    const viaCos = async (): Promise<string | null> => {
+      const t = await fetch("/api/cosUploadTicket", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: file.name, size: file.size, contentType }),
+      });
+      if (!t.ok) return null; // 503 = not configured, 403 = not a coach
+      const ticket = await t.json();
+      if (!ticket?.url || !ticket?.key) return null;
+      const put = await send("PUT", ticket.url, ticket.headers || {}, "COS upload stalled").catch(() => null);
+      if (!put || put.status !== 200) return null;
+      const f = await fetch("/api/cosUploadFinish", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key: ticket.key, kind: "exercise", size: file.size }),
+      });
+      const data = await f.json().catch(() => ({}));
+      return f.ok && data?.url ? String(data.url) : null;
+    };
+    (async () => {
+      try {
+        let url = await viaCos().catch(() => null);
+        if (!url) {
+          setUploadPct(0);
+          url = await direct();
+        }
+        done(url);
+      } catch (e: any) {
         fail(
-          "Upload stalled — no data moved for 3 minutes. Check the file plays on this device and try again; from outside China, uploads are slow (about 10 minutes per 25 MB), so keep this page open."
+          e?.message === "network"
+            ? "Upload failed — check your connection and try again."
+            : e?.message || "Upload failed — please try again."
         );
-      }, 3 * 60 * 1000);
-    };
-    const prevProgress = xhr.upload.onprogress;
-    xhr.upload.onprogress = (ev) => {
-      armStall();
-      if (prevProgress) prevProgress.call(xhr.upload, ev);
-    };
-    xhr.onloadend = () => {
-      if (stallTimer) clearTimeout(stallTimer);
-    };
-    armStall();
-    xhr.send(file);
+      }
+    })();
   };
 
   const taxonomyField = (

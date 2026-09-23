@@ -106,6 +106,8 @@ import workoutComments from "../api/workoutComments.ts";
 import warmCache from "../api/warmCache.ts";
 import wxAuth from "../api/wxAuth.ts";
 import clientInvite from "../api/clientInvite.ts";
+import cosUploadTicket from "../api/cosUploadTicket.ts";
+import cosUploadFinish from "../api/cosUploadFinish.ts";
 import wxAuthWeb from "../api/wxAuthWeb.ts";
 import wxLogin from "../api/wxLogin.ts";
 import wxpayConfig from "../api/wxpayConfig.ts";
@@ -356,6 +358,8 @@ const handlers = {
   warmCache,
   wxAuth,
   clientInvite,
+  cosUploadTicket,
+  cosUploadFinish,
   wxAuthWeb,
   wxLogin,
   wxpayCollect,
