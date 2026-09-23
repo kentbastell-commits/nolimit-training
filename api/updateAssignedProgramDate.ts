@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { updateAssignedWorkoutDate } from "../server/db/repositories/workouts.ts";
 import { getAssignedWorkoutClientCode } from "../server/db/pg/workouts.ts";
 import { isVerifiedCoach } from "./_coachAuth.ts";
+import { hasDraftWorkout } from "../server/db/pg/calendarDrafts.ts";
 
 // Moves ONE assigned workout to a new date. Dual-use: the coach calendar and
 // the athlete's own calendar (web portal + mini program) both call it, so it
@@ -29,6 +30,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Enforced whenever the caller names itself and cannot PROVE it is a
     // coach — including while the coach key is not configured yet.
     const claimedCode = String(clientCode || "").trim().toLowerCase();
+    if (!isVerifiedCoach(req as never) && await hasDraftWorkout([assignedWorkoutRecordId, assignedWorkoutId])) {
+      return res.status(403).json({ error: "This session is not published" });
+    }
     if (claimedCode && !isVerifiedCoach(req as never)) {
       const owner = await getAssignedWorkoutClientCode([
         assignedWorkoutRecordId,

@@ -1,3 +1,4 @@
+import { CalendarDraftBadge, SaveCalendarDraftButton } from "./CalendarDraftControls";
 import { useTranslation } from "react-i18next";
 import { coachingToday } from "./coachingCalendar";
 // Extracted from App.tsx (monolith split) — JSX verbatim; props threaded.
@@ -21,6 +22,7 @@ import type { CalendarView } from "./appCore";
 import { dateToInputValue, formatCalendarLabel, getAssignmentColorClass, getDisplayTaskStatus, getMonthDates, getSessionTypeClass, getStatusClass, getWorkoutColorClass, glanceRepsToken, exercisePrescription, normalizeDate } from "./appCore";
 
 export default function PortalTraining({
+  calendarDraftPanel,
   calendarDropWorkoutId,
   dragPreviewDate,
   t,
@@ -184,6 +186,7 @@ export default function PortalTraining({
 
   return (
     <>
+                {!isClientPortal && calendarDraftPanel}
                 {isClientPortal && draggingWorkoutId && dragPreviewDate && (
                   <div className="dragDayPreview" aria-hidden="true">
                     <div className="dragDayPreviewHead">
@@ -379,7 +382,7 @@ export default function PortalTraining({
                                         )
                                       )}
                                     </small>
-                                    <strong>{localizedWorkoutName(workout)}</strong>
+                                    <strong>{localizedWorkoutName(workout)} <CalendarDraftBadge draft={!isClientPortal && workout.isDraft} /></strong>
                                     <em>
                                       {t("week")} {workout.week} · {t("day")} {workout.day}
                                     </em>
@@ -458,7 +461,7 @@ export default function PortalTraining({
                                       <Icon size={20} aria-hidden="true" />
                                     </span>
                                     <div className="homeTaskBody">
-                                      <strong>{localizedWorkoutName(workout)}</strong>
+                                      <strong>{localizedWorkoutName(workout)} <CalendarDraftBadge draft={!isClientPortal && workout.isDraft} /></strong>
                                       <small>
                                         {localizedCalendarLabel(
                                           normalizeDate(
@@ -711,6 +714,7 @@ export default function PortalTraining({
 
                       {assignmentType === "Program" ? (
                         <>
+                          <SaveCalendarDraftButton disabled={assigningProgram || assignLoading || !assignableWorkouts.length} onClick={() => void assignProgramToClient(true)} />
                           <button
                             className="outlineButton"
                             onClick={loadProgramSessionsForAssignment}
@@ -1127,7 +1131,7 @@ export default function PortalTraining({
                                 })()}
                               <div className="workoutBlockMain" data-today-label={t("today")}>
                                 {sessionActions(workout)}
-                                <b className="calendarWorkoutName">{localizedWorkoutName(workout)}</b>
+                                <b className="calendarWorkoutName">{localizedWorkoutName(workout)} <CalendarDraftBadge draft={!isClientPortal && workout.isDraft} /></b>
                                 {!isClientPortal && <span className="coachCalendarCompactMeta">{t("week")} {workout.week} · {t("day")} {workout.day} · {localizeTaskStatus(getDisplayTaskStatus(workout.completionStatus, workout.scheduledDate))}</span>}
                                 {/* Coach cards drop the "Type - Status" line
                                     (status lives in the left bar; the chain
@@ -1301,7 +1305,7 @@ export default function PortalTraining({
                                 }}
                               >
                                 <div className="workoutBlockMain" data-today-label={t("today")}>
-                                  {getAssignmentDisplayName(assignment)}
+                                  {getAssignmentDisplayName(assignment)} <CalendarDraftBadge draft={!isClientPortal && assignment.isDraft} />
                                   <span>
                                     {movingAssignmentId === assignment.recordId
                                       ? t("moving")
@@ -1406,7 +1410,7 @@ export default function PortalTraining({
                               );
                             })()}
                             <div className="homeTaskBody">
-                              <strong>{localizedWorkoutName(workout)}</strong>
+                              <strong>{localizedWorkoutName(workout)} <CalendarDraftBadge draft={!isClientPortal && workout.isDraft} /></strong>
                               <small>
                                 {t("week")} {workout.week} · {t("day")}{" "}
                                 {workout.day} ·{" "}
@@ -1439,7 +1443,7 @@ export default function PortalTraining({
                             <div>
                               <span>{localizeAssignmentKind(assignment.assignmentType)}</span>
                               <strong>
-                                {getAssignmentDisplayName(assignment)}
+                                {getAssignmentDisplayName(assignment)} <CalendarDraftBadge draft={!isClientPortal && assignment.isDraft} />
                               </strong>
                               <small>
                                 {localizeTaskStatus(getDisplayTaskStatus(
@@ -1691,7 +1695,7 @@ export default function PortalTraining({
                                 );
                               })()}
                               <div className="homeTaskBody">
-                                <strong>{localizedWorkoutName(workout)}</strong>
+                                <strong>{localizedWorkoutName(workout)} <CalendarDraftBadge draft={!isClientPortal && workout.isDraft} /></strong>
                                 <small>
                                   {t("week")} {workout.week} · {t("day")}{" "}
                                   {workout.day} ·{" "}
@@ -1726,7 +1730,7 @@ export default function PortalTraining({
                                   {localizeAssignmentKind(assignment.assignmentType)}
                                 </span>
                                 <strong>
-                                  {getAssignmentDisplayName(assignment)}
+                                  {getAssignmentDisplayName(assignment)} <CalendarDraftBadge draft={!isClientPortal && assignment.isDraft} />
                                 </strong>
                                 <small>
                                   {localizeTaskStatus(getDisplayTaskStatus(
@@ -1927,7 +1931,7 @@ export default function PortalTraining({
                                     {localizeAssignmentKind(assignment.assignmentType)}
                                   </span>
                                   <strong>
-                                    {getAssignmentDisplayName(assignment)}
+                                    {getAssignmentDisplayName(assignment)} <CalendarDraftBadge draft={!isClientPortal && assignment.isDraft} />
                                   </strong>
                                   <small>
                                     {localizeTaskStatus(getDisplayTaskStatus(
@@ -2057,7 +2061,7 @@ export default function PortalTraining({
                           className={`rpnAccent ${getWorkoutColorClass(workout)}`}
                         />
                         <div className="rpnInfo">
-                          <strong>{localizedWorkoutName(workout)}</strong>
+                          <strong>{localizedWorkoutName(workout)} <CalendarDraftBadge draft={!isClientPortal && workout.isDraft} /></strong>
                           <span className={overdue ? "rpnOverdue" : "rpnCurrent"}>
                             {current}
                             {overdue ? ` · ${t("replanOverdue")}` : ""}

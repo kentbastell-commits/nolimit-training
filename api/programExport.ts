@@ -4,7 +4,8 @@ import { listProgramTemplates } from "../server/db/repositories/programTemplates
 import { listPrograms } from "../server/db/repositories/programs.ts";
 import { listExercises } from "../server/db/repositories/exercises.ts";
 import { clientHasProgramAccess } from "../server/db/repositories/clients.ts";
-import { coachKeyOk } from "./_coachAuth.ts";
+import { coachKeyOk, isVerifiedCoach } from "./_coachAuth.ts";
+import { publishedCalendarSlots } from "../server/db/pg/calendarDrafts.ts";
 
 // Offline copy of a program: one self-contained HTML file the coach (or
 // athlete) can save, print to PDF, or send over WeChat — the fallback when
@@ -56,10 +57,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         p.recordId === programRecordId ||
         p.programId === programRecordId
     );
-    const templates = await listProgramTemplates(
+    const slots = (!isVerifiedCoach(req as never) || req.query.audience === "athlete")
+      ? await publishedCalendarSlots(String(programId || programRecordId), String(clientCode || "")) : null;
+    if (slots && !slots.length) return res.status(403).json({ error: "This program is not published" });
+    const allTemplates = await listProgramTemplates(
       String(programId || ""),
       String(programRecordId || "")
     );
+    const templates = slots ? allTemplates.filter(t => slots.some(s => s.week === Number(t.week) && s.day === Number(t.day))) : allTemplates;
     // Videos and Chinese names live on the exercise library, not the
     // template rows — join by exercise id.
     const { exercises: exercisesList } = await listExercises();

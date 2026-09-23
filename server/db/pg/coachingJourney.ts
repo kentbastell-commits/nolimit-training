@@ -89,7 +89,7 @@ export async function activateCoachingOrder(tx: DbExecutor, order: typeof produc
     (x.productType === "Online Coaching" || x.formId === INTAKE_ID || (alreadyCoached && !/digital/i.test(x.productType || ""))),
   );
   const [training] = await tx.select({ id: assignedWorkouts.assignedWorkoutId }).from(assignedWorkouts)
-    .where(eq(assignedWorkouts.clientId, client.clientId)).limit(1);
+    .where(and(eq(assignedWorkouts.clientId, client.clientId), eq(assignedWorkouts.isDraft, false))).limit(1);
   const pending = intake.find(x => !x.completedAt && x.status?.toLowerCase() !== "completed");
   const complete = (alreadyCoached && intakeComplete(client.intakeStatus)) || intake.some(x => x.completedAt || x.status?.toLowerCase() === "completed");
   let needsIntake = Boolean(pending);
@@ -121,8 +121,8 @@ export async function getCoachingJourney(clientId: string) {
       completed: assignedForms.completedAt, status: assignedForms.status }).from(assignedForms)
       .where(or(eq(assignedForms.clientId, clientId), eq(assignedForms.clientCode, clientId))),
     db.select({ completed: assignedTests.completedAt }).from(assignedTests)
-      .where(or(eq(assignedTests.clientId, clientId), eq(assignedTests.clientCode, clientId))),
-    db.select({ count: sql<number>`count(*)::int` }).from(assignedWorkouts).where(eq(assignedWorkouts.clientId, clientId)),
+      .where(and(or(eq(assignedTests.clientId, clientId), eq(assignedTests.clientCode, clientId)), eq(assignedTests.isDraft, false))),
+    db.select({ count: sql<number>`count(*)::int` }).from(assignedWorkouts).where(and(eq(assignedWorkouts.clientId, clientId), eq(assignedWorkouts.isDraft, false))),
   ]);
   const paid = orders.find(x => x.paymentStatus?.trim().toLowerCase() === "paid");
   const pendingPayment = orders.some(x => /^(pending|unpaid|awaiting payment)$/i.test((x.paymentStatus || "").trim()));

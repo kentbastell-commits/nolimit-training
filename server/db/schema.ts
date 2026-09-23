@@ -144,6 +144,8 @@ export const programs = pgTable(
     // program, but hidden from every Sessions/library picker so ad-hoc
     // days don't crowd the library. NULL means visible (pre-flag rows).
     libraryVisible: boolean("library_visible"),
+    // Private calendar snapshots expose only explicitly published days.
+    assignmentOnly: boolean("assignment_only").notNull().default(false),
     purchaseLink: text("purchase_link"),
     storeUrl: text("store_url"),
     storeDescription: text("store_description"),
@@ -380,6 +382,7 @@ export const assignedWorkouts = pgTable(
     // Warmup above Activation). NULL = unordered; sorts after ordered rows.
     dayOrder: integer("day_order"),
     completionStatus: text("completion_status"),
+    isDraft: boolean("is_draft").notNull().default(false),
     coachNotes: text("coach_notes"),
     coachNotesCn: text("coach_notes_cn"),
     clientNotes: text("client_notes"),
@@ -728,6 +731,7 @@ export const assignedTests = pgTable(
     clientId: text("client_id").references(() => clients.clientId),
     clientCode: text("client_code"),
     assignedDate: ts("assigned_date"),
+    isDraft: boolean("is_draft").notNull().default(false),
     options: jsonb("options"),
     completedAt: ts("completed_at"),
     reviewedAt: ts("reviewed_at"),

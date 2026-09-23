@@ -124,12 +124,12 @@ export async function saveWorkoutLog(
       // could submit logs against ANOTHER client's assignedWorkoutRecordId and
       // flip that other athlete's workout to Completed / overwrite its notes.
       const [assignedWorkoutRow] = await tx
-        .select({ clientId: assignedWorkouts.clientId, completionStatus: assignedWorkouts.completionStatus })
+        .select({ clientId: assignedWorkouts.clientId, completionStatus: assignedWorkouts.completionStatus, isDraft: assignedWorkouts.isDraft })
         .from(assignedWorkouts)
         .where(eq(assignedWorkouts.assignedWorkoutId, String(assignedWorkoutRecordId)))
         .limit(1)
         .for("update");
-      const workoutExists = Boolean(assignedWorkoutRow) && assignedWorkoutRow.clientId === code;
+      const workoutExists = Boolean(assignedWorkoutRow) && assignedWorkoutRow.clientId === code && !assignedWorkoutRow.isDraft;
 
       // Stale-tab guard (cutover 2026-07-21): a browser tab opened pre-migration
       // still holds Feishu record ids ("rec..."). Under pg those match nothing —

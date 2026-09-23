@@ -1,3 +1,4 @@
+import { SaveCalendarDraftButton } from "./CalendarDraftControls";
 // Extracted from App.tsx (monolith split) — JSX verbatim; props threaded.
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from "react";
@@ -174,6 +175,7 @@ export default function AssignmentDrawer({
               </div>
 
               <div className="assignmentDrawerForm">
+                {assignmentType === "Program" && <SaveCalendarDraftButton disabled={assigningProgram || assignLoading || !assignableWorkouts.length} onClick={() => void assignProgramToClient(true)} />}
                 <label>
                   <span>Client</span>
                   <input value={selectedClient.name} readOnly />

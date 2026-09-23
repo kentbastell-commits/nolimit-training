@@ -25,7 +25,7 @@ async function editorFor(workout: Assigned) {
   // data participates in the optimistic concurrency token.
   const version = createHash("sha256").update(JSON.stringify({
     id: workout.assignedWorkoutId, client: workout.clientId, program: workout.programId,
-    date: workout.scheduledDate, status: workout.completionStatus,
+    date: workout.scheduledDate, status: workout.completionStatus, isDraft: workout.isDraft,
     templates: templates.map(({ sessionNameCn: _cn, notesCn: _notesCn, ...row }) => row),
   })).digest("hex");
   return { workout, program, templates, version };
@@ -60,7 +60,7 @@ export async function saveAssignedSession(id: string, expectedVersion: string, s
       nameCn: session.sessionNameCn || null, productType: "Single Workout",
       durationWeeks: 1, sessionsPerWeek: 1, builtForClient: workout.clientId,
       coachId: current.program.coach, status: "Active", productStatus: "Draft",
-      libraryVisible: false, publicStoreVisible: false });
+      libraryVisible: false, publicStoreVisible: false, assignmentOnly: true });
     const result = await createWorkoutTemplatesBulk({ programId, programRecordId: programId,
       sessions: [{ ...session, week: 1, day: 1, isSingleWorkout: true, testTemplateId: undefined }],
     }, tx);

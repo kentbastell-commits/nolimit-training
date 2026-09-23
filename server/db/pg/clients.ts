@@ -426,6 +426,7 @@ export async function clientHasProgramAccess(
     .where(
       and(
         eq(assignedWorkouts.clientId, String(clientCode)),
+        eq(assignedWorkouts.isDraft, false),
         eq(assignedWorkouts.programId, String(programId))
       )
     )

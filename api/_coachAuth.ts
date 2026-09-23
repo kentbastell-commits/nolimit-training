@@ -49,6 +49,7 @@ export const COACH_ONLY_HANDLERS = new Set([
   "coachingReviewHistory",
   "programmingBlocks",
   "coachDrafts",
+  "calendarDrafts",
   "analytics",
   "assignContent",
   "assignProgram",

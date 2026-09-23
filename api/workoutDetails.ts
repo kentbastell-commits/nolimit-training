@@ -4,7 +4,8 @@ import {
   clientHasProgramAccess,
   programIsPaidContent,
 } from "../server/db/repositories/clients.ts";
-import { coachKeyOk } from "./_coachAuth.ts";
+import { coachKeyOk, isVerifiedCoach } from "./_coachAuth.ts";
+import { publishedCalendarSlots } from "../server/db/pg/calendarDrafts.ts";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
@@ -15,6 +16,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         required: ["programId", "week", "day"],
         received: { programId, week, day },
       });
+    }
+    if (!isVerifiedCoach(req as never) || req.query.audience === "athlete") {
+      const slots = await publishedCalendarSlots(String(programId), String(clientCode || ""));
+      if (slots && !slots.some(s => s.week === Number(week) && s.day === Number(day))) {
+        return res.status(403).json({ error: "This session is not published" });
+      }
     }
     // Same paid-content-for-free risk as programTemplates.ts — require proof
     // the caller's client actually has this program before serving exercise

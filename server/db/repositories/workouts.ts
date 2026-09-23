@@ -5,9 +5,9 @@ import { getCachedOrLoad, invalidateCache } from "../../../api/_cache.ts";
 // The full assigned-workouts list is cached briefly (2 min — it changes often:
 // assigns, completions, reviews) and filtered per request; workout writers
 // invalidate "workouts".
-export async function listWorkouts(clientCode = ""): Promise<WorkoutDTO[]> {
-  return getCachedOrLoad(`workouts:${clientCode}`, 2 * 60 * 1000,
-    () => pg.listAllWorkouts(clientCode));
+export async function listWorkouts(clientCode = "", includeDrafts = false): Promise<WorkoutDTO[]> {
+  return getCachedOrLoad(`workouts:${clientCode}:${includeDrafts ? "coach" : "athlete"}`, 2 * 60 * 1000,
+    () => pg.listAllWorkouts(clientCode, includeDrafts));
 }
 
 /* ------------------------------- writes ---------------------------------- */

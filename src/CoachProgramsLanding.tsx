@@ -1,3 +1,4 @@
+import { SaveCalendarDraftButton } from "./CalendarDraftControls";
 // Digital > Program Builder landing (library). Same visual language as the
 // redesigned Store page — dark library board, segmented filters, grouped-by-
 // sport rows with type badges, and a program detail slide-over. It is a restyle
@@ -539,10 +540,11 @@ export default function CoachProgramsLanding(props: { [key: string]: any }) {
                           type="button"
                           className="cplBtnGold"
                           disabled={savedAssigningProgram}
-                          onClick={assignSavedProgramToClient}
+                          onClick={() => void assignSavedProgramToClient(false)}
                         >
                           {savedAssigningProgram ? "Assigning…" : "Assign program"}
                         </button>
+                        <SaveCalendarDraftButton disabled={savedAssigningProgram || savedAssignLoading || !(savedAssignableWorkouts || []).length} onClick={() => void assignSavedProgramToClient(true)} />
                       </div>
                       {(savedAssignableWorkouts || []).length > 0 && (
                         <div className="cplAssignWorkouts">

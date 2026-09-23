@@ -1,3 +1,4 @@
+import { SaveCalendarDraftButton } from "./CalendarDraftControls";
 import { useTranslation } from "react-i18next";
 // Program/Session detail + assign redesign (design-refs handoff bundle).
 // Full-screen overlay page: header + meta tiles + dark assign hero (with the
@@ -212,7 +213,7 @@ export default function ProgramDetailPanel({
     );
   };
 
-  const confirmAssign = async () => {
+  const confirmAssign = async (draft = false) => {
     const dates = (savedAssignableWorkouts || [])
       .map((w: any) => w.scheduledDate)
       .filter(Boolean)
@@ -221,11 +222,11 @@ export default function ProgramDetailPanel({
       dates.length > 1
         ? `${fmtShort(dates[0])} – ${fmtShort(dates[dates.length - 1])}`
         : `starts ${fmtShort(dates[0] || savedAssignStartDate)}`;
-    const ok = await assignSavedProgramToClient();
+    const ok = await assignSavedProgramToClient(draft);
     if (ok) {
       setModalOpen(false);
       setAssigned(true);
-      setAssignedRange(range);
+      setAssignedRange(draft ? `${i18n.language.startsWith("zh") ? "草稿 · 仅教练可见" : "Draft · coach only"} · ${range}` : range);
     }
   };
 
@@ -605,6 +606,7 @@ export default function ProgramDetailPanel({
             </div>
 
             <div className="pdpModalFoot">
+              <SaveCalendarDraftButton disabled={savedAssigningProgram || savedAssignLoading || !(savedAssignableWorkouts || []).length} onClick={() => void confirmAssign(true)} />
               <button
                 type="button"
                 className="pdpBtnCancel"

@@ -14,11 +14,12 @@ import type {
 
 type Row = typeof assignedWorkouts.$inferSelect;
 
-export async function listAllWorkouts(clientCode = ""): Promise<WorkoutDTO[]> {
+export async function listAllWorkouts(clientCode = "", includeDrafts = false): Promise<WorkoutDTO[]> {
   const rows = await db
     .select()
     .from(assignedWorkouts)
-    .where(clientCode ? eq(assignedWorkouts.clientId, clientCode) : undefined)
+    .where(and(clientCode ? eq(assignedWorkouts.clientId, clientCode) : undefined,
+      includeDrafts ? undefined : eq(assignedWorkouts.isDraft, false)))
     .orderBy(
       assignedWorkouts.scheduledDate,
       // Coach-chosen position within a day; unordered rows sort after so a
@@ -42,6 +43,7 @@ export async function listAllWorkouts(clientCode = ""): Promise<WorkoutDTO[]> {
   return rows.map(
     (r: Row): WorkoutDTO => ({
       id: r.assignedWorkoutId,
+      isDraft: r.isDraft,
       assignedWorkoutId: r.assignedWorkoutId,
       clientId: str(r.clientId),
       programId: str(r.programId),
@@ -278,6 +280,7 @@ export async function shiftAssignedWorkoutDates(
   const fromMs = dayStartMs(i.fromDate);
   const deltaMs = i.days * 86400000;
   const conditions = [
+    eq(assignedWorkouts.isDraft, false),
     eq(assignedWorkouts.clientId, str(i.clientCode)),
     gte(assignedWorkouts.scheduledDate, fromMs),
   ];

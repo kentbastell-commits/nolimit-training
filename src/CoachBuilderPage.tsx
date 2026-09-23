@@ -1,3 +1,4 @@
+import { SaveCalendarDraftButton } from "./CalendarDraftControls";
 // Extracted from App.tsx (monolith split) — JSX verbatim; props threaded.
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import "./CoachBuilderPage.css";
@@ -62,6 +63,8 @@ const CUSTOM_SECTION_COLORS = [
 ];
 
 export default function CoachBuilderPage({
+  onSaveCalendarDraft,
+  editingCalendarDraft = false,
   calendarBuilderContext,
   historyClientCode = "",
   builderScope,
@@ -713,7 +716,7 @@ export default function CoachBuilderPage({
                               : workoutPageTab === "Sessions" ? (i18n.language.startsWith("zh") ? "单次训练" : "Sessions") : workoutPageTab === "Forms" ? (i18n.language.startsWith("zh") ? "表单" : "Forms") : (i18n.language.startsWith("zh") ? "训练计划" : "Programs")}
                           </h1>
                           <p className={oneOffAssignTarget ? "oneOffBuilderLibraryCopy" : ""}>
-                            {calendarBuilderContext ? t(oneOffAssignTarget ? "calendarNewWorkoutHint" : "calendarWorkoutIsolatedHint") : workoutPageTab === "Program Builder"
+                            {editingCalendarDraft ? (i18n.language.startsWith("zh") ? "日历草稿 · 仅教练可见。保存修改不会发布给学员。" : "Calendar draft · coach only. Saving changes keeps this session private.") : calendarBuilderContext ? t(oneOffAssignTarget ? "calendarNewWorkoutHint" : "calendarWorkoutIsolatedHint") : workoutPageTab === "Program Builder"
                               ? isSingleWorkoutBuilder
                                 ? editProgramRecordId ? t("editSavedSessionHint") : "Build a reusable session once — drop it into any program, anytime."
                                 : editProgramRecordId
@@ -739,6 +742,7 @@ export default function CoachBuilderPage({
                           )}
                           {workoutPageTab === "Program Builder" && (
                             <div className="pbSaveCluster">
+                              {onSaveCalendarDraft && <SaveCalendarDraftButton onClick={onSaveCalendarDraft} disabled={savingTemplate} />}
                               <div className="pbSaveRow">
                                 <div className="pbSaveCol">
                                   <button
@@ -752,7 +756,7 @@ export default function CoachBuilderPage({
                                     <Save size={17} strokeWidth={2.2} />
                                     {savingTemplate
                                       ? saveBusyLabel
-                                      : calendarBuilderContext ? t(oneOffAssignTarget ? "assignAndReturn" : "saveAndReturn") : oneOffAssignTarget
+                                      : editingCalendarDraft ? (i18n.language.startsWith("zh") ? "保存草稿并返回" : "Save draft and return") : calendarBuilderContext ? t(oneOffAssignTarget ? "assignAndReturn" : "saveAndReturn") : oneOffAssignTarget
                                         ? t("assignSession")
                                         : isSingleWorkoutBuilder
                                           ? "Save Session"
@@ -3263,6 +3267,7 @@ export default function CoachBuilderPage({
                           </div>
 
                           {renderBlockActions()}
+                          {onSaveCalendarDraft && isSingleWorkoutBuilder && <div className="calendarDraftSaveMobile"><SaveCalendarDraftButton onClick={onSaveCalendarDraft} disabled={savingTemplate} /></div>}
                           <div className="mobileBuilderActionBar">
                             <button
                               className="outlineButton"
@@ -3280,7 +3285,7 @@ export default function CoachBuilderPage({
                                 disabled={savingTemplate}
                                 onClick={saveMobileWorkout}
                               >
-                                {savingTemplate ? saveBusyLabel : "Save"}
+                                {savingTemplate ? saveBusyLabel : editingCalendarDraft ? (i18n.language.startsWith("zh") ? "保存草稿" : "Save draft") : "Save"}
                               </button>
                             ) : (
                               <button
@@ -3625,6 +3630,7 @@ export default function CoachBuilderPage({
                                 ? t("redesignUpdateProgram")
                                 : t("redesignSaveProgram")}
                           </button>
+                          {onSaveCalendarDraft && <SaveCalendarDraftButton onClick={onSaveCalendarDraft} disabled={savingTemplate} />}
                         </div>
                       </section>
                     )}

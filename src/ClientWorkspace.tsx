@@ -29,6 +29,7 @@ import CountUp from "./CountUp";
 import PortalToApp from "./PortalToApp";
 
 export default function ClientWorkspace({
+  calendarDraftPanel,
   switchableAthletes = [],
   switchAthlete,
   t,
@@ -1008,6 +1009,7 @@ export default function ClientWorkspace({
 
               {clientTab === "Training" && (
                 <PortalTraining
+                  calendarDraftPanel={calendarDraftPanel}
                   calendarDropWorkoutId={calendarDropWorkoutId}
                   dragPreviewDate={dragPreviewDate}
                   t={t}

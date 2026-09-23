@@ -176,6 +176,7 @@ export type ClientDTO = {
 };
 
 export type WorkoutDTO = {
+  isDraft?: boolean;
   id: string;
   assignedWorkoutId: string;
   clientId: string;

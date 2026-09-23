@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { ConfigError } from "../server/db/errors.ts";
 import { getContentAssignments } from "../server/db/repositories/contentAssignments.ts";
-import { coachKeyOk } from "./_coachAuth.ts";
+import { coachKeyOk, isVerifiedCoach } from "./_coachAuth.ts";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "GET") {
@@ -18,7 +18,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const assignments = await getContentAssignments(
       String(clientId),
       String(clientCode),
-      String(clientName)
+      String(clientName),
+      isVerifiedCoach(req as never) && req.query.audience !== "athlete"
     );
     return res.status(200).json({ assignments });
   } catch (error: any) {

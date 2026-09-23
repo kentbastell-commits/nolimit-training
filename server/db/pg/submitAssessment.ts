@@ -23,6 +23,7 @@ export async function submitContentResponse(input: SubmitContentResponseInput): 
         ? (await tx.select().from(assignedTests).where(eq(assignedTests.assignedTestId, assignmentId)).for("update"))[0]
         : (await tx.select().from(assignedForms).where(eq(assignedForms.assignedFormId, assignmentId)).for("update"))[0];
       if (!assignment) return fail(404, "This assignment no longer exists.");
+      if ("isDraft" in assignment && assignment.isDraft) return fail(403, "This test is not published.");
       if (assignment.clientId !== input.clientId && assignment.clientCode !== input.clientId) return fail(403, "This assignment does not belong to that client.");
       const templateId = "formId" in assignment ? assignment.formId : assignment.testTemplateId;
       if (templateId !== input.templateId) return fail(409, "The assignment has changed. Please reopen it.");

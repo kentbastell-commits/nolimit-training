@@ -8,6 +8,7 @@ import { getCached, setCached, invalidateCache } from "../../../api/_cache.ts";
 // invalidates that key.
 
 export type ContentAssignmentDTO = {
+  isDraft?: boolean;
   isIntake?: boolean;
   recordId: string;
   assignmentId: string;
@@ -68,7 +69,8 @@ export type UpdateAssignmentDateResult =
 export async function getContentAssignments(
   clientId = "",
   clientCode = "",
-  clientName = ""
+  clientName = "",
+  includeDrafts = false
 ): Promise<ContentAssignmentDTO[]> {
   let all = getCached<ContentAssignmentDTO[]>("contentAssignments");
   if (!all) {
@@ -94,6 +96,7 @@ export async function getContentAssignments(
   const requestedClientName = clientName.toLowerCase();
 
   return all.filter((assignment) => {
+    if (assignment.isDraft && !includeDrafts) return false;
     if (!requestedClientId && !requestedClientCode && !requestedClientName) {
       return true;
     }

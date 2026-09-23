@@ -1,3 +1,5 @@
+import { CalendarDraftReview, SaveCalendarDraftSheet, SaveCalendarDraftButton } from "./CalendarDraftControls";
+import { saveCalendarDraft, assignCalendarProgram } from "./calendarDraftApi";
 import { insertBlock, progressExerciseLoad, progressionKey } from "./programmingBlockData";
 import CoachLibraryNavigation, { librarySections, type LibrarySection } from "./CoachLibraryNavigation";
 import CoachDraftNotice, { cloudDraftLabel } from "./CoachDraftNotice";
@@ -1879,8 +1881,10 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     clientName: string; date: string;
   } | null>(null);
   const [assignedSessionEdit, setAssignedSessionEdit] = useState<{
-    assignedWorkoutId: string; clientId: string; version: string; baseSession?: ProgramSession;
+    assignedWorkoutId: string; clientId: string; version: string; isDraft?: boolean; baseSession?: ProgramSession;
   } | null>(null);
+  const [calendarDraftSaveOpen, setCalendarDraftSaveOpen] = useState(false);
+  const [calendarDraftReviewOpen, setCalendarDraftReviewOpen] = useState(false);
   const [sessionRecovery, setSessionRecovery] = useState<SessionRecovery | null>(null);
   const [builderLeaveOpen, setBuilderLeaveOpen] = useState(false);
   const builderSourceTemplatesRef = useRef("");
@@ -3026,7 +3030,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
       data: nextWorkouts,
       timestamp: Date.now(),
     };
-    writePersistentCache(CACHE_KEYS.clientWorkouts(clientCode), nextWorkouts);
+    writePersistentCache(`${CACHE_KEYS.clientWorkouts(clientCode)}:${isClientPortal ? "athlete" : "coach"}`, nextWorkouts);
   };
 
   const loadClientWorkouts = async (client: Client, force = false) => {
@@ -3041,7 +3045,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
 
     const persistentCache = shouldForce
       ? null
-      : readPersistentCache<Workout[]>(CACHE_KEYS.clientWorkouts(clientCode));
+      : readPersistentCache<Workout[]>(`${CACHE_KEYS.clientWorkouts(clientCode)}:${isClientPortal ? "athlete" : "coach"}`);
     if (persistentCache) {
       workoutCacheRef.current[clientCode] = persistentCache;
       if (selectedClientCodeRef.current === clientCode) { setWorkouts(persistentCache.data); setWorkoutsUpdatedAt(persistentCache.timestamp); }
@@ -3051,7 +3055,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     const request = (clientWorkoutReadRef.current[clientCode] || 0) + 1;
     clientWorkoutReadRef.current[clientCode] = request;
     try {
-      const response = await fetchWithTimeout(`/api/workouts?clientCode=${encodeURIComponent(clientCode)}`, {});
+      const response = await fetchWithTimeout(`/api/workouts?clientCode=${encodeURIComponent(clientCode)}${isClientPortal ? "&audience=athlete" : ""}`, {});
       const data = await response.json();
       if (!response.ok || !Array.isArray(data.workouts)) throw new Error("Could not load workouts");
       if (clientWorkoutReadRef.current[clientCode] === request) {
@@ -3875,6 +3879,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     }
 
     const assignmentParams = new URLSearchParams({
+      ...(isClientPortal ? { audience: "athlete" } : {}),
       clientId: client.id,
       clientCode: client.clientCode || "",
       clientName: client.name || "",
@@ -5266,7 +5271,8 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
   };
 
   // Returns true on success so the detail panel can show its "Assigned" chip.
-  const assignSavedProgramToClient = async (): Promise<boolean> => {
+  const assignSavedProgramToClient = async (draft = false): Promise<boolean> => {
+    draft = draft === true;
     const client = clients.find((item) => item.id === savedAssignClientId);
 
     if (!client || !selectedSavedProgram) {
@@ -5282,12 +5288,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     setSavedAssigningProgram(true);
 
     try {
-      const response = await fetch("/api/assignProgram", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
+      const response = await assignCalendarProgram({
           clientRecordId: client.id,
           programRecordId: selectedSavedProgram.recordId,
           scheduledWorkouts: savedAssignableWorkouts.map((workout) => ({
@@ -5303,8 +5304,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
             scheduledDate: workout.scheduledDate,
             testTemplateId: workout.testTemplateId || "",
           })),
-        }),
-      });
+        }, draft);
 
       const data = await response.json();
 
@@ -5314,7 +5314,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
         return false;
       }
 
-      notify(`Program assigned to ${client.name}. Workouts created: ${data.recordsCreated}`);
+      notify(draft ? "Calendar draft saved. Hidden from the athlete." : `Program assigned to ${client.name}. Workouts created: ${data.recordsCreated}`);
       setSavedAssignableWorkouts([]);
       return true;
     } catch (error) {
@@ -5761,7 +5761,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     });
     if (!loaded) return;
     setAssignedSessionEdit({ assignedWorkoutId: workout.assignedWorkoutId || workout.id,
-      clientId: source.workout.clientId, version: source.version,
+      clientId: source.workout.clientId, version: source.version, isDraft: source.workout.isDraft,
       baseSession: buildSessionsFromTemplates(source.templates).find(s => s.week === String(source.workout.week) && s.day === String(source.workout.day)) });
     setSelectedWorkout(null);
     if (selectedClient) {
@@ -5807,7 +5807,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
   };
 
   // Calendar library picker: drop ONE saved session onto the date.
-  const assignLibrarySessionToDate = async (program: Program, date: string) => {
+  const assignLibrarySessionToDate = async (program: Program, date: string, draft = false) => {
     if (!selectedClient) return;
     setCalLibPickBusyId(program.programId);
     try {
@@ -5820,10 +5820,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
         notify("That session has no exercises yet.");
         return;
       }
-      const response = await fetch("/api/assignProgram", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      const response = await assignCalendarProgram({
           clientRecordId: selectedClient.id,
           programRecordId: program.recordId,
           scheduledWorkouts: [
@@ -5841,17 +5838,16 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
               testTemplateId: session.testTemplateId || "",
             },
           ],
-        }),
-      });
+        }, draft);
       const data = await response.json();
       if (!response.ok || !data.success) {
         console.error(data);
         notify("Could not add that session. Check API response.", "error");
         return;
       }
-      notify(`"${session.sessionName}" added to ${formatCalendarLabel(date)}.`, "success");
+      notify(draft ? "Calendar draft saved. Hidden from the athlete." : `"${session.sessionName}" added to ${formatCalendarLabel(date)}.`, "success");
       setCalLibPick(null);
-      await loadClientWorkouts(selectedClient, true);
+      await Promise.all([loadClientWorkouts(selectedClient, true), loadContentAssignments(selectedClient)]);
     } catch (error) {
       console.error(error);
       notify("Could not add that session.", "error");
@@ -5861,24 +5857,24 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
   };
 
   // Calendar library picker: assign a whole program starting at the date.
-  const assignLibraryProgramToDate = async (program: Program, date: string) => {
+  const assignLibraryProgramToDate = async (program: Program, date: string, draft = false) => {
     if (!selectedClient) return;
     setCalLibPickBusyId(program.programId);
     try {
       const created = await assignProgramByIds(
         [selectedClient.id],
         program.programId,
-        date
+        date, draft
       );
       if (created > 0) {
         notify(
-          `"${program.programName}" assigned from ${formatCalendarLabel(date)}.`,
+          draft ? "Calendar draft saved. Hidden from the athlete." : `"${program.programName}" assigned from ${formatCalendarLabel(date)}.`,
           "success"
         );
         setCalLibPick(null);
-        await loadClientWorkouts(selectedClient, true);
+        await Promise.all([loadClientWorkouts(selectedClient, true), loadContentAssignments(selectedClient)]);
       }
-    } finally {
+    } catch (error) { notify(error instanceof Error ? error.message : "Could not save draft", "error"); } finally {
       setCalLibPickBusyId("");
     }
   };
@@ -6673,7 +6669,8 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
   const assignProgramByIds = async (
     clientRecordIds: string[],
     programId: string,
-    startDate: string
+    startDate: string,
+    draft = false
   ): Promise<number> => {
     const program = programs.find((p) => p.programId === programId);
     if (!program) {
@@ -6719,10 +6716,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
       notify("This program has no sessions to assign.");
       return 0;
     }
-    const assignRes = await fetch("/api/assignProgram", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    const assignRes = await assignCalendarProgram({
         clientRecordIds,
         programRecordId: program.recordId,
         scheduledWorkouts: scheduledWorkouts.map((w) => ({
@@ -6738,8 +6732,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
           scheduledDate: w.scheduledDate,
           testTemplateId: w.testTemplateId || "",
         })),
-      }),
-    });
+      }, draft);
     const assignData = await assignRes.json();
     if (!assignRes.ok || !assignData.success) {
       console.error(assignData);
@@ -7170,7 +7163,8 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     );
   };
 
-  const assignProgramToClient = async () => {
+  const assignProgramToClient = async (draft = false) => {
+    draft = draft === true;
     if (!selectedClient || !selectedAssignProgram) {
       notify("Please select a client and program.");
       return;
@@ -7184,12 +7178,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     setAssigningProgram(true);
 
     try {
-      const response = await fetch("/api/assignProgram", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
+      const response = await assignCalendarProgram({
           clientRecordId: selectedClient.id,
           programRecordId: selectedAssignProgram.recordId,
           scheduledWorkouts: assignableWorkouts.map((workout) => ({
@@ -7205,8 +7194,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
             scheduledDate: workout.scheduledDate,
             testTemplateId: workout.testTemplateId || "",
           })),
-        }),
-      });
+        }, draft);
 
       const data = await response.json();
 
@@ -7216,11 +7204,11 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
         return;
       }
 
-      notify(`Program assigned. Workouts created: ${data.recordsCreated}`);
+      notify(draft ? "Calendar draft saved. Hidden from the athlete." : `Program assigned. Workouts created: ${data.recordsCreated}`);
       setAssignableWorkouts([]);
       setShowAssignmentDrawer(false);
 
-      await loadClientWorkouts(selectedClient, true);
+      await Promise.all([loadClientWorkouts(selectedClient, true), loadContentAssignments(selectedClient)]);
     } catch (error) {
       console.error(error);
       notify("Could not assign program.");
@@ -11391,7 +11379,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
   // mid-build). The default clears the canvas and leaves it to the caller
   // to navigate (mobile flow, one-off calendar sessions).
   const saveFullProgram = async (
-    opts?: { stay?: boolean; reviewed?: { session: ProgramSession; version: string; base: ProgramSession } }
+    opts?: { stay?: boolean; calendarDraft?: { clientId: string; date: string }; reviewed?: { session: ProgramSession; version: string; base: ProgramSession } }
   ): Promise<boolean> => {
     if (saveInFlightRef.current) return false;
     saveInFlightRef.current = true;
@@ -11403,7 +11391,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
   };
 
   const saveFullProgramInner = async (
-    opts?: { stay?: boolean; reviewed?: { session: ProgramSession; version: string; base: ProgramSession } }
+    opts?: { stay?: boolean; calendarDraft?: { clientId: string; date: string }; reviewed?: { session: ProgramSession; version: string; base: ProgramSession } }
   ): Promise<boolean> => {
     if (assignedSessionEdit) {
       const current = opts?.reviewed?.session || buildCurrentProgramSession(editingProgramSessionId || "assigned", sessionName || programName);
@@ -11426,6 +11414,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
           const freshResponse = await fetchWithTimeout(`/api/assignedSession?assignedWorkoutId=${encodeURIComponent(assignedSessionEdit.assignedWorkoutId)}`, {});
           const fresh = await freshResponse.json();
           if (!freshResponse.ok) { notify(t(fresh.error || "sessionSaveFailed"), "error"); return false; }
+          setAssignedSessionEdit(prev => prev ? { ...prev, isDraft: Boolean(fresh.workout?.isDraft) } : prev);
           const latest = buildSessionsFromTemplates(fresh.templates).find(s => s.week === String(fresh.workout.week) && s.day === String(fresh.workout.day));
           if (!latest || !fresh.version) { notify(t("sessionSaveFailed"), "error"); return false; }
           let base = opts?.reviewed?.base || assignedSessionEdit.baseSession;
@@ -11446,7 +11435,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
         resetProgramFields(); resetSessionFields();
         setWorkoutPageTab("Saved Programs");
         if (client) { setSelectedClient(client); setActivePage("Clients"); setClientTab("Training"); void loadClientWorkouts(client, true); }
-        notify(t("assignedSessionSaved"), "success");
+        notify(assignedSessionEdit.isDraft ? (i18n.language.startsWith("zh") ? "草稿已保存，学员暂时看不到。" : "Draft saved. Still hidden from the athlete.") : t("assignedSessionSaved"), "success");
         return true;
       } catch { notify(t("sessionSaveFailed"), "error"); return false; }
       finally { setSavingTemplate(false); }
@@ -11493,6 +11482,26 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     sessionsToSave = renumberProgramSessionsByWeek(sessionsToSave);
 
     setSavingTemplate(true);
+
+    if (opts?.calendarDraft) {
+      try {
+        const target = clients.find(c => c.id === opts.calendarDraft!.clientId);
+        if (!target) { notify("Select an athlete.", "error"); return false; }
+        await saveCalendarDraft({ clientIds: [target.id], programName,
+          sessions: sessionsToSave.map(session => ({ ...session, week: Number(session.week), day: Number(session.day),
+            exercises: session.exercises.map((exercise, index) => ({ ...exercise, order: index + 1, sets: Number(exercise.sets) || 1, coachingNotes: buildExerciseCoachingNotes(exercise) })) })),
+          scheduledWorkouts: sessionsToSave.map(session => ({ ...session, exercises: undefined,
+            week: Number(session.week), day: Number(session.day), scheduledDate: addDays(opts.calendarDraft!.date, (Number(session.week) - 1) * 7 + (Number(session.day) - 1) * 2) })) });
+        justSavedRef.current = true; builderServerDirtyRef.current = false; clearActiveCoachDraft();
+        setCalendarDraftSaveOpen(false); resetProgramFields(); resetSessionFields();
+        setWorkoutPageTab("Saved Programs"); setActivePage("Clients"); setSelectedClient(target); setClientTab("Training");
+        setCalendarAnchorDate(opts.calendarDraft.date);
+        await Promise.allSettled([loadClientWorkouts(target, true), loadContentAssignments(target)]);
+        notify(i18n.language.startsWith("zh") ? "已保存到日历草稿，学员暂时看不到。" : "Calendar draft saved. Hidden from the athlete.", "success");
+        return true;
+      } catch (error) { notify(error instanceof Error ? error.message : "Could not save calendar draft.", "error"); return false; }
+      finally { setSavingTemplate(false); }
+    }
 
     // Editing = update the record, for SESSIONS (Single Workout) too — the
     // old `&& !singleWorkoutMode` made every calendar-session edit create a
@@ -19867,6 +19876,9 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
         </>
       )}
 
+      {calendarDraftSaveOpen && <SaveCalendarDraftSheet clients={clients} clientId={oneOffAssignTarget?.clientRecordId || programBuiltForClient || selectedClient?.id || ""} date={oneOffAssignTarget?.date || calendarAnchorDate || coachingToday()} busy={savingTemplate} close={() => setCalendarDraftSaveOpen(false)} save={(clientId, date) => saveFullProgram({ calendarDraft: { clientId, date } })} />}
+      {calendarDraftReviewOpen && selectedClient && <CalendarDraftReview key={selectedClient.id} clientId={selectedClient.id} name={selectedClient.name} close={() => setCalendarDraftReviewOpen(false)} published={() => { void loadClientWorkouts(selectedClient, true); void loadContentAssignments(selectedClient); notify(i18n.language.startsWith("zh") ? "已发布，学员现在可以看到所选训练。" : "Published. The athlete can now see these sessions.", "success"); }} />}
+
       {calAddMenu && (
         <>
           <div className="programCtxBackdrop" onClick={() => setCalAddMenu(null)} />
@@ -19973,6 +19985,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
                         )}
                       </div>
                       <div className="calendarAssignPreviewActions">
+                        {!isTest && <SaveCalendarDraftButton disabled={Boolean(calLibPickBusyId)} onClick={() => { if (kind === "session") void assignLibrarySessionToDate(program as Program, date, true); else void assignLibraryProgramToDate(program as Program, date, true); }} />}
                         <button type="button" className="outlineButton" onClick={() => setCalLibPickPreview(null)}>
                           {t("backToLibrary")}
                         </button>
@@ -21327,6 +21340,8 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
               <CalendarWorkoutEditor context={calendarBuilderContext} onClose={returnToBuilderOrigin} busy={savingTemplate}>
                 {calendarBuilderContext && connectionNotice()}
               <CoachBuilderPage
+                onSaveCalendarDraft={!assignedSessionEdit ? () => setCalendarDraftSaveOpen(true) : undefined}
+                editingCalendarDraft={Boolean(assignedSessionEdit?.isDraft)}
                 calendarBuilderContext={calendarBuilderContext}
                 historyClientCode={assignedSessionEdit?.clientId || (programBuiltForMode === "client" ? programBuiltForClient : "")}
                 builderScope={builderScope}
@@ -21709,6 +21724,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
         {selectedClient && (
           <ErrorBoundary label="portal">
           <ClientWorkspace
+            calendarDraftPanel={!isClientPortal && selectedClient && (workouts.some(w => w.isDraft) || contentAssignments.some(a => a.isDraft)) ? <div className="calendarDraftBanner"><div><strong>{i18n.language.startsWith("zh") ? "日历草稿" : "Calendar drafts"}</strong><p>{i18n.language.startsWith("zh") ? "仅教练可见，准备好后发布。" : "Visible only to you until published."}</p></div><button type="button" className="outlineButton" onClick={() => setCalendarDraftReviewOpen(true)}>{i18n.language.startsWith("zh") ? "查看并发布" : "Review & publish"} ({workouts.filter(w => w.isDraft).length + contentAssignments.filter(a => a.isDraft).length})</button></div> : null}
             t={t}
             coachingCheckIns={coachingCheckIns.filter(c => c.clientId === selectedClient.clientCode)}
             coachingCheckInsReady={coachingActivityReady}

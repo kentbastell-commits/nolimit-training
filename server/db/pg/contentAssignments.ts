@@ -81,6 +81,7 @@ export async function listContentAssignments(): Promise<ContentAssignmentDTO[]> 
       recordId: row.assignedTestId,
       assignmentId: row.assignedTestId,
       assignmentType: "Physical Test",
+      isDraft: row.isDraft,
       templateId: str(row.testTemplateId),
       templateName: str(templateName),
       templateNameCn: str(templateNameCn),

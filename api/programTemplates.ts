@@ -1,7 +1,8 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { listProgramTemplates } from "../server/db/repositories/programTemplates.ts";
 import { clientHasProgramAccess } from "../server/db/repositories/clients.ts";
-import { coachKeyOk } from "./_coachAuth.ts";
+import { coachKeyOk, isVerifiedCoach } from "./_coachAuth.ts";
+import { publishedCalendarSlots } from "../server/db/pg/calendarDrafts.ts";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
@@ -24,10 +25,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(403).json({ error: "No access to this program" });
       }
     }
-    const templates = await listProgramTemplates(
+    const slots = (!isVerifiedCoach(req as never) || req.query.audience === "athlete")
+      ? await publishedCalendarSlots(String(programId || programRecordId), String(clientCode || "")) : null;
+    if (slots && !slots.length) return res.status(403).json({ error: "This program is not published" });
+    const allTemplates = await listProgramTemplates(
       String(programId || ""),
       String(programRecordId || "")
     );
+    const templates = slots ? allTemplates.filter(t => slots.some(s => s.week === Number(t.week) && s.day === Number(t.day))) : allTemplates;
     return res.status(200).json({ templates });
   } catch (error: any) {
     if (error.kind === "templatesEmpty") {

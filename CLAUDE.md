@@ -1013,6 +1013,10 @@ data between them, never "borrow" a table ID across products.
     server-derived ownership, atomic revision checks and deletion tombstones. Keep both competing
     edits; a delayed acknowledgement must preserve newer typing and any queued deletion.
 
+76. **The calendar draft visible through another door** — calendar filters alone do not make a plan private.
+    Isolate draft templates and enforce publication on athlete lists, direct player/template/export reads,
+    submissions and rescheduling; separate preview caches and publish reviewed assignments atomically.
+
 ## Quality bar — checkable, per deliverable
 
 **Any shipped code change**

@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { listWorkouts } from "../server/db/repositories/workouts.ts";
-import { coachKeyOk } from "./_coachAuth.ts";
+import { coachKeyOk, isVerifiedCoach } from "./_coachAuth.ts";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
@@ -10,7 +10,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!clientCode && !coachKeyOk(req as never)) {
       return res.status(401).json({ error: "Coach access key required" });
     }
-    const workouts = await listWorkouts(clientCode);
+    const workouts = await listWorkouts(clientCode, isVerifiedCoach(req as never) && req.query.audience !== "athlete");
     return res.status(200).json({ workouts });
   } catch (error: any) {
     if (error.kind === "token") {

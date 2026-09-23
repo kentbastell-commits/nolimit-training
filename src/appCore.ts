@@ -208,6 +208,7 @@ export type Program = {
 };
 
 export type Workout = {
+  isDraft?: boolean;
   id: string;
   assignedWorkoutId: string;
   clientId: string;
@@ -846,6 +847,7 @@ export type SavedTestTemplate = {
 };
 
 export type ContentAssignment = {
+  isDraft?: boolean;
   isIntake?: boolean;
   recordId: string;
   assignmentId: string;
