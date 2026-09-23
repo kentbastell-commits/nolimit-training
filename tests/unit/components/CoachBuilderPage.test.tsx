@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import CoachBuilderPage from "../../../src/CoachBuilderPage";
+import "../../../src/i18n";
 
 // CoachBuilderPage (~5k lines) renders one panel per workoutPageTab. The
 // Forms list tab has the smallest prop surface, so the smoke test renders

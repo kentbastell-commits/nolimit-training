@@ -6,7 +6,8 @@
 // (drafts, replies, mark-reviewed, open-client/order/workout/submission) is a
 // prop and stays wired.
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import PortalToApp from "./PortalToApp";
 import { useTranslation } from "react-i18next";
 import { CheckSquare, ChevronDown, X } from "lucide-react";
 import "./ReviewPage.css";
@@ -58,6 +59,7 @@ export default function ReviewPage({
   const { t } = useTranslation();
   // Presentational only: which check-in is expanded in the slide-over.
   const [selectedCheckIn, setSelectedCheckIn] = useState<any>(null);
+  const checkInPanel = useRef<HTMLElement>(null);
   const [pages, setPages] = useState<Record<string, number>>({});
   // Order card whose Done/Archive write is in flight (Review page).
   const [savingOrderKey, setSavingOrderKey] = useState("");
@@ -92,11 +94,29 @@ export default function ReviewPage({
 
   useEffect(() => {
     if (!selectedCheckIn) return;
+    const previous = document.activeElement as HTMLElement | null;
+    const overflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    checkInPanel.current?.focus({ preventScroll: true });
     const closeCheckIn = (event: KeyboardEvent) => {
       if (event.key === "Escape") setSelectedCheckIn(null);
+      if (event.key === "Tab") {
+        const nodes = Array.from(checkInPanel.current?.querySelectorAll<HTMLElement>("*") || [])
+          .filter(node => node.matches('button, textarea, [tabindex="0"]') && !node.matches(":disabled"));
+        const first = nodes[0], last = nodes.at(-1);
+        if (event.shiftKey && (document.activeElement === first || document.activeElement === checkInPanel.current)) {
+          event.preventDefault(); last?.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault(); first?.focus();
+        }
+      }
     };
     window.addEventListener("keydown", closeCheckIn);
-    return () => window.removeEventListener("keydown", closeCheckIn);
+    return () => {
+      window.removeEventListener("keydown", closeCheckIn);
+      document.body.style.overflow = overflow;
+      if (previous?.isConnected) previous.focus({ preventScroll: true });
+    };
   }, [selectedCheckIn]);
 
   const unreviewedFormVideos = reviewFormVideos.filter(
@@ -775,8 +795,11 @@ export default function ReviewPage({
 
       {/* check-in slide-over */}
       {selectedCheckIn && (
+        <PortalToApp>
         <div className="rvScrim" onClick={() => setSelectedCheckIn(null)}>
           <aside
+            ref={checkInPanel}
+            tabIndex={-1}
             className="rvSlide"
             role="dialog"
             aria-modal="true"
@@ -851,6 +874,7 @@ export default function ReviewPage({
             </div>
           </aside>
         </div>
+        </PortalToApp>
       )}
     </section>
   );

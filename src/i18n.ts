@@ -1,11 +1,13 @@
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 import { redesignCopy } from "./redesignCopy";
+import { coachReliabilityCopy } from "./coachReliabilityCopy";
 
 export const resources = {
   en: {
     translation: {
       ...redesignCopy.en,
+      ...coachReliabilityCopy.en,
       trainingEnquiries: "Training enquiries",
       coachModeLabel: "Coach mode",
       viewAsAthlete: "View as athlete",
@@ -399,6 +401,7 @@ export const resources = {
   zh: {
     translation: {
       ...redesignCopy.zh,
+      ...coachReliabilityCopy.zh,
       trainingEnquiries: "训练咨询",
       coachModeLabel: "教练模式",
       viewAsAthlete: "查看运动员视角",

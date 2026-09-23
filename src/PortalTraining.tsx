@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 // Extracted from App.tsx (monolith split) — JSX verbatim; props threaded.
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { DragEvent } from "react";
@@ -16,7 +17,7 @@ const CAT_ICON: Record<string, any> = {
 const catIcon = (cc: string) => CAT_ICON[cc] || Dumbbell;
 import PortalToApp from "./PortalToApp";
 import type { CalendarView } from "./appCore";
-import { dateToInputValue, formatCalendarLabel, formatMonthTitle, getAssignmentColorClass, getDisplayTaskStatus, getMonthDates, getSessionTypeClass, getStatusClass, getWorkoutColorClass, glanceRepsToken, normalizeDate } from "./appCore";
+import { dateToInputValue, formatCalendarLabel, formatMonthTitle, getAssignmentColorClass, getDisplayTaskStatus, getMonthDates, getSessionTypeClass, getStatusClass, getWorkoutColorClass, glanceRepsToken, exercisePrescription, normalizeDate } from "./appCore";
 
 export default function PortalTraining({
   calendarDropWorkoutId,
@@ -120,6 +121,7 @@ export default function PortalTraining({
   workouts,
   workoutsLoading,
 }: { [key: string]: any }) {
+  const { i18n } = useTranslation();
   // Up to 3 session-type color classes for the work-dots on a date (Week strip
   // + Month grid). Colors come from the same helpers that color the blocks.
   const workDotClasses = (date: any): string[] => [
@@ -1199,11 +1201,7 @@ export default function PortalTraining({
                                               {(it.ex.sets ||
                                                 glanceRepsToken(it.ex)) && (
                                                 <span>
-                                                  {it.ex.sets &&
-                                                  glanceRepsToken(it.ex)
-                                                    ? `${it.ex.sets} x ${glanceRepsToken(it.ex)}`
-                                                    : it.ex.sets ||
-                                                      glanceRepsToken(it.ex)}
+                                                  {exercisePrescription(it.ex, i18n.language.startsWith("zh")).summary}
                                                 </span>
                                               )}
                                             </div>

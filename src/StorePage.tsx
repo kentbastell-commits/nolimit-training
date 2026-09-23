@@ -34,7 +34,7 @@ import { reportClientEvent } from "./telemetry";
 import WxPayPanel, { useWxpayEnabled } from "./WxPayPanel";
 import WxLoginQr from "./WxLoginQr";
 import type { Client, Coach, Program, ProgramReview, Toast } from "./appCore";
-import { glanceRepsToken } from "./appCore";
+import { glanceRepsToken, exercisePrescription } from "./appCore";
 
 // Motion system shared with the cinematic landing page (LandingPage.tsx):
 // opacity/transform only (GPU, China-safe), collapses to static under
@@ -2070,9 +2070,7 @@ export default function StorePage({
                                   <strong>{it.ex.exerciseName}</strong>
                                   {(it.ex.sets || glanceRepsToken(it.ex, sZh)) && (
                                     <span>
-                                      {it.ex.sets && glanceRepsToken(it.ex, sZh)
-                                        ? `${it.ex.sets} x ${glanceRepsToken(it.ex, sZh)}`
-                                        : it.ex.sets || glanceRepsToken(it.ex, sZh)}
+                                      {exercisePrescription(it.ex, sZh).summary}
                                     </span>
                                   )}
                                 </div>

@@ -8,7 +8,7 @@ import ProgramDetailPanel from "./ProgramDetailPanel";
 import PortalToApp from "./PortalToApp";
 import { Activity, BookOpen, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, ChevronsLeftRight, ClipboardList, Copy, Dumbbell, Feather, Film, GripVertical, HeartPulse, Link2, MoreVertical, Pencil, Plus, RefreshCw, Save, Shuffle, Tag, Target, Trash2, Trophy, X } from "lucide-react";
 import type { ProgramSession } from "./appCore";
-import { getWorkoutColorClass, glanceRepsToken } from "./appCore";
+import { getWorkoutColorClass, glanceRepsToken, exercisePrescription } from "./appCore";
 import { useTranslation } from "react-i18next";
 
 // Type/form badge tones for the Library · Programming lists (redesign).
@@ -85,6 +85,7 @@ export default function CoachBuilderPage({
   builderModalListRef,
   builderMode,
   builderSaveStatus,
+  coachDraftStatus,
   builderSearch,
   builderSectionOptions,
   bulkEditMode,
@@ -324,7 +325,7 @@ export default function CoachBuilderPage({
   workoutTabList,
   workoutTabsMenuOpen,
 }: { [key: string]: any }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [focusedExerciseIndex, setFocusedExerciseIndex] = useState<number | null>(null);
   const [mobileExpandedExercise, setMobileExpandedExercise] = useState<number | null>(null);
   const focusedEditor = focusedExerciseIndex !== null && swapExerciseIndex === null;
@@ -686,7 +687,7 @@ export default function CoachBuilderPage({
                               : "Workouts"}
                           </h1>
                           <p className={oneOffAssignTarget ? "oneOffBuilderLibraryCopy" : ""}>
-                            {calendarBuilderContext ? t(oneOffAssignTarget ? "calendarNewWorkoutHint" : "calendarWorkoutSharedHint") : workoutPageTab === "Program Builder"
+                            {calendarBuilderContext ? t(oneOffAssignTarget ? "calendarNewWorkoutHint" : "calendarWorkoutIsolatedHint") : workoutPageTab === "Program Builder"
                               ? isSingleWorkoutBuilder
                                 ? editProgramRecordId ? t("editSavedSessionHint") : "Build a reusable session once — drop it into any program, anytime."
                                 : editProgramRecordId
@@ -737,7 +738,7 @@ export default function CoachBuilderPage({
                                   >
                                     <i />
                                     {builderSaveStatus === "dirty"
-                                      ? "Unsaved changes"
+                                      ? t(coachDraftStatus === "saved" ? "coachDraftSavedLocally" : coachDraftStatus === "conflict" ? "coachDraftConflict" : coachDraftStatus === "unavailable" ? "coachDraftUnavailable" : "coachDraftSaving")
                                       : "All changes saved"}
                                   </span>
                                 </div>
@@ -1976,11 +1977,7 @@ export default function CoachBuilderPage({
                                                     </strong>
                                                     {(it.ex.sets || glanceRepsToken(it.ex)) && (
                                                       <span>
-                                                        {it.ex.sets &&
-                                                        glanceRepsToken(it.ex)
-                                                          ? `${it.ex.sets} x ${glanceRepsToken(it.ex)}`
-                                                          : it.ex.sets ||
-                                                            glanceRepsToken(it.ex)}
+                                                        {exercisePrescription(it.ex, i18n.language.startsWith("zh")).summary}
                                                       </span>
                                                     )}
                                                   </div>
@@ -3162,13 +3159,7 @@ export default function CoachBuilderPage({
                             </div>
 
                             <div className="builderExerciseSummaryStats">
-                              <span>{exercise.sets || "--"} sets</span>
-                              <span>{exercise.trackingFields?.includes("Time") && !exercise.trackingFields?.includes("Reps")
-                                ? /[a-z秒]/i.test(glanceRepsToken(exercise)) ? glanceRepsToken(exercise) : t("builderDurationSeconds", { value: glanceRepsToken(exercise) })
-                                : exercise.trackingFields?.includes("Distance") && !exercise.trackingFields?.includes("Reps")
-                                  ? glanceRepsToken(exercise)
-                                  : t("builderRepetitions", { value: exercise.reps || "--" })}</span>
-                              {exercise.isUnilateral && <span>{t("builderEachSide")}</span>}
+                              <span>{exercisePrescription(exercise, i18n.language.startsWith("zh")).summary}</span>
                               {exercise.load && <span>{exercise.load}</span>}
                               {exercise.tempo && <span>Tempo {exercise.tempo}</span>}
                               {exercise.rest && <span>Rest {exercise.rest}</span>}
@@ -3248,7 +3239,7 @@ export default function CoachBuilderPage({
                     <div className="mobileBuilderContext">
                       <button type="button" onClick={returnToBuilderOrigin}><ChevronLeft size={18} />{t("mobileBackToLibrary")}</button>
                       <div><strong>{programName || (isSingleWorkoutBuilder ? t("mobileNewSession") : t("mobileNewProgram"))}</strong>
-                        <small>{builderSaveStatus === "dirty" ? t("mobileUnsavedProgram") : t("mobileAllChangesSaved")}</small></div>
+                        <small>{builderSaveStatus === "dirty" ? t(coachDraftStatus === "saved" ? "coachDraftSavedLocally" : coachDraftStatus === "conflict" ? "coachDraftConflict" : coachDraftStatus === "unavailable" ? "coachDraftUnavailable" : "coachDraftSaving") : t("mobileAllChangesSaved")}</small></div>
                     </div>
                     {mobileBuilderStep !== "overview" && (
                     <section className="mobileBuilder">
@@ -3465,7 +3456,7 @@ export default function CoachBuilderPage({
                                             : ""}
                                           {exercise.exerciseName}
                                         </strong>
-                                        <small>{exercise.sets || "--"} {t("sets")} · {exercise.trackingFields?.includes("Time") ? `${glanceRepsToken(exercise)}${/[a-z秒]/i.test(glanceRepsToken(exercise)) ? "" : " s"}` : exercise.trackingFields?.includes("Distance") ? glanceRepsToken(exercise) : t("redesignReps", { value: glanceRepsToken(exercise) || "—" })}{exercise.isUnilateral ? ` · ${t("builderEachSide")}` : ""}</small>
+                                        <small>{exercisePrescription(exercise, i18n.language.startsWith("zh")).summary}</small>
                                         <small>{t(mobileExpandedExercise === index ? "mobileClosePrescription" : "mobileEditPrescription")}</small>
                                         </button>
                                         <button

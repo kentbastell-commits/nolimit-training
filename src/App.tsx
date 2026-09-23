@@ -1,6 +1,8 @@
+import CoachDraftNotice from "./CoachDraftNotice";
+import { readCoachDrafts, writeCoachDraft, removeCoachDraft, type CoachDraft } from "./coachDraft";
 import { validQuestionAnswer, testInputMode, isTwoKm, buildTestAnswer, displayAnswer } from "./contentAnswers";
 import CalendarWorkoutEditor from "./CalendarWorkoutEditor";
-import { glanceRepsToken } from "./appCore";
+import { exercisePrescription } from "./appCore";
 import "./MobileCoach.css";
 import { isAthletePreview } from "./athletePreviewPolicy";
 import { createSharedRead } from "./sharedRead";
@@ -66,7 +68,6 @@ const ProgressChart = lazy(() => import("./ProgressChart"));
 const WellnessChart = lazy(() => import("./WellnessChart"));
 
 import {
-  mapWithConcurrency,
   CACHE_KEYS,
   CATEGORY_OPTIONS,
   EQUIPMENT_ZH,
@@ -1842,6 +1843,10 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
   const [calendarBuilderContext, setCalendarBuilderContext] = useState<{
     clientName: string; date: string;
   } | null>(null);
+  const [assignedSessionEdit, setAssignedSessionEdit] = useState<{
+    assignedWorkoutId: string; clientId: string; version: string;
+  } | null>(null);
+  const builderSourceTemplatesRef = useRef("");
   // Calendar "Add from Library": builder-style picker that drops a saved
   // session / program / test onto a specific calendar date.
   const [calLibPick, setCalLibPick] = useState<{ date: string } | null>(null);
@@ -5662,30 +5667,25 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     setClientTab("Training");
   };
 
-  // Coach opened an assigned workout and wants to change the programming:
-  // jump into the Program Builder editing the workout's underlying program
-  // (the workout modal itself is a viewer, not a builder).
+  // Calendar edits load this assignment and save through its isolated endpoint.
   const openWorkoutProgramInBuilder = async (workout: Workout) => {
-    const pid = String(workout.programId || "");
-    let program = programs.find(
-      (p) => p.programId === pid || p.recordId === pid
-    );
-    if (!program) {
-      // Straight into a client's calendar without visiting Workouts/Digital,
-      // the programs list may not be loaded yet — fetch before giving up.
-      const loaded = (await loadPrograms()) || [];
-      program = loaded.find(
-        (p: Program) => p.programId === pid || p.recordId === pid
-      );
-    }
-    if (!program) {
-      notify("This workout isn't linked to a saved program.");
+    if (workout.completionStatus === "Completed" || workout.workoutLogs) {
+      notify(t("sessionAlreadyStarted"), "error");
       return;
     }
-    const loaded = await loadSavedProgramIntoBuilder(program, {
+    let source: any;
+    try {
+      const response = await fetch(`/api/assignedSession?assignedWorkoutId=${encodeURIComponent(workout.assignedWorkoutId || workout.id)}`);
+      source = await response.json();
+      if (!response.ok) { notify(t(source.error || "sessionUnavailable"), "error"); return; }
+    } catch { notify(t("sessionUnavailable"), "error"); return; }
+    const loaded = await loadSavedProgramIntoBuilder(source.program, {
       edit: true, session: { week: String(workout.week), day: String(workout.day) },
+      templates: source.templates, assigned: true,
     });
     if (!loaded) return;
+    setAssignedSessionEdit({ assignedWorkoutId: workout.assignedWorkoutId || workout.id,
+      clientId: source.workout.clientId, version: source.version });
     setSelectedWorkout(null);
     if (selectedClient) {
       oneOffReturnClientRef.current = selectedClient;
@@ -5828,13 +5828,16 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
 
   const loadSavedProgramIntoBuilder = async (
     programArg?: Program,
-    opts?: { edit?: boolean; asCopy?: boolean; session?: { week: string; day: string } }
+    opts?: { edit?: boolean; asCopy?: boolean; session?: { week: string; day: string }; templates?: any[]; assigned?: boolean }
   ) => {
     const sourceProgram = programArg || selectedSavedProgram;
     if (!sourceProgram) {
       notify("Please select a program.");
       return;
     }
+    activeCoachDraft.current = null;
+    setCoachDraftStatus("");
+    setAssignedSessionEdit(null);
     // Editing a library program is never a calendar one-off.
     setOneOffAssignTarget(null);
     // Edit = update this record on save; Duplicate/open = create a new one.
@@ -5849,20 +5852,13 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     setSavedTemplatesLoading(true);
 
     try {
-      const templateResponse = await fetch(
-        `/api/programTemplates?programId=${encodeURIComponent(
-          sourceProgram.programId
-        )}&programRecordId=${encodeURIComponent(
-          sourceProgram.recordId || ""
-        )}`
-      );
-      const templateData = await templateResponse.json();
-
-      if (!templateResponse.ok) {
-        console.error(templateData);
-        notify("Could not load program templates.");
-        return;
+      let templateData: any = { templates: opts?.templates };
+      if (!opts?.templates) {
+        const templateResponse = await fetch(`/api/programTemplates?programId=${encodeURIComponent(sourceProgram.programId)}`);
+        templateData = await templateResponse.json();
+        if (!templateResponse.ok) { notify("Could not load program templates."); return false; }
       }
+      builderSourceTemplatesRef.current = JSON.stringify(templateData.templates || []);
 
       // Single call: the template rows already carry the full prescription, so
       // the whole program is built without per-day /api/workoutDetails fetches.
@@ -5967,7 +5963,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
       setWorkoutPageTab("Program Builder");
 
       notify(
-        opts?.edit
+        opts?.assigned ? t("calendarWorkoutIsolatedHint") : opts?.edit
           ? "Editing in builder. Saving updates this program."
           : opts?.asCopy
           ? "Duplicated into builder. Saving creates a new program."
@@ -10932,6 +10928,10 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     resetExerciseIndexState();
   };
   const resetProgramFields = () => {
+    activeCoachDraft.current = null;
+    setCoachDraftStatus("");
+    setAssignedSessionEdit(null);
+    builderSourceTemplatesRef.current = "";
     setProgramSessions([]);
     setProgramName("");
     setProgramGoal("");
@@ -11336,6 +11336,34 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
   const saveFullProgramInner = async (
     opts?: { stay?: boolean }
   ): Promise<boolean> => {
+    if (assignedSessionEdit) {
+      const current = buildCurrentProgramSession(editingProgramSessionId || "assigned", sessionName || programName);
+      if (!current?.exercises.length) { notify(t("sessionNeedsExercises"), "error"); return false; }
+      setSavingTemplate(true);
+      try {
+        const response = await fetchWithTimeout("/api/assignedSession", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...assignedSessionEdit, session: { ...current,
+            exercises: current.exercises.map((exercise, index) => ({ ...exercise,
+              order: index + 1, sets: Number(exercise.sets) || 1,
+              coachingNotes: buildExerciseCoachingNotes(exercise),
+            })),
+          } }),
+        });
+        const result = await response.json();
+        if (!response.ok || !result.success) { notify(t(result.error || "sessionSaveFailed"), "error"); return false; }
+        justSavedRef.current = true;
+        builderServerDirtyRef.current = false;
+        clearActiveCoachDraft();
+        const client = oneOffReturnClientRef.current;
+        resetProgramFields(); resetSessionFields();
+        setWorkoutPageTab("Saved Programs");
+        if (client) { setSelectedClient(client); setActivePage("Clients"); setClientTab("Training"); void loadClientWorkouts(client, true); }
+        notify(t("assignedSessionSaved"), "success");
+        return true;
+      } catch { notify(t("sessionSaveFailed"), "error"); return false; }
+      finally { setSavingTemplate(false); }
+    }
     const singleWorkoutMode = builderMode === "Single Workout";
     // "Built for" client/team only applies to coached (Online / In-Person) programs.
     const coachedProgramType =
@@ -11385,6 +11413,13 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     const inPlaceEdit = Boolean(editProgramRecordId);
 
     try {
+      if (inPlaceEdit && builderSourceTemplatesRef.current) {
+        const check = await fetch(`/api/programTemplates?programId=${encodeURIComponent(editProgramId)}`);
+        const baseline = await check.json();
+        if (!check.ok || JSON.stringify(baseline.templates || []) !== builderSourceTemplatesRef.current) {
+          notify(t("sessionChanged"), "error"); return false;
+        }
+      }
       const programPayload = {
         programName,
         goal: singleWorkoutMode ? "Single Workout" : programGoal,
@@ -11443,27 +11478,8 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
       };
 
       let programData: any;
-      let oldTemplateRecordIds: string[] = [];
 
       if (inPlaceEdit) {
-        // Capture the existing session/template records so they can be
-        // removed after the new ones are written (no data loss on failure).
-        try {
-          const tRes = await fetch(
-            `/api/programTemplates?programId=${encodeURIComponent(
-              editProgramId
-            )}&programRecordId=${encodeURIComponent(editProgramRecordId)}`
-          );
-          const tData = await tRes.json();
-          if (tRes.ok) {
-            oldTemplateRecordIds = (tData.templates || [])
-              .map((t: any) => t.recordId)
-              .filter(Boolean);
-          }
-        } catch (templateError) {
-          console.warn("Could not list existing templates", templateError);
-        }
-
         const updRes = await fetchWithTimeout("/api/updateProgram", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -11498,15 +11514,13 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
         // The program row now exists. If the session write below fails and
         // the coach clicks Save again, that retry must UPDATE this program —
         // not create a second one (the old #52 shape).
+        builderSourceTemplatesRef.current = "[]";
         setEditProgramId(String(programData.programId || ""));
         setEditProgramRecordId(String(programData.programRecordId || ""));
       }
 
       let totalRecordsCreated = 0;
-      let sessionsDone = 0;
-      // The bulk path is one request: a numeric counter would sit at 0/N for
-      // its whole duration (mistake #35's "frozen save"). Plain "Saving…"
-      // until the per-session fallback, which really does count.
+      // A single request: show Saving until the server confirms success.
       setSaveProgress(null);
 
       // Fast path: save the WHOLE program in one bulk call — the server
@@ -11559,138 +11573,14 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
           totalRecordsCreated = Number(bulkData.recordsCreated || 0);
         }
       } catch {
-        /* bulk timed out / errored — checked below before any fallback */
+        /* keep the draft and report failure below */
       }
 
-      // A bulk that timed out CLIENT-side may still have committed server-side
-      // (the transaction doesn't know we stopped waiting). Falling back then
-      // would write every session a second time. Ask the server what it has:
-      // rows present for this program = the bulk landed.
+      // A failed/ambiguous write must retain the draft. Existing rows are
+      // not evidence that this save landed; they may be the previous version.
       if (!bulkOk) {
-        try {
-          const check = await fetchWithTimeout(
-            `/api/programTemplates?programId=${encodeURIComponent(programData.programId)}`,
-            {},
-            30000
-          );
-          const checkData = await check.json();
-          const rowsOnServer = Array.isArray(checkData?.templates)
-            ? checkData.templates.length
-            : Array.isArray(checkData?.workoutTemplates)
-              ? checkData.workoutTemplates.length
-              : 0;
-          if (check.ok && rowsOnServer > 0) {
-            bulkOk = true;
-            totalRecordsCreated = rowsOnServer;
-          }
-        } catch {
-          /* unreachable server: the fallback below will report its own failure */
-        }
-      }
-      if (!bulkOk) setSaveProgress({ done: 0, total: sessionsToSave.length });
-
-      // Per-session fallback. Save one session (its exercises → template rows).
-      // Never throws — a network/timeout error becomes ok:false so the retry
-      // path (not the whole-save catch) handles it, and one bad session can't
-      // sink the batch.
-      const saveOneSession = async (session: ProgramSession) => {
-        try {
-          const templateResponse = await fetchWithTimeout(
-            "/api/createWorkoutTemplate",
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                programId: programData.programId,
-                programRecordId: programData.programRecordId,
-                week: Number(session.week),
-                day: Number(session.day),
-                sessionName: session.sessionName,
-                sessionNameCn: session.sessionNameCn || "",
-                sessionType: session.sessionType,
-                sessionGoal: session.sessionGoal,
-                sessionNotes: session.sessionNotes || "",
-                estimatedDuration: session.estimatedDuration,
-                intensity: session.intensity,
-                isSingleWorkout: session.isSingleWorkout,
-                testTemplateId: session.testTemplateId || "",
-                exercises: session.exercises.map((exercise, index) => ({
-                  ...exercise,
-                  order: Number(exercise.order) || index + 1,
-                  sets: Number(exercise.sets) || 1,
-                  coachingNotes: buildExerciseCoachingNotes(exercise),
-                  status: "Active",
-                })),
-              }),
-            }
-          );
-          const templateData = await templateResponse.json();
-          const ok = templateResponse.ok && templateData.success;
-          if (ok) setSaveProgress({ done: ++sessionsDone, total: sessionsToSave.length });
-          return {
-            ok,
-            session,
-            templateData,
-            recordsCreated: Number(templateData.recordsCreated || 0),
-          };
-        } catch (error) {
-          // Timeout/network — reported as a failed session, retried below.
-          return {
-            ok: false,
-            session,
-            templateData: { error: String(error) },
-            recordsCreated: 0,
-          };
-        }
-      };
-
-      // Save sessions in parallel (bounded) instead of one-at-a-time.
-      if (!bulkOk) {
-      let saveResults = await mapWithConcurrency(sessionsToSave, 6, saveOneSession);
-
-      // Retry transient failures once. A heavy save (many sessions) can trip a
-      // Feishu throttle (code 1254607 "data not ready") on a session or two —
-      // a single blip must not fail the whole program save. Wait, then re-run
-      // just the failed sessions at lower concurrency.
-      const firstFailures = saveResults.filter((r) => !r.ok).map((r) => r.session);
-      if (firstFailures.length > 0) {
-        await new Promise((res) => window.setTimeout(res, 3000));
-        const retried = await mapWithConcurrency(firstFailures, 3, saveOneSession);
-        const fixed = new Map(
-          retried.filter((r) => r.ok).map((r) => [r.session, r])
-        );
-        saveResults = saveResults.map((r) => (r.ok ? r : fixed.get(r.session) || r));
-      }
-
-      const failed = saveResults.find((r) => !r.ok);
-      if (failed) {
-        console.error(failed.templateData);
-        notify(
-          `Program was saved, but session "${failed.session.sessionName}" failed. Check API response.`
-        );
+        notify(t("sessionSaveFailed"), "error");
         return false;
-      }
-      totalRecordsCreated = saveResults.reduce(
-        (sum, r) => sum + r.recordsCreated,
-        0
-      );
-      }
-
-      // In-place edit via the FALLBACK loop only: the new sessions are
-      // written, so remove the old ones. The bulk path already replaced them
-      // atomically server-side (replaceExisting) — deleting here again would
-      // remove rows the bulk just wrote.
-      if (!bulkOk && inPlaceEdit && oldTemplateRecordIds.length > 0) {
-        await mapWithConcurrency(oldTemplateRecordIds, 8, (recordId) =>
-          fetch("/api/deleteRecord", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              resource: "workoutTemplate",
-              recordId,
-            }),
-          }).then(() => undefined)
-        );
       }
 
       notify(
@@ -11709,6 +11599,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
       // now has everything — the leave-guard can stand down.
       justSavedRef.current = true;
       builderServerDirtyRef.current = false;
+      clearActiveCoachDraft();
       // Capture the one-off/return context BEFORE the reset clears it.
       const oneOffTarget = oneOffAssignTarget;
       const returnClientAfterSave = oneOffReturnClientRef.current;
@@ -12109,6 +12000,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
   // Clear the builder back to a blank state (used after a discard, so a
   // re-opened builder doesn't show the abandoned program).
   const resetBuilder = () => {
+    clearActiveCoachDraft();
     builderServerDirtyRef.current = false;
     resetProgramFields();
     resetSessionFields();
@@ -12127,7 +12019,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     if (!hasUnsavedBuilderWork()) return true;
     if (
       window.confirm(
-        "You have unsaved changes in the builder. Leave without saving? Use “Save Full Program” first to keep them."
+        t("coachDraftLeaveConfirm")
       )
     ) {
       resetBuilder();
@@ -12305,6 +12197,191 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
     selectedProgramExercises,
     programSessions,
   ]);
+
+  // Durable device drafts are separate from athlete logging and server saves.
+  // Loading happens after the roster is ready; it adds no startup API request.
+  const [coachDraftOwner, setCoachDraftOwner] = useState("");
+  const [coachDraftStatus, setCoachDraftStatus] = useState("");
+  const activeCoachDraft = useRef<{ id: string; revision: string | null } | null>(null);
+  const coachDraftSnapshot = useMemo(() => ({
+    builderMode,
+    programName,
+    programGoal,
+    programSport,
+    programLevel,
+    programPhase,
+    programCoach,
+    programDurationWeeks,
+    programSessionsPerWeek,
+    programProductType,
+    programBuiltForMode,
+    programBuiltForClient,
+    programBuiltForTeam,
+    programWeek,
+    programDay,
+    sessionName,
+    sessionNameCn,
+    sessionNotes,
+    sessionGoal,
+    sessionEstimatedDuration,
+    sessionType,
+    sessionIntensity,
+    pendingSectionName,
+    selectedProgramExercises,
+    programSessions,
+    editingProgramSessionId,
+    editingSessionTestTemplateId,
+    editProgramId,
+    editProgramRecordId,
+    mobileBuilderStep,
+    sessionEditorOpen,
+    oneOffAssignTarget,
+    oneOffSaveToLibrary,
+    calendarBuilderContext,
+    assignedSessionEdit,
+    returnClientId: oneOffReturnClientRef.current?.id || "",
+    sourceTemplates: builderSourceTemplatesRef.current,
+    clientWeekStartDate, clientMonthAnchorDate,
+  }), [
+    builderMode,
+    programName,
+    programGoal,
+    programSport,
+    programLevel,
+    programPhase,
+    programCoach,
+    programDurationWeeks,
+    programSessionsPerWeek,
+    programProductType,
+    programBuiltForMode,
+    programBuiltForClient,
+    programBuiltForTeam,
+    programWeek,
+    programDay,
+    sessionName,
+    sessionNameCn,
+    sessionNotes,
+    sessionGoal,
+    sessionEstimatedDuration,
+    sessionType,
+    sessionIntensity,
+    pendingSectionName,
+    selectedProgramExercises,
+    programSessions,
+    editingProgramSessionId,
+    editingSessionTestTemplateId,
+    editProgramId,
+    editProgramRecordId,
+    mobileBuilderStep,
+    sessionEditorOpen,
+    oneOffAssignTarget,
+    oneOffSaveToLibrary,
+    calendarBuilderContext,
+    assignedSessionEdit,
+    clientWeekStartDate, clientMonthAnchorDate,
+  ]);
+  type BuilderDraft = CoachDraft<typeof coachDraftSnapshot>;
+  const [coachDrafts, setCoachDrafts] = useState<BuilderDraft[]>([]);
+  useEffect(() => {
+    if (!coachBackgroundReady || isClientPortal) return;
+    let alive = true;
+    let identity: string;
+    try { identity = localStorage.getItem("nl_coach_key") || "local-coach"; }
+    catch { setCoachDraftStatus("unavailable"); return; }
+    void crypto.subtle.digest("SHA-256", new TextEncoder().encode(identity)).then(bytes => {
+      const owner = Array.from(new Uint8Array(bytes)).map(b => b.toString(16).padStart(2, "0")).join("");
+      if (alive) { setCoachDraftOwner(owner); setCoachDrafts(readCoachDrafts(owner)); }
+    }).catch(() => { if (alive) setCoachDraftStatus("unavailable"); });
+    return () => { alive = false; };
+  }, [coachBackgroundReady, isClientPortal]);
+  useEffect(() => {
+    if (!coachDraftOwner || !isCoachView || isClientPortal || workoutPageTab !== "Program Builder"
+      || !builderServerDirtyRef.current || (!programName.trim() && !programSessions.length && !selectedProgramExercises.length)) return;
+    const target = activeCoachDraft.current || { id: crypto.randomUUID(), revision: null };
+    activeCoachDraft.current = target;
+    const draft: BuilderDraft = { schema: 1, id: target.id, revision: crypto.randomUUID(),
+      title: [calendarBuilderContext?.clientName, programName || sessionName || t("coachDraftUntitled")].filter(Boolean).join(" · "),
+      updatedAt: Date.now(), snapshot: coachDraftSnapshot };
+    const result = writeCoachDraft(coachDraftOwner, draft, target.revision);
+    setCoachDraftStatus(result);
+    if (result === "saved") {
+      target.revision = draft.revision;
+      setCoachDrafts(current => [draft, ...current.filter(d => d.id !== draft.id)]);
+    }
+  }, [coachDraftSnapshot, coachDraftOwner, workoutPageTab, builderSaveStatus, isCoachView, isClientPortal]);
+  const clearActiveCoachDraft = () => {
+    const target = activeCoachDraft.current;
+    if (target?.revision) removeCoachDraft(coachDraftOwner, target.id, target.revision);
+    activeCoachDraft.current = null;
+    setCoachDraftStatus("");
+    setCoachDrafts(readCoachDrafts(coachDraftOwner));
+  };
+  const resumeCoachDraft = (id: string) => {
+    const draft = readCoachDrafts<typeof coachDraftSnapshot>(coachDraftOwner).find(d => d.id === id);
+    if (!draft || !confirmLeaveBuilder()) return;
+    const saved = draft.snapshot;
+    const client = saved.returnClientId ? clients.find(c => c.id === saved.returnClientId) : null;
+    if (saved.returnClientId && !client) { notify(t("coachDraftClientUnavailable"), "error"); return; }
+    activeCoachDraft.current = { id: draft.id, revision: draft.revision };
+    builderSourceTemplatesRef.current = saved.sourceTemplates || "";
+    oneOffReturnClientRef.current = client || null;
+    setBuilderMode(saved.builderMode);
+    setProgramName(saved.programName);
+    setProgramGoal(saved.programGoal);
+    setProgramSport(saved.programSport);
+    setProgramLevel(saved.programLevel);
+    setProgramPhase(saved.programPhase);
+    setProgramCoach(saved.programCoach);
+    setProgramDurationWeeks(saved.programDurationWeeks);
+    setProgramSessionsPerWeek(saved.programSessionsPerWeek);
+    setProgramProductType(saved.programProductType);
+    setProgramBuiltForMode(saved.programBuiltForMode);
+    setProgramBuiltForClient(saved.programBuiltForClient);
+    setProgramBuiltForTeam(saved.programBuiltForTeam);
+    setProgramWeek(saved.programWeek);
+    setProgramDay(saved.programDay);
+    setSessionName(saved.sessionName);
+    setSessionNameCn(saved.sessionNameCn);
+    setSessionNotes(saved.sessionNotes);
+    setSessionGoal(saved.sessionGoal);
+    setSessionEstimatedDuration(saved.sessionEstimatedDuration);
+    setSessionType(saved.sessionType);
+    setSessionIntensity(saved.sessionIntensity);
+    setPendingSectionName(saved.pendingSectionName);
+    setSelectedProgramExercises(saved.selectedProgramExercises);
+    setProgramSessions(saved.programSessions);
+    setEditingProgramSessionId(saved.editingProgramSessionId);
+    setEditingSessionTestTemplateId(saved.editingSessionTestTemplateId);
+    setEditProgramId(saved.editProgramId);
+    setEditProgramRecordId(saved.editProgramRecordId);
+    setMobileBuilderStep(saved.mobileBuilderStep);
+    setSessionEditorOpen(saved.sessionEditorOpen);
+    setOneOffAssignTarget(saved.oneOffAssignTarget);
+    setOneOffSaveToLibrary(saved.oneOffSaveToLibrary);
+    setCalendarBuilderContext(saved.calendarBuilderContext);
+    setAssignedSessionEdit(saved.assignedSessionEdit);
+    setClientWeekStartDate(saved.clientWeekStartDate);
+    setClientMonthAnchorDate(saved.clientMonthAnchorDate);
+    setSelectedClient(client || null);
+    setActivePage(client ? "Clients" : "Workouts");
+    if (client) setClientTab("Training");
+    setWorkoutPageTab("Program Builder");
+    setIsBuilderLibraryOpen(false);
+    setSessionSetupOpen(false);
+    resetExerciseIndexState();
+    justSavedRef.current = false;
+    builderServerDirtyRef.current = true;
+    setBuilderSaveStatus("dirty");
+    setCoachDraftStatus("saved");
+    notify(t("coachDraftRestored"));
+  };
+  const discardCoachDraft = (id: string) => {
+    const draft = coachDrafts.find(d => d.id === id);
+    if (draft && window.confirm(t("coachDraftDiscardConfirm"))) {
+      removeCoachDraft(coachDraftOwner, draft.id, draft.revision);
+      setCoachDrafts(readCoachDrafts(coachDraftOwner));
+    }
+  };
 
   const registerForProgram = async (
     program: Program,
@@ -19810,15 +19887,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
                               <div key={`${exercise.exerciseRecordId || exercise.exerciseName}-${index}`}>
                                 <strong>{exercise.exerciseName}</strong>
                                 <small>
-                                  {[exercise.sets && `${exercise.sets} ${t("sets")}`,
-                                    exercise.trackingFields?.includes("Time") && !exercise.trackingFields?.includes("Reps")
-                                      ? /[a-z秒]/i.test(glanceRepsToken(exercise)) ? glanceRepsToken(exercise) : t("builderDurationSeconds", { value: glanceRepsToken(exercise) })
-                                      : exercise.trackingFields?.includes("Distance") && !exercise.trackingFields?.includes("Reps")
-                                        ? glanceRepsToken(exercise)
-                                        : exercise.reps && `${exercise.reps} ${t("reps")}`,
-                                    exercise.isUnilateral && t("builderEachSide")]
-                                    .filter(Boolean)
-                                    .join(" · ")}
+                                  {exercisePrescription(exercise, i18n.language.startsWith("zh")).summary}
                                 </small>
                               </div>
                             ))}
@@ -20880,6 +20949,9 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
       </aside>
 
       <main className="main">
+        {isCoachView && !isClientPortal && !calendarBuilderContext && workoutPageTab !== "Program Builder" && (
+          <CoachDraftNotice drafts={coachDrafts} resume={resumeCoachDraft} discard={discardCoachDraft} />
+        )}
         <div className="toastStack">
           {toasts.map((toast) => (
             <div className={`toast toast-${toast.type}`} key={toast.id}>
@@ -21241,6 +21313,7 @@ function App({ onReady, bootVisible = true }: { onReady?: () => void; bootVisibl
                 builderModalListRef={builderModalListRef}
                 builderMode={builderMode}
                 builderSaveStatus={builderSaveStatus}
+                coachDraftStatus={coachDraftStatus}
                 builderSearch={builderSearch}
                 builderSectionOptions={builderSectionOptions}
                 bulkEditMode={bulkEditMode}

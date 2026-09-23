@@ -2,6 +2,8 @@
 
 23 September 2026 · NX LIMIT web release `10f5f27` · Audit and recommendations
 
+**Implementation update:** the four foundational changes in release A are implemented in the [23 September release receipt](mobile-coaching-release-a-2026-09-23.md). This audit's observations below describe the original baseline. Device-only drafts, shared-library propagation controls and physical-device verification have the limits recorded in that receipt; releases B–D remain planned.
+
 **Assessment:** NX LIMIT has a substantial coaching feature set. The remaining gap is the reliability and continuity of everyday coaching: finding the athlete who needs attention, understanding their results, changing the right session, replying, and returning to the queue. Several concrete defects should be fixed before another broad visual redesign.
 
 The design direction remains Kent's: the same coaching structure on desktop and phone, and the mini program as the reference for the athlete experience. Keep the existing brand and navigation. Improve the shared workflows and components.

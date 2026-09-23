@@ -645,6 +645,9 @@ data between them, never "borrow" a table ID across products.
     mounted and use CalendarWorkoutEditor over it, preserving date/view/scroll.
     Resolve the clicked workout's exact week/day before opening; never default
     to the first program session. Save/close returns to that athlete's calendar.
+    Calendar saves use `/api/assignedSession`: atomically fork a hidden session
+    version and repoint only that assignment. Keep the original template intact;
+    refuse stale versions and started/completed workouts. Never use library saves here.
     On phones, keep coach navigation inside the athlete workspace; render athlete
     tabs only in the athlete portal. Preview in a separate read-only surface with
     a return action, and block preview writes before they reach the API. Portal
@@ -677,8 +680,9 @@ data between them, never "borrow" a table ID across products.
     later edit. Rules: session identity is the calendar SLOT (week+day; see
     `upsertProgramSession` in appCore), the bulk endpoint keeps only the
     last session per slot, `replaceExisting` is ALWAYS on (a retry after a
-    timed-out-but-committed bulk must be idempotent), and before any
-    fallback loop the client asks the server whether rows already exist.
+    timed-out-but-committed bulk must be idempotent). A failed/ambiguous bulk
+    keeps the device draft; existing rows can be the OLD version and are never
+    proof of success. Do not fall back to a separate insert/delete loop.
     Diagnose duplicates from the minted ids first: one timestamp = one
     request sent the copies; two timestamps = two saves.
 

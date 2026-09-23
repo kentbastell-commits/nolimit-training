@@ -1,8 +1,9 @@
+import { useTranslation } from "react-i18next";
 // Extracted from App.tsx (monolith split) — JSX verbatim; props threaded.
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { X } from "lucide-react";
 import "./ProgramPreviewModal.css";
-import { getWorkoutColorClass, glanceRepsToken } from "./appCore";
+import { getWorkoutColorClass, glanceRepsToken, exercisePrescription } from "./appCore";
 
 export default function ProgramPreviewModal({
   buildGlanceChain,
@@ -10,6 +11,7 @@ export default function ProgramPreviewModal({
   previewProgram,
   setPreviewProgram,
 }: { [key: string]: any }) {
+  const { i18n } = useTranslation();
   return (
     <>
         <div
@@ -109,9 +111,7 @@ export default function ProgramPreviewModal({
                                       <strong>{it.ex.exerciseName}</strong>
                                       {(it.ex.sets || glanceRepsToken(it.ex)) && (
                                         <span>
-                                          {it.ex.sets && glanceRepsToken(it.ex)
-                                            ? `${it.ex.sets} x ${glanceRepsToken(it.ex)}`
-                                            : it.ex.sets || glanceRepsToken(it.ex)}
+                                          {exercisePrescription(it.ex, i18n.language.startsWith("zh")).summary}
                                         </span>
                                       )}
                                     </div>

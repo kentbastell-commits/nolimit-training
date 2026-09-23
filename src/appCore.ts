@@ -468,36 +468,49 @@ export const CATEGORY_PRESCRIPTION_DEFAULTS: Array<{
   },
 ];
 
-// Display token for the "reps" slot in glance rows (builder tooltips, detail
-// panel, previews): timed / distance exercises show their time or distance
-// instead of a misleading rep count like "1 x 10".
-export function glanceRepsToken(
-  ex: {
-    reps?: string;
-    trackingFields?: string[];
-    setPrescriptions?: { time?: string; distance?: string }[];
-    coachingNotes?: string;
-  },
-  zh = false
-): string {
-  let fields = Array.isArray(ex.trackingFields) ? ex.trackingFields : [];
-  let firstSet: { time?: string; distance?: string } | undefined =
-    ex.setPrescriptions?.[0];
-  if (!fields.length && ex.coachingNotes) {
-    const meta = parseExerciseNotes(ex.coachingNotes);
-    fields = meta.trackingFields || [];
-    firstSet = firstSet || meta.setPrescriptions?.[0];
-  }
-  if (fields.length && !fields.includes("Reps")) {
-    if (fields.includes("Time")) {
-      return String(firstSet?.time || "").trim() || (zh ? "计时" : "Time");
-    }
-    if (fields.includes("Distance")) {
-      const d = String(firstSet?.distance || "").trim();
-      return d ? `${d}m` : zh ? "距离" : "Distance";
-    }
-  }
-  return String(ex.reps || "");
+type PrescriptionSource = {
+  sets?: string | number;
+  reps?: string;
+  trackingType?: string;
+  trackingFields?: string[];
+  setPrescriptions?: { reps?: string; time?: string; distance?: string }[];
+  coachingNotes?: string;
+  notes?: string;
+  isUnilateral?: boolean;
+  groupType?: string;
+  groupName?: string;
+};
+
+// Structured sets take precedence over legacy reps and note metadata. Keep the
+// units and varying sets visible everywhere; never infer a prescription from prose.
+export function exercisePrescription(ex: PrescriptionSource, zh = false) {
+  const meta = parseExerciseNotes(ex.notes || ex.coachingNotes || "");
+  const fields = ex.trackingFields?.length ? ex.trackingFields : meta.trackingFields || [];
+  const tracking = ex.trackingType || meta.trackingType;
+  const mode = fields.length
+    ? fields.includes("Reps") ? "reps" : fields.includes("Time") ? "time" : fields.includes("Distance") ? "distance" : "reps"
+    : tracking === "Time" ? "time" : tracking === "Distance" ? "distance" : "reps";
+  const rows = ex.setPrescriptions?.length ? ex.setPrescriptions : meta.setPrescriptions || [];
+  const values = rows.length
+    ? rows.map(row => String(row[mode] || (mode === "reps" ? ex.reps : "") || "—").trim())
+    : [String(mode === "reps" ? ex.reps || "—" : "—").trim()];
+  const varying = values.some(value => value !== values[0]);
+  const unit = mode === "time" ? zh ? "秒" : "sec" : mode === "distance" ? zh ? "米" : "m" : zh ? "次" : "reps";
+  const withUnit = (value: string) => value === "—" || /[a-z秒米分次]/i.test(value) ? value : `${value} ${unit}`;
+  const value = varying
+    ? values.every(v => v === "—" || !/[a-z秒米分次]/i.test(v)) ? `${values.join(" / ")} ${unit}` : values.map(withUnit).join(" / ")
+    : withUnit(values[0]);
+  const eachSide = ex.isUnilateral ?? meta.isUnilateral;
+  const alreadyPerSide = /\/\s*side\b|per side|each side|每侧|\/\s*侧|／侧/i.test(value);
+  const target = value + (eachSide && !alreadyPerSide ? zh ? "／侧" : "/side" : "");
+  const circuit = (ex.groupType || meta.groupType) === "Circuit" && Boolean(ex.groupName || meta.groupName);
+  const sets = rows.length || Number(ex.sets) || 0;
+  const count = sets ? `${sets} ${circuit ? zh ? "轮" : "rounds" : zh ? "组" : "sets"}` : "";
+  return { mode, target, varying, sets, summary: [count, target].filter(Boolean).join(" · ") };
+}
+
+export function glanceRepsToken(ex: PrescriptionSource, zh = false): string {
+  return exercisePrescription(ex, zh).target;
 }
 
 export function categoryPrescriptionDefaults(category?: string) {

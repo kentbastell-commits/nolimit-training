@@ -44,6 +44,7 @@ export function isVerifiedCoach(req: { headers: Record<string, unknown> }): bool
 // a handler here "because the portal needs it", grep every real call site —
 // don't trust a prior comment's claim without re-verifying it.
 export const COACH_ONLY_HANDLERS = new Set([
+  "assignedSession",
   "analytics",
   "assignContent",
   "assignProgram",

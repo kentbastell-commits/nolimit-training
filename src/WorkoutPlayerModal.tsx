@@ -1,7 +1,7 @@
 // Extracted from App.tsx (monolith split) — JSX verbatim; props threaded.
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from "react";
-import { stripLocalizedExerciseMeta } from "./appCore";
+import { stripLocalizedExerciseMeta, exercisePrescription } from "./appCore";
 import "./WorkoutPlayerModal.css";
 import { Check, ChevronLeft, ChevronRight, ClipboardList, Clock3, Dumbbell, Film, HeartPulse, MessageSquare, MoreVertical, Play, RefreshCw, Shuffle, SquarePen, Target, Timer, Trash2, Trophy, Waves, X } from "lucide-react";
 import { getDisplayTaskStatus, isDirectMediaUrl, makeExerciseLabel, parseExerciseNotes, toMediaCdnUrl, uploadThumbUrl, videoThumbnail } from "./appCore";
@@ -260,8 +260,9 @@ export default function WorkoutPlayerModal({
                   {!isClientPortal && selectedWorkout.programId && (
                   <button
                     className="iconActionButton wpmBuilderBtn"
+                    disabled={selectedWorkout.completionStatus === "Completed" || Boolean(selectedWorkout.workoutLogs)}
                     onClick={() => openWorkoutProgramInBuilder(selectedWorkout)}
-                    title={t("editInBuilder")}
+                    title={t(selectedWorkout.completionStatus === "Completed" || selectedWorkout.workoutLogs ? "sessionAlreadyStarted" : "editInBuilder")}
                     aria-label={t("editInBuilder")}
                   >
                     <SquarePen size={16} aria-hidden="true" />
@@ -343,37 +344,7 @@ export default function WorkoutPlayerModal({
                         (!previousMeta ||
                           previousMeta.groupType !== "Circuit" ||
                           previousMeta.groupName !== meta.groupName);
-                      // Timed / distance exercises: "reps" is not what's
-                      // performed — show the prescribed time/distance token
-                      // instead of a misleading "1 x 10".
-                      const glanceFields = Array.isArray(meta.trackingFields)
-                        ? meta.trackingFields
-                        : [];
-                      const glanceFirstSet = meta.setPrescriptions?.[0];
-                      let repToken: string = exercise.reps || "";
-                      if (glanceFields.length && !glanceFields.includes("Reps")) {
-                        if (glanceFields.includes("Time")) {
-                          repToken =
-                            String(glanceFirstSet?.time || "").trim() ||
-                            (paceZh ? "计时" : "Time");
-                        } else if (glanceFields.includes("Distance")) {
-                          const d = String(glanceFirstSet?.distance || "").trim();
-                          repToken = d
-                            ? `${d}m`
-                            : paceZh
-                            ? "距离"
-                            : "Distance";
-                        }
-                      }
-                      const prescription = inCircuit
-                        ? repToken
-                          ? paceZh
-                            ? `每轮 ${repToken}`
-                            : `${repToken} / round`
-                          : t("forCompletion")
-                        : exercise.sets && repToken
-                          ? `${exercise.sets} x ${repToken}`
-                          : t("forCompletion");
+                      const prescription = exercisePrescription(exercise, paceZh).summary;
                       const accessoryLabel = meta.accessoryParentLabel
                         ? paceZh
                           ? `${meta.accessoryParentLabel} 的辅助动作`
@@ -1347,11 +1318,8 @@ export default function WorkoutPlayerModal({
                         </div>
 
                         {(() => {
-                          const exTracking = parseExerciseNotes(
-                            exercise.notes
-                          ).trackingType;
-                          const isCardioEx =
-                            exTracking === "Time" || exTracking === "Distance";
+                          const prescription = exercisePrescription(exercise, paceZh);
+                          const isCardioEx = prescription.mode !== "reps";
                           return (
                             <div className="workoutPrescriptionGrid">
                               <span>
@@ -1360,13 +1328,13 @@ export default function WorkoutPlayerModal({
                               </span>
                               <span>
                                 <strong>
-                                  {exTracking === "Time"
+                                  {prescription.mode === "time"
                                     ? t("time")
-                                    : exTracking === "Distance"
+                                    : prescription.mode === "distance"
                                       ? t("distance")
                                       : t("reps")}
                                 </strong>
-                                {exercise.reps || "--"}
+                                {prescription.target}
                               </span>
                               {!isCardioEx && exercise.tempo && (
                                 <span>

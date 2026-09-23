@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 // Program/Session detail + assign redesign (design-refs handoff bundle).
 // Full-screen overlay page: header + meta tiles + dark assign hero (with the
 // dates modal) + the at-a-glance exercise chains. Replaces the old slide-over
@@ -22,7 +23,7 @@ import {
   Zap,
   FileDown,
 } from "lucide-react";
-import { glanceRepsToken } from "./appCore";
+import { exercisePrescription } from "./appCore";
 
 // Focus (session type) → icon, matching the session library / client-mobile set.
 const focusIcon = (focus?: string) => {
@@ -116,6 +117,7 @@ export default function ProgramDetailPanel({
   savedProgramSessions,
   buildGlanceChain,
 }: { [key: string]: any }) {
+  const { i18n } = useTranslation();
   const p = selectedSavedProgram;
   const [modalOpen, setModalOpen] = useState(false);
   const [assigned, setAssigned] = useState(false);
@@ -243,8 +245,7 @@ export default function ProgramDetailPanel({
     const hex = it.customHex
       ? { bg: it.customHex, text: "#ffffff" }
       : sectionHex(it.colorClass);
-    const repTok = glanceRepsToken(it.ex);
-    const sets = it.ex.sets && repTok ? `${it.ex.sets} × ${repTok}` : it.ex.sets || repTok || "";
+    const sets = exercisePrescription(it.ex, i18n.language.startsWith("zh")).summary;
     return (
       <div className="pdpRow" key={`${it.ex.exerciseRecordId || it.display}-${it.ex.exerciseName}`}>
         <span

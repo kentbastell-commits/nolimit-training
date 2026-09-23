@@ -47,6 +47,22 @@ const baseProps = {
 };
 
 describe("ReviewPage", () => {
+  it("portals the check-in out of the animated queue, locks scroll and restores focus", () => {
+    render(<div className="app"><ReviewPage {...baseProps} clientLabel={(v: string) => v}
+      coachReviewCheckIns={[{ recordId: "C1", clientName: "Athlete" }]} /></div>);
+    const trigger = screen.getByRole("button", { name: "Review check-in from Athlete" });
+    trigger.focus(); fireEvent.click(trigger);
+    const dialog = screen.getByRole("dialog");
+    expect(dialog.closest(".rvPage")).toBeNull();
+    expect(dialog.closest(".app")).not.toBeNull();
+    expect(dialog).toHaveFocus();
+    expect(document.body.style.overflow).toBe("hidden");
+    fireEvent.keyDown(window, { key: "Tab", shiftKey: true });
+    expect(within(dialog).getByRole("button", { name: "Send reply" })).toHaveFocus();
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(document.body.style.overflow).not.toBe("hidden");
+    expect(trigger).toHaveFocus();
+  });
   it("reaches every submission beyond 18, with search and reviewed history", () => {
     const groups = Array.from({ length: 51 }, (_, i) => ({ key: `A${i}`, title: `Assessment ${i}`, responseType: "Questionnaire", answers: [{ clientId: "CL-1", reviewedAt: i === 50 ? 123 : null }] }));
     const open = vi.fn();

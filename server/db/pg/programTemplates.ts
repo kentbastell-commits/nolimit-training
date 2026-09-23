@@ -460,7 +460,7 @@ export async function createWorkoutTemplatesBulk(input: {
   // a fresh copy while both deleted only the ORIGINAL rows — PR-1759 live).
   replaceExisting?: boolean;
   sessions: Array<Omit<CreateWorkoutTemplateInput, "programId" | "programRecordId">>;
-}): Promise<HandlerResult> {
+}, writer: typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0] = db): Promise<HandlerResult> {
   const { programRecordId } = input;
   // One session per calendar day. If the client sends the same week/day
   // twice (a stale committed copy plus the live edit — PR-4418, 2026-09-19),
@@ -491,7 +491,7 @@ export async function createWorkoutTemplatesBulk(input: {
   const known = new Set(
     codes.length
       ? (
-          await db
+          await writer
             .select({ id: exercises.exerciseId })
             .from(exercises)
             .where(inArray(exercises.exerciseId, codes))
@@ -592,7 +592,7 @@ export async function createWorkoutTemplatesBulk(input: {
 
   try {
     if (input.replaceExisting) {
-      await db.transaction(async (tx) => {
+      await writer.transaction(async (tx) => {
         await tx
           .delete(workoutTemplates)
           .where(eq(workoutTemplates.programId, programRecordId));
@@ -636,7 +636,7 @@ export async function createWorkoutTemplatesBulk(input: {
         }
       });
     } else {
-      await db.insert(workoutTemplates).values(templateRows);
+      await writer.insert(workoutTemplates).values(templateRows);
     }
   } catch (e: any) {
     return {
@@ -648,7 +648,7 @@ export async function createWorkoutTemplatesBulk(input: {
     };
   }
 
-  fillTemplateTranslations(templateRows);
+  if (writer === db) fillTemplateTranslations(templateRows);
 
   await extendKnownWithAlternates(known, metas);
   const setRows: (typeof setPrescriptions.$inferInsert)[] = [];
@@ -692,17 +692,19 @@ export async function createWorkoutTemplatesBulk(input: {
   const childWrites: Record<string, any> = {};
   if (setRows.length > 0) {
     try {
-      await db.insert(setPrescriptions).values(setRows);
+      await writer.insert(setPrescriptions).values(setRows);
       childWrites.setPrescriptions = { created: setRows.length, errors: [] };
     } catch (e: any) {
+      if (writer !== db) throw e;
       childWrites.setPrescriptions = { created: 0, errors: [{ message: e?.message || String(e) }] };
     }
   }
   if (altRows.length > 0) {
     try {
-      await db.insert(exerciseAlternates).values(altRows);
+      await writer.insert(exerciseAlternates).values(altRows);
       childWrites.alternates = { created: altRows.length, errors: [] };
     } catch (e: any) {
+      if (writer !== db) throw e;
       childWrites.alternates = { created: 0, errors: [{ message: e?.message || String(e) }] };
     }
   }
