@@ -4054,6 +4054,55 @@
 .app:not(.clientPortalApp) .focusedExerciseEditor .builderModalExerciseList { max-height: none !important; padding: 0 0 12px !important; }
 .app:not(.clientPortalApp) .focusedExerciseEditor .builderLibraryPreview h2 { font-size: 28px !important; }
 .builderCircuitDetails { width: 100%; margin: 8px 0; }
+.builderMobileLibraryHeader,.builderMobileLibraryFooter,.builderMobileOrderButtons { display: none; }
+@media (max-width: 720px) {
+  /* Beat the legacy desktop !important columns for every library entry path,
+     including calendar edits where useMobileWorkoutRows is intentionally false. */
+  .app:not(.clientPortalApp) .builderLibraryDrawer:not(.focusedExerciseEditor) {
+    display: grid; grid-template-columns: minmax(0,1fr) !important;
+    grid-template-rows: auto minmax(0,1fr) auto !important;
+    width: calc(100vw - 16px) !important; height: calc(100dvh - 16px) !important;
+    min-width: 0; overflow: hidden;
+  }
+  .builderMobileLibraryHeader { display: block; padding: 12px; border-bottom: 1px solid #ddd8cc; }
+  .builderMobileLibraryHeader > div { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .builderMobileLibraryHeader > div > strong { font-size:18px; }
+  .builderMobileLibraryHeader button { min-height:44px; border:0; background:transparent; color:#24251f; font:inherit; cursor:pointer; }
+  .builderMobileLibraryHeader > div > button { min-width:44px; }
+  .builderMobileLibraryHeader nav { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:4px; }
+  .builderMobileLibraryHeader nav button { padding:8px 2px; font-size:12px; border-radius:8px; }
+  .builderMobileLibraryHeader nav button[aria-pressed=true] { background:#24251f; color:#f0dc88; font-weight:750; }
+  .builderMobileLibraryHeader nav button:disabled { opacity:.4; }
+  .app:not(.clientPortalApp) .builderLibraryDrawer:not(.focusedExerciseEditor) > .builderLibraryDrawerSide,
+  .app:not(.clientPortalApp) .builderLibraryDrawer:not(.focusedExerciseEditor) > .builderLibraryPreview,
+  .app:not(.clientPortalApp) .builderLibraryDrawer:not(.focusedExerciseEditor) > .builderModalOrderSidebar { display:none !important; min-width:0; min-height:0; }
+  .app:not(.clientPortalApp) .builderLibraryDrawer.mobileLibrary-exercises:not(.focusedExerciseEditor) > .builderLibraryDrawerSide { display:flex !important; grid-row:2; overflow:hidden; }
+  .builderLibraryDrawer:not(.focusedExerciseEditor) .builderDrawerTabs { display:none; }
+  .app:not(.clientPortalApp) .builderLibraryDrawer.mobileLibrary-sections:not(.focusedExerciseEditor) > .builderLibraryPreview,
+  .app:not(.clientPortalApp) .builderLibraryDrawer.mobileLibrary-session:not(.focusedExerciseEditor) > .builderLibraryPreview { display:flex !important; grid-row:2; padding:16px !important; overflow:auto; width:100%; box-sizing:border-box; }
+  .builderLibraryDrawer:not(.focusedExerciseEditor) .builderDrawerClose,
+  .builderLibraryDrawer:not(.focusedExerciseEditor) .builderDrawerFooter { display:none !important; }
+  .app:not(.clientPortalApp) .builderLibraryDrawer:not(.focusedExerciseEditor) .builderPreviewTitleRow { padding-right:0 !important; flex-wrap:wrap; }
+  .app:not(.clientPortalApp) .builderLibraryDrawer:not(.focusedExerciseEditor) .builderPreviewTitleRow h2 { font-size:24px !important; min-width:0; overflow-wrap:anywhere; }
+  .app:not(.clientPortalApp) .builderLibraryDrawer:not(.focusedExerciseEditor) .builderOrderToggle { display:none !important; }
+  .builderLibraryDrawer:not(.focusedExerciseEditor) .builderSectionPickerInline { max-height:none; flex-shrink:0; overflow:visible; border:0; padding:0; background:transparent; }
+  .builderLibraryDrawer:not(.focusedExerciseEditor) .builderSectionPickerInline .builderSectionOptionGrid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .builderLibraryDrawer:not(.focusedExerciseEditor) .builderSectionOptionGrid button { min-height:52px; padding:12px 8px; font-size:14px; }
+  .builderLibraryDrawer.mobileLibrary-sections:not(.focusedExerciseEditor) .builderDropHint { display:none !important; }
+  .app:not(.clientPortalApp) .builderLibraryDrawer.mobileLibrary-session:not(.focusedExerciseEditor) .builderDropHint { display:block; overflow:visible; min-height:0 !important; padding:0; border:0; flex:none; }
+  .app:not(.clientPortalApp) .builderLibraryDrawer:not(.focusedExerciseEditor) .builderModalExerciseList { max-height:none !important; overflow:visible; padding:0 !important; }
+  .app:not(.clientPortalApp) .builderLibraryDrawer:not(.focusedExerciseEditor) .builderModalEditGrid { grid-template-columns:repeat(2,minmax(0,1fr)) !important; }
+  .builderLibraryDrawer:not(.focusedExerciseEditor) .builderModalExerciseHeader { flex-wrap:wrap; }
+  .builderLibraryDrawer:not(.focusedExerciseEditor) .builderModalExerciseEditor { min-width:0; }
+  .builderLibraryDrawer:not(.focusedExerciseEditor) .builderSetPrescriptionBlock { min-width:0; max-width:100%; }
+  .app:not(.clientPortalApp) .builderLibraryDrawer.mobileLibrary-order:not(.focusedExerciseEditor) > .builderModalOrderSidebar { display:block !important; grid-row:2; padding:16px; overflow:auto; }
+  .builderMobileOrderButtons { display:flex; gap:4px; }
+  .builderMobileOrderButtons button { min-width:40px; min-height:44px; border:1px solid #ddd8cc; border-radius:8px; background:#fff; }
+  .builderMobileOrderButtons button:disabled { opacity:.4; }
+  .builderLibraryDrawer .builderSidebarItemStack { min-width:0; overflow-wrap:anywhere; }
+  .builderMobileLibraryFooter { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px; padding-bottom:max(12px,env(safe-area-inset-bottom)); border-top:1px solid #ddd8cc; background:#fffdf8; font-size:12px; }
+  .builderMobileLibraryFooter button { min-height:44px; }
+}
 .builderCircuitDetails > summary { cursor: pointer; font-size: 12px; font-weight: 700; padding: 8px 0; }
 @media (max-width: 720px) {
   .app:not(.clientPortalApp) .focusedExerciseEditor .builderLibraryPreview { padding: 16px !important; }

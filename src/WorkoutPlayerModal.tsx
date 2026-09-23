@@ -6,6 +6,7 @@ import "./WorkoutPlayerModal.css";
 import { Check, ChevronLeft, ChevronRight, ClipboardList, Clock3, Dumbbell, Film, HeartPulse, MessageSquare, MoreVertical, Play, RefreshCw, Shuffle, SquarePen, Target, Timer, Trash2, Trophy, Waves, X } from "lucide-react";
 import { getDisplayTaskStatus, isDirectMediaUrl, makeExerciseLabel, parseExerciseNotes, toMediaCdnUrl, uploadThumbUrl, videoThumbnail } from "./appCore";
 import ContentWatermark from "./ContentWatermark";
+import WorkoutNotes from "./WorkoutNotes";
 
 // Category → colourful icon for the player header (mirrors PortalHome).
 const CAT_ICON: Record<string, any> = {
@@ -313,10 +314,7 @@ export default function WorkoutPlayerModal({
                     {/* Session-level coach notes (from the builder's Session
                         Notes) — shown to the athlete above the exercise list. */}
                     {selectedWorkout?.coachNotes?.trim() && (
-                      <div className="workoutCoachNotesBanner">
-                        <strong>{paceZh ? "教练提示" : "Coach notes"}</strong>
-                        <p>{i18n.language === "zh" ? selectedWorkout.coachNotesCn || selectedWorkout.coachNotes : selectedWorkout.coachNotes}</p>
-                      </div>
+                      <WorkoutNotes key={selectedWorkout.id} title={t("workoutSessionInstructions")} notes={i18n.language.startsWith("zh") ? selectedWorkout.coachNotesCn || selectedWorkout.coachNotes : selectedWorkout.coachNotes} />
                     )}
                     {isClientPortal && !workoutLoggingStarted && (
                       <p className="workoutGlanceIntro">
@@ -345,6 +343,7 @@ export default function WorkoutPlayerModal({
                           previousMeta.groupType !== "Circuit" ||
                           previousMeta.groupName !== meta.groupName);
                       const prescription = exercisePrescription(exercise, paceZh).summary;
+                      const circuitRounds = isCircuitStart ? Math.max(1, ...getWorkoutGroupIndexes(index).map((i: number) => exercisePrescription(workoutDetails[i], paceZh).sets)) : 0;
                       const accessoryLabel = meta.accessoryParentLabel
                         ? paceZh
                           ? `${meta.accessoryParentLabel} 的辅助动作`
@@ -383,8 +382,8 @@ export default function WorkoutPlayerModal({
                                     ? `${meta.groupMode} · ${meta.groupMinutes || "12"} 分钟`
                                     : `${meta.groupMode} · ${meta.groupMinutes || "12"} min`
                                   : paceZh
-                                    ? `循环 · ${exercise.sets || "3"} 轮`
-                                    : `Circuit · ${exercise.sets || "3"} rounds`}
+                                    ? `循环 · ${circuitRounds} 轮`
+                                    : `Circuit · ${circuitRounds} rounds`}
                               </span>
                             </div>
                           )}
@@ -1324,7 +1323,7 @@ export default function WorkoutPlayerModal({
                             <div className="workoutPrescriptionGrid">
                               <span>
                                 <strong>{t("sets")}</strong>
-                                {exercise.sets || "--"}
+                                {prescription.sets || "--"}
                               </span>
                               <span>
                                 <strong>
@@ -1353,7 +1352,7 @@ export default function WorkoutPlayerModal({
                         })()}
 
                         {coachingNotes && (
-                          <p className="workoutCoachNotes">{coachingNotes}</p>
+                          <WorkoutNotes key={exercise.id} title={t("workoutSetupExecution")} notes={coachingNotes} />
                         )}
 
                         <div className="setLogHeader">

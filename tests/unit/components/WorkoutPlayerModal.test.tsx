@@ -144,6 +144,25 @@ describe("WorkoutPlayerModal", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("keeps long session and technique notes collapsed and uses structured circuit rounds", () => {
+    const notes = "Setup\nLie on your back.\n\nExecution\nCurl your pelvis slowly.";
+    const { container } = render(<WorkoutPlayerModal {...baseProps} detailsLoading={false}
+      selectedWorkout={{ ...selectedWorkout, coachNotes: "Complete the prescribed rounds with control." }}
+      getWorkoutGroupRoundCount={() => 7} getWorkoutGroupIndexes={() => [0]}
+      workoutDetails={[{ id: "hold", exerciseId: "EX-HOLD", exerciseName: "Hollow Hold", sets: "9", reps: "10", rest: "45",
+        notes: `Tracking: Weight\nFields: Time\nCircuit: A\n${notes}`,
+        setPrescriptions: [{ setNumber: 1, time: "30" }, { setNumber: 2, time: "45" }] }]} />);
+    const disclosures = container.querySelectorAll(".workoutNotesDisclosure");
+    expect(disclosures.length).toBe(2);
+    disclosures.forEach(item => expect(item).not.toHaveAttribute("open"));
+    expect(screen.getByText("Session notes")).toBeInTheDocument();
+    expect(screen.getByText("Setup & execution")).toBeInTheDocument();
+    expect(container.querySelector(".workoutNotesContent h4")?.textContent).toBe("Setup");
+    expect(container.querySelectorAll(".workoutNotesContent h4")[1]?.textContent).toBe("Execution");
+    expect(screen.getByText("Circuit · 2 rounds")).toBeInTheDocument();
+    expect(container.querySelector(".workoutPrescriptionGrid")?.textContent).not.toContain("9");
+  });
+
   it("keeps the screen awake for a live client player and releases on close", async () => {
     const release = vi.fn(async () => undefined);
     const request = vi.fn(async () => ({ release, released: false }));

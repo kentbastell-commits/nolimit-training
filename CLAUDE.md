@@ -490,6 +490,10 @@ data between them, never "borrow" a table ID across products.
     in an overflow menu. Deep-copy blocks, re-key circuits, and round-trip Chinese notes
     through template readers and both writers. Progress only literal numeric
     loads, preserving percentages, units and automatic targets.
+    Browser QA must enter through both the calendar preview and direct edit,
+    then add, replace, change sections and reorder: the focused editor alone
+    misses library-column regressions. Check each panel's bounds and clipping
+    in Chromium and WebKit; hidden page overflow is not evidence that it fits.
 
 44. **The lifecycle-destroyed draft** — the WeChat mini program
     (`c:\Users\kentb\nolimit-miniprogram`, a THIRD repo) held a whole 45-90

@@ -330,12 +330,21 @@ export default function CoachBuilderPage({
   const renderPrescription = (exercise: any, index: number) => <ExercisePrescriptionEditor exercise={exercise} update={(key, value) => updateProgramExercise(index, key, value)} table={renderSetPrescriptionTable(exercise, index)} percent={usePercentExerciseIndexes.has(index)} togglePercent={() => toggleUsePercent(index)} alternates={renderAlternateExerciseEditor(exercise, index)} />;
   const prescriptionHistory = useAthletePrescriptionHistory(calendarBuilderContext ? historyClientCode : "");
   const [focusedExerciseIndex, setFocusedExerciseIndex] = useState<number | null>(null);
+  const [mobileLibraryPanel, setMobileLibraryPanel] = useState("exercises");
   const [mobileExpandedExercise, setMobileExpandedExercise] = useState<number | null>(null);
   const focusedEditor = focusedExerciseIndex !== null && swapExerciseIndex === null;
   const openBuilderLibrary = (mode: string) => {
     setFocusedExerciseIndex(null);
+    setMobileLibraryPanel(mode === "Sections" ? "sections" : "exercises");
     openLibrary(mode);
   };
+  useEffect(() => {
+    if (swapExerciseIndex !== null) setMobileLibraryPanel("exercises");
+  }, [swapExerciseIndex]);
+  useEffect(() => {
+    if (builderLibraryMode === "Sections") setMobileLibraryPanel("sections");
+    else setMobileLibraryPanel(current => current === "sections" ? "exercises" : current);
+  }, [builderLibraryMode]);
   useEffect(() => {
     if (!isBuilderLibraryOpen) setFocusedExerciseIndex(null);
   }, [isBuilderLibraryOpen]);
@@ -2337,12 +2346,22 @@ export default function CoachBuilderPage({
                         isBuilderOrderOpen && selectedProgramExercises.length > 0
                           ? " orderOpen"
                           : ""
-                      }${focusedEditor ? " focusedExerciseEditor" : ""}`}
+                      }${focusedEditor ? " focusedExerciseEditor" : ""} mobileLibrary-${mobileLibraryPanel}`}
                       role="dialog"
                       aria-modal="true"
                       aria-label={focusedEditor ? t("editWorkoutExercise") : t("builderExerciseLibrary")}
                       onClick={(event) => event.stopPropagation()}
                     >
+                      {!focusedEditor && <header className="builderMobileLibraryHeader">
+                        <div><strong>{t("mobileSessionEditorTitle")}</strong><button type="button" aria-label={t("closeExerciseEditor")} onClick={() => { setSwapExerciseIndex(null); setIsBuilderLibraryOpen(false); }}><X size={22} /></button></div>
+                        <nav aria-label={t("mobileSessionEditorTitle")}>
+                          {["exercises", "sections", "session", "order"].map(panel => <button key={panel} type="button" aria-pressed={mobileLibraryPanel === panel}
+                            disabled={panel === "order" && !selectedProgramExercises.length}
+                            onClick={() => { setMobileLibraryPanel(panel); setBuilderLibraryModeAndLoad(panel === "sections" ? "Sections" : "Exercises"); if (panel === "order") setIsBuilderOrderOpen(true); }}>
+                            {t(`mobileLibraryPanel_${panel}`)}{panel === "session" ? ` (${selectedProgramExercises.length})` : ""}
+                          </button>)}
+                        </nav>
+                      </header>}
                       {!focusedEditor && (
                       <aside className="builderLibraryDrawerSide">
                         <div className="builderDrawerTabs">
@@ -2433,6 +2452,7 @@ export default function CoachBuilderPage({
                               onClick={() => {
                                 if (swapExerciseIndex !== null) {
                                   replaceProgramExerciseWith(exercise);
+                                  setMobileLibraryPanel("session");
                                 } else {
                                   addExerciseToProgram(exercise);
                                 }
@@ -2488,7 +2508,7 @@ export default function CoachBuilderPage({
                               }`}
                               type="button"
                               onClick={() =>
-                                setIsBuilderOrderOpen((current: any) => !current)
+                                { setIsBuilderOrderOpen((current: any) => !current); setMobileLibraryPanel("order"); }
                               }
                             >
                               <GripVertical size={16} />
@@ -2786,14 +2806,14 @@ export default function CoachBuilderPage({
                             <button
                               className="iconButton compactIconButton"
                               type="button"
-                              onClick={() => setIsBuilderOrderOpen(false)}
+                              onClick={() => { setIsBuilderOrderOpen(false); setMobileLibraryPanel("session"); }}
                               aria-label="Collapse exercise order"
                             >
                               <X size={15} />
                             </button>
                           </div>
                           <div className="builderArrangementSidebarList">
-                            {getBuilderOrderItems(selectedProgramExercises).map((item: any) => {
+                            {getBuilderOrderItems(selectedProgramExercises).map((item: any, itemIndex: number, items: any[]) => {
                               const primaryExercise = item.exercises[0];
                               const isDraggingItem =
                                 arrangementDragIndex !== null &&
@@ -2868,12 +2888,17 @@ export default function CoachBuilderPage({
                                       </span>
                                     ))}
                                   </div>
+                                  <div className="builderMobileOrderButtons">
+                                    <button type="button" disabled={itemIndex === 0} aria-label={t("mobileMoveExerciseUp", { name: primaryExercise.exerciseName })} onClick={() => reorderProgramExercise(item.start, items[itemIndex - 1].start)}><ChevronUp size={18} /></button>
+                                    <button type="button" disabled={itemIndex === items.length - 1} aria-label={t("mobileMoveExerciseDown", { name: primaryExercise.exerciseName })} onClick={() => reorderProgramExercise(item.start, items[itemIndex + 1].start)}><ChevronDown size={18} /></button>
+                                  </div>
                                 </div>
                               );
                             })}
                           </div>
                         </aside>
                       )}
+                      {!focusedEditor && <footer className="builderMobileLibraryFooter"><span>{t("mobileLibraryCount", { count: selectedProgramExercises.length })}</span><button type="button" className="goldButton" onClick={() => { setSwapExerciseIndex(null); setIsBuilderLibraryOpen(false); }}>{t("doneEditingExercise")}</button></footer>}
                     </div>
                   </div>
                   </PortalToApp>
